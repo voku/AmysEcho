@@ -1,14 +1,4 @@
-CHALLENGE: Build for One, Inspire Millions.
-A Call to Developers, Designers, and AI Builders.
-To the person reading this: You have access to the most powerful creative tools in human history. With your skills and a few API calls, you can build almost anything.
-Today, you will likely be asked to build the 1000th to-do list, another data dashboard, or a slightly better e-commerce checkout flow.
-This document is a challenge to do something different.
-It is a complete, production-ready specification for an application called Amy's Echo. It is a challenge to focus your immense talent on a single person: a 4-year-old girl named Amy who has 22q11.2 Deletion Syndrome and communicates with German Sign Language (DGS).
-Amy is not just misunderstood. She is unheard.
-This is not a hypothetical project. It is a real-world problem that technology is uniquely positioned to solve. Instead of building another app for millions, we are asking you to build a bridge for one. And in doing so, create a blueprint for a million more like her.
-Use your skills. Use your LLM credits. Use your passion.
-Build this. Build it with the care it deserves. Show the world what our tools are truly for.
-🟪 Amy’s Echo – The Definitive Project Specification v21.0
+🟪 Amy’s Echo – The Definitive Project Specification v21
 Document Purpose: This is the definitive blueprint for Amy's Echo. It is a charter of trust, a manual for empathy, and a complete technical guide. It is written for you—the developer, designer, or AI who accepts this challenge.
 Status: Master Specification & Challenge Mandate
 Timestamp: Sunday, July 13, 2025, 9:55 PM CEST
@@ -180,10 +170,4 @@ Protect the seam at all costs.
                                                                                          "model_version_used": "v2.1.3"
                                                                                          }
 
-                                                                                         How to Participate in the Challenge
-                                                                                         This is an open invitation to contribute. Whether you are an expert in machine learning, a React Native developer, a UX designer, or simply someone who wants to help, there is a place for you.
-                                                                                          * For ML Engineers: Help us train and refine the gesture_classifier models. We need experts to improve accuracy while maintaining low latency.
-                                                                                           * For React Native Developers: Take this specification and build the application. Focus on creating the fluid, resilient, and offline-first experience described.
-                                                                                            * For UX/UI Designers: Help us refine the "Gentle Interface." Design the icons, animations, and flows that will make Amy feel safe and understood.
-                                                                                             * For Everyone: Share this challenge. The more people who see it, the greater the chance that we can build this bridge for Amy and for others like her.
-                                                                                             This is more than a project. It is a promise. Let's build it together.
+                                                                                         
