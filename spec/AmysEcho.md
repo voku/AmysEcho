@@ -10,7 +10,7 @@ Introduction – A Bridge for One
 “Don’t optimize for millions. Build for one. But do it well enough that millions could follow.”
 
 Why This Document Exists
-This document outlines a system designed to build a bridge for a 4-year-old girl named Amy. She was born with 22q11 Deletion Syndrome and communicates using DGS (German Sign Language). Her world of expression is rich, but the bridge between her intent and the world's understanding is fragile. Most people around her—daycare teachers, strangers, even family—don’t understand her signs.
+This document outlines a system designed to build a bridge for a 4-year-old girl named Amy. She was born with 22q11 Deletion Syndrome and communicates using DGS (German Sign Language). Her world of expression is rich, but the bridge between her intent and the world's understanding is fragile. Most people around her: the people in the kindergarten, strangers, even family—don’t understand her signs.
 Every decision herein serves one goal:
 Turn Amy’s gesture into understanding. Every time.
 
