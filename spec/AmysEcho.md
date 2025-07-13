@@ -9,10 +9,23 @@ Location: Voerde, North Rhine-Westphalia, Germany
 Introduction – A Bridge for One
 “Don’t optimize for millions. Build for one. But do it well enough that millions could follow.”
 
-Why This Document Exists
-This document outlines a system designed to build a bridge for a 4-year-old girl named Amy. She was born with 22q11 Deletion Syndrome and communicates using DGS (German Sign Language). Her world of expression is rich, but the bridge between her intent and the world's understanding is fragile. Most people around her: the people in the kindergarten, strangers, even family—don’t understand her signs.
+---
+
+❤️ Why This Project Exists
+
+This project is for my daughter, Amy.
+
+She’s four years old. She was born with 22q11 Deletion Syndrome. She communicates using German Sign Language (DGS) — in her own way, with incredible expression, creativity, and determination. But the world around her doesn't understand her. Not the strangers. Not the people in kindergarten. Sometimes, not even us — her own family.
+
+Some signs are simply too complex for her. She signs “brother” when she means “sister.” She tries to speak, but can’t yet form sounds that require pressure — like “p” or “b” — because her soft palate is underdeveloped, as is common with her condition.
+
+This repository is my attempt to build that bridge.
+Not for millions.
+Not for the App Store.
+Just for one little girl — so she can be heard, understood, and supported.
+
 Every decision herein serves one goal:
-Turn Amy’s gesture into understanding. Every time.
+Turn Amy’s gesture (maybe even the sounds at some point) into understanding. Every time.
 
 Where We Start (Amy’s Current Reality)
 | Factor | Reality |
