@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import { saveTrainingSample } from '../storage';
 import { gestureModel } from '../model';
+import { useAccessibility } from '../components/AccessibilityContext';
 
 function captureDummyLandmarks() {
   return Array.from({ length: 21 }, () => [
@@ -12,6 +13,7 @@ function captureDummyLandmarks() {
 }
 
 export default function TrainingScreen({ navigation }: any) {
+  const { largeText, highContrast } = useAccessibility();
   const [gestureId, setGestureId] = useState<string | null>(null);
   const [count, setCount] = useState(0);
 
@@ -25,6 +27,20 @@ export default function TrainingScreen({ navigation }: any) {
   const handleFinish = () => {
     navigation.goBack();
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: highContrast ? '#000' : '#fff',
+    },
+    title: {
+      fontSize: largeText ? 24 : 20,
+      marginBottom: 20,
+      color: highContrast ? '#fff' : '#000',
+    },
+  });
 
   return (
     <View style={styles.container}>
@@ -44,8 +60,3 @@ export default function TrainingScreen({ navigation }: any) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 20, marginBottom: 20 },
-});

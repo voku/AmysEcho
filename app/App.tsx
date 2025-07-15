@@ -8,17 +8,29 @@ import CorrectionScreen from './src/screens/CorrectionScreen';
 import TrainingScreen from './src/screens/TrainingScreen';
 import { loadProfile } from './src/storage';
 import { setActiveVocabularySet } from './src/model';
+import {
+  AccessibilityContext,
+  AccessibilitySettings,
+} from './src/components/AccessibilityContext';
 
 const Stack = createStackNavigator();
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const [accessibility, setAccessibility] = useState<AccessibilitySettings>({
+    largeText: false,
+    highContrast: false,
+  });
 
   useEffect(() => {
     async function init() {
       const profile = await loadProfile();
       if (profile) {
         setActiveVocabularySet(profile.vocabularySetId);
+        setAccessibility({
+          largeText: !!profile.largeText,
+          highContrast: !!profile.highContrast,
+        });
         setInitialRoute('Recognition');
       } else {
         setInitialRoute('Onboarding');
@@ -32,16 +44,18 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName={initialRoute as any}
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="Recognition" component={RecognitionScreen} />
-        <Stack.Screen name="Correction" component={CorrectionScreen} />
-        <Stack.Screen name="Training" component={TrainingScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <AccessibilityContext.Provider value={accessibility}>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName={initialRoute as any}
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Recognition" component={RecognitionScreen} />
+          <Stack.Screen name="Correction" component={CorrectionScreen} />
+          <Stack.Screen name="Training" component={TrainingScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </AccessibilityContext.Provider>
   );
 }

@@ -92,8 +92,8 @@ The next stages follow the broad implementation plan in the project spec.
   - [x] Surface adaptive suggestions from the dialog engine
   - [x] Add caregiver override actions in the CorrectionPanel
 - **Phase 3 – Refine and Polish**
-  - [ ] Improve UI layout and feedback animations
-  - [ ] Implement accessibility options like larger fonts and high contrast
+  - [x] Improve UI layout and feedback animations
+  - [x] Implement accessibility options like larger fonts and high contrast
   - [ ] Support optional DGS video playback for symbols
 - **Phase 4 – Advanced Features & Deployment**
   - [ ] Connect to an LLM for dynamic suggestions with privacy controls

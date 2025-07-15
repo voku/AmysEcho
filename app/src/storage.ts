@@ -5,6 +5,8 @@ export interface Profile {
   consentDataUpload: boolean;
   consentHelpMeGetSmarter: boolean;
   vocabularySetId: string;
+  largeText?: boolean;
+  highContrast?: boolean;
 }
 
 const PROFILE_KEY = 'profile';
@@ -32,6 +34,8 @@ export async function loadProfile(): Promise<Profile | null> {
     consentDataUpload: !!parsed.consentDataUpload,
     consentHelpMeGetSmarter: !!parsed.consentHelpMeGetSmarter,
     vocabularySetId: parsed.vocabularySetId || 'basic',
+    largeText: !!parsed.largeText,
+    highContrast: !!parsed.highContrast,
   };
 }
 

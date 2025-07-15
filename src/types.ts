@@ -44,6 +44,8 @@ export interface Profile {
   consentDataUpload: boolean;
   consentHelpMeGetSmarter: boolean;
   vocabularySetId: string;
+  largeText?: boolean;
+  highContrast?: boolean;
 }
 
 export interface LearningAnalytics {
