@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, Switch, Button, StyleSheet } from 'react-native';
+import { saveProfile, Profile } from '../storage';
 
 export default function OnboardingScreen({ navigation }: any) {
   const [consentDataUpload, setConsentDataUpload] = useState(false);
   const [consentHelpMeGetSmarter, setConsentHelpMeGetSmarter] = useState(false);
 
-  const handleContinue = () => {
-    // TODO: Persist consents to local profile store
+  const handleContinue = async () => {
+    const profile: Profile = {
+      id: 'default',
+      consentDataUpload,
+      consentHelpMeGetSmarter,
+    };
+    await saveProfile(profile);
     navigation.replace('Recognition');
   };
 

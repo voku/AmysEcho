@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
+import { logCorrection } from '../storage';
 
 export default function CorrectionScreen({ navigation }: any) {
-  const handleSelect = (choice: string) => {
-    // TODO: log correction and update training data
+  const handleSelect = async (choice: string) => {
+    await logCorrection(choice);
     navigation.goBack();
   };
 
