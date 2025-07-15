@@ -1,0 +1,20 @@
+{
+  "name": "amysecho",
+  "version": "1.0.0",
+  "description": "Gesture to voice translator for Amy",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run build && node dist/test/db.test.js",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14"
+  }
+}

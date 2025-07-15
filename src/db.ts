@@ -1,0 +1,184 @@
+import {
+  SymbolRecord,
+  GestureDefinition,
+  GestureTrainingData,
+  InteractionLog,
+  Profile,
+  LearningAnalytics,
+} from './types';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+export interface Database {
+  symbols: SymbolRecord[];
+  gestureDefinitions: GestureDefinition[];
+  gestureTrainingData: GestureTrainingData[];
+  interactionLogs: InteractionLog[];
+  profiles: Profile[];
+  learningAnalytics: LearningAnalytics[];
+}
+
+export const createDatabase = (): Database => ({
+  symbols: [],
+  gestureDefinitions: [],
+  gestureTrainingData: [],
+  interactionLogs: [],
+  profiles: [],
+  learningAnalytics: [],
+});
+
+export const addSymbol = (db: Database, symbol: SymbolRecord): void => {
+  db.symbols.push(symbol);
+};
+
+export const addGestureDefinition = (
+  db: Database,
+  def: GestureDefinition,
+): void => {
+  db.gestureDefinitions.push(def);
+};
+
+export const addGestureTrainingData = (
+  db: Database,
+  data: GestureTrainingData,
+): void => {
+  db.gestureTrainingData.push(data);
+};
+
+export const addInteractionLog = (
+  db: Database,
+  log: InteractionLog,
+): void => {
+  db.interactionLogs.push(log);
+};
+
+export const addProfile = (db: Database, profile: Profile): void => {
+  db.profiles.push(profile);
+};
+
+export const addLearningAnalytics = (
+  db: Database,
+  la: LearningAnalytics,
+): void => {
+  db.learningAnalytics.push(la);
+};
+
+const updateById = <T extends { id: string }>(
+  items: T[],
+  record: T,
+): void => {
+  const index = items.findIndex((i) => i.id === record.id);
+  if (index !== -1) {
+    items[index] = record;
+  }
+};
+
+const removeById = <T extends { id: string }>(items: T[], id: string): void => {
+  const index = items.findIndex((i) => i.id === id);
+  if (index !== -1) {
+    items.splice(index, 1);
+  }
+};
+
+export const updateSymbol = (db: Database, symbol: SymbolRecord): void => {
+  updateById(db.symbols, symbol);
+};
+
+export const removeSymbol = (db: Database, id: string): void => {
+  removeById(db.symbols, id);
+};
+
+export const updateGestureDefinition = (
+  db: Database,
+  def: GestureDefinition,
+): void => {
+  updateById(db.gestureDefinitions, def);
+};
+
+export const removeGestureDefinition = (db: Database, id: string): void => {
+  removeById(db.gestureDefinitions, id);
+};
+
+export const updateGestureTrainingData = (
+  db: Database,
+  data: GestureTrainingData,
+): void => {
+  updateById(db.gestureTrainingData, data);
+};
+
+export const removeGestureTrainingData = (db: Database, id: string): void => {
+  removeById(db.gestureTrainingData, id);
+};
+
+export const updateInteractionLog = (
+  db: Database,
+  log: InteractionLog,
+): void => {
+  updateById(db.interactionLogs, log);
+};
+
+export const removeInteractionLog = (db: Database, id: string): void => {
+  removeById(db.interactionLogs, id);
+};
+
+export const updateProfile = (db: Database, profile: Profile): void => {
+  updateById(db.profiles, profile);
+};
+
+export const removeProfile = (db: Database, id: string): void => {
+  removeById(db.profiles, id);
+};
+
+export const updateLearningAnalytics = (
+  db: Database,
+  la: LearningAnalytics,
+): void => {
+  updateById(db.learningAnalytics, la);
+};
+
+export const removeLearningAnalytics = (db: Database, id: string): void => {
+  removeById(db.learningAnalytics, id);
+};
+
+export const getSymbolById = (db: Database, id: string): SymbolRecord | undefined =>
+  db.symbols.find((s) => s.id === id);
+
+export const getGestureDefinitionById = (
+  db: Database,
+  id: string,
+): GestureDefinition | undefined => db.gestureDefinitions.find((g) => g.id === id);
+
+export const getGestureTrainingDataById = (
+  db: Database,
+  id: string,
+): GestureTrainingData | undefined => db.gestureTrainingData.find((d) => d.id === id);
+
+export const getInteractionLogById = (
+  db: Database,
+  id: string,
+): InteractionLog | undefined => db.interactionLogs.find((l) => l.id === id);
+
+export const getProfileById = (db: Database, id: string): Profile | undefined =>
+  db.profiles.find((p) => p.id === id);
+
+export const getLearningAnalyticsById = (
+  db: Database,
+  id: string,
+): LearningAnalytics | undefined => db.learningAnalytics.find((l) => l.id === id);
+
+export const saveDatabase = async (
+  db: Database,
+  filePath: string,
+): Promise<void> => {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(db, null, 2), 'utf8');
+};
+
+export const loadDatabase = async (filePath: string): Promise<Database> => {
+  try {
+    const data = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(data) as Database;
+  } catch {
+    return createDatabase();
+  }
+};

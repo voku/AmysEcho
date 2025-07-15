@@ -73,10 +73,14 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 ## 🚧 Current Status
 
 - [x] Spec ([markdown](./spec/AmysEcho.md))
-- [ ] React Native baseline setup
+- [x] React Native baseline setup
 - [ ] Camera + ML integration
 - [ ] HIP 1 + HIP 3 MVP implementation
 - [ ] ...
+
+## ▶️ Running the mobile app
+
+The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration are still TODO.
 
 ---
 

@@ -1,0 +1,23 @@
+import React, { useState } from 'react';
+import { View, Text, Button, StyleSheet } from 'react-native';
+
+export default function RecognitionScreen({ navigation }: any) {
+  const [status, setStatus] = useState("I'm listening...");
+
+  const handleLowConfidence = () => {
+    navigation.navigate('Correction');
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Placeholder for camera & ML integration */}
+      <Text style={styles.status}>{status}</Text>
+      <Button title="Simulate low confidence" onPress={handleLowConfidence} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  status: { fontSize: 20, marginBottom: 20 },
+});
