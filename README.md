@@ -85,8 +85,8 @@ The next stages follow the broad implementation plan in the project spec.
 - **Phase 1 – Solidify the Foundation**
   - [x] Integrate placeholder symbol images, videos and a basic gestures model
   - [x] Finish `mlService` and `audioService` implementations
-  - [ ] Expand profile management and vocabulary set selection
-  - [ ] Build the app with the custom dev client on a device
+  - [x] Expand profile management and vocabulary set selection
+  - [x] Build the app with the custom dev client on a device
 - **Phase 2 – Enhance Core Functionality**
   - [ ] Complete the gesture training workflow and store samples
   - [ ] Surface adaptive suggestions from the dialog engine
@@ -104,6 +104,10 @@ The next stages follow the broad implementation plan in the project spec.
 ## ▶️ Running the mobile app
 
 The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
+
+### Building the custom dev client
+
+If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` inside `app/` once to generate the native projects. Afterwards use `npm run ios` or `npm run android` to install the dev client on your device.
 
 ---
 

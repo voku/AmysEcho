@@ -66,10 +66,15 @@ import path from 'path';
     id: 'p1',
     consentDataUpload: false,
     consentHelpMeGetSmarter: true,
+    vocabularySetId: 'basic',
   };
   await persistProfile(loaded, profile, file);
   const reloaded = await loadDatabase(file);
-  if (!reloaded.profiles[0] || reloaded.profiles[0].id !== 'p1') {
+  if (
+    !reloaded.profiles[0] ||
+    reloaded.profiles[0].id !== 'p1' ||
+    reloaded.profiles[0].vocabularySetId !== 'basic'
+  ) {
     throw new Error('persistProfile failed');
   }
 

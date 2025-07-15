@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, Switch, Button, StyleSheet } from 'react-native';
 import { saveProfile, Profile } from '../storage';
+import {
+  availableVocabularySets,
+  setActiveVocabularySet,
+} from '../model';
 
 export default function OnboardingScreen({ navigation }: any) {
   const [consentDataUpload, setConsentDataUpload] = useState(false);
   const [consentHelpMeGetSmarter, setConsentHelpMeGetSmarter] = useState(false);
+  const [vocabSet, setVocabSet] = useState('basic');
 
   const handleContinue = async () => {
     const profile: Profile = {
       id: 'default',
       consentDataUpload,
       consentHelpMeGetSmarter,
+      vocabularySetId: vocabSet,
     };
     await saveProfile(profile);
+    setActiveVocabularySet(vocabSet);
     navigation.replace('Recognition');
   };
 
@@ -36,6 +43,16 @@ export default function OnboardingScreen({ navigation }: any) {
           style={styles.switch}
         />
       </View>
+      <View style={styles.setRow}>
+        {availableVocabularySets.map((s) => (
+          <Button
+            key={s.id}
+            title={s.label}
+            onPress={() => setVocabSet(s.id)}
+            color={vocabSet === s.id ? '#007aff' : undefined}
+          />
+        ))}
+      </View>
       <Button title="Continue" onPress={handleContinue} />
     </View>
   );
@@ -54,4 +71,5 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 18 },
   switch: { transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }] },
+  setRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 20 },
 });
