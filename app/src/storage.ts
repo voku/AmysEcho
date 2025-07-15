@@ -4,6 +4,7 @@ export interface Profile {
   id: string;
   consentDataUpload: boolean;
   consentHelpMeGetSmarter: boolean;
+  vocabularySetId: string;
 }
 
 const PROFILE_KEY = 'profile';
@@ -24,7 +25,14 @@ export async function saveProfile(profile: Profile): Promise<void> {
 
 export async function loadProfile(): Promise<Profile | null> {
   const raw = await AsyncStorage.getItem(PROFILE_KEY);
-  return raw ? (JSON.parse(raw) as Profile) : null;
+  if (!raw) return null;
+  const parsed = JSON.parse(raw) as Partial<Profile>;
+  return {
+    id: parsed.id || 'default',
+    consentDataUpload: !!parsed.consentDataUpload,
+    consentHelpMeGetSmarter: !!parsed.consentHelpMeGetSmarter,
+    vocabularySetId: parsed.vocabularySetId || 'basic',
+  };
 }
 
 function genId() {

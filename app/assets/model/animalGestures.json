@@ -1,0 +1,12 @@
+{
+  "gestures": [
+    {
+      "id": "cat",
+      "label": "cat"
+    },
+    {
+      "id": "dog",
+      "label": "dog"
+    }
+  ]
+}

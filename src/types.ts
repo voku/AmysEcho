@@ -43,6 +43,7 @@ export interface Profile {
   id: string;
   consentDataUpload: boolean;
   consentHelpMeGetSmarter: boolean;
+  vocabularySetId: string;
 }
 
 export interface LearningAnalytics {

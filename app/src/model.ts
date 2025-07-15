@@ -1,4 +1,5 @@
-import model from '../assets/model/basicGestures.json';
+import basic from '../assets/model/basicGestures.json';
+import animals from '../assets/model/animalGestures.json';
 
 export type GestureModelEntry = {
   id: string;
@@ -9,4 +10,26 @@ export type GestureModel = {
   gestures: GestureModelEntry[];
 };
 
-export const gestureModel: GestureModel = model as GestureModel;
+const vocabularySets: Record<string, GestureModel> = {
+  basic: basic as GestureModel,
+  animals: animals as GestureModel,
+};
+
+export const availableVocabularySets = [
+  { id: 'basic', label: 'Basic' },
+  { id: 'animals', label: 'Animals' },
+];
+
+let activeSetId = 'basic';
+export let gestureModel: GestureModel = vocabularySets[activeSetId];
+
+export function setActiveVocabularySet(id: string): void {
+  if (vocabularySets[id]) {
+    activeSetId = id;
+    gestureModel = vocabularySets[id];
+  }
+}
+
+export function getActiveVocabularySetId(): string {
+  return activeSetId;
+}
