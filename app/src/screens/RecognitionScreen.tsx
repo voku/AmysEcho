@@ -1,24 +1,39 @@
-import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, Button, StyleSheet, Animated, Easing, SafeAreaView } from 'react-native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import { logCorrection } from '../storage';
 import { classifyGesture } from '../services/mlService';
 import { playSymbolAudio } from '../services/audioService';
 import { getAdaptiveSuggestion } from '../services/dialogService';
 import { gestureModel } from '../model';
+import { useAccessibility } from '../components/AccessibilityContext';
 
 export default function RecognitionScreen({ navigation }: any) {
+  const { largeText, highContrast } = useAccessibility();
   const [status, setStatus] = useState("I'm listening...");
   const [showCorrection, setShowCorrection] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const startFeedbackAnimation = () => {
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  };
 
   const handleLowConfidence = () => {
     setShowCorrection(true);
+    startFeedbackAnimation();
   };
 
   const handleRecognize = async () => {
     const result = await classifyGesture(null);
     setStatus(`I think: ${result.label}`);
+    startFeedbackAnimation();
     await playSymbolAudio({ id: result.label, label: result.label });
     const adv = await getAdaptiveSuggestion(result.label);
     setSuggestions(adv);
@@ -28,6 +43,7 @@ export default function RecognitionScreen({ navigation }: any) {
     await logCorrection(choice);
     setShowCorrection(false);
     setStatus('Thanks!');
+    startFeedbackAnimation();
   };
 
   const handleAddNew = () => {
@@ -35,10 +51,33 @@ export default function RecognitionScreen({ navigation }: any) {
     navigation.navigate('Training');
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+      backgroundColor: highContrast ? '#000' : '#fdfdfd',
+    },
+    status: {
+      fontSize: largeText ? 24 : 20,
+      marginBottom: 20,
+      textAlign: 'center',
+      color: highContrast ? '#fff' : '#000',
+    },
+    suggestion: {
+      fontSize: largeText ? 20 : 16,
+      marginBottom: 10,
+      color: highContrast ? '#fff' : '#666',
+    },
+  });
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Placeholder for camera & ML integration */}
-      <Text style={styles.status}>{status}</Text>
+      <Animated.Text style={[styles.status, { opacity: fadeAnim }]}>
+        {status}
+      </Animated.Text>
       {suggestions.map((s, i) => (
         <Text key={i} style={styles.suggestion}>{s}</Text>
       ))}
@@ -50,12 +89,7 @@ export default function RecognitionScreen({ navigation }: any) {
         onClose={() => setShowCorrection(false)}
         onAddNew={handleAddNew}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  status: { fontSize: 20, marginBottom: 20 },
-  suggestion: { fontSize: 16, marginBottom: 10, color: '#666' },
-});
