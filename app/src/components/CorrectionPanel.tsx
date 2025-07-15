@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, View, Button, StyleSheet } from 'react-native';
+import { gestureModel } from '../model';
 
 interface Props {
   visible: boolean;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function CorrectionPanel({ visible, onSelect, onClose }: Props) {
+  const options = gestureModel.gestures.slice(0, 4);
   return (
     <Modal
       visible={visible}
@@ -18,12 +20,14 @@ export default function CorrectionPanel({ visible, onSelect, onClose }: Props) {
       <View style={styles.overlay}>
         <View style={styles.panel}>
           <View style={styles.row}>
-            <Button title="Choice 1" onPress={() => onSelect('1')} />
-            <Button title="Choice 2" onPress={() => onSelect('2')} />
+            {options.slice(0, 2).map((g) => (
+              <Button key={g.id} title={g.label} onPress={() => onSelect(g.id)} />
+            ))}
           </View>
           <View style={styles.row}>
-            <Button title="Choice 3" onPress={() => onSelect('3')} />
-            <Button title="Choice 4" onPress={() => onSelect('4')} />
+            {options.slice(2, 4).map((g) => (
+              <Button key={g.id} title={g.label} onPress={() => onSelect(g.id)} />
+            ))}
           </View>
         </View>
       </View>

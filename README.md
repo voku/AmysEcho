@@ -83,8 +83,8 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 The next stages follow the broad implementation plan in the project spec.
 
 - **Phase 1 – Solidify the Foundation**
-  - [ ] Integrate placeholder symbol images, videos and a basic gestures model
-  - [ ] Finish `mlService` and `audioService` implementations
+  - [x] Integrate placeholder symbol images, videos and a basic gestures model
+  - [x] Finish `mlService` and `audioService` implementations
   - [ ] Expand profile management and vocabulary set selection
   - [ ] Build the app with the custom dev client on a device
 - **Phase 2 – Enhance Core Functionality**
