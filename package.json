@@ -4,7 +4,7 @@
   "description": "Gesture to voice translator for Amy",
   "main": "index.js",
   "scripts": {
-    "test": "npm run build && node dist/test/db.test.js",
+    "test": "npm run build && node dist/test/db.test.js && node dist/test/recognizer.test.js",
     "build": "tsc"
   },
   "keywords": [],
@@ -12,7 +12,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.14"

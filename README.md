@@ -74,13 +74,13 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 - [x] Spec ([markdown](./spec/AmysEcho.md))
 - [x] React Native baseline setup
-- [ ] Camera + ML integration
+- [x] Camera + ML integration (initial hybrid recognizer)
 - [ ] HIP 1 + HIP 3 MVP implementation
 - [ ] ...
 
 ## ▶️ Running the mobile app
 
-The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration are still TODO.
+The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
 
 ---
 
