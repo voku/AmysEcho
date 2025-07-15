@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
+import CorrectionPanel from '../components/CorrectionPanel';
+import { logCorrection } from '../storage';
 
-export default function RecognitionScreen({ navigation }: any) {
+export default function RecognitionScreen() {
   const [status, setStatus] = useState("I'm listening...");
+  const [showCorrection, setShowCorrection] = useState(false);
 
   const handleLowConfidence = () => {
-    navigation.navigate('Correction');
+    setShowCorrection(true);
+  };
+
+  const handleSelect = async (choice: string) => {
+    await logCorrection(choice);
+    setShowCorrection(false);
+    setStatus('Thanks!');
   };
 
   return (
@@ -13,6 +22,11 @@ export default function RecognitionScreen({ navigation }: any) {
       {/* Placeholder for camera & ML integration */}
       <Text style={styles.status}>{status}</Text>
       <Button title="Simulate low confidence" onPress={handleLowConfidence} />
+      <CorrectionPanel
+        visible={showCorrection}
+        onSelect={handleSelect}
+        onClose={() => setShowCorrection(false)}
+      />
     </View>
   );
 }
