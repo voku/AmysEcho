@@ -75,7 +75,7 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 - [x] Spec ([markdown](./spec/AmysEcho.md))
 - [x] React Native baseline setup
 - [x] Camera + ML integration (initial hybrid recognizer)
-- [ ] HIP 1 + HIP 3 MVP implementation
+- [x] HIP 1 + HIP 3 MVP implementation
 - [ ] ...
 
 ## ▶️ Running the mobile app
