@@ -12,8 +12,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "typescript": "^5.8.3",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "typescript": "^5.8.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.14"

@@ -6,9 +6,15 @@ interface Props {
   visible: boolean;
   onSelect: (choice: string) => void;
   onClose: () => void;
+  onAddNew: () => void;
 }
 
-export default function CorrectionPanel({ visible, onSelect, onClose }: Props) {
+export default function CorrectionPanel({
+  visible,
+  onSelect,
+  onClose,
+  onAddNew,
+}: Props) {
   const options = gestureModel.gestures.slice(0, 4);
   return (
     <Modal
@@ -28,6 +34,9 @@ export default function CorrectionPanel({ visible, onSelect, onClose }: Props) {
             {options.slice(2, 4).map((g) => (
               <Button key={g.id} title={g.label} onPress={() => onSelect(g.id)} />
             ))}
+          </View>
+          <View style={styles.row}>
+            <Button title="None of these" onPress={onAddNew} />
           </View>
         </View>
       </View>

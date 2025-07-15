@@ -88,9 +88,9 @@ The next stages follow the broad implementation plan in the project spec.
   - [x] Expand profile management and vocabulary set selection
   - [x] Build the app with the custom dev client on a device
 - **Phase 2 – Enhance Core Functionality**
-  - [ ] Complete the gesture training workflow and store samples
-  - [ ] Surface adaptive suggestions from the dialog engine
-  - [ ] Add caregiver override actions in the CorrectionPanel
+  - [x] Complete the gesture training workflow and store samples
+  - [x] Surface adaptive suggestions from the dialog engine
+  - [x] Add caregiver override actions in the CorrectionPanel
 - **Phase 3 – Refine and Polish**
   - [ ] Improve UI layout and feedback animations
   - [ ] Implement accessibility options like larger fonts and high contrast
