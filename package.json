@@ -4,7 +4,7 @@
   "description": "Gesture to voice translator for Amy",
   "main": "index.js",
   "scripts": {
-    "test": "npm run build && node dist/test/db.test.js && node dist/test/recognizer.test.js",
+    "test": "npm run build && node dist/test/db.test.js && node dist/test/recognizer.test.js && node dist/test/services.test.js",
     "build": "tsc"
   },
   "keywords": [],
