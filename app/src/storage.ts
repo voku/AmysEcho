@@ -10,6 +10,14 @@ const PROFILE_KEY = 'profile';
 const TRAINING_KEY = 'gestureTrainingData';
 const LOG_KEY = 'interactionLogs';
 
+export interface TrainingSample {
+  id: string;
+  gestureDefinitionId: string;
+  landmarkData: unknown;
+  source: 'HIP_2' | 'HIP_3';
+  syncStatus: 'pending' | 'synced';
+}
+
 export async function saveProfile(profile: Profile): Promise<void> {
   await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
 }
@@ -45,4 +53,20 @@ export async function logCorrection(correctId: string): Promise<void> {
     processedBy: 'local',
   });
   await AsyncStorage.setItem(LOG_KEY, JSON.stringify(logs));
+}
+
+export async function saveTrainingSample(
+  gestureDefinitionId: string,
+  landmarkData: unknown,
+): Promise<void> {
+  const raw = await AsyncStorage.getItem(TRAINING_KEY);
+  const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
+  data.push({
+    id: genId(),
+    gestureDefinitionId,
+    landmarkData,
+    source: 'HIP_2',
+    syncStatus: 'pending',
+  });
+  await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
 }

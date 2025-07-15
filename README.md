@@ -76,7 +76,30 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 - [x] React Native baseline setup
 - [x] Camera + ML integration (initial hybrid recognizer)
 - [x] HIP 1 + HIP 3 MVP implementation
-- [ ] ...
+- [x] HIP 2 training flow stub
+
+## 🛣️ Roadmap
+
+The next stages follow the broad implementation plan in the project spec.
+
+- **Phase 1 – Solidify the Foundation**
+  - [ ] Integrate placeholder symbol images, videos and a basic gestures model
+  - [ ] Finish `mlService` and `audioService` implementations
+  - [ ] Expand profile management and vocabulary set selection
+  - [ ] Build the app with the custom dev client on a device
+- **Phase 2 – Enhance Core Functionality**
+  - [ ] Complete the gesture training workflow and store samples
+  - [ ] Surface adaptive suggestions from the dialog engine
+  - [ ] Add caregiver override actions in the CorrectionPanel
+- **Phase 3 – Refine and Polish**
+  - [ ] Improve UI layout and feedback animations
+  - [ ] Implement accessibility options like larger fonts and high contrast
+  - [ ] Support optional DGS video playback for symbols
+- **Phase 4 – Advanced Features & Deployment**
+  - [ ] Connect to an LLM for dynamic suggestions with privacy controls
+  - [ ] Explore offline model retraining from collected data
+  - [ ] Build the caregiver analytics dashboard
+  - [ ] Prepare production builds for app store release
 
 ## ▶️ Running the mobile app
 
