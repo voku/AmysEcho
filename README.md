@@ -94,9 +94,9 @@ The next stages follow the broad implementation plan in the project spec.
 - **Phase 3 – Refine and Polish**
   - [x] Improve UI layout and feedback animations
   - [x] Implement accessibility options like larger fonts and high contrast
-  - [ ] Support optional DGS video playback for symbols
+  - [x] Support optional DGS video playback for symbols
 - **Phase 4 – Advanced Features & Deployment**
-  - [ ] Connect to an LLM for dynamic suggestions with privacy controls
+  - [x] Connect to an LLM for dynamic suggestions with privacy controls
   - [ ] Explore offline model retraining from collected data
   - [ ] Build the caregiver analytics dashboard
   - [ ] Prepare production builds for app store release

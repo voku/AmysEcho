@@ -4,6 +4,7 @@ import CorrectionPanel from '../components/CorrectionPanel';
 import { logCorrection } from '../storage';
 import { classifyGesture } from '../services/mlService';
 import { playSymbolAudio } from '../services/audioService';
+import { playSymbolVideo } from '../services/videoService';
 import { getAdaptiveSuggestion } from '../services/dialogService';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -13,6 +14,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [status, setStatus] = useState("I'm listening...");
   const [showCorrection, setShowCorrection] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [lastLabel, setLastLabel] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const startFeedbackAnimation = () => {
@@ -34,6 +36,7 @@ export default function RecognitionScreen({ navigation }: any) {
     const result = await classifyGesture(null);
     setStatus(`I think: ${result.label}`);
     startFeedbackAnimation();
+    setLastLabel(result.label);
     await playSymbolAudio({ id: result.label, label: result.label });
     const adv = await getAdaptiveSuggestion(result.label);
     setSuggestions(adv);
@@ -49,6 +52,11 @@ export default function RecognitionScreen({ navigation }: any) {
   const handleAddNew = () => {
     setShowCorrection(false);
     navigation.navigate('Training');
+  };
+
+  const handlePlayVideo = async () => {
+    if (!lastLabel) return;
+    await playSymbolVideo({ id: lastLabel, label: lastLabel });
   };
 
   const styles = StyleSheet.create({
@@ -83,6 +91,9 @@ export default function RecognitionScreen({ navigation }: any) {
       ))}
       <Button title="Simulate recognition" onPress={handleRecognize} />
       <Button title="Simulate low confidence" onPress={handleLowConfidence} />
+      {lastLabel && (
+        <Button title="Play video" onPress={handlePlayVideo} />
+      )}
       <CorrectionPanel
         visible={showCorrection}
         onSelect={handleSelect}
