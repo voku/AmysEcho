@@ -6,8 +6,10 @@ import {
   saveDatabase,
   loadDatabase,
   getSymbolById,
+  persistProfile,
+  logCorrection,
 } from '../src/db';
-import { SymbolRecord } from '../src/types';
+import { SymbolRecord, Profile } from '../src/types';
 import { tmpdir } from 'os';
 import path from 'path';
 
@@ -58,6 +60,25 @@ import path from 'path';
   removeSymbol(loaded, '1');
   if (loaded.symbols.length !== 0) {
     throw new Error('removeSymbol failed');
+  }
+
+  const profile: Profile = {
+    id: 'p1',
+    consentDataUpload: false,
+    consentHelpMeGetSmarter: true,
+  };
+  await persistProfile(loaded, profile, file);
+  const reloaded = await loadDatabase(file);
+  if (!reloaded.profiles[0] || reloaded.profiles[0].id !== 'p1') {
+    throw new Error('persistProfile failed');
+  }
+
+  logCorrection(reloaded, 'guess1', 'correct1', { x: 1 });
+  if (
+    reloaded.gestureTrainingData.length !== 1 ||
+    reloaded.interactionLogs.length !== 1
+  ) {
+    throw new Error('logCorrection failed');
   }
 
   console.log('Database initialized with', Object.keys(db));

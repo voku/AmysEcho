@@ -182,3 +182,47 @@ export const loadDatabase = async (filePath: string): Promise<Database> => {
     return createDatabase();
   }
 };
+
+// Utility to create a lightweight unique id without external deps
+const generateId = (): string =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+export const persistProfile = async (
+  db: Database,
+  profile: Profile,
+  filePath: string,
+): Promise<void> => {
+  const existing = db.profiles.find((p) => p.id === profile.id);
+  if (existing) {
+    updateById(db.profiles, profile);
+  } else {
+    addProfile(db, profile);
+  }
+  await saveDatabase(db, filePath);
+};
+
+export const logCorrection = (
+  db: Database,
+  predictedGestureId: string,
+  correctedGestureId: string,
+  landmarkData: unknown,
+): void => {
+  const training: GestureTrainingData = {
+    id: generateId(),
+    gestureDefinitionId: correctedGestureId,
+    landmarkData,
+    source: 'HIP_3',
+    syncStatus: 'pending',
+  };
+  addGestureTrainingData(db, training);
+
+  const log: InteractionLog = {
+    id: generateId(),
+    gestureDefinitionId: predictedGestureId,
+    wasSuccessful: false,
+    confidenceScore: 0,
+    caregiverOverrideId: correctedGestureId,
+    processedBy: 'local',
+  };
+  addInteractionLog(db, log);
+};
