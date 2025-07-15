@@ -1,27 +1,79 @@
-import React from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CorrectionScreen({ navigation }: any) {
-  const handleSelect = (choice: string) => {
-    // TODO: log correction and update training data
+  const [visible, setVisible] = useState(true);
+
+  const handleSelect = async (choice: string) => {
+    await AsyncStorage.setItem(`correction-${Date.now()}`, choice);
+    setVisible(false);
+    navigation.goBack();
+  };
+
+  const handleClose = () => {
+    setVisible(false);
     navigation.goBack();
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Which sign was this?</Text>
-      <View style={styles.buttonRow}>
-        <Button title="Choice 1" onPress={() => handleSelect('1')} />
-        <Button title="Choice 2" onPress={() => handleSelect('2')} />
-        <Button title="Choice 3" onPress={() => handleSelect('3')} />
-        <Button title="Choice 4" onPress={() => handleSelect('4')} />
+    <Modal
+      animationType="slide"
+      transparent
+      visible={visible}
+      onRequestClose={handleClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.panel}>
+          <Text style={styles.title}>Which sign was this?</Text>
+          <View style={styles.grid}>
+            {['1', '2', '3', '4'].map((c) => (
+              <TouchableOpacity
+                key={c}
+                style={styles.choice}
+                onPress={() => handleSelect(c)}
+              >
+                <Text style={styles.choiceText}>{`Choice ${c}`}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 20, marginBottom: 20 },
-  buttonRow: { width: '80%', flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'space-between' },
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  panel: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  title: { fontSize: 20, marginBottom: 20, textAlign: 'center' },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  choice: {
+    width: '48%',
+    padding: 20,
+    marginBottom: 10,
+    backgroundColor: '#eee',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  choiceText: { fontSize: 18 },
 });

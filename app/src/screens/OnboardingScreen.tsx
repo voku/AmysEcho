@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, Switch, Button, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function OnboardingScreen({ navigation }: any) {
   const [consentDataUpload, setConsentDataUpload] = useState(false);
   const [consentHelpMeGetSmarter, setConsentHelpMeGetSmarter] = useState(false);
 
-  const handleContinue = () => {
-    // TODO: Persist consents to local profile store
+  const handleContinue = async () => {
+    await AsyncStorage.setItem(
+      'profile',
+      JSON.stringify({
+        consentDataUpload,
+        consentHelpMeGetSmarter,
+      }),
+    );
     navigation.replace('Recognition');
   };
 
