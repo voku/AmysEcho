@@ -3,13 +3,22 @@ import { View, Text, Button, StyleSheet } from 'react-native';
 import { saveTrainingSample } from '../storage';
 import { gestureModel } from '../model';
 
+function captureDummyLandmarks() {
+  return Array.from({ length: 21 }, () => [
+    Math.random(),
+    Math.random(),
+    Math.random(),
+  ]);
+}
+
 export default function TrainingScreen({ navigation }: any) {
   const [gestureId, setGestureId] = useState<string | null>(null);
   const [count, setCount] = useState(0);
 
   const handleRecord = async () => {
     if (!gestureId) return;
-    await saveTrainingSample(gestureId, null);
+    const landmarks = captureDummyLandmarks();
+    await saveTrainingSample(gestureId, landmarks);
     setCount((c) => c + 1);
   };
 
