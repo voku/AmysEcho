@@ -24,7 +24,7 @@ export default function OnboardingScreen({ navigation }: any) {
     };
     await saveProfile(profile);
     setActiveVocabularySet(vocabSet);
-    navigation.replace('Recognition');
+    navigation.replace('ProfileSelect');
   };
 
   const styles = StyleSheet.create({

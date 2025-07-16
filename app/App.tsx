@@ -3,6 +3,9 @@ import { ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
+import ParentScreen from './src/screens/ParentScreen';
+import AdminScreen from './src/screens/AdminScreen';
 import RecognitionScreen from './src/screens/RecognitionScreen';
 import CorrectionScreen from './src/screens/CorrectionScreen';
 import TrainingScreen from './src/screens/TrainingScreen';
@@ -32,7 +35,7 @@ export default function App() {
           largeText: !!profile.largeText,
           highContrast: !!profile.highContrast,
         });
-        setInitialRoute('Recognition');
+        setInitialRoute('ProfileSelect');
       } else {
         setInitialRoute('Onboarding');
       }
@@ -52,6 +55,9 @@ export default function App() {
           screenOptions={{ headerShown: false }}
         >
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="ProfileSelect" component={ProfileSelectScreen} />
+          <Stack.Screen name="Parent" component={ParentScreen} />
+          <Stack.Screen name="Admin" component={AdminScreen} />
           <Stack.Screen name="Recognition" component={RecognitionScreen} />
           <Stack.Screen name="Correction" component={CorrectionScreen} />
           <Stack.Screen name="Training" component={TrainingScreen} />

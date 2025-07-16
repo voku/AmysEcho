@@ -49,6 +49,24 @@ export interface Profile {
   highContrast?: boolean;
 }
 
+export interface VocabularySet {
+  id: string;
+  name: string;
+}
+
+export interface VocabularySetSymbol {
+  id: string;
+  vocabularySetId: string;
+  symbolId: string;
+}
+
+export interface UsageStat {
+  id: string;
+  symbolId: string;
+  profileId: string;
+  count: number;
+}
+
 export interface LearningAnalytics {
   id: string;
   successRate7d: number;

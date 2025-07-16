@@ -19,6 +19,9 @@ import path from 'path';
   if (!Array.isArray(db.symbols)) {
     throw new Error('Symbols table not initialized');
   }
+  if (!Array.isArray(db.vocabularySets) || !Array.isArray(db.usageStats)) {
+    throw new Error('Additional tables not initialized');
+  }
 
   const sample: SymbolRecord = {
     id: '1',

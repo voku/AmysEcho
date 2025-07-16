@@ -5,6 +5,9 @@ import {
   InteractionLog,
   Profile,
   LearningAnalytics,
+  VocabularySet,
+  UsageStat,
+  VocabularySetSymbol,
 } from './types';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -15,6 +18,9 @@ export interface Database {
   gestureTrainingData: GestureTrainingData[];
   interactionLogs: InteractionLog[];
   profiles: Profile[];
+  vocabularySets: VocabularySet[];
+  vocabularySetSymbols: VocabularySetSymbol[];
+  usageStats: UsageStat[];
   learningAnalytics: LearningAnalytics[];
 }
 
@@ -24,6 +30,9 @@ export const createDatabase = (): Database => ({
   gestureTrainingData: [],
   interactionLogs: [],
   profiles: [],
+  vocabularySets: [],
+  vocabularySetSymbols: [],
+  usageStats: [],
   learningAnalytics: [],
 });
 
@@ -54,6 +63,21 @@ export const addInteractionLog = (
 
 export const addProfile = (db: Database, profile: Profile): void => {
   db.profiles.push(profile);
+};
+
+export const addVocabularySet = (db: Database, set: VocabularySet): void => {
+  db.vocabularySets.push(set);
+};
+
+export const addVocabularySetSymbol = (
+  db: Database,
+  link: VocabularySetSymbol,
+): void => {
+  db.vocabularySetSymbols.push(link);
+};
+
+export const addUsageStat = (db: Database, stat: UsageStat): void => {
+  db.usageStats.push(stat);
 };
 
 export const addLearningAnalytics = (
@@ -125,8 +149,35 @@ export const updateProfile = (db: Database, profile: Profile): void => {
   updateById(db.profiles, profile);
 };
 
+export const updateVocabularySet = (db: Database, set: VocabularySet): void => {
+  updateById(db.vocabularySets, set);
+};
+
+export const updateVocabularySetSymbol = (
+  db: Database,
+  link: VocabularySetSymbol,
+): void => {
+  updateById(db.vocabularySetSymbols, link);
+};
+
+export const updateUsageStat = (db: Database, stat: UsageStat): void => {
+  updateById(db.usageStats, stat);
+};
+
 export const removeProfile = (db: Database, id: string): void => {
   removeById(db.profiles, id);
+};
+
+export const removeVocabularySet = (db: Database, id: string): void => {
+  removeById(db.vocabularySets, id);
+};
+
+export const removeVocabularySetSymbol = (db: Database, id: string): void => {
+  removeById(db.vocabularySetSymbols, id);
+};
+
+export const removeUsageStat = (db: Database, id: string): void => {
+  removeById(db.usageStats, id);
 };
 
 export const updateLearningAnalytics = (
@@ -160,6 +211,21 @@ export const getInteractionLogById = (
 
 export const getProfileById = (db: Database, id: string): Profile | undefined =>
   db.profiles.find((p) => p.id === id);
+
+export const getVocabularySetById = (
+  db: Database,
+  id: string,
+): VocabularySet | undefined => db.vocabularySets.find((v) => v.id === id);
+
+export const getVocabularySetSymbolById = (
+  db: Database,
+  id: string,
+): VocabularySetSymbol | undefined => db.vocabularySetSymbols.find((l) => l.id === id);
+
+export const getUsageStatById = (
+  db: Database,
+  id: string,
+): UsageStat | undefined => db.usageStats.find((u) => u.id === id);
 
 export const getLearningAnalyticsById = (
   db: Database,
@@ -263,6 +329,38 @@ export async function setupDatabase(filePath: string): Promise<Database> {
       },
     ];
     db.symbols.push(...defaults);
+    changed = true;
+  }
+
+  if (db.vocabularySets.length === 0) {
+    const sets: VocabularySet[] = [
+      { id: 'basic', name: 'Basic' },
+      { id: 'animals', name: 'Animals' },
+    ];
+    db.vocabularySets.push(...sets);
+    changed = true;
+  }
+
+  if (db.vocabularySetSymbols.length === 0 && db.symbols.length > 0) {
+    for (const sym of db.symbols) {
+      db.vocabularySetSymbols.push({
+        id: generateId(),
+        vocabularySetId: 'basic',
+        symbolId: sym.id,
+      });
+    }
+    changed = true;
+  }
+
+  if (db.usageStats.length === 0 && db.symbols.length > 0) {
+    for (const sym of db.symbols) {
+      db.usageStats.push({
+        id: generateId(),
+        symbolId: sym.id,
+        profileId: 'default',
+        count: 0,
+      });
+    }
     changed = true;
   }
 
