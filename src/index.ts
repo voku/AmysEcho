@@ -5,3 +5,4 @@ export * from './services/mlService';
 export * from './services/audioService';
 export * from './services/dialogService';
 export * from './services/videoService';
+export * from './services/analyticsService';

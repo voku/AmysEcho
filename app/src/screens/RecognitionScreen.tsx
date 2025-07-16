@@ -100,6 +100,7 @@ export default function RecognitionScreen({ navigation }: any) {
         onClose={() => setShowCorrection(false)}
         onAddNew={handleAddNew}
       />
+      <Button title="Analytics" onPress={() => navigation.navigate('Dashboard')} />
     </SafeAreaView>
   );
 }

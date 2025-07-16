@@ -98,7 +98,7 @@ The next stages follow the broad implementation plan in the project spec.
 - **Phase 4 – Advanced Features & Deployment**
   - [x] Connect to an LLM for dynamic suggestions with privacy controls
   - [x] Explore offline model retraining from collected data
-  - [ ] Build the caregiver analytics dashboard
+  - [x] Build the caregiver analytics dashboard
   - [ ] Prepare production builds for app store release
 
 ## ▶️ Running the mobile app
@@ -119,6 +119,17 @@ node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json
 ```
 
 The recognizer will load `dist/offlineModel.json` by default when classifying offline.
+
+### Updating analytics
+
+Run the analytics updater to refresh caregiver stats stored in the database:
+
+```bash
+npm run build
+node dist/tools/updateAnalytics.js <path/to/db.json>
+```
+
+Open the app and tap **Analytics** on the recognition screen to view the dashboard.
 
 ---
 

@@ -35,6 +35,7 @@ export interface InteractionLog {
   gestureDefinitionId: string;
   wasSuccessful: boolean;
   confidenceScore: number;
+  timestamp: number;
   caregiverOverrideId?: string;
   processedBy: ProcessedBy;
 }
