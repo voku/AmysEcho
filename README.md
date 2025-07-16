@@ -82,6 +82,18 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 The next stages follow the broad implementation plan in the project spec.
 
+A detailed step-by-step implementation plan is available in [docs/TODO.md](docs/TODO.md).
+
+### TODO Checklist
+
+- [ ] Task 1.1: Unify and Finalize Database Schema & Models
+- [ ] Task 1.2: Implement Database Seeding
+- [ ] Task 1.3: Implement Stable Navigation
+- [ ] Task 2.1: Activate the LearningScreen Interactivity
+- [ ] Task 2.2: Implement Gesture Recognition
+- [ ] Task 3.1: Build Out the AdminScreen
+- [ ] Task 4.2: LLM-Powered Suggestions
+
 - **Phase 1 – Solidify the Foundation**
   - [x] Integrate placeholder symbol images, videos and a basic gestures model
   - [x] Finish `mlService` and `audioService` implementations
