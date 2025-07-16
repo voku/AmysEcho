@@ -4,6 +4,10 @@ import animals from '../assets/model/animalGestures.json';
 export type GestureModelEntry = {
   id: string;
   label: string;
+  /** Path to the standard demonstration video relative to the assets folder */
+  videoUri?: string;
+  /** Optional path to a DGS video */
+  dgsVideoUri?: string;
 };
 
 export type GestureModel = {

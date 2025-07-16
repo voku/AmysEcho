@@ -2,11 +2,15 @@
   "gestures": [
     {
       "id": "cat",
-      "label": "cat"
+      "label": "cat",
+      "videoUri": "videos/cat.mp4",
+      "dgsVideoUri": "videos/dgs/cat.mp4"
     },
     {
       "id": "dog",
-      "label": "dog"
+      "label": "dog",
+      "videoUri": "videos/dog.mp4",
+      "dgsVideoUri": "videos/dgs/dog.mp4"
     }
   ]
 }
