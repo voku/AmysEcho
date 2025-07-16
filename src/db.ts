@@ -227,3 +227,48 @@ export const logCorrection = (
   };
   addInteractionLog(db, log);
 };
+
+export async function setupDatabase(filePath: string): Promise<Database> {
+  let db = await loadDatabase(filePath);
+  let changed = false;
+
+  if (db.profiles.length === 0) {
+    const profile: Profile = {
+      id: 'default',
+      consentDataUpload: false,
+      consentHelpMeGetSmarter: false,
+      vocabularySetId: 'basic',
+    };
+    db.profiles.push(profile);
+    changed = true;
+  }
+
+  if (db.symbols.length === 0) {
+    const defaults: SymbolRecord[] = [
+      {
+        id: 'hello',
+        name: 'Hello',
+        emoji: '👋',
+        color: '#ffcc00',
+        audioUri: 'hello.mp3',
+        healthScore: 1,
+      },
+      {
+        id: 'drink',
+        name: 'Drink',
+        emoji: '🥤',
+        color: '#0099ff',
+        audioUri: 'drink.mp3',
+        healthScore: 1,
+      },
+    ];
+    db.symbols.push(...defaults);
+    changed = true;
+  }
+
+  if (changed) {
+    await saveDatabase(db, filePath);
+  }
+
+  return db;
+}
