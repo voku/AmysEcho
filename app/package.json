@@ -16,7 +16,11 @@
     "@react-navigation/stack": "^6.3.18",
     "@react-native-async-storage/async-storage": "^1.22.0",
     "expo-av": "~13.2.1",
-    "expo-speech": "~11.4.0"
+    "expo-speech": "~11.4.0",
+    "@nozbe/watermelondb": "^0.24.0",
+    "react-native-vision-camera": "^2.15.4",
+    "react-native-reanimated": "^3.0.0",
+    "react-native-fast-tflite": "^0.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

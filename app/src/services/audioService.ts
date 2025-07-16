@@ -16,3 +16,14 @@ export async function playSymbolAudio(entry: GestureModelEntry): Promise<void> {
     Speech.speak(entry.label);
   }
 }
+
+export const ttsService = {
+  speak(text: string) {
+    Speech.speak(text);
+  },
+};
+
+export const audioService = {
+  playSymbolAudio,
+  ttsService,
+};

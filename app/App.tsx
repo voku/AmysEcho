@@ -1,71 +1,74 @@
+import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import OnboardingScreen from './src/screens/OnboardingScreen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { setupDatabase } from './db';
 import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
-import ParentScreen from './src/screens/ParentScreen';
-import AdminScreen from './src/screens/AdminScreen';
 import LearningScreen from './src/screens/LearningScreen';
-import RecognitionScreen from './src/screens/RecognitionScreen';
-import CorrectionScreen from './src/screens/CorrectionScreen';
-import TrainingScreen from './src/screens/TrainingScreen';
-import DashboardScreen from './src/screens/DashboardScreen';
-import { loadProfile } from './src/storage';
-import { setActiveVocabularySet } from './src/model';
-import {
-  AccessibilityContext,
-  AccessibilitySettings,
-} from './src/components/AccessibilityContext';
+import AdminScreen from './src/screens/AdminScreen';
+import ParentScreen from './src/screens/ParentScreen';
+import { ServicesContext } from './src/context/ServicesContext';
+import { mlService } from './src/services/mlService';
+import { audioService } from './src/services/audioService';
+import { adaptiveLearningService } from './src/services/adaptiveLearningService';
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 
 export default function App() {
-  const [initialRoute, setInitialRoute] = useState<string | null>(null);
-  const [accessibility, setAccessibility] = useState<AccessibilitySettings>({
-    largeText: false,
-    highContrast: false,
-  });
+  const [isReady, setIsReady] = useState(false);
+  const [initialProfileId, setInitialProfileId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function init() {
-      const profile = await loadProfile();
-      if (profile) {
-        setActiveVocabularySet(profile.vocabularySetId);
-        setAccessibility({
-          largeText: !!profile.largeText,
-          highContrast: !!profile.highContrast,
-        });
-        setInitialRoute('ProfileSelect');
-      } else {
-        setInitialRoute('Onboarding');
+    async function initialize() {
+      try {
+        const profileId = await setupDatabase();
+        setInitialProfileId(profileId);
+        await mlService.loadModels();
+      } catch (e) {
+        console.error('Failed to initialize app:', e);
+      } finally {
+        setIsReady(true);
       }
     }
-    init();
+    initialize();
   }, []);
 
-  if (!initialRoute) {
-    return <ActivityIndicator style={{ flex: 1 }} />;
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
   return (
-    <AccessibilityContext.Provider value={accessibility}>
+    <ServicesContext.Provider value={{ mlService, audioService, adaptiveLearningService }}>
       <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName={initialRoute as any}
-          screenOptions={{ headerShown: false }}
-        >
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          <Stack.Screen name="ProfileSelect" component={ProfileSelectScreen} />
-          <Stack.Screen name="Parent" component={ParentScreen} />
-          <Stack.Screen name="Admin" component={AdminScreen} />
-          <Stack.Screen name="Recognition" component={RecognitionScreen} />
-          <Stack.Screen name="Correction" component={CorrectionScreen} />
-          <Stack.Screen name="Training" component={TrainingScreen} />
-          <Stack.Screen name="Learning" component={LearningScreen} />
-          <Stack.Screen name="Dashboard" component={DashboardScreen} />
+        <Stack.Navigator initialRouteName={initialProfileId ? 'Learning' : 'ProfileSelect'}>
+          <Stack.Screen
+            name="ProfileSelect"
+            component={ProfileSelectScreen}
+            options={{ title: 'Profil auswählen' }}
+          />
+          <Stack.Screen
+            name="Learning"
+            component={LearningScreen}
+            options={{ title: "Amy's Echo" }}
+            initialParams={{ profileId: initialProfileId }}
+          />
+          <Stack.Screen
+            name="Admin"
+            component={AdminScreen}
+            options={{ title: 'Verwaltung' }}
+          />
+          <Stack.Screen
+            name="Parent"
+            component={ParentScreen}
+            options={{ title: 'Elternbereich' }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
-    </AccessibilityContext.Provider>
+    </ServicesContext.Provider>
   );
 }
