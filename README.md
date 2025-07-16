@@ -99,7 +99,7 @@ The next stages follow the broad implementation plan in the project spec.
   - [x] Connect to an LLM for dynamic suggestions with privacy controls
   - [x] Explore offline model retraining from collected data
   - [x] Build the caregiver analytics dashboard
-  - [ ] Prepare production builds for app store release
+  - [x] Prepare production builds for app store release
 
 ## ▶️ Running the mobile app
 
@@ -108,6 +108,17 @@ The React Native code lives in `app/`. Install dependencies with `npm install` i
 ### Building the custom dev client
 
 If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` inside `app/` once to generate the native projects. Afterwards use `npm run ios` or `npm run android` to install the dev client on your device.
+
+### Creating production builds
+
+To generate store-ready binaries using EAS Build, run:
+
+```bash
+npm run build:android
+npm run build:ios
+```
+
+This uses `eas.json` and requires credentials configured with Expo.
 
 ### Retraining the offline model
 

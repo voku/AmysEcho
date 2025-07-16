@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run build && node dist/test/db.test.js && node dist/test/recognizer.test.js && node dist/test/services.test.js && node dist/test/model.test.js && node dist/test/retrain.test.js && node dist/test/analytics.test.js",
-    "build": "tsc"
+    "build": "tsc",
+    "build:android": "npx eas build --platform android --profile production --project-dir app",
+    "build:ios": "npx eas build --platform ios --profile production --project-dir app"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +18,7 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "@types/node": "^24.0.14"
+    "@types/node": "^24.0.14",
+    "eas-cli": "^16.15.0"
   }
 }
