@@ -317,6 +317,7 @@ export async function setupDatabase(filePath: string): Promise<Database> {
         emoji: '👋',
         color: '#ffcc00',
         audioUri: 'hello.mp3',
+        dgsVideoUri: 'dgs/hello.mp4',
         healthScore: 1,
       },
       {
@@ -325,6 +326,7 @@ export async function setupDatabase(filePath: string): Promise<Database> {
         emoji: '🥤',
         color: '#0099ff',
         audioUri: 'drink.mp3',
+        dgsVideoUri: 'dgs/drink.mp4',
         healthScore: 1,
       },
     ];
