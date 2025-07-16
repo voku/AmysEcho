@@ -9,6 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 import { gestureModel, GestureModelEntry } from '../model';
+import { loadOpenAIApiKey, saveOpenAIApiKey } from '../storage';
 
 export default function AdminScreen({ navigation }: any) {
   const [symbols, setSymbols] = useState<GestureModelEntry[]>([
@@ -18,6 +19,13 @@ export default function AdminScreen({ navigation }: any) {
   const [label, setLabel] = useState('');
   const [id, setId] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+
+  React.useEffect(() => {
+    loadOpenAIApiKey().then((k) => {
+      if (k) setApiKey(k);
+    });
+  }, []);
 
   const openAdd = () => {
     setEditing(null);
@@ -45,12 +53,17 @@ export default function AdminScreen({ navigation }: any) {
     setModalVisible(false);
   };
 
+  const handleSaveApiKey = async () => {
+    await saveOpenAIApiKey(apiKey);
+  };
+
   const styles = StyleSheet.create({
     container: { flex: 1, padding: 20 },
     title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
     row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
     modal: { flex: 1, justifyContent: 'center', padding: 20 },
     input: { borderWidth: 1, padding: 8, marginBottom: 12 },
+    apiInput: { borderWidth: 1, padding: 8, marginVertical: 12 },
   });
 
   return (
@@ -66,6 +79,13 @@ export default function AdminScreen({ navigation }: any) {
           </View>
         )}
       />
+      <TextInput
+        style={styles.apiInput}
+        placeholder="OpenAI API Key"
+        value={apiKey}
+        onChangeText={setApiKey}
+      />
+      <Button title="Save API Key" onPress={handleSaveApiKey} />
       <Button title="Add Symbol" onPress={openAdd} />
       <Button title="Back" onPress={() => navigation.goBack()} />
 

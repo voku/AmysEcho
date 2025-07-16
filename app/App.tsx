@@ -6,6 +6,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
 import ParentScreen from './src/screens/ParentScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import LearningScreen from './src/screens/LearningScreen';
 import RecognitionScreen from './src/screens/RecognitionScreen';
 import CorrectionScreen from './src/screens/CorrectionScreen';
 import TrainingScreen from './src/screens/TrainingScreen';
@@ -61,6 +62,7 @@ export default function App() {
           <Stack.Screen name="Recognition" component={RecognitionScreen} />
           <Stack.Screen name="Correction" component={CorrectionScreen} />
           <Stack.Screen name="Training" component={TrainingScreen} />
+          <Stack.Screen name="Learning" component={LearningScreen} />
           <Stack.Screen name="Dashboard" component={DashboardScreen} />
         </Stack.Navigator>
       </NavigationContainer>
