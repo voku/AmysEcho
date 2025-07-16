@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, Animated, Easing, SafeAreaView } from 'react-native';
+import { View, Text, Button, StyleSheet, Animated, Easing, SafeAreaView, Switch } from 'react-native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import { logCorrection, loadProfile, Profile } from '../storage';
 import { classifyGesture } from '../services/mlService';
 import { playSymbolAudio } from '../services/audioService';
 import { playSymbolVideo } from '../services/videoService';
-import { getAdaptiveSuggestion } from '../services/dialogService';
+import { getLLMSuggestions, LLMSuggestions } from '../services/dialogService';
 import { incrementUsage } from '../services/usageTracker';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -15,7 +15,11 @@ export default function RecognitionScreen({ navigation }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState("I'm listening...");
   const [showCorrection, setShowCorrection] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<LLMSuggestions>({
+    nextWords: [],
+    caregiverPhrases: [],
+  });
+  const [useDgs, setUseDgs] = useState(false);
   const [lastLabel, setLastLabel] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -47,7 +51,7 @@ export default function RecognitionScreen({ navigation }: any) {
     if (profile) {
       await incrementUsage({ id: result.label, label: result.label }, profile.id);
     }
-    const adv = await getAdaptiveSuggestion(result.label);
+    const adv = await getLLMSuggestions(result.label);
     setSuggestions(adv);
   };
 
@@ -65,7 +69,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
   const handlePlayVideo = async () => {
     if (!lastLabel) return;
-    await playSymbolVideo({ id: lastLabel, label: lastLabel });
+    await playSymbolVideo({ id: lastLabel, label: lastLabel }, useDgs);
   };
 
   const styles = StyleSheet.create({
@@ -87,6 +91,11 @@ export default function RecognitionScreen({ navigation }: any) {
       marginBottom: 10,
       color: highContrast ? '#fff' : '#666',
     },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
   });
 
   return (
@@ -95,9 +104,26 @@ export default function RecognitionScreen({ navigation }: any) {
       <Animated.Text style={[styles.status, { opacity: fadeAnim }]}>
         {status}
       </Animated.Text>
-      {suggestions.map((s, i) => (
-        <Text key={i} style={styles.suggestion}>{s}</Text>
-      ))}
+      {suggestions.nextWords.length > 0 && (
+        <View>
+          <Text style={styles.suggestion}>Next words:</Text>
+          {suggestions.nextWords.map((s, i) => (
+            <Text key={i} style={styles.suggestion}>{s}</Text>
+          ))}
+        </View>
+      )}
+      {suggestions.caregiverPhrases.length > 0 && (
+        <View>
+          <Text style={styles.suggestion}>Caregiver:</Text>
+          {suggestions.caregiverPhrases.map((s, i) => (
+            <Text key={i} style={styles.suggestion}>{s}</Text>
+          ))}
+        </View>
+      )}
+      <View style={styles.toggleRow}>
+        <Text style={styles.suggestion}>Use DGS Video</Text>
+        <Switch value={useDgs} onValueChange={setUseDgs} />
+      </View>
       <Button title="Simulate recognition" onPress={handleRecognize} />
       <Button title="Simulate low confidence" onPress={handleLowConfidence} />
       {lastLabel && (

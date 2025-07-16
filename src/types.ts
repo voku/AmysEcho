@@ -4,6 +4,8 @@ export interface SymbolRecord {
   emoji: string;
   color: string;
   audioUri: string;
+  /** Optional path to a German Sign Language (DGS) demonstration video */
+  dgsVideoUri?: string;
   healthScore: number;
 }
 
