@@ -62,6 +62,7 @@ export async function logCorrection(correctId: string): Promise<void> {
     gestureDefinitionId: correctId,
     wasSuccessful: true,
     confidenceScore: 0,
+    timestamp: Date.now(),
     processedBy: 'local',
   });
   await AsyncStorage.setItem(LOG_KEY, JSON.stringify(logs));

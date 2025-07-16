@@ -221,6 +221,7 @@ export const logCorrection = (
     gestureDefinitionId: predictedGestureId,
     wasSuccessful: false,
     confidenceScore: 0,
+    timestamp: Date.now(),
     caregiverOverrideId: correctedGestureId,
     processedBy: 'local',
   };
