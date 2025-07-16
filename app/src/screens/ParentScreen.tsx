@@ -10,6 +10,8 @@ export default function ParentScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Parent Screen</Text>
+      <Button title="Learning" onPress={() => navigation.navigate('Learning')} />
+      <Button title="Recognition" onPress={() => navigation.navigate('Recognition')} />
       <Button title="Back" onPress={() => navigation.goBack()} />
     </View>
   );

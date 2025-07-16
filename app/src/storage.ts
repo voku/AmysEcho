@@ -83,3 +83,12 @@ export async function saveTrainingSample(
   });
   await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
 }
+
+const API_KEY = 'openaiApiKey';
+export async function saveOpenAIApiKey(key: string): Promise<void> {
+  await AsyncStorage.setItem(API_KEY, key);
+}
+
+export async function loadOpenAIApiKey(): Promise<string | null> {
+  return AsyncStorage.getItem(API_KEY);
+}

@@ -3,8 +3,10 @@ export interface LLMSuggestions {
   caregiverPhrases: string[];
 }
 
+import { loadOpenAIApiKey } from '../storage';
+
 export async function getLLMSuggestions(label: string): Promise<LLMSuggestions> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = await loadOpenAIApiKey();
   if (!apiKey) {
     switch (label) {
       case 'hello':
