@@ -47,9 +47,13 @@ export default function RecognitionScreen({ navigation }: any) {
     setStatus(`I think: ${result.label}`);
     startFeedbackAnimation();
     setLastLabel(result.label);
-    await playSymbolAudio({ id: result.label, label: result.label });
+    const entry = gestureModel.gestures.find((g) => g.id === result.label) || {
+      id: result.label,
+      label: result.label,
+    };
+    await playSymbolAudio(entry);
     if (profile) {
-      await incrementUsage({ id: result.label, label: result.label }, profile.id);
+      await incrementUsage(entry, profile.id);
     }
     const adv = await getLLMSuggestions(result.label);
     setSuggestions(adv);
@@ -69,7 +73,12 @@ export default function RecognitionScreen({ navigation }: any) {
 
   const handlePlayVideo = async () => {
     if (!lastLabel) return;
-    await playSymbolVideo({ id: lastLabel, label: lastLabel }, useDgs);
+    const entry =
+      gestureModel.gestures.find((g) => g.id === lastLabel) || {
+        id: lastLabel,
+        label: lastLabel,
+      };
+    await playSymbolVideo(entry, useDgs);
   };
 
   const styles = StyleSheet.create({

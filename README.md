@@ -117,7 +117,7 @@ A detailed step-by-step implementation plan is available in [docs/TODO.md](docs/
 
 The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
 
-DGS demonstration videos can be placed under `app/assets/videos/dgs/`. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available.
+DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available.
 
 ### Building the custom dev client
 

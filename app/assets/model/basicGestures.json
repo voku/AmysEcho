@@ -1,1 +1,10 @@
-{"gestures": [{"id": "sample", "label": "hello"}]}
+{
+  "gestures": [
+    {
+      "id": "sample",
+      "label": "hello",
+      "videoUri": "videos/sample.mp4",
+      "dgsVideoUri": "videos/dgs/sample.mp4"
+    }
+  ]
+}
