@@ -97,7 +97,7 @@ The next stages follow the broad implementation plan in the project spec.
   - [x] Support optional DGS video playback for symbols
 - **Phase 4 – Advanced Features & Deployment**
   - [x] Connect to an LLM for dynamic suggestions with privacy controls
-  - [ ] Explore offline model retraining from collected data
+  - [x] Explore offline model retraining from collected data
   - [ ] Build the caregiver analytics dashboard
   - [ ] Prepare production builds for app store release
 
@@ -108,6 +108,17 @@ The React Native code lives in `app/`. Install dependencies with `npm install` i
 ### Building the custom dev client
 
 If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` inside `app/` once to generate the native projects. Afterwards use `npm run ios` or `npm run android` to install the dev client on your device.
+
+### Retraining the offline model
+
+Collected gesture samples can be used to update the local fallback model. Run:
+
+```bash
+npm run build
+node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json
+```
+
+The recognizer will load `dist/offlineModel.json` by default when classifying offline.
 
 ---
 
