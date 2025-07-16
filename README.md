@@ -89,7 +89,7 @@ A detailed step-by-step implementation plan is available in [docs/TODO.md](docs/
 - [ ] Task 1.1: Unify and Finalize Database Schema & Models
 - [x] Task 1.2: Implement Database Seeding
 - [x] Task 1.3: Implement Stable Navigation
-- [ ] Task 2.1: Activate the LearningScreen Interactivity
+- [x] Task 2.1: Activate the LearningScreen Interactivity
 - [ ] Task 2.2: Implement Gesture Recognition
 - [ ] Task 3.1: Build Out the AdminScreen
 - [x] Task 4.2: LLM-Powered Suggestions

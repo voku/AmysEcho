@@ -1,21 +1,27 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, Button, StyleSheet, Animated, Easing, SafeAreaView } from 'react-native';
 import CorrectionPanel from '../components/CorrectionPanel';
-import { logCorrection } from '../storage';
+import { logCorrection, loadProfile, Profile } from '../storage';
 import { classifyGesture } from '../services/mlService';
 import { playSymbolAudio } from '../services/audioService';
 import { playSymbolVideo } from '../services/videoService';
 import { getAdaptiveSuggestion } from '../services/dialogService';
+import { incrementUsage } from '../services/usageTracker';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState("I'm listening...");
   const [showCorrection, setShowCorrection] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [lastLabel, setLastLabel] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    loadProfile().then(setProfile);
+  }, []);
 
   const startFeedbackAnimation = () => {
     fadeAnim.setValue(0);
@@ -38,6 +44,9 @@ export default function RecognitionScreen({ navigation }: any) {
     startFeedbackAnimation();
     setLastLabel(result.label);
     await playSymbolAudio({ id: result.label, label: result.label });
+    if (profile) {
+      await incrementUsage({ id: result.label, label: result.label }, profile.id);
+    }
     const adv = await getAdaptiveSuggestion(result.label);
     setSuggestions(adv);
   };
