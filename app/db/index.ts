@@ -36,10 +36,12 @@ export const database = new Database({
 export const setupDatabase = async () => {
   const profileCollection = database.get<Profile>('profiles');
   const profiles = await profileCollection.query().fetch();
+
   if (profiles.length > 0) {
     console.log('Database already populated.');
     return profiles[0].id;
   }
+
   let amyProfileId = '';
   await database.write(async () => {
     console.log('Setting up database with initial data...');
@@ -51,7 +53,6 @@ export const setupDatabase = async () => {
       s.category = 'basic';
       s.iconName = 'trinken.png';
       s.videoAssetPath = 'trinken.mp4';
-      s.dgsVideoAssetPath = 'dgs/trinken.mp4';
       s.contextTagsRaw = JSON.stringify(['Durst', 'Becher', 'mehr']);
       s.emoji = '🥛';
       s.priority = 1;
@@ -66,7 +67,6 @@ export const setupDatabase = async () => {
       s.category = 'basic';
       s.iconName = 'essen.png';
       s.videoAssetPath = 'essen.mp4';
-      s.dgsVideoAssetPath = 'dgs/essen.mp4';
       s.contextTagsRaw = JSON.stringify(['Hunger', 'Teller', 'mehr']);
       s.emoji = '🍪';
       s.priority = 1;
@@ -81,7 +81,6 @@ export const setupDatabase = async () => {
       s.category = 'extra';
       s.iconName = 'spielen.png';
       s.videoAssetPath = 'spielen.mp4';
-      s.dgsVideoAssetPath = 'dgs/spielen.mp4';
       s.contextTagsRaw = JSON.stringify(['Spaß', 'Freunde', 'Ball']);
       s.emoji = '⚽';
       s.priority = 2;
@@ -94,10 +93,20 @@ export const setupDatabase = async () => {
     const setCollection = database.get<VocabularySet>('vocabulary_sets');
     const alltagSet = await setCollection.create(v => { v.name = 'Alltag'; });
     const kitaSet = await setCollection.create(v => { v.name = 'Kita'; });
+
     const vssCollection = database.get<VocabularySetSymbol>('vocabulary_set_symbols');
-    await vssCollection.create(vs => { (vs as any).vocabularySet.id = alltagSet.id; (vs as any).symbol.id = trinkenSymbol.id; });
-    await vssCollection.create(vs => { (vs as any).vocabularySet.id = alltagSet.id; (vs as any).symbol.id = essenSymbol.id; });
-    await vssCollection.create(vs => { (vs as any).vocabularySet.id = kitaSet.id; (vs as any).symbol.id = spielenSymbol.id; });
+    await vssCollection.create(vs => {
+      (vs as any).vocabularySet.id = alltagSet.id;
+      (vs as any).symbol.id = trinkenSymbol.id;
+    });
+    await vssCollection.create(vs => {
+      (vs as any).vocabularySet.id = alltagSet.id;
+      (vs as any).symbol.id = essenSymbol.id;
+    });
+    await vssCollection.create(vs => {
+      (vs as any).vocabularySet.id = kitaSet.id;
+      (vs as any).symbol.id = spielenSymbol.id;
+    });
 
     const amyProfile = await profileCollection.create(p => {
       p.name = 'Amy';
@@ -109,5 +118,6 @@ export const setupDatabase = async () => {
     });
     amyProfileId = amyProfile.id;
   });
+
   return amyProfileId;
 };

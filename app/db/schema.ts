@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 4,
+  version: 3,
   tables: [
     tableSchema({
       name: 'profiles',
@@ -20,7 +20,6 @@ export const mySchema = appSchema({
         { name: 'name', type: 'string', isIndexed: true },
         { name: 'icon_name', type: 'string' },
         { name: 'video_asset_path', type: 'string', isOptional: true },
-        { name: 'dgs_video_asset_path', type: 'string', isOptional: true },
         { name: 'category', type: 'string', isIndexed: true },
         { name: 'priority', type: 'number' },
         { name: 'is_active', type: 'boolean' },
