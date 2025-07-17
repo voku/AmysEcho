@@ -42,7 +42,6 @@ export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionR
   const prompt = `A ${req.age}-year-old child who speaks ${req.language} just selected the word "${req.input}". The current context is [${req.context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver. Return a JSON object with two keys: "nextWords" and "caregiverPhrases".`;
   console.log('LLM Prompt:', prompt);
   try {
-    // TODO: Replace this with a real OpenAI API call as outlined in docs/TODO.md
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
