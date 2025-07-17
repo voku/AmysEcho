@@ -154,7 +154,11 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
           <Text style={styles.selectedSymbolLabel}>{selectedSymbol.name}</Text>
           <View style={styles.toggleContainer}>
             <Text>DGS Video anzeigen</Text>
-            <Switch value={showDgsVideo} onValueChange={setShowDgsVideo} />
+            <Switch
+              value={showDgsVideo}
+              onValueChange={setShowDgsVideo}
+              accessibilityLabel="DGS-Video anzeigen"
+            />
           </View>
           <SymbolVideoPlayer
             entry={{

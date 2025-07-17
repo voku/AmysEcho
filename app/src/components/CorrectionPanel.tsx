@@ -58,16 +58,30 @@ export default function CorrectionPanel({
         <Animated.View style={[styles.panel, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.row}>
             {options.slice(0, 2).map((g) => (
-              <Button key={g.id} title={g.label} onPress={() => onSelect(g.id)} />
+              <Button
+                key={g.id}
+                title={g.label}
+                onPress={() => onSelect(g.id)}
+                accessibilityLabel={`Korrektur ${g.label}`}
+              />
             ))}
           </View>
           <View style={styles.row}>
             {options.slice(2, 4).map((g) => (
-              <Button key={g.id} title={g.label} onPress={() => onSelect(g.id)} />
+              <Button
+                key={g.id}
+                title={g.label}
+                onPress={() => onSelect(g.id)}
+                accessibilityLabel={`Korrektur ${g.label}`}
+              />
             ))}
           </View>
           <View style={styles.row}>
-            <Button title="None of these" onPress={onAddNew} />
+            <Button
+              title="None of these"
+              onPress={onAddNew}
+              accessibilityLabel="Keine dieser Optionen"
+            />
           </View>
         </Animated.View>
       </View>
