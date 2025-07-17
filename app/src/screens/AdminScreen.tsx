@@ -131,8 +131,16 @@ export default function AdminScreen({ navigation }: any) {
         renderItem={({ item }) => (
           <View style={styles.row}>
             <Text>{item.name}</Text>
-            <Button title="Bearbeiten" onPress={() => openEdit(item)} />
-            <Button title="Löschen" onPress={() => handleDelete(item)} />
+            <Button
+              title="Bearbeiten"
+              onPress={() => openEdit(item)}
+              accessibilityLabel={`Bearbeite ${item.name}`}
+            />
+            <Button
+              title="Löschen"
+              onPress={() => handleDelete(item)}
+              accessibilityLabel={`Lösche ${item.name}`}
+            />
           </View>
         )}
       />
@@ -141,12 +149,25 @@ export default function AdminScreen({ navigation }: any) {
         placeholder="OpenAI API Key"
         value={apiKey}
         onChangeText={setApiKey}
+        accessibilityLabel="OpenAI API Key"
       />
-      <Button title="Save API Key" onPress={handleSaveApiKey} />
-      <Button title="Download Latest Model" onPress={handleDownloadModel} />
-      <Button title="Add Symbol" onPress={openAdd} />
-      <Button title="Training" onPress={() => navigation.navigate('Training')} />
-      <Button title="Back" onPress={() => navigation.goBack()} />
+      <Button
+        title="Save API Key"
+        onPress={handleSaveApiKey}
+        accessibilityLabel="OpenAI API-Schlüssel speichern"
+      />
+      <Button
+        title="Download Latest Model"
+        onPress={handleDownloadModel}
+        accessibilityLabel="Neueste Modellversion herunterladen"
+      />
+      <Button title="Add Symbol" onPress={openAdd} accessibilityLabel="Symbol hinzufügen" />
+      <Button
+        title="Training"
+        onPress={() => navigation.navigate('Training')}
+        accessibilityLabel="Trainingsmodus öffnen"
+      />
+      <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
 
       <Modal visible={modalVisible} animationType="slide">
         <View style={styles.modal}>
@@ -155,15 +176,17 @@ export default function AdminScreen({ navigation }: any) {
             placeholder="ID"
             value={id}
             onChangeText={setId}
+            accessibilityLabel="Symbol ID"
           />
           <TextInput
             style={styles.input}
             placeholder="Label"
             value={label}
             onChangeText={setLabel}
+            accessibilityLabel="Symbol Label"
           />
-          <Button title="Save" onPress={handleSave} />
-          <Button title="Cancel" onPress={() => setModalVisible(false)} />
+          <Button title="Save" onPress={handleSave} accessibilityLabel="Symbol speichern" />
+          <Button title="Cancel" onPress={() => setModalVisible(false)} accessibilityLabel="Abbrechen" />
         </View>
       </Modal>
     </View>
