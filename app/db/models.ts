@@ -21,6 +21,7 @@ export class Symbol extends Model {
   @text('name') name!: string;
   @text('icon_name') iconName!: string;
   @text('video_asset_path') videoAssetPath?: string;
+  @text('dgs_video_asset_path') dgsVideoAssetPath?: string;
   @text('category') category!: string;
   @field('priority') priority!: number;
   @field('is_active') isActive!: boolean;
