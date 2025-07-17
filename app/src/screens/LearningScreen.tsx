@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, FlatList, Pressable, AppState, StyleSheet, Switch } from 'react-native';
 import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
@@ -49,7 +49,11 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const { model } = useTensorflowModel(require('../../assets/models/gestures.tflite'));
   const device = useCameraDevice('front');
   const isFocused = useIsFocused();
-  const appState = AppState.currentState;
+  const [appState, setAppState] = useState(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', setAppState);
+    return () => sub.remove();
+  }, []);
   const canRunCamera = device != null && isCameraActive && isFocused && appState === 'active';
 
   const handlePress = async (symbol: Symbol) => {
