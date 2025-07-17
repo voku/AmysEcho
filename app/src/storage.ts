@@ -92,3 +92,13 @@ export async function saveOpenAIApiKey(key: string): Promise<void> {
 export async function loadOpenAIApiKey(): Promise<string | null> {
   return AsyncStorage.getItem(API_KEY);
 }
+
+const CUSTOM_MODEL_KEY = 'customModelUri';
+
+export async function saveCustomModelUri(uri: string): Promise<void> {
+  await AsyncStorage.setItem(CUSTOM_MODEL_KEY, uri);
+}
+
+export async function loadCustomModelUri(): Promise<string | null> {
+  return AsyncStorage.getItem(CUSTOM_MODEL_KEY);
+}
