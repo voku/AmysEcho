@@ -129,7 +129,7 @@ The React Native code lives in `app/`. Install dependencies with `npm install` i
 
 DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available.
 
-The LLM-powered suggestions require an OpenAI API key. You can set this via the `OPENAI_API_KEY` environment variable or save it securely using the Admin screen. Never commit keys to the repository.
+The LLM-powered suggestions require an OpenAI API key. You can set this via the `OPENAI_API_KEY` environment variable, place the key in a local `.openai-key` file, or save it securely using the Admin screen. Never commit keys to the repository.
 
 ### Building the custom dev client
 
