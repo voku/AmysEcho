@@ -52,8 +52,11 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     loadCustomModelUri().then(setCustomModelUri);
   }, []);
 
-  const { model } = useTensorflowModel(
-    customModelUri ? { uri: customModelUri } : require('../../assets/models/gestures.tflite'),
+  const { model: gestureModel } = useTensorflowModel(
+    customModelUri ? { uri: customModelUri } : require('../../assets/models/gesture_classifier.tflite'),
+  );
+  const { model: landmarkModel } = useTensorflowModel(
+    require('../../assets/models/hand_landmarker.tflite'),
   );
   const device = useCameraDevice('front');
   const isFocused = useIsFocused();
@@ -102,11 +105,18 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
 
   const frameProcessor = useFrameProcessor(frame => {
     'worklet';
-    if (!model.value) return;
+    if (!landmarkModel.value || !gestureModel.value) return;
     try {
-      const data = model.value.runSync(frame) as any[];
-      if (data?.length > 0) {
-        const best = data.reduce((p, c) => (p.confidence > c.confidence) ? p : c);
+      const landmarkResults = landmarkModel.value.runSync([frame]) as any[];
+      const landmarks = landmarkResults[0];
+      if (!landmarks || landmarks.length === 0) {
+        runOnJS(setLastGesture)(null);
+        return;
+      }
+
+      const gestureResults = gestureModel.value.runSync([landmarks]) as any[];
+      if (gestureResults?.length > 0) {
+        const best = gestureResults.reduce((p, c) => (p.confidence > c.confidence ? p : c));
         if (best?.confidence > 0.8) {
           handleGesture(best);
         }
@@ -114,7 +124,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     } catch (e) {
       console.error('Frame processor error', e);
     }
-  }, [model, vocabulary, lastGesture]);
+  }, [landmarkModel, gestureModel, vocabulary, lastGesture]);
 
   if (!profile || !vocabulary) {
     return <View style={styles.container}><ActivityIndicator size="large" /></View>;
