@@ -27,6 +27,7 @@ export default function CorrectionScreen({ navigation }: any) {
       flexWrap: 'wrap',
       flexDirection: 'row',
       justifyContent: 'space-between',
+      gap: 10,
     },
   });
 
@@ -34,10 +35,26 @@ export default function CorrectionScreen({ navigation }: any) {
     <View style={styles.container}>
       <Text style={styles.title}>Which sign was this?</Text>
       <View style={styles.buttonRow}>
-        <Button title="Choice 1" onPress={() => handleSelect('1')} />
-        <Button title="Choice 2" onPress={() => handleSelect('2')} />
-        <Button title="Choice 3" onPress={() => handleSelect('3')} />
-        <Button title="Choice 4" onPress={() => handleSelect('4')} />
+        <Button
+          title="Choice 1"
+          onPress={() => handleSelect('1')}
+          accessibilityLabel="Wahl 1"
+        />
+        <Button
+          title="Choice 2"
+          onPress={() => handleSelect('2')}
+          accessibilityLabel="Wahl 2"
+        />
+        <Button
+          title="Choice 3"
+          onPress={() => handleSelect('3')}
+          accessibilityLabel="Wahl 3"
+        />
+        <Button
+          title="Choice 4"
+          onPress={() => handleSelect('4')}
+          accessibilityLabel="Wahl 4"
+        />
       </View>
     </View>
   );
