@@ -5,6 +5,7 @@ import {
   availableVocabularySets,
   setActiveVocabularySet,
 } from '../model';
+import { useAccessibility } from '../components/AccessibilityContext';
 
 export default function OnboardingScreen({ navigation }: any) {
   const [consentDataUpload, setConsentDataUpload] = useState(false);
@@ -12,6 +13,7 @@ export default function OnboardingScreen({ navigation }: any) {
   const [vocabSet, setVocabSet] = useState('basic');
   const [largeText, setLargeText] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
+  const { update } = useAccessibility();
 
   const handleContinue = async () => {
     const profile: Profile = {
@@ -24,6 +26,7 @@ export default function OnboardingScreen({ navigation }: any) {
     };
     await saveProfile(profile);
     setActiveVocabularySet(vocabSet);
+    update({ largeText, highContrast });
     navigation.replace('ProfileSelect');
   };
 

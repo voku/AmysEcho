@@ -12,12 +12,18 @@ import { ServicesContext } from './context/ServicesContext';
 import { mlService } from './services/mlService';
 import { audioService } from './services/audioService';
 import { adaptiveLearningService } from './services/adaptiveLearningService';
+import { AccessibilityContext, AccessibilitySettings } from './components/AccessibilityContext';
+import { loadProfile } from './storage';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [initialProfileId, setInitialProfileId] = useState<string | null>(null);
+  const [accessibility, setAccessibility] = useState<AccessibilitySettings>({
+    largeText: false,
+    highContrast: false,
+  });
 
   useEffect(() => {
     async function initialize() {
@@ -25,6 +31,13 @@ export default function App() {
         const profileId = await setupDatabase();
         setInitialProfileId(profileId);
         await mlService.loadModels();
+        const profile = await loadProfile();
+        if (profile) {
+          setAccessibility({
+            largeText: !!profile.largeText,
+            highContrast: !!profile.highContrast,
+          });
+        }
       } catch (e) {
         console.error('Failed to initialize app:', e);
       } finally {
@@ -44,8 +57,13 @@ export default function App() {
 
   return (
     <ServicesContext.Provider value={{ mlService, audioService, adaptiveLearningService }}>
-      <NavigationContainer>
-        <Stack.Navigator initialRouteName={initialProfileId ? 'Learning' : 'ProfileSelect'}>
+      <AccessibilityContext.Provider value={{
+        ...accessibility,
+        update: (s: Partial<AccessibilitySettings>) =>
+          setAccessibility(prev => ({ ...prev, ...s })),
+      }}>
+        <NavigationContainer>
+          <Stack.Navigator initialRouteName={initialProfileId ? 'Learning' : 'ProfileSelect'}>
           <Stack.Screen
             name="ProfileSelect"
             component={ProfileSelectScreen}
@@ -67,8 +85,9 @@ export default function App() {
             component={ParentScreen}
             options={{ title: 'Elternbereich' }}
           />
-        </Stack.Navigator>
-      </NavigationContainer>
+          </Stack.Navigator>
+        </NavigationContainer>
+      </AccessibilityContext.Provider>
     </ServicesContext.Provider>
   );
 }
