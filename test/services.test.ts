@@ -1,5 +1,5 @@
 import { processLandmarks } from '../src/services/mlService';
-import { playAudio } from '../src/services/audioService';
+import { playAudio, playSystemSound } from '../src/services/audioService';
 import { playVideo } from '../src/services/videoService';
 import { fetchSuggestions } from '../src/services/dialogService';
 import { tmpdir } from 'os';
@@ -19,6 +19,20 @@ import path from 'path';
   const vid = path.join(tmpdir(), 'dummy.mp4');
   await fs.writeFile(vid, '');
   await playVideo(vid);
+
+  // should not throw even if the sound file is missing
+  await playSystemSound('success');
+  await playSystemSound('error');
+
+  let failed = false;
+  try {
+    await playAudio('/no/such/file.mp3');
+  } catch {
+    failed = true;
+  }
+  if (!failed) {
+    throw new Error('missing audio should error');
+  }
 
   const sugg = await fetchSuggestions('hello');
   if (sugg.length !== 0) {
