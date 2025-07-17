@@ -65,8 +65,8 @@ export const mlService = new MachineLearningService();
 
 ```typescript
 public async getLLMSuggestions({ input, context, language, age }: { input: string, context: string[], language: string, age: number }) {
-  // TODO: Replace with secure storage (e.g., from a settings screen)
-  const apiKey = 'sk-YOUR_API_KEY_HERE';
+  // API key is now loaded from secure storage using expo-secure-store
+  const apiKey = await loadOpenAIApiKey();
   if (!apiKey) return { nextWords: [], caregiverPhrases: [] };
 
   const prompt = `An ${age}-year-old child who speaks ${language} just communicated the word "${input}". The surrounding context is [${context.join(', ')}]. Provide helpful, simple, one-to-three word suggestions for the child's next likely words. Also provide encouraging, full-sentence phrases a caregiver could say. Return ONLY a valid JSON object with two keys: "nextWords": string[] and "caregiverPhrases": string[].`;
