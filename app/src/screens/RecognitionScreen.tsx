@@ -131,12 +131,28 @@ export default function RecognitionScreen({ navigation }: any) {
       )}
       <View style={styles.toggleRow}>
         <Text style={styles.suggestion}>Use DGS Video</Text>
-        <Switch value={useDgs} onValueChange={setUseDgs} />
+        <Switch
+          value={useDgs}
+          onValueChange={setUseDgs}
+          accessibilityLabel="DGS-Video verwenden"
+        />
       </View>
-      <Button title="Simulate recognition" onPress={handleRecognize} />
-      <Button title="Simulate low confidence" onPress={handleLowConfidence} />
+      <Button
+        title="Simulate recognition"
+        onPress={handleRecognize}
+        accessibilityLabel="Erkennung simulieren"
+      />
+      <Button
+        title="Simulate low confidence"
+        onPress={handleLowConfidence}
+        accessibilityLabel="Niedrige Sicherheit simulieren"
+      />
       {lastLabel && (
-        <Button title="Play video" onPress={handlePlayVideo} />
+        <Button
+          title="Play video"
+          onPress={handlePlayVideo}
+          accessibilityLabel="Video abspielen"
+        />
       )}
       <CorrectionPanel
         visible={showCorrection}
@@ -144,7 +160,11 @@ export default function RecognitionScreen({ navigation }: any) {
         onClose={() => setShowCorrection(false)}
         onAddNew={handleAddNew}
       />
-      <Button title="Analytics" onPress={() => navigation.navigate('Dashboard')} />
+      <Button
+        title="Analytics"
+        onPress={() => navigation.navigate('Dashboard')}
+        accessibilityLabel="Zur Statistik"
+      />
     </SafeAreaView>
   );
 }

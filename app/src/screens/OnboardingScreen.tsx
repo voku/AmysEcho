@@ -59,6 +59,7 @@ export default function OnboardingScreen({ navigation }: any) {
           value={consentDataUpload}
           onValueChange={setConsentDataUpload}
           style={styles.switch}
+          accessibilityLabel="Datenupload erlauben"
         />
       </View>
       <View style={styles.toggleRow}>
@@ -67,6 +68,7 @@ export default function OnboardingScreen({ navigation }: any) {
           value={consentHelpMeGetSmarter}
           onValueChange={setConsentHelpMeGetSmarter}
           style={styles.switch}
+          accessibilityLabel="Lernfunktion aktivieren"
         />
       </View>
       <View style={styles.toggleRow}>
@@ -75,6 +77,7 @@ export default function OnboardingScreen({ navigation }: any) {
           value={largeText}
           onValueChange={setLargeText}
           style={styles.switch}
+          accessibilityLabel="Große Schrift"
         />
       </View>
       <View style={styles.toggleRow}>
@@ -83,6 +86,7 @@ export default function OnboardingScreen({ navigation }: any) {
           value={highContrast}
           onValueChange={setHighContrast}
           style={styles.switch}
+          accessibilityLabel="Hoher Kontrast"
         />
       </View>
       <View style={styles.setRow}>
@@ -92,10 +96,15 @@ export default function OnboardingScreen({ navigation }: any) {
             title={s.label}
             onPress={() => setVocabSet(s.id)}
             color={vocabSet === s.id ? '#007aff' : undefined}
+            accessibilityLabel={`Vokabular ${s.label} auswählen`}
           />
         ))}
       </View>
-      <Button title="Continue" onPress={handleContinue} />
+      <Button
+        title="Continue"
+        onPress={handleContinue}
+        accessibilityLabel="Einrichtung abschließen"
+      />
     </SafeAreaView>
   );
 }

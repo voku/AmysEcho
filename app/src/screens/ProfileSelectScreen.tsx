@@ -16,9 +16,21 @@ export default function ProfileSelectScreen({ navigation }: any) {
     <View style={styles.container}>
       <Text style={styles.title}>Select Profile</Text>
       <View style={styles.row}>
-        <Button title="Parent" onPress={() => navigation.navigate('Parent')} />
-        <Button title="Admin" onPress={() => navigation.navigate('Admin')} />
-        <Button title="Neues Profil" onPress={() => navigation.navigate('Onboarding')} />
+        <Button
+          title="Parent"
+          onPress={() => navigation.navigate('Parent')}
+          accessibilityLabel="Elternprofil"
+        />
+        <Button
+          title="Admin"
+          onPress={() => navigation.navigate('Admin')}
+          accessibilityLabel="Adminbereich"
+        />
+        <Button
+          title="Neues Profil"
+          onPress={() => navigation.navigate('Onboarding')}
+          accessibilityLabel="Neues Profil anlegen"
+        />
       </View>
     </View>
   );

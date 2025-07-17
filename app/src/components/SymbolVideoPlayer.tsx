@@ -29,6 +29,7 @@ export default function SymbolVideoPlayer({ entry, paused, useDgs, onEnd }: Symb
       useNativeControls
       resizeMode="contain"
       style={{ width: 300, height: 200 }}
+      accessibilityLabel={`Video ${entry.label}`}
     />
   );
 }

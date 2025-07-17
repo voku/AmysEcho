@@ -40,7 +40,11 @@ export default function DashboardScreen({ navigation }: any) {
       ) : (
         <Text style={styles.label}>No data</Text>
       )}
-      <Button title="Back" onPress={() => navigation.goBack()} />
+      <Button
+        title="Back"
+        onPress={() => navigation.goBack()}
+        accessibilityLabel="Zurück"
+      />
     </View>
   );
 }
