@@ -53,7 +53,12 @@ export default function TrainingScreen({ navigation }: any) {
       <Text style={styles.title}>Training Mode</Text>
       {!gestureId ? (
         gestureModel.gestures.map((g) => (
-          <Button key={g.id} title={g.label} onPress={() => setGestureId(g.id)} />
+          <Button
+            key={g.id}
+            title={g.label}
+            onPress={() => setGestureId(g.id)}
+            accessibilityLabel={`Trainiere Geste ${g.label}`}
+          />
         ))
       ) : count < 5 ? (
         <>
@@ -61,10 +66,15 @@ export default function TrainingScreen({ navigation }: any) {
           <Button
             title={saving ? 'Recording...' : `Record Sample ${count + 1} / 5`}
             onPress={handleRecord}
+            accessibilityLabel="Gestenaufnahme starten"
           />
         </>
       ) : (
-        <Button title="Save Training Data" onPress={handleFinish} />
+        <Button
+          title="Save Training Data"
+          onPress={handleFinish}
+          accessibilityLabel="Trainingsdaten speichern"
+        />
       )}
     </View>
   );

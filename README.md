@@ -105,16 +105,16 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Complete Admin Panel**: CRUD functionality in `AdminScreen.tsx` manages symbols and vocabularies.
 - [ ] **UI/UX Polish**: Conduct a full review of the UI to improve layouts, feedback, and add accessibility labels to all interactive elements.
 
-### Priority 4: Personalized AI Pipeline
-- [ ] **Acquire Pre-trained Models**: Download and bundle the MediaPipe models.
-- [ ] **Implement Two-Stage Frame Processor**: Load landmark and gesture models inside a `useFrameProcessor` worklet.
-- [ ] **Build TrainingScreen UI**: Provide a guided interface for recording gesture samples.
-- [ ] **Implement In-Memory Landmark Extraction**: Use ffmpeg to pull frames and save landmarks only.
+-### Priority 4: Personalized AI Pipeline
+- [x] **Acquire Pre-trained Models**: Download and bundle the MediaPipe models (see `src/tools/downloadModels.ts`).
+- [x] **Implement Two-Stage Frame Processor**: Load landmark and gesture models inside a `useFrameProcessor` worklet.
+- [x] **Build TrainingScreen UI**: Provide a guided interface for recording gesture samples.
+- [x] **Implement In-Memory Landmark Extraction**: Use ffmpeg to pull frames and save landmarks only.
 - [x] **Create Secure LLM Dialog Endpoint**: Proxy OpenAI requests through an authenticated server.
 - [x] **Create Model Training Endpoint & Script**: Accept uploaded landmarks and train an LSTM gesture model.
 - [x] **Create Model Download Endpoint**: Serve the latest personalized model to the app.
-- [ ] **Implement Model Download and Activation**: Download the `.tflite` model and store its URI securely.
-- [ ] **Activate the Personalized Model**: Use the custom model in the Learning screen when available.
+- [x] **Implement Model Download and Activation**: Download the `.tflite` model and store its URI securely.
+- [x] **Activate the Personalized Model**: Use the custom model in the Learning screen when available.
 
 ## ▶️ Running the mobile app
 
