@@ -12,9 +12,17 @@ export interface LLMSuggestions {
   caregiverPhrases: string[];
 }
 
+function getApiKey(): string | undefined {
+  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
+  try {
+    return require('fs').readFileSync('.openai-key', 'utf8').trim();
+  } catch {
+    return undefined;
+  }
+}
+
 export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestions> {
-  // TODO: Replace with secure storage (e.g., from a settings screen)
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     return { nextWords: [], caregiverPhrases: [] };
   }
