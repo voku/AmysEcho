@@ -12,7 +12,7 @@ import { playSymbolAudio } from '../services/audioService';
 import { usageTracker } from '../services/usageTracker';
 import { SymbolButton } from '../components/SymbolButton';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
-import { dialogEngine } from '../services/dialogEngine';
+import { getLLMSuggestions, LLMSuggestions } from '../services/dialogService';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Profile, Symbol } from '../../db/models';
@@ -37,7 +37,10 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [lastGesture, setLastGesture] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<Symbol | null>(null);
   const [videoPaused, setVideoPaused] = useState(false);
+  const [showDgsVideo, setShowDgsVideo] = useState(false);
   const [suggestions, setSuggestions] = useState<Symbol[]>([]);
+  const [llmSuggestions, setLlmSuggestions] = useState<LLMSuggestions | null>(null);
+  const [llmLoading, setLlmLoading] = useState(false);
 
   const { model } = useTensorflowModel(require('../../assets/models/gestures.tflite'));
   const device = useCameraDevice('front');
@@ -50,8 +53,12 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     setVideoPaused(false);
     await playSymbolAudio({ id: symbol.id, label: symbol.name });
     await usageTracker.incrementUsage(symbol, profile.id);
-    const adaptiveSuggestions = await dialogEngine.getAdaptiveSuggestions(vocabulary, profile.id);
-    setSuggestions(adaptiveSuggestions);
+    setSuggestions([]);
+    setLlmLoading(true);
+    setLlmSuggestions(null);
+    const llm = await getLLMSuggestions(symbol.name);
+    setLlmSuggestions(llm);
+    setLlmLoading(false);
   };
 
   const handleGesture = (prediction: GesturePrediction) => {
@@ -92,7 +99,10 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
       {canRunCamera && <Camera style={StyleSheet.absoluteFill} device={device} isActive={true} frameProcessor={frameProcessor} frameProcessorFps={5}/>} 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{profile.name}'s Vokabular</Text>
-        <Pressable onPress={() => navigation.navigate('Admin', { profileId: profile.id })}>
+        <Pressable
+          onPress={() => navigation.navigate('Admin', { profileId: profile.id })}
+          accessibilityLabel="Admin Einstellungen"
+        >
           <Text style={styles.adminButton}>⚙️</Text>
         </Pressable>
       </View>
@@ -106,12 +116,26 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
       {selectedSymbol && (
         <View style={styles.selectedSymbolContainer}>
           <Text style={styles.selectedSymbolLabel}>{selectedSymbol.name}</Text>
+          <View style={styles.toggleContainer}>
+            <Text>DGS Video anzeigen</Text>
+            <Switch value={showDgsVideo} onValueChange={setShowDgsVideo} />
+          </View>
           <SymbolVideoPlayer
-            entry={{ id: selectedSymbol.id, label: selectedSymbol.name, videoUri: selectedSymbol.videoAssetPath }}
+            entry={{
+              id: selectedSymbol.id,
+              label: selectedSymbol.name,
+              videoUri: selectedSymbol.videoAssetPath,
+              dgsVideoUri: selectedSymbol.dgsVideoAssetPath,
+            }}
             paused={videoPaused}
+            useDgs={showDgsVideo}
             onEnd={() => setVideoPaused(true)}
           />
-          <Pressable style={styles.repeatButton} onPress={() => handlePress(selectedSymbol)}>
+          <Pressable
+            style={styles.repeatButton}
+            onPress={() => handlePress(selectedSymbol)}
+            accessibilityLabel="Zeige Symbol erneut"
+          >
             <Text style={styles.buttonText}>🔁 Wiederholen</Text>
           </Pressable>
           {suggestions.length > 0 && (
@@ -120,6 +144,18 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
                 <View style={styles.suggestionsList}>
                     {suggestions.map(s => <SymbolButton key={s.id} symbol={s} onPress={handlePress} />)}
                 </View>
+            </View>
+          )}
+          {llmLoading && <ActivityIndicator style={styles.llmLoading} />}
+          {llmSuggestions && (
+            <View style={styles.suggestionsContainer}>
+              <Text style={styles.suggestionsTitle}>Ideen (KI):</Text>
+              {llmSuggestions.nextWords.length > 0 && (
+                <Text>{llmSuggestions.nextWords.join(', ')}</Text>
+              )}
+              {llmSuggestions.caregiverPhrases.map((p, idx) => (
+                <Text key={idx}>{p}</Text>
+              ))}
             </View>
           )}
         </View>
@@ -132,6 +168,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
             thumbColor={isCameraActive ? '#f5dd4b' : '#f4f3f4'}
             onValueChange={() => setIsCameraActive(prev => !prev)}
             value={isCameraActive}
+            accessibilityLabel="Gestenerkennung"
         />
       </View>
     </View>
@@ -151,7 +188,9 @@ const styles = StyleSheet.create({
   buttonText: { fontWeight: 'bold' },
   suggestionsContainer: { marginTop: 15, width: '100%' },
   suggestionsTitle: { fontWeight: 'bold', fontSize: 16, textAlign: 'center', marginBottom: 5 },
-  suggestionsList: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' }
+  suggestionsList: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
+  llmLoading: { marginTop: 10 },
+  toggleContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 5 },
 });
 
 export default enhance(LearningScreen);

@@ -1,8 +1,17 @@
 import { gestureModel } from '../model';
 import offlineModel from '../assets/model/offlineModel.json';
+import { TFLiteModel } from 'react-native-fast-tflite';
 
 type OfflineModel = Record<string, number[]>;
 const model: OfflineModel = offlineModel as OfflineModel;
+let tfliteModel: TFLiteModel | null = null;
+
+export async function loadModels(): Promise<void> {
+  if (tfliteModel) return;
+  tfliteModel = await TFLiteModel.createFromFile(
+    require('../assets/models/gestures.tflite'),
+  );
+}
 
 export type ClassificationResult = {
   label: string;
@@ -20,6 +29,13 @@ function distance(a: number[], b: number[]): number {
 
 // Simple offline classifier using the bundled centroid model.
 export async function classifyGesture(landmarks: unknown): Promise<ClassificationResult> {
+  if (tfliteModel) {
+    const res = (await tfliteModel.run(landmarks)) as any[];
+    if (Array.isArray(res) && res.length > 0) {
+      const best = res.reduce((p, c) => (p.confidence > c.confidence ? p : c));
+      return { label: best.label, confidence: best.confidence };
+    }
+  }
   if (!Array.isArray(landmarks)) {
     const first = gestureModel.gestures[0];
     return { label: first.label, confidence: 0 };
@@ -42,3 +58,8 @@ export async function classifyGesture(landmarks: unknown): Promise<Classificatio
   const confidence = 1 / (1 + bestScore);
   return { label, confidence };
 }
+
+export const mlService = {
+  loadModels,
+  classifyGesture,
+};

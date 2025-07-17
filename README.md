@@ -110,24 +110,26 @@ The original roadmap was written before the project reached a stable state. Now 
 ### Actionable TODO List
 This prioritized checklist focuses on finishing Phase&nbsp;1.
 
-- [ ] `dialogEngine.ts`: Replace the placeholder `getLLMSuggestions` with a live LLM API call
-- [ ] `LearningScreen.tsx`: Manage `llmSuggestions` and `llmLoading` state to display suggestions
-- [ ] `db/schema.ts` & `db/models.ts`: Add a `dgs_video_asset_path: string` field to the `Symbol` table
-- [ ] `db/index.ts`: Seed the database with placeholder DGS video paths
-- [ ] `SymbolVideoPlayer.tsx`: Accept and play a second (DGS) video source
-- [ ] `LearningScreen.tsx`: Provide a toggle to switch between the standard video and the DGS version
-- [ ] `mlService.ts`: Implement `loadModels()` and `classifyGesture()` using `react-native-fast-tflite`
-- [ ] `audioService.ts`: Implement `playSystemSound()` with `expo-av` to play success and error cues
-- [ ] `AdminScreen.tsx`: Add a button to launch `TrainingScreen`
-- [ ] `ProfileSelectScreen.tsx`: After profile creation, navigate to `OnboardingScreen`
-- [ ] `OnboardingScreen.tsx`: Save consent toggles to the user profile and add a "Continue" button
-- [ ] **UI Review:** Begin adding `accessibilityLabel` props to buttons, starting with `SymbolButton.tsx` and `LearningScreen.tsx`
+- [x] `dialogEngine.ts`: Replace the placeholder `getLLMSuggestions` with a live LLM API call
+- [x] `LearningScreen.tsx`: Manage `llmSuggestions` and `llmLoading` state to display suggestions
+- [x] `db/schema.ts` & `db/models.ts`: Add a `dgs_video_asset_path: string` field to the `Symbol` table
+- [x] `db/index.ts`: Seed the database with placeholder DGS video paths
+- [x] `SymbolVideoPlayer.tsx`: Accept and play a second (DGS) video source
+- [x] `LearningScreen.tsx`: Provide a toggle to switch between the standard video and the DGS version
+- [x] `mlService.ts`: Implement `loadModels()` and `classifyGesture()` using `react-native-fast-tflite`
+- [x] `audioService.ts`: Implement `playSystemSound()` with `expo-av` to play success and error cues
+- [x] `AdminScreen.tsx`: Add a button to launch `TrainingScreen`
+- [x] `ProfileSelectScreen.tsx`: After profile creation, navigate to `OnboardingScreen`
+- [x] `OnboardingScreen.tsx`: Save consent toggles to the user profile and add a "Continue" button
+- [x] **UI Review:** Begin adding `accessibilityLabel` props to buttons, starting with `SymbolButton.tsx` and `LearningScreen.tsx`
 
 ## ▶️ Running the mobile app
 
 The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
 
 DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available.
+
+The LLM-powered suggestions require an OpenAI API key. You can set this via the `OPENAI_API_KEY` environment variable or save it securely using the Admin screen. Never commit keys to the repository.
 
 ### Building the custom dev client
 

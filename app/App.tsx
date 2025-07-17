@@ -8,6 +8,8 @@ import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
 import LearningScreen from './src/screens/LearningScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import ParentScreen from './src/screens/ParentScreen';
+import TrainingScreen from './src/screens/TrainingScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 import { ServicesContext } from './src/context/ServicesContext';
 import { mlService } from './src/services/mlService';
 import { audioService } from './src/services/audioService';
@@ -51,6 +53,7 @@ export default function App() {
             component={ProfileSelectScreen}
             options={{ title: 'Profil auswählen' }}
           />
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ title: 'Willkommen' }} />
           <Stack.Screen
             name="Learning"
             component={LearningScreen}
@@ -61,6 +64,11 @@ export default function App() {
             name="Admin"
             component={AdminScreen}
             options={{ title: 'Verwaltung' }}
+          />
+          <Stack.Screen
+            name="Training"
+            component={TrainingScreen}
+            options={{ title: 'Training' }}
           />
           <Stack.Screen
             name="Parent"

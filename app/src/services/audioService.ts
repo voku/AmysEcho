@@ -17,6 +17,20 @@ export async function playSymbolAudio(entry: GestureModelEntry): Promise<void> {
   }
 }
 
+export async function playSystemSound(type: 'success' | 'error'): Promise<void> {
+  try {
+    const sound = new Audio.Sound();
+    const file = type === 'success'
+      ? require('../assets/sounds/success.mp3')
+      : require('../assets/sounds/error.mp3');
+    await sound.loadAsync(file);
+    await sound.playAsync();
+    await sound.unloadAsync();
+  } catch {
+    console.log('System sound failed', type);
+  }
+}
+
 export const ttsService = {
   speak(text: string) {
     Speech.speak(text);
@@ -25,5 +39,6 @@ export const ttsService = {
 
 export const audioService = {
   playSymbolAudio,
+  playSystemSound,
   ttsService,
 };

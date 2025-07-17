@@ -13,6 +13,7 @@ export interface LLMSuggestions {
 }
 
 export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestions> {
+  // TODO: Replace with secure storage (e.g., from a settings screen)
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return { nextWords: [], caregiverPhrases: [] };

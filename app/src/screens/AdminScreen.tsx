@@ -87,6 +87,7 @@ export default function AdminScreen({ navigation }: any) {
       />
       <Button title="Save API Key" onPress={handleSaveApiKey} />
       <Button title="Add Symbol" onPress={openAdd} />
+      <Button title="Training" onPress={() => navigation.navigate('Training')} />
       <Button title="Back" onPress={() => navigation.goBack()} />
 
       <Modal visible={modalVisible} animationType="slide">
