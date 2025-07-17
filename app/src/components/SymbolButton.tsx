@@ -8,8 +8,14 @@ interface Props {
 }
 
 export const SymbolButton = ({ symbol, onPress }: Props) => (
-  <Pressable style={styles.button} onPress={() => onPress(symbol)}>
-    <Text style={styles.text}>{symbol.emoji} {symbol.name}</Text>
+  <Pressable
+    style={styles.button}
+    onPress={() => onPress(symbol)}
+    accessibilityLabel={symbol.name}
+  >
+    <Text style={styles.text} accessibilityLabel={symbol.name}>
+      {symbol.emoji} {symbol.name}
+    </Text>
   </Pressable>
 );
 
