@@ -78,50 +78,23 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 - [x] HIP 1 + HIP 3 MVP implementation
 - [x] HIP 2 training flow stub
 
-## 🛣️ Development Plan
+## Project Status & Open Todos
 
-The detailed project roadmap and actionable TODO list can be found in [`docs/TODO.md`](docs/TODO.md).
+The project has a stable foundation after a major refactor. The database, navigation, and core app structure are complete. The next steps focus on implementing the scaffolded features to reach the goal defined in `/spec/AmysEcho.md`.
 
-The original roadmap was written before the project reached a stable state. Now that the foundation is solid, the focus shifts to building intelligence and polish on top of it. The following plan reimagines how the app will evolve over three phases.
+**For detailed implementation instructions, see [`docs/TODO.md`](docs/TODO.md).**
 
-### Amy's Echo: Revised Project Roadmap (v2)
+### Priority 1: Activate Core Functionality
+- [ ] **Implement Gesture Recognition**: The `mlService.ts` is currently a stub. Implement the `loadModels` and `classifyGesture` methods to enable live camera interaction.
+- [ ] **Implement Rich Audio Feedback**: The `audioService.ts` is a stub. Implement the `playSystemSound` method to provide non-verbal cues for success and error states.
 
-#### Phase 1: Implementing Core Intelligence & Accessibility (Current Priority)
-*Goal:* Deliver the highest-impact features now that the basics work.
+### Priority 2: Enhance with Intelligence & Accessibility
+- [ ] **Integrate Live LLM Dialog Engine**: Replace the placeholder in `dialogEngine.ts` with a live API call to provide dynamic suggestions.
+- [ ] **Add DGS Video Playback**: Add support for German Sign Language videos, including schema changes and a UI toggle on the `LearningScreen`.
 
-  - **LLM-Powered Dialog Engine:** Implement the remaining TODO in `dialogEngine.ts` to pull live suggestions from a Large Language Model.
-  - **German Sign Language (DGS) Video Integration:** Play an optional DGS video for each symbol to support multimodal learning.
-  - **Complete Core Services:** Finalize `mlService` for gesture classification and `audioService` for richer non-verbal feedback.
-
-#### Phase 2: Enhancing the Caregiver & Child Experience
-*Goal:* Polish the UI and expand training capabilities.
-
-  - **Full UI/UX Polish:** Improve button feedback, refine layouts and ensure a delightful experience.
-  - **Gesture Training Module:** Build out `TrainingScreen.tsx` and connect it via the Admin screen so new gestures can be recorded.
-  - **User Onboarding Flow:** Re-introduce `OnboardingScreen.tsx` to guide caregivers through setup and consent.
-
-#### Phase 3: Long-Term Growth & Deployment
-*Goal:* Prepare the project for real-world use and future improvements.
-
-  - **Parental Analytics Dashboard:** Expand `ParentScreen.tsx` with charts based on the collected analytics tables.
-  - **Offline Model Personalization:** Use the stored gesture training data to tailor recognition models for each profile.
-  - **Deployment Readiness:** Complete store assets, privacy policies and build configuration for release on iOS and Android.
-
-### Actionable TODO List
-This prioritized checklist focuses on finishing Phase&nbsp;1.
-
-- [x] `dialogEngine.ts`: Replace the placeholder `getLLMSuggestions` with a live LLM API call
-- [x] `LearningScreen.tsx`: Manage `llmSuggestions` and `llmLoading` state to display suggestions
-- [x] `db/schema.ts` & `db/models.ts`: Add a `dgs_video_asset_path: string` field to the `Symbol` table
-- [x] `db/index.ts`: Seed the database with placeholder DGS video paths
-- [x] `SymbolVideoPlayer.tsx`: Accept and play a second (DGS) video source
-- [x] `LearningScreen.tsx`: Provide a toggle to switch between the standard video and the DGS version
-- [x] `mlService.ts`: Implement `loadModels()` and `classifyGesture()` using `react-native-fast-tflite`
-- [x] `audioService.ts`: Implement `playSystemSound()` with `expo-av` to play success and error cues
-- [x] `AdminScreen.tsx`: Add a button to launch `TrainingScreen`
-- [x] `ProfileSelectScreen.tsx`: After profile creation, navigate to `OnboardingScreen`
-- [x] `OnboardingScreen.tsx`: Save consent toggles to the user profile and add a "Continue" button
-- [x] **UI Review:** Begin adding `accessibilityLabel` props to buttons, starting with `SymbolButton.tsx` and `LearningScreen.tsx`
+### Priority 3: Polish and Administration
+- [ ] **Complete Admin Panel**: Fully implement the CRUD functionality in `AdminScreen.tsx` for managing symbols and vocabularies.
+- [ ] **UI/UX Polish**: Conduct a full review of the UI to improve layouts, feedback, and add accessibility labels to all interactive elements.
 
 ## ▶️ Running the mobile app
 
