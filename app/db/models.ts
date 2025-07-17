@@ -21,7 +21,6 @@ export class Symbol extends Model {
   @text('name') name!: string;
   @text('icon_name') iconName!: string;
   @text('video_asset_path') videoAssetPath?: string;
-  @text('dgs_video_asset_path') dgsVideoAssetPath?: string;
   @text('category') category!: string;
   @field('priority') priority!: number;
   @field('is_active') isActive!: boolean;
@@ -61,7 +60,7 @@ export class VocabularySet extends Model {
 export class UsageStat extends Model {
   static table = 'usage_stats';
   @relation('profiles', 'profile_id') profile!: any;
-  @relation('symbols', 'symbol_id') symbol: any;
+  @relation('symbols', 'symbol_id') symbol!: any;
   @field('usage_count') usageCount!: number;
 }
 
@@ -105,7 +104,6 @@ export class GestureTrainingData extends Model {
 
 export class InteractionLog extends Model {
   static table = 'interaction_logs';
-
   @text('session_id') sessionId!: string;
   @text('gesture_definition_id') gestureDefinitionId!: string;
   @field('was_successful') wasSuccessful!: boolean;
@@ -119,7 +117,6 @@ export class InteractionLog extends Model {
 
 export class LearningAnalytic extends Model {
   static table = 'learning_analytics';
-
   @text('gesture_definition_id') gestureDefinitionId!: string;
   @field('success_rate_24h') successRate24h!: number;
   @field('success_rate_7d') successRate7d!: number;
