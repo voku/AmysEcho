@@ -111,7 +111,7 @@ This is the critical client-side component for teaching the app Amy's specific g
 
 This involves setting up a server application (e.g., using Python with Flask or FastAPI).
 
-* **TODO 5.1: Create the Secure LLM Dialog Endpoint**
+* **TODO 5.1: Create the Secure LLM Dialog Endpoint** *(Completed)*
     * **Endpoint**: `POST /generate-suggestions`
     * **Logic**:
         1.  Receives a request from the app containing the prompt context.
@@ -121,7 +121,7 @@ This involves setting up a server application (e.g., using Python with Flask or 
         5.  Calls the OpenAI Chat Completions API using the secret key stored on the server.
         6.  Forwards the response back to the client. For best UX, this should **stream** the response token-by-token.
 
-* **TODO 5.2: Create the Model Training Endpoint & Script**
+* **TODO 5.2: Create the Model Training Endpoint & Script** *(Completed)*
     * **Endpoint**: `POST /train-model`
     * **Logic**:
         1.  Receives the JSON payload of landmark data collected from the app.
@@ -154,7 +154,7 @@ This involves setting up a server application (e.g., using Python with Flask or 
 
 ### **Section 6: TODO — Implementing Model Deployment in the App**
 
-* **TODO 6.1: Create a Model Download Endpoint on the Server**
+* **TODO 6.1: Create a Model Download Endpoint on the Server** *(Completed)*
     * **Endpoint**: `GET /latest-model?profileId=amy`
     * **Logic**: This endpoint checks for the latest successfully trained model for the given profile and allows it to be downloaded.
 
