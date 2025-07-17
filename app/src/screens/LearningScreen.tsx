@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ActivityIndicator, FlatList, Pressable, AppState, StyleSheet, Switch } from 'react-native';
 import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
@@ -10,9 +10,13 @@ import { runOnJS } from 'react-native-reanimated';
 import { database } from '../../db';
 import { playSymbolAudio } from '../services/audioService';
 import { usageTracker } from '../services/usageTracker';
+import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { SymbolButton } from '../components/SymbolButton';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 import { getLLMSuggestions, LLMSuggestions } from '../services/dialogService';
+// LLM Hint: Use a status enum for async operations instead of multiple booleans.
+// This creates a clear state machine ('idle' -> 'loading' -> 'success'/'error').
+type SuggestionStatus = 'idle' | 'loading' | 'success' | 'error';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Profile, Symbol } from '../../db/models';
@@ -38,9 +42,9 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [selectedSymbol, setSelectedSymbol] = useState<Symbol | null>(null);
   const [videoPaused, setVideoPaused] = useState(false);
   const [showDgsVideo, setShowDgsVideo] = useState(false);
-  const [suggestions, setSuggestions] = useState<Symbol[]>([]);
+  const [adaptiveSuggestions, setAdaptiveSuggestions] = useState<Symbol[]>([]);
   const [llmSuggestions, setLlmSuggestions] = useState<LLMSuggestions | null>(null);
-  const [llmLoading, setLlmLoading] = useState(false);
+  const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
 
   const { model } = useTensorflowModel(require('../../assets/models/gestures.tflite'));
   const device = useCameraDevice('front');
@@ -53,12 +57,26 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     setVideoPaused(false);
     await playSymbolAudio({ id: symbol.id, label: symbol.name });
     await usageTracker.incrementUsage(symbol, profile.id);
-    setSuggestions([]);
-    setLlmLoading(true);
-    setLlmSuggestions(null);
-    const llm = await getLLMSuggestions(symbol.name);
-    setLlmSuggestions(llm);
-    setLlmLoading(false);
+
+    // LLM Hint: This is how to use the status state machine for an async operation.
+    setSuggestionStatus('loading');
+    try {
+      const [adaptive, llm] = await Promise.all([
+        adaptiveLearningService.getSuggestions(vocabulary, profile.id),
+        getLLMSuggestions({
+          input: symbol.name,
+          context: symbol.contextTags,
+          language: 'de',
+          age: 4,
+        }),
+      ]);
+      setAdaptiveSuggestions(adaptive as Symbol[]);
+      setLlmSuggestions(llm);
+      setSuggestionStatus('success');
+    } catch (err) {
+      console.error('Failed to fetch suggestions:', err);
+      setSuggestionStatus('error');
+    }
   };
 
   const handleGesture = (prediction: GesturePrediction) => {
@@ -138,26 +156,33 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
           >
             <Text style={styles.buttonText}>🔁 Wiederholen</Text>
           </Pressable>
-          {suggestions.length > 0 && (
-            <View style={styles.suggestionsContainer}>
-                <Text style={styles.suggestionsTitle}>Vielleicht auch?</Text>
-                <View style={styles.suggestionsList}>
-                    {suggestions.map(s => <SymbolButton key={s.id} symbol={s} onPress={handlePress} />)}
-                </View>
-            </View>
-          )}
-          {llmLoading && <ActivityIndicator style={styles.llmLoading} />}
-          {llmSuggestions && (
-            <View style={styles.suggestionsContainer}>
-              <Text style={styles.suggestionsTitle}>Ideen (KI):</Text>
-              {llmSuggestions.nextWords.length > 0 && (
-                <Text>{llmSuggestions.nextWords.join(', ')}</Text>
-              )}
-              {llmSuggestions.caregiverPhrases.map((p, idx) => (
-                <Text key={idx}>{p}</Text>
-              ))}
-            </View>
-          )}
+          <View style={styles.suggestionsContainer}>
+            {suggestionStatus === 'loading' && <ActivityIndicator style={{ marginVertical: 10 }} />}
+            {suggestionStatus === 'error' && <Text style={{ color: 'red' }}>Fehler beim Laden der Vorschläge.</Text>}
+            {suggestionStatus === 'success' && (
+              <>
+                {adaptiveSuggestions.length > 0 && (
+                  <>
+                    <Text style={styles.suggestionsTitle}>Vielleicht auch?</Text>
+                    <View style={styles.suggestionsList}>
+                      {adaptiveSuggestions.map(s => (
+                        <SymbolButton key={s.id} symbol={s} onPress={handlePress} />
+                      ))}
+                    </View>
+                  </>
+                )}
+                {llmSuggestions && llmSuggestions.nextWords.length > 0 && (
+                  <>
+                    <Text style={styles.suggestionsTitle}>Ideen (KI)</Text>
+                    <Text style={styles.nextWordsText}>{llmSuggestions.nextWords.join(', ')}</Text>
+                    {llmSuggestions.caregiverPhrases.map((p, idx) => (
+                      <Text key={idx} style={styles.caregiverPhrase}>{p}</Text>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </View>
         </View>
       )}
 
@@ -189,7 +214,8 @@ const styles = StyleSheet.create({
   suggestionsContainer: { marginTop: 15, width: '100%' },
   suggestionsTitle: { fontWeight: 'bold', fontSize: 16, textAlign: 'center', marginBottom: 5 },
   suggestionsList: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
-  llmLoading: { marginTop: 10 },
+  nextWordsText: { textAlign: 'center', marginBottom: 4 },
+  caregiverPhrase: { textAlign: 'center' },
   toggleContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 5 },
 });
 
