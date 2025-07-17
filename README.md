@@ -91,7 +91,7 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 The project has a stable foundation after a major refactor. The database, navigation, and core app structure are complete. The next steps focus on implementing the scaffolded features to reach the goal defined in `/spec/AmysEcho.md`.
 
-**For detailed implementation instructions, see [`docs/TODO.md`](docs/TODO.md).**
+**For detailed implementation instructions, see [`docs/TODO.md`](docs/TODO.md) and [`docs/UnifiedAIImplementationBlueprint.md`](docs/UnifiedAIImplementationBlueprint.md).**
 
 -### Priority 1: Activate Core Functionality
 - [x] **Implement Gesture Recognition**: The `mlService.ts` now loads the TFLite model and performs live gesture classification.
@@ -104,6 +104,17 @@ The project has a stable foundation after a major refactor. The database, naviga
 ### Priority 3: Polish and Administration
 - [x] **Complete Admin Panel**: CRUD functionality in `AdminScreen.tsx` manages symbols and vocabularies.
 - [ ] **UI/UX Polish**: Conduct a full review of the UI to improve layouts, feedback, and add accessibility labels to all interactive elements.
+
+### Priority 4: Personalized AI Pipeline
+- [ ] **Acquire Pre-trained Models**: Download and bundle the MediaPipe models.
+- [ ] **Implement Two-Stage Frame Processor**: Load landmark and gesture models inside a `useFrameProcessor` worklet.
+- [ ] **Build TrainingScreen UI**: Provide a guided interface for recording gesture samples.
+- [ ] **Implement In-Memory Landmark Extraction**: Use ffmpeg to pull frames and save landmarks only.
+- [ ] **Create Secure LLM Dialog Endpoint**: Proxy OpenAI requests through an authenticated server.
+- [ ] **Create Model Training Endpoint & Script**: Accept uploaded landmarks and train an LSTM gesture model.
+- [ ] **Create Model Download Endpoint**: Serve the latest personalized model to the app.
+- [ ] **Implement Model Download and Activation**: Download the `.tflite` model and store its URI securely.
+- [ ] **Activate the Personalized Model**: Use the custom model in the Learning screen when available.
 
 ## ▶️ Running the mobile app
 
