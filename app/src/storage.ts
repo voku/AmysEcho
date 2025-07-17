@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 export interface Profile {
   id: string;
@@ -86,11 +87,11 @@ export async function saveTrainingSample(
 
 const API_KEY = 'openaiApiKey';
 export async function saveOpenAIApiKey(key: string): Promise<void> {
-  await AsyncStorage.setItem(API_KEY, key);
+  await SecureStore.setItemAsync(API_KEY, key);
 }
 
 export async function loadOpenAIApiKey(): Promise<string | null> {
-  return AsyncStorage.getItem(API_KEY);
+  return SecureStore.getItemAsync(API_KEY);
 }
 
 const CUSTOM_MODEL_KEY = 'customModelUri';

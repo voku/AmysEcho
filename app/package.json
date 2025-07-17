@@ -20,7 +20,8 @@
     "@nozbe/watermelondb": "^0.24.0",
     "react-native-vision-camera": "^2.15.4",
     "react-native-reanimated": "^3.0.0",
-    "react-native-fast-tflite": "^0.2.0"
+    "react-native-fast-tflite": "^0.2.0",
+    "expo-secure-store": "~12.4.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
