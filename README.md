@@ -35,6 +35,15 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 
 ---
 
+## ⚡ Quick Setup
+
+1. `npm install` – install root dependencies
+2. `cd app && npm install` – install mobile app deps
+3. `npm test` – run the Node test suite
+4. Inside `app`, run `npm run ios` or `npm run android` to launch the app
+
+---
+
 ## 🧠 Architecture: Hybrid-First
 
 Amy’s Echo is designed around a hybrid loop:
@@ -85,15 +94,15 @@ The project has a stable foundation after a major refactor. The database, naviga
 **For detailed implementation instructions, see [`docs/TODO.md`](docs/TODO.md).**
 
 -### Priority 1: Activate Core Functionality
-- [ ] **Implement Gesture Recognition**: The `mlService.ts` is currently a stub. Implement the `loadModels` and `classifyGesture` methods to enable live camera interaction.
-- [ ] **Implement Rich Audio Feedback**: The `audioService.ts` is a stub. Implement the `playSystemSound` method to provide non-verbal cues for success and error states.
+- [x] **Implement Gesture Recognition**: The `mlService.ts` now loads the TFLite model and performs live gesture classification.
+- [x] **Implement Rich Audio Feedback**: The `audioService.ts` plays success and error sounds using `expo-av`.
 
 -### Priority 2: Enhance with Intelligence & Accessibility
-- [ ] **Integrate Live LLM Dialog Engine**: Replace the placeholder in `dialogEngine.ts` with a live API call to provide dynamic suggestions.
-- [ ] **Add DGS Video Playback**: Add support for German Sign Language videos, including schema changes and a UI toggle on the `LearningScreen`.
+- [x] **Integrate Live LLM Dialog Engine**: `dialogEngine.ts` now makes a live OpenAI API request for suggestions.
+- [x] **Add DGS Video Playback**: DGS videos can be shown via a toggle on the `LearningScreen`.
 
 ### Priority 3: Polish and Administration
-- [ ] **Complete Admin Panel**: Fully implement the CRUD functionality in `AdminScreen.tsx` for managing symbols and vocabularies.
+- [x] **Complete Admin Panel**: CRUD functionality in `AdminScreen.tsx` manages symbols and vocabularies.
 - [ ] **UI/UX Polish**: Conduct a full review of the UI to improve layouts, feedback, and add accessibility labels to all interactive elements.
 
 ## ▶️ Running the mobile app
