@@ -78,7 +78,9 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 - [x] HIP 1 + HIP 3 MVP implementation
 - [x] HIP 2 training flow stub
 
-## 🛣️ Roadmap
+## 🛣️ Development Plan
+
+The detailed project roadmap and actionable TODO list can be found in [`docs/TODO.md`](docs/TODO.md).
 
 The original roadmap was written before the project reached a stable state. Now that the foundation is solid, the focus shifts to building intelligence and polish on top of it. The following plan reimagines how the app will evolve over three phases.
 
