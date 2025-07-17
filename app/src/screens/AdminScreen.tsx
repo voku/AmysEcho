@@ -8,23 +8,29 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { gestureModel, GestureModelEntry } from '../model';
+import { Alert } from 'react-native';
 import { loadOpenAIApiKey, saveOpenAIApiKey } from '../storage';
+import { database } from '../../db';
+import { Symbol as DBSymbol } from '../../db/models';
 
 export default function AdminScreen({ navigation }: any) {
-  const [symbols, setSymbols] = useState<GestureModelEntry[]>([
-    ...gestureModel.gestures,
-  ]);
-  const [editing, setEditing] = useState<GestureModelEntry | null>(null);
+  const [symbols, setSymbols] = useState<DBSymbol[]>([]);
+  const [editing, setEditing] = useState<DBSymbol | null>(null);
   const [label, setLabel] = useState('');
   const [id, setId] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [apiKey, setApiKey] = useState('');
 
   React.useEffect(() => {
+    const sub = database
+      .get<DBSymbol>('symbols')
+      .query()
+      .observe()
+      .subscribe(setSymbols);
     loadOpenAIApiKey().then((k) => {
       if (k) setApiKey(k);
     });
+    return () => sub.unsubscribe();
   }, []);
 
   const openAdd = () => {
@@ -34,27 +40,56 @@ export default function AdminScreen({ navigation }: any) {
     setModalVisible(true);
   };
 
-  const openEdit = (sym: GestureModelEntry) => {
+  const openEdit = (sym: DBSymbol) => {
     setEditing(sym);
     setId(sym.id);
-    setLabel(sym.label);
+    setLabel(sym.name);
     setModalVisible(true);
   };
 
-  const handleSave = () => {
-    if (editing) {
-      setSymbols((prev) =>
-        prev.map((s) => (s.id === editing.id ? { id, label } : s)),
-      );
-    } else {
-      const newSym = { id: id || Date.now().toString(), label };
-      setSymbols((prev) => [...prev, newSym]);
-    }
+  const handleSave = async () => {
+    await database.write(async () => {
+      const collection = database.get<DBSymbol>('symbols');
+      if (editing) {
+        await editing.update((s) => {
+          s.name = label;
+        });
+      } else {
+        await collection.create((s) => {
+          if (id) (s as any)._raw.id = id;
+          s.name = label;
+          s.category = 'custom';
+          s.iconName = '';
+          s.videoAssetPath = '';
+          (s as any).dgsVideoAssetPath = '';
+          s.priority = 1;
+          s.isActive = true;
+          s.healthScore = 100;
+          s.color = '#FFFFFF';
+          s.emoji = '❓';
+          s.createdAt = new Date();
+        });
+      }
+    });
     setModalVisible(false);
   };
 
   const handleSaveApiKey = async () => {
     await saveOpenAIApiKey(apiKey);
+  };
+
+  const handleDelete = (sym: DBSymbol) => {
+    Alert.alert('Symbol löschen', `"${sym.name}" wirklich entfernen?`, [
+      { text: 'Abbrechen', style: 'cancel' },
+      {
+        text: 'OK',
+        onPress: async () => {
+          await database.write(async () => {
+            await sym.destroyPermanently();
+          });
+        },
+      },
+    ]);
   };
 
   const styles = StyleSheet.create({
@@ -74,8 +109,9 @@ export default function AdminScreen({ navigation }: any) {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.row}>
-            <Text>{item.label}</Text>
-            <Button title="Edit" onPress={() => openEdit(item)} />
+            <Text>{item.name}</Text>
+            <Button title="Bearbeiten" onPress={() => openEdit(item)} />
+            <Button title="Löschen" onPress={() => handleDelete(item)} />
           </View>
         )}
       />

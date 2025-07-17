@@ -53,6 +53,7 @@ export const setupDatabase = async () => {
       s.category = 'basic';
       s.iconName = 'trinken.png';
       s.videoAssetPath = 'trinken.mp4';
+      s.dgsVideoAssetPath = 'trinken_dgs.mp4';
       s.contextTagsRaw = JSON.stringify(['Durst', 'Becher', 'mehr']);
       s.emoji = '🥛';
       s.priority = 1;
@@ -67,6 +68,7 @@ export const setupDatabase = async () => {
       s.category = 'basic';
       s.iconName = 'essen.png';
       s.videoAssetPath = 'essen.mp4';
+      s.dgsVideoAssetPath = 'essen_dgs.mp4';
       s.contextTagsRaw = JSON.stringify(['Hunger', 'Teller', 'mehr']);
       s.emoji = '🍪';
       s.priority = 1;
@@ -81,6 +83,7 @@ export const setupDatabase = async () => {
       s.category = 'extra';
       s.iconName = 'spielen.png';
       s.videoAssetPath = 'spielen.mp4';
+      s.dgsVideoAssetPath = 'spielen_dgs.mp4';
       s.contextTagsRaw = JSON.stringify(['Spaß', 'Freunde', 'Ball']);
       s.emoji = '⚽';
       s.priority = 2;
