@@ -84,11 +84,11 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 **For detailed implementation instructions, see [`docs/TODO.md`](docs/TODO.md).**
 
-### Priority 1: Activate Core Functionality
+-### Priority 1: Activate Core Functionality
 - [ ] **Implement Gesture Recognition**: The `mlService.ts` is currently a stub. Implement the `loadModels` and `classifyGesture` methods to enable live camera interaction.
 - [ ] **Implement Rich Audio Feedback**: The `audioService.ts` is a stub. Implement the `playSystemSound` method to provide non-verbal cues for success and error states.
 
-### Priority 2: Enhance with Intelligence & Accessibility
+-### Priority 2: Enhance with Intelligence & Accessibility
 - [ ] **Integrate Live LLM Dialog Engine**: Replace the placeholder in `dialogEngine.ts` with a live API call to provide dynamic suggestions.
 - [ ] **Add DGS Video Playback**: Add support for German Sign Language videos, including schema changes and a UI toggle on the `LearningScreen`.
 
