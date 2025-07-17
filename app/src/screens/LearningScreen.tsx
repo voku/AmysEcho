@@ -6,6 +6,7 @@ import { BehaviorSubject } from 'rxjs';
 import { useIsFocused } from '@react-navigation/native';
 import { Camera, useCameraDevice, useFrameProcessor } from 'react-native-vision-camera';
 import { useTensorflowModel } from 'react-native-fast-tflite';
+import { loadCustomModelUri } from '../storage';
 import { runOnJS } from 'react-native-reanimated';
 import { database } from '../../db';
 import { playSymbolAudio } from '../services/audioService';
@@ -46,7 +47,14 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [llmSuggestions, setLlmSuggestions] = useState<LLMSuggestions | null>(null);
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
 
-  const { model } = useTensorflowModel(require('../../assets/models/gestures.tflite'));
+  const [customModelUri, setCustomModelUri] = useState<string | null>(null);
+  React.useEffect(() => {
+    loadCustomModelUri().then(setCustomModelUri);
+  }, []);
+
+  const { model } = useTensorflowModel(
+    customModelUri ? { uri: customModelUri } : require('../../assets/models/gestures.tflite'),
+  );
   const device = useCameraDevice('front');
   const isFocused = useIsFocused();
   const appState = AppState.currentState;

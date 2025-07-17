@@ -9,7 +9,12 @@ import {
   TextInput,
 } from 'react-native';
 import { Alert } from 'react-native';
-import { loadOpenAIApiKey, saveOpenAIApiKey } from '../storage';
+import {
+  loadOpenAIApiKey,
+  saveOpenAIApiKey,
+  saveCustomModelUri,
+} from '../storage';
+import * as FileSystem from 'expo-file-system';
 import { database } from '../../db';
 import { Symbol as DBSymbol } from '../../db/models';
 
@@ -78,6 +83,22 @@ export default function AdminScreen({ navigation }: any) {
     await saveOpenAIApiKey(apiKey);
   };
 
+  const handleDownloadModel = async () => {
+    try {
+      const uri = FileSystem.documentDirectory + 'custom_model.tflite';
+      const res = await FileSystem.downloadAsync(
+        'http://localhost:5000/latest-model',
+        uri,
+        { headers: { Authorization: 'Bearer secret' } },
+      );
+      await saveCustomModelUri(res.uri);
+      Alert.alert('Model downloaded');
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Download failed');
+    }
+  };
+
   const handleDelete = (sym: DBSymbol) => {
     Alert.alert('Symbol löschen', `"${sym.name}" wirklich entfernen?`, [
       { text: 'Abbrechen', style: 'cancel' },
@@ -122,6 +143,7 @@ export default function AdminScreen({ navigation }: any) {
         onChangeText={setApiKey}
       />
       <Button title="Save API Key" onPress={handleSaveApiKey} />
+      <Button title="Download Latest Model" onPress={handleDownloadModel} />
       <Button title="Add Symbol" onPress={openAdd} />
       <Button title="Training" onPress={() => navigation.navigate('Training')} />
       <Button title="Back" onPress={() => navigation.goBack()} />
