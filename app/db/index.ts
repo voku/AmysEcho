@@ -98,18 +98,20 @@ export const setupDatabase = async () => {
     const kitaSet = await setCollection.create(v => { v.name = 'Kita'; });
 
     const vssCollection = database.get<VocabularySetSymbol>('vocabulary_set_symbols');
-    await vssCollection.create(vs => {
-      (vs as any).vocabularySet.id = alltagSet.id;
-      (vs as any).symbol.id = trinkenSymbol.id;
-    });
-    await vssCollection.create(vs => {
-      (vs as any).vocabularySet.id = alltagSet.id;
-      (vs as any).symbol.id = essenSymbol.id;
-    });
-    await vssCollection.create(vs => {
-      (vs as any).vocabularySet.id = kitaSet.id;
-      (vs as any).symbol.id = spielenSymbol.id;
-    });
+    await database.batch(
+      vssCollection.prepareCreate(vs => {
+        vs.vocabularySet.id = alltagSet.id;
+        vs.symbol.id = trinkenSymbol.id;
+      }),
+      vssCollection.prepareCreate(vs => {
+        vs.vocabularySet.id = alltagSet.id;
+        vs.symbol.id = essenSymbol.id;
+      }),
+      vssCollection.prepareCreate(vs => {
+        vs.vocabularySet.id = kitaSet.id;
+        vs.symbol.id = spielenSymbol.id;
+      }),
+    );
 
     const amyProfile = await profileCollection.create(p => {
       p.name = 'Amy';

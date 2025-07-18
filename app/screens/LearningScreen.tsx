@@ -21,6 +21,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 type RootStackParamList = { Learning: { profileId: string }, Admin: { profileId: string } };
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
+// LLM Hint: Use a status enum for async operations instead of multiple booleans (e.g., isLoading, isError).
+// This creates a clear state machine ('idle' -> 'loading' -> 'success'/'error') which is easier to manage.
+type SuggestionStatus = 'idle' | 'loading' | 'success' | 'error';
+
 type GesturePrediction = { label: string; confidence: number };
 
 const enhance = withObservables<Props, { profile: Profile, vocabulary: Symbol[] }>(['route'], ({ route }) => ({
@@ -38,7 +42,9 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [lastGesture, setLastGesture] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<Symbol | null>(null);
   const [videoPaused, setVideoPaused] = useState(false);
-  const [suggestions, setSuggestions] = useState<Symbol[]>([]);
+  const [adaptiveSuggestions, setAdaptiveSuggestions] = useState<Symbol[]>([]);
+  const [llmSuggestions, setLlmSuggestions] = useState<{ nextWords: string[]; caregiverPhrases: string[] } | null>(null);
+  const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
 
   const { model } = useTensorflowModel(require('../assets/models/gestures.tflite'));
   const device = useCameraDevice('front');
@@ -51,8 +57,21 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     setVideoPaused(false);
     ttsService.speak(symbol.name);
     await usageTracker.incrementUsage(symbol, profile.id);
-    const adaptiveSuggestions = await dialogEngine.getAdaptiveSuggestions(vocabulary, profile.id);
-    setSuggestions(adaptiveSuggestions);
+
+    // LLM Hint: This is how to use the status state machine for an async operation.
+    setSuggestionStatus('loading');
+    try {
+      const [adaptive, llm] = await Promise.all([
+        dialogEngine.getAdaptiveSuggestions(vocabulary, profile.id),
+        dialogEngine.getLLMSuggestions({ input: symbol.name, context: symbol.contextTags, language: 'de', age: 4 }),
+      ]);
+      setAdaptiveSuggestions(adaptive);
+      setLlmSuggestions(llm);
+      setSuggestionStatus('success');
+    } catch (error) {
+      console.error('Failed to fetch suggestions:', error);
+      setSuggestionStatus('error');
+    }
   };
 
   const handleGesture = (prediction: GesturePrediction) => {
@@ -116,14 +135,20 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
           <Pressable style={styles.repeatButton} onPress={() => handlePress(selectedSymbol)}>
             <Text style={styles.buttonText}>🔁 Wiederholen</Text>
           </Pressable>
-          {suggestions.length > 0 && (
-            <View style={styles.suggestionsContainer}>
-                <Text style={styles.suggestionsTitle}>Vielleicht auch?</Text>
+          <View style={styles.suggestionsContainer}>
+            {suggestionStatus === 'loading' && <ActivityIndicator style={{ marginVertical: 10 }} />}
+            {suggestionStatus === 'error' && <Text style={{ color: 'red' }}>Fehler beim Laden der Vorschläge.</Text>}
+            {suggestionStatus === 'success' && (
+              <>
+                {adaptiveSuggestions.length > 0 && <Text style={styles.suggestionsTitle}>Vielleicht auch?</Text>}
                 <View style={styles.suggestionsList}>
-                    {suggestions.map(s => <SymbolButton key={s.id} symbol={s} onPress={handlePress} />)}
+                    {adaptiveSuggestions.map(s => <SymbolButton key={s.id} symbol={s} onPress={handlePress} />)}
                 </View>
-            </View>
-          )}
+                {llmSuggestions && llmSuggestions.nextWords.length > 0 && <Text style={styles.suggestionsTitle}>Ideen (KI)</Text>}
+                {/* LLM Hint: Render the llmSuggestions.nextWords and caregiverPhrases here */}
+              </>
+            )}
+          </View>
         </View>
       )}
 
