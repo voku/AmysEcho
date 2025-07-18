@@ -11,10 +11,9 @@ import { runOnJS } from 'react-native-reanimated';
 import { database } from '../../db';
 import { playSymbolAudio } from '../services/audioService';
 import { usageTracker } from '../services/usageTracker';
-import { adaptiveLearningService } from '../services/adaptiveLearningService';
+import { dialogEngine, LLMSuggestionResponse } from '../services/dialogEngine';
 import { SymbolButton } from '../components/SymbolButton';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
-import { getLLMSuggestions, LLMSuggestions } from '../services/dialogService';
 // LLM Hint: Use a status enum for async operations instead of multiple booleans.
 // This creates a clear state machine ('idle' -> 'loading' -> 'success'/'error').
 type SuggestionStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -44,7 +43,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [videoPaused, setVideoPaused] = useState(false);
   const [showDgsVideo, setShowDgsVideo] = useState(false);
   const [adaptiveSuggestions, setAdaptiveSuggestions] = useState<Symbol[]>([]);
-  const [llmSuggestions, setLlmSuggestions] = useState<LLMSuggestions | null>(null);
+  const [llmSuggestions, setLlmSuggestions] = useState<LLMSuggestionResponse | null>(null);
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
 
   const [customModelUri, setCustomModelUri] = useState<string | null>(null);
@@ -73,8 +72,8 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     setSuggestionStatus('loading');
     try {
       const [adaptive, llm] = await Promise.all([
-        adaptiveLearningService.getSuggestions(vocabulary, profile.id),
-        getLLMSuggestions({
+        dialogEngine.getAdaptiveSuggestions(vocabulary, profile.id, symbol),
+        dialogEngine.getLLMSuggestions({
           input: symbol.name,
           context: symbol.contextTags,
           language: 'de',
