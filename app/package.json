@@ -1,0 +1,45 @@
+{
+  "name": "amys-echo-app",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "react-native start",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "web": "expo start --web",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.73.5",
+    "@react-navigation/native": "^6.1.5",
+    "@react-navigation/stack": "^6.3.18",
+    "@react-native-async-storage/async-storage": "^1.22.0",
+    "expo-av": "~13.2.1",
+    "expo-speech": "~11.4.0",
+    "@nozbe/watermelondb": "^0.24.0",
+    "react-native-vision-camera": "^2.15.4",
+    "react-native-reanimated": "^3.0.0",
+    "react-native-fast-tflite": "^0.2.0",
+    "expo-secure-store": "~12.4.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-native": "^0.73.0",
+    "typescript": "^5.3.3",
+    "@react-native/eslint-config": "latest",
+    "eslint": "latest",
+    "prettier": "latest",
+    "husky": "latest",
+    "lint-staged": "latest"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
