@@ -8,10 +8,7 @@ import ProfileSelectScreen from './screens/ProfileSelectScreen';
 import LearningScreen from './screens/LearningScreen';
 import AdminScreen from './screens/AdminScreen';
 import ParentScreen from './screens/ParentScreen';
-import { ServicesContext } from './context/ServicesContext';
-import { mlService } from './services/mlService';
-import { audioService } from './services/audioService';
-import { adaptiveLearningService } from './services/adaptiveLearningService';
+import { AppServicesProvider } from './context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './components/AccessibilityContext';
 import { loadProfile } from './storage';
 
@@ -30,7 +27,6 @@ export default function App() {
       try {
         const profileId = await setupDatabase();
         setInitialProfileId(profileId);
-        await mlService.loadModels();
         const profile = await loadProfile();
         if (profile) {
           setAccessibility({
@@ -56,7 +52,7 @@ export default function App() {
   }
 
   return (
-    <ServicesContext.Provider value={{ mlService, audioService, adaptiveLearningService }}>
+    <AppServicesProvider>
       <AccessibilityContext.Provider value={{
         ...accessibility,
         update: (s: Partial<AccessibilitySettings>) =>
@@ -88,6 +84,6 @@ export default function App() {
           </Stack.Navigator>
         </NavigationContainer>
       </AccessibilityContext.Provider>
-    </ServicesContext.Provider>
+    </AppServicesProvider>
   );
 }
