@@ -1,225 +1,134 @@
-import { TensorflowLite } from 'react-native-fast-tflite';
+import { TfliteModel, useTensorflowModel } from 'react-native-fast-tflite';
+import { runOnJS } from 'react-native-reanimated';
+import { Frame } from 'react-native-vision-camera';
 import { logger } from '../utils/logger';
-import { GestureResult, MLServiceConfig, ProcessedFrame } from '../types/ml';
 
-export class MLService {
-  private tfliteModel: TensorflowLite | null = null;
-  private isModelLoaded = false;
-  private modelPath: string;
-  private fallbackModelPath: string;
-  private cloudEndpoint: string;
-  private confidenceThreshold: number;
+export interface GestureResult {
+  label: string;
+  confidence: number;
+}
 
-  constructor(config: MLServiceConfig) {
-    this.modelPath = config.modelPath || 'models/gesture_recognition.tflite';
-    this.fallbackModelPath = config.fallbackModelPath || 'models/fallback_model.tflite';
-    this.cloudEndpoint = config.cloudEndpoint || '';
-    this.confidenceThreshold = config.confidenceThreshold || 0.7;
+export interface DetailedGestureResult extends GestureResult {
+  isLocal: boolean;
+  timestamp: number;
+  suggestions: string[];
+  requiresConfirmation: boolean;
+}
+
+class MachineLearningService {
+  private isReady = false;
+  private landmarkModel: TfliteModel | null = null;
+  private gestureModel: TfliteModel | null = null;
+  private cloudEndpoint = '';
+  private confidenceThreshold = 0.7;
+
+  async loadModels(config?: { cloudEndpoint?: string; confidenceThreshold?: number }): Promise<void> {
+    if (config?.cloudEndpoint) this.cloudEndpoint = config.cloudEndpoint;
+    if (config?.confidenceThreshold) this.confidenceThreshold = config.confidenceThreshold;
+    try {
+      const landmarkTflite = useTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
+      const gestureTflite = useTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
+
+      this.landmarkModel = landmarkTflite.model;
+      this.gestureModel = gestureTflite.model;
+
+      if (this.landmarkModel && this.gestureModel) {
+        this.isReady = true;
+        logger.info('Gesture recognition models loaded successfully.');
+      }
+    } catch (error) {
+      logger.error('Failed to load gesture models:', error);
+      this.isReady = false;
+    }
   }
 
-  /**
-   * Initialize the TensorFlow Lite model
-   */
-  async initializeModel(): Promise<void> {
-    try {
-      logger.info('Initializing ML model...');
+  isServiceReady = (): boolean => this.isReady;
 
-      // Try to load the main model first
+  classifyGesture = (onResult: (result: GestureResult | null) => void) => {
+    'worklet';
+    return (frame: Frame) => {
+      if (!this.landmarkModel || !this.gestureModel) {
+        return;
+      }
       try {
-        this.tfliteModel = await TensorflowLite.loadModel(this.modelPath);
-        logger.info('Main gesture recognition model loaded successfully');
-      } catch (error) {
-        logger.warn('Main model failed to load, trying fallback model', error);
-        this.tfliteModel = await TensorflowLite.loadModel(this.fallbackModelPath);
-        logger.info('Fallback model loaded successfully');
+        const landmarkResults = this.landmarkModel.runSync([frame]);
+        const landmarks = landmarkResults[0];
+
+        if (landmarks && landmarks.length > 0) {
+          const gestureResults = this.gestureModel.runSync([landmarks]);
+          const predictions = gestureResults[0] as Float32Array;
+          let bestIndex = 0;
+          let bestScore = 0;
+          for (let i = 0; i < predictions.length; i++) {
+            if (predictions[i] > bestScore) {
+              bestScore = predictions[i];
+              bestIndex = i;
+            }
+          }
+          const labels = ['OPEN_PALM']; // Placeholder
+          const bestPrediction: GestureResult = {
+            label: labels[bestIndex] || 'unknown',
+            confidence: bestScore,
+          };
+          runOnJS(onResult)(bestPrediction);
+        } else {
+          runOnJS(onResult)(null);
+        }
+      } catch (e) {
+        logger.error('Error during gesture classification:', e);
       }
+    };
+  };
 
-      this.isModelLoaded = true;
-    } catch (error: any) {
-      logger.error('Failed to initialize ML model:', error);
-      throw new Error(`Model initialization failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Classify a gesture from processed frame data
-   */
-  async classifyGesture(frameData: ProcessedFrame): Promise<GestureResult> {
-    if (!this.isModelLoaded || !this.tfliteModel) {
-      throw new Error('Model not initialized. Call initializeModel() first.');
+  async classifyLandmarks(landmarks: number[][]): Promise<DetailedGestureResult> {
+    if (!this.gestureModel) {
+      throw new Error('Models not loaded');
     }
 
-    try {
-      // Try cloud classification first for better accuracy
-      const cloudResult = await this.tryCloudClassification(frameData);
-      if (cloudResult) {
-        return cloudResult;
+    if (this.cloudEndpoint) {
+      try {
+        const response = await fetch(this.cloudEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ landmarks }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            label: data.gesture,
+            confidence: data.confidence,
+            isLocal: false,
+            timestamp: Date.now(),
+            suggestions: data.suggestions || [],
+            requiresConfirmation: data.confidence < this.confidenceThreshold,
+          };
+        }
+        logger.warn(`Cloud classification failed with ${response.status}`);
+      } catch (err) {
+        logger.warn('Cloud classification error', err);
       }
-
-      // Fallback to local classification
-      return await this.classifyLocally(frameData);
-    } catch (error) {
-      logger.error('Gesture classification failed:', error);
-
-      // Return uncertain result instead of throwing
-      return {
-        gesture: 'unknown',
-        confidence: 0.0,
-        isLocal: true,
-        timestamp: Date.now(),
-        suggestions: [],
-        requiresConfirmation: true,
-      };
-    }
-  }
-
-  /**
-   * Try cloud-based classification first
-   */
-  private async tryCloudClassification(frameData: ProcessedFrame): Promise<GestureResult | null> {
-    if (!this.cloudEndpoint) {
-      return null;
     }
 
-    try {
-      const response = await fetch(this.cloudEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          frameData: frameData.landmarks,
-          metadata: {
-            width: frameData.width,
-            height: frameData.height,
-            timestamp: frameData.timestamp,
-          },
-        }),
-        // @ts-ignore fetch timeout
-        timeout: 3000,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Cloud service returned ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      return {
-        gesture: result.gesture,
-        confidence: result.confidence,
-        isLocal: false,
-        timestamp: Date.now(),
-        suggestions: result.suggestions || [],
-        requiresConfirmation: result.confidence < this.confidenceThreshold,
-      };
-    } catch (error) {
-      logger.warn('Cloud classification failed, falling back to local:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Local TensorFlow Lite classification
-   */
-  private async classifyLocally(frameData: ProcessedFrame): Promise<GestureResult> {
-    if (!this.tfliteModel) {
-      throw new Error('Local model not available');
-    }
-
-    try {
-      // Prepare input tensor from landmark data
-      const inputTensor = this.prepareTensorInput(frameData.landmarks);
-
-      // Run inference
-      const outputs = await this.tfliteModel.run([inputTensor]);
-
-      // Process outputs to get gesture classification
-      const { gesture, confidence } = this.processModelOutput(outputs);
-
-      return {
-        gesture,
-        confidence,
-        isLocal: true,
-        timestamp: Date.now(),
-        suggestions: [],
-        requiresConfirmation: confidence < this.confidenceThreshold,
-      };
-    } catch (error) {
-      logger.error('Local classification failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Prepare tensor input from landmark data
-   */
-  private prepareTensorInput(landmarks: number[][]): Float32Array {
-    // Flatten and normalize landmark coordinates
-    const flatLandmarks = landmarks.flat();
-    const normalized = new Float32Array(flatLandmarks.length);
-
-    for (let i = 0; i < flatLandmarks.length; i++) {
-      normalized[i] = flatLandmarks[i] / 1000.0; // Normalize to [0, 1] range
-    }
-
-    return normalized;
-  }
-
-  /**
-   * Process model output to extract gesture and confidence
-   */
-  private processModelOutput(outputs: any[]): { gesture: string; confidence: number } {
-    const predictions = outputs[0];
-
-    // Find the class with highest confidence
-    let maxConfidence = 0;
-    let maxIndex = 0;
-
+    const gestureResults = this.gestureModel.runSync([landmarks]);
+    const predictions = gestureResults[0] as Float32Array;
+    let bestIndex = 0;
+    let bestScore = 0;
     for (let i = 0; i < predictions.length; i++) {
-      if (predictions[i] > maxConfidence) {
-        maxConfidence = predictions[i];
-        maxIndex = i;
+      if (predictions[i] > bestScore) {
+        bestScore = predictions[i];
+        bestIndex = i;
       }
     }
-
-    // Map index to gesture name (this would be loaded from your gesture vocabulary)
-    const gestureNames = ['hello', 'thank_you', 'water', 'food', 'more', 'finished', 'help'];
-    const gesture = gestureNames[maxIndex] || 'unknown';
-
-    return { gesture, confidence: maxConfidence };
-  }
-
-  /**
-   * Update the model with new training data
-   */
-  async updateModel(trainingData: ProcessedFrame[], labels: string[]): Promise<void> {
-    // This would typically involve sending data to a training service
-    // For now, we'll just log the training data
-    logger.info(`Received training data: ${trainingData.length} samples`);
-
-    // In a full implementation, this would:
-    // 1. Send data to training service
-    // 2. Wait for new model to be trained
-    // 3. Download and replace the local model
-  }
-
-  /**
-   * Clean up resources
-   */
-  dispose(): void {
-    if (this.tfliteModel) {
-      this.tfliteModel.dispose();
-      this.tfliteModel = null;
-    }
-    this.isModelLoaded = false;
+    const labels = ['OPEN_PALM'];
+    return {
+      label: labels[bestIndex] || 'unknown',
+      confidence: bestScore,
+      isLocal: true,
+      timestamp: Date.now(),
+      suggestions: [],
+      requiresConfirmation: bestScore < this.confidenceThreshold,
+    };
   }
 }
 
-// Export singleton instance
-export const mlService = new MLService({
-  modelPath: 'models/gesture_recognition.tflite',
-  fallbackModelPath: 'models/fallback_model.tflite',
-  cloudEndpoint: process.env.ML_CLOUD_ENDPOINT || '',
-  confidenceThreshold: 0.7,
-});
+export const mlService = new MachineLearningService();
