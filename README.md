@@ -103,7 +103,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ### Priority 3: Polish and Administration
 - [x] **Complete Admin Panel**: CRUD functionality in `AdminScreen.tsx` manages symbols and vocabularies.
-- [ ] **UI/UX Polish**: Conduct a full review of the UI to improve layouts, feedback, and add accessibility labels to all interactive elements.
+- [x] **UI/UX Polish**: Conducted a full review of the UI, improved layouts, and ensured all buttons and interactive elements have accessibility labels.
 
 -### Priority 4: Personalized AI Pipeline
 - [x] **Acquire Pre-trained Models**: Download and bundle the MediaPipe models (see `src/tools/downloadModels.ts`).
