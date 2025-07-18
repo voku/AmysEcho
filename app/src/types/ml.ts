@@ -6,8 +6,11 @@ export interface ProcessedFrame {
 }
 
 export interface GestureResult {
-  gesture: string;
+  label: string;
   confidence: number;
+}
+
+export interface DetailedGestureResult extends GestureResult {
   isLocal: boolean;
   timestamp: number;
   suggestions: string[];

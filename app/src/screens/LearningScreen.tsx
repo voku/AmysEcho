@@ -4,10 +4,7 @@ import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 import { useIsFocused } from '@react-navigation/native';
-import { Camera, useCameraDevice, useFrameProcessor } from 'react-native-vision-camera';
-import { useTensorflowModel } from 'react-native-fast-tflite';
-import { loadCustomModelUri } from '../storage';
-import { runOnJS } from 'react-native-reanimated';
+import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import { database } from '../../db';
 import { playSymbolAudio } from '../services/audioService';
 import { usageTracker } from '../services/usageTracker';
@@ -18,13 +15,13 @@ import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 // This creates a clear state machine ('idle' -> 'loading' -> 'success'/'error').
 type SuggestionStatus = 'idle' | 'loading' | 'success' | 'error';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useServices } from '../context/AppServicesProvider';
 import { Profile, Symbol } from '../../db/models';
 
 type RootStackParamList = { Learning: { profileId: string }, Admin: { profileId: string } };
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
-type GesturePrediction = { label: string; confidence: number };
 
 const enhance = withObservables<Props, { profile: Profile, vocabulary: Symbol[] }>(['route'], ({ route }) => ({
   profile: database.get<Profile>('profiles').findAndObserve(route.params.profileId),
@@ -46,17 +43,9 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [llmSuggestions, setLlmSuggestions] = useState<LLMSuggestionResponse | null>(null);
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
 
-  const [customModelUri, setCustomModelUri] = useState<string | null>(null);
-  React.useEffect(() => {
-    loadCustomModelUri().then(setCustomModelUri);
-  }, []);
+  const { mlService } = useServices();
 
-  const { model: gestureModel } = useTensorflowModel(
-    customModelUri ? { uri: customModelUri } : require('../../assets/models/gesture_classifier.tflite'),
-  );
-  const { model: landmarkModel } = useTensorflowModel(
-    require('../../assets/models/hand_landmarker.tflite'),
-  );
+  // Gesture models are loaded by the mlService
   const device = useCameraDevice('front');
   const isFocused = useIsFocused();
   const appState = AppState.currentState;
@@ -89,41 +78,18 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     }
   };
 
-  const handleGesture = (prediction: GesturePrediction) => {
-    if (lastGesture !== null) return;
-    const recognizedSymbolLabel = getSymbolLabelForGesture(prediction.label);
-    if (recognizedSymbolLabel) {
+
+  const frameProcessor = mlService.classifyGesture((result) => {
+    if (result && result.confidence > 0.85 && result.label !== lastGesture) {
+      const recognizedSymbolLabel = getSymbolLabelForGesture(result.label);
       const foundSymbol = vocabulary.find(s => s.name === recognizedSymbolLabel);
       if (foundSymbol) {
-        runOnJS(handlePress)(foundSymbol);
-        runOnJS(setLastGesture)(prediction.label);
-        setTimeout(() => runOnJS(setLastGesture)(null), 2000);
+        handlePress(foundSymbol);
+        setLastGesture(result.label);
+        setTimeout(() => setLastGesture(null), 2000);
       }
     }
-  };
-
-  const frameProcessor = useFrameProcessor(frame => {
-    'worklet';
-    if (!landmarkModel.value || !gestureModel.value) return;
-    try {
-      const landmarkResults = landmarkModel.value.runSync([frame]) as any[];
-      const landmarks = landmarkResults[0];
-      if (!landmarks || landmarks.length === 0) {
-        runOnJS(setLastGesture)(null);
-        return;
-      }
-
-      const gestureResults = gestureModel.value.runSync([landmarks]) as any[];
-      if (gestureResults?.length > 0) {
-        const best = gestureResults.reduce((p, c) => (p.confidence > c.confidence ? p : c));
-        if (best?.confidence > 0.8) {
-          handleGesture(best);
-        }
-      }
-    } catch (e) {
-      console.error('Frame processor error', e);
-    }
-  }, [landmarkModel, gestureModel, vocabulary, lastGesture]);
+  });
 
   if (!profile || !vocabulary) {
     return <View style={styles.container}><ActivityIndicator size="large" /></View>;
