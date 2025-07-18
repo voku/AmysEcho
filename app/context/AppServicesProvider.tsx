@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { mlService } from '../src/services/mlService';
 import { audioService } from '../src/services/audioService';
 import { adaptiveLearningService } from '../src/services/adaptiveLearningService';
+import { ActivityIndicator, View } from 'react-native';
 
 interface Services {
   mlService: typeof mlService;
@@ -37,14 +38,14 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   if (!areServicesReady) {
-    return null;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
   const services = { mlService, audioService, adaptiveLearningService };
 
-  return (
-    <ServicesContext.Provider value={services}>
-      {children}
-    </ServicesContext.Provider>
-  );
+  return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 };
