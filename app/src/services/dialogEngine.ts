@@ -1,4 +1,4 @@
-import { loadOpenAIApiKey } from '../storage';
+import { loadBackendToken } from '../storage';
 
 export type LLMSuggestionResponse = {
   nextWords: string[];
@@ -13,27 +13,24 @@ export interface LLMRequest {
 }
 
 export async function getLLMSuggestions({ input, context, language, age }: LLMRequest): Promise<LLMSuggestionResponse> {
-  const apiKey =
-    (await loadOpenAIApiKey()) || process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
-  if (!apiKey) {
-    return { nextWords: [], caregiverPhrases: [] };
-  }
+  // LLM Hint: This endpoint points to our secure backend proxy, NOT directly to OpenAI.
+  const proxyUrl = 'https://your-secure-proxy-server.com/generate-suggestions';
 
-  const prompt = `A ${age}-year-old child who speaks ${language} just selected the word "${input}". The current context is [${context.join(
-    ', '
-  )}]. Provide likely next words and helpful phrases for a caregiver. Return a JSON object with two keys: "nextWords" and "caregiverPhrases".`;
+  // LLM Hint: In a real app, this token would come from an authentication service.
+  const authToken = (await loadBackendToken()) || 'user-session-jwt-token-placeholder';
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
+        input,
+        context,
+        language,
+        age,
       }),
     });
 
@@ -42,11 +39,10 @@ export async function getLLMSuggestions({ input, context, language, age }: LLMRe
       return { nextWords: [], caregiverPhrases: [] };
     }
 
-    const data = (await response.json()) as any;
-    const content = JSON.parse(data.choices[0].message.content as string);
-    return content as LLMSuggestionResponse;
+    return (await response.json()) as LLMSuggestionResponse;
   } catch (error) {
     console.error('LLM suggestion fetch error:', error);
-    return { nextWords: [], caregiverPhrases: [] };
+    return { nextWords: [], caregiverPhrases: [] }; // Return empty on error
   }
 }
+
