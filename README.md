@@ -118,10 +118,10 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ### Priority 5: Adaptive Learning & Maintenance
 - [x] **Implement Adaptive Learning Service (ALS)**: Dynamically adjust gesture confidence thresholds and health scores after each interaction, triggering HIP 4 when necessary.
-- [ ] **Show Proactive Maintenance Banner (HIP 4)**: Display a soft banner asking for practice when a gesture's healthScore declines.
-- [ ] **Sync Training Data with Consent**: Batch upload pending `gesture_training_data` to the server when the caregiver allows it and a Wi-Fi connection is available.
+- [x] **Show Proactive Maintenance Banner (HIP 4)**: Display a soft banner asking for practice when a gesture's healthScore declines.
+- [x] **Sync Training Data with Consent**: Batch upload pending `gesture_training_data` to the server when the caregiver allows it and a Wi-Fi connection is available.
 - [x] **Finish LSTM Training Pipeline**: Replace the placeholder logic in `train.py` with a real LSTM model that outputs a `.tflite` file.
-- [ ] **Automate Offline Model Updates**: Regularly download newly trained personalized models and refresh the local classifier.
+- [x] **Automate Offline Model Updates**: Regularly download newly trained personalized models and refresh the local classifier.
 
 ## ▶️ Running the mobile app
 
