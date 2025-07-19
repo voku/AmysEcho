@@ -4,6 +4,7 @@ import { runOnJS } from 'react-native-reanimated';
 import { Frame } from 'react-native-vision-camera';
 import { logger } from '../utils/logger';
 import { loadCustomModelUri } from '../storage';
+const gestureLabels: string[] = require('../../assets/models/gesture_labels.json');
 
 export interface GestureResult {
   label: string;
@@ -75,9 +76,8 @@ class MachineLearningService {
               bestIndex = i;
             }
           }
-          const labels = ['OPEN_PALM']; // Placeholder
           const bestPrediction: GestureResult = {
-            label: labels[bestIndex] || 'unknown',
+            label: gestureLabels[bestIndex] || 'unknown',
             confidence: bestScore,
           };
           runOnJS(onResult)(bestPrediction);
@@ -129,9 +129,8 @@ class MachineLearningService {
         bestIndex = i;
       }
     }
-    const labels = ['OPEN_PALM'];
     return {
-      label: labels[bestIndex] || 'unknown',
+      label: gestureLabels[bestIndex] || 'unknown',
       confidence: bestScore,
       isLocal: true,
       timestamp: Date.now(),
