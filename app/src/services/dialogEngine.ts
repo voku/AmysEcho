@@ -1,8 +1,9 @@
 import { database } from '../db';
 import { Symbol } from '../db/models';
-import { loadBackendApiToken } from '../storage';
+import { loadOpenAIApiKey } from '../storage';
 
-const BACKEND_URL = 'http://localhost:5000/generate-suggestions';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const MODEL = 'gpt-4-turbo';
 
 // LLM Hint: Define a clear type for the expected JSON response from the LLM.
 export type LLMSuggestionResponse = {
@@ -31,7 +32,7 @@ class DialogEngine {
   }
 
   /**
-   * Request suggestions from the secure backend API.
+   * Request suggestions directly from the OpenAI API.
    * @param input - currently selected symbol name
    * @param context - related context tags
    * @param language - language code (e.g., 'de')
@@ -49,30 +50,38 @@ class DialogEngine {
     language: string;
     age: number;
   }): Promise<LLMSuggestionResponse> {
-    const token = await loadBackendApiToken();
-    if (!token) {
+    const apiKey = await loadOpenAIApiKey();
+    if (!apiKey) {
       return { nextWords: [], caregiverPhrases: [] };
     }
 
+    const prompt = `A ${age}-year-old child who speaks ${language} just selected the word "${input}". The current context is [${context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver. Return a JSON object with the keys \"nextWords\" and \"caregiverPhrases\".`;
+
     try {
-      const response = await fetch(BACKEND_URL, {
+      const response = await fetch(OPENAI_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({ input, context, language, age }),
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.7,
+        }),
       });
 
       if (!response.ok) {
-        console.error(`Backend API returned status ${response.status}`);
+        console.error(`OpenAI API returned status ${response.status}`);
         return { nextWords: [], caregiverPhrases: [] };
       }
 
       const data = await response.json();
+      const content = JSON.parse(data.choices?.[0]?.message?.content || '{}');
       return {
-        nextWords: data.nextWords || [],
-        caregiverPhrases: data.caregiverPhrases || [],
+        nextWords: content.nextWords || [],
+        caregiverPhrases: content.caregiverPhrases || [],
       } as LLMSuggestionResponse;
     } catch (error) {
       console.error('LLM suggestion fetch error:', error);
