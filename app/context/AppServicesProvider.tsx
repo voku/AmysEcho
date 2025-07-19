@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { mlService } from '../src/services/mlService';
 import { audioService } from '../src/services/audioService';
+import { checkForModelUpdate } from "../src/services/modelUpdate";
+import { syncTrainingData } from "../src/services/trainingSync";
 import { adaptiveLearningService } from '../src/services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -35,6 +37,13 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     initializeServices();
+    const interval = setInterval(() => {
+      syncTrainingData().catch(() => {});
+      checkForModelUpdate().catch(() => {});
+    }, 6 * 60 * 60 * 1000);
+    syncTrainingData().catch(() => {});
+    checkForModelUpdate().catch(() => {});
+    return () => clearInterval(interval);
   }, []);
 
   if (!areServicesReady) {
