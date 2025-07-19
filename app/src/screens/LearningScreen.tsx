@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, FlatList, Pressable, AppState, StyleSheet, Switch } from 'react-native';
 import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
@@ -44,6 +44,10 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
 
   const { mlService } = useServices();
+
+  useEffect(() => {
+    mlService.loadModels().catch((e) => console.error('Model load error', e));
+  }, [profile.id]);
 
   // Gesture models are loaded by the mlService
   const device = useCameraDevice('front');

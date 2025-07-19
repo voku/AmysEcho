@@ -110,7 +110,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Implement Two-Stage Frame Processor**: Load landmark and gesture models inside a `useFrameProcessor` worklet.
 - [x] **Build TrainingScreen UI**: Provide a guided interface for recording gesture samples.
 - [x] **Implement In-Memory Landmark Extraction**: Use ffmpeg to pull frames and save landmarks only.
-- [x] **Create Secure LLM Dialog Endpoint**: Proxy OpenAI requests through an authenticated server.
+ - [x] **Direct OpenAI Integration**: Suggestions are fetched from OpenAI using an API key stored on the device.
 - [x] **Create Model Training Endpoint & Script**: Accept uploaded landmarks and train an LSTM gesture model.
 - [x] **Create Model Download Endpoint**: Serve the latest personalized model to the app.
 - [x] **Implement Model Download and Activation**: Download the `.tflite` model and store its URI securely.
@@ -161,7 +161,7 @@ node dist/tools/updateAnalytics.js <path/to/db.json>
 
 ### Running the backend server
 
-The backend provides endpoints for suggestion generation and model training.
+The backend provides endpoints for model training.
 Start it with:
 
 ```bash
@@ -169,7 +169,7 @@ npm run build
 node dist/server.js
 ```
 
-Set `OPENAI_API_KEY` and an optional `API_TOKEN` environment variable before starting.
+Set an `API_TOKEN` environment variable before starting.
 Requests must include `Authorization: Bearer $API_TOKEN`.
 
 Open the app and tap **Analytics** on the recognition screen to view the dashboard.

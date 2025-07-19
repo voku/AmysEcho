@@ -4,7 +4,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 **Architectural Mandate**:
 1.  **Gesture Recognition**: All real-time gesture processing must occur **on-device** for performance and privacy.
-2.  **Dialog Engine & Model Training**: All communication with the LLM and all personalized model training must be handled by a **secure cloud-based server**. The client application will never handle API keys.
+2.  **Dialog Engine**: The app communicates directly with OpenAI using an API key stored in secure device storage. **Model Training** still happens on a secure cloud server.
 
 ---
 
@@ -49,20 +49,17 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 ---
 
-## **Part 2: Cloud-Based AI Server**
+## **Part 2: Server-Side Model Training**
 
-**LLM Hint**: These tasks require creating a new server-side application (e.g., using Python with Flask/FastAPI and TensorFlow/Keras).
+**LLM Hint**: These tasks require creating a server-side application (e.g., using Python with Flask/FastAPI and TensorFlow/Keras) to handle heavy model training workloads.
 
-### **TODO 2.1: Create Secure LLM Dialog Endpoint**
+### **TODO 2.1: Integrate OpenAI Dialog API**
 
-* **Objective**: To create a secure backend proxy that handles all communication with the OpenAI API.
-* **Endpoint**: `POST /generate-suggestions`
-* **Server-Side Logic**:
-    1.  The endpoint must require a user authentication token (JWT) in the request header.
-    2.  It will hold the secret OpenAI API key securely in its environment variables.
-    3.  It will receive context from the app (e.g., selected symbol, user age).
-    4.  **Crucially**, it must construct a prompt that explicitly instructs the OpenAI model to return a valid JSON object using `response_format: { "type": "json_object" }`.
-    5.  It will then call the OpenAI API and stream the response back to the client for the best user experience.
+* **Objective**: Use an API key stored on the device to request suggestions directly from OpenAI.
+* **File**: `services/dialogEngine.ts` & `screens/AdminScreen.tsx`
+* **Action**:
+    1.  Add UI on the Admin screen to save the OpenAI key with `expo-secure-store`.
+    2.  In `dialogEngine.ts`, call `https://api.openai.com/v1/chat/completions` using this key and return the JSON response.
 
 ### **TODO 2.2: Create Personalized Model Training Endpoint**
 
@@ -86,11 +83,11 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 ### **TODO 3.1: Integrate LLM Dialog Engine in the App**
 
-* **Objective**: To call the secure server endpoint and display the AI-powered suggestions.
+* **Objective**: To fetch suggestions from OpenAI and display them in the UI.
 * **File**: `services/dialogEngine.ts` & `screens/LearningScreen.tsx`
 * **Action**:
-    1.  In `dialogEngine.ts`, replace the placeholder `getLLMSuggestions` with a `fetch` call to your new `POST /generate-suggestions` server endpoint, including the user's auth token.
-    2.  In `LearningScreen.tsx`, use the `suggestionStatus` state machine (as defined in our previous patches) to handle the loading, success, and error states of the API call and render the returned suggestions.
+    1.  In `dialogEngine.ts`, call the Chat Completions API using the stored API key.
+    2.  In `LearningScreen.tsx`, use the `suggestionStatus` state machine (as defined in our previous patches) to handle loading, success, and error states and render the returned suggestions.
 
 ### **TODO 3.2: Implement Personalized Model Activation**
 

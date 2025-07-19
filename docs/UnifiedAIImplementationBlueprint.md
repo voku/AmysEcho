@@ -4,7 +4,7 @@
 
 **Executive Summary**: This blueprint establishes distinct architectural mandates for the two core AI features.
 1.  **Gesture Recognition**: An on-device, real-time processing pipeline is mandated for performance and privacy. This involves a two-stage model (landmark detection followed by classification) and a feedback loop for personalization.
-2.  **Dialog Engine & Model Training**: A cloud-powered architecture is mandated for security and computational power. All communication with the LLM and all model training will be mediated through a secure backend proxy server.
+2.  **Dialog Engine**: The app stores an OpenAI API key in secure storage and calls the Chat Completions API directly. **Model Training** still relies on a cloud server for heavy computation.
 
 This document details the specific libraries, implementation patterns, and the interconnected workflow required to build this system.
 
@@ -99,27 +99,19 @@ This is the critical client-side component for teaching the app Amy's specific g
 
 ## **Part II: Cloud-Powered AI — Dialog & Model Training**
 
-**Objective**: To build a secure and powerful backend that provides intelligent dialog suggestions and handles the computationally intensive task of model training.
+**Objective**: To provide intelligent dialog suggestions and handle the computationally intensive task of personalized model training.
 
-### **Section 4: Security-First API Architecture**
+### **Section 4: API Access & Security**
 
-* **The Backend Proxy Imperative**: **The OpenAI API key must never be stored on the client device.** All API calls must be routed through a backend proxy server that holds the secret key.
-* **Authentication**: The app must authenticate with the proxy using a short-lived session token (e.g., JWT) to prevent unauthorized access.
-* **PII Redaction**: The backend proxy is responsible for identifying and redacting Personally Identifiable Information (PII) from user prompts **before** sending them to OpenAI, using a Named Entity Recognition (NER) model.
+* **OpenAI Key Storage**: The mobile app stores the API key using `expo-secure-store` and calls the Chat Completions API directly.
+* **Server Responsibility**: The backend focuses on training new gesture models and serving them for download.
 
 ### **Section 5: TODO — Implementing the Server-Side Components**
 
 This involves setting up a server application (e.g., using Python with Flask or FastAPI).
 
-* **TODO 5.1: Create the Secure LLM Dialog Endpoint** *(Completed)*
-    * **Endpoint**: `POST /generate-suggestions`
-    * **Logic**:
-        1.  Receives a request from the app containing the prompt context.
-        2.  **Authenticates** the user's session token.
-        3.  **Sanitizes** the input text for PII.
-        4.  Constructs a carefully engineered prompt, instructing the OpenAI API to return a **JSON object**.
-        5.  Calls the OpenAI Chat Completions API using the secret key stored on the server.
-        6.  Forwards the response back to the client. For best UX, this should **stream** the response token-by-token.
+* **TODO 5.1: [Deprecated]**
+    * The dialog engine now calls OpenAI directly from the app, so this endpoint is no longer required.
 
 * **TODO 5.2: Create the Model Training Endpoint & Script** *(Completed)*
     * **Endpoint**: `POST /train-model`
