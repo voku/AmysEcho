@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { database } from '../db';
+import { GestureTrainingData } from '../db/models';
 
 export interface Profile {
   id: string;
@@ -83,6 +85,18 @@ export async function saveTrainingSample(
     syncStatus: 'pending',
   });
   await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
+
+  const collection = database.get<GestureTrainingData>('gesture_training_data');
+  await database.write(async () => {
+    await collection.create((record) => {
+      record.gestureDefinition.id = gestureDefinitionId;
+      record.landmarkData = JSON.stringify(landmarkData);
+      record.source = 'HIP_2';
+      record.qualityScore = 1;
+      record.frameMetadata = '';
+      record.createdAt = new Date();
+    });
+  });
 }
 
 const API_KEY = 'openaiApiKey';
