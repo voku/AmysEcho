@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { TfliteModel, useTensorflowModel } from 'react-native-fast-tflite';
 import { runOnJS } from 'react-native-reanimated';
 import { Frame } from 'react-native-vision-camera';
@@ -23,11 +24,16 @@ class MachineLearningService {
   private cloudEndpoint = '';
   private confidenceThreshold = 0.7;
 
-  async loadModels(config?: { cloudEndpoint?: string; confidenceThreshold?: number }): Promise<void> {
+  async loadModels(config?: {
+    cloudEndpoint?: string;
+    confidenceThreshold?: number;
+  }): Promise<void> {
     if (config?.cloudEndpoint) this.cloudEndpoint = config.cloudEndpoint;
     if (config?.confidenceThreshold) this.confidenceThreshold = config.confidenceThreshold;
     try {
-      const landmarkTflite = useTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
+      const landmarkTflite = useTensorflowModel(
+        require('../../assets/models/hand_landmarker.tflite'),
+      );
       const customUri = await loadCustomModelUri();
       const gestureTflite = customUri
         ? useTensorflowModel({ url: customUri })

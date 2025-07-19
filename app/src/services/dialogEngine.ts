@@ -1,4 +1,3 @@
-import { database } from '../db';
 import { Symbol } from '../db/models';
 import { loadOpenAIApiKey } from '../storage';
 
@@ -16,11 +15,15 @@ class DialogEngine {
    * Return adaptive suggestions based on last selected symbol.
    * Currently a simple placeholder using local vocabulary order.
    */
-  public async getAdaptiveSuggestions(vocabulary: Symbol[], profileId: string, lastSymbol?: Symbol): Promise<Symbol[]> {
+  public async getAdaptiveSuggestions(
+    vocabulary: Symbol[],
+    profileId: string,
+    lastSymbol?: Symbol,
+  ): Promise<Symbol[]> {
     try {
       // Simple heuristic: return the next few symbols after lastSymbol in the vocabulary list
       if (!lastSymbol) return vocabulary.slice(0, 3);
-      const idx = vocabulary.findIndex(s => s.id === lastSymbol.id);
+      const idx = vocabulary.findIndex((s) => s.id === lastSymbol.id);
       const result = [] as Symbol[];
       for (let i = idx + 1; i < vocabulary.length && result.length < 3; i++) {
         result.push(vocabulary[i]);
