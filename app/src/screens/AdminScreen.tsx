@@ -12,6 +12,8 @@ import { Alert } from 'react-native';
 import {
   loadOpenAIApiKey,
   saveOpenAIApiKey,
+  loadBackendApiToken,
+  saveBackendApiToken,
   saveCustomModelUri,
 } from '../storage';
 import * as FileSystem from 'expo-file-system';
@@ -25,6 +27,7 @@ export default function AdminScreen({ navigation }: any) {
   const [id, setId] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [backendToken, setBackendToken] = useState('');
 
   React.useEffect(() => {
     const sub = database
@@ -34,6 +37,9 @@ export default function AdminScreen({ navigation }: any) {
       .subscribe(setSymbols);
     loadOpenAIApiKey().then((k) => {
       if (k) setApiKey(k);
+    });
+    loadBackendApiToken().then((t) => {
+      if (t) setBackendToken(t);
     });
     return () => sub.unsubscribe();
   }, []);
@@ -83,13 +89,18 @@ export default function AdminScreen({ navigation }: any) {
     await saveOpenAIApiKey(apiKey);
   };
 
+  const handleSaveBackendToken = async () => {
+    await saveBackendApiToken(backendToken);
+  };
+
   const handleDownloadModel = async () => {
     try {
       const uri = FileSystem.documentDirectory + 'custom_model.tflite';
+      const token = await loadBackendApiToken();
       const res = await FileSystem.downloadAsync(
         'http://localhost:5000/latest-model',
         uri,
-        { headers: { Authorization: 'Bearer secret' } },
+        { headers: { Authorization: `Bearer ${token || ''}` } },
       );
       await saveCustomModelUri(res.uri);
       Alert.alert('Model downloaded');
@@ -155,6 +166,18 @@ export default function AdminScreen({ navigation }: any) {
         title="Save API Key"
         onPress={handleSaveApiKey}
         accessibilityLabel="OpenAI API-Schlüssel speichern"
+      />
+      <TextInput
+        style={styles.apiInput}
+        placeholder="Backend API Token"
+        value={backendToken}
+        onChangeText={setBackendToken}
+        accessibilityLabel="Backend API Token"
+      />
+      <Button
+        title="Save Backend Token"
+        onPress={handleSaveBackendToken}
+        accessibilityLabel="Backend-Token speichern"
       />
       <Button
         title="Download Latest Model"

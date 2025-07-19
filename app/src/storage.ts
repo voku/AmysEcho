@@ -94,6 +94,15 @@ export async function loadOpenAIApiKey(): Promise<string | null> {
   return SecureStore.getItemAsync(API_KEY);
 }
 
+const BACKEND_TOKEN_KEY = 'backendApiToken';
+export async function saveBackendApiToken(token: string): Promise<void> {
+  await SecureStore.setItemAsync(BACKEND_TOKEN_KEY, token);
+}
+
+export async function loadBackendApiToken(): Promise<string | null> {
+  return SecureStore.getItemAsync(BACKEND_TOKEN_KEY);
+}
+
 const CUSTOM_MODEL_KEY = 'customModelUri';
 
 export async function saveCustomModelUri(uri: string): Promise<void> {
