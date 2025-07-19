@@ -7,3 +7,4 @@ export * from './services/dialogService';
 export * from './services/videoService';
 export * from './services/analyticsService';
 export * from './services/dialogEngine';
+export * from './services/adaptiveLearningService';

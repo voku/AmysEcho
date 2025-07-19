@@ -4,7 +4,7 @@
   "description": "Gesture to voice translator for Amy",
   "main": "index.js",
   "scripts": {
-    "test": "npm run build && node dist/test/db.test.js && node dist/test/recognizer.test.js && node dist/test/services.test.js && node dist/test/model.test.js && node dist/test/retrain.test.js && node dist/test/analytics.test.js && node dist/test/dialogEngine.test.js && node dist/test/seed.test.js",
+    "test": "npm run build && node dist/test/db.test.js && node dist/test/recognizer.test.js && node dist/test/services.test.js && node dist/test/model.test.js && node dist/test/retrain.test.js && node dist/test/analytics.test.js && node dist/test/dialogEngine.test.js && node dist/test/seed.test.js && node dist/test/adaptiveLearning.test.js",
     "build": "tsc",
     "build:android": "npx eas build --platform android --profile production --project-dir app",
     "build:ios": "npx eas build --platform ios --profile production --project-dir app"
