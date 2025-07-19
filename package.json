@@ -19,8 +19,17 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
+    "@nozbe/watermelondb": "^0.28.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@types/express": "^4.17.17",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.0.14",
-    "eas-cli": "^16.15.0"
+    "@types/react": "^19.1.8",
+    "eas-cli": "^16.15.0",
+    "expo-secure-store": "^14.2.3",
+    "jest": "^30.0.4",
+    "react-native-fast-tflite": "^1.6.1",
+    "react-native-reanimated": "^3.18.0",
+    "react-native-vision-camera": "^4.7.1"
   }
 }

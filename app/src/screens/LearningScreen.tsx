@@ -45,10 +45,14 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [showMaintenance, setShowMaintenance] = useState(false);
 
   const { mlService, adaptiveLearningService } = useServices();
+  const landmarkTflite = useTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
+  const gestureTflite = useTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
 
   useEffect(() => {
-    mlService.loadModels().catch((e) => console.error('Model load error', e));
-  }, [profile.id]);
+    if (landmarkTflite.model && gestureTflite.model) {
+      mlService.loadModels(landmarkTflite.model, gestureTflite.model).catch((e) => console.error('Model load error', e));
+    }
+  }, [profile.id, landmarkTflite.model, gestureTflite.model]);
 
   // Gesture models are loaded by the mlService
   const device = useCameraDevice('front');

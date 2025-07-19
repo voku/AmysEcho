@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { TfliteModel, useTensorflowModel } from 'react-native-fast-tflite';
+import { TensorflowModel as TfliteModel } from 'react-native-fast-tflite';
 import { runOnJS } from 'react-native-reanimated';
 import { Frame } from 'react-native-vision-camera';
 import { logger } from '../utils/logger';
@@ -25,23 +25,19 @@ class MachineLearningService {
   private cloudEndpoint = '';
   private confidenceThreshold = 0.7;
 
-  async loadModels(config?: {
-    cloudEndpoint?: string;
-    confidenceThreshold?: number;
-  }): Promise<void> {
+  async loadModels(
+    landmarkTflite: TfliteModel,
+    gestureTflite: TfliteModel,
+    config?: {
+      cloudEndpoint?: string;
+      confidenceThreshold?: number;
+    },
+  ): Promise<void> {
     if (config?.cloudEndpoint) this.cloudEndpoint = config.cloudEndpoint;
     if (config?.confidenceThreshold) this.confidenceThreshold = config.confidenceThreshold;
     try {
-      const landmarkTflite = useTensorflowModel(
-        require('../../assets/models/hand_landmarker.tflite'),
-      );
-      const customUri = await loadCustomModelUri();
-      const gestureTflite = customUri
-        ? useTensorflowModel({ url: customUri })
-        : useTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
-
-      this.landmarkModel = landmarkTflite.model;
-      this.gestureModel = gestureTflite.model;
+      this.landmarkModel = landmarkTflite;
+      this.gestureModel = gestureTflite;
 
       if (this.landmarkModel && this.gestureModel) {
         this.isReady = true;
@@ -56,13 +52,13 @@ class MachineLearningService {
   isServiceReady = (): boolean => this.isReady;
 
   classifyGesture = (onResult: (result: GestureResult | null) => void) => {
-    'worklet';
     return (frame: Frame) => {
+      'worklet';
       if (!this.landmarkModel || !this.gestureModel) {
         return;
       }
       try {
-        const landmarkResults = this.landmarkModel.runSync([frame]);
+        const landmarkResults = this.landmarkModel.runSync([new Float32Array(frame.toArrayBuffer())]);
         const landmarks = landmarkResults[0];
 
         if (landmarks && landmarks.length > 0) {
@@ -119,7 +115,11 @@ class MachineLearningService {
       }
     }
 
-    const gestureResults = this.gestureModel.runSync([landmarks]);
+    const flattenedLandmarks = [];
+    for (const arr of landmarks) {
+      flattenedLandmarks.push(...arr);
+    }
+    const gestureResults = this.gestureModel.runSync([new Float32Array(flattenedLandmarks)]);
     const predictions = gestureResults[0] as Float32Array;
     let bestIndex = 0;
     let bestScore = 0;
