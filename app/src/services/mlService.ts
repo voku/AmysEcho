@@ -1,65 +1,134 @@
-import { gestureModel } from '../model';
-import offlineModel from '../assets/model/offlineModel.json';
-import { TFLiteModel } from 'react-native-fast-tflite';
+import { TfliteModel, useTensorflowModel } from 'react-native-fast-tflite';
+import { runOnJS } from 'react-native-reanimated';
+import { Frame } from 'react-native-vision-camera';
+import { logger } from '../utils/logger';
 
-type OfflineModel = Record<string, number[]>;
-const model: OfflineModel = offlineModel as OfflineModel;
-let tfliteModel: TFLiteModel | null = null;
-
-export async function loadModels(): Promise<void> {
-  if (tfliteModel) return;
-  tfliteModel = await TFLiteModel.createFromFile(
-    require('../assets/models/gestures.tflite'),
-  );
-}
-
-export type ClassificationResult = {
+export interface GestureResult {
   label: string;
   confidence: number;
-};
-
-function distance(a: number[], b: number[]): number {
-  let sum = 0;
-  for (let i = 0; i < Math.min(a.length, b.length); i++) {
-    const diff = a[i] - b[i];
-    sum += diff * diff;
-  }
-  return Math.sqrt(sum);
 }
 
-// Simple offline classifier using the bundled centroid model.
-export async function classifyGesture(landmarks: unknown): Promise<ClassificationResult> {
-  if (tfliteModel) {
-    const res = (await tfliteModel.run(landmarks)) as any[];
-    if (Array.isArray(res) && res.length > 0) {
-      const best = res.reduce((p, c) => (p.confidence > c.confidence ? p : c));
-      return { label: best.label, confidence: best.confidence };
-    }
-  }
-  if (!Array.isArray(landmarks)) {
-    const first = gestureModel.gestures[0];
-    return { label: first.label, confidence: 0 };
-  }
-
-  const input = (landmarks as number[]).map(Number);
-  let bestId = '';
-  let bestScore = Number.POSITIVE_INFINITY;
-
-  for (const [id, centroid] of Object.entries(model)) {
-    const score = distance(input, centroid);
-    if (score < bestScore) {
-      bestScore = score;
-      bestId = id;
-    }
-  }
-
-  const match = gestureModel.gestures.find((g) => g.id === bestId);
-  const label = match ? match.label : bestId || 'unknown';
-  const confidence = 1 / (1 + bestScore);
-  return { label, confidence };
+export interface DetailedGestureResult extends GestureResult {
+  isLocal: boolean;
+  timestamp: number;
+  suggestions: string[];
+  requiresConfirmation: boolean;
 }
 
-export const mlService = {
-  loadModels,
-  classifyGesture,
-};
+class MachineLearningService {
+  private isReady = false;
+  private landmarkModel: TfliteModel | null = null;
+  private gestureModel: TfliteModel | null = null;
+  private cloudEndpoint = '';
+  private confidenceThreshold = 0.7;
+
+  async loadModels(config?: { cloudEndpoint?: string; confidenceThreshold?: number }): Promise<void> {
+    if (config?.cloudEndpoint) this.cloudEndpoint = config.cloudEndpoint;
+    if (config?.confidenceThreshold) this.confidenceThreshold = config.confidenceThreshold;
+    try {
+      const landmarkTflite = useTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
+      const gestureTflite = useTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
+
+      this.landmarkModel = landmarkTflite.model;
+      this.gestureModel = gestureTflite.model;
+
+      if (this.landmarkModel && this.gestureModel) {
+        this.isReady = true;
+        logger.info('Gesture recognition models loaded successfully.');
+      }
+    } catch (error) {
+      logger.error('Failed to load gesture models:', error);
+      this.isReady = false;
+    }
+  }
+
+  isServiceReady = (): boolean => this.isReady;
+
+  classifyGesture = (onResult: (result: GestureResult | null) => void) => {
+    'worklet';
+    return (frame: Frame) => {
+      if (!this.landmarkModel || !this.gestureModel) {
+        return;
+      }
+      try {
+        const landmarkResults = this.landmarkModel.runSync([frame]);
+        const landmarks = landmarkResults[0];
+
+        if (landmarks && landmarks.length > 0) {
+          const gestureResults = this.gestureModel.runSync([landmarks]);
+          const predictions = gestureResults[0] as Float32Array;
+          let bestIndex = 0;
+          let bestScore = 0;
+          for (let i = 0; i < predictions.length; i++) {
+            if (predictions[i] > bestScore) {
+              bestScore = predictions[i];
+              bestIndex = i;
+            }
+          }
+          const labels = ['OPEN_PALM']; // Placeholder
+          const bestPrediction: GestureResult = {
+            label: labels[bestIndex] || 'unknown',
+            confidence: bestScore,
+          };
+          runOnJS(onResult)(bestPrediction);
+        } else {
+          runOnJS(onResult)(null);
+        }
+      } catch (e) {
+        logger.error('Error during gesture classification:', e);
+      }
+    };
+  };
+
+  async classifyLandmarks(landmarks: number[][]): Promise<DetailedGestureResult> {
+    if (!this.gestureModel) {
+      throw new Error('Models not loaded');
+    }
+
+    if (this.cloudEndpoint) {
+      try {
+        const response = await fetch(this.cloudEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ landmarks }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            label: data.gesture,
+            confidence: data.confidence,
+            isLocal: false,
+            timestamp: Date.now(),
+            suggestions: data.suggestions || [],
+            requiresConfirmation: data.confidence < this.confidenceThreshold,
+          };
+        }
+        logger.warn(`Cloud classification failed with ${response.status}`);
+      } catch (err) {
+        logger.warn('Cloud classification error', err);
+      }
+    }
+
+    const gestureResults = this.gestureModel.runSync([landmarks]);
+    const predictions = gestureResults[0] as Float32Array;
+    let bestIndex = 0;
+    let bestScore = 0;
+    for (let i = 0; i < predictions.length; i++) {
+      if (predictions[i] > bestScore) {
+        bestScore = predictions[i];
+        bestIndex = i;
+      }
+    }
+    const labels = ['OPEN_PALM'];
+    return {
+      label: labels[bestIndex] || 'unknown',
+      confidence: bestScore,
+      isLocal: true,
+      timestamp: Date.now(),
+      suggestions: [],
+      requiresConfirmation: bestScore < this.confidenceThreshold,
+    };
+  }
+}
+
+export const mlService = new MachineLearningService();
