@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 
 const LLM_URL = process.env.LLM_URL || 'http://localhost:5000/suggest';
 

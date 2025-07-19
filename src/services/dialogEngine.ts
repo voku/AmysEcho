@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 
 // LLM Hint: Define a clear type for the expected JSON response from the LLM.
 // This helps with type safety and makes it clear what structure the prompt should request.

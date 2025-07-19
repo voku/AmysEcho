@@ -1,5 +1,4 @@
 import express from 'express';
-import fetch from 'node-fetch';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
