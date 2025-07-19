@@ -93,11 +93,11 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 **For detailed implementation instructions, see [`docs/TODO.md`](docs/TODO.md) and [`docs/UnifiedAIImplementationBlueprint.md`](docs/UnifiedAIImplementationBlueprint.md).**
 
--### Priority 1: Activate Core Functionality
+### Priority 1: Activate Core Functionality
 - [x] **Implement Gesture Recognition**: The `mlService.ts` now loads the TFLite model and performs live gesture classification.
 - [x] **Implement Rich Audio Feedback**: The `audioService.ts` plays success and error sounds using `expo-av`.
 
--### Priority 2: Enhance with Intelligence & Accessibility
+### Priority 2: Enhance with Intelligence & Accessibility
 - [x] **Integrate Live LLM Dialog Engine**: `dialogEngine.ts` now makes a live OpenAI API request for suggestions.
 - [x] **Add DGS Video Playback**: DGS videos can be shown via a toggle on the `LearningScreen`.
 
@@ -105,7 +105,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Complete Admin Panel**: CRUD functionality in `AdminScreen.tsx` manages symbols and vocabularies.
 - [x] **UI/UX Polish**: Conducted a full review of the UI, improved layouts, and ensured all buttons and interactive elements have accessibility labels.
 
--### Priority 4: Personalized AI Pipeline
+### Priority 4: Personalized AI Pipeline
 - [x] **Acquire Pre-trained Models**: Download and bundle the MediaPipe models (see `src/tools/downloadModels.ts`).
 - [x] **Implement Two-Stage Frame Processor**: Load landmark and gesture models inside a `useFrameProcessor` worklet.
 - [x] **Build TrainingScreen UI**: Provide a guided interface for recording gesture samples.
