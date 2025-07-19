@@ -1,9 +1,8 @@
 import { database } from '../db';
 import { Symbol } from '../db/models';
-import { loadOpenAIApiKey } from '../storage';
+import { loadBackendApiToken } from '../storage';
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-const MODEL = 'gpt-4-turbo';
+const BACKEND_URL = 'http://localhost:5000/generate-suggestions';
 
 // LLM Hint: Define a clear type for the expected JSON response from the LLM.
 export type LLMSuggestionResponse = {
@@ -32,7 +31,7 @@ class DialogEngine {
   }
 
   /**
-   * Request suggestions directly from the OpenAI API.
+   * Request suggestions from the secure backend API.
    * @param input - currently selected symbol name
    * @param context - related context tags
    * @param language - language code (e.g., 'de')
@@ -50,42 +49,34 @@ class DialogEngine {
     language: string;
     age: number;
   }): Promise<LLMSuggestionResponse> {
-    const apiKey = await loadOpenAIApiKey();
-    if (!apiKey) {
+    const token = await loadBackendApiToken();
+    if (!token) {
       return { nextWords: [], caregiverPhrases: [] };
     }
 
-    const prompt = `A ${age}-year-old child who speaks ${language} just selected the word "${input}". The current context is [${context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver. Return a JSON object with the keys \"nextWords\" and \"caregiverPhrases\".`;
-
     try {
-      const response = await fetch(OPENAI_URL, {
+      const response = await fetch(BACKEND_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' },
-          temperature: 0.7,
-        }),
+        body: JSON.stringify({ input, context, language, age }),
       });
 
       if (!response.ok) {
-        console.error(`OpenAI API returned status ${response.status}`);
+        console.error(`Backend API returned status ${response.status}`);
         return { nextWords: [], caregiverPhrases: [] };
       }
 
       const data = await response.json();
-      const content = JSON.parse(data.choices?.[0]?.message?.content || '{}');
       return {
-        nextWords: content.nextWords || [],
-        caregiverPhrases: content.caregiverPhrases || [],
+        nextWords: data.nextWords || [],
+        caregiverPhrases: data.caregiverPhrases || [],
       } as LLMSuggestionResponse;
     } catch (error) {
       console.error('LLM suggestion fetch error:', error);
-      return { nextWords: [], caregiverPhrases: [] }; // Return empty on error
+      return { nextWords: [], caregiverPhrases: [] };
     }
   }
 }

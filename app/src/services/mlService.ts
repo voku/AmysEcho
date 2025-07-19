@@ -2,6 +2,7 @@ import { TfliteModel, useTensorflowModel } from 'react-native-fast-tflite';
 import { runOnJS } from 'react-native-reanimated';
 import { Frame } from 'react-native-vision-camera';
 import { logger } from '../utils/logger';
+import { loadCustomModelUri } from '../storage';
 
 export interface GestureResult {
   label: string;
@@ -27,7 +28,10 @@ class MachineLearningService {
     if (config?.confidenceThreshold) this.confidenceThreshold = config.confidenceThreshold;
     try {
       const landmarkTflite = useTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
-      const gestureTflite = useTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
+      const customUri = await loadCustomModelUri();
+      const gestureTflite = customUri
+        ? useTensorflowModel({ url: customUri })
+        : useTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
 
       this.landmarkModel = landmarkTflite.model;
       this.gestureModel = gestureTflite.model;
