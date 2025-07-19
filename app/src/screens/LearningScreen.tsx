@@ -88,7 +88,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
 
   const frameProcessor = mlService.classifyGesture((result) => {
     if (result && result.confidence > 0.85 && result.label !== lastGesture) {
-      const recognizedSymbolLabel = getSymbolLabelForGesture(result.label);
+      const recognizedSymbolLabel = getSymbolLabelForGesture(result.label, vocabulary);
       const foundSymbol = vocabulary.find(s => s.name === recognizedSymbolLabel);
       if (foundSymbol) {
         handlePress(foundSymbol);
