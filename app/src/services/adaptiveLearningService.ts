@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loadUsageStats } from './usageTracker';
 
 export const adaptiveLearningService = {
@@ -27,3 +28,17 @@ export const adaptiveLearningService = {
   },
 };
 
+export async function recordInteraction(gestureId: string, wasSuccessful: boolean): Promise<boolean> {
+  const KEY = 'gestureHealthScores';
+  const raw = await AsyncStorage.getItem(KEY);
+  const scores: Record<string, number> = raw ? JSON.parse(raw) : {};
+  let score = scores[gestureId] ?? 100;
+  if (wasSuccessful) {
+    score = Math.min(100, score + 1);
+  } else {
+    score = Math.max(0, score - 5);
+  }
+  scores[gestureId] = score;
+  await AsyncStorage.setItem(KEY, JSON.stringify(scores));
+  return score < 70;
+}

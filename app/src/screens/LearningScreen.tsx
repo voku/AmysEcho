@@ -19,7 +19,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useServices } from '../context/AppServicesProvider';
 import { Profile, Symbol } from '../../db/models';
 
-type RootStackParamList = { Learning: { profileId: string }, Admin: { profileId: string } };
+import MaintenanceBanner from "../components/MaintenanceBanner";
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
 
@@ -42,8 +42,9 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [adaptiveSuggestions, setAdaptiveSuggestions] = useState<Symbol[]>([]);
   const [llmSuggestions, setLlmSuggestions] = useState<LLMSuggestionResponse | null>(null);
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
+  const [showMaintenance, setShowMaintenance] = useState(false);
 
-  const { mlService } = useServices();
+  const { mlService, adaptiveLearningService } = useServices();
 
   useEffect(() => {
     mlService.loadModels().catch((e) => console.error('Model load error', e));
@@ -60,6 +61,8 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     setVideoPaused(false);
     await playSymbolAudio({ id: symbol.id, label: symbol.name });
     await usageTracker.incrementUsage(symbol, profile.id);
+    const trigger = await adaptiveLearningService.recordInteraction(symbol.id, true);
+    if (trigger) setShowMaintenance(true);
 
     // LLM Hint: This is how to use the status state machine for an async operation.
     setSuggestionStatus('loading');
@@ -187,6 +190,14 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
             accessibilityLabel="Gestenerkennung"
         />
       </View>
+      {showMaintenance && (
+        <MaintenanceBanner
+          onPractice={() => {
+            setShowMaintenance(false);
+            navigation.navigate('Training');
+          }}
+        />
+      )}
     </View>
   );
 };
