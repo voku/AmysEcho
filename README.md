@@ -98,7 +98,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Implement Rich Audio Feedback**: The `audioService.ts` plays success and error sounds using `expo-av`.
 
 -### Priority 2: Enhance with Intelligence & Accessibility
-- [x] **Integrate Live LLM Dialog Engine**: `dialogEngine.ts` now makes a live OpenAI API request for suggestions.
+- [x] **Integrate Live LLM Dialog Engine**: `dialogEngine.ts` now calls the secure backend to fetch AI suggestions.
 - [x] **Add DGS Video Playback**: DGS videos can be shown via a toggle on the `LearningScreen`.
 
 ### Priority 3: Polish and Administration
@@ -122,7 +122,7 @@ The React Native code lives in `app/`. Install dependencies with `npm install` i
 
 DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available.
 
-The LLM-powered suggestions require an OpenAI API key. You can set this via the `OPENAI_API_KEY` environment variable, place the key in a local `.openai-key` file, or save it securely using the Admin screen. Never commit keys to the repository.
+The LLM-powered suggestions require a backend API token. Enter this token in the Admin screen so the app can authenticate with the secure server. The server itself holds the OpenAI key.
 
 ### Building the custom dev client
 
