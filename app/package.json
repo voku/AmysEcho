@@ -26,7 +26,7 @@
     "@nozbe/with-observables": "^1.4.0",
     "react-native-vision-camera": "^2.15.4",
     "react-native-reanimated": "^3.0.0",
-    "react-native-fast-tflite": "^0.2.0",
+    "react-native-fast-tflite": "^0.3.0",
     "expo-secure-store": "~12.4.0",
     "ffmpeg-kit-react-native": "^6.0.2"
   },
