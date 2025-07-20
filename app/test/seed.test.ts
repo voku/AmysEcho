@@ -1,4 +1,4 @@
-import { setupDatabase, loadDatabase } from '../src/db';
+import { setupDatabase, loadDatabase } from '../../server/src/db';
 import { tmpdir } from 'os';
 import path from 'path';
 import { promises as fs } from 'fs';

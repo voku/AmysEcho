@@ -33,10 +33,19 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 
 ## 4. Key Code Directory Structure
 
--   `db/`: All database-related files (schema, models, seeding).
--   `src/screens/`: The main UI screen components (`RecognitionScreen.tsx`, `AdminScreen.tsx`).
--   `src/services/`: Business logic and external API clients (`dialogEngine.ts`, `mlService.ts`).
--   `src/components/`: Reusable UI components used across screens.
+-   `app/`: Contains the React Native mobile application.
+-   `app/src/screens`: Main UI screen components.
+-   `app/src/services`: Business logic and external API clients.
+-   `app/src/components`: Reusable UI components.
+-   `app/test/`: App Test files.
+
+-   `server/`: Backend server code.
+-   `server/src/services`: Backend service logic.
+-   `server/src/tools`: Scripts for tasks like model downloading and retraining.
+-   `server/test/`: Backend Test files.
+
+-   `spec/`: Project specification.
+-   `docs/`: Project documentation.
 
 ## 5. Approved Shell Commands
 

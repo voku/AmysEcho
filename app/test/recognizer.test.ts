@@ -1,4 +1,4 @@
-import { classifyGesture } from '../src/recognizer';
+import { classifyGesture } from '../../server/src/recognizer';
 
 (async () => {
   const result = await classifyGesture([[0, 0]]);

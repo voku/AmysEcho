@@ -1,6 +1,6 @@
-import { createDatabase, addGestureDefinition } from '../src/db';
-import { processInteraction } from '../src/services/adaptiveLearningService';
-import { GestureDefinition, InteractionLog } from '../src/types';
+import { createDatabase, addGestureDefinition } from '../../server/src/db';
+import { processInteraction } from '../../server/src/services/adaptiveLearningService';
+import { GestureDefinition, InteractionLog } from '../../server/src/types';
 
 (async () => {
   const db = createDatabase();

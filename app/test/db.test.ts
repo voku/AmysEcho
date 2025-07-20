@@ -8,8 +8,8 @@ import {
   getSymbolById,
   persistProfile,
   logCorrection,
-} from '../src/db';
-import { SymbolRecord, Profile } from '../src/types';
+} from '../../server/src/db';
+import { SymbolRecord, Profile } from '../../server/src/types';
 import { tmpdir } from 'os';
 import path from 'path';
 

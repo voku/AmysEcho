@@ -1,12 +1,12 @@
 import * as FileSystem from 'expo-file-system';
 import { FFmpegKit } from 'ffmpeg-kit-react-native';
-import { TensorflowModel } from 'react-native-fast-tflite';
+import { loadTensorflowModel, TensorflowModel, Tensor } from 'react-native-fast-tflite';
 
 let handModel: TensorflowModel | null = null;
 
 async function loadHandModel(): Promise<void> {
   if (handModel) return;
-  handModel = await TensorflowModel.createFromFile(
+  handModel = await loadTensorflowModel(
     require('../../assets/models/hand_landmarker.tflite'),
   );
 }
@@ -25,7 +25,7 @@ export async function extractLandmarksFromVideo(videoPath: string): Promise<numb
       const data = await FileSystem.readAsStringAsync(tmpDir + f, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      const out = handModel.runSync([{ uri: `data:image/png;base64,${data}` }]) as any[];
+      const out = handModel.runSync([new Uint8Array(Buffer.from(data, 'base64'))]) as any[];
       if (out && out[0]) results.push(out[0] as number[][]);
     } catch {}
   }

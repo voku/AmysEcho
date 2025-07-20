@@ -1,9 +1,9 @@
-import { createDatabase } from '../src/db';
+import { createDatabase } from '../../server/src/db';
 import {
   refreshLearningAnalytics,
   computeLearningAnalytics,
-} from '../src/services/analyticsService';
-import { InteractionLog } from '../src/types';
+} from '../../server/src/services/analyticsService';
+import { InteractionLog } from '../../server/src/types';
 
 (async () => {
   const db = createDatabase();

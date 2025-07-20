@@ -1,4 +1,4 @@
-import { getLLMSuggestions } from '../src/services/dialogEngine';
+import { getLLMSuggestions } from '../../server/src/services/dialogEngine';
 
 (async () => {
   const res = await getLLMSuggestions({

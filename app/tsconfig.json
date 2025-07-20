@@ -1,9 +1,26 @@
 {
-  "extends": "../tsconfig.json",
   "compilerOptions": {
     "jsx": "react",
-    "noEmit": true
+    "noEmit": true,
+    "target": "es2016",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "Node16",
+    "rootDir": ".",
+    "moduleResolution": "node16",
+    "types": [
+      "node",
+      "jest",
+      "@testing-library/jest-native"
+    ],
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true
   },
-  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }

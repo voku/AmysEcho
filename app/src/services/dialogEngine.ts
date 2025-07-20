@@ -1,4 +1,4 @@
-import { Symbol } from '../db/models';
+import { Symbol } from '../../db/models';
 import { loadOpenAIApiKey } from '../storage';
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';

@@ -1,4 +1,4 @@
-import { gestureModel, setActiveVocabularySet, getActiveVocabularySetId } from '../app/src/model';
+import { gestureModel, setActiveVocabularySet, getActiveVocabularySetId } from '../src/model';
 
 (async () => {
   if (getActiveVocabularySetId() !== 'basic') {

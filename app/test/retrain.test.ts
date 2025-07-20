@@ -1,5 +1,5 @@
-import { retrainOfflineModel } from '../src/tools/retrainOfflineModel';
-import { createDatabase, addGestureTrainingData, saveDatabase } from '../src/db';
+import { retrainOfflineModel } from '../../server/src/tools/retrainOfflineModel';
+import { createDatabase, addGestureTrainingData, saveDatabase } from '../../server/src/db';
 import { tmpdir } from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';

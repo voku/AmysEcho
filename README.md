@@ -38,9 +38,10 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 ## ⚡ Quick Setup
 
 1. `npm install` – install root dependencies
-2. `cd app && npm install` – install mobile app deps
-3. `npm test` – run the Node test suite
-4. Inside `app`, run `npm run ios` or `npm run android` to launch the app
+2. `cd app` – open the app code
+3. `npm install` - install mobile app deps
+4. `npm test` – run the Node test suite
+5. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 
 ---
 

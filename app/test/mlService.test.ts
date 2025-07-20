@@ -1,4 +1,4 @@
-import { mlService } from '../app/src/services';
+import { mlService } from '../src/services';
 
 describe('MachineLearningService', () => {
   it('should load models successfully', async () => {

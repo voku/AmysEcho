@@ -1,0 +1,15 @@
+{
+  "name": "amysecho_backend",
+  "version": "1.0.0",
+  "description": "Backend: Gesture to voice translator for Amy",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.18.4",
+    "node-fetch": "^3.3.2",
+    "typescript": "^5.8.3"
+  }
+}

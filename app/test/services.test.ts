@@ -1,7 +1,7 @@
-import { processLandmarks } from '../src/services/mlService';
-import { playAudio, playSystemSound } from '../src/services/audioService';
-import { playVideo } from '../src/services/videoService';
-import { fetchSuggestions } from '../src/services/dialogService';
+import { processLandmarks } from '../../server/src/services/mlService';
+import { playAudio, playSystemSound } from '../../server/src/services/audioService';
+import { playVideo } from '../../server/src/services/videoService';
+import { fetchSuggestions } from '../../server/src/services/dialogService';
 import { tmpdir } from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';
