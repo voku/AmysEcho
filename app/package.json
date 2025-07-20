@@ -52,7 +52,8 @@
     "ts-jest": "^29.0.0",
     "typescript": "^5.3.3",
     "react-native-worklets-core": "^0.2.0",
-    "metro-react-native-babel-preset": "^0.76.0"
+    "metro-react-native-babel-preset": "^0.76.0",
+    "ts-node": "^10.9.2"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
