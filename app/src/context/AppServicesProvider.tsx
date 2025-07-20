@@ -3,6 +3,7 @@ import { mlService } from '../services';
 import { audioService } from '../services';
 import { checkForModelUpdate } from "../services";
 import { syncTrainingData } from "../services";
+import { syncService } from "../services";
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
 import {loadTensorflowModel, TensorflowModel} from "react-native-fast-tflite";
@@ -57,9 +58,13 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
     const interval = setInterval(() => {
       syncTrainingData().catch(() => {});
       checkForModelUpdate().catch(() => {});
+      syncService.syncUnsyncedData().catch(() => {});
+      syncService.checkForNewModel('1.0').catch(() => {});
     }, 6 * 60 * 60 * 1000);
     syncTrainingData().catch(() => {});
     checkForModelUpdate().catch(() => {});
+    syncService.syncUnsyncedData().catch(() => {});
+    syncService.checkForNewModel('1.0').catch(() => {});
     return () => clearInterval(interval);
   }, []);
 
