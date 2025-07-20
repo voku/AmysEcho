@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import { Camera, useCameraDevices } from 'react-native-vision-camera';
+import type { Camera as CameraType } from 'react-native-vision-camera';
 import { saveTrainingSample } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -10,7 +11,7 @@ export default function TrainingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const devices = useCameraDevices('wide-angle-camera');
   const device = devices.back;
-  const camera = useRef<Camera>(null);
+  const camera = useRef<CameraType>(null);
   const [gestureId, setGestureId] = useState<string | null>(null);
   const [count, setCount] = useState(0);
   const [saving, setSaving] = useState(false);
