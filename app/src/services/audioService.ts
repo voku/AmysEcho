@@ -269,3 +269,12 @@ export const audioService = new AudioService({
   speechLanguage: 'de-DE',
   enableHaptics: true,
 });
+
+/**
+ * Convenience helper to speak the label of a symbol.
+ * This mirrors the playSymbolAudio function that was used in
+ * some screens before the AudioService refactor.
+ */
+export async function playSymbolAudio(entry: { id: string; label: string }): Promise<void> {
+  await audioService.speak(entry.label);
+}

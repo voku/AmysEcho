@@ -3,6 +3,7 @@ import { View, Text, ActivityIndicator, FlatList, Pressable, AppState, StyleShee
 import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
+import type { Observable } from 'rxjs';
 import { useIsFocused } from '@react-navigation/native';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import { database } from '../../db';
@@ -16,6 +17,7 @@ import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 type SuggestionStatus = 'idle' | 'loading' | 'success' | 'error';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
 import { useServices } from '../context/AppServicesProvider';
 import { Profile, Symbol } from '../../db/models';
 import MaintenanceBanner from "../components/MaintenanceBanner";
@@ -23,14 +25,26 @@ import {useTensorflowModel} from "react-native-fast-tflite";
 import {recordInteraction} from "../services/adaptiveLearningService";
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
-const enhance = withObservables<Props, { profile: Profile, vocabulary: Symbol[] }>(['route'], ({ route }) => ({
+const enhance = withObservables<
+  Props,
+  { profile: Observable<Profile>; vocabulary: Observable<Symbol[]> }
+>(['route'], ({ route }) => ({
   profile: database.get<Profile>('profiles').findAndObserve(route.params.profileId),
-  vocabulary: database.get<Profile>('profiles').findAndObserve(route.params.profileId).pipe(
-    switchMap(p => p.activeVocabularySet.observe()),
-    switchMap(activeSet => activeSet ? database.get<Symbol>('symbols').query(
-        { on: 'vocabulary_set_symbols', where: { vocabulary_set_id: activeSet.id } }
-    ).observe() : new BehaviorSubject<Symbol[]>([]))
-  ),
+  vocabulary: database
+    .get<Profile>('profiles')
+    .findAndObserve(route.params.profileId)
+    .pipe(
+      switchMap(p => p.activeVocabularySet.observe()),
+      switchMap(activeSet =>
+        activeSet
+          ? // @ts-ignore WatermelonDB join clause
+            database
+              .get<Symbol>('symbols')
+              .query({ on: 'vocabulary_set_symbols', where: { vocabulary_set_id: (activeSet as any).id } } as any)
+              .observe()
+          : new BehaviorSubject<Symbol[]>([]),
+      ),
+    ),
 }));
 
 const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile, vocabulary: Symbol[], navigation: Props['navigation'] }) => {
@@ -55,7 +69,8 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   }, [profile.id, landmarkTflite.model, gestureTflite.model]);
 
   // Gesture models are loaded by the mlService
-  const device = useCameraDevices('wide-angle-camera');
+  const devices = useCameraDevices('wide-angle-camera');
+  const device = devices.back;
   const isFocused = useIsFocused();
   const appState = AppState.currentState;
   const canRunCamera = device != null && isCameraActive && isFocused && appState === 'active';

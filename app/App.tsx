@@ -12,7 +12,7 @@ import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadCustomModelUri } from './src/storage';
 import { mlService } from './src/services';
-import { TensorflowModel } from 'react-native-fast-tflite';
+import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 
 const Stack = createNativeStackNavigator();
 
@@ -38,10 +38,10 @@ export default function App() {
         }
 
         // Load ML models
-        const landmarkModel = await TensorflowModel.createFromFile(
+        const landmarkModel = await loadTensorflowModel(
           require('./assets/models/hand_landmarker.tflite'),
         );
-        let gestureModel: TensorflowModel | string = await TensorflowModel.createFromFile(
+        let gestureModel: TensorflowModel | string = await loadTensorflowModel(
           require('./assets/models/gesture_classifier.tflite'),
         );
 

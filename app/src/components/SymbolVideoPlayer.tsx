@@ -1,5 +1,5 @@
 import React from 'react';
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { GestureModelEntry } from '../model';
 
 export interface SymbolVideoPlayerProps {
@@ -27,7 +27,7 @@ export default function SymbolVideoPlayer({ entry, paused, useDgs, onEnd }: Symb
         }
       }}
       useNativeControls
-      resizeMode="contain"
+      resizeMode={ResizeMode.CONTAIN}
       style={{ width: 300, height: 200 }}
       accessibilityLabel={`Video ${entry.label}`}
     />
