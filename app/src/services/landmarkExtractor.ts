@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import { FFmpegKit } from 'ffmpeg-kit-react-native';
-import { loadTensorflowModel, TensorflowModel, Tensor } from 'react-native-fast-tflite';
+import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 
 let handModel: TensorflowModel | null = null;
 

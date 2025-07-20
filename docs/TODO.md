@@ -14,6 +14,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: To get the live camera feed running through the two-stage (landmark + classification) TFLite pipeline.
 * **File**: `src/screens/RecognitionScreen.tsx`
+* **Status**: **Implemented** via the new `mlService` and worklet frame processor.
 * **Action**:
     1.  **Acquire Models**: Download the `hand_landmarker.tflite` and `gesture_classifier.tflite` models from Google MediaPipe and place them in `assets/models/`.
     2.  **Load Models**: In the `LearningScreen` component, use the `useTensorflowModel` hook to load both models into memory.
@@ -80,3 +81,30 @@ This document provides a detailed, actionable checklist for implementing the cor
     2.  Use a library like `expo-file-system` to download and save the `.tflite` file to the app's private document directory. Store the local file URI (`file://...`) securely, associated with Amy's profile.
     3.  In `RecognitionScreen.tsx`, modify the `useTensorflowModel` hook for the gesture classifier. It should check if a personalized model URI exists for the current profile. If yes, load that model; if no, fall back to the default bundled model.
 
+---
+
+## **Part 4: Continuous Improvement & Data Sync**
+
+### **TODO 4.1: Log Caregiver Corrections**
+
+* **Objective**: Store each correction made by a caregiver for future training.
+* **File**: `db/models.ts`, `db/schema.ts`, `src/screens/RecognitionScreen.tsx`
+* **Status**: **Implemented**. Corrections are saved in the `corrections` table.
+
+### **TODO 4.2: Sync Corrections and Check Model Updates**
+
+* **Objective**: Upload unsynced correction data and download new personalized models when available.
+* **File**: `src/services/syncService.ts` & `src/context/AppServicesProvider.tsx`
+* **Status**: **Implemented**. The sync service runs on app launch.
+
+### **TODO 4.3: Add DGS Video Player**
+
+* **Objective**: Show reference DGS clips for each gesture to aid learning.
+* **File**: `src/components/DgsVideoPlayer.tsx` & `src/screens/LearningScreen.tsx`
+* **Status**: Planned.
+
+### **TODO 4.4: Create TeachingScreen for HIP 2**
+
+* **Objective**: Allow caregivers to teach the system new gestures directly on the device.
+* **File**: `src/screens/TeachingScreen.tsx`
+* **Status**: Planned.

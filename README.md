@@ -40,10 +40,10 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 1. `npm install` – install root dependencies
 2. `cd app` – open the app code
 3. `npm install` - install mobile app deps
-4. `npm test` – run the Node test suite
+4. `npm test` – run the Node test suite (uses `ts-node` from devDependencies)
    - Tests live in `app/test/` and cover both server and app modules.
 5. `cd ../server && npm install && npm test` – run Python training tests
-   - These tests live in `server/test/` and require Python with `numpy` and `pytest`.
+   - These tests live in `server/test/` and require Python with `numpy` and `pytest` (`pip install numpy pytest`).
 6. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 
 ---
@@ -126,6 +126,8 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Sync Training Data with Consent**: Batch upload pending `gesture_training_data` to the server when the caregiver allows it and a Wi-Fi connection is available.
 - [x] **Finish LSTM Training Pipeline**: Replace the placeholder logic in `train.py` with a real LSTM model that outputs a `.tflite` file.
 - [x] **Automate Offline Model Updates**: Regularly download newly trained personalized models and refresh the local classifier.
+- [x] **Log Caregiver Corrections**: Misidentified gestures are saved in the new `corrections` table for future training.
+- [x] **Background Sync Service**: Unsynced corrections are uploaded and model updates are checked on app launch.
 
 ## ▶️ Running the mobile app
 
