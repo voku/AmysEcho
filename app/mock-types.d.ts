@@ -1,6 +1,11 @@
 declare module 'react-native-vision-camera' {
+  import type React from 'react';
   export interface Frame { width: number; height: number; }
-  export const Camera: any;
+  export interface CameraRef {
+    startRecording(options: any): void;
+    stopRecording(): void;
+  }
+  export const Camera: React.ForwardRefExoticComponent<any & React.RefAttributes<CameraRef>>;
   export const useCameraDevices: any;
   export const useFrameProcessor: any;
 }
