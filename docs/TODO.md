@@ -13,7 +13,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 ### **TODO 1.1: Implement Baseline Real-Time Gesture Recognition**
 
 * **Objective**: To get the live camera feed running through the two-stage (landmark + classification) TFLite pipeline.
-* **File**: `screens/RecognitionScreen.tsx`
+* **File**: `src/screens/RecognitionScreen.tsx`
 * **Action**:
     1.  **Acquire Models**: Download the `hand_landmarker.tflite` and `gesture_classifier.tflite` models from Google MediaPipe and place them in `assets/models/`.
     2.  **Load Models**: In the `LearningScreen` component, use the `useTensorflowModel` hook to load both models into memory.
@@ -41,7 +41,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 ### **TODO 1.2: Implemented In-App Data Collection for Personalization**
 
 * **Objective**: To build the UI and logic for a caregiver to record samples of Amy's specific gestures.
-* **File**: `screens/TrainingScreen.tsx`
+* **File**: `src/screens/TrainingScreen.tsx`
 * **Status**: Implemented. The UI is built, video processing extracts landmarks, and data is saved to WatermelonDB.
 
 ---
@@ -53,7 +53,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 ### **TODO 2.1: Implemented OpenAI Dialog API Integration**
 
 * **Objective**: Use an API key stored on the device to request suggestions directly from OpenAI.
-* **File**: `services/dialogEngine.ts` & `screens/AdminScreen.tsx`
+* **File**: `services/dialogEngine.ts` & `src/screens/AdminScreen.tsx`
 * **Status**: Implemented. Admin screen allows saving the OpenAI key, and `dialogEngine.ts` uses it to call the OpenAI API.
 
 ### **TODO 2.2: Implemented Personalized Model Training Endpoint**
@@ -68,13 +68,13 @@ This document provides a detailed, actionable checklist for implementing the cor
 ### **TODO 3.1: Integrate LLM Dialog Engine in the App**
 
 * **Objective**: To fetch suggestions from OpenAI and display them in the UI.
-* **File**: `services/dialogEngine.ts` & `screens/RecognitionScreen.tsx`
+* **File**: `services/dialogEngine.ts` & `src/screens/RecognitionScreen.tsx`
 * **Status**: Implemented. `RecognitionScreen.tsx` calls `getLLMSuggestions` from `dialogService.ts` and displays the results.
 
 ### **TODO 3.2: Implement Personalized Model Activation**
 
 * **Objective**: To allow the app to download and use Amy's personalized gesture model.
-* **File**: `screens/AdminScreen.tsx` & `screens/RecognitionScreen.tsx`
+* **File**: `src/screens/AdminScreen.tsx` & `src/screens/RecognitionScreen.tsx`
 * **Action**:
     1.  In the `AdminScreen`, add a "Download Latest Personalized Model" button that calls the `GET /latest-model` endpoint.
     2.  Use a library like `expo-file-system` to download and save the `.tflite` file to the app's private document directory. Store the local file URI (`file://...`) securely, associated with Amy's profile.
