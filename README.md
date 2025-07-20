@@ -104,6 +104,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 ### Priority 2: Enhance with Intelligence & Accessibility
 - [x] **Integrate Live LLM Dialog Engine**: `dialogEngine.ts` now makes a live OpenAI API request for suggestions.
 - [x] **Add DGS Video Playback**: DGS videos can be shown via a toggle on the `LearningScreen`.
+- [x] **Looping DGS Playback**: The new `DgsVideoPlayer` component loops each sign for easy study.
 
 ### Priority 3: Polish and Administration
 - [x] **Complete Admin Panel**: CRUD functionality in `AdminScreen.tsx` manages symbols and vocabularies.
@@ -134,6 +135,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
 
 DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available.
+The `DgsVideoPlayer` component loops these videos automatically so Amy can watch each sign repeatedly.
 
 The LLM-powered suggestions require an OpenAI API key. You can set this via the `OPENAI_API_KEY` environment variable, place the key in a local `.openai-key` file, or save it securely using the Admin screen. Never commit keys to the repository.
 

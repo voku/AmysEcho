@@ -33,3 +33,4 @@ export async function extractLandmarksFromVideo(videoPath: string): Promise<numb
   await FileSystem.deleteAsync(videoPath, { idempotent: true });
   return results;
 }
+
