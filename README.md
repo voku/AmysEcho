@@ -126,6 +126,8 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Sync Training Data with Consent**: Batch upload pending `gesture_training_data` to the server when the caregiver allows it and a Wi-Fi connection is available.
 - [x] **Finish LSTM Training Pipeline**: Replace the placeholder logic in `train.py` with a real LSTM model that outputs a `.tflite` file.
 - [x] **Automate Offline Model Updates**: Regularly download newly trained personalized models and refresh the local classifier.
+- [x] **Log Caregiver Corrections**: Misidentified gestures are saved in the new `corrections` table for future training.
+- [x] **Background Sync Service**: Unsynced corrections are uploaded and model updates are checked on app launch.
 
 ## ▶️ Running the mobile app
 
