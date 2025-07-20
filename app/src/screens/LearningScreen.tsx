@@ -21,7 +21,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { useServices } from '../context/AppServicesProvider';
 import { Profile, Symbol } from '../../db/models';
 import MaintenanceBanner from "../components/MaintenanceBanner";
-import {useTensorflowModel} from "react-native-fast-tflite";
+import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 import {recordInteraction} from "../services/adaptiveLearningService";
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
@@ -58,15 +58,29 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
   const [showMaintenance, setShowMaintenance] = useState(false);
 
-  const { mlService} = useServices();
-  const landmarkTflite = useTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
-  const gestureTflite = useTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
+  const { mlService } = useServices();
+  const [landmarkModel, setLandmarkModel] = useState<TensorflowModel | null>(null);
+  const [gestureModel, setGestureModel] = useState<TensorflowModel | null>(null);
 
   useEffect(() => {
-    if (landmarkTflite.model && gestureTflite.model) {
-      mlService.loadModels(landmarkTflite.model, gestureTflite.model).catch((e: any) => console.error('Model load error', e));
+    let isMounted = true;
+    async function loadModels() {
+      try {
+        const lModel = await loadTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
+        const gModel = await loadTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
+        if (!isMounted) return;
+        setLandmarkModel(lModel);
+        setGestureModel(gModel);
+        await mlService.loadModels(lModel, gModel);
+      } catch (e) {
+        console.error('Model load error', e);
+      }
     }
-  }, [profile.id, landmarkTflite.model, gestureTflite.model]);
+    loadModels();
+    return () => {
+      isMounted = false;
+    };
+  }, [profile.id]);
 
   // Gesture models are loaded by the mlService
   const devices = useCameraDevices('wide-angle-camera');
