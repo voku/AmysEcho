@@ -41,7 +41,10 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 2. `cd app` – open the app code
 3. `npm install` - install mobile app deps
 4. `npm test` – run the Node test suite
-5. Inside `app`, run `npm run ios` or `npm run android` to launch the app
+   - Tests live in `app/test/` and cover both server and app modules.
+5. `cd ../server && npm install && npm test` – run Python training tests
+   - These tests live in `server/test/` and require Python with `numpy` and `pytest`.
+6. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 
 ---
 

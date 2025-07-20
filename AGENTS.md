@@ -37,12 +37,13 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 -   `app/src/screens`: Main UI screen components.
 -   `app/src/services`: Business logic and external API clients.
 -   `app/src/components`: Reusable UI components.
--   `app/test/`: App Test files.
+-   `app/test/`: Test files for both the mobile app and backend modules.
+
+-   `server/test/`: Python tests for the training pipeline.
 
 -   `server/`: Backend server code.
 -   `server/src/services`: Backend service logic.
 -   `server/src/tools`: Scripts for tasks like model downloading and retraining.
--   `server/test/`: Backend Test files.
 
 -   `spec/`: Project specification.
 -   `docs/`: Project documentation.
