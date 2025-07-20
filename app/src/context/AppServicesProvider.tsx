@@ -5,7 +5,7 @@ import { checkForModelUpdate } from "../services";
 import { syncTrainingData } from "../services";
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
-import {TensorflowModel} from "react-native-fast-tflite";
+import {loadTensorflowModel, TensorflowModel} from "react-native-fast-tflite";
 import {loadCustomModelUri} from "../storage";
 
 interface Services {
@@ -31,10 +31,10 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
     async function initializeServices() {
 
       // Load ML models
-      const landmarkModel = await TensorflowModel.createFromFile(
+      const landmarkModel = await loadTensorflowModel(
           require('./assets/models/hand_landmarker.tflite'),
       );
-      let gestureModel: TensorflowModel | string = await TensorflowModel.createFromFile(
+      let gestureModel: TensorflowModel | string = await loadTensorflowModel(
           require('./assets/models/gesture_classifier.tflite'),
       );
 

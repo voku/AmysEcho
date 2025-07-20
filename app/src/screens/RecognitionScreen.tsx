@@ -43,8 +43,8 @@ export default function RecognitionScreen({ navigation }: any) {
     startFeedbackAnimation();
   };
 
-  const handleRecognize = async () => {
-   mlService.classifyGesture((result: any) => {
+  const handleRecognize = () => {
+   mlService.classifyGesture(async (result: any) => {
       if (result && result.confidence > 0.85) {
         const recognizedSymbolLabel = getSymbolLabelForGesture(result.label);
 
