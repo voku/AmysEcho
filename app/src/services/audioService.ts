@@ -1,7 +1,8 @@
-import { Audio } from 'expo-av';
+import {Audio} from 'expo-av';
 import * as Speech from 'expo-speech';
-import { logger } from '../utils/logger';
-import { AudioConfig, SoundEffect, SpeechOptions } from '../types/audio';
+import {logger} from '../utils/logger';
+import {AudioConfig, SoundEffect, SpeechOptions} from '../types/audio';
+import {InterruptionModeAndroid, InterruptionModeIOS} from "expo-av/src/Audio.types";
 
 export class AudioService {
   private sounds: Map<string, Audio.Sound> = new Map();
@@ -11,14 +12,7 @@ export class AudioService {
   private isSpeaking = false;
 
   constructor(config: AudioConfig) {
-    this.config = {
-      volume: 0.8,
-      speechRate: 0.9,
-      speechPitch: 1.0,
-      speechLanguage: 'de-DE',
-      enableHaptics: true,
-      ...config,
-    };
+    this.config = {...config};
   }
 
   /**
@@ -33,9 +27,9 @@ export class AudioService {
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
-        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
         shouldDuckAndroid: true,
-        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
         playThroughEarpieceAndroid: false,
       });
 

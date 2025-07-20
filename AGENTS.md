@@ -34,7 +34,7 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 ## 4. Key Code Directory Structure
 
 -   `db/`: All database-related files (schema, models, seeding).
--   `screens/`: The main UI screen components (`LearningScreen.tsx`, `AdminScreen.tsx`).
+-   `screens/`: The main UI screen components (`RecognitionScreen.tsx`, `AdminScreen.tsx`).
 -   `services/`: Business logic and external API clients (`dialogEngine.ts`, `mlService.ts`).
 -   `components/`: Reusable UI components used across screens.
 

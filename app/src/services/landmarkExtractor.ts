@@ -1,13 +1,13 @@
 import * as FileSystem from 'expo-file-system';
 import { FFmpegKit } from 'ffmpeg-kit-react-native';
-import { TFLiteModel } from 'react-native-fast-tflite';
+import { TensorflowModel } from 'react-native-fast-tflite';
 
-let handModel: TFLiteModel | null = null;
+let handModel: TensorflowModel | null = null;
 
 async function loadHandModel(): Promise<void> {
   if (handModel) return;
-  handModel = await TFLiteModel.createFromFile(
-    require('../assets/models/hand_landmarker.tflite'),
+  handModel = await TensorflowModel.createFromFile(
+    require('../../assets/models/hand_landmarker.tflite'),
   );
 }
 

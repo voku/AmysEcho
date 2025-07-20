@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, Button, StyleSheet, Animated, Easing, SafeAreaView, Switch } from 'react-native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import { logCorrection, loadProfile, Profile } from '../storage';
-import { classifyGesture } from '../services/mlService';
-import { playSymbolAudio } from '../services/audioService';
-import { playSymbolVideo } from '../services/videoService';
-import { getLLMSuggestions, LLMSuggestions } from '../services/dialogService';
-import { incrementUsage } from '../services/usageTracker';
+import { mlService } from '../services';
+import { playSymbolAudio } from '../services';
+import { playSymbolVideo } from '../services';
+import { getLLMSuggestions, LLMSuggestions } from '../services';
+import { incrementUsage } from '../services';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
+import {getSymbolLabelForGesture} from "../components/gestureMap";
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -43,20 +44,25 @@ export default function RecognitionScreen({ navigation }: any) {
   };
 
   const handleRecognize = async () => {
-    const result = await classifyGesture(null);
-    setStatus(`I think: ${result.label}`);
-    startFeedbackAnimation();
-    setLastLabel(result.label);
-    const entry = gestureModel.gestures.find((g) => g.id === result.label) || {
-      id: result.label,
-      label: result.label,
-    };
-    await playSymbolAudio(entry);
-    if (profile) {
-      await incrementUsage(entry, profile.id);
-    }
-    const adv = await getLLMSuggestions(result.label);
-    setSuggestions(adv);
+   mlService.classifyGesture((result: any) => {
+      if (result && result.confidence > 0.85) {
+        const recognizedSymbolLabel = getSymbolLabelForGesture(result.label);
+
+          setStatus(`I think: ${result.label}`);
+          startFeedbackAnimation();
+          setLastLabel(result.label);
+          const entry = gestureModel.gestures.find((g) => g.id === result.label) || {
+            id: result.label,
+            label: result.label,
+          };
+          playSymbolAudio(entry);
+          if (profile) {
+            incrementUsage(entry, profile.id);
+          }
+          const adv = await getLLMSuggestions(result.label);
+          setSuggestions(adv);
+      }
+    });
   };
 
   const handleSelect = async (choice: string) => {

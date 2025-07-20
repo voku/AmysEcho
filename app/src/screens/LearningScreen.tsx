@@ -4,10 +4,10 @@ import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 import { useIsFocused } from '@react-navigation/native';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import { database } from '../../db';
 import { playSymbolAudio } from '../services/audioService';
-import { usageTracker } from '../services/usageTracker';
+import { incrementUsage } from '../services/usageTracker';
 import { dialogEngine, LLMSuggestionResponse } from '../services/dialogEngine';
 import { SymbolButton } from '../components/SymbolButton';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
@@ -18,10 +18,10 @@ import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useServices } from '../context/AppServicesProvider';
 import { Profile, Symbol } from '../../db/models';
-
 import MaintenanceBanner from "../components/MaintenanceBanner";
+import {useTensorflowModel} from "react-native-fast-tflite";
+import {recordInteraction} from "../services/adaptiveLearningService";
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
-
 
 const enhance = withObservables<Props, { profile: Profile, vocabulary: Symbol[] }>(['route'], ({ route }) => ({
   profile: database.get<Profile>('profiles').findAndObserve(route.params.profileId),
@@ -44,18 +44,18 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
   const [showMaintenance, setShowMaintenance] = useState(false);
 
-  const { mlService, adaptiveLearningService } = useServices();
+  const { mlService} = useServices();
   const landmarkTflite = useTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
   const gestureTflite = useTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
 
   useEffect(() => {
     if (landmarkTflite.model && gestureTflite.model) {
-      mlService.loadModels(landmarkTflite.model, gestureTflite.model).catch((e) => console.error('Model load error', e));
+      mlService.loadModels(landmarkTflite.model, gestureTflite.model).catch((e: any) => console.error('Model load error', e));
     }
   }, [profile.id, landmarkTflite.model, gestureTflite.model]);
 
   // Gesture models are loaded by the mlService
-  const device = useCameraDevice('front');
+  const device = useCameraDevices('wide-angle-camera');
   const isFocused = useIsFocused();
   const appState = AppState.currentState;
   const canRunCamera = device != null && isCameraActive && isFocused && appState === 'active';
@@ -64,8 +64,8 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     setSelectedSymbol(symbol);
     setVideoPaused(false);
     await playSymbolAudio({ id: symbol.id, label: symbol.name });
-    await usageTracker.incrementUsage(symbol, profile.id);
-    const trigger = await adaptiveLearningService.recordInteraction(symbol.id, true);
+    await incrementUsage(symbol, profile.id);
+    const trigger = await recordInteraction(symbol.id, true);
     if (trigger) setShowMaintenance(true);
 
     // LLM Hint: This is how to use the status state machine for an async operation.
@@ -89,8 +89,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     }
   };
 
-
-  const frameProcessor = mlService.classifyGesture((result) => {
+  const frameProcessor = mlService.classifyGesture((result: any) => {
     if (result && result.confidence > 0.85 && result.label !== lastGesture) {
       const recognizedSymbolLabel = getSymbolLabelForGesture(result.label);
       const foundSymbol = vocabulary.find(s => s.name === recognizedSymbolLabel);

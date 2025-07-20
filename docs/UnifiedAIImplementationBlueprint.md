@@ -33,7 +33,7 @@ This is the baseline gesture recognition that runs with pre-trained models.
     3.  **Placement**: Place both files in the app's `assets/models/` directory.
 
 * **TODO 2.2: Implement the Two-Stage Frame Processor**
-    * **File**: `screens/LearningScreen.tsx` (or a dedicated component).
+    * **File**: `screens/RecognitionScreen.tsx` (or a dedicated component).
     * **Instruction**: Implement the `useFrameProcessor` hook to orchestrate the two models.
     * **LLM Hint**: This is the most complex client-side logic. Ensure both models are loaded with `useTensorflowModel` before processing. The output of the landmark model becomes the input for the gesture model.
 
@@ -157,7 +157,7 @@ This involves setting up a server application (e.g., using Python with Flask or 
     * Store the local file URI (`file://...`) securely, associated with Amy's profile.
 
 * **TODO 6.3: Activate the Personalized Model**
-    * **File**: `screens/LearningScreen.tsx`
+    * **File**: `screens/RecognitionScreen.tsx`
     * **Instruction**: Modify the component's logic to be "custom-model-aware."
     * **Workflow**:
         1.  When the screen loads, check if a local model URI exists for the current profile.

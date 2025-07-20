@@ -17,14 +17,18 @@
     "react-native": "0.73.5",
     "@react-navigation/native": "^6.1.5",
     "@react-navigation/stack": "^6.3.18",
+    "@react-navigation/native-stack": "^6.3.0",
+    "react-native-permissions": "^5.4.1",
     "@react-native-async-storage/async-storage": "^1.22.0",
     "expo-av": "~13.2.1",
     "expo-speech": "~11.4.0",
     "@nozbe/watermelondb": "^0.24.0",
+    "@nozbe/with-observables": "^1.4.0",
     "react-native-vision-camera": "^2.15.4",
     "react-native-reanimated": "^3.0.0",
     "react-native-fast-tflite": "^0.2.0",
-    "expo-secure-store": "~12.4.0"
+    "expo-secure-store": "~12.4.0",
+    "ffmpeg-kit-react-native": "^6.0.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

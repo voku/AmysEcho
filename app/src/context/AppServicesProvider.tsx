@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { mlService } from '../src/services/mlService';
-import { audioService } from '../src/services/audioService';
-import { checkForModelUpdate } from "../src/services/modelUpdate";
-import { syncTrainingData } from "../src/services/trainingSync";
-import { adaptiveLearningService } from '../src/services/adaptiveLearningService';
+import { mlService } from '../services';
+import { audioService } from '../services';
+import { checkForModelUpdate } from "../services";
+import { syncTrainingData } from "../services";
+import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
+import {TensorflowModel} from "react-native-fast-tflite";
+import {loadCustomModelUri} from "../storage";
 
 interface Services {
   mlService: typeof mlService;
@@ -27,8 +29,23 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     async function initializeServices() {
+
+      // Load ML models
+      const landmarkModel = await TensorflowModel.createFromFile(
+          require('./assets/models/hand_landmarker.tflite'),
+      );
+      let gestureModel: TensorflowModel | string = await TensorflowModel.createFromFile(
+          require('./assets/models/gesture_classifier.tflite'),
+      );
+
+      const customModelUri = await loadCustomModelUri();
+      if (customModelUri) {
+        console.log('Loading custom model from:', customModelUri);
+        gestureModel = customModelUri;
+      }
+
       try {
-        await mlService.loadModels();
+        await mlService.loadModels(landmarkModel, gestureModel);
         // Other async service initializations can go here
       } catch (e) {
         console.error('Failed to initialize services:', e);
