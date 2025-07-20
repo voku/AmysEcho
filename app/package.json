@@ -42,6 +42,7 @@
     "@testing-library/react-native": "^12.0.0",
     "@types/react": "^18.2.0",
     "@types/react-native": "^0.73.0",
+    "@types/node": "^18.0.0",
     "babel-jest": "^29.0.0",
     "eslint": "latest",
     "husky": "latest",

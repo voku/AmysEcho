@@ -8,11 +8,7 @@
     "module": "Node16",
     "rootDir": ".",
     "moduleResolution": "node16",
-    "types": [
-      "node",
-      "jest",
-      "@testing-library/jest-native"
-    ],
+    "types": ["node"],
     "resolveJsonModule": true,
     "outDir": "dist",
     "esModuleInterop": true,
@@ -22,5 +18,5 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "test", "../server"]
 }
