@@ -1,5 +1,5 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, relation, text, date, children } from '@nozbe/watermelondb/decorators';
+import { field, relation, text, date, children, json } from '@nozbe/watermelondb/decorators';
 
 export class Profile extends Model {
   static table = 'profiles';
@@ -124,4 +124,20 @@ export class LearningAnalytic extends Model {
   @field('avg_confidence_score') avgConfidenceScore!: number;
   @text('improvement_trend') improvementTrend!: string;
   @date('last_calculated') lastCalculated!: Date;
+}
+
+
+export function sanitizeLandmarks(data: any): any {
+  return data;
+}
+
+export class Correction extends Model {
+  static table = 'corrections';
+
+  @text('predicted_gesture') predictedGesture!: string;
+  @text('actual_gesture') actualGesture!: string;
+  @field('confidence') confidence!: number;
+  @json('landmarks', sanitizeLandmarks) landmarks!: number[][];
+  @field('timestamp') timestamp!: number;
+  @field('is_synced') isSynced!: boolean;
 }

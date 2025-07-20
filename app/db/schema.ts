@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 4,
+  version: 5,
   tables: [
     tableSchema({
       name: 'profiles',
@@ -87,6 +87,17 @@ export const mySchema = appSchema({
         { name: 'caregiver_override_id', type: 'string', isOptional: true },
         { name: 'environmental_context', type: 'string' },
         { name: 'created_at', type: 'number', isIndexed: true },
+      ],
+    }),
+    tableSchema({
+      name: 'corrections',
+      columns: [
+        { name: 'predicted_gesture', type: 'string', isIndexed: true },
+        { name: 'actual_gesture', type: 'string', isIndexed: true },
+        { name: 'confidence', type: 'number' },
+        { name: 'landmarks', type: 'string' },
+        { name: 'timestamp', type: 'number', isIndexed: true },
+        { name: 'is_synced', type: 'boolean' },
       ],
     }),
     tableSchema({
