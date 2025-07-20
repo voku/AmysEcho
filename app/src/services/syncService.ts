@@ -1,5 +1,5 @@
-import { database } from '../db';
-import { Correction } from '../db/models';
+import { database } from '../../db';
+import { Correction } from '../../db/models';
 import { Q } from '@nozbe/watermelondb';
 import { logger } from '../utils/logger';
 import { mlService } from './mlService';
