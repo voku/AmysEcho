@@ -5,8 +5,11 @@ enum LogLevel {
   ERROR = 3,
 }
 
+declare const __DEV__: boolean | undefined;
+const isDev: boolean = typeof __DEV__ !== 'undefined' ? __DEV__ : false;
+
 class Logger {
-  private level: LogLevel = __DEV__ ? LogLevel.DEBUG : LogLevel.INFO;
+  private level: LogLevel = isDev ? LogLevel.DEBUG : LogLevel.INFO;
 
   debug(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.DEBUG) {
