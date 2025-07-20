@@ -11,6 +11,7 @@ import {
   GestureTrainingData,
   InteractionLog,
   LearningAnalytic,
+  Correction,
 } from './models';
 
 const adapter = new SQLiteAdapter({
@@ -30,6 +31,7 @@ export const database = new Database({
     GestureTrainingData,
     InteractionLog,
     LearningAnalytic,
+    Correction,
   ],
 });
 

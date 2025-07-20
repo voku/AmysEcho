@@ -5,6 +5,8 @@ import { logCorrection, loadProfile, Profile } from '../storage';
 import { mlService } from '../services';
 import { playSymbolAudio } from '../services';
 import { playSymbolVideo } from '../services';
+import { database } from "../../db";
+import { Correction } from "../../db/models";
 import { getLLMSuggestions, LLMSuggestions } from '../services';
 import { incrementUsage } from '../services';
 import { gestureModel } from '../model';
@@ -66,7 +68,18 @@ export default function RecognitionScreen({ navigation }: any) {
   };
 
   const handleSelect = async (choice: string) => {
-    await logCorrection(choice);
+    if (!lastLabel) return;
+    await database.write(async () => {
+      const collection = database.get<Correction>('corrections');
+      await collection.create(r => {
+        r.predictedGesture = lastLabel;
+        r.actualGesture = choice;
+        r.confidence = 0;
+        r.landmarks = [];
+        r.timestamp = Date.now();
+        r.isSynced = false;
+      });
+    });
     setShowCorrection(false);
     setStatus('Thanks!');
     startFeedbackAnimation();
