@@ -1,16 +1,13 @@
-import { mlService } from '../src/services';
+import { mlService } from '../src/services/mlService';
 
-describe('MachineLearningService', () => {
-  it('should load models successfully', async () => {
-    // @ts-ignore
-    const landmarkTflite: TfliteModel = {
-      runSync: () => [[1, 2, 3]],
-    };
-    // @ts-ignore
-    const gestureTflite: TfliteModel = {
-      runSync: () => [[0.1, 0.9]],
-    };
-    await mlService.loadModels(landmarkTflite, gestureTflite);
-    expect(mlService.isServiceReady()).toBe(true);
-  });
-});
+(async () => {
+  // @ts-ignore
+  const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+  // @ts-ignore
+  const gestureTflite: any = { runSync: () => [[0.1, 0.9]] };
+  await mlService.loadModels(landmarkTflite, gestureTflite);
+  if (!mlService.isServiceReady()) {
+    throw new Error('mlService did not initialize');
+  }
+  console.log('mlService ready');
+})();
