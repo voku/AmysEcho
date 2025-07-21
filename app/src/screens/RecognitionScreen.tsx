@@ -12,6 +12,7 @@ import { incrementUsage } from '../services';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import {getSymbolLabelForGesture} from "../components/gestureMap";
+import { useTensorflowModel } from '../hooks/useTensorflowModel';
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -25,6 +26,22 @@ export default function RecognitionScreen({ navigation }: any) {
   const [useDgs, setUseDgs] = useState(false);
   const [lastLabel, setLastLabel] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const landmarkModel = useTensorflowModel(
+    require('../../assets/models/hand_landmarker.tflite'),
+  );
+  const gestureTfliteModel = useTensorflowModel(
+    require('../../assets/models/gesture_classifier.tflite'),
+    true,
+  );
+
+  useEffect(() => {
+    if (landmarkModel && gestureTfliteModel) {
+      mlService.loadModels(landmarkModel, gestureTfliteModel).catch((e) =>
+        console.error('Failed to load ML models', e),
+      );
+    }
+  }, [landmarkModel, gestureTfliteModel]);
 
   useEffect(() => {
     loadProfile().then(setProfile);
