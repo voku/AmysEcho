@@ -2,9 +2,9 @@ import * as FileSystem from 'expo-file-system';
 import NetInfo from '@react-native-community/netinfo';
 import { loadBackendApiToken, saveCustomModelUri } from '../storage';
 
-export async function checkForModelUpdate(): Promise<void> {
+export async function checkForModelUpdate(): Promise<boolean> {
   const net = await NetInfo.fetch();
-  if (!net.isConnected || net.type !== 'wifi') return;
+  if (!net.isConnected || net.type !== 'wifi') return false;
   try {
     const token = await loadBackendApiToken();
     const uri = FileSystem.documentDirectory + 'custom_model.tflite';
@@ -14,7 +14,9 @@ export async function checkForModelUpdate(): Promise<void> {
       { headers: { Authorization: `Bearer ${token || ''}` } }
     );
     await saveCustomModelUri(res.uri);
+    return true;
   } catch (e) {
     console.log('model update failed', e);
+    return false;
   }
 }
