@@ -17,7 +17,7 @@
     "build:ios": "eas build --platform ios --profile production --non-interactive"
   },
   "dependencies": {
-    "@nozbe/watermelondb": "^0.24.0",
+    "@nozbe/watermelondb": "^0.28.0",
     "@nozbe/with-observables": "^1.4.0",
     "@react-native-async-storage/async-storage": "^1.22.0",
     "@react-native-community/netinfo": "^9.3.7",
