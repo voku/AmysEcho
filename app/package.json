@@ -53,7 +53,7 @@
     "husky": "latest",
     "jest": "^29.0.0",
     "lint-staged": "latest",
-    "metro-react-native-babel-preset": "^0.76.0",
+    "metro-react-native-babel-preset": "^0.77.0",
     "prettier": "latest",
     "react-native-worklets-core": "^0.2.0",
     "react-test-renderer": "^18.2.0",
