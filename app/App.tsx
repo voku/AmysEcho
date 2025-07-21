@@ -12,9 +12,7 @@ import LearningScreen from './src/screens/LearningScreen';
 import TeachingScreen from './src/screens/TeachingScreen';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
-import { loadProfile, loadCustomModelUri } from './src/storage';
-import { mlService } from './src/services';
-import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import { loadProfile } from './src/storage';
 
 const Stack = createNativeStackNavigator();
 
@@ -39,21 +37,6 @@ export default function App() {
           });
         }
 
-        // Load ML models
-        const landmarkModel = await loadTensorflowModel(
-          require('./assets/models/hand_landmarker.tflite'),
-        );
-        let gestureModel: TensorflowModel | string = await loadTensorflowModel(
-          require('./assets/models/gesture_classifier.tflite'),
-        );
-
-        const customModelUri = await loadCustomModelUri();
-        if (customModelUri) {
-          console.log('Loading custom model from:', customModelUri);
-          gestureModel = customModelUri;
-        }
-
-        await mlService.loadModels(landmarkModel, gestureModel);
       } catch (e) {
         console.error('Failed to initialize app:', e);
       } finally {
