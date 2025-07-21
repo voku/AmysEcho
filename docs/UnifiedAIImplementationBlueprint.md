@@ -150,13 +150,13 @@ This involves setting up a server application (e.g., using Python with Flask or 
     * **Endpoint**: `GET /latest-model?profileId=amy`
     * **Logic**: This endpoint checks for the latest successfully trained model for the given profile and allows it to be downloaded.
 
-* **TODO 6.2: Implement Model Download and Activation in the App**
+* **TODO 6.2: Implement Model Download and Activation in the App** *(Completed)*
     * **File**: `src/screens/AdminScreen.tsx`
     * **Instruction**: Add a "Download Latest Personalized Model" button.
     * **LLM Hint**: Use `expo-file-system` to download the `.tflite` file from the server endpoint and save it to the app's persistent document directory.
     * Store the local file URI (`file://...`) securely, associated with Amy's profile.
 
-* **TODO 6.3: Activate the Personalized Model**
+* **TODO 6.3: Activate the Personalized Model** *(Completed)*
     * **File**: `src/screens/RecognitionScreen.tsx`
     * **Instruction**: Modify the component's logic to be "custom-model-aware."
     * **Workflow**:
