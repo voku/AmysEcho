@@ -27,12 +27,12 @@ The viability of this feature hinges on a modern React Native architecture that 
 
 This is the baseline gesture recognition that runs with pre-trained models.
 
-* **TODO 2.1: Acquire Pre-trained Models**
+* **TODO 2.1: Acquire Pre-trained Models** *(Completed)*
     1.  **Hand Landmark Model**: Download the `hand_landmarker.task` model from [Google MediaPipe](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker/index). Rename it to `hand_landmarker.tflite`.
     2.  **Gesture Classification Model**: Download the `gesture_recognizer.task` model from [Google MediaPipe](https://developers.google.com/mediapipe/solutions/vision/gesture_recognizer/index). Rename it to `gesture_classifier.tflite`.
     3.  **Placement**: Place both files in the app's `assets/models/` directory.
 
-* **TODO 2.2: Implement the Two-Stage Frame Processor**
+* **TODO 2.2: Implement the Two-Stage Frame Processor** *(Completed)*
     * **File**: `src/screens/RecognitionScreen.tsx` (or a dedicated component).
     * **Instruction**: Implement the `useFrameProcessor` hook to orchestrate the two models.
     * **LLM Hint**: This is the most complex client-side logic. Ensure both models are loaded with `useTensorflowModel` before processing. The output of the landmark model becomes the input for the gesture model.
@@ -75,7 +75,7 @@ This is the baseline gesture recognition that runs with pre-trained models.
 
 This is the critical client-side component for teaching the app Amy's specific gestures.
 
-* **TODO 3.1: Build the `TrainingScreen.tsx` UI**
+* **TODO 3.1: Build the `TrainingScreen.tsx` UI** *(Completed)*
     * **Instruction**: Implement a guided, multi-step UI for recording gesture samples.
     * **UI Flow**:
         1.  **Selection**: Screen receives a `symbol` to train.
@@ -84,7 +84,7 @@ This is the critical client-side component for teaching the app Amy's specific g
         4.  **Review**: Show thumbnails of recorded samples with an option to delete and re-record.
         5.  **Save**: A "Save Training Data" button, enabled after collecting enough samples.
 
-* **TODO 3.2: Implement In-Memory Landmark Extraction**
+* **TODO 3.2: Implement In-Memory Landmark Extraction** *(Completed)*
     * **Instruction**: After a video is recorded, process it to extract and save only the landmark data, not the video file itself.
     * **LLM Hint**: This requires a library like `react-native-ffmpeg` to extract individual frames from the temporary video file.
     * **Workflow**:
