@@ -14,7 +14,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: To get the live camera feed running through the two-stage (landmark + classification) TFLite pipeline.
 * **File**: `src/screens/RecognitionScreen.tsx`
-* **Status**: **Implemented** via the new `mlService` and worklet frame processor.
+* **Status**: **Completed** via the new `mlService` and worklet frame processor.
 * **Action**:
     1.  **Acquire Models**: Download the `hand_landmarker.tflite` and `gesture_classifier.tflite` models from Google MediaPipe and place them in `assets/models/`.
     2.  **Load Models**: In the `LearningScreen` component, use the `useTensorflowModel` hook to load both models into memory.
@@ -43,7 +43,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: To build the UI and logic for a caregiver to record samples of Amy's specific gestures.
 * **File**: `src/screens/TrainingScreen.tsx`
-* **Status**: Implemented. The UI is built, video processing extracts landmarks, and data is saved to WatermelonDB.
+* **Status**: Completed. The UI is built, video processing extracts landmarks, and data is saved to WatermelonDB.
 
 ---
 
@@ -55,12 +55,12 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: Use an API key stored on the device to request suggestions directly from OpenAI.
 * **File**: `services/dialogEngine.ts` & `src/screens/AdminScreen.tsx`
-* **Status**: Implemented. Admin screen allows saving the OpenAI key, and `dialogEngine.ts` uses it to call the OpenAI API.
+* **Status**: Completed. Admin screen allows saving the OpenAI key, and `dialogEngine.ts` uses it to call the OpenAI API.
 
 ### **TODO 2.2: Implemented Personalized Model Training Endpoint**
 
 * **Objective**: To receive collected gesture data, train a new model, and make it available for download.
-* **Status**: Implemented. The `/train-model` endpoint triggers `train.py` to train an LSTM model and save it as `trained_model.tflite`. The `/latest-model` endpoint serves this file.
+* **Status**: Completed. The `/train-model` endpoint triggers `train.py` to train an LSTM model and save it as `trained_model.tflite`. The `/latest-model` endpoint serves this file.
 
 ---
 
@@ -70,7 +70,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: To fetch suggestions from OpenAI and display them in the UI.
 * **File**: `services/dialogEngine.ts` & `src/screens/RecognitionScreen.tsx`
-* **Status**: Implemented. `RecognitionScreen.tsx` calls `getLLMSuggestions` from `dialogService.ts` and displays the results.
+* **Status**: Completed. `RecognitionScreen.tsx` calls `getLLMSuggestions` from `dialogService.ts` and displays the results.
 
 ### **TODO 3.2: Implement Personalized Model Activation** *(Completed)*
 
@@ -89,22 +89,22 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: Store each correction made by a caregiver for future training.
 * **File**: `db/models.ts`, `db/schema.ts`, `src/screens/RecognitionScreen.tsx`
-* **Status**: **Implemented**. Corrections are saved in the `corrections` table.
+* **Status**: **Completed**. Corrections are saved in the `corrections` table.
 
 ### **TODO 4.2: Sync Corrections and Check Model Updates**
 
 * **Objective**: Upload unsynced correction data and download new personalized models when available.
 * **File**: `src/services/syncService.ts` & `src/context/AppServicesProvider.tsx`
-* **Status**: **Implemented**. The sync service runs on app launch.
+* **Status**: **Completed**. The sync service runs on app launch.
 
 ### **TODO 4.3: Add DGS Video Player**
 
 * **Objective**: Show reference DGS clips for each gesture to aid learning.
 * **File**: `src/components/DgsVideoPlayer.tsx` & `src/screens/LearningScreen.tsx`
-* **Status**: Implemented.
+* **Status**: Completed.
 
 ### **TODO 4.4: Create TeachingScreen for HIP 2**
 
 * **Objective**: Allow caregivers to teach the system new gestures directly on the device.
 * **File**: `src/screens/TeachingScreen.tsx`
-* **Status**: Implemented.
+* **Status**: Completed.
