@@ -26,3 +26,12 @@ def test_load_samples_multiple_labels():
     assert len(label_map) == 2
     assert X.shape == (2, 30, 63)
 
+
+def test_load_samples_empty():
+    try:
+        load_samples([])
+    except ValueError:
+        assert True
+    else:
+        assert False
+
