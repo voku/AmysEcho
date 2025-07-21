@@ -265,4 +265,5 @@ const styles = StyleSheet.create({
   toggleContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 5 },
 });
 
-export default enhance(LearningScreen);
+const EnhancedLearningScreen = enhance(LearningScreen);
+export default EnhancedLearningScreen as React.ComponentType<any>;
