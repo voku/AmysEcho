@@ -98,7 +98,7 @@ export default function App() {
           />
           <Stack.Screen
             name="Learning"
-            component={LearningScreen}
+            component={LearningScreen as React.ComponentType<any>}
             options={{ title: 'Lernen' }}
           />
           <Stack.Screen
