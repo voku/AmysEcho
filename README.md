@@ -40,12 +40,13 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 1. `npm install` – install root dependencies
 2. `cd app` – open the app code
 3. `npm install` - install mobile app deps
-4. `npm test` – run the Node test suite (uses `ts-node` from devDependencies)
+4. `npm run type-check` – verify the TypeScript build
+5. `npm test` – run the Node test suite (uses `ts-node` from devDependencies)
    - Tests live in `app/test/` and cover both server and app modules.
-5. `cd ../server && npm install` – install backend dependencies
+6. `cd ../server && npm install` – install backend dependencies
    - (Python 3 required) Run `pip install -r requirements.txt` to install `numpy` and `pytest` for the training tests.
    - Then run `npm test` inside `server/` to execute the Python suite in `server/test/`.
-6. Inside `app`, run `npm run ios` or `npm run android` to launch the app
+7. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 
 ---
 

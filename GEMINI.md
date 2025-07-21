@@ -67,7 +67,8 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 1. `npm install` – install root dependencies
 2. `cd app && npm install` – install mobile app deps
 3. `npm test` – run the Node test suite
-4. Inside `app`, run `npm run ios` or `npm run android` to launch the app
+4. `npm run type-check` – verify the TypeScript build inside `app`
+5. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 
 ### Backend
 
