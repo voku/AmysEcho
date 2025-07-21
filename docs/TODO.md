@@ -101,7 +101,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: Show reference DGS clips for each gesture to aid learning.
 * **File**: `src/components/DgsVideoPlayer.tsx` & `src/screens/LearningScreen.tsx`
-* **Status**: Planned.
+* **Status**: Implemented.
 
 ### **TODO 4.4: Create TeachingScreen for HIP 2**
 

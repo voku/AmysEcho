@@ -12,6 +12,7 @@ import { incrementUsage } from '../services/usageTracker';
 import { dialogEngine, LLMSuggestionResponse } from '../services/dialogEngine';
 import { SymbolButton } from '../components/SymbolButton';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
+import DgsVideoPlayer from '../components/DgsVideoPlayer';
 // LLM Hint: Use a status enum for async operations instead of multiple booleans.
 // This creates a clear state machine ('idle' -> 'loading' -> 'success'/'error').
 type SuggestionStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -164,17 +165,28 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
               accessibilityLabel="DGS-Video anzeigen"
             />
           </View>
-          <SymbolVideoPlayer
-            entry={{
-              id: selectedSymbol.id,
-              label: selectedSymbol.name,
-              videoUri: selectedSymbol.videoAssetPath,
-              dgsVideoUri: selectedSymbol.dgsVideoAssetPath,
-            }}
-            paused={videoPaused}
-            useDgs={showDgsVideo}
-            onEnd={() => setVideoPaused(true)}
-          />
+          {showDgsVideo ? (
+            <DgsVideoPlayer
+              videoSource={
+                selectedSymbol.dgsVideoAssetPath
+                  ? { uri: selectedSymbol.dgsVideoAssetPath }
+                  : require(`../assets/videos/dgs/${selectedSymbol.id}.mp4`)
+              }
+              shouldPlay={!videoPaused}
+            />
+          ) : (
+            <SymbolVideoPlayer
+              entry={{
+                id: selectedSymbol.id,
+                label: selectedSymbol.name,
+                videoUri: selectedSymbol.videoAssetPath,
+                dgsVideoUri: selectedSymbol.dgsVideoAssetPath,
+              }}
+              paused={videoPaused}
+              useDgs={false}
+              onEnd={() => setVideoPaused(true)}
+            />
+          )}
           <Pressable
             style={styles.repeatButton}
             onPress={() => handlePress(selectedSymbol)}
