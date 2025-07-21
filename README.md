@@ -42,8 +42,9 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 3. `npm install` - install mobile app deps
 4. `npm test` – run the Node test suite (uses `ts-node` from devDependencies)
    - Tests live in `app/test/` and cover both server and app modules.
-5. `cd ../server && npm install && npm test` – run Python training tests
-   - These tests live in `server/test/` and require Python with `numpy` and `pytest` (`pip install numpy pytest`).
+5. `cd ../server && npm install` – install backend dependencies
+   - (Python 3 required) Run `pip install -r requirements.txt` to install `numpy` and `pytest` for the training tests.
+   - Then run `npm test` inside `server/` to execute the Python suite in `server/test/`.
 6. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 
 ---
@@ -114,6 +115,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Acquire Pre-trained Models**: Download and bundle the MediaPipe models (see `src/tools/downloadModels.ts`).
 - [x] **Implement Two-Stage Frame Processor**: Load landmark and gesture models inside a `useFrameProcessor` worklet.
 - [x] **Build TrainingScreen UI**: Provide a guided interface for recording gesture samples.
+- [x] **Create TeachingScreen for HIP 2**: Caregivers can teach new gestures via the training flow.
 - [x] **Implement In-Memory Landmark Extraction**: Use ffmpeg to pull frames and save landmarks only.
  - [x] **Direct OpenAI Integration**: Suggestions are fetched from OpenAI using an API key stored on the device.
 - [x] **Create Model Training Endpoint & Script**: Accept uploaded landmarks and train an LSTM gesture model.

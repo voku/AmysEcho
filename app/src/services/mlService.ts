@@ -13,6 +13,7 @@ class MachineLearningService {
   private isReady = false;
   private confidenceThreshold = 0.7;
   private labels = ['danke', 'wasser', 'mehr', 'fertig'];
+  private teachingSession: { id: string; label: string } | null = null;
 
   async loadModels(
     landmark: any,
@@ -95,6 +96,28 @@ class MachineLearningService {
       suggestions: [],
       requiresConfirmation: true,
     };
+  }
+
+  async startTeachingSession(gestureLabel: string): Promise<string> {
+    const sessionId = `teach_${Date.now()}`;
+    this.teachingSession = { id: sessionId, label: gestureLabel };
+    logger.info(`Starting teaching session ${sessionId} for "${gestureLabel}"`);
+    return sessionId;
+  }
+
+  async recordSample(sessionId: string, frame: Frame): Promise<void> {
+    if (!this.teachingSession || this.teachingSession.id !== sessionId) return;
+    const landmarks = extractHandLandmarks(frame);
+    if (landmarks && landmarks.length > 0) {
+      const processed: ProcessedFrame = {
+        landmarks,
+        width: frame.width,
+        height: frame.height,
+        timestamp: Date.now(),
+      };
+      logger.info(`Recorded sample for session ${sessionId}`);
+      // Placeholder: in the future we might store this in a buffer
+    }
   }
 }
 

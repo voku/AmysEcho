@@ -8,6 +8,8 @@ import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
 import RecognitionScreen from './src/screens/RecognitionScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import ParentScreen from './src/screens/ParentScreen';
+import LearningScreen from './src/screens/LearningScreen';
+import TeachingScreen from './src/screens/TeachingScreen';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadCustomModelUri } from './src/storage';
@@ -93,6 +95,16 @@ export default function App() {
             name="Admin"
             component={AdminScreen}
             options={{ title: 'Verwaltung' }}
+          />
+          <Stack.Screen
+            name="Learning"
+            component={LearningScreen as React.ComponentType<any>}
+            options={{ title: 'Lernen' }}
+          />
+          <Stack.Screen
+            name="Training"
+            component={TeachingScreen}
+            options={{ title: 'Training' }}
           />
           <Stack.Screen
             name="Parent"
