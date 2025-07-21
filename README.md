@@ -136,7 +136,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ## ▶️ Running the mobile app
 
-The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
+The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. These scripts use **Expo**'s `run` commands under the hood. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
 
 DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available.
 The `DgsVideoPlayer` component loops these videos automatically so Amy can watch each sign repeatedly.
@@ -145,7 +145,7 @@ The LLM-powered suggestions require an OpenAI API key. You can set this via the 
 
 ### Building the custom dev client
 
-If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` inside `app/` once to generate the native projects. Afterwards use `npm run ios` or `npm run android` to install the dev client on your device.
+If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` inside `app/` once to generate the native Android and iOS projects. These directories are not tracked in git to avoid committing large binaries. After the prebuild step you can launch the app with `npm run ios` or `npm run android`.
 
 ### Creating production builds
 

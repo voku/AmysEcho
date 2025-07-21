@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "react-native start",
-    "ios": "react-native run-ios",
-    "android": "react-native run-android",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
     "web": "expo start --web",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
@@ -27,6 +27,7 @@
     "expo-av": "~13.2.1",
     "expo-secure-store": "~12.4.0",
     "expo-speech": "~11.4.0",
+    "expo": "~53.0.19",
     "ffmpeg-kit-react-native": "^6.0.2",
     "react": "18.2.0",
     "react-native": "0.73.5",

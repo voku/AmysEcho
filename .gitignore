@@ -1,4 +1,7 @@
 node_modules
 dist
+.expo
+app/android/
+app/ios/
 .openai-key
 server/**/__pycache__/

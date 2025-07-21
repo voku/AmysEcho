@@ -1,4 +1,7 @@
 {
   "name": "AmysEcho",
-  "displayName": "Amy's Echo"
+  "displayName": "Amy's Echo",
+  "android": {
+    "package": "com.anonymous.amysecho"
+  }
 }
