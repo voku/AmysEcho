@@ -107,4 +107,4 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: Allow caregivers to teach the system new gestures directly on the device.
 * **File**: `src/screens/TeachingScreen.tsx`
-* **Status**: Planned.
+* **Status**: Implemented.
