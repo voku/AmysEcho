@@ -72,7 +72,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 * **File**: `services/dialogEngine.ts` & `src/screens/RecognitionScreen.tsx`
 * **Status**: Implemented. `RecognitionScreen.tsx` calls `getLLMSuggestions` from `dialogService.ts` and displays the results.
 
-### **TODO 3.2: Implement Personalized Model Activation**
+### **TODO 3.2: Implement Personalized Model Activation** *(Completed)*
 
 * **Objective**: To allow the app to download and use Amy's personalized gesture model.
 * **File**: `src/screens/AdminScreen.tsx` & `src/screens/RecognitionScreen.tsx`

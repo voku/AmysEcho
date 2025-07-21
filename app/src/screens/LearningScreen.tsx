@@ -22,7 +22,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { useServices } from '../context/AppServicesProvider';
 import { Profile, Symbol } from '../../db/models';
 import MaintenanceBanner from "../components/MaintenanceBanner";
-import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import { useTensorflowModel } from '../hooks/useTensorflowModel';
 import {recordInteraction} from "../services/adaptiveLearningService";
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
@@ -60,28 +60,21 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [showMaintenance, setShowMaintenance] = useState(false);
 
   const { mlService } = useServices();
-  const [landmarkModel, setLandmarkModel] = useState<TensorflowModel | null>(null);
-  const [gestureModel, setGestureModel] = useState<TensorflowModel | null>(null);
+  const landmarkModel = useTensorflowModel(
+    require('../../assets/models/hand_landmarker.tflite'),
+  );
+  const gestureModel = useTensorflowModel(
+    require('../../assets/models/gesture_classifier.tflite'),
+    true,
+  );
 
   useEffect(() => {
-    let isMounted = true;
-    async function loadModels() {
-      try {
-        const lModel = await loadTensorflowModel(require('../../assets/models/hand_landmarker.tflite'));
-        const gModel = await loadTensorflowModel(require('../../assets/models/gesture_classifier.tflite'));
-        if (!isMounted) return;
-        setLandmarkModel(lModel);
-        setGestureModel(gModel);
-        await mlService.loadModels(lModel, gModel);
-      } catch (e) {
-        console.error('Model load error', e);
-      }
+    if (landmarkModel && gestureModel) {
+      mlService
+        .loadModels(landmarkModel, gestureModel)
+        .catch(e => console.error('Model load error', e));
     }
-    loadModels();
-    return () => {
-      isMounted = false;
-    };
-  }, [profile.id]);
+  }, [landmarkModel, gestureModel]);
 
   // Gesture models are loaded by the mlService
   const devices = useCameraDevices('wide-angle-camera');
