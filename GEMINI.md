@@ -69,6 +69,7 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 3. `npm test` – run the Node test suite
 4. `npm run type-check` – verify the TypeScript build inside `app`
 5. Inside `app`, run `npm run ios` or `npm run android` to launch the app
+6. Alternatively, run `./scripts/full-check.sh` from the repo root to run all checks at once
 
 ### Backend
 
