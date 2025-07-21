@@ -12,7 +12,9 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "prepare": "husky install",
     "test": "npx ts-node test/run-tests.ts",
-    "type-check": "tsc --noEmit --project tsconfig.json"
+    "type-check": "tsc --noEmit --project tsconfig.json",
+    "build:android": "eas build --platform android --profile production --non-interactive",
+    "build:ios": "eas build --platform ios --profile production --non-interactive"
   },
   "dependencies": {
     "@nozbe/watermelondb": "^0.24.0",
@@ -55,7 +57,8 @@
     "typescript": "^5.3.3",
     "react-native-worklets-core": "^0.2.0",
     "metro-react-native-babel-preset": "^0.76.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "eas-cli": "^7.0.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
