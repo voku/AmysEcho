@@ -22,7 +22,6 @@ import type { RootStackParamList } from '../navigation/types';
 import { useServices } from '../context/AppServicesProvider';
 import { Profile, Symbol } from '../../db/models';
 import MaintenanceBanner from "../components/MaintenanceBanner";
-import { useTensorflowModel } from '../hooks/useTensorflowModel';
 import {recordInteraction} from "../services/adaptiveLearningService";
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
@@ -60,21 +59,6 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [showMaintenance, setShowMaintenance] = useState(false);
 
   const { mlService } = useServices();
-  const landmarkModel = useTensorflowModel(
-    require('../../assets/models/hand_landmarker.tflite'),
-  );
-  const gestureModel = useTensorflowModel(
-    require('../../assets/models/gesture_classifier.tflite'),
-    true,
-  );
-
-  useEffect(() => {
-    if (landmarkModel && gestureModel) {
-      mlService
-        .loadModels(landmarkModel, gestureModel)
-        .catch(e => console.error('Model load error', e));
-    }
-  }, [landmarkModel, gestureModel]);
 
   // Gesture models are loaded by the mlService
   const devices = useCameraDevices('wide-angle-camera');

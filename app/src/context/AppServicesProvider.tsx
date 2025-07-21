@@ -6,8 +6,7 @@ import { syncTrainingData } from "../services";
 import { syncService } from "../services";
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
-import {loadTensorflowModel, TensorflowModel} from "react-native-fast-tflite";
-import {loadCustomModelUri} from "../storage";
+import { useTensorflowModel } from '../hooks/useTensorflowModel';
 
 interface Services {
   mlService: typeof mlService;
@@ -27,34 +26,23 @@ export const useServices = () => {
 
 export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
   const [areServicesReady, setAreServicesReady] = useState(false);
+  const landmarkModel = useTensorflowModel(
+    require('./assets/models/hand_landmarker.tflite'),
+  );
+  const gestureModel = useTensorflowModel(
+    require('./assets/models/gesture_classifier.tflite'),
+    true,
+  );
 
   useEffect(() => {
-    async function initializeServices() {
-
-      // Load ML models
-      const landmarkModel = await loadTensorflowModel(
-          require('./assets/models/hand_landmarker.tflite'),
-      );
-      let gestureModel: TensorflowModel | string = await loadTensorflowModel(
-          require('./assets/models/gesture_classifier.tflite'),
-      );
-
-      const customModelUri = await loadCustomModelUri();
-      if (customModelUri) {
-        console.log('Loading custom model from:', customModelUri);
-        gestureModel = customModelUri;
-      }
-
-      try {
-        await mlService.loadModels(landmarkModel, gestureModel);
-        // Other async service initializations can go here
-      } catch (e) {
+    if (!landmarkModel || !gestureModel) return;
+    mlService
+      .loadModels(landmarkModel, gestureModel)
+      .then(() => setAreServicesReady(true))
+      .catch(e => {
         console.error('Failed to initialize services:', e);
-      } finally {
         setAreServicesReady(true);
-      }
-    }
-    initializeServices();
+      });
     const interval = setInterval(() => {
       syncTrainingData().catch(() => {});
       checkForModelUpdate().catch(() => {});
@@ -66,7 +54,7 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
     syncService.syncUnsyncedData().catch(() => {});
     syncService.checkForNewModel('1.0').catch(() => {});
     return () => clearInterval(interval);
-  }, []);
+  }, [landmarkModel, gestureModel]);
 
   if (!areServicesReady) {
     return (
