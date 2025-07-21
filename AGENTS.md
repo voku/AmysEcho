@@ -22,6 +22,15 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 4.  **Implement Changes**: Locate the relevant files using the directory map below and implement the required changes.
 5.  **Validate and Report**: After implementation, review your changes for correctness. When reporting completion, provide a summary and, if applicable, a diff/patch of the changed files.
 
+6.  **Run Tests and Type Checks**: Before submitting a pull request, run the following commands:
+    ```bash
+    npm run type-check --prefix app
+    npm test --prefix app
+    pip install -r server/requirements.txt
+    npm test --prefix server
+    ```
+    You can also execute `./scripts/full-check.sh` from the repo root to run all of the above in one step.
+
 ## 3. Authoritative Document Map
 
 | Purpose                                   | File Location         |

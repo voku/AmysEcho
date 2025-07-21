@@ -11,7 +11,8 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "prepare": "husky install",
-    "test": "npx ts-node test/run-tests.ts"
+    "test": "npx ts-node test/run-tests.ts",
+    "type-check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
     "@nozbe/watermelondb": "^0.24.0",
