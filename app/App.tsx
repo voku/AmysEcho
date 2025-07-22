@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { setupDatabase } from './db';
 import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
+import ProfileManagerScreen from './src/screens/ProfileManagerScreen';
 import RecognitionScreen from './src/screens/RecognitionScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import ParentScreen from './src/screens/ParentScreen';
@@ -12,7 +13,7 @@ import LearningScreen from './src/screens/LearningScreen';
 import TeachingScreen from './src/screens/TeachingScreen';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
-import { loadProfile } from './src/storage';
+import { loadProfile, loadProfiles, createProfile } from './src/storage';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +30,20 @@ export default function App() {
       try {
         const profileId = await setupDatabase();
         setInitialProfileId(profileId);
+
+        const existing = await loadProfiles();
+        if (existing.length === 0) {
+          await createProfile({
+            id: profileId,
+            name: 'Amy',
+            consentDataUpload: true,
+            consentHelpMeGetSmarter: true,
+            vocabularySetId: 'basic',
+            largeText: false,
+            highContrast: false,
+          });
+        }
+
         const profile = await loadProfile();
         if (profile) {
           setAccessibility({
@@ -62,11 +77,16 @@ export default function App() {
           setAccessibility(prev => ({ ...prev, ...s })),
       }}>
         <NavigationContainer>
-          <Stack.Navigator initialRouteName={initialProfileId ? 'Recognition' : 'ProfileSelect'}>
+          <Stack.Navigator initialRouteName={initialProfileId ? 'Recognition' : 'ProfileManager'}>
           <Stack.Screen
             name="ProfileSelect"
             component={ProfileSelectScreen}
             options={{ title: 'Profil auswählen' }}
+          />
+          <Stack.Screen
+            name="ProfileManager"
+            component={ProfileManagerScreen}
+            options={{ title: 'Profile' }}
           />
           <Stack.Screen
             name="Recognition"

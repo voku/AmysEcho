@@ -10,6 +10,8 @@ export class Profile extends Model {
   @text('name') name!: string;
   @field('consent_help_me_get_smarter') consentHelpMeGetSmarter!: boolean;
   @field('consent_help_me_learn_over_time') consentHelpMeLearnOverTime!: boolean;
+  @field('large_text') largeText!: boolean;
+  @field('high_contrast') highContrast!: boolean;
   @date('created_at') createdAt!: Date;
   @date('updated_at') updatedAt!: Date;
   @relation('vocabulary_sets', 'active_vocabulary_set_id') activeVocabularySet: any;

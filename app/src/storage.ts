@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { database } from '../db';
-import { GestureTrainingData } from '../db/models';
+import { GestureTrainingData, Profile as DBProfile } from '../db/models';
 
 export interface Profile {
   id: string;
+  name: string;
   consentDataUpload: boolean;
   consentHelpMeGetSmarter: boolean;
   vocabularySetId: string;
@@ -12,7 +13,8 @@ export interface Profile {
   highContrast?: boolean;
 }
 
-const PROFILE_KEY = 'profile';
+const PROFILES_KEY = 'profiles';
+const ACTIVE_PROFILE_KEY = 'activeProfileId';
 const TRAINING_KEY = 'gestureTrainingData';
 const LOG_KEY = 'interactionLogs';
 
@@ -24,22 +26,50 @@ export interface TrainingSample {
   syncStatus: 'pending' | 'synced';
 }
 
-export async function saveProfile(profile: Profile): Promise<void> {
-  await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+export async function loadProfiles(): Promise<Profile[]> {
+  const raw = await AsyncStorage.getItem(PROFILES_KEY);
+  if (!raw) return [];
+  return JSON.parse(raw) as Profile[];
 }
 
-export async function loadProfile(): Promise<Profile | null> {
-  const raw = await AsyncStorage.getItem(PROFILE_KEY);
-  if (!raw) return null;
-  const parsed = JSON.parse(raw) as Partial<Profile>;
-  return {
-    id: parsed.id || 'default',
-    consentDataUpload: !!parsed.consentDataUpload,
-    consentHelpMeGetSmarter: !!parsed.consentHelpMeGetSmarter,
-    vocabularySetId: parsed.vocabularySetId || 'basic',
-    largeText: !!parsed.largeText,
-    highContrast: !!parsed.highContrast,
-  };
+export async function saveProfiles(profiles: Profile[]): Promise<void> {
+  await AsyncStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+}
+
+export async function createProfile(profile: Profile): Promise<void> {
+  const profiles = await loadProfiles();
+  profiles.push(profile);
+  await saveProfiles(profiles);
+  await setActiveProfileId(profile.id);
+
+  await database.write(async () => {
+    const collection = database.get<DBProfile>('profiles');
+    await collection.create(p => {
+      p.name = profile.name;
+      p.consentHelpMeGetSmarter = profile.consentHelpMeGetSmarter;
+      p.consentHelpMeLearnOverTime = profile.consentDataUpload;
+      p.largeText = !!profile.largeText;
+      p.highContrast = !!profile.highContrast;
+      (p as any).activeVocabularySet.id = profile.vocabularySetId;
+      p.createdAt = new Date();
+      p.updatedAt = new Date();
+    });
+  });
+}
+
+export async function setActiveProfileId(id: string): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_PROFILE_KEY, id);
+}
+
+export async function loadActiveProfileId(): Promise<string | null> {
+  return AsyncStorage.getItem(ACTIVE_PROFILE_KEY);
+}
+
+export async function loadProfile(id?: string): Promise<Profile | null> {
+  const profiles = await loadProfiles();
+  const pid = id || (await loadActiveProfileId());
+  if (!pid) return null;
+  return profiles.find(p => p.id === pid) || null;
 }
 
 function genId() {

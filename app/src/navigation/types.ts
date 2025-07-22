@@ -1,5 +1,6 @@
 export type RootStackParamList = {
   ProfileSelect: undefined;
+  ProfileManager: undefined;
   Recognition: { profileId?: string } | undefined;
   Admin: { profileId?: string } | undefined;
   Parent: undefined;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, Button, StyleSheet, SafeAreaView } from 'react-native';
-import { saveProfile, Profile } from '../storage';
+import { View, Text, Switch, Button, StyleSheet, SafeAreaView, TextInput } from 'react-native';
+import { createProfile, Profile } from '../storage';
 import {
   availableVocabularySets,
   setActiveVocabularySet,
@@ -8,6 +8,7 @@ import {
 import { useAccessibility } from '../components/AccessibilityContext';
 
 export default function OnboardingScreen({ navigation }: any) {
+  const [name, setName] = useState('');
   const [consentDataUpload, setConsentDataUpload] = useState(false);
   const [consentHelpMeGetSmarter, setConsentHelpMeGetSmarter] = useState(false);
   const [vocabSet, setVocabSet] = useState('basic');
@@ -17,17 +18,18 @@ export default function OnboardingScreen({ navigation }: any) {
 
   const handleContinue = async () => {
     const profile: Profile = {
-      id: 'default',
+      id: Date.now().toString(36),
+      name: name || 'Amy',
       consentDataUpload,
       consentHelpMeGetSmarter,
       vocabularySetId: vocabSet,
       largeText,
       highContrast,
     };
-    await saveProfile(profile);
+    await createProfile(profile);
     setActiveVocabularySet(vocabSet);
     update({ largeText, highContrast });
-    navigation.replace('ProfileSelect');
+    navigation.replace('ProfileManager');
   };
 
   const styles = StyleSheet.create({
@@ -37,6 +39,13 @@ export default function OnboardingScreen({ navigation }: any) {
       alignItems: 'center',
       padding: 20,
       backgroundColor: highContrast ? '#000' : '#fdfdfd',
+    },
+    input: {
+      borderWidth: 1,
+      padding: 8,
+      marginBottom: 20,
+      width: '100%',
+      backgroundColor: '#fff',
     },
     heart: { fontSize: largeText ? 80 : 64, textAlign: 'center', marginBottom: 20, color: highContrast ? '#fff' : '#000' },
     title: { fontSize: largeText ? 32 : 24, textAlign: 'center', marginBottom: 20, color: highContrast ? '#fff' : '#000' },
@@ -56,6 +65,13 @@ export default function OnboardingScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <Text style={styles.heart}>❤️</Text>
       <Text style={styles.title}>Welcome to Amy's Echo</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Name"
+        value={name}
+        onChangeText={setName}
+        accessibilityLabel="Profilname"
+      />
       <View style={styles.toggleRow}>
         <Text style={styles.label}>Allow data upload</Text>
         <Switch

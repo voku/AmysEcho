@@ -27,9 +27,9 @@ export default function ProfileSelectScreen({ navigation }: any) {
           accessibilityLabel="Adminbereich"
         />
         <Button
-          title="Neues Profil"
-          onPress={() => navigation.navigate('Onboarding')}
-          accessibilityLabel="Neues Profil anlegen"
+          title="Manage Profiles"
+          onPress={() => navigation.navigate('ProfileManager')}
+          accessibilityLabel="Profile verwalten"
         />
       </View>
     </View>
