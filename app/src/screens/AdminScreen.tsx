@@ -18,6 +18,7 @@ import {
 } from '../storage';
 import * as FileSystem from 'expo-file-system';
 import { database } from '../../db';
+import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
 import { Symbol as DBSymbol } from '../../db/models';
 
 export default function AdminScreen({ navigation }: any) {
@@ -95,7 +96,7 @@ export default function AdminScreen({ navigation }: any) {
 
   const handleDownloadModel = async () => {
     try {
-      const uri = FileSystem.documentDirectory + 'custom_model.tflite';
+      const uri = CUSTOM_GESTURE_MODEL_PATH;
       const token = await loadBackendApiToken();
       const res = await FileSystem.downloadAsync(
         'http://localhost:5000/latest-model',
