@@ -47,7 +47,8 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
    - (Python 3 required) Run `pip install -r requirements.txt` to install `numpy` and `pytest` for the training tests.
    - Then run `npm test` inside `server/` to execute the Python suite in `server/test/`.
 7. Inside `app`, run `npm run ios` or `npm run android` to launch the app
-8. Or run `./scripts/full-check.sh` from the repo root to execute all tests at once
+8. Or run `./scripts/full-check.sh` from the repo root to automatically install
+   dependencies and execute all tests at once
 
 ---
 
