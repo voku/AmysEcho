@@ -23,7 +23,7 @@
     "@react-navigation/native": "^6.1.5",
     "@react-navigation/native-stack": "^6.3.0",
     "@react-navigation/stack": "^6.3.18",
-    "expo": "~53.0.19",
+    "expo": "~53.0.20",
     "expo-av": "~13.2.1",
     "expo-secure-store": "~12.4.0",
     "expo-speech": "~11.4.0",

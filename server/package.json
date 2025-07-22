@@ -8,7 +8,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^4.18.4",
+    "express": "^4.21.2",
     "node-fetch": "^3.3.2",
     "typescript": "^5.8.3"
   },
