@@ -27,10 +27,10 @@ export const useServices = () => {
 export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
   const [areServicesReady, setAreServicesReady] = useState(false);
   const landmarkModel = useTensorflowModel(
-    require('./assets/models/hand_landmarker.tflite'),
+    require('../../assets/models/hand_landmarker.tflite'),
   );
   const gestureModel = useTensorflowModel(
-    require('./assets/models/gesture_classifier.tflite'),
+    require('../../assets/models/gesture_classifier.tflite'),
     true,
   );
 
