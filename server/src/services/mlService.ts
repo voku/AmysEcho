@@ -1,4 +1,5 @@
 import { classifyGesture as recognizerClassifyGesture, ClassificationResult } from '../recognizer';
+import { TRAINED_MODEL_PATH } from '../constants/modelPaths';
 
 type TfliteType = {
   loadModel(opts: { path: string; numThreads: number }): Promise<void>;
@@ -27,7 +28,7 @@ class MachineLearningService {
     if (!this.gestureModel) return;
     try {
       await this.gestureModel.loadModel({
-        path: process.env.TFLITE_GESTURE_MODEL || 'gestures.tflite',
+        path: process.env.TFLITE_GESTURE_MODEL || TRAINED_MODEL_PATH,
         numThreads: 4,
       });
       this.isReady = true;
