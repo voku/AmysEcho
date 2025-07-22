@@ -3,6 +3,10 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { TRAINED_MODEL_PATH } from './constants/modelPaths';
+import {
+  saveAnalyticsToFile,
+  loadAnalyticsFromFile,
+} from './services/analyticsService';
 
 const app = express();
 app.use(express.json());
@@ -84,6 +88,34 @@ app.get('/latest-model', auth, async (_req, res) => {
   } catch {
     res.status(404).json({ error: 'Model not found' });
   }
+});
+
+app.post('/analytics', auth, async (req, res) => {
+  const { successRate7d, improvementTrend } = req.body || {};
+  if (typeof successRate7d !== 'number' || typeof improvementTrend !== 'number') {
+    res.status(400).json({ error: 'Invalid analytics' });
+    return;
+  }
+  try {
+    await saveAnalyticsToFile({
+      id: 'default',
+      successRate7d,
+      improvementTrend,
+    });
+    res.json({ status: 'ok' });
+  } catch (err) {
+    console.error('Save analytics failed:', err);
+    res.status(500).json({ error: 'Failed to save analytics' });
+  }
+});
+
+app.get('/analytics', auth, async (_req, res) => {
+  const data = await loadAnalyticsFromFile();
+  if (!data) {
+    res.status(404).json({ error: 'Analytics not found' });
+    return;
+  }
+  res.json(data);
 });
 
 if (require.main === module) {
