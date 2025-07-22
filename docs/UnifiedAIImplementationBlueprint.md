@@ -27,20 +27,24 @@ The viability of this feature hinges on a modern React Native architecture that 
 
 This is the baseline gesture recognition that runs with pre-trained models.
 
-* **TODO 2.1: Acquire Pre-trained Models**
+* **TODO 2.1: Acquire Pre-trained Models** *(Completed)*
     1.  **Hand Landmark Model**: Download the `hand_landmarker.task` model from [Google MediaPipe](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker/index). Rename it to `hand_landmarker.tflite`.
     2.  **Gesture Classification Model**: Download the `gesture_recognizer.task` model from [Google MediaPipe](https://developers.google.com/mediapipe/solutions/vision/gesture_recognizer/index). Rename it to `gesture_classifier.tflite`.
     3.  **Placement**: Place both files in the app's `assets/models/` directory.
+    4.  **Centralized Paths**: Both the app and server expose these model paths via dedicated `constants/modelPaths` modules so every component loads models from the same location.
 
-* **TODO 2.2: Implement the Two-Stage Frame Processor**
+* **TODO 2.2: Implement the Two-Stage Frame Processor** *(Completed)*
     * **File**: `src/screens/RecognitionScreen.tsx` (or a dedicated component).
     * **Instruction**: Implement the `useFrameProcessor` hook to orchestrate the two models.
     * **LLM Hint**: This is the most complex client-side logic. Ensure both models are loaded with `useTensorflowModel` before processing. The output of the landmark model becomes the input for the gesture model.
 
     * **Code Example (`useFrameProcessor` logic)**:
         ```typescript
-        const landmarkModel = useTensorflowModel(require('../assets/models/hand_landmarker.tflite'));
-        const gestureModel = useTensorflowModel(require('../assets/models/gesture_classifier.tflite'));
+        // Model paths are centralized for reuse across the app
+        import { HAND_LANDMARKER_MODEL, GESTURE_CLASSIFIER_MODEL } from '../constants/modelPaths';
+
+        const landmarkModel = useTensorflowModel(HAND_LANDMARKER_MODEL);
+        const gestureModel = useTensorflowModel(GESTURE_CLASSIFIER_MODEL);
 
         const frameProcessor = useFrameProcessor((frame: Frame) => {
           'worklet';
@@ -71,11 +75,11 @@ This is the baseline gesture recognition that runs with pre-trained models.
         }, [landmarkModel, gestureModel]);
         ```
 
-### **Section 3: TODO — Implementing Personalized Data Collection**
+### **Section 3: Personalized Data Collection** *(Completed)*
 
 This is the critical client-side component for teaching the app Amy's specific gestures.
 
-* **TODO 3.1: Build the `TrainingScreen.tsx` UI**
+* **TODO 3.1: Build the `TrainingScreen.tsx` UI** *(Completed)*
     * **Instruction**: Implement a guided, multi-step UI for recording gesture samples.
     * **UI Flow**:
         1.  **Selection**: Screen receives a `symbol` to train.
@@ -84,7 +88,7 @@ This is the critical client-side component for teaching the app Amy's specific g
         4.  **Review**: Show thumbnails of recorded samples with an option to delete and re-record.
         5.  **Save**: A "Save Training Data" button, enabled after collecting enough samples.
 
-* **TODO 3.2: Implement In-Memory Landmark Extraction**
+* **TODO 3.2: Implement In-Memory Landmark Extraction** *(Completed)*
     * **Instruction**: After a video is recorded, process it to extract and save only the landmark data, not the video file itself.
     * **LLM Hint**: This requires a library like `react-native-ffmpeg` to extract individual frames from the temporary video file.
     * **Workflow**:
@@ -106,7 +110,7 @@ This is the critical client-side component for teaching the app Amy's specific g
 * **OpenAI Key Storage**: The mobile app stores the API key using `expo-secure-store` and calls the Chat Completions API directly.
 * **Server Responsibility**: The backend focuses on training new gesture models and serving them for download.
 
-### **Section 5: TODO — Implementing the Server-Side Components**
+### **Section 5: Server-Side Components** *(Completed)*
 
 This involves setting up a server application (e.g., using Python with Flask or FastAPI).
 
@@ -144,19 +148,19 @@ This involves setting up a server application (e.g., using Python with Flask or 
 
 **Objective**: To create the feedback loop where the newly trained personalized model is deployed back to Amy's device.
 
-### **Section 6: TODO — Implementing Model Deployment in the App**
+### **Section 6: Model Deployment in the App** *(Completed)*
 
 * **TODO 6.1: Create a Model Download Endpoint on the Server** *(Completed)*
     * **Endpoint**: `GET /latest-model?profileId=amy`
     * **Logic**: This endpoint checks for the latest successfully trained model for the given profile and allows it to be downloaded.
 
-* **TODO 6.2: Implement Model Download and Activation in the App**
+* **TODO 6.2: Implement Model Download and Activation in the App** *(Completed)*
     * **File**: `src/screens/AdminScreen.tsx`
     * **Instruction**: Add a "Download Latest Personalized Model" button.
     * **LLM Hint**: Use `expo-file-system` to download the `.tflite` file from the server endpoint and save it to the app's persistent document directory.
     * Store the local file URI (`file://...`) securely, associated with Amy's profile.
 
-* **TODO 6.3: Activate the Personalized Model**
+* **TODO 6.3: Activate the Personalized Model** *(Completed)*
     * **File**: `src/screens/RecognitionScreen.tsx`
     * **Instruction**: Modify the component's logic to be "custom-model-aware."
     * **Workflow**:

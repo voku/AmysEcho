@@ -2,6 +2,7 @@ import express from 'express';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { TRAINED_MODEL_PATH } from './constants/modelPaths';
 
 const app = express();
 app.use(express.json());
@@ -76,7 +77,7 @@ app.post('/train-model', auth, async (req, res) => {
 });
 
 app.get('/latest-model', auth, async (_req, res) => {
-  const file = path.join(process.cwd(), 'trained_model.tflite');
+  const file = TRAINED_MODEL_PATH;
   try {
     await fs.access(file);
     res.sendFile(file);

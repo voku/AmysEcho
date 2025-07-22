@@ -1,14 +1,13 @@
 import * as FileSystem from 'expo-file-system';
 import { FFmpegKit } from 'ffmpeg-kit-react-native';
 import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 
 let handModel: TensorflowModel | null = null;
 
 async function loadHandModel(): Promise<void> {
   if (handModel) return;
-  handModel = await loadTensorflowModel(
-    require('../../assets/models/hand_landmarker.tflite'),
-  );
+  handModel = await loadTensorflowModel(HAND_LANDMARKER_MODEL);
 }
 
 export async function extractLandmarksFromVideo(videoPath: string): Promise<number[][][]> {
