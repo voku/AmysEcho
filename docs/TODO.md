@@ -39,7 +39,7 @@ This document provides a detailed, actionable checklist for implementing the cor
             }, [landmarkModel, gestureModel]);
             ```
 
-### **TODO 1.2: Implemented In-App Data Collection for Personalization**
+### **TODO 1.2: In-App Data Collection for Personalization**
 
 * **Objective**: To build the UI and logic for a caregiver to record samples of Amy's specific gestures.
 * **File**: `src/screens/TrainingScreen.tsx`
@@ -51,13 +51,13 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 **LLM Hint**: These tasks require creating a server-side application (e.g., using Python with Flask/FastAPI and TensorFlow/Keras) to handle heavy model training workloads.
 
-### **TODO 2.1: Implemented OpenAI Dialog API Integration**
+### **TODO 2.1: OpenAI Dialog API Integration**
 
 * **Objective**: Use an API key stored on the device to request suggestions directly from OpenAI.
 * **File**: `services/dialogEngine.ts` & `src/screens/AdminScreen.tsx`
 * **Status**: Completed. Admin screen allows saving the OpenAI key, and `dialogEngine.ts` uses it to call the OpenAI API.
 
-### **TODO 2.2: Implemented Personalized Model Training Endpoint**
+### **TODO 2.2: Personalized Model Training Endpoint**
 
 * **Objective**: To receive collected gesture data, train a new model, and make it available for download.
 * **Status**: Completed. The `/train-model` endpoint triggers `train.py` to train an LSTM model and save it as `trained_model.tflite`. The `/latest-model` endpoint serves this file.
