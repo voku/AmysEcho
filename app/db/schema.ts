@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 5,
+  version: 6,
   tables: [
     tableSchema({
       name: 'profiles',
@@ -9,6 +9,8 @@ export const mySchema = appSchema({
         { name: 'name', type: 'string' },
         { name: 'consent_help_me_get_smarter', type: 'boolean' },
         { name: 'consent_help_me_learn_over_time', type: 'boolean' },
+        { name: 'large_text', type: 'boolean' },
+        { name: 'high_contrast', type: 'boolean' },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
         { name: 'active_vocabulary_set_id', type: 'string', isOptional: true, isIndexed: true },
