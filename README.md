@@ -134,9 +134,9 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Automate Offline Model Updates**: Regularly download newly trained personalized models and refresh the local classifier.
 - [x] **Log Caregiver Corrections**: Misidentified gestures are saved in the new `corrections` table for future training.
 - [x] **Background Sync Service**: Unsynced corrections are uploaded and model updates are checked on app launch.
-### Priority 6: Future Enhancements
-- [ ] **Multi-Profile Management**: Allow caregivers to add and switch between profiles.
-- [ ] **Expanded Analytics Dashboard**: Graph learning progress and sync data to the server.
+-### Priority 6: Future Enhancements
+- [x] **Multi-Profile Management**: Allow caregivers to add and switch between profiles.
+- [x] **Expanded Analytics Dashboard**: Graph learning progress and sync data to the server.
 - [ ] **Caregiver Web Portal**: Web interface for managing training data and personalized models.
 - [ ] **Custom Audio Recording**: Record personalized voice prompts for each symbol.
 

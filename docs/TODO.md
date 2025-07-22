@@ -117,13 +117,13 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: Support multiple child profiles with separate preferences and vocabulary sets.
 * **File**: `src/screens/ProfileManagerScreen.tsx`, `db/models.ts`
-* **Status**: Planned.
+* **Status**: Completed.
 
 ### **TODO 5.2: Expand Analytics Dashboard**
 
 * **Objective**: Visualize learning trends and sync analytics to the server for caregiver review.
 * **File**: `src/screens/DashboardScreen.tsx`, `server/src/services/analyticsService.ts`
-* **Status**: Planned.
+* **Status**: Completed.
 
 ### **TODO 5.3: Build Caregiver Web Portal**
 

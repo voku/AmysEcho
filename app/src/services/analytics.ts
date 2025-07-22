@@ -6,6 +6,7 @@ export interface LearningAnalytics {
 }
 
 const LOG_KEY = 'interactionLogs';
+const ANALYTICS_ENDPOINT = 'https://your-secure-backend.com/api/analytics';
 
 export async function loadAnalytics(): Promise<LearningAnalytics> {
   const raw = await AsyncStorage.getItem(LOG_KEY);
@@ -28,4 +29,18 @@ export async function loadAnalytics(): Promise<LearningAnalytics> {
     successRate7d: Number(success.toFixed(2)),
     improvementTrend: Number(improvement.toFixed(2)),
   };
+}
+
+export async function uploadAnalytics(
+  analytics: LearningAnalytics,
+): Promise<void> {
+  try {
+    await fetch(ANALYTICS_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(analytics),
+    });
+  } catch {
+    // best-effort; ignore errors
+  }
 }

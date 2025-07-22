@@ -1,5 +1,9 @@
 import { Database } from '../db';
 import { LearningAnalytics } from '../types';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+const ANALYTICS_PATH = path.join(process.cwd(), 'analytics.json');
 
 export function computeLearningAnalytics(db: Database): LearningAnalytics {
   const now = Date.now();
@@ -35,5 +39,24 @@ export function refreshLearningAnalytics(db: Database): void {
     existing.improvementTrend = analytics.improvementTrend;
   } else {
     db.learningAnalytics.push(analytics);
+  }
+}
+
+export async function saveAnalyticsToFile(
+  analytics: LearningAnalytics,
+  filePath: string = ANALYTICS_PATH,
+): Promise<void> {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(analytics, null, 2), 'utf8');
+}
+
+export async function loadAnalyticsFromFile(
+  filePath: string = ANALYTICS_PATH,
+): Promise<LearningAnalytics | null> {
+  try {
+    const data = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(data) as LearningAnalytics;
+  } catch {
+    return null;
   }
 }

@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
-import { loadAnalytics, LearningAnalytics } from '../services/analytics';
+import {
+  loadAnalytics,
+  uploadAnalytics,
+  LearningAnalytics,
+} from '../services/analytics';
 import { useAccessibility } from '../components/AccessibilityContext';
 
 export default function DashboardScreen({ navigation }: any) {
@@ -8,7 +12,10 @@ export default function DashboardScreen({ navigation }: any) {
   const [data, setData] = useState<LearningAnalytics | null>(null);
 
   useEffect(() => {
-    loadAnalytics().then(setData);
+    loadAnalytics().then((d) => {
+      setData(d);
+      uploadAnalytics(d);
+    });
   }, []);
 
   const styles = StyleSheet.create({
@@ -23,6 +30,17 @@ export default function DashboardScreen({ navigation }: any) {
       marginBottom: 10,
       color: highContrast ? '#fff' : '#000',
     },
+    barBackground: {
+      width: 200,
+      height: 20,
+      borderColor: '#888',
+      borderWidth: 1,
+      marginBottom: 10,
+    },
+    barFill: {
+      height: '100%',
+      backgroundColor: '#4caf50',
+    },
   });
 
   return (
@@ -30,6 +48,14 @@ export default function DashboardScreen({ navigation }: any) {
       <Text style={styles.label}>Analytics Dashboard</Text>
       {data ? (
         <>
+          <View style={styles.barBackground}>
+            <View
+              style={[
+                styles.barFill,
+                { width: `${Math.round(data.successRate7d * 100)}%` },
+              ]}
+            />
+          </View>
           <Text style={styles.label}>
             Success Rate (7d): {(data.successRate7d * 100).toFixed(0)}%
           </Text>
