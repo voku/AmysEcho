@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Ensure Node dependencies are installed
+npm install --prefix app
+npm install --prefix server
+
 # Run type check and tests for the React Native app
 npm run type-check --prefix app
 npm test --prefix app
