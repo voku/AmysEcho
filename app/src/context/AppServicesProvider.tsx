@@ -7,6 +7,7 @@ import { syncService } from "../services";
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
 import { useTensorflowModel } from '../hooks/useTensorflowModel';
+import { HAND_LANDMARKER_MODEL, GESTURE_CLASSIFIER_MODEL } from '../constants/modelPaths';
 
 interface Services {
   mlService: typeof mlService;
@@ -26,13 +27,8 @@ export const useServices = () => {
 
 export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
   const [areServicesReady, setAreServicesReady] = useState(false);
-  const landmarkModel = useTensorflowModel(
-    require('../../assets/models/hand_landmarker.tflite'),
-  );
-  const gestureModel = useTensorflowModel(
-    require('../../assets/models/gesture_classifier.tflite'),
-    true,
-  );
+  const landmarkModel = useTensorflowModel(HAND_LANDMARKER_MODEL);
+  const gestureModel = useTensorflowModel(GESTURE_CLASSIFIER_MODEL, true);
 
   useEffect(() => {
     if (!landmarkModel || !gestureModel) return;
