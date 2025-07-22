@@ -42,7 +42,7 @@
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
     "@react-native/eslint-config": "latest",
-    "@testing-library/react-native": "^12.0.0",
+    "@testing-library/react-native": "^13.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^18.2.0",
     "babel-jest": "^29.0.0",
