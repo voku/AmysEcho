@@ -71,7 +71,7 @@ This is the baseline gesture recognition that runs with pre-trained models.
         }, [landmarkModel, gestureModel]);
         ```
 
-### **Section 3: TODO — Implementing Personalized Data Collection**
+### **Section 3: Personalized Data Collection** *(Completed)*
 
 This is the critical client-side component for teaching the app Amy's specific gestures.
 
@@ -106,7 +106,7 @@ This is the critical client-side component for teaching the app Amy's specific g
 * **OpenAI Key Storage**: The mobile app stores the API key using `expo-secure-store` and calls the Chat Completions API directly.
 * **Server Responsibility**: The backend focuses on training new gesture models and serving them for download.
 
-### **Section 5: TODO — Implementing the Server-Side Components**
+### **Section 5: Server-Side Components** *(Completed)*
 
 This involves setting up a server application (e.g., using Python with Flask or FastAPI).
 
@@ -144,7 +144,7 @@ This involves setting up a server application (e.g., using Python with Flask or 
 
 **Objective**: To create the feedback loop where the newly trained personalized model is deployed back to Amy's device.
 
-### **Section 6: TODO — Implementing Model Deployment in the App**
+### **Section 6: Model Deployment in the App** *(Completed)*
 
 * **TODO 6.1: Create a Model Download Endpoint on the Server** *(Completed)*
     * **Endpoint**: `GET /latest-model?profileId=amy`
