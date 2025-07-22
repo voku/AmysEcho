@@ -3,15 +3,19 @@ import { pipeline } from 'stream';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
+import {
+  HAND_LANDMARKER_MODEL_PATH,
+  GESTURE_CLASSIFIER_MODEL_PATH,
+} from '../constants/modelPaths';
 
 const models = [
   {
     url: 'https://storage.googleapis.com/mediapipe-assets/hand_landmarker.task',
-    out: path.join(__dirname, '../../app/assets/models/hand_landmarker.tflite'),
+    out: HAND_LANDMARKER_MODEL_PATH,
   },
   {
     url: 'https://storage.googleapis.com/mediapipe-assets/gesture_recognizer.task',
-    out: path.join(__dirname, '../../app/assets/models/gesture_classifier.tflite'),
+    out: GESTURE_CLASSIFIER_MODEL_PATH,
   },
 ];
 
