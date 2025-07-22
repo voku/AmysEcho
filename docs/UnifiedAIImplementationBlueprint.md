@@ -31,6 +31,7 @@ This is the baseline gesture recognition that runs with pre-trained models.
     1.  **Hand Landmark Model**: Download the `hand_landmarker.task` model from [Google MediaPipe](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker/index). Rename it to `hand_landmarker.tflite`.
     2.  **Gesture Classification Model**: Download the `gesture_recognizer.task` model from [Google MediaPipe](https://developers.google.com/mediapipe/solutions/vision/gesture_recognizer/index). Rename it to `gesture_classifier.tflite`.
     3.  **Placement**: Place both files in the app's `assets/models/` directory.
+    4.  **Centralized Paths**: Both the app and server expose these model paths via dedicated `constants/modelPaths` modules so every component loads models from the same location.
 
 * **TODO 2.2: Implement the Two-Stage Frame Processor** *(Completed)*
     * **File**: `src/screens/RecognitionScreen.tsx` (or a dedicated component).
@@ -39,8 +40,11 @@ This is the baseline gesture recognition that runs with pre-trained models.
 
     * **Code Example (`useFrameProcessor` logic)**:
         ```typescript
-        const landmarkModel = useTensorflowModel(require('../assets/models/hand_landmarker.tflite'));
-        const gestureModel = useTensorflowModel(require('../assets/models/gesture_classifier.tflite'));
+        // Model paths are centralized for reuse across the app
+        import { HAND_LANDMARKER_MODEL, GESTURE_CLASSIFIER_MODEL } from '../constants/modelPaths';
+
+        const landmarkModel = useTensorflowModel(HAND_LANDMARKER_MODEL);
+        const gestureModel = useTensorflowModel(GESTURE_CLASSIFIER_MODEL);
 
         const frameProcessor = useFrameProcessor((frame: Frame) => {
           'worklet';
