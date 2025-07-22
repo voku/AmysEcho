@@ -35,7 +35,7 @@
     "react-native-fast-tflite": "^1.6.1",
     "react-native-permissions": "^5.4.1",
     "react-native-reanimated": "^3.19.0",
-    "react-native-vision-camera": "^2.16.8"
+    "react-native-vision-camera": "^4.0.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",
