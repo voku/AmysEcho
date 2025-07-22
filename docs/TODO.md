@@ -108,3 +108,31 @@ This document provides a detailed, actionable checklist for implementing the cor
 * **Objective**: Allow caregivers to teach the system new gestures directly on the device.
 * **File**: `src/screens/TeachingScreen.tsx`
 * **Status**: Completed.
+
+---
+
+## **Part 5: Future Enhancements**
+
+### **TODO 5.1: Implement Multi-Profile Management**
+
+* **Objective**: Support multiple child profiles with separate preferences and vocabulary sets.
+* **File**: `src/screens/ProfileManagerScreen.tsx`, `db/models.ts`
+* **Status**: Planned.
+
+### **TODO 5.2: Expand Analytics Dashboard**
+
+* **Objective**: Visualize learning trends and sync analytics to the server for caregiver review.
+* **File**: `src/screens/DashboardScreen.tsx`, `server/src/services/analyticsService.ts`
+* **Status**: Planned.
+
+### **TODO 5.3: Build Caregiver Web Portal**
+
+* **Objective**: Provide a web interface to manage training data, view analytics, and download personalized models.
+* **File**: `server/src/portal/`
+* **Status**: Planned.
+
+### **TODO 5.4: Add Custom Audio Recording**
+
+* **Objective**: Allow caregivers to record personalized audio cues for each symbol.
+* **File**: `src/screens/AdminScreen.tsx`, `src/services/audioService.ts`
+* **Status**: Planned.
