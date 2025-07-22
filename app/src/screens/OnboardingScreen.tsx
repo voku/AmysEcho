@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Switch, Button, StyleSheet, SafeAreaView, TextInput } from 'react-native';
-import { createProfile, Profile } from '../storage';
+import { createProfile } from '../storage';
 import {
   availableVocabularySets,
   setActiveVocabularySet,
@@ -17,16 +17,14 @@ export default function OnboardingScreen({ navigation }: any) {
   const { update } = useAccessibility();
 
   const handleContinue = async () => {
-    const profile: Profile = {
-      id: Date.now().toString(36),
+    await createProfile({
       name: name || 'Amy',
       consentDataUpload,
       consentHelpMeGetSmarter,
       vocabularySetId: vocabSet,
       largeText,
       highContrast,
-    };
-    await createProfile(profile);
+    });
     setActiveVocabularySet(vocabSet);
     update({ largeText, highContrast });
     navigation.replace('ProfileManager');

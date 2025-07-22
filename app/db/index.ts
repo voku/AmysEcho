@@ -120,6 +120,8 @@ export const setupDatabase = async () => {
       (p as any).activeVocabularySet.id = alltagSet.id;
       p.consentHelpMeGetSmarter = true;
       p.consentHelpMeLearnOverTime = true;
+      p.largeText = false;
+      p.highContrast = false;
       p.createdAt = new Date(now);
       p.updatedAt = new Date(now);
     });

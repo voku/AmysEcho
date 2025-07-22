@@ -13,7 +13,7 @@ import LearningScreen from './src/screens/LearningScreen';
 import TeachingScreen from './src/screens/TeachingScreen';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
-import { loadProfile, loadProfiles, createProfile } from './src/storage';
+import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,20 +31,12 @@ export default function App() {
         const profileId = await setupDatabase();
         setInitialProfileId(profileId);
 
-        const existing = await loadProfiles();
-        if (existing.length === 0) {
-          await createProfile({
-            id: profileId,
-            name: 'Amy',
-            consentDataUpload: true,
-            consentHelpMeGetSmarter: true,
-            vocabularySetId: 'basic',
-            largeText: false,
-            highContrast: false,
-          });
+        const activeId = await loadActiveProfileId();
+        if (!activeId) {
+          await setActiveProfileId(profileId);
         }
 
-        const profile = await loadProfile();
+        const profile = await loadProfile(activeId || profileId);
         if (profile) {
           setAccessibility({
             largeText: !!profile.largeText,

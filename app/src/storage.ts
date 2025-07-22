@@ -13,7 +13,6 @@ export interface Profile {
   highContrast?: boolean;
 }
 
-const PROFILES_KEY = 'profiles';
 const ACTIVE_PROFILE_KEY = 'activeProfileId';
 const TRAINING_KEY = 'gestureTrainingData';
 const LOG_KEY = 'interactionLogs';
@@ -27,24 +26,27 @@ export interface TrainingSample {
 }
 
 export async function loadProfiles(): Promise<Profile[]> {
-  const raw = await AsyncStorage.getItem(PROFILES_KEY);
-  if (!raw) return [];
-  return JSON.parse(raw) as Profile[];
+  const records = await database.get<DBProfile>('profiles').query().fetch();
+  return records.map(mapDbProfile);
 }
 
-export async function saveProfiles(profiles: Profile[]): Promise<void> {
-  await AsyncStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+function mapDbProfile(p: DBProfile): Profile {
+  return {
+    id: p.id,
+    name: p.name,
+    consentDataUpload: p.consentHelpMeLearnOverTime,
+    consentHelpMeGetSmarter: p.consentHelpMeGetSmarter,
+    vocabularySetId: (p as any).activeVocabularySet.id,
+    largeText: p.largeText,
+    highContrast: p.highContrast,
+  };
 }
 
-export async function createProfile(profile: Profile): Promise<void> {
-  const profiles = await loadProfiles();
-  profiles.push(profile);
-  await saveProfiles(profiles);
-  await setActiveProfileId(profile.id);
-
+export async function createProfile(profile: Omit<Profile, 'id'>): Promise<Profile> {
+  let record!: DBProfile;
   await database.write(async () => {
     const collection = database.get<DBProfile>('profiles');
-    await collection.create(p => {
+    record = await collection.create(p => {
       p.name = profile.name;
       p.consentHelpMeGetSmarter = profile.consentHelpMeGetSmarter;
       p.consentHelpMeLearnOverTime = profile.consentDataUpload;
@@ -55,6 +57,10 @@ export async function createProfile(profile: Profile): Promise<void> {
       p.updatedAt = new Date();
     });
   });
+
+  const full: Profile = { ...profile, id: record.id };
+  await setActiveProfileId(full.id);
+  return full;
 }
 
 export async function setActiveProfileId(id: string): Promise<void> {
@@ -66,10 +72,14 @@ export async function loadActiveProfileId(): Promise<string | null> {
 }
 
 export async function loadProfile(id?: string): Promise<Profile | null> {
-  const profiles = await loadProfiles();
   const pid = id || (await loadActiveProfileId());
   if (!pid) return null;
-  return profiles.find(p => p.id === pid) || null;
+  try {
+    const record = await database.get<DBProfile>('profiles').find(pid);
+    return mapDbProfile(record);
+  } catch {
+    return null;
+  }
 }
 
 function genId() {
