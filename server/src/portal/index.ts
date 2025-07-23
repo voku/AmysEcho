@@ -1,9 +1,15 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { loadAnalyticsFromFile } from '../services/analyticsService';
 import { TRAINED_MODEL_PATH } from '../constants/modelPaths';
 import { promises as fs } from 'fs';
 
 const router = express.Router();
+
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+});
 
 router.get('/', (_req, res) => {
   res.send(`
@@ -15,7 +21,7 @@ router.get('/', (_req, res) => {
   `);
 });
 
-router.get('/analytics', async (_req, res) => {
+router.get('/analytics', limiter, async (_req, res) => {
   const analytics = await loadAnalyticsFromFile();
   if (!analytics) {
     res.status(404).send('No analytics available');
@@ -24,7 +30,7 @@ router.get('/analytics', async (_req, res) => {
   res.send(`<pre>${JSON.stringify(analytics, null, 2)}</pre>`);
 });
 
-router.get('/download-model', async (_req, res) => {
+router.get('/download-model', limiter, async (_req, res) => {
   try {
     await fs.access(TRAINED_MODEL_PATH);
     res.download(TRAINED_MODEL_PATH);
