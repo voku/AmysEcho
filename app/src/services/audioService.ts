@@ -5,6 +5,7 @@ import {AudioConfig, SoundEffect, SpeechOptions} from '../types/audio';
 import {InterruptionModeAndroid, InterruptionModeIOS} from "expo-av/src/Audio.types";
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
+import * as FileSystem from 'expo-file-system';
 
 export class AudioService {
   private sounds: Map<string, Audio.Sound> = new Map();
@@ -276,6 +277,12 @@ export class AudioService {
       return;
     }
     try {
+      const info = await FileSystem.getInfoAsync(uri);
+      if (!info.exists) {
+        logger.warn(`Custom audio missing: ${uri}`);
+        return;
+      }
+
       const { sound } = await Audio.Sound.createAsync(
         { uri },
         { shouldPlay: true, volume: this.config.volume },
@@ -340,8 +347,12 @@ export async function playSymbolAudio(entry: { id: string; label: string; audioU
   }
 
   if (uri) {
-    await audioService.playCustomAudio(uri);
-  } else {
-    await audioService.speak(entry.label);
+    const info = await FileSystem.getInfoAsync(uri);
+    if (info.exists) {
+      await audioService.playCustomAudio(uri);
+      return;
+    }
   }
+
+  await audioService.speak(entry.label);
 }
