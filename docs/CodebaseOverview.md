@@ -33,4 +33,5 @@ This document summarizes the repository in seven key areas with concrete file re
 ## 7. Custom Audio Recording
 - Recording logic in `app/src/services/audioService.ts`
 - Audio files moved in `app/src/screens/AdminScreen.tsx`
+- Recordings persist in `app/src/constants/audioPaths.ts` for offline playback
 
