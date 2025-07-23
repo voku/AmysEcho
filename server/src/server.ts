@@ -7,9 +7,11 @@ import {
   saveAnalyticsToFile,
   loadAnalyticsFromFile,
 } from './services/analyticsService';
+import portalRouter from './portal';
 
 const app = express();
 app.use(express.json());
+app.use('/portal', portalRouter);
 
 const API_TOKEN = process.env.API_TOKEN || 'secret';
 

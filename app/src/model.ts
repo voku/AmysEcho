@@ -8,6 +8,8 @@ export type GestureModelEntry = {
   videoUri?: string;
   /** Optional path to a DGS video */
   dgsVideoUri?: string;
+  /** Optional path to a default audio cue */
+  audioUri?: string;
 };
 
 export type GestureModel = {

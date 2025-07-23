@@ -18,7 +18,9 @@ import {
 } from '../storage';
 import * as FileSystem from 'expo-file-system';
 import { database } from '../../db';
+import { audioService } from '../services/audioService';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
+import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
 
 export default function AdminScreen({ navigation }: any) {
@@ -29,6 +31,8 @@ export default function AdminScreen({ navigation }: any) {
   const [modalVisible, setModalVisible] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [backendToken, setBackendToken] = useState('');
+  const [audioUri, setAudioUri] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
 
   React.useEffect(() => {
     const sub = database
@@ -49,6 +53,7 @@ export default function AdminScreen({ navigation }: any) {
     setEditing(null);
     setId('');
     setLabel('');
+    setAudioUri('');
     setModalVisible(true);
   };
 
@@ -56,15 +61,33 @@ export default function AdminScreen({ navigation }: any) {
     setEditing(sym);
     setId(sym.id);
     setLabel(sym.name);
+    setAudioUri((sym as any).audioUri || '');
     setModalVisible(true);
   };
 
   const handleSave = async () => {
+    const targetId = id || editing?.id;
+    let finalUri = audioUri;
+
+    if (audioUri && targetId) {
+      const dest = getCustomAudioPath(targetId);
+      if (audioUri !== dest) {
+        await FileSystem.makeDirectoryAsync(CUSTOM_AUDIO_DIR, { intermediates: true });
+        try {
+          await FileSystem.moveAsync({ from: audioUri, to: dest });
+          finalUri = dest;
+        } catch (e) {
+          console.error('move failed', e);
+        }
+      }
+    }
+
     await database.write(async () => {
       const collection = database.get<DBSymbol>('symbols');
       if (editing) {
         await editing.update((s) => {
           s.name = label;
+          (s as any).audioUri = finalUri;
         });
       } else {
         await collection.create((s) => {
@@ -79,6 +102,7 @@ export default function AdminScreen({ navigation }: any) {
           s.healthScore = 100;
           s.color = '#FFFFFF';
           s.emoji = '❓';
+          (s as any).audioUri = finalUri;
           s.createdAt = new Date();
         });
       }
@@ -108,6 +132,25 @@ export default function AdminScreen({ navigation }: any) {
     } catch (e) {
       console.error(e);
       Alert.alert('Download failed');
+    }
+  };
+
+  const handleRecordAudio = async () => {
+    if (!isRecording) {
+      try {
+        await audioService.startRecording();
+        setIsRecording(true);
+      } catch {
+        Alert.alert('Recording failed');
+      }
+    } else {
+      try {
+        const uri = await audioService.stopRecording();
+        if (uri) setAudioUri(uri);
+      } catch {
+        Alert.alert('Stop failed');
+      }
+      setIsRecording(false);
     }
   };
 
@@ -209,6 +252,12 @@ export default function AdminScreen({ navigation }: any) {
             onChangeText={setLabel}
             accessibilityLabel="Symbol Label"
           />
+          <Button
+            title={isRecording ? 'Stop Recording' : 'Record Audio'}
+            onPress={handleRecordAudio}
+            accessibilityLabel="Audioaufnahme"
+          />
+          {audioUri ? <Text>Audio saved</Text> : null}
           <Button title="Save" onPress={handleSave} accessibilityLabel="Symbol speichern" />
           <Button title="Cancel" onPress={() => setModalVisible(false)} accessibilityLabel="Abbrechen" />
         </View>
