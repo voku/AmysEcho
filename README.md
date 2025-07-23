@@ -107,7 +107,7 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 ## Project Status & Open Todos
 
-For the full implementation roadmap, see [`docs/TODO.md`](docs/TODO.md). The repository currently includes a complete gesture recognition pipeline, training flow, adaptive learning service, and a caregiver web portal with custom audio support.
+For the full implementation roadmap, see [`docs/TODO.md`](docs/TODO.md). The repository includes a complete gesture recognition pipeline, training flow, adaptive learning service, multi-profile management, an expanded analytics dashboard, and a caregiver web portal with custom audio support.
 
 
 ## ▶️ Running the mobile app
