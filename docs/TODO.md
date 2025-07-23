@@ -129,7 +129,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: Provide a web interface to manage training data, view analytics, and download personalized models.
 * **File**: `server/src/portal/`
-* **Status**: Planned. Only a placeholder router exists under `server/src/portal/`.
+* **Status**: Completed. The portal lists analytics, allows training data management, and serves model downloads.
 
 ### **TODO 5.4: Add Custom Audio Recording**
 
