@@ -137,8 +137,8 @@ The project has a stable foundation after a major refactor. The database, naviga
 -### Priority 6: Future Enhancements
 - [x] **Multi-Profile Management**: Allow caregivers to add and switch between profiles.
 - [x] **Expanded Analytics Dashboard**: Graph learning progress and sync data to the server.
-- [ ] **Caregiver Web Portal**: Web interface for managing training data and personalized models.
-- [ ] **Custom Audio Recording**: Record personalized voice prompts for each symbol.
+- [x] **Caregiver Web Portal**: Web interface for managing training data and personalized models.
+- [x] **Custom Audio Recording**: Record personalized voice prompts for each symbol.
 
 
 ## ▶️ Running the mobile app

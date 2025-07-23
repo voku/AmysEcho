@@ -129,10 +129,10 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: Provide a web interface to manage training data, view analytics, and download personalized models.
 * **File**: `server/src/portal/`
-* **Status**: Planned.
+* **Status**: Completed. Portal routes offer analytics and model downloads with rate limiting.
 
 ### **TODO 5.4: Add Custom Audio Recording**
 
 * **Objective**: Allow caregivers to record personalized audio cues for each symbol.
 * **File**: `src/screens/AdminScreen.tsx`, `src/services/audioService.ts`
-* **Status**: Planned.
+* **Status**: Completed. Admin screen can record audio and playback uses local files when available.
