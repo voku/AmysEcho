@@ -13,7 +13,7 @@ import portalRouter from './portal';
 
 const app = express();
 app.use(express.json());
-app.use('/portal', portalRouter);
+app.use('/portal', auth, portalRouter);
 
 // Ensure the database file exists with default content
 setupDatabase(DB_FILE_PATH).catch((err) => {
