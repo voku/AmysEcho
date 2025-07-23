@@ -3,6 +3,9 @@ import * as Speech from 'expo-speech';
 import {logger} from '../utils/logger';
 import {AudioConfig, SoundEffect, SpeechOptions} from '../types/audio';
 import {InterruptionModeAndroid, InterruptionModeIOS} from "expo-av/src/Audio.types";
+import { database } from '../../db';
+import { Symbol } from '../../db/models';
+import * as FileSystem from 'expo-file-system';
 
 export class AudioService {
   private sounds: Map<string, Audio.Sound> = new Map();
@@ -10,6 +13,7 @@ export class AudioService {
   private config: AudioConfig;
   private speechQueue: Array<{ text: string; options: SpeechOptions }> = [];
   private isSpeaking = false;
+  private recording: Audio.Recording | null = null;
 
   constructor(config: AudioConfig) {
     this.config = {...config};
@@ -234,6 +238,63 @@ export class AudioService {
   }
 
   /**
+   * Start audio recording for custom cues
+   */
+  async startRecording(): Promise<void> {
+    const permission = await Audio.requestPermissionsAsync();
+    if (!permission.granted) {
+      throw new Error('Audio permission not granted');
+    }
+    this.recording = new Audio.Recording();
+    await this.recording.prepareToRecordAsync(
+      Audio.RecordingOptionsPresets.HIGH_QUALITY,
+    );
+    await this.recording.startAsync();
+  }
+
+  /**
+   * Stop recording and return file URI
+   */
+  async stopRecording(): Promise<string | null> {
+    if (!this.recording) return null;
+    try {
+      await this.recording.stopAndUnloadAsync();
+      const uri = this.recording.getURI();
+      this.recording = null;
+      return uri ?? null;
+    } catch (err) {
+      this.recording = null;
+      throw err;
+    }
+  }
+
+  /**
+   * Play custom audio from a file URI
+   */
+  async playCustomAudio(uri: string): Promise<void> {
+    if (!this.isInitialized) {
+      logger.warn('Audio service not initialized');
+      return;
+    }
+    try {
+      const info = await FileSystem.getInfoAsync(uri);
+      if (!info.exists) {
+        logger.warn(`Custom audio missing: ${uri}`);
+        return;
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true, volume: this.config.volume },
+      );
+      await sound.playAsync();
+      await sound.unloadAsync();
+    } catch (error) {
+      logger.error('Failed to play custom audio:', error);
+    }
+  }
+
+  /**
    * Update audio configuration
    */
   updateConfig(newConfig: Partial<AudioConfig>): void {
@@ -275,6 +336,23 @@ export const audioService = new AudioService({
  * This mirrors the playSymbolAudio function that was used in
  * some screens before the AudioService refactor.
  */
-export async function playSymbolAudio(entry: { id: string; label: string }): Promise<void> {
+
+export async function playSymbolAudio(entry: { id: string; label: string; audioUri?: string }): Promise<void> {
+  let uri = entry.audioUri;
+  if (!uri) {
+    try {
+      const symbol = await database.get<Symbol>('symbols').find(entry.id);
+      uri = (symbol as any).audioUri || undefined;
+    } catch {}
+  }
+
+  if (uri) {
+    const info = await FileSystem.getInfoAsync(uri);
+    if (info.exists) {
+      await audioService.playCustomAudio(uri);
+      return;
+    }
+  }
+
   await audioService.speak(entry.label);
 }
