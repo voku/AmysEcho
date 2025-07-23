@@ -70,7 +70,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const handlePress = async (symbol: Symbol) => {
     setSelectedSymbol(symbol);
     setVideoPaused(false);
-    await playSymbolAudio({ id: symbol.id, label: symbol.name });
+    await playSymbolAudio({ id: symbol.id, label: symbol.name, audioUri: (symbol as any).audioUri });
     await incrementUsage(symbol, profile.id);
     const trigger = await recordInteraction(symbol.id, true);
     if (trigger) setShowMaintenance(true);
