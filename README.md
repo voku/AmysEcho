@@ -6,6 +6,8 @@ Amy is four years old. She was born with **22q11 Deletion Syndrome** and communi
 
 This project aims to fix that.
 
+See [`docs/CodebaseOverview.md`](docs/CodebaseOverview.md) for a summary of the repository structure.
+
 ---
 
 ## 🎯 Purpose
@@ -49,6 +51,14 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 7. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 8. Or run `./scripts/full-check.sh` from the repo root to automatically install
    dependencies and execute all tests at once
+
+## Process
+
+You will:
+1. **Analyze the codebase systematically** across seven key areas.
+2. **Create or update `docs/*.md`** with file references for each area.
+3. **Synthesize documentation** into this concise README.
+4. **Remove duplication** so the docs complement rather than repeat each other.
 
 ---
 
@@ -97,48 +107,7 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 ## Project Status & Open Todos
 
-The project has a stable foundation after a major refactor. The database, navigation, and core app structure are complete. The next steps focus on implementing the scaffolded features to reach the goal defined in `/spec/AmysEcho.md`.
-
-**For detailed implementation instructions, see [`docs/TODO.md`](docs/TODO.md) and [`docs/UnifiedAIImplementationBlueprint.md`](docs/UnifiedAIImplementationBlueprint.md).**
-
-### Priority 1: Activate Core Functionality
-- [x] **Implement Gesture Recognition**: The `mlService.ts` now loads the TFLite model and performs live gesture classification.
-- [x] **Implement Rich Audio Feedback**: The `audioService.ts` plays success and error sounds using `expo-av`.
-
-### Priority 2: Enhance with Intelligence & Accessibility
-- [x] **Integrate Live LLM Dialog Engine**: `dialogEngine.ts` now makes a live OpenAI API request for suggestions.
-- [x] **Add DGS Video Playback**: DGS videos can be shown via a toggle on the `LearningScreen`.
-- [x] **Looping DGS Playback**: The new `DgsVideoPlayer` component loops each sign for easy study.
-
-### Priority 3: Polish and Administration
-- [x] **Complete Admin Panel**: CRUD functionality in `AdminScreen.tsx` manages symbols and vocabularies.
-- [x] **UI/UX Polish**: Conducted a full review of the UI, improved layouts, and ensured all buttons and interactive elements have accessibility labels.
-
-### Priority 4: Personalized AI Pipeline
-- [x] **Acquire Pre-trained Models**: Download and bundle the MediaPipe models (see `src/tools/downloadModels.ts`).
-- [x] **Implement Two-Stage Frame Processor**: Load landmark and gesture models inside a `useFrameProcessor` worklet.
-- [x] **Build TrainingScreen UI**: Provide a guided interface for recording gesture samples.
-- [x] **Create TeachingScreen for HIP 2**: Caregivers can teach new gestures via the training flow.
-- [x] **Implement In-Memory Landmark Extraction**: Use ffmpeg to pull frames and save landmarks only.
- - [x] **Direct OpenAI Integration**: Suggestions are fetched from OpenAI using an API key stored on the device.
-- [x] **Create Model Training Endpoint & Script**: Accept uploaded landmarks and train an LSTM gesture model.
-- [x] **Create Model Download Endpoint**: Serve the latest personalized model to the app.
-- [x] **Implement Model Download and Activation**: Download the `.tflite` model and store its URI securely.
-- [x] **Activate the Personalized Model**: Use the custom model in the Learning screen when available.
-
-### Priority 5: Adaptive Learning & Maintenance
-- [x] **Implement Adaptive Learning Service (ALS)**: Dynamically adjust gesture confidence thresholds and health scores after each interaction, triggering HIP 4 when necessary.
-- [x] **Show Proactive Maintenance Banner (HIP 4)**: Display a soft banner asking for practice when a gesture's healthScore declines.
-- [x] **Sync Training Data with Consent**: Batch upload pending `gesture_training_data` to the server when the caregiver allows it and a Wi-Fi connection is available.
-- [x] **Finish LSTM Training Pipeline**: Replace the placeholder logic in `train.py` with a real LSTM model that outputs a `.tflite` file.
-- [x] **Automate Offline Model Updates**: Regularly download newly trained personalized models and refresh the local classifier.
-- [x] **Log Caregiver Corrections**: Misidentified gestures are saved in the new `corrections` table for future training.
-- [x] **Background Sync Service**: Unsynced corrections are uploaded and model updates are checked on app launch.
--### Priority 6: Future Enhancements
-- [x] **Multi-Profile Management**: Allow caregivers to add and switch between profiles.
-- [x] **Expanded Analytics Dashboard**: Graph learning progress and sync data to the server.
-- [ ] **Caregiver Web Portal**: Web interface for managing training data and personalized models.
-- [ ] **Custom Audio Recording**: Record personalized voice prompts for each symbol.
+For the full implementation roadmap, see [`docs/TODO.md`](docs/TODO.md). The repository includes a complete gesture recognition pipeline, training flow, adaptive learning service, multi-profile management, an expanded analytics dashboard, custom audio support, and a caregiver web portal under `server/src/portal/`. When the backend server is running, visit `http://localhost:5000/portal` to manage training data, view analytics, and download the latest personalized model.
 
 
 ## ▶️ Running the mobile app
@@ -195,8 +164,8 @@ npm run build
 node dist/server.js
 ```
 
-Set an `API_TOKEN` environment variable before starting.
-Requests must include `Authorization: Bearer $API_TOKEN`.
+Set an `API_TOKEN` environment variable before starting; the server will refuse to run without it.
+All requests must include `Authorization: Bearer $API_TOKEN`.
 
 Open the app and tap **Analytics** on the recognition screen to view the dashboard.
 
