@@ -27,6 +27,7 @@ This document summarizes the repository in seven key areas with concrete file re
 
 ## 6. Caregiver Portal & Analytics
 - Web portal at `server/src/portal/index.ts` lists analytics, manages training data, and serves model downloads via `/portal`
+- Portal routes are protected by token auth and rate limited
 - Analytics collected in `server/src/services/analyticsService.ts`
 
 ## 7. Custom Audio Recording

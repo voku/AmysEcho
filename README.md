@@ -164,8 +164,8 @@ npm run build
 node dist/server.js
 ```
 
-Set an `API_TOKEN` environment variable before starting.
-Requests must include `Authorization: Bearer $API_TOKEN`.
+Set an `API_TOKEN` environment variable before starting; the server will refuse to run without it.
+All requests must include `Authorization: Bearer $API_TOKEN`.
 
 Open the app and tap **Analytics** on the recognition screen to view the dashboard.
 

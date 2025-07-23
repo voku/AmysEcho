@@ -5,6 +5,7 @@ import { promises as fs } from 'fs';
 import { TRAINED_MODEL_PATH } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
 import { setupDatabase } from './db';
+import auth from './middleware/auth';
 import {
   saveAnalyticsToFile,
   loadAnalyticsFromFile,
@@ -20,16 +21,6 @@ setupDatabase(DB_FILE_PATH).catch((err) => {
   console.error('Database setup failed:', err);
 });
 
-const API_TOKEN = process.env.API_TOKEN || 'secret';
-
-function auth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const header = req.headers.authorization;
-  if (header !== `Bearer ${API_TOKEN}`) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-  next();
-}
 
 function sanitize(text: string): string {
   return text.replace(/\d+/g, '');
