@@ -18,7 +18,7 @@ This document summarizes the repository in seven key areas with concrete file re
 - Server training logic in `server/src/train.py` and `server/src/services/mlService.ts`
 
 ## 4. Dialog & OpenAI Integration
-- Client requests handled in `app/src/services/dialogService.ts`
+- Client requests handled in `app/src/services/dialogEngine.ts`
 - Server endpoints located in `server/src/server.ts`
 
 ## 5. Adaptive Learning & Corrections
