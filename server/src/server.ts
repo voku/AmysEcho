@@ -3,6 +3,9 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { TRAINED_MODEL_PATH } from './constants/modelPaths';
+import { DB_FILE_PATH } from './constants/dbPaths';
+import { setupDatabase } from './db';
+import auth from './middleware/auth';
 import {
   saveAnalyticsToFile,
   loadAnalyticsFromFile,
@@ -11,18 +14,13 @@ import portalRouter from './portal';
 
 const app = express();
 app.use(express.json());
-app.use('/portal', portalRouter);
+app.use('/portal', auth, portalRouter);
 
-const API_TOKEN = process.env.API_TOKEN || 'secret';
+// Ensure the database file exists with default content
+setupDatabase(DB_FILE_PATH).catch((err) => {
+  console.error('Database setup failed:', err);
+});
 
-function auth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const header = req.headers.authorization;
-  if (header !== `Bearer ${API_TOKEN}`) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-  next();
-}
 
 function sanitize(text: string): string {
   return text.replace(/\d+/g, '');

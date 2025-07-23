@@ -2,6 +2,8 @@
 
 **Document Purpose**: This is the master technical blueprint for implementing the critical AI features of the Amy's Echo application. It provides a holistic, end-to-end plan covering both the on-device client application and the cloud-based server components. This document is designed to be the single source of truth for any developer or AI agent working on these features.
 
+For task status and the current roadmap, refer to [`docs/TODO.md`](TODO.md).
+
 **Executive Summary**: This blueprint establishes distinct architectural mandates for the two core AI features.
 1.  **Gesture Recognition**: An on-device, real-time processing pipeline is mandated for performance and privacy. This involves a two-stage model (landmark detection followed by classification) and a feedback loop for personalization.
 2.  **Dialog Engine**: The app stores an OpenAI API key in secure storage and calls the Chat Completions API directly. **Model Training** still relies on a cloud server for heavy computation.
