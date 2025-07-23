@@ -70,7 +70,7 @@ This document provides a detailed, actionable checklist for implementing the cor
 
 * **Objective**: To fetch suggestions from OpenAI and display them in the UI.
 * **File**: `services/dialogEngine.ts` & `src/screens/RecognitionScreen.tsx`
-* **Status**: Completed. `RecognitionScreen.tsx` calls `dialogEngine.getLLMSuggestions` and displays the results.
+* **Status**: Completed. `RecognitionScreen.tsx` translates the gesture label via `getSymbolLabelForGesture`, then calls `dialogEngine.getLLMSuggestions` and shows the suggestions.
 
 ### **TODO 3.2: Implement Personalized Model Activation** *(Completed)*
 
