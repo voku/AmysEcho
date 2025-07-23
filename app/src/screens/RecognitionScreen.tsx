@@ -7,7 +7,7 @@ import { playSymbolAudio } from '../services';
 import { playSymbolVideo } from '../services';
 import { database } from "../../db";
 import { Correction } from "../../db/models";
-import { getLLMSuggestions, LLMSuggestions } from '../services';
+import { dialogEngine, LLMSuggestionResponse } from '../services/dialogEngine';
 import { incrementUsage } from '../services';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -18,7 +18,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState("I'm listening...");
   const [showCorrection, setShowCorrection] = useState(false);
-  const [suggestions, setSuggestions] = useState<LLMSuggestions>({
+  const [suggestions, setSuggestions] = useState<LLMSuggestionResponse>({
     nextWords: [],
     caregiverPhrases: [],
   });
@@ -62,7 +62,12 @@ export default function RecognitionScreen({ navigation }: any) {
           if (profile) {
             incrementUsage(entry, profile.id);
           }
-          const adv = await getLLMSuggestions(result.label);
+          const adv = await dialogEngine.getLLMSuggestions({
+            input: result.label,
+            context: [],
+            language: 'de',
+            age: 4,
+          });
           setSuggestions(adv);
       }
     });
