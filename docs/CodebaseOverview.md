@@ -26,7 +26,7 @@ This document summarizes the repository in seven key areas with concrete file re
 - Adaptive logic in `server/src/services/adaptiveLearningService.ts`
 
 ## 6. Caregiver Portal & Analytics
-- Express router under `server/src/portal/index.ts`
+- Placeholder router under `server/src/portal/index.ts` for analytics and model downloads
 - Analytics collected in `server/src/services/analyticsService.ts`
 
 ## 7. Custom Audio Recording
