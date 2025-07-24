@@ -7,7 +7,7 @@ import { playSymbolAudio } from '../services';
 import { playSymbolVideo } from '../services';
 import { database } from "../../db";
 import { Correction } from "../../db/models";
-import { dialogEngine, LLMSuggestionResponse } from '../services/dialogEngine';
+import { dialogEngine, LLMSuggestionResponse } from '../services';
 import { incrementUsage } from '../services';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
