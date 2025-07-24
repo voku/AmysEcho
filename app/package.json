@@ -46,7 +46,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^18.2.0",
     "babel-jest": "^29.0.0",
-    "eas-cli": "^7.0.0",
+    "eas-cli": "^16.0.0",
     "eslint": "latest",
     "husky": "latest",
     "jest": "^29.0.0",
