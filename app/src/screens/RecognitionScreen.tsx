@@ -7,7 +7,7 @@ import { playSymbolAudio } from '../services';
 import { playSymbolVideo } from '../services';
 import { database } from "../../db";
 import { Correction } from "../../db/models";
-import { getLLMSuggestions, LLMSuggestions } from '../services';
+import { dialogEngine, LLMSuggestionResponse } from '../services';
 import { incrementUsage } from '../services';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -18,7 +18,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState("I'm listening...");
   const [showCorrection, setShowCorrection] = useState(false);
-  const [suggestions, setSuggestions] = useState<LLMSuggestions>({
+  const [suggestions, setSuggestions] = useState<LLMSuggestionResponse>({
     nextWords: [],
     caregiverPhrases: [],
   });
@@ -47,23 +47,28 @@ export default function RecognitionScreen({ navigation }: any) {
   };
 
   const handleRecognize = () => {
-   mlService.classifyGesture(async (result: any) => {
+    mlService.classifyGesture(async (result: any) => {
       if (result && result.confidence > 0.85) {
-        const recognizedSymbolLabel = getSymbolLabelForGesture(result.label);
+        const recognizedSymbolLabel = getSymbolLabelForGesture(result.label) || result.label;
 
-          setStatus(`I think: ${result.label}`);
-          startFeedbackAnimation();
-          setLastLabel(result.label);
-          const entry = gestureModel.gestures.find((g) => g.id === result.label) || {
-            id: result.label,
-            label: result.label,
-          };
-          playSymbolAudio(entry);
-          if (profile) {
-            incrementUsage(entry, profile.id);
-          }
-          const adv = await getLLMSuggestions(result.label);
-          setSuggestions(adv);
+        setStatus(`I think: ${recognizedSymbolLabel}`);
+        startFeedbackAnimation();
+        setLastLabel(result.label);
+        const entry = gestureModel.gestures.find((g) => g.id === result.label) || {
+          id: result.label,
+          label: recognizedSymbolLabel,
+        };
+        playSymbolAudio(entry);
+        if (profile) {
+          incrementUsage(entry, profile.id);
+        }
+        const adv = await dialogEngine.getLLMSuggestions({
+          input: recognizedSymbolLabel,
+          context: [],
+          language: 'de',
+          age: 4,
+        });
+        setSuggestions(adv);
       }
     });
   };

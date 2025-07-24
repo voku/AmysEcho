@@ -1,7 +1,7 @@
 import { processLandmarks } from '../../server/src/services/mlService';
 import { playAudio, playSystemSound } from '../../server/src/services/audioService';
 import { playVideo } from '../../server/src/services/videoService';
-import { fetchSuggestions } from '../../server/src/services/dialogService';
+import { getLLMSuggestions } from '../../server/src/services/dialogEngine';
 import { tmpdir } from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -34,8 +34,13 @@ import path from 'path';
     throw new Error('missing audio should error');
   }
 
-  const sugg = await fetchSuggestions('hello');
-  if (sugg.length !== 0) {
+  const sugg = await getLLMSuggestions({
+    input: 'hello',
+    context: [],
+    language: 'de',
+    age: 4,
+  });
+  if (sugg.nextWords.length !== 0 || sugg.caregiverPhrases.length !== 0) {
     throw new Error('LLM should be disabled by default');
   }
   console.log('services ok');

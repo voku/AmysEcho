@@ -9,7 +9,7 @@ import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import { database } from '../../db';
 import { playSymbolAudio } from '../services/audioService';
 import { incrementUsage } from '../services/usageTracker';
-import { dialogEngine, LLMSuggestionResponse } from '../services/dialogEngine';
+import { dialogEngine, LLMSuggestionResponse } from '../services';
 import { SymbolButton } from '../components/SymbolButton';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
