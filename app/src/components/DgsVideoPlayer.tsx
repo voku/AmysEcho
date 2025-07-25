@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { logger } from '../utils/logger';
 
 interface DgsVideoPlayerProps {
-  videoSource: any;
+  videoSource?: any;
   style?: object;
   shouldPlay: boolean;
 }
@@ -24,16 +24,25 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
 
   return (
     <View style={[styles.container, style]}>
-      <Video
-        ref={videoRef}
-        style={styles.video}
-        source={videoSource}
-        useNativeControls={false}
-        resizeMode={ResizeMode.CONTAIN}
-        isLooping
-        shouldPlay={shouldPlay}
-        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-      />
+      {videoSource ? (
+        <Video
+          ref={videoRef}
+          style={styles.video}
+          source={videoSource}
+          useNativeControls={false}
+          resizeMode={ResizeMode.CONTAIN}
+          isLooping
+          shouldPlay={shouldPlay}
+          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+        />
+      ) : (
+        <Text
+          style={styles.placeholderText}
+          accessibilityLabel="Kein Video vorhanden"
+        >
+          Kein Video vorhanden
+        </Text>
+      )}
       {isBuffering && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#ffffff" />
@@ -61,5 +70,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  placeholderText: {
+    color: '#fff',
   },
 });
