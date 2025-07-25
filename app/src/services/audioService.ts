@@ -1,7 +1,7 @@
 import {Audio} from 'expo-av';
 import * as Speech from 'expo-speech';
 import {logger} from '../utils/logger';
-import {AudioConfig, SoundEffect, SpeechOptions} from '../types/audio';
+import {AudioConfig, SpeechOptions} from '../types/audio';
 import {InterruptionModeAndroid, InterruptionModeIOS} from "expo-av/src/Audio.types";
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
@@ -52,26 +52,48 @@ export class AudioService {
    * Preload common sound effects
    */
   private async preloadSounds(): Promise<void> {
-    const soundEffects: SoundEffect[] = [
-      { name: 'success', path: require('../../assets/sounds/success.mp3') },
-      { name: 'error', path: require('../../assets/sounds/error.mp3') },
-      { name: 'confirmation', path: require('../../assets/sounds/confirmation.mp3') },
-      { name: 'gesture_recognized', path: require('../../assets/sounds/gesture_recognized.mp3') },
-      { name: 'listening', path: require('../../assets/sounds/listening.mp3') },
-      { name: 'thinking', path: require('../../assets/sounds/thinking.mp3') },
-      { name: 'celebration', path: require('../../assets/sounds/celebration.mp3') },
+    const names = [
+      'success',
+      'error',
+      'confirmation',
+      'gesture_recognized',
+      'listening',
+      'thinking',
+      'celebration',
     ];
 
-    for (const effect of soundEffects) {
-      try {
-        const { sound } = await Audio.Sound.createAsync(effect.path, {
-          shouldPlay: false,
-          volume: this.config.volume,
-        });
-        this.sounds.set(effect.name, sound);
-        logger.debug(`Preloaded sound: ${effect.name}`);
-      } catch (error) {
-        logger.warn(`Failed to preload sound ${effect.name}:`, error);
+    for (const name of names) {
+      const bundlePath = FileSystem.bundleDirectory
+        ? FileSystem.bundleDirectory + `assets/sounds/${name}.mp3`
+        : null;
+      const docPath = FileSystem.documentDirectory + `sounds/${name}.mp3`;
+
+      const candidates = [bundlePath, docPath].filter(Boolean) as string[];
+      let loaded = false;
+
+      for (const filePath of candidates) {
+        try {
+          const info = await FileSystem.getInfoAsync(filePath);
+          if (info.exists) {
+            const { sound } = await Audio.Sound.createAsync(
+              { uri: filePath },
+              {
+                shouldPlay: false,
+                volume: this.config.volume,
+              },
+            );
+            this.sounds.set(name, sound);
+            logger.debug(`Preloaded sound: ${name}`);
+            loaded = true;
+            break;
+          }
+        } catch (error) {
+          logger.warn(`Error loading sound ${name} from ${filePath}:`, error);
+        }
+      }
+
+      if (!loaded) {
+        logger.debug(`No sound asset found for ${name}`);
       }
     }
   }

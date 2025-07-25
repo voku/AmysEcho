@@ -147,7 +147,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
               videoSource={
                 selectedSymbol.dgsVideoAssetPath
                   ? { uri: selectedSymbol.dgsVideoAssetPath }
-                  : require(`../assets/videos/dgs/${selectedSymbol.id}.mp4`)
+                  : undefined
               }
               shouldPlay={!videoPaused}
             />

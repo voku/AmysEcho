@@ -11,11 +11,11 @@ export interface SymbolVideoPlayerProps {
 
 export default function SymbolVideoPlayer({ entry, paused, useDgs, onEnd }: SymbolVideoPlayerProps) {
   const path = useDgs ? entry.dgsVideoUri : entry.videoUri;
-  const source = path
-    ? { uri: path }
-    : useDgs
-      ? require(`../assets/videos/dgs/${entry.id}.mp4`)
-      : require(`../assets/videos/${entry.id}.mp4`);
+  if (!path) {
+    onEnd && onEnd();
+    return null;
+  }
+  const source = { uri: path };
 
   return (
     <Video

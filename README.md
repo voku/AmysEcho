@@ -133,6 +133,9 @@ npm run build:ios
 ```
 
 This uses `eas.json` and requires credentials configured with Expo.
+If you run the build in a CI or other non-interactive environment,
+set the `EXPO_TOKEN` environment variable with an Expo access token.
+Otherwise the command will fail when it prompts for login.
 
 ### Retraining the offline model
 

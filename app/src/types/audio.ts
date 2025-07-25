@@ -15,5 +15,5 @@ export interface SpeechOptions {
 
 export interface SoundEffect {
   name: string;
-  path: any; // require() path
+  path: string;
 }
