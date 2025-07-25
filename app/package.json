@@ -35,7 +35,7 @@
     "metro-runtime": "^0.82.3",
     "metro-source-map": "^0.82.3",
     "react": "19.0.0",
-    "react-native": "0.79.5",
+    "react-native": "0.80.2",
     "react-native-fast-tflite": "^1.6.1",
     "react-native-permissions": "^5.4.1",
     "react-native-reanimated": "~3.17.4",
