@@ -18,7 +18,7 @@
   "dependencies": {
     "@nozbe/watermelondb": "^0.28.0",
     "@nozbe/with-observables": "^1.6.0",
-    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.4.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
