@@ -42,6 +42,8 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 1. `npm install` – install root dependencies
 2. `cd app` – open the app code
 3. `npm install` - install mobile app deps
+   - The `app/.npmrc` file enables `legacy-peer-deps` so installs succeed even
+     if some libraries lag behind React 19
 4. `npm run type-check` – verify the TypeScript build
 5. `npm test` – run the Node test suite (uses `ts-node` from devDependencies)
    - Tests live in `app/test/` and cover both server and app modules.
