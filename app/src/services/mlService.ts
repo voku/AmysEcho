@@ -6,18 +6,20 @@ let runOnJS: any = () => {}; try { ({ runOnJS } = require('react-native-worklets
 import { logger } from '../utils/logger';
 import { extractHandLandmarks, setHandLandmarkModel } from '../utils/landmarkExtractor';
 import { DetailedGestureResult, ProcessedFrame, MLServiceConfig } from '../types/ml';
+import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 
 class MachineLearningService {
   private landmarkModel: any = null;
   private gestureModel: any = null;
   private isReady = false;
   private confidenceThreshold = 0.7;
-  private labels = ['danke', 'wasser', 'mehr', 'fertig'];
+  private labels: string[] = []; // This will be populated dynamically or from a fixed list
   private teachingSession: { id: string; label: string } | null = null;
 
   async loadModels(
     landmark: any,
     gesture: any,
+    labels: string[], // Keep labels for now, might be needed for local model output mapping
     config?: MLServiceConfig,
   ): Promise<void> {
     this.landmarkModel = landmark;
@@ -30,6 +32,7 @@ class MachineLearningService {
     if (config?.confidenceThreshold) {
       this.confidenceThreshold = config.confidenceThreshold;
     }
+    this.labels = labels; // Assign labels here
     this.isReady = !!this.landmarkModel && !!this.gestureModel;
     logger.info('ML models are now ready.');
   }

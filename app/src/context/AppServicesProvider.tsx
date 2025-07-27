@@ -1,13 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { mlService } from '../services';
-import { audioService } from '../services';
-import { checkForModelUpdate } from "../services";
-import { syncTrainingData } from "../services";
-import { syncService } from "../services";
-import { adaptiveLearningService } from '../services/adaptiveLearningService';
-import { ActivityIndicator, View } from 'react-native';
-import { useTensorflowModel } from '../hooks/useTensorflowModel';
-import { HAND_LANDMARKER_MODEL, GESTURE_CLASSIFIER_MODEL } from '../constants/modelPaths';
+import React, {createContext, ReactNode, useContext, useEffect, useState} from 'react';
+import {audioService, checkForModelUpdate, mlService, syncService, syncTrainingData} from '../services';
+import {adaptiveLearningService} from '../services/adaptiveLearningService';
+import {ActivityIndicator, View} from 'react-native';
+import {useTensorflowModel} from '../hooks/useTensorflowModel';
+import {GESTURE_CLASSIFIER_MODEL, GESTURE_LABELS, HAND_LANDMARKER_MODEL} from '../constants/modelPaths';
 
 interface Services {
   mlService: typeof mlService;
@@ -33,7 +29,7 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!landmarkModel || !gestureModel) return;
     mlService
-      .loadModels(landmarkModel, gestureModel)
+      .loadModels(landmarkModel, gestureModel, GESTURE_LABELS)
       .then(() => setAreServicesReady(true))
       .catch(e => {
         console.error('Failed to initialize services:', e);

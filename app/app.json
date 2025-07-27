@@ -10,6 +10,9 @@
       "eas": {
         "projectId": "87917556-4039-4122-9ba5-525a9c1cd936"
       }
+    },
+    "ios": {
+      "bundleIdentifier": "com.anonymous.amysecho"
     }
   }
 }

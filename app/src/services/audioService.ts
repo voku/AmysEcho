@@ -1,19 +1,27 @@
-import {Audio} from 'expo-av';
+import {
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+  createAudioPlayer,
+  AudioRecorder,
+  AudioPlayer
+} from 'expo-audio';
+import { RecordingPresets } from 'expo-audio/src/RecordingConstants';
+import { createRecordingOptions } from 'expo-audio/src/utils/options';
+
 import * as Speech from 'expo-speech';
 import {logger} from '../utils/logger';
 import {AudioConfig, SpeechOptions} from '../types/audio';
-import {InterruptionModeAndroid, InterruptionModeIOS} from "expo-av/src/Audio.types";
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
 import * as FileSystem from 'expo-file-system';
 
 export class AudioService {
-  private sounds: Map<string, Audio.Sound> = new Map();
+  private sounds: Map<string, AudioPlayer> = new Map();
   private isInitialized = false;
   private config: AudioConfig;
   private speechQueue: Array<{ text: string; options: SpeechOptions }> = [];
   private isSpeaking = false;
-  private recording: Audio.Recording | null = null;
+  private recording: AudioRecorder | null = null;
 
   constructor(config: AudioConfig) {
     this.config = {...config};
@@ -27,14 +35,13 @@ export class AudioService {
       logger.info('Initializing audio service...');
 
       // Configure audio mode for playback
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-        shouldDuckAndroid: true,
-        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-        playThroughEarpieceAndroid: false,
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
+        interruptionMode: 'doNotMix',
+        interruptionModeAndroid: 'doNotMix',
+        shouldRouteThroughEarpiece: false,
       });
 
       // Preload common sound effects
@@ -75,13 +82,9 @@ export class AudioService {
         try {
           const info = await FileSystem.getInfoAsync(filePath);
           if (info.exists) {
-            const { sound } = await Audio.Sound.createAsync(
-              { uri: filePath },
-              {
-                shouldPlay: false,
-                volume: this.config.volume,
-              },
-            );
+            const sound = createAudioPlayer({ uri: filePath });
+            sound.volume = this.config.volume;
+            sound.loop = false;
             this.sounds.set(name, sound);
             logger.debug(`Preloaded sound: ${name}`);
             loaded = true;
@@ -114,9 +117,10 @@ export class AudioService {
     }
 
     try {
-      await sound.setVolumeAsync(options?.volume || this.config.volume);
-      await sound.setIsLoopingAsync(options?.loop || false);
-      await sound.replayAsync();
+      sound.volume = options?.volume || this.config.volume;
+      sound.loop = options?.loop || false;
+      sound.seekTo(0);
+      sound.play();
       logger.debug(`Played sound: ${soundName}`);
     } catch (error) {
       logger.error(`Failed to play sound ${soundName}:`, error);
@@ -263,15 +267,13 @@ export class AudioService {
    * Start audio recording for custom cues
    */
   async startRecording(): Promise<void> {
-    const permission = await Audio.requestPermissionsAsync();
+    const permission = await requestRecordingPermissionsAsync();
     if (!permission.granted) {
       throw new Error('Audio permission not granted');
     }
-    this.recording = new Audio.Recording();
-    await this.recording.prepareToRecordAsync(
-      Audio.RecordingOptionsPresets.HIGH_QUALITY,
-    );
-    await this.recording.startAsync();
+    this.recording = new AudioRecorder(createRecordingOptions(RecordingPresets.HIGH_QUALITY));
+    await this.recording.prepareToRecordAsync(createRecordingOptions(RecordingPresets.HIGH_QUALITY));
+    this.recording.record();
   }
 
   /**
@@ -280,8 +282,8 @@ export class AudioService {
   async stopRecording(): Promise<string | null> {
     if (!this.recording) return null;
     try {
-      await this.recording.stopAndUnloadAsync();
-      const uri = this.recording.getURI();
+      await this.recording.stop();
+      const uri = this.recording.uri;
       this.recording = null;
       return uri ?? null;
     } catch (err) {
@@ -305,12 +307,9 @@ export class AudioService {
         return;
       }
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true, volume: this.config.volume },
-      );
-      await sound.playAsync();
-      await sound.unloadAsync();
+      const sound = createAudioPlayer({ uri });
+      sound.volume = this.config.volume;
+      sound.play();
     } catch (error) {
       logger.error('Failed to play custom audio:', error);
     }
@@ -332,7 +331,7 @@ export class AudioService {
 
     for (const [name, sound] of this.sounds) {
       try {
-        await sound.unloadAsync();
+        sound.remove();
         logger.debug(`Unloaded sound: ${name}`);
       } catch (error) {
         logger.warn(`Failed to unload sound ${name}:`, error);

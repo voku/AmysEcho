@@ -11,6 +11,8 @@ export interface GestureResult {
 }
 
 export interface DetailedGestureResult extends GestureResult {
+  symbolLabel?: string;
+  confidence: number;
   isLocal: boolean;
   timestamp: number;
   suggestions: string[];

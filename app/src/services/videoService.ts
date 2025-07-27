@@ -1,4 +1,3 @@
-import { Video } from 'expo-av';
 import { GestureModelEntry } from '../model';
 
 /**

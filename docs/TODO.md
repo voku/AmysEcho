@@ -20,6 +20,7 @@ This document provides a detailed, actionable checklist for implementing the cor
     2.  **Load Models**: In the `LearningScreen` component, use the `useTensorflowModel` hook to load both models into memory.
     3.  **Implement Frame Processor**: Create the `useFrameProcessor` worklet.
         * **LLM Hint**: The logic inside this worklet is critical. It must first pass the camera `frame` to the `hand_landmarker.tflite` model. If landmarks are detected, the output of that model (the landmark coordinates) must then be passed as the input to the `gesture_classifier.tflite` model.
+        * **Hint**: `ffmpeg-kit-react-native` is no longer supported
         * **Code Snippet (Conceptual)**:
             ```typescript
             const frameProcessor = useFrameProcessor((frame) => {

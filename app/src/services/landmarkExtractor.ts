@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system';
-import { FFmpegKit } from 'ffmpeg-kit-react-native';
+// TODO: ffmpeg-kit-react-native is not longer supported v1
+/*import { FFmpegKit } from 'ffmpeg-kit-react-native';*/
 import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 
@@ -11,7 +12,9 @@ async function loadHandModel(): Promise<void> {
 }
 
 export async function extractLandmarksFromVideo(videoPath: string): Promise<number[][][]> {
-  await loadHandModel();
+  // TODO: ffmpeg-kit-react-native is not longer supported v2
+  /*
+    await loadHandModel();
   if (!handModel) return [];
 
   const tmpDir = FileSystem.cacheDirectory + 'frames_' + Date.now() + '/';
@@ -31,5 +34,9 @@ export async function extractLandmarksFromVideo(videoPath: string): Promise<numb
   await FileSystem.deleteAsync(tmpDir, { idempotent: true });
   await FileSystem.deleteAsync(videoPath, { idempotent: true });
   return results;
-}
+   */
 
+  console.warn('Video-based landmark extraction is not supported.');
+  await FileSystem.deleteAsync(videoPath, { idempotent: true });
+  return [];
+}

@@ -8,7 +8,10 @@
     "module": "Node16",
     "rootDir": ".",
     "moduleResolution": "node16",
-    "types": ["node", "./mock-types"],
+    "types": [
+      "node",
+      "./mock-types"
+    ],
     "resolveJsonModule": true,
     "outDir": "dist",
     "esModuleInterop": true,
@@ -18,5 +21,11 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "exclude": ["node_modules", "test", "../server"]
+  "exclude": [
+    "node_modules",
+    "test",
+    "../server",
+    "__mocks__"
+  ],
+  "extends": "expo/tsconfig.base"
 }

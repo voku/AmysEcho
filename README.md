@@ -53,6 +53,7 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 7. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 8. Or run `./scripts/full-check.sh` from the repo root to automatically install
    dependencies and execute all tests at once
+9. Or check the expo setup inside `app` via `npx expo install --check` + `npx expo-doctor`
 
 ## Process
 
@@ -173,6 +174,51 @@ Set an `API_TOKEN` environment variable before starting; the server will refuse 
 All requests must include `Authorization: Bearer $API_TOKEN`.
 
 Open the app and tap **Analytics** on the recognition screen to view the dashboard.
+
+### 🐧 Running the mobile app inside WSL2 (with USB debugging)
+
+You can run the Android build locally using a real Android device connected over USB — even when working inside **WSL2**. This is the recommended setup for real-world testing (especially for gesture recognition performance).
+
+#### ✅ Prerequisites
+
+* Windows 11 with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/)
+* [`usbipd-win`](https://github.com/dorssel/usbipd-win) installed (`winget install dorssel.usbipd-win`)
+* Android device with **USB debugging** enabled
+* Expo + React Native CLI environment already set up
+
+#### ⚙️ 1. Install ADB + USB tools inside WSL2
+
+```bash
+sudo apt update
+sudo apt install android-tools-adb usbutils
+```
+
+#### 🔌 2. Attach Android USB device from Windows (PowerShell, as admin)
+
+```powershell
+usbipd list
+usbipd attach --busid <BUSID> --wsl
+```
+
+> Replace `<BUSID>` with your Android device’s BusID from the `usbipd list` output — e.g., `1-3`.
+
+#### 🧪 3. Verify connection inside WSL2
+
+```bash
+lsusb
+adb devices
+```
+
+> If the device shows as `unauthorized`, unlock your phone and **confirm the USB debugging prompt**.
+
+Expected output:
+
+```
+List of devices attached
+xxxxxxx	device
+```
+
+PS: `npx expo start --tunnel` can be used to connect from android to expo in WSL2
 
 ---
 

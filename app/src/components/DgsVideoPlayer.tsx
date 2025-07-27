@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
+
 import { logger } from '../utils/logger';
 
 interface DgsVideoPlayerProps {
@@ -10,30 +11,50 @@ interface DgsVideoPlayerProps {
 }
 
 export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVideoPlayerProps) {
-  const videoRef = useRef<Video>(null);
-  const [status, setStatus] = useState<AVPlaybackStatus | null>(null);
+  const player = useVideoPlayer(videoSource, (player) => {
+    player.addListener('statusChange', (payload) => {
+      if (payload.error) {
+        logger.error('DgsVideoPlayer error', payload.error);
+      }
+    });
+  });
 
-  const onPlaybackStatusUpdate = (newStatus: AVPlaybackStatus) => {
-    setStatus(newStatus);
-    if (newStatus.isLoaded && newStatus.didJustFinish) {
-      videoRef.current?.replayAsync();
+  React.useEffect(() => {
+    if (player) {
+      const subscription = player.addListener('statusChange', (status) => {
+        // Status change can be used to update UI if needed
+      });
+      return () => {
+        subscription.remove();
+      };
     }
-  };
+  }, [player]);
 
-  const isBuffering = status?.isLoaded === false || status?.isBuffering === true;
+  const isBuffering = player?.status === 'loading';
+
+  React.useEffect(() => {
+    if (player) {
+      const isLoaded = player.status !== 'loading' && player.status !== 'error' && player.duration > 0;
+      if (shouldPlay && !player.playing) {
+        if (isLoaded && player.currentTime < player.duration) {
+          player.play();
+        } else if (isLoaded && player.currentTime >= player.duration) {
+          player.replay();
+        }
+      } else if (!shouldPlay && player.playing) {
+        player.pause();
+      }
+    }
+  }, [player, shouldPlay, player?.status]);
 
   return (
     <View style={[styles.container, style]}>
       {videoSource ? (
-        <Video
-          ref={videoRef}
+        <VideoView
+          player={player}
           style={styles.video}
-          source={videoSource}
-          useNativeControls={false}
-          resizeMode={ResizeMode.CONTAIN}
-          isLooping
-          shouldPlay={shouldPlay}
-          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+          contentFit={'contain'}
+          accessibilityLabel="DGS Video"
         />
       ) : (
         <Text
@@ -75,3 +96,5 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 });
+
+

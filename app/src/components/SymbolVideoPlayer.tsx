@@ -1,5 +1,5 @@
 import React from 'react';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { GestureModelEntry } from '../model';
 
 export interface SymbolVideoPlayerProps {
@@ -17,18 +17,27 @@ export default function SymbolVideoPlayer({ entry, paused, useDgs, onEnd }: Symb
   }
   const source = { uri: path };
 
+  const player = useVideoPlayer(source, (player) => {
+    player.addListener('playToEnd', () => {
+      onEnd && onEnd();
+    });
+  });
+
+  React.useEffect(() => {
+    if (player) {
+      if (!paused) {
+        player.play();
+      } else {
+        player.pause();
+      }
+    }
+  }, [player, paused]);
+
   return (
-    <Video
-      source={source}
-      shouldPlay={!paused}
-      onPlaybackStatusUpdate={(status) => {
-        if (!paused && status.isLoaded && status.didJustFinish) {
-          onEnd && onEnd();
-        }
-      }}
-      useNativeControls
-      resizeMode={ResizeMode.CONTAIN}
+    <VideoView
+      player={player}
       style={{ width: 300, height: 200 }}
+      contentFit={'contain'}
       accessibilityLabel={`Video ${entry.label}`}
     />
   );
