@@ -103,6 +103,7 @@ export class GestureTrainingData extends Model {
   @field('quality_score') qualityScore!: number;
   @text('frame_metadata') frameMetadata!: string;
   @date('created_at') createdAt!: Date;
+  @field('custom_sync_status') customSyncStatus!: string;
   @relation('gesture_definitions', 'gesture_definition_id') gestureDefinition!: any;
 }
 

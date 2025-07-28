@@ -67,6 +67,7 @@ import path from 'path';
 
   const profile: Profile = {
     id: 'p1',
+    name: 'test - p1',
     consentDataUpload: false,
     consentHelpMeGetSmarter: true,
     vocabularySetId: 'basic',

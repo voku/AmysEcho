@@ -135,6 +135,7 @@ export async function saveTrainingSample(
       record.qualityScore = 1;
       record.frameMetadata = '';
       record.createdAt = new Date();
+      record.customSyncStatus = 'pending';
     });
   });
 }

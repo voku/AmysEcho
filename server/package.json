@@ -9,11 +9,18 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^5.0.0",
+    "express-rate-limit": "^6.7.0",
     "node-fetch": "^3.3.2",
-    "typescript": "^5.8.3",
-    "express-rate-limit": "^6.7.0"
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
   },
   "scripts": {
-    "test": "pytest -q"
+    "test": "pytest -q",
+    "type-check": "tsc --noEmit --project tsconfig.json",
+    "build": "tsc",
+    "start": "node dist/server.js"
   }
 }

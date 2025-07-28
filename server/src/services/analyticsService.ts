@@ -26,8 +26,12 @@ export function computeLearningAnalytics(db: Database): LearningAnalytics {
 
   return {
     id: 'default',
+    gestureDefinitionId: 'overall', // Placeholder for now
+    successRate24h: 0, // Placeholder for now
     successRate7d: Number(successRate7d.toFixed(2)),
+    avgConfidenceScore: 0, // Placeholder for now
     improvementTrend: Number(improvementTrend.toFixed(2)),
+    lastCalculated: now,
   };
 }
 

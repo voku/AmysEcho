@@ -9,6 +9,7 @@ import { RecordingPresets } from 'expo-audio/src/RecordingConstants';
 import { createRecordingOptions } from 'expo-audio/src/utils/options';
 
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
 import {logger} from '../utils/logger';
 import {AudioConfig, SpeechOptions} from '../types/audio';
 import { database } from '../../db';
@@ -217,6 +218,9 @@ export class AudioService {
   async playSuccessFeedback(gesture: string, confidence: number): Promise<void> {
     // Play success sound
     await this.playSound('success');
+    if (this.config.enableHaptics) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
 
     // Speak the recognized gesture
     const text = confidence > 0.9 ? `${gesture}` : `Ich denke, du meinst: ${gesture}`;
@@ -232,6 +236,9 @@ export class AudioService {
    */
   async playErrorFeedback(): Promise<void> {
     await this.playSound('error');
+    if (this.config.enableHaptics) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
     await this.speak('Entschuldigung, ich habe das nicht verstanden. Kannst du es nochmal versuchen?', {
       pitch: 0.9,
       rate: 0.8,

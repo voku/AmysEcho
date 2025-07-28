@@ -1,6 +1,9 @@
 import React from 'react';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { GestureModelEntry } from '../model';
+import { Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 export interface SymbolVideoPlayerProps {
   entry: GestureModelEntry;
@@ -36,7 +39,7 @@ export default function SymbolVideoPlayer({ entry, paused, useDgs, onEnd }: Symb
   return (
     <VideoView
       player={player}
-      style={{ width: 300, height: 200 }}
+      style={{ width: width, height: height }}
       contentFit={'contain'}
       accessibilityLabel={`Video ${entry.label}`}
     />

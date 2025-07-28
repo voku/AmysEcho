@@ -1,5 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { database } from '../../db';
+import { GestureDefinition } from '../../db/models';
 import { loadUsageStats } from './usageTracker';
+import { Q } from '@nozbe/watermelondb';
 
 export const adaptiveLearningService = {
   /**
@@ -26,19 +28,43 @@ export const adaptiveLearningService = {
       return [];
     }
   },
+
+  async getWeakGesture(threshold: number = 70): Promise<GestureDefinition | null> {
+    try {
+      const gestures = await database.get<GestureDefinition>('gesture_definitions')
+        .query(
+          Q.where('health_score', Q.lt(threshold))
+        )
+        .fetch();
+      // For simplicity, return the first weak gesture found
+      if (gestures.length > 0) {
+        return gestures[0];
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching weak gesture:', error);
+      return null;
+    }
+  },
 };
 
 export async function recordInteraction(gestureId: string, wasSuccessful: boolean): Promise<boolean> {
-  const KEY = 'gestureHealthScores';
-  const raw = await AsyncStorage.getItem(KEY);
-  const scores: Record<string, number> = raw ? JSON.parse(raw) : {};
-  let score = scores[gestureId] ?? 100;
-  if (wasSuccessful) {
-    score = Math.min(100, score + 1);
-  } else {
-    score = Math.max(0, score - 5);
+  try {
+    await database.write(async () => {
+      const gestureDefinition = await database.get<GestureDefinition>('gesture_definitions').find(gestureId);
+      let score = gestureDefinition.healthScore;
+      if (wasSuccessful) {
+        score = Math.min(100, score + 1);
+      } else {
+        score = Math.max(0, score - 5);
+      }
+      await gestureDefinition.update(g => {
+        g.healthScore = score;
+      });
+    });
+    return true; // Indicate success
+  } catch (error) {
+    console.error('Error recording interaction:', error);
+    return false; // Indicate failure
   }
-  scores[gestureId] = score;
-  await AsyncStorage.setItem(KEY, JSON.stringify(scores));
-  return score < 70;
 }

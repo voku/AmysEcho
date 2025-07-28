@@ -1,73 +1,115 @@
 import { database } from '../../db';
-import { Correction } from '../../db/models';
-import { Q } from '@nozbe/watermelondb';
+import { GestureTrainingData, Profile } from '../../db/models';
+import { API_URL, API_TOKEN, MODEL_VERSION_URL } from '../constants';
 import { logger } from '../utils/logger';
-import { mlService } from './mlService';
+import { loadActiveProfileId, loadProfile, saveCustomModelUri, loadCustomModelUri } from '../storage';
+import { Q } from '@nozbe/watermelondb';
+import * as FileSystem from 'expo-file-system';
+import { GESTURE_CLASSIFIER_MODEL } from '../constants/modelPaths';
 
-const SYNC_ENDPOINT = 'https://your-secure-backend.com/api/sync-data';
-const MODEL_CHECK_ENDPOINT = 'https://your-secure-backend.com/api/check-model';
+const LOCAL_MODEL_VERSION_KEY = 'localModelVersion';
 
-class SyncService {
-  async syncUnsyncedData(): Promise<void> {
-    const correctionsCollection = database.get<Correction>('corrections');
-    const unsynced = await correctionsCollection
-      .query(Q.where('is_synced', false))
-      .fetch();
-
-    if (unsynced.length === 0) {
-      logger.info('No new data to sync.');
-      return;
-    }
-
+export const syncService = {
+  async uploadPendingTrainingData(): Promise<void> {
+    logger.info('Attempting to upload pending training data...');
     try {
-      const payload = unsynced.map(c => ({
-        predictedGesture: c.predictedGesture,
-        actualGesture: c.actualGesture,
-        confidence: c.confidence,
-        landmarks: c.landmarks,
-        timestamp: c.timestamp,
-      }));
+      const activeProfileId = await loadActiveProfileId();
+      if (!activeProfileId) {
+        logger.warn('No active profile found. Skipping training data upload.');
+        return;
+      }
 
-      const response = await fetch(SYNC_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ corrections: payload }),
-      });
+      const profile = await loadProfile(activeProfileId);
+      if (!profile || !profile.consentHelpMeGetSmarter) {
+        logger.info('User has not consented to upload training data. Skipping.');
+        return;
+      }
 
-      if (!response.ok) throw new Error('Sync failed on server');
+      const pendingSamples = await database.get<GestureTrainingData>('gesture_training_data')
+        .query(
+          Q.where('custom_sync_status', 'pending')
+        )
+        .fetch();
 
-      await database.write(async () => {
-        const updates = unsynced.map(c =>
-          c.prepareUpdate(record => {
-            record.isSynced = true;
-          })
-        );
-        await database.batch(...updates);
-      });
+      if (pendingSamples.length === 0) {
+        logger.info('No pending training data to upload.');
+        return;
+      }
 
-      logger.info(`✅ Successfully synced ${unsynced.length} corrections.`);
-    } catch (error) {
-      logger.error('Data sync failed:', error);
-    }
-  }
+      logger.info(`Found ${pendingSamples.length} pending training samples.`);
 
-  async checkForNewModel(currentVersion: string): Promise<void> {
-    try {
-      const response = await fetch(
-        `${MODEL_CHECK_ENDPOINT}?currentVersion=${currentVersion}`
-      );
-      if (!response.ok) return;
+      for (const sample of pendingSamples) {
+        try {
+          const response = await fetch(`${API_URL}/upload_training_data`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_TOKEN}`,
+            },
+            body: JSON.stringify({
+              gestureDefinitionId: sample.gestureDefinition.id,
+              landmarkData: JSON.parse(sample.landmarkData),
+              source: sample.source,
+              qualityScore: sample.qualityScore,
+              frameMetadata: sample.frameMetadata,
+              createdAt: sample.createdAt.toISOString(),
+              profileId: activeProfileId,
+            }),
+          });
 
-      const { hasNewModel, modelUrl, version } = await response.json();
-      if (hasNewModel) {
-        logger.info(`New model version ${version} found at ${modelUrl}.`);
-        // Here you would download the model and re-initialize the ML service
-        // await mlService.initializeModel(modelUrl);
+          if (response.ok) {
+            await database.write(async () => {
+              await sample.update(s => {
+                s.customSyncStatus = 'synced';
+              });
+            });
+            logger.info(`Successfully uploaded and marked as synced: ${sample.id}`);
+          } else {
+            logger.error(`Failed to upload sample ${sample.id}: ${response.status} ${response.statusText}`);
+          }
+        } catch (uploadError) {
+          logger.error(`Error uploading sample ${sample.id}:`, uploadError);
+        }
       }
     } catch (error) {
-      logger.error('Model check failed:', error);
+      logger.error('Error in uploadPendingTrainingData:', error);
     }
-  }
-}
+  },
 
-export const syncService = new SyncService();
+  async checkForNewModel(): Promise<void> {
+    logger.info('Checking for new model updates...');
+    try {
+      const response = await fetch(MODEL_VERSION_URL);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch model version: ${response.status} ${response.statusText}`);
+      }
+      const remoteModelVersion = await response.json();
+
+      const localModelVersionRaw = await FileSystem.readAsStringAsync(FileSystem.documentDirectory + LOCAL_MODEL_VERSION_KEY).catch(() => null);
+      const localModelVersion = localModelVersionRaw ? JSON.parse(localModelVersionRaw) : { version: '0.0.0' };
+
+      if (remoteModelVersion.version > localModelVersion.version) {
+        logger.info(`New model version available: ${remoteModelVersion.version}. Current: ${localModelVersion.version}`);
+        const modelDownloadUrl = `${API_URL}/${remoteModelVersion.modelPath}`;
+        const localModelPath = FileSystem.documentDirectory + 'new_gesture_classifier.tflite';
+
+        logger.info(`Downloading new model from ${modelDownloadUrl} to ${localModelPath}`);
+        const downloadResult = await FileSystem.downloadAsync(modelDownloadUrl, localModelPath);
+
+        if (downloadResult.status === 200) {
+          logger.info('Model downloaded successfully. Updating local version.');
+          await FileSystem.writeAsStringAsync(FileSystem.documentDirectory + LOCAL_MODEL_VERSION_KEY, JSON.stringify(remoteModelVersion));
+          await saveCustomModelUri(localModelPath); // Update the model path in storage
+          logger.info('New model activated.');
+        } else {
+          logger.error(`Failed to download model: ${downloadResult.status}`);
+          // Fallback to old model is implicit if new one fails to download/activate
+        }
+      } else {
+        logger.info('Local model is up to date.');
+      }
+    } catch (error) {
+      logger.error('Error checking for new model:', error);
+    }
+  },
+};

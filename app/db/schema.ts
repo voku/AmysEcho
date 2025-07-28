@@ -76,6 +76,7 @@ export const mySchema = appSchema({
         { name: 'quality_score', type: 'number' },
         { name: 'frame_metadata', type: 'string' },
         { name: 'created_at', type: 'number', isIndexed: true },
+        { name: 'custom_sync_status', type: 'string', isIndexed: true },
       ],
     }),
     tableSchema({

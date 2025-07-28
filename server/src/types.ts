@@ -44,6 +44,7 @@ export interface InteractionLog {
 
 export interface Profile {
   id: string;
+  name: string; // Added name property
   consentDataUpload: boolean;
   consentHelpMeGetSmarter: boolean;
   vocabularySetId: string;
@@ -71,6 +72,20 @@ export interface UsageStat {
 
 export interface LearningAnalytics {
   id: string;
+  gestureDefinitionId: string; // Added gestureDefinitionId
+  successRate24h: number;
   successRate7d: number;
+  avgConfidenceScore: number; // Added avgConfidenceScore
   improvementTrend: number;
+  lastCalculated: number; // Added lastCalculated
+}
+
+export interface Correction {
+  id: string;
+  predictedGesture: string;
+  actualGesture: string;
+  confidence: number;
+  timestamp: number;
+  isSynced: boolean;
+  profileId?: string; // Assuming corrections can be linked to a profile
 }

@@ -7,6 +7,8 @@ import { logger } from '../utils/logger';
 import { extractHandLandmarks, setHandLandmarkModel } from '../utils/landmarkExtractor';
 import { DetailedGestureResult, ProcessedFrame, MLServiceConfig } from '../types/ml';
 import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
+import { database } from '../../db';
+import { InteractionLog } from '../../db/models';
 
 class MachineLearningService {
   private landmarkModel: any = null;
@@ -15,6 +17,17 @@ class MachineLearningService {
   private confidenceThreshold = 0.7;
   private labels: string[] = []; // This will be populated dynamically or from a fixed list
   private teachingSession: { id: string; label: string } | null = null;
+  private collectedSamples: ProcessedFrame[] = [];
+
+  addCollectedSample(sample: ProcessedFrame) {
+    this.collectedSamples.push(sample);
+  }
+
+  getAndClearCollectedSamples(): ProcessedFrame[] {
+    const samples = [...this.collectedSamples];
+    this.collectedSamples = [];
+    return samples;
+  }
 
   async loadModels(
     landmark: any,
@@ -42,7 +55,7 @@ class MachineLearningService {
   classifyGesture(
     onResult: (result: DetailedGestureResult | null) => void,
   ) {
-    return (frame: Frame) => {
+    return async (frame: Frame) => {
       'worklet';
       if (!this.isReady || !this.landmarkModel || !this.gestureModel) return;
 
@@ -58,24 +71,96 @@ class MachineLearningService {
         height: frame.height,
         timestamp: Date.now(),
       };
-      const tensor = this.prepareTensorInput(processed);
+
+      let result: DetailedGestureResult | null = null;
+
+      // Attempt remote classification first
       try {
-        const output = this.gestureModel!.runSync([tensor]) as any[];
-        const predictions = output[0] as number[];
-        const { gesture, confidence } = this.processModelOutput(predictions);
-        runOnJS(onResult)({
-          label: gesture,
-          confidence,
-          isLocal: true,
-          timestamp: Date.now(),
-          suggestions: [],
-          requiresConfirmation: confidence < this.confidenceThreshold,
-        });
+        const remoteResult = await this.classifyRemotely(processed);
+        if (remoteResult) {
+          result = remoteResult;
+        }
       } catch (e) {
-        console.error('Gesture classification failed', e);
-        runOnJS(onResult)(this.createUncertainResult('Inference error'));
+        logger.warn(`Remote classification failed or timed out: ${e}. Falling back to local.`);
+      }
+
+      // Fallback to local classification if remote failed or wasn't attempted
+      if (!result) {
+        try {
+          const tensor = this.prepareTensorInput(processed);
+          const output = this.gestureModel!.runSync([tensor]) as any[];
+          const predictions = output[0] as number[];
+          const { gesture, confidence } = this.processModelOutput(predictions);
+          result = {
+            label: gesture,
+            confidence,
+            isLocal: true,
+            timestamp: Date.now(),
+            suggestions: [],
+            requiresConfirmation: confidence < this.confidenceThreshold,
+          };
+        } catch (e) {
+          console.error('Local gesture classification failed', e);
+          result = this.createUncertainResult('Local inference error');
+        }
+      }
+      runOnJS(onResult)(result);
+      // Log the interaction after classification
+      if (result) {
+        runOnJS(this.logInteraction)({
+          label: result.label,
+          confidence: result.confidence,
+          isLocal: result.isLocal,
+          wasSuccessful: result.label !== 'uncertain',
+        });
       }
     };
+  }
+
+  private async classifyRemotely(
+    processedFrame: ProcessedFrame,
+  ): Promise<DetailedGestureResult | null> {
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 400); // 400ms timeout
+
+    try {
+      const response = await Promise.race([
+        fetch(`${API_URL}/classify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_TOKEN}`,
+          },
+          body: JSON.stringify({
+            landmarks: processedFrame.landmarks,
+            width: processedFrame.width,
+            height: processedFrame.height,
+          }),
+          signal: abortController.signal,
+        }),
+        new Promise<Response>((_, reject) =>
+          setTimeout(() => reject(new Error('Remote classification timed out')), 400)
+        ),
+      ]);
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        label: data.label,
+        confidence: data.confidence,
+        isLocal: false,
+        timestamp: Date.now(),
+        suggestions: data.suggestions || [],
+        requiresConfirmation: data.requiresConfirmation || data.confidence < this.confidenceThreshold,
+      };
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private prepareTensorInput(data: ProcessedFrame): number[] {
@@ -99,6 +184,25 @@ class MachineLearningService {
       suggestions: [],
       requiresConfirmation: true,
     };
+  }
+
+  private async logInteraction(data: { label: string; confidence: number; isLocal: boolean; wasSuccessful: boolean }) {
+    try {
+      await database.write(async () => {
+        await database.get<InteractionLog>('interaction_logs').create(log => {
+          log.sessionId = 'current_session'; // Replace with actual session ID
+          log.gestureDefinitionId = data.label; // Use label as gestureDefinitionId for now
+          log.wasSuccessful = data.wasSuccessful;
+          log.confidenceScore = data.confidence;
+          log.inputType = data.isLocal ? 'local_ml' : 'remote_ml';
+          log.processingTimeMs = 0; // Placeholder, actual processing time would be calculated
+          log.environmentalContext = 'unknown'; // Placeholder
+          log.createdAt = new Date();
+        });
+      });
+    } catch (error) {
+      logger.error('Failed to log interaction:', error);
+    }
   }
 
   async startTeachingSession(gestureLabel: string): Promise<string> {

@@ -8,6 +8,7 @@ import {
   VocabularySet,
   UsageStat,
   VocabularySetSymbol,
+  Correction,
 } from './types';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -22,6 +23,7 @@ export interface Database {
   vocabularySetSymbols: VocabularySetSymbol[];
   usageStats: UsageStat[];
   learningAnalytics: LearningAnalytics[];
+  corrections: Correction[]; // Added comment to force re-evaluation
 }
 
 export const createDatabase = (): Database => ({
@@ -34,6 +36,7 @@ export const createDatabase = (): Database => ({
   vocabularySetSymbols: [],
   usageStats: [],
   learningAnalytics: [],
+  corrections: [],
 });
 
 export const addSymbol = (db: Database, symbol: SymbolRecord): void => {
@@ -301,6 +304,7 @@ export async function setupDatabase(filePath: string): Promise<Database> {
   if (db.profiles.length === 0) {
     const profile: Profile = {
       id: 'default',
+      name: 'Default Profile',
       consentDataUpload: false,
       consentHelpMeGetSmarter: false,
       vocabularySetId: 'basic',

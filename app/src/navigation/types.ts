@@ -8,4 +8,5 @@ export type RootStackParamList = {
   Training: { profileId?: string } | undefined;
   Dashboard: undefined;
   Onboarding: undefined;
+  Help: undefined;
 };

@@ -11,6 +11,7 @@ import AdminScreen from './src/screens/AdminScreen';
 import ParentScreen from './src/screens/ParentScreen';
 import LearningScreen from './src/screens/LearningScreen';
 import TeachingScreen from './src/screens/TeachingScreen';
+import HelpScreen from './src/screens/HelpScreen';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
@@ -105,6 +106,11 @@ export default function App() {
             name="Parent"
             component={ParentScreen}
             options={{ title: 'Elternbereich' }}
+          />
+          <Stack.Screen
+            name="Help"
+            component={HelpScreen}
+            options={{ title: 'Hilfe' }}
           />
           </Stack.Navigator>
         </NavigationContainer>
