@@ -113,12 +113,15 @@ class MachineLearningService {
       this.lastProcessedTime = now;
 
       if (!this.isReady) {
+        console.log('ML Service not ready');
         runOnJS(onResult)(this.createUncertainResult('Service not ready'));
         return;
       }
 
       try {
+        console.log('Processing frame...');
         const landmarks = extractHandLandmarks(frame);
+        console.log('Landmarks:', landmarks ? landmarks.length : 0);
 
         if (!landmarks || landmarks.length === 0) {
           runOnJS(onResult)(this.createUncertainResult('No landmarks detected'));

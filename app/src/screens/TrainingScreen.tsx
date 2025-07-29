@@ -8,8 +8,8 @@ import { extractLandmarksFromVideo } from '../services';
 
 export default function TrainingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
-  const devices = useCameraDevices('wide-angle-camera');
-  const device = devices.back;
+  const devices = useCameraDevices();
+  const device = devices.back ?? devices.front ?? devices[0];
   const camera = useRef<CameraRef>(null);
   const [gestureId, setGestureId] = useState<string | null>(null);
   const [count, setCount] = useState(0);

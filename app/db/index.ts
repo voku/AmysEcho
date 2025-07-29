@@ -1,5 +1,6 @@
 import { Database } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
+import { migrations } from './migrations';
 import { mySchema } from './schema';
 import {
   Profile,
@@ -16,6 +17,7 @@ import {
 
 const adapter = new SQLiteAdapter({
   schema: mySchema,
+  migrations,
   jsi: true,
 });
 

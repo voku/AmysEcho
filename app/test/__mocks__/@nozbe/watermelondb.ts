@@ -8,6 +8,5 @@ export const Relation = jest.fn();
 export const associations = jest.fn();
 export const SQLiteAdapter = jest.fn(() => ({
   schema: {},
-  migrations: {},
   initializeJSI: jest.fn(),
 }));

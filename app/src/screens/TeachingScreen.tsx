@@ -7,8 +7,8 @@ import { saveTrainingSample } from '../storage';
 import { extractLandmarksFromVideo } from '../services/landmarkExtractor';
 
 export default function TeachingScreen({ navigation }: any) {
-  const devices = useCameraDevices('wide-angle-camera');
-  const device = devices.back;
+  const devices = useCameraDevices();
+  const device = devices.back ?? devices.front ?? devices[0];
   const camera = useRef<CameraRef>(null);
   const [gestureLabel, setGestureLabel] = useState('');
   const [isSessionActive, setIsSessionActive] = useState(false);

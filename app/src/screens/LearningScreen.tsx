@@ -61,8 +61,8 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const { mlService } = useServices();
 
   // Gesture models are loaded by the mlService
-  const devices = useCameraDevices('wide-angle-camera');
-  const device = devices.back;
+  const devices = useCameraDevices();
+  const device = devices.back ?? devices.front ?? devices[0];
   const isFocused = useIsFocused();
   const appState = AppState.currentState;
   const canRunCamera = device != null && isCameraActive && isFocused && appState === 'active';

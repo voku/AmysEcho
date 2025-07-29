@@ -50,24 +50,26 @@ export default function RecognitionScreen({ navigation }: any) {
   const [weakGesture, setWeakGesture] = useState<GestureDefinition | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState(useCameraPermission().hasPermission);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
 
-  const { hasPermission, requestPermission } = useCameraPermission();
-  const devices = useCameraDevices('wide-angle-camera');
-  const device = devices.back;
+  const { requestPermission } = useCameraPermission();
+  const devices = useCameraDevices();
+  const device = devices.back ?? devices.front ?? devices[0];
   const isFocused = useIsFocused();
   const appState = AppState.currentState;
 
   const canUseCamera =
-    hasPermission && device != null && isFocused && isCameraActive && appState === 'active';
+    permissionStatus && device != null && isFocused && isCameraActive && appState === 'active';
 
-  useEffect(() => {
-    if (!hasPermission) {
-      requestPermission();
-    }
-  }, [hasPermission, requestPermission]);
+  const handleRequestPermission = useCallback(async () => {
+    console.log('Requesting camera permission...');
+    const result = await requestPermission();
+    console.log('Permission result:', result);
+    setPermissionStatus(result);
+  }, [requestPermission]);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -318,14 +320,14 @@ export default function RecognitionScreen({ navigation }: any) {
     },
   });
 
-  if (!hasPermission) {
+  if (!permissionStatus) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
           <Text style={styles.permissionText}>
             Amy's Echo needs camera access to recognize gestures.
           </Text>
-          <Button title="Grant Camera Permission" onPress={requestPermission} />
+          <Button title="Grant Camera Permission" onPress={handleRequestPermission} />
         </View>
       </SafeAreaView>
     );
