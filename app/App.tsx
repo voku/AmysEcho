@@ -9,6 +9,7 @@ import ProfileManagerScreen from './src/screens/ProfileManagerScreen';
 import RecognitionScreen from './src/screens/RecognitionScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import ParentScreen from './src/screens/ParentScreen';
+import ParentalGateScreen from './src/screens/ParentalGateScreen';
 import LearningScreen from './src/screens/LearningScreen';
 import TeachingScreen from './src/screens/TeachingScreen';
 import TrainingScreen from './src/screens/TrainingScreen';
@@ -118,6 +119,11 @@ export default function App() {
             name="ProfileSelect"
             component={ProfileSelectScreen}
             options={{ title: 'Profil auswählen' }}
+          />
+          <Stack.Screen
+            name="ParentalGate"
+            component={ParentalGateScreen}
+            options={{ title: 'Zugangsprüfung' }}
           />
           <Stack.Screen
             name="ProfileManager"
