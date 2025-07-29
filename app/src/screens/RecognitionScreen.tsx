@@ -427,6 +427,11 @@ export default function RecognitionScreen({ navigation }: any) {
                 accessibilityLabel="Simulate low confidence"
               />
               <Button
+                title="Menu"
+                onPress={() => navigation.navigate('ProfileSelect')}
+                accessibilityLabel="Menü öffnen"
+              />
+              <Button
                 title="Analytics"
                 onPress={() => navigation.navigate('Dashboard')}
                 accessibilityLabel="View analytics"

@@ -234,6 +234,21 @@ export default function AdminScreen({ navigation }: any) {
         onPress={() => navigation.navigate('Training')}
         accessibilityLabel="Trainingsmodus öffnen"
       />
+      <Button
+        title="Legacy Training"
+        onPress={() => navigation.navigate('LegacyTraining')}
+        accessibilityLabel="Alten Trainingsmodus öffnen"
+      />
+      <Button
+        title="Correction"
+        onPress={() => navigation.navigate('Correction')}
+        accessibilityLabel="Korrekturmodus öffnen"
+      />
+      <Button
+        title="Dashboard"
+        onPress={() => navigation.navigate('Dashboard')}
+        accessibilityLabel="Analytics öffnen"
+      />
       <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
 
       <Modal visible={modalVisible} animationType="slide">
