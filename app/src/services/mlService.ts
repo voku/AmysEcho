@@ -33,64 +33,18 @@ import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
 
-const DEMO_GESTURES = [
-  'hello',
-  'thank_you',
-  'please',
-  'more',
-  'finished',
-  'water',
-  'eat',
-  'play',
-  'help',
-  'yes',
-  'no',
-];
+// Default gesture labels will be supplied when models are loaded
 
 class MachineLearningService {
   private landmarkModel: any = null;
   private gestureModel: any = null;
   private isReady = false;
   private confidenceThreshold = 0.7;
-  private labels: string[] = DEMO_GESTURES;
+  private labels: string[] = [];
   private teachingSession: { id: string; label: string } | null = null;
   private collectedSamples: ProcessedFrame[] = [];
   private lastProcessedTime = 0;
   private processingCooldown = 1000;
-
-  constructor() {
-    this.initializeService();
-  }
-
-  private async initializeService(): Promise<void> {
-    try {
-      logger.info('Initializing ML Service...');
-      await this.loadDemoModels();
-      this.isReady = true;
-      logger.info('ML Service initialized successfully');
-    } catch (error) {
-      logger.error('Failed to initialize ML Service:', error);
-      this.isReady = true;
-    }
-  }
-
-  private async loadDemoModels(): Promise<void> {
-    await new Promise((r) => setTimeout(r, 1000));
-    this.landmarkModel = { name: 'demo_landmark_model', isLoaded: true };
-    this.gestureModel = {
-      name: 'demo_gesture_model',
-      isLoaded: true,
-      runSync: (_: any[]) => {
-        const predictions = new Array(this.labels.length)
-          .fill(0)
-          .map(() => Math.random());
-        const maxIndex = predictions.indexOf(Math.max(...predictions));
-        predictions[maxIndex] = Math.min(0.95, predictions[maxIndex] + 0.3);
-        return [predictions];
-      },
-    };
-    logger.info('Demo models loaded');
-  }
 
   addCollectedSample(sample: ProcessedFrame) {
     this.collectedSamples.push(sample);
@@ -136,13 +90,13 @@ class MachineLearningService {
         this.confidenceThreshold = config.confidenceThreshold;
       }
 
-      this.labels = labels.length > 0 ? labels : DEMO_GESTURES;
+      this.labels = labels;
       this.isReady = !!this.landmarkModel && !!this.gestureModel;
 
       logger.info('Custom models loaded successfully');
     } catch (error) {
-      logger.error('Failed to load custom models, using demo mode:', error);
-      await this.loadDemoModels();
+      logger.error('Failed to load custom models:', error);
+      this.isReady = false;
     }
   }
 
@@ -164,7 +118,7 @@ class MachineLearningService {
       }
 
       try {
-        const landmarks = this.extractMockLandmarks(frame);
+        const landmarks = extractHandLandmarks(frame);
 
         if (!landmarks || landmarks.length === 0) {
           runOnJS(onResult)(this.createUncertainResult('No landmarks detected'));
@@ -185,20 +139,6 @@ class MachineLearningService {
       }
     };
   }
-
-  private extractMockLandmarks(frame: Frame): number[][] {
-    const numLandmarks = 21;
-    const landmarks: number[][] = [];
-    for (let i = 0; i < numLandmarks; i++) {
-      landmarks.push([
-        Math.random() * frame.width,
-        Math.random() * frame.height,
-        Math.random() * 0.1,
-      ]);
-    }
-    return landmarks;
-  }
-
   private async processFrameAsync(
     processed: ProcessedFrame,
     onResult: (result: DetailedGestureResult | null) => void,
@@ -342,7 +282,7 @@ class MachineLearningService {
   async recordSample(sessionId: string, frame: Frame): Promise<void> {
     if (!this.teachingSession || this.teachingSession.id !== sessionId) return;
 
-    const landmarks = this.extractMockLandmarks(frame);
+    const landmarks = extractHandLandmarks(frame);
     if (landmarks && landmarks.length > 0) {
       const processed: ProcessedFrame = {
         landmarks,
