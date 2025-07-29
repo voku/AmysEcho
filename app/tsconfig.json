@@ -10,7 +10,8 @@
     "moduleResolution": "node16",
     "types": [
       "node",
-      "./mock-types"
+      "./mock-types",
+      "jest"
     ],
     "resolveJsonModule": true,
     "outDir": "dist",
@@ -26,6 +27,11 @@
     "test",
     "../server",
     "__mocks__"
+  ],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/declarations.d.ts"
   ],
   "extends": "expo/tsconfig.base"
 }

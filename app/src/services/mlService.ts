@@ -1,4 +1,5 @@
 import type { Frame } from 'react-native-vision-camera';
+import * as FileSystem from 'expo-file-system';
 let TensorflowModel: any = null;
 let loadTensorflowModel: any = null;
 try { ({ TensorflowModel, loadTensorflowModel } = require('react-native-fast-tflite')); } catch {}
@@ -37,11 +38,19 @@ class MachineLearningService {
   ): Promise<void> {
     this.landmarkModel = landmark;
     setHandLandmarkModel(landmark);
-    if (typeof gesture === 'string') {
-      this.gestureModel = await loadTensorflowModel(gesture as any);
-    } else {
-      this.gestureModel = gesture;
+
+    let modelPath = gesture;
+    if (!gesture.startsWith('file://')) {
+      const { uri } = await FileSystem.downloadAsync(
+        gesture,
+        FileSystem.documentDirectory + 'temp_model.tflite'
+      );
+      modelPath = uri;
+      logger.info(`Downloaded model to: ${modelPath}. Original gesture: ${gesture}`);
     }
+
+    logger.info(`Attempting to load model from final path: ${modelPath}`);
+    this.gestureModel = await loadTensorflowModel(modelPath);
     if (config?.confidenceThreshold) {
       this.confidenceThreshold = config.confidenceThreshold;
     }

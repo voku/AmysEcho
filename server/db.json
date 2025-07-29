@@ -1,0 +1,72 @@
+{
+  "symbols": [
+    {
+      "id": "hello",
+      "name": "Hello",
+      "emoji": "👋",
+      "color": "#ffcc00",
+      "audioUri": "hello.mp3",
+      "dgsVideoUri": "dgs/hello.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "drink",
+      "name": "Drink",
+      "emoji": "🥤",
+      "color": "#0099ff",
+      "audioUri": "drink.mp3",
+      "dgsVideoUri": "dgs/drink.mp4",
+      "healthScore": 1
+    }
+  ],
+  "gestureDefinitions": [],
+  "gestureTrainingData": [],
+  "interactionLogs": [],
+  "profiles": [
+    {
+      "id": "default",
+      "name": "Default Profile",
+      "consentDataUpload": false,
+      "consentHelpMeGetSmarter": false,
+      "vocabularySetId": "basic"
+    }
+  ],
+  "vocabularySets": [
+    {
+      "id": "basic",
+      "name": "Basic"
+    },
+    {
+      "id": "animals",
+      "name": "Animals"
+    }
+  ],
+  "vocabularySetSymbols": [
+    {
+      "id": "mdn8ie0lp7gjsp4r2id",
+      "vocabularySetId": "basic",
+      "symbolId": "hello"
+    },
+    {
+      "id": "mdn8ie0log7mboguk37",
+      "vocabularySetId": "basic",
+      "symbolId": "drink"
+    }
+  ],
+  "usageStats": [
+    {
+      "id": "mdn8ie0l2f168aeqgpa",
+      "symbolId": "hello",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "mdn8ie0l4ji0wz52aw8",
+      "symbolId": "drink",
+      "profileId": "default",
+      "count": 0
+    }
+  ],
+  "learningAnalytics": [],
+  "corrections": []
+}

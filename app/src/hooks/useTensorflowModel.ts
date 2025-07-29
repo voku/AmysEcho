@@ -24,8 +24,8 @@ export function useTensorflowModel(
             source = customUri;
           }
         }
-        const loaded = await loadTensorflowModel(source as any);
-        if (isMounted) setModel(loaded);
+        // We are no longer loading the model here, just returning the source
+        if (isMounted) setModel(source);
       } catch (e) {
         console.error('Model load failed', e);
       }
