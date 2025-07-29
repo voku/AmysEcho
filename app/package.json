@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "test": "npx ts-node test/run-tests.ts",
+    "test": "node test/run-tests.js",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "build:android": "eas build --platform android --profile production --non-interactive",
     "build:ios": "eas build --platform ios --profile production --non-interactive"
