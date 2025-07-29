@@ -141,6 +141,44 @@ If you run the build in a CI or other non-interactive environment,
 set the `EXPO_TOKEN` environment variable with an Expo access token.
 Otherwise the command will fail when it prompts for login.
 
+### Build & Test Workflow (EAS)
+
+1. **Run the full test suite** before building:
+
+   ```bash
+   npm run type-check --prefix app
+   npm test --prefix app
+   pip install -r server/requirements.txt
+   npm test --prefix server
+   ```
+
+   You can also execute `./scripts/full-check.sh` from the repo root to run all
+   checks at once.
+
+2. **Verify your Expo environment**:
+
+   ```bash
+   npx expo install --check              # ensure dependencies match
+   npx expo-doctor                       # confirm environment setup
+   npx expo whoami || npx expo login     # verify you are logged in
+   ```
+
+   When running in CI, set an `EXPO_TOKEN` environment variable instead of
+   calling `expo login` interactively.
+
+3. **Kick off the build**:
+
+   ```bash
+   npm run build:android   # or `npm run build:ios`
+   ```
+
+   The CLI prints a link where you can monitor build progress on Expo's EAS
+   service. You can check the most recent build using:
+
+   ```bash
+   eas build:list --limit 1
+   ```
+
 ### Retraining the offline model
 
 Collected gesture samples can be used to update the local fallback model. Run:
