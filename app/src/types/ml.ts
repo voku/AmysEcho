@@ -5,13 +5,8 @@ export interface ProcessedFrame {
   timestamp: number;
 }
 
-export interface GestureResult {
+export interface DetailedGestureResult {
   label: string;
-  confidence: number;
-}
-
-export interface DetailedGestureResult extends GestureResult {
-  symbolLabel?: string;
   confidence: number;
   isLocal: boolean;
   timestamp: number;
@@ -20,8 +15,7 @@ export interface DetailedGestureResult extends GestureResult {
 }
 
 export interface MLServiceConfig {
-  modelPath?: string;
-  fallbackModelPath?: string;
-  cloudEndpoint?: string;
   confidenceThreshold?: number;
+  processingTimeout?: number;
+  enableRemoteClassification?: boolean;
 }

@@ -1,41 +1,71 @@
-import basic from '../assets/model/basicGestures.json';
-import animals from '../assets/model/animalGestures.json';
-
-export type GestureModelEntry = {
+export interface GestureModelEntry {
   id: string;
   label: string;
-  /** Path to the standard demonstration video relative to the assets folder */
   videoUri?: string;
-  /** Optional path to a DGS video */
   dgsVideoUri?: string;
-  /** Optional path to a default audio cue */
-  audioUri?: string;
-};
+  emoji?: string;
+  category?: string;
+  confidence?: number;
+}
 
-export type GestureModel = {
-  gestures: GestureModelEntry[];
-};
+export interface VocabularySet {
+  id: string;
+  label: string;
+  gestures: string[];
+}
 
-const vocabularySets: Record<string, GestureModel> = {
-  basic: basic as GestureModel,
-  animals: animals as GestureModel,
-};
-
-export const availableVocabularySets = [
-  { id: 'basic', label: 'Basic' },
-  { id: 'animals', label: 'Animals' },
+export const availableVocabularySets: VocabularySet[] = [
+  {
+    id: 'basic',
+    label: 'Basic Needs',
+    gestures: ['hello', 'thank_you', 'please', 'more', 'finished', 'water', 'eat', 'help']
+  },
+  {
+    id: 'emotions',
+    label: 'Feelings',
+    gestures: ['happy', 'sad', 'angry', 'excited', 'tired', 'scared']
+  },
+  {
+    id: 'activities',
+    label: 'Activities',
+    gestures: ['play', 'read', 'music', 'outside', 'sleep', 'bath']
+  }
 ];
 
-let activeSetId = 'basic';
-export let gestureModel: GestureModel = vocabularySets[activeSetId];
+export const gestureModel = {
+  gestures: [
+    { id: 'hello', label: '👋 Hallo', emoji: '👋', category: 'greeting' },
+    { id: 'thank_you', label: '🙏 Danke', emoji: '🙏', category: 'politeness' },
+    { id: 'please', label: '🥺 Bitte', emoji: '🥺', category: 'politeness' },
+    { id: 'more', label: '➕ Mehr', emoji: '➕', category: 'quantity' },
+    { id: 'finished', label: '✅ Fertig', emoji: '✅', category: 'status' },
+    { id: 'water', label: '💧 Wasser', emoji: '💧', category: 'drink' },
+    { id: 'eat', label: '🍽️ Essen', emoji: '🍽️', category: 'food' },
+    { id: 'play', label: '🎮 Spielen', emoji: '🎮', category: 'activity' },
+    { id: 'help', label: '🆘 Hilfe', emoji: '🆘', category: 'need' },
+    { id: 'yes', label: '✅ Ja', emoji: '✅', category: 'response' },
+    { id: 'no', label: '❌ Nein', emoji: '❌', category: 'response' },
+    { id: 'happy', label: '😊 Glücklich', emoji: '😊', category: 'emotion' },
+    { id: 'sad', label: '😢 Traurig', emoji: '😢', category: 'emotion' }
+  ] as GestureModelEntry[]
+};
+
+let activeVocabularySetId = 'basic';
 
 export function setActiveVocabularySet(id: string): void {
-  if (vocabularySets[id]) {
-    activeSetId = id;
-    gestureModel = vocabularySets[id];
+  if (availableVocabularySets.find(s => s.id === id)) {
+    activeVocabularySetId = id;
   }
 }
 
-export function getActiveVocabularySetId(): string {
-  return activeSetId;
+export function getActiveVocabularySet(): VocabularySet {
+  return availableVocabularySets.find(s => s.id === activeVocabularySetId) || availableVocabularySets[0];
 }
+
+export function getGesturesForVocabularySet(setId: string): GestureModelEntry[] {
+  const vocabSet = availableVocabularySets.find(s => s.id === setId);
+  if (!vocabSet) return [];
+
+  return gestureModel.gestures.filter(g => vocabSet.gestures.includes(g.id));
+}
+

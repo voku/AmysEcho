@@ -8,6 +8,7 @@ declare module 'react-native-vision-camera' {
   export interface VideoFile { path: string }
   export const Camera: React.ForwardRefExoticComponent<any & React.RefAttributes<CameraRef>>;
   export const useCameraDevices: any;
+  export const useCameraPermission: any;
   export const useFrameProcessor: any;
 }
 

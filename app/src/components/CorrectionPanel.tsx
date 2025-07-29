@@ -1,89 +1,152 @@
-import React, { useRef, useEffect } from 'react';
-import { Modal, View, Button, StyleSheet, Animated, Easing } from 'react-native';
-import { gestureModel } from '../model';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 
-interface Props {
-  visible: boolean;
+interface CorrectionPanelProps {
   onSelect: (choice: string) => void;
-  onClose: () => void;
   onAddNew: () => void;
+  onCancel: () => void;
 }
 
-export default function CorrectionPanel({
-  visible,
-  onSelect,
-  onClose,
-  onAddNew,
-}: Props) {
-  const { highContrast } = useAccessibility();
-  const options = gestureModel.gestures.slice(0, 4);
-  const slideAnim = useRef(new Animated.Value(300)).current;
+const CORRECTION_OPTIONS = [
+  { id: 'hello', label: '👋 Hello', description: 'Greeting' },
+  { id: 'thank_you', label: '🙏 Thank You', description: 'Gratitude' },
+  { id: 'please', label: '🥺 Please', description: 'Request' },
+  { id: 'more', label: '➕ More', description: 'Want more' },
+  { id: 'finished', label: '✅ Finished', description: 'All done' },
+  { id: 'water', label: '💧 Water', description: 'Drink' },
+  { id: 'eat', label: '🍽️ Eat', description: 'Food' },
+  { id: 'play', label: '🎮 Play', description: 'Fun time' },
+  { id: 'help', label: '🆘 Help', description: 'Need assistance' },
+  { id: 'yes', label: '✅ Yes', description: 'Agree' },
+  { id: 'no', label: '❌ No', description: 'Disagree' },
+];
 
-  useEffect(() => {
-    if (visible) {
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }).start();
-    } else {
-      slideAnim.setValue(300);
-    }
-  }, [visible]);
+export default function CorrectionPanel({ onSelect, onAddNew, onCancel }: CorrectionPanelProps) {
+  const { largeText, highContrast } = useAccessibility();
+
   const styles = StyleSheet.create({
-    overlay: {
+    modal: {
       flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
-    panel: {
-      backgroundColor: highContrast ? '#222' : '#fff',
+    container: {
+      backgroundColor: highContrast ? '#000' : '#fff',
+      borderRadius: 20,
       padding: 20,
-      borderTopLeftRadius: 16,
-      borderTopRightRadius: 16,
+      margin: 20,
+      maxWidth: '90%',
+      maxHeight: '80%',
+      borderWidth: highContrast ? 2 : 0,
+      borderColor: highContrast ? '#fff' : 'transparent',
     },
-    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+    title: {
+      fontSize: largeText ? 28 : 24,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 20,
+      color: highContrast ? '#fff' : '#333',
+    },
+    optionsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      marginBottom: 20,
+    },
+    optionButton: {
+      width: '48%',
+      backgroundColor: highContrast ? '#333' : '#f0f0f0',
+      borderRadius: 15,
+      padding: 15,
+      marginBottom: 10,
+      alignItems: 'center',
+      borderWidth: highContrast ? 1 : 0,
+      borderColor: highContrast ? '#fff' : 'transparent',
+    },
+    optionButtonPressed: {
+      backgroundColor: highContrast ? '#555' : '#e0e0e0',
+    },
+    optionLabel: {
+      fontSize: largeText ? 20 : 18,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 5,
+      color: highContrast ? '#fff' : '#333',
+    },
+    optionDescription: {
+      fontSize: largeText ? 16 : 14,
+      textAlign: 'center',
+      color: highContrast ? '#ccc' : '#666',
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginTop: 20,
+    },
+    actionButton: {
+      backgroundColor: '#007AFF',
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 10,
+      minWidth: 100,
+    },
+    actionButtonSecondary: {
+      backgroundColor: highContrast ? '#666' : '#8E8E93',
+    },
+    actionButtonText: {
+      color: '#fff',
+      fontSize: largeText ? 18 : 16,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
   });
 
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
+      visible={true}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onCancel}
     >
-      <View style={styles.overlay}>
-        <Animated.View style={[styles.panel, { transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.row}>
-            {options.slice(0, 2).map((g) => (
-              <Button
-                key={g.id}
-                title={g.label}
-                onPress={() => onSelect(g.id)}
-                accessibilityLabel={`Korrektur ${g.label}`}
-              />
+      <View style={styles.modal}>
+        <View style={styles.container}>
+          <Text style={styles.title}>What did Amy sign?</Text>
+
+          <View style={styles.optionsGrid}>
+            {CORRECTION_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={styles.optionButton}
+                onPress={() => onSelect(option.id)}
+                accessibilityLabel={`Select ${option.label}`}
+                accessibilityHint={option.description}
+              >
+                <Text style={styles.optionLabel}>{option.label}</Text>
+                <Text style={styles.optionDescription}>{option.description}</Text>
+              </TouchableOpacity>
             ))}
           </View>
-          <View style={styles.row}>
-            {options.slice(2, 4).map((g) => (
-              <Button
-                key={g.id}
-                title={g.label}
-                onPress={() => onSelect(g.id)}
-                accessibilityLabel={`Korrektur ${g.label}`}
-              />
-            ))}
-          </View>
-          <View style={styles.row}>
-            <Button
-              title="None of these"
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonSecondary]}
+              onPress={onCancel}
+              accessibilityLabel="Cancel correction"
+            >
+              <Text style={styles.actionButtonText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
               onPress={onAddNew}
-              accessibilityLabel="Keine dieser Optionen"
-            />
+              accessibilityLabel="Add new gesture"
+            >
+              <Text style={styles.actionButtonText}>Add New</Text>
+            </TouchableOpacity>
           </View>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );
