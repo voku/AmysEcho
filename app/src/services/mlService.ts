@@ -1,5 +1,5 @@
 import type { Frame } from 'react-native-vision-camera';
-import * as FileSystem from 'expo-file-system';
+let FileSystem: typeof import('expo-file-system') | null = null;
 
 let TensorflowModel: any = null;
 let loadTensorflowModel: any = null;
@@ -12,6 +12,13 @@ try {
 }
 
 let runOnJS: any = (fn: Function) => fn;
+
+async function getFileSystem() {
+  if (!FileSystem) {
+    FileSystem = await import('expo-file-system');
+  }
+  return FileSystem;
+}
 try {
   const worklets = require('react-native-worklets-core');
   runOnJS = worklets.runOnJS;
@@ -104,15 +111,16 @@ class MachineLearningService {
     try {
       logger.info('Loading custom models...');
 
-      if (loadTensorflowModel) {
-        this.landmarkModel = landmark;
-        setHandLandmarkModel?.(landmark);
+      this.landmarkModel = landmark;
+      setHandLandmarkModel?.(landmark);
 
+      if (typeof gesture === 'string' && loadTensorflowModel) {
         let modelPath = gesture;
         if (!gesture.startsWith('file://')) {
-          const { uri } = await FileSystem.downloadAsync(
+          const fs = await getFileSystem();
+          const { uri } = await fs.downloadAsync(
             gesture,
-            FileSystem.documentDirectory + 'temp_model.tflite',
+            fs.documentDirectory + 'temp_model.tflite',
           );
           modelPath = uri;
           logger.info(`Downloaded model to: ${modelPath}`);
@@ -120,6 +128,8 @@ class MachineLearningService {
 
         logger.info(`Loading model from: ${modelPath}`);
         this.gestureModel = await loadTensorflowModel(modelPath);
+      } else {
+        this.gestureModel = gesture;
       }
 
       if (config?.confidenceThreshold) {

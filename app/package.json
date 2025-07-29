@@ -60,6 +60,7 @@
     "metro-runtime": "^0.82.3",
     "metro-source-map": "^0.82.3",
     "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
   "lint-staged": {
