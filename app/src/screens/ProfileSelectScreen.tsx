@@ -18,12 +18,12 @@ export default function ProfileSelectScreen({ navigation }: any) {
       <View style={styles.row}>
         <Button
           title="Parent"
-          onPress={() => navigation.navigate('Parent')}
+          onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
           accessibilityLabel="Elternprofil"
         />
         <Button
           title="Admin"
-          onPress={() => navigation.navigate('Admin')}
+          onPress={() => navigation.navigate('ParentalGate', { target: 'Admin' })}
           accessibilityLabel="Adminbereich"
         />
         <Button
