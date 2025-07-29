@@ -7,6 +7,7 @@ Amy is four years old. She was born with **22q11 Deletion Syndrome** and communi
 This project aims to fix that.
 
 See [`docs/CodebaseOverview.md`](docs/CodebaseOverview.md) for a summary of the repository structure.
+For the main user stories and how the screens connect, see [`docs/UserStories.md`](docs/UserStories.md).
 
 ---
 

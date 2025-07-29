@@ -11,6 +11,8 @@ import AdminScreen from './src/screens/AdminScreen';
 import ParentScreen from './src/screens/ParentScreen';
 import LearningScreen from './src/screens/LearningScreen';
 import TeachingScreen from './src/screens/TeachingScreen';
+import TrainingScreen from './src/screens/TrainingScreen';
+import CorrectionScreen from './src/screens/CorrectionScreen';
 import HelpScreen from './src/screens/HelpScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
@@ -142,6 +144,16 @@ export default function App() {
             name="Training"
             component={TeachingScreen}
             options={{ title: 'Training' }}
+          />
+          <Stack.Screen
+            name="LegacyTraining"
+            component={TrainingScreen}
+            options={{ title: 'Training Legacy' }}
+          />
+          <Stack.Screen
+            name="Correction"
+            component={CorrectionScreen}
+            options={{ title: 'Correction' }}
           />
           <Stack.Screen
             name="Parent"
