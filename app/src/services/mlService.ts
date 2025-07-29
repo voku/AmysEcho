@@ -32,6 +32,7 @@ import { DetailedGestureResult, ProcessedFrame, MLServiceConfig } from '../types
 import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
+import { recordInteraction } from './adaptiveLearningService';
 
 // Default gesture labels will be supplied when models are loaded
 
@@ -45,6 +46,7 @@ class MachineLearningService {
   private collectedSamples: ProcessedFrame[] = [];
   private lastProcessedTime = 0;
   private processingCooldown = 1000;
+  private remoteTimeout = 400; // ms
 
   addCollectedSample(sample: ProcessedFrame) {
     this.collectedSamples.push(sample);
@@ -88,6 +90,9 @@ class MachineLearningService {
 
       if (config?.confidenceThreshold) {
         this.confidenceThreshold = config.confidenceThreshold;
+      }
+      if (config?.processingTimeout) {
+        this.remoteTimeout = config.processingTimeout;
       }
 
       this.labels = labels;
@@ -152,7 +157,7 @@ class MachineLearningService {
       result = await Promise.race([
         this.classifyRemotely(processed),
         new Promise<null>((_, reject) =>
-          setTimeout(() => reject(new Error('Remote timeout')), 500),
+          setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout),
         ),
       ]);
     } catch (error) {
@@ -181,11 +186,13 @@ class MachineLearningService {
     }
 
     if (result) {
+      const processingTime = Date.now() - processed.timestamp;
       this.logInteraction({
         label: result.label,
         confidence: result.confidence,
         isLocal: result.isLocal,
         wasSuccessful: result.label !== 'uncertain',
+        processingTimeMs: processingTime,
       });
     }
 
@@ -256,6 +263,7 @@ class MachineLearningService {
     confidence: number;
     isLocal: boolean;
     wasSuccessful: boolean;
+    processingTimeMs: number;
   }) {
     try {
       await database.write(async () => {
@@ -265,11 +273,12 @@ class MachineLearningService {
           log.wasSuccessful = data.wasSuccessful;
           log.confidenceScore = data.confidence;
           log.inputType = data.isLocal ? 'local_ml' : 'remote_ml';
-          log.processingTimeMs = 0;
+          log.processingTimeMs = data.processingTimeMs;
           log.environmentalContext = 'unknown';
           log.createdAt = new Date();
         });
       });
+      recordInteraction(data.label, data.wasSuccessful).catch(() => {});
     } catch (error) {
       logger.error('Failed to log interaction:', error);
     }

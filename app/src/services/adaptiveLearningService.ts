@@ -53,13 +53,17 @@ export async function recordInteraction(gestureId: string, wasSuccessful: boolea
     await database.write(async () => {
       const gestureDefinition = await database.get<GestureDefinition>('gesture_definitions').find(gestureId);
       let score = gestureDefinition.healthScore;
+      let threshold = gestureDefinition.minConfidenceThreshold;
       if (wasSuccessful) {
         score = Math.min(100, score + 1);
+        threshold = Math.max(0, threshold - 0.01);
       } else {
         score = Math.max(0, score - 5);
+        threshold = Math.min(1, threshold + 0.02);
       }
       await gestureDefinition.update(g => {
         g.healthScore = score;
+        g.minConfidenceThreshold = threshold;
       });
     });
     return true; // Indicate success
