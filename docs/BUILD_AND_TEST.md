@@ -26,3 +26,25 @@ npm test
 ```
 
 If all tests pass, you should see a success message in the console. This indicates that the core functionality of the application is working as expected.
+
+## Building a production APK with EAS
+
+For store-ready binaries Amy's Echo relies on Expo's **EAS Build** service. The recommended workflow is:
+
+1. Run the full test suite to verify everything is green:
+   ```bash
+   ./scripts/full-check.sh
+   ```
+2. Generate the native Android project if it doesn't already exist:
+   ```bash
+   npx expo prebuild --platform android
+   ```
+3. Trigger the remote build from the `app` directory:
+   ```bash
+   npm run build:android
+   ```
+   The command prints a link where you can monitor progress. You can also query the latest build using:
+   ```bash
+   eas build:list --limit 1
+   ```
+Ensure you are logged in to Expo (`npx expo whoami`) or provide an `EXPO_TOKEN` when running in CI.
