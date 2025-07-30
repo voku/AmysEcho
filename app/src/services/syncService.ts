@@ -38,38 +38,31 @@ export const syncService = {
 
       logger.info(`Found ${pendingSamples.length} pending training samples.`);
 
-      for (const sample of pendingSamples) {
-        try {
-          const response = await fetch(`${API_URL}/upload_training_data`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${API_TOKEN}`,
-            },
-            body: JSON.stringify({
-              gestureDefinitionId: sample.gestureDefinition.id,
-              landmarkData: JSON.parse(sample.landmarkData),
-              source: sample.source,
-              qualityScore: sample.qualityScore,
-              frameMetadata: sample.frameMetadata,
-              createdAt: sample.createdAt.toISOString(),
-              profileId: activeProfileId,
-            }),
-          });
+      try {
+        const payload = pendingSamples.map((s) => JSON.parse(s.landmarkData));
+        const response = await fetch(`${API_URL}/train-model`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${API_TOKEN}`,
+          },
+          body: JSON.stringify({ landmarks: payload }),
+        });
 
-          if (response.ok) {
-            await database.write(async () => {
-              await sample.update(s => {
+        if (response.ok) {
+          await database.write(async () => {
+            for (const sample of pendingSamples) {
+              await sample.update((s) => {
                 s.customSyncStatus = 'synced';
               });
-            });
-            logger.info(`Successfully uploaded and marked as synced: ${sample.id}`);
-          } else {
-            logger.error(`Failed to upload sample ${sample.id}: ${response.status} ${response.statusText}`);
-          }
-        } catch (uploadError) {
-          logger.error(`Error uploading sample ${sample.id}:`, uploadError);
+            }
+          });
+          logger.info(`Uploaded ${pendingSamples.length} samples successfully.`);
+        } else {
+          logger.error(`Failed to upload training data: ${response.status} ${response.statusText}`);
         }
+      } catch (uploadError) {
+        logger.error('Error uploading training data:', uploadError);
       }
     } catch (error) {
       logger.error('Error in uploadPendingTrainingData:', error);
