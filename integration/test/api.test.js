@@ -69,3 +69,13 @@ test('POST /train-model invalid payload', async () => {
   });
   assert.strictEqual(res.status, 400);
 });
+
+test('GET /model-version returns version and path', async () => {
+  const res = await fetch(`http://localhost:${PORT}/model-version`, {
+    headers: { Authorization: 'Bearer testtoken' },
+  });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.ok(typeof data.version === 'string');
+  assert.strictEqual(data.modelPath, 'latest-model');
+});

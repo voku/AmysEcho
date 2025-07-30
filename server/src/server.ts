@@ -229,6 +229,18 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
   }
 });
 
+app.get('/model-version', auth, async (_req: Request, res: Response) => {
+  try {
+    const pkgPath = path.join(__dirname, '..', 'package.json');
+    const pkgRaw = await fs.readFile(pkgPath, 'utf8');
+    const { version } = JSON.parse(pkgRaw);
+    res.json({ version, modelPath: 'latest-model' });
+  } catch (err) {
+    console.error('Failed to read model version:', err);
+    res.status(500).json({ error: 'Failed to read model version' });
+  }
+});
+
 app.get('/latest-model', auth, async (_req: Request, res: Response) => {
   const file = TRAINED_MODEL_PATH;
   try {

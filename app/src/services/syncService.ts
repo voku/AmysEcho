@@ -1,11 +1,10 @@
 import { database } from '../../db';
-import { GestureTrainingData, Profile } from '../../db/models';
+import { GestureTrainingData } from '../../db/models';
 import { API_URL, API_TOKEN, MODEL_VERSION_URL } from '../constants';
 import { logger } from '../utils/logger';
-import { loadActiveProfileId, loadProfile, saveCustomModelUri, loadCustomModelUri } from '../storage';
+import { loadActiveProfileId, loadProfile, saveCustomModelUri } from '../storage';
 import { Q } from '@nozbe/watermelondb';
 import * as FileSystem from 'expo-file-system';
-import { GESTURE_CLASSIFIER_MODEL } from '../constants/modelPaths';
 
 const LOCAL_MODEL_VERSION_KEY = 'localModelVersion';
 
@@ -72,7 +71,11 @@ export const syncService = {
   async checkForNewModel(): Promise<void> {
     logger.info('Checking for new model updates...');
     try {
-      const response = await fetch(MODEL_VERSION_URL);
+      const response = await fetch(MODEL_VERSION_URL, {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch model version: ${response.status} ${response.statusText}`);
       }
@@ -87,7 +90,11 @@ export const syncService = {
         const localModelPath = FileSystem.documentDirectory + 'new_gesture_classifier.tflite';
 
         logger.info(`Downloading new model from ${modelDownloadUrl} to ${localModelPath}`);
-        const downloadResult = await FileSystem.downloadAsync(modelDownloadUrl, localModelPath);
+        const downloadResult = await FileSystem.downloadAsync(
+          modelDownloadUrl,
+          localModelPath,
+          { headers: { Authorization: `Bearer ${API_TOKEN}` } },
+        );
 
         if (downloadResult.status === 200) {
           logger.info('Model downloaded successfully. Updating local version.');
