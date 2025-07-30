@@ -48,3 +48,10 @@ For store-ready binaries Amy's Echo relies on Expo's **EAS Build** service. The 
    eas build:list --limit 1
    ```
 Ensure you are logged in to Expo (`npx expo whoami`) or provide an `EXPO_TOKEN` when running in CI.
+
+Before building you can verify the local Expo setup:
+
+```bash
+npx expo install --check
+npx expo-doctor    # skips WatermelonDB packages via package.json
+```
