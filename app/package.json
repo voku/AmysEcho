@@ -69,5 +69,17 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "@nozbe/watermelondb",
+          "@nozbe/with-observables",
+          "better-sqlite3"
+        ],
+        "listUnknownPackages": false
+      }
+    }
   }
 }

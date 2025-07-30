@@ -54,7 +54,12 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 7. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 8. Or run `./scripts/full-check.sh` from the repo root to automatically install
    dependencies and execute all tests at once
-9. Or check the expo setup inside `app` via `npx expo install --check` + `npx expo-doctor`
+9. Or check the Expo setup inside `app`:
+
+   ```bash
+   npx expo install --check
+   npx expo-doctor    # skips WatermelonDB packages via package.json
+   ```
 10. Ensure `react-native-gesture-handler`, `react-native-safe-area-context`, and `react-native-screens` match Expo's expected versions (`~2.24.0`, `5.4.0`, and `~4.11.1` respectively)
 
 ## Process
@@ -164,6 +169,8 @@ Otherwise the command will fail when it prompts for login.
    npx expo whoami || npx expo login     # verify you are logged in
    ```
 
+   `expo-doctor` respects the configuration in `app/package.json` to ignore
+   WatermelonDB-related packages.
    When running in CI, set an `EXPO_TOKEN` environment variable instead of
    calling `expo login` interactively.
 
