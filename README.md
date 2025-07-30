@@ -55,6 +55,7 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 8. Or run `./scripts/full-check.sh` from the repo root to automatically install
    dependencies and execute all tests at once
 9. Or check the expo setup inside `app` via `npx expo install --check` + `npx expo-doctor`
+10. Ensure `react-native-gesture-handler`, `react-native-safe-area-context`, and `react-native-screens` match Expo's expected versions (`~2.24.0`, `5.4.0`, and `~4.11.1` respectively)
 
 ## Process
 
