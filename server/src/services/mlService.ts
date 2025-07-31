@@ -1,5 +1,6 @@
+import { readFileSync } from 'fs';
 import { classifyGesture as recognizerClassifyGesture, ClassificationResult } from '../recognizer';
-import { TRAINED_MODEL_PATH } from '../constants/modelPaths';
+import { TRAINED_MODEL_PATH, GESTURE_LABELS_PATH } from '../constants/modelPaths';
 
 type TfliteType = {
   loadModel(opts: { path: string; numThreads: number }): Promise<void>;
@@ -17,6 +18,7 @@ try {
 class MachineLearningService {
   private isReady = false;
   private gestureModel: TfliteType | null = null;
+  private labels: string[] = [];
 
   constructor() {
     if (TfliteCtor) {
@@ -31,6 +33,13 @@ class MachineLearningService {
         path: process.env.TFLITE_GESTURE_MODEL || TRAINED_MODEL_PATH,
         numThreads: 4,
       });
+      try {
+        const raw = readFileSync(GESTURE_LABELS_PATH, 'utf8');
+        this.labels = JSON.parse(raw) as string[];
+      } catch (err) {
+        this.labels = [];
+        console.error('Failed to load gesture labels:', err);
+      }
       this.isReady = true;
       console.log('ML model loaded successfully.');
     } catch (error) {
@@ -41,11 +50,21 @@ class MachineLearningService {
 
   isServiceReady = (): boolean => this.isReady;
 
-  async classifyGesture(frame: any): Promise<any[] | null> {
+  async classifyGesture(frame: any): Promise<ClassificationResult | null> {
     if (!this.isReady || !this.gestureModel) return null;
     try {
       const output = await this.gestureModel.runOnModel(frame);
-      return output;
+      if (output && output.length > 0) {
+        const predictions = output[0] as number[];
+        const max = Math.max(...predictions);
+        const idx = predictions.indexOf(max);
+        return {
+          label: this.labels[idx] ?? String(idx),
+          confidence: max,
+          processedBy: 'local',
+        };
+      }
+      return null;
     } catch (error) {
       console.error('Local classification failed:', error);
       return null;

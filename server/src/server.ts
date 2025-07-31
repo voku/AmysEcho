@@ -6,8 +6,9 @@ import { TRAINED_MODEL_PATH } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
 import { setupDatabase, loadDatabase, saveDatabase, Database } from './db';
 import auth from './middleware/auth';
+import { mlService } from './services/mlService';
 import { Correction, UsageStat, LearningAnalytics, Profile, SymbolRecord } from './types';
-import { classifyGesture } from './recognizer';
+import { classifyGesture, ClassificationResult } from './recognizer';
 import {
   saveAnalyticsToFile,
   loadAnalyticsFromFile,
@@ -27,11 +28,18 @@ app.get('/portal', (_req: Request, res: Response) => {
 let dbInstance: Database; // Declare a variable to hold the database instance
 
 // Ensure the database file exists with default content and load it
-setupDatabase(DB_FILE_PATH).then(db => {
-  dbInstance = db;
-}).catch((err) => {
-  console.error('Database setup failed:', err);
-});
+setupDatabase(DB_FILE_PATH)
+  .then(async (db) => {
+    dbInstance = db;
+    try {
+      await mlService.loadModels();
+    } catch (err) {
+      console.error('ML model load failed:', err);
+    }
+  })
+  .catch((err) => {
+    console.error('Database setup failed:', err);
+  });
 
 // Middleware to attach dbInstance to req (optional, but good practice)
 app.use((req: Request, res: Response, next: Function) => {
@@ -290,7 +298,17 @@ app.post('/classify', auth, async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Landmarks are required' });
   }
   try {
-    const result = await classifyGesture(landmarks);
+    let result: ClassificationResult | null = null;
+    if (mlService.isServiceReady()) {
+      try {
+        result = await mlService.classifyGesture(landmarks);
+      } catch (err) {
+        console.error('Local model failed:', err);
+      }
+    }
+    if (!result) {
+      result = await classifyGesture(landmarks);
+    }
     res.json(result);
   } catch (error) {
     console.error('Classification failed:', error);
