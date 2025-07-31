@@ -4,7 +4,11 @@
     "slug": "amysecho",
     "owner": "voku1987",
     "android": {
-      "package": "com.anonymous.amysecho"
+      "package": "com.anonymous.amysecho",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "extra": {
       "eas": {
