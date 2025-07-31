@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, FlatList, Pressable, AppState, StyleSheet, Switch } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, Pressable, AppState, StyleSheet, Switch, SafeAreaView } from 'react-native';
 import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
@@ -24,6 +24,7 @@ import { Profile, Symbol } from '../../db/models';
 import MaintenanceBanner from "../components/MaintenanceBanner";
 import {recordInteraction} from "../services/adaptiveLearningService";
 import BottomNav from '../components/BottomNav';
+import { useAccessibility } from '../components/AccessibilityContext';
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
 const enhance = withObservables<
@@ -49,6 +50,7 @@ const enhance = withObservables<
 }));
 
 const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile, vocabulary: Symbol[], navigation: Props['navigation'] }) => {
+  const { highContrast } = useAccessibility();
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [lastGesture, setLastGesture] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<Symbol | null>(null);
@@ -109,12 +111,14 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     }
   });
 
+  const styles = createStyles(highContrast);
+
   if (!profile || !vocabulary) {
-    return <View style={styles.container}><ActivityIndicator size="large" /></View>;
+    return <SafeAreaView style={styles.container}><ActivityIndicator size="large" /></SafeAreaView>;
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {canRunCamera && <Camera style={StyleSheet.absoluteFill} device={device} isActive={true} frameProcessor={frameProcessor} frameProcessorFps={5}/>} 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{profile.name}'s Vokabular</Text>
@@ -221,28 +225,29 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
         />
       )}
       <BottomNav active="symbols" />
-    </View>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#eef2ff' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold' },
-  adminButton: { fontSize: 24 },
-  list: { alignItems: 'center', paddingTop: 10, paddingBottom: 200 },
-  cameraToggle: { position: 'absolute', bottom: 100, alignSelf: 'center', padding: 15, backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 20, elevation: 5, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  selectedSymbolContainer: { position: 'absolute', bottom: 150, left: 10, right: 10, alignItems: 'center', padding: 10, backgroundColor: 'white', borderRadius: 15, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-  selectedSymbolLabel: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
-  repeatButton: { marginTop: 10, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#e0e0e0', borderRadius: 10 },
-  buttonText: { fontWeight: 'bold' },
-  suggestionsContainer: { marginTop: 15, width: '100%' },
-  suggestionsTitle: { fontWeight: 'bold', fontSize: 16, textAlign: 'center', marginBottom: 5 },
-  suggestionsList: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
-  nextWordsText: { textAlign: 'center', marginBottom: 4 },
-  caregiverPhrase: { textAlign: 'center' },
-  toggleContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 5 },
-});
+const createStyles = (highContrast: boolean) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: highContrast ? '#000' : '#eef2ff' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
+    headerTitle: { fontSize: 20, fontWeight: 'bold', color: highContrast ? '#fff' : '#000' },
+    adminButton: { fontSize: 24 },
+    list: { alignItems: 'center', paddingTop: 10, paddingBottom: 200 },
+    cameraToggle: { position: 'absolute', bottom: 100, alignSelf: 'center', padding: 15, backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 20, elevation: 5, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    selectedSymbolContainer: { position: 'absolute', bottom: 150, left: 10, right: 10, alignItems: 'center', padding: 10, backgroundColor: 'white', borderRadius: 15, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+    selectedSymbolLabel: { fontSize: 24, fontWeight: 'bold', marginBottom: 10, color: highContrast ? '#fff' : '#000' },
+    repeatButton: { marginTop: 10, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#e0e0e0', borderRadius: 10 },
+    buttonText: { fontWeight: 'bold' },
+    suggestionsContainer: { marginTop: 15, width: '100%' },
+    suggestionsTitle: { fontWeight: 'bold', fontSize: 16, textAlign: 'center', marginBottom: 5, color: highContrast ? '#fff' : '#000' },
+    suggestionsList: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
+    nextWordsText: { textAlign: 'center', marginBottom: 4, color: highContrast ? '#fff' : '#000' },
+    caregiverPhrase: { textAlign: 'center', color: highContrast ? '#fff' : '#000' },
+    toggleContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 5 },
+  });
 
 const EnhancedLearningScreen = enhance(LearningScreen);
 export default EnhancedLearningScreen as React.ComponentType<any>;

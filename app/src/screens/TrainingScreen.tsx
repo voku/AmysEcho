@@ -39,7 +39,7 @@ export default function TrainingScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: highContrast ? '#000' : '#fff',
+      backgroundColor: highContrast ? '#000' : '#eef2ff',
     },
     title: {
       fontSize: largeText ? 24 : 20,

@@ -36,7 +36,7 @@ export default function OnboardingScreen({ navigation }: any) {
       justifyContent: 'center',
       alignItems: 'center',
       padding: 20,
-      backgroundColor: highContrast ? '#000' : '#fdfdfd',
+      backgroundColor: highContrast ? '#000' : '#eef2ff',
     },
     input: {
       borderWidth: 1,
