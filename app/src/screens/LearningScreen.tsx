@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, FlatList, Pressable, AppState, StyleSheet, Switch, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
@@ -114,12 +115,22 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const styles = createStyles(highContrast);
 
   if (!profile || !vocabulary) {
-    return <SafeAreaView style={styles.container}><ActivityIndicator size="large" /></SafeAreaView>;
+    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    return (
+      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
+          <ActivityIndicator size="large" />
+        </SafeAreaView>
+      </LinearGradient>
+    );
   }
 
+  const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+
   return (
-    <SafeAreaView style={styles.container}>
-      {canRunCamera && <Camera style={StyleSheet.absoluteFill} device={device} isActive={true} frameProcessor={frameProcessor} frameProcessorFps={5}/>} 
+    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
+      {canRunCamera && <Camera style={StyleSheet.absoluteFill} device={device} isActive={true} frameProcessor={frameProcessor} frameProcessorFps={5}/>}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{profile.name}'s Vokabular</Text>
         <Pressable
@@ -226,12 +237,13 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
       )}
       <BottomNav active="symbols" profileId={profile.id} />
     </SafeAreaView>
+    </LinearGradient>
   );
 };
 
 const createStyles = (highContrast: boolean) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: highContrast ? '#000' : '#eef2ff' },
+    container: { flex: 1, backgroundColor: 'transparent' },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: highContrast ? '#fff' : '#000' },
     adminButton: { fontSize: 24 },

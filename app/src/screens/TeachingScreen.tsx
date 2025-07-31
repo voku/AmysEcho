@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Camera, useCameraDevices, type CameraRef, type VideoFile } from 'react-native-vision-camera';
 import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
@@ -95,14 +96,23 @@ export default function TeachingScreen({ navigation }: any) {
     audioService.speak(`Let's try "${gestureLabel}" again.`);
   };
 
-  if (device == null) {
-    return <Text>Camera not available</Text>;
-  }
-
   const styles = createStyles(largeText, highContrast);
 
+  if (device == null) {
+    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    return (
+      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
+          <Text>Camera not available</Text>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Teach New Gesture</Text>
       {!isSessionActive ? (
         <View style={styles.inputContainer}>
@@ -150,6 +160,7 @@ export default function TeachingScreen({ navigation }: any) {
       <Button title="Back" onPress={() => navigation.goBack()} />
       {profile && <BottomNav active="training" profileId={profile.id} />}
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
@@ -160,7 +171,7 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       padding: 20,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: highContrast ? '#000' : '#eef2ff',
+      backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 28 : 24,
