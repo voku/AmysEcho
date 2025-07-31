@@ -3,7 +3,7 @@ import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing, Saf
 import { Camera, useCameraDevices, type CameraRef, type VideoFile } from 'react-native-vision-camera';
 import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
-import { saveTrainingSample } from '../storage';
+import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { extractLandmarksFromVideo } from '../services/landmarkExtractor';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -19,8 +19,13 @@ export default function TeachingScreen({ navigation }: any) {
   const [isRecording, setIsRecording] = useState(false);
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    loadProfile().then(setProfile);
+  }, []);
 
   const startSampleCaptureAnimation = useCallback(() => {
     sampleCaptureAnim.setValue(0);
@@ -143,7 +148,7 @@ export default function TeachingScreen({ navigation }: any) {
         </View>
       )}
       <Button title="Back" onPress={() => navigation.goBack()} />
-      <BottomNav active="training" />
+      {profile && <BottomNav active="training" profileId={profile.id} />}
     </SafeAreaView>
   );
 }

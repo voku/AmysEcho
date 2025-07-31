@@ -220,11 +220,11 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
         <MaintenanceBanner
           onPractice={() => {
             setShowMaintenance(false);
-            navigation.navigate('Training');
+            navigation.navigate('Training', { profileId: profile.id });
           }}
         />
       )}
-      <BottomNav active="symbols" />
+      <BottomNav active="symbols" profileId={profile.id} />
     </SafeAreaView>
   );
 };

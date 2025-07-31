@@ -455,7 +455,7 @@ export default function RecognitionScreen({ navigation }: any) {
         />
       )}
 
-      <BottomNav active="recognition" />
+      {profile && <BottomNav active="recognition" profileId={profile.id} />}
     </SafeAreaView>
   );
 }
