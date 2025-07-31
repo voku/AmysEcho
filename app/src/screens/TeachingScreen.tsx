@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing } from 'react-native';
+import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Camera, useCameraDevices, type CameraRef, type VideoFile } from 'react-native-vision-camera';
 import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
-import { saveTrainingSample } from '../storage';
+import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { extractLandmarksFromVideo } from '../services/landmarkExtractor';
+import BottomNav from '../components/BottomNav';
+import { useAccessibility } from '../components/AccessibilityContext';
 
 export default function TeachingScreen({ navigation }: any) {
+  const { largeText, highContrast } = useAccessibility();
   const devices = useCameraDevices();
   const device = devices.back ?? devices.front ?? devices[0];
   const camera = useRef<CameraRef>(null);
@@ -16,8 +20,13 @@ export default function TeachingScreen({ navigation }: any) {
   const [isRecording, setIsRecording] = useState(false);
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    loadProfile().then(setProfile);
+  }, []);
 
   const startSampleCaptureAnimation = useCallback(() => {
     sampleCaptureAnim.setValue(0);
@@ -87,12 +96,23 @@ export default function TeachingScreen({ navigation }: any) {
     audioService.speak(`Let's try "${gestureLabel}" again.`);
   };
 
+  const styles = createStyles(largeText, highContrast);
+
   if (device == null) {
-    return <Text>Camera not available</Text>;
+    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    return (
+      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
+          <Text>Camera not available</Text>
+        </SafeAreaView>
+      </LinearGradient>
+    );
   }
 
+  const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Teach New Gesture</Text>
       {!isSessionActive ? (
         <View style={styles.inputContainer}>
@@ -138,28 +158,41 @@ export default function TeachingScreen({ navigation }: any) {
         </View>
       )}
       <Button title="Back" onPress={() => navigation.goBack()} />
-    </View>
+      {profile && <BottomNav active="training" profileId={profile.id} />}
+    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 24, marginBottom: 20 },
-  inputContainer: { width: '100%' },
-  input: { borderWidth: 1, padding: 8, marginBottom: 12 },
-  recordingContainer: { alignItems: 'center' },
-  camera: { width: 200, height: 200, marginBottom: 10 },
-  prompt: { fontSize: 18, marginVertical: 10 },
-  progress: { marginBottom: 10 },
-  sampleIndicator: {
-    position: 'absolute',
-    top: 100,
-    backgroundColor: 'rgba(0,255,0,0.7)',
-    padding: 10,
-    borderRadius: 5,
-  },
-  sampleIndicatorText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-});
+const createStyles = (largeText: boolean, highContrast: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+    },
+    title: {
+      fontSize: largeText ? 28 : 24,
+      marginBottom: 20,
+      color: highContrast ? '#fff' : '#000',
+    },
+    inputContainer: { width: '100%' },
+    input: { borderWidth: 1, padding: 8, marginBottom: 12, backgroundColor: '#fff', color: '#000' },
+    recordingContainer: { alignItems: 'center' },
+    camera: { width: 200, height: 200, marginBottom: 10 },
+    prompt: { fontSize: largeText ? 22 : 18, marginVertical: 10, color: highContrast ? '#fff' : '#000' },
+    progress: { marginBottom: 10, color: highContrast ? '#fff' : '#000' },
+    sampleIndicator: {
+      position: 'absolute',
+      top: 100,
+      backgroundColor: 'rgba(0,255,0,0.7)',
+      padding: 10,
+      borderRadius: 5,
+    },
+    sampleIndicatorText: {
+      color: 'white',
+      fontWeight: 'bold',
+    },
+  });
