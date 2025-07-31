@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { loadProfile, TrainingSample, loadBackendApiToken } from '../storage';
+import { API_URL } from '../constants';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
@@ -16,7 +17,7 @@ export async function syncTrainingData(): Promise<void> {
   if (pending.length === 0) return;
   try {
     const token = await loadBackendApiToken();
-    await fetch('http://localhost:5000/train-model', {
+    await fetch(`${API_URL}/train-model`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

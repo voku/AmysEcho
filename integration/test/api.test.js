@@ -79,3 +79,25 @@ test('GET /model-version returns version and path', async () => {
   assert.ok(typeof data.version === 'string');
   assert.strictEqual(data.modelPath, 'latest-model');
 });
+
+test('POST /analytics then GET returns same data', async () => {
+  const payload = { successRate7d: 0.5, improvementTrend: 0.1 };
+  const post = await fetch(`http://localhost:${PORT}/analytics`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer testtoken',
+    },
+    body: JSON.stringify(payload),
+  });
+  assert.strictEqual(post.status, 200);
+
+  await delay(100); // give server time to persist
+  const get = await fetch(`http://localhost:${PORT}/analytics`, {
+    headers: { Authorization: 'Bearer testtoken' },
+  });
+  assert.strictEqual(get.status, 200);
+  const data = await get.json();
+  assert.strictEqual(data.successRate7d, payload.successRate7d);
+  assert.strictEqual(data.improvementTrend, payload.improvementTrend);
+});

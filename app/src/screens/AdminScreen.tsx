@@ -17,6 +17,7 @@ import {
   saveCustomModelUri,
 } from '../storage';
 import * as FileSystem from 'expo-file-system';
+import { API_URL } from '../constants';
 import { database } from '../../db';
 import { audioService } from '../services/audioService';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
@@ -123,7 +124,7 @@ export default function AdminScreen({ navigation }: any) {
       const uri = CUSTOM_GESTURE_MODEL_PATH;
       const token = await loadBackendApiToken();
       const res = await FileSystem.downloadAsync(
-        'http://localhost:5000/latest-model',
+        `${API_URL}/latest-model`,
         uri,
         { headers: { Authorization: `Bearer ${token || ''}` } },
       );

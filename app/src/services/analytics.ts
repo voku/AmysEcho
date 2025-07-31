@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ANALYTICS_ENDPOINT, API_TOKEN } from '../constants';
 
 export interface LearningAnalytics {
   successRate7d: number;
@@ -6,7 +7,6 @@ export interface LearningAnalytics {
 }
 
 const LOG_KEY = 'interactionLogs';
-const ANALYTICS_ENDPOINT = 'https://your-secure-backend.com/api/analytics';
 
 export async function loadAnalytics(): Promise<LearningAnalytics> {
   const raw = await AsyncStorage.getItem(LOG_KEY);
@@ -37,7 +37,10 @@ export async function uploadAnalytics(
   try {
     await fetch(ANALYTICS_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
       body: JSON.stringify(analytics),
     });
   } catch {
