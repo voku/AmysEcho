@@ -28,6 +28,7 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
     npm test --prefix app
     pip install -r server/requirements.txt
     npm test --prefix server
+    npm test --prefix integration
     ```
     You can also execute `./scripts/full-check.sh` from the repo root to run all of the above in one step.
 

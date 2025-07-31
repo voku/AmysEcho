@@ -27,6 +27,16 @@ npm test
 
 If all tests pass, you should see a success message in the console. This indicates that the core functionality of the application is working as expected.
 
+## Integration Tests
+
+Integration tests verify that the Node server and app API clients work together correctly. From the repository root run:
+
+```bash
+npm test --prefix integration
+```
+
+The tests will build the server and exercise key endpoints. They are also executed by `./scripts/full-check.sh`.
+
 ## Building a production APK with EAS
 
 For store-ready binaries Amy's Echo relies on Expo's **EAS Build** service. The recommended workflow is:
