@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Switch, Button, StyleSheet, SafeAreaView, TextInput } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { createProfile } from '../storage';
 import {
   availableVocabularySets,
@@ -36,7 +37,7 @@ export default function OnboardingScreen({ navigation }: any) {
       justifyContent: 'center',
       alignItems: 'center',
       padding: 20,
-      backgroundColor: highContrast ? '#000' : '#fdfdfd',
+      backgroundColor: 'transparent',
     },
     input: {
       borderWidth: 1,
@@ -59,7 +60,9 @@ export default function OnboardingScreen({ navigation }: any) {
     setRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 20 },
   });
 
+  const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
   return (
+    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
     <SafeAreaView style={styles.container}>
       <Text style={styles.heart}>❤️</Text>
       <Text style={styles.title}>Welcome to Amy's Echo</Text>
@@ -123,6 +126,7 @@ export default function OnboardingScreen({ navigation }: any) {
         accessibilityLabel="Einrichtung abschließen"
       />
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 

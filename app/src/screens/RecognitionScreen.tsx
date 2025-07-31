@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   AppState,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Camera,
   useCameraDevices,
@@ -31,6 +32,7 @@ import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { useServices } from '../context/AppServicesProvider';
+import BottomNav from '../components/BottomNav';
 
 const { width, height } = Dimensions.get('window');
 
@@ -207,7 +209,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: highContrast ? '#000' : '#fdfdfd',
+      backgroundColor: 'transparent',
     },
     cameraContainer: {
       flex: 1,
@@ -245,7 +247,7 @@ export default function RecognitionScreen({ navigation }: any) {
     },
     controls: {
       position: 'absolute',
-      bottom: 50,
+      bottom: 100,
       left: 20,
       right: 20,
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -321,30 +323,38 @@ export default function RecognitionScreen({ navigation }: any) {
   });
 
   if (!permissionStatus) {
+    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <Text style={styles.permissionText}>
-            Amy's Echo needs camera access to recognize gestures.
-          </Text>
-          <Button title="Grant Camera Permission" onPress={handleRequestPermission} />
-        </View>
-      </SafeAreaView>
+      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.permissionContainer}>
+            <Text style={styles.permissionText}>
+              Amy's Echo needs camera access to recognize gestures.
+            </Text>
+            <Button title="Grant Camera Permission" onPress={handleRequestPermission} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   if (!device) {
+    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <Text style={styles.permissionText}>No camera available on this device.</Text>
-        </View>
-      </SafeAreaView>
+      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.permissionContainer}>
+            <Text style={styles.permissionText}>No camera available on this device.</Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
+  const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
       {weakGesture && (
         <TouchableOpacity
           onPress={handleWeakGestureBannerPress}
@@ -453,7 +463,10 @@ export default function RecognitionScreen({ navigation }: any) {
           onCancel={() => setShowCorrection(false)}
         />
       )}
+
+      {profile && <BottomNav active="recognition" profileId={profile.id} />}
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
