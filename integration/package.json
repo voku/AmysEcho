@@ -1,0 +1,9 @@
+{
+  "name": "integration-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "pretest": "npm run build --prefix ../server",
+    "test": "node --test"
+  }
+}

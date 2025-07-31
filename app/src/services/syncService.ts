@@ -1,11 +1,10 @@
 import { database } from '../../db';
-import { GestureTrainingData, Profile } from '../../db/models';
+import { GestureTrainingData } from '../../db/models';
 import { API_URL, API_TOKEN, MODEL_VERSION_URL } from '../constants';
 import { logger } from '../utils/logger';
-import { loadActiveProfileId, loadProfile, saveCustomModelUri, loadCustomModelUri } from '../storage';
+import { loadActiveProfileId, loadProfile, saveCustomModelUri } from '../storage';
 import { Q } from '@nozbe/watermelondb';
 import * as FileSystem from 'expo-file-system';
-import { GESTURE_CLASSIFIER_MODEL } from '../constants/modelPaths';
 
 const LOCAL_MODEL_VERSION_KEY = 'localModelVersion';
 
@@ -38,38 +37,31 @@ export const syncService = {
 
       logger.info(`Found ${pendingSamples.length} pending training samples.`);
 
-      for (const sample of pendingSamples) {
-        try {
-          const response = await fetch(`${API_URL}/upload_training_data`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${API_TOKEN}`,
-            },
-            body: JSON.stringify({
-              gestureDefinitionId: sample.gestureDefinition.id,
-              landmarkData: JSON.parse(sample.landmarkData),
-              source: sample.source,
-              qualityScore: sample.qualityScore,
-              frameMetadata: sample.frameMetadata,
-              createdAt: sample.createdAt.toISOString(),
-              profileId: activeProfileId,
-            }),
-          });
+      try {
+        const payload = pendingSamples.map((s) => JSON.parse(s.landmarkData));
+        const response = await fetch(`${API_URL}/train-model`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${API_TOKEN}`,
+          },
+          body: JSON.stringify({ landmarks: payload }),
+        });
 
-          if (response.ok) {
-            await database.write(async () => {
-              await sample.update(s => {
+        if (response.ok) {
+          await database.write(async () => {
+            for (const sample of pendingSamples) {
+              await sample.update((s) => {
                 s.customSyncStatus = 'synced';
               });
-            });
-            logger.info(`Successfully uploaded and marked as synced: ${sample.id}`);
-          } else {
-            logger.error(`Failed to upload sample ${sample.id}: ${response.status} ${response.statusText}`);
-          }
-        } catch (uploadError) {
-          logger.error(`Error uploading sample ${sample.id}:`, uploadError);
+            }
+          });
+          logger.info(`Uploaded ${pendingSamples.length} samples successfully.`);
+        } else {
+          logger.error(`Failed to upload training data: ${response.status} ${response.statusText}`);
         }
+      } catch (uploadError) {
+        logger.error('Error uploading training data:', uploadError);
       }
     } catch (error) {
       logger.error('Error in uploadPendingTrainingData:', error);
@@ -79,7 +71,11 @@ export const syncService = {
   async checkForNewModel(): Promise<void> {
     logger.info('Checking for new model updates...');
     try {
-      const response = await fetch(MODEL_VERSION_URL);
+      const response = await fetch(MODEL_VERSION_URL, {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch model version: ${response.status} ${response.statusText}`);
       }
@@ -94,7 +90,11 @@ export const syncService = {
         const localModelPath = FileSystem.documentDirectory + 'new_gesture_classifier.tflite';
 
         logger.info(`Downloading new model from ${modelDownloadUrl} to ${localModelPath}`);
-        const downloadResult = await FileSystem.downloadAsync(modelDownloadUrl, localModelPath);
+        const downloadResult = await FileSystem.downloadAsync(
+          modelDownloadUrl,
+          localModelPath,
+          { headers: { Authorization: `Bearer ${API_TOKEN}` } },
+        );
 
         if (downloadResult.status === 200) {
           logger.info('Model downloaded successfully. Updating local version.');
