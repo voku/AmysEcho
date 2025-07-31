@@ -6,3 +6,4 @@ app/ios/
 .openai-key
 server/**/__pycache__/
 app/watermelon.db
+.idea
