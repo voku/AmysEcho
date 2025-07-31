@@ -4,6 +4,7 @@ import assert from 'node:assert';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { promises as fs } from 'fs';
 import { test, before, after } from 'node:test';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -78,6 +79,18 @@ test('GET /model-version returns version and path', async () => {
   const data = await res.json();
   assert.ok(typeof data.version === 'string');
   assert.strictEqual(data.modelPath, 'latest-model');
+});
+
+test('GET /latest-model serves model file when present', async () => {
+  const filePath = join(serverDir, 'trained_model.tflite');
+  await fs.writeFile(filePath, 'dummy model');
+  const res = await fetch(`http://localhost:${PORT}/latest-model`, {
+    headers: { Authorization: 'Bearer testtoken' },
+  });
+  assert.strictEqual(res.status, 200);
+  const buf = Buffer.from(await res.arrayBuffer());
+  assert.ok(buf.length > 0);
+  await fs.unlink(filePath);
 });
 
 test('POST /analytics then GET returns same data', async () => {
