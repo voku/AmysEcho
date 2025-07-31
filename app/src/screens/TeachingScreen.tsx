@@ -5,6 +5,7 @@ import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
 import { saveTrainingSample } from '../storage';
 import { extractLandmarksFromVideo } from '../services/landmarkExtractor';
+import BottomNav from '../components/BottomNav';
 
 export default function TeachingScreen({ navigation }: any) {
   const devices = useCameraDevices();
@@ -138,12 +139,13 @@ export default function TeachingScreen({ navigation }: any) {
         </View>
       )}
       <Button title="Back" onPress={() => navigation.goBack()} />
+      <BottomNav active="training" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: '#eef2ff' },
   title: { fontSize: 24, marginBottom: 20 },
   inputContainer: { width: '100%' },
   input: { borderWidth: 1, padding: 8, marginBottom: 12 },

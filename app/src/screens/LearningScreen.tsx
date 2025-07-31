@@ -23,6 +23,7 @@ import { useServices } from '../context/AppServicesProvider';
 import { Profile, Symbol } from '../../db/models';
 import MaintenanceBanner from "../components/MaintenanceBanner";
 import {recordInteraction} from "../services/adaptiveLearningService";
+import BottomNav from '../components/BottomNav';
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
 const enhance = withObservables<
@@ -219,18 +220,19 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
           }}
         />
       )}
+      <BottomNav active="symbols" />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: '#eef2ff' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   adminButton: { fontSize: 24 },
   list: { alignItems: 'center', paddingTop: 10, paddingBottom: 200 },
-  cameraToggle: { position: 'absolute', bottom: 30, alignSelf: 'center', padding: 15, backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 20, elevation: 5, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  selectedSymbolContainer: { position: 'absolute', bottom: 100, left: 10, right: 10, alignItems: 'center', padding: 10, backgroundColor: 'white', borderRadius: 15, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  cameraToggle: { position: 'absolute', bottom: 100, alignSelf: 'center', padding: 15, backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 20, elevation: 5, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  selectedSymbolContainer: { position: 'absolute', bottom: 150, left: 10, right: 10, alignItems: 'center', padding: 10, backgroundColor: 'white', borderRadius: 15, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 4 },
   selectedSymbolLabel: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
   repeatButton: { marginTop: 10, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#e0e0e0', borderRadius: 10 },
   buttonText: { fontWeight: 'bold' },
