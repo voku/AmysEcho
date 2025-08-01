@@ -8,11 +8,10 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^5.0.0",
-    "express-rate-limit": "^6.7.0",
-    "node-fetch": "^3.3.2",
     "@types/express": "^5.0.3",
-    "@types/node": "^24.1.0"
+    "@types/node": "^24.1.0",
+    "express": "^5.0.0",
+    "express-rate-limit": "^6.7.0"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
