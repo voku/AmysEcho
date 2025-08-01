@@ -15,6 +15,7 @@ declare module 'react-native-vision-camera' {
 declare module 'react-native-fast-tflite' {
   export interface TensorflowModel {
     runSync(inputs: any[]): any[];
+    close?(): void;
   }
   export function loadTensorflowModel(path: any): Promise<TensorflowModel>;
 }

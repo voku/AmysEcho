@@ -65,6 +65,13 @@ class MachineLearningService {
     config?: MLServiceConfig,
   ): Promise<void> {
     try {
+      // release any previously loaded models before loading new ones
+      this.landmarkModel?.close?.();
+      this.landmarkModel = null;
+      this.gestureModel?.close?.();
+      this.gestureModel = null;
+      setHandLandmarkModel?.(null);
+
       logger.info('Loading custom models...');
 
       if (typeof landmark === 'object' && landmark.url && loadTensorflowModel) {
@@ -127,6 +134,15 @@ class MachineLearningService {
       logger.error('Failed to load custom models:', error);
       this.isReady = false;
     }
+  }
+
+  unloadModels(): void {
+    this.landmarkModel?.close?.();
+    this.landmarkModel = null;
+    this.gestureModel?.close?.();
+    this.gestureModel = null;
+    setHandLandmarkModel?.(null);
+    this.isReady = false;
   }
 
   isServiceReady = (): boolean => this.isReady;

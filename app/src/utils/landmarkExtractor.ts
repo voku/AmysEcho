@@ -3,7 +3,7 @@ import { TensorflowModel } from 'react-native-fast-tflite';
 
 let handModel: TensorflowModel | null = null;
 
-export function setHandLandmarkModel(model: TensorflowModel): void {
+export function setHandLandmarkModel(model: TensorflowModel | null): void {
   handModel = model;
 }
 
