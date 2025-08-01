@@ -1,4 +1,4 @@
-import Module from 'module';
+const Module = require('module');
 
 const origLoad = (Module as any)._load;
 (Module as any)._load = (req: string, parent: any, isMain: boolean) => {
@@ -14,13 +14,22 @@ const origLoad = (Module as any)._load;
   if (req === 'expo-file-system') {
     return { downloadAsync: async () => ({ uri: 'test' }), documentDirectory: '/tmp/' };
   }
+  if (req === 'react') {
+    return { useCallback: (fn: any) => fn, useRef: (v: any) => ({ current: v }) };
+  }
+  if (req === 'react-native-vision-camera') {
+    return { useFrameProcessor: () => {} };
+  }
+  if (req === 'react-native-reanimated') {
+    return { useSharedValue: () => ({ value: 0 }) };
+  }
   if (req.startsWith('../../db')) {
     return { database: { write: async () => {}, get: () => ({ create: () => {}, query: () => ({ fetch: async () => [] }) }) }, InteractionLog: class {} };
   }
   return origLoad(req, parent, isMain);
 };
 
-import { mlService } from '../src/services/mlService';
+const { mlService } = require('../src/services/mlService');
 
 (async () => {
   // @ts-ignore
