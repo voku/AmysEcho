@@ -3,10 +3,9 @@ import {
   requestRecordingPermissionsAsync,
   createAudioPlayer,
   AudioRecorder,
-  AudioPlayer
+  AudioPlayer,
+  RecordingPresets,
 } from 'expo-audio';
-import { RecordingPresets } from 'expo-audio/src/RecordingConstants';
-import { createRecordingOptions } from 'expo-audio/src/utils/options';
 
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
@@ -47,6 +46,7 @@ export class AudioService {
 
       // Preload common sound effects
       await this.preloadSounds();
+
 
       this.isInitialized = true;
       logger.info('Audio service initialized successfully');
@@ -157,38 +157,44 @@ export class AudioService {
   /**
    * Execute speech with proper queue management
    */
-  private async executeSpeech(text: string, options: SpeechOptions): Promise<void> {
+  private executeSpeech(text: string, options: SpeechOptions): Promise<void> {
     this.isSpeaking = true;
 
-    try {
-      // Play gentle chime before speech for audio cue
-      await this.playSound('confirmation');
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Play gentle chime before speech for audio cue
+        await this.playSound('confirmation');
 
-      // Small delay to let chime play
-      await new Promise((resolve) => setTimeout(resolve, 200));
+        // Small delay to let chime play
+        await new Promise((res) => setTimeout(res, 200));
 
-      await Speech.speak(text, {
-        language: options.language,
-        pitch: options.pitch,
-        rate: options.rate,
-        volume: options.volume,
-        onDone: () => {
-          this.isSpeaking = false;
-          this.processNextSpeechInQueue();
-        },
-        onError: (error) => {
-          logger.error('Speech error:', error);
-          this.isSpeaking = false;
-          this.processNextSpeechInQueue();
-        },
-      });
+        // expo-speech's speak call is synchronous and uses callbacks for completion
+        Speech.speak(text, {
+          language: options.language,
+          pitch: options.pitch,
+          rate: options.rate,
+          volume: options.volume,
+          onDone: () => {
+            this.isSpeaking = false;
+            this.processNextSpeechInQueue();
+            resolve();
+          },
+          onError: (error) => {
+            logger.error('Speech error:', error);
+            this.isSpeaking = false;
+            this.processNextSpeechInQueue();
+            reject(error);
+          },
+        });
 
-      logger.debug(`Speaking: ${text}`);
-    } catch (error) {
-      logger.error('Failed to speak:', error);
-      this.isSpeaking = false;
-      this.processNextSpeechInQueue();
-    }
+        logger.debug(`Speaking: ${text}`);
+      } catch (error) {
+        logger.error('Failed to speak:', error);
+        this.isSpeaking = false;
+        this.processNextSpeechInQueue();
+        reject(error);
+      }
+    });
   }
 
   /**
@@ -219,7 +225,11 @@ export class AudioService {
     // Play success sound
     await this.playSound('success');
     if (this.config.enableHaptics) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        logger.warn('Haptics success feedback failed:', error);
+      }
     }
 
     // Speak the recognized gesture
@@ -237,7 +247,11 @@ export class AudioService {
   async playErrorFeedback(): Promise<void> {
     await this.playSound('error');
     if (this.config.enableHaptics) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch (error) {
+        logger.warn('Haptics error feedback failed:', error);
+      }
     }
     await this.speak('Entschuldigung, ich habe das nicht verstanden. Kannst du es nochmal versuchen?', {
       pitch: 0.9,
@@ -278,8 +292,8 @@ export class AudioService {
     if (!permission.granted) {
       throw new Error('Audio permission not granted');
     }
-    this.recording = new AudioRecorder(createRecordingOptions(RecordingPresets.HIGH_QUALITY));
-    await this.recording.prepareToRecordAsync(createRecordingOptions(RecordingPresets.HIGH_QUALITY));
+    this.recording = new AudioRecorder(RecordingPresets.HIGH_QUALITY);
+    await this.recording.prepareToRecordAsync(RecordingPresets.HIGH_QUALITY);
     this.recording.record();
   }
 

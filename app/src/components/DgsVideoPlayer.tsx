@@ -11,23 +11,17 @@ interface DgsVideoPlayerProps {
 }
 
 export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVideoPlayerProps) {
-  const player = useVideoPlayer(videoSource, (player) => {
-    player.addListener('statusChange', (payload) => {
+  const player = useVideoPlayer(videoSource);
+
+  React.useEffect(() => {
+    if (!player) return;
+    const subscription = player.addListener('statusChange', (payload) => {
       if (payload.error) {
         logger.error('DgsVideoPlayer error', payload.error);
       }
+      // Status change can be used to update UI if needed
     });
-  });
-
-  React.useEffect(() => {
-    if (player) {
-      const subscription = player.addListener('statusChange', (status) => {
-        // Status change can be used to update UI if needed
-      });
-      return () => {
-        subscription.remove();
-      };
-    }
+    return () => subscription.remove();
   }, [player]);
 
   const isBuffering = player?.status === 'loading';

@@ -20,11 +20,15 @@ export default function SymbolVideoPlayer({ entry, paused, useDgs, onEnd }: Symb
   }
   const source = { uri: path };
 
-  const player = useVideoPlayer(source, (player) => {
-    player.addListener('playToEnd', () => {
+  const player = useVideoPlayer(source);
+
+  React.useEffect(() => {
+    if (!player) return;
+    const sub = player.addListener('playToEnd', () => {
       onEnd && onEnd();
     });
-  });
+    return () => sub.remove();
+  }, [player, onEnd]);
 
   React.useEffect(() => {
     if (player) {

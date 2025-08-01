@@ -1,7 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Camera, useCameraDevices, type CameraRef, type VideoFile } from 'react-native-vision-camera';
+import {
+  Camera,
+  useCameraDevices,
+  useCameraPermission,
+  type CameraRef,
+  type VideoFile,
+} from 'react-native-vision-camera';
 import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
 import { saveTrainingSample, loadProfile, Profile } from '../storage';
@@ -13,6 +19,7 @@ export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const devices = useCameraDevices();
   const device = devices.back ?? devices.front ?? devices[0];
+  const { hasPermission, requestPermission } = useCameraPermission();
   const camera = useRef<CameraRef>(null);
   const [gestureLabel, setGestureLabel] = useState('');
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -104,6 +111,22 @@ export default function TeachingScreen({ navigation }: any) {
       <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
           <Text>Camera not available</Text>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  if (!hasPermission) {
+    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    return (
+      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
+          <Text style={styles.title}>Teach New Gesture</Text>
+          <Button
+            title="Grant Camera Permission"
+            onPress={requestPermission}
+            accessibilityLabel="Kameraberechtigung erteilen"
+          />
         </SafeAreaView>
       </LinearGradient>
     );

@@ -15,24 +15,29 @@ export function useTensorflowModel(
 
   useEffect(() => {
     let isMounted = true;
+    let loaded: TensorflowModel | null = null;
+
     async function load() {
       try {
         let source: any = defaultModel;
         if (personalized) {
           const customUri = await loadCustomModelUri();
           if (customUri) {
-            source = customUri;
+            source = { url: customUri };
           }
         }
-        // We are no longer loading the model here, just returning the source
-        if (isMounted) setModel(source);
+        loaded = await loadTensorflowModel(source);
+        if (isMounted) setModel(loaded);
       } catch (e) {
         console.error('Model load failed', e);
       }
     }
+
     load();
+
     return () => {
       isMounted = false;
+      loaded?.close?.();
     };
   }, [defaultModel, personalized]);
 
