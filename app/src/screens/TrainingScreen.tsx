@@ -1,6 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
-import { Camera, type CameraRef, useCameraDevices, type VideoFile } from 'react-native-vision-camera';
+import {
+  Camera,
+  type CameraRef,
+  useCameraDevices,
+  useCameraPermission,
+  type VideoFile,
+} from 'react-native-vision-camera';
 import { saveTrainingSample } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -10,6 +16,7 @@ export default function TrainingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const devices = useCameraDevices();
   const device = devices.back ?? devices.front ?? devices[0];
+  const { hasPermission, requestPermission } = useCameraPermission();
   const camera = useRef<CameraRef>(null);
   const [gestureId, setGestureId] = useState<string | null>(null);
   const [count, setCount] = useState(0);
@@ -49,6 +56,19 @@ export default function TrainingScreen({ navigation }: any) {
     camera: { width: 200, height: 200, marginBottom: 10 },
   });
 
+  if (!hasPermission) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Training Mode</Text>
+        <Button
+          title="Grant Camera Permission"
+          onPress={requestPermission}
+          accessibilityLabel="Kameraberechtigung erteilen"
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Training Mode</Text>
@@ -63,7 +83,9 @@ export default function TrainingScreen({ navigation }: any) {
         ))
       ) : count < 5 ? (
         <>
-          {device && <Camera ref={camera} style={styles.camera} device={device} isActive={!saving} />}
+          {device && (
+            <Camera ref={camera} style={styles.camera} device={device} isActive={!saving} />
+          )}
           <Button
             title={saving ? 'Recording...' : `Record Sample ${count + 1} / 5`}
             onPress={handleRecord}

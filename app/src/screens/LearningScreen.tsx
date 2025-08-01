@@ -1,12 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, FlatList, Pressable, AppState, StyleSheet, Switch, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  AppState,
+  StyleSheet,
+  Switch,
+  SafeAreaView,
+  Button,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import withObservables from '@nozbe/with-observables';
 import { switchMap } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 import type { Observable } from 'rxjs';
 import { useIsFocused } from '@react-navigation/native';
-import {Camera, useCameraDevices} from 'react-native-vision-camera';
+import { Camera, useCameraDevices, useCameraPermission } from 'react-native-vision-camera';
 import { database } from '../../db';
 import { playSymbolAudio } from '../services';
 import { incrementUsage } from '../services';
@@ -64,9 +75,11 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
 
   const devices = useCameraDevices();
   const device = devices.back ?? devices.front ?? devices[0];
+  const { hasPermission, requestPermission } = useCameraPermission();
   const isFocused = useIsFocused();
   const appState = AppState.currentState;
-  const canRunCamera = device != null && isCameraActive && isFocused && appState === 'active';
+  const canRunCamera =
+    hasPermission && device != null && isCameraActive && isFocused && appState === 'active';
 
   const handlePress = async (symbol: Symbol) => {
     setSelectedSymbol(symbol);
@@ -119,6 +132,22 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
       <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
           <ActivityIndicator size="large" />
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  if (!hasPermission) {
+    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    return (
+      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
+          <Text>Camera access is required to recognize gestures.</Text>
+          <Button
+            title="Grant Camera Permission"
+            onPress={requestPermission}
+            accessibilityLabel="Kameraberechtigung erteilen"
+          />
         </SafeAreaView>
       </LinearGradient>
     );
