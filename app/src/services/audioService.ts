@@ -47,6 +47,7 @@ export class AudioService {
       // Preload common sound effects
       await this.preloadSounds();
 
+
       this.isInitialized = true;
       logger.info('Audio service initialized successfully');
     } catch (error: any) {
@@ -218,7 +219,11 @@ export class AudioService {
     // Play success sound
     await this.playSound('success');
     if (this.config.enableHaptics) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        logger.warn('Haptics success feedback failed:', error);
+      }
     }
 
     // Speak the recognized gesture
@@ -236,7 +241,11 @@ export class AudioService {
   async playErrorFeedback(): Promise<void> {
     await this.playSound('error');
     if (this.config.enableHaptics) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch (error) {
+        logger.warn('Haptics error feedback failed:', error);
+      }
     }
     await this.speak('Entschuldigung, ich habe das nicht verstanden. Kannst du es nochmal versuchen?', {
       pitch: 0.9,
