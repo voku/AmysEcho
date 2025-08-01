@@ -157,38 +157,44 @@ export class AudioService {
   /**
    * Execute speech with proper queue management
    */
-  private async executeSpeech(text: string, options: SpeechOptions): Promise<void> {
+  private executeSpeech(text: string, options: SpeechOptions): Promise<void> {
     this.isSpeaking = true;
 
-    try {
-      // Play gentle chime before speech for audio cue
-      await this.playSound('confirmation');
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Play gentle chime before speech for audio cue
+        await this.playSound('confirmation');
 
-      // Small delay to let chime play
-      await new Promise((resolve) => setTimeout(resolve, 200));
+        // Small delay to let chime play
+        await new Promise((res) => setTimeout(res, 200));
 
-      await Speech.speak(text, {
-        language: options.language,
-        pitch: options.pitch,
-        rate: options.rate,
-        volume: options.volume,
-        onDone: () => {
-          this.isSpeaking = false;
-          this.processNextSpeechInQueue();
-        },
-        onError: (error) => {
-          logger.error('Speech error:', error);
-          this.isSpeaking = false;
-          this.processNextSpeechInQueue();
-        },
-      });
+        // expo-speech's speak call is synchronous and uses callbacks for completion
+        Speech.speak(text, {
+          language: options.language,
+          pitch: options.pitch,
+          rate: options.rate,
+          volume: options.volume,
+          onDone: () => {
+            this.isSpeaking = false;
+            this.processNextSpeechInQueue();
+            resolve();
+          },
+          onError: (error) => {
+            logger.error('Speech error:', error);
+            this.isSpeaking = false;
+            this.processNextSpeechInQueue();
+            reject(error);
+          },
+        });
 
-      logger.debug(`Speaking: ${text}`);
-    } catch (error) {
-      logger.error('Failed to speak:', error);
-      this.isSpeaking = false;
-      this.processNextSpeechInQueue();
-    }
+        logger.debug(`Speaking: ${text}`);
+      } catch (error) {
+        logger.error('Failed to speak:', error);
+        this.isSpeaking = false;
+        this.processNextSpeechInQueue();
+        reject(error);
+      }
+    });
   }
 
   /**
