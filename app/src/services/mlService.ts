@@ -1,4 +1,7 @@
+import { useCallback, useRef } from 'react';
 import type { Frame } from 'react-native-vision-camera';
+import { useFrameProcessor } from 'react-native-vision-camera';
+import { useSharedValue } from 'react-native-reanimated';
 let FileSystem: typeof import('expo-file-system') | null = null;
 
 let TensorflowModel: any = null;
@@ -34,8 +37,6 @@ import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
 
-// Default gesture labels will be supplied when models are loaded
-
 class MachineLearningService {
   private landmarkModel: any = null;
   private gestureModel: any = null;
@@ -44,8 +45,7 @@ class MachineLearningService {
   private labels: string[] = [];
   private teachingSession: { id: string; label: string } | null = null;
   private collectedSamples: ProcessedFrame[] = [];
-  private lastProcessedTime = 0;
-  private processingCooldown = 1000;
+  private readonly processingCooldown = 1000;
   private remoteTimeout = 400; // ms
 
   addCollectedSample(sample: ProcessedFrame) {
@@ -67,8 +67,19 @@ class MachineLearningService {
     try {
       logger.info('Loading custom models...');
 
-      this.landmarkModel = landmark;
-      setHandLandmarkModel?.(landmark);
+      if (typeof landmark === 'object' && landmark.url && loadTensorflowModel) {
+        logger.info(`Loading landmark model from: ${landmark.url}`);
+        try {
+          this.landmarkModel = await loadTensorflowModel({ url: landmark.url });
+          setHandLandmarkModel?.(this.landmarkModel);
+        } catch (e) {
+          logger.error('Failed to load landmark model:', e);
+          throw e; // Re-throw to ensure isReady becomes false
+        }
+      } else {
+        this.landmarkModel = landmark;
+        setHandLandmarkModel?.(landmark);
+      }
 
       if (typeof gesture === 'string' && loadTensorflowModel) {
         let modelPath = gesture;
@@ -83,7 +94,20 @@ class MachineLearningService {
         }
 
         logger.info(`Loading model from: ${modelPath}`);
-        this.gestureModel = await loadTensorflowModel(modelPath);
+        try {
+          this.gestureModel = await loadTensorflowModel({ url: modelPath });
+        } catch (e) {
+          logger.error('Failed to load gesture model:', e);
+          throw e; // Re-throw to ensure isReady becomes false
+        }
+      } else if (typeof gesture === 'object' && gesture.url && loadTensorflowModel) {
+        logger.info(`Loading gesture model from: ${gesture.url}`);
+        try {
+          this.gestureModel = await loadTensorflowModel({ url: gesture.url });
+        } catch (e) {
+          logger.error('Failed to load gesture model:', e);
+          throw e; // Re-throw to ensure isReady becomes false
+        }
       } else {
         this.gestureModel = gesture;
       }
@@ -107,47 +131,7 @@ class MachineLearningService {
 
   isServiceReady = (): boolean => this.isReady;
 
-  classifyGesture(onResult: (result: DetailedGestureResult | null) => void) {
-    return (frame: Frame) => {
-      'worklet';
-
-      const now = Date.now();
-      if (now - this.lastProcessedTime < this.processingCooldown) {
-        return;
-      }
-      this.lastProcessedTime = now;
-
-      if (!this.isReady) {
-        console.log('ML Service not ready');
-        runOnJS(onResult)(this.createUncertainResult('Service not ready'));
-        return;
-      }
-
-      try {
-        console.log('Processing frame...');
-        const landmarks = extractHandLandmarks(frame);
-        console.log('Landmarks:', landmarks ? landmarks.length : 0);
-
-        if (!landmarks || landmarks.length === 0) {
-          runOnJS(onResult)(this.createUncertainResult('No landmarks detected'));
-          return;
-        }
-
-        const processed: ProcessedFrame = {
-          landmarks,
-          width: frame.width,
-          height: frame.height,
-          timestamp: now,
-        };
-
-        runOnJS(this.processFrameAsync)(processed, onResult);
-      } catch (error) {
-        console.error('Frame processing error:', error);
-        runOnJS(onResult)(this.createUncertainResult('Processing error'));
-      }
-    };
-  }
-  private async processFrameAsync(
+  async processFrameAsync(
     processed: ProcessedFrame,
     onResult: (result: DetailedGestureResult | null) => void,
   ): Promise<void> {
@@ -246,7 +230,7 @@ class MachineLearningService {
     return { gesture, confidence: maxConfidence };
   }
 
-  private createUncertainResult(reason: string): DetailedGestureResult {
+  createUncertainResult(reason: string): DetailedGestureResult {
     logger.debug(`Classification uncertain: ${reason}`);
     return {
       label: 'uncertain',
@@ -310,3 +294,54 @@ class MachineLearningService {
 
 export const mlService = new MachineLearningService();
 
+export const useGestureClassifier = (
+  onResult: (result: DetailedGestureResult | null) => void,
+  isProcessing: boolean,
+) => {
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
+
+  const isProcessingRef = useRef(isProcessing);
+  isProcessingRef.current = isProcessing;
+
+  const lastProcessedTime = useSharedValue(0);
+  const processingCooldown = 1000; // ms
+  const isServiceReady = mlService.isServiceReady();
+
+  const frameProcessor = useFrameProcessor(
+    (frame: Frame) => {
+      'worklet';
+      const now = Date.now();
+      if (isProcessingRef.current || now - lastProcessedTime.value < processingCooldown) {
+        return;
+      }
+      lastProcessedTime.value = now;
+
+      if (!isServiceReady) {
+        return;
+      }
+
+      try {
+        const landmarks = extractHandLandmarks(frame);
+        if (!landmarks || landmarks.length === 0) {
+          return;
+        }
+
+        const processed: ProcessedFrame = {
+          landmarks,
+          width: frame.width,
+          height: frame.height,
+          timestamp: now,
+        };
+        
+        runOnJS(mlService.processFrameAsync.bind(mlService))(processed, onResultRef.current);
+
+      } catch (error: any) {
+        console.error('WORKLET ERROR:', error.message);
+      }
+    },
+    [isServiceReady],
+  );
+
+  return frameProcessor;
+};

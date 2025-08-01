@@ -49,38 +49,25 @@ useEffect(() => {
 
 ## 3. Frame Processing
 
-Screens that perform recognition obtain a worklet from `mlService.classifyGesture`. The worklet extracts landmarks and classifies them, invoking the provided callback with results.
+Screens that perform recognition use the `useGestureClassifier` hook from `app/src/services/mlService.ts`. This hook returns a memoized frame processor worklet that extracts landmarks and classifies them, invoking the provided callback with results.
 
-Example from `LearningScreen.tsx`:
-
-```typescript
-const frameProcessor = mlService.classifyGesture((result) => {
-  if (result && result.confidence > 0.85 && result.label !== lastGesture) {
-    const recognizedSymbolLabel = getSymbolLabelForGesture(result.label);
-    const foundSymbol = vocabulary.find((s) => s.name === recognizedSymbolLabel);
-    if (foundSymbol) {
-      handlePress(foundSymbol);
-      setLastGesture(result.label);
-      setTimeout(() => setLastGesture(null), 2000);
-    }
-  }
-});
-```
-
-`RecognitionScreen.tsx` uses the same worklet to show feedback and play audio:
+Example from `RecognitionScreen.tsx`:
 
 ```typescript
-const frameProcessor = mlService.classifyGesture(async (result) => {
+const onGestureResult = useCallback(async (result: any) => {
   if (isProcessing) return;
+
   if (result && result.label && result.label !== 'uncertain' && result.confidence > 0.7) {
     // ... handle recognized gesture ...
   } else if (result && result.label === 'uncertain') {
     setStatus("I didn't understand. Please try again.");
   }
-});
+}, [isProcessing, useDgs, profile, startFeedbackAnimation]);
+
+const frameProcessor = useGestureClassifier(onGestureResult, isProcessing);
 ```
 
-Attach the worklet to the camera component:
+Attach the frame processor to the camera component:
 
 ```tsx
 <Camera

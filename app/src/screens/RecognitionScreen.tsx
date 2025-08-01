@@ -32,13 +32,13 @@ import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { useServices } from '../context/AppServicesProvider';
+import { useGestureClassifier } from '../services';
 import BottomNav from '../components/BottomNav';
 
 const { width, height } = Dimensions.get('window');
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
-  const { mlService } = useServices();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState("I'm listening...");
   const [showCorrection, setShowCorrection] = useState(false);
@@ -105,7 +105,7 @@ export default function RecognitionScreen({ navigation }: any) {
     startFeedbackAnimation();
   };
 
-  const frameProcessor = mlService.classifyGesture(async (result: any) => {
+  const onGestureResult = useCallback(async (result: any) => {
     if (isProcessing) return;
 
     if (result && result.label && result.label !== 'uncertain' && result.confidence > 0.7) {
@@ -125,7 +125,7 @@ export default function RecognitionScreen({ navigation }: any) {
       startFeedbackAnimation();
 
       try {
-        await playSymbolAudio(entry);
+        playSymbolAudio(entry);
       } catch (error) {
         console.warn('Audio playback failed:', error);
       }
@@ -138,7 +138,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
       if (profile) {
         try {
-          await incrementUsage(entry, profile.id);
+          incrementUsage(entry, profile.id);
         } catch (error) {
           console.warn('Usage tracking failed:', error);
         }
@@ -165,7 +165,9 @@ export default function RecognitionScreen({ navigation }: any) {
       startFeedbackAnimation();
       setTimeout(() => setStatus("I'm listening..."), 2000);
     }
-  });
+  }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
+
+  const frameProcessor = useGestureClassifier(onGestureResult, isProcessing);
 
   const handleSelect = async (choice: string) => {
     if (!lastRecognizedGesture) return;

@@ -8,8 +8,8 @@ This document summarizes the repository in seven key areas with concrete file re
 - Services and hooks are in `app/src/services/` and `app/src/hooks/`
 
 ## 2. Gesture Recognition Pipeline
-- `app/src/screens/RecognitionScreen.tsx` runs the frame processor
-- Models are loaded via `app/src/hooks/useTensorflowModel.ts`
+- `app/src/screens/RecognitionScreen.tsx` and `app/src/screens/LearningScreen.tsx` run the frame processor
+- The `useGestureClassifier` hook in `app/src/services/mlService.ts` provides the frame processor
 - Default model paths live in `app/src/constants/modelPaths.ts`
 
 ## 3. Training and Personalization

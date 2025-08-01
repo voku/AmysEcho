@@ -8,8 +8,8 @@ import type { Observable } from 'rxjs';
 import { useIsFocused } from '@react-navigation/native';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import { database } from '../../db';
-import { playSymbolAudio } from '../services/audioService';
-import { incrementUsage } from '../services/usageTracker';
+import { playSymbolAudio } from '../services';
+import { incrementUsage } from '../services';
 import { dialogEngine, LLMSuggestionResponse } from '../services';
 import { SymbolButton } from '../components/SymbolButton';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
@@ -20,7 +20,7 @@ type SuggestionStatus = 'idle' | 'loading' | 'success' | 'error';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { useServices } from '../context/AppServicesProvider';
+import { useGestureClassifier } from '../services';
 import { Profile, Symbol } from '../../db/models';
 import MaintenanceBanner from "../components/MaintenanceBanner";
 import {recordInteraction} from "../services/adaptiveLearningService";
@@ -62,9 +62,6 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>('idle');
   const [showMaintenance, setShowMaintenance] = useState(false);
 
-  const { mlService } = useServices();
-
-  // Gesture models are loaded by the mlService
   const devices = useCameraDevices();
   const device = devices.back ?? devices.front ?? devices[0];
   const isFocused = useIsFocused();
@@ -100,7 +97,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
     }
   };
 
-  const frameProcessor = mlService.classifyGesture((result: any) => {
+  const onGestureResult = (result: any) => {
     if (result && result.confidence > 0.85 && result.label !== lastGesture) {
       const recognizedSymbolLabel = getSymbolLabelForGesture(result.label);
       const foundSymbol = vocabulary.find(s => s.name === recognizedSymbolLabel);
@@ -110,7 +107,9 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
         setTimeout(() => setLastGesture(null), 2000);
       }
     }
-  });
+  };
+
+  const frameProcessor = useGestureClassifier(onGestureResult, false);
 
   const styles = createStyles(highContrast);
 
