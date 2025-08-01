@@ -6,7 +6,12 @@ import { API_URL } from '../constants';
 
 export async function checkForModelUpdate(): Promise<boolean> {
   const net = await NetInfo.fetch();
-  if (!net.isConnected || net.type !== 'wifi') return false;
+  if (
+    !net.isConnected ||
+    net.isInternetReachable !== true ||
+    net.type !== 'wifi'
+  )
+    return false;
   try {
     const token = await loadBackendApiToken();
     const uri = CUSTOM_GESTURE_MODEL_PATH;

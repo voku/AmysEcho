@@ -9,7 +9,12 @@ export async function syncTrainingData(): Promise<void> {
   const profile = await loadProfile();
   if (!profile?.consentHelpMeGetSmarter) return;
   const net = await NetInfo.fetch();
-  if (!net.isConnected || net.type !== 'wifi') return;
+  if (
+    !net.isConnected ||
+    net.isInternetReachable !== true ||
+    net.type !== 'wifi'
+  )
+    return;
 
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
