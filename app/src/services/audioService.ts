@@ -3,10 +3,9 @@ import {
   requestRecordingPermissionsAsync,
   createAudioPlayer,
   AudioRecorder,
-  AudioPlayer
+  AudioPlayer,
+  RecordingPresets,
 } from 'expo-audio';
-import { RecordingPresets } from 'expo-audio/src/RecordingConstants';
-import { createRecordingOptions } from 'expo-audio/src/utils/options';
 
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
@@ -278,8 +277,8 @@ export class AudioService {
     if (!permission.granted) {
       throw new Error('Audio permission not granted');
     }
-    this.recording = new AudioRecorder(createRecordingOptions(RecordingPresets.HIGH_QUALITY));
-    await this.recording.prepareToRecordAsync(createRecordingOptions(RecordingPresets.HIGH_QUALITY));
+    this.recording = new AudioRecorder(RecordingPresets.HIGH_QUALITY);
+    await this.recording.prepareToRecordAsync(RecordingPresets.HIGH_QUALITY);
     this.recording.record();
   }
 
