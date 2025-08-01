@@ -52,16 +52,22 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
    - (Python 3 required) Run `pip install -r requirements.txt` to install `numpy` and `pytest` for the training tests.
    - Then run `npm test` inside `server/` to execute the Python suite in `server/test/`.
    - Back in the repo root, run `npm test --prefix integration` to verify the app and server end-to-end
-7. Inside `app`, run `npm run ios` or `npm run android` to launch the app
-8. Or run `./scripts/full-check.sh` from the repo root to automatically install
+7. Fetch the default gesture models so the app can classify hands:
+   ```bash
+   npm run build --prefix server
+   node server/dist/tools/downloadModels.js
+   ```
+   This downloads `hand_landmarker.tflite` and `gesture_classifier.tflite` into `app/assets/models/`.
+8. Inside `app`, run `npm run ios` or `npm run android` to launch the app
+9. Or run `./scripts/full-check.sh` from the repo root to automatically install
    dependencies and execute all tests (including integration tests) at once
-9. Or check the Expo setup inside `app`:
+10. Or check the Expo setup inside `app`:
 
    ```bash
    npx expo install --check
    npx expo-doctor    # skips WatermelonDB packages via package.json
    ```
-10. Ensure `react-native-gesture-handler`, `react-native-safe-area-context`, and `react-native-screens` match Expo's expected versions (`~2.24.0`, `5.4.0`, and `~4.11.1` respectively)
+11. Ensure `react-native-gesture-handler`, `react-native-safe-area-context`, and `react-native-screens` match Expo's expected versions (`~2.24.0`, `5.4.0`, and `~4.11.1` respectively)
 
 ## Process
 
