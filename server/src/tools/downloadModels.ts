@@ -64,12 +64,12 @@ async function extractGestureClassifier(taskPath: string, dest: string) {
 
 const models: ModelSpec[] = [
   {
-    url: 'https://storage.googleapis.com/mediapipe-assets/hand_landmarker.task',
+    url: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task',
     dest: HAND_LANDMARKER_MODEL_PATH,
     extract: extractHandLandmarker,
   },
   {
-    url: 'https://storage.googleapis.com/mediapipe-assets/gesture_recognizer.task',
+    url: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task',
     dest: GESTURE_CLASSIFIER_MODEL_PATH,
     extract: extractGestureClassifier,
   },
