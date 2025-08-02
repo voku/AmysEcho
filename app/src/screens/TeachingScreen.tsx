@@ -5,7 +5,6 @@ import {
   Camera,
   useCameraDevices,
   useCameraPermission,
-  type CameraRef,
   type VideoFile,
 } from 'react-native-vision-camera';
 import { mlService } from '../services/mlService';
@@ -18,9 +17,9 @@ import { useAccessibility } from '../components/AccessibilityContext';
 export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const devices = useCameraDevices();
-  const device = devices.back ?? devices.front ?? devices[0];
+  const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
   const { hasPermission, requestPermission } = useCameraPermission();
-  const camera = useRef<CameraRef>(null);
+  const camera = useRef<Camera>(null);
   const [gestureLabel, setGestureLabel] = useState('');
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [sampleCount, setSampleCount] = useState(0);

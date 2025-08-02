@@ -16,6 +16,7 @@ import TrainingScreen from './src/screens/TrainingScreen';
 import CorrectionScreen from './src/screens/CorrectionScreen';
 import HelpScreen from './src/screens/HelpScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import DgsScreen from './src/screens/DgsScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
@@ -175,6 +176,11 @@ export default function App() {
             name="Dashboard"
             component={DashboardScreen}
             options={{ title: 'Analytics' }}
+          />
+          <Stack.Screen
+            name="Dgs"
+            component={DgsScreen}
+            options={{ title: 'DGS Video' }}
           />
           </Stack.Navigator>
         </NavigationContainer>

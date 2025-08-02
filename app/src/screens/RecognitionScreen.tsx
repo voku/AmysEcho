@@ -59,7 +59,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
   const { requestPermission } = useCameraPermission();
   const devices = useCameraDevices();
-  const device = devices.back ?? devices.front ?? devices[0];
+  const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
   const isFocused = useIsFocused();
   const appState = AppState.currentState;
 
@@ -385,7 +385,6 @@ export default function RecognitionScreen({ navigation }: any) {
               device={device}
               isActive={true}
               frameProcessor={frameProcessor}
-              frameProcessorFps={5}
             />
           )}
 
@@ -411,7 +410,13 @@ export default function RecognitionScreen({ navigation }: any) {
               <Text style={styles.toggleLabel}>Use DGS Video</Text>
               <Switch
                 value={useDgs}
-                onValueChange={setUseDgs}
+                onValueChange={(isChecked) => {
+                  if (isChecked) {
+                    navigation.navigate('Dgs');
+                  } else {
+                    setUseDgs(false);
+                  }
+                }}
                 accessibilityLabel="DGS-Video verwenden"
               />
             </View>

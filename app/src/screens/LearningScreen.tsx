@@ -74,7 +74,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   const [showMaintenance, setShowMaintenance] = useState(false);
 
   const devices = useCameraDevices();
-  const device = devices.back ?? devices.front ?? devices[0];
+  const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
   const { hasPermission, requestPermission } = useCameraPermission();
   const isFocused = useIsFocused();
   const appState = AppState.currentState;
@@ -158,7 +158,7 @@ const LearningScreen = ({ profile, vocabulary, navigation }: { profile: Profile,
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-      {canRunCamera && <Camera style={StyleSheet.absoluteFill} device={device} isActive={true} frameProcessor={frameProcessor} frameProcessorFps={5}/>}
+      {canRunCamera && <Camera style={StyleSheet.absoluteFill} device={device} isActive={true} frameProcessor={frameProcessor}/>}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{profile.name}'s Vokabular</Text>
         <Pressable

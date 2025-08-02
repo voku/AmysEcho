@@ -6,42 +6,38 @@ import { tmpdir } from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-(async () => {
-  const result = await processLandmarks([[0,0]]);
-  if (result.processedBy !== 'local') {
-    throw new Error('mlService should fall back to local');
-  }
+describe('Services', () => {
+  it('should run all services without errors', async () => {
+    const result = await processLandmarks([[0,0]]);
+    expect(result.processedBy).toBe('local');
 
-  const file = path.join(tmpdir(), 'dummy.mp3');
-  await fs.writeFile(file, '');
-  await playAudio(file);
+    const file = path.join(tmpdir(), 'dummy.mp3');
+    await fs.writeFile(file, '');
+    await playAudio(file);
 
-  const vid = path.join(tmpdir(), 'dummy.mp4');
-  await fs.writeFile(vid, '');
-  await playVideo(vid);
+    const vid = path.join(tmpdir(), 'dummy.mp4');
+    await fs.writeFile(vid, '');
+    await playVideo(vid);
 
-  // should not throw even if the sound file is missing
-  await playSystemSound('success');
-  await playSystemSound('error');
+    // should not throw even if the sound file is missing
+    await playSystemSound('success');
+    await playSystemSound('error');
 
-  let failed = false;
-  try {
-    await playAudio('/no/such/file.mp3');
-  } catch {
-    failed = true;
-  }
-  if (!failed) {
-    throw new Error('missing audio should error');
-  }
+    let failed = false;
+    try {
+      await playAudio('/no/such/file.mp3');
+    } catch {
+      failed = true;
+    }
+    expect(failed).toBe(true);
 
-  const sugg = await getLLMSuggestions({
-    input: 'hello',
-    context: [],
-    language: 'de',
-    age: 4,
+    const sugg = await getLLMSuggestions({
+      input: 'hello',
+      context: [],
+      language: 'de',
+      age: 4,
+    });
+    expect(sugg.nextWords.length).toBe(0);
+    expect(sugg.caregiverPhrases.length).toBe(0);
   });
-  if (sugg.nextWords.length !== 0 || sugg.caregiverPhrases.length !== 0) {
-    throw new Error('LLM should be disabled by default');
-  }
-  console.log('services ok');
-})();
+});

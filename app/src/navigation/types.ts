@@ -11,4 +11,5 @@ export type RootStackParamList = {
   Dashboard: undefined;
   Onboarding: undefined;
   Help: undefined;
+  Dgs: undefined;
 };

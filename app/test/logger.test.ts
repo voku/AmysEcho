@@ -1,23 +1,20 @@
 import { logger, LogLevel } from '../src/utils/logger';
 
-(async () => {
-  let captured = '';
-  const orig = console.log;
-  console.log = (msg?: any, ...args: any[]) => {
-    captured += String(msg);
-  };
+describe('Logger', () => {
+  it('should only log messages at or above the current log level', () => {
+    let captured = '';
+    const orig = console.log;
+    console.log = (msg?: any, ...args: any[]) => {
+      captured += String(msg);
+    };
 
-  logger.setLevel(LogLevel.INFO);
-  logger.debug('secret');
-  if (captured.includes('secret')) {
-    throw new Error('Debug log should not appear when level INFO');
-  }
+    logger.setLevel(LogLevel.INFO);
+    logger.debug('secret');
+    expect(captured).not.toContain('secret');
 
-  logger.setLevel(LogLevel.DEBUG);
-  logger.debug('hello');
-  console.log = orig;
-  if (!captured.includes('[DEBUG] hello')) {
-    throw new Error('Debug log missing when level DEBUG');
-  }
-  console.log('logger test ok');
-})();
+    logger.setLevel(LogLevel.DEBUG);
+    logger.debug('hello');
+    console.log = orig;
+    expect(captured).toContain('[DEBUG] hello');
+  });
+});

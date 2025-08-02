@@ -1,9 +1,8 @@
 import { classifyGesture } from '../../server/src/recognizer';
 
-(async () => {
-  const result = await classifyGesture([[0, 0]]);
-  if (result.processedBy !== 'local') {
-    throw new Error('Expected offline fallback');
-  }
-  console.log('classification fallback', result.processedBy);
-})();
+describe('Recognizer', () => {
+  it('should use local fallback for classification', async () => {
+    const result = await classifyGesture([[0, 0]]);
+    expect(result.processedBy).toBe('local');
+  });
+});

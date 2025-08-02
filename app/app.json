@@ -17,6 +17,14 @@
     },
     "ios": {
       "bundleIdentifier": "com.anonymous.amysecho"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Amy's Echo to access your camera to recognize gestures."
+        }
+      ]
+    ]
   }
 }

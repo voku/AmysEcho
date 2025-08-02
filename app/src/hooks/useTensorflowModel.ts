@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { TensorflowModel } from 'react-native-fast-tflite';
-const { loadTensorflowModel } = require('react-native-fast-tflite');
+import { TensorflowModel, loadTensorflowModel } from 'react-native-fast-tflite';
 import { loadCustomModelUri } from '../storage';
 
 /**
@@ -38,7 +37,6 @@ export function useTensorflowModel(
 
     return () => {
       isMounted = false;
-      loaded?.close?.();
     };
   }, [defaultModel, personalized]);
 

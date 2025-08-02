@@ -1,18 +1,10 @@
+import { TensorflowModel, loadTensorflowModel } from 'react-native-fast-tflite';
 import { useCallback, useRef } from 'react';
 import type { Frame } from 'react-native-vision-camera';
 import { useFrameProcessor } from 'react-native-vision-camera';
 import { useSharedValue } from 'react-native-reanimated';
-let FileSystem: typeof import('expo-file-system') | null = null;
 
-let TensorflowModel: any = null;
-let loadTensorflowModel: any = null;
-try {
-  const tflite = require('react-native-fast-tflite');
-  TensorflowModel = tflite.TensorflowModel;
-  loadTensorflowModel = tflite.loadTensorflowModel;
-} catch (e) {
-  console.warn('TensorFlow Lite not available:', e);
-}
+let FileSystem: typeof import('expo-file-system') | null = null;
 
 let runOnJS: any = (fn: Function) => fn;
 
@@ -30,7 +22,7 @@ try {
 }
 
 import { logger } from '../utils/logger';
-import { extractHandLandmarks, setHandLandmarkModel } from '../utils/landmarkExtractor';
+import { extractHandLandmarks, setHandLandmarkModel } from './landmarkExtractor';
 import { DetailedGestureResult, ProcessedFrame, MLServiceConfig } from '../types/ml';
 import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';

@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import {
   Camera,
-  type CameraRef,
   useCameraDevices,
   useCameraPermission,
   type VideoFile,
@@ -15,9 +14,9 @@ import { extractLandmarksFromVideo } from '../services';
 export default function TrainingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const devices = useCameraDevices();
-  const device = devices.back ?? devices.front ?? devices[0];
+  const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
   const { hasPermission, requestPermission } = useCameraPermission();
-  const camera = useRef<CameraRef>(null);
+  const camera = useRef<Camera>(null);
   const [gestureId, setGestureId] = useState<string | null>(null);
   const [count, setCount] = useState(0);
   const [saving, setSaving] = useState(false);

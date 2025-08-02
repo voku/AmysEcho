@@ -23,7 +23,6 @@
     "isolatedModules": true
   },
   "exclude": [
-    "node_modules",
     "test",
     "../server",
     "__mocks__"

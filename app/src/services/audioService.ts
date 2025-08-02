@@ -3,7 +3,7 @@ import {
   requestRecordingPermissionsAsync,
   createAudioPlayer,
   AudioRecorder,
-  AudioPlayer,
+
   RecordingPresets,
 } from 'expo-audio';
 
@@ -16,7 +16,7 @@ import { Symbol } from '../../db/models';
 import * as FileSystem from 'expo-file-system';
 
 export class AudioService {
-  private sounds: Map<string, AudioPlayer> = new Map();
+  private sounds: Map<string, ReturnType<typeof createAudioPlayer>> = new Map();
   private isInitialized = false;
   private config: AudioConfig;
   private speechQueue: Array<{ text: string; options: SpeechOptions }> = [];
