@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import type { TensorflowModel } from 'react-native-fast-tflite';
+const { loadTensorflowModel } = require('react-native-fast-tflite');
 import { loadCustomModelUri } from '../storage';
 
 /**

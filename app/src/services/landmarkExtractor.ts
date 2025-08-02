@@ -1,7 +1,8 @@
 import * as FileSystem from 'expo-file-system';
 // TODO: ffmpeg-kit-react-native is not longer supported v1
 /*import { FFmpegKit } from 'ffmpeg-kit-react-native';*/
-import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import type { TensorflowModel } from 'react-native-fast-tflite';
+const { loadTensorflowModel } = require('react-native-fast-tflite');
 import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 
 let handModel: TensorflowModel | null = null;
