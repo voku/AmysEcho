@@ -25,16 +25,17 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 
 ## 🧱 Tech Stack? 
 
-| Layer             | Tech                          | Purpose                                           |
-|------------------|-------------------------------|---------------------------------------------------|
-| App Framework     | React Native (CLI)            | Cross-platform + native module access             |
-| Language          | TypeScript (strict mode)      | Predictable, type-safe code                       |
-| Camera            | `react-native-vision-camera`  | High-performance gesture capture                  |
-| ML Inference      | `react-native-fast-tflite`    | Local fallback via TensorFlow Lite                |
-| Cloud ML          | Custom API                    | Accurate gesture classification                   |
-| UI/UX             | RN Animated API + Skia (opt.) | Gentle, trust-based feedback                      |
-| Audio             | `expo-av`, `expo-speech`      | Speech output + sound effects                     |
-| Database          | WatermelonDB (SQLite)         | Encrypted, offline-first local storage            |
+| Layer         | Tech                          | Purpose                                |
+|---------------|-------------------------------|----------------------------------------|
+| App Framework | React Native (CLI)            | Cross-platform + native module access  |
+| Language      | TypeScript (strict mode)      | Predictable, type-safe code            |
+| Camera        | `react-native-vision-camera`  | High-performance gesture capture       |
+| ML Inference  | `react-native-fast-tflite`    | Local fallback via TensorFlow Lite     |
+| Cloud ML      | Custom API                    | Accurate gesture classification        |
+| UI/UX         | RN Animated API + Skia (opt.) | Gentle, trust-based feedback           |
+| Audio         | `expo-audio`, `expo-speech`   | Speech output + sound effects          |
+| Video         | `expo-video`                  | Video output                           |
+| Database      | WatermelonDB (SQLite)         | Encrypted, offline-first local storage |
 
 ---
 

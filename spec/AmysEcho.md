@@ -97,7 +97,8 @@ The system will operate in two modes to provide the best possible experience.
 | Database | WatermelonDB with SQLite Adapter | High-performance, reactive, offline-first, encrypted database. |
 | Camera | react-native-vision-camera | Provides high-performance, low-latency access to camera frames for ML. |
 | ML Inference | react-native-fast-tflite | Enables efficient, on-device execution of TensorFlow Lite models. |
-| Audio | expo-av & expo-speech | Provides a robust API for both pre-recorded audio and TTS fallbacks. |
+| Audio | expo-audio & expo-speech | Provides a robust API for both pre-recorded audio and TTS fallbacks. |
+| Video | expo-video | Provides a robust API for Video playing. |
 | UI/Animation | React Native Animated API | Sufficient for the required gentle animations; Skia is an optional enhancement. |
 
 3.3 The Hybrid Perception Loop
