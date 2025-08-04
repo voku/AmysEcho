@@ -64,7 +64,11 @@ export default function RecognitionScreen({ navigation }: any) {
   const devices = useCameraDevices();
   const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
   const isFocused = useIsFocused();
-  const appState = AppState.currentState;
+  const [appState, setAppState] = useState(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', setAppState);
+    return () => sub.remove();
+  }, []);
 
   const canUseCamera =
     permissionStatus && device != null && isFocused && isCameraActive && appState === 'active';
