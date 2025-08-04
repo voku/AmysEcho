@@ -37,9 +37,36 @@ npm test --prefix integration
 
 The tests will build the server and exercise key endpoints. They are also executed by `./scripts/full-check.sh`.
 
-## Building a production APK with EAS
+## Building APKs with EAS
 
-For store-ready binaries Amy's Echo relies on Expo's **EAS Build** service. The recommended workflow is:
+Amy's Echo relies on Expo's **EAS Build** service. Two build profiles are available in `app/eas.json`.
+
+### Development build (testing APK)
+
+Use this to produce a debuggable APK for internal testing:
+
+1. Run the full test suite to verify everything is green:
+   ```bash
+   ./scripts/full-check.sh
+   ```
+2. Generate the native Android project if it doesn't already exist:
+   ```bash
+   npx expo prebuild --platform android
+   ```
+3. Trigger the remote build from the `app` directory:
+   ```bash
+   npm run build:android-dev
+   ```
+   The command prints a link where you can download the APK. You can also fetch the latest build later:
+   ```bash
+   eas build:download --platform android --profile development --latest
+   ```
+
+After installing the APK on a device, start the bundler with `npx expo start` to load the JavaScript bundle.
+
+### Production build (Play Store)
+
+For store-ready binaries the recommended workflow is:
 
 1. Run the full test suite to verify everything is green:
    ```bash
