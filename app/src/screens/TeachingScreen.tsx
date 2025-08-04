@@ -13,6 +13,7 @@ import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { extractLandmarksFromImages } from '../services/landmarkExtractor';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 
 export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -106,7 +107,9 @@ export default function TeachingScreen({ navigation }: any) {
   const styles = createStyles(largeText, highContrast);
 
   if (device == null) {
-    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    const gradientColors = highContrast
+      ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+      : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
     return (
       <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
@@ -117,7 +120,9 @@ export default function TeachingScreen({ navigation }: any) {
   }
 
   if (!hasPermission) {
-    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    const gradientColors = highContrast
+      ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+      : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
     return (
       <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
@@ -132,7 +137,9 @@ export default function TeachingScreen({ navigation }: any) {
     );
   }
 
-  const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+  const gradientColors = highContrast
+    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
@@ -192,31 +199,38 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      padding: 20,
+      padding: SPACING.lg,
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 28 : 24,
-      marginBottom: 20,
-      color: highContrast ? '#fff' : '#000',
+      marginBottom: SPACING.lg,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
     inputContainer: { width: '100%' },
-    input: { borderWidth: 1, padding: 8, marginBottom: 12, backgroundColor: '#fff', color: '#000' },
+    input: {
+      borderWidth: 1,
+      padding: SPACING.sm,
+      marginBottom: SPACING.md,
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      borderRadius: RADIUS,
+    },
     recordingContainer: { alignItems: 'center' },
-    camera: { width: 200, height: 200, marginBottom: 10 },
-    prompt: { fontSize: largeText ? 22 : 18, marginVertical: 10, color: highContrast ? '#fff' : '#000' },
-    progress: { marginBottom: 10, color: highContrast ? '#fff' : '#000' },
+    camera: { width: 200, height: 200, marginBottom: SPACING.sm },
+    prompt: { fontSize: largeText ? 22 : 18, marginVertical: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
+    progress: { marginBottom: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
     sampleIndicator: {
       position: 'absolute',
       top: 100,
       backgroundColor: 'rgba(0,255,0,0.7)',
-      padding: 10,
-      borderRadius: 5,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
     },
     sampleIndicatorText: {
-      color: 'white',
+      color: COLORS.highContrastText,
       fontWeight: 'bold',
     },
   });

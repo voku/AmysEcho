@@ -7,6 +7,7 @@ import {
   setActiveVocabularySet,
 } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 
 export default function OnboardingScreen({ navigation }: any) {
   const [name, setName] = useState('');
@@ -36,31 +37,34 @@ export default function OnboardingScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      padding: 20,
+      padding: SPACING.lg,
       backgroundColor: 'transparent',
     },
     input: {
       borderWidth: 1,
-      padding: 8,
-      marginBottom: 20,
+      padding: SPACING.sm,
+      marginBottom: SPACING.lg,
       width: '100%',
-      backgroundColor: '#fff',
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS,
     },
-    heart: { fontSize: largeText ? 80 : 64, textAlign: 'center', marginBottom: 20, color: highContrast ? '#fff' : '#000' },
-    title: { fontSize: largeText ? 32 : 24, textAlign: 'center', marginBottom: 20, color: highContrast ? '#fff' : '#000' },
+    heart: { fontSize: largeText ? 80 : 64, textAlign: 'center', marginBottom: SPACING.lg, color: highContrast ? COLORS.highContrastText : COLORS.text },
+    title: { fontSize: largeText ? 32 : 24, textAlign: 'center', marginBottom: SPACING.lg, color: highContrast ? COLORS.highContrastText : COLORS.text },
     toggleRow: {
       width: '100%',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 20,
+      marginBottom: SPACING.lg,
     },
-    label: { fontSize: largeText ? 22 : 18, color: highContrast ? '#fff' : '#000' },
+    label: { fontSize: largeText ? 22 : 18, color: highContrast ? COLORS.highContrastText : COLORS.text },
     switch: { transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }] },
-    setRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 20 },
+    setRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: SPACING.lg },
   });
 
-  const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+  const gradientColors = highContrast
+    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
     <SafeAreaView style={styles.container}>
@@ -115,7 +119,7 @@ export default function OnboardingScreen({ navigation }: any) {
             key={s.id}
             title={s.label}
             onPress={() => setVocabSet(s.id)}
-            color={vocabSet === s.id ? '#007aff' : undefined}
+            color={vocabSet === s.id ? COLORS.primaryAccent : undefined}
             accessibilityLabel={`Vokabular ${s.label} auswählen`}
           />
         ))}

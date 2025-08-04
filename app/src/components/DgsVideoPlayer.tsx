@@ -3,6 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { logger } from '../utils/logger';
+import { COLORS, RADIUS } from '../constants/ui';
 
 interface DgsVideoPlayerProps {
   videoSource?: any;
@@ -60,7 +61,7 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
       )}
       {isBuffering && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#ffffff" />
+          <ActivityIndicator size="large" color={COLORS.highContrastText} />
         </View>
       )}
     </View>
@@ -71,8 +72,8 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#000',
-    borderRadius: 16,
+    backgroundColor: COLORS.highContrastBackground,
+    borderRadius: RADIUS * 2,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   placeholderText: {
-    color: '#fff',
+    color: COLORS.highContrastText,
   },
 });
 

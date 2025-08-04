@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
+import { COLORS, SPACING } from '../constants/ui';
 
 export default function HelpScreen({ navigation }: any) {
   return (
@@ -31,19 +32,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fdfdfd',
+    padding: SPACING.lg,
+    backgroundColor: COLORS.surface,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    marginBottom: SPACING.lg,
+    color: COLORS.text,
   },
   text: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 10,
-    color: '#555',
+    marginBottom: SPACING.sm,
+    color: COLORS.textMuted,
   },
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Button, StyleSheet, Text } from 'react-native';
+import { SPACING } from '../constants/ui';
 
 export default function ProfileSelectScreen({ navigation }: any) {
   const styles = StyleSheet.create({
@@ -8,8 +9,8 @@ export default function ProfileSelectScreen({ navigation }: any) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    title: { fontSize: 24, marginBottom: 20 },
-    row: { flexDirection: 'row', gap: 20 },
+    title: { fontSize: 24, marginBottom: SPACING.lg },
+    row: { flexDirection: 'row', gap: SPACING.lg },
   });
 
   return (

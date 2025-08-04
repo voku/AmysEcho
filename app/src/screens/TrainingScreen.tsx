@@ -9,6 +9,7 @@ import { saveTrainingSample } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useRecordingProcessor } from '../services';
+import { COLORS, SPACING } from '../constants/ui';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -49,14 +50,14 @@ export default function TrainingScreen({ navigation, route }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: highContrast ? '#000' : '#eef2ff',
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.backgroundStart,
     },
     title: {
       fontSize: largeText ? 24 : 20,
-      marginBottom: 20,
-      color: highContrast ? '#fff' : '#000',
+      marginBottom: SPACING.lg,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
-    camera: { width: 200, height: 200, marginBottom: 10 },
+    camera: { width: 200, height: 200, marginBottom: SPACING.sm },
   });
 
   if (!hasPermission) {

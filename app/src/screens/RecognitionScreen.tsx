@@ -33,6 +33,7 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { useGestureClassifier } from '../services';
 import BottomNav from '../components/BottomNav';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 
 const { width, height } = Dimensions.get('window');
 
@@ -311,16 +312,16 @@ export default function RecognitionScreen({ navigation }: any) {
     status: {
       fontSize: largeText ? 48 : 40,
       fontWeight: 'bold',
-      marginBottom: 20,
+      marginBottom: SPACING.lg,
       textAlign: 'center',
-      color: '#fff',
+      color: COLORS.highContrastText,
       textShadowColor: 'rgba(0, 0, 0, 0.8)',
       textShadowOffset: { width: 2, height: 2 },
       textShadowRadius: 4,
     },
     symbolDisplay: {
       fontSize: largeText ? 120 : 100,
-      marginBottom: 20,
+      marginBottom: SPACING.lg,
       textShadowColor: 'rgba(0, 0, 0, 0.8)',
       textShadowOffset: { width: 2, height: 2 },
       textShadowRadius: 4,
@@ -328,47 +329,47 @@ export default function RecognitionScreen({ navigation }: any) {
     controls: {
       position: 'absolute',
       bottom: 96,
-      left: 16,
-      right: 16,
+      left: SPACING.md,
+      right: SPACING.md,
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      borderRadius: 16,
-      padding: 16,
+      borderRadius: RADIUS * 2,
+      padding: SPACING.md,
     },
     suggestion: {
       fontSize: largeText ? 18 : 14,
-      marginBottom: 8,
-      color: highContrast ? '#000' : '#666',
+      marginBottom: SPACING.sm,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
     },
     toggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 8,
+      marginBottom: SPACING.sm,
     },
     toggleLabel: {
       fontSize: largeText ? 18 : 16,
-      color: highContrast ? '#000' : '#333',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
     cameraToggle: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 16,
+      marginBottom: SPACING.md,
     },
     buttonRow: {
       flexDirection: 'row',
       justifyContent: 'space-around',
-      marginTop: 8,
+      marginTop: SPACING.sm,
     },
     helpButton: {
       flex: 1,
-      backgroundColor: '#3B82F6',
-      paddingVertical: 16,
-      borderRadius: 8,
+      backgroundColor: COLORS.primaryAccent,
+      paddingVertical: SPACING.md,
+      borderRadius: RADIUS,
       alignItems: 'center',
     },
     helpButtonText: {
-      color: '#fff',
+      color: COLORS.highContrastText,
       fontSize: largeText ? 18 : 16,
       fontWeight: 'bold',
     },
@@ -378,7 +379,7 @@ export default function RecognitionScreen({ navigation }: any) {
       left: 0,
       width: width,
       height: height,
-      backgroundColor: 'black',
+      backgroundColor: COLORS.highContrastBackground,
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 1000,
@@ -388,14 +389,14 @@ export default function RecognitionScreen({ navigation }: any) {
       top: 0,
       left: 0,
       right: 0,
-      backgroundColor: '#FFD700',
-      padding: 16,
+      backgroundColor: COLORS.warning,
+      padding: SPACING.md,
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 999,
     },
     weakGestureBannerText: {
-      color: '#333',
+      color: COLORS.text,
       fontSize: largeText ? 18 : 16,
       fontWeight: 'bold',
       textAlign: 'center',
@@ -404,18 +405,20 @@ export default function RecognitionScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      padding: 16,
+      padding: SPACING.md,
     },
     permissionText: {
       fontSize: largeText ? 20 : 18,
       textAlign: 'center',
-      marginBottom: 16,
-      color: highContrast ? '#fff' : '#333',
+      marginBottom: SPACING.md,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
   });
 
   if (!permissionStatus) {
-    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    const gradientColors = highContrast
+      ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+      : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
     return (
       <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
@@ -431,7 +434,9 @@ export default function RecognitionScreen({ navigation }: any) {
   }
 
   if (!device) {
-    const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+    const gradientColors = highContrast
+      ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+      : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
     return (
       <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
@@ -443,7 +448,9 @@ export default function RecognitionScreen({ navigation }: any) {
     );
   }
 
-  const gradientColors = highContrast ? (['#000', '#000'] as const) : (['#EFF6FF', '#F3F4F6'] as const);
+  const gradientColors = highContrast
+    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
