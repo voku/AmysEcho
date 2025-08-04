@@ -40,6 +40,11 @@ class MachineLearningService {
   private readonly processingCooldown = 1000;
   private remoteTimeout = 400; // ms
   private _isCameraActive: boolean = true;
+  private gestureBuffer: Array<{ label: string; confidence: number; timestamp: number }> = [];
+  private smoothingWindow = 500; // ms
+  private gestureDebounce = 2000; // ms
+  private lastGestureTime = 0;
+  private lastRecognizedGesture: string | null = null;
 
   get isCameraActive(): boolean {
     return this._isCameraActive;
@@ -187,6 +192,13 @@ class MachineLearningService {
     }
 
     if (result) {
+      const smoothed = this.applyGestureSmoothing(result);
+      if (!smoothed) {
+        onResult(null);
+        return;
+      }
+
+      result = smoothed;
       const processingTime = Date.now() - processed.timestamp;
       this.logInteraction({
         label: result.label,
@@ -257,6 +269,48 @@ class MachineLearningService {
       suggestions: [],
       requiresConfirmation: true,
     };
+  }
+
+  private applyGestureSmoothing(
+    result: DetailedGestureResult,
+  ): DetailedGestureResult | null {
+    const now = Date.now();
+    this.gestureBuffer.push({
+      label: result.label,
+      confidence: result.confidence,
+      timestamp: now,
+    });
+
+    // keep only recent results
+    this.gestureBuffer = this.gestureBuffer.filter(
+      (r) => now - r.timestamp < this.smoothingWindow,
+    );
+
+    const recent = this.gestureBuffer.filter(
+      (r) => r.confidence > this.confidenceThreshold,
+    );
+    if (recent.length < 2) return null;
+
+    const counts = new Map<string, number>();
+    let maxConfidence = 0;
+    for (const r of recent) {
+      counts.set(r.label, (counts.get(r.label) || 0) + 1);
+      if (r.confidence > maxConfidence) maxConfidence = r.confidence;
+    }
+
+    const mostCommon = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0][0];
+
+    if (
+      mostCommon === this.lastRecognizedGesture &&
+      now - this.lastGestureTime < this.gestureDebounce
+    ) {
+      return null;
+    }
+
+    this.lastRecognizedGesture = mostCommon;
+    this.lastGestureTime = now;
+
+    return { ...result, label: mostCommon, confidence: maxConfidence };
   }
 
   private async logInteraction(data: {
@@ -358,6 +412,48 @@ export const useGestureClassifier = (
       }
     },
     [isServiceReady],
+  );
+
+  return frameProcessor;
+};
+
+export const useRecordingProcessor = (
+  onLandmarks: (landmarks: number[][]) => void,
+  isRecording: boolean,
+  fps: number = 10,
+) => {
+  const onLandmarksRef = useRef(onLandmarks);
+  onLandmarksRef.current = onLandmarks;
+
+  const isRecordingRef = useRef(isRecording);
+  isRecordingRef.current = isRecording;
+
+  const lastProcessedTime = useSharedValue(0);
+
+  const frameProcessor = useFrameProcessor(
+    (frame: Frame) => {
+      'worklet';
+      if (!isRecordingRef.current) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastProcessedTime.value < 1000 / fps) {
+        return;
+      }
+      lastProcessedTime.value = now;
+
+      try {
+        const landmarks = extractHandLandmarks(frame);
+        if (!landmarks || landmarks.length === 0) {
+          return;
+        }
+        runOnJS(onLandmarksRef.current)(landmarks);
+      } catch (error: any) {
+        console.error('WORKLET ERROR:', error.message);
+      }
+    },
+    [fps],
   );
 
   return frameProcessor;

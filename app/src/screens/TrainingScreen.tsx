@@ -1,45 +1,43 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import {
   Camera,
-  useCameraDevices,
+  useCameraDevice,
   useCameraPermission,
-  type VideoFile,
 } from 'react-native-vision-camera';
 import { saveTrainingSample } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { extractLandmarksFromImages } from '../services';
+import { useRecordingProcessor } from '../services';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const { gestureLabel } = route.params || {};
-  const devices = useCameraDevices();
-  const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
+  // Prefer the back camera but fall back to front if unavailable
+  const backCamera = useCameraDevice('back');
+  const frontCamera = useCameraDevice('front');
+  const device = backCamera ?? frontCamera;
   const { hasPermission, requestPermission } = useCameraPermission();
-  const camera = useRef<Camera>(null);
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
-  const [saving, setSaving] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedLandmarks, setRecordedLandmarks] = useState<number[][][]>([]);
 
-  const handleRecord = async () => {
-    if (!camera.current || !gestureId || saving) return;
-    setSaving(true);
-    const imageUris: string[] = [];
-    for (let i = 0; i < 30; i++) { // Capture 30 images over 3 seconds
-      try {
-        const photo = await camera.current.takePhoto({});
-        imageUris.push(photo.path);
-      } catch (error) {
-        console.error('Failed to take photo:', error);
-      }
-      await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay for 10 FPS
-    }
+  const recordingProcessor = useRecordingProcessor((landmarks) => {
+    setRecordedLandmarks((prev) => [...prev, landmarks]);
+  }, isRecording);
 
-    const landmarks = await extractLandmarksFromImages(imageUris);
-    await saveTrainingSample(gestureId, landmarks);
+  const startRecording = () => {
+    if (!gestureId) return;
+    setRecordedLandmarks([]);
+    setIsRecording(true);
+  };
+
+  const stopRecording = async () => {
+    setIsRecording(false);
+    if (!gestureId || recordedLandmarks.length < 10) return;
+    await saveTrainingSample(gestureId, recordedLandmarks);
     setCount((c) => c + 1);
-    setSaving(false);
   };
 
   const handleFinish = () => {
@@ -89,11 +87,16 @@ export default function TrainingScreen({ navigation, route }: any) {
       ) : count < 5 ? (
         <>
           {device && (
-            <Camera ref={camera} style={styles.camera} device={device} isActive={!saving} photo={true} />
+            <Camera
+              style={styles.camera}
+              device={device}
+              isActive={true}
+              frameProcessor={recordingProcessor}
+            />
           )}
           <Button
-            title={saving ? 'Recording...' : `Record Sample ${count + 1} / 5`}
-            onPress={handleRecord}
+            title={isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / 5`}
+            onPress={isRecording ? stopRecording : startRecording}
             accessibilityLabel="Gestenaufnahme starten"
             disabled={!gestureId}
           />
