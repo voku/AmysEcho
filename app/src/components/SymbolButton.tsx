@@ -29,17 +29,20 @@ export const SymbolButton = ({ symbol, onPress }: Props) => {
 
 const styles = StyleSheet.create({
   button: {
-    padding: 10,
-    margin: 5,
-    backgroundColor: '#eee',
+    padding: 16,
+    margin: 8,
+    backgroundColor: '#EFF6FF',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
     minWidth: 120,
     alignItems: 'center',
   },
   buttonHC: {
     backgroundColor: '#000',
+    borderColor: '#fff',
   },
-  text: { fontSize: 16, color: '#000' },
+  text: { fontSize: 16, color: '#333' },
   textLarge: { fontSize: 20 },
   textHC: { color: '#fff' },
 });
