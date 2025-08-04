@@ -150,9 +150,18 @@ The system’s memory is a diary of attempts to understand. Everything stored mu
 
 5.2 The Screens
  * Onboarding (HIP 1): A centered, single-column layout with a large heart icon, clear title, and two large, off-by-default consent toggles.
+ * Profile Manager: Scrollable list of child profiles with large cards and a prominent "Add" button.
+ * Profile Select: Minimal screen with big buttons for **Parent** or starting **Recognition**.
+ * Parent: Caregiver hub showing camera/DGS toggles and navigation buttons to admin, analytics, and help areas.
+ * Parental Gate: Multiplication challenge with numeric input that guards access to caregiver-only areas.
+ * Admin: Maintenance dashboard listing training, model download, audio recording, analytics, and other tools in large button rows.
  * Recognition (Default State): A large, rounded camera view with a gentle pulsing border when listening. A single line of large text communicates the current status. On success, a large emoji animates in. On failure, a calm "Help Me" button appears.
  * Correction Panel (HIP 3): A semi-transparent bottom slide-up panel with a 2x2 grid of large, tappable symbol choices.
  * Training Flow (HIP 2): A step-by-step guided flow with a progress bar and clear confirmation states.
+ * Teaching Screen: Camera-driven capture of multiple samples with progress feedback and optional audio cues.
+ * Dashboard: Simple analytics view showing success rates and trends in large, readable text.
+ * DGS Screen: Optional front-camera preview toggled by a switch for sign demonstrations.
+ * Help Screen: Static guidance with bullet points on assisting Amy.
  * Proactive Banner (HIP 4): A soft, slide-in banner at the top of the screen that never blocks the main interaction.
 
 5.3 Tactile & Auditory Feedback
