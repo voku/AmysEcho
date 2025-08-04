@@ -10,7 +10,7 @@ import {
 import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
 import { saveTrainingSample, loadProfile, Profile } from '../storage';
-import { extractLandmarksFromVideo } from '../services/landmarkExtractor';
+import { extractLandmarksFromImages } from '../services/landmarkExtractor';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
 
@@ -66,25 +66,26 @@ export default function TeachingScreen({ navigation }: any) {
   const recordSample = async () => {
     if (!camera.current || !sessionId.current || isRecording) return;
     setIsRecording(true);
-    await camera.current.startRecording({
-      onRecordingFinished: async (video: VideoFile) => {
-        const landmarks = await extractLandmarksFromVideo(video.path);
-        await saveTrainingSample(gestureLabel, landmarks);
-        setSampleCount((c) => c + 1);
-        startSampleCaptureAnimation();
-        audioService.playSound('confirmation');
-        setIsRecording(false);
-        if (sampleCount + 1 >= SAMPLES_NEEDED) {
-          endSession();
-        }
-      },
-      onRecordingError: (error: any) => { // Changed type from CameraCaptureError to any
-        console.error('Recording error:', error);
-        setIsRecording(false);
-        Alert.alert('Recording Error', 'Failed to record sample. Please try again.');
-      },
-    });
-    setTimeout(() => camera.current?.stopRecording(), 3000);
+    const imageUris: string[] = [];
+    for (let i = 0; i < 30; i++) { // Capture 30 images over 3 seconds
+      try {
+        const photo = await camera.current.takePhoto({});
+        imageUris.push(photo.path);
+      } catch (error) {
+        console.error('Failed to take photo:', error);
+      }
+      await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay for 10 FPS
+    }
+
+    const landmarks = await extractLandmarksFromImages(imageUris);
+    await saveTrainingSample(gestureLabel, landmarks);
+    setSampleCount((c) => c + 1);
+    startSampleCaptureAnimation();
+    audioService.playSound('confirmation');
+    setIsRecording(false);
+    if (sampleCount + 1 >= SAMPLES_NEEDED) {
+      endSession();
+    }
   };
 
   const endSession = async () => {
@@ -154,6 +155,7 @@ export default function TeachingScreen({ navigation }: any) {
             device={device}
             isActive={true}
             video={true}
+            photo={true}
           />
           <Animated.View style={[
             styles.sampleIndicator,

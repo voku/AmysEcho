@@ -2,32 +2,14 @@ import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { setupDatabase } from './db';
-import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
-import ProfileManagerScreen from './src/screens/ProfileManagerScreen';
-import RecognitionScreen from './src/screens/RecognitionScreen';
-import AdminScreen from './src/screens/AdminScreen';
-import ParentScreen from './src/screens/ParentScreen';
-import ParentalGateScreen from './src/screens/ParentalGateScreen';
-import LearningScreen from './src/screens/LearningScreen';
-import TeachingScreen from './src/screens/TeachingScreen';
-import TrainingScreen from './src/screens/TrainingScreen';
-import CorrectionScreen from './src/screens/CorrectionScreen';
-import HelpScreen from './src/screens/HelpScreen';
-import DashboardScreen from './src/screens/DashboardScreen';
-import DgsScreen from './src/screens/DgsScreen';
-import OnboardingScreen from './src/screens/OnboardingScreen';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
-
-const Stack = createNativeStackNavigator();
+import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
-  const [initialProfileId, setInitialProfileId] = useState<string | null>(null);
-  const [hasProfiles, setHasProfiles] = useState(false);
   const [accessibility, setAccessibility] = useState<AccessibilitySettings>({
     largeText: false,
     highContrast: false,
@@ -40,8 +22,6 @@ export default function App() {
         const profileId = await setupDatabase();
         console.log('Database setup complete, initial profile:', profileId);
 
-        setInitialProfileId(profileId);
-
         const activeId = await loadActiveProfileId();
         if (!activeId) {
           await setActiveProfileId(profileId);
@@ -49,7 +29,6 @@ export default function App() {
 
         const profile = await loadProfile(activeId || profileId);
         if (profile) {
-          setHasProfiles(true);
           setAccessibility({
             largeText: !!profile.largeText,
             highContrast: !!profile.highContrast,
@@ -57,7 +36,6 @@ export default function App() {
           console.log('Profile loaded:', profile.name);
         } else {
           console.log('No profile found, user needs onboarding');
-          setHasProfiles(false);
         }
       } catch (e) {
         console.error('Failed to initialize app:', e);
@@ -81,14 +59,6 @@ export default function App() {
     );
   }
 
-  // Determine initial route based on setup state
-  let initialRouteName = 'Recognition';
-  if (!hasProfiles) {
-    initialRouteName = 'Onboarding';
-  } else if (!initialProfileId) {
-    initialRouteName = 'ProfileManager';
-  }
-
   return (
     <AppServicesProvider>
       <AccessibilityContext.Provider
@@ -99,90 +69,7 @@ export default function App() {
         }}
       >
         <NavigationContainer>
-          <Stack.Navigator
-            initialRouteName={initialRouteName}
-            screenOptions={{
-              headerStyle: {
-                backgroundColor: '#007AFF',
-              },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-            }}
-          >
-          <Stack.Screen
-            name="Onboarding"
-            component={OnboardingScreen}
-            options={{ title: "Welcome to Amy's Echo", headerShown: false }}
-          />
-          <Stack.Screen
-            name="ProfileSelect"
-            component={ProfileSelectScreen}
-            options={{ title: 'Profil auswählen' }}
-          />
-          <Stack.Screen
-            name="ParentalGate"
-            component={ParentalGateScreen}
-            options={{ title: 'Zugangsprüfung' }}
-          />
-          <Stack.Screen
-            name="ProfileManager"
-            component={ProfileManagerScreen}
-            options={{ title: 'Profile' }}
-          />
-          <Stack.Screen
-            name="Recognition"
-            component={RecognitionScreen}
-            options={{ title: "Amy's Echo" }}
-            initialParams={{ profileId: initialProfileId }}
-          />
-          <Stack.Screen
-            name="Admin"
-            component={AdminScreen}
-            options={{ title: 'Verwaltung' }}
-          />
-          <Stack.Screen
-            name="Learning"
-            component={LearningScreen as React.ComponentType<any>}
-            options={{ title: 'Lernen' }}
-          />
-          <Stack.Screen
-            name="Training"
-            component={TeachingScreen}
-            options={{ title: 'Training' }}
-          />
-          <Stack.Screen
-            name="LegacyTraining"
-            component={TrainingScreen}
-            options={{ title: 'Training Legacy' }}
-          />
-          <Stack.Screen
-            name="Correction"
-            component={CorrectionScreen}
-            options={{ title: 'Correction' }}
-          />
-          <Stack.Screen
-            name="Parent"
-            component={ParentScreen}
-            options={{ title: 'Elternbereich' }}
-          />
-          <Stack.Screen
-            name="Help"
-            component={HelpScreen}
-            options={{ title: 'Hilfe' }}
-          />
-          <Stack.Screen
-            name="Dashboard"
-            component={DashboardScreen}
-            options={{ title: 'Analytics' }}
-          />
-          <Stack.Screen
-            name="Dgs"
-            component={DgsScreen}
-            options={{ title: 'DGS Video' }}
-          />
-          </Stack.Navigator>
+          <RootNavigator />
         </NavigationContainer>
       </AccessibilityContext.Provider>
     </AppServicesProvider>

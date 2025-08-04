@@ -14,7 +14,7 @@ export default function BottomNav({ active, profileId }: Props) {
   return (
     <View style={styles.container}>
       <Pressable
-        onPress={() => navigation.navigate('Recognition')}
+        onPress={() => navigation.navigate('Recognition', { profileId })}
         style={styles.item}
         accessibilityLabel="Listen"
       >
@@ -26,19 +26,7 @@ export default function BottomNav({ active, profileId }: Props) {
         <Text style={[styles.label, active === 'recognition' && styles.active]}>Listen</Text>
       </Pressable>
       <Pressable
-        onPress={() => navigation.navigate('Learning', { profileId })}
-        style={styles.item}
-        accessibilityLabel="Symbols"
-      >
-        <BookOpen
-          size={24}
-          color={active === 'symbols' ? '#3b82f6' : '#6b7280'}
-          style={styles.icon}
-        />
-        <Text style={[styles.label, active === 'symbols' && styles.active]}>Symbols</Text>
-      </Pressable>
-      <Pressable
-        onPress={() => navigation.navigate('Training', { profileId })}
+        onPress={() => navigation.navigate('Training', { gestureLabel: undefined })}
         style={styles.item}
         accessibilityLabel="Learn"
       >

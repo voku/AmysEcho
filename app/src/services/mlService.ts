@@ -39,6 +39,15 @@ class MachineLearningService {
   private collectedSamples: ProcessedFrame[] = [];
   private readonly processingCooldown = 1000;
   private remoteTimeout = 400; // ms
+  private _isCameraActive: boolean = true;
+
+  get isCameraActive(): boolean {
+    return this._isCameraActive;
+  }
+
+  setCameraActive(active: boolean): void {
+    this._isCameraActive = active;
+  }
 
   addCollectedSample(sample: ProcessedFrame) {
     this.collectedSamples.push(sample);

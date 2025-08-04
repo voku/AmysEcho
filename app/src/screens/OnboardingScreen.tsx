@@ -18,7 +18,7 @@ export default function OnboardingScreen({ navigation }: any) {
   const { update } = useAccessibility();
 
   const handleContinue = async () => {
-    await createProfile({
+    const profile = await createProfile({
       name: name || 'Amy',
       consentDataUpload,
       consentHelpMeGetSmarter,
@@ -28,7 +28,7 @@ export default function OnboardingScreen({ navigation }: any) {
     });
     setActiveVocabularySet(vocabSet);
     update({ largeText, highContrast });
-    navigation.replace('ProfileManager');
+    navigation.replace('Recognition', { profileId: profile.id });
   };
 
   const styles = StyleSheet.create({

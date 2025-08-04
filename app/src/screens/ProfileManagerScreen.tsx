@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Button, FlatList, StyleSheet } from 'react-native';
+import { View, Text, Button, FlatList, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../storage';
+import { Profile as DBProfile } from '../../db/models';
 import { useAccessibility } from '../components/AccessibilityContext';
+import { database } from '../../db';
 
 export default function ProfileManagerScreen({ navigation }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -26,6 +28,26 @@ export default function ProfileManagerScreen({ navigation }: any) {
     navigation.navigate('Recognition', { profileId: id });
   };
 
+  const handleDelete = async (id: string) => {
+    Alert.alert(
+      'Delete Profile',
+      'Are you sure you want to delete this profile? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            await database.write(async () => {
+              const profileToDelete = await database.get<DBProfile>('profiles').find(id);
+              await profileToDelete.destroyPermanently();
+            });
+            setProfiles(profiles.filter(p => p.id !== id));
+          },
+        },
+      ],
+    );
+  };
+
   const styles = StyleSheet.create({
     container: { flex: 1, padding: 20, backgroundColor: highContrast ? '#000' : '#fdfdfd' },
     title: { fontSize: largeText ? 28 : 24, marginBottom: 20, textAlign: 'center', color: highContrast ? '#fff' : '#000' },
@@ -43,6 +65,7 @@ export default function ProfileManagerScreen({ navigation }: any) {
           <View style={styles.row}>
             <Text style={styles.name}>{item.name}</Text>
             <Button title="Select" onPress={() => handleSelect(item.id)} />
+            <Button title="Delete" onPress={() => handleDelete(item.id)} />
           </View>
         )}
       />

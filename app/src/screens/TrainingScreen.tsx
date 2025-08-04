@@ -9,31 +9,37 @@ import {
 import { saveTrainingSample } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { extractLandmarksFromVideo } from '../services';
+import { extractLandmarksFromImages } from '../services';
 
-export default function TrainingScreen({ navigation }: any) {
+export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
+  const { gestureLabel } = route.params || {};
   const devices = useCameraDevices();
   const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
   const { hasPermission, requestPermission } = useCameraPermission();
   const camera = useRef<Camera>(null);
-  const [gestureId, setGestureId] = useState<string | null>(null);
+  const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
   const [saving, setSaving] = useState(false);
 
   const handleRecord = async () => {
     if (!camera.current || !gestureId || saving) return;
     setSaving(true);
-    await camera.current.startRecording({
-      onRecordingFinished: async (video: VideoFile) => {
-        const landmarks = await extractLandmarksFromVideo(video.path);
-        await saveTrainingSample(gestureId, landmarks);
-        setCount((c) => c + 1);
-        setSaving(false);
-      },
-      onRecordingError: () => setSaving(false),
-    });
-    setTimeout(() => camera.current?.stopRecording(), 3000);
+    const imageUris: string[] = [];
+    for (let i = 0; i < 30; i++) { // Capture 30 images over 3 seconds
+      try {
+        const photo = await camera.current.takePhoto({});
+        imageUris.push(photo.path);
+      } catch (error) {
+        console.error('Failed to take photo:', error);
+      }
+      await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay for 10 FPS
+    }
+
+    const landmarks = await extractLandmarksFromImages(imageUris);
+    await saveTrainingSample(gestureId, landmarks);
+    setCount((c) => c + 1);
+    setSaving(false);
   };
 
   const handleFinish = () => {
@@ -70,7 +76,7 @@ export default function TrainingScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Training Mode</Text>
+      <Text style={styles.title}>Training {gestureId ? `for ${gestureId}` : 'Mode'}</Text>
       {!gestureId ? (
         gestureModel.gestures.map((g) => (
           <Button
@@ -83,12 +89,13 @@ export default function TrainingScreen({ navigation }: any) {
       ) : count < 5 ? (
         <>
           {device && (
-            <Camera ref={camera} style={styles.camera} device={device} isActive={!saving} />
+            <Camera ref={camera} style={styles.camera} device={device} isActive={!saving} photo={true} />
           )}
           <Button
             title={saving ? 'Recording...' : `Record Sample ${count + 1} / 5`}
             onPress={handleRecord}
             accessibilityLabel="Gestenaufnahme starten"
+            disabled={!gestureId}
           />
         </>
       ) : (
@@ -101,4 +108,3 @@ export default function TrainingScreen({ navigation }: any) {
     </View>
   );
 }
-

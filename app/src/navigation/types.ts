@@ -1,15 +1,12 @@
 export type RootStackParamList = {
-  ProfileSelect: undefined;
-  ProfileManager: undefined;
-  Recognition: { profileId?: string } | undefined;
-  Admin: { profileId?: string } | undefined;
-  Parent: undefined;
-  Learning: { profileId: string };
-  Training: { profileId?: string } | undefined;
-  LegacyTraining: undefined;
-  Correction: undefined;
-  Dashboard: undefined;
   Onboarding: undefined;
+  Recognition: { profileId: string; simulateLowConfidence?: boolean };
+  Correction: { gesture: string; suggestions: string[] };
+  Training: { gestureLabel?: string };
+  Parent: undefined;
+  ProfileManager: undefined;
+  ParentalGate: { target: string };
+  Admin: undefined;
+  Dashboard: undefined;
   Help: undefined;
-  Dgs: undefined;
 };

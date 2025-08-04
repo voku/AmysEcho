@@ -132,7 +132,7 @@ export default function AdminScreen({ navigation }: any) {
       Alert.alert('Model downloaded');
     } catch (e) {
       console.error(e);
-      Alert.alert('Download failed');
+      Alert.alert('Download failed', (e as Error).message || 'Unknown error');
     }
   };
 
@@ -236,19 +236,9 @@ export default function AdminScreen({ navigation }: any) {
         accessibilityLabel="Trainingsmodus öffnen"
       />
       <Button
-        title="Legacy Training"
-        onPress={() => navigation.navigate('LegacyTraining')}
-        accessibilityLabel="Alten Trainingsmodus öffnen"
-      />
-      <Button
         title="Correction"
-        onPress={() => navigation.navigate('Correction')}
+        onPress={() => navigation.navigate('Correction', { gesture: '' , suggestions: []})}
         accessibilityLabel="Korrekturmodus öffnen"
-      />
-      <Button
-        title="Dashboard"
-        onPress={() => navigation.navigate('Dashboard')}
-        accessibilityLabel="Analytics öffnen"
       />
       <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
 

@@ -5,7 +5,7 @@ export * from './dialogEngine';
 export * from './videoService';
 export * from './analytics';
 export * from './usageTracker';
-export * from './landmarkExtractor';
+export { extractLandmarksFromImages } from './landmarkExtractor';
 
 export * from "./trainingSync";
 export * from "./modelUpdate";

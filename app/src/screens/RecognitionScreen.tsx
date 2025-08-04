@@ -389,7 +389,7 @@ export default function RecognitionScreen({ navigation }: any) {
           )}
 
           <View style={styles.overlay}>
-            <Animated.Text style={[styles.status, { opacity: fadeAnim }]}>{status}</Animated.Text>
+            <Animated.Text style={[styles.status]}>{status}</Animated.Text>
 
             {lastRecognizedGesture && lastRecognizedGesture.label !== 'uncertain' && (
               <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>{lastRecognizedGesture.label}</Animated.Text>
@@ -397,67 +397,7 @@ export default function RecognitionScreen({ navigation }: any) {
           </View>
 
           <View style={styles.controls}>
-            <View style={styles.cameraToggle}>
-              <Text style={styles.toggleLabel}>Camera Active</Text>
-              <Switch
-                value={isCameraActive}
-                onValueChange={setIsCameraActive}
-                accessibilityLabel="Toggle camera"
-              />
-            </View>
-
-            <View style={styles.toggleRow}>
-              <Text style={styles.toggleLabel}>Use DGS Video</Text>
-              <Switch
-                value={useDgs}
-                onValueChange={(isChecked) => {
-                  if (isChecked) {
-                    navigation.navigate('Dgs');
-                  } else {
-                    setUseDgs(false);
-                  }
-                }}
-                accessibilityLabel="DGS-Video verwenden"
-              />
-            </View>
-
-            {suggestions.nextWords.length > 0 && (
-              <View>
-                <Text style={styles.suggestion}>
-                  Next words: {suggestions.nextWords.join(', ')}
-                </Text>
-              </View>
-            )}
-
-            {suggestions.caregiverPhrases.length > 0 && (
-              <View>
-                <Text style={styles.suggestion}>
-                  Caregiver: {suggestions.caregiverPhrases.join(', ')}
-                </Text>
-              </View>
-            )}
-
             <View style={styles.buttonRow}>
-              <Button
-                title="Simulate"
-                onPress={handleLowConfidence}
-                accessibilityLabel="Simulate low confidence"
-              />
-              <Button
-                title="Menu"
-                onPress={() => navigation.navigate('ProfileSelect')}
-                accessibilityLabel="Menü öffnen"
-              />
-              <Button
-                title="Analytics"
-                onPress={() => navigation.navigate('Dashboard')}
-                accessibilityLabel="View analytics"
-              />
-              <Button
-                title="Help"
-                onPress={() => navigation.navigate('Help')}
-                accessibilityLabel="Get help"
-              />
             </View>
           </View>
         </View>
@@ -468,6 +408,7 @@ export default function RecognitionScreen({ navigation }: any) {
           onSelect={handleSelect}
           onAddNew={handleAddNew}
           onCancel={() => setShowCorrection(false)}
+          suggestions={suggestions.nextWords}
         />
       )}
 
@@ -476,4 +417,3 @@ export default function RecognitionScreen({ navigation }: any) {
     </LinearGradient>
   );
 }
-

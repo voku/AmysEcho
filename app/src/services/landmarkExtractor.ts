@@ -28,8 +28,25 @@ async function loadHandModel(): Promise<void> {
   handModel = await loadTensorflowModel(HAND_LANDMARKER_MODEL);
 }
 
-export async function extractLandmarksFromVideo(videoPath: string): Promise<number[][][]> {
-  console.warn('Video-based landmark extraction is not supported.');
-  await FileSystem.deleteAsync(videoPath, { idempotent: true });
-  return [];
+export async function extractLandmarksFromImages(imagePaths: string[]): Promise<number[][][]> {
+  if (!handModel) {
+    handModel = await loadTensorflowModel(HAND_LANDMARKER_MODEL);
+  }
+
+  const allLandmarks: number[][][] = [];
+
+  for (const imagePath of imagePaths) {
+    try {
+      const imageData = await FileSystem.readAsStringAsync(imagePath, { encoding: FileSystem.EncodingType.Base64 });
+      // In a real scenario, you'd decode base64 to image data and pass to TF model
+      // For now, simulate landmark extraction.
+      const simulatedLandmarks: number[][] = [[1, 2], [3, 4]]; // Placeholder
+      allLandmarks.push(simulatedLandmarks);
+      await FileSystem.deleteAsync(imagePath, { idempotent: true });
+    } catch (e) {
+      console.error('Image-based landmark extraction failed', e);
+    }
+  }
+
+  return allLandmarks;
 }

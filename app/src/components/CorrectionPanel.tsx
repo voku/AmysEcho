@@ -6,6 +6,7 @@ interface CorrectionPanelProps {
   onSelect: (choice: string) => void;
   onAddNew: () => void;
   onCancel: () => void;
+  suggestions: string[];
 }
 
 const CORRECTION_OPTIONS = [
@@ -22,7 +23,7 @@ const CORRECTION_OPTIONS = [
   { id: 'no', label: '❌ No', description: 'Disagree' },
 ];
 
-export default function CorrectionPanel({ onSelect, onAddNew, onCancel }: CorrectionPanelProps) {
+export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions }: CorrectionPanelProps) {
   const { largeText, highContrast } = useAccessibility();
 
   const styles = StyleSheet.create({
@@ -115,16 +116,14 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel }: Correc
           <Text style={styles.title}>What did Amy sign?</Text>
 
           <View style={styles.optionsGrid}>
-            {CORRECTION_OPTIONS.map((option) => (
+            {suggestions.map((s) => (
               <TouchableOpacity
-                key={option.id}
+                key={s}
                 style={styles.optionButton}
-                onPress={() => onSelect(option.id)}
-                accessibilityLabel={`Select ${option.label}`}
-                accessibilityHint={option.description}
+                onPress={() => onSelect(s)}
+                accessibilityLabel={`Select ${s}`}
               >
-                <Text style={styles.optionLabel}>{option.label}</Text>
-                <Text style={styles.optionDescription}>{option.description}</Text>
+                <Text style={styles.optionLabel}>{s}</Text>
               </TouchableOpacity>
             ))}
           </View>
