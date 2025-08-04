@@ -1,12 +1,14 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View, Alert } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { setupDatabase } from './db';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
 import RootNavigator from './src/navigation/RootNavigator';
+import { palette } from './src/constants/ui';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -51,11 +53,29 @@ export default function App() {
     initialize();
   }, []);
 
+  const gradientColors = accessibility.highContrast
+    ? [palette.highContrastBg, palette.highContrastBg]
+    : [palette.backgroundStart, palette.backgroundEnd];
+
+  const navTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: 'transparent',
+      text: accessibility.highContrast ? palette.highContrastText : palette.text,
+    },
+  };
+
   if (!isReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <LinearGradient colors={gradientColors} style={styles.loadingContainer}>
+        <ActivityIndicator
+          size="large"
+          color={accessibility.highContrast ? palette.highContrastText : palette.accent}
+          accessibilityRole="progressbar"
+          accessibilityLabel="Loading Amy's Echo"
+        />
+      </LinearGradient>
     );
   }
 
@@ -68,10 +88,23 @@ export default function App() {
             setAccessibility((prev) => ({ ...prev, ...s })),
         }}
       >
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <LinearGradient colors={gradientColors} style={styles.appContainer}>
+          <NavigationContainer theme={navTheme}>
+            <RootNavigator />
+          </NavigationContainer>
+        </LinearGradient>
       </AccessibilityContext.Provider>
     </AppServicesProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
