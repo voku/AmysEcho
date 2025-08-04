@@ -8,6 +8,7 @@ import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
 import RootNavigator from './src/navigation/RootNavigator';
+import { COLORS } from './src/constants/ui';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -53,15 +54,15 @@ export default function App() {
   }, []);
 
   const gradientColors = accessibility.highContrast
-    ? ['#000000', '#000000']
-    : ['#EFF6FF', '#F3F4F6'];
+    ? [COLORS.highContrastBackground, COLORS.highContrastBackground]
+    : [COLORS.backgroundStart, COLORS.backgroundEnd];
 
   if (!isReady) {
     return (
       <LinearGradient colors={gradientColors} style={styles.container}>
         <ActivityIndicator
           size="large"
-          color={accessibility.highContrast ? '#FFFFFF' : '#3B82F6'}
+          color={accessibility.highContrast ? COLORS.highContrastText : COLORS.primaryAccent}
           accessibilityRole="progressbar"
           accessibilityLabel="Loading Amy's Echo"
         />
