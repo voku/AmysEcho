@@ -416,3 +416,45 @@ export const useGestureClassifier = (
 
   return frameProcessor;
 };
+
+export const useRecordingProcessor = (
+  onLandmarks: (landmarks: number[][]) => void,
+  isRecording: boolean,
+  fps: number = 10,
+) => {
+  const onLandmarksRef = useRef(onLandmarks);
+  onLandmarksRef.current = onLandmarks;
+
+  const isRecordingRef = useRef(isRecording);
+  isRecordingRef.current = isRecording;
+
+  const lastProcessedTime = useSharedValue(0);
+
+  const frameProcessor = useFrameProcessor(
+    (frame: Frame) => {
+      'worklet';
+      if (!isRecordingRef.current) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastProcessedTime.value < 1000 / fps) {
+        return;
+      }
+      lastProcessedTime.value = now;
+
+      try {
+        const landmarks = extractHandLandmarks(frame);
+        if (!landmarks || landmarks.length === 0) {
+          return;
+        }
+        runOnJS(onLandmarksRef.current)(landmarks);
+      } catch (error: any) {
+        console.error('WORKLET ERROR:', error.message);
+      }
+    },
+    [fps],
+  );
+
+  return frameProcessor;
+};
