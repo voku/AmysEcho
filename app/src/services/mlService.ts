@@ -204,13 +204,14 @@ class MachineLearningService {
         const output = this.gestureModel.runSync([tensor]) as any[];
         const predictions = output[0] as number[];
         const { gesture, confidence } = this.processModelOutput(predictions);
+        const suggestions = this.getTopPredictions(predictions, 3);
 
         result = {
           label: gesture,
           confidence,
           isLocal: true,
           timestamp: Date.now(),
-          suggestions: [],
+          suggestions,
           requiresConfirmation: confidence < this.confidenceThreshold,
         };
       } catch (error) {
@@ -285,6 +286,14 @@ class MachineLearningService {
     const idx = output.indexOf(maxConfidence);
     const gesture = this.labels[idx] || 'unknown';
     return { gesture, confidence: maxConfidence };
+  }
+
+  private getTopPredictions(output: number[], count = 3): string[] {
+    return output
+      .map((confidence, index) => ({ confidence, index }))
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, count)
+      .map((item) => this.labels[item.index] || 'unknown');
   }
 
   createUncertainResult(reason: string): DetailedGestureResult {
