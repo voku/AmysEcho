@@ -3,25 +3,11 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 
 interface CorrectionPanelProps {
-  onSelect: (choice: string) => void;
+  onSelect: (choiceId: string) => void;
   onAddNew: () => void;
   onCancel: () => void;
-  suggestions: string[];
+  suggestions: { id: string; label: string }[];
 }
-
-const CORRECTION_OPTIONS = [
-  { id: 'hello', label: '👋 Hello', description: 'Greeting' },
-  { id: 'thank_you', label: '🙏 Thank You', description: 'Gratitude' },
-  { id: 'please', label: '🥺 Please', description: 'Request' },
-  { id: 'more', label: '➕ More', description: 'Want more' },
-  { id: 'finished', label: '✅ Finished', description: 'All done' },
-  { id: 'water', label: '💧 Water', description: 'Drink' },
-  { id: 'eat', label: '🍽️ Eat', description: 'Food' },
-  { id: 'play', label: '🎮 Play', description: 'Fun time' },
-  { id: 'help', label: '🆘 Help', description: 'Need assistance' },
-  { id: 'yes', label: '✅ Yes', description: 'Agree' },
-  { id: 'no', label: '❌ No', description: 'Disagree' },
-];
 
 export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions }: CorrectionPanelProps) {
   const { largeText, highContrast } = useAccessibility();
@@ -118,12 +104,12 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
           <View style={styles.optionsGrid}>
             {suggestions.map((s) => (
               <TouchableOpacity
-                key={s}
+                key={s.id}
                 style={styles.optionButton}
-                onPress={() => onSelect(s)}
-                accessibilityLabel={`Select ${s}`}
+                onPress={() => onSelect(s.id)}
+                accessibilityLabel={`Select ${s.label}`}
               >
-                <Text style={styles.optionLabel}>{s}</Text>
+                <Text style={styles.optionLabel}>{s.label}</Text>
               </TouchableOpacity>
             ))}
           </View>

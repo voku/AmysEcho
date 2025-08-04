@@ -21,7 +21,7 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
-import { logCorrection, loadProfile, Profile } from '../storage';
+import { loadProfile, Profile } from '../storage';
 import { playSymbolAudio } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { database } from '../../db';
@@ -31,7 +31,6 @@ import { incrementUsage } from '../services';
 import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
-import { useServices } from '../context/AppServicesProvider';
 import { useGestureClassifier } from '../services';
 import BottomNav from '../components/BottomNav';
 
@@ -47,6 +46,9 @@ export default function RecognitionScreen({ navigation }: any) {
     caregiverPhrases: [],
   });
   const [useDgs, setUseDgs] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [correctionOptions, setCorrectionOptions] = useState<{ id: string; label: string }[]>([]);
+  const [pendingGesture, setPendingGesture] = useState<string | null>(null);
   const [lastRecognizedGesture, setLastRecognizedGesture] = useState<GestureModelEntry | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [weakGesture, setWeakGesture] = useState<GestureDefinition | null>(null);
@@ -100,18 +102,32 @@ export default function RecognitionScreen({ navigation }: any) {
     }).start();
   }, [fadeAnim, symbolScaleAnim]);
 
-  const handleLowConfidence = () => {
+  const handleHelpPress = () => {
     setShowCorrection(true);
+    setShowHelp(false);
     startFeedbackAnimation();
+  };
+
+  const handleCancelCorrection = () => {
+    setShowCorrection(false);
+    setShowHelp(false);
+    setIsProcessing(false);
+    setStatus("I'm listening...");
   };
 
   const onGestureResult = useCallback(async (result: any) => {
     if (isProcessing) return;
 
-    if (result && result.label && result.label !== 'uncertain' && result.confidence > 0.7) {
+    if (
+      result &&
+      result.label &&
+      result.label !== 'uncertain' &&
+      !result.requiresConfirmation
+    ) {
       setIsProcessing(true);
 
-      const recognizedSymbolLabel = getSymbolLabelForGesture(result.label) || result.label;
+      const recognizedSymbolLabel =
+        getSymbolLabelForGesture(result.label) || result.label;
       const entry =
         gestureModel.gestures.find((g) => g.id === result.label) || {
           id: result.label,
@@ -160,40 +176,102 @@ export default function RecognitionScreen({ navigation }: any) {
         setIsProcessing(false);
         setStatus("I'm listening...");
       }, 3000);
-    } else if (result && result.label === 'uncertain') {
-      setStatus("I didn't understand. Please try again.");
+    } else if (result && result.requiresConfirmation) {
+      setIsProcessing(true);
+      setPendingGesture(result.label);
+      const opts =
+        result.suggestions && result.suggestions.length > 0
+          ? result.suggestions
+          : [result.label];
+      const mapped = opts.map((id: string) => ({
+        id,
+        label: getSymbolLabelForGesture(id) || id,
+      }));
+      setCorrectionOptions(mapped);
+      setLastRecognizedGesture(null);
+      setStatus("Can you help me?");
+      setShowHelp(true);
       startFeedbackAnimation();
-      setTimeout(() => setStatus("I'm listening..."), 2000);
     }
   }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
 
   const frameProcessor = useGestureClassifier(onGestureResult, isProcessing);
 
-  const handleSelect = async (choice: string) => {
-    if (!lastRecognizedGesture) return;
+  const handleSelect = async (choiceId: string) => {
     try {
       await database.write(async () => {
         const collection = database.get<Correction>('corrections');
         await collection.create((r) => {
-          r.predictedGesture = lastRecognizedGesture.id;
-          r.actualGesture = choice;
+          r.predictedGesture = pendingGesture || 'unknown';
+          r.actualGesture = choiceId;
           r.confidence = 0;
           r.landmarks = [];
           r.timestamp = Date.now();
           r.isSynced = false;
         });
       });
+
+      const entry =
+        gestureModel.gestures.find((g) => g.id === choiceId) || {
+          id: choiceId,
+          label: getSymbolLabelForGesture(choiceId) || choiceId,
+          videoUri: undefined,
+          dgsVideoUri: undefined,
+        };
+
       setShowCorrection(false);
-      setStatus('Thanks!');
+      setShowHelp(false);
+      setLastRecognizedGesture(entry);
+      setStatus(entry.label);
       startFeedbackAnimation();
-      setTimeout(() => setStatus("I'm listening..."), 2000);
+
+      try {
+        playSymbolAudio(entry);
+      } catch (error) {
+        console.warn('Audio playback failed:', error);
+      }
+
+      if (useDgs && entry.dgsVideoUri) {
+        setShowVideoPlayer(true);
+      } else if (entry.videoUri) {
+        setShowVideoPlayer(true);
+      }
+
+      if (profile) {
+        try {
+          incrementUsage(entry, profile.id);
+        } catch (error) {
+          console.warn('Usage tracking failed:', error);
+        }
+      }
+
+      try {
+        const adv = await dialogEngine.getLLMSuggestions({
+          input: entry.label,
+          context: [],
+          language: 'de',
+          age: 4,
+        });
+        setSuggestions(adv);
+      } catch (error) {
+        console.warn('Failed to get LLM suggestions:', error);
+      }
+
+      setPendingGesture(null);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setStatus("I'm listening...");
+      }, 3000);
     } catch (error) {
       console.error('Failed to save correction:', error);
+      setIsProcessing(false);
     }
   };
 
   const handleAddNew = () => {
     setShowCorrection(false);
+    setShowHelp(false);
+    setIsProcessing(false);
     navigation.navigate('Training');
   };
 
@@ -281,6 +359,18 @@ export default function RecognitionScreen({ navigation }: any) {
       flexDirection: 'row',
       justifyContent: 'space-around',
       marginTop: 10,
+    },
+    helpButton: {
+      flex: 1,
+      backgroundColor: '#007AFF',
+      paddingVertical: 12,
+      borderRadius: 10,
+      alignItems: 'center',
+    },
+    helpButtonText: {
+      color: '#fff',
+      fontSize: largeText ? 18 : 16,
+      fontWeight: 'bold',
     },
     videoPlayerContainer: {
       position: 'absolute',
@@ -397,8 +487,22 @@ export default function RecognitionScreen({ navigation }: any) {
           </View>
 
           <View style={styles.controls}>
-            <View style={styles.buttonRow}>
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Use DGS Video</Text>
+              <Switch value={useDgs} onValueChange={setUseDgs} />
             </View>
+
+            {showHelp && (
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={styles.helpButton}
+                  onPress={handleHelpPress}
+                  accessibilityLabel="Open correction panel"
+                >
+                  <Text style={styles.helpButtonText}>Help Me</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       )}
@@ -407,8 +511,8 @@ export default function RecognitionScreen({ navigation }: any) {
         <CorrectionPanel
           onSelect={handleSelect}
           onAddNew={handleAddNew}
-          onCancel={() => setShowCorrection(false)}
-          suggestions={suggestions.nextWords}
+          onCancel={handleCancelCorrection}
+          suggestions={correctionOptions}
         />
       )}
 
