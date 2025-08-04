@@ -45,6 +45,10 @@ class MachineLearningService {
   private gestureDebounce = 2000; // ms
   private lastGestureTime = 0;
   private lastRecognizedGesture: string | null = null;
+  private allowRemote = true;
+  private remoteAvailable = true;
+  private remoteRetryAt = 0;
+  private remoteRetryMs = 30000; // ms
 
   get isCameraActive(): boolean {
     return this._isCameraActive;
@@ -131,6 +135,12 @@ class MachineLearningService {
       if (config?.processingTimeout) {
         this.remoteTimeout = config.processingTimeout;
       }
+      if (config?.enableRemoteClassification !== undefined) {
+        this.allowRemote = config.enableRemoteClassification;
+      }
+      if (config?.remoteRetryMs !== undefined) {
+        this.remoteRetryMs = config.remoteRetryMs;
+      }
 
       this.labels = labels;
       this.isReady = !!this.landmarkModel && !!this.gestureModel;
@@ -153,21 +163,39 @@ class MachineLearningService {
 
   isServiceReady = (): boolean => this.isReady;
 
+  private shouldUseRemote(): boolean {
+    if (!this.allowRemote) {
+      return false;
+    }
+    if (!this.remoteAvailable && Date.now() >= this.remoteRetryAt) {
+      this.remoteAvailable = true;
+    }
+    return this.remoteAvailable;
+  }
+
+  private handleRemoteFailure() {
+    this.remoteAvailable = false;
+    this.remoteRetryAt = Date.now() + this.remoteRetryMs;
+  }
+
   async processFrameAsync(
     processed: ProcessedFrame,
     onResult: (result: DetailedGestureResult | null) => void,
   ): Promise<void> {
     let result: DetailedGestureResult | null = null;
 
-    try {
-      result = await Promise.race([
-        this.classifyRemotely(processed),
-        new Promise<null>((_, reject) =>
-          setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout),
-        ),
-      ]);
-    } catch (error) {
-      logger.debug('Remote classification failed, using local fallback');
+    if (this.shouldUseRemote()) {
+      try {
+        result = await Promise.race([
+          this.classifyRemotely(processed),
+          new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout),
+          ),
+        ]);
+      } catch (error) {
+        logger.debug('Remote classification failed, using local fallback');
+        this.handleRemoteFailure();
+      }
     }
 
     if (!result) {
