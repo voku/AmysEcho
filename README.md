@@ -8,6 +8,7 @@ This project aims to fix that.
 
 See [`docs/CodebaseOverview.md`](docs/CodebaseOverview.md) for a summary of the repository structure.
 For the main user stories and how the screens connect, see [`docs/UserStories.md`](docs/UserStories.md).
+For a quick field guide for kindergarten staff unfamiliar with DGS, see [`docs/KindergartenWorkflow.md`](docs/KindergartenWorkflow.md).
 
 ---
 
