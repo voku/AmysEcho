@@ -6,6 +6,7 @@ import {
   LearningAnalytics,
 } from '../services/analytics';
 import { useAccessibility } from '../components/AccessibilityContext';
+import { COLORS, SPACING } from '../constants/ui';
 
 export default function DashboardScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -23,23 +24,23 @@ export default function DashboardScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: highContrast ? '#000' : '#fff',
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
     },
     label: {
       fontSize: largeText ? 24 : 20,
-      marginBottom: 10,
-      color: highContrast ? '#fff' : '#000',
+      marginBottom: SPACING.sm,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
     barBackground: {
       width: 200,
       height: 20,
-      borderColor: '#888',
+      borderColor: COLORS.borderDark,
       borderWidth: 1,
-      marginBottom: 10,
+      marginBottom: SPACING.sm,
     },
     barFill: {
       height: '100%',
-      backgroundColor: '#4caf50',
+      backgroundColor: COLORS.success,
     },
   });
 

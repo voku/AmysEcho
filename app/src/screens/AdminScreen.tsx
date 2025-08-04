@@ -23,6 +23,7 @@ import { audioService } from '../services/audioService';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
 import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 
 export default function AdminScreen({ navigation }: any) {
   const [symbols, setSymbols] = useState<DBSymbol[]>([]);
@@ -101,7 +102,7 @@ export default function AdminScreen({ navigation }: any) {
           s.priority = 1;
           s.isActive = true;
           s.healthScore = 100;
-          s.color = '#FFFFFF';
+          s.color = COLORS.surface;
           s.emoji = '❓';
           (s as any).audioUri = finalUri;
           s.createdAt = new Date();
@@ -170,12 +171,12 @@ export default function AdminScreen({ navigation }: any) {
   };
 
   const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20 },
-    title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
-    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-    modal: { flex: 1, justifyContent: 'center', padding: 20 },
-    input: { borderWidth: 1, padding: 8, marginBottom: 12 },
-    apiInput: { borderWidth: 1, padding: 8, marginVertical: 12 },
+    container: { flex: 1, padding: SPACING.lg },
+    title: { fontSize: 24, marginBottom: SPACING.lg, textAlign: 'center' },
+    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
+    modal: { flex: 1, justifyContent: 'center', padding: SPACING.lg },
+    input: { borderWidth: 1, padding: SPACING.sm, marginBottom: SPACING.md, borderRadius: RADIUS },
+    apiInput: { borderWidth: 1, padding: SPACING.sm, marginVertical: SPACING.md, borderRadius: RADIUS },
   });
 
   return (

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
+import { COLORS, SPACING } from '../constants/ui';
 
 export default function MaintenanceBanner({ onPractice }: { onPractice: () => void }) {
   return (
@@ -16,8 +17,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fde68a',
-    padding: 10,
+    backgroundColor: COLORS.warningBackground,
+    padding: SPACING.sm,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

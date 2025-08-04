@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { SPACING, RADIUS } from '../constants/ui';
 
 export default function ParentalGateScreen({ route, navigation }: any) {
   const { target } = route.params as { target: string };
@@ -27,9 +28,9 @@ export default function ParentalGateScreen({ route, navigation }: any) {
   };
 
   const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-    title: { fontSize: 24, marginBottom: 20 },
-    input: { borderWidth: 1, width: 120, padding: 8, textAlign: 'center', marginBottom: 20 },
+    container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg },
+    title: { fontSize: 24, marginBottom: SPACING.lg },
+    input: { borderWidth: 1, width: 120, padding: SPACING.sm, textAlign: 'center', marginBottom: SPACING.lg, borderRadius: RADIUS },
   });
 
   return (

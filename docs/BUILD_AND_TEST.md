@@ -60,12 +60,11 @@ Use this to produce a debuggable APK for internal testing:
    The command prints a link where you can download the APK. You can also fetch the latest build later:
    ```bash
    eas build:download --platform android --profile development --latest
-  ```
+   ```
 
 After installing the APK on a device, start the bundler with `npx expo start` to load the JavaScript bundle.
 
-This development build packages a custom Expo dev client. It does **not** contain the compiled app – the JavaScript bundle is
-loaded over the network. For a self-contained APK that runs offline see the next section.
+This development build packages a custom Expo dev client. It does **not** contain the compiled app – the JavaScript bundle is loaded over the network. For a self-contained APK that runs offline see the next section.
 
 ### Installable test APK (no bundler)
 
@@ -77,7 +76,6 @@ To sideload the full app without the Expo dev client:
    npm run build:android-apk
    ```
    The resulting file contains the compiled JavaScript bundle and assets, so it can run without `expo start`.
-
 ### Production build (Play Store)
 
 For store-ready binaries the recommended workflow is:

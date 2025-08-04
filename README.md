@@ -143,9 +143,7 @@ The LLM-powered suggestions require an OpenAI API key. You can set this via the 
 If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` and `npx expo run:android` inside `app/` once to generate the native Android and iOS projects. These directories are not tracked in git to avoid committing large binaries. After the prebuild step you can launch the app with `npm run ios` or `npm run android`.
 
 ### Creating test builds (APK)
-
 #### Custom dev client
-
 To produce a debuggable APK for testers, trigger a development build via EAS:
 
 ```bash

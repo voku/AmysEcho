@@ -1,12 +1,14 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View, Alert } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { setupDatabase } from './db';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
 import RootNavigator from './src/navigation/RootNavigator';
+import { COLORS } from './src/constants/ui';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -51,11 +53,20 @@ export default function App() {
     initialize();
   }, []);
 
+  const gradientColors = accessibility.highContrast
+    ? [COLORS.highContrastBackground, COLORS.highContrastBackground]
+    : [COLORS.backgroundStart, COLORS.backgroundEnd];
+
   if (!isReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <LinearGradient colors={gradientColors} style={styles.container}>
+        <ActivityIndicator
+          size="large"
+          color={accessibility.highContrast ? COLORS.highContrastText : COLORS.primaryAccent}
+          accessibilityRole="progressbar"
+          accessibilityLabel="Loading Amy's Echo"
+        />
+      </LinearGradient>
     );
   }
 
@@ -68,10 +79,23 @@ export default function App() {
             setAccessibility((prev) => ({ ...prev, ...s })),
         }}
       >
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <LinearGradient colors={gradientColors} style={styles.gradient}>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </LinearGradient>
       </AccessibilityContext.Provider>
     </AppServicesProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gradient: {
+    flex: 1,
+  },
+});

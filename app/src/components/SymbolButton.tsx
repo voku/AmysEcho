@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, Text, StyleSheet } from 'react-native';
 import { Symbol } from '../../db/models';
 import { useAccessibility } from './AccessibilityContext';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 
 interface Props {
   symbol: Symbol;
@@ -29,20 +30,20 @@ export const SymbolButton = ({ symbol, onPress }: Props) => {
 
 const styles = StyleSheet.create({
   button: {
-    padding: 16,
-    margin: 8,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
+    padding: SPACING.md,
+    margin: SPACING.sm,
+    backgroundColor: COLORS.backgroundStart,
+    borderRadius: RADIUS,
     borderWidth: 1,
-    borderColor: '#3B82F6',
+    borderColor: COLORS.primaryAccent,
     minWidth: 120,
     alignItems: 'center',
   },
   buttonHC: {
-    backgroundColor: '#000',
-    borderColor: '#fff',
+    backgroundColor: COLORS.highContrastBackground,
+    borderColor: COLORS.highContrastText,
   },
-  text: { fontSize: 16, color: '#333' },
+  text: { fontSize: 16, color: COLORS.text },
   textLarge: { fontSize: 20 },
-  textHC: { color: '#fff' },
+  textHC: { color: COLORS.highContrastText },
 });

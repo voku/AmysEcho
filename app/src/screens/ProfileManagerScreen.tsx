@@ -5,6 +5,7 @@ import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../stora
 import { Profile as DBProfile } from '../../db/models';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { database } from '../../db';
+import { COLORS, SPACING } from '../constants/ui';
 
 export default function ProfileManagerScreen({ navigation }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -49,10 +50,10 @@ export default function ProfileManagerScreen({ navigation }: any) {
   };
 
   const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, backgroundColor: highContrast ? '#000' : '#fdfdfd' },
-    title: { fontSize: largeText ? 28 : 24, marginBottom: 20, textAlign: 'center', color: highContrast ? '#fff' : '#000' },
-    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-    name: { fontSize: largeText ? 22 : 18, color: highContrast ? '#fff' : '#000' },
+    container: { flex: 1, padding: SPACING.lg, backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface },
+    title: { fontSize: largeText ? 28 : 24, marginBottom: SPACING.lg, textAlign: 'center', color: highContrast ? COLORS.highContrastText : COLORS.text },
+    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
+    name: { fontSize: largeText ? 22 : 18, color: highContrast ? COLORS.highContrastText : COLORS.text },
   });
 
   return (

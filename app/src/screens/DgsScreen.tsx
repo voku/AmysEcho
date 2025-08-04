@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Button, StyleSheet, Text, View, Switch } from 'react-native';
+import { SPACING } from '../constants/ui';
 
 export default function DgsScreen() {
   const [useVideo, setUseVideo] = useState(false);
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: SPACING.lg,
   },
   placeholder: {
     flex: 1,
@@ -82,6 +83,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    margin: 64,
+    margin: SPACING.xl * 2,
   },
 });
