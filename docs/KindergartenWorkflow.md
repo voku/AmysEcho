@@ -8,17 +8,17 @@ This guide explains how kindergarten staff who do not understand German Sign Lan
 
 ## Step 2: Recognize Gestures
 1. The **Recognition** screen opens with the camera already active.
-2. When Amy performs a gesture, the system attempts to classify it. On a confident match it:
+2. When Amy performs a gesture, the system tries to classify it. If it is confident, the system:
    - Speaks the associated word aloud.
    - Shows a large symbol or emoji.
 
-## Step 3: When the System Is Unsure
-1. If the match confidence is low, a gentle **Help Me** button appears.
-2. Tap **Help Me** to open a panel with the top suggested symbols in a 2×2 grid.
-3. Select the correct symbol. The app responds as if it recognized the gesture and remembers the correction.
+## Step 3: Handle Low Confidence
+1. If the match confidence is low, a **Help Me** button appears.
+2. Tap **Help Me** to open a panel with the top suggested symbols in a 2-by-2 grid.
+3. Select the correct symbol; the app responds as if it recognized the gesture and remembers the correction.
 
 ## Step 4: Show DGS Reference Videos
-1. On the recognition screen, toggle **Use DGS Video** to display DGS clips for each symbol.
+1. On the recognition screen, toggle **Show DGS Video** to display DGS clips for each symbol.
 2. These videos help staff learn the correct sign if they are curious or want to practice.
 
 ## Step 5: Review and Practice
