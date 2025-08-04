@@ -180,7 +180,7 @@ class MachineLearningService {
 
   async processFrameAsync(
     processed: ProcessedFrame,
-    onResult: (result: DetailedGestureResult | null) => void,
+    onResult: (result: DetailedGestureResult | null, landmarks: number[][]) => void,
   ): Promise<void> {
     let result: DetailedGestureResult | null = null;
 
@@ -223,7 +223,7 @@ class MachineLearningService {
     if (result) {
       const smoothed = this.applyGestureSmoothing(result);
       if (!smoothed) {
-        onResult(null);
+        onResult(null, processed.landmarks);
         return;
       }
 
@@ -238,7 +238,7 @@ class MachineLearningService {
       });
     }
 
-    onResult(result);
+    onResult(result, processed.landmarks);
   }
 
   private async classifyRemotely(
@@ -403,7 +403,7 @@ class MachineLearningService {
 export const mlService = new MachineLearningService();
 
 export const useGestureClassifier = (
-  onResult: (result: DetailedGestureResult | null) => void,
+  onResult: (result: DetailedGestureResult | null, landmarks: number[][]) => void,
   isProcessing: boolean,
 ) => {
   const onResultRef = useRef(onResult);

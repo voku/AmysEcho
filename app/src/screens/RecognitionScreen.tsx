@@ -34,6 +34,7 @@ import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { useGestureClassifier } from '../services';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import Svg, { Circle } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,6 +57,9 @@ export default function RecognitionScreen({ navigation }: any) {
   const [isCameraActive, setIsCameraActive] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState(useCameraPermission().hasPermission);
+  const [lastDetection, setLastDetection] = useState(0);
+  const [now, setNow] = useState(Date.now());
+  const [landmarks, setLandmarks] = useState<number[][]>([]);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -64,7 +68,11 @@ export default function RecognitionScreen({ navigation }: any) {
   const devices = useCameraDevices();
   const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
   const isFocused = useIsFocused();
-  const appState = AppState.currentState;
+  const [appState, setAppState] = useState(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', setAppState);
+    return () => sub.remove();
+  }, []);
 
   const canUseCamera =
     permissionStatus && device != null && isFocused && isCameraActive && appState === 'active';
@@ -83,6 +91,11 @@ export default function RecognitionScreen({ navigation }: any) {
       setWeakGesture(gesture);
     };
     fetchWeakGesture();
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
   }, []);
 
   const startFeedbackAnimation = useCallback(() => {
@@ -116,7 +129,9 @@ export default function RecognitionScreen({ navigation }: any) {
     setStatus("I'm listening...");
   };
 
-  const onGestureResult = useCallback(async (result: any) => {
+  const onGestureResult = useCallback(async (result: any, detectedLandmarks: number[][]) => {
+    setLastDetection(Date.now());
+    setLandmarks(detectedLandmarks);
     if (isProcessing) return;
 
     if (
@@ -197,6 +212,11 @@ export default function RecognitionScreen({ navigation }: any) {
   }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
 
   const frameProcessor = useGestureClassifier(onGestureResult, isProcessing);
+  const detectionActive = now - lastDetection < 1000;
+
+  useEffect(() => {
+    if (!detectionActive) setLandmarks([]);
+  }, [detectionActive]);
 
   const handleSelect = async (choiceId: string) => {
     try {
@@ -308,6 +328,23 @@ export default function RecognitionScreen({ navigation }: any) {
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    },
+    detectionIndicator: {
+      position: 'absolute',
+      top: SPACING.md,
+      left: SPACING.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    dot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      marginRight: SPACING.xs,
+    },
+    detectionText: {
+      color: COLORS.highContrastText,
+      fontSize: largeText ? 18 : 16,
     },
     status: {
       fontSize: largeText ? 48 : 40,
@@ -488,10 +525,34 @@ export default function RecognitionScreen({ navigation }: any) {
           )}
 
           <View style={styles.overlay}>
+            {landmarks.length > 0 && (
+              <Svg
+                style={StyleSheet.absoluteFill}
+                viewBox={`0 0 ${width} ${height}`}
+                pointerEvents="none"
+              >
+                {landmarks.map((l, idx) => (
+                  <Circle key={idx} cx={l[0] * width} cy={l[1] * height} r={4} fill="yellow" />
+                ))}
+              </Svg>
+            )}
+            <View style={styles.detectionIndicator}>
+              <View
+                style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}
+              />
+              <Text style={styles.detectionText}>
+                {detectionActive ? 'Hand detected' : 'No hand'}
+              </Text>
+            </View>
+
             <Animated.Text style={[styles.status]}>{status}</Animated.Text>
 
             {lastRecognizedGesture && lastRecognizedGesture.label !== 'uncertain' && (
-              <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>{lastRecognizedGesture.label}</Animated.Text>
+              <Animated.Text
+                style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}
+              >
+                {lastRecognizedGesture.label}
+              </Animated.Text>
             )}
           </View>
 
