@@ -56,6 +56,8 @@ export default function RecognitionScreen({ navigation }: any) {
   const [isCameraActive, setIsCameraActive] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState(useCameraPermission().hasPermission);
+  const [lastDetection, setLastDetection] = useState(0);
+  const [now, setNow] = useState(Date.now());
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -87,6 +89,11 @@ export default function RecognitionScreen({ navigation }: any) {
       setWeakGesture(gesture);
     };
     fetchWeakGesture();
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
   }, []);
 
   const startFeedbackAnimation = useCallback(() => {
@@ -121,6 +128,7 @@ export default function RecognitionScreen({ navigation }: any) {
   };
 
   const onGestureResult = useCallback(async (result: any) => {
+    setLastDetection(Date.now());
     if (isProcessing) return;
 
     if (
@@ -201,6 +209,7 @@ export default function RecognitionScreen({ navigation }: any) {
   }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
 
   const frameProcessor = useGestureClassifier(onGestureResult, isProcessing);
+  const detectionActive = now - lastDetection < 1000;
 
   const handleSelect = async (choiceId: string) => {
     try {
@@ -312,6 +321,23 @@ export default function RecognitionScreen({ navigation }: any) {
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    },
+    detectionIndicator: {
+      position: 'absolute',
+      top: SPACING.md,
+      left: SPACING.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    dot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      marginRight: SPACING.xs,
+    },
+    detectionText: {
+      color: COLORS.highContrastText,
+      fontSize: largeText ? 18 : 16,
     },
     status: {
       fontSize: largeText ? 48 : 40,
@@ -492,10 +518,23 @@ export default function RecognitionScreen({ navigation }: any) {
           )}
 
           <View style={styles.overlay}>
+            <View style={styles.detectionIndicator}>
+              <View
+                style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}
+              />
+              <Text style={styles.detectionText}>
+                {detectionActive ? 'Hand detected' : 'No hand'}
+              </Text>
+            </View>
+
             <Animated.Text style={[styles.status]}>{status}</Animated.Text>
 
             {lastRecognizedGesture && lastRecognizedGesture.label !== 'uncertain' && (
-              <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>{lastRecognizedGesture.label}</Animated.Text>
+              <Animated.Text
+                style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}
+              >
+                {lastRecognizedGesture.label}
+              </Animated.Text>
             )}
           </View>
 
