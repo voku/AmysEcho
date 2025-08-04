@@ -40,11 +40,11 @@ export default function ParentScreen({ navigation }: any) {
         />
       </View>
       <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Use DGS Video</Text>
+        <Text style={styles.toggleLabel}>Show DGS Video</Text>
         <Switch
           value={useDgs}
           onValueChange={setUseDgs}
-          accessibilityLabel="DGS-Video verwenden"
+          accessibilityLabel="DGS-Video zeigen"
         />
       </View>
       <Button

@@ -35,7 +35,7 @@ export default function DgsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.controls}>
-        <Text>Use DGS Video</Text>
+        <Text>Show DGS Video</Text>
         <Switch value={useVideo} onValueChange={handleToggle} />
       </View>
 
