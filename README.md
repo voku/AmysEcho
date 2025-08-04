@@ -143,6 +143,7 @@ The LLM-powered suggestions require an OpenAI API key. You can set this via the 
 If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` and `npx expo run:android` inside `app/` once to generate the native Android and iOS projects. These directories are not tracked in git to avoid committing large binaries. After the prebuild step you can launch the app with `npm run ios` or `npm run android`.
 
 ### Creating test builds (APK)
+#### Custom dev client
 
 To produce a debuggable APK for testers, trigger a development build via EAS:
 
@@ -156,7 +157,18 @@ The CLI prints a link to the artifact. You can also download the most recent bui
 eas build:download --platform android --profile development --latest
 ```
 
-Install the APK on a device and start the bundler with `npx expo start` to load the JavaScript bundle.
+This APK only contains the Expo dev client. After installing it on a device you must start the bundler with `npx expo start` to
+load the JavaScript bundle.
+
+#### Self-contained APK
+
+For an installable APK that bundles the app and runs without the bundler:
+
+```bash
+npm run build:android-apk
+```
+
+The resulting artifact includes the compiled JavaScript and assets, making it suitable for offline testing and sideloading.
 
 ### Creating production builds
 
