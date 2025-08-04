@@ -5,6 +5,12 @@ import {ActivityIndicator, View} from 'react-native';
 import { Asset } from 'expo-asset';
 import {GESTURE_CLASSIFIER_MODEL, HAND_LANDMARKER_MODEL} from '../constants/modelPaths';
 import { loadCustomModelUri } from '../storage';
+import {
+  CONFIDENCE_THRESHOLD,
+  ENABLE_REMOTE_CLASSIFICATION,
+  REMOTE_RETRY_MS,
+  REMOTE_TIMEOUT_MS,
+} from '../constants';
 
 interface Services {
   mlService: typeof mlService;
@@ -55,6 +61,12 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
           { url: landmarkAsset.localUri },
           gestureModelSource,
           gestureLabels,
+          {
+            confidenceThreshold: CONFIDENCE_THRESHOLD,
+            enableRemoteClassification: ENABLE_REMOTE_CLASSIFICATION,
+            remoteRetryMs: REMOTE_RETRY_MS,
+            processingTimeout: REMOTE_TIMEOUT_MS,
+          },
         );
         setAreServicesReady(true);
 

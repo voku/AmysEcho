@@ -18,4 +18,5 @@ export interface MLServiceConfig {
   confidenceThreshold?: number;
   processingTimeout?: number;
   enableRemoteClassification?: boolean;
+  remoteRetryMs?: number;
 }
