@@ -144,6 +144,7 @@ If you want to run the app on a physical device with a custom dev client, execut
 
 ### Creating test builds (APK)
 #### Custom dev client
+
 To produce a debuggable APK for testers, trigger a development build via EAS:
 
 ```bash

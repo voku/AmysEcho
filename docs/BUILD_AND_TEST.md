@@ -76,6 +76,7 @@ To sideload the full app without the Expo dev client:
    npm run build:android-apk
    ```
    The resulting file contains the compiled JavaScript bundle and assets, so it can run without `expo start`.
+
 ### Production build (Play Store)
 
 For store-ready binaries the recommended workflow is:
