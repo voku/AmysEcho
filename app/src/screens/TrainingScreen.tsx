@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import {
   Camera,
-  useCameraDevices,
+  useCameraDevice,
   useCameraPermission,
 } from 'react-native-vision-camera';
 import { saveTrainingSample } from '../storage';
@@ -13,8 +13,10 @@ import { useRecordingProcessor } from '../services';
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const { gestureLabel } = route.params || {};
-  const devices = useCameraDevices();
-  const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
+  // Prefer the back camera but fall back to front if unavailable
+  const backCamera = useCameraDevice('back');
+  const frontCamera = useCameraDevice('front');
+  const device = backCamera ?? frontCamera;
   const { hasPermission, requestPermission } = useCameraPermission();
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
