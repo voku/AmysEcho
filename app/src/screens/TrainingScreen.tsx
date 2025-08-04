@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Button, StyleSheet, AppState } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import {
@@ -6,6 +6,7 @@ import {
   useCameraDevice,
   useCameraPermission,
 } from 'react-native-vision-camera';
+import Svg, { Circle } from 'react-native-svg';
 import { saveTrainingSample } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -14,6 +15,7 @@ import { COLORS, SPACING } from '../constants/ui';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
+  const PREVIEW_SIZE = 200;
   const { gestureLabel } = route.params || {};
   // Prefer the back camera but fall back to front if unavailable
   const backCamera = useCameraDevice('back');
@@ -27,6 +29,11 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
+  const [landmarks, setLandmarks] = useState<number[][]>([]);
+  const isRecordingRef = useRef(isRecording);
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
 
   const isFocused = useIsFocused();
   const [appState, setAppState] = useState(AppState.currentState);
@@ -36,20 +43,26 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   useEffect(() => {
-    if (!isRecording) return;
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
-  }, [isRecording]);
+  }, []);
 
   const canUseCamera =
     hasPermission && device != null && isFocused && appState === 'active';
   const detectionActive = now - lastDetection < 1000;
 
-  const recordingProcessor = useRecordingProcessor((landmarks) => {
-    setRecordedLandmarks((prev) => [...prev, landmarks]);
-    setFramesCaptured((c) => c + 1);
+  const recordingProcessor = useRecordingProcessor((lm) => {
+    setLandmarks(lm);
     setLastDetection(Date.now());
-  }, isRecording);
+    if (isRecordingRef.current) {
+      setRecordedLandmarks((prev) => [...prev, lm]);
+      setFramesCaptured((c) => c + 1);
+    }
+  }, true);
+
+  useEffect(() => {
+    if (!detectionActive) setLandmarks([]);
+  }, [detectionActive]);
 
   const startRecording = () => {
     if (!gestureId) return;
@@ -82,19 +95,29 @@ export default function TrainingScreen({ navigation, route }: any) {
       marginBottom: SPACING.lg,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
-    camera: { width: 200, height: 200, marginBottom: SPACING.sm },
-    recordingIndicator: {
+    cameraContainer: {
+      width: PREVIEW_SIZE,
+      height: PREVIEW_SIZE,
+      marginBottom: SPACING.sm,
+      position: 'relative',
+    },
+    camera: {
+      flex: 1,
+    },
+    detectionIndicator: {
+      position: 'absolute',
+      top: SPACING.xs,
+      left: SPACING.xs,
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: SPACING.sm,
     },
     dot: {
       width: 12,
       height: 12,
       borderRadius: 6,
-      marginRight: SPACING.sm,
+      marginRight: SPACING.xs,
     },
-    recordingText: {
+    detectionText: {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
       fontSize: largeText ? 18 : 16,
     },
@@ -128,23 +151,38 @@ export default function TrainingScreen({ navigation, route }: any) {
       ) : count < 5 ? (
         <>
           {device && (
-            <Camera
-              style={styles.camera}
-              device={device}
-              isActive={canUseCamera}
-              frameProcessor={recordingProcessor}
-            />
-          )}
-          {isRecording && (
-            <View style={styles.recordingIndicator}>
-              <View
-                style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}
+            <View style={styles.cameraContainer}>
+              <Camera
+                style={styles.camera}
+                device={device}
+                isActive={canUseCamera}
+                frameProcessor={recordingProcessor}
               />
-              <Text style={styles.recordingText}>
-                {detectionActive
-                  ? `Recording... ${framesCaptured}`
-                  : 'No hand detected'}
-              </Text>
+              {landmarks.length > 0 && (
+                <Svg
+                  style={StyleSheet.absoluteFill}
+                  viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
+                  pointerEvents="none"
+                >
+                  {landmarks.map((l, idx) => (
+                    <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill="yellow" />
+                  ))}
+                </Svg>
+              )}
+              <View style={styles.detectionIndicator}>
+                <View
+                  style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}
+                />
+                <Text style={styles.detectionText}>
+                  {isRecording
+                    ? detectionActive
+                      ? `Recording... ${framesCaptured}`
+                      : 'No hand detected'
+                    : detectionActive
+                    ? 'Hand detected'
+                    : 'No hand'}
+                </Text>
+              </View>
             </View>
           )}
           <Button
