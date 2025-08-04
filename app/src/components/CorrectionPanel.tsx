@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 
 interface CorrectionPanelProps {
@@ -103,33 +103,36 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
 
           <View style={styles.optionsGrid}>
             {suggestions.map((s) => (
-              <TouchableOpacity
+              <Pressable
                 key={s.id}
-                style={styles.optionButton}
+                style={({ pressed }) => [styles.optionButton, pressed && styles.optionButtonPressed]}
                 onPress={() => onSelect(s.id)}
+                accessibilityRole="button"
                 accessibilityLabel={`Select ${s.label}`}
               >
                 <Text style={styles.optionLabel}>{s.label}</Text>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
 
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.actionButtonSecondary]}
+            <Pressable
+              style={({ pressed }) => [styles.actionButton, styles.actionButtonSecondary, pressed && styles.optionButtonPressed]}
               onPress={onCancel}
+              accessibilityRole="button"
               accessibilityLabel="Cancel correction"
             >
               <Text style={styles.actionButtonText}>Cancel</Text>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity
-              style={styles.actionButton}
+            <Pressable
+              style={({ pressed }) => [styles.actionButton, pressed && styles.optionButtonPressed]}
               onPress={onAddNew}
+              accessibilityRole="button"
               accessibilityLabel="Add new gesture"
             >
               <Text style={styles.actionButtonText}>Add New</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </View>

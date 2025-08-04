@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   Switch,
   Dimensions,
-  TouchableOpacity,
+  Pressable,
   AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -448,14 +448,16 @@ export default function RecognitionScreen({ navigation }: any) {
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
       {weakGesture && (
-        <TouchableOpacity
+        <Pressable
           onPress={handleWeakGestureBannerPress}
           style={styles.weakGestureBanner}
+          accessibilityRole="button"
+          accessibilityLabel="Practice weak gesture again"
         >
           <Text style={styles.weakGestureBannerText}>
             Let's try this one again: {weakGesture.name}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
 
       {showVideoPlayer && lastRecognizedGesture ? (
@@ -489,18 +491,23 @@ export default function RecognitionScreen({ navigation }: any) {
           <View style={styles.controls}>
             <View style={styles.toggleRow}>
               <Text style={styles.toggleLabel}>Show DGS Video</Text>
-              <Switch value={useDgs} onValueChange={setUseDgs} />
+              <Switch
+                value={useDgs}
+                onValueChange={setUseDgs}
+                accessibilityLabel="Toggle DGS video"
+              />
             </View>
 
             {showHelp && (
               <View style={styles.buttonRow}>
-                <TouchableOpacity
+                <Pressable
                   style={styles.helpButton}
                   onPress={handleHelpPress}
+                  accessibilityRole="button"
                   accessibilityLabel="Open correction panel"
                 >
                   <Text style={styles.helpButtonText}>Help Me</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
           </View>
