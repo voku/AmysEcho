@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Switch } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/AppServicesProvider';
+import { COLORS, SPACING } from '../constants/ui';
 
 export default function ParentScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -11,17 +12,17 @@ export default function ParentScreen({ navigation }: any) {
 
   const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    title: { fontSize: 24, marginBottom: 20 },
+    title: { fontSize: 24, marginBottom: SPACING.lg },
     toggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 10,
+      marginBottom: SPACING.sm,
       width: '80%',
     },
     toggleLabel: {
       fontSize: largeText ? 18 : 16,
-      color: highContrast ? '#000' : '#333',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
   });
 

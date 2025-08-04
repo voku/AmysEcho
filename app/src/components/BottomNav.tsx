@@ -3,6 +3,7 @@ import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { Hand, BookOpen, Settings } from 'lucide-react-native';
 import type { RootStackParamList } from '../navigation/types';
+import { COLORS, SPACING } from '../constants/ui';
 
 interface Props {
   active: 'recognition' | 'symbols' | 'training';
@@ -20,7 +21,7 @@ export default function BottomNav({ active, profileId }: Props) {
       >
         <Hand
           size={24}
-          color={active === 'recognition' ? '#3b82f6' : '#6b7280'}
+          color={active === 'recognition' ? COLORS.primaryAccent : COLORS.secondaryAccent}
           style={styles.icon}
         />
         <Text style={[styles.label, active === 'recognition' && styles.active]}>Listen</Text>
@@ -32,7 +33,7 @@ export default function BottomNav({ active, profileId }: Props) {
       >
         <Settings
           size={24}
-          color={active === 'training' ? '#3b82f6' : '#6b7280'}
+          color={active === 'training' ? COLORS.primaryAccent : COLORS.secondaryAccent}
           style={styles.icon}
         />
         <Text style={[styles.label, active === 'training' && styles.active]}>Learn</Text>
@@ -46,23 +47,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 10,
-    backgroundColor: '#fff',
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: COLORS.border,
   },
   item: {
     alignItems: 'center',
   },
   icon: {
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   label: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.secondaryAccent,
   },
   active: {
-    color: '#3b82f6',
+    color: COLORS.primaryAccent,
     fontWeight: 'bold',
   },
 });

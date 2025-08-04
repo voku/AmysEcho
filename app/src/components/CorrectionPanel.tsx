@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 
 interface CorrectionPanelProps {
   onSelect: (choiceId: string) => void;
@@ -20,70 +21,70 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
       alignItems: 'center',
     },
     container: {
-      backgroundColor: highContrast ? '#000' : '#fff',
-      borderRadius: 16,
-      padding: 16,
-      margin: 16,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      borderRadius: RADIUS * 2,
+      padding: SPACING.md,
+      margin: SPACING.md,
       maxWidth: '90%',
       maxHeight: '80%',
       borderWidth: highContrast ? 2 : 0,
-      borderColor: highContrast ? '#fff' : 'transparent',
+      borderColor: highContrast ? COLORS.highContrastText : 'transparent',
     },
     title: {
       fontSize: largeText ? 28 : 24,
       fontWeight: 'bold',
       textAlign: 'center',
-      marginBottom: 16,
-      color: highContrast ? '#fff' : '#333',
+      marginBottom: SPACING.md,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
     optionsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
-      marginBottom: 16,
+      marginBottom: SPACING.md,
     },
     optionButton: {
       width: '48%',
-      backgroundColor: highContrast ? '#333' : '#F3F4F6',
-      borderRadius: 8,
-      padding: 16,
-      marginBottom: 8,
+      backgroundColor: highContrast ? COLORS.text : COLORS.backgroundEnd,
+      borderRadius: RADIUS,
+      padding: SPACING.md,
+      marginBottom: SPACING.sm,
       alignItems: 'center',
       borderWidth: highContrast ? 1 : 0,
-      borderColor: highContrast ? '#fff' : 'transparent',
+      borderColor: highContrast ? COLORS.highContrastText : 'transparent',
     },
     optionButtonPressed: {
-      backgroundColor: highContrast ? '#555' : '#e0e0e0',
+      backgroundColor: highContrast ? COLORS.highContrastPressed : COLORS.pressed,
     },
     optionLabel: {
       fontSize: largeText ? 20 : 18,
       fontWeight: 'bold',
       textAlign: 'center',
-      marginBottom: 8,
-      color: highContrast ? '#fff' : '#333',
+      marginBottom: SPACING.sm,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
     optionDescription: {
       fontSize: largeText ? 16 : 14,
       textAlign: 'center',
-      color: highContrast ? '#ccc' : '#666',
+      color: highContrast ? COLORS.border : COLORS.textMuted,
     },
     actionButtons: {
       flexDirection: 'row',
       justifyContent: 'space-around',
-      marginTop: 16,
+      marginTop: SPACING.md,
     },
     actionButton: {
-      backgroundColor: '#3B82F6',
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      borderRadius: 8,
+      backgroundColor: COLORS.primaryAccent,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.md,
+      borderRadius: RADIUS,
       minWidth: 104,
     },
     actionButtonSecondary: {
-      backgroundColor: highContrast ? '#666' : '#6B7280',
+      backgroundColor: highContrast ? COLORS.textMuted : COLORS.secondaryAccent,
     },
     actionButtonText: {
-      color: '#fff',
+      color: COLORS.highContrastText,
       fontSize: largeText ? 18 : 16,
       fontWeight: 'bold',
       textAlign: 'center',

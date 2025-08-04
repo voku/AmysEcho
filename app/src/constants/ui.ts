@@ -1,6 +1,7 @@
 export const COLORS = {
   backgroundStart: '#EFF6FF',
   backgroundEnd: '#F3F4F6',
+  surface: '#FFFFFF',
   text: '#333333',
   textMuted: '#666666',
   primaryAccent: '#3B82F6',
@@ -8,6 +9,13 @@ export const COLORS = {
   vocabDrink: '#AEDFF7',
   vocabEat: '#F7C5A8',
   vocabPlay: '#A8F7A8',
+  success: '#4CAF50',
+  warning: '#FFD700',
+  warningBackground: '#FDE68A',
+  border: '#E5E7EB',
+  borderDark: '#888888',
+  pressed: '#E0E0E0',
+  highContrastPressed: '#555555',
   highContrastBackground: '#000000',
   highContrastText: '#FFFFFF',
 } as const;
