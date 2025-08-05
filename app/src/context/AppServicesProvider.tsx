@@ -35,6 +35,7 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
   
 
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
     async function initializeServices() {
       try {
         const landmarkAsset = Asset.fromModule(HAND_LANDMARKER_MODEL);
@@ -69,9 +70,9 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
             processingTimeout: REMOTE_TIMEOUT_MS,
           },
         );
+        await audioService.initialize();
         setAreServicesReady(true);
-
-        const interval = setInterval(() => {
+        interval = setInterval(() => {
           syncTrainingData().catch(() => {});
           checkForModelUpdate().catch(() => {});
           syncService.uploadPendingTrainingData().catch(() => {});
@@ -83,7 +84,6 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
         syncService.uploadPendingTrainingData().catch(() => {});
         syncService.checkForNewModel().catch(() => {});
 
-        return () => clearInterval(interval);
       } catch (e) {
         logger.error('Failed to initialize services:', e);
         setAreServicesReady(true);
@@ -91,6 +91,10 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
     }
 
     initializeServices();
+    return () => {
+      if (interval) clearInterval(interval);
+      audioService.dispose().catch(() => {});
+    };
   }, []);
 
   if (!areServicesReady) {

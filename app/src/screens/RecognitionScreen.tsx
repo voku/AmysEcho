@@ -22,7 +22,7 @@ import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 import { loadProfile, Profile } from '../storage';
-import { playSymbolAudio } from '../services';
+import { audioService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { database } from '../../db';
 import { Correction, GestureDefinition } from '../../db/models';
@@ -160,12 +160,11 @@ export default function RecognitionScreen({ navigation }: any) {
       setLastRecognizedGesture(entry);
       setStatus(recognizedSymbolLabel);
       startFeedbackAnimation();
-
-      try {
-        playSymbolAudio(entry);
-      } catch (error) {
-        logger.warn('Audio playback failed:', error);
-      }
+      audioService
+        .playSuccessFeedback(recognizedSymbolLabel, result.confidence)
+        .catch((error) => {
+          logger.warn('Audio feedback failed:', error);
+        });
 
       if (useDgs && entry.dgsVideoUri) {
         setShowVideoPlayer(true);
@@ -213,6 +212,9 @@ export default function RecognitionScreen({ navigation }: any) {
       setStatus("Can you help me?");
       setShowHelp(true);
       startFeedbackAnimation();
+      audioService.playErrorFeedback().catch((error) => {
+        logger.warn('Error feedback failed:', error);
+      });
     }
   }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
 
@@ -250,12 +252,11 @@ export default function RecognitionScreen({ navigation }: any) {
       setLastRecognizedGesture(entry);
       setStatus(entry.label);
       startFeedbackAnimation();
-
-      try {
-        playSymbolAudio(entry);
-      } catch (error) {
-        logger.warn('Audio playback failed:', error);
-      }
+      audioService
+        .playSuccessFeedback(entry.label, 1)
+        .catch((error) => {
+          logger.warn('Audio feedback failed:', error);
+        });
 
       if (useDgs && entry.dgsVideoUri) {
         setShowVideoPlayer(true);
