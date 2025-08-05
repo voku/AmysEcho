@@ -1,139 +1,245 @@
-# Amy's Echo: AI Implementation TODOs
+# Amy's Echo - Updated TODO List
 
-This document provides a detailed, actionable checklist for implementing the core AI features of the application. It is designed to be the single source of truth for an LLM developer, covering both client-side and server-side responsibilities.
-
-**Architectural Mandate**:
-1.  **Gesture Recognition**: All real-time gesture processing must occur **on-device** for performance and privacy.
-2.  **Dialog Engine**: The app communicates directly with OpenAI using an API key stored in secure device storage. **Model Training** still happens on a secure cloud server.
+## Current Status Summary
+The project has a stable foundation after a major refactor. The database, navigation, and core app structure are complete. The next phase focuses on implementing scaffolded features to reach production readiness.
 
 ---
 
-## **Part 1: On-Device Gesture Recognition & Personalization**
+## 🚨 PRIORITY 1: Core Functionality (Critical Path)
 
-### **TODO 1.1: Implement Baseline Real-Time Gesture Recognition**
+### ✅ COMPLETED
+- [x] React Native baseline setup
+- [x] Database, navigation, and core app structure
+- [x] Project architecture and foundation
 
-* **Objective**: To get the live camera feed running through the two-stage (landmark + classification) TFLite pipeline.
-* **File**: `src/screens/RecognitionScreen.tsx`
-* **Status**: **Completed** via the new `mlService` and worklet frame processor.
-* **Action**:
-    1.  **Acquire Models**: Download the `hand_landmarker.tflite` and `gesture_classifier.tflite` models from Google MediaPipe and place them in `assets/models/`.
-    2.  **Load Models**: In the `LearningScreen` component, use the `useTensorflowModel` hook to load both models into memory.
-    3.  **Implement Frame Processor**: Create the `useFrameProcessor` worklet.
-        * **LLM Hint**: The logic inside this worklet is critical. It must first pass the camera `frame` to the `hand_landmarker.tflite` model. If landmarks are detected, the output of that model (the landmark coordinates) must then be passed as the input to the `gesture_classifier.tflite` model.
-        * **Hint**: `ffmpeg-kit-react-native` is no longer supported
-        * **Code Snippet (Conceptual)**:
-            ```typescript
-            const frameProcessor = useFrameProcessor((frame) => {
-              'worklet';
-              if (!landmarkModel.value || !gestureModel.value) return;
+### 🔄 IN PROGRESS / IMMEDIATE
+- [ ] **Gesture Recognition Implementation**
+  - Complete `mlService.ts` TFLite model loading
+  - Implement live gesture classification pipeline
+  - Test offline gesture recognition fallback
+  - Validate recognition accuracy with test gestures
 
-              // Stage 1: Detect Hand Landmarks
-              const landmarkResults = landmarkModel.value.runSync([frame]);
-              const landmarks = landmarkResults[0]; // Placeholder for actual data extraction
+- [ ] **Rich Audio Feedback System**
+  - Complete `audioService.ts` implementation using `expo-av`
+  - Add success/error sound effects
+  - Implement speech synthesis for recognized gestures
+  - Test audio output quality and timing
 
-              if (landmarks && landmarks.length > 0) {
-                // Stage 2: Classify Gesture from Landmarks
-                const gestureResults = gestureModel.value.runSync([landmarks]);
-                const predictions = gestureResults[0];
-                // ...process predictions and update UI via runOnJS...
-              }
-            }, [landmarkModel, gestureModel]);
-            ```
-
-### **TODO 1.2: In-App Data Collection for Personalization**
-
-* **Objective**: To build the UI and logic for a caregiver to record samples of Amy's specific gestures.
-* **File**: `src/screens/TrainingScreen.tsx`
-* **Status**: Completed. The UI is built, video processing extracts landmarks, and data is saved to WatermelonDB.
+- [ ] **Camera Integration**
+  - Finalize `react-native-vision-camera` integration
+  - Implement high-performance gesture capture
+  - Add camera permission handling
+  - Test frame rate and gesture capture quality
 
 ---
 
-## **Part 2: Server-Side Model Training**
+## 🎯 PRIORITY 2: Intelligence & User Experience
 
-**LLM Hint**: These tasks require creating a server-side application (e.g., using Python with Flask/FastAPI and TensorFlow/Keras) to handle heavy model training workloads.
+### Core HIP (Human Interaction Protocol) Implementation
+- [ ] **HIP 1: Onboarding Flow**
+  - Complete consent and first-use setup
+  - Add privacy explanation for caregivers
+  - Implement gesture recognition tutorial
+  - Test with non-technical users
 
-### **TODO 2.1: OpenAI Dialog API Integration**
+- [ ] **HIP 3: Correction Mode ("Help Me" Flow)**
+  - Implement gesture correction interface
+  - Add "Help Me" repair workflow
+  - Store corrections for model improvement
+  - Test correction feedback loop
 
-* **Objective**: Use an API key stored on the device to request suggestions directly from OpenAI.
-* **File**: `services/dialogEngine.ts` & `src/screens/AdminScreen.tsx`
-* **Status**: Completed. Admin screen allows saving the OpenAI key, and `dialogEngine.ts` uses it to call the OpenAI API.
+- [ ] **HIP 2: Teach Mode (Training Interface)**
+  - Build caregiver training interface for new signs
+  - Implement gesture recording workflow
+  - Add gesture validation feedback
+  - Create training progress tracking
 
-### **TODO 2.2: Personalized Model Training Endpoint**
+- [ ] **HIP 4: Maintenance Mode**
+  - Implement "Let's practice this again" feature
+  - Add gesture practice sessions
+  - Create progress tracking dashboard
+  - Implement gentle encouragement system
 
-* **Objective**: To receive collected gesture data, train a new model, and make it available for download.
-* **Status**: Completed. The `/train-model` endpoint triggers `train.py` to train an LSTM model and save it as `trained_model.tflite`. The `/latest-model` endpoint serves this file.
+### Enhanced Intelligence Features
+- [ ] **Live LLM Dialog Engine**
+  - Complete `dialogEngine.ts` OpenAI API integration
+  - Implement context-aware suggestions
+  - Add conversation memory for better responses
+  - Test suggestion quality and relevance
 
----
+- [ ] **DGS Video Playback System**
+  - Complete DGS video integration on `LearningScreen`
+  - Add video toggle functionality
+  - Implement video playback controls
+  - Test video loading and playback performance
 
-## **Part 3: Closing the Loop - Deploying AI Features**
-
-### **TODO 3.1: Integrate LLM Dialog Engine in the App**
-
-* **Objective**: To fetch suggestions from OpenAI and display them in the UI.
-* **File**: `services/dialogEngine.ts` & `src/screens/RecognitionScreen.tsx`
-* **Status**: Completed. `RecognitionScreen.tsx` translates the gesture label via `getSymbolLabelForGesture`, then calls `dialogEngine.getLLMSuggestions` and shows the suggestions.
-
-### **TODO 3.2: Implement Personalized Model Activation** *(Completed)*
-
-* **Objective**: To allow the app to download and use Amy's personalized gesture model.
-* **File**: `src/screens/AdminScreen.tsx` & `src/screens/RecognitionScreen.tsx`
-* **Action**:
-    1.  In the `AdminScreen`, add a "Download Latest Personalized Model" button that calls the `GET /latest-model` endpoint.
-    2.  Use a library like `expo-file-system` to download and save the `.tflite` file to the app's private document directory. Store the local file URI (`file://...`) securely, associated with Amy's profile.
-    3.  In `RecognitionScreen.tsx`, modify the `useTensorflowModel` hook for the gesture classifier. It should check if a personalized model URI exists for the current profile. If yes, load that model; if no, fall back to the default bundled model.
-
----
-
-## **Part 4: Continuous Improvement & Data Sync**
-
-### **TODO 4.1: Log Caregiver Corrections**
-
-* **Objective**: Store each correction made by a caregiver for future training.
-* **File**: `db/models.ts`, `db/schema.ts`, `src/screens/RecognitionScreen.tsx`
-* **Status**: **Completed**. Corrections are saved in the `corrections` table.
-
-### **TODO 4.2: Sync Corrections and Check Model Updates**
-
-* **Objective**: Upload unsynced correction data and download new personalized models when available.
-* **File**: `src/services/syncService.ts` & `src/context/AppServicesProvider.tsx`
-* **Status**: **Completed**. The sync service runs on app launch.
-
-### **TODO 4.3: Add DGS Video Player**
-
-* **Objective**: Show reference DGS clips for each gesture to aid learning.
-* **File**: `src/components/DgsVideoPlayer.tsx` & `src/screens/LearningScreen.tsx`
-* **Status**: Completed.
-
-### **TODO 4.4: Create TeachingScreen for HIP 2**
-
-* **Objective**: Allow caregivers to teach the system new gestures directly on the device.
-* **File**: `src/screens/TeachingScreen.tsx`
-* **Status**: Completed.
+- [ ] **Admin Panel Enhancement**
+  - Complete CRUD functionality in `AdminScreen.tsx`
+  - Add symbol and vocabulary management
+  - Implement data export/import features
+  - Add analytics dashboard for caregivers
 
 ---
 
-## **Part 5: Future Enhancements**
+## 🔧 PRIORITY 3: Technical Infrastructure
 
-### **TODO 5.1: Implement Multi-Profile Management**
+### Model Management & Training
+- [ ] **Pre-trained Model Integration**
+  - Download and bundle MediaPipe models via `src/tools/downloadModels.ts`
+  - Implement model versioning system
+  - Add model validation checks
+  - Test model loading performance
 
-* **Objective**: Support multiple child profiles with separate preferences and vocabulary sets.
-* **File**: `src/screens/ProfileManagerScreen.tsx`, `db/models.ts`
-* **Status**: Completed.
+- [ ] **Two-Stage Frame Processor**
+  - Implement landmark detection in `useFrameProcessor` worklet
+  - Add gesture classification pipeline
+  - Optimize processing performance
+  - Test real-time processing accuracy
 
-### **TODO 5.2: Expand Analytics Dashboard**
+- [ ] **Training Interface**
+  - Complete `TrainingScreen` UI implementation
+  - Add guided gesture recording interface
+  - Implement sample validation feedback
+  - Create training progress visualization
 
-* **Objective**: Visualize learning trends and sync analytics to the server for caregiver review.
-* **File**: `src/screens/DashboardScreen.tsx`, `server/src/services/analyticsService.ts`
-* **Status**: Completed.
+### Backend Services
+- [ ] **Secure LLM Dialog Endpoint**
+  - Create authenticated OpenAI proxy server
+  - Implement rate limiting and security measures
+  - Add request logging and monitoring
+  - Test API security and performance
 
-### **TODO 5.3: Build Caregiver Web Portal**
+- [ ] **Model Training Pipeline**
+  - Create model training endpoint for landmark data
+  - Implement LSTM gesture model training
+  - Add training progress monitoring
+  - Test model accuracy improvements
 
-* **Objective**: Provide a web interface to manage training data, view analytics, and download personalized models.
-* **File**: `server/src/portal/`
-* **Status**: Completed. The portal lists analytics, allows training data management, and serves model downloads. All routes are token-authenticated and rate limited.
+- [ ] **Model Deployment System**
+  - Create model download endpoint
+  - Implement secure model distribution
+  - Add model activation in app
+  - Test model update workflow
 
-### **TODO 5.4: Add Custom Audio Recording**
+---
 
-* **Objective**: Allow caregivers to record personalized audio cues for each symbol.
-* **File**: `src/screens/AdminScreen.tsx`, `src/services/audioService.ts`
-* **Status**: Completed. Admin screen can record audio and playback uses local files when available.
+## 🎨 PRIORITY 4: Polish & Accessibility
+
+### UI/UX Improvements
+- [ ] **Accessibility Enhancement**
+  - Complete accessibility label implementation
+  - Add screen reader support
+  - Implement high contrast mode
+  - Test with accessibility tools
+
+- [ ] **Animation & Feedback**
+  - Implement RN Animated API for smooth transitions
+  - Add Skia-based animations (optional)
+  - Create gentle haptic feedback system
+  - Test animation performance on older devices
+
+- [ ] **Child-Friendly Interface**
+  - Optimize UI for 4-year-old usability
+  - Add colorful, engaging visual elements
+  - Implement large touch targets
+  - Test with child users
+
+### Quality Assurance
+- [ ] **Testing Suite**
+  - Implement unit tests for core services
+  - Add integration tests for HIP workflows
+  - Create end-to-end testing scenarios
+  - Set up automated testing pipeline
+
+- [ ] **Performance Optimization**
+  - Profile and optimize gesture recognition speed
+  - Minimize battery usage during operation
+  - Optimize memory usage for older devices
+  - Test performance across device range
+
+---
+
+## 🚀 PRIORITY 5: Production Readiness
+
+### Deployment & Distribution
+- [ ] **Store Preparation**
+  - Finalize EAS Build configuration
+  - Complete app store metadata and screenshots
+  - Implement crash reporting and analytics
+  - Test store-ready binaries
+
+- [ ] **Data Management**
+  - Implement secure data backup/restore
+  - Add GDPR compliance features
+  - Create data export functionality
+  - Test data migration scenarios
+
+- [ ] **Offline Capability**
+  - Ensure full offline functionality
+  - Implement offline model training
+  - Add offline progress sync
+  - Test extended offline usage
+
+### Documentation & Support
+- [ ] **User Documentation**
+  - Create caregiver quick start guide
+  - Add troubleshooting documentation
+  - Create video tutorials for setup
+  - Translate documentation to German
+
+- [ ] **Technical Documentation**
+  - Complete API documentation
+  - Add deployment guides
+  - Create contribution guidelines
+  - Document architecture decisions
+
+---
+
+## 🔄 ONGOING MAINTENANCE
+
+### Continuous Improvement
+- [ ] **Model Refinement**
+  - Regularly retrain models with new data
+  - Monitor recognition accuracy metrics
+  - Implement A/B testing for model improvements
+  - Collect and analyze user feedback
+
+- [ ] **Security Updates**
+  - Regular dependency updates
+  - Security audit scheduling
+  - Privacy compliance monitoring
+  - Incident response procedures
+
+### Analytics & Monitoring
+- [ ] **Usage Analytics**
+  - Track gesture recognition success rates
+  - Monitor user engagement patterns
+  - Analyze correction frequency
+  - Generate improvement insights
+
+---
+
+## 🎯 SUCCESS METRICS
+
+### Technical Metrics
+- Gesture recognition accuracy > 95%
+- App response time < 200ms
+- Offline functionality 100% available
+- Battery usage < 5% per hour of active use
+
+### User Experience Metrics
+- Successful gesture communication per session > 80%
+- User retention rate > 90% after first week
+- Caregiver satisfaction score > 4.5/5
+- Child engagement duration > 15 minutes per session
+
+### Impact Metrics
+- Daily successful communications tracked
+- New gestures learned per week
+- Caregiver confidence improvement
+- Family communication satisfaction
+
+---
+
+*Last Updated: Based on repository state as of current analysis*
+*Project Goal: Turn Amy's gestures into understanding. Every time.*
