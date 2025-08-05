@@ -36,6 +36,7 @@ import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { HAND_CONNECTIONS } from '../constants/hand';
+import ErrorMessage from '../components/ErrorMessage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -349,20 +350,6 @@ export default function RecognitionScreen({ navigation }: any) {
       color: COLORS.highContrastText,
       fontSize: largeText ? 18 : 16,
     },
-    errorOverlay: {
-      position: 'absolute',
-      bottom: SPACING.md,
-      left: SPACING.md,
-      right: SPACING.md,
-      backgroundColor: 'rgba(255, 0, 0, 0.7)',
-      padding: SPACING.sm,
-      borderRadius: RADIUS,
-    },
-    errorText: {
-      color: COLORS.highContrastText,
-      fontSize: largeText ? 16 : 14,
-      textAlign: 'center',
-    },
     status: {
       fontSize: largeText ? 48 : 40,
       fontWeight: 'bold',
@@ -570,11 +557,7 @@ export default function RecognitionScreen({ navigation }: any) {
                 ))}
               </Svg>
             )}
-            {processingError && (
-              <View style={styles.errorOverlay}>
-                <Text style={styles.errorText}>{processingError}</Text>
-              </View>
-            )}
+            <ErrorMessage message={processingError} />
             <View style={styles.detectionIndicator}>
               <View
                 style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}

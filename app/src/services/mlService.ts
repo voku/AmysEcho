@@ -529,7 +529,7 @@ export const useGestureClassifier = (
 
         runOnJS(enqueueFrame)(processed);
       } catch (error: any) {
-        console.error('WORKLET ERROR:', error.message);
+        runOnJS(logger.error)('WORKLET ERROR:', error);
         if (onErrorRef.current) {
           runOnJS(onErrorRef.current)(error.message);
         }
@@ -574,7 +574,7 @@ export const useRecordingProcessor = (
         }
         runOnJS(onLandmarksRef.current)(landmarks);
       } catch (error: any) {
-        console.error('WORKLET ERROR:', error.message);
+        runOnJS(logger.error)('WORKLET ERROR:', error);
       }
     },
     [fps],

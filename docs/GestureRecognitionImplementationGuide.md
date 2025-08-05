@@ -54,6 +54,8 @@ Screens that perform recognition use the `useGestureClassifier` hook from `app/s
 Example from `RecognitionScreen.tsx`:
 
 ```typescript
+const [processingError, setProcessingError] = useState<string | null>(null);
+
 const onGestureResult = useCallback(async (result: any) => {
   if (isProcessing) return;
 
@@ -65,7 +67,8 @@ const onGestureResult = useCallback(async (result: any) => {
 }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
 
 const handleError = (msg: string) => {
-  console.warn('Frame processor error:', msg);
+  logger.warn('Frame processor error:', msg);
+  setProcessingError(msg);
 };
 
 const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, handleError);
@@ -81,6 +84,12 @@ Attach the frame processor to the camera component:
   frameProcessor={frameProcessor}
   frameProcessorFps={5}
 />
+```
+
+Use the `ErrorMessage` component to surface processing issues to the user:
+
+```tsx
+<ErrorMessage message={processingError} />
 ```
 
 ## 4. Offline Fallback Logic
