@@ -9,6 +9,7 @@ import { AccessibilityContext, AccessibilitySettings } from './src/components/Ac
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
 import RootNavigator from './src/navigation/RootNavigator';
 import { COLORS } from './src/constants/ui';
+import { logger } from './src/utils/logger';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -20,9 +21,9 @@ export default function App() {
   useEffect(() => {
     async function initialize() {
       try {
-        console.log("Initializing Amy's Echo...");
+        logger.info("Initializing Amy's Echo...");
         const profileId = await setupDatabase();
-        console.log('Database setup complete, initial profile:', profileId);
+        logger.info('Database setup complete, initial profile:', profileId);
 
         const activeId = await loadActiveProfileId();
         if (!activeId) {
@@ -35,12 +36,12 @@ export default function App() {
             largeText: !!profile.largeText,
             highContrast: !!profile.highContrast,
           });
-          console.log('Profile loaded:', profile.name);
+          logger.info('Profile loaded:', profile.name);
         } else {
-          console.log('No profile found, user needs onboarding');
+          logger.warn('No profile found, user needs onboarding');
         }
       } catch (e) {
-        console.error('Failed to initialize app:', e);
+        logger.error('Failed to initialize app:', e);
         Alert.alert(
           'Initialization Error',
           "Amy's Echo failed to start properly. Please restart the app.",

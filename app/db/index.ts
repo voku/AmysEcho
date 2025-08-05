@@ -14,6 +14,7 @@ import {
   LearningAnalytic,
   Correction,
 } from './models';
+import { logger } from '../src/utils/logger';
 
 const adapter = new SQLiteAdapter({
   schema: mySchema,
@@ -42,13 +43,13 @@ export const setupDatabase = async () => {
   const profiles = await profileCollection.query().fetch();
 
   if (profiles.length > 0) {
-    console.log('Database already populated.');
+    logger.info('Database already populated.');
     return profiles[0].id;
   }
 
   let amyProfileId = '';
   await database.write(async () => {
-    console.log('Setting up database with initial data...');
+    logger.info('Setting up database with initial data...');
     const now = Date.now();
     const symbolCollection = database.get<Symbol>('symbols');
 
