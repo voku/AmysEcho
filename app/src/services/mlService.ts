@@ -409,23 +409,50 @@ export const useGestureClassifier = (
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
 
-  const isProcessingRef = useRef(isProcessing);
-  isProcessingRef.current = isProcessing;
+  const externalProcessingRef = useRef(isProcessing);
+  externalProcessingRef.current = isProcessing;
 
-  const lastProcessedTime = useSharedValue(0);
-  const processingCooldown = 1000; // ms
+  const frameQueueRef = useRef<ProcessedFrame[]>([]);
+  const internalProcessingRef = useRef(false);
+  const maxQueueSize = 3;
   const isServiceReady = mlService.isServiceReady();
+
+  const processNextFrame = useCallback(() => {
+    if (internalProcessingRef.current) {
+      return;
+    }
+    const next = frameQueueRef.current.shift();
+    if (!next) {
+      return;
+    }
+    internalProcessingRef.current = true;
+    mlService
+      .processFrameAsync(next, (result, landmarks) => {
+        onResultRef.current(result, landmarks);
+      })
+      .finally(() => {
+        internalProcessingRef.current = false;
+        if (frameQueueRef.current.length > 0) {
+          processNextFrame();
+        }
+      });
+  }, []);
+
+  const enqueueFrame = useCallback(
+    (processed: ProcessedFrame) => {
+      if (frameQueueRef.current.length >= maxQueueSize) {
+        frameQueueRef.current.shift();
+      }
+      frameQueueRef.current.push(processed);
+      processNextFrame();
+    },
+    [processNextFrame],
+  );
 
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
-      const now = Date.now();
-      if (isProcessingRef.current || now - lastProcessedTime.value < processingCooldown) {
-        return;
-      }
-      lastProcessedTime.value = now;
-
-      if (!isServiceReady) {
+      if (externalProcessingRef.current || !isServiceReady) {
         return;
       }
 
@@ -439,11 +466,10 @@ export const useGestureClassifier = (
           landmarks,
           width: frame.width,
           height: frame.height,
-          timestamp: now,
+          timestamp: Date.now(),
         };
-        
-        runOnJS(mlService.processFrameAsync.bind(mlService))(processed, onResultRef.current);
 
+        runOnJS(enqueueFrame)(processed);
       } catch (error: any) {
         console.error('WORKLET ERROR:', error.message);
       }
