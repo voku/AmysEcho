@@ -444,13 +444,16 @@ export const useGestureClassifier = (
   const frameQueueRef = useRef<ProcessedFrame[]>([]);
   const internalProcessingRef = useRef(false);
   const maxQueueSize = 3;
-  const isServiceReady = mlService.isServiceReady();
+  const serviceReady = useSharedValue(mlService.isServiceReady());
   const processingTimesRef = useRef<number[]>([]);
   const targetFps = useSharedValue(30);
   const lastFrameTime = useSharedValue(0);
   const smootherRef = useRef(new LandmarkSmoother());
 
   useEffect(() => {
+    const readyInterval = setInterval(() => {
+      serviceReady.value = mlService.isServiceReady();
+    }, 500);
     const monitor = setInterval(() => {
       const times = processingTimesRef.current;
       if (times.length === 0) return;
@@ -462,8 +465,11 @@ export const useGestureClassifier = (
         targetFps.value = Math.min(30, targetFps.value + 5);
       }
     }, 5000);
-    return () => clearInterval(monitor);
-  }, []);
+    return () => {
+      clearInterval(monitor);
+      clearInterval(readyInterval);
+    };
+  }, [serviceReady, targetFps]);
 
   const processNextFrame = useCallback(() => {
     if (internalProcessingRef.current) {
@@ -504,7 +510,7 @@ export const useGestureClassifier = (
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
-      if (externalProcessingRef.current || !isServiceReady) {
+      if (externalProcessingRef.current || !serviceReady.value) {
         return;
       }
 
@@ -535,7 +541,7 @@ export const useGestureClassifier = (
         }
       }
     },
-    [isServiceReady],
+    [serviceReady],
   );
 
   return frameProcessor;
