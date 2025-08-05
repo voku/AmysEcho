@@ -1,5 +1,5 @@
 import { TensorflowModel, loadTensorflowModel } from 'react-native-fast-tflite';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import type { Frame } from 'react-native-vision-camera';
 import { useFrameProcessor } from 'react-native-vision-camera';
 import { useSharedValue } from 'react-native-reanimated';
@@ -28,6 +28,31 @@ import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
+
+class LandmarkSmoother {
+  private history: number[][][] = [];
+  private readonly historySize = 5;
+  private readonly smoothingFactor = 0.3;
+
+  smooth(landmarks: number[][]): number[][] {
+    this.history.push(landmarks);
+    if (this.history.length > this.historySize) {
+      this.history.shift();
+    }
+    if (this.history.length === 1) {
+      return landmarks;
+    }
+    const prev = this.history[this.history.length - 2];
+    return landmarks.map((point, index) => {
+      const prevPoint = prev[index];
+      return [
+        prevPoint[0] + this.smoothingFactor * (point[0] - prevPoint[0]),
+        prevPoint[1] + this.smoothingFactor * (point[1] - prevPoint[1]),
+        prevPoint[2] + this.smoothingFactor * (point[2] - prevPoint[2]),
+      ];
+    });
+  }
+}
 
 class MachineLearningService {
   private landmarkModel: any = null;
@@ -416,6 +441,25 @@ export const useGestureClassifier = (
   const internalProcessingRef = useRef(false);
   const maxQueueSize = 3;
   const isServiceReady = mlService.isServiceReady();
+  const processingTimesRef = useRef<number[]>([]);
+  const targetFps = useSharedValue(30);
+  const lastFrameTime = useSharedValue(0);
+  const smootherRef = useRef(new LandmarkSmoother());
+
+  useEffect(() => {
+    const monitor = setInterval(() => {
+      const times = processingTimesRef.current;
+      if (times.length === 0) return;
+      const avg = times.reduce((a, b) => a + b, 0) / times.length;
+      processingTimesRef.current = [];
+      if (avg > 33) {
+        targetFps.value = Math.max(15, targetFps.value - 5);
+      } else if (avg < 20) {
+        targetFps.value = Math.min(30, targetFps.value + 5);
+      }
+    }, 5000);
+    return () => clearInterval(monitor);
+  }, []);
 
   const processNextFrame = useCallback(() => {
     if (internalProcessingRef.current) {
@@ -426,11 +470,14 @@ export const useGestureClassifier = (
       return;
     }
     internalProcessingRef.current = true;
+    const start = Date.now();
     mlService
       .processFrameAsync(next, (result, landmarks) => {
         onResultRef.current(result, landmarks);
       })
       .finally(() => {
+        const end = Date.now();
+        processingTimesRef.current.push(end - start);
         internalProcessingRef.current = false;
         if (frameQueueRef.current.length > 0) {
           processNextFrame();
@@ -443,7 +490,8 @@ export const useGestureClassifier = (
       if (frameQueueRef.current.length >= maxQueueSize) {
         frameQueueRef.current.shift();
       }
-      frameQueueRef.current.push(processed);
+      const smoothed = smootherRef.current.smooth(processed.landmarks);
+      frameQueueRef.current.push({ ...processed, landmarks: smoothed });
       processNextFrame();
     },
     [processNextFrame],
@@ -455,6 +503,12 @@ export const useGestureClassifier = (
       if (externalProcessingRef.current || !isServiceReady) {
         return;
       }
+
+      const now = Date.now();
+      if (now - lastFrameTime.value < 1000 / targetFps.value) {
+        return;
+      }
+      lastFrameTime.value = now;
 
       try {
         const landmarks = extractHandLandmarks(frame);
