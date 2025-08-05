@@ -30,6 +30,8 @@ describe('Analytics Service', () => {
     const analytics = db.learningAnalytics[0];
     expect(analytics).toBeDefined();
     expect(analytics.successRate7d).toBe(1);
+    expect(analytics.successRate24h).toBe(1);
+    expect(analytics.avgConfidenceScore).toBe(1);
     expect(analytics.improvementTrend).toBeGreaterThan(0);
   });
 
@@ -37,6 +39,8 @@ describe('Analytics Service', () => {
     const db = createDatabase();
     const analytics = computeLearningAnalytics(db);
     expect(analytics.successRate7d).toBe(0);
+    expect(analytics.successRate24h).toBe(0);
+    expect(analytics.avgConfidenceScore).toBe(0);
     expect(analytics.improvementTrend).toBe(0);
   });
 
@@ -80,6 +84,8 @@ describe('Analytics Service', () => {
     refreshLearningAnalytics(db);
     expect(db.learningAnalytics.length).toBe(1);
     expect(db.learningAnalytics[0].successRate7d).toBe(0.5);
+    expect(db.learningAnalytics[0].successRate24h).toBe(0.5);
+    expect(db.learningAnalytics[0].avgConfidenceScore).toBe(0.5);
     expect(db.learningAnalytics[0].improvementTrend).toBe(0.1);
 
     // add an additional failed interaction and refresh again
@@ -96,6 +102,8 @@ describe('Analytics Service', () => {
     const updated = db.learningAnalytics[0];
     expect(db.learningAnalytics.length).toBe(1);
     expect(updated.successRate7d).toBe(0.45);
+    expect(updated.successRate24h).toBe(0.45);
+    expect(updated.avgConfidenceScore).toBe(0.45);
     expect(updated.improvementTrend).toBe(0.05);
   });
 });
