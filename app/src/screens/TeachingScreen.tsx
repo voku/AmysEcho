@@ -5,7 +5,6 @@ import {
   Camera,
   useCameraDevices,
   useCameraPermission,
-  type VideoFile,
 } from 'react-native-vision-camera';
 import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
@@ -14,6 +13,7 @@ import { extractLandmarksFromImages } from '../services/landmarkExtractor';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -28,11 +28,17 @@ export default function TeachingScreen({ navigation }: any) {
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    loadProfile().then(setProfile);
+    loadProfile()
+      .then(setProfile)
+      .catch((e) => {
+        console.error('Failed to load profile', e);
+        setError('Failed to load profile');
+      });
   }, []);
 
   const startSampleCaptureAnimation = useCallback(() => {
@@ -55,37 +61,45 @@ export default function TeachingScreen({ navigation }: any) {
 
   const startSession = async () => {
     if (!gestureLabel.trim()) {
-      Alert.alert('Error', 'Please enter a name for the gesture.');
+      setError('Please enter a name for the gesture.');
       return;
     }
-    sessionId.current = await mlService.startTeachingSession(gestureLabel);
-    setIsSessionActive(true);
-    setSampleCount(0);
-    audioService.speak(`Okay, let's learn how to make "${gestureLabel}".`);
+    try {
+      sessionId.current = await mlService.startTeachingSession(gestureLabel);
+      setError(null);
+      setIsSessionActive(true);
+      setSampleCount(0);
+      audioService.speak(`Okay, let's learn how to make "${gestureLabel}".`);
+    } catch (e) {
+      console.error('Failed to start teaching session', e);
+      setError('Failed to start teaching session');
+    }
   };
 
   const recordSample = async () => {
     if (!camera.current || !sessionId.current || isRecording) return;
     setIsRecording(true);
+    setError(null);
     const imageUris: string[] = [];
-    for (let i = 0; i < 30; i++) { // Capture 30 images over 3 seconds
-      try {
+    try {
+      for (let i = 0; i < 30; i++) {
         const photo = await camera.current.takePhoto({});
         imageUris.push(photo.path);
-      } catch (error) {
-        console.error('Failed to take photo:', error);
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay for 10 FPS
-    }
-
-    const landmarks = await extractLandmarksFromImages(imageUris);
-    await saveTrainingSample(gestureLabel, landmarks);
-    setSampleCount((c) => c + 1);
-    startSampleCaptureAnimation();
-    audioService.playSound('confirmation');
-    setIsRecording(false);
-    if (sampleCount + 1 >= SAMPLES_NEEDED) {
-      endSession();
+      const landmarks = await extractLandmarksFromImages(imageUris);
+      await saveTrainingSample(gestureLabel, landmarks);
+      setSampleCount((c) => c + 1);
+      startSampleCaptureAnimation();
+      audioService.playSound('confirmation');
+      if (sampleCount + 1 >= SAMPLES_NEEDED) {
+        endSession();
+      }
+    } catch (e) {
+      console.error('Recording failed', e);
+      setError('Recording failed');
+    } finally {
+      setIsRecording(false);
     }
   };
 
@@ -113,7 +127,7 @@ export default function TeachingScreen({ navigation }: any) {
     return (
       <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
-          <Text>Camera not available</Text>
+          <ErrorMessage message={error || 'Camera not available'} />
         </SafeAreaView>
       </LinearGradient>
     );
@@ -132,6 +146,7 @@ export default function TeachingScreen({ navigation }: any) {
             onPress={requestPermission}
             accessibilityLabel="Kameraberechtigung erteilen"
           />
+          <ErrorMessage message={error} />
         </SafeAreaView>
       </LinearGradient>
     );
@@ -189,6 +204,7 @@ export default function TeachingScreen({ navigation }: any) {
         </View>
       )}
       <Button title="Back" onPress={() => navigation.goBack()} />
+      <ErrorMessage message={error} />
       {profile && <BottomNav active="training" profileId={profile.id} />}
     </SafeAreaView>
     </LinearGradient>
