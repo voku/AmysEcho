@@ -11,6 +11,9 @@ import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useRecordingProcessor } from '../services';
+import { useTensorflowModel } from '../hooks/useTensorflowModel';
+import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
+import { setHandLandmarkModel } from '../services/landmarkExtractor';
 import { COLORS, SPACING } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 
@@ -32,10 +35,16 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [now, setNow] = useState(Date.now());
   const [landmarks, setLandmarks] = useState<number[][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const landmarkModel = useTensorflowModel(HAND_LANDMARKER_MODEL);
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
+
+  useEffect(() => {
+    setHandLandmarkModel(landmarkModel);
+    return () => setHandLandmarkModel(null);
+  }, [landmarkModel]);
 
   const isFocused = useIsFocused();
   const [appState, setAppState] = useState(AppState.currentState);
