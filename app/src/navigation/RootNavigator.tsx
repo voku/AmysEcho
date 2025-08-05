@@ -1,24 +1,44 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import OnboardingScreen from '../screens/OnboardingScreen';
-import ProfileSelectScreen from '../screens/ProfileSelectScreen';
-import RecognitionScreen from '../screens/RecognitionScreen';
-import CorrectionScreen from '../screens/CorrectionScreen';
-import TrainingScreen from '../screens/TrainingScreen';
-import ParentScreen from '../screens/ParentScreen';
-import ProfileManagerScreen from '../screens/ProfileManagerScreen';
-import ParentalGateScreen from '../screens/ParentalGateScreen';
-import AdminScreen from '../screens/AdminScreen';
-import DashboardScreen from '../screens/DashboardScreen';
-import HelpScreen from '../screens/HelpScreen';
 import { RootStackParamList } from './types';
+
+const lazyScreen = (
+  factory: () => Promise<any>,
+): React.LazyExoticComponent<React.ComponentType<any>> =>
+  React.lazy(
+    factory as () => Promise<{ default: React.ComponentType<any> }>,
+  );
+
+const OnboardingScreen = lazyScreen(() => import('../screens/OnboardingScreen.js'));
+const ProfileSelectScreen = lazyScreen(() => import('../screens/ProfileSelectScreen.js'));
+const RecognitionScreen = lazyScreen(() => import('../screens/RecognitionScreen.js'));
+const CorrectionScreen = lazyScreen(() => import('../screens/CorrectionScreen.js'));
+const TrainingScreen = lazyScreen(() => import('../screens/TrainingScreen.js'));
+const ParentScreen = lazyScreen(() => import('../screens/ParentScreen.js'));
+const ProfileManagerScreen = lazyScreen(
+  () => import('../screens/ProfileManagerScreen.js'),
+);
+const ParentalGateScreen = lazyScreen(
+  () => import('../screens/ParentalGateScreen.js'),
+);
+const AdminScreen = lazyScreen(() => import('../screens/AdminScreen.js'));
+const DashboardScreen = lazyScreen(() => import('../screens/DashboardScreen.js'));
+const HelpScreen = lazyScreen(() => import('../screens/HelpScreen.js'));
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const Loading = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <ActivityIndicator size="large" />
+  </View>
+);
+
 const RootNavigator = () => {
   return (
-    <Stack.Navigator initialRouteName="Onboarding">
+    <Suspense fallback={<Loading />}>
+      <Stack.Navigator initialRouteName="Onboarding">
       <Stack.Screen
         name="Onboarding"
         component={OnboardingScreen}
@@ -74,7 +94,8 @@ const RootNavigator = () => {
         component={HelpScreen}
         options={{ title: 'Hilfe' }}
       />
-    </Stack.Navigator>
+      </Stack.Navigator>
+    </Suspense>
   );
 };
 
