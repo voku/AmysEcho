@@ -16,6 +16,7 @@ import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 import { setHandLandmarkModel } from '../services/landmarkExtractor';
 import { COLORS, SPACING } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -35,6 +36,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [now, setNow] = useState(Date.now());
   const [landmarks, setLandmarks] = useState<number[][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const landmarkModel = useTensorflowModel(HAND_LANDMARKER_MODEL);
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
@@ -59,7 +61,12 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   useEffect(() => {
-    loadProfile().then(setProfile);
+    loadProfile()
+      .then(setProfile)
+      .catch((e) => {
+        console.error('Failed to load profile', e);
+        setError('Failed to load profile');
+      });
   }, []);
 
   const canUseCamera =
@@ -81,6 +88,11 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const startRecording = () => {
     if (!gestureId) return;
+    if (!device) {
+      setError('Camera not available');
+      return;
+    }
+    setError(null);
     setRecordedLandmarks([]);
     setFramesCaptured(0);
     setLastDetection(0);
@@ -90,8 +102,13 @@ export default function TrainingScreen({ navigation, route }: any) {
   const stopRecording = async () => {
     setIsRecording(false);
     if (!gestureId || recordedLandmarks.length < 10) return;
-    await saveTrainingSample(gestureId, recordedLandmarks);
-    setCount((c) => c + 1);
+    try {
+      await saveTrainingSample(gestureId, recordedLandmarks);
+      setCount((c) => c + 1);
+    } catch (e) {
+      console.error('Failed to save training sample', e);
+      setError('Failed to save training sample');
+    }
   };
 
   const handleFinish = () => {
@@ -152,6 +169,7 @@ export default function TrainingScreen({ navigation, route }: any) {
             accessibilityLabel="Kameraberechtigung erteilen"
           />
         </View>
+        <ErrorMessage message={error} />
         {profile && <BottomNav active="training" profileId={profile.id} />}
       </SafeAreaView>
     );
@@ -223,6 +241,7 @@ export default function TrainingScreen({ navigation, route }: any) {
           />
         )}
       </View>
+      <ErrorMessage message={error} />
       {profile && <BottomNav active="training" profileId={profile.id} />}
     </SafeAreaView>
   );
