@@ -1,3 +1,5 @@
+import { LOG_LEVEL } from '../constants';
+
 enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -8,8 +10,20 @@ enum LogLevel {
 declare const __DEV__: boolean | undefined;
 const isDev: boolean = typeof __DEV__ !== 'undefined' ? __DEV__ : false;
 
+const levelMap: Record<string, LogLevel> = {
+  debug: LogLevel.DEBUG,
+  info: LogLevel.INFO,
+  warn: LogLevel.WARN,
+  error: LogLevel.ERROR,
+};
+
 class Logger {
-  private level: LogLevel = isDev ? LogLevel.DEBUG : LogLevel.INFO;
+  private level: LogLevel;
+
+  constructor() {
+    const defaultLevel = isDev ? LogLevel.DEBUG : LogLevel.INFO;
+    this.level = levelMap[LOG_LEVEL] ?? defaultLevel;
+  }
 
   debug(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.DEBUG) {

@@ -11,6 +11,7 @@ import {
   REMOTE_RETRY_MS,
   REMOTE_TIMEOUT_MS,
 } from '../constants';
+import { logger } from '../utils/logger';
 
 interface Services {
   mlService: typeof mlService;
@@ -84,7 +85,7 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
 
         return () => clearInterval(interval);
       } catch (e) {
-        console.error('Failed to initialize services:', e);
+        logger.error('Failed to initialize services:', e);
         setAreServicesReady(true);
       }
     }

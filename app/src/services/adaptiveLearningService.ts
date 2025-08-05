@@ -2,6 +2,7 @@ import { database } from '../../db';
 import { GestureDefinition } from '../../db/models';
 import { loadUsageStats } from './usageTracker';
 import { Q } from '@nozbe/watermelondb';
+import { logger } from '../utils/logger';
 
 export const adaptiveLearningService = {
   /**
@@ -42,7 +43,7 @@ export const adaptiveLearningService = {
       }
       return null;
     } catch (error) {
-      console.error('Error fetching weak gesture:', error);
+      logger.error('Error fetching weak gesture:', error);
       return null;
     }
   },
@@ -68,7 +69,7 @@ export async function recordInteraction(gestureId: string, wasSuccessful: boolea
     });
     return true; // Indicate success
   } catch (error) {
-    console.error('Error recording interaction:', error);
+    logger.error('Error recording interaction:', error);
     return false; // Indicate failure
   }
 }

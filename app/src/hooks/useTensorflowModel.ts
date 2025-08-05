@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TensorflowModel, loadTensorflowModel } from 'react-native-fast-tflite';
 import { loadCustomModelUri } from '../storage';
+import { logger } from '../utils/logger';
 
 /**
  * Load a TensorFlow Lite model with optional personalization support.
@@ -29,7 +30,7 @@ export function useTensorflowModel(
         loaded = await loadTensorflowModel(source);
         if (isMounted) setModel(loaded);
       } catch (e) {
-        console.error('Model load failed', e);
+        logger.error('Model load failed', e);
       }
     }
 

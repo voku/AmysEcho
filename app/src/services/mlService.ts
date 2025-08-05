@@ -3,6 +3,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import type { Frame } from 'react-native-vision-camera';
 import { useFrameProcessor } from 'react-native-vision-camera';
 import { useSharedValue } from 'react-native-reanimated';
+import { logger } from '../utils/logger';
 
 let FileSystem: typeof import('expo-file-system') | null = null;
 
@@ -18,10 +19,8 @@ try {
   const worklets = require('react-native-worklets-core');
   runOnJS = worklets.runOnJS;
 } catch (e) {
-  console.warn('Worklets not available, using fallback:', e);
+  logger.warn('Worklets not available, using fallback:', e);
 }
-
-import { logger } from '../utils/logger';
 import { extractHandLandmarks, setHandLandmarkModel } from './landmarkExtractor';
 import { DetailedGestureResult, ProcessedFrame, MLServiceConfig } from '../types/ml';
 import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
@@ -240,7 +239,7 @@ class MachineLearningService {
           requiresConfirmation: confidence < this.confidenceThreshold,
         };
       } catch (error) {
-        console.error('Local gesture classification failed:', error);
+        logger.error('Local gesture classification failed:', error);
         result = this.createUncertainResult('Local inference error');
       }
     }

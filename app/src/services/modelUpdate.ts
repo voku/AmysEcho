@@ -3,6 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { loadBackendApiToken, saveCustomModelUri } from '../storage';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
 import { API_URL } from '../constants';
+import { logger } from '../utils/logger';
 
 export async function checkForModelUpdate(): Promise<boolean> {
   const net = await NetInfo.fetch();
@@ -23,7 +24,7 @@ export async function checkForModelUpdate(): Promise<boolean> {
     await saveCustomModelUri(res.uri);
     return true;
   } catch (e) {
-    console.log('model update failed', e);
+    logger.warn('model update failed', e);
     return false;
   }
 }

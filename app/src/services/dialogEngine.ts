@@ -1,5 +1,6 @@
 import { Symbol } from '../../db/models';
 import { loadOpenAIApiKey } from '../storage';
+import { logger } from '../utils/logger';
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const MODEL = 'gpt-4-turbo';
@@ -76,7 +77,7 @@ class DialogEngine {
       });
 
       if (!response.ok) {
-        console.error(`OpenAI API returned status ${response.status}`);
+        logger.error(`OpenAI API returned status ${response.status}`);
         return { nextWords: [], caregiverPhrases: [] };
       }
 
@@ -87,7 +88,7 @@ class DialogEngine {
         caregiverPhrases: content.caregiverPhrases || [],
       } as LLMSuggestionResponse;
     } catch (error) {
-      console.error('LLM suggestion fetch error:', error);
+      logger.error('LLM suggestion fetch error:', error);
       return { nextWords: [], caregiverPhrases: [] };
     }
   }

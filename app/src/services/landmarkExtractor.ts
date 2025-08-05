@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import { TensorflowModel, loadTensorflowModel } from 'react-native-fast-tflite';
 import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 import { Frame } from 'react-native-vision-camera';
+import { logger } from '../utils/logger';
 
 let handModel: TensorflowModel | null = null;
 
@@ -14,7 +15,7 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
   if (!handModel) return null;
   try {
     if (frame.pixelFormat !== 'rgb') {
-      console.warn(`Unsupported pixel format: ${frame.pixelFormat}`);
+      logger.warn(`Unsupported pixel format: ${frame.pixelFormat}`);
       return null;
     }
     const buffer = frame.toArrayBuffer();
@@ -22,7 +23,7 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
     const landmarks = result[0] as number[][] | undefined;
     return landmarks ?? null;
   } catch (e) {
-    console.error('Hand landmark extraction failed', e);
+    logger.error('Hand landmark extraction failed', e);
     return null;
   }
 }
@@ -48,7 +49,7 @@ export async function extractLandmarksFromImages(imagePaths: string[]): Promise<
       allLandmarks.push(simulatedLandmarks);
       await FileSystem.deleteAsync(imagePath, { idempotent: true });
     } catch (e) {
-      console.error('Image-based landmark extraction failed', e);
+      logger.error('Image-based landmark extraction failed', e);
     }
   }
 
