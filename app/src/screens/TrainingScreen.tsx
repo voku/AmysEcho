@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Button, StyleSheet, AppState } from 'react-native';
+import { View, Text, Button, StyleSheet, AppState, SafeAreaView } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import {
   Camera,
@@ -7,11 +7,12 @@ import {
   useCameraPermission,
 } from 'react-native-vision-camera';
 import Svg, { Circle } from 'react-native-svg';
-import { saveTrainingSample } from '../storage';
+import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useRecordingProcessor } from '../services';
 import { COLORS, SPACING } from '../constants/ui';
+import BottomNav from '../components/BottomNav';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -30,6 +31,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [landmarks, setLandmarks] = useState<number[][]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -45,6 +47,10 @@ export default function TrainingScreen({ navigation, route }: any) {
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    loadProfile().then(setProfile);
   }, []);
 
   const canUseCamera =
@@ -86,9 +92,12 @@ export default function TrainingScreen({ navigation, route }: any) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.backgroundStart,
+    },
+    content: {
+      flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.backgroundStart,
     },
     title: {
       fontSize: largeText ? 24 : 20,
@@ -125,80 +134,86 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   if (!hasPermission) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Training Mode</Text>
-        <Button
-          title="Grant Camera Permission"
-          onPress={requestPermission}
-          accessibilityLabel="Kameraberechtigung erteilen"
-        />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Training Mode</Text>
+          <Button
+            title="Grant Camera Permission"
+            onPress={requestPermission}
+            accessibilityLabel="Kameraberechtigung erteilen"
+          />
+        </View>
+        {profile && <BottomNav active="training" profileId={profile.id} />}
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Training {gestureId ? `for ${gestureId}` : 'Mode'}</Text>
-      {!gestureId ? (
-        gestureModel.gestures.map((g) => (
-          <Button
-            key={g.id}
-            title={g.label}
-            onPress={() => setGestureId(g.id)}
-            accessibilityLabel={`Trainiere Geste ${g.label}`}
-          />
-        ))
-      ) : count < 5 ? (
-        <>
-          {device && (
-            <View style={styles.cameraContainer}>
-              <Camera
-                style={styles.camera}
-                device={device}
-                isActive={canUseCamera}
-                frameProcessor={recordingProcessor}
-              />
-              {landmarks.length > 0 && (
-                <Svg
-                  style={StyleSheet.absoluteFill}
-                  viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
-                  pointerEvents="none"
-                >
-                  {landmarks.map((l, idx) => (
-                    <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill="yellow" />
-                  ))}
-                </Svg>
-              )}
-              <View style={styles.detectionIndicator}>
-                <View
-                  style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Training {gestureId ? `for ${gestureId}` : 'Mode'}</Text>
+        {!gestureId ? (
+          gestureModel.gestures.map((g) => (
+            <Button
+              key={g.id}
+              title={g.label}
+              onPress={() => setGestureId(g.id)}
+              accessibilityLabel={`Trainiere Geste ${g.label}`}
+            />
+          ))
+        ) : count < 5 ? (
+          <>
+            {device && (
+              <View style={styles.cameraContainer}>
+                <Camera
+                  style={styles.camera}
+                  device={device}
+                  isActive={canUseCamera}
+                  frameProcessor={recordingProcessor}
                 />
-                <Text style={styles.detectionText}>
-                  {isRecording
-                    ? detectionActive
-                      ? `Recording... ${framesCaptured}`
-                      : 'No hand detected'
-                    : detectionActive
-                    ? 'Hand detected'
-                    : 'No hand'}
-                </Text>
+                {landmarks.length > 0 && (
+                  <Svg
+                    style={StyleSheet.absoluteFill}
+                    viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
+                    pointerEvents="none"
+                  >
+                    {landmarks.map((l, idx) => (
+                      <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill="yellow" />
+                    ))}
+                  </Svg>
+                )}
+                <View style={styles.detectionIndicator}>
+                  <View
+                    style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}
+                  />
+                  <Text style={styles.detectionText}>
+                    {isRecording
+                      ? detectionActive
+                        ? `Recording... ${framesCaptured}`
+                        : 'No hand detected'
+                      : detectionActive
+                      ? 'Hand detected'
+                      : 'No hand'}
+                  </Text>
+                </View>
               </View>
-            </View>
-          )}
+            )}
+            <Button
+              title={isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / 5`}
+              onPress={isRecording ? stopRecording : startRecording}
+              accessibilityLabel="Gestenaufnahme starten"
+              disabled={!gestureId}
+            />
+          </>
+        ) : (
           <Button
-            title={isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / 5`}
-            onPress={isRecording ? stopRecording : startRecording}
-            accessibilityLabel="Gestenaufnahme starten"
-            disabled={!gestureId}
+            title="Save Training Data"
+            onPress={handleFinish}
+            accessibilityLabel="Trainingsdaten speichern"
           />
-        </>
-      ) : (
-        <Button
-          title="Save Training Data"
-          onPress={handleFinish}
-          accessibilityLabel="Trainingsdaten speichern"
-        />
-      )}
-    </View>
+        )}
+      </View>
+      {profile && <BottomNav active="training" profileId={profile.id} />}
+    </SafeAreaView>
   );
 }

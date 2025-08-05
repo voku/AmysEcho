@@ -6,7 +6,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { COLORS, SPACING } from '../constants/ui';
 
 interface Props {
-  active: 'recognition' | 'symbols' | 'training';
+  active: 'recognition' | 'training' | 'parent';
   profileId: string;
 }
 
@@ -31,12 +31,24 @@ export default function BottomNav({ active, profileId }: Props) {
         style={styles.item}
         accessibilityLabel="Learn"
       >
-        <Settings
+        <BookOpen
           size={24}
           color={active === 'training' ? COLORS.primaryAccent : COLORS.secondaryAccent}
           style={styles.icon}
         />
         <Text style={[styles.label, active === 'training' && styles.active]}>Learn</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => navigation.navigate('ProfileSelect')}
+        style={styles.item}
+        accessibilityLabel="Menu"
+      >
+        <Settings
+          size={24}
+          color={active === 'parent' ? COLORS.primaryAccent : COLORS.secondaryAccent}
+          style={styles.icon}
+        />
+        <Text style={[styles.label, active === 'parent' && styles.active]}>Menu</Text>
       </Pressable>
     </View>
   );

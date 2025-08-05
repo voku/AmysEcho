@@ -2,6 +2,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import ProfileSelectScreen from '../screens/ProfileSelectScreen';
 import RecognitionScreen from '../screens/RecognitionScreen';
 import CorrectionScreen from '../screens/CorrectionScreen';
 import TrainingScreen from '../screens/TrainingScreen';
@@ -21,6 +22,11 @@ const RootNavigator = () => {
       <Stack.Screen
         name="Onboarding"
         component={OnboardingScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ProfileSelect"
+        component={ProfileSelectScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

@@ -29,7 +29,7 @@ export default function OnboardingScreen({ navigation }: any) {
     });
     setActiveVocabularySet(vocabSet);
     update({ largeText, highContrast });
-    navigation.replace('Recognition', { profileId: profile.id });
+    navigation.replace('ProfileSelect');
   };
 
   const styles = StyleSheet.create({

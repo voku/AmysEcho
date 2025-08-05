@@ -55,7 +55,7 @@ export default function ParentScreen({ navigation }: any) {
       />
       <Button
         title="Parental Gate"
-        onPress={() => navigation.navigate('ParentalGate')}
+        onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
         accessibilityLabel="Zugangsprüfung"
       />
       <Button
