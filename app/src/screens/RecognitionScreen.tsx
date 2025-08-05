@@ -34,7 +34,8 @@ import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { useGestureClassifier } from '../services';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Line } from 'react-native-svg';
+import { HAND_CONNECTIONS } from '../constants/hand';
 
 const { width, height } = Dimensions.get('window');
 
@@ -531,8 +532,30 @@ export default function RecognitionScreen({ navigation }: any) {
                 viewBox={`0 0 ${width} ${height}`}
                 pointerEvents="none"
               >
+                {HAND_CONNECTIONS.map(([startIdx, endIdx], idx) => {
+                  const start = landmarks[startIdx];
+                  const end = landmarks[endIdx];
+                  if (!start || !end) return null;
+                  return (
+                    <Line
+                      key={`conn-${idx}`}
+                      x1={start[0] * width}
+                      y1={start[1] * height}
+                      x2={end[0] * width}
+                      y2={end[1] * height}
+                      stroke="yellow"
+                      strokeWidth={2}
+                    />
+                  );
+                })}
                 {landmarks.map((l, idx) => (
-                  <Circle key={idx} cx={l[0] * width} cy={l[1] * height} r={4} fill="yellow" />
+                  <Circle
+                    key={`point-${idx}`}
+                    cx={l[0] * width}
+                    cy={l[1] * height}
+                    r={4}
+                    fill="yellow"
+                  />
                 ))}
               </Svg>
             )}
