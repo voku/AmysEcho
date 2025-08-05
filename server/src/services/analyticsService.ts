@@ -16,20 +16,30 @@ export function computeLearningAnalytics(db: Database): LearningAnalytics {
     (l) => l.timestamp >= prevWeekAgo && l.timestamp < weekAgo,
   );
 
+  const dayAgo = now - 24 * 60 * 60 * 1000;
+  const lastDay = db.interactionLogs.filter((l) => l.timestamp >= dayAgo);
+
   const rate = (logs: typeof recent) =>
     logs.length === 0
       ? 0
       : logs.filter((l) => l.wasSuccessful).length / logs.length;
 
+  const successRate24h = rate(lastDay);
   const successRate7d = rate(recent);
   const improvementTrend = successRate7d - rate(prev);
 
+  const avgConfidenceScore =
+    recent.length === 0
+      ? 0
+      : recent.reduce((sum, l) => sum + l.confidenceScore, 0) /
+        recent.length;
+
   return {
     id: 'default',
-    gestureDefinitionId: 'overall', // Placeholder for now
-    successRate24h: 0, // Placeholder for now
+    gestureDefinitionId: 'overall',
+    successRate24h: Number(successRate24h.toFixed(2)),
     successRate7d: Number(successRate7d.toFixed(2)),
-    avgConfidenceScore: 0, // Placeholder for now
+    avgConfidenceScore: Number(avgConfidenceScore.toFixed(2)),
     improvementTrend: Number(improvementTrend.toFixed(2)),
     lastCalculated: now,
   };
@@ -39,8 +49,11 @@ export function refreshLearningAnalytics(db: Database): void {
   const analytics = computeLearningAnalytics(db);
   const existing = db.learningAnalytics.find((a) => a.id === 'default');
   if (existing) {
+    existing.successRate24h = analytics.successRate24h;
     existing.successRate7d = analytics.successRate7d;
+    existing.avgConfidenceScore = analytics.avgConfidenceScore;
     existing.improvementTrend = analytics.improvementTrend;
+    existing.lastCalculated = analytics.lastCalculated;
   } else {
     db.learningAnalytics.push(analytics);
   }
