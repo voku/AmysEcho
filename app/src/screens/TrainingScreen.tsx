@@ -179,6 +179,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                   device={device}
                   isActive={canUseCamera}
                   frameProcessor={recordingProcessor}
+                  pixelFormat="rgb"
                 />
                 {landmarks.length > 0 && (
                   <Svg

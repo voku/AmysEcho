@@ -538,6 +538,7 @@ export default function RecognitionScreen({ navigation }: any) {
               device={device}
               isActive={true}
               frameProcessor={frameProcessor}
+              pixelFormat="rgb"
             />
           )}
 

@@ -13,8 +13,12 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
   'worklet';
   if (!handModel) return null;
   try {
-    // Assuming frame.buffer contains the raw pixel data as a Uint8Array
-    const result = handModel.runSync([new Uint8Array(frame.toArrayBuffer())]) as any[];
+    if (frame.pixelFormat !== 'rgb') {
+      console.warn(`Unsupported pixel format: ${frame.pixelFormat}`);
+      return null;
+    }
+    const buffer = frame.toArrayBuffer();
+    const result = handModel.runSync([new Uint8Array(buffer)]) as any[];
     const landmarks = result[0] as number[][] | undefined;
     return landmarks ?? null;
   } catch (e) {
