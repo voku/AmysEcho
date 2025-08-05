@@ -61,6 +61,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [landmarks, setLandmarks] = useState<number[][]>([]);
+  const [processingError, setProcessingError] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -133,6 +134,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const onGestureResult = useCallback(async (result: any, detectedLandmarks: number[][]) => {
     setLastDetection(Date.now());
     setLandmarks(detectedLandmarks);
+    setProcessingError(null);
     if (isProcessing) return;
 
     if (
@@ -212,7 +214,7 @@ export default function RecognitionScreen({ navigation }: any) {
     }
   }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
 
-  const frameProcessor = useGestureClassifier(onGestureResult, isProcessing);
+  const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, setProcessingError);
   const detectionActive = now - lastDetection < 1000;
 
   useEffect(() => {
@@ -346,6 +348,20 @@ export default function RecognitionScreen({ navigation }: any) {
     detectionText: {
       color: COLORS.highContrastText,
       fontSize: largeText ? 18 : 16,
+    },
+    errorOverlay: {
+      position: 'absolute',
+      bottom: SPACING.md,
+      left: SPACING.md,
+      right: SPACING.md,
+      backgroundColor: 'rgba(255, 0, 0, 0.7)',
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+    },
+    errorText: {
+      color: COLORS.highContrastText,
+      fontSize: largeText ? 16 : 14,
+      textAlign: 'center',
     },
     status: {
       fontSize: largeText ? 48 : 40,
@@ -552,6 +568,11 @@ export default function RecognitionScreen({ navigation }: any) {
                   <Circle key={`point-${idx}`} cx={l[0] * width} cy={l[1] * height} r={5} fill="yellow" />
                 ))}
               </Svg>
+            )}
+            {processingError && (
+              <View style={styles.errorOverlay}>
+                <Text style={styles.errorText}>{processingError}</Text>
+              </View>
             )}
             <View style={styles.detectionIndicator}>
               <View
