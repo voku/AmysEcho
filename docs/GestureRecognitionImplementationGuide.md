@@ -49,7 +49,7 @@ useEffect(() => {
 
 ## 3. Frame Processing
 
-Screens that perform recognition use the `useGestureClassifier` hook from `app/src/services/mlService.ts`. This hook returns a memoized frame processor worklet that extracts landmarks and classifies them, invoking the provided callback with results.
+Screens that perform recognition use the `useGestureClassifier` hook from `app/src/services/mlService.ts`. This hook returns a memoized frame processor worklet that extracts landmarks and classifies them, invoking the provided callback with results. An optional third parameter lets you react to processing errors.
 
 Example from `RecognitionScreen.tsx`:
 
@@ -64,7 +64,11 @@ const onGestureResult = useCallback(async (result: any) => {
   }
 }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
 
-const frameProcessor = useGestureClassifier(onGestureResult, isProcessing);
+const handleError = (msg: string) => {
+  console.warn('Frame processor error:', msg);
+};
+
+const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, handleError);
 ```
 
 Attach the frame processor to the camera component:

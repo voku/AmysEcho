@@ -430,9 +430,13 @@ export const mlService = new MachineLearningService();
 export const useGestureClassifier = (
   onResult: (result: DetailedGestureResult | null, landmarks: number[][]) => void,
   isProcessing: boolean,
+  onError?: (message: string) => void,
 ) => {
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
+
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   const externalProcessingRef = useRef(isProcessing);
   externalProcessingRef.current = isProcessing;
@@ -526,6 +530,9 @@ export const useGestureClassifier = (
         runOnJS(enqueueFrame)(processed);
       } catch (error: any) {
         console.error('WORKLET ERROR:', error.message);
+        if (onErrorRef.current) {
+          runOnJS(onErrorRef.current)(error.message);
+        }
       }
     },
     [isServiceReady],
