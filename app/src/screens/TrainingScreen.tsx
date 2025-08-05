@@ -17,6 +17,7 @@ import { setHandLandmarkModel } from '../services/landmarkExtractor';
 import { COLORS, SPACING } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import ErrorMessage from '../components/ErrorMessage';
+import { logger } from '../utils/logger';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -64,7 +65,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     loadProfile()
       .then(setProfile)
       .catch((e) => {
-        console.error('Failed to load profile', e);
+        logger.error('Failed to load profile', e);
         setError('Failed to load profile');
       });
   }, []);
@@ -106,7 +107,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       await saveTrainingSample(gestureId, recordedLandmarks);
       setCount((c) => c + 1);
     } catch (e) {
-      console.error('Failed to save training sample', e);
+      logger.error('Failed to save training sample', e);
       setError('Failed to save training sample');
     }
   };

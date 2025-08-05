@@ -37,6 +37,7 @@ import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { HAND_CONNECTIONS } from '../constants/hand';
 import ErrorMessage from '../components/ErrorMessage';
+import { logger } from '../utils/logger';
 
 const { width, height } = Dimensions.get('window');
 
@@ -81,9 +82,9 @@ export default function RecognitionScreen({ navigation }: any) {
     permissionStatus && device != null && isFocused && isCameraActive && appState === 'active';
 
   const handleRequestPermission = useCallback(async () => {
-    console.log('Requesting camera permission...');
+    logger.debug('Requesting camera permission...');
     const result = await requestPermission();
-    console.log('Permission result:', result);
+    logger.debug('Permission result:', result);
     setPermissionStatus(result);
   }, [requestPermission]);
 
@@ -163,7 +164,7 @@ export default function RecognitionScreen({ navigation }: any) {
       try {
         playSymbolAudio(entry);
       } catch (error) {
-        console.warn('Audio playback failed:', error);
+        logger.warn('Audio playback failed:', error);
       }
 
       if (useDgs && entry.dgsVideoUri) {
@@ -176,7 +177,7 @@ export default function RecognitionScreen({ navigation }: any) {
         try {
           incrementUsage(entry, profile.id);
         } catch (error) {
-          console.warn('Usage tracking failed:', error);
+          logger.warn('Usage tracking failed:', error);
         }
       }
 
@@ -189,7 +190,7 @@ export default function RecognitionScreen({ navigation }: any) {
         });
         setSuggestions(adv);
       } catch (error) {
-        console.warn('Failed to get LLM suggestions:', error);
+        logger.warn('Failed to get LLM suggestions:', error);
       }
 
       setTimeout(() => {
@@ -253,7 +254,7 @@ export default function RecognitionScreen({ navigation }: any) {
       try {
         playSymbolAudio(entry);
       } catch (error) {
-        console.warn('Audio playback failed:', error);
+        logger.warn('Audio playback failed:', error);
       }
 
       if (useDgs && entry.dgsVideoUri) {
@@ -266,7 +267,7 @@ export default function RecognitionScreen({ navigation }: any) {
         try {
           incrementUsage(entry, profile.id);
         } catch (error) {
-          console.warn('Usage tracking failed:', error);
+          logger.warn('Usage tracking failed:', error);
         }
       }
 
@@ -279,7 +280,7 @@ export default function RecognitionScreen({ navigation }: any) {
         });
         setSuggestions(adv);
       } catch (error) {
-        console.warn('Failed to get LLM suggestions:', error);
+        logger.warn('Failed to get LLM suggestions:', error);
       }
 
       setPendingGesture(null);
@@ -288,7 +289,7 @@ export default function RecognitionScreen({ navigation }: any) {
         setStatus("I'm listening...");
       }, 3000);
     } catch (error) {
-      console.error('Failed to save correction:', error);
+      logger.error('Failed to save correction:', error);
       setIsProcessing(false);
     }
   };

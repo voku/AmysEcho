@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { loadProfile, TrainingSample, loadBackendApiToken } from '../storage';
 import { API_URL } from '../constants';
+import { logger } from '../utils/logger';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
@@ -33,6 +34,6 @@ export async function syncTrainingData(): Promise<void> {
     for (const p of pending) p.syncStatus = 'synced';
     await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
   } catch (e) {
-    console.log('training sync failed', e);
+    logger.warn('training sync failed', e);
   }
 }

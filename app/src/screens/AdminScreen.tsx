@@ -24,6 +24,7 @@ import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
 import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { logger } from '../utils/logger';
 
 export default function AdminScreen({ navigation }: any) {
   const [symbols, setSymbols] = useState<DBSymbol[]>([]);
@@ -79,7 +80,7 @@ export default function AdminScreen({ navigation }: any) {
           await FileSystem.moveAsync({ from: audioUri, to: dest });
           finalUri = dest;
         } catch (e) {
-          console.error('move failed', e);
+          logger.error('move failed', e);
         }
       }
     }
@@ -132,7 +133,7 @@ export default function AdminScreen({ navigation }: any) {
       await saveCustomModelUri(res.uri);
       Alert.alert('Model downloaded');
     } catch (e) {
-      console.error(e);
+      logger.error('Model download failed', e);
       Alert.alert('Download failed', (e as Error).message || 'Unknown error');
     }
   };

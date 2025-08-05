@@ -14,6 +14,7 @@ import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import ErrorMessage from '../components/ErrorMessage';
+import { logger } from '../utils/logger';
 
 export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -36,7 +37,7 @@ export default function TeachingScreen({ navigation }: any) {
     loadProfile()
       .then(setProfile)
       .catch((e) => {
-        console.error('Failed to load profile', e);
+        logger.error('Failed to load profile', e);
         setError('Failed to load profile');
       });
   }, []);
@@ -71,7 +72,7 @@ export default function TeachingScreen({ navigation }: any) {
       setSampleCount(0);
       audioService.speak(`Okay, let's learn how to make "${gestureLabel}".`);
     } catch (e) {
-      console.error('Failed to start teaching session', e);
+      logger.error('Failed to start teaching session', e);
       setError('Failed to start teaching session');
     }
   };
@@ -96,7 +97,7 @@ export default function TeachingScreen({ navigation }: any) {
         endSession();
       }
     } catch (e) {
-      console.error('Recording failed', e);
+      logger.error('Recording failed', e);
       setError('Recording failed');
     } finally {
       setIsRecording(false);

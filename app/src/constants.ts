@@ -12,3 +12,11 @@ export const REMOTE_RETRY_MS = Number(
 export const REMOTE_TIMEOUT_MS = Number(
   process.env.EXPO_PUBLIC_REMOTE_TIMEOUT_MS || 400,
 );
+
+export const LOG_LEVEL =
+  (process.env.EXPO_PUBLIC_LOG_LEVEL ||
+    (process.env.NODE_ENV === 'development' ? 'debug' : 'info')) as
+    | 'debug'
+    | 'info'
+    | 'warn'
+    | 'error';
