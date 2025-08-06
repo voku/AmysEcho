@@ -2,7 +2,9 @@ jest.mock('react-native-vision-camera', () => ({
   useFrameProcessor: () => {},
 }));
 
-import { mlService } from '../src/services/mlService';
+const loadTensorflowModelMock = jest
+  .fn()
+  .mockResolvedValue({ runSync: () => [[0]] });
 
 jest.mock('react-native-fast-tflite', () => ({
   TensorflowModel: class {
@@ -10,17 +12,19 @@ jest.mock('react-native-fast-tflite', () => ({
       return [[0]];
     }
   },
-  loadTensorflowModel: async () => ({
-    runSync: () => [[0]],
-  }),
+  loadTensorflowModel: (...args: any[]) => loadTensorflowModelMock(...args),
 }));
 
 jest.mock('react-native-worklets-core', () => ({
   runOnJS: (fn: any) => fn,
 }));
 
+const downloadAsyncMock = jest
+  .fn()
+  .mockResolvedValue({ uri: '/tmp/temp_model.tflite' });
+
 jest.mock('expo-file-system', () => ({
-  downloadAsync: async () => ({ uri: 'test' }),
+  downloadAsync: (...args: any[]) => downloadAsyncMock(...args),
   documentDirectory: '/tmp/',
 }));
 
@@ -39,13 +43,17 @@ jest.mock('react-native-reanimated', () => ({
   useSharedValue: (value: any) => ({ value }),
 }));
 
+import { mlService } from '../src/services/mlService';
+
 describe('mlService', () => {
   beforeEach(() => {
     mlService.unloadModels();
     (mlService as any).gestureBuffer = [];
     (mlService as any).lastRecognizedGesture = null;
     (mlService as any).lastGestureTime = 0;
-    jest.resetAllMocks();
+    loadTensorflowModelMock.mockClear();
+    downloadAsyncMock.mockClear();
+    (global as any).fetch = undefined;
   });
 
   it('should load models and be ready', async () => {
@@ -54,6 +62,23 @@ describe('mlService', () => {
 
     await mlService.loadModels(landmarkTflite, gestureTflite, []);
 
+    expect(mlService.isServiceReady()).toBe(true);
+  });
+
+  it('loads TFLite models from provided URLs', async () => {
+    await mlService.loadModels(
+      { url: 'file:///landmark.tflite' },
+      { url: 'file:///gesture.tflite' },
+      [],
+    );
+
+    expect(downloadAsyncMock).not.toHaveBeenCalled();
+    expect(loadTensorflowModelMock).toHaveBeenNthCalledWith(1, {
+      url: 'file:///landmark.tflite',
+    });
+    expect(loadTensorflowModelMock).toHaveBeenNthCalledWith(2, {
+      url: 'file:///gesture.tflite',
+    });
     expect(mlService.isServiceReady()).toBe(true);
   });
 
