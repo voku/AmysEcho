@@ -10,5 +10,6 @@ export type RootStackParamList = {
   ParentalGate: { target: string };
   Admin: undefined;
   Dashboard: undefined;
+  Progress: undefined;
   Help: undefined;
 };

@@ -30,6 +30,7 @@ const ParentalGateScreen = lazyScreen(
 const AdminScreen = lazyScreen(() => import('../screens/AdminScreen.js'));
 const DashboardScreen = lazyScreen(() => import('../screens/DashboardScreen.js'));
 const HelpScreen = lazyScreen(() => import('../screens/HelpScreen.js'));
+const ProgressScreen = lazyScreen(() => import('../screens/ProgressScreen.js'));
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -107,6 +108,11 @@ const RootNavigator = () => {
         name="Dashboard"
         component={DashboardScreen}
         options={{ title: 'Analytics' }}
+      />
+      <Stack.Screen
+        name="Progress"
+        component={ProgressScreen}
+        options={{ title: 'Progress' }}
       />
       <Stack.Screen
         name="Help"
