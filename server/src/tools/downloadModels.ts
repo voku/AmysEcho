@@ -76,13 +76,13 @@ const models: ModelSpec[] = [
     url: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task',
     dest: HAND_LANDMARKER_MODEL_PATH,
     extract: extractHandLandmarker,
-    version: '1.0.0',
+    version: '1',
   },
   {
     url: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task',
     dest: GESTURE_CLASSIFIER_MODEL_PATH,
     extract: extractGestureClassifier,
-    version: '1.0.0',
+    version: '1',
   },
 ];
 

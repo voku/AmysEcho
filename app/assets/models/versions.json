@@ -1,4 +1,4 @@
 {
-  "hand_landmarker.tflite": "1.0.0",
-  "gesture_classifier.tflite": "1.0.0"
+  "hand_landmarker.tflite": "1",
+  "gesture_classifier.tflite": "1"
 }
