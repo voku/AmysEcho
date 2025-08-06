@@ -183,7 +183,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 ### Documentation & Support
 - [ ] **User Documentation**
   - [x] Create caregiver quick start guide
-  - Add troubleshooting documentation
+  - [x] Add troubleshooting documentation
   - Create video tutorials for setup
   - Translate documentation to German
 
