@@ -40,6 +40,14 @@ jest.mock('react-native-reanimated', () => ({
 }));
 
 describe('mlService', () => {
+  beforeEach(() => {
+    mlService.unloadModels();
+    (mlService as any).gestureBuffer = [];
+    (mlService as any).lastRecognizedGesture = null;
+    (mlService as any).lastGestureTime = 0;
+    jest.resetAllMocks();
+  });
+
   it('should load models and be ready', async () => {
     const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
     const gestureTflite: any = { runSync: () => [[0.1, 0.9]] };
@@ -47,5 +55,37 @@ describe('mlService', () => {
     await mlService.loadModels(landmarkTflite, gestureTflite, []);
 
     expect(mlService.isServiceReady()).toBe(true);
+  });
+
+  it('falls back to local model when remote classification fails', async () => {
+    const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+    const gestureTflite: any = { runSync: () => [[0.2, 0.8]] };
+
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['a', 'b']);
+
+    // simulate remote API failure
+    global.fetch = jest.fn().mockRejectedValue(new Error('network error')) as any;
+
+    const frame = {
+      landmarks: [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ],
+      width: 1,
+      height: 1,
+      timestamp: Date.now(),
+    } as any;
+
+    const onResult = jest.fn();
+
+    // first call warms up smoothing buffer
+    await mlService.processFrameAsync(frame, onResult);
+    await mlService.processFrameAsync(frame, onResult);
+
+    expect(onResult).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label: 'b', isLocal: true }),
+      frame.landmarks,
+    );
   });
 });
