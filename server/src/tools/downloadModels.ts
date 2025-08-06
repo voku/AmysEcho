@@ -8,12 +8,21 @@ import { pipeline } from 'stream';
 import {
   HAND_LANDMARKER_MODEL_PATH,
   GESTURE_CLASSIFIER_MODEL_PATH,
+  MODEL_VERSIONS_PATH,
 } from '../constants/modelPaths';
 
 interface ModelSpec {
   url: string;
   extract: (downloadedPath: string, destPath: string) => Promise<void>;
   dest: string;
+  version: string;
+}
+
+let versionManifest: Record<string, string> = {};
+try {
+  versionManifest = JSON.parse(fs.readFileSync(MODEL_VERSIONS_PATH, 'utf8'));
+} catch {
+  versionManifest = {};
 }
 
 async function downloadFile(url: string, dest: string): Promise<void> {
@@ -67,24 +76,41 @@ const models: ModelSpec[] = [
     url: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task',
     dest: HAND_LANDMARKER_MODEL_PATH,
     extract: extractHandLandmarker,
+    version: '1.0.0',
   },
   {
     url: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task',
     dest: GESTURE_CLASSIFIER_MODEL_PATH,
     extract: extractGestureClassifier,
+    version: '1.0.0',
   },
 ];
 
+async function validateModel(file: string) {
+  const stats = await fs.promises.stat(file);
+  if (stats.size === 0) throw new Error('Model file is empty');
+  const fd = await fs.promises.open(file, 'r');
+  const buffer = Buffer.alloc(4);
+  await fd.read(buffer, 0, 4, 0);
+  await fd.close();
+  if (buffer.toString() !== 'TFL3') {
+    throw new Error('Invalid TFLite model file');
+  }
+}
+
 async function ensureModel(model: ModelSpec) {
-  if (fs.existsSync(model.dest)) {
-    console.log(`${path.basename(model.dest)} already exists, skipping`);
+  const name = path.basename(model.dest);
+  if (fs.existsSync(model.dest) && versionManifest[name] === model.version) {
+    console.log(`${name} v${model.version} already present, skipping`);
     return;
   }
   const tmpFile = path.join(os.tmpdir(), path.basename(model.url));
   console.log(`Downloading ${model.url}...`);
   await downloadFile(model.url, tmpFile);
   await model.extract(tmpFile, model.dest);
+  await validateModel(model.dest);
   await fs.promises.unlink(tmpFile).catch(() => {});
+  versionManifest[name] = model.version;
   console.log(`Saved to ${model.dest}`);
 }
 
@@ -96,4 +122,8 @@ async function ensureModel(model: ModelSpec) {
       console.error(`Failed to process ${path.basename(m.dest)}:`, err);
     }
   }
+  await fs.promises.writeFile(
+    MODEL_VERSIONS_PATH,
+    JSON.stringify(versionManifest, null, 2)
+  );
 })();
