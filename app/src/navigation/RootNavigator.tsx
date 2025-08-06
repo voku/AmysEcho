@@ -1,8 +1,9 @@
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
+import { loadProfiles } from '../storage';
 
 const lazyScreen = (
   factory: () => Promise<any>,
@@ -36,9 +37,19 @@ const Loading = () => (
 );
 
 const RootNavigator = () => {
+  const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | undefined>();
+
+  useEffect(() => {
+    loadProfiles().then((profiles) => {
+      setInitialRoute(profiles.length > 0 ? 'ProfileSelect' : 'Onboarding');
+    });
+  }, []);
+
+  if (!initialRoute) return <Loading />;
+
   return (
     <Suspense fallback={<Loading />}>
-      <Stack.Navigator initialRouteName="Onboarding">
+      <Stack.Navigator initialRouteName={initialRoute}>
       <Stack.Screen
         name="Onboarding"
         component={OnboardingScreen}

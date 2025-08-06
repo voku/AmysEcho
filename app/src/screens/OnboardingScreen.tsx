@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, Button, StyleSheet, SafeAreaView, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  Switch,
+  Button,
+  StyleSheet,
+  SafeAreaView,
+  TextInput,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createProfile } from '../storage';
 import {
@@ -50,6 +58,12 @@ export default function OnboardingScreen({ navigation }: any) {
     },
     heart: { fontSize: largeText ? 80 : 64, textAlign: 'center', marginBottom: SPACING.lg, color: highContrast ? COLORS.highContrastText : COLORS.text },
     title: { fontSize: largeText ? 32 : 24, textAlign: 'center', marginBottom: SPACING.lg, color: highContrast ? COLORS.highContrastText : COLORS.text },
+    privacy: {
+      fontSize: largeText ? 18 : 14,
+      textAlign: 'center',
+      marginBottom: SPACING.lg,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
     toggleRow: {
       width: '100%',
       flexDirection: 'row',
@@ -70,6 +84,13 @@ export default function OnboardingScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <Text style={styles.heart}>❤️</Text>
       <Text style={styles.title}>Welcome to Amy's Echo</Text>
+      <Text
+        style={styles.privacy}
+        accessibilityLabel="Datenschutzhinweis"
+      >
+        Your child's data stays on this device unless you allow uploads. Uploading
+        anonymized data helps improve recognition.
+      </Text>
       <TextInput
         style={styles.input}
         placeholder="Name"
