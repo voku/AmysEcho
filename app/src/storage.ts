@@ -140,6 +140,14 @@ export async function saveTrainingSample(
   });
 }
 
+export async function loadTrainingSampleCount(
+  gestureDefinitionId: string,
+): Promise<number> {
+  const raw = await AsyncStorage.getItem(TRAINING_KEY);
+  const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
+  return data.filter((s) => s.gestureDefinitionId === gestureDefinitionId).length;
+}
+
 const API_KEY = 'openaiApiKey';
 export async function saveOpenAIApiKey(key: string): Promise<void> {
   await SecureStore.setItemAsync(API_KEY, key);

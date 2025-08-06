@@ -5,7 +5,7 @@ import { Camera, useCameraDevices } from 'react-native-vision-camera';
 import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
 import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
-import { saveTrainingSample, loadProfile, Profile } from '../storage';
+import { saveTrainingSample, loadProfile, Profile, loadTrainingSampleCount } from '../storage';
 import { extractLandmarksFromImages } from '../services/landmarkExtractor';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -63,10 +63,15 @@ export default function TeachingScreen({ navigation }: any) {
       return;
     }
     try {
+      const existingCount = await loadTrainingSampleCount(gestureLabel);
+      if (existingCount >= SAMPLES_NEEDED) {
+        Alert.alert('Training Complete', `The gesture "${gestureLabel}" already has enough samples.`);
+        return;
+      }
       sessionId.current = await mlService.startTeachingSession(gestureLabel);
       setError(null);
       setIsSessionActive(true);
-      setSampleCount(0);
+      setSampleCount(existingCount);
       audioService.speak(`Okay, let's learn how to make "${gestureLabel}".`);
     } catch (e) {
       logger.error('Failed to start teaching session', e);
