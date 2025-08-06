@@ -13,11 +13,8 @@ import {
   AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  Camera,
-  useCameraDevices,
-  useCameraPermission,
-} from 'react-native-vision-camera';
+import { Camera, useCameraDevices } from 'react-native-vision-camera';
+import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
 import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
@@ -59,7 +56,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [weakGesture, setWeakGesture] = useState<GestureDefinition | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [permissionStatus, setPermissionStatus] = useState(useCameraPermission().hasPermission);
+  const { hasPermission, requestPermission } = useCameraPermissionStatus();
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [landmarks, setLandmarks] = useState<number[][]>([]);
@@ -68,9 +65,11 @@ export default function RecognitionScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
 
-  const { requestPermission } = useCameraPermission();
   const devices = useCameraDevices();
-  const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
+  const device =
+    devices.find((d) => d.position === 'back') ??
+    devices.find((d) => d.position === 'front') ??
+    devices[0];
   const isFocused = useIsFocused();
   const [appState, setAppState] = useState(AppState.currentState);
   useEffect(() => {
@@ -79,13 +78,11 @@ export default function RecognitionScreen({ navigation }: any) {
   }, []);
 
   const canUseCamera =
-    permissionStatus && device != null && isFocused && isCameraActive && appState === 'active';
+    hasPermission && device != null && isFocused && isCameraActive && appState === 'active';
 
   const handleRequestPermission = useCallback(async () => {
     logger.debug('Requesting camera permission...');
-    const result = await requestPermission();
-    logger.debug('Permission result:', result);
-    setPermissionStatus(result);
+    await requestPermission();
   }, [requestPermission]);
 
   useEffect(() => {
@@ -458,7 +455,7 @@ export default function RecognitionScreen({ navigation }: any) {
     },
   });
 
-  if (!permissionStatus) {
+  if (!hasPermission) {
     const gradientColors = highContrast
       ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
       : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
