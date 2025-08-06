@@ -43,5 +43,8 @@ This guide helps caregivers get Amy's Echo running and begin supporting a child'
 1. In the **Admin Panel**, enter the OpenAI API key and backend token if required.
 2. Tap **Save** for each field. Tokens are stored securely on the device.
 
+## 7. Need Help?
+If you run into problems during setup or usage, consult the [Troubleshooting Guide](Troubleshooting.md) for common fixes.
+
 ---
 With these steps, caregivers can immediately begin using Amy's Echo to translate gestures into speech and track learning progress.
