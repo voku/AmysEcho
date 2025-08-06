@@ -26,6 +26,8 @@ import { Symbol as DBSymbol } from '../../db/models';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 
+const SYMBOL_EXPORT_PATH = `${FileSystem.documentDirectory || ''}symbols-export.json`;
+
 export default function AdminScreen({ navigation }: any) {
   const [symbols, setSymbols] = useState<DBSymbol[]>([]);
   const [editing, setEditing] = useState<DBSymbol | null>(null);
@@ -36,6 +38,7 @@ export default function AdminScreen({ navigation }: any) {
   const [backendToken, setBackendToken] = useState('');
   const [audioUri, setAudioUri] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [category, setCategory] = useState('');
 
   React.useEffect(() => {
     const sub = database
@@ -57,6 +60,7 @@ export default function AdminScreen({ navigation }: any) {
     setId('');
     setLabel('');
     setAudioUri('');
+    setCategory('');
     setModalVisible(true);
   };
 
@@ -65,6 +69,7 @@ export default function AdminScreen({ navigation }: any) {
     setId(sym.id);
     setLabel(sym.name);
     setAudioUri((sym as any).audioUri || '');
+    setCategory(sym.category);
     setModalVisible(true);
   };
 
@@ -90,13 +95,14 @@ export default function AdminScreen({ navigation }: any) {
       if (editing) {
         await editing.update((s) => {
           s.name = label;
+          s.category = category || 'custom';
           (s as any).audioUri = finalUri;
         });
       } else {
         await collection.create((s) => {
           if (id) (s as any)._raw.id = id;
           s.name = label;
-          s.category = 'custom';
+          s.category = category || 'custom';
           s.iconName = '';
           s.videoAssetPath = '';
           (s as any).dgsVideoAssetPath = '';
@@ -154,6 +160,65 @@ export default function AdminScreen({ navigation }: any) {
         Alert.alert('Stop failed');
       }
       setIsRecording(false);
+    }
+  };
+
+  const handleExportSymbols = async () => {
+    try {
+      const data = symbols.map((s) => ({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        audioUri: (s as any).audioUri || null,
+      }));
+      await FileSystem.writeAsStringAsync(
+        SYMBOL_EXPORT_PATH,
+        JSON.stringify(data, null, 2),
+      );
+      Alert.alert('Export complete', `Saved to ${SYMBOL_EXPORT_PATH}`);
+    } catch (e) {
+      logger.error('export failed', e);
+      Alert.alert('Export failed', (e as Error).message || 'Unknown error');
+    }
+  };
+
+  const handleImportSymbols = async () => {
+    try {
+      const content = await FileSystem.readAsStringAsync(SYMBOL_EXPORT_PATH);
+      const items = JSON.parse(content);
+      await database.write(async () => {
+        const collection = database.get<DBSymbol>('symbols');
+        for (const item of items) {
+          const existing = await collection.find(item.id).catch(() => null);
+          if (existing) {
+            await existing.update((s) => {
+              s.name = item.name;
+              s.category = item.category || 'custom';
+              (s as any).audioUri = item.audioUri || '';
+            });
+          } else {
+            await collection.create((s) => {
+              (s as any)._raw.id = item.id;
+              s.name = item.name;
+              s.category = item.category || 'custom';
+              s.iconName = '';
+              s.videoAssetPath = '';
+              (s as any).dgsVideoAssetPath = '';
+              s.priority = 1;
+              s.isActive = true;
+              s.healthScore = 100;
+              s.color = COLORS.surface;
+              s.emoji = '❓';
+              (s as any).audioUri = item.audioUri || '';
+              s.createdAt = new Date();
+            });
+          }
+        }
+      });
+      Alert.alert('Import complete');
+    } catch (e) {
+      logger.error('import failed', e);
+      Alert.alert('Import failed', (e as Error).message || 'Unknown error');
     }
   };
 
@@ -231,6 +296,16 @@ export default function AdminScreen({ navigation }: any) {
         onPress={handleDownloadModel}
         accessibilityLabel="Neueste Modellversion herunterladen"
       />
+      <Button
+        title="Export Symbols"
+        onPress={handleExportSymbols}
+        accessibilityLabel="Symbole exportieren"
+      />
+      <Button
+        title="Import Symbols"
+        onPress={handleImportSymbols}
+        accessibilityLabel="Symbole importieren"
+      />
       <Button title="Add Symbol" onPress={openAdd} accessibilityLabel="Symbol hinzufügen" />
       <Button
         title="Training"
@@ -259,6 +334,13 @@ export default function AdminScreen({ navigation }: any) {
             value={label}
             onChangeText={setLabel}
             accessibilityLabel="Symbol Label"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Category"
+            value={category}
+            onChangeText={setCategory}
+            accessibilityLabel="Symbolkategorie"
           />
           <Button
             title={isRecording ? 'Stop Recording' : 'Record Audio'}

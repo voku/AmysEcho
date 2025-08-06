@@ -74,9 +74,9 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Test video loading and playback performance
 
 - [ ] **Admin Panel Enhancement**
-  - Complete CRUD functionality in `AdminScreen.tsx`
-  - Add symbol and vocabulary management
-  - Implement data export/import features
+  - [x] Complete CRUD functionality in `AdminScreen.tsx`
+  - [x] Add symbol and vocabulary management
+  - [x] Implement data export/import features
   - Add analytics dashboard for caregivers
 
 ---
