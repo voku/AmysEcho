@@ -15,12 +15,14 @@
     "@types/node": "^24.1.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "ts-node": "^10.9.2"
   },
   "scripts": {
     "test": "pytest -q",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "download-models": "ts-node src/tools/downloadModels.ts"
   }
 }
