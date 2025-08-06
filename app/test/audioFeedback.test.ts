@@ -88,5 +88,15 @@ describe('audioService feedback', () => {
     expect(Speech.speak).toHaveBeenCalled();
     expect(Haptics.notificationAsync).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Error);
   });
+
+  it('speaks gentle encouragement for a gesture', async () => {
+    await audioService.playEncouragement('Winken');
+    const phrase = (Speech.speak as jest.Mock).mock.calls[0][0];
+    expect([
+      'Möchtest du das Zeichen Winken nochmal üben?',
+      'Lass uns Winken nochmal versuchen!',
+      'Wie wäre es mit etwas Übung für Winken?',
+    ]).toContain(phrase);
+  });
 });
 
