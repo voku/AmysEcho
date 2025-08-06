@@ -285,6 +285,27 @@ export class AudioService {
   }
 
   /**
+   * Speak a gentle encouragement message.
+   * When a gesture name is provided, it will be referenced in the message.
+   */
+  async playEncouragement(gesture?: string): Promise<void> {
+    const phrases = gesture
+      ? [
+          `Möchtest du das Zeichen ${gesture} nochmal üben?`,
+          `Lass uns ${gesture} nochmal versuchen!`,
+          `Wie wäre es mit etwas Übung für ${gesture}?`,
+        ]
+      : [
+          'Weiter so!',
+          'Du machst das toll!',
+          'Prima, weiter üben!'
+        ];
+
+    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    await this.speak(phrase, { pitch: 1.1, rate: 0.9 });
+  }
+
+  /**
    * Start audio recording for custom cues
    */
   async startRecording(): Promise<void> {

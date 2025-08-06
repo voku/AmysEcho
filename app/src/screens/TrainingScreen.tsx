@@ -7,7 +7,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { useRecordingProcessor } from '../services';
+import { useRecordingProcessor, audioService } from '../services';
 import { useTensorflowModel } from '../hooks/useTensorflowModel';
 import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 import { setHandLandmarkModel } from '../services/landmarkExtractor';
@@ -108,6 +108,9 @@ export default function TrainingScreen({ navigation, route }: any) {
       await saveTrainingSample(gestureId, recordedLandmarks, isPractice ? 'HIP_4' : 'HIP_2');
       setCount((c) => c + 1);
       setError(null);
+      if (isPractice) {
+        await audioService.playEncouragement(gestureId);
+      }
     } catch (e) {
       logger.error('Failed to save training sample', e);
       setError('Failed to save training sample');
