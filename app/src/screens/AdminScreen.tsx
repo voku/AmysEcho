@@ -317,6 +317,11 @@ export default function AdminScreen({ navigation }: any) {
         onPress={() => navigation.navigate('Correction', { gesture: '' , suggestions: []})}
         accessibilityLabel="Korrekturmodus öffnen"
       />
+      <Button
+        title="Dashboard"
+        onPress={() => navigation.navigate('Dashboard')}
+        accessibilityLabel="Analytics-Dashboard öffnen"
+      />
       <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
 
       <Modal visible={modalVisible} animationType="slide">
