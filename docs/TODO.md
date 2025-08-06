@@ -39,7 +39,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [ ] **HIP 1: Onboarding Flow**
   - [x] Complete consent and first-use setup
   - [x] Add privacy explanation for caregivers
-  - [ ] Implement gesture recognition tutorial
+  - [x] Implement gesture recognition tutorial
   - [ ] Test with non-technical users
 
 - [ ] **HIP 3: Correction Mode ("Help Me" Flow)**

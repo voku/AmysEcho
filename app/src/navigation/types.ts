@@ -1,5 +1,6 @@
 export type RootStackParamList = {
   Onboarding: undefined;
+  Tutorial: undefined;
   ProfileSelect: undefined;
   Recognition: { profileId: string; simulateLowConfidence?: boolean };
   Correction: { gesture: string; suggestions: string[] };
