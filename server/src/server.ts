@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
+import rateLimit from 'express-rate-limit';
 import { TRAINED_MODEL_PATH } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
 import { setupDatabase, loadDatabase, saveDatabase, Database } from './db';
@@ -13,9 +14,18 @@ import {
   saveAnalyticsToFile,
   loadAnalyticsFromFile,
 } from './services/analyticsService';
+import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
 
 const app = express();
 app.use(express.json());
+
+const dialogLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.DIALOG_LIMIT) || 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipFailedRequests: true,
+});
 
 // Serve static files from the portal directory
 app.use('/portal', express.static(path.join(__dirname, 'portal')));
@@ -179,38 +189,17 @@ app.get('/api/analytics/export', auth, async (req: Request, res: Response) => {
   }
 });
 
-function sanitize(text: string): string {
-  return text.replace(/\d+/g, '');
-}
-
-app.post('/generate-suggestions', auth, async (req: Request, res: Response) => {
-  const { input = '', context = [], language = 'English', age = 4 } = req.body || {};
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    res.json({ nextWords: [], caregiverPhrases: [] });
-    return;
-  }
-  const clean = sanitize(input);
-  const prompt = `A ${age}-year-old child who speaks ${language} just selected the word "${clean}". The current context is [${context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver. Return a JSON object with two keys: "nextWords" and "caregiverPhrases".`;
+app.post('/dialog', auth, dialogLimiter, async (req: Request, res: Response) => {
+  const body: LLMRequest = req.body || {};
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
-      }),
+    console.log('Dialog request', {
+      input: body.input,
+      contextSize: body.context?.length ?? 0,
     });
-    if (!response.ok) throw new Error(String(response.status));
-    const data: any = await response.json();
-    const content = JSON.parse(data.choices[0].message.content as string);
-    res.json(content);
-  } catch (err) {
-    console.error('LLM endpoint error:', err);
+    const suggestions = await getLLMSuggestions(body);
+    res.json(suggestions);
+  } catch (error) {
+    console.error('Dialog endpoint error:', error);
     res.status(500).json({ nextWords: [], caregiverPhrases: [] });
   }
 });
