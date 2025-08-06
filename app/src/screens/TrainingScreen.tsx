@@ -99,10 +99,15 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const stopRecording = async () => {
     setIsRecording(false);
-    if (!gestureId || recordedLandmarks.length < 10) return;
+    if (!gestureId) return;
+    if (recordedLandmarks.length < 10) {
+      setError('Recording too short. Please record again with clear hand movement.');
+      return;
+    }
     try {
       await saveTrainingSample(gestureId, recordedLandmarks);
       setCount((c) => c + 1);
+      setError(null);
     } catch (e) {
       logger.error('Failed to save training sample', e);
       setError('Failed to save training sample');
