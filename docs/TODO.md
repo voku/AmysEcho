@@ -43,16 +43,16 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [ ] Test with non-technical users
 
 - [ ] **HIP 3: Correction Mode ("Help Me" Flow)**
-  - Implement gesture correction interface
-  - Add "Help Me" repair workflow
+  - [x] Implement gesture correction interface
+  - [x] Add "Help Me" repair workflow
   - [x] Store corrections for model improvement
   - Test correction feedback loop
 
 - [ ] **HIP 2: Teach Mode (Training Interface)**
-  - Build caregiver training interface for new signs
-  - Implement gesture recording workflow
+  - [x] Build caregiver training interface for new signs
+  - [x] Implement gesture recording workflow
   - [x] Add gesture validation feedback
-  - Create training progress tracking
+  - [x] Create training progress tracking
 
 - [ ] **HIP 4: Maintenance Mode**
   - Implement "Let's practice this again" feature
