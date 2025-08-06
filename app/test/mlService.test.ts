@@ -88,4 +88,35 @@ describe('mlService', () => {
       frame.landmarks,
     );
   });
+
+  it('recognizes gestures with high confidence from local model', async () => {
+    const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+    const gestureTflite: any = { runSync: () => [[0.9, 0.1]] };
+
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['wave', 'fist'], {
+      enableRemoteClassification: false,
+    });
+
+    const frame = {
+      landmarks: [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ],
+      width: 1,
+      height: 1,
+      timestamp: Date.now(),
+    } as any;
+
+    const onResult = jest.fn();
+
+    // first call warms up smoothing buffer
+    await mlService.processFrameAsync(frame, onResult);
+    await mlService.processFrameAsync(frame, onResult);
+
+    expect(onResult).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label: 'wave', confidence: 0.9, isLocal: true }),
+      frame.landmarks,
+    );
+  });
 });
