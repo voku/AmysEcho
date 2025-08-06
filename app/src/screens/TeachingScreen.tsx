@@ -1,11 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  Camera,
-  useCameraDevices,
-  useCameraPermission,
-} from 'react-native-vision-camera';
+import { Camera, useCameraDevices } from 'react-native-vision-camera';
+import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
 import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
 import { saveTrainingSample, loadProfile, Profile } from '../storage';
@@ -20,7 +17,7 @@ export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const devices = useCameraDevices();
   const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
-  const { hasPermission, requestPermission } = useCameraPermission();
+  const { hasPermission, requestPermission } = useCameraPermissionStatus();
   const camera = useRef<Camera>(null);
   const [gestureLabel, setGestureLabel] = useState('');
   const [isSessionActive, setIsSessionActive] = useState(false);

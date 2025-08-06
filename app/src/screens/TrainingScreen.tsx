@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Button, StyleSheet, AppState, SafeAreaView } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import {
-  Camera,
-  useCameraDevice,
-  useCameraPermission,
-} from 'react-native-vision-camera';
+import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
 import Svg, { Circle } from 'react-native-svg';
 import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { gestureModel } from '../model';
@@ -27,7 +24,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const backCamera = useCameraDevice('back');
   const frontCamera = useCameraDevice('front');
   const device = backCamera ?? frontCamera;
-  const { hasPermission, requestPermission } = useCameraPermission();
+  const { hasPermission, requestPermission } = useCameraPermissionStatus();
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
