@@ -12,6 +12,15 @@ export type LLMSuggestionResponse = {
 };
 
 class DialogEngine {
+  private history: { role: 'user' | 'assistant'; content: string }[] = [];
+
+  /**
+   * Reset the stored conversation history. Useful for new sessions
+   * or when switching profiles.
+   */
+  public resetHistory() {
+    this.history = [];
+  }
   /**
    * Return adaptive suggestions based on last selected symbol.
    * Currently a simple placeholder using local vocabulary order.
@@ -70,7 +79,7 @@ class DialogEngine {
         },
         body: JSON.stringify({
           model: MODEL,
-          messages: [{ role: 'user', content: prompt }],
+          messages: [...this.history, { role: 'user', content: prompt }],
           response_format: { type: 'json_object' },
           temperature: 0.7,
         }),
@@ -82,7 +91,16 @@ class DialogEngine {
       }
 
       const data = await response.json();
-      const content = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+      const messageContent = data.choices?.[0]?.message?.content || '{}';
+
+      // Update conversation history with the latest exchange
+      this.history.push({ role: 'user', content: prompt });
+      this.history.push({ role: 'assistant', content: messageContent });
+      if (this.history.length > 10) {
+        this.history = this.history.slice(-10);
+      }
+
+      const content = JSON.parse(messageContent);
       return {
         nextWords: content.nextWords || [],
         caregiverPhrases: content.caregiverPhrases || [],
