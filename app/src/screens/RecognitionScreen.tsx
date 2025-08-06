@@ -91,6 +91,13 @@ export default function RecognitionScreen({ navigation }: any) {
     const fetchWeakGesture = async () => {
       const gesture = await adaptiveLearningService.getWeakGesture();
       setWeakGesture(gesture);
+      if (gesture) {
+        try {
+          await audioService.playEncouragement(gesture.name);
+        } catch (error) {
+          logger.warn('Encouragement audio failed:', error);
+        }
+      }
     };
     fetchWeakGesture();
   }, []);
