@@ -18,7 +18,7 @@ import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
 import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
-import { loadProfile, Profile } from '../storage';
+import { loadProfile, Profile, logCorrection } from '../storage';
 import { audioService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { database } from '../../db';
@@ -235,6 +235,8 @@ export default function RecognitionScreen({ navigation }: any) {
           r.isSynced = false;
         });
       });
+
+      await logCorrection(choiceId);
 
       const entry =
         gestureModel.gestures.find((g) => g.id === choiceId) || {
