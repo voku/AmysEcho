@@ -65,12 +65,12 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Complete `dialogEngine.ts` OpenAI API integration
   - [x] Implement context-aware suggestions
   - [x] Add conversation memory for better responses
-  - Test suggestion quality and relevance
+  - [x] Test suggestion quality and relevance
 
 - [ ] **DGS Video Playback System**
-  - Complete DGS video integration on `LearningScreen`
-  - Add video toggle functionality
-  - Implement video playback controls
+  - [x] Complete DGS video integration on `DgsScreen`
+  - [x] Add video toggle functionality
+  - [x] Implement video playback controls
   - Test video loading and playback performance
 
 - [ ] **Admin Panel Enhancement**
