@@ -47,6 +47,7 @@ export default function RecognitionScreen({ navigation }: any) {
     nextWords: [],
     caregiverPhrases: [],
   });
+  const [dialogContext, setDialogContext] = useState<string[]>([]);
   const [useDgs, setUseDgs] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [correctionOptions, setCorrectionOptions] = useState<{ id: string; label: string }[]>([]);
@@ -180,11 +181,15 @@ export default function RecognitionScreen({ navigation }: any) {
       try {
         const adv = await dialogEngine.getLLMSuggestions({
           input: recognizedSymbolLabel,
-          context: [],
+          context: dialogContext,
           language: 'de',
           age: 4,
         });
         setSuggestions(adv);
+        setDialogContext((ctx) => {
+          const next = [...ctx, recognizedSymbolLabel];
+          return next.slice(-5);
+        });
       } catch (error) {
         logger.warn('Failed to get LLM suggestions:', error);
       }
@@ -274,11 +279,15 @@ export default function RecognitionScreen({ navigation }: any) {
       try {
         const adv = await dialogEngine.getLLMSuggestions({
           input: entry.label,
-          context: [],
+          context: dialogContext,
           language: 'de',
           age: 4,
         });
         setSuggestions(adv);
+        setDialogContext((ctx) => {
+          const next = [...ctx, entry.label];
+          return next.slice(-5);
+        });
       } catch (error) {
         logger.warn('Failed to get LLM suggestions:', error);
       }
