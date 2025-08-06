@@ -37,10 +37,10 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ### Core HIP (Human Interaction Protocol) Implementation
 - [ ] **HIP 1: Onboarding Flow**
-  - Complete consent and first-use setup
-  - Add privacy explanation for caregivers
-  - Implement gesture recognition tutorial
-  - Test with non-technical users
+  - [x] Complete consent and first-use setup
+  - [x] Add privacy explanation for caregivers
+  - [ ] Implement gesture recognition tutorial
+  - [ ] Test with non-technical users
 
 - [ ] **HIP 3: Correction Mode ("Help Me" Flow)**
   - Implement gesture correction interface
