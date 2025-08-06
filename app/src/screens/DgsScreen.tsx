@@ -1,36 +1,37 @@
-import React, { useState } from 'react';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Button, StyleSheet, Text, View, Switch } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { StyleSheet, Text, View, Switch } from 'react-native';
+import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
 import { SPACING } from '../constants/ui';
 
 export default function DgsScreen() {
   const [useVideo, setUseVideo] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
+  const device = useCameraDevice('front');
+  const { hasPermission, requestPermission } = useCameraPermissionStatus();
 
-  // Function to handle the toggle switch
-  const handleToggle = () => {
-    if (!useVideo) { // If turning the camera ON
-      if (permission && permission.granted) {
+  const handleToggle = useCallback(async () => {
+    if (!useVideo) {
+      if (hasPermission) {
         setUseVideo(true);
       } else {
-        // Request permission if not already granted
-        requestPermission().then((response: { granted: boolean }) => {
-          if(response.granted) {
-            setUseVideo(true);
-          } else {
-            // Let the user know why they can't use the feature
-            alert("You must grant camera permission to use DGS video.");
-          }
-        });
+        const granted = await requestPermission();
+        if (granted) {
+          setUseVideo(true);
+        }
       }
-    } else { // If turning the camera OFF
+    } else {
       setUseVideo(false);
     }
-  };
+  }, [useVideo, hasPermission, requestPermission]);
 
-  if (!permission) {
-    // Camera permissions are still loading, show a blank screen or a loader
-    return <View />;
+  if (!device) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.placeholder}>
+          <Text style={styles.placeholderText}>No camera available</Text>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -40,16 +41,11 @@ export default function DgsScreen() {
         <Switch value={useVideo} onValueChange={handleToggle} />
       </View>
 
-      {useVideo ? (
-        <CameraView style={styles.camera} facing={'front'}>
-          <View style={styles.buttonContainer}>
-            {/* You can add a record button here in the future */}
-          </View>
-        </CameraView>
+      {useVideo && hasPermission ? (
+        <Camera style={styles.camera} device={device} isActive={useVideo} />
       ) : (
         <View style={styles.placeholder}>
           <Text style={styles.placeholderText}>I'm listening...</Text>
-          {/* You can add your "SIMULATE" buttons here */}
         </View>
       )}
     </View>
@@ -78,11 +74,5 @@ const styles = StyleSheet.create({
   },
   camera: {
     flex: 1,
-  },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    margin: SPACING.xl * 2,
   },
 });
