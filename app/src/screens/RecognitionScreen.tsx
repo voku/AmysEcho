@@ -19,7 +19,7 @@ import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 import { loadProfile, Profile, logCorrection } from '../storage';
-import { audioService } from '../services';
+import { audioService, getEncouragementMessage } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { database } from '../../db';
 import { Correction, GestureDefinition } from '../../db/models';
@@ -55,6 +55,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [lastRecognizedGesture, setLastRecognizedGesture] = useState<GestureModelEntry | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [weakGesture, setWeakGesture] = useState<GestureDefinition | null>(null);
+  const [encouragementMsg, setEncouragementMsg] = useState<string | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const { hasPermission, requestPermission } = useCameraPermissionStatus();
@@ -91,6 +92,9 @@ export default function RecognitionScreen({ navigation }: any) {
     const fetchWeakGesture = async () => {
       const gesture = await adaptiveLearningService.getWeakGesture();
       setWeakGesture(gesture);
+      if (gesture) {
+        setEncouragementMsg(getEncouragementMessage(gesture.name));
+      }
     };
     fetchWeakGesture();
   }, []);
@@ -318,6 +322,7 @@ export default function RecognitionScreen({ navigation }: any) {
     if (weakGesture) {
       navigation.navigate('Training', { gestureLabel: weakGesture.name, isPractice: true });
       setWeakGesture(null);
+      setEncouragementMsg(null);
     }
   };
 
@@ -505,16 +510,14 @@ export default function RecognitionScreen({ navigation }: any) {
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-      {weakGesture && (
+      {weakGesture && encouragementMsg && (
         <Pressable
           onPress={handleWeakGestureBannerPress}
           style={styles.weakGestureBanner}
           accessibilityRole="button"
           accessibilityLabel="Practice weak gesture again"
         >
-          <Text style={styles.weakGestureBannerText}>
-            Let's try this one again: {weakGesture.name}
-          </Text>
+          <Text style={styles.weakGestureBannerText}>{encouragementMsg}</Text>
         </Pressable>
       )}
 
