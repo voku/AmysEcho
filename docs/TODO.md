@@ -45,7 +45,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [ ] **HIP 3: Correction Mode ("Help Me" Flow)**
   - Implement gesture correction interface
   - Add "Help Me" repair workflow
-  - Store corrections for model improvement
+  - [x] Store corrections for model improvement
   - Test correction feedback loop
 
 - [ ] **HIP 2: Teach Mode (Training Interface)**
