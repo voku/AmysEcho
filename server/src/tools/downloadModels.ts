@@ -122,8 +122,11 @@ async function ensureModel(model: ModelSpec) {
       console.error(`Failed to process ${path.basename(m.dest)}:`, err);
     }
   }
+  const sortedManifest = Object.fromEntries(
+    Object.entries(versionManifest).sort(([a], [b]) => a.localeCompare(b))
+  );
   await fs.promises.writeFile(
     MODEL_VERSIONS_PATH,
-    JSON.stringify(versionManifest, null, 2)
+    JSON.stringify(sortedManifest, null, 2) + '\n'
   );
 })();
