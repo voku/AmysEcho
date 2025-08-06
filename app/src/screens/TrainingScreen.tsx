@@ -19,7 +19,7 @@ import { logger } from '../utils/logger';
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const PREVIEW_SIZE = 200;
-  const { gestureLabel } = route.params || {};
+  const { gestureLabel, isPractice } = route.params || {};
   // Prefer the back camera but fall back to front if unavailable
   const backCamera = useCameraDevice('back');
   const frontCamera = useCameraDevice('front');
@@ -105,7 +105,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       return;
     }
     try {
-      await saveTrainingSample(gestureId, recordedLandmarks);
+      await saveTrainingSample(gestureId, recordedLandmarks, isPractice ? 'HIP_4' : 'HIP_2');
       setCount((c) => c + 1);
       setError(null);
     } catch (e) {
@@ -181,7 +181,13 @@ export default function TrainingScreen({ navigation, route }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Training {gestureId ? `for ${gestureId}` : 'Mode'}</Text>
+        <Text style={styles.title}>
+          {isPractice
+            ? gestureId
+              ? `Practice ${gestureId}`
+              : 'Practice Mode'
+            : `Training ${gestureId ? `for ${gestureId}` : 'Mode'}`}
+        </Text>
         {!gestureId ? (
           gestureModel.gestures.map((g) => (
             <Button

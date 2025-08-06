@@ -55,8 +55,8 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Create training progress tracking
 
 - [ ] **HIP 4: Maintenance Mode**
-  - Implement "Let's practice this again" feature
-  - Add gesture practice sessions
+  - [x] Implement "Let's practice this again" feature
+  - [x] Add gesture practice sessions
   - Create progress tracking dashboard
   - Implement gentle encouragement system
 
