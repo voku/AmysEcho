@@ -37,7 +37,7 @@ export default function OnboardingScreen({ navigation }: any) {
     });
     setActiveVocabularySet(vocabSet);
     update({ largeText, highContrast });
-    navigation.replace('ProfileSelect');
+    navigation.replace('Tutorial');
   };
 
   const styles = StyleSheet.create({
