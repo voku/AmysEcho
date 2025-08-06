@@ -71,7 +71,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Complete DGS video integration on `DgsScreen`
   - [x] Add video toggle functionality
   - [x] Implement video playback controls
-  - Test video loading and playback performance
+  - [x] Test video loading and playback performance
 
 - [ ] **Admin Panel Enhancement**
   - Complete CRUD functionality in `AdminScreen.tsx`
