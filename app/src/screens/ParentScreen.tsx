@@ -69,6 +69,11 @@ export default function ParentScreen({ navigation }: any) {
         accessibilityLabel="View analytics"
       />
       <Button
+        title="Progress"
+        onPress={() => navigation.navigate('Progress')}
+        accessibilityLabel="View progress"
+      />
+      <Button
         title="Help"
         onPress={() => navigation.navigate('Help')}
         accessibilityLabel="Get help"
