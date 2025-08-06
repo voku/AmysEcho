@@ -13,6 +13,9 @@ const lazyScreen = (
   );
 
 const OnboardingScreen = lazyScreen(() => import('../screens/OnboardingScreen.js'));
+const GestureTutorialScreen = lazyScreen(
+  () => import('../screens/GestureTutorialScreen.js'),
+);
 const ProfileSelectScreen = lazyScreen(() => import('../screens/ProfileSelectScreen.js'));
 const RecognitionScreen = lazyScreen(() => import('../screens/RecognitionScreen.js'));
 const CorrectionScreen = lazyScreen(() => import('../screens/CorrectionScreen.js'));
@@ -53,6 +56,11 @@ const RootNavigator = () => {
       <Stack.Screen
         name="Onboarding"
         component={OnboardingScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Tutorial"
+        component={GestureTutorialScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
