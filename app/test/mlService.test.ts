@@ -51,6 +51,9 @@ describe('mlService', () => {
     (mlService as any).gestureBuffer = [];
     (mlService as any).lastRecognizedGesture = null;
     (mlService as any).lastGestureTime = 0;
+    (mlService as any).allowRemote = true;
+    (mlService as any).remoteAvailable = true;
+    (mlService as any).remoteRetryAt = 0;
     loadTensorflowModelMock.mockClear();
     downloadAsyncMock.mockClear();
     (global as any).fetch = undefined;
@@ -143,5 +146,45 @@ describe('mlService', () => {
       expect.objectContaining({ label: 'wave', confidence: 0.9, isLocal: true }),
       frame.landmarks,
     );
+  });
+
+  it('prioritizes remote classification when available', async () => {
+    const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+    const gestureRunSync = jest.fn().mockReturnValue([[0.1, 0.9]]);
+    const gestureTflite: any = { runSync: gestureRunSync };
+
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['remote', 'local']);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        label: 'remote',
+        confidence: 0.95,
+        suggestions: ['remote'],
+      }),
+    }) as any;
+
+    const frame = {
+      landmarks: [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ],
+      width: 1,
+      height: 1,
+      timestamp: Date.now(),
+    } as any;
+
+    const onResult = jest.fn();
+
+    // first call warms up smoothing buffer
+    await mlService.processFrameAsync(frame, onResult);
+    await mlService.processFrameAsync(frame, onResult);
+
+    expect(onResult).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label: 'remote', isLocal: false }),
+      frame.landmarks,
+    );
+    expect(gestureRunSync).not.toHaveBeenCalled();
   });
 });
