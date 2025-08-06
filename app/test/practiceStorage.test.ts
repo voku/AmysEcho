@@ -1,0 +1,55 @@
+const store: Record<string, string> = {};
+const stubAsync = {
+  async getItem(key: string) {
+    return store[key] ?? null;
+  },
+  async setItem(key: string, value: string) {
+    store[key] = value;
+  },
+};
+
+jest.mock('@react-native-async-storage/async-storage', () => stubAsync);
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: async () => null,
+  setItemAsync: async () => {},
+}));
+
+const mockCreate = jest.fn(async (fn: any) => {
+  await fn({ gestureDefinition: { id: '' } });
+});
+const mockGet = jest.fn(() => ({ create: mockCreate }));
+const mockWrite = jest.fn(async (fn: any) => { await fn(); });
+
+jest.mock('../db', () => ({
+  database: {
+    get: mockGet,
+    write: mockWrite,
+  },
+}));
+
+jest.mock('../db/models', () => ({}));
+
+import { saveTrainingSample } from '../src/storage';
+
+describe('saveTrainingSample', () => {
+  beforeEach(() => {
+    for (const k of Object.keys(store)) delete store[k];
+    mockCreate.mockClear();
+  });
+
+  it('stores samples with default HIP_2 source', async () => {
+    await saveTrainingSample('gesture1', []);
+    const raw = store['gestureTrainingData'];
+    expect(raw).toBeTruthy();
+    const data = JSON.parse(raw as string);
+    expect(data[0].source).toBe('HIP_2');
+  });
+
+  it('stores samples with HIP_4 source when specified', async () => {
+    await saveTrainingSample('gesture1', [], 'HIP_4');
+    const raw = store['gestureTrainingData'];
+    expect(raw).toBeTruthy();
+    const data = JSON.parse(raw as string);
+    expect(data[0].source).toBe('HIP_4');
+  });
+});

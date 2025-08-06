@@ -316,7 +316,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
   const handleWeakGestureBannerPress = () => {
     if (weakGesture) {
-      navigation.navigate('Training', { gestureLabel: weakGesture.name });
+      navigation.navigate('Training', { gestureLabel: weakGesture.name, isPractice: true });
       setWeakGesture(null);
     }
   };

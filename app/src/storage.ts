@@ -21,7 +21,7 @@ export interface TrainingSample {
   id: string;
   gestureDefinitionId: string;
   landmarkData: unknown;
-  source: 'HIP_2' | 'HIP_3';
+  source: 'HIP_2' | 'HIP_3' | 'HIP_4';
   syncStatus: 'pending' | 'synced';
 }
 
@@ -114,6 +114,7 @@ export async function logCorrection(correctId: string): Promise<void> {
 export async function saveTrainingSample(
   gestureDefinitionId: string,
   landmarkData: unknown,
+  source: 'HIP_2' | 'HIP_4' = 'HIP_2',
 ): Promise<void> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
@@ -121,7 +122,7 @@ export async function saveTrainingSample(
     id: genId(),
     gestureDefinitionId,
     landmarkData,
-    source: 'HIP_2',
+    source,
     syncStatus: 'pending',
   });
   await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
@@ -131,7 +132,7 @@ export async function saveTrainingSample(
     await collection.create((record) => {
       record.gestureDefinition.id = gestureDefinitionId;
       record.landmarkData = JSON.stringify(landmarkData);
-      record.source = 'HIP_2';
+      record.source = source;
       record.qualityScore = 1;
       record.frameMetadata = '';
       record.createdAt = new Date();
