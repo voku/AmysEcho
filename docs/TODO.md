@@ -146,7 +146,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ### Quality Assurance
 - [ ] **Testing Suite**
-  - Implement unit tests for core services
+  - [x] Implement unit tests for core services
   - Add integration tests for HIP workflows
   - Create end-to-end testing scenarios
   - Set up automated testing pipeline
