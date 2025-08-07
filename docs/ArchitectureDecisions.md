@@ -18,7 +18,7 @@ This document records the major architectural choices made for Amy's Echo.
 - **Consequences**: Database schema and interactions must be defined in WatermelonDB models and kept reactive for UI updates.
 
 ## Audio and Video Feedback
-- **Decision**: Use Expo modules (`expo-av`, `expo-speech`, `expo-video`) for media playback and synthesis.
+- **Decision**: Use Expo modules (`expo-audio`, `expo-speech`, `expo-video`) for media playback and synthesis, replacing the deprecated `expo-av`.
 - **Rationale**: Expo libraries provide cross-platform support and a consistent API for audio prompts and DGS video demonstrations.
 - **Consequences**: Media features rely on Expo's runtime; additional native modules must be evaluated carefully for compatibility.
 
