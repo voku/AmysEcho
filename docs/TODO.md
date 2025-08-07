@@ -3,6 +3,8 @@
 ## Current Status Summary
 The project has a stable foundation after a major refactor. The database, navigation, and core app structure are complete. The next phase focuses on implementing scaffolded features to reach production readiness.
 
+> Integration tests live under the repo's `integration/test` directory.
+
 ---
 
 ## 🚨 PRIORITY 1: Core Functionality (Critical Path)
@@ -18,34 +20,32 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement live gesture classification pipeline
   - [x] Test offline gesture recognition fallback
   - [x] Validate recognition accuracy with test gestures
-  - [ ] **Add memory management**
-    - Hint: introduce a `FrameBufferManager` to limit stored frames and dispose old ones.
-    - Example:
-      ```ts
-      class FrameBufferManager {
-        private readonly maxBufferSize = 3;
-        private frameBuffer: Frame[] = [];
-        addFrame(frame: Frame) { /* dispose oldest frame, then push */ }
-        cleanup() { this.frameBuffer.forEach(f => f.close()); }
-      }
-      ```
-  - [ ] **TFLite model lifecycle cleanup**
-    - Hint: wrap model access in a `ModelManager` that sets `isInferenceRunning` and calls `dispose()` after use.
+  - [x] **Add memory management**
+    - Introduced a `FrameBufferManager` to limit stored frames and dispose old ones.
+  - [x] **TFLite model lifecycle cleanup**
+    - Wrapped model access in a `ModelManager` that sets `isInferenceRunning` and calls `dispose()` after use.
+  - [ ] **Offline fallback reliability** _(update `app/src/services/mlService.ts`; see `integration/test/offlineFallback.test.js`)_
+    - Ensure cloud inference failures hot‑swap to the local TFLite model within one frame.
+  - [ ] **Offline boot mode** _(update `app/src/App.tsx`; see `integration/test/offlineBoot.test.js`)_
+    - Detect offline state at startup and preload local models immediately.
 
 - [x] **Rich Audio Feedback System**
   - [x] Complete `audioService.ts` implementation using `expo-audio`
   - [x] Add success/error sound effects
   - [x] Implement speech synthesis for recognized gestures
   - [x] Test audio output quality and timing
+- [ ] **Speak + Show dual-trigger** _(see `app/test/speakShow.test.tsx`)_
+  - Guarantee that recognition fires both speech and symbol display together with fallback handling.
+  - Add haptic and visual confirmation so one failure does not block the other.
 
 - [ ] **Camera Integration**
   - [x] Finalize `react-native-vision-camera` integration
   - [x] Implement high-performance gesture capture
   - [x] Add camera permission handling
   - [x] Test frame rate and gesture capture quality
-  - [ ] **Comprehensive error handling**
-    - Hint: add `handleCameraError` with fallbacks for permission denial, missing devices and hardware failures.
-    - Include periodic health checks using `Camera.getAvailableCameraDevices()`.
+  - [x] **Comprehensive error handling**
+    - Added `handleCameraError` with fallbacks for permission denial, missing devices and hardware failures.
+    - Included periodic health checks using `Camera.getAvailableCameraDevices()`.
 
 ---
 
@@ -63,18 +63,24 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Add "Help Me" repair workflow
   - [x] Store corrections for model improvement
   - [x] Test correction feedback loop
+  - [ ] Log corrections to server training queue _(update `app/src/services/correctionService.ts`; see `server/test/test_training_queue.py`)_
 
 - [ ] **HIP 2: Teach Mode (Training Interface)**
   - [x] Build caregiver training interface for new signs
   - [x] Implement gesture recording workflow
   - [x] Add gesture validation feedback
   - [x] Create training progress tracking
+  - [ ] Complete end-to-end pipeline: save samples and trigger retraining _(update `app/src/screens/TeachScreen.tsx`; see `integration/test/teachMode.test.js`)_
 
-- [x] **HIP 4: Maintenance Mode**
+- [ ] **HIP 4: Practice Mode**
   - [x] Implement "Let's practice this again" feature
   - [x] Add gesture practice sessions
   - [x] Create progress tracking dashboard
   - [x] Implement gentle encouragement system
+  - [ ] Add dedicated practice screen for rehearsal _(update `app/src/screens/PracticeScreen.tsx`; see `integration/test/practiceMode.test.js`)_
+
+- [ ] **Caregiver portal completion** _(implement routes in `server/src/portal`; see `integration/test/portal.test.js`)_
+  - Review, approve, and export recorded samples for training.
 
 ### Enhanced Intelligence Features
 - [ ] **Live LLM Dialog Engine**
@@ -82,7 +88,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement context-aware suggestions
   - [x] Add conversation memory for better responses
   - [x] Test suggestion quality and relevance
-  - [ ] Add `APIRetryManager` with exponential backoff for failed requests
+  - [ ] Add `APIRetryManager` with exponential backoff for failed requests _(add `app/src/services/APIRetryManager.ts`; see `app/test/apiRetry.test.ts`)_
     - Example:
       ```ts
       const retry = new APIRetryManager();
@@ -156,6 +162,10 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Add model activation in app
   - Test model update workflow
 
+- [ ] **Portal Completion** _(see `integration/test/portal.test.js`)_
+  - Implement review and approval routes in `server/src/portal`
+  - Add export features for gesture samples
+
 ---
 
 ## 🎨 PRIORITY 4: Polish & Accessibility
@@ -179,6 +189,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Implement RN Animated API for smooth transitions
   - Add Skia-based animations (optional)
   - Create gentle haptic feedback system
+  - Add visual highlight during confirmation for accessibility
   - Test animation performance on older devices
 
 - [ ] **Child-Friendly Interface**
