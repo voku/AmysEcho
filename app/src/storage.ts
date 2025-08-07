@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { database } from '../db';
 import { GestureTrainingData, Profile as DBProfile } from '../db/models';
+import { secureConfigManager } from './services/secureConfig';
 
 export interface Profile {
   id: string;
@@ -149,13 +150,12 @@ export async function loadTrainingSampleCount(
   return data.filter((s) => s.gestureDefinitionId === gestureDefinitionId).length;
 }
 
-const API_KEY = 'openaiApiKey';
 export async function saveOpenAIApiKey(key: string): Promise<void> {
-  await SecureStore.setItemAsync(API_KEY, key);
+  await secureConfigManager.setAPIKey(key);
 }
 
 export async function loadOpenAIApiKey(): Promise<string | null> {
-  return SecureStore.getItemAsync(API_KEY);
+  return secureConfigManager.getAPIKey();
 }
 
 const BACKEND_TOKEN_KEY = 'backendApiToken';

@@ -13,7 +13,7 @@ import {
   AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Camera, useCameraDevices } from 'react-native-vision-camera';
+import { Camera, useCameraDevices, CameraRuntimeError } from 'react-native-vision-camera';
 import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
 import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
@@ -62,6 +62,9 @@ export default function RecognitionScreen({ navigation }: any) {
   const [now, setNow] = useState(Date.now());
   const [landmarks, setLandmarks] = useState<number[][]>([]);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [showManualInputMode, setShowManualInputMode] = useState(false);
+  const [showStaticMode, setShowStaticMode] = useState(false);
+  const [showFallbackMode, setShowFallbackMode] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -71,6 +74,7 @@ export default function RecognitionScreen({ navigation }: any) {
     devices.find((d) => d.position === 'back') ??
     devices.find((d) => d.position === 'front') ??
     devices[0];
+  const camera = useRef<Camera>(null);
   const isFocused = useIsFocused();
   const [appState, setAppState] = useState(AppState.currentState);
   useEffect(() => {
@@ -81,10 +85,60 @@ export default function RecognitionScreen({ navigation }: any) {
   const canUseCamera =
     hasPermission && device != null && isFocused && isCameraActive && appState === 'active';
 
+  const showUserFriendlyMessage = (msg: string) => setProcessingError(msg);
+  const showPermissionGuide = () =>
+    setProcessingError('Camera permission denied. Please enable it in settings.');
+  const logErrorToAnalytics = (error: any) => logger.error('Camera error logged:', error);
+  const handleCameraDisconnect = () => setProcessingError('Camera disconnected');
+
+  const handleCameraError = useCallback(
+    (error: CameraRuntimeError) => {
+      console.error('Camera error:', error);
+      const code = (error.code as string) || '';
+      switch (code) {
+        case 'device/camera-not-available':
+          setShowManualInputMode(true);
+          showUserFriendlyMessage('Camera not available. You can still use manual selection.');
+          break;
+        case 'device/no-device':
+          setShowStaticMode(true);
+          break;
+        case 'permission/camera-permission-denied':
+          showPermissionGuide();
+          break;
+        default:
+          logErrorToAnalytics(error);
+          setShowFallbackMode(true);
+      }
+    },
+    [],
+  );
+
+  const monitorCameraHealth = useCallback(() => {
+    const healthCheck = setInterval(async () => {
+      try {
+        if (camera.current && device) {
+          const devices = await Camera.getAvailableCameraDevices();
+          if (!devices.find((d) => d.id === device.id)) {
+            handleCameraDisconnect();
+          }
+        }
+      } catch (error) {
+        console.warn('Camera health check failed:', error);
+      }
+    }, 5000);
+    return () => clearInterval(healthCheck);
+  }, [device]);
+
   const handleRequestPermission = useCallback(async () => {
     logger.debug('Requesting camera permission...');
     await requestPermission();
   }, [requestPermission]);
+
+  useEffect(() => {
+    const cleanup = monitorCameraHealth();
+    return cleanup;
+  }, [monitorCameraHealth]);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -328,6 +382,14 @@ export default function RecognitionScreen({ navigation }: any) {
     }
   };
 
+  if (showManualInputMode || showStaticMode || showFallbackMode) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Camera unavailable</Text>
+      </View>
+    );
+  }
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -538,11 +600,13 @@ export default function RecognitionScreen({ navigation }: any) {
         <View style={styles.cameraContainer}>
           {canUseCamera && (
             <Camera
+              ref={camera}
               style={styles.camera}
               device={device}
               isActive={true}
               frameProcessor={frameProcessor}
               pixelFormat="rgb"
+              onError={handleCameraError}
             />
           )}
 

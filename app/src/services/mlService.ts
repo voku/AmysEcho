@@ -60,9 +60,68 @@ class LandmarkSmoother {
   }
 }
 
+class FrameBufferManager {
+  private readonly maxBufferSize = 3;
+  private frameBuffer: Frame[] = [];
+
+  addFrame(frame: Frame): void {
+    if (this.frameBuffer.length >= this.maxBufferSize) {
+      const old = this.frameBuffer.shift();
+      (old as any)?.close?.();
+    }
+    this.frameBuffer.push(frame);
+  }
+
+  cleanup(): void {
+    this.frameBuffer.forEach((f) => (f as any)?.close?.());
+    this.frameBuffer = [];
+  }
+}
+
+class ModelManager {
+  private tfliteModel: TensorflowModel | null = null;
+  private isInferenceRunning = false;
+  private lastPrediction: number[] = [];
+
+  setModel(model: TensorflowModel | null): void {
+    this.tfliteModel = model;
+  }
+
+  getLastPrediction(): number[] {
+    return this.lastPrediction;
+  }
+
+  async runInference(inputTensor: number[]): Promise<number[]> {
+    if (!this.tfliteModel) {
+      throw new Error('Model not loaded');
+    }
+    if (this.isInferenceRunning) {
+      return this.lastPrediction;
+    }
+    this.isInferenceRunning = true;
+    try {
+      const output = (this.tfliteModel.runSync([inputTensor as any]) as any[])[0] as number[];
+      this.lastPrediction = output;
+      return output;
+    } finally {
+      this.isInferenceRunning = false;
+      if ((globalThis as any).gc) {
+        (globalThis as any).gc();
+      }
+    }
+  }
+
+  dispose(): void {
+    (this.tfliteModel as any)?.close?.();
+    this.tfliteModel = null;
+    this.lastPrediction = [];
+  }
+}
+
 class MachineLearningService {
   private landmarkModel: any = null;
-  private gestureModel: any = null;
+  private gestureModel: TensorflowModel | null = null;
+  private modelManager = new ModelManager();
   private isReady = false;
   private confidenceThreshold = 0.7;
   private labels: string[] = [];
@@ -109,7 +168,7 @@ class MachineLearningService {
       // release any previously loaded models before loading new ones
       this.landmarkModel?.close?.();
       this.landmarkModel = null;
-      this.gestureModel?.close?.();
+      this.modelManager.dispose();
       this.gestureModel = null;
       setHandLandmarkModel?.(null);
       setGestureModel(null);
@@ -162,6 +221,7 @@ class MachineLearningService {
     }
 
       setGestureModel(this.gestureModel);
+      this.modelManager.setModel(this.gestureModel);
 
       if (config?.confidenceThreshold) {
         this.confidenceThreshold = config.confidenceThreshold;
@@ -189,7 +249,7 @@ class MachineLearningService {
   unloadModels(): void {
     this.landmarkModel?.close?.();
     this.landmarkModel = null;
-    this.gestureModel?.close?.();
+    this.modelManager.dispose();
     this.gestureModel = null;
     setHandLandmarkModel?.(null);
     setGestureModel(null);
@@ -260,8 +320,7 @@ class MachineLearningService {
     if (!result) {
       try {
         const tensor = this.prepareTensorInput(processed);
-        const output = this.gestureModel.runSync([tensor]) as any[];
-        const predictions = output[0] as number[];
+        const predictions = await this.modelManager.runInference(tensor);
         const { gesture, confidence } = this.processModelOutput(predictions);
         const suggestions = this.getTopPredictions(predictions, 3);
 
@@ -483,6 +542,7 @@ export const useGestureClassifier = (
   const targetFps = useSharedValue(30);
   const lastFrameTime = useSharedValue(0);
   const smootherRef = useRef(new LandmarkSmoother());
+  const frameBufferRef = useRef(new FrameBufferManager());
 
   useEffect(() => {
     const readyInterval = setInterval(() => {
@@ -502,6 +562,7 @@ export const useGestureClassifier = (
     return () => {
       clearInterval(monitor);
       clearInterval(readyInterval);
+      frameBufferRef.current.cleanup();
     };
   }, [serviceReady, targetFps]);
 
@@ -547,6 +608,8 @@ export const useGestureClassifier = (
       if (externalProcessingRef.current || !serviceReady.value) {
         return;
       }
+
+      runOnJS((f: Frame) => frameBufferRef.current.addFrame(f))(frame);
 
       const now = Date.now();
       if (now - lastFrameTime.value < 1000 / targetFps.value) {
