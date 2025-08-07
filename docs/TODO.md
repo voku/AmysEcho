@@ -13,11 +13,24 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] Project architecture and foundation
 
 ### 🔄 IN PROGRESS / IMMEDIATE
-- [x] **Gesture Recognition Implementation**
+- [ ] **Gesture Recognition Implementation**
   - [x] Complete `mlService.ts` TFLite model loading
   - [x] Implement live gesture classification pipeline
   - [x] Test offline gesture recognition fallback
   - [x] Validate recognition accuracy with test gestures
+  - [ ] **Add memory management**
+    - Hint: introduce a `FrameBufferManager` to limit stored frames and dispose old ones.
+    - Example:
+      ```ts
+      class FrameBufferManager {
+        private readonly maxBufferSize = 3;
+        private frameBuffer: Frame[] = [];
+        addFrame(frame: Frame) { /* dispose oldest frame, then push */ }
+        cleanup() { this.frameBuffer.forEach(f => f.close()); }
+      }
+      ```
+  - [ ] **TFLite model lifecycle cleanup**
+    - Hint: wrap model access in a `ModelManager` that sets `isInferenceRunning` and calls `dispose()` after use.
 
 - [x] **Rich Audio Feedback System**
   - [x] Complete `audioService.ts` implementation using `expo-audio`
@@ -25,11 +38,14 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement speech synthesis for recognized gestures
   - [x] Test audio output quality and timing
 
-- [x] **Camera Integration**
+- [ ] **Camera Integration**
   - [x] Finalize `react-native-vision-camera` integration
   - [x] Implement high-performance gesture capture
   - [x] Add camera permission handling
   - [x] Test frame rate and gesture capture quality
+  - [ ] **Comprehensive error handling**
+    - Hint: add `handleCameraError` with fallbacks for permission denial, missing devices and hardware failures.
+    - Include periodic health checks using `Camera.getAvailableCameraDevices()`.
 
 ---
 
@@ -66,6 +82,12 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement context-aware suggestions
   - [x] Add conversation memory for better responses
   - [x] Test suggestion quality and relevance
+  - [ ] Add `APIRetryManager` with exponential backoff for failed requests
+    - Example:
+      ```ts
+      const retry = new APIRetryManager();
+      await retry.executeWithRetry(() => callLLM(), 'dialogEngine');
+      ```
 
 - [ ] **DGS Video Playback System**
   - [x] Complete DGS video integration on `DgsScreen`
@@ -102,6 +124,19 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Implement sample validation feedback
   - Create training progress visualization
 
+- [ ] **Training Data Quality Assurance**
+  - Validate gesture samples with `TrainingDataValidator`
+    - Example: check landmark confidence, completeness and motion.
+  - Provide retake suggestions based on detected issues.
+
+- [ ] **Model Performance Monitoring**
+  - Track predictions with `ModelPerformanceMonitor`
+  - Alert on accuracy drops >15% and suggest retraining.
+
+- [ ] **Occlusion Handling**
+  - Detect partially hidden hands using `GestureOcclusionHandler`
+  - Guide users to adjust positioning when occlusion is too high.
+
 ### Backend Services
 - [x] **Secure LLM Dialog Endpoint**
   - [x] Create authenticated OpenAI proxy server
@@ -131,6 +166,14 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Add screen reader support for bottom navigation
   - [x] Implement high contrast mode
   - Test with accessibility tools
+  - [ ] Add rich gesture descriptions and live announcements
+    - Example:
+      ```ts
+      announceGestureRecognition(name, confidence);
+      const label = createGestureAccessibilityLabel(g, conf, ctx);
+      ```
+  - [ ] Implement German language support
+    - Hint: load `i18n/de.json` via `LanguageManager` and update gesture translations.
 
 - [ ] **Animation & Feedback**
   - Implement RN Animated API for smooth transitions
@@ -142,7 +185,15 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Optimize UI for 4-year-old usability
   - Add colorful, engaging visual elements
   - Implement large touch targets
+    - Hint: use `childFriendlyStyles.minTouchTarget` (60x60, padding 12) and add haptic feedback.
+    - Example:
+      ```ts
+      import { childFriendlyStyles } from '../styles/touchTargets';
+      <Pressable style={childFriendlyStyles.primaryButton} onPress={childHaptic} />
+      ```
   - Test with child users
+  - [ ] Add session management for attention span
+    - Hint: implement `ChildSessionManager` to schedule encouragements and suggest breaks.
 
 ### Quality Assurance
 - [ ] **Testing Suite**
@@ -156,6 +207,8 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Minimize battery usage during operation
   - Optimize memory usage for older devices
   - Test performance across device range
+  - [ ] Implement adaptive processing based on battery & thermal state
+    - Hint: create `AdaptivePerformanceManager` that adjusts frame rate and model complexity.
 
 ---
 
@@ -173,6 +226,10 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Add GDPR compliance features
   - Create data export functionality
   - Test data migration scenarios
+  - [ ] Protect gesture data
+    - Hint: implement `GestureDataProtector` for anonymization and AES encryption.
+  - [ ] Enhance API key security
+    - Hint: use `SecureConfigManager` with device keystore and hash validation.
 
 - [ ] **Offline Capability**
   - Ensure full offline functionality
