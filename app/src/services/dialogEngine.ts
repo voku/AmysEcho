@@ -2,6 +2,33 @@ import { Symbol } from '../../db/models';
 import { loadOpenAIApiKey } from '../storage';
 import { logger } from '../utils/logger';
 
+class APIRetryManager {
+  private readonly maxRetries = 3;
+  private readonly baseDelay = 1000;
+
+  async executeWithRetry<T>(operation: () => Promise<T>, context: string): Promise<T> {
+    let lastError: Error | undefined;
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        if (attempt < this.maxRetries) {
+          const delay = this.baseDelay * Math.pow(2, attempt);
+          logger.warn(`${context} failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${delay}ms`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+    this.handleAPIFailure(context, lastError!);
+    throw lastError!;
+  }
+
+  private handleAPIFailure(context: string, error: Error): void {
+    logger.error(`API failure in ${context}:`, error);
+  }
+}
+
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const MODEL = 'gpt-4-turbo';
 
@@ -71,19 +98,23 @@ class DialogEngine {
     const prompt = `A ${age}-year-old child who speaks ${language} just selected the word "${input}". The current context is [${context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver. Return a JSON object with the keys \"nextWords\" and \"caregiverPhrases\".`;
 
     try {
-      const response = await fetch(OPENAI_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [...this.history, { role: 'user', content: prompt }],
-          response_format: { type: 'json_object' },
-          temperature: 0.7,
+      const retry = new APIRetryManager();
+      const response = await retry.executeWithRetry(() =>
+        fetch(OPENAI_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [...this.history, { role: 'user', content: prompt }],
+            response_format: { type: 'json_object' },
+            temperature: 0.7,
+          }),
         }),
-      });
+        'dialogEngine'
+      );
 
       if (!response.ok) {
         logger.error(`OpenAI API returned status ${response.status}`);
