@@ -4,6 +4,7 @@ import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { Hand, BookOpen, Settings } from 'lucide-react-native';
 import type { RootStackParamList } from '../navigation/types';
 import { COLORS, SPACING } from '../constants/ui';
+import { useAccessibility } from './AccessibilityContext';
 
 interface Props {
   active: 'recognition' | 'training' | 'parent';
@@ -12,8 +13,9 @@ interface Props {
 
 export default function BottomNav({ active, profileId }: Props) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { highContrast } = useAccessibility();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, highContrast && styles.containerHC]}>
       <Pressable
         onPress={() => navigation.navigate('Recognition', { profileId })}
         style={styles.item}
@@ -23,10 +25,26 @@ export default function BottomNav({ active, profileId }: Props) {
       >
         <Hand
           size={24}
-          color={active === 'recognition' ? COLORS.primaryAccent : COLORS.secondaryAccent}
+          color={
+            highContrast
+              ? active === 'recognition'
+                ? COLORS.highContrastText
+                : COLORS.highContrastPressed
+              : active === 'recognition'
+              ? COLORS.primaryAccent
+              : COLORS.secondaryAccent
+          }
           style={styles.icon}
         />
-        <Text style={[styles.label, active === 'recognition' && styles.active]}>Listen</Text>
+        <Text
+          style={[
+            styles.label,
+            highContrast && styles.labelHC,
+            active === 'recognition' && (highContrast ? styles.activeHC : styles.active),
+          ]}
+        >
+          Listen
+        </Text>
       </Pressable>
       <Pressable
         onPress={() => navigation.navigate('Training', { gestureLabel: undefined })}
@@ -37,10 +55,26 @@ export default function BottomNav({ active, profileId }: Props) {
       >
         <BookOpen
           size={24}
-          color={active === 'training' ? COLORS.primaryAccent : COLORS.secondaryAccent}
+          color={
+            highContrast
+              ? active === 'training'
+                ? COLORS.highContrastText
+                : COLORS.highContrastPressed
+              : active === 'training'
+              ? COLORS.primaryAccent
+              : COLORS.secondaryAccent
+          }
           style={styles.icon}
         />
-        <Text style={[styles.label, active === 'training' && styles.active]}>Learn</Text>
+        <Text
+          style={[
+            styles.label,
+            highContrast && styles.labelHC,
+            active === 'training' && (highContrast ? styles.activeHC : styles.active),
+          ]}
+        >
+          Learn
+        </Text>
       </Pressable>
       <Pressable
         onPress={() => navigation.navigate('ProfileSelect')}
@@ -51,10 +85,26 @@ export default function BottomNav({ active, profileId }: Props) {
       >
         <Settings
           size={24}
-          color={active === 'parent' ? COLORS.primaryAccent : COLORS.secondaryAccent}
+          color={
+            highContrast
+              ? active === 'parent'
+                ? COLORS.highContrastText
+                : COLORS.highContrastPressed
+              : active === 'parent'
+              ? COLORS.primaryAccent
+              : COLORS.secondaryAccent
+          }
           style={styles.icon}
         />
-        <Text style={[styles.label, active === 'parent' && styles.active]}>Menu</Text>
+        <Text
+          style={[
+            styles.label,
+            highContrast && styles.labelHC,
+            active === 'parent' && (highContrast ? styles.activeHC : styles.active),
+          ]}
+        >
+          Menu
+        </Text>
       </Pressable>
     </View>
   );
@@ -70,6 +120,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: COLORS.border,
   },
+  containerHC: {
+    backgroundColor: COLORS.highContrastBackground,
+    borderColor: COLORS.highContrastText,
+  },
   item: {
     alignItems: 'center',
   },
@@ -80,8 +134,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.secondaryAccent,
   },
+  labelHC: {
+    color: COLORS.highContrastPressed,
+  },
   active: {
     color: COLORS.primaryAccent,
+    fontWeight: 'bold',
+  },
+  activeHC: {
+    color: COLORS.highContrastText,
     fontWeight: 'bold',
   },
 });
