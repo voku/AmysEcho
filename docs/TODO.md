@@ -91,8 +91,8 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Test model loading performance
 
 - [ ] **Two-Stage Frame Processor**
-  - Implement landmark detection in `useFrameProcessor` worklet
-  - Add gesture classification pipeline
+  - [x] Implement landmark detection in `useFrameProcessor` worklet
+  - [x] Add gesture classification pipeline
   - Optimize processing performance
   - Test real-time processing accuracy
 

@@ -3,6 +3,7 @@ export interface ProcessedFrame {
   width: number;
   height: number;
   timestamp: number;
+  predictions?: number[];
 }
 
 export interface DetailedGestureResult {
