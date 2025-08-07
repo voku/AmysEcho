@@ -148,9 +148,9 @@ describe('mlService', () => {
     );
   });
 
-  it('prioritizes remote classification when available', async () => {
+  it('requests remote classification when worklet prediction confidence is low', async () => {
     const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
-    const gestureRunSync = jest.fn().mockReturnValue([[0.1, 0.9]]);
+    const gestureRunSync = jest.fn();
     const gestureTflite: any = { runSync: gestureRunSync };
 
     await mlService.loadModels(landmarkTflite, gestureTflite, ['remote', 'local']);
@@ -173,6 +173,7 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
+      predictions: [0.4, 0.6],
     } as any;
 
     const onResult = jest.fn();

@@ -218,6 +218,7 @@ class MachineLearningService {
     onResult: (result: DetailedGestureResult | null, landmarks: number[][]) => void,
   ): Promise<void> {
     let result: DetailedGestureResult | null = null;
+    let localConfidence = 0;
 
     if (processed.predictions) {
       try {
@@ -232,20 +233,24 @@ class MachineLearningService {
           suggestions,
           requiresConfirmation: confidence < this.confidenceThreshold,
         };
+        localConfidence = confidence;
       } catch (error) {
         logger.error('Local gesture classification failed:', error);
         result = this.createUncertainResult('Local inference error');
       }
     }
 
-    if (!result && this.shouldUseRemote()) {
+    if ((localConfidence < this.confidenceThreshold || !result) && this.shouldUseRemote()) {
       try {
-        result = await Promise.race([
+        const remote = await Promise.race([
           this.classifyRemotely(processed),
           new Promise<null>((_, reject) =>
             setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout),
           ),
         ]);
+        if (remote) {
+          result = remote;
+        }
       } catch (error) {
         logger.debug('Remote classification failed, using local fallback');
         this.handleRemoteFailure();
