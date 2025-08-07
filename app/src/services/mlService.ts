@@ -314,6 +314,24 @@ class MachineLearningService {
       } catch (error) {
         logger.debug('Remote classification failed, using local fallback');
         this.handleRemoteFailure();
+        try {
+          const tensor = this.prepareTensorInput(processed);
+          const predictions = await this.modelManager.runInference(tensor);
+          const { gesture, confidence } = this.processModelOutput(predictions);
+          const suggestions = this.getTopPredictions(predictions, 3);
+
+          result = {
+            label: gesture,
+            confidence,
+            isLocal: true,
+            timestamp: Date.now(),
+            suggestions,
+            requiresConfirmation: confidence < this.confidenceThreshold,
+          };
+        } catch (localError) {
+          logger.error('Local gesture classification failed:', localError);
+          result = this.createUncertainResult('Local inference error');
+        }
       }
     }
 

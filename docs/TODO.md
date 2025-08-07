@@ -24,8 +24,9 @@ The project has a stable foundation after a major refactor. The database, naviga
     - Introduced a `FrameBufferManager` to limit stored frames and dispose old ones.
   - [x] **TFLite model lifecycle cleanup**
     - Wrapped model access in a `ModelManager` that sets `isInferenceRunning` and calls `dispose()` after use.
-  - [ ] **Offline fallback reliability** _(update `app/src/services/mlService.ts`; see `integration/test/offlineFallback.test.js`)_
+  - [x] **Offline fallback reliability** _(update `app/src/services/mlService.ts`; see `integration/offlineFallback.spec.ts`)_
     - Ensure cloud inference failures hot‑swap to the local TFLite model within one frame.
+    - Implemented in `app/src/services/mlService.ts`; test: `integration/offlineFallback.spec.ts`.
   - [ ] **Offline boot mode** _(update `app/src/App.tsx`; see `integration/test/offlineBoot.test.js`)_
     - Detect offline state at startup and preload local models immediately.
 

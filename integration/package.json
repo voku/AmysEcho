@@ -4,6 +4,9 @@
   "type": "module",
   "scripts": {
     "pretest": "npm run build --prefix ../server",
-    "test": "node --test"
+    "test": "tsx --test offlineFallback.spec.ts test/api.test.js"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3"
   }
 }
