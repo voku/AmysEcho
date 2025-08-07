@@ -1,7 +1,13 @@
-import React, {createContext, ReactNode, useContext, useEffect, useState} from 'react';
-import {audioService, checkForModelUpdate, mlService, syncService, syncTrainingData} from '../services';
-import {adaptiveLearningService} from '../services/adaptiveLearningService';
-import {ActivityIndicator, View} from 'react-native';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import {
+  audioService,
+  checkForModelUpdate,
+  mlService,
+  syncService,
+  syncTrainingData,
+} from '../services';
+import { adaptiveLearningService } from '../services/adaptiveLearningService';
+import { ActivityIndicator, View } from 'react-native';
 import { Asset } from 'expo-asset';
 import {GESTURE_CLASSIFIER_MODEL, HAND_LANDMARKER_MODEL} from '../constants/modelPaths';
 import { loadCustomModelUri } from '../storage';
@@ -30,7 +36,12 @@ export const useServices = () => {
   return context;
 };
 
-export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
+interface ProviderProps {
+  children: ReactNode;
+  offline?: boolean;
+}
+
+export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const [areServicesReady, setAreServicesReady] = useState(false);
   
 
@@ -65,24 +76,28 @@ export const AppServicesProvider = ({ children }: { children: ReactNode }) => {
           gestureLabels,
           {
             confidenceThreshold: CONFIDENCE_THRESHOLD,
-            enableRemoteClassification: ENABLE_REMOTE_CLASSIFICATION,
+            enableRemoteClassification: offline ? false : ENABLE_REMOTE_CLASSIFICATION,
             remoteRetryMs: REMOTE_RETRY_MS,
             processingTimeout: REMOTE_TIMEOUT_MS,
           },
         );
         await audioService.initialize();
         setAreServicesReady(true);
-        interval = setInterval(() => {
+        if (!offline) {
+          interval = setInterval(() => {
+            syncTrainingData().catch(() => {});
+            checkForModelUpdate().catch(() => {});
+            syncService.uploadPendingTrainingData().catch(() => {});
+            syncService.checkForNewModel().catch(() => {});
+          }, 6 * 60 * 60 * 1000);
+
           syncTrainingData().catch(() => {});
           checkForModelUpdate().catch(() => {});
           syncService.uploadPendingTrainingData().catch(() => {});
           syncService.checkForNewModel().catch(() => {});
-        }, 6 * 60 * 60 * 1000);
-
-        syncTrainingData().catch(() => {});
-        checkForModelUpdate().catch(() => {});
-        syncService.uploadPendingTrainingData().catch(() => {});
-        syncService.checkForNewModel().catch(() => {});
+        } else {
+          logger.info('Starting in offline mode; skipping cloud sync');
+        }
 
       } catch (e) {
         logger.error('Failed to initialize services:', e);

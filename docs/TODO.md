@@ -27,8 +27,9 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] **Offline fallback reliability** _(update `app/src/services/mlService.ts`; see `integration/offlineFallback.spec.ts`)_
     - Ensure cloud inference failures hot‑swap to the local TFLite model within one frame.
     - Implemented in `app/src/services/mlService.ts`; test: `integration/offlineFallback.spec.ts`.
-  - [ ] **Offline boot mode** _(update `app/src/App.tsx`; see `integration/test/offlineBoot.test.js`)_
+  - [x] **Offline boot mode** _(update `app/src/App.tsx`; see `integration/offlineBoot.spec.ts`)_
     - Detect offline state at startup and preload local models immediately.
+    - Implemented in `app/App.tsx` and `app/src/context/AppServicesProvider.tsx`; test: `integration/offlineBoot.spec.ts`.
 
 - [x] **Rich Audio Feedback System**
   - [x] Complete `audioService.ts` implementation using `expo-audio`
