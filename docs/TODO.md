@@ -20,7 +20,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Validate recognition accuracy with test gestures
 
 - [x] **Rich Audio Feedback System**
-  - [x] Complete `audioService.ts` implementation using `expo-av`
+  - [x] Complete `audioService.ts` implementation using `expo-audio`
   - [x] Add success/error sound effects
   - [x] Implement speech synthesis for recognized gestures
   - [x] Test audio output quality and timing
@@ -191,7 +191,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Complete API documentation
   - [x] Add deployment guides
   - [x] Create contribution guidelines
-  - Document architecture decisions
+  - [x] Document architecture decisions
 
 ---
 

@@ -59,7 +59,7 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 | ML Inference      | `react-native-fast-tflite`    | Local fallback via TensorFlow Lite                |
 | Cloud ML          | Custom API / OpenAI           | Accurate gesture classification & dialog          |
 | UI/UX             | RN Animated API + Skia (opt.) | Gentle, trust-based feedback                      |
-| Audio             | `expo-av`, `expo-speech`      | Speech output + sound effects                     |
+| Audio             | `expo-audio`, `expo-speech`   | Speech output + sound effects                     |
 | Database          | WatermelonDB (SQLite)         | Encrypted, offline-first local storage            |
 
 ## 6. Setup and Execution
