@@ -21,7 +21,14 @@ try {
 } catch (e) {
   logger.warn('Worklets not available, using fallback:', e);
 }
-import { extractHandLandmarks, setHandLandmarkModel } from './landmarkExtractor';
+import {
+  extractHandLandmarks,
+  setHandLandmarkModel,
+} from './landmarkExtractor';
+import {
+  classifyGesture,
+  setGestureModel,
+} from './gestureClassifier';
 import { DetailedGestureResult, ProcessedFrame, MLServiceConfig } from '../types/ml';
 import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';
@@ -105,6 +112,7 @@ class MachineLearningService {
       this.gestureModel?.close?.();
       this.gestureModel = null;
       setHandLandmarkModel?.(null);
+      setGestureModel(null);
 
       logger.info('Loading custom models...');
 
@@ -137,21 +145,23 @@ class MachineLearningService {
         logger.info(`Loading model from: ${modelPath}`);
         try {
           this.gestureModel = await loadTensorflowModel({ url: modelPath });
-        } catch (e) {
-          logger.error('Failed to load gesture model:', e);
-          throw e; // Re-throw to ensure isReady becomes false
-        }
-      } else if (typeof gesture === 'object' && gesture.url && loadTensorflowModel) {
-        logger.info(`Loading gesture model from: ${gesture.url}`);
-        try {
-          this.gestureModel = await loadTensorflowModel({ url: gesture.url });
-        } catch (e) {
-          logger.error('Failed to load gesture model:', e);
-          throw e; // Re-throw to ensure isReady becomes false
-        }
-      } else {
-        this.gestureModel = gesture;
+      } catch (e) {
+        logger.error('Failed to load gesture model:', e);
+        throw e; // Re-throw to ensure isReady becomes false
       }
+    } else if (typeof gesture === 'object' && gesture.url && loadTensorflowModel) {
+      logger.info(`Loading gesture model from: ${gesture.url}`);
+      try {
+        this.gestureModel = await loadTensorflowModel({ url: gesture.url });
+      } catch (e) {
+        logger.error('Failed to load gesture model:', e);
+        throw e; // Re-throw to ensure isReady becomes false
+      }
+    } else {
+      this.gestureModel = gesture;
+    }
+
+      setGestureModel(this.gestureModel);
 
       if (config?.confidenceThreshold) {
         this.confidenceThreshold = config.confidenceThreshold;
@@ -182,6 +192,7 @@ class MachineLearningService {
     this.gestureModel?.close?.();
     this.gestureModel = null;
     setHandLandmarkModel?.(null);
+    setGestureModel(null);
     this.isReady = false;
   }
 
@@ -207,15 +218,39 @@ class MachineLearningService {
     onResult: (result: DetailedGestureResult | null, landmarks: number[][]) => void,
   ): Promise<void> {
     let result: DetailedGestureResult | null = null;
+    let localConfidence = 0;
 
-    if (this.shouldUseRemote()) {
+    if (processed.predictions) {
       try {
-        result = await Promise.race([
+        const { gesture, confidence } = this.processModelOutput(processed.predictions);
+        const suggestions = this.getTopPredictions(processed.predictions, 3);
+
+        result = {
+          label: gesture,
+          confidence,
+          isLocal: true,
+          timestamp: Date.now(),
+          suggestions,
+          requiresConfirmation: confidence < this.confidenceThreshold,
+        };
+        localConfidence = confidence;
+      } catch (error) {
+        logger.error('Local gesture classification failed:', error);
+        result = this.createUncertainResult('Local inference error');
+      }
+    }
+
+    if ((localConfidence < this.confidenceThreshold || !result) && this.shouldUseRemote()) {
+      try {
+        const remote = await Promise.race([
           this.classifyRemotely(processed),
           new Promise<null>((_, reject) =>
             setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout),
           ),
         ]);
+        if (remote) {
+          result = remote;
+        }
       } catch (error) {
         logger.debug('Remote classification failed, using local fallback');
         this.handleRemoteFailure();
@@ -525,11 +560,15 @@ export const useGestureClassifier = (
           return;
         }
 
+        const flat = landmarks.flat();
+        const predictions = classifyGesture(flat);
+
         const processed: ProcessedFrame = {
           landmarks,
           width: frame.width,
           height: frame.height,
           timestamp: Date.now(),
+          predictions: predictions || undefined,
         };
 
         runOnJS(enqueueFrame)(processed);
