@@ -18,6 +18,8 @@ export default function BottomNav({ active, profileId }: Props) {
         onPress={() => navigation.navigate('Recognition', { profileId })}
         style={styles.item}
         accessibilityLabel="Listen"
+        accessibilityRole="button"
+        accessibilityHint="Start gesture recognition"
       >
         <Hand
           size={24}
@@ -30,6 +32,8 @@ export default function BottomNav({ active, profileId }: Props) {
         onPress={() => navigation.navigate('Training', { gestureLabel: undefined })}
         style={styles.item}
         accessibilityLabel="Learn"
+        accessibilityRole="button"
+        accessibilityHint="Record or practice gestures"
       >
         <BookOpen
           size={24}
@@ -42,6 +46,8 @@ export default function BottomNav({ active, profileId }: Props) {
         onPress={() => navigation.navigate('ProfileSelect')}
         style={styles.item}
         accessibilityLabel="Menu"
+        accessibilityRole="button"
+        accessibilityHint="Open profile and settings menu"
       >
         <Settings
           size={24}
