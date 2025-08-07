@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Platform, ToastAndroid } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { setupDatabase } from './db';
@@ -13,6 +14,7 @@ import { logger } from './src/utils/logger';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const [accessibility, setAccessibility] = useState<AccessibilitySettings>({
     largeText: false,
     highContrast: false,
@@ -24,6 +26,16 @@ export default function App() {
         logger.info("Initializing Amy's Echo...");
         const profileId = await setupDatabase();
         logger.info('Database setup complete, initial profile:', profileId);
+
+        const netState = await NetInfo.fetch();
+        if (!netState.isConnected) {
+          setIsOffline(true);
+          if (Platform.OS === 'android') {
+            ToastAndroid.show('Working offline', ToastAndroid.SHORT);
+          } else {
+            Alert.alert('Working offline');
+          }
+        }
 
         const activeId = await loadActiveProfileId();
         if (!activeId) {
@@ -72,7 +84,7 @@ export default function App() {
   }
 
   return (
-    <AppServicesProvider>
+    <AppServicesProvider offline={isOffline}>
       <AccessibilityContext.Provider
         value={{
           ...accessibility,
