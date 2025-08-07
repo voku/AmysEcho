@@ -191,7 +191,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Complete API documentation
   - [x] Add deployment guides
   - [x] Create contribution guidelines
-  - Document architecture decisions
+  - [x] Document architecture decisions
 
 ---
 
