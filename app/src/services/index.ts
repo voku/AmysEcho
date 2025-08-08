@@ -12,3 +12,4 @@ export * from "./trainingSync";
 export * from "./modelUpdate";
 export * from "./syncService";
 export * from './feedbackService';
+export * from './childSessionManager';
