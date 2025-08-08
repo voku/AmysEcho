@@ -77,7 +77,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement gentle encouragement system
   - [x] Add dedicated practice screen for rehearsal _(update `app/src/screens/PracticeScreen.tsx`; see `integration/test/practiceMode.test.js`)_
 
-- [ ] **Caregiver portal completion** _(implement routes in `server/src/portal`; see `integration/test/portal.test.js`)_
+- [x] **Caregiver portal completion** _(implement routes in `server/src/portal`; see `integration/test/portal.test.js`)_
   - Review, approve, and export recorded samples for training.
 
 ### Enhanced Intelligence Features
