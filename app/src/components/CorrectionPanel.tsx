@@ -16,7 +16,7 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
   const styles = StyleSheet.create({
     modal: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      backgroundColor: `${COLORS.highContrastBackground}CC`,
       justifyContent: 'center',
       alignItems: 'center',
     },

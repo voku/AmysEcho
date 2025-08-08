@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     bottom: SPACING.md,
     left: SPACING.md,
     right: SPACING.md,
-    backgroundColor: 'rgba(255, 0, 0, 0.7)',
+    backgroundColor: `${COLORS.warning}B3`,
     padding: SPACING.sm,
     borderRadius: RADIUS,
   },
