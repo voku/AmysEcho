@@ -19,7 +19,7 @@ import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 import { loadProfile, Profile, logCorrection } from '../storage';
-import { audioService } from '../services';
+import { audioService, triggerSpeakAndShow } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { database } from '../../db';
 import { Correction, GestureDefinition } from '../../db/models';
@@ -219,17 +219,19 @@ export default function RecognitionScreen({ navigation }: any) {
       setLastRecognizedGesture(entry);
       setStatus(recognizedSymbolLabel);
       startFeedbackAnimation();
-      audioService
-        .playSuccessFeedback(recognizedSymbolLabel, result.confidence)
-        .catch((error) => {
-          logger.warn('Audio feedback failed:', error);
-        });
-
-      if (useDgs && entry.dgsVideoUri) {
-        setShowVideoPlayer(true);
-      } else if (entry.videoUri) {
-        setShowVideoPlayer(true);
-      }
+      triggerSpeakAndShow(
+        recognizedSymbolLabel,
+        result.confidence,
+        () => {
+          if (useDgs && entry.dgsVideoUri) {
+            setShowVideoPlayer(true);
+          } else if (entry.videoUri) {
+            setShowVideoPlayer(true);
+          }
+        },
+      ).catch((error) => {
+        logger.warn('Feedback failed:', error);
+      });
 
       if (profile) {
         try {
