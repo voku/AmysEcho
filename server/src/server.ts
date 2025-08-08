@@ -5,7 +5,7 @@ import { promises as fs } from 'fs';
 import rateLimit from 'express-rate-limit';
 import { TRAINED_MODEL_PATH } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
-import { setupDatabase, loadDatabase, saveDatabase, Database } from './db';
+import { setupDatabase, loadDatabase, saveDatabase, Database, logCorrection } from './db';
 import auth from './middleware/auth';
 import { mlService } from './services/mlService';
 import { Correction, UsageStat, LearningAnalytics, Profile, SymbolRecord } from './types';
@@ -36,6 +36,10 @@ app.get('/portal', (_req: Request, res: Response) => {
 });
 
 let dbInstance: Database; // Declare a variable to hold the database instance
+
+// Utility to generate lightweight unique ids
+const genId = () =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2);
 
 // Ensure the database file exists with default content and load it
 setupDatabase(DB_FILE_PATH)
@@ -186,6 +190,30 @@ app.get('/api/analytics/export', auth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error exporting data:', error);
     res.status(500).json({ error: 'Failed to export data' });
+  }
+});
+
+app.post('/api/corrections', auth, async (req: Request, res: Response) => {
+  const { gesture } = req.body || {};
+  if (typeof gesture !== 'string') {
+    return res.status(400).json({ error: 'Invalid correction' });
+  }
+  try {
+    logCorrection(dbInstance, 'unknown', gesture, null);
+    const record: Correction = {
+      id: genId(),
+      predictedGesture: 'unknown',
+      actualGesture: gesture,
+      confidence: 0,
+      timestamp: Date.now(),
+      isSynced: false,
+    };
+    dbInstance.corrections.push(record);
+    await saveDatabase(dbInstance, DB_FILE_PATH);
+    res.status(202).json({ status: 'queued' });
+  } catch (error) {
+    console.error('Error logging correction:', error);
+    res.status(500).json({ error: 'Failed to log correction' });
   }
 });
 
