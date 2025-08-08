@@ -217,15 +217,15 @@ export default function TrainingScreen({ navigation, route }: any) {
                     viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
                     pointerEvents="none"
                   >
-                    {landmarks.map((l, idx) => (
-                      <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill="yellow" />
-                    ))}
-                  </Svg>
-                )}
-                <View style={styles.detectionIndicator}>
-                  <View
-                    style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}
-                  />
+                {landmarks.map((l, idx) => (
+                      <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill={COLORS.warning} />
+                  ))}
+                </Svg>
+              )}
+              <View style={styles.detectionIndicator}>
+                <View
+                    style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]}
+                />
                   <Text style={styles.detectionText}>
                     {isRecording
                       ? detectionActive

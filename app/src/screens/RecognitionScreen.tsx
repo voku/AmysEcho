@@ -93,7 +93,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
   const handleCameraError = useCallback(
     (error: CameraRuntimeError) => {
-      console.error('Camera error:', error);
+      logger.error('Camera error:', error);
       const code = (error.code as string) || '';
       switch (code) {
         case 'device/camera-not-available':
@@ -124,7 +124,7 @@ export default function RecognitionScreen({ navigation }: any) {
           }
         }
       } catch (error) {
-        console.warn('Camera health check failed:', error);
+        logger.warn('Camera health check failed:', error);
       }
     }, 5000);
     return () => clearInterval(healthCheck);
@@ -412,7 +412,7 @@ export default function RecognitionScreen({ navigation }: any) {
       bottom: 0,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      backgroundColor: `${COLORS.highContrastBackground}4D`,
     },
     detectionIndicator: {
       position: 'absolute',
@@ -437,14 +437,14 @@ export default function RecognitionScreen({ navigation }: any) {
       marginBottom: SPACING.lg,
       textAlign: 'center',
       color: COLORS.highContrastText,
-      textShadowColor: 'rgba(0, 0, 0, 0.8)',
+      textShadowColor: `${COLORS.highContrastBackground}CC`,
       textShadowOffset: { width: 2, height: 2 },
       textShadowRadius: 4,
     },
     symbolDisplay: {
       fontSize: largeText ? 120 : 100,
       marginBottom: SPACING.lg,
-      textShadowColor: 'rgba(0, 0, 0, 0.8)',
+      textShadowColor: `${COLORS.highContrastBackground}CC`,
       textShadowOffset: { width: 2, height: 2 },
       textShadowRadius: 4,
     },
@@ -453,7 +453,7 @@ export default function RecognitionScreen({ navigation }: any) {
       bottom: 96,
       left: SPACING.md,
       right: SPACING.md,
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      backgroundColor: `${COLORS.surface}E6`,
       borderRadius: RADIUS * 2,
       padding: SPACING.md,
     },
@@ -630,20 +630,20 @@ export default function RecognitionScreen({ navigation }: any) {
                       y1={start[1] * height}
                       x2={end[0] * width}
                       y2={end[1] * height}
-                      stroke="yellow"
+                      stroke={COLORS.warning}
                       strokeWidth={3}
                     />
                   );
                 })}
                 {landmarks.map((l, idx) => (
-                  <Circle key={`point-${idx}`} cx={l[0] * width} cy={l[1] * height} r={5} fill="yellow" />
+                  <Circle key={`point-${idx}`} cx={l[0] * width} cy={l[1] * height} r={5} fill={COLORS.warning} />
                 ))}
               </Svg>
             )}
             <ErrorMessage message={processingError} />
             <View style={styles.detectionIndicator}>
               <View
-                style={[styles.dot, { backgroundColor: detectionActive ? 'lime' : 'red' }]}
+                style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]}
               />
               <Text style={styles.detectionText}>
                 {detectionActive ? 'Hand detected' : 'No hand'}

@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: `${COLORS.highContrastBackground}80`,
     justifyContent: 'center',
     alignItems: 'center',
   },
