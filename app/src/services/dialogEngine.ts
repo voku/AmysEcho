@@ -1,33 +1,7 @@
 import { Symbol } from '../../db/models';
 import { loadOpenAIApiKey } from '../storage';
 import { logger } from '../utils/logger';
-
-class APIRetryManager {
-  private readonly maxRetries = 3;
-  private readonly baseDelay = 1000;
-
-  async executeWithRetry<T>(operation: () => Promise<T>, context: string): Promise<T> {
-    let lastError: Error | undefined;
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error: any) {
-        lastError = error;
-        if (attempt < this.maxRetries) {
-          const delay = this.baseDelay * Math.pow(2, attempt);
-          logger.warn(`${context} failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${delay}ms`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
-    }
-    this.handleAPIFailure(context, lastError!);
-    throw lastError!;
-  }
-
-  private handleAPIFailure(context: string, error: Error): void {
-    logger.error(`API failure in ${context}:`, error);
-  }
-}
+import { APIRetryManager } from './APIRetryManager';
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const MODEL = 'gpt-4-turbo';
