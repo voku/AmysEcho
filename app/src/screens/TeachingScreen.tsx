@@ -12,6 +12,7 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import ErrorMessage from '../components/ErrorMessage';
 import { logger } from '../utils/logger';
+import { syncTrainingData } from '../services';
 
 export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -113,6 +114,11 @@ export default function TeachingScreen({ navigation }: any) {
     sessionId.current = null;
     setGestureLabel('');
     setSampleCount(0);
+    try {
+      await syncTrainingData();
+    } catch (e) {
+      logger.warn('Failed to sync training data', e);
+    }
   };
 
   const handleRetry = () => {

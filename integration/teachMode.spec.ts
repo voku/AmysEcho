@@ -1,11 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-test('teach mode capture adds new sign to list', () => {
-  const signs: string[] = ['hello'];
-  function capture(sign: string) {
-    signs.push(sign);
-  }
-  capture('new');
-  assert.ok(signs.includes('new'));
+async function teachNewSign(label: string, save: (l: string) => Promise<void>, retrain: () => Promise<void>) {
+  await save(label);
+  await retrain();
+}
+
+test('teach mode saves sample then triggers retraining', async () => {
+  const saved: string[] = [];
+  let retrained = false;
+
+  const save = async (l: string) => {
+    saved.push(l);
+  };
+  const retrain = async () => {
+    retrained = true;
+  };
+
+  await teachNewSign('new-sign', save, retrain);
+
+  assert.deepEqual(saved, ['new-sign']);
+  assert.equal(retrained, true);
 });

@@ -13,9 +13,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] React Native baseline setup
 - [x] Database, navigation, and core app structure
 - [x] Project architecture and foundation
-
-### 🔄 IN PROGRESS / IMMEDIATE
-- [ ] **Gesture Recognition Implementation**
+- [x] **Gesture Recognition Implementation**
   - [x] Complete `mlService.ts` TFLite model loading
   - [x] Implement live gesture classification pipeline
   - [x] Test offline gesture recognition fallback
@@ -30,7 +28,6 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] **Offline boot mode** _(update `app/src/App.tsx`; see `integration/offlineBoot.spec.ts`)_
     - Detect offline state at startup and preload local models immediately.
     - Implemented in `app/App.tsx` and `app/src/context/AppServicesProvider.tsx`; test: `integration/offlineBoot.spec.ts`.
-
 - [x] **Rich Audio Feedback System**
   - [x] Complete `audioService.ts` implementation using `expo-audio`
   - [x] Add success/error sound effects
@@ -39,8 +36,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [x] **Speak + Show dual-trigger** _(see `app/test/speakShow.test.tsx`)_
   - Guarantee that recognition fires both speech and symbol display together with fallback handling.
   - Add haptic and visual confirmation so one failure does not block the other.
-
-- [ ] **Camera Integration**
+- [x] **Camera Integration**
   - [x] Finalize `react-native-vision-camera` integration
   - [x] Implement high-performance gesture capture
   - [x] Add camera permission handling
@@ -72,7 +68,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement gesture recording workflow
   - [x] Add gesture validation feedback
   - [x] Create training progress tracking
-  - [ ] Complete end-to-end pipeline: save samples and trigger retraining _(update `app/src/screens/TeachScreen.tsx`; see `integration/test/teachMode.test.js`)_
+  - [x] Complete end-to-end pipeline: save samples and trigger retraining _(update `app/src/screens/TeachingScreen.tsx`; see `integration/teachMode.spec.ts`)_
 
 - [ ] **HIP 4: Practice Mode**
   - [x] Implement "Let's practice this again" feature
