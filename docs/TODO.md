@@ -201,7 +201,7 @@ The project has a stable foundation after a major refactor. The database, naviga
       <Pressable style={childFriendlyStyles.primaryButton} onPress={childHaptic} />
       ```
   - Test with child users
-  - [ ] Add session management for attention span
+  - [x] Add session management for attention span
     - Hint: implement `ChildSessionManager` to schedule encouragements and suggest breaks.
 
 ### Quality Assurance
