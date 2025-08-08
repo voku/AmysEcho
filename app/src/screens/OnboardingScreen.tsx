@@ -146,9 +146,16 @@ export default function OnboardingScreen({ navigation }: any) {
         ))}
       </View>
       <Button
-        title="Continue"
+        title="Next"
+        testID="btn-next"
         onPress={handleContinue}
-        accessibilityLabel="Einrichtung abschließen"
+        accessibilityLabel="Next"
+      />
+      <Button
+        title="Skip"
+        testID="btn-skip"
+        onPress={() => navigation.replace('Recognition')}
+        accessibilityLabel="Skip"
       />
     </SafeAreaView>
     </LinearGradient>

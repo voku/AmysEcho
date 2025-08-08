@@ -6,6 +6,7 @@ export * from './videoService';
 export * from './analytics';
 export * from './usageTracker';
 export { extractLandmarksFromImages } from './landmarkExtractor';
+export * from './correctionService';
 
 export * from "./trainingSync";
 export * from "./modelUpdate";

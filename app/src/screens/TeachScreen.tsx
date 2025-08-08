@@ -1,0 +1,27 @@
+import React from 'react';
+import { View, Button, StyleSheet, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAccessibility } from '../components/AccessibilityContext';
+import { COLORS } from '../constants/ui';
+
+export default function TeachScreen({ navigation }: any) {
+  const { largeText, highContrast } = useAccessibility();
+  const styles = StyleSheet.create({
+    container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  });
+  const gradientColors = highContrast
+    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
+  return (
+    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
+        <Button
+          title="Add New Sign"
+          testID="btn-add-sign"
+          accessibilityLabel="Add New Sign"
+          onPress={() => navigation.navigate('Training')}
+        />
+      </SafeAreaView>
+    </LinearGradient>
+  );
+}

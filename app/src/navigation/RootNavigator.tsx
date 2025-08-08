@@ -19,6 +19,8 @@ const GestureTutorialScreen = lazyScreen(
 const ProfileSelectScreen = lazyScreen(() => import('../screens/ProfileSelectScreen.js'));
 const RecognitionScreen = lazyScreen(() => import('../screens/RecognitionScreen.js'));
 const CorrectionScreen = lazyScreen(() => import('../screens/CorrectionScreen.js'));
+const PracticeScreen = lazyScreen(() => import('../screens/PracticeScreen.js'));
+const TeachScreen = lazyScreen(() => import('../screens/TeachScreen.js'));
 const TrainingScreen = lazyScreen(() => import('../screens/TrainingScreen.js'));
 const ParentScreen = lazyScreen(() => import('../screens/ParentScreen.js'));
 const ProfileManagerScreen = lazyScreen(
@@ -78,6 +80,16 @@ const RootNavigator = () => {
         name="Correction"
         component={CorrectionScreen}
         options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
+        name="Practice"
+        component={PracticeScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Teach"
+        component={TeachScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Training"

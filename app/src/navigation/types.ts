@@ -3,8 +3,10 @@ export type RootStackParamList = {
   Tutorial: undefined;
   ProfileSelect: undefined;
   Recognition: { profileId: string; simulateLowConfidence?: boolean };
-  Correction: { gesture: string; suggestions: string[] };
-  Training: { gestureLabel?: string };
+  Correction: undefined;
+  Training: { gestureLabel?: string; isPractice?: boolean };
+  Practice: undefined;
+  Teach: undefined;
   Parent: undefined;
   ProfileManager: undefined;
   ParentalGate: { target: string };
