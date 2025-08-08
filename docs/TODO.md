@@ -90,7 +90,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement context-aware suggestions
   - [x] Add conversation memory for better responses
   - [x] Test suggestion quality and relevance
-  - [ ] Add `APIRetryManager` with exponential backoff for failed requests _(add `app/src/services/APIRetryManager.ts`; see `app/test/apiRetry.test.ts`)_
+  - [x] Add `APIRetryManager` with exponential backoff for failed requests _(add `app/src/services/APIRetryManager.ts`; see `app/test/apiRetry.test.ts`)_
     - Example:
       ```ts
       const retry = new APIRetryManager();
