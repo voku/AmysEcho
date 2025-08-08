@@ -1,4 +1,6 @@
 import { TensorflowModel } from 'react-native-fast-tflite';
+import { runOnJS } from 'react-native-reanimated';
+import { logger } from '../utils/logger';
 
 let gestureModel: TensorflowModel | null = null;
 
@@ -15,8 +17,7 @@ export function classifyGesture(input: number[]): number[] | null {
     const predictions = result[0] as number[] | undefined;
     return predictions ?? null;
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('Gesture classification failed', e);
+    runOnJS(logger.error)('Gesture classification failed', e);
     return null;
   }
 }
