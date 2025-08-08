@@ -282,6 +282,7 @@ export const logCorrection = (
     landmarkData,
     source: 'HIP_3',
     syncStatus: 'pending',
+    approved: false,
   };
   addGestureTrainingData(db, training);
 

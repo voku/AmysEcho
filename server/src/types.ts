@@ -28,6 +28,7 @@ export interface GestureTrainingData {
   landmarkData: unknown;
   source: TrainingSource;
   syncStatus: SyncStatus;
+  approved: boolean;
 }
 
 export type ProcessedBy = 'local' | 'cloud';

@@ -8,6 +8,8 @@ import {
   saveDatabase,
   addGestureTrainingData,
   removeGestureTrainingData,
+  getGestureTrainingDataById,
+  updateGestureTrainingData,
 } from '../db';
 import { promises as fs } from 'fs';
 
@@ -66,6 +68,7 @@ router.post('/training-data', limiter, async (req, res) => {
     landmarkData,
     source: 'HIP_2',
     syncStatus: 'pending',
+    approved: false,
   });
   await saveDatabase(db, DB_FILE_PATH);
   res.json({ id });
@@ -77,6 +80,27 @@ router.delete('/training-data/:id', limiter, async (req, res) => {
   removeGestureTrainingData(db, id);
   await saveDatabase(db, DB_FILE_PATH);
   res.json({ status: 'deleted' });
+});
+
+router.post('/training-data/:id/approve', limiter, async (req, res) => {
+  const { id } = req.params;
+  const db = await loadDatabase(DB_FILE_PATH);
+  const record = getGestureTrainingDataById(db, id);
+  if (!record) {
+    res.status(404).send('Not found');
+    return;
+  }
+  record.approved = true;
+  updateGestureTrainingData(db, record);
+  await saveDatabase(db, DB_FILE_PATH);
+  res.json({ status: 'approved' });
+});
+
+router.get('/training-data/export', limiter, async (_req, res) => {
+  const db = await loadDatabase(DB_FILE_PATH);
+  const approved = db.gestureTrainingData.filter((d) => d.approved);
+  res.setHeader('Content-Disposition', 'attachment; filename="training-data.json"');
+  res.json(approved);
 });
 
 export default router;

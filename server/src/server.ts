@@ -15,6 +15,7 @@ import {
   loadAnalyticsFromFile,
 } from './services/analyticsService';
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
+import portalRouter from './portal';
 
 const app = express();
 app.use(express.json());
@@ -34,6 +35,9 @@ app.use('/portal', express.static(path.join(__dirname, 'portal')));
 app.get('/portal', (_req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, 'portal', 'index.html'));
 });
+
+// API routes for caregiver portal
+app.use('/portal', portalRouter);
 
 let dbInstance: Database; // Declare a variable to hold the database instance
 
