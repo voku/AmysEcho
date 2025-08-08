@@ -8,7 +8,6 @@ test('CTA buttons expose accessibility labels', () => {
     ['../src/screens/CorrectionScreen.tsx', 'btn-cancel-correction', 'Cancel'],
     ['../src/screens/OnboardingScreen.tsx', 'btn-next', 'Next'],
     ['../src/screens/OnboardingScreen.tsx', 'btn-skip', 'Skip'],
-    ['../src/screens/PracticeScreen.tsx', 'btn-start-practice', 'Start Practice'],
     ['../src/screens/TeachScreen.tsx', 'btn-add-sign', 'Add New Sign'],
   ];
   for (const [filePath, testId, label] of checks) {
@@ -16,4 +15,11 @@ test('CTA buttons expose accessibility labels', () => {
     const pattern = new RegExp(`testID="${testId}"[\\s\\S]*accessibilityLabel="${label}"`);
     expect(file).toMatch(pattern);
   }
+  const practiceFile = readFileSync(
+    path.join(__dirname, '../src/screens/PracticeScreen.tsx'),
+    'utf8',
+  );
+  expect(practiceFile).toMatch(
+    /testID={`practice-\${item.id}`}[\s\S]*accessibilityLabel={`Übe \${item.label}`}/,
+  );
 });
