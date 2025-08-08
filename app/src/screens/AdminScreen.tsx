@@ -314,7 +314,7 @@ export default function AdminScreen({ navigation }: any) {
       />
       <Button
         title="Correction"
-        onPress={() => navigation.navigate('Correction', { gesture: '' , suggestions: []})}
+        onPress={() => navigation.navigate('Correction')}
         accessibilityLabel="Korrekturmodus öffnen"
       />
       <Button

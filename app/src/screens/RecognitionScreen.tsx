@@ -696,6 +696,15 @@ export default function RecognitionScreen({ navigation }: any) {
         />
       )}
 
+      {!showCorrection && (
+        <Button
+          title="Correction"
+          testID="btn-correction"
+          accessibilityLabel="Open correction screen"
+          onPress={() => navigation.navigate('Correction')}
+        />
+      )}
+
       {profile && <BottomNav active="recognition" profileId={profile.id} />}
     </SafeAreaView>
     </LinearGradient>
