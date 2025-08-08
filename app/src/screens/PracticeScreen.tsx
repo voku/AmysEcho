@@ -1,28 +1,80 @@
-import React from 'react';
-import { View, Button, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Button,
+  StyleSheet,
+  SafeAreaView,
+  Text,
+  FlatList,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS } from '../constants/ui';
+import { COLORS, SPACING } from '../constants/ui';
+import { gestureModel, GestureModelEntry } from '../model';
+import BottomNav from '../components/BottomNav';
+import { loadProfile, Profile } from '../storage';
 
 export default function PracticeScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
-  const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    button: { margin: 20 },
-  });
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    loadProfile()
+      .then(setProfile)
+      .catch(() => {});
+  }, []);
+
+  const styles = createStyles(largeText, highContrast);
   const gradientColors = highContrast
     ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
     : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
+
+  const renderItem = ({ item }: { item: GestureModelEntry }) => (
+    <View style={styles.item}>
+      <Button
+        title={item.label}
+        testID={`practice-${item.id}`}
+        accessibilityLabel={`Übe ${item.label}`}
+        onPress={() =>
+          navigation.navigate('Training', {
+            gestureLabel: item.id,
+            isPractice: true,
+          })
+        }
+      />
+    </View>
+  );
+
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-        <Button
-          title="Start Practice"
-          testID="btn-start-practice"
-          accessibilityLabel="Start Practice"
-          onPress={() => navigation.navigate('Training', { isPractice: true })}
+        <Text style={styles.title}>Practice Gestures</Text>
+        <FlatList
+          data={gestureModel.gestures}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={<Text style={styles.empty}>No gestures available</Text>}
         />
       </SafeAreaView>
+      {profile && <BottomNav active="training" profileId={profile.id} />}
     </LinearGradient>
   );
 }
+
+const createStyles = (largeText: boolean, highContrast: boolean) =>
+  StyleSheet.create({
+    container: { flex: 1, padding: SPACING.lg },
+    title: {
+      fontSize: largeText ? 28 : 24,
+      marginBottom: SPACING.lg,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      textAlign: 'center',
+    },
+    list: { gap: SPACING.sm },
+    item: { marginBottom: SPACING.sm },
+    empty: {
+      textAlign: 'center',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
+  });
