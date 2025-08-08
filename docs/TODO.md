@@ -65,7 +65,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Add "Help Me" repair workflow
   - [x] Store corrections for model improvement
   - [x] Test correction feedback loop
-  - [ ] Log corrections to server training queue _(update `app/src/services/correctionService.ts`; see `server/test/test_training_queue.py`)_
+  - [x] Log corrections to server training queue _(update `app/src/services/correctionService.ts`; see `server/test/test_training_queue.py`)_
 
 - [ ] **HIP 2: Teach Mode (Training Interface)**
   - [x] Build caregiver training interface for new signs
