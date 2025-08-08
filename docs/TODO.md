@@ -36,7 +36,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Add success/error sound effects
   - [x] Implement speech synthesis for recognized gestures
   - [x] Test audio output quality and timing
-- [ ] **Speak + Show dual-trigger** _(see `app/test/speakShow.test.tsx`)_
+- [x] **Speak + Show dual-trigger** _(see `app/test/speakShow.test.tsx`)_
   - Guarantee that recognition fires both speech and symbol display together with fallback handling.
   - Add haptic and visual confirmation so one failure does not block the other.
 

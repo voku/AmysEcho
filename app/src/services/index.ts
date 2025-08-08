@@ -10,3 +10,4 @@ export { extractLandmarksFromImages } from './landmarkExtractor';
 export * from "./trainingSync";
 export * from "./modelUpdate";
 export * from "./syncService";
+export * from './feedbackService';
