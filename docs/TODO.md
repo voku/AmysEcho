@@ -5,6 +5,14 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 > Integration tests live under the repo's `integration/test` directory.
 
+## Recognition Stabilization (TFLite, VisionCamera v4) — 2025-08
+- ✅ Worklets correctness: 'worklet' directive + Worklets.createRunOnJS (no Reanimated runOnJS).
+- ✅ Camera `pixelFormat="yuv"` for ML path.
+- ✅ Backpressure: single in-flight inference; JS callbacks only on state change.
+- ✅ One-time TFLite load; no per-frame allocations.
+- ✅ Bounded, PII-free telemetry buffer; perf budget test.
+- ⏭ (Optional) Move resize/convert into a VisionCamera frame processor plugin for zero-copy.
+
 ## 🔁 Enhancements & Extensions
 
 1. **Deterministic Builds & Version Freeze**

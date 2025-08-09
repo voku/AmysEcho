@@ -26,6 +26,7 @@ import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
+import { record as recordTelemetry } from '../telemetry/recorder';
 
 class LandmarkSmoother {
   private history: number[][][] = [];
@@ -363,6 +364,13 @@ class MachineLearningService {
         isLocal: result.isLocal,
         wasSuccessful: result.label !== 'uncertain',
         processingTimeMs: processingTime,
+      });
+      recordTelemetry({
+        t: Date.now(),
+        path: result.isLocal ? 'offline' : 'cloud',
+        latencyMs: processingTime,
+        label: result.label,
+        score: result.confidence,
       });
     }
 
