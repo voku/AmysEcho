@@ -13,8 +13,20 @@ def start_server():
     env.setdefault("API_TOKEN", "testtoken")
     env.setdefault("PORT", PORT)
     env.setdefault("DIALOG_LIMIT", "2")
+
+    # Build the TypeScript sources to JavaScript so the runtime doesn't
+    # depend on ts-node, which has proven flaky on CI.
+    subprocess.run(
+        ["npm", "run", "build"],
+        cwd=SERVER_DIR,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=True,
+    )
+
     proc = subprocess.Popen(
-        ["npx", "ts-node", "src/server.ts"],
+        ["node", "dist/server.js"],
         cwd=SERVER_DIR,
         env=env,
         stdout=subprocess.DEVNULL,

@@ -14,8 +14,18 @@ def start_server():
     env = os.environ.copy()
     env.setdefault("API_TOKEN", "testtoken")
     env.setdefault("PORT", PORT)
+
+    subprocess.run(
+        ["npm", "run", "build"],
+        cwd=SERVER_DIR,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=True,
+    )
+
     proc = subprocess.Popen(
-        ["npx", "ts-node", "src/server.ts"],
+        ["node", "dist/server.js"],
         cwd=SERVER_DIR,
         env=env,
         stdout=subprocess.DEVNULL,
