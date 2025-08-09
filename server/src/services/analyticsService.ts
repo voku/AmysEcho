@@ -84,8 +84,31 @@ export interface SummaryMetrics {
   medianLatencyMs: number | null;
   topMisclassifications: { predicted: string; actual: string; count: number }[];
 }
-
-export function computeSummaryMetrics(db: Database, confidenceThreshold = 0.7): SummaryMetrics {
+export interface TelemetryEvent {
+    timestamp: number;
+    latencyMs: number;
+  }
+  
+  const TELEMETRY_PATH = path.join(process.cwd(), 'telemetry.json');
+  
+  export async function loadTelemetry(): Promise<TelemetryEvent[]> {
+    try {
+      const data = await fs.readFile(TELEMETRY_PATH, 'utf8');
+      return JSON.parse(data) as TelemetryEvent[];
+    } catch {
+      return [];
+    }
+  }
+  
+  export async function saveTelemetry(events: TelemetryEvent[]): Promise<void> {
+    await fs.writeFile(TELEMETRY_PATH, JSON.stringify(events, null, 2), 'utf8');
+  }
+  
+export function computeSummaryMetrics(
+    db: Database,
+    telemetry: TelemetryEvent[],
+    confidenceThreshold = 0.7
+  ): SummaryMetrics {
   const totalInteractions = db.interactionLogs.length;
   const corrections = db.corrections || [];
 
@@ -95,7 +118,15 @@ export function computeSummaryMetrics(db: Database, confidenceThreshold = 0.7): 
   const uncertaintyRatio = totalInteractions > 0 ? uncertain / totalInteractions : 0;
 
   // Server currently does not record per-interaction latency; leave as null
-  const medianLatencyMs = null;
+  let medianLatencyMs: number | null = null;
+  if (telemetry.length > 0) {
+    const latencies = telemetry.map((t) => t.latencyMs).sort((a, b) => a - b);
+    const mid = Math.floor(latencies.length / 2);
+    medianLatencyMs =
+      latencies.length % 2 !== 0
+        ? latencies[mid]
+        : (latencies[mid - 1] + latencies[mid]) / 2;
+  }
 
   const misMap = new Map<string, number>();
   for (const c of corrections) {

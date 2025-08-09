@@ -15,18 +15,18 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ## 🔁 Enhancements & Extensions
 
-1. **Deterministic Builds & Version Freeze**
+1. [x] **Deterministic Builds & Version Freeze**
    - Pin all RN/Expo/WatermelonDB/VisionCamera/worklets-core dependencies to known-good versions.
    - Regenerate and commit a clean `package-lock.json` / `yarn.lock`.
    - Ensure CI builds only from tagged releases.
    - Export a dependency snapshot (`npm ls`, `gradle dependencies`) for reproducibility.
 
-2. **CI Pipeline Hardening**
+2. [x] **CI Pipeline Hardening**
    - Introduce a single entry script (`./scripts/full-check.sh`) to run type checks, unit tests, server tests, and integration tests.
    - Isolate or mark flaky tests and remove unconditional retries (allow only for infra-related flakes).
    - Treat any failed build as blocking.
 
-3. **Android / WSL2 Development Flow**
+3. [x] **Android / WSL2 Development Flow**
    - Add a reliable setup guide for USB debugging via `adb` / `usbipd` in WSL2.
    - Automate device checks (`expo doctor`, dev-client vs self-contained APK builds).
    - CI should produce both dev-client APK and full APK artifacts for manual field testing.
@@ -36,7 +36,7 @@ The project has a stable foundation after a major refactor. The database, naviga
    - Validate with real devices for both frame rate and recognition accuracy.
    - Document the performance budget in ms/frame.
 
-5. **Gesture Recognizer Hybrid Pipeline**
+5. [x] **Gesture Recognizer Hybrid Pipeline**
    - Implement a clear fallback matrix: Cloud inference when available, TFLite offline when not.
    - Add telemetry for each recognition: confidence score, latency, and inference path (cloud/offline).
    - Use this telemetry as a baseline for regression alerts.
@@ -50,7 +50,7 @@ The project has a stable foundation after a major refactor. The database, naviga
    - Add reproducibility features to `server/dist/tools/retrainOfflineModel.js`: fixed random seeds, version tagging, and metrics (accuracy, top-k accuracy).
    - Version both the trained model (`offlineModel.json`) and the associated metrics (`metrics.json`).
 
-8. **Analytics & Dashboard**
+8. [x] **Analytics & Dashboard**
    - Require authentication tokens for the server API.
    - Enforce `401` as the default for unauthorized access and add rate limiting.
    - Dashboard should display: correction rate, uncertainty ratio, median latency, top misclassifications.

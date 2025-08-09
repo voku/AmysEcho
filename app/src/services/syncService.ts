@@ -5,10 +5,24 @@ import { logger } from '../utils/logger';
 import { loadActiveProfileId, loadProfile, saveCustomModelUri } from '../storage';
 import { Q } from '@nozbe/watermelondb';
 import * as FileSystem from 'expo-file-system';
+import { uploadTelemetry } from './analytics';
+import { telemetry } from '../telemetry/recorder';
 
 const LOCAL_MODEL_VERSION_KEY = 'localModelVersion';
 
 export const syncService = {
+  async syncTelemetry(): Promise<void> {
+    logger.info('Attempting to sync telemetry data...');
+    try {
+      const events = telemetry.dump();
+      if (events.length > 0) {
+        await uploadTelemetry(events);
+        logger.info(`Uploaded ${events.length} telemetry events.`);
+      }
+    } catch (error) {
+      logger.error('Error in syncTelemetry:', error);
+    }
+  },
   async uploadPendingTrainingData(): Promise<void> {
     logger.info('Attempting to upload pending training data...');
     try {
@@ -32,6 +46,7 @@ export const syncService = {
 
       if (pendingSamples.length === 0) {
         logger.info('No pending training data to upload.');
+        await this.syncTelemetry(); // Also sync telemetry when checking for training data
         return;
       }
 

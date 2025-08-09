@@ -1,19 +1,26 @@
-export type TelemetrySample = {
-  t: number;
-  path: 'offline' | 'cloud';
-  latencyMs: number;
-  label?: string;
-  score?: number;
-};
 
-const buffer: TelemetrySample[] = [];
-const MAX = 500;
-
-export const record = (s: TelemetrySample): void => {
-  buffer.push(s);
-  if (buffer.length > MAX) {
-    buffer.shift();
+export interface TelemetryEvent {
+    timestamp: number;
+    latencyMs: number;
   }
-};
+  
+  class Telemetry {
+    private buffer: TelemetryEvent[] = [];
+    private readonly MAX = 500;
+  
+    add(latencyMs: number) {
+      this.buffer.push({ timestamp: Date.now(), latencyMs });
+      if (this.buffer.length > this.MAX) {
+        this.buffer.shift();
+      }
+    }
+  
+    dump() {
+      const data = this.buffer;
+      this.buffer = [];
+      return data;
+    }
+  }
+  
+  export const telemetry = new Telemetry();
 
-export const dump = (): TelemetrySample[] => [...buffer];

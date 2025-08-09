@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ANALYTICS_ENDPOINT, API_TOKEN } from '../constants';
+import { ANALYTICS_ENDPOINT, API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
+import { TelemetryEvent } from '../telemetry/recorder';
 
 export interface LearningAnalytics {
   successRate7d: number;
@@ -47,3 +48,22 @@ export async function uploadAnalytics(
     // best-effort; ignore errors
   }
 }
+
+export async function uploadTelemetry(events: TelemetryEvent[]): Promise<void> {
+    if (events.length === 0) {
+      return;
+    }
+    try {
+      await fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify(events),
+      });
+    } catch (err) {
+      console.warn('Failed to upload telemetry', err);
+      // Best-effort, errors are not critical
+    }
+  }

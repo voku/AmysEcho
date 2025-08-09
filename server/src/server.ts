@@ -14,6 +14,9 @@ import {
   saveAnalyticsToFile,
   loadAnalyticsFromFile,
   computeSummaryMetrics,
+  loadTelemetry,
+  saveTelemetry,
+  TelemetryEvent,
 } from './services/analyticsService';
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
 import portalRouter from './portal';
@@ -212,13 +215,33 @@ app.get('/api/analytics/export', auth, async (req: Request, res: Response) => {
 // Analytics summary: correction rate, uncertainty ratio, median latency, top misclassifications
 app.get('/api/analytics/summary', auth, async (_req: Request, res: Response) => {
   try {
-    const summary = computeSummaryMetrics(dbInstance);
+    const telemetry = await loadTelemetry();
+    const summary = computeSummaryMetrics(dbInstance, telemetry);
     res.json(summary);
   } catch (error) {
     console.error('Error computing analytics summary:', error);
     res.status(500).json({ error: 'Failed to compute analytics summary' });
   }
 });
+
+app.post('/api/telemetry', auth, async (req: Request, res: Response) => {
+    const events = Array.isArray(req.body) ? req.body : [req.body];
+    if (!events.every(e => typeof e.latencyMs === 'number' && typeof e.timestamp === 'number')) {
+      return res.status(400).json({ error: 'Invalid telemetry event payload' });
+    }
+  
+    try {
+      const existingEvents = await loadTelemetry();
+      const newEvents = existingEvents.concat(events);
+      // Keep the last 1000 events to prevent the file from growing too large
+      const prunedEvents = newEvents.slice(-1000);
+      await saveTelemetry(prunedEvents);
+      res.status(202).json({ status: 'ok' });
+    } catch (error) {
+      console.error('Error saving telemetry data:', error);
+      res.status(500).json({ error: 'Failed to save telemetry data' });
+    }
+  });
 
 app.post('/api/corrections', auth, async (req: Request, res: Response) => {
   const { gesture } = req.body || {};
