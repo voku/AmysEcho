@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { once } from 'events';
 import assert from 'node:assert';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { promises as fs } from 'fs';
@@ -22,17 +23,23 @@ async function startServer() {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('server start timeout')), 5000);
-    proc.stdout.on('data', (data) => {
-      if (data.toString().includes('Server is running')) {
-        clearTimeout(timeout);
-        resolve();
-      }
-    });
-    proc.on('error', reject);
-    proc.on('exit', (code) => reject(new Error(`server exited ${code}`)));
-  });
+  const start = Date.now();
+  const timeoutMs = 30_000;
+  while (Date.now() - start < timeoutMs) {
+    if (proc.exitCode !== null) {
+      throw new Error(`server exited ${proc.exitCode}`);
+    }
+    try {
+      const res = await fetch(`http://localhost:${PORT}/model-version`, {
+        headers: { Authorization: 'Bearer testtoken' },
+      });
+      if (res.ok) return;
+    } catch {
+      // retry until timeout
+    }
+    await delay(500);
+  }
+  throw new Error('server start timeout');
 }
 
 async function stopServer() {
