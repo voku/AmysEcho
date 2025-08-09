@@ -14,14 +14,10 @@ export function useAmyGestureModel(modelAsset: number) {
     // @ts-ignore
     globalThis.__amy_infer = (frame: any): { label: string; score: number } | null => {
       'worklet';
-      // TODO: integrate VisionCamera resize plugin for zero-copy tensors
-      // const input = resizePlugin.yuvToRgbaResize(frame, 224, 224);
-      // const out = model.run(input) as number[];
-      // let best = -1, idx = -1;
-      // for (let i = 0; i < out.length; i++) {
-      //   if (out[i] > best) { best = out[i]; idx = i; }
-      // }
-      // return { label: `cls_${idx}`, score: best };
+      // A resize plugin can convert YUV frames to the model's input tensor
+      // without extra copies. When available, perform the conversion here
+      // and feed the tensor into the model. This placeholder returns null
+      // until proper preprocessing is supplied.
       return null;
     };
   }
