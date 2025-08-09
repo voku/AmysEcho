@@ -5,10 +5,24 @@ import { promises as fs } from 'fs';
 import rateLimit from 'express-rate-limit';
 import { TRAINED_MODEL_PATH } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
-import { setupDatabase, loadDatabase, saveDatabase, Database, logCorrection } from './db';
+import {
+  setupDatabase,
+  loadDatabase,
+  saveDatabase,
+  Database,
+  logCorrection,
+  addNegativeSample,
+} from './db';
 import auth from './middleware/auth';
 import { mlService } from './services/mlService';
-import { Correction, UsageStat, LearningAnalytics, Profile, SymbolRecord } from './types';
+import {
+  Correction,
+  UsageStat,
+  LearningAnalytics,
+  Profile,
+  SymbolRecord,
+  NegativeSample,
+} from './types';
 import { classifyGesture, ClassificationResult } from './recognizer';
 import {
   saveAnalyticsToFile,
@@ -26,7 +40,7 @@ app.use(express.json());
 
 const dialogLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: Number(process.env.DIALOG_LIMIT) || 60,
+  max: parseInt(process.env.DIALOG_LIMIT ?? '60', 10),
   standardHeaders: true,
   legacyHeaders: false,
   skipFailedRequests: true,
@@ -35,7 +49,7 @@ const dialogLimiter = rateLimit({
 // Generic API rate limiter for server endpoints
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: Number(process.env.API_LIMIT) || 120,
+  max: parseInt(process.env.API_LIMIT ?? '120', 10),
   standardHeaders: true,
   legacyHeaders: false,
 });
