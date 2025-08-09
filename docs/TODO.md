@@ -59,7 +59,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Never leave the app silent: in uncertain cases, output a neutral voice line plus visual symbol and haptic feedback.
   - [x] Add a UI timer to detect "no frame / no result" situations and degrade gracefully instead of freezing.
 
-10. [ ] **Documentation & Roadmap Cleanup**
+10. [x] **Documentation & Roadmap Cleanup**
     - [x] Keep `README.md` as a short landing page, move deeper technical documentation to `docs/*`.
     - [x] Consolidate developer notes into `docs/CodebaseOverview.md`, `docs/UserStories.md`, and `docs/TODO.md`.
     - [x] Define milestones: Stabilization → Accuracy → UX improvements ([ProjectMilestones.md](ProjectMilestones.md)) stored in the repo.
@@ -265,7 +265,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 ### Quality Assurance
 - [ ] **Testing Suite**
   - [x] Implement unit tests for core services
-  - Add integration tests for HIP workflows
+  - [x] Add integration tests for HIP workflows
   - Create end-to-end testing scenarios
   - Set up automated testing pipeline
 

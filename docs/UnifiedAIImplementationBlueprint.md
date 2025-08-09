@@ -116,8 +116,6 @@ This is the critical client-side component for teaching the app Amy's specific g
 
 This involves setting up a server application (e.g., using Python with Flask or FastAPI).
 
-* **TODO 5.1: [Deprecated]**
-    * The dialog engine now calls OpenAI directly from the app, so this endpoint is no longer required.
 
 * **TODO 5.2: Create the Model Training Endpoint & Script** *(Completed)*
     * **Endpoint**: `POST /train-model`
