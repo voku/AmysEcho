@@ -36,6 +36,7 @@
     "expo-secure-store": "14.2.3",
     "expo-speech": "13.1.7",
     "expo-video": "2.2.2",
+    "crypto-js": "4.2.0",
     "@shopify/react-native-skia": "2.2.2",
     "lucide-react-native": "0.535.0",
     "react": "19.0.0",
@@ -69,6 +70,7 @@
     "metro-config": "0.82.3",
     "metro-runtime": "0.82.3",
     "metro-source-map": "0.82.3",
+    "@types/crypto-js": "4.2.1",
     "ts-jest": "29.4.0",
     "ts-node": "10.9.2",
     "typescript": "5.8.3"
