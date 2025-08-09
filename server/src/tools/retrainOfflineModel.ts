@@ -21,7 +21,7 @@ function computeCentroid(samples: number[][]): number[] {
   return centroid;
 }
 
-export async function retrainOfflineModel(dbPath: string, outPath: string): Promise<void> {
+export async function retrainOfflineModel(dbPath: string, outPath: string, metricsPath?: string): Promise<void> {
   const db = await loadDatabase(dbPath);
   const grouped: Record<string, number[][]> = {};
 
@@ -42,15 +42,62 @@ export async function retrainOfflineModel(dbPath: string, outPath: string): Prom
 
   await fs.mkdir(path.dirname(outPath), { recursive: true });
   await fs.writeFile(outPath, JSON.stringify(model, null, 2), 'utf8');
+
+  // Compute simple training-set metrics (top-1 and top-3 accuracy) using centroid distance
+  const ids = Object.keys(grouped);
+  const centroids = ids.map((id) => ({ id, v: model[id] || [] }));
+  function scoreVector(vec: number[]): { id: string; score: number }[] {
+    return centroids
+      .map(({ id, v }) => ({ id, score: cosineSimilarity(vec, v) }))
+      .sort((a, b) => b.score - a.score);
+  }
+
+  let correctTop1 = 0;
+  let correctTop3 = 0;
+  let total = 0;
+  for (const id of ids) {
+    for (const sample of grouped[id]) {
+      const ranked = scoreVector(sample);
+      total += 1;
+      if (ranked[0] && ranked[0].id === id) correctTop1 += 1;
+      if (ranked.slice(0, 3).some((r) => r.id === id)) correctTop3 += 1;
+    }
+  }
+
+  const metrics = {
+    version: new Date().toISOString(),
+    totalSamples: total,
+    accuracyTop1: total ? Number((correctTop1 / total).toFixed(3)) : 0,
+    accuracyTop3: total ? Number((correctTop3 / total).toFixed(3)) : 0,
+    ids,
+  };
+
+  if (metricsPath) {
+    await fs.mkdir(path.dirname(metricsPath), { recursive: true });
+    await fs.writeFile(metricsPath, JSON.stringify(metrics, null, 2), 'utf8');
+  }
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return -Infinity;
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    dot += x * y;
+    na += x * x;
+    nb += y * y;
+  }
+  return dot / (Math.sqrt(na) * Math.sqrt(nb) || 1);
 }
 
 if (require.main === module) {
-  const [dbPath, outPath] = process.argv.slice(2);
+  const [dbPath, outPath, metricsPath] = process.argv.slice(2);
   if (!dbPath || !outPath) {
-    console.error('Usage: node retrainOfflineModel.js <db.json> <output.json>');
+    console.error('Usage: node retrainOfflineModel.js <db.json> <output.json> [metrics.json]');
     process.exit(1);
   }
-  retrainOfflineModel(dbPath, outPath).catch((err) => {
+  retrainOfflineModel(dbPath, outPath, metricsPath).catch((err) => {
     console.error(err);
     process.exit(1);
   });

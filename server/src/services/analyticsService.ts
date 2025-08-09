@@ -77,3 +77,43 @@ export async function loadAnalyticsFromFile(
     return null;
   }
 }
+
+export interface SummaryMetrics {
+  correctionRate: number;
+  uncertaintyRatio: number;
+  medianLatencyMs: number | null;
+  topMisclassifications: { predicted: string; actual: string; count: number }[];
+}
+
+export function computeSummaryMetrics(db: Database, confidenceThreshold = 0.7): SummaryMetrics {
+  const totalInteractions = db.interactionLogs.length;
+  const corrections = db.corrections || [];
+
+  const correctionRate = totalInteractions > 0 ? corrections.length / totalInteractions : 0;
+
+  const uncertain = db.interactionLogs.filter((l) => l.confidenceScore < confidenceThreshold).length;
+  const uncertaintyRatio = totalInteractions > 0 ? uncertain / totalInteractions : 0;
+
+  // Server currently does not record per-interaction latency; leave as null
+  const medianLatencyMs = null;
+
+  const misMap = new Map<string, number>();
+  for (const c of corrections) {
+    const key = `${c.predictedGesture}→${c.actualGesture}`;
+    misMap.set(key, (misMap.get(key) || 0) + 1);
+  }
+  const topMisclassifications = Array.from(misMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([k, count]) => {
+      const [predicted, actual] = k.split('→');
+      return { predicted, actual, count };
+    });
+
+  return {
+    correctionRate: Number(correctionRate.toFixed(2)),
+    uncertaintyRatio: Number(uncertaintyRatio.toFixed(2)),
+    medianLatencyMs,
+    topMisclassifications,
+  };
+}

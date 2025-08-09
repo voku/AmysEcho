@@ -13,6 +13,7 @@ import { classifyGesture, ClassificationResult } from './recognizer';
 import {
   saveAnalyticsToFile,
   loadAnalyticsFromFile,
+  computeSummaryMetrics,
 } from './services/analyticsService';
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
 import portalRouter from './portal';
@@ -208,6 +209,17 @@ app.get('/api/analytics/export', auth, async (req: Request, res: Response) => {
   }
 });
 
+// Analytics summary: correction rate, uncertainty ratio, median latency, top misclassifications
+app.get('/api/analytics/summary', auth, async (_req: Request, res: Response) => {
+  try {
+    const summary = computeSummaryMetrics(dbInstance);
+    res.json(summary);
+  } catch (error) {
+    console.error('Error computing analytics summary:', error);
+    res.status(500).json({ error: 'Failed to compute analytics summary' });
+  }
+});
+
 app.post('/api/corrections', auth, async (req: Request, res: Response) => {
   const { gesture } = req.body || {};
   if (typeof gesture !== 'string') {
@@ -353,5 +365,4 @@ const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-
 
