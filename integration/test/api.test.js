@@ -13,6 +13,10 @@ const PORT = 5050;
 let proc;
 
 async function startServer() {
+  // Ensure a clean database so prior runs don't influence API tests
+  const dbPath = join(serverDir, 'db.json');
+  await fs.rm(dbPath, { force: true }).catch(() => {});
+
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
     env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken' },
