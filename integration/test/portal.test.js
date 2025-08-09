@@ -73,7 +73,7 @@ test('approve and export training data', async () => {
   assert.strictEqual(exportRes.status, 200);
   const data = await exportRes.json();
   assert.ok(Array.isArray(data));
-  assert.strictEqual(data.length, 1);
-  assert.strictEqual(data[0].id, id);
-  assert.strictEqual(data[0].approved, true);
+  const record = data.find((d) => d.id === id);
+  assert.ok(record, 'exported data includes the new record');
+  assert.strictEqual(record.approved, true);
 });

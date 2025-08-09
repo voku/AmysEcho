@@ -5,17 +5,24 @@ import assert from 'node:assert/strict';
 // Some tools compile the `app` package as CommonJS, so grab the export from the
 // module namespace to work regardless of module format.
 import * as model from '../../app/src/model.ts';
-const { gestureModel } = model;
+// Support both CommonJS and ES module builds of the app by checking the
+// namespace object as well as a possible default export.
+const gestureModel =
+  model.gestureModel ?? (model.default && model.default.gestureModel);
 
-function selectGesture(gestureId) {
-  if (gestureModel.gestures.some((g) => g.id === gestureId)) {
-    return { screen: 'Training', params: { gestureLabel: gestureId, isPractice: true } };
+function selectGesture(model, gestureId) {
+  const gestures = model?.gestures ?? [];
+  if (gestures.some((g) => g.id === gestureId)) {
+    return {
+      screen: 'Training',
+      params: { gestureLabel: gestureId, isPractice: true },
+    };
   }
   return undefined;
 }
 
 test('selecting a valid gesture navigates to training with practice flag', () => {
-  const nav = selectGesture('hello');
+  const nav = selectGesture(gestureModel, 'hello');
   assert.deepEqual(nav, {
     screen: 'Training',
     params: { gestureLabel: 'hello', isPractice: true },
