@@ -13,3 +13,4 @@ export * from "./modelUpdate";
 export * from "./syncService";
 export * from './feedbackService';
 export * from './childSessionManager';
+export * from './accessibilityService';

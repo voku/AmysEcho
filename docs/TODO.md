@@ -232,7 +232,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Add screen reader support for bottom navigation
   - [x] Implement high contrast mode
   - Test with accessibility tools
-  - [ ] Add rich gesture descriptions and live announcements
+  - [x] Add rich gesture descriptions and live announcements
     - Example:
       ```ts
       announceGestureRecognition(name, confidence);

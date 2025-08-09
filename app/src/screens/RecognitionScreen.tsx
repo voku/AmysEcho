@@ -19,7 +19,13 @@ import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 import { loadProfile, Profile, logCorrection } from '../storage';
-import { audioService, triggerSpeakAndShow, correctionService } from '../services';
+import {
+  audioService,
+  triggerSpeakAndShow,
+  correctionService,
+  announceGestureRecognition,
+  createGestureAccessibilityLabel,
+} from '../services';
 import { assessOcclusion } from '../services/GestureOcclusion';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { database } from '../../db';
@@ -46,6 +52,11 @@ export default function RecognitionScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState("I'm listening...");
+  const [statusA11y, setStatusA11y] = useState("I'm listening...");
+  const updateStatus = useCallback((msg: string, a11yMsg?: string) => {
+    setStatus(msg);
+    setStatusA11y(a11yMsg ?? msg);
+  }, []);
   const [showCorrection, setShowCorrection] = useState(false);
   const [suggestions, setSuggestions] = useState<LLMSuggestionResponse>({
     nextWords: [],
@@ -233,7 +244,7 @@ export default function RecognitionScreen({ navigation }: any) {
     setShowCorrection(false);
     setShowHelp(false);
     setIsProcessing(false);
-    setStatus("I'm listening...");
+    updateStatus("I'm listening...");
   };
 
   const onGestureResult = useCallback(async (result: any, detectedLandmarks: number[][]) => {
@@ -279,7 +290,11 @@ export default function RecognitionScreen({ navigation }: any) {
         };
 
       setLastRecognizedGesture(entry);
-      setStatus(recognizedSymbolLabel);
+      updateStatus(
+        recognizedSymbolLabel,
+        createGestureAccessibilityLabel(recognizedSymbolLabel, result.confidence),
+      );
+      announceGestureRecognition(recognizedSymbolLabel, result.confidence);
       startFeedbackAnimation();
       triggerSpeakAndShow(
         recognizedSymbolLabel,
@@ -321,7 +336,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
       setTimeout(() => {
         setIsProcessing(false);
-        setStatus("I'm listening...");
+        updateStatus("I'm listening...");
       }, 3000);
     } else if (result && result.requiresConfirmation) {
       setIsProcessing(true);
@@ -336,14 +351,14 @@ export default function RecognitionScreen({ navigation }: any) {
       }));
       setCorrectionOptions(mapped);
       setLastRecognizedGesture(null);
-      setStatus("Can you help me?");
+      updateStatus("Can you help me?");
       setShowHelp(true);
       startFeedbackAnimation();
       audioService.playErrorFeedback().catch((error) => {
         logger.warn('Error feedback failed:', error);
       });
     }
-  }, [isProcessing, useDgs, profile, startFeedbackAnimation]);
+  }, [isProcessing, useDgs, profile, startFeedbackAnimation, updateStatus]);
 
   const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, setProcessingError);
   const detectionActive = now - lastDetection < 1000;
@@ -400,7 +415,8 @@ export default function RecognitionScreen({ navigation }: any) {
       setShowCorrection(false);
       setShowHelp(false);
       setLastRecognizedGesture(entry);
-      setStatus(entry.label);
+      updateStatus(entry.label, createGestureAccessibilityLabel(entry.label, 1));
+      announceGestureRecognition(entry.label, 1);
       startFeedbackAnimation();
       audioService
         .playSuccessFeedback(entry.label, 1)
@@ -441,7 +457,7 @@ export default function RecognitionScreen({ navigation }: any) {
       setPendingGesture(null);
       setTimeout(() => {
         setIsProcessing(false);
-        setStatus("I'm listening...");
+        updateStatus("I'm listening...");
         navigation.navigate('Training', { gestureLabel: pendingGesture, isPractice: true });
       }, 3000);
     } catch (error) {
@@ -797,6 +813,7 @@ export default function RecognitionScreen({ navigation }: any) {
             <Animated.Text
               onLongPress={() => setShowDebug((v) => !v)}
               style={[styles.status]}
+              accessibilityLabel={statusA11y}
             >
               {status}
             </Animated.Text>
