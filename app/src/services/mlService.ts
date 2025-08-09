@@ -27,6 +27,7 @@ import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
 import { telemetry } from '../telemetry/recorder';
+import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
 
 class LandmarkSmoother {
   private history: number[][][] = [];
@@ -116,6 +117,8 @@ class MachineLearningService {
   private gestureModel: TensorflowModel | null = null;
   private modelManager = new ModelManager();
   private isReady = false;
+  private baseConfidence = 0.7;
+  private lowPowerConfidence = 0.8;
   private confidenceThreshold = 0.7;
   private labels: string[] = [];
   private teachingSession: { id: string; label: string } | null = null;
@@ -149,6 +152,10 @@ class MachineLearningService {
     const samples = [...this.collectedSamples];
     this.collectedSamples = [];
     return samples;
+  }
+
+  setLowPowerMode(low: boolean) {
+    this.confidenceThreshold = low ? this.lowPowerConfidence : this.baseConfidence;
   }
 
   async loadModels(
@@ -554,6 +561,7 @@ export const useGestureClassifier = (
   const lastFrameTime = useSharedValue(0);
   const smootherRef = useRef(new LandmarkSmoother());
   const frameBufferRef = useRef(new FrameBufferManager());
+  const perfManagerRef = useRef(new AdaptivePerformanceManager());
 
   useEffect(() => {
     const readyInterval = setInterval(() => {
@@ -564,6 +572,17 @@ export const useGestureClassifier = (
       frameBufferRef.current.cleanup();
     };
   }, [serviceReady]);
+
+  useEffect(() => {
+    const update = async () => {
+      await perfManagerRef.current.apply(targetFps, (low) => mlService.setLowPowerMode(low));
+    };
+    update();
+    const id = setInterval(update, 60000);
+    return () => {
+      clearInterval(id);
+    };
+  }, []);
 
   const processNextFrame = useCallback(() => {
     if (internalProcessingRef.current) {

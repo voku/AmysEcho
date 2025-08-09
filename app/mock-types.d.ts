@@ -11,3 +11,11 @@ declare module 'expo-audio' {
   }
   export const RecordingPresets: any;
 }
+
+declare module 'expo-battery' {
+  export function getBatteryLevelAsync(): Promise<number>;
+}
+
+declare module 'expo-device' {
+  export function getThermalStateAsync(): Promise<number>;
+}
