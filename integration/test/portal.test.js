@@ -9,7 +9,9 @@ import { test, before, after } from 'node:test';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', 'server');
-const PORT = 5050;
+// Use a dedicated port so this test can run alongside others without
+// fighting over the same TCP socket.
+const PORT = 5051;
 let proc;
 
 async function startServer() {
