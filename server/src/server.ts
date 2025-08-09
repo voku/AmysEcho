@@ -28,6 +28,14 @@ const dialogLimiter = rateLimit({
   skipFailedRequests: true,
 });
 
+// Generic API rate limiter for server endpoints
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.API_LIMIT) || 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Serve static files from the portal directory
 app.use('/portal', express.static(path.join(__dirname, 'portal')));
 
@@ -38,6 +46,9 @@ app.get('/portal', (_req: Request, res: Response) => {
 
 // API routes for caregiver portal
 app.use('/portal', portalRouter);
+
+// Apply generic rate limiting to API namespace
+app.use('/api', apiLimiter);
 
 let dbInstance: Database; // Declare a variable to hold the database instance
 
@@ -342,6 +353,5 @@ const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-
 
 

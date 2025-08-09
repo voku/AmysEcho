@@ -14,16 +14,13 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
   'worklet';
   if (!handModel) return null;
   try {
-    if (frame.pixelFormat !== 'rgb') {
-      logger.warn(`Unsupported pixel format: ${frame.pixelFormat}`);
-      return null;
-    }
+    // Accept both 'rgb' and 'yuv' frames; conversion is model-specific.
+    // For performance, avoid any worklet-side logging or allocations beyond the buffer view.
     const buffer = frame.toArrayBuffer();
     const result = handModel.runSync([new Uint8Array(buffer)]) as any[];
     const landmarks = result[0] as number[][] | undefined;
     return landmarks ?? null;
   } catch (e) {
-    logger.error('Hand landmark extraction failed', e);
     return null;
   }
 }
