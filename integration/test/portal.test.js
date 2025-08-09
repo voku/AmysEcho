@@ -3,6 +3,7 @@ import { once } from 'events';
 import assert from 'node:assert';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { promises as fs } from 'fs';
 import { test, before, after } from 'node:test';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -11,6 +12,10 @@ const PORT = 5050;
 let proc;
 
 async function startServer() {
+  // Ensure a clean database so training data counts are deterministic
+  const dbPath = join(serverDir, 'db.json');
+  await fs.rm(dbPath, { force: true }).catch(() => {});
+
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
     env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken' },

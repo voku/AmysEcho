@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gestureModel } from '../../app/src/model';
+// Node 18's ESM loader doesn't resolve extensionless TypeScript files when
+// importing from CommonJS packages, so include the `.ts` extension explicitly
+// to ensure the `gestureModel` export is available in all environments.
+import { gestureModel } from '../../app/src/model.ts';
 
 function selectGesture(gestureId) {
   if (gestureModel.gestures.some((g) => g.id === gestureId)) {
