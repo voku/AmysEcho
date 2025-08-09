@@ -243,7 +243,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 - [ ] **Animation & Feedback**
   - Implement RN Animated API for smooth transitions
-  - Add Skia-based animations (optional)
+  - [x] Add Skia-based animations (optional)
   - [x] Create gentle haptic feedback system
   - [x] Add visual highlight during confirmation for accessibility
   - Test animation performance on older devices
