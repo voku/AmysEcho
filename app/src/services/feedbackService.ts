@@ -31,3 +31,14 @@ export async function triggerSpeakAndShow(
   ];
   await Promise.allSettled(tasks);
 }
+
+/**
+ * Gentle haptic feedback for child-friendly touch targets.
+ */
+export async function childHaptic(): Promise<void> {
+  try {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  } catch (error) {
+    logger.warn('Child haptic feedback failed:', error);
+  }
+}
