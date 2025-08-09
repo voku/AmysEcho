@@ -20,6 +20,7 @@ import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { audioService, triggerSpeakAndShow } from '../services';
+import { assessOcclusion } from '../services/GestureOcclusion';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { database } from '../../db';
 import { Correction, GestureDefinition } from '../../db/models';
@@ -65,6 +66,9 @@ export default function RecognitionScreen({ navigation }: any) {
   const [showManualInputMode, setShowManualInputMode] = useState(false);
   const [showStaticMode, setShowStaticMode] = useState(false);
   const [showFallbackMode, setShowFallbackMode] = useState(false);
+  const [occlusionHints, setOcclusionHints] = useState<string[] | null>(null);
+  const neutralCooldownRef = useRef<number>(0);
+  const [lastResultAt, setLastResultAt] = useState<number>(0);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -196,6 +200,13 @@ export default function RecognitionScreen({ navigation }: any) {
     setLastDetection(Date.now());
     setLandmarks(detectedLandmarks);
     setProcessingError(null);
+    setLastResultAt(Date.now());
+
+    // Assess occlusion to guide user positioning
+    try {
+      const assessment = assessOcclusion(detectedLandmarks);
+      setOcclusionHints(assessment.occluded ? assessment.hints : null);
+    } catch {}
     if (isProcessing) return;
 
     if (
@@ -289,6 +300,22 @@ export default function RecognitionScreen({ navigation }: any) {
   useEffect(() => {
     if (!detectionActive) setLandmarks([]);
   }, [detectionActive]);
+
+  // Neutral UX fail-safe: periodically reassure user when there is no result
+  useEffect(() => {
+    const id = setInterval(async () => {
+      const ts = Date.now();
+      const noFrames = ts - lastDetection > 3000;
+      const noResults = ts - lastResultAt > 4000;
+      if (canUseCamera && !isProcessing && (noFrames || noResults) && ts >= neutralCooldownRef.current) {
+        try {
+          await audioService.speak('Ich bin hier und höre zu.');
+        } catch {}
+        neutralCooldownRef.current = ts + 7000;
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [canUseCamera, isProcessing, lastDetection, lastResultAt]);
 
   const handleSelect = async (choiceId: string) => {
     try {
@@ -535,6 +562,21 @@ export default function RecognitionScreen({ navigation }: any) {
       marginBottom: SPACING.md,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
+    occlusionBanner: {
+      position: 'absolute',
+      top: SPACING.xl,
+      left: SPACING.md,
+      right: SPACING.md,
+      backgroundColor: `${COLORS.warning}CC`,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+      zIndex: 998,
+    },
+    occlusionText: {
+      color: COLORS.highContrastText,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
   });
 
   if (!hasPermission) {
@@ -614,6 +656,13 @@ export default function RecognitionScreen({ navigation }: any) {
           )}
 
           <View style={styles.overlay}>
+            {occlusionHints && occlusionHints.length > 0 && (
+              <View style={styles.occlusionBanner}>
+                {occlusionHints.map((h, i) => (
+                  <Text key={`occ-${i}`} style={styles.occlusionText}>{h}</Text>
+                ))}
+              </View>
+            )}
             {landmarks.length > 0 && (
               <Svg
                 style={StyleSheet.absoluteFill}
