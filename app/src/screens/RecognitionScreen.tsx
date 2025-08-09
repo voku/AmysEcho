@@ -36,6 +36,7 @@ import Svg, { Circle, Line } from 'react-native-svg';
 import { HAND_CONNECTIONS } from '../constants/hand';
 import ErrorMessage from '../components/ErrorMessage';
 import { logger } from '../utils/logger';
+import { ModelPerformanceMonitor } from '../services/ModelPerformanceMonitor';
 
 const { width, height } = Dimensions.get('window');
 
@@ -69,6 +70,8 @@ export default function RecognitionScreen({ navigation }: any) {
   const [occlusionHints, setOcclusionHints] = useState<string[] | null>(null);
   const neutralCooldownRef = useRef<number>(0);
   const [lastResultAt, setLastResultAt] = useState<number>(0);
+  const perfMonitorRef = useRef(new ModelPerformanceMonitor(60));
+  const [showPerfBanner, setShowPerfBanner] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -206,6 +209,17 @@ export default function RecognitionScreen({ navigation }: any) {
     try {
       const assessment = assessOcclusion(detectedLandmarks);
       setOcclusionHints(assessment.occluded ? assessment.hints : null);
+    } catch {}
+
+    // Update performance monitor
+    try {
+      perfMonitorRef.current.add({
+        t: Date.now(),
+        label: result?.label ?? 'uncertain',
+        confidence: result?.confidence ?? 0,
+        requiresConfirmation: result?.requiresConfirmation ?? true,
+      });
+      setShowPerfBanner(perfMonitorRef.current.isDegraded());
     } catch {}
     if (isProcessing) return;
 
@@ -562,6 +576,21 @@ export default function RecognitionScreen({ navigation }: any) {
       marginBottom: SPACING.md,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
+    performanceBanner: {
+      position: 'absolute',
+      top: SPACING.md,
+      left: SPACING.md,
+      right: SPACING.md,
+      backgroundColor: `${COLORS.primaryAccent}E6`,
+      padding: SPACING.md,
+      borderRadius: RADIUS,
+      zIndex: 1000,
+    },
+    performanceText: {
+      color: COLORS.highContrastText,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
     occlusionBanner: {
       position: 'absolute',
       top: SPACING.xl,
@@ -656,6 +685,15 @@ export default function RecognitionScreen({ navigation }: any) {
           )}
 
           <View style={styles.overlay}>
+            {showPerfBanner && (
+              <View style={styles.performanceBanner}>
+                <Text style={styles.performanceText}>
+                  Recognition seems inconsistent. Try a quick practice?
+                </Text>
+                <View style={{ height: SPACING.xs }} />
+                <Button title="Practice" onPress={() => navigation.navigate('Training', { isPractice: true })} />
+              </View>
+            )}
             {occlusionHints && occlusionHints.length > 0 && (
               <View style={styles.occlusionBanner}>
                 {occlusionHints.map((h, i) => (
