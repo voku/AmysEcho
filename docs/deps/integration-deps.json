@@ -1,0 +1,20 @@
+{
+  "name": "integration-tests",
+  "problems": [
+    "missing: tsx@^4.20.3, required by integration-tests@"
+  ],
+  "dependencies": {
+    "tsx": {
+      "required": "^4.20.3",
+      "missing": true,
+      "problems": [
+        "missing: tsx@^4.20.3, required by integration-tests@"
+      ]
+    }
+  },
+  "error": {
+    "code": "ELSPROBLEMS",
+    "summary": "missing: tsx@^4.20.3, required by integration-tests@",
+    "detail": ""
+  }
+}

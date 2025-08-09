@@ -1,0 +1,63 @@
+{
+  "version": "1.0.0",
+  "name": "amysecho_backend",
+  "problems": [
+    "missing: @types/express@^5.0.3, required by amysecho_backend@1.0.0",
+    "missing: @types/node@^24.1.0, required by amysecho_backend@1.0.0",
+    "missing: express-rate-limit@^6.7.0, required by amysecho_backend@1.0.0",
+    "missing: express@^5.0.0, required by amysecho_backend@1.0.0",
+    "missing: node-fetch@^3.3.2, required by amysecho_backend@1.0.0",
+    "missing: ts-node@^10.9.2, required by amysecho_backend@1.0.0",
+    "missing: typescript@^5.8.3, required by amysecho_backend@1.0.0"
+  ],
+  "dependencies": {
+    "@types/express": {
+      "required": "^5.0.3",
+      "missing": true,
+      "problems": [
+        "missing: @types/express@^5.0.3, required by amysecho_backend@1.0.0"
+      ]
+    },
+    "@types/node": {
+      "missing": true,
+      "problems": [
+        "missing: @types/node@^24.1.0, required by amysecho_backend@1.0.0"
+      ]
+    },
+    "express-rate-limit": {
+      "missing": true,
+      "problems": [
+        "missing: express-rate-limit@^6.7.0, required by amysecho_backend@1.0.0"
+      ]
+    },
+    "express": {
+      "missing": true,
+      "problems": [
+        "missing: express@^5.0.0, required by amysecho_backend@1.0.0"
+      ]
+    },
+    "node-fetch": {
+      "missing": true,
+      "problems": [
+        "missing: node-fetch@^3.3.2, required by amysecho_backend@1.0.0"
+      ]
+    },
+    "ts-node": {
+      "missing": true,
+      "problems": [
+        "missing: ts-node@^10.9.2, required by amysecho_backend@1.0.0"
+      ]
+    },
+    "typescript": {
+      "missing": true,
+      "problems": [
+        "missing: typescript@^5.8.3, required by amysecho_backend@1.0.0"
+      ]
+    }
+  },
+  "error": {
+    "code": "ELSPROBLEMS",
+    "summary": "missing: @types/express@^5.0.3, required by amysecho_backend@1.0.0\nmissing: @types/node@^24.1.0, required by amysecho_backend@1.0.0\nmissing: express-rate-limit@^6.7.0, required by amysecho_backend@1.0.0\nmissing: express@^5.0.0, required by amysecho_backend@1.0.0\nmissing: node-fetch@^3.3.2, required by amysecho_backend@1.0.0\nmissing: ts-node@^10.9.2, required by amysecho_backend@1.0.0\nmissing: typescript@^5.8.3, required by amysecho_backend@1.0.0",
+    "detail": ""
+  }
+}
