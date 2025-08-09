@@ -8,6 +8,7 @@ import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useRecordingProcessor, audioService } from '../services';
+import { validateLandmarkSequence } from '../services/TrainingDataValidator';
 import { useTensorflowModel } from '../hooks/useTensorflowModel';
 import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 import { setHandLandmarkModel } from '../services/landmarkExtractor';
@@ -100,8 +101,10 @@ export default function TrainingScreen({ navigation, route }: any) {
   const stopRecording = async () => {
     setIsRecording(false);
     if (!gestureId) return;
-    if (recordedLandmarks.length < 10) {
-      setError('Recording too short. Please record again with clear hand movement.');
+    const validation = validateLandmarkSequence(recordedLandmarks);
+    if (!validation.ok) {
+      const msg = `Sample needs improvement: ${validation.suggestions.join(' ')}`;
+      setError(msg);
       return;
     }
     try {
@@ -245,6 +248,11 @@ export default function TrainingScreen({ navigation, route }: any) {
               accessibilityLabel="Gestenaufnahme starten"
               disabled={!gestureId}
             />
+            {!isRecording && framesCaptured > 0 && (
+              <Text style={styles.detectionText}>
+                Last recording length: {framesCaptured} frames
+              </Text>
+            )}
           </>
         ) : (
           <Button
