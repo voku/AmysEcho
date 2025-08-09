@@ -20,7 +20,8 @@ async function startServer() {
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
     env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken' },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    // Drop all stdio to avoid blocking if the server logs heavily.
+    stdio: ['ignore', 'ignore', 'ignore'],
   });
 
   const start = Date.now();

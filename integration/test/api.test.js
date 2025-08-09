@@ -16,7 +16,9 @@ async function startServer() {
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
     env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken' },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    // Discard stdio so the child process can't block if it writes a lot of
+    // logs that no one reads.
+    stdio: ['ignore', 'ignore', 'ignore'],
   });
 
   const start = Date.now();

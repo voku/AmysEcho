@@ -22,11 +22,15 @@ def start_server():
         stderr=subprocess.DEVNULL,
     )
     start = time.time()
+    headers = {"Authorization": "Bearer testtoken"}
+    req = urllib.request.Request(
+        f"http://localhost:{PORT}/model-version", headers=headers
+    )
     while True:
         if proc.poll() is not None:
             raise RuntimeError("server failed to start")
         try:
-            urllib.request.urlopen(f"http://localhost:{PORT}/")
+            urllib.request.urlopen(req)
             break
         except urllib.error.HTTPError:
             break

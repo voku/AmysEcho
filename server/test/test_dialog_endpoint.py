@@ -20,16 +20,19 @@ def start_server():
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    # Wait for the server to start accepting connections
+    # Wait for the server to start accepting connections on /model-version
     start = time.time()
+    headers = {"Authorization": "Bearer testtoken"}
+    req = urllib.request.Request(
+        f"http://localhost:{PORT}/model-version", headers=headers
+    )
     while True:
         if proc.poll() is not None:
             raise RuntimeError("server failed to start")
         try:
-            urllib.request.urlopen(f"http://localhost:{PORT}/")
+            urllib.request.urlopen(req)
             break
         except urllib.error.HTTPError:
-            # Any HTTP response means the server is up
             break
         except Exception:
             if time.time() - start > 30:
