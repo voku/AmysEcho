@@ -5,6 +5,8 @@ import { Hand, BookOpen, Settings } from 'lucide-react-native';
 import type { RootStackParamList } from '../navigation/types';
 import { COLORS, SPACING } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 interface Props {
   active: 'recognition' | 'training' | 'parent';
@@ -17,8 +19,15 @@ export default function BottomNav({ active, profileId }: Props) {
   return (
     <View style={[styles.container, highContrast && styles.containerHC]}>
       <Pressable
-        onPress={() => navigation.navigate('Recognition', { profileId })}
-        style={styles.item}
+        onPress={() => {
+          void childHaptic();
+          navigation.navigate('Recognition', { profileId });
+        }}
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.item,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
         accessibilityLabel="Listen"
         accessibilityRole="button"
         accessibilityHint="Start gesture recognition"
@@ -47,8 +56,15 @@ export default function BottomNav({ active, profileId }: Props) {
         </Text>
       </Pressable>
       <Pressable
-        onPress={() => navigation.navigate('Training', { gestureLabel: undefined })}
-        style={styles.item}
+        onPress={() => {
+          void childHaptic();
+          navigation.navigate('Training', { gestureLabel: undefined });
+        }}
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.item,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
         accessibilityLabel="Learn"
         accessibilityRole="button"
         accessibilityHint="Record or practice gestures"
@@ -77,8 +93,15 @@ export default function BottomNav({ active, profileId }: Props) {
         </Text>
       </Pressable>
       <Pressable
-        onPress={() => navigation.navigate('ProfileSelect')}
-        style={styles.item}
+        onPress={() => {
+          void childHaptic();
+          navigation.navigate('ProfileSelect');
+        }}
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.item,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
         accessibilityLabel="Menu"
         accessibilityRole="button"
         accessibilityHint="Open profile and settings menu"
@@ -127,6 +150,8 @@ const styles = StyleSheet.create({
   item: {
     alignItems: 'center',
   },
+  buttonPressed: { backgroundColor: COLORS.pressed },
+  buttonPressedHC: { backgroundColor: COLORS.highContrastPressed },
   icon: {
     marginBottom: SPACING.xs,
   },
