@@ -13,6 +13,7 @@ This project turns those gestures into speech and symbols so she can be heard an
 - [Codebase overview](docs/CodebaseOverview.md)
 - [User stories](docs/UserStories.md)
 - [Build & test instructions](docs/BUILD_AND_TEST.md)
+- [Android in WSL2 guide](docs/AndroidWSL2.md)
 - [Project roadmap](docs/TODO.md)
 - [Project milestones](docs/ProjectMilestones.md) – Stabilization, Accuracy, UX improvements
 
