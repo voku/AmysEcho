@@ -36,6 +36,7 @@
     "expo-secure-store": "14.2.3",
     "expo-speech": "13.1.7",
     "expo-video": "2.2.2",
+    "@shopify/react-native-skia": "2.2.2",
     "lucide-react-native": "0.535.0",
     "react": "19.0.0",
     "react-native": "0.79.5",
