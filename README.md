@@ -127,6 +127,72 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 For the full implementation roadmap, see [`docs/TODO.md`](docs/TODO.md). The repository includes a complete gesture recognition pipeline, training flow, adaptive learning service, multi-profile management, an expanded analytics dashboard, custom audio support, and a caregiver web portal under `server/src/portal/`. When the backend server is running, visit `http://localhost:5000/portal` to manage training data, view analytics, and download the latest personalized model.
 
+## ▶️ Running the mobile app
+
+The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. These scripts use **Expo**'s `run` commands under the hood. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
+
+DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available. The `DgsVideoPlayer` component loops these videos automatically so Amy can watch each sign repeatedly.
+
+The LLM-powered suggestions require an OpenAI API key. You can set this via the `OPENAI_API_KEY` environment variable, place the key in a local `.openai-key` file, or save it securely using the Admin screen. Never commit keys to the repository.
+
+### Building the custom dev client
+
+If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` and `npx expo run:android` inside `app/` once to generate the native Android and iOS projects. These directories are not tracked in git to avoid committing large binaries. After the prebuild step you can launch the app with `npm run ios` or `npm run android`.
+
+### Creating test builds (APK)
+
+#### Custom dev client
+
+To produce a debuggable APK for testers, trigger a development build via EAS:
+
+```bash
+npm run build:android-dev
+```
+
+The CLI prints a link to the artifact. You can also download the most recent build later:
+
+```bash
+eas build:download --platform android --profile development --latest
+```
+
+This APK only contains the Expo dev client. After installing it on a device you must start the bundler with `npx expo start` to load the JavaScript bundle.
+
+#### Self-contained APK
+
+For an installable APK that bundles the app and runs without the bundler:
+
+```bash
+npm run build:android-apk
+```
+
+The resulting artifact includes the compiled JavaScript and assets, making it suitable for offline testing and sideloading.
+
+### Creating production builds
+
+To generate store-ready binaries using EAS Build, run:
+
+```bash
+npm run build:android
+npm run build:ios
+```
+
+This uses `eas.json` and requires credentials configured with Expo. If you run the build in a CI or other non-interactive environment, set the `EXPO_TOKEN` environment variable with an Expo access token. Otherwise the command will fail when it prompts for login.
+
+### Build & Test Workflow (EAS)
+
+1. **Run the full test suite** before building:
+
+   ```bash
+   npm run type-check --prefix app
+   npm test --prefix app
+   pip install -r server/requirements.txt
+   npm test --prefix server
+   ```
+
+   You can also execute `./scripts/full-check.sh` from the repo root to run all checks at once.
+
+For more detailed build and testing instructions, see [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
+
 ---
 
 ## 🤝 Contributing
