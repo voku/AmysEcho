@@ -46,7 +46,7 @@ The project has a stable foundation after a major refactor. The database, naviga
    - Capture negative samples and ambiguous gestures for retraining.
    - Ensure retraining actually improves accuracy (avoid polluting the dataset). (Note: This requires a robust validation process for the retraining pipeline.)
 
-7. **Offline Model Retraining**
+7. [x] **Offline Model Retraining**
    - Add reproducibility features to `server/dist/tools/retrainOfflineModel.js`: fixed random seeds, version tagging, and metrics (accuracy, top-k accuracy).
    - Version both the trained model (`offlineModel.json`) and the associated metrics (`metrics.json`).
 

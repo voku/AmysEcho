@@ -74,5 +74,5 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 ### Backend
 
 - Start the server: `npm run build && node dist/server.js`
-- Retrain offline model: `npm run build && node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json`
+- Retrain offline model: `npm run build && node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json dist/metrics.json [seed]`
 - Update analytics: `npm run build && node dist/tools/updateAnalytics.js <path/to/db.json>`

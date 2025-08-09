@@ -40,7 +40,10 @@ function loadOfflineModel(): void {
     process.env.OFFLINE_MODEL_PATH || path.join(__dirname, 'offlineModel.json');
   try {
     const raw = readFileSync(modelPath, 'utf8');
-    offlineModel = JSON.parse(raw) as Record<string, number[]>;
+    const parsed = JSON.parse(raw) as
+      | Record<string, number[]>
+      | { model: Record<string, number[]> };
+    offlineModel = (parsed as any).model ? (parsed as any).model : parsed;
   } catch {
     offlineModel = null;
   }

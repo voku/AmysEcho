@@ -39,8 +39,9 @@ This guide explains how to deploy both the mobile app and the backend server.
 ## Updating Models and Analytics
 - Retrain the offline model with new gesture data:
   ```bash
-  node server/dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json
+  node server/dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json dist/metrics.json [seed]
   ```
+  This produces a versioned `offlineModel.json` and a `metrics.json` with accuracy statistics.
 - Update caregiver analytics stored in the database:
   ```bash
   node server/dist/tools/updateAnalytics.js <path/to/db.json>
