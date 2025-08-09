@@ -1,6 +1,6 @@
 # Codebase Overview
 
-This document summarizes the repository in seven key areas with concrete file references. See `spec/AmysEcho.md` for the full project specification and `docs/TODO.md` for the implementation checklist.
+This document summarizes the repository in seven key areas with concrete file references. See `spec/AmysEcho.md` for the full project specification and `docs/TODO.md` for the implementation checklist. For build and test instructions, see `docs/BUILD_AND_TEST.md`.
 
 ## 1. Mobile App Structure
 - React Native code lives in `app/`

@@ -4,11 +4,19 @@
 
 Amy is four years old. She was born with **22q11 Deletion Syndrome** and communicates using **German Sign Language (DGS)**. Her gestures are expressive, her intent is clear — but most people around her don’t understand what she’s trying to say.
 
-This project aims to fix that.
+This project turns those gestures into speech and symbols so she can be heard anywhere.
 
-See [`docs/CodebaseOverview.md`](docs/CodebaseOverview.md) for a summary of the repository structure.
-For the main user stories and how the screens connect, see [`docs/UserStories.md`](docs/UserStories.md).
-For a quick field guide for kindergarten staff unfamiliar with DGS, see [`docs/KindergartenWorkflow.md`](docs/KindergartenWorkflow.md).
+---
+
+## 📚 Documentation
+
+- [Codebase overview](docs/CodebaseOverview.md)
+- [User stories](docs/UserStories.md)
+- [Kindergarten staff field guide](docs/KindergartenWorkflow.md)
+- [Build & test instructions](docs/BUILD_AND_TEST.md)
+- [Android in WSL2 guide](docs/AndroidWSL2.md)
+- [Project roadmap](docs/TODO.md)
+- [Project milestones](docs/ProjectMilestones.md) – Stabilization, Accuracy, UX improvements
 
 ---
 
@@ -24,7 +32,7 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 
 ---
 
-## 🧱 Tech Stack? 
+## 🧱 Tech Stack
 
 | Layer         | Tech                          | Purpose                                |
 |---------------|-------------------------------|----------------------------------------|
@@ -40,36 +48,27 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 
 ---
 
-## ⚡ Quick Setup
+## 🚀 Quick Start
 
-1. `npm install` – install root dependencies
-2. `cd app` – open the app code
-3. `npm install` - install mobile app deps
-   - The `app/.npmrc` file enables `legacy-peer-deps` so installs succeed even
-     if some libraries lag behind React 19
-4. `npm run type-check` – verify the TypeScript build
-5. `npm test` – run the Node test suite (uses `ts-node` from devDependencies)
-   - Tests live in `app/test/` and cover both server and app modules.
-6. `cd ../server && npm install` – install backend dependencies
-   - (Python 3 required) Run `pip install -r requirements.txt` to install `numpy` and `pytest` for the training tests.
-   - Then run `npm test` inside `server/` to execute the Python suite in `server/test/`.
-   - Back in the repo root, run `npm test --prefix integration` to verify the app and server end-to-end
-7. Fetch the default gesture models so the app can classify hands:
-   ```bash
-   npm run build --prefix server
-   node server/dist/tools/downloadModels.js
-   ```
-   This downloads `hand_landmarker.tflite` and `gesture_classifier.tflite` into `app/assets/models/`.
-8. Inside `app`, run `npm run ios` or `npm run android` to launch the app
-9. Or run `./scripts/full-check.sh` from the repo root to automatically install
-   dependencies and execute all tests (including integration tests) at once
-10. Or check the Expo setup inside `app`:
+```bash
+npm install --prefix app
+npm install --prefix server
+pip install -r server/requirements.txt
 
-   ```bash
-   npx expo install --check
-   npx expo-doctor    # skips WatermelonDB packages via package.json
-   ```
-11. Ensure `react-native-gesture-handler`, `react-native-safe-area-context`, and `react-native-screens` match Expo's expected versions (`~2.24.0`, `5.4.0`, and `~4.11.1` respectively)
+npm run type-check --prefix app
+npm test --prefix app
+npm test --prefix server
+npm test --prefix integration
+
+npm run build --prefix server
+node server/dist/tools/downloadModels.js
+```
+
+Run `npm run ios --prefix app` or `npm run android --prefix app` to launch the mobile app.
+
+See [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) for full details.
+
+---
 
 ## Process
 
@@ -128,13 +127,11 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 For the full implementation roadmap, see [`docs/TODO.md`](docs/TODO.md). The repository includes a complete gesture recognition pipeline, training flow, adaptive learning service, multi-profile management, an expanded analytics dashboard, custom audio support, and a caregiver web portal under `server/src/portal/`. When the backend server is running, visit `http://localhost:5000/portal` to manage training data, view analytics, and download the latest personalized model.
 
-
 ## ▶️ Running the mobile app
 
 The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. These scripts use **Expo**'s `run` commands under the hood. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
 
-DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available.
-The `DgsVideoPlayer` component loops these videos automatically so Amy can watch each sign repeatedly.
+DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available. The `DgsVideoPlayer` component loops these videos automatically so Amy can watch each sign repeatedly.
 
 The LLM-powered suggestions require an OpenAI API key. You can set this via the `OPENAI_API_KEY` environment variable, place the key in a local `.openai-key` file, or save it securely using the Admin screen. Never commit keys to the repository.
 
@@ -158,8 +155,7 @@ The CLI prints a link to the artifact. You can also download the most recent bui
 eas build:download --platform android --profile development --latest
 ```
 
-This APK only contains the Expo dev client. After installing it on a device you must start the bundler with `npx expo start` to
-load the JavaScript bundle.
+This APK only contains the Expo dev client. After installing it on a device you must start the bundler with `npx expo start` to load the JavaScript bundle.
 
 #### Self-contained APK
 
@@ -180,10 +176,7 @@ npm run build:android
 npm run build:ios
 ```
 
-This uses `eas.json` and requires credentials configured with Expo.
-If you run the build in a CI or other non-interactive environment,
-set the `EXPO_TOKEN` environment variable with an Expo access token.
-Otherwise the command will fail when it prompts for login.
+This uses `eas.json` and requires credentials configured with Expo. If you run the build in a CI or other non-interactive environment, set the `EXPO_TOKEN` environment variable with an Expo access token. Otherwise the command will fail when it prompts for login.
 
 ### Build & Test Workflow (EAS)
 
@@ -196,114 +189,9 @@ Otherwise the command will fail when it prompts for login.
    npm test --prefix server
    ```
 
-   You can also execute `./scripts/full-check.sh` from the repo root to run all
-   checks at once.
+   You can also execute `./scripts/full-check.sh` from the repo root to run all checks at once.
 
-2. **Verify your Expo environment**:
-
-   ```bash
-   npx expo install --check              # ensure dependencies match
-   npx expo-doctor                       # confirm environment setup
-   npx expo whoami || npx expo login     # verify you are logged in
-   ```
-
-   `expo-doctor` respects the configuration in `app/package.json` to ignore
-   WatermelonDB-related packages.
-   When running in CI, set an `EXPO_TOKEN` environment variable instead of
-   calling `expo login` interactively.
-
-3. **Kick off the build**:
-
-   ```bash
-   npm run build:android   # or `npm run build:ios`
-   ```
-
-   The CLI prints a link where you can monitor build progress on Expo's EAS
-   service. You can check the most recent build using:
-
-   ```bash
-   eas build:list --limit 1
-   ```
-
-### Retraining the offline model
-
-Collected gesture samples can be used to update the local fallback model. Run:
-
-```bash
-npm run build
-node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json dist/metrics.json [seed]
-```
-
-The recognizer will load `dist/offlineModel.json` by default when classifying offline. A matching `dist/metrics.json` containing training accuracy is also produced.
-
-### Updating analytics
-
-Run the analytics updater to refresh caregiver stats stored in the database:
-
-```bash
-npm run build
-node dist/tools/updateAnalytics.js <path/to/db.json>
-```
-
-### Running the backend server
-
-The backend provides endpoints for model training.
-Start it with:
-
-```bash
-npm run build
-node dist/server.js
-```
-
-Set an `API_TOKEN` environment variable before starting; the server will refuse to run without it.
-All requests must include `Authorization: Bearer $API_TOKEN`.
-
-Open the app and tap **Analytics** on the recognition screen to view the dashboard.
-
-### 🐧 Running the mobile app inside WSL2 (with USB debugging)
-
-You can run the Android build locally using a real Android device connected over USB — even when working inside **WSL2**. This is the recommended setup for real-world testing (especially for gesture recognition performance).
-
-#### ✅ Prerequisites
-
-* Windows 11 with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/)
-* [`usbipd-win`](https://github.com/dorssel/usbipd-win) installed (`winget install dorssel.usbipd-win`)
-* Android device with **USB debugging** enabled
-* Expo + React Native CLI environment already set up
-
-#### ⚙️ 1. Install ADB + USB tools inside WSL2
-
-```bash
-sudo apt update
-sudo apt install android-tools-adb usbutils
-```
-
-#### 🔌 2. Attach Android USB device from Windows (PowerShell, as admin)
-
-```powershell
-usbipd list
-usbipd attach --busid <BUSID> --wsl
-```
-
-> Replace `<BUSID>` with your Android device’s BusID from the `usbipd list` output — e.g., `1-3`.
-
-#### 🧪 3. Verify connection inside WSL2
-
-```bash
-lsusb
-adb devices
-```
-
-> If the device shows as `unauthorized`, unlock your phone and **confirm the USB debugging prompt**.
-
-Expected output:
-
-```
-List of devices attached
-xxxxxxx	device
-```
-
-PS: `npx expo start --tunnel` can be used to connect from android to expo in WSL2
+For more detailed build and testing instructions, see [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
 
 ---
 
@@ -315,21 +203,22 @@ This is a focused project with one user. That means:
 - ✅ No “move fast” hacks
 - ✅ Emotional context matters — build with care
 
-If you’re here to help: thank you.  
-PRs are welcome, but **read the spec first**.
+If you’re here to help: thank you.
+PRs are welcome, but **read the [spec](spec/AmysEcho.md) first**.
 
 ---
 
 ## 📄 License
 
-MIT – But with one request:  
+MIT – But with one request:
 **If you use this work to help another child — let me know.** That’s why it’s public.
 
 ---
 
 ## ❤️ Built For
 
-**Amy.**  
-To help her be understood.  
-To help her learn.  
+**Amy.**
+To help her be understood.
+To help her learn.
 To help the world finally listen.
+

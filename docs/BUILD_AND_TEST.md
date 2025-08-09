@@ -2,6 +2,8 @@
 
 This document outlines the process for building and testing the Amy's Echo application.
 
+If you're developing on Windows via WSL2, see [Android development with WSL2](AndroidWSL2.md) for connecting a physical device.
+
 ## Building the App
 
 The application is built using Expo. To build the Android app, run the following command from the `app` directory:
