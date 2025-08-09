@@ -11,6 +11,7 @@ import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/stor
 import RootNavigator from './src/navigation/RootNavigator';
 import { COLORS } from './src/constants/ui';
 import { logger } from './src/utils/logger';
+import { useAmyGestureModel } from './src/ml/tfliteRuntime';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -19,6 +20,9 @@ export default function App() {
     largeText: false,
     highContrast: false,
   });
+
+  // Load gesture model once and expose global inference for worklets
+  useAmyGestureModel(require('./assets/models/gesture_classifier.tflite'));
 
   useEffect(() => {
     async function initialize() {

@@ -4,22 +4,14 @@ import type { Frame } from 'react-native-vision-camera';
 import { useFrameProcessor } from 'react-native-vision-camera';
 import { useSharedValue } from 'react-native-reanimated';
 import { logger } from '../utils/logger';
+import { Worklets } from 'react-native-worklets-core';
 
 let FileSystem: typeof import('expo-file-system') | null = null;
-
-let runOnJS: any = (fn: Function) => fn;
-
 async function getFileSystem() {
   if (!FileSystem) {
     FileSystem = await import('expo-file-system');
   }
   return FileSystem;
-}
-try {
-  const worklets = require('react-native-worklets-core');
-  runOnJS = worklets.runOnJS;
-} catch (e) {
-  logger.warn('Worklets not available, using fallback:', e);
 }
 import {
   extractHandLandmarks,
@@ -34,6 +26,7 @@ import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
+import { record as recordTelemetry } from '../telemetry/recorder';
 
 class LandmarkSmoother {
   private history: number[][][] = [];
@@ -372,6 +365,13 @@ class MachineLearningService {
         wasSuccessful: result.label !== 'uncertain',
         processingTimeMs: processingTime,
       });
+      recordTelemetry({
+        t: Date.now(),
+        path: result.isLocal ? 'offline' : 'cloud',
+        latencyMs: processingTime,
+        label: result.label,
+        score: result.confidence,
+      });
     }
 
     onResult(result, processed.landmarks);
@@ -556,8 +556,7 @@ export const useGestureClassifier = (
   const internalProcessingRef = useRef(false);
   const maxQueueSize = 3;
   const serviceReady = useSharedValue(mlService.isServiceReady());
-  const processingTimesRef = useRef<number[]>([]);
-  const targetFps = useSharedValue(30);
+  const targetFps = useSharedValue(8);
   const lastFrameTime = useSharedValue(0);
   const smootherRef = useRef(new LandmarkSmoother());
   const frameBufferRef = useRef(new FrameBufferManager());
@@ -566,23 +565,11 @@ export const useGestureClassifier = (
     const readyInterval = setInterval(() => {
       serviceReady.value = mlService.isServiceReady();
     }, 500);
-    const monitor = setInterval(() => {
-      const times = processingTimesRef.current;
-      if (times.length === 0) return;
-      const avg = times.reduce((a, b) => a + b, 0) / times.length;
-      processingTimesRef.current = [];
-      if (avg > 33) {
-        targetFps.value = Math.max(15, targetFps.value - 5);
-      } else if (avg < 20) {
-        targetFps.value = Math.min(30, targetFps.value + 5);
-      }
-    }, 5000);
     return () => {
-      clearInterval(monitor);
       clearInterval(readyInterval);
       frameBufferRef.current.cleanup();
     };
-  }, [serviceReady, targetFps]);
+  }, [serviceReady]);
 
   const processNextFrame = useCallback(() => {
     if (internalProcessingRef.current) {
@@ -593,14 +580,11 @@ export const useGestureClassifier = (
       return;
     }
     internalProcessingRef.current = true;
-    const start = Date.now();
     mlService
       .processFrameAsync(next, (result, landmarks) => {
         onResultRef.current(result, landmarks);
       })
       .finally(() => {
-        const end = Date.now();
-        processingTimesRef.current.push(end - start);
         internalProcessingRef.current = false;
         if (frameQueueRef.current.length > 0) {
           processNextFrame();
@@ -620,6 +604,11 @@ export const useGestureClassifier = (
     [processNextFrame],
   );
 
+  const addFrameJS = Worklets.createRunOnJS((f: Frame) => frameBufferRef.current.addFrame(f));
+  const enqueueFrameJS = Worklets.createRunOnJS(enqueueFrame);
+  const logErrorJS = Worklets.createRunOnJS(logger.error);
+  const onErrorJS = Worklets.createRunOnJS((message: string) => onErrorRef.current?.(message));
+
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
@@ -627,7 +616,7 @@ export const useGestureClassifier = (
         return;
       }
 
-      runOnJS((f: Frame) => frameBufferRef.current.addFrame(f))(frame);
+      addFrameJS(frame);
 
       const now = Date.now();
       if (now - lastFrameTime.value < 1000 / targetFps.value) {
@@ -652,11 +641,11 @@ export const useGestureClassifier = (
           predictions: predictions || undefined,
         };
 
-        runOnJS(enqueueFrame)(processed);
+        enqueueFrameJS(processed);
       } catch (error: any) {
-        runOnJS(logger.error)('WORKLET ERROR:', error);
+        logErrorJS('WORKLET ERROR:', error);
         if (onErrorRef.current) {
-          runOnJS(onErrorRef.current)(error.message);
+          onErrorJS(error.message);
         }
       }
     },
@@ -678,6 +667,8 @@ export const useRecordingProcessor = (
   isRecordingRef.current = isRecording;
 
   const lastProcessedTime = useSharedValue(0);
+  const onLandmarksJS = Worklets.createRunOnJS((lm: number[][]) => onLandmarksRef.current(lm));
+  const logErrorJS = Worklets.createRunOnJS(logger.error);
 
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
@@ -697,9 +688,9 @@ export const useRecordingProcessor = (
         if (!landmarks || landmarks.length === 0) {
           return;
         }
-        runOnJS(onLandmarksRef.current)(landmarks);
+        onLandmarksJS(landmarks);
       } catch (error: any) {
-        runOnJS(logger.error)('WORKLET ERROR:', error);
+        logErrorJS('WORKLET ERROR:', error);
       }
     },
     [fps],
