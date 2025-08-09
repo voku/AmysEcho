@@ -293,10 +293,10 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Add GDPR compliance features
   - Create data export functionality
   - Test data migration scenarios
-  - [ ] Protect gesture data
-    - Hint: implement `GestureDataProtector` for anonymization and AES encryption.
-  - [ ] Enhance API key security
-    - Hint: use `SecureConfigManager` with device keystore and hash validation.
+  - [x] Protect gesture data
+    - Implement `GestureDataProtector` for anonymization and AES encryption.
+  - [x] Enhance API key security
+    - Added hash validation and secure storage in `SecureConfigManager`.
 
 - [ ] **Offline Capability**
   - Ensure full offline functionality
