@@ -62,7 +62,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 10. [ ] **Documentation & Roadmap Cleanup**
     - [x] Keep `README.md` as a short landing page, move deeper technical documentation to `docs/*`.
     - [x] Consolidate developer notes into `docs/CodebaseOverview.md`, `docs/UserStories.md`, and `docs/TODO.md`.
-    - [ ] Define milestones in GitHub Projects: Stabilization → Accuracy → UX improvements.
+    - [x] Define milestones in GitHub Projects: Stabilization → Accuracy → UX improvements ([ProjectMilestones.md](ProjectMilestones.md)).
 ---
 
 ## 🚨 PRIORITY 1: Core Functionality (Critical Path)

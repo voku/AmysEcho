@@ -14,6 +14,7 @@ This project turns those gestures into speech and symbols so she can be heard an
 - [User stories](docs/UserStories.md)
 - [Build & test instructions](docs/BUILD_AND_TEST.md)
 - [Project roadmap](docs/TODO.md)
+- [Project milestones](docs/ProjectMilestones.md)
 
 ---
 
