@@ -274,7 +274,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Minimize battery usage during operation
   - Optimize memory usage for older devices
   - Test performance across device range
-  - [ ] Implement adaptive processing based on battery & thermal state
+  - [x] Implement adaptive processing based on battery & thermal state
     - Hint: create `AdaptivePerformanceManager` that adjusts frame rate and model complexity.
 
 ---
