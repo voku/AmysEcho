@@ -21,7 +21,33 @@ function computeCentroid(samples: number[][]): number[] {
   return centroid;
 }
 
-export async function retrainOfflineModel(dbPath: string, outPath: string, metricsPath?: string): Promise<void> {
+function mulberry32(seed: number): () => number {
+  return function () {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seedRandom(seed: string): void {
+  let h = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  Math.random = mulberry32(h);
+}
+
+export async function retrainOfflineModel(
+  dbPath: string,
+  outPath: string,
+  metricsPath?: string,
+  seed = '42',
+): Promise<void> {
+  seedRandom(seed);
+  const version = new Date().toISOString();
   const db = await loadDatabase(dbPath);
   const grouped: Record<string, number[][]> = {};
 
@@ -40,8 +66,9 @@ export async function retrainOfflineModel(dbPath: string, outPath: string, metri
     model[id] = computeCentroid(samples);
   }
 
+  const modelFile = { version, seed, model };
   await fs.mkdir(path.dirname(outPath), { recursive: true });
-  await fs.writeFile(outPath, JSON.stringify(model, null, 2), 'utf8');
+  await fs.writeFile(outPath, JSON.stringify(modelFile, null, 2), 'utf8');
 
   // Compute simple training-set metrics (top-1 and top-3 accuracy) using centroid distance
   const ids = Object.keys(grouped);
@@ -65,7 +92,8 @@ export async function retrainOfflineModel(dbPath: string, outPath: string, metri
   }
 
   const metrics = {
-    version: new Date().toISOString(),
+    version,
+    seed,
     totalSamples: total,
     accuracyTop1: total ? Number((correctTop1 / total).toFixed(3)) : 0,
     accuracyTop3: total ? Number((correctTop3 / total).toFixed(3)) : 0,
@@ -92,12 +120,14 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 if (require.main === module) {
-  const [dbPath, outPath, metricsPath] = process.argv.slice(2);
+  const [dbPath, outPath, metricsPath, seed] = process.argv.slice(2);
   if (!dbPath || !outPath) {
-    console.error('Usage: node retrainOfflineModel.js <db.json> <output.json> [metrics.json]');
+    console.error(
+      'Usage: node retrainOfflineModel.js <db.json> <output.json> [metrics.json] [seed]'
+    );
     process.exit(1);
   }
-  retrainOfflineModel(dbPath, outPath, metricsPath).catch((err) => {
+  retrainOfflineModel(dbPath, outPath, metricsPath, seed).catch((err) => {
     console.error(err);
     process.exit(1);
   });

@@ -231,10 +231,10 @@ Collected gesture samples can be used to update the local fallback model. Run:
 
 ```bash
 npm run build
-node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json
+node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json dist/metrics.json [seed]
 ```
 
-The recognizer will load `dist/offlineModel.json` by default when classifying offline.
+The recognizer will load `dist/offlineModel.json` by default when classifying offline. A matching `dist/metrics.json` containing training accuracy is also produced.
 
 ### Updating analytics
 
