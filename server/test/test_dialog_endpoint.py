@@ -10,22 +10,30 @@ PORT = "5055"
 
 def start_server():
     env = os.environ.copy()
-    env.setdefault('API_TOKEN', 'testtoken')
-    env.setdefault('PORT', PORT)
-    env.setdefault('DIALOG_LIMIT', '2')
+    env.setdefault("API_TOKEN", "testtoken")
+    env.setdefault("PORT", PORT)
+    env.setdefault("DIALOG_LIMIT", "2")
     proc = subprocess.Popen(
-        ['npx', 'ts-node', 'src/server.ts'],
+        ["npx", "ts-node", "src/server.ts"],
         cwd=SERVER_DIR,
         env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    # Wait for server to start accepting connections
-    for _ in range(20):
+    # Wait for the server to start accepting connections
+    start = time.time()
+    while True:
+        if proc.poll() is not None:
+            raise RuntimeError("server failed to start")
         try:
-            urllib.request.urlopen(f'http://localhost:{PORT}/')
+            urllib.request.urlopen(f"http://localhost:{PORT}/")
+            break
+        except urllib.error.HTTPError:
+            # Any HTTP response means the server is up
             break
         except Exception:
+            if time.time() - start > 30:
+                raise RuntimeError("server did not start in time")
             time.sleep(0.5)
     return proc
 

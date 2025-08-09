@@ -12,20 +12,27 @@ DB_PATH = os.path.join(SERVER_DIR, 'db.json')
 
 def start_server():
     env = os.environ.copy()
-    env.setdefault('API_TOKEN', 'testtoken')
-    env.setdefault('PORT', PORT)
+    env.setdefault("API_TOKEN", "testtoken")
+    env.setdefault("PORT", PORT)
     proc = subprocess.Popen(
-        ['npx', 'ts-node', 'src/server.ts'],
+        ["npx", "ts-node", "src/server.ts"],
         cwd=SERVER_DIR,
         env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    for _ in range(20):
+    start = time.time()
+    while True:
+        if proc.poll() is not None:
+            raise RuntimeError("server failed to start")
         try:
-            urllib.request.urlopen(f'http://localhost:{PORT}/')
+            urllib.request.urlopen(f"http://localhost:{PORT}/")
+            break
+        except urllib.error.HTTPError:
             break
         except Exception:
+            if time.time() - start > 30:
+                raise RuntimeError("server did not start in time")
             time.sleep(0.5)
     return proc
 
