@@ -3,6 +3,8 @@ import { Pressable, Text, StyleSheet } from 'react-native';
 import { Symbol } from '../../db/models';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 interface Props {
   symbol: Symbol;
@@ -13,8 +15,11 @@ export const SymbolButton = ({ symbol, onPress }: Props) => {
   const { largeText, highContrast } = useAccessibility();
   return (
     <Pressable
-      style={[styles.button, highContrast && styles.buttonHC]}
-      onPress={() => onPress(symbol)}
+      style={[childFriendlyStyles.minTouchTarget, styles.button, highContrast && styles.buttonHC]}
+      onPress={() => {
+        void childHaptic();
+        onPress(symbol);
+      }}
       accessibilityRole="button"
       accessibilityLabel={symbol.name}
     >
