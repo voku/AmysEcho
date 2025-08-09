@@ -31,7 +31,7 @@ The project has a stable foundation after a major refactor. The database, naviga
    - Automate device checks (`expo doctor`, dev-client vs self-contained APK builds).
    - CI should produce both dev-client APK and full APK artifacts for manual field testing.
 
-4. **VisionCamera & Worklets Compatibility**
+4. [x] **VisionCamera & Worklets Compatibility**
    - Lock to a tested combination of VisionCamera v4 and react-native-worklets-core.
    - Validate with real devices for both frame rate and recognition accuracy.
    - Document the performance budget in ms/frame.
@@ -41,10 +41,10 @@ The project has a stable foundation after a major refactor. The database, naviga
    - Add telemetry for each recognition: confidence score, latency, and inference path (cloud/offline).
    - Use this telemetry as a baseline for regression alerts.
 
-6. **Correction & Learning Flow**
+6. [x] **Correction & Learning Flow**
    - “Help-Me” button should always store deterministic correction data with a re-prompt suggestion.
    - Capture negative samples and ambiguous gestures for retraining.
-   - Ensure retraining actually improves accuracy (avoid polluting the dataset).
+   - Ensure retraining actually improves accuracy (avoid polluting the dataset). (Note: This requires a robust validation process for the retraining pipeline.)
 
 7. **Offline Model Retraining**
    - Add reproducibility features to `server/dist/tools/retrainOfflineModel.js`: fixed random seeds, version tagging, and metrics (accuracy, top-k accuracy).

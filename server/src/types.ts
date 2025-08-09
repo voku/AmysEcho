@@ -81,6 +81,7 @@ export interface LearningAnalytics {
   lastCalculated: number; // Added lastCalculated
 }
 
+
 export interface Correction {
   id: string;
   predictedGesture: string;
@@ -89,4 +90,10 @@ export interface Correction {
   timestamp: number;
   isSynced: boolean;
   profileId?: string; // Assuming corrections can be linked to a profile
+}
+
+export interface NegativeSample {
+  id: string;
+  gesture: string;
+  timestamp: number;
 }

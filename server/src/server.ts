@@ -252,7 +252,7 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
     logCorrection(dbInstance, 'unknown', gesture, null);
     const record: Correction = {
       id: genId(),
-      predictedGesture: 'unknown',
+      predictedGesture: 'unknown', 
       actualGesture: gesture,
       confidence: 0,
       timestamp: Date.now(),
@@ -265,6 +265,26 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
     console.error('Error logging correction:', error);
     res.status(500).json({ error: 'Failed to log correction' });
   }
+});
+
+app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
+    const { gesture } = req.body || {};
+    if (typeof gesture !== 'string') {
+        return res.status(400).json({ error: 'Invalid negative sample' });
+    }
+    try {
+        const record: NegativeSample = {
+            id: genId(),
+            gesture,
+            timestamp: Date.now(),
+        };
+        addNegativeSample(dbInstance, record);
+        await saveDatabase(dbInstance, DB_FILE_PATH);
+        res.status(202).json({ status: 'queued' });
+    } catch (error) {
+        console.error('Error logging negative sample:', error);
+        res.status(500).json({ error: 'Failed to log negative sample' });
+    }
 });
 
 app.post('/dialog', auth, dialogLimiter, async (req: Request, res: Response) => {

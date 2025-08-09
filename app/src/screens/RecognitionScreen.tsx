@@ -225,6 +225,9 @@ export default function RecognitionScreen({ navigation }: any) {
   };
 
   const handleCancelCorrection = () => {
+    if (pendingGesture) {
+      correctionService.logNegativeSample(pendingGesture);
+    }
     setShowCorrection(false);
     setShowHelp(false);
     setIsProcessing(false);
@@ -432,6 +435,7 @@ export default function RecognitionScreen({ navigation }: any) {
       setTimeout(() => {
         setIsProcessing(false);
         setStatus("I'm listening...");
+        navigation.navigate('Training', { gestureLabel: pendingGesture, isPractice: true });
       }, 3000);
     } catch (error) {
       logger.error('Failed to save correction:', error);

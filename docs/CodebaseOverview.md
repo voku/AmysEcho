@@ -35,3 +35,14 @@ This document summarizes the repository in seven key areas with concrete file re
 - Audio files moved in `app/src/screens/AdminScreen.tsx`
 - Recordings persist in `app/src/constants/audioPaths.ts` for offline playback
 
+## 8. Performance Budget
+
+The performance budget for the gesture recognition pipeline is as follows:
+
+- **Frame Rate:** 10 FPS (100ms per frame)
+- **Landmark Extraction:** < 30ms
+- **Gesture Classification (local):** < 20ms
+- **Gesture Classification (remote):** < 400ms (network latency)
+
+These are target values and should be validated on real devices.
+

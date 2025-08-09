@@ -9,6 +9,7 @@ import {
   UsageStat,
   VocabularySetSymbol,
   Correction,
+  NegativeSample,
 } from './types';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -24,6 +25,7 @@ export interface Database {
   usageStats: UsageStat[];
   learningAnalytics: LearningAnalytics[];
   corrections: Correction[]; // Added comment to force re-evaluation
+  negativeSamples: NegativeSample[];
 }
 
 export const createDatabase = (): Database => ({
@@ -37,6 +39,7 @@ export const createDatabase = (): Database => ({
   usageStats: [],
   learningAnalytics: [],
   corrections: [],
+  negativeSamples: [],
 });
 
 export const addSymbol = (db: Database, symbol: SymbolRecord): void => {
@@ -89,6 +92,13 @@ export const addLearningAnalytics = (
 ): void => {
   db.learningAnalytics.push(la);
 };
+
+export const addNegativeSample = (
+    db: Database,
+    sample: NegativeSample,
+    ): void => {
+    db.negativeSamples.push(sample);
+    };
 
 const updateById = <T extends { id: string }>(
   items: T[],
