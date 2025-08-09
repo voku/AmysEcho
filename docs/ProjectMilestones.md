@@ -1,6 +1,6 @@
 # Project Milestones
 
-Development work is organized into three high-level milestones tracked on the [GitHub Projects board](https://github.com/voku/AmysEcho/projects).
+Development work is organized into three high-level milestones recorded in this repository so tools and contributors can access them without relying on external services.
 
 ## Stabilization
 Focuses on hardening infrastructure and documentation.
