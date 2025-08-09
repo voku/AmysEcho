@@ -25,7 +25,7 @@ import { COLORS } from '../src/constants/ui';
 
 describe('SymbolButton', () => {
   it('triggers haptic feedback on press', () => {
-    const symbol: any = { id: '1', name: 'Hello', emoji: '👋' };
+    const symbol: any = { id: '1', name: 'Hello', emoji: '👋', color: '#ffaaaa' };
     const onPress = jest.fn();
     let component: renderer.ReactTestRenderer;
     act(() => {
@@ -43,7 +43,7 @@ describe('SymbolButton', () => {
   });
 
   it('applies pressed visual style', () => {
-    const symbol: any = { id: '1', name: 'Hello', emoji: '👋' };
+    const symbol: any = { id: '1', name: 'Hello', emoji: '👋', color: '#ffaaaa' };
     let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
@@ -55,6 +55,22 @@ describe('SymbolButton', () => {
     const pressedStyle = styleFn({ pressed: true });
     expect(pressedStyle).toEqual(
       expect.arrayContaining([expect.objectContaining({ backgroundColor: COLORS.pressed })]),
+    );
+  });
+
+  it('uses symbol color for background', () => {
+    const symbol: any = { id: '1', name: 'Hello', emoji: '👋', color: '#ffaaaa' };
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <SymbolButton symbol={symbol} onPress={() => {}} />,
+      );
+    });
+    const pressable = (component as renderer.ReactTestRenderer).root.findByType('Pressable');
+    const styleFn = pressable.props.style as (args: { pressed: boolean }) => any;
+    const style = styleFn({ pressed: false });
+    expect(style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ backgroundColor: symbol.color, borderColor: symbol.color })]),
     );
   });
 });

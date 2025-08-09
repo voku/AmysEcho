@@ -19,6 +19,10 @@ export const SymbolButton = ({ symbol, onPress }: Props) => {
         childFriendlyStyles.minTouchTarget,
         styles.button,
         highContrast && styles.buttonHC,
+        !highContrast && {
+          backgroundColor: symbol.color,
+          borderColor: symbol.color,
+        },
         pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
       ]}
       onPress={() => {
@@ -42,10 +46,8 @@ const styles = StyleSheet.create({
   button: {
     padding: SPACING.md,
     margin: SPACING.sm,
-    backgroundColor: COLORS.backgroundStart,
     borderRadius: RADIUS,
     borderWidth: 1,
-    borderColor: COLORS.primaryAccent,
     minWidth: 120,
     alignItems: 'center',
   },
@@ -55,7 +57,7 @@ const styles = StyleSheet.create({
   },
   buttonPressed: { backgroundColor: COLORS.pressed },
   buttonPressedHC: { backgroundColor: COLORS.highContrastPressed },
-  text: { fontSize: 16, color: COLORS.text },
-  textLarge: { fontSize: 20 },
+  text: { fontSize: 20, color: COLORS.text },
+  textLarge: { fontSize: 24 },
   textHC: { color: COLORS.highContrastText },
 });

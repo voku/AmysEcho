@@ -249,8 +249,8 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Test animation performance on older devices
 
 - [ ] **Child-Friendly Interface**
-  - Optimize UI for 4-year-old usability
-  - Add colorful, engaging visual elements
+  - [x] Optimize UI for 4-year-old usability
+  - [x] Add colorful, engaging visual elements
   - [x] Implement large touch targets
     - Hint: use `childFriendlyStyles.minTouchTarget` (60x60, padding 12) and add haptic feedback.
     - Example:
