@@ -59,10 +59,10 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Never leave the app silent: in uncertain cases, output a neutral voice line plus visual symbol and haptic feedback.
   - [x] Add a UI timer to detect "no frame / no result" situations and degrade gracefully instead of freezing.
 
-10. **Documentation & Roadmap Cleanup**
-    - Keep `README.md` as a short landing page, move deeper technical documentation to `docs/*`.
-    - Consolidate developer notes into `docs/CodebaseOverview.md`, `docs/UserStories.md`, and `docs/TODO.md`.
-    - Define milestones in GitHub Projects: Stabilization → Accuracy → UX improvements.
+10. [ ] **Documentation & Roadmap Cleanup**
+    - [x] Keep `README.md` as a short landing page, move deeper technical documentation to `docs/*`.
+    - [x] Consolidate developer notes into `docs/CodebaseOverview.md`, `docs/UserStories.md`, and `docs/TODO.md`.
+    - [ ] Define milestones in GitHub Projects: Stabilization → Accuracy → UX improvements.
 ---
 
 ## 🚨 PRIORITY 1: Core Functionality (Critical Path)
