@@ -25,3 +25,8 @@ npm test --prefix integration
 if [ -f scripts/deps-snapshot.sh ]; then
   bash scripts/deps-snapshot.sh || true
 fi
+
+# Enforce pinned critical dependencies for deterministic builds
+if [ -f scripts/check-pins.js ]; then
+  node scripts/check-pins.js || exit 1
+fi
