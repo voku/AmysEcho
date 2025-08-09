@@ -15,7 +15,12 @@ export const SymbolButton = ({ symbol, onPress }: Props) => {
   const { largeText, highContrast } = useAccessibility();
   return (
     <Pressable
-      style={[childFriendlyStyles.minTouchTarget, styles.button, highContrast && styles.buttonHC]}
+      style={({ pressed }) => [
+        childFriendlyStyles.minTouchTarget,
+        styles.button,
+        highContrast && styles.buttonHC,
+        pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+      ]}
       onPress={() => {
         void childHaptic();
         onPress(symbol);
@@ -48,6 +53,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.highContrastBackground,
     borderColor: COLORS.highContrastText,
   },
+  buttonPressed: { backgroundColor: COLORS.pressed },
+  buttonPressedHC: { backgroundColor: COLORS.highContrastPressed },
   text: { fontSize: 16, color: COLORS.text },
   textLarge: { fontSize: 20 },
   textHC: { color: COLORS.highContrastText },

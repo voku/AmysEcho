@@ -6,7 +6,7 @@ jest.mock('react-native', () => {
   return {
     Pressable: (props: any) => React.createElement('Pressable', props, props.children),
     Text: (props: any) => React.createElement('Text', props, props.children),
-    StyleSheet: { create: () => ({}) },
+    StyleSheet: { create: (styles: any) => styles },
   };
 });
 
@@ -21,6 +21,7 @@ jest.mock('../src/services/feedbackService', () => ({
 }));
 
 import { SymbolButton } from '../src/components/SymbolButton';
+import { COLORS } from '../src/constants/ui';
 
 describe('SymbolButton', () => {
   it('triggers haptic feedback on press', () => {
@@ -39,5 +40,21 @@ describe('SymbolButton', () => {
     });
     expect(mockHaptic).toHaveBeenCalled();
     expect(onPress).toHaveBeenCalledWith(symbol);
+  });
+
+  it('applies pressed visual style', () => {
+    const symbol: any = { id: '1', name: 'Hello', emoji: '👋' };
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <SymbolButton symbol={symbol} onPress={() => {}} />,
+      );
+    });
+    const pressable = (component as renderer.ReactTestRenderer).root.findByType('Pressable');
+    const styleFn = pressable.props.style as (args: { pressed: boolean }) => any;
+    const pressedStyle = styleFn({ pressed: true });
+    expect(pressedStyle).toEqual(
+      expect.arrayContaining([expect.objectContaining({ backgroundColor: COLORS.pressed })]),
+    );
   });
 });
