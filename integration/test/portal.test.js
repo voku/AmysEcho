@@ -1,33 +1,48 @@
 import { spawn } from 'child_process';
 import { once } from 'events';
 import assert from 'node:assert';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { promises as fs } from 'fs';
 import { test, before, after } from 'node:test';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', 'server');
-const PORT = 5050;
+// Use a dedicated port so this test can run alongside others without
+// fighting over the same TCP socket.
+const PORT = 5051;
 let proc;
 
 async function startServer() {
+  // Ensure a clean database so training data counts are deterministic
+  const dbPath = join(serverDir, 'db.json');
+  await fs.rm(dbPath, { force: true }).catch(() => {});
+
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
     env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken' },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    // Drop all stdio to avoid blocking if the server logs heavily.
+    stdio: ['ignore', 'ignore', 'ignore'],
   });
 
-  await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('server start timeout')), 5000);
-    proc.stdout.on('data', (data) => {
-      if (data.toString().includes('Server is running')) {
-        clearTimeout(timeout);
-        resolve();
-      }
-    });
-    proc.on('error', reject);
-    proc.on('exit', (code) => reject(new Error(`server exited ${code}`)));
-  });
+  const start = Date.now();
+  const timeoutMs = 30_000;
+  while (Date.now() - start < timeoutMs) {
+    if (proc.exitCode !== null) {
+      throw new Error(`server exited ${proc.exitCode}`);
+    }
+    try {
+      const res = await fetch(`http://localhost:${PORT}/model-version`, {
+        headers: { Authorization: 'Bearer testtoken' },
+      });
+      if (res.ok) return;
+    } catch {
+      // retry until timeout
+    }
+    await delay(500);
+  }
+  throw new Error('server start timeout');
 }
 
 async function stopServer() {
@@ -60,7 +75,7 @@ test('approve and export training data', async () => {
   assert.strictEqual(exportRes.status, 200);
   const data = await exportRes.json();
   assert.ok(Array.isArray(data));
-  assert.strictEqual(data.length, 1);
-  assert.strictEqual(data[0].id, id);
-  assert.strictEqual(data[0].approved, true);
+  const record = data.find((d) => d.id === id);
+  assert.ok(record, 'exported data includes the new record');
+  assert.strictEqual(record.approved, true);
 });

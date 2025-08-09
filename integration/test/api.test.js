@@ -13,25 +13,35 @@ const PORT = 5050;
 let proc;
 
 async function startServer() {
+  // Ensure a clean database so prior runs don't influence API tests
+  const dbPath = join(serverDir, 'db.json');
+  await fs.rm(dbPath, { force: true }).catch(() => {});
+
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
     env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken' },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    // Discard stdio so the child process can't block if it writes a lot of
+    // logs that no one reads.
+    stdio: ['ignore', 'ignore', 'ignore'],
   });
 
-  await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('server start timeout')), 5000);
-    proc.stdout.on('data', (data) => {
-      if (data.toString().includes('Server is running')) {
-        clearTimeout(timeout);
-        resolve();
-      }
-    });
-    proc.on('error', reject);
-    proc.on('exit', (code) => {
-      reject(new Error(`server exited ${code}`));
-    });
-  });
+  const start = Date.now();
+  const timeoutMs = 30_000;
+  while (Date.now() - start < timeoutMs) {
+    if (proc.exitCode !== null) {
+      throw new Error(`server exited ${proc.exitCode}`);
+    }
+    try {
+      const res = await fetch(`http://localhost:${PORT}/model-version`, {
+        headers: { Authorization: 'Bearer testtoken' },
+      });
+      if (res.ok) return; // server is ready
+    } catch {
+      // ignore until timeout
+    }
+    await delay(500);
+  }
+  throw new Error('server start timeout');
 }
 
 async function stopServer() {

@@ -10,22 +10,44 @@ PORT = "5055"
 
 def start_server():
     env = os.environ.copy()
-    env.setdefault('API_TOKEN', 'testtoken')
-    env.setdefault('PORT', PORT)
-    env.setdefault('DIALOG_LIMIT', '2')
+    env.setdefault("API_TOKEN", "testtoken")
+    env.setdefault("PORT", PORT)
+    env.setdefault("DIALOG_LIMIT", "2")
+
+    # Build the TypeScript sources to JavaScript so the runtime doesn't
+    # depend on ts-node, which has proven flaky on CI.
+    subprocess.run(
+        ["npm", "run", "build"],
+        cwd=SERVER_DIR,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=True,
+    )
+
     proc = subprocess.Popen(
-        ['npx', 'ts-node', 'src/server.ts'],
+        ["node", "dist/server.js"],
         cwd=SERVER_DIR,
         env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    # Wait for server to start accepting connections
-    for _ in range(20):
+    # Wait for the server to start accepting connections on /model-version
+    start = time.time()
+    headers = {"Authorization": "Bearer testtoken"}
+    req = urllib.request.Request(
+        f"http://localhost:{PORT}/model-version", headers=headers
+    )
+    while True:
+        if proc.poll() is not None:
+            raise RuntimeError("server failed to start")
         try:
-            urllib.request.urlopen(f'http://localhost:{PORT}/')
-            break
+            with urllib.request.urlopen(req) as resp:
+                if resp.getcode() == 200:
+                    break
         except Exception:
+            if time.time() - start > 30:
+                raise RuntimeError("server did not start in time")
             time.sleep(0.5)
     return proc
 

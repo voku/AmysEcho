@@ -12,20 +12,40 @@ DB_PATH = os.path.join(SERVER_DIR, 'db.json')
 
 def start_server():
     env = os.environ.copy()
-    env.setdefault('API_TOKEN', 'testtoken')
-    env.setdefault('PORT', PORT)
+    env.setdefault("API_TOKEN", "testtoken")
+    env.setdefault("PORT", PORT)
+
+    subprocess.run(
+        ["npm", "run", "build"],
+        cwd=SERVER_DIR,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=True,
+    )
+
     proc = subprocess.Popen(
-        ['npx', 'ts-node', 'src/server.ts'],
+        ["node", "dist/server.js"],
         cwd=SERVER_DIR,
         env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    for _ in range(20):
+    start = time.time()
+    headers = {"Authorization": "Bearer testtoken"}
+    req = urllib.request.Request(
+        f"http://localhost:{PORT}/model-version", headers=headers
+    )
+    while True:
+        if proc.poll() is not None:
+            raise RuntimeError("server failed to start")
         try:
-            urllib.request.urlopen(f'http://localhost:{PORT}/')
-            break
+            with urllib.request.urlopen(req) as resp:
+                if resp.getcode() == 200:
+                    break
         except Exception:
+            if time.time() - start > 30:
+                raise RuntimeError("server did not start in time")
             time.sleep(0.5)
     return proc
 
