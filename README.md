@@ -21,12 +21,15 @@ This project turns those gestures into speech and symbols so she can be heard an
 ## 🚀 Quick Start
 
 ```bash
-npm install
+npm install --prefix app
+npm install --prefix server
+pip install -r server/requirements.txt
+
 npm run type-check --prefix app
 npm test --prefix app
-pip install -r server/requirements.txt
 npm test --prefix server
 npm test --prefix integration
+
 npm run build --prefix server
 node server/dist/tools/downloadModels.js
 ```
