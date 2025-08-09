@@ -17,6 +17,25 @@ This project turns those gestures into speech and symbols so she can be heard an
 
 ---
 
+## 🚀 Quick Start
+
+```bash
+npm install
+npm run type-check --prefix app
+npm test --prefix app
+pip install -r server/requirements.txt
+npm test --prefix server
+npm test --prefix integration
+npm run build --prefix server
+node server/dist/tools/downloadModels.js
+```
+
+Run `npm run ios --prefix app` or `npm run android --prefix app` to launch the mobile app.
+
+See [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) for full details.
+
+---
+
 ## 🧱 Tech Stack
 
 | Layer         | Tech                          | Purpose                                |
@@ -41,8 +60,8 @@ This is a focused project with one user. That means:
 - ✅ No “move fast” hacks  
 - ✅ Emotional context matters — build with care
 
-If you’re here to help: thank you.  
-PRs are welcome, but **read the spec first**.
+If you’re here to help: thank you.
+PRs are welcome, but **read the [spec](spec/AmysEcho.md) first**.
 
 ---
 
