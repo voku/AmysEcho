@@ -37,6 +37,7 @@ import { HAND_CONNECTIONS } from '../constants/hand';
 import ErrorMessage from '../components/ErrorMessage';
 import { logger } from '../utils/logger';
 import { ModelPerformanceMonitor } from '../services/ModelPerformanceMonitor';
+import { dump as dumpTelemetry } from '../telemetry/recorder';
 
 const { width, height } = Dimensions.get('window');
 
@@ -72,6 +73,12 @@ export default function RecognitionScreen({ navigation }: any) {
   const [lastResultAt, setLastResultAt] = useState<number>(0);
   const perfMonitorRef = useRef(new ModelPerformanceMonitor(60));
   const [showPerfBanner, setShowPerfBanner] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugStats, setDebugStats] = useState<{ medianLatency: number; offlineRatio: number; cloudRatio: number }>({
+    medianLatency: 0,
+    offlineRatio: 0,
+    cloudRatio: 0,
+  });
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -167,6 +174,31 @@ export default function RecognitionScreen({ navigation }: any) {
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!showDebug) return;
+    const id = setInterval(() => {
+      try {
+        const data = dumpTelemetry();
+        if (data.length === 0) {
+          setDebugStats({ medianLatency: 0, offlineRatio: 0, cloudRatio: 0 });
+          return;
+        }
+        const lat = data.map((d) => d.latencyMs).sort((a, b) => a - b);
+        const mid = Math.floor(lat.length / 2);
+        const median = lat.length % 2 ? lat[mid] : (lat[mid - 1] + lat[mid]) / 2;
+        const offline = data.filter((d) => d.path === 'offline').length;
+        const cloud = data.filter((d) => d.path === 'cloud').length;
+        const total = data.length;
+        setDebugStats({
+          medianLatency: Math.round(median),
+          offlineRatio: total ? Math.round((offline / total) * 100) : 0,
+          cloudRatio: total ? Math.round((cloud / total) * 100) : 0,
+        });
+      } catch {}
+    }, 1500);
+    return () => clearInterval(id);
+  }, [showDebug]);
 
   const startFeedbackAnimation = useCallback(() => {
     fadeAnim.setValue(0);
@@ -576,6 +608,19 @@ export default function RecognitionScreen({ navigation }: any) {
       marginBottom: SPACING.md,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
+    debugOverlay: {
+      position: 'absolute',
+      bottom: SPACING.lg,
+      left: SPACING.md,
+      right: SPACING.md,
+      backgroundColor: `${COLORS.highContrastBackground}B3`,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+    },
+    debugText: {
+      color: COLORS.highContrastText,
+      textAlign: 'center',
+    },
     performanceBanner: {
       position: 'absolute',
       top: SPACING.md,
@@ -738,7 +783,19 @@ export default function RecognitionScreen({ navigation }: any) {
               </Text>
             </View>
 
-            <Animated.Text style={[styles.status]}>{status}</Animated.Text>
+            <Animated.Text
+              onLongPress={() => setShowDebug((v) => !v)}
+              style={[styles.status]}
+            >
+              {status}
+            </Animated.Text>
+
+            {showDebug && (
+              <View style={styles.debugOverlay}>
+                <Text style={styles.debugText}>Median latency: {debugStats.medianLatency} ms</Text>
+                <Text style={styles.debugText}>Offline: {debugStats.offlineRatio}% · Cloud: {debugStats.cloudRatio}%</Text>
+              </View>
+            )}
 
             {lastRecognizedGesture && lastRecognizedGesture.label !== 'uncertain' && (
               <Animated.Text

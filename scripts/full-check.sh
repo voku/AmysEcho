@@ -20,3 +20,8 @@ pip install -r server/requirements.txt # maybe `--root-user-action=ignore` is ne
 npm run type-check --prefix server
 npm test --prefix server
 npm test --prefix integration
+
+# Export dependency snapshots for reproducibility diagnostics
+if [ -f scripts/deps-snapshot.sh ]; then
+  bash scripts/deps-snapshot.sh || true
+fi
