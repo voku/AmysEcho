@@ -607,7 +607,8 @@ export default function RecognitionScreen({ navigation }: any) {
               device={device}
               isActive={true}
               frameProcessor={frameProcessor}
-              pixelFormat="rgb"
+              pixelFormat="yuv"
+              // YUV avoids extra color conversion, improving ML inference
               onError={handleCameraError}
             />
           )}

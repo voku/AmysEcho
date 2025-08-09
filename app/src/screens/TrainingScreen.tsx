@@ -209,7 +209,8 @@ export default function TrainingScreen({ navigation, route }: any) {
                   device={device}
                   isActive={canUseCamera}
                   frameProcessor={recordingProcessor}
-                  pixelFormat="rgb"
+                  pixelFormat="yuv"
+                  // Consistent YUV format ensures training matches inference
                 />
                 {landmarks.length > 0 && (
                   <Svg
