@@ -19,7 +19,7 @@ import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
 import SymbolVideoPlayer from '../components/SymbolVideoPlayer';
 import { loadProfile, Profile, logCorrection } from '../storage';
-import { audioService, triggerSpeakAndShow } from '../services';
+import { audioService, triggerSpeakAndShow, correctionService } from '../services';
 import { assessOcclusion } from '../services/GestureOcclusion';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { database } from '../../db';
@@ -37,7 +37,8 @@ import { HAND_CONNECTIONS } from '../constants/hand';
 import ErrorMessage from '../components/ErrorMessage';
 import { logger } from '../utils/logger';
 import { ModelPerformanceMonitor } from '../services/ModelPerformanceMonitor';
-import { dump as dumpTelemetry } from '../telemetry/recorder';
+import { telemetry } from '../telemetry/recorder';
+import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
@@ -71,6 +72,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [occlusionHints, setOcclusionHints] = useState<string[] | null>(null);
   const neutralCooldownRef = useRef<number>(0);
   const [lastResultAt, setLastResultAt] = useState<number>(0);
+  const [showNeutralHint, setShowNeutralHint] = useState(false);
   const perfMonitorRef = useRef(new ModelPerformanceMonitor(60));
   const [showPerfBanner, setShowPerfBanner] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
@@ -179,16 +181,16 @@ export default function RecognitionScreen({ navigation }: any) {
     if (!showDebug) return;
     const id = setInterval(() => {
       try {
-        const data = dumpTelemetry();
+        const data = telemetry.dump() as any[];
         if (data.length === 0) {
           setDebugStats({ medianLatency: 0, offlineRatio: 0, cloudRatio: 0 });
           return;
         }
-        const lat = data.map((d) => d.latencyMs).sort((a, b) => a - b);
+        const lat = data.map((d: any) => d.latencyMs).sort((a: number, b: number) => a - b);
         const mid = Math.floor(lat.length / 2);
         const median = lat.length % 2 ? lat[mid] : (lat[mid - 1] + lat[mid]) / 2;
-        const offline = data.filter((d) => d.path === 'offline').length;
-        const cloud = data.filter((d) => d.path === 'cloud').length;
+        const offline = data.filter((d: any) => d.path === 'offline').length;
+        const cloud = data.filter((d: any) => d.path === 'cloud').length;
         const total = data.length;
         setDebugStats({
           medianLatency: Math.round(median),
@@ -359,6 +361,11 @@ export default function RecognitionScreen({ navigation }: any) {
       if (canUseCamera && !isProcessing && (noFrames || noResults) && ts >= neutralCooldownRef.current) {
         try {
           await audioService.speak('Ich bin hier und höre zu.');
+          try {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          } catch {}
+          setShowNeutralHint(true);
+          setTimeout(() => setShowNeutralHint(false), 2000);
         } catch {}
         neutralCooldownRef.current = ts + 7000;
       }
@@ -801,6 +808,13 @@ export default function RecognitionScreen({ navigation }: any) {
               </View>
             )}
 
+            {showNeutralHint && !lastRecognizedGesture && (
+              <Animated.Text
+                style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}
+              >
+                {'🤔'}
+              </Animated.Text>
+            )}
             {lastRecognizedGesture && lastRecognizedGesture.label !== 'uncertain' && (
               <Animated.Text
                 style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}

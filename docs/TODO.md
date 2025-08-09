@@ -55,9 +55,9 @@ The project has a stable foundation after a major refactor. The database, naviga
    - Enforce `401` as the default for unauthorized access and add rate limiting.
    - Dashboard should display: correction rate, uncertainty ratio, median latency, top misclassifications.
 
-9. **Audio & UX Fail-safes**
-   - Never leave the app silent: in uncertain cases, output a neutral voice line plus visual symbol and haptic feedback.
-   - Add a UI timer to detect "no frame / no result" situations and degrade gracefully instead of freezing.
+9. [x] **Audio & UX Fail-safes**
+  - [x] Never leave the app silent: in uncertain cases, output a neutral voice line plus visual symbol and haptic feedback.
+  - [x] Add a UI timer to detect "no frame / no result" situations and degrade gracefully instead of freezing.
 
 10. **Documentation & Roadmap Cleanup**
     - Keep `README.md` as a short landing page, move deeper technical documentation to `docs/*`.
