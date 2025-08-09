@@ -40,10 +40,9 @@ def start_server():
         if proc.poll() is not None:
             raise RuntimeError("server failed to start")
         try:
-            urllib.request.urlopen(req)
-            break
-        except urllib.error.HTTPError:
-            break
+            with urllib.request.urlopen(req) as resp:
+                if resp.getcode() == 200:
+                    break
         except Exception:
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time")
