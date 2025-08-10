@@ -70,6 +70,18 @@ app.use('/api', apiLimiter);
 
 let dbInstance: Database; // Declare a variable to hold the database instance
 
+// Simple in-memory training job registry
+type TrainStatus = 'queued' | 'running' | 'completed' | 'failed';
+interface TrainingJob {
+  id: string;
+  status: TrainStatus;
+  progress: number; // 0..100
+  error?: string;
+  startedAt?: number;
+  endedAt?: number;
+}
+const trainingJobs = new Map<string, TrainingJob>();
+
 // Utility to generate lightweight unique ids
 const genId = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -324,18 +336,77 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
   }
   const tmp = path.join(process.cwd(), 'tmp_landmarks.json');
   await fs.writeFile(tmp, JSON.stringify(landmarks));
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const p = spawn('python3', [path.join(__dirname, 'train.py'), tmp], { stdio: 'inherit' });
-      p.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
-    });
-    res.json({ status: 'ok' });
-  } catch (err) {
-    console.error('Training failed:', err);
-    res.status(500).json({ error: 'Training failed' });
-  } finally {
+
+  const id = genId();
+  const job: TrainingJob = { id, status: 'queued', progress: 0 };
+  trainingJobs.set(id, job);
+
+  // Start background job
+  const script = path.join(__dirname, 'train.py');
+  const child = spawn('python3', [script, tmp], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  job.status = 'running';
+  job.startedAt = Date.now();
+
+  // Parse progress lines from stdout: lines like "PROGRESS:42"
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk: string) => {
+    for (const line of chunk.split(/\r?\n/)) {
+      const m = /^PROGRESS:(\d{1,3})$/.exec(line.trim());
+      if (m) {
+        job.progress = Math.max(0, Math.min(100, parseInt(m[1], 10)));
+      }
+    }
+  });
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (chunk: string) => {
+    // Keep last error line for diagnostics
+    job.error = chunk.toString();
+  });
+  child.on('exit', async (code) => {
+    job.endedAt = Date.now();
+    if (code === 0) {
+      job.status = 'completed';
+      job.progress = 100;
+      // Ensure the trained model is present where the API serves it from
+      const outPath = TRAINED_MODEL_PATH;
+      try {
+        await fs.access(outPath);
+      } catch {
+        // If the script saved elsewhere, try to move from CWD
+        const cwdOut = path.join(process.cwd(), 'trained_model.tflite');
+        try {
+          await fs.access(cwdOut);
+          await fs.rename(cwdOut, outPath).catch(async () => {
+            // If rename across devices fails, copy instead
+            const data = await fs.readFile(cwdOut);
+            await fs.writeFile(outPath, data);
+            await fs.unlink(cwdOut).catch(() => {});
+          });
+        } catch (e) {
+          console.warn('Trained model file not found after training:', e);
+        }
+      }
+    } else {
+      job.status = 'failed';
+      job.error = job.error || `exit ${code}`;
+    }
+    // Cleanup tmp file
     await fs.unlink(tmp).catch(() => {});
+  });
+
+  res.status(202).json({ status: 'queued', jobId: id });
+});
+
+// Query training job status
+app.get('/train-status/:id', auth, (req: Request, res: Response) => {
+  const id = req.params.id;
+  const job = trainingJobs.get(id);
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
   }
+  res.json(job);
 });
 
 app.get('/model-version', auth, async (_req: Request, res: Response) => {
@@ -422,4 +493,3 @@ const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-

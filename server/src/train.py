@@ -51,7 +51,7 @@ def load_samples(data: Any) -> (np.ndarray, np.ndarray, Dict[str, int]):
     return X, y, label_map
 
 
-def train_model(X: np.ndarray, y: np.ndarray, num_classes: int) -> bytes:
+def train_model(X: np.ndarray, y: np.ndarray, num_classes: int, epochs: int = 5) -> bytes:
     model = tf.keras.Sequential(
         [
             tf.keras.layers.Input(shape=(SEQUENCE_LENGTH, NUM_FEATURES)),
@@ -67,8 +67,11 @@ def train_model(X: np.ndarray, y: np.ndarray, num_classes: int) -> bytes:
         loss="sparse_categorical_crossentropy",
         metrics=["accuracy"],
     )
-
-    model.fit(X, y, epochs=5, batch_size=8, verbose=0)
+    # Train one epoch at a time to emit progress updates
+    for i in range(epochs):
+        model.fit(X, y, epochs=i + 1, initial_epoch=i, batch_size=8, verbose=0)
+        progress = int((i + 1) / epochs * 100)
+        print(f"PROGRESS:{progress}", flush=True)
 
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
@@ -82,6 +85,7 @@ def main():
     data = json.loads(data_path.read_text())
 
     X, y, label_map = load_samples(data)
+    print("PROGRESS:0", flush=True)
     tflite_bytes = train_model(X, y, len(label_map))
 
     out = Path("trained_model.tflite")
