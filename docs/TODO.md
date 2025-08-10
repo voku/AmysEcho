@@ -177,7 +177,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [ ] **Two-Stage Frame Processor**
   - [x] Implement landmark detection in `useFrameProcessor` worklet
   - [x] Add gesture classification pipeline
-  - Optimize processing performance
+  - [x] Optimize processing performance
   - Test real-time processing accuracy
 
 - [ ] **Training Interface**
