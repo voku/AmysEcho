@@ -1,0 +1,19 @@
+{
+  "gestures": {
+    "hello": "Hello",
+    "thank_you": "Thank you",
+    "please": "Please",
+    "more": "More",
+    "finished": "Finished",
+    "water": "Water",
+    "eat": "Eat",
+    "play": "Play",
+    "help": "Help",
+    "yes": "Yes",
+    "no": "No",
+    "good": "Good",
+    "bad": "Bad",
+    "happy": "Happy",
+    "sad": "Sad"
+  }
+}

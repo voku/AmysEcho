@@ -178,7 +178,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement landmark detection in `useFrameProcessor` worklet
   - [x] Add gesture classification pipeline
   - [x] Optimize processing performance
-  - Test real-time processing accuracy
+  - [x] Test real-time processing accuracy
 
 - [ ] **Training Interface**
   - Complete `TrainingScreen` UI implementation
@@ -238,7 +238,7 @@ The project has a stable foundation after a major refactor. The database, naviga
       announceGestureRecognition(name, confidence);
       const label = createGestureAccessibilityLabel(g, conf, ctx);
       ```
-  - [ ] Implement German language support
+  - [x] Implement German language support
     - Hint: load `i18n/de.json` via `LanguageManager` and update gesture translations.
 
 - [ ] **Animation & Feedback**
