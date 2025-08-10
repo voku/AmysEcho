@@ -629,6 +629,7 @@ export const useGestureClassifier = (
   const enqueueFrameJS = Worklets.createRunOnJS(enqueueFrame);
   const logErrorJS = Worklets.createRunOnJS(logger.error);
   const onErrorJS = Worklets.createRunOnJS((message: string) => onErrorRef.current?.(message));
+  let flatBuffer = new Float32Array(0);
 
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
@@ -651,8 +652,16 @@ export const useGestureClassifier = (
           return;
         }
 
-        const flat = landmarks.flat();
-        const predictions = classifyGesture(flat);
+        const count = landmarks.length * landmarks[0].length;
+        if (flatBuffer.length !== count) {
+          flatBuffer = new Float32Array(count);
+        }
+        let offset = 0;
+        for (let i = 0; i < landmarks.length; i++) {
+          flatBuffer.set(landmarks[i], offset);
+          offset += landmarks[i].length;
+        }
+        const predictions = classifyGesture(flatBuffer);
 
         const processed: ProcessedFrame = {
           landmarks,
