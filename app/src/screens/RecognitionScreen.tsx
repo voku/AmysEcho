@@ -384,9 +384,13 @@ export default function RecognitionScreen({ navigation }: any) {
         } catch {}
         neutralCooldownRef.current = ts + 7000;
       }
+      if (isCameraActive && ts - Math.max(lastDetection, lastResultAt) > 30000) {
+        setIsCameraActive(false);
+        updateStatus('Paused to save power', 'Camera paused to save battery');
+      }
     }, 1000);
     return () => clearInterval(id);
-  }, [canUseCamera, isProcessing, lastDetection, lastResultAt]);
+  }, [canUseCamera, isProcessing, lastDetection, lastResultAt, isCameraActive, updateStatus]);
 
   const handleSelect = async (choiceId: string) => {
     try {
@@ -882,6 +886,20 @@ export default function RecognitionScreen({ navigation }: any) {
           testID="btn-correction"
           accessibilityLabel="Open correction screen"
           onPress={() => navigation.navigate('Correction')}
+        />
+      )}
+
+      {!isCameraActive && (
+        <Button
+          title="Resume Camera"
+          accessibilityLabel="Resume camera"
+          onPress={() => {
+            setIsCameraActive(true);
+            updateStatus("I'm listening...");
+            const ts = Date.now();
+            setLastDetection(ts);
+            setLastResultAt(ts);
+          }}
         />
       )}
 
