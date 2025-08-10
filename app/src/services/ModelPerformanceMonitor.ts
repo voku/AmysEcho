@@ -3,16 +3,19 @@ export type PerfEvent = {
   label: string;
   confidence: number;
   requiresConfirmation?: boolean;
+  latencyMs?: number;
 };
 
 export type PerfMetrics = {
   windowSize: number;
   avgConfidence: number;
   uncertainRate: number; // fraction of events that required confirmation or were uncertain
+  avgLatencyMs: number;
 };
 
 export class ModelPerformanceMonitor {
   private baselineConfidence = 0.85; // default baseline until set explicitly
+  private latencyThreshold = 200;
   private window: PerfEvent[] = [];
   private readonly maxWindow: number;
 
@@ -25,6 +28,11 @@ export class ModelPerformanceMonitor {
     this.baselineConfidence = Math.max(0, Math.min(1, confidence));
   }
 
+  setLatencyThreshold(ms: number) {
+    if (!Number.isFinite(ms)) return;
+    this.latencyThreshold = Math.max(0, ms);
+  }
+
   add(e: PerfEvent) {
     this.window.push(e);
     if (this.window.length > this.maxWindow) {
@@ -35,29 +43,34 @@ export class ModelPerformanceMonitor {
   metrics(): PerfMetrics {
     const n = this.window.length;
     if (n === 0) {
-      return { windowSize: 0, avgConfidence: 0, uncertainRate: 0 };
+      return { windowSize: 0, avgConfidence: 0, uncertainRate: 0, avgLatencyMs: 0 };
     }
     let sum = 0;
     let uncertain = 0;
+    let latencySum = 0;
     for (const e of this.window) {
       sum += e.confidence;
       if (e.requiresConfirmation || e.label === 'uncertain') uncertain += 1;
+      if (typeof e.latencyMs === 'number') latencySum += e.latencyMs;
     }
     return {
       windowSize: n,
       avgConfidence: sum / n,
       uncertainRate: uncertain / n,
+      avgLatencyMs: latencySum / n,
     };
   }
 
   // Consider degraded if average confidence dropped >15% below baseline OR
-  // if uncertain rate exceeds 0.4 in the recent window.
+  // if uncertain rate exceeds 0.4 in the recent window OR if average latency
+  // exceeds the configured threshold.
   isDegraded(): boolean {
     const m = this.metrics();
     if (m.windowSize < Math.min(10, this.maxWindow / 2)) return false;
     const drop = this.baselineConfidence - m.avgConfidence;
     if (drop > 0.15) return true;
     if (m.uncertainRate > 0.4) return true;
+    if (m.avgLatencyMs > this.latencyThreshold) return true;
     return false;
   }
 }
