@@ -188,4 +188,44 @@ describe('mlService', () => {
     );
     expect(gestureRunSync).not.toHaveBeenCalled();
   });
+  it('maintains accuracy across jittery frames', async () => {
+    const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+    const gestureTflite: any = { runSync: () => [[0.9, 0.1]] };
+
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['wave', 'fist'], {
+      enableRemoteClassification: false,
+    });
+
+    const base = {
+      landmarks: [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ],
+      width: 1,
+      height: 1,
+      timestamp: Date.now(),
+    } as any;
+
+    const onResult = jest.fn();
+
+    await mlService.processFrameAsync(base, onResult);
+    await mlService.processFrameAsync(
+      {
+        ...base,
+        landmarks: [
+          [0.01, 0, 0],
+          [0, 0.01, 0],
+          [0, 0, 0.01],
+        ],
+      } as any,
+      onResult,
+    );
+
+    expect(onResult).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label: 'wave', isLocal: true }),
+      expect.any(Array),
+    );
+  });
 });
+
