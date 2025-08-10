@@ -66,7 +66,7 @@ Return learning analytics for gesture training progress.
 Export analytics data as CSV. Query parameter `type` selects `corrections`, `usage`, or `training`. Optional `profileId` filters by profile.
 
 ### GET /api/analytics/summary
-Return aggregated metrics such as correction rate, uncertainty ratio, median latency, and top misclassifications.
+Return aggregated metrics such as correction rate, uncertainty ratio, median latency, and top misclassifications. `medianLatencyMs` is `null` when no telemetry data is available, and `topMisclassifications` is an array of objects describing the most common errors.
 
 **Response**
 ```json
@@ -74,12 +74,14 @@ Return aggregated metrics such as correction rate, uncertainty ratio, median lat
   "correctionRate": 0.1,
   "uncertaintyRatio": 0.05,
   "medianLatencyMs": 120,
-  "topMisclassifications": ["wave -> clap"]
+  "topMisclassifications": [
+    { "predicted": "wave", "actual": "clap", "count": 3 }
+  ]
 }
 ```
 
 ### POST /api/telemetry
-Submit telemetry events recording gesture classification latency.
+Submit telemetry events recording gesture classification latency. Accepts a single event object or an array of events. Returns `202 Accepted`.
 
 **Body**
 ```json
@@ -94,7 +96,7 @@ Submit telemetry events recording gesture classification latency.
 ```
 
 ### POST /api/corrections
-Log a caregiver correction when the system misclassifies a gesture.
+Log a caregiver correction when the system misclassifies a gesture. Returns `202 Accepted`.
 
 **Body**
 ```json
@@ -107,7 +109,7 @@ Log a caregiver correction when the system misclassifies a gesture.
 ```
 
 ### POST /api/negative-samples
-Record a negative sample for future model training.
+Record a negative sample for future model training. Returns `202 Accepted`.
 
 **Body**
 ```json
