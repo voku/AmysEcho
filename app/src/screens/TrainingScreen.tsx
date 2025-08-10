@@ -12,7 +12,7 @@ import { validateLandmarkSequence } from '../services/TrainingDataValidator';
 import { useTensorflowModel } from '../hooks/useTensorflowModel';
 import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 import { setHandLandmarkModel } from '../services/landmarkExtractor';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import ErrorMessage from '../components/ErrorMessage';
 import { logger } from '../utils/logger';
@@ -165,6 +165,18 @@ export default function TrainingScreen({ navigation, route }: any) {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
       fontSize: largeText ? 18 : 16,
     },
+    progressBar: {
+      width: PREVIEW_SIZE,
+      height: 10,
+      backgroundColor: highContrast ? COLORS.borderDark : COLORS.border,
+      borderRadius: RADIUS,
+      overflow: 'hidden',
+      marginBottom: SPACING.sm,
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: COLORS.success,
+    },
   });
 
   if (!hasPermission) {
@@ -242,6 +254,18 @@ export default function TrainingScreen({ navigation, route }: any) {
                 </View>
               </View>
             )}
+            <View
+              style={styles.progressBar}
+              accessibilityRole="progressbar"
+              accessibilityValue={{ now: count, min: 0, max: 5 }}
+            >
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${(count / 5) * 100}%` },
+                ]}
+              />
+            </View>
             <Button
               title={isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / 5`}
               onPress={isRecording ? stopRecording : startRecording}
