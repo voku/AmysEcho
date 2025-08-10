@@ -9,6 +9,31 @@ export interface LearningAnalytics {
 
 const LOG_KEY = 'interactionLogs';
 
+export interface InteractionLog {
+  id: string;
+  gestureDefinitionId: string;
+  wasSuccessful: boolean;
+  confidenceScore: number;
+  timestamp: number;
+  processedBy: 'local' | 'cloud';
+  caregiverOverrideId?: string;
+}
+
+function genId(): string {
+  return (
+    Date.now().toString(36) + Math.random().toString(36).slice(2)
+  );
+}
+
+export async function logInteractionEvent(
+  log: Omit<InteractionLog, 'id'>,
+): Promise<void> {
+  const raw = await AsyncStorage.getItem(LOG_KEY);
+  const logs: InteractionLog[] = raw ? JSON.parse(raw) : [];
+  logs.push({ ...log, id: genId() });
+  await AsyncStorage.setItem(LOG_KEY, JSON.stringify(logs));
+}
+
 export async function loadAnalytics(): Promise<LearningAnalytics> {
   const raw = await AsyncStorage.getItem(LOG_KEY);
   const logs = raw ? JSON.parse(raw) : [];
