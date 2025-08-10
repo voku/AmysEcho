@@ -175,8 +175,13 @@ export default function TeachingScreen({ navigation }: any) {
             placeholder="Name of new gesture"
             value={gestureLabel}
             onChangeText={setGestureLabel}
+            accessibilityLabel="Name of new gesture"
           />
-          <Button title="Start Training" onPress={startSession} />
+          <Button
+            title="Start Training"
+            onPress={startSession}
+            accessibilityLabel="Training starten"
+          />
         </View>
       ) : (
         <View style={styles.recordingContainer}>
@@ -203,16 +208,29 @@ export default function TeachingScreen({ navigation }: any) {
             title={isRecording ? 'Recording...' : 'Record Sample'}
             onPress={recordSample}
             disabled={isRecording || sampleCount >= SAMPLES_NEEDED}
+            accessibilityLabel="Beispiel aufzeichnen"
           />
           {sampleCount > 0 && sampleCount < SAMPLES_NEEDED && (
-            <Button title="Retry All Samples" onPress={handleRetry} />
+            <Button
+              title="Retry All Samples"
+              onPress={handleRetry}
+              accessibilityLabel="Alle Beispiele wiederholen"
+            />
           )}
           {sampleCount >= SAMPLES_NEEDED && (
-            <Button title="Finish Training" onPress={endSession} />
+            <Button
+              title="Finish Training"
+              onPress={endSession}
+              accessibilityLabel="Training beenden"
+            />
           )}
         </View>
       )}
-      <Button title="Back" onPress={() => navigation.goBack()} />
+      <Button
+        title="Back"
+        onPress={() => navigation.goBack()}
+        accessibilityLabel="Zurück"
+      />
       <ErrorMessage message={error} />
       {profile && <BottomNav active="training" profileId={profile.id} />}
     </SafeAreaView>

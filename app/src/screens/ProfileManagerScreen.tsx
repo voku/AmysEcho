@@ -65,8 +65,16 @@ export default function ProfileManagerScreen({ navigation }: any) {
         renderItem={({ item }) => (
           <View style={styles.row}>
             <Text style={styles.name}>{item.name}</Text>
-            <Button title="Select" onPress={() => handleSelect(item.id)} />
-            <Button title="Delete" onPress={() => handleDelete(item.id)} />
+            <Button
+              title="Select"
+              onPress={() => handleSelect(item.id)}
+              accessibilityLabel={`Profil ${item.name} auswählen`}
+            />
+            <Button
+              title="Delete"
+              onPress={() => handleDelete(item.id)}
+              accessibilityLabel={`Profil ${item.name} löschen`}
+            />
           </View>
         )}
       />
