@@ -83,6 +83,7 @@ export interface SummaryMetrics {
   uncertaintyRatio: number;
   medianLatencyMs: number | null;
   topMisclassifications: { predicted: string; actual: string; count: number }[];
+  successRate: number;
 }
 export interface TelemetryEvent {
     timestamp: number;
@@ -117,6 +118,9 @@ export function computeSummaryMetrics(
   const uncertain = db.interactionLogs.filter((l) => l.confidenceScore < confidenceThreshold).length;
   const uncertaintyRatio = totalInteractions > 0 ? uncertain / totalInteractions : 0;
 
+  const successes = db.interactionLogs.filter((l) => l.wasSuccessful).length;
+  const successRate = totalInteractions > 0 ? successes / totalInteractions : 0;
+
   // Server currently does not record per-interaction latency; leave as null
   let medianLatencyMs: number | null = null;
   if (telemetry.length > 0) {
@@ -144,6 +148,7 @@ export function computeSummaryMetrics(
   return {
     correctionRate: Number(correctionRate.toFixed(2)),
     uncertaintyRatio: Number(uncertaintyRatio.toFixed(2)),
+    successRate: Number(successRate.toFixed(2)),
     medianLatencyMs,
     topMisclassifications,
   };

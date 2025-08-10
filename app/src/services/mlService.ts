@@ -28,6 +28,7 @@ import { InteractionLog } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
 import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
+import { logInteractionEvent } from './analytics';
 
 class LandmarkSmoother {
   private history: number[][][] = [];
@@ -508,6 +509,13 @@ class MachineLearningService {
         });
       });
       recordInteraction(data.label, data.wasSuccessful).catch(() => {});
+      logInteractionEvent({
+        gestureDefinitionId: data.label,
+        wasSuccessful: data.wasSuccessful,
+        confidenceScore: data.confidence,
+        timestamp: Date.now(),
+        processedBy: data.isLocal ? 'local' : 'cloud',
+      }).catch(() => {});
     } catch (error) {
       logger.error('Failed to log interaction:', error);
     }

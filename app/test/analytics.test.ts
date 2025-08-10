@@ -2,6 +2,7 @@ import { createDatabase } from '../../server/src/db';
 import {
   refreshLearningAnalytics,
   computeLearningAnalytics,
+  computeSummaryMetrics,
 } from '../../server/src/services/analyticsService';
 import { InteractionLog } from '../../server/src/types';
 
@@ -105,5 +106,28 @@ describe('Analytics Service', () => {
     expect(updated.successRate24h).toBe(0.45);
     expect(updated.avgConfidenceScore).toBe(0.45);
     expect(updated.improvementTrend).toBe(0.05);
+  });
+
+  it('should compute summary success rate', () => {
+    const db = createDatabase();
+    const now = Date.now();
+    db.interactionLogs.push({
+      id: '1',
+      gestureDefinitionId: 'g',
+      wasSuccessful: true,
+      confidenceScore: 1,
+      timestamp: now,
+      processedBy: 'local',
+    });
+    db.interactionLogs.push({
+      id: '2',
+      gestureDefinitionId: 'g',
+      wasSuccessful: false,
+      confidenceScore: 0,
+      timestamp: now,
+      processedBy: 'local',
+    });
+    const summary = computeSummaryMetrics(db, []);
+    expect(summary.successRate).toBe(0.5);
   });
 });
