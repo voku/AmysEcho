@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { createHash } from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { TRAINED_MODEL_PATH } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
@@ -250,6 +251,48 @@ app.get('/api/analytics/summary', auth, async (_req: Request, res: Response) => 
   }
 });
 
+// Insights: correction frequency and improvement suggestions
+app.get('/api/analytics/insights', auth, async (_req: Request, res: Response) => {
+  try {
+    const corrections = dbInstance.corrections;
+    const totalInteractions = dbInstance.interactionLogs.length || 1; // avoid div by zero
+
+    const byGesture = new Map<string, number>();
+    for (const c of corrections) {
+      byGesture.set(c.actualGesture, (byGesture.get(c.actualGesture) || 0) + 1);
+    }
+    const correctionFrequency = Array.from(byGesture.entries())
+      .map(([gesture, count]) => ({ gesture, count, rate: Number((count / totalInteractions).toFixed(2)) }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Identify gestures with high correction rate as candidates for practice or retraining
+    const recommendations = correctionFrequency
+      .filter((g) => g.rate >= 0.1 || g.count >= 3)
+      .map((g) => ({
+        gesture: g.gesture,
+        action: 'practice_and_retrain',
+        reason: 'High correction frequency relative to interactions',
+      }));
+
+    // Top confusing pairs from corrections
+    const pairMap = new Map<string, number>();
+    for (const c of corrections) {
+      const key = `${c.predictedGesture}→${c.actualGesture}`;
+      pairMap.set(key, (pairMap.get(key) || 0) + 1);
+    }
+    const topConfusingPairs = Array.from(pairMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([pair, count]) => ({ pair, count }));
+
+    res.json({ correctionFrequency, recommendations, topConfusingPairs });
+  } catch (error) {
+    console.error('Error computing analytics insights:', error);
+    res.status(500).json({ error: 'Failed to compute analytics insights' });
+  }
+});
+
 app.post('/api/telemetry', auth, async (req: Request, res: Response) => {
     const events = Array.isArray(req.body) ? req.body : [req.body];
     if (!events.every(e => typeof e.latencyMs === 'number' && typeof e.timestamp === 'number')) {
@@ -424,9 +467,30 @@ app.get('/model-version', auth, async (_req: Request, res: Response) => {
 app.get('/latest-model', auth, async (_req: Request, res: Response) => {
   const file = TRAINED_MODEL_PATH;
   try {
-    await fs.access(file);
-    res.sendFile(file);
-  }  catch {
+    const stat = await fs.stat(file);
+    const buf = await fs.readFile(file);
+    const sha256 = createHash('sha256').update(buf).digest('hex');
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Length', stat.size.toString());
+    res.setHeader('ETag', `"sha256-${sha256}"`);
+    res.send(buf);
+  } catch {
+    res.status(404).json({ error: 'Model not found' });
+  }
+});
+
+// Model metadata: version, size, sha256
+app.get('/model-metadata', auth, async (_req: Request, res: Response) => {
+  try {
+    const pkgPath = path.join(__dirname, '..', 'package.json');
+    const pkgRaw = await fs.readFile(pkgPath, 'utf8');
+    const { version } = JSON.parse(pkgRaw);
+    const stat = await fs.stat(TRAINED_MODEL_PATH);
+    const buf = await fs.readFile(TRAINED_MODEL_PATH);
+    const sha256 = createHash('sha256').update(buf).digest('hex');
+    res.json({ version, size: stat.size, sha256 });
+  } catch (err) {
+    console.error('Failed to read model metadata:', err);
     res.status(404).json({ error: 'Model not found' });
   }
 });

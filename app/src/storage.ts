@@ -168,6 +168,7 @@ export async function loadBackendApiToken(): Promise<string | null> {
 }
 
 const CUSTOM_MODEL_KEY = 'customModelUri';
+const CUSTOM_MODEL_HASH_KEY = 'customModelHash';
 
 export async function saveCustomModelUri(uri: string): Promise<void> {
   await AsyncStorage.setItem(CUSTOM_MODEL_KEY, uri);
@@ -175,4 +176,12 @@ export async function saveCustomModelUri(uri: string): Promise<void> {
 
 export async function loadCustomModelUri(): Promise<string | null> {
   return AsyncStorage.getItem(CUSTOM_MODEL_KEY);
+}
+
+export async function saveCustomModelHash(hash: string): Promise<void> {
+  await AsyncStorage.setItem(CUSTOM_MODEL_HASH_KEY, hash);
+}
+
+export async function loadCustomModelHash(): Promise<string | null> {
+  return AsyncStorage.getItem(CUSTOM_MODEL_HASH_KEY);
 }
