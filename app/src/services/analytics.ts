@@ -16,6 +16,7 @@ export interface InteractionLog {
   confidenceScore: number;
   timestamp: number;
   processedBy: 'local' | 'cloud';
+  caregiverOverrideId?: string;
 }
 
 function genId(): string {
