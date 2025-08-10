@@ -27,8 +27,9 @@ class GestureDataProtector {
   private async getOrCreateEncryptionKey(): Promise<string> {
     let key = await SecureStore.getItemAsync('gestureEncryptionKey');
     if (!key) {
-      key = CryptoJS.lib.WordArray.random(32).toString();
-      await SecureStore.setItemAsync('gestureEncryptionKey', key);
+      const newKey: string = CryptoJS.lib.WordArray.random(32).toString();
+      await SecureStore.setItemAsync('gestureEncryptionKey', newKey);
+      key = newKey;
     }
     this.encryptionKey = key;
     return key as string;
