@@ -242,7 +242,7 @@ The project has a stable foundation after a major refactor. The database, naviga
     - Hint: load `i18n/de.json` via `LanguageManager` and update gesture translations.
 
 - [ ] **Animation & Feedback**
-  - Implement RN Animated API for smooth transitions
+  - [x] Implement RN Animated API for smooth transitions
   - [x] Add Skia-based animations (optional)
   - [x] Create gentle haptic feedback system
   - [x] Add visual highlight during confirmation for accessibility
