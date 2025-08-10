@@ -23,6 +23,12 @@ jest.mock('../src/services/usageTracker', () => ({
   loadUsageStats: jest.fn(() => Promise.resolve({ hello: 3 })),
 }));
 
+jest.mock('../src/services/engagementTracker', () => ({
+  loadEngagementStats: jest.fn(() =>
+    Promise.resolve({ totalSessions: 2, totalDurationMs: 10000, averageDurationMs: 5000 }),
+  ),
+}));
+
 jest.mock('../src/storage', () => ({
   loadProfile: jest.fn(() =>
     Promise.resolve({
@@ -51,6 +57,8 @@ describe('ProgressScreen', () => {
     const contents = textNodes.map((n) => n.props.children);
     expect(contents).toContain('👋 Hallo');
     expect(contents).toContain(3);
+    expect(contents).toContain(2);
+    expect(contents).toContain(5);
   });
 });
 

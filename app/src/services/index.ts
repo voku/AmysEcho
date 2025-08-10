@@ -5,6 +5,7 @@ export * from './dialogEngine';
 export * from './videoService';
 export * from './analytics';
 export * from './usageTracker';
+export * from './engagementTracker';
 export { extractLandmarksFromImages } from './landmarkExtractor';
 export * from './correctionService';
 
