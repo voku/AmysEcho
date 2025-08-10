@@ -1,20 +1,34 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Ensure Node dependencies are installed
 # Clear npm proxy settings to avoid warnings in CI
 unset npm_config_http_proxy
 unset npm_config_https_proxy
-npm install --prefix app
-npm install --prefix server
-npm install --prefix integration
+
+install_node_modules() {
+  local pkg_dir="$1"
+  if [ "${CI:-}" = "true" ]; then
+    npm ci --prefix "$pkg_dir" || npm install --prefix "$pkg_dir"
+  else
+    npm install --prefix "$pkg_dir"
+  fi
+}
+
+install_node_modules app
+install_node_modules server
+install_node_modules integration
 
 # Run type check and tests for the React Native app
 npm run type-check --prefix app
 npm test --prefix app
 
 # Install backend Python deps (if needed)
-pip install -r server/requirements.txt # maybe `--root-user-action=ignore` is needed here
+PIP_FLAGS=""
+if [ "$(id -u)" -eq 0 ] && [ -z "${VIRTUAL_ENV:-}" ]; then
+  PIP_FLAGS="--break-system-packages"
+fi
+pip install ${PIP_FLAGS} -r server/requirements.txt
 
 # Run type check and run server tests
 npm run type-check --prefix server

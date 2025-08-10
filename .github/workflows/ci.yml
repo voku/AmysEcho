@@ -17,24 +17,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - name: Install server dependencies
-        working-directory: server
-        run: |
-          if [ -f package.json ]; then
-            npm install
-          fi
-          pip install -r requirements.txt
-      - name: Install app dependencies
-        working-directory: app
-        run: npm install
-      - name: TypeScript check (app)
-        working-directory: app
-        run: npx tsc --noEmit --project tsconfig.json
-      - name: Run app tests
-        working-directory: app
-        run: npm test
-      - name: Run server tests
-        working-directory: server
-        run: npm test
-      - name: Run integration tests
-        run: npm test --prefix integration
+      - name: Run full check
+        run: ./scripts/full-check.sh
