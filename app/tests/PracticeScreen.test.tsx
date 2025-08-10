@@ -11,6 +11,14 @@ jest.mock('react-native', () => {
       React.createElement('FlatList', null, data.map((item: any, index: number) => renderItem({ item, index }))),
     StyleSheet: { create: () => ({}) },
     SafeAreaView: (props: any) => React.createElement('SafeAreaView', props, props.children),
+    Animated: {
+      View: ({ children, ...props }: any) => React.createElement('View', props, children),
+      Value: function (v: number) {
+        this.__value = v;
+        return this;
+      },
+      timing: () => ({ start: () => {} }),
+    },
   };
 });
 

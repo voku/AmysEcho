@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Button,
@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   Text,
   FlatList,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -17,12 +18,21 @@ import { loadProfile, Profile } from '../storage';
 export default function PracticeScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadProfile()
       .then(setProfile)
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
 
   const styles = createStyles(largeText, highContrast);
   const gradientColors = highContrast
@@ -47,16 +57,18 @@ export default function PracticeScreen({ navigation }: any) {
 
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>Practice Gestures</Text>
-        <FlatList
-          data={gestureModel.gestures}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>No gestures available</Text>}
-        />
-      </SafeAreaView>
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        <SafeAreaView style={styles.container}>
+          <Text style={styles.title}>Practice Gestures</Text>
+          <FlatList
+            data={gestureModel.gestures}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={<Text style={styles.empty}>No gestures available</Text>}
+          />
+        </SafeAreaView>
+      </Animated.View>
       {profile && <BottomNav active="training" profileId={profile.id} />}
     </LinearGradient>
   );
