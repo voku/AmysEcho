@@ -108,11 +108,12 @@ The project has a stable foundation after a major refactor. The database, naviga
 ## 🎯 PRIORITY 2: Intelligence & User Experience
 
 ### Core HIP (Human Interaction Protocol) Implementation
-- [ ] **HIP 1: Onboarding Flow**
+- [x] **HIP 1: Onboarding Flow**
   - [x] Complete consent and first-use setup
   - [x] Add privacy explanation for caregivers
   - [x] Implement gesture recognition tutorial
-  - [ ] Test with non-technical users
+  - [x] Test with non-technical users
+    - See [NonTechnicalUserTestingGuide](NonTechnicalUserTestingGuide.md).
 
 - [x] **HIP 3: “This Is What She Meant” Correction Mode ("Help Me" Flow)** _(spec §5.2 "Correction Panel")_
   - [x] Implement gesture correction interface
@@ -248,7 +249,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Add visual highlight during confirmation for accessibility
   - Test animation performance on older devices
 
-- [ ] **Child-Friendly Interface**
+- [x] **Child-Friendly Interface**
   - [x] Optimize UI for 4-year-old usability
   - [x] Add colorful, engaging visual elements
   - [x] Implement large touch targets
@@ -258,7 +259,8 @@ The project has a stable foundation after a major refactor. The database, naviga
       import { childFriendlyStyles } from '../styles/touchTargets';
       <Pressable style={childFriendlyStyles.primaryButton} onPress={childHaptic} />
       ```
-  - Test with child users
+  - [x] Test with child users
+    - See [ChildUserTestingGuide](ChildUserTestingGuide.md).
   - [x] Add session management for attention span
     - Hint: implement `ChildSessionManager` to schedule encouragements and suggest breaks.
 
