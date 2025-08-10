@@ -1,4 +1,8 @@
 import { ChildSessionManager } from '../src/services/childSessionManager';
+jest.mock('../src/services/engagementTracker', () => ({
+  startSession: jest.fn(),
+  endSession: jest.fn(),
+}));
 
 jest.useFakeTimers();
 
@@ -8,6 +12,7 @@ describe('ChildSessionManager', () => {
     const takeBreak = jest.fn();
     const manager = new ChildSessionManager(
       { onEncouragement: encourage, onBreak: takeBreak },
+      'p1',
       1000,
       3000,
     );
@@ -26,6 +31,7 @@ describe('ChildSessionManager', () => {
     const takeBreak = jest.fn();
     const manager = new ChildSessionManager(
       { onEncouragement: encourage, onBreak: takeBreak },
+      'p1',
       1000,
       5000,
     );

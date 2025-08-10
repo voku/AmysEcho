@@ -1,3 +1,5 @@
+import { startSession as startEngagement, endSession as endEngagement } from './engagementTracker';
+
 export type SessionCallbacks = {
   onEncouragement: () => void;
   onBreak: () => void;
@@ -9,19 +11,23 @@ export class ChildSessionManager {
   private encouragementTimer?: NodeJS.Timeout;
   private breakTimer?: NodeJS.Timeout;
   private callbacks: SessionCallbacks;
+  private profileId: string;
 
   constructor(
     callbacks: SessionCallbacks,
+    profileId: string,
     encouragementInterval = 5 * 60 * 1000,
     breakInterval = 20 * 60 * 1000,
   ) {
     this.callbacks = callbacks;
+    this.profileId = profileId;
     this.encouragementInterval = encouragementInterval;
     this.breakInterval = breakInterval;
   }
 
   startSession(): void {
     this.clearTimers();
+    void startEngagement();
     this.scheduleEncouragement();
     this.scheduleBreak();
   }
@@ -32,6 +38,7 @@ export class ChildSessionManager {
 
   endSession(): void {
     this.clearTimers();
+    void endEngagement(this.profileId);
   }
 
   private scheduleEncouragement(): void {
