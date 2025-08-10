@@ -35,6 +35,90 @@ Retrieve correction events. Optional query parameter `profileId` filters by prof
 ]
 ```
 
+### GET /api/analytics/usage-rates
+Retrieve symbol usage counts. Optional query parameter `profileId` filters by profile.
+
+**Response**
+```json
+[
+  { "symbolId": "hello", "usageCount": 42 }
+]
+```
+
+### GET /api/analytics/training-trends
+Return learning analytics for gesture training progress.
+
+**Response**
+```json
+[
+  {
+    "gestureDefinitionId": "wave",
+    "successRate24h": 0.85,
+    "successRate7d": 0.92,
+    "avgConfidenceScore": 0.88,
+    "improvementTrend": 0.03,
+    "lastCalculated": 1700000000000
+  }
+]
+```
+
+### GET /api/analytics/export
+Export analytics data as CSV. Query parameter `type` selects `corrections`, `usage`, or `training`. Optional `profileId` filters by profile.
+
+### GET /api/analytics/summary
+Return aggregated metrics such as correction rate, uncertainty ratio, median latency, and top misclassifications.
+
+**Response**
+```json
+{
+  "correctionRate": 0.1,
+  "uncertaintyRatio": 0.05,
+  "medianLatencyMs": 120,
+  "topMisclassifications": ["wave -> clap"]
+}
+```
+
+### POST /api/telemetry
+Submit telemetry events recording gesture classification latency.
+
+**Body**
+```json
+[
+  { "latencyMs": 120, "timestamp": 1700000000000 }
+]
+```
+
+**Response**
+```json
+{ "status": "ok" }
+```
+
+### POST /api/corrections
+Log a caregiver correction when the system misclassifies a gesture.
+
+**Body**
+```json
+{ "gesture": "wave" }
+```
+
+**Response**
+```json
+{ "status": "queued" }
+```
+
+### POST /api/negative-samples
+Record a negative sample for future model training.
+
+**Body**
+```json
+{ "gesture": "random" }
+```
+
+**Response**
+```json
+{ "status": "queued" }
+```
+
 ### POST /dialog
 Ask the dialog engine for caregiver suggestions.
 
