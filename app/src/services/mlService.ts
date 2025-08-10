@@ -29,6 +29,7 @@ import { recordInteraction } from './adaptiveLearningService';
 import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
 import { logInteractionEvent } from './analytics';
+import { ModelPerformanceMonitor } from './ModelPerformanceMonitor';
 
 class LandmarkSmoother {
   private history: number[][][] = [];
@@ -121,6 +122,7 @@ class MachineLearningService {
   private baseConfidence = 0.7;
   private lowPowerConfidence = 0.8;
   private confidenceThreshold = 0.7;
+  private perfMonitor = new ModelPerformanceMonitor();
   private labels: string[] = [];
   private teachingSession: { id: string; label: string } | null = null;
   private collectedSamples: ProcessedFrame[] = [];
@@ -157,6 +159,10 @@ class MachineLearningService {
 
   setLowPowerMode(low: boolean) {
     this.confidenceThreshold = low ? this.lowPowerConfidence : this.baseConfidence;
+  }
+
+  getPerfMetrics() {
+    return this.perfMonitor.metrics();
   }
 
   async loadModels(
@@ -367,6 +373,16 @@ class MachineLearningService {
       result = smoothed;
       const processingTime = Date.now() - processed.timestamp;
       telemetry.add(processingTime);
+      this.perfMonitor.add({
+        t: Date.now(),
+        label: result.label,
+        confidence: result.confidence,
+        requiresConfirmation: result.requiresConfirmation,
+        latencyMs: processingTime,
+      });
+      if (this.perfMonitor.isDegraded()) {
+        logger.warn('Model performance degraded', this.perfMonitor.metrics());
+      }
       this.logInteraction({
         label: result.label,
         confidence: result.confidence,

@@ -227,5 +227,33 @@ describe('mlService', () => {
       expect.any(Array),
     );
   });
+
+  it('records performance metrics', async () => {
+    const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+    const gestureTflite: any = { runSync: () => [[0.9, 0.1]] };
+
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['wave', 'fist'], {
+      enableRemoteClassification: false,
+    });
+
+    const frame = {
+      landmarks: [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ],
+      width: 1,
+      height: 1,
+      timestamp: Date.now(),
+    } as any;
+
+    const onResult = jest.fn();
+
+    await mlService.processFrameAsync(frame, onResult);
+    await mlService.processFrameAsync(frame, onResult);
+
+    const metrics = mlService.getPerfMetrics();
+    expect(metrics.avgLatencyMs).toBeGreaterThanOrEqual(0);
+  });
 });
 
