@@ -311,11 +311,11 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Create video tutorials for setup
   - [x] Translate documentation to German
 
-- [ ] **Technical Documentation**
-  - Complete API documentation
-  - [x] Add deployment guides
-  - [x] Create contribution guidelines
-  - [x] Document architecture decisions
+  - [x] **Technical Documentation**
+    - [x] Complete API documentation
+    - [x] Add deployment guides
+    - [x] Create contribution guidelines
+    - [x] Document architecture decisions
 
 ---
 
