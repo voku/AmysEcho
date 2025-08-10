@@ -114,21 +114,21 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Implement gesture recognition tutorial
   - [ ] Test with non-technical users
 
-- [ ] **HIP 3: Correction Mode ("Help Me" Flow)**
+- [x] **HIP 3: “This Is What She Meant” Correction Mode ("Help Me" Flow)** _(spec §5.2 "Correction Panel")_
   - [x] Implement gesture correction interface
   - [x] Add "Help Me" repair workflow
   - [x] Store corrections for model improvement
   - [x] Test correction feedback loop
   - [x] Log corrections to server training queue _(update `app/src/services/correctionService.ts`; see `server/test/test_training_queue.py`)_
 
-- [ ] **HIP 2: Teach Mode (Training Interface)**
+- [x] **HIP 2: “Let’s Learn Together” Teach Mode (Training Interface)** _(spec §5.2 "Training Flow")_
   - [x] Build caregiver training interface for new signs
   - [x] Implement gesture recording workflow
   - [x] Add gesture validation feedback
   - [x] Create training progress tracking
   - [x] Complete end-to-end pipeline: save samples and trigger retraining _(update `app/src/screens/TeachingScreen.tsx`; see `integration/teachMode.spec.ts`)_
 
-- [ ] **HIP 4: Practice Mode**
+- [x] **HIP 4: “I’m a Little Confused” Practice Mode (Proactive Maintenance)** _(spec §5.2 "Proactive Banner")_
   - [x] Implement "Let's practice this again" feature
   - [x] Add gesture practice sessions
   - [x] Create progress tracking dashboard
@@ -139,7 +139,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Review, approve, and export recorded samples for training.
 
 ### Enhanced Intelligence Features
-- [ ] **Live LLM Dialog Engine**
+- [x] **Live LLM Dialog Engine** _(spec “LLM/DEV HINT”)_
   - [x] Complete `dialogEngine.ts` OpenAI API integration
   - [x] Implement context-aware suggestions
   - [x] Add conversation memory for better responses
@@ -151,7 +151,7 @@ The project has a stable foundation after a major refactor. The database, naviga
       await retry.executeWithRetry(() => callLLM(), 'dialogEngine');
       ```
 
-- [ ] **DGS Video Playback System**
+- [x] **DGS Video Playback System** _(spec §5.2 "DGS Screen")_
   - [x] Complete DGS video integration on `DgsScreen`
   - [x] Add video toggle functionality
   - [x] Implement video playback controls
@@ -174,7 +174,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Add model validation checks
   - [x] Test model loading performance
 
-- [ ] **Two-Stage Frame Processor**
+- [x] **Two-Stage Frame Processor**
   - [x] Implement landmark detection in `useFrameProcessor` worklet
   - [x] Add gesture classification pipeline
   - [x] Optimize processing performance
@@ -218,7 +218,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Add model activation in app
   - Test model update workflow
 
-- [ ] **Portal Completion** _(see `integration/test/portal.test.js`)_
+- [x] **Portal Completion** _(see `integration/test/portal.test.js`)_
   - Implement review and approval routes in `server/src/portal`
   - Add export features for gesture samples
 
