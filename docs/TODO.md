@@ -343,10 +343,10 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ### Analytics & Monitoring
 - [ ] **Usage Analytics**
-  - [x] Track gesture recognition success rates
-  - [x] Monitor user engagement patterns
-  - Analyze correction frequency
-  - Generate improvement insights
+- [x] Track gesture recognition success rates
+- [x] Monitor user engagement patterns
+  - [x] Analyze correction frequency
+  - [x] Generate improvement insights
 
 ---
 
