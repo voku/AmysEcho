@@ -16,7 +16,7 @@ async function getFileSystem() {
 import {
   extractHandLandmarks,
   setHandLandmarkModel,
-} from './landmarkExtractor';
+} from './landmarkExtractor'; // plugin-backed extraction
 import {
   classifyGesture,
   setGestureModel,

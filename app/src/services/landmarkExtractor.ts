@@ -5,6 +5,17 @@ import { Frame } from 'react-native-vision-camera';
 import { logger } from '../utils/logger';
 
 let handModel: TensorflowModel | null = null;
+let resizePlugin: ReturnType<typeof import('vision-camera-resize-plugin').createResizePlugin> | null = null;
+
+if ((globalThis as any).VisionCameraProxy) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { createResizePlugin } = require('vision-camera-resize-plugin');
+    resizePlugin = createResizePlugin();
+  } catch {
+    resizePlugin = null;
+  }
+}
 
 export function setHandLandmarkModel(model: TensorflowModel | null): void {
   handModel = model;
@@ -14,10 +25,14 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
   'worklet';
   if (!handModel) return null;
   try {
-    // Accept both 'rgb' and 'yuv' frames; conversion is model-specific.
-    // For performance, avoid any worklet-side logging or allocations beyond the buffer view.
-    const buffer = frame.toArrayBuffer();
-    const result = handModel.runSync([new Uint8Array(buffer)]) as any[];
+    const input = resizePlugin
+      ? resizePlugin.resize(frame, {
+          scale: { width: 192, height: 192 },
+          pixelFormat: 'rgb',
+          dataType: 'uint8',
+        })
+      : new Uint8Array(frame.toArrayBuffer());
+    const result = handModel.runSync([input]) as any[];
     const landmarks = result[0] as number[][] | undefined;
     return landmarks ?? null;
   } catch (e) {
