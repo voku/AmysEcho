@@ -14,14 +14,20 @@ async function getFileSystem() {
   return FileSystem;
 }
 import {
-  extractHandLandmarks,
+  useHandLandmarkExtractor,
   setHandLandmarkModel,
-} from './landmarkExtractor'; // plugin-backed extraction
+  extractHandLandmarks,
+} from './landmarkExtractor';
 import {
   classifyGesture,
   setGestureModel,
 } from './gestureClassifier';
-import { DetailedGestureResult, ProcessedFrame, MLServiceConfig } from '../types/ml';
+import {
+  DetailedGestureResult,
+  ProcessedFrame,
+  MLServiceConfig,
+  GestureResult,
+} from '../types/ml';
 import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
@@ -74,6 +80,8 @@ class FrameBufferManager {
     this.frameBuffer = [];
   }
 }
+
+const createRunOnJS = Worklets?.createRunOnJS ? Worklets.createRunOnJS : ((fn: any) => fn);
 
 class ModelManager {
   private tfliteModel: TensorflowModel | null = null;
@@ -283,7 +291,7 @@ class MachineLearningService {
 
   async processFrameAsync(
     processed: ProcessedFrame,
-    onResult: (result: DetailedGestureResult | null, landmarks: number[][]) => void,
+    onResult: (result: { label: string; confidence: number; ts: number } | null) => void,
   ): Promise<void> {
     let result: DetailedGestureResult | null = null;
     let localConfidence = 0;
@@ -367,7 +375,7 @@ class MachineLearningService {
     if (result) {
       const smoothed = this.applyGestureSmoothing(result);
       if (!smoothed) {
-        onResult(null, processed.landmarks);
+        onResult(null);
         return;
       }
 
@@ -391,9 +399,11 @@ class MachineLearningService {
         wasSuccessful: result.label !== 'uncertain',
         processingTimeMs: processingTime,
       });
+      onResult({ label: result.label, confidence: result.confidence, ts: result.timestamp });
+      return;
     }
 
-    onResult(result, processed.landmarks);
+    onResult(null);
   }
 
   private async classifyRemotely(
@@ -565,7 +575,7 @@ class MachineLearningService {
 export const mlService = new MachineLearningService();
 
 export const useGestureClassifier = (
-  onResult: (result: DetailedGestureResult | null, landmarks: number[][]) => void,
+  onResult: (result: GestureResult | null, landmarks: number[][], raw?: number[][]) => void,
   isProcessing: boolean,
   onError?: (message: string) => void,
 ) => {
@@ -619,8 +629,8 @@ export const useGestureClassifier = (
     }
     internalProcessingRef.current = true;
     mlService
-      .processFrameAsync(next, (result, landmarks) => {
-        onResultRef.current(result, landmarks);
+      .processFrameAsync(next, (result) => {
+        onResultRef.current(result, next.landmarks, next.landmarksRaw);
       })
       .finally(() => {
         internalProcessingRef.current = false;
@@ -636,17 +646,22 @@ export const useGestureClassifier = (
         frameQueueRef.current.shift();
       }
       const smoothed = smootherRef.current.smooth(processed.landmarks);
-      frameQueueRef.current.push({ ...processed, landmarks: smoothed });
+      frameQueueRef.current.push({
+        ...processed,
+        landmarks: smoothed,
+        landmarksRaw: processed.landmarks,
+      });
       processNextFrame();
     },
     [processNextFrame],
   );
 
-  const addFrameJS = Worklets.createRunOnJS((f: Frame) => frameBufferRef.current.addFrame(f));
-  const enqueueFrameJS = Worklets.createRunOnJS(enqueueFrame);
-  const logErrorJS = Worklets.createRunOnJS(logger.error);
-  const onErrorJS = Worklets.createRunOnJS((message: string) => onErrorRef.current?.(message));
-  let flatBuffer = new Float32Array(0);
+  const addFrameJS = createRunOnJS((f: Frame) => frameBufferRef.current.addFrame(f));
+  const enqueueFrameJS = createRunOnJS(enqueueFrame);
+  const logErrorJS = createRunOnJS(logger.error);
+  const onErrorJS = createRunOnJS((message: string) => onErrorRef.current?.(message));
+  let flatBuffer = new Float32Array(63);
+  const extractLandmarks = useHandLandmarkExtractor();
 
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
@@ -664,24 +679,20 @@ export const useGestureClassifier = (
       lastFrameTime.value = now;
 
       try {
-        const landmarks = extractHandLandmarks(frame);
-        if (!landmarks || landmarks.length === 0) {
+        const rawLandmarks = extractLandmarks(frame);
+        if (!rawLandmarks || rawLandmarks.length === 0) {
           return;
         }
-
-        const count = landmarks.length * landmarks[0].length;
-        if (flatBuffer.length !== count) {
-          flatBuffer = new Float32Array(count);
-        }
-        let offset = 0;
-        for (let i = 0; i < landmarks.length; i++) {
-          flatBuffer.set(landmarks[i], offset);
-          offset += landmarks[i].length;
+        for (let i = 0; i < 21; i++) {
+          const lm = rawLandmarks[i];
+          flatBuffer[i * 3 + 0] = lm[0];
+          flatBuffer[i * 3 + 1] = lm[1];
+          flatBuffer[i * 3 + 2] = lm[2];
         }
         const predictions = classifyGesture(flatBuffer);
 
         const processed: ProcessedFrame = {
-          landmarks,
+          landmarks: rawLandmarks,
           width: frame.width,
           height: frame.height,
           timestamp: Date.now(),
@@ -714,8 +725,9 @@ export const useRecordingProcessor = (
   isRecordingRef.current = isRecording;
 
   const lastProcessedTime = useSharedValue(0);
-  const onLandmarksJS = Worklets.createRunOnJS((lm: number[][]) => onLandmarksRef.current(lm));
-  const logErrorJS = Worklets.createRunOnJS(logger.error);
+  const onLandmarksJS = createRunOnJS((lm: number[][]) => onLandmarksRef.current(lm));
+  const logErrorJS = createRunOnJS(logger.error);
+  const extractLandmarksRec = useHandLandmarkExtractor();
 
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
@@ -731,7 +743,7 @@ export const useRecordingProcessor = (
       lastProcessedTime.value = now;
 
       try {
-        const landmarks = extractHandLandmarks(frame);
+        const landmarks = extractLandmarksRec(frame);
         if (!landmarks || landmarks.length === 0) {
           return;
         }

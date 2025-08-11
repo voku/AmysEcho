@@ -1,9 +1,16 @@
 export interface ProcessedFrame {
   landmarks: number[][];
+  landmarksRaw?: number[][];
   width: number;
   height: number;
   timestamp: number;
   predictions?: number[];
+}
+
+export interface GestureResult {
+  label: string;
+  confidence: number;
+  ts: number;
 }
 
 export interface DetailedGestureResult {
