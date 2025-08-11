@@ -13,6 +13,8 @@ jest.mock('expo-file-system', () => ({
 jest.mock('../src/storage', () => ({
   loadBackendApiToken: jest.fn().mockResolvedValue('token'),
   saveCustomModelUri: jest.fn().mockResolvedValue(undefined),
+  loadCustomModelHash: jest.fn().mockResolvedValue('old-hash'),
+  saveCustomModelHash: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../src/constants/modelPaths', () => ({
@@ -45,6 +47,11 @@ describe('checkForModelUpdate', () => {
       isConnected: true,
       isInternetReachable: true,
       type: 'wifi',
+    });
+
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ sha256: 'new-hash' }),
     });
 
     const result = await checkForModelUpdate();
