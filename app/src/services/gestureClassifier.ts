@@ -6,7 +6,7 @@ let gestureModel: TensorflowModel | null = null;
 let inputBuffer: Float32Array | null = null;
 const logError = Worklets?.createRunOnJS
   ? Worklets.createRunOnJS(logger.error)
-  : (...args: any[]) => logger.error(...args);
+  : (message?: any, ...optional: any[]) => logger.error(message, ...optional);
 
 export function setGestureModel(model: TensorflowModel | null): void {
   gestureModel = model;

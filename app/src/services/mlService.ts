@@ -683,9 +683,6 @@ export const useGestureClassifier = (
         if (!rawLandmarks || rawLandmarks.length === 0) {
           return;
         }
-        if (flatBuffer.length !== 63) {
-          flatBuffer = new Float32Array(63);
-        }
         for (let i = 0; i < 21; i++) {
           const lm = rawLandmarks[i];
           flatBuffer[i * 3 + 0] = lm[0];
@@ -729,7 +726,7 @@ export const useRecordingProcessor = (
 
   const lastProcessedTime = useSharedValue(0);
   const onLandmarksJS = createRunOnJS((lm: number[][]) => onLandmarksRef.current(lm));
-  const logErrorJS2 = createRunOnJS(logger.error);
+  const logErrorJS = createRunOnJS(logger.error);
   const extractLandmarksRec = useHandLandmarkExtractor();
 
   const frameProcessor = useFrameProcessor(
@@ -752,7 +749,7 @@ export const useRecordingProcessor = (
         }
         onLandmarksJS(landmarks);
       } catch (error: any) {
-        logErrorJS2('WORKLET ERROR:', error);
+        logErrorJS('WORKLET ERROR:', error);
       }
     },
     [fps],

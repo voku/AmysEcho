@@ -393,8 +393,8 @@ export default function RecognitionScreen({ navigation }: any) {
         contentWidth = previewRect.height * formatRatio;
         offsetX = (previewRect.width - contentWidth) / 2;
       }
-      const x = offsetX + lm[0] * contentWidth;
-      const y = offsetY + (mirror ? 1 - lm[1] : lm[1]) * contentHeight;
+      const x = offsetX + (mirror ? 1 - lm[0] : lm[0]) * contentWidth;
+      const y = offsetY + lm[1] * contentHeight;
       return { x, y };
     },
     [previewRect, format, mirror],
