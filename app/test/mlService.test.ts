@@ -148,6 +148,40 @@ describe('mlService', () => {
     );
   });
 
+  it('uses provided worklet predictions when available', async () => {
+    const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+    const gestureRunSync = jest.fn();
+    const gestureTflite: any = { runSync: gestureRunSync };
+
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['a', 'b'], {
+      enableRemoteClassification: false,
+    });
+
+    const frame = {
+      landmarks: [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ],
+      width: 1,
+      height: 1,
+      timestamp: Date.now(),
+      predictions: [0.2, 0.8],
+    } as any;
+
+    const onResult = jest.fn();
+
+    // first call warms up smoothing buffer
+    await mlService.processFrameAsync(frame, onResult);
+    await mlService.processFrameAsync(frame, onResult);
+
+    expect(onResult).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label: 'b', confidence: 0.8, isLocal: true }),
+      frame.landmarks,
+    );
+    expect(gestureRunSync).not.toHaveBeenCalled();
+  });
+
   it('requests remote classification when worklet prediction confidence is low', async () => {
     const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
     const gestureRunSync = jest.fn();
