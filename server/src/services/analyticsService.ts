@@ -153,3 +153,59 @@ export function computeSummaryMetrics(
     topMisclassifications,
   };
 }
+
+export interface CorrectionFrequency {
+  gesture: string;
+  count: number;
+  rate: number;
+}
+
+export interface ImprovementRecommendation {
+  gesture: string;
+  action: string;
+  reason: string;
+}
+
+export interface AnalyticsInsights {
+  correctionFrequency: CorrectionFrequency[];
+  recommendations: ImprovementRecommendation[];
+  topConfusingPairs: { pair: string; count: number }[];
+}
+
+export function computeAnalyticsInsights(db: Database): AnalyticsInsights {
+  const totalInteractions = db.interactionLogs.length || 1;
+  const corrections = db.corrections || [];
+
+  const byGesture = new Map<string, number>();
+  for (const c of corrections) {
+    byGesture.set(c.actualGesture, (byGesture.get(c.actualGesture) || 0) + 1);
+  }
+  const correctionFrequency = Array.from(byGesture.entries())
+    .map(([gesture, count]) => ({
+      gesture,
+      count,
+      rate: Number((count / totalInteractions).toFixed(2)),
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const recommendations = correctionFrequency
+    .filter((g) => g.rate >= 0.1 || g.count >= 3)
+    .map((g) => ({
+      gesture: g.gesture,
+      action: 'practice_and_retrain',
+      reason: 'High correction frequency relative to interactions',
+    }));
+
+  const pairMap = new Map<string, number>();
+  for (const c of corrections) {
+    const key = `${c.predictedGesture}→${c.actualGesture}`;
+    pairMap.set(key, (pairMap.get(key) || 0) + 1);
+  }
+  const topConfusingPairs = Array.from(pairMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([pair, count]) => ({ pair, count }));
+
+  return { correctionFrequency, recommendations, topConfusingPairs };
+}

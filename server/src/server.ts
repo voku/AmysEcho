@@ -32,6 +32,7 @@ import {
   loadTelemetry,
   saveTelemetry,
   TelemetryEvent,
+  computeAnalyticsInsights,
 } from './services/analyticsService';
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
 import portalRouter from './portal';
@@ -254,39 +255,8 @@ app.get('/api/analytics/summary', auth, async (_req: Request, res: Response) => 
 // Insights: correction frequency and improvement suggestions
 app.get('/api/analytics/insights', auth, async (_req: Request, res: Response) => {
   try {
-    const corrections = dbInstance.corrections;
-    const totalInteractions = dbInstance.interactionLogs.length || 1; // avoid div by zero
-
-    const byGesture = new Map<string, number>();
-    for (const c of corrections) {
-      byGesture.set(c.actualGesture, (byGesture.get(c.actualGesture) || 0) + 1);
-    }
-    const correctionFrequency = Array.from(byGesture.entries())
-      .map(([gesture, count]) => ({ gesture, count, rate: Number((count / totalInteractions).toFixed(2)) }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Identify gestures with high correction rate as candidates for practice or retraining
-    const recommendations = correctionFrequency
-      .filter((g) => g.rate >= 0.1 || g.count >= 3)
-      .map((g) => ({
-        gesture: g.gesture,
-        action: 'practice_and_retrain',
-        reason: 'High correction frequency relative to interactions',
-      }));
-
-    // Top confusing pairs from corrections
-    const pairMap = new Map<string, number>();
-    for (const c of corrections) {
-      const key = `${c.predictedGesture}→${c.actualGesture}`;
-      pairMap.set(key, (pairMap.get(key) || 0) + 1);
-    }
-    const topConfusingPairs = Array.from(pairMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([pair, count]) => ({ pair, count }));
-
-    res.json({ correctionFrequency, recommendations, topConfusingPairs });
+    const insights = computeAnalyticsInsights(dbInstance);
+    res.json(insights);
   } catch (error) {
     console.error('Error computing analytics insights:', error);
     res.status(500).json({ error: 'Failed to compute analytics insights' });

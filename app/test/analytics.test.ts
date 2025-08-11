@@ -3,8 +3,9 @@ import {
   refreshLearningAnalytics,
   computeLearningAnalytics,
   computeSummaryMetrics,
+  computeAnalyticsInsights,
 } from '../../server/src/services/analyticsService';
-import { InteractionLog } from '../../server/src/types';
+import { InteractionLog, Correction } from '../../server/src/types';
 
 describe('Analytics Service', () => {
   it('should compute analytics correctly', () => {
@@ -129,5 +130,77 @@ describe('Analytics Service', () => {
     });
     const summary = computeSummaryMetrics(db, []);
     expect(summary.successRate).toBe(0.5);
+  });
+
+  it('should analyze correction frequency and recommendations', () => {
+    const db = createDatabase();
+    const now = Date.now();
+
+    db.interactionLogs.push(
+      {
+        id: '1',
+        gestureDefinitionId: 'g1',
+        wasSuccessful: false,
+        confidenceScore: 0.2,
+        timestamp: now,
+        processedBy: 'local',
+      },
+      {
+        id: '2',
+        gestureDefinitionId: 'g2',
+        wasSuccessful: true,
+        confidenceScore: 0.9,
+        timestamp: now + 1,
+        processedBy: 'local',
+      },
+      {
+        id: '3',
+        gestureDefinitionId: 'g1',
+        wasSuccessful: false,
+        confidenceScore: 0.3,
+        timestamp: now + 2,
+        processedBy: 'local',
+      },
+    );
+
+    const corrections: Correction[] = [
+      {
+        id: 'c1',
+        predictedGesture: 'g1',
+        actualGesture: 'g2',
+        confidence: 0.6,
+        timestamp: now,
+        isSynced: false,
+        profileId: 'p',
+      },
+      {
+        id: 'c2',
+        predictedGesture: 'g1',
+        actualGesture: 'g2',
+        confidence: 0.5,
+        timestamp: now + 1,
+        isSynced: false,
+        profileId: 'p',
+      },
+      {
+        id: 'c3',
+        predictedGesture: 'g2',
+        actualGesture: 'g1',
+        confidence: 0.4,
+        timestamp: now + 2,
+        isSynced: false,
+        profileId: 'p',
+      },
+    ];
+    db.corrections.push(...corrections);
+
+    const insights = computeAnalyticsInsights(db);
+    expect(insights.correctionFrequency).toEqual([
+      { gesture: 'g2', count: 2, rate: 0.67 },
+      { gesture: 'g1', count: 1, rate: 0.33 },
+    ]);
+    expect(insights.topConfusingPairs[0]).toEqual({ pair: 'g1→g2', count: 2 });
+    expect(insights.recommendations.length).toBe(2);
+    expect(insights.recommendations[0].gesture).toBe('g2');
   });
 });
