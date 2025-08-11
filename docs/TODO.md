@@ -7,8 +7,8 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ## 🔑 Immediate Gesture Detection & Visualization Fixes
 
-1. [ ] Integrate `vision-camera-resize-plugin` for zero-copy frame resizing and color conversion.
-2. [ ] Verify `extractHandLandmarks` uses the plugin and returns valid coordinates; add temporary logging inside the worklet.
+1. [x] Integrate `vision-camera-resize-plugin` for zero-copy frame resizing and color conversion.
+2. [x] Verify `extractHandLandmarks` uses the plugin and returns valid coordinates; add temporary logging inside the worklet.
 3. [ ] Restore gesture classification pipeline:
    - ensure `classifyGesture` consumes the flattened landmark buffer.
    - confirm `mlService.processFrameAsync` sends results back to JS.

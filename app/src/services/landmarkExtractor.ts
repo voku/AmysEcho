@@ -36,6 +36,11 @@ if ((globalThis as any).VisionCameraProxy) {
   } catch {}
 }
 let lastLog = 0;
+const logLandmarks = Worklets?.createRunOnJS
+  ? Worklets.createRunOnJS((pts: number[][] | null) =>
+      console.log('LM raw:', Array.isArray(pts) ? pts.slice(0, 2) : pts),
+    )
+  : (_: number[][] | null) => {};
 
 export function useHandLandmarkExtractor(): (frame: Frame) => number[][] | null {
   const { resize } = useResizePlugin();
@@ -74,7 +79,12 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
         })
       : new Uint8Array(frame.toArrayBuffer());
     const result = handModel.runSync([input]) as any[];
-    return (result[0] as number[][]) ?? null;
+    const landmarks = (result[0] as number[][]) ?? null;
+    if (typeof __DEV__ !== 'undefined' && __DEV__ && Date.now() - lastLog > 500) {
+      lastLog = Date.now();
+      logLandmarks(landmarks);
+    }
+    return landmarks;
   } catch {
     return null;
   }
