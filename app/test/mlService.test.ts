@@ -119,7 +119,8 @@ describe('mlService', () => {
 
   it('recognizes gestures with high confidence from local model', async () => {
     const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
-    const gestureTflite: any = { runSync: () => [[0.9, 0.1]] };
+    const gestureRunSync = jest.fn().mockReturnValue([[0.9, 0.1]]);
+    const gestureTflite: any = { runSync: gestureRunSync };
 
     await mlService.loadModels(landmarkTflite, gestureTflite, ['wave', 'fist'], {
       enableRemoteClassification: false,
@@ -127,9 +128,8 @@ describe('mlService', () => {
 
     const frame = {
       landmarks: [
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
+        [0, 1, 2],
+        [3, 4, 5],
       ],
       width: 1,
       height: 1,
@@ -142,6 +142,8 @@ describe('mlService', () => {
     await mlService.processFrameAsync(frame, onResult);
     await mlService.processFrameAsync(frame, onResult);
 
+    const flat = frame.landmarks.flat();
+    expect(gestureRunSync).toHaveBeenCalledWith([flat]);
     expect(onResult).toHaveBeenLastCalledWith(
       expect.objectContaining({ label: 'wave', confidence: 0.9, isLocal: true }),
       frame.landmarks,

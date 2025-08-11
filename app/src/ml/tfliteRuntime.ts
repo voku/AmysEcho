@@ -17,18 +17,20 @@ export function useAmyGestureModel(modelAsset: number) {
     // @ts-ignore
     globalThis.__amy_infer = (frame: Frame): { label: string; score: number } | null => {
       'worklet';
-      if (!modelRef.current) return null;
+      const model = modelRef.current;
+      if (!model) return null;
 
-      // Convert the YUV frame into the model's expected RGB float32 tensor
-      const tensor = resize(frame, {
+      // Use resize plugin to obtain an RGB float32 buffer without extra allocations
+      const input = resize(frame, {
         scale: { width: 192, height: 192 },
         pixelFormat: 'rgb',
         dataType: 'float32',
       }) as Float32Array;
 
-      const result = modelRef.current.runSync([tensor]) as Float32Array[] | undefined;
-      if (!result || result.length === 0) return null;
-      const scores = result[0];
+      // Run the model synchronously with the prepared buffer
+      const outputs = model.runSync([input]) as Float32Array[] | undefined;
+      if (!outputs || outputs.length === 0) return null;
+      const scores = outputs[0];
       let best = 0;
       for (let i = 1; i < scores.length; i++) {
         if (scores[i] > scores[best]) best = i;
