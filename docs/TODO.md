@@ -7,12 +7,15 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ## Recognition Stabilization (TFLite, VisionCamera v4) — 2025-08
 - ✅ Worklets correctness: 'worklet' directive + Worklets.createRunOnJS (no Reanimated runOnJS).
-- ✅ Camera `pixelFormat="yuv"` for ML path.
+- ✅ Camera `pixelFormat="yuv"` for ML path (`app/src/screens/RecognitionScreen.tsx`, `app/src/screens/TrainingScreen.tsx`).
+- ✅ `useFrameProcessor` hooks implemented in `app/src/services/mlService.ts`.
 - ✅ Backpressure: single in-flight inference; JS callbacks only on state change.
 - ✅ One-time TFLite load; no per-frame allocations.
 - ✅ Bounded, PII-free telemetry buffer; perf budget test.
-- ✅ Move resize/convert into a VisionCamera frame processor plugin for zero-copy via `vision-camera-resize-plugin`.
+- [ ] Move resize/convert into a VisionCamera frame processor plugin for zero-copy via `vision-camera-resize-plugin`.
 - ✅ Metro bundler configured to load `.tflite` and MediaPipe `.task` model assets via `app/metro.config.js`.
+- [ ] Register `vision-camera-resize-plugin` in `app/metro.config.js`.
+- [ ] Replace inference stub with plugin-backed implementation in `app/src/services/mlService.ts`.
 
 ## 🔁 Enhancements & Extensions
 
