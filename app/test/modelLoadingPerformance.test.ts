@@ -13,4 +13,12 @@ describe('model loading performance', () => {
       expect(duration).toBeLessThan(100);
     });
   });
+
+  it('loads gesture model through bundler', () => {
+    expect(() => require('../assets/models/gesture_classifier.tflite')).not.toThrow();
+  });
+
+  it('loads task file through bundler', () => {
+    expect(() => require('../assets/models/dummy.task')).not.toThrow();
+  });
 });
