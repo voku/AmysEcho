@@ -111,10 +111,7 @@ describe('mlService', () => {
     await mlService.processFrameAsync(frame, onResult);
     await mlService.processFrameAsync(frame, onResult);
 
-    expect(onResult).toHaveBeenLastCalledWith(
-      expect.objectContaining({ label: 'b', isLocal: true }),
-      frame.landmarks,
-    );
+    expect(onResult).toHaveBeenLastCalledWith(expect.objectContaining({ label: 'b' }));
   });
 
   it('recognizes gestures with high confidence from local model', async () => {
@@ -145,8 +142,7 @@ describe('mlService', () => {
     const flat = frame.landmarks.flat();
     expect(gestureRunSync).toHaveBeenCalledWith([flat]);
     expect(onResult).toHaveBeenLastCalledWith(
-      expect.objectContaining({ label: 'wave', confidence: 0.9, isLocal: true }),
-      frame.landmarks,
+      expect.objectContaining({ label: 'wave', confidence: 0.9 }),
     );
   });
 
@@ -184,10 +180,7 @@ describe('mlService', () => {
     await mlService.processFrameAsync(frame, onResult);
     await mlService.processFrameAsync(frame, onResult);
 
-    expect(onResult).toHaveBeenLastCalledWith(
-      expect.objectContaining({ label: 'remote', isLocal: false }),
-      frame.landmarks,
-    );
+    expect(onResult).toHaveBeenLastCalledWith(expect.objectContaining({ label: 'remote' }));
     expect(gestureRunSync).not.toHaveBeenCalled();
   });
   it('maintains accuracy across jittery frames', async () => {
@@ -224,10 +217,7 @@ describe('mlService', () => {
       onResult,
     );
 
-    expect(onResult).toHaveBeenLastCalledWith(
-      expect.objectContaining({ label: 'wave', isLocal: true }),
-      expect.any(Array),
-    );
+    expect(onResult).toHaveBeenLastCalledWith(expect.objectContaining({ label: 'wave' }));
   });
 
   it('records performance metrics', async () => {

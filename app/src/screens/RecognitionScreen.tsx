@@ -13,7 +13,12 @@ import {
   AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Camera, useCameraDevices, CameraRuntimeError } from 'react-native-vision-camera';
+import {
+  Camera,
+  useCameraDevices,
+  CameraRuntimeError,
+  useCameraFormat,
+} from 'react-native-vision-camera';
 import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
 import { useIsFocused } from '@react-navigation/native';
 import CorrectionPanel from '../components/CorrectionPanel';
@@ -76,6 +81,8 @@ export default function RecognitionScreen({ navigation }: any) {
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [landmarks, setLandmarks] = useState<number[][]>([]);
+  const [landmarksRaw, setLandmarksRaw] = useState<number[][]>([]);
+  const [previewRect, setPreviewRect] = useState({ x: 0, y: 0, width, height });
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [showManualInputMode, setShowManualInputMode] = useState(false);
   const [showStaticMode, setShowStaticMode] = useState(false);
@@ -101,6 +108,8 @@ export default function RecognitionScreen({ navigation }: any) {
     devices.find((d) => d.position === 'back') ??
     devices.find((d) => d.position === 'front') ??
     devices[0];
+  const format = useCameraFormat(device, [{ videoResolution: { width: 1280, height: 720 }, fps: 30 }]);
+  const mirror = device?.position === 'front';
   const camera = useRef<Camera>(null);
   const isFocused = useIsFocused();
   const [appState, setAppState] = useState(AppState.currentState);
@@ -247,9 +256,11 @@ export default function RecognitionScreen({ navigation }: any) {
     updateStatus("I'm listening...");
   };
 
-  const onGestureResult = useCallback(async (result: any, detectedLandmarks: number[][]) => {
+  const onGestureResult = useCallback(
+    async (result: any, detectedLandmarks: number[][], raw?: number[][]) => {
     setLastDetection(Date.now());
     setLandmarks(detectedLandmarks);
+    setLandmarksRaw(raw ?? detectedLandmarks);
     setProcessingError(null);
     setLastResultAt(Date.now());
 
@@ -366,6 +377,30 @@ export default function RecognitionScreen({ navigation }: any) {
   useEffect(() => {
     if (!detectionActive) setLandmarks([]);
   }, [detectionActive]);
+
+  const mapLandmark = useCallback(
+    (lm: number[]) => {
+      const formatRatio = (format?.videoWidth ?? 1) / (format?.videoHeight ?? 1);
+      const screenRatio = previewRect.width / previewRect.height;
+      let contentWidth = previewRect.width;
+      let contentHeight = previewRect.height;
+      let offsetX = 0;
+      let offsetY = 0;
+      if (screenRatio > formatRatio) {
+        contentHeight = previewRect.width / formatRatio;
+        offsetY = (previewRect.height - contentHeight) / 2;
+      } else {
+        contentWidth = previewRect.height * formatRatio;
+        offsetX = (previewRect.width - contentWidth) / 2;
+      }
+      const x = offsetX + lm[0] * contentWidth;
+      const y = offsetY + (mirror ? 1 - lm[1] : lm[1]) * contentHeight;
+      return { x, y };
+    },
+    [previewRect, format, mirror],
+  );
+
+  const lmDisplay = showDebug ? landmarksRaw : landmarks;
 
   // Neutral UX fail-safe: periodically reassure user when there is no result
   useEffect(() => {
@@ -746,21 +781,21 @@ export default function RecognitionScreen({ navigation }: any) {
           />
         </View>
       ) : (
-        <View style={styles.cameraContainer}>
+        <View style={styles.cameraContainer} onLayout={(e) => setPreviewRect(e.nativeEvent.layout)}>
           {canUseCamera && (
             <Camera
               ref={camera}
-              style={styles.camera}
+              style={StyleSheet.absoluteFill}
               device={device}
               isActive={true}
               frameProcessor={frameProcessor}
               pixelFormat="yuv"
-              // YUV avoids extra color conversion, improving ML inference
+              format={format}
               onError={handleCameraError}
             />
           )}
 
-          <View style={styles.overlay}>
+          <View style={styles.overlay} pointerEvents="none">
             {showPerfBanner && (
               <View style={styles.performanceBanner}>
                 <Text style={styles.performanceText}>
@@ -777,31 +812,30 @@ export default function RecognitionScreen({ navigation }: any) {
                 ))}
               </View>
             )}
-            {landmarks.length > 0 && (
-              <Svg
-                style={StyleSheet.absoluteFill}
-                viewBox={`0 0 ${width} ${height}`}
-                pointerEvents="none"
-              >
+            {lmDisplay.length > 0 && (
+              <Svg style={StyleSheet.absoluteFill} viewBox={`0 0 ${previewRect.width} ${previewRect.height}`}>
                 {HAND_CONNECTIONS.map(([startIdx, endIdx], idx) => {
-                  const start = landmarks[startIdx];
-                  const end = landmarks[endIdx];
+                  const start = lmDisplay[startIdx];
+                  const end = lmDisplay[endIdx];
                   if (!start || !end) return null;
+                  const s = mapLandmark(start);
+                  const e = mapLandmark(end);
                   return (
                     <Line
                       key={`conn-${idx}`}
-                      x1={start[0] * width}
-                      y1={start[1] * height}
-                      x2={end[0] * width}
-                      y2={end[1] * height}
+                      x1={s.x}
+                      y1={s.y}
+                      x2={e.x}
+                      y2={e.y}
                       stroke={COLORS.warning}
                       strokeWidth={3}
                     />
                   );
                 })}
-                {landmarks.map((l, idx) => (
-                  <Circle key={`point-${idx}`} cx={l[0] * width} cy={l[1] * height} r={5} fill={COLORS.warning} />
-                ))}
+                {lmDisplay.map((l, idx) => {
+                  const p = mapLandmark(l);
+                  return <Circle key={`point-${idx}`} cx={p.x} cy={p.y} r={5} fill={COLORS.warning} />;
+                })}
               </Svg>
             )}
             <ErrorMessage message={processingError} />
