@@ -279,8 +279,8 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Profile gesture recognition speed
   - [x] Minimize battery usage during operation
     - Camera auto-pauses after inactivity to conserve power.
-  - Optimize memory usage for older devices
-  - Test performance across device range
+  - [x] Optimize memory usage for older devices
+  - [x] Test performance across device range
   - [x] Implement adaptive processing based on battery & thermal state
     - Hint: create `AdaptivePerformanceManager` that adjusts frame rate and model complexity.
 

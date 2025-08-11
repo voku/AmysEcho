@@ -30,6 +30,7 @@ import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
 import { logInteractionEvent } from './analytics';
 import { ModelPerformanceMonitor } from './ModelPerformanceMonitor';
+import { recommendedBufferSize } from './MemoryOptimizer';
 
 class LandmarkSmoother {
   private history: number[][][] = [];
@@ -57,8 +58,8 @@ class LandmarkSmoother {
 }
 
 class FrameBufferManager {
-  private readonly maxBufferSize = 3;
   private frameBuffer: Frame[] = [];
+  constructor(private readonly maxBufferSize = 3) {}
 
   addFrame(frame: Frame): void {
     if (this.frameBuffer.length >= this.maxBufferSize) {
@@ -584,7 +585,7 @@ export const useGestureClassifier = (
   const targetFps = useSharedValue(8);
   const lastFrameTime = useSharedValue(0);
   const smootherRef = useRef(new LandmarkSmoother());
-  const frameBufferRef = useRef(new FrameBufferManager());
+  const frameBufferRef = useRef(new FrameBufferManager(recommendedBufferSize()));
   const perfManagerRef = useRef(new AdaptivePerformanceManager());
 
   useEffect(() => {
