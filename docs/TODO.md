@@ -12,6 +12,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - ✅ One-time TFLite load; no per-frame allocations.
 - ✅ Bounded, PII-free telemetry buffer; perf budget test.
 - ✅ Move resize/convert into a VisionCamera frame processor plugin for zero-copy via `vision-camera-resize-plugin`.
+- ✅ Metro bundler configured to load `.tflite` and MediaPipe `.task` model assets via `app/metro.config.js`.
 
 ## 🔁 Enhancements & Extensions
 
