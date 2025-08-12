@@ -7,9 +7,7 @@ import { logger } from '../utils/logger';
 
 let handModel: TensorflowModel | null = null;
 
-let resizePlugin:
-  | ReturnType<typeof import('vision-camera-resize-plugin').createResizePlugin>
-  | null = null;
+let resizePlugin: any | null = null;
 
 if ((globalThis as any).VisionCameraProxy) {
   try {
@@ -27,9 +25,9 @@ export function setHandLandmarkModel(model: TensorflowModel | null): void {
   handModel = model;
 }
 
-const logJS = Worklets?.createRunOnJS
-  ? Worklets.createRunOnJS((m: string) => console.log(m))
-  : (_: string) => {};
+const logErrorJS = Worklets?.createRunOnJS
+  ? Worklets.createRunOnJS((m: string) => logger.error(m))
+  : (m: string) => console.error(m);
 let useResizePlugin: any = () => ({ resize: () => { throw new Error('resize plugin unavailable'); } });
 if ((globalThis as any).VisionCameraProxy) {
   try {
@@ -63,7 +61,8 @@ export function useHandLandmarkExtractor(): (frame: Frame) => number[][] | null 
         logJS(`LM ok: ${landmarks?.length ?? 0} pts, conf=${conf.toFixed(2)}`);
       }
       return landmarks ?? null;
-    } catch {
+    } catch (e: any) {
+      logErrorJS(e.message);
       return null;
     }
   };
@@ -87,7 +86,8 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
       logLandmarks(landmarks);
     }
     return landmarks;
-  } catch {
+  } catch (e: any) {
+    logErrorJS(e.message);
     return null;
   }
 }
@@ -119,4 +119,3 @@ export async function extractLandmarksFromImages(imagePaths: string[]): Promise<
 
   return allLandmarks;
 }
-

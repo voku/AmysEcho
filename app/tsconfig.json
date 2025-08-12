@@ -5,9 +5,9 @@
     "target": "es2016",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "module": "Node16",
+    "module": "ESNext",
     "rootDir": ".",
-    "moduleResolution": "node16",
+    "moduleResolution": "Bundler",
     "types": [
       "node",
       "./mock-types",

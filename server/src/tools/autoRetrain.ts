@@ -1,0 +1,40 @@
+import { loadDatabase, Database } from '../db';
+import { spawn } from 'child_process';
+import path from 'path';
+import { promises as fs } from 'fs';
+
+async function autoRetrain() {
+  const db = await loadDatabase();
+  const corrections = db.corrections;
+  const negativeSamples = db.negativeSamples;
+
+  const trainingData = [...corrections, ...negativeSamples];
+
+  if (trainingData.length === 0) {
+    console.log('No new data to train on.');
+    return;
+  }
+
+  const tmp = path.join(process.cwd(), 'tmp_training_data.json');
+  await fs.writeFile(tmp, JSON.stringify(trainingData));
+
+  const script = path.join(__dirname, '../train.py');
+  const child = spawn('python3', [script, tmp], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  child.stdout.on('data', (data) => {
+    console.log(`stdout: ${data}`);
+  });
+
+  child.stderr.on('data', (data) => {
+    console.error(`stderr: ${data}`);
+  });
+
+  child.on('close', (code) => {
+    console.log(`child process exited with code ${code}`);
+    fs.unlink(tmp);
+  });
+}
+
+autoRetrain();

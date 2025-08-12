@@ -13,11 +13,8 @@ async function getFileSystem() {
   }
   return FileSystem;
 }
-import {
-  useHandLandmarkExtractor,
-  setHandLandmarkModel,
-  extractHandLandmarks,
-} from './landmarkExtractor';
+import { useHandLandmarkExtractor, setHandLandmarkModel, extractHandLandmarks } from './landmarkExtractor';
+import { extractHandLandmarksWorklet } from '../worklets/extractHandLandmarks.worklet';
 import {
   classifyGesture,
   setGestureModel,
@@ -128,9 +125,11 @@ class MachineLearningService {
   private gestureModel: TensorflowModel | null = null;
   private modelManager = new ModelManager();
   private isReady = false;
-  private baseConfidence = 0.7;
-  private lowPowerConfidence = 0.8;
-  private confidenceThreshold = 0.7;
+  // Thresholds: local vs cloud
+  private localThreshold = 0.6;
+  private cloudThreshold = 0.8;
+  private baseConfidence = 0.6;
+  private lowPowerConfidence = 0.7;
   private perfMonitor = new ModelPerformanceMonitor();
   private labels: string[] = [];
   private teachingSession: { id: string; label: string } | null = null;
@@ -147,6 +146,7 @@ class MachineLearningService {
   private remoteAvailable = true;
   private remoteRetryAt = 0;
   private remoteRetryMs = 30000; // ms
+  private consecutiveRemoteTimeouts = 0;
 
   get isCameraActive(): boolean {
     return this._isCameraActive;
@@ -167,7 +167,7 @@ class MachineLearningService {
   }
 
   setLowPowerMode(low: boolean) {
-    this.confidenceThreshold = low ? this.lowPowerConfidence : this.baseConfidence;
+    this.localThreshold = low ? this.lowPowerConfidence : this.baseConfidence;
   }
 
   getPerfMetrics() {
@@ -240,7 +240,7 @@ class MachineLearningService {
       this.modelManager.setModel(this.gestureModel);
 
       if (config?.confidenceThreshold) {
-        this.confidenceThreshold = config.confidenceThreshold;
+        this.localThreshold = config.confidenceThreshold;
       }
       if (config?.processingTimeout) {
         this.remoteTimeout = config.processingTimeout;
@@ -307,7 +307,7 @@ class MachineLearningService {
           isLocal: true,
           timestamp: Date.now(),
           suggestions,
-          requiresConfirmation: confidence < this.confidenceThreshold,
+          requiresConfirmation: confidence < this.localThreshold,
         };
         localConfidence = confidence;
       } catch (error) {
@@ -316,7 +316,7 @@ class MachineLearningService {
       }
     }
 
-    if ((localConfidence < this.confidenceThreshold || !result) && this.shouldUseRemote()) {
+    if ((localConfidence < this.localThreshold || !result) && this.shouldUseRemote()) {
       try {
         const remote = await Promise.race([
           this.classifyRemotely(processed),
@@ -325,11 +325,21 @@ class MachineLearningService {
           ),
         ]);
         if (remote) {
+          this.consecutiveRemoteTimeouts = 0; // reset on success
           result = remote;
         }
       } catch (error) {
         logger.debug('Remote classification failed, using local fallback');
         this.handleRemoteFailure();
+        // Circuit breaker: after 3 timeouts, disable cloud for 10 minutes
+        if ((error as Error)?.message?.includes('timeout')) {
+          this.consecutiveRemoteTimeouts++;
+          if (this.consecutiveRemoteTimeouts >= 3) {
+            this.remoteAvailable = false;
+            this.remoteRetryAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+            this.consecutiveRemoteTimeouts = 0;
+          }
+        }
         try {
           const predictions =
             processed.predictions ??
@@ -345,7 +355,7 @@ class MachineLearningService {
             isLocal: true,
             timestamp: Date.now(),
             suggestions,
-            requiresConfirmation: confidence < this.confidenceThreshold,
+            requiresConfirmation: confidence < this.localThreshold,
           };
         } catch (localError) {
           logger.error('Local gesture classification failed:', localError);
@@ -370,7 +380,7 @@ class MachineLearningService {
           isLocal: true,
           timestamp: Date.now(),
           suggestions,
-          requiresConfirmation: confidence < this.confidenceThreshold,
+          requiresConfirmation: confidence < this.localThreshold,
         };
       } catch (error) {
         logger.error('Local gesture classification failed:', error);
@@ -444,7 +454,7 @@ class MachineLearningService {
       timestamp: Date.now(),
       suggestions: data.suggestions || [],
       requiresConfirmation:
-        data.requiresConfirmation || data.confidence < this.confidenceThreshold,
+        data.requiresConfirmation || data.confidence < this.cloudThreshold,
     };
   }
 
@@ -495,7 +505,7 @@ class MachineLearningService {
     );
 
     const recent = this.gestureBuffer.filter(
-      (r) => r.confidence > this.confidenceThreshold,
+      (r) => r.confidence > this.localThreshold,
     );
     if (recent.length < 2) return null;
 
@@ -666,9 +676,9 @@ export const useGestureClassifier = (
   const enqueueFrameJS = createRunOnJS(enqueueFrame);
   const logErrorJS = createRunOnJS(logger.error);
   const onErrorJS = createRunOnJS((message: string) => onErrorRef.current?.(message));
-  let flatBuffer = new Float32Array(63);
   const extractLandmarks = useHandLandmarkExtractor();
 
+  const frameCounter = useSharedValue(0);
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
@@ -678,6 +688,12 @@ export const useGestureClassifier = (
 
       addFrameJS(frame);
 
+      // Frame throttling: process every 2 frames
+      frameCounter.value = (frameCounter.value + 1) | 0;
+      if ((frameCounter.value & 1) === 1) {
+        return;
+      }
+
       const now = Date.now();
       if (now - lastFrameTime.value < 1000 / targetFps.value) {
         return;
@@ -685,18 +701,13 @@ export const useGestureClassifier = (
       lastFrameTime.value = now;
 
       try {
-        const rawLandmarks = extractLandmarks(frame);
-        if (!rawLandmarks || rawLandmarks.length === 0) {
-          return;
-        }
-        for (let i = 0; i < 21; i++) {
-          const lm = rawLandmarks[i];
-          flatBuffer[i * 3 + 0] = lm[0];
-          flatBuffer[i * 3 + 1] = lm[1];
-          flatBuffer[i * 3 + 2] = lm[2];
-        }
-        const predictions = classifyGesture(flatBuffer);
+        // Run dedicated worklet to extract and flatten landmarks
+        const flat = extractHandLandmarksWorklet(frame);
+        if (!flat) return;
+        const predictions = classifyGesture(flat);
 
+        // Reconstruct landmark array shape for overlay using the hook extractor
+        const rawLandmarks = extractLandmarks(frame) || [];
         const processed: ProcessedFrame = {
           landmarks: rawLandmarks,
           width: frame.width,

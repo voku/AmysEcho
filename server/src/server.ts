@@ -38,6 +38,7 @@ import {
 } from './services/analyticsService';
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
 import portalRouter from './portal';
+import { appendCrashReports, CrashReport } from './services/crashService';
 
 const app = express();
 app.use(express.json());
@@ -303,6 +304,32 @@ app.post('/api/telemetry', auth, async (req: Request, res: Response) => {
       res.status(500).json({ error: 'Failed to save telemetry data' });
     }
   });
+
+// Crash report ingestion
+app.post('/api/crash-reports', auth, async (req: Request, res: Response) => {
+  try {
+    const payload = Array.isArray(req.body) ? req.body : [req.body];
+    const valid: CrashReport[] = [];
+    for (const r of payload) {
+      if (!r || typeof r !== 'object') continue;
+      if (typeof r.message !== 'string' || typeof r.timestamp !== 'number') continue;
+      valid.push({
+        id: typeof (r as any).id === 'string' ? (r as any).id : Date.now().toString(36),
+        name: typeof (r as any).name === 'string' ? (r as any).name : 'Error',
+        message: r.message,
+        stack: typeof (r as any).stack === 'string' ? (r as any).stack : undefined,
+        timestamp: r.timestamp,
+        extra: (r as any).extra && typeof (r as any).extra === 'object' ? (r as any).extra : undefined,
+      });
+    }
+    if (!valid.length) return res.status(400).json({ error: 'No valid crash reports' });
+    await appendCrashReports(valid);
+    res.status(202).json({ status: 'ok', saved: valid.length });
+  } catch (error) {
+    console.error('Error saving crash reports:', error);
+    res.status(500).json({ error: 'Failed to save crash reports' });
+  }
+});
 
 app.post('/api/corrections', auth, async (req: Request, res: Response) => {
   const { gesture } = req.body || {};

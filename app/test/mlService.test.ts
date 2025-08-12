@@ -171,7 +171,7 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
-      predictions: [0.4, 0.6],
+      predictions: [0.5, 0.5],
     } as any;
 
     const onResult = jest.fn();

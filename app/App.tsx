@@ -12,6 +12,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { COLORS } from './src/constants/ui';
 import { logger } from './src/utils/logger';
 import { useAmyGestureModel } from './src/ml/tfliteRuntime';
+import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashReporting';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -28,6 +29,7 @@ export default function App() {
     async function initialize() {
       try {
         logger.info("Initializing Amy's Echo...");
+        initCrashReporting();
         const profileId = await setupDatabase();
         logger.info('Database setup complete, initial profile:', profileId);
 
@@ -65,6 +67,8 @@ export default function App() {
         );
       } finally {
         setIsReady(true);
+        // Best-effort crash report upload after app becomes ready
+        onAppStartCrashFlush();
       }
     }
     initialize();
