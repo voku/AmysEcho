@@ -33,7 +33,7 @@ import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
 import { logInteractionEvent } from './analytics';
 import { ModelPerformanceMonitor } from './ModelPerformanceMonitor';
-import { OneEuroFilter } from './OneEuroFilter';
+import { recommendedBufferSize } from './MemoryOptimizer';
 
 class LandmarkSmoother {
   private filters: OneEuroFilter[][];
@@ -687,17 +687,9 @@ export const useGestureClassifier = (
 
       addFrameJS(frame);
 
-      // Frame throttling: process every 2 frames
-      frameCounter.value = (frameCounter.value + 1) | 0;
-      if ((frameCounter.value & 1) === 1) {
+      if (!perfManagerRef.current.shouldProcess()) {
         return;
       }
-
-      const now = Date.now();
-      if (now - lastFrameTime.value < 1000 / targetFps.value) {
-        return;
-      }
-      lastFrameTime.value = now;
 
       try {
         // Run dedicated worklet to extract and flatten landmarks
