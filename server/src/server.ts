@@ -13,6 +13,8 @@ import {
   Database,
   logCorrection,
   addNegativeSample,
+  getProfileData,
+  deleteProfileData,
 } from './db';
 import auth from './middleware/auth';
 import { mlService } from './services/mlService';
@@ -116,6 +118,26 @@ app.get('/api/analytics/profiles', auth, async (_req: Request, res: Response) =>
   } catch (error) {
     console.error('Error fetching profiles:', error);
     res.status(500).json({ error: 'Failed to fetch profiles' });
+  }
+});
+
+app.get('/api/profiles/:id/export', auth, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const data = getProfileData(dbInstance, id);
+  if (!data.profile) {
+    return res.status(404).json({ error: 'Profile not found' });
+  }
+  res.json(data);
+});
+
+app.delete('/api/profiles/:id', auth, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    await deleteProfileData(dbInstance, id, DB_FILE_PATH);
+    res.json({ status: 'deleted' });
+  } catch (error) {
+    console.error('Profile deletion failed:', error);
+    res.status(500).json({ error: 'Profile deletion failed' });
   }
 });
 

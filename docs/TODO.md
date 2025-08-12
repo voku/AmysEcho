@@ -311,7 +311,8 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 - [ ] **Data Management**
   - [x] Implement secure data backup/restore
-  - Add GDPR compliance features
+  - [x] Add GDPR compliance features
+    - Provide profile data export and deletion endpoints for caregiver requests
   - [x] Create data export functionality
   - Test data migration scenarios
   - [x] Protect gesture data
