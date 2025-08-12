@@ -1,5 +1,5 @@
 import { database } from '../../db';
-import { GestureTrainingData } from '../../db/models';
+import { GestureTrainingData, Correction } from '../../db/models';
 import { API_URL, API_TOKEN, MODEL_VERSION_URL } from '../constants';
 import { logger } from '../utils/logger';
 import { loadActiveProfileId, loadProfile, saveCustomModelUri } from '../storage';
@@ -80,6 +80,50 @@ export const syncService = {
       }
     } catch (error) {
       logger.error('Error in uploadPendingTrainingData:', error);
+    }
+  },
+
+  async uploadPendingCorrections(): Promise<void> {
+    logger.info('Attempting to upload pending corrections...');
+    try {
+      const pending = await database
+        .get<Correction>('corrections')
+        .query(Q.where('is_synced', false))
+        .fetch();
+
+      if (pending.length === 0) {
+        logger.info('No pending corrections to upload.');
+        return;
+      }
+
+      for (const correction of pending) {
+        try {
+          const response = await fetch(`${API_URL}/api/corrections`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${API_TOKEN}`,
+            },
+            body: JSON.stringify({ gesture: correction.actualGesture }),
+          });
+
+          if (response.ok) {
+            await database.write(async () => {
+              await correction.update((c) => {
+                c.isSynced = true;
+              });
+            });
+          } else {
+            logger.error(
+              `Failed to upload correction: ${response.status} ${response.statusText}`,
+            );
+          }
+        } catch (uploadError) {
+          logger.error('Error uploading correction:', uploadError);
+        }
+      }
+    } catch (error) {
+      logger.error('Error in uploadPendingCorrections:', error);
     }
   },
 

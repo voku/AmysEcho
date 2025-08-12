@@ -321,10 +321,10 @@ The project has a stable foundation after a major refactor. The database, naviga
     - Added hash validation and secure storage in `SecureConfigManager`.
 
 - [ ] **Offline Capability**
-  - Ensure full offline functionality
-  - Implement offline model training
-  - Add offline progress sync
-  - Test extended offline usage
+- Ensure full offline functionality
+- Implement offline model training
+  - [x] Add offline progress sync
+- Test extended offline usage
 
 ### Documentation & Support
 - [ ] **User Documentation**

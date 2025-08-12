@@ -92,12 +92,14 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             syncTrainingData().catch(() => {});
             checkForModelUpdate().catch(() => {});
             syncService.uploadPendingTrainingData().catch(() => {});
+            syncService.uploadPendingCorrections().catch(() => {});
             syncService.checkForNewModel().catch(() => {});
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
           checkForModelUpdate().catch(() => {});
           syncService.uploadPendingTrainingData().catch(() => {});
+          syncService.uploadPendingCorrections().catch(() => {});
           syncService.checkForNewModel().catch(() => {});
         } else {
           logger.info('Starting in offline mode; skipping cloud sync');
