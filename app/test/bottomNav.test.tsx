@@ -59,4 +59,32 @@ describe('BottomNav', () => {
     expect(childHaptic).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('Recognition', { profileId: '123' });
   });
+
+  it('exposes accessibility roles, labels, and hints', () => {
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(<BottomNav active="recognition" profileId="123" />);
+    });
+    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType('Pressable');
+    expect(pressables).toHaveLength(3);
+    const expected = [
+      {
+        label: 'Listen',
+        hint: 'Start gesture recognition',
+      },
+      {
+        label: 'Learn',
+        hint: 'Record or practice gestures',
+      },
+      {
+        label: 'Menu',
+        hint: 'Open profile and settings menu',
+      },
+    ];
+    pressables.forEach((p, idx) => {
+      expect(p.props.accessibilityRole).toBe('button');
+      expect(p.props.accessibilityLabel).toBe(expected[idx].label);
+      expect(p.props.accessibilityHint).toBe(expected[idx].hint);
+    });
+  });
 });
