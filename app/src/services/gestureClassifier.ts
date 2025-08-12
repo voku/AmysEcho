@@ -12,7 +12,7 @@ export function setGestureModel(model: TensorflowModel | null): void {
   gestureModel = model;
 }
 
-export function classifyGesture(input: Float32Array): number[] | null {
+export function classifyGesture(input: Float32Array, confidenceThreshold: number = 0.7): number[] | null {
   'worklet';
   if (!gestureModel) return null;
   try {
@@ -22,7 +22,10 @@ export function classifyGesture(input: Float32Array): number[] | null {
     inputBuffer.set(input);
     const result = gestureModel.runSync([inputBuffer]) as any[];
     const predictions = result[0] as number[] | undefined;
-    return predictions ?? null;
+    if (predictions && Math.max(...predictions) > confidenceThreshold) {
+      return predictions ?? null;
+    }
+    return null;
   } catch (e) {
     logError('Gesture classification failed', e);
     return null;

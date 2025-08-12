@@ -602,6 +602,7 @@ export const mlService = new MachineLearningService();
 export const useGestureClassifier = (
   onResult: (result: GestureResult | null, landmarks: number[][], raw?: number[][]) => void,
   isProcessing: boolean,
+  localThreshold: number,
   onError?: (message: string) => void,
 ) => {
   const onResultRef = useRef(onResult);
@@ -705,7 +706,7 @@ export const useGestureClassifier = (
         // Run dedicated worklet to extract and flatten landmarks
         const flat = extractHandLandmarksWorklet(frame);
         if (!flat) return;
-        const predictions = classifyGesture(flat);
+        const predictions = classifyGesture(flat, localThreshold);
 
         // Reconstruct landmark array shape for overlay using the hook extractor
         const rawLandmarks = extractLandmarks(frame) || [];

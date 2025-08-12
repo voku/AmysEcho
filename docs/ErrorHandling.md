@@ -28,7 +28,7 @@ const handleError = (msg: string) => {
   setProcessingError(msg);
 };
 
-const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, handleError);
+const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, handleError);
 ```
 
 ## 3. Display a friendly message

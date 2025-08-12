@@ -71,7 +71,7 @@ const handleError = (msg: string) => {
   setProcessingError(msg);
 };
 
-const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, handleError);
+const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, handleError);
 ```
 
 Attach the frame processor to the camera component:

@@ -409,7 +409,12 @@ export default function RecognitionScreen({ navigation }: any) {
     }
   }, [isProcessing, useDgs, profile, startFeedbackAnimation, updateStatus]);
 
-  const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, setProcessingError);
+  const frameProcessor = useGestureClassifier(
+    onGestureResult,
+    isProcessing,
+    profile?.lowPowerMode ? 0.8 : 0.7,
+    setProcessingError,
+  );
   const detectionActive = now - lastDetection < 1000;
 
   useEffect(() => {
