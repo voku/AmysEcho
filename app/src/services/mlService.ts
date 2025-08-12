@@ -60,20 +60,24 @@ class LandmarkSmoother {
 }
 
 class FrameBufferManager {
-  private frameBuffer: Frame[] = [];
-  constructor(private readonly maxBufferSize = 3) {}
+  private frameBuffer: (Frame | null)[] = [];
+  private currentIndex = 0;
+  constructor(private readonly maxBufferSize = 3) {
+    this.frameBuffer = new Array(this.maxBufferSize).fill(null);
+  }
 
   addFrame(frame: Frame): void {
-    if (this.frameBuffer.length >= this.maxBufferSize) {
-      const old = this.frameBuffer.shift();
-      (old as any)?.close?.();
+    const oldFrame = this.frameBuffer[this.currentIndex];
+    if (oldFrame) {
+      (oldFrame as any)?.close?.();
     }
-    this.frameBuffer.push(frame);
+    this.frameBuffer[this.currentIndex] = frame;
+    this.currentIndex = (this.currentIndex + 1) % this.maxBufferSize;
   }
 
   cleanup(): void {
     this.frameBuffer.forEach((f) => (f as any)?.close?.());
-    this.frameBuffer = [];
+    this.frameBuffer = new Array(this.maxBufferSize).fill(null);
   }
 }
 
