@@ -121,17 +121,20 @@ export const backupService = {
         throw new Error('Cannot export corrupted data');
       }
 
+      const decryptPromises = (records as any[]).map((r) =>
+        typeof r.data === 'string'
+          ? gestureDataProtector.decryptGesture(r.data)
+          : Promise.resolve(null),
+      );
+      const results = await Promise.allSettled(decryptPromises);
       const decrypted: any[] = [];
-      for (const r of records as any[]) {
-        if (typeof r.data === 'string') {
-          try {
-            const g = await gestureDataProtector.decryptGesture(r.data);
-            decrypted.push(g);
-          } catch (err) {
-            logger.error('Failed to decrypt gesture for export', err);
-          }
+      results.forEach((res) => {
+        if (res.status === 'fulfilled' && res.value) {
+          decrypted.push(res.value);
+        } else if (res.status === 'rejected') {
+          logger.error('Failed to decrypt gesture for export', res.reason);
         }
-      }
+      });
 
       await FileSystem.writeAsStringAsync(
         EXPORT_FILE,
