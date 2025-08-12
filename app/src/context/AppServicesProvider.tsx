@@ -6,6 +6,7 @@ import {
   mlService,
   syncService,
   syncTrainingData,
+  gestureDataProtector,
 } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
@@ -25,6 +26,7 @@ interface Services {
   audioService: typeof audioService;
   adaptiveLearningService: typeof adaptiveLearningService;
   backupService: typeof backupService;
+  gestureDataProtector: typeof gestureDataProtector;
 }
 
 const ServicesContext = createContext<Services | null>(null);
@@ -122,7 +124,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     );
   }
 
-  const services = { mlService, audioService, adaptiveLearningService, backupService };
+  const services = { mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector };
 
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 };
