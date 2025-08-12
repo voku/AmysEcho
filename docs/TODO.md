@@ -310,7 +310,7 @@ The project has a stable foundation after a major refactor. The database, naviga
   - Test store-ready binaries
 
 - [ ] **Data Management**
-  - Implement secure data backup/restore
+  - [x] Implement secure data backup/restore
   - Add GDPR compliance features
   - Create data export functionality
   - Test data migration scenarios

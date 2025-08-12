@@ -16,3 +16,4 @@ export * from './feedbackService';
 export * from './childSessionManager';
 export * from './accessibilityService';
 export * from './AdaptivePerformanceManager';
+export * from './backupService';
