@@ -53,7 +53,7 @@ describe('mlService', () => {
     (mlService as any).lastGestureTime = 0;
     (mlService as any).allowRemote = true;
     (mlService as any).remoteAvailable = true;
-    (mlService as any).remoteRetryAt = 0;
+    (mlService as any).circuitBreaker.reset();
     loadTensorflowModelMock.mockClear();
     downloadAsyncMock.mockClear();
     (global as any).fetch = undefined;

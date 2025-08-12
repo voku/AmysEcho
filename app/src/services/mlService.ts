@@ -33,7 +33,7 @@ import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
 import { logInteractionEvent } from './analytics';
 import { ModelPerformanceMonitor } from './ModelPerformanceMonitor';
-import { recommendedBufferSize } from './MemoryOptimizer';
+import { CircuitBreaker } from './CircuitBreaker';
 
 class LandmarkSmoother {
   private filters: OneEuroFilter[][];
@@ -152,10 +152,7 @@ class MachineLearningService {
   private lastGestureTime = 0;
   private lastRecognizedGesture: string | null = null;
   private allowRemote = true;
-  private remoteAvailable = true;
-  private remoteRetryAt = 0;
-  private remoteRetryMs = 30000; // ms
-  private consecutiveRemoteTimeouts = 0;
+  private circuitBreaker = new CircuitBreaker();
 
   get isCameraActive(): boolean {
     return this._isCameraActive;
@@ -284,18 +281,11 @@ class MachineLearningService {
   isServiceReady = (): boolean => this.isReady;
 
   private shouldUseRemote(): boolean {
-    if (!this.allowRemote) {
-      return false;
-    }
-    if (!this.remoteAvailable && Date.now() >= this.remoteRetryAt) {
-      this.remoteAvailable = true;
-    }
-    return this.remoteAvailable;
+    return !this.circuitBreaker.isOpen();
   }
 
   private handleRemoteFailure() {
-    this.remoteAvailable = false;
-    this.remoteRetryAt = Date.now() + this.remoteRetryMs;
+    this.circuitBreaker.recordFailure();
   }
 
   async processFrameAsync(
@@ -334,21 +324,12 @@ class MachineLearningService {
           ),
         ]);
         if (remote) {
-          this.consecutiveRemoteTimeouts = 0; // reset on success
+          this.circuitBreaker.recordSuccess();
           result = remote;
         }
       } catch (error) {
         logger.debug('Remote classification failed, using local fallback');
         this.handleRemoteFailure();
-        // Circuit breaker: after 3 timeouts, disable cloud for 10 minutes
-        if ((error as Error)?.message?.includes('timeout')) {
-          this.consecutiveRemoteTimeouts++;
-          if (this.consecutiveRemoteTimeouts >= 3) {
-            this.remoteAvailable = false;
-            this.remoteRetryAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-            this.consecutiveRemoteTimeouts = 0;
-          }
-        }
         try {
           const predictions =
             processed.predictions ??
