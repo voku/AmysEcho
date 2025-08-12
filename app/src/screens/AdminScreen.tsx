@@ -236,6 +236,19 @@ export default function AdminScreen({ navigation }: any) {
     }
   };
 
+  const handleExportGestures = async () => {
+    try {
+      const path = await backupService.exportProtectedGestures();
+      if (path) {
+        Alert.alert('Export complete', `Saved to ${path}`);
+      } else {
+        Alert.alert('No data to export');
+      }
+    } catch (e) {
+      Alert.alert('Export failed', (e as Error).message || 'Unknown error');
+    }
+  };
+
   const handleRestoreGestures = async () => {
     try {
       const ok = await backupService.restoreProtectedGestures();
@@ -332,6 +345,11 @@ export default function AdminScreen({ navigation }: any) {
         title="Import Symbols"
         onPress={handleImportSymbols}
         accessibilityLabel="Symbole importieren"
+      />
+      <Button
+        title="Gesten exportieren"
+        onPress={handleExportGestures}
+        accessibilityLabel="Gesten exportieren"
       />
       <Button
         title="Gesten sichern"

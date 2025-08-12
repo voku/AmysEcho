@@ -3,8 +3,10 @@ import * as FileSystem from 'expo-file-system';
 import * as SecureStore from 'expo-secure-store';
 import CryptoJS from 'crypto-js';
 import { logger } from '../utils/logger';
+import { gestureDataProtector } from './dataProtection';
 
 const BACKUP_FILE = `${FileSystem.documentDirectory}protectedGesturesBackup.json`;
+const EXPORT_FILE = `${FileSystem.documentDirectory}protectedGesturesExport.json`;
 const PROTECTED_GESTURES_KEY = 'protectedGestures';
 const BACKUP_KEY_ID = 'protectedGesturesBackupKey';
 
@@ -98,6 +100,55 @@ export const backupService = {
       return false;
     }
   },
+
+  async exportProtectedGestures(): Promise<string | null> {
+    try {
+      const raw = await AsyncStorage.getItem(PROTECTED_GESTURES_KEY);
+      if (!raw) {
+        logger.info('No protected gesture data to export.');
+        return null;
+      }
+
+      let records: unknown;
+      try {
+        records = JSON.parse(raw);
+      } catch (parseError) {
+        logger.error('Invalid JSON data found, cannot export', parseError);
+        throw new Error('Cannot export corrupted data');
+      }
+      if (!Array.isArray(records)) {
+        logger.error('Invalid data structure for export');
+        throw new Error('Cannot export corrupted data');
+      }
+
+      const decryptPromises = (records as any[]).map((r) =>
+        typeof r.data === 'string'
+          ? gestureDataProtector.decryptGesture(r.data)
+          : Promise.resolve(null),
+      );
+      const results = await Promise.allSettled(decryptPromises);
+      const decrypted: any[] = [];
+      results.forEach((res) => {
+        if (res.status === 'fulfilled' && res.value) {
+          decrypted.push(res.value);
+        } else if (res.status === 'rejected') {
+          logger.error('Failed to decrypt gesture for export', res.reason);
+        }
+      });
+
+      await FileSystem.writeAsStringAsync(
+        EXPORT_FILE,
+        JSON.stringify(decrypted, null, 2),
+        { encoding: FileSystem.EncodingType.UTF8 },
+      );
+      logger.info(`Export created at ${EXPORT_FILE}`);
+      return EXPORT_FILE;
+    } catch (error) {
+      logger.error('Error exporting gestures', error);
+      throw error;
+    }
+  },
 };
 
 export const BACKUP_FILE_PATH = BACKUP_FILE;
+export const EXPORT_FILE_PATH = EXPORT_FILE;
