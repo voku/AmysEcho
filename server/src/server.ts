@@ -355,9 +355,21 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
   trainingJobs.set(id, job);
 
   // Start background job
-  const script = path.join(__dirname, 'train.py');
-  const child = spawn('python3', [script, tmp], {
+  const baseDir = path.resolve(__dirname, '..', 'src');
+  const name = (process.env.TRAIN_SCRIPT || 'train.py').trim();
+  const resolved = path.resolve(baseDir, name);
+  const script = resolved.startsWith(baseDir + path.sep)
+    ? resolved
+    : path.join(baseDir, 'train.py');
+  const pythonBin = (process.env.PYTHON_BIN || 'python3').trim() || 'python3';
+  const child = spawn(pythonBin, [script, tmp], {
     stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  child.on('error', async (err) => {
+    job.status = 'failed';
+    job.error = `spawn failed: ${err.message}`;
+    job.endedAt = Date.now();
+    await fs.unlink(tmp).catch(() => {});
   });
   job.status = 'running';
   job.startedAt = Date.now();

@@ -30,6 +30,9 @@ import {
   correctionService,
   announceGestureRecognition,
   createGestureAccessibilityLabel,
+  playSymbolVideo,
+  gestureDataProtector,
+  ChildSessionManager,
 } from '../services';
 import { assessOcclusion } from '../services/GestureOcclusion';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
@@ -99,6 +102,7 @@ export default function RecognitionScreen({ navigation }: any) {
     offlineRatio: 0,
     cloudRatio: 0,
   });
+  const sessionManagerRef = useRef<ChildSessionManager | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -196,6 +200,26 @@ export default function RecognitionScreen({ navigation }: any) {
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+    const manager = new ChildSessionManager(
+      {
+        onEncouragement: () => {
+          void audioService.playEncouragement();
+        },
+        onBreak: () => {
+          updateStatus('Time for a short break!');
+          void audioService.playEncouragement();
+          manager.startSession();
+        },
+      },
+      profile.id,
+    );
+    sessionManagerRef.current = manager;
+    manager.startSession();
+    return () => manager.endSession();
+  }, [profile, updateStatus]);
 
   useEffect(() => {
     if (!showDebug) return;
@@ -311,6 +335,7 @@ export default function RecognitionScreen({ navigation }: any) {
         recognizedSymbolLabel,
         result.confidence,
         () => {
+          void playSymbolVideo(entry, useDgs);
           if (useDgs && entry.dgsVideoUri) {
             setShowVideoPlayer(true);
           } else if (entry.videoUri) {
@@ -321,11 +346,23 @@ export default function RecognitionScreen({ navigation }: any) {
         logger.warn('Feedback failed:', error);
       });
 
+      sessionManagerRef.current?.recordActivity();
+
       if (profile) {
         try {
           incrementUsage(entry, profile.id);
         } catch (error) {
           logger.warn('Usage tracking failed:', error);
+        }
+        try {
+          await gestureDataProtector.storeGesture({
+            gestureClass: entry.id,
+            confidence: result.confidence,
+            timestamp: Date.now(),
+            sessionId: profile.id,
+          });
+        } catch (error) {
+          logger.warn('Failed to store protected gesture:', error);
         }
       }
 
@@ -368,6 +405,7 @@ export default function RecognitionScreen({ navigation }: any) {
       audioService.playErrorFeedback().catch((error) => {
         logger.warn('Error feedback failed:', error);
       });
+      sessionManagerRef.current?.recordActivity();
     }
   }, [isProcessing, useDgs, profile, startFeedbackAnimation, updateStatus]);
 

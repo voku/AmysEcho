@@ -1,10 +1,12 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState, useMemo } from 'react';
 import {
   audioService,
+  backupService,
   checkForModelUpdate,
   mlService,
   syncService,
   syncTrainingData,
+  gestureDataProtector,
 } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
@@ -23,6 +25,8 @@ interface Services {
   mlService: typeof mlService;
   audioService: typeof audioService;
   adaptiveLearningService: typeof adaptiveLearningService;
+  backupService: typeof backupService;
+  gestureDataProtector: typeof gestureDataProtector;
 }
 
 const ServicesContext = createContext<Services | null>(null);
@@ -120,7 +124,10 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     );
   }
 
-  const services = { mlService, audioService, adaptiveLearningService };
+  const services = useMemo(
+    () => ({ mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector }),
+    [],
+  );
 
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 };
