@@ -28,6 +28,8 @@ export class AdaptivePerformanceManager {
   private highThermal = 2; // >= Fair
   private battery: BatteryModule | null = null;
   private device: DeviceModule | null = null;
+  private frameInterval = 1000 / 8;
+  private lastFrameTime = 0;
 
   constructor(
     battery?: BatteryModule,
@@ -66,6 +68,16 @@ export class AdaptivePerformanceManager {
     const profile = await this.getProfile();
     targetFps.value = profile.fps;
     setLowPower(profile.lowPower);
+    this.frameInterval = 1000 / profile.fps;
+  }
+
+  shouldProcess(): boolean {
+    const now = Date.now();
+    if (now - this.lastFrameTime >= this.frameInterval) {
+      this.lastFrameTime = now;
+      return true;
+    }
+    return false;
   }
 }
 

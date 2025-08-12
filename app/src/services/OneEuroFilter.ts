@@ -1,9 +1,9 @@
 class LowPassFilter {
-  private y: number;
-  private s: number;
-  private initialized: boolean = false;
+  private y = 0;
+  private s = 0;
+  private initialized = false;
 
-  constructor(private readonly alpha: number) {}
+  constructor(private alpha: number) {}
 
   public filter(x: number): number {
     if (!this.initialized) {

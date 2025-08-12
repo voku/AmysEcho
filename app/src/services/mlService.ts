@@ -34,6 +34,8 @@ import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
 import { logInteractionEvent } from './analytics';
 import { ModelPerformanceMonitor } from './ModelPerformanceMonitor';
 import { CircuitBreaker } from './CircuitBreaker';
+import { OneEuroFilter } from './OneEuroFilter';
+import { recommendedBufferSize } from './MemoryOptimizer';
 
 class LandmarkSmoother {
   private filters: OneEuroFilter[][];
@@ -145,6 +147,7 @@ class MachineLearningService {
   private collectedSamples: ProcessedFrame[] = [];
   private readonly processingCooldown = 1000;
   private remoteTimeout = 400; // ms
+  private remoteRetryMs = 30_000;
   private _isCameraActive: boolean = true;
   private gestureBuffer: Array<{ label: string; confidence: number; timestamp: number }> = [];
   private smoothingWindow = 500; // ms
@@ -152,7 +155,11 @@ class MachineLearningService {
   private lastGestureTime = 0;
   private lastRecognizedGesture: string | null = null;
   private allowRemote = true;
-  private circuitBreaker = new CircuitBreaker();
+  private circuitBreaker: CircuitBreaker;
+
+  constructor() {
+    this.circuitBreaker = new CircuitBreaker(3, this.remoteRetryMs);
+  }
 
   get isCameraActive(): boolean {
     return this._isCameraActive;
@@ -256,6 +263,7 @@ class MachineLearningService {
       }
       if (config?.remoteRetryMs !== undefined) {
         this.remoteRetryMs = config.remoteRetryMs;
+        this.circuitBreaker = new CircuitBreaker(3, this.remoteRetryMs);
       }
 
       this.labels = labels;

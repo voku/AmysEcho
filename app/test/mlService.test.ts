@@ -247,5 +247,46 @@ describe('mlService', () => {
     const metrics = mlService.getPerfMetrics();
     expect(metrics.avgLatencyMs).toBeGreaterThanOrEqual(0);
   });
+
+  it('retries remote classification after cooldown', async () => {
+    const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+    const gestureTflite: any = { runSync: () => [[0.5, 0.5]] };
+
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['a', 'b'], {
+      remoteRetryMs: 10,
+      processingTimeout: 0,
+    });
+
+    const fetchMock = jest.fn().mockRejectedValue(new Error('network error'));
+    global.fetch = fetchMock as any;
+
+    const frame = {
+      landmarks: [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ],
+      width: 1,
+      height: 1,
+      timestamp: Date.now(),
+      predictions: [0.5, 0.5],
+    } as any;
+
+    const onResult = jest.fn();
+
+    await mlService.processFrameAsync(frame, onResult);
+    await mlService.processFrameAsync(frame, onResult);
+    await mlService.processFrameAsync(frame, onResult);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    await mlService.processFrameAsync(frame, onResult);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    await new Promise((r) => setTimeout(r, 15));
+
+    await mlService.processFrameAsync(frame, onResult);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
 });
 
