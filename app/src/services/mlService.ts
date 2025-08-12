@@ -33,30 +33,29 @@ import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
 import { logInteractionEvent } from './analytics';
 import { ModelPerformanceMonitor } from './ModelPerformanceMonitor';
-import { recommendedBufferSize } from './MemoryOptimizer';
+import { OneEuroFilter } from './OneEuroFilter';
 
 class LandmarkSmoother {
-  private history: number[][][] = [];
-  private readonly historySize = 5;
-  private readonly smoothingFactor = 0.3;
+  private filters: OneEuroFilter[][];
+  private lastTimestamp: number;
+
+  constructor() {
+    this.filters = Array(21)
+      .fill(0)
+      .map(() => Array(3).fill(new OneEuroFilter()));
+    this.lastTimestamp = -1;
+  }
 
   smooth(landmarks: number[][]): number[][] {
-    this.history.push(landmarks);
-    if (this.history.length > this.historySize) {
-      this.history.shift();
+    const now = Date.now();
+    if (this.lastTimestamp === -1) {
+      this.lastTimestamp = now;
     }
-    if (this.history.length === 1) {
-      return landmarks;
-    }
-    const prev = this.history[this.history.length - 2];
-    return landmarks.map((point, index) => {
-      const prevPoint = prev[index];
-      return [
-        prevPoint[0] + this.smoothingFactor * (point[0] - prevPoint[0]),
-        prevPoint[1] + this.smoothingFactor * (point[1] - prevPoint[1]),
-        prevPoint[2] + this.smoothingFactor * (point[2] - prevPoint[2]),
-      ];
+    const smoothed = landmarks.map((point, i) => {
+      return point.map((p, j) => this.filters[i][j].filter(p, now));
     });
+    this.lastTimestamp = now;
+    return smoothed;
   }
 }
 
