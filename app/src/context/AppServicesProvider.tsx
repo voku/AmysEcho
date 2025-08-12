@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState, useMemo } from 'react';
 import {
   audioService,
   backupService,
@@ -124,7 +124,10 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     );
   }
 
-  const services = { mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector };
+  const services = useMemo(
+    () => ({ mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector }),
+    [],
+  );
 
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 };

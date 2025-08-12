@@ -334,12 +334,12 @@ export default function AdminScreen({ navigation }: any) {
         accessibilityLabel="Symbole importieren"
       />
       <Button
-        title="Backup Gestures"
+        title="Gesten sichern"
         onPress={handleBackupGestures}
         accessibilityLabel="Gesten sichern"
       />
       <Button
-        title="Restore Gestures"
+        title="Gesten wiederherstellen"
         onPress={handleRestoreGestures}
         accessibilityLabel="Gesten wiederherstellen"
       />
