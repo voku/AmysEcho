@@ -6,6 +6,7 @@ describe('backupService', () => {
   let AsyncStorage: any;
   let FileSystem: any;
   let BACKUP_FILE_PATH: string;
+  let EXPORT_FILE_PATH: string;
 
   beforeEach(() => {
     jest.resetModules();
@@ -32,7 +33,9 @@ describe('backupService', () => {
     });
 
     backupService = require('../src/services/backupService').backupService;
-    BACKUP_FILE_PATH = require('../src/services/backupService').BACKUP_FILE_PATH;
+    const paths = require('../src/services/backupService');
+    BACKUP_FILE_PATH = paths.BACKUP_FILE_PATH;
+    EXPORT_FILE_PATH = paths.EXPORT_FILE_PATH;
     gestureDataProtector = require('../src/services/dataProtection').gestureDataProtector;
   });
 
@@ -72,5 +75,21 @@ describe('backupService', () => {
     const restored = await backupService.restoreProtectedGestures();
     expect(restored).toBe(false);
     expect(await AsyncStorage.getItem('protectedGestures')).toBeNull();
+  });
+
+  it('exports decrypted gestures', async () => {
+    await gestureDataProtector.storeGesture({
+      gestureClass: 'hi',
+      confidence: 0.8,
+      timestamp: Date.now(),
+      sessionId: 'xyz',
+    });
+
+    const path = await backupService.exportProtectedGestures();
+    expect(path).toBe(EXPORT_FILE_PATH);
+    const content = await FileSystem.readAsStringAsync(EXPORT_FILE_PATH);
+    const parsed = JSON.parse(content);
+    expect(parsed.length).toBe(1);
+    expect(parsed[0].gestureClass).toBe('hi');
   });
 });

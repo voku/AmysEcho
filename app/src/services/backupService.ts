@@ -3,8 +3,10 @@ import * as FileSystem from 'expo-file-system';
 import * as SecureStore from 'expo-secure-store';
 import CryptoJS from 'crypto-js';
 import { logger } from '../utils/logger';
+import { gestureDataProtector } from './dataProtection';
 
 const BACKUP_FILE = `${FileSystem.documentDirectory}protectedGesturesBackup.json`;
+const EXPORT_FILE = `${FileSystem.documentDirectory}protectedGesturesExport.json`;
 const PROTECTED_GESTURES_KEY = 'protectedGestures';
 const BACKUP_KEY_ID = 'protectedGesturesBackupKey';
 
@@ -98,6 +100,52 @@ export const backupService = {
       return false;
     }
   },
+
+  async exportProtectedGestures(): Promise<string | null> {
+    try {
+      const raw = await AsyncStorage.getItem(PROTECTED_GESTURES_KEY);
+      if (!raw) {
+        logger.info('No protected gesture data to export.');
+        return null;
+      }
+
+      let records: unknown;
+      try {
+        records = JSON.parse(raw);
+      } catch (parseError) {
+        logger.error('Invalid JSON data found, cannot export', parseError);
+        throw new Error('Cannot export corrupted data');
+      }
+      if (!Array.isArray(records)) {
+        logger.error('Invalid data structure for export');
+        throw new Error('Cannot export corrupted data');
+      }
+
+      const decrypted: any[] = [];
+      for (const r of records as any[]) {
+        if (typeof r.data === 'string') {
+          try {
+            const g = await gestureDataProtector.decryptGesture(r.data);
+            decrypted.push(g);
+          } catch (err) {
+            logger.error('Failed to decrypt gesture for export', err);
+          }
+        }
+      }
+
+      await FileSystem.writeAsStringAsync(
+        EXPORT_FILE,
+        JSON.stringify(decrypted, null, 2),
+        { encoding: FileSystem.EncodingType.UTF8 },
+      );
+      logger.info(`Export created at ${EXPORT_FILE}`);
+      return EXPORT_FILE;
+    } catch (error) {
+      logger.error('Error exporting gestures', error);
+      throw error;
+    }
+  },
 };
 
 export const BACKUP_FILE_PATH = BACKUP_FILE;
+export const EXPORT_FILE_PATH = EXPORT_FILE;

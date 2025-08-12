@@ -312,7 +312,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 - [ ] **Data Management**
   - [x] Implement secure data backup/restore
   - Add GDPR compliance features
-  - Create data export functionality
+  - [x] Create data export functionality
   - Test data migration scenarios
   - [x] Protect gesture data
     - Implement `GestureDataProtector` for anonymization and AES encryption.
