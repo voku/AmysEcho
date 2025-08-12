@@ -280,6 +280,23 @@ export const persistProfile = async (
   await saveDatabase(db, filePath);
 };
 
+export const getProfileData = (db: Database, profileId: string) => ({
+  profile: db.profiles.find((p) => p.id === profileId) || null,
+  usageStats: db.usageStats.filter((u) => u.profileId === profileId),
+  corrections: db.corrections.filter((c) => c.profileId === profileId),
+});
+
+export const deleteProfileData = async (
+  db: Database,
+  profileId: string,
+  filePath: string,
+): Promise<void> => {
+  db.profiles = db.profiles.filter((p) => p.id !== profileId);
+  db.usageStats = db.usageStats.filter((u) => u.profileId !== profileId);
+  db.corrections = db.corrections.filter((c) => c.profileId !== profileId);
+  await saveDatabase(db, filePath);
+};
+
 export const logCorrection = (
   db: Database,
   predictedGestureId: string,

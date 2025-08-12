@@ -46,3 +46,10 @@ The performance budget for the gesture recognition pipeline is as follows:
 
 These are target values and should be validated on real devices.
 
+Runtime enforcement of this budget is handled by the `AdaptivePerformanceManager` in `app/src/services/AdaptivePerformanceManager.ts`, which dynamically lowers frame rate and model complexity when battery levels are low or device thermal state rises.
+
+## 9. Data Privacy & Profile Management
+- All persistent data lives in `server/db.json`
+- `GET /api/profiles/:id/export` returns a profile's stored data as JSON
+- `DELETE /api/profiles/:id` removes a profile and associated usage/correction records to honor caregiver deletion requests
+
