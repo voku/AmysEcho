@@ -9,13 +9,13 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 1. [x] Integrate `vision-camera-resize-plugin` for zero-copy frame resizing and color conversion.
 2. [x] Verify `extractHandLandmarks` uses the plugin and returns valid coordinates; add temporary logging inside the worklet.
-3. [ ] Restore gesture classification pipeline:
+3. [x] Restore gesture classification pipeline:
    - ensure `classifyGesture` consumes the flattened landmark buffer.
    - confirm `mlService.processFrameAsync` sends results back to JS.
-4. [ ] Fix hand landmark overlay on `RecognitionScreen`:
+4. [x] Fix hand landmark overlay on `RecognitionScreen`:
    - ensure `landmarks` array flows to the overlay with proper scaling.
    - add a debug toggle to display raw landmarks.
-5. [ ] Regression and stability checks:
+5. [x] Regression and stability checks:
    - exercise both online and offline recognition paths within the 400 ms timeout.
    - run `integration/offlineFallback.spec.ts` and `integration/offlineBoot.spec.ts`.
 
@@ -26,10 +26,10 @@ The project has a stable foundation after a major refactor. The database, naviga
 - ✅ Backpressure: single in-flight inference; JS callbacks only on state change.
 - ✅ One-time TFLite load; no per-frame allocations.
 - ✅ Bounded, PII-free telemetry buffer; perf budget test.
- - [ ] Move resize/convert into a VisionCamera frame processor plugin for zero-copy via `vision-camera-resize-plugin`.
+ - [x] Move resize/convert into a VisionCamera frame processor plugin for zero-copy via `vision-camera-resize-plugin`.
  - ✅ Metro bundler configured to load `.tflite` and MediaPipe `.task` model assets via `app/metro.config.js`.
- - [ ] Register `vision-camera-resize-plugin` in `app/metro.config.js`.
- - [ ] Replace inference stub with plugin-backed implementation in `app/src/services/mlService.ts`.
+ - [x] Register `vision-camera-resize-plugin` in `app/metro.config.js`.
+ - [x] Replace inference stub with plugin-backed implementation in `app/src/services/mlService.ts`.
 
 ## 🔁 Enhancements & Extensions
 
