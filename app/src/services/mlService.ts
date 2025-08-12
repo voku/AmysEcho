@@ -85,33 +85,39 @@ const createRunOnJS = Worklets?.createRunOnJS ? Worklets.createRunOnJS : ((fn: a
 
 class ModelManager {
   private tfliteModel: TensorflowModel | null = null;
-  private isInferenceRunning = false;
-  private lastPrediction: number[] = [];
+  private inferenceQueue: number[][] = [];
+  private isInferring = false;
 
   setModel(model: TensorflowModel | null): void {
     this.tfliteModel = model;
   }
 
-  getLastPrediction(): number[] {
-    return this.lastPrediction;
+  async runInference(inputTensor: number[]): Promise<number[]> {
+    return new Promise((resolve) => {
+      this.inferenceQueue.push(inputTensor);
+      this.processQueue(resolve);
+    });
   }
 
-  async runInference(inputTensor: number[]): Promise<number[]> {
-    if (!this.tfliteModel) {
-      throw new Error('Model not loaded');
+  private async processQueue(resolve: (result: number[]) => void) {
+    if (this.isInferring || this.inferenceQueue.length === 0) {
+      return;
     }
-    if (this.isInferenceRunning) {
-      return this.lastPrediction;
-    }
-    this.isInferenceRunning = true;
+    this.isInferring = true;
+    const inputTensor = this.inferenceQueue.shift()!;
     try {
+      if (!this.tfliteModel) {
+        throw new Error('Model not loaded');
+      }
       const output = (this.tfliteModel.runSync([inputTensor as any]) as any[])[0] as number[];
-      this.lastPrediction = output;
-      return output;
+      resolve(output);
+    } catch (error) {
+      logger.error('Inference failed:', error);
+      resolve([]);
     } finally {
-      this.isInferenceRunning = false;
-      if ((globalThis as any).gc) {
-        (globalThis as any).gc();
+      this.isInferring = false;
+      if (this.inferenceQueue.length > 0) {
+        this.processQueue(resolve);
       }
     }
   }
@@ -119,7 +125,7 @@ class ModelManager {
   dispose(): void {
     (this.tfliteModel as any)?.close?.();
     this.tfliteModel = null;
-    this.lastPrediction = [];
+    this.inferenceQueue = [];
   }
 }
 
