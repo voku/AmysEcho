@@ -331,8 +331,11 @@ class MachineLearningService {
         logger.debug('Remote classification failed, using local fallback');
         this.handleRemoteFailure();
         try {
-          const tensor = this.prepareTensorInput(processed);
-          const predictions = await this.modelManager.runInference(tensor);
+          const predictions =
+            processed.predictions ??
+            (await this.modelManager.runInference(
+              this.prepareTensorInput(processed),
+            ));
           const { gesture, confidence } = this.processModelOutput(predictions);
           const suggestions = this.getTopPredictions(predictions, 3);
 
@@ -353,8 +356,11 @@ class MachineLearningService {
 
     if (!result) {
       try {
-        const tensor = this.prepareTensorInput(processed);
-        const predictions = await this.modelManager.runInference(tensor);
+        const predictions =
+          processed.predictions ??
+          (await this.modelManager.runInference(
+            this.prepareTensorInput(processed),
+          ));
         const { gesture, confidence } = this.processModelOutput(predictions);
         const suggestions = this.getTopPredictions(predictions, 3);
 
