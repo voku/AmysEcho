@@ -1,6 +1,7 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import {
   audioService,
+  backupService,
   checkForModelUpdate,
   mlService,
   syncService,
@@ -23,6 +24,7 @@ interface Services {
   mlService: typeof mlService;
   audioService: typeof audioService;
   adaptiveLearningService: typeof adaptiveLearningService;
+  backupService: typeof backupService;
 }
 
 const ServicesContext = createContext<Services | null>(null);
@@ -120,7 +122,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     );
   }
 
-  const services = { mlService, audioService, adaptiveLearningService };
+  const services = { mlService, audioService, adaptiveLearningService, backupService };
 
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 };

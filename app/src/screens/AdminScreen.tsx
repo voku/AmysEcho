@@ -19,7 +19,7 @@ import {
 import * as FileSystem from 'expo-file-system';
 import { API_URL } from '../constants';
 import { database } from '../../db';
-import { audioService } from '../services/audioService';
+import { useServices } from '../context/AppServicesProvider';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
 import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
@@ -29,6 +29,7 @@ import { logger } from '../utils/logger';
 const SYMBOL_EXPORT_PATH = `${FileSystem.documentDirectory || ''}symbols-export.json`;
 
 export default function AdminScreen({ navigation }: any) {
+  const { audioService, backupService } = useServices();
   const [symbols, setSymbols] = useState<DBSymbol[]>([]);
   const [editing, setEditing] = useState<DBSymbol | null>(null);
   const [label, setLabel] = useState('');
@@ -222,6 +223,32 @@ export default function AdminScreen({ navigation }: any) {
     }
   };
 
+  const handleBackupGestures = async () => {
+    try {
+      const path = await backupService.backupProtectedGestures();
+      if (path) {
+        Alert.alert('Backup complete', `Saved to ${path}`);
+      } else {
+        Alert.alert('No data to backup');
+      }
+    } catch (e) {
+      Alert.alert('Backup failed', (e as Error).message || 'Unknown error');
+    }
+  };
+
+  const handleRestoreGestures = async () => {
+    try {
+      const ok = await backupService.restoreProtectedGestures();
+      if (ok) {
+        Alert.alert('Restore complete');
+      } else {
+        Alert.alert('No backup found');
+      }
+    } catch (e) {
+      Alert.alert('Restore failed', (e as Error).message || 'Unknown error');
+    }
+  };
+
   const handleDelete = (sym: DBSymbol) => {
     Alert.alert('Symbol löschen', `"${sym.name}" wirklich entfernen?`, [
       { text: 'Abbrechen', style: 'cancel' },
@@ -305,6 +332,16 @@ export default function AdminScreen({ navigation }: any) {
         title="Import Symbols"
         onPress={handleImportSymbols}
         accessibilityLabel="Symbole importieren"
+      />
+      <Button
+        title="Backup Gestures"
+        onPress={handleBackupGestures}
+        accessibilityLabel="Gesten sichern"
+      />
+      <Button
+        title="Restore Gestures"
+        onPress={handleRestoreGestures}
+        accessibilityLabel="Gesten wiederherstellen"
       />
       <Button title="Add Symbol" onPress={openAdd} accessibilityLabel="Symbol hinzufügen" />
       <Button
