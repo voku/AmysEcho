@@ -355,7 +355,12 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
   trainingJobs.set(id, job);
 
   // Start background job
-  const script = path.join(__dirname, 'train.py');
+  const script = path.join(
+    __dirname,
+    '..',
+    'src',
+    process.env.TRAIN_SCRIPT ?? 'train.py'
+  );
   const child = spawn('python3', [script, tmp], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });

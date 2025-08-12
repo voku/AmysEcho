@@ -225,17 +225,17 @@ The project has a stable foundation after a major refactor. The database, naviga
   - [x] Add request logging and monitoring
   - [x] Test API security and performance
 
-- [ ] **Model Training Pipeline**
-  - Create model training endpoint for landmark data
-  - Implement LSTM gesture model training
-  - Add training progress monitoring
-  - Test model accuracy improvements
+- [x] **Model Training Pipeline**
+  - [x] Create model training endpoint for landmark data
+  - [x] Implement LSTM gesture model training
+  - [x] Add training progress monitoring
+  - [x] Test model accuracy improvements
 
-- [ ] **Model Deployment System**
-  - Create model download endpoint
-  - Implement secure model distribution
-  - Add model activation in app
-  - Test model update workflow
+- [x] **Model Deployment System**
+  - [x] Create model download endpoint
+  - [x] Implement secure model distribution
+  - [x] Add model activation in app
+  - [x] Test model update workflow
 
 - [x] **Portal Completion** _(see `integration/test/portal.test.js`)_
   - Implement review and approval routes in `server/src/portal`
