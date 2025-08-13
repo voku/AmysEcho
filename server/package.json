@@ -8,14 +8,13 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@types/express": "5.0.3",
-    "@types/node": "24.1.0",
     "express": "5.0.0",
-    "express-rate-limit": "6.7.0",
-    "node-fetch": "3.3.2"
+    "express-rate-limit": "6.7.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/express": "5.0.3",
+    "@types/node": "24.1.0",
     "jest": "^30.0.5",
     "ts-jest": "^29.4.1",
     "ts-node": "10.9.2",
@@ -28,5 +27,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "download-models": "ts-node src/tools/downloadModels.ts"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

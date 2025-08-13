@@ -18,7 +18,7 @@ async function autoRetrain(dbPath: string) {
   const tmp = path.join(process.cwd(), 'tmp_training_data.json');
   await fs.writeFile(tmp, JSON.stringify(trainingData));
 
-  const script = path.join(__dirname, '../train.py');
+  const script = process.env.TRAIN_SCRIPT ?? path.join(__dirname, '../train.py');
   const child = spawn('python3', [script, tmp], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -37,6 +37,15 @@ async function autoRetrain(dbPath: string) {
   });
 }
 
-const dbPath = process.argv[2] || path.join(__dirname, '../db.json');
-// fire and forget
-autoRetrain(dbPath);
+// determine where our database JSON lives
+const dbPath =
+  process.argv[2] ??
+  process.env.DB_PATH ??
+  path.resolve(process.cwd(), 'db.json');
+
+// run retraining asynchronously, but avoid unhandled rejections
+// fire-and-forget with error handling
+void autoRetrain(dbPath).catch((err) => {
+  console.error('autoRetrain failed:', err);
+  process.exitCode = 1;
+});
