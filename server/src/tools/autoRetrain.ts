@@ -2,6 +2,7 @@ import { loadDatabase } from '../db';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
+import os from 'os';
 
 async function autoRetrain(dbPath: string) {
   const db = await loadDatabase(dbPath);
@@ -15,25 +16,53 @@ async function autoRetrain(dbPath: string) {
     return;
   }
 
-  const tmp = path.join(process.cwd(), 'tmp_training_data.json');
+  const tmp = path.join(
+    os.tmpdir(),
+    `tmp_training_data.${process.pid}.${Date.now()}.json`
+  );
   await fs.writeFile(tmp, JSON.stringify(trainingData));
 
-  const script = process.env.TRAIN_SCRIPT ?? path.join(__dirname, '../train.py');
-  const child = spawn('python3', [script, tmp], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const scriptEnv = process.env.TRAIN_SCRIPT;
+  const script = scriptEnv
+    ? path.isAbsolute(scriptEnv)
+      ? scriptEnv
+      : path.resolve(__dirname, scriptEnv)
+    : path.join(__dirname, '../train.py');
 
-  child.stdout.on('data', (data) => {
-    console.log(`stdout: ${data}`);
-  });
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn('python3', [script, tmp], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
 
-  child.stderr.on('data', (data) => {
-    console.error(`stderr: ${data}`);
-  });
+    child.stdout.on('data', (data) => {
+      console.log(`stdout: ${data.toString()}`);
+    });
 
-  child.on('close', (code) => {
-    console.log(`child process exited with code ${code}`);
-    fs.unlink(tmp);
+    child.stderr.on('data', (data) => {
+      console.error(`stderr: ${data.toString()}`);
+    });
+
+    child.on('error', (err) => {
+      fs.unlink(tmp).catch((unlinkErr) =>
+        console.error(`Failed to delete temp file on error: ${unlinkErr}`)
+      );
+      reject(err);
+    });
+
+    child.on('close', (code) => {
+      console.log(`child process exited with code ${code}`);
+      fs.unlink(tmp)
+        .catch((err) =>
+          console.error(`Failed to delete temp file ${tmp}:`, err)
+        )
+        .finally(() => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Training script exited with code ${code}`));
+          }
+        });
+    });
   });
 }
 
