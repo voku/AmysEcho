@@ -8,8 +8,8 @@
       "overridden": false
     },
     "@types/jest": {
-      "version": "30.0.0",
-      "resolved": "https://registry.npmjs.org/@types/jest/-/jest-30.0.0.tgz",
+      "version": "29.5.14",
+      "resolved": "https://registry.npmjs.org/@types/jest/-/jest-29.5.14.tgz",
       "overridden": false
     },
     "@types/node": {
@@ -28,8 +28,8 @@
       "overridden": false
     },
     "jest": {
-      "version": "30.0.5",
-      "resolved": "https://registry.npmjs.org/jest/-/jest-30.0.5.tgz",
+      "version": "29.7.0",
+      "resolved": "https://registry.npmjs.org/jest/-/jest-29.7.0.tgz",
       "overridden": false
     },
     "ts-jest": {
