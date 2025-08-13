@@ -398,6 +398,7 @@ class MachineLearningService {
     if (result) {
       const smoothed = this.applyGestureSmoothing(result);
       if (!smoothed) {
+        this.perfMonitor.recordDroppedFrame();
         onResult(null);
         return;
       }
@@ -411,6 +412,7 @@ class MachineLearningService {
         confidence: result.confidence,
         requiresConfirmation: result.requiresConfirmation,
         latencyMs: processingTime,
+        inferenceType: result.isLocal ? 'local' : 'cloud',
       });
       if (this.perfMonitor.isDegraded()) {
         logger.warn('Model performance degraded', this.perfMonitor.metrics());
@@ -426,6 +428,7 @@ class MachineLearningService {
       return;
     }
 
+    this.perfMonitor.recordDroppedFrame();
     onResult(null);
   }
 
