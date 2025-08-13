@@ -249,6 +249,9 @@ describe('mlService', () => {
   });
 
   it('retries remote classification after cooldown', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+
     const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
     const gestureTflite: any = { runSync: () => [[0.5, 0.5]] };
 
@@ -283,10 +286,13 @@ describe('mlService', () => {
     await mlService.processFrameAsync(frame, onResult);
     expect(fetchMock).toHaveBeenCalledTimes(3);
 
-    await new Promise((r) => setTimeout(r, 15));
+    jest.setSystemTime(new Date(Date.now() + 15));
+    jest.advanceTimersByTime(15);
 
     await mlService.processFrameAsync(frame, onResult);
     expect(fetchMock).toHaveBeenCalledTimes(4);
+
+    jest.useRealTimers();
   });
 });
 

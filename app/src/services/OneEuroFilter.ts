@@ -12,6 +12,7 @@ class LowPassFilter {
       this.initialized = true;
     } else {
       this.s = this.alpha * x + (1 - this.alpha) * this.s;
+      this.y = x;
     }
     return this.s;
   }

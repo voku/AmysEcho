@@ -1,13 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-
-const src = fs.readFileSync(
-  path.join(__dirname, '../src/services/HybridRecognizer.ts'),
-  'utf8',
-);
-const match = src.match(/HYBRID_DEFAULTS\s*=\s*({[\s\S]*?})/);
-// eslint-disable-next-line no-eval
-const HYBRID_DEFAULTS = match ? eval('(' + match[1] + ')') : {};
+import { HYBRID_DEFAULTS } from '../src/services/hybridDefaults';
 
 describe('HYBRID_DEFAULTS', () => {
   it('matches plan thresholds and timeouts', () => {

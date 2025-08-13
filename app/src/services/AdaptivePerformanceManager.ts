@@ -68,7 +68,8 @@ export class AdaptivePerformanceManager {
     const profile = await this.getProfile();
     targetFps.value = profile.fps;
     setLowPower(profile.lowPower);
-    this.frameInterval = 1000 / profile.fps;
+    this.frameInterval =
+      profile.fps > 0 ? 1000 / profile.fps : Number.POSITIVE_INFINITY;
   }
 
   shouldProcess(): boolean {

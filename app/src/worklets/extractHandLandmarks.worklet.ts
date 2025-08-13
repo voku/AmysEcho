@@ -17,13 +17,17 @@ export function extractHandLandmarks(frame: Frame): Float32Array | null {
   'worklet';
   const W = 224; // adjust to your model input
   const H = 224;
+  try {
+    // 1) YUV->RGB + resize (native)
+    const rgb = __VISION_RESIZE__(frame, W, H);
+    if (!rgb || rgb.length !== W * H * 3) return null;
 
-  // 1) YUV->RGB + resize (native)
-  const rgb = __VISION_RESIZE__(frame, W, H);
-  if (!rgb || rgb.length !== W * H * 3) return null;
-
-  // 2) Landmark inference (native)
-  const out = __RUN_HAND_LANDMARKER__(rgb, W, H) as Float32Array | null;
-  if (!out || out.length !== 63) return null;
-  return out;
+    // 2) Landmark inference (native)
+    const out = __RUN_HAND_LANDMARKER__(rgb, W, H) as Float32Array | null;
+    if (!out || out.length !== 63) return null;
+    return out;
+  } catch (_e) {
+    // Fail closed in the worklet to avoid dropping frames
+    return null;
+  }
 }

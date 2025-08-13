@@ -150,6 +150,7 @@ class MachineLearningService {
   private readonly processingCooldown = 1000;
   private remoteTimeout = 400; // ms
   private remoteRetryMs = 30_000;
+  private readonly remoteFailureThreshold = 3;
   private _isCameraActive: boolean = true;
   private gestureBuffer: Array<{ label: string; confidence: number; timestamp: number }> = [];
   private smoothingWindow = 500; // ms
@@ -160,7 +161,10 @@ class MachineLearningService {
   private circuitBreaker: CircuitBreaker;
 
   constructor() {
-    this.circuitBreaker = new CircuitBreaker(3, this.remoteRetryMs);
+    this.circuitBreaker = new CircuitBreaker(
+      this.remoteFailureThreshold,
+      this.remoteRetryMs,
+    );
   }
 
   get isCameraActive(): boolean {
@@ -265,7 +269,10 @@ class MachineLearningService {
       }
       if (config?.remoteRetryMs !== undefined) {
         this.remoteRetryMs = config.remoteRetryMs;
-        this.circuitBreaker = new CircuitBreaker(3, this.remoteRetryMs);
+        this.circuitBreaker = new CircuitBreaker(
+          this.remoteFailureThreshold,
+          this.remoteRetryMs,
+        );
       }
 
       this.labels = labels;
