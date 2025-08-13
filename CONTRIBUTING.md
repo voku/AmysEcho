@@ -17,7 +17,7 @@ Thanks for your interest in improving Amy's Echo! This project supports one chil
    npm test --prefix server
    npm test --prefix integration
    ```
-   Or run `./scripts/full-check.sh` from the repo root to execute all of the above.
+   Or run `./scripts/full-check.sh` from the repo root to execute all of the above, including Expo dependency checks.
 3. Update `docs/TODO.md` when completing a task from the action plan.
 4. Submit a pull request with a clear description of the change and its motivation.
 

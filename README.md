@@ -186,10 +186,10 @@ This uses `eas.json` and requires credentials configured with Expo. If you run t
    npm run type-check --prefix app
    npm test --prefix app
    pip install -r server/requirements.txt
-   npm test --prefix server
-   ```
+npm test --prefix server
+```
 
-   You can also execute `./scripts/full-check.sh` from the repo root to run all checks at once.
+   You can also execute `./scripts/full-check.sh` from the repo root to run all checks at once, including Expo dependency checks.
 
 For more detailed build and testing instructions, see [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
 
