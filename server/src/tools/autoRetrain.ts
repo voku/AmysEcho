@@ -1,10 +1,10 @@
-import { loadDatabase, Database } from '../db';
+import { loadDatabase } from '../db';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
 
-async function autoRetrain() {
-  const db = await loadDatabase();
+async function autoRetrain(dbPath: string) {
+  const db = await loadDatabase(dbPath);
   const corrections = db.corrections;
   const negativeSamples = db.negativeSamples;
 
@@ -37,4 +37,6 @@ async function autoRetrain() {
   });
 }
 
-autoRetrain();
+const dbPath = process.argv[2] || path.join(__dirname, '../db.json');
+// fire and forget
+autoRetrain(dbPath);
