@@ -301,6 +301,7 @@ export default function RecognitionScreen({ navigation }: any) {
         label: result?.label ?? 'uncertain',
         confidence: result?.confidence ?? 0,
         requiresConfirmation: result?.requiresConfirmation ?? true,
+        inferenceType: result?.isLocal ? 'local' : 'cloud',
       });
       setShowPerfBanner(perfMonitorRef.current.isDegraded());
     } catch {}
