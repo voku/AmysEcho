@@ -8,18 +8,22 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@types/express": "5.0.3",
+    "@types/node": "24.1.0",
     "express": "5.0.0",
     "express-rate-limit": "6.7.0",
-    "node-fetch": "3.3.2",
-    "@types/express": "5.0.3",
-    "@types/node": "24.1.0"
+    "node-fetch": "3.3.2"
   },
   "devDependencies": {
-    "typescript": "5.8.3",
-    "ts-node": "10.9.2"
+    "@types/jest": "^30.0.0",
+    "jest": "^30.0.5",
+    "ts-jest": "^29.4.1",
+    "ts-node": "10.9.2",
+    "typescript": "5.8.3"
   },
   "scripts": {
-    "test": "pytest -q",
+    "test": "jest",
+    "test:py": "pytest -q",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "build": "tsc",
     "start": "node dist/server.js",
