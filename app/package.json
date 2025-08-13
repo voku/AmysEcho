@@ -50,7 +50,9 @@
     "react-native-svg": "^15.11.2",
     "react-native-vision-camera": "4.7.1",
     "react-native-worklets-core": "1.6.0",
-    "vision-camera-resize-plugin": "3.2.0"
+    "vision-camera-resize-plugin": "3.2.0",
+    "expo-battery": "~9.1.4",
+    "expo-device": "~7.1.4"
   },
   "devDependencies": {
     "@babel/core": "7.28.0",
