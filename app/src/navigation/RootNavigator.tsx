@@ -12,27 +12,21 @@ const lazyScreen = (
     factory as () => Promise<{ default: React.ComponentType<any> }>,
   );
 
-const OnboardingScreen = lazyScreen(() => import('../screens/OnboardingScreen.js'));
-const GestureTutorialScreen = lazyScreen(
-  () => import('../screens/GestureTutorialScreen.js'),
-);
-const ProfileSelectScreen = lazyScreen(() => import('../screens/ProfileSelectScreen.js'));
-const RecognitionScreen = lazyScreen(() => import('../screens/RecognitionScreen.js'));
-const CorrectionScreen = lazyScreen(() => import('../screens/CorrectionScreen.js'));
-const PracticeScreen = lazyScreen(() => import('../screens/PracticeScreen.js'));
-const TeachScreen = lazyScreen(() => import('../screens/TeachScreen.js'));
-const TrainingScreen = lazyScreen(() => import('../screens/TrainingScreen.js'));
-const ParentScreen = lazyScreen(() => import('../screens/ParentScreen.js'));
-const ProfileManagerScreen = lazyScreen(
-  () => import('../screens/ProfileManagerScreen.js'),
-);
-const ParentalGateScreen = lazyScreen(
-  () => import('../screens/ParentalGateScreen.js'),
-);
-const AdminScreen = lazyScreen(() => import('../screens/AdminScreen.js'));
-const DashboardScreen = lazyScreen(() => import('../screens/DashboardScreen.js'));
-const HelpScreen = lazyScreen(() => import('../screens/HelpScreen.js'));
-const ProgressScreen = lazyScreen(() => import('../screens/ProgressScreen.js'));
+const OnboardingScreen = lazyScreen(() => import('../screens/OnboardingScreen'));
+const GestureTutorialScreen = lazyScreen(() => import('../screens/GestureTutorialScreen'));
+const ProfileSelectScreen = lazyScreen(() => import('../screens/ProfileSelectScreen'));
+const RecognitionScreen = lazyScreen(() => import('../screens/RecognitionScreen'));
+const CorrectionScreen = lazyScreen(() => import('../screens/CorrectionScreen'));
+const PracticeScreen = lazyScreen(() => import('../screens/PracticeScreen'));
+const TeachScreen = lazyScreen(() => import('../screens/TeachScreen'));
+const TrainingScreen = lazyScreen(() => import('../screens/TrainingScreen'));
+const ParentScreen = lazyScreen(() => import('../screens/ParentScreen'));
+const ProfileManagerScreen = lazyScreen(() => import('../screens/ProfileManagerScreen'));
+const ParentalGateScreen = lazyScreen(() => import('../screens/ParentalGateScreen'));
+const AdminScreen = lazyScreen(() => import('../screens/AdminScreen'));
+const DashboardScreen = lazyScreen(() => import('../screens/DashboardScreen'));
+const HelpScreen = lazyScreen(() => import('../screens/HelpScreen'));
+const ProgressScreen = lazyScreen(() => import('../screens/ProgressScreen'));
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
