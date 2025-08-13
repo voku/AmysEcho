@@ -47,7 +47,6 @@ export class ModelPerformanceMonitor {
     this.window.push(e);
     if (this.window.length > this.maxWindow) {
       this.window.shift();
-      this.latencies.shift();
     }
     if (typeof e.latencyMs === 'number') {
       this.latencies.push(e.latencyMs);

@@ -55,4 +55,17 @@ describe('ModelPerformanceMonitor', () => {
     expect(metrics.localVsCloudRatio).toBeCloseTo(0.5);
     expect(() => JSON.parse(m.export())).not.toThrow();
   });
+
+  test('ignores missing latencies when computing median', () => {
+    const m = new ModelPerformanceMonitor(3);
+    m.add({ t: 0, label: 'ok', confidence: 0.9, latencyMs: 10, inferenceType: 'local' });
+    m.add({ t: 1, label: 'ok', confidence: 0.9, latencyMs: 20, inferenceType: 'local' });
+    m.add({ t: 2, label: 'ok', confidence: 0.9, latencyMs: 30, inferenceType: 'local' });
+    // event without latency should not desync the sliding window
+    m.add({ t: 3, label: 'ok', confidence: 0.9, inferenceType: 'local' });
+    // adding a new latency should drop the oldest latency value only once
+    m.add({ t: 4, label: 'ok', confidence: 0.9, latencyMs: 40, inferenceType: 'local' });
+    const metrics = m.metrics();
+    expect(metrics.medianLatencyMs).toBe(30); // median of [20,30,40]
+  });
 });
