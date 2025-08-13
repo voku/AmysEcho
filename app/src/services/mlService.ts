@@ -14,7 +14,9 @@ async function getFileSystem() {
   return FileSystem;
 }
 import { useHandLandmarkExtractor, setHandLandmarkModel, extractHandLandmarks } from './landmarkExtractor';
-import { extractHandLandmarksWorklet } from '../worklets/extractHandLandmarks.worklet';
+import {
+  extractHandLandmarks as extractHandLandmarksWorklet,
+} from '../worklets/extractHandLandmarks.worklet';
 import {
   classifyGesture,
   setGestureModel,
@@ -34,6 +36,8 @@ import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
 import { logInteractionEvent } from './analytics';
 import { ModelPerformanceMonitor } from './ModelPerformanceMonitor';
 import { CircuitBreaker } from './CircuitBreaker';
+import { OneEuroFilter } from './OneEuroFilter';
+import { recommendedBufferSize } from './MemoryOptimizer';
 
 class LandmarkSmoother {
   private filters: OneEuroFilter[][];
@@ -145,6 +149,8 @@ class MachineLearningService {
   private collectedSamples: ProcessedFrame[] = [];
   private readonly processingCooldown = 1000;
   private remoteTimeout = 400; // ms
+  private remoteRetryMs = 30_000;
+  private readonly remoteFailureThreshold = 3;
   private _isCameraActive: boolean = true;
   private gestureBuffer: Array<{ label: string; confidence: number; timestamp: number }> = [];
   private smoothingWindow = 500; // ms
@@ -152,7 +158,14 @@ class MachineLearningService {
   private lastGestureTime = 0;
   private lastRecognizedGesture: string | null = null;
   private allowRemote = true;
-  private circuitBreaker = new CircuitBreaker();
+  private circuitBreaker: CircuitBreaker;
+
+  constructor() {
+    this.circuitBreaker = new CircuitBreaker(
+      this.remoteFailureThreshold,
+      this.remoteRetryMs,
+    );
+  }
 
   get isCameraActive(): boolean {
     return this._isCameraActive;
@@ -256,6 +269,10 @@ class MachineLearningService {
       }
       if (config?.remoteRetryMs !== undefined) {
         this.remoteRetryMs = config.remoteRetryMs;
+        this.circuitBreaker = new CircuitBreaker(
+          this.remoteFailureThreshold,
+          this.remoteRetryMs,
+        );
       }
 
       this.labels = labels;

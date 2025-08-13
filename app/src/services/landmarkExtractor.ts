@@ -28,6 +28,9 @@ export function setHandLandmarkModel(model: TensorflowModel | null): void {
 const logErrorJS = Worklets?.createRunOnJS
   ? Worklets.createRunOnJS((m: string) => logger.error(m))
   : (m: string) => console.error(m);
+const logJS = Worklets?.createRunOnJS
+  ? Worklets.createRunOnJS((m: string) => logger.debug(m))
+  : (m: string) => console.log(m);
 let useResizePlugin: any = () => ({ resize: () => { throw new Error('resize plugin unavailable'); } });
 if ((globalThis as any).VisionCameraProxy) {
   try {
