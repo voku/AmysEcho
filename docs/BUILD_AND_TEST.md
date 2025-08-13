@@ -39,6 +39,17 @@ npm test --prefix integration
 
 The tests will build the server and exercise key endpoints. They are also executed by `./scripts/full-check.sh`.
 
+## Expo dependency checks
+
+Before attempting a native build, verify that your Expo packages match the installed SDK. The `./scripts/full-check.sh` helper now runs these checks automatically, but you can also execute them manually:
+
+```bash
+(cd app && npx expo install --check)
+(cd app && npx expo-doctor)
+```
+
+`expo install --check` ensures dependencies are aligned with the Expo SDK while `expo-doctor` validates the project configuration.
+
 ## Building APKs with EAS
 
 Amy's Echo relies on Expo's **EAS Build** service. Two build profiles are available in `app/eas.json`.
@@ -101,9 +112,9 @@ For store-ready binaries the recommended workflow is:
    ```
 Ensure you are logged in to Expo (`npx expo whoami`) or provide an `EXPO_TOKEN` when running in CI.
 
-Before building you can verify the local Expo setup:
+The Expo checks above are executed automatically by `./scripts/full-check.sh`, but you can rerun them manually when debugging build issues:
 
 ```bash
-npx expo install --check
-npx expo-doctor    # skips WatermelonDB packages via package.json
+(cd app && npx expo install --check)
+(cd app && npx expo-doctor)    # skips WatermelonDB packages via package.json
 ```

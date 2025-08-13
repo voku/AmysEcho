@@ -13,6 +13,7 @@ Critical packages
 Workflow
 1) Pin versions in `app/package.json` and `server/package.json` (no `^`, `~`, or `latest`).
 2) Run full checks: `./scripts/full-check.sh`.
+   - Runs Expo dependency checks (`expo install --check`, `expo-doctor`).
    - Produces `docs/deps/*.json` snapshots.
    - Runs `scripts/check-pins.js` to enforce pinning.
 3) Publish from tags only; avoid drift between CI environments.

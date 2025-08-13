@@ -19,6 +19,10 @@ install_node_modules app
 install_node_modules server
 install_node_modules integration
 
+# Verify Expo setup for the mobile app
+(cd app && npx expo install --check) || echo "expo install check failed" >&2
+(cd app && npx expo-doctor) || echo "expo doctor reported issues" >&2
+
 # Run type check and tests for the React Native app
 npm run type-check --prefix app
 npm test --prefix app

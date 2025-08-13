@@ -26,11 +26,13 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
     ```bash
     npm run type-check --prefix app
     npm test --prefix app
+    (cd app && npx expo install --check)
+    (cd app && npx expo-doctor)
     pip install -r server/requirements.txt
     npm test --prefix server
     npm test --prefix integration
     ```
-    You can also execute `./scripts/full-check.sh` from the repo root to run all of the above in one step.
+    You can also execute `./scripts/full-check.sh` from the repo root to run all of the above in one step, including the Expo checks.
 
 ## 3. Authoritative Document Map
 
