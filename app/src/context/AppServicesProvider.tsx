@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import {
   audioService,
   backupService,
@@ -11,7 +11,7 @@ import {
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
 import { Asset } from 'expo-asset';
-import {GESTURE_CLASSIFIER_MODEL, HAND_LANDMARKER_MODEL} from '../constants/modelPaths';
+import { GESTURE_CLASSIFIER_MODEL, HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 import { loadCustomModelUri } from '../storage';
 import {
   CONFIDENCE_THRESHOLD,
@@ -20,32 +20,22 @@ import {
   REMOTE_TIMEOUT_MS,
 } from '../constants';
 import { logger } from '../utils/logger';
+import { ServicesContext, type Services } from './ServicesContext';
 
-interface Services {
-  mlService: typeof mlService;
-  audioService: typeof audioService;
-  adaptiveLearningService: typeof adaptiveLearningService;
-  backupService: typeof backupService;
-  gestureDataProtector: typeof gestureDataProtector;
-}
-
-const ServicesContext = createContext<Services | null>(null);
 const gestureLabels = require('../../assets/models/gesture_labels.json');
-
-export const useServices = () => {
-  const context = useContext(ServicesContext);
-  if (!context) {
-    throw new Error('useServices must be used within an AppServicesProvider');
-  }
-  return context;
-};
 
 interface ProviderProps {
   children: ReactNode;
   offline?: boolean;
 }
 
-const services = { mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector };
+const services: Services = {
+  mlService,
+  audioService,
+  adaptiveLearningService,
+  backupService,
+  gestureDataProtector,
+};
 
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const [areServicesReady, setAreServicesReady] = useState(false);

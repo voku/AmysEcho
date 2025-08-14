@@ -1,10 +1,21 @@
-import React from 'react';
-import { mlService } from '../services/mlService';
-import { audioService } from '../services/audioService';
-import { adaptiveLearningService } from '../services/adaptiveLearningService';
+import React, { useContext } from 'react';
+import type { mlService, audioService, backupService, gestureDataProtector } from '../services';
+import type { adaptiveLearningService } from '../services/adaptiveLearningService';
 
-export const ServicesContext = React.createContext({
-  mlService,
-  audioService,
-  adaptiveLearningService,
-});
+export interface Services {
+  mlService: typeof mlService;
+  audioService: typeof audioService;
+  adaptiveLearningService: typeof adaptiveLearningService;
+  backupService: typeof backupService;
+  gestureDataProtector: typeof gestureDataProtector;
+}
+
+export const ServicesContext = React.createContext<Services | null>(null);
+
+export const useServices = () => {
+  const context = useContext(ServicesContext);
+  if (!context) {
+    throw new Error('useServices must be used within an AppServicesProvider');
+  }
+  return context;
+};

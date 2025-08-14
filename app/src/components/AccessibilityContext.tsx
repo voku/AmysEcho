@@ -9,11 +9,13 @@ export interface AccessibilityContextType extends AccessibilitySettings {
   update: (settings: Partial<AccessibilitySettings>) => void;
 }
 
-export const AccessibilityContext = createContext<AccessibilityContextType>({
+const defaultAccessibility: AccessibilityContextType = {
   largeText: false,
   highContrast: false,
   update: () => {},
-});
+};
+
+export const AccessibilityContext = createContext<AccessibilityContextType>(defaultAccessibility);
 
 export function useAccessibility(): AccessibilityContextType {
   return useContext(AccessibilityContext);
