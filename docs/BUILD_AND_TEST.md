@@ -54,6 +54,22 @@ Before attempting a native build, verify that your Expo packages match the insta
 
 Amy's Echo relies on Expo's **EAS Build** service. Two build profiles are available in `app/eas.json`.
 
+### Prerequisites
+
+Before kicking off any remote build:
+
+1. **Authenticate with Expo**
+   ```bash
+   npx expo login        # or set EXPO_TOKEN for CI usage
+   npx expo whoami       # verify you are logged in
+   ```
+2. **Verify the project configuration** (requires network access)
+   ```bash
+   (cd app && npx expo install --check)
+   (cd app && npx expo-doctor)
+   ```
+3. **Prepare for non-interactive logs** – prefix build commands with `CI=1` to disable spinners. If fingerprinting stalls, add `EAS_SKIP_AUTO_FINGERPRINT=1`.
+
 ### Development build (testing APK)
 
 Use this to produce a debuggable APK for internal testing:
@@ -68,7 +84,7 @@ Use this to produce a debuggable APK for internal testing:
    ```
 3. Trigger the remote build from the `app` directory:
    ```bash
-   npm run build:android-dev
+   CI=1 npm run build:android-dev
    ```
    The command prints a link where you can download the APK. You can also fetch the latest build later:
    ```bash
@@ -86,7 +102,7 @@ To sideload the full app without the Expo dev client:
 1. Ensure tests pass and native projects exist as above.
 2. Trigger a production build that outputs an APK instead of an Android App Bundle:
    ```bash
-   npm run build:android-apk
+   CI=1 npm run build:android-apk
    ```
    The resulting file contains the compiled JavaScript bundle and assets, so it can run without `expo start`.
 
@@ -104,7 +120,7 @@ For store-ready binaries the recommended workflow is:
    ```
 3. Trigger the remote build from the `app` directory:
    ```bash
-   npm run build:android
+   CI=1 npm run build:android
    ```
    The command prints a link where you can monitor progress. You can also query the latest build using:
    ```bash
