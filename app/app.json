@@ -23,7 +23,6 @@
       }
     },
     "plugins": [
-      ["expo-camera"],
       [
         "react-native-vision-camera",
         {
