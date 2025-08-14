@@ -14,7 +14,7 @@ import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 import { setHandLandmarkModel } from '../services/landmarkExtractor';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
-import ErrorMessage from '../components/ErrorMessage';
+import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 
 export default function TrainingScreen({ navigation, route }: any) {
@@ -36,6 +36,11 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [landmarks, setLandmarks] = useState<number[][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { setMessage } = useMessage();
+
+  useEffect(() => {
+    setMessage(error);
+  }, [error, setMessage]);
   const landmarkModel = useTensorflowModel(HAND_LANDMARKER_MODEL);
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
@@ -190,7 +195,6 @@ export default function TrainingScreen({ navigation, route }: any) {
             accessibilityLabel="Kameraberechtigung erteilen"
           />
         </View>
-        <ErrorMessage message={error} />
         {profile && <BottomNav active="training" profileId={profile.id} />}
       </SafeAreaView>
     );
@@ -286,7 +290,6 @@ export default function TrainingScreen({ navigation, route }: any) {
           />
         )}
       </View>
-      <ErrorMessage message={error} />
       {profile && <BottomNav active="training" profileId={profile.id} />}
     </SafeAreaView>
   );

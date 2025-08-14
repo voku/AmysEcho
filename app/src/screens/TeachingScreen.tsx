@@ -10,7 +10,7 @@ import { extractLandmarksFromImages } from '../services/landmarkExtractor';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
-import ErrorMessage from '../components/ErrorMessage';
+import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { syncTrainingData } from '../services';
 
@@ -28,6 +28,14 @@ export default function TeachingScreen({ navigation }: any) {
   const SAMPLES_NEEDED = 5;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { setMessage } = useMessage();
+
+  useEffect(() => {
+    setMessage(error);
+  }, [error, setMessage]);
+  useEffect(() => {
+    if (!device) setError('Camera not available');
+  }, [device]);
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
 
@@ -136,7 +144,6 @@ export default function TeachingScreen({ navigation }: any) {
     return (
       <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
-          <ErrorMessage message={error || 'Camera not available'} />
         </SafeAreaView>
       </LinearGradient>
     );
@@ -155,7 +162,6 @@ export default function TeachingScreen({ navigation }: any) {
             onPress={requestPermission}
             accessibilityLabel="Kameraberechtigung erteilen"
           />
-          <ErrorMessage message={error} />
         </SafeAreaView>
       </LinearGradient>
     );
@@ -231,7 +237,6 @@ export default function TeachingScreen({ navigation }: any) {
         onPress={() => navigation.goBack()}
         accessibilityLabel="Zurück"
       />
-      <ErrorMessage message={error} />
       {profile && <BottomNav active="training" profileId={profile.id} />}
     </SafeAreaView>
     </LinearGradient>
