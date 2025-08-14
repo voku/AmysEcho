@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import {
   audioService,
   backupService,
@@ -45,9 +45,10 @@ interface ProviderProps {
   offline?: boolean;
 }
 
+const services = { mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector };
+
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const [areServicesReady, setAreServicesReady] = useState(false);
-  
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -123,11 +124,6 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       </View>
     );
   }
-
-  const services = useMemo(
-    () => ({ mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector }),
-    [],
-  );
 
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 };
