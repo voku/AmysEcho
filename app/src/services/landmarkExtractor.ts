@@ -95,6 +95,28 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
   }
 }
 
+export function extractHandLandmarksFlat(frame: Frame): Float32Array | null {
+  'worklet';
+  if (!handModel) return null;
+  try {
+    const input = resizePlugin
+      ? resizePlugin.resize(frame, {
+          scale: { width: 192, height: 192 },
+          pixelFormat: 'rgb',
+          dataType: 'uint8',
+        })
+      : new Uint8Array(frame.toArrayBuffer());
+    const result = handModel.runSync([input]) as any[];
+    const landmarks = result[0] as number[][] | undefined;
+    if (!landmarks) return null;
+    const flat = Float32Array.from(landmarks.flat());
+    return flat.length === 63 ? flat : null;
+  } catch (e: any) {
+    logErrorJS(e.message);
+    return null;
+  }
+}
+
 async function loadHandModel(): Promise<void> {
   if (handModel) return;
   handModel = await loadTensorflowModel(HAND_LANDMARKER_MODEL);

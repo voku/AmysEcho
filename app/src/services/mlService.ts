@@ -13,10 +13,12 @@ async function getFileSystem() {
   }
   return FileSystem;
 }
-import { useHandLandmarkExtractor, setHandLandmarkModel, extractHandLandmarks } from './landmarkExtractor';
 import {
-  extractHandLandmarks as extractHandLandmarksWorklet,
-} from '../worklets/extractHandLandmarks.worklet';
+  useHandLandmarkExtractor,
+  setHandLandmarkModel,
+  extractHandLandmarksFlat as extractHandLandmarksWorklet,
+  extractHandLandmarks,
+} from './landmarkExtractor';
 import {
   classifyGesture,
   setGestureModel,
