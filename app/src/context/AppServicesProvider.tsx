@@ -99,7 +99,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       } catch (e) {
         logger.error('Failed to initialize services:', e);
         setInitError(
-          e instanceof Error ? e.message : 'Failed to initialize services',
+          'Failed to initialize services. Please check your connection and try again.',
         );
         setAreServicesReady(true);
       }

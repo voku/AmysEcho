@@ -44,6 +44,8 @@ jest.mock('../src/utils/logger', () => ({
   logger: { error: jest.fn(), info: jest.fn(), warn: jest.fn() },
 }));
 
+import { logger } from '../src/utils/logger';
+
 const loadModels = jest.fn().mockRejectedValue(new Error('init fail'));
 
 jest.mock('../src/services/adaptiveLearningService', () => ({
@@ -86,6 +88,12 @@ describe('AppServicesProvider', () => {
     await act(async () => {});
     await act(async () => {});
     const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
-    expect(error.props.message).toBe('init fail');
+    expect(error.props.message).toBe(
+      'Failed to initialize services. Please check your connection and try again.',
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      'Failed to initialize services:',
+      expect.any(Error),
+    );
   });
 });

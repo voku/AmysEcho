@@ -125,7 +125,10 @@ export default function RecognitionScreen({ navigation }: any) {
   const canUseCamera =
     hasPermission && device != null && isFocused && isCameraActive && appState === 'active';
 
-  const showUserFriendlyMessage = (msg: string) => setProcessingError(msg);
+  const showUserFriendlyMessage = useCallback(
+    (msg: string) => setProcessingError(msg),
+    [],
+  );
   const showPermissionGuide = () =>
     setProcessingError('Camera permission denied. Please enable it in settings.');
   const logErrorToAnalytics = (error: any) => logger.error('Camera error logged:', error);
@@ -410,14 +413,19 @@ export default function RecognitionScreen({ navigation }: any) {
     }
   }, [isProcessing, useDgs, profile, startFeedbackAnimation, updateStatus]);
 
+  const onGestureError = useCallback(
+    (message: string) => {
+      logger.error('Gesture pipeline error:', message);
+      showUserFriendlyMessage(message);
+    },
+    [showUserFriendlyMessage],
+  );
+
   const frameProcessor = useGestureClassifier(
     onGestureResult,
     isProcessing,
     0.7,
-    (message) => {
-      logger.error('Gesture pipeline error:', message);
-      showUserFriendlyMessage(message);
-    },
+    onGestureError,
   );
   const detectionActive = now - lastDetection < 1000;
 
