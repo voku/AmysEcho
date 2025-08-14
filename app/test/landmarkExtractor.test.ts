@@ -5,6 +5,9 @@ jest.mock('react-native-fast-tflite', () => ({
 
 jest.mock('expo-file-system', () => ({}));
 
+const NUM_HAND_LANDMARKS = 21;
+const FLATTENED_LANDMARKS_SIZE = NUM_HAND_LANDMARKS * 3;
+
 describe('extractHandLandmarks', () => {
   it('accepts YUV frames and returns landmarks', () => {
     const { setHandLandmarkModel, extractHandLandmarks } = require('../src/services/landmarkExtractor');
@@ -40,7 +43,7 @@ describe('extractHandLandmarks', () => {
       extractHandLandmarksFlat,
     } = require('../src/services/landmarkExtractor');
 
-    const data = Float32Array.from({ length: 63 }, (_, i) => i * 0.1);
+    const data = Float32Array.from({ length: FLATTENED_LANDMARKS_SIZE }, (_, i) => i * 0.1);
     const fakeModel = {
       runSync: (_: any[]) => [data],
     };
@@ -53,14 +56,14 @@ describe('extractHandLandmarks', () => {
     } as any;
 
     const lm = extractHandLandmarks(frame);
-    expect(lm).toHaveLength(21);
+    expect(lm).toHaveLength(NUM_HAND_LANDMARKS);
     expect(lm?.[0][0]).toBeCloseTo(0);
     expect(lm?.[0][1]).toBeCloseTo(0.1);
     expect(lm?.[0][2]).toBeCloseTo(0.2);
 
     const flat = extractHandLandmarksFlat(frame);
     expect(flat).not.toBeNull();
-    expect(flat).toHaveLength(63);
+    expect(flat).toHaveLength(FLATTENED_LANDMARKS_SIZE);
     expect(Array.from(flat!)).toEqual(Array.from(data));
   });
 });

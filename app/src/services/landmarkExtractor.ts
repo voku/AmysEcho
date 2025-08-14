@@ -9,6 +9,10 @@ let handModel: TensorflowModel | null = null;
 
 let resizePlugin: any | null = null;
 
+const NUM_HAND_LANDMARKS = 21;
+const NUM_COORDINATES = 3;
+const FLATTENED_LANDMARKS_SIZE = NUM_HAND_LANDMARKS * NUM_COORDINATES;
+
 if ((globalThis as any).VisionCameraProxy) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -60,10 +64,10 @@ function reshapeLandmarks(raw: any): number[][] | null {
   } else if (raw && typeof raw === 'object' && 'length' in raw) {
     values = Array.from(raw as ArrayLike<number>);
   }
-  if (!values || values.length !== 63) return null;
+  if (!values || values.length !== FLATTENED_LANDMARKS_SIZE) return null;
   const landmarks: number[][] = [];
-  for (let i = 0; i < 21; i++) {
-    const base = i * 3;
+  for (let i = 0; i < NUM_HAND_LANDMARKS; i++) {
+    const base = i * NUM_COORDINATES;
     landmarks.push([values[base], values[base + 1], values[base + 2]]);
   }
   return landmarks;
@@ -83,11 +87,10 @@ export function useHandLandmarkExtractor(): (frame: Frame) => number[][] | null 
       const result = handModel.runSync([input]) as any[];
       const landmarks = reshapeLandmarks(result[0]);
       const confSource = result[1];
-      const conf = Array.isArray(confSource)
-        ? (confSource[0] ?? 0)
-        : confSource && typeof confSource === 'object' && 'length' in confSource
-        ? ((confSource as any)[0] ?? 0)
-        : 0;
+      let conf = 0;
+      if (confSource && typeof confSource === 'object' && 'length' in confSource) {
+        conf = (confSource as any)[0] ?? 0;
+      }
       if (__DEV__ && Date.now() - lastLog > 500) {
         lastLog = Date.now();
         logJS(`LM ok: ${landmarks?.length ?? 0} pts, conf=${conf.toFixed(2)}`);
@@ -140,10 +143,10 @@ export function extractHandLandmarksFlat(frame: Frame): Float32Array | null {
     let flat: Float32Array | null = null;
     if (Array.isArray(raw) && Array.isArray(raw[0])) {
       flat = Float32Array.from((raw as number[][]).flat());
-    } else if (Array.isArray(raw) || (raw && typeof raw === 'object' && 'length' in raw)) {
+    } else if (raw && typeof raw === 'object' && 'length' in raw) {
       flat = Float32Array.from(raw as ArrayLike<number>);
     }
-    return flat && flat.length === 63 ? flat : null;
+    return flat && flat.length === FLATTENED_LANDMARKS_SIZE ? flat : null;
   } catch (e: any) {
     logErrorJS(e.message);
     return null;
