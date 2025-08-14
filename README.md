@@ -141,12 +141,22 @@ If you want to run the app on a physical device with a custom dev client, execut
 
 ### Creating test builds (APK)
 
+Before running any EAS build make sure you're logged in and the project passes Expo checks:
+
+```bash
+npx expo whoami             # run `npx expo login` if this fails
+(cd app && npx expo install --check)
+(cd app && npx expo-doctor) # requires network access
+```
+
+Set `CI=1` when building from a non-interactive terminal to disable progress spinners.
+
 #### Custom dev client
 
 To produce a debuggable APK for testers, trigger a development build via EAS:
 
 ```bash
-npm run build:android-dev
+CI=1 npm run build:android-dev
 ```
 
 The CLI prints a link to the artifact. You can also download the most recent build later:
@@ -162,7 +172,7 @@ This APK only contains the Expo dev client. After installing it on a device you 
 For an installable APK that bundles the app and runs without the bundler:
 
 ```bash
-npm run build:android-apk
+CI=1 npm run build:android-apk
 ```
 
 The resulting artifact includes the compiled JavaScript and assets, making it suitable for offline testing and sideloading.
@@ -172,8 +182,8 @@ The resulting artifact includes the compiled JavaScript and assets, making it su
 To generate store-ready binaries using EAS Build, run:
 
 ```bash
-npm run build:android
-npm run build:ios
+CI=1 npm run build:android
+CI=1 npm run build:ios
 ```
 
 This uses `eas.json` and requires credentials configured with Expo. If you run the build in a CI or other non-interactive environment, set the `EXPO_TOKEN` environment variable with an Expo access token. Otherwise the command will fail when it prompts for login.
