@@ -414,7 +414,10 @@ export default function RecognitionScreen({ navigation }: any) {
     onGestureResult,
     isProcessing,
     0.7,
-    setProcessingError,
+    (message) => {
+      logger.error('Gesture pipeline error:', message);
+      showUserFriendlyMessage(message);
+    },
   );
   const detectionActive = now - lastDetection < 1000;
 
