@@ -53,16 +53,25 @@ const logLandmarks = Worklets?.createRunOnJS
     )
   : (_: number[][] | null) => {};
 
-function reshapeLandmarks(raw: any): number[][] | null {
+function reshapeLandmarks(raw: unknown): number[][] | null {
   'worklet';
-  let values: number[] | null = null;
+  let values: ArrayLike<number> | null = null;
   if (Array.isArray(raw)) {
     if (Array.isArray(raw[0])) {
       return raw as number[][];
     }
     values = raw as number[];
   } else if (raw && typeof raw === 'object' && 'length' in raw) {
-    values = Array.from(raw as ArrayLike<number>);
+    if (ArrayBuffer.isView(raw)) {
+      const isBigInt64 = typeof BigInt64Array !== 'undefined' && raw instanceof BigInt64Array;
+      const isBigUint64 = typeof BigUint64Array !== 'undefined' && raw instanceof BigUint64Array;
+      if (isBigInt64 || isBigUint64) {
+        return null;
+      }
+      values = raw as ArrayLike<number>;
+    } else {
+      values = Array.from(raw as ArrayLike<number>);
+    }
   }
   if (!values || values.length !== FLATTENED_LANDMARKS_SIZE) return null;
   const landmarks: number[][] = [];
@@ -127,6 +136,11 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
   }
 }
 
+/**
+ * Extracts hand landmarks and returns a flattened view of the coordinates.
+ * The returned array may be a borrowed Float32Array from the model output;
+ * consumers must treat it as read-only and avoid mutating it.
+ */
 export function extractHandLandmarksFlat(frame: Frame): Float32Array | null {
   'worklet';
   if (!handModel) return null;
@@ -142,9 +156,18 @@ export function extractHandLandmarksFlat(frame: Frame): Float32Array | null {
     const raw = result[0];
     let flat: Float32Array | null = null;
     if (Array.isArray(raw) && Array.isArray(raw[0])) {
-      flat = Float32Array.from((raw as number[][]).flat());
+      const src = raw as number[][];
+      const out = new Float32Array(src.length * NUM_COORDINATES);
+      let k = 0;
+      for (let i = 0; i < src.length; i++) {
+        const p = src[i];
+        out[k++] = p[0];
+        out[k++] = p[1];
+        out[k++] = p[2];
+      }
+      flat = out;
     } else if (raw && typeof raw === 'object' && 'length' in raw) {
-      flat = Float32Array.from(raw as ArrayLike<number>);
+      flat = raw instanceof Float32Array ? raw : Float32Array.from(raw as ArrayLike<number>);
     }
     return flat && flat.length === FLATTENED_LANDMARKS_SIZE ? flat : null;
   } catch (e: any) {
