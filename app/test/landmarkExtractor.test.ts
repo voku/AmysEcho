@@ -6,7 +6,8 @@ jest.mock('react-native-fast-tflite', () => ({
 jest.mock('expo-file-system', () => ({}));
 
 const NUM_HAND_LANDMARKS = 21;
-const FLATTENED_LANDMARKS_SIZE = NUM_HAND_LANDMARKS * 3;
+const NUM_COORDINATES = 3;
+const FLATTENED_LANDMARKS_SIZE = NUM_HAND_LANDMARKS * NUM_COORDINATES;
 
 describe('extractHandLandmarks', () => {
   it('accepts YUV frames and returns landmarks', () => {
