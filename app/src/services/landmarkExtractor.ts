@@ -55,14 +55,16 @@ const logLandmarks = Worklets?.createRunOnJS
 
 function reshapeLandmarks(raw: any): number[][] | null {
   'worklet';
-  let values: number[] | null = null;
+  let values: ArrayLike<number> | null = null;
   if (Array.isArray(raw)) {
     if (Array.isArray(raw[0])) {
       return raw as number[][];
     }
     values = raw as number[];
   } else if (raw && typeof raw === 'object' && 'length' in raw) {
-    values = Array.from(raw as ArrayLike<number>);
+    values = ArrayBuffer.isView(raw)
+      ? (raw as unknown as ArrayLike<number>)
+      : Array.from(raw as ArrayLike<number>);
   }
   if (!values || values.length !== FLATTENED_LANDMARKS_SIZE) return null;
   const landmarks: number[][] = [];
@@ -144,7 +146,7 @@ export function extractHandLandmarksFlat(frame: Frame): Float32Array | null {
     if (Array.isArray(raw) && Array.isArray(raw[0])) {
       flat = Float32Array.from((raw as number[][]).flat());
     } else if (raw && typeof raw === 'object' && 'length' in raw) {
-      flat = Float32Array.from(raw as ArrayLike<number>);
+      flat = raw instanceof Float32Array ? raw : Float32Array.from(raw as ArrayLike<number>);
     }
     return flat && flat.length === FLATTENED_LANDMARKS_SIZE ? flat : null;
   } catch (e: any) {
