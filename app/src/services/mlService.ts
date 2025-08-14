@@ -692,7 +692,9 @@ export const useGestureClassifier = (
   const enqueueFrameJS = createRunOnJS(enqueueFrame);
   const logErrorJS = createRunOnJS(logger.error);
   const onErrorJS = createRunOnJS((message: string) => onErrorRef.current?.(message));
-  const extractLandmarks = useHandLandmarkExtractor();
+  const extractWithPlugin = useHandLandmarkExtractor();
+  const extractLandmarks =
+    pluginAvailable ? extractWithPlugin : extractHandLandmarks;
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
@@ -700,12 +702,9 @@ export const useGestureClassifier = (
         return;
       }
 
-      if (!pluginAvailable) {
-        if (!pluginError.value) {
-          pluginError.value = true;
-          onErrorJS('Frame processor plugin unavailable');
-        }
-        return;
+      if (!pluginAvailable && !pluginError.value) {
+        pluginError.value = true;
+        onErrorJS('Frame processor plugin unavailable; using JS fallback');
       }
 
       const now = Date.now();
@@ -775,8 +774,10 @@ export const useRecordingProcessor = (
   const lastProcessedTime = useSharedValue(0);
   const onLandmarksJS = createRunOnJS((lm: number[][]) => onLandmarksRef.current(lm));
   const logErrorJS = createRunOnJS(logger.error);
-  const extractLandmarksRec = useHandLandmarkExtractor();
   const pluginAvailable = isResizePluginAvailable();
+  const extractWithPluginRec = useHandLandmarkExtractor();
+  const extractLandmarksRec =
+    pluginAvailable ? extractWithPluginRec : extractHandLandmarks;
   const pluginError = useSharedValue(false);
 
   const frameProcessor = useFrameProcessor(
@@ -786,12 +787,9 @@ export const useRecordingProcessor = (
         return;
       }
 
-      if (!pluginAvailable) {
-        if (!pluginError.value) {
-          pluginError.value = true;
-          logErrorJS('Frame processor plugin unavailable');
-        }
-        return;
+      if (!pluginAvailable && !pluginError.value) {
+        pluginError.value = true;
+        logErrorJS('Frame processor plugin unavailable; using JS fallback');
       }
 
       const now = Date.now();
