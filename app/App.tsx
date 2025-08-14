@@ -6,6 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { setupDatabase } from './db';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
+import { MessageProvider } from './src/context/MessageContext';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -92,21 +93,23 @@ export default function App() {
   }
 
   return (
-    <AppServicesProvider offline={isOffline}>
-      <AccessibilityContext.Provider
-        value={{
-          ...accessibility,
-          update: (s: Partial<AccessibilitySettings>) =>
-            setAccessibility((prev) => ({ ...prev, ...s })),
-        }}
-      >
-        <LinearGradient colors={gradientColors} style={styles.gradient}>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </LinearGradient>
-      </AccessibilityContext.Provider>
-    </AppServicesProvider>
+    <MessageProvider>
+      <AppServicesProvider offline={isOffline}>
+        <AccessibilityContext.Provider
+          value={{
+            ...accessibility,
+            update: (s: Partial<AccessibilitySettings>) =>
+              setAccessibility((prev) => ({ ...prev, ...s })),
+          }}
+        >
+          <LinearGradient colors={gradientColors} style={styles.gradient}>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </LinearGradient>
+        </AccessibilityContext.Provider>
+      </AppServicesProvider>
+    </MessageProvider>
   );
 }
 

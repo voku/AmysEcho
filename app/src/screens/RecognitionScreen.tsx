@@ -48,7 +48,7 @@ import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { HAND_CONNECTIONS } from '../constants/hand';
-import ErrorMessage from '../components/ErrorMessage';
+import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { ModelPerformanceMonitor } from '../services/ModelPerformanceMonitor';
 import { telemetry } from '../telemetry/recorder';
@@ -86,7 +86,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [landmarks, setLandmarks] = useState<number[][]>([]);
   const [landmarksRaw, setLandmarksRaw] = useState<number[][]>([]);
   const [previewRect, setPreviewRect] = useState({ x: 0, y: 0, width, height });
-  const [processingError, setProcessingError] = useState<string | null>(null);
+  const { setMessage } = useMessage();
   const [showManualInputMode, setShowManualInputMode] = useState(false);
   const [showStaticMode, setShowStaticMode] = useState(false);
   const [showFallbackMode, setShowFallbackMode] = useState(false);
@@ -126,13 +126,13 @@ export default function RecognitionScreen({ navigation }: any) {
     hasPermission && device != null && isFocused && isCameraActive && appState === 'active';
 
   const showUserFriendlyMessage = useCallback(
-    (msg: string) => setProcessingError(msg),
-    [],
+    (msg: string) => setMessage(msg),
+    [setMessage],
   );
   const showPermissionGuide = () =>
-    setProcessingError('Camera permission denied. Please enable it in settings.');
+    setMessage('Camera permission denied. Please enable it in settings.');
   const logErrorToAnalytics = (error: any) => logger.error('Camera error logged:', error);
-  const handleCameraDisconnect = () => setProcessingError('Camera disconnected');
+  const handleCameraDisconnect = () => setMessage('Camera disconnected');
 
   const handleCameraError = useCallback(
     (error: CameraRuntimeError) => {
@@ -288,7 +288,7 @@ export default function RecognitionScreen({ navigation }: any) {
     setLastDetection(Date.now());
     setLandmarks(detectedLandmarks);
     setLandmarksRaw(raw ?? detectedLandmarks);
-    setProcessingError(null);
+    setMessage(null);
     setLastResultAt(Date.now());
 
     // Assess occlusion to guide user positioning
@@ -893,7 +893,6 @@ export default function RecognitionScreen({ navigation }: any) {
                 })}
               </Svg>
             )}
-            <ErrorMessage message={processingError} />
             <View style={styles.detectionIndicator}>
               <View
                 style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]}

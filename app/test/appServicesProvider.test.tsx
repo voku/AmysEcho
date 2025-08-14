@@ -74,15 +74,18 @@ jest.mock('../src/services', () => ({
 
 import { AppServicesProvider } from '../src/context/AppServicesProvider';
 import ErrorMessage from '../src/components/ErrorMessage';
+import { MessageProvider } from '../src/context/MessageContext';
 
 describe('AppServicesProvider', () => {
   it('displays error message when initialization fails', async () => {
     let component: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
-        <AppServicesProvider>
-          <></>
-        </AppServicesProvider>,
+        <MessageProvider>
+          <AppServicesProvider>
+            <></>
+          </AppServicesProvider>
+        </MessageProvider>,
       );
     });
     await act(async () => {});

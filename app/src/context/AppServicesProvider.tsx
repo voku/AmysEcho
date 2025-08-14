@@ -10,7 +10,7 @@ import {
 } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
-import ErrorMessage from '../components/ErrorMessage';
+import { useMessage } from './MessageContext';
 import { Asset } from 'expo-asset';
 import { GESTURE_CLASSIFIER_MODEL, HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
 import { loadCustomModelUri } from '../storage';
@@ -40,7 +40,7 @@ const services: Services = {
 
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const [areServicesReady, setAreServicesReady] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
+  const { setMessage } = useMessage();
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -98,7 +98,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
 
       } catch (e) {
         logger.error('Failed to initialize services:', e);
-        setInitError(
+        setMessage(
           'Failed to initialize services. Please check your connection and try again.',
         );
         setAreServicesReady(true);
@@ -121,9 +121,6 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
   }
 
   return (
-    <ServicesContext.Provider value={services}>
-      {children}
-      <ErrorMessage message={initError} />
-    </ServicesContext.Provider>
+    <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>
   );
 };
