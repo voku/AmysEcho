@@ -690,8 +690,6 @@ export const useGestureClassifier = (
   const logErrorJS = createRunOnJS(logger.error);
   const onErrorJS = createRunOnJS((message: string) => onErrorRef.current?.(message));
   const extractLandmarks = useHandLandmarkExtractor();
-
-  const frameCounter = useSharedValue(0);
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
@@ -700,10 +698,11 @@ export const useGestureClassifier = (
       }
 
       addFrameJS(frame);
-
-      if (!perfManagerRef.current.shouldProcess()) {
+      const now = Date.now();
+      if (now - lastFrameTime.value < 1000 / targetFps.value) {
         return;
       }
+      lastFrameTime.value = now;
 
       try {
         // Run dedicated worklet to extract and flatten landmarks
@@ -729,7 +728,7 @@ export const useGestureClassifier = (
         }
       }
     },
-    [serviceReady],
+    [serviceReady, targetFps, lastFrameTime],
   );
 
   return frameProcessor;
