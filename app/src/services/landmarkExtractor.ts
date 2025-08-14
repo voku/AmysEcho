@@ -21,6 +21,10 @@ if ((globalThis as any).VisionCameraProxy) {
   logger.warn('VisionCameraProxy not found; using ArrayBuffer fallback');
 }
 
+export function isResizePluginAvailable(): boolean {
+  return resizePlugin != null;
+}
+
 export function setHandLandmarkModel(model: TensorflowModel | null): void {
   handModel = model;
 }
