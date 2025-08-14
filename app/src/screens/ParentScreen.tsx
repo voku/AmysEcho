@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Switch } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { useServices } from '../context/AppServicesProvider';
+import { useServices } from '../context/ServicesContext';
 import { COLORS, SPACING } from '../constants/ui';
 
 export default function ParentScreen({ navigation }: any) {

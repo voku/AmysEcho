@@ -19,7 +19,7 @@ import {
 import * as FileSystem from 'expo-file-system';
 import { API_URL } from '../constants';
 import { database } from '../../db';
-import { useServices } from '../context/AppServicesProvider';
+import { useServices } from '../context/ServicesContext';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
 import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
