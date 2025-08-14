@@ -24,6 +24,12 @@
         {
           "cameraPermission": "Allow Amy's Echo to access your camera to recognize gestures."
         }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "enableFrameProcessors": true
+        }
       ]
     ]
   }
