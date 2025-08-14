@@ -47,7 +47,11 @@ interface ProviderProps {
 
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const [areServicesReady, setAreServicesReady] = useState(false);
-  
+
+  const services = useMemo(
+    () => ({ mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector }),
+    [],
+  );
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -123,11 +127,6 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       </View>
     );
   }
-
-  const services = useMemo(
-    () => ({ mlService, audioService, adaptiveLearningService, backupService, gestureDataProtector }),
-    [],
-  );
 
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 };
