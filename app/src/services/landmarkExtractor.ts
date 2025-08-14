@@ -141,7 +141,7 @@ export function extractHandLandmarksFlat(frame: Frame): Float32Array | null {
     const result = handModel.runSync([input]) as any[];
     const raw = result[0];
     let flat: Float32Array | null = null;
-    if (Array.isArray(raw) && Array.isArray(raw[0])) {
+    if (Array.isArray((raw as any)?.[0])) {
       flat = Float32Array.from((raw as number[][]).flat());
     } else if (raw && typeof raw === 'object' && 'length' in raw) {
       flat = Float32Array.from(raw as ArrayLike<number>);
