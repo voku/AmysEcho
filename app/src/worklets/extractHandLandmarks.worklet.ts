@@ -10,6 +10,10 @@ import type { Frame } from 'react-native-vision-camera';
 type ResizeFn = (frame: Frame, w: number, h: number) => Uint8Array;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LandmarkFn = (rgb: Uint8Array, w: number, h: number) => Float32Array | null;
+type GlobalWithVision = typeof globalThis & {
+  __VISION_RESIZE__?: ResizeFn;
+  __RUN_HAND_LANDMARKER__?: LandmarkFn;
+};
 
 /**
  * Returns Float32Array length 63: [x0,y0,z0, x1,y1,z1, ...] (normalized 0..1),
@@ -22,9 +26,9 @@ export function extractHandLandmarks(frame: Frame): Float32Array | null {
   try {
     // Access native functions through the global object so that the worklet can
     // safely run even when the native plugins are not installed.
-    const visionResize = (globalThis as any).__VISION_RESIZE__ as ResizeFn | undefined;
-    const runHandLandmarker = (globalThis as any)
-      .__RUN_HAND_LANDMARKER__ as LandmarkFn | undefined;
+    const g = globalThis as GlobalWithVision;
+    const visionResize = g.__VISION_RESIZE__;
+    const runHandLandmarker = g.__RUN_HAND_LANDMARKER__;
     if (typeof visionResize !== 'function' || typeof runHandLandmarker !== 'function') {
       return null;
     }
