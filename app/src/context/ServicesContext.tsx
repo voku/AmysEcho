@@ -3,8 +3,6 @@ import { mlService } from '../services/mlService';
 import { audioService } from '../services/audioService';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 
-export const ServicesContext = React.createContext({
-  mlService,
-  audioService,
-  adaptiveLearningService,
-});
+const services = { mlService, audioService, adaptiveLearningService };
+
+export const ServicesContext = React.createContext(services);
