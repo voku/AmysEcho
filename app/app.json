@@ -16,15 +16,14 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.anonymous.amysecho"
+      "bundleIdentifier": "com.anonymous.amysecho",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Amy's Echo to access your camera to recognize gestures.",
+        "NSMicrophoneUsageDescription": "Allow Amy's Echo to access your microphone to record audio."
+      }
     },
     "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow Amy's Echo to access your camera to recognize gestures."
-        }
-      ],
+      ["expo-camera"],
       [
         "react-native-vision-camera",
         {

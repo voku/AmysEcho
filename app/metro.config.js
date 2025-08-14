@@ -8,9 +8,17 @@ config.resolver.assetExts.push('tflite', 'task');
 let finalConfig = config;
 try {
   const { withResizePlugin } = require('vision-camera-resize-plugin/metro');
-  finalConfig = withResizePlugin(config);
-} catch {
-  // Helper not present; proceed with default config
+  // Chain wrappers to keep this composable
+  finalConfig = withResizePlugin(finalConfig);
+} catch (e) {
+  // Only swallow missing-module errors; log others once for visibility
+  if (!e || e.code !== 'MODULE_NOT_FOUND') {
+    console.warn(
+      'vision-camera-resize-plugin failed to load:',
+      e?.message ?? e,
+    );
+  }
+  // Proceed with default config
 }
 
 module.exports = finalConfig;

@@ -692,9 +692,9 @@ export const useGestureClassifier = (
   const enqueueFrameJS = createRunOnJS(enqueueFrame);
   const logErrorJS = createRunOnJS(logger.error);
   const onErrorJS = createRunOnJS((message: string) => onErrorRef.current?.(message));
-  const extractLandmarks = pluginAvailable
-    ? useHandLandmarkExtractor()
-    : extractHandLandmarks;
+  const extractWithPlugin = useHandLandmarkExtractor();
+  const extractLandmarks =
+    pluginAvailable ? extractWithPlugin : extractHandLandmarks;
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
@@ -704,7 +704,7 @@ export const useGestureClassifier = (
 
       if (!pluginAvailable && !pluginError.value) {
         pluginError.value = true;
-        onErrorJS('Frame processor plugin unavailable');
+        onErrorJS('Frame processor plugin unavailable; using JS fallback');
       }
 
       const now = Date.now();
@@ -775,9 +775,9 @@ export const useRecordingProcessor = (
   const onLandmarksJS = createRunOnJS((lm: number[][]) => onLandmarksRef.current(lm));
   const logErrorJS = createRunOnJS(logger.error);
   const pluginAvailable = isResizePluginAvailable();
-  const extractLandmarksRec = pluginAvailable
-    ? useHandLandmarkExtractor()
-    : extractHandLandmarks;
+  const extractWithPluginRec = useHandLandmarkExtractor();
+  const extractLandmarksRec =
+    pluginAvailable ? extractWithPluginRec : extractHandLandmarks;
   const pluginError = useSharedValue(false);
 
   const frameProcessor = useFrameProcessor(
@@ -789,7 +789,7 @@ export const useRecordingProcessor = (
 
       if (!pluginAvailable && !pluginError.value) {
         pluginError.value = true;
-        logErrorJS('Frame processor plugin unavailable');
+        logErrorJS('Frame processor plugin unavailable; using JS fallback');
       }
 
       const now = Date.now();
