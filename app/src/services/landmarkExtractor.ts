@@ -9,6 +9,10 @@ let handModel: TensorflowModel | null = null;
 
 let resizePlugin: any | null = null;
 
+const NUM_HAND_LANDMARKS = 21;
+const NUM_COORDINATES = 3;
+const FLATTENED_LANDMARKS_SIZE = NUM_HAND_LANDMARKS * NUM_COORDINATES;
+
 if ((globalThis as any).VisionCameraProxy) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -49,6 +53,26 @@ const logLandmarks = Worklets?.createRunOnJS
     )
   : (_: number[][] | null) => {};
 
+function reshapeLandmarks(raw: any): number[][] | null {
+  'worklet';
+  let values: number[] | null = null;
+  if (Array.isArray(raw)) {
+    if (Array.isArray(raw[0])) {
+      return raw as number[][];
+    }
+    values = raw as number[];
+  } else if (raw && typeof raw === 'object' && 'length' in raw) {
+    values = Array.from(raw as ArrayLike<number>);
+  }
+  if (!values || values.length !== FLATTENED_LANDMARKS_SIZE) return null;
+  const landmarks: number[][] = [];
+  for (let i = 0; i < NUM_HAND_LANDMARKS; i++) {
+    const base = i * NUM_COORDINATES;
+    landmarks.push([values[base], values[base + 1], values[base + 2]]);
+  }
+  return landmarks;
+}
+
 export function useHandLandmarkExtractor(): (frame: Frame) => number[][] | null {
   const { resize } = useResizePlugin();
   return (frame: Frame): number[][] | null => {
@@ -61,13 +85,17 @@ export function useHandLandmarkExtractor(): (frame: Frame) => number[][] | null 
         dataType: 'uint8',
       });
       const result = handModel.runSync([input]) as any[];
-      const landmarks = result[0] as number[][] | undefined;
-      const conf = (result[1]?.[0] ?? 0) as number;
+      const landmarks = reshapeLandmarks(result[0]);
+      const confSource = result[1];
+      let conf = 0;
+      if (confSource && typeof confSource === 'object' && 'length' in confSource) {
+        conf = (confSource as any)[0] ?? 0;
+      }
       if (__DEV__ && Date.now() - lastLog > 500) {
         lastLog = Date.now();
         logJS(`LM ok: ${landmarks?.length ?? 0} pts, conf=${conf.toFixed(2)}`);
       }
-      return landmarks ?? null;
+      return landmarks;
     } catch (e: any) {
       logErrorJS(e.message);
       return null;
@@ -87,7 +115,7 @@ export function extractHandLandmarks(frame: Frame): number[][] | null {
         })
       : new Uint8Array(frame.toArrayBuffer());
     const result = handModel.runSync([input]) as any[];
-    const landmarks = (result[0] as number[][]) ?? null;
+    const landmarks = reshapeLandmarks(result[0]);
     if (typeof __DEV__ !== 'undefined' && __DEV__ && Date.now() - lastLog > 500) {
       lastLog = Date.now();
       logLandmarks(landmarks);
@@ -111,10 +139,14 @@ export function extractHandLandmarksFlat(frame: Frame): Float32Array | null {
         })
       : new Uint8Array(frame.toArrayBuffer());
     const result = handModel.runSync([input]) as any[];
-    const landmarks = result[0] as number[][] | undefined;
-    if (!landmarks) return null;
-    const flat = Float32Array.from(landmarks.flat());
-    return flat.length === 63 ? flat : null;
+    const raw = result[0];
+    let flat: Float32Array | null = null;
+    if (Array.isArray(raw) && Array.isArray(raw[0])) {
+      flat = Float32Array.from((raw as number[][]).flat());
+    } else if (raw && typeof raw === 'object' && 'length' in raw) {
+      flat = Float32Array.from(raw as ArrayLike<number>);
+    }
+    return flat && flat.length === FLATTENED_LANDMARKS_SIZE ? flat : null;
   } catch (e: any) {
     logErrorJS(e.message);
     return null;
