@@ -18,6 +18,7 @@ import {
   setHandLandmarkModel,
   extractHandLandmarksFlat as extractHandLandmarksWorklet,
   extractHandLandmarks,
+  isResizePluginAvailable,
 } from './landmarkExtractor';
 import {
   classifyGesture,
@@ -626,6 +627,8 @@ export const useGestureClassifier = (
   const smootherRef = useRef(new LandmarkSmoother());
   const frameBufferRef = useRef(new FrameBufferManager(recommendedBufferSize()));
   const perfManagerRef = useRef(new AdaptivePerformanceManager());
+  const pluginAvailable = isResizePluginAvailable();
+  const pluginError = useSharedValue(false);
 
   useEffect(() => {
     const readyInterval = setInterval(() => {
@@ -697,6 +700,14 @@ export const useGestureClassifier = (
         return;
       }
 
+      if (!pluginAvailable) {
+        if (!pluginError.value) {
+          pluginError.value = true;
+          onErrorJS('Frame processor plugin unavailable');
+        }
+        return;
+      }
+
       const now = Date.now();
       const fps = targetFps.value;
       if (fps <= 0 || now - lastFrameTime.value < 1000 / fps) {
@@ -708,7 +719,13 @@ export const useGestureClassifier = (
       try {
         // Run dedicated worklet to extract and flatten landmarks
         const flat = extractHandLandmarksWorklet(frame);
-        if (!flat) return;
+        if (!flat) {
+          if (!pluginError.value) {
+            pluginError.value = true;
+            onErrorJS('Landmark extraction failed');
+          }
+          return;
+        }
         const predictions = classifyGesture(flat, localThreshold);
 
         // Reconstruct landmark array shape for overlay using the hook extractor
@@ -724,12 +741,21 @@ export const useGestureClassifier = (
         enqueueFrameJS(processed);
       } catch (error: any) {
         logErrorJS('WORKLET ERROR:', error);
-        if (onErrorRef.current) {
+        if (!pluginError.value) {
+          pluginError.value = true;
           onErrorJS(error.message);
         }
       }
     },
-    [serviceReady, targetFps, lastFrameTime, localThreshold, extractLandmarks],
+    [
+      serviceReady,
+      targetFps,
+      lastFrameTime,
+      localThreshold,
+      extractLandmarks,
+      pluginAvailable,
+      pluginError,
+    ],
   );
 
   return frameProcessor;
@@ -750,11 +776,21 @@ export const useRecordingProcessor = (
   const onLandmarksJS = createRunOnJS((lm: number[][]) => onLandmarksRef.current(lm));
   const logErrorJS = createRunOnJS(logger.error);
   const extractLandmarksRec = useHandLandmarkExtractor();
+  const pluginAvailable = isResizePluginAvailable();
+  const pluginError = useSharedValue(false);
 
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
       if (!isRecordingRef.current) {
+        return;
+      }
+
+      if (!pluginAvailable) {
+        if (!pluginError.value) {
+          pluginError.value = true;
+          logErrorJS('Frame processor plugin unavailable');
+        }
         return;
       }
 
@@ -774,7 +810,7 @@ export const useRecordingProcessor = (
         logErrorJS('WORKLET ERROR:', error);
       }
     },
-    [fps, extractLandmarksRec],
+    [fps, extractLandmarksRec, pluginAvailable, pluginError],
   );
 
   return frameProcessor;
