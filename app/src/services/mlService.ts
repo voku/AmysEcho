@@ -697,12 +697,13 @@ export const useGestureClassifier = (
         return;
       }
 
-      addFrameJS(frame);
       const now = Date.now();
-      if (now - lastFrameTime.value < 1000 / targetFps.value) {
+      const fps = targetFps.value;
+      if (fps <= 0 || now - lastFrameTime.value < 1000 / fps) {
         return;
       }
       lastFrameTime.value = now;
+      addFrameJS(frame);
 
       try {
         // Run dedicated worklet to extract and flatten landmarks
@@ -728,7 +729,7 @@ export const useGestureClassifier = (
         }
       }
     },
-    [serviceReady, targetFps, lastFrameTime],
+    [serviceReady, targetFps, lastFrameTime, localThreshold, extractLandmarks],
   );
 
   return frameProcessor;
@@ -773,7 +774,7 @@ export const useRecordingProcessor = (
         logErrorJS('WORKLET ERROR:', error);
       }
     },
-    [fps],
+    [fps, extractLandmarksRec],
   );
 
   return frameProcessor;
