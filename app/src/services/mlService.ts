@@ -771,18 +771,35 @@ export const useGestureClassifier = (
 
       try {
         // Run dedicated worklet to extract and flatten landmarks
-        const flat = extractHandLandmarksWorklet(frame);
+        let rawLandmarks: number[][] = [];
+        let flat = extractHandLandmarksWorklet(frame);
         if (!flat) {
+          rawLandmarks = extractLandmarks(frame) || [];
+          if (rawLandmarks.length === 0) {
+            if (!pluginError.value) {
+              pluginError.value = true;
+              onErrorJS('Landmark extraction failed');
+            }
+            return;
+          }
+          const out = new Float32Array(rawLandmarks.length * 3);
+          let k = 0;
+          for (let i = 0; i < rawLandmarks.length; i++) {
+            const p = rawLandmarks[i];
+            out[k++] = p[0];
+            out[k++] = p[1];
+            out[k++] = p[2];
+          }
+          flat = out;
           if (!pluginError.value) {
             pluginError.value = true;
-            onErrorJS('Landmark extraction failed');
+            onErrorJS('Using JS landmark extractor fallback');
           }
-          return;
+        } else {
+          rawLandmarks = extractLandmarks(frame) || [];
         }
         const predictions = classifyGesture(flat, localThreshold);
 
-        // Reconstruct landmark array shape for overlay using the hook extractor
-        const rawLandmarks = extractLandmarks(frame) || [];
         const end = Date.now();
         const processed: ProcessedFrame = {
           landmarks: rawLandmarks,
