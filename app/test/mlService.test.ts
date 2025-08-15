@@ -103,6 +103,8 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
+      processingMs: 0,
+      fps: 0,
     } as any;
 
     const onResult = jest.fn();
@@ -131,6 +133,8 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
+      processingMs: 0,
+      fps: 0,
     } as any;
 
     const onResult = jest.fn();
@@ -172,6 +176,8 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
+      processingMs: 0,
+      fps: 0,
       predictions: { probabilities: [0.5, 0.5], maxProbability: 0.5, maxIndex: 0 },
     } as any;
 
@@ -201,6 +207,8 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
+      processingMs: 0,
+      fps: 0,
     } as any;
 
     const onResult = jest.fn();
@@ -238,6 +246,8 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
+      processingMs: 0,
+      fps: 0,
     } as any;
 
     const onResult = jest.fn();
@@ -273,6 +283,8 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
+      processingMs: 0,
+      fps: 0,
       predictions: { probabilities: [0.5, 0.5], maxProbability: 0.5, maxIndex: 0 },
     } as any;
 

@@ -326,6 +326,10 @@ class MachineLearningService {
 
   isServiceReady = (): boolean => this.isReady;
 
+  isCircuitBreakerOpen(): boolean {
+    return this.circuitBreaker.isOpen();
+  }
+
   private shouldUseRemote(): boolean {
     return this.allowRemote && !this.circuitBreaker.isOpen();
   }
@@ -630,6 +634,8 @@ class MachineLearningService {
         width: frame.width,
         height: frame.height,
         timestamp: Date.now(),
+        processingMs: 0,
+        fps: 0,
       };
       this.addCollectedSample(processed);
       logger.info(`Recorded sample for session ${sessionId}`);
@@ -640,7 +646,12 @@ class MachineLearningService {
 export const mlService = new MachineLearningService();
 
 export const useGestureClassifier = (
-  onResult: (result: GestureResult | null, landmarks: number[][], raw?: number[][]) => void,
+  onResult: (
+    result: GestureResult | null,
+    landmarks: number[][],
+    raw?: number[][],
+    metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean },
+  ) => void,
   isProcessing: boolean,
   localThreshold: number,
   onError?: (message: string) => void,
@@ -698,7 +709,12 @@ export const useGestureClassifier = (
     internalProcessingRef.current = true;
     mlService
       .processFrameAsync(next, (result) => {
-        onResultRef.current(result, next.landmarks, next.landmarksRaw);
+        onResultRef.current(result, next.landmarks, next.landmarksRaw, {
+          fps: next.fps,
+          processingMs: next.processingMs,
+          queueDepth: frameQueueRef.current.length,
+          circuitBreakerOpen: mlService.isCircuitBreakerOpen(),
+        });
       })
       .finally(() => {
         internalProcessingRef.current = false;
@@ -744,12 +760,14 @@ export const useGestureClassifier = (
       }
 
       const now = Date.now();
-      const fps = targetFps.value;
-      if (fps <= 0 || now - lastFrameTime.value < 1000 / fps) {
+      const elapsed = now - lastFrameTime.value;
+      const target = targetFps.value;
+      if (target <= 0 || elapsed < 1000 / target) {
         return;
       }
       lastFrameTime.value = now;
       addFrameJS(frame);
+      const start = Date.now();
 
       try {
         // Run dedicated worklet to extract and flatten landmarks
@@ -765,11 +783,14 @@ export const useGestureClassifier = (
 
         // Reconstruct landmark array shape for overlay using the hook extractor
         const rawLandmarks = extractLandmarks(frame) || [];
+        const end = Date.now();
         const processed: ProcessedFrame = {
           landmarks: rawLandmarks,
           width: frame.width,
           height: frame.height,
-          timestamp: Date.now(),
+          timestamp: start,
+          processingMs: end - start,
+          fps: elapsed > 0 ? 1000 / elapsed : 0,
           predictions: predictions || undefined,
         };
 

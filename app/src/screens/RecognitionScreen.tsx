@@ -97,10 +97,22 @@ export default function RecognitionScreen({ navigation }: any) {
   const perfMonitorRef = useRef(new ModelPerformanceMonitor(60));
   const [showPerfBanner, setShowPerfBanner] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
-  const [debugStats, setDebugStats] = useState<{ medianLatency: number; offlineRatio: number; cloudRatio: number }>({
+  const [debugStats, setDebugStats] = useState<{
+    medianLatency: number;
+    offlineRatio: number;
+    cloudRatio: number;
+    fps: number;
+    queueDepth: number;
+    circuitOpen: boolean;
+    lastLatency: number;
+  }>({
     medianLatency: 0,
     offlineRatio: 0,
     cloudRatio: 0,
+    fps: 0,
+    queueDepth: 0,
+    circuitOpen: false,
+    lastLatency: 0,
   });
   const sessionManagerRef = useRef<ChildSessionManager | null>(null);
 
@@ -230,7 +242,12 @@ export default function RecognitionScreen({ navigation }: any) {
       try {
         const data = telemetry.dump() as any[];
         if (data.length === 0) {
-          setDebugStats({ medianLatency: 0, offlineRatio: 0, cloudRatio: 0 });
+          setDebugStats((prev) => ({
+            ...prev,
+            medianLatency: 0,
+            offlineRatio: 0,
+            cloudRatio: 0,
+          }));
           return;
         }
         const lat = data.map((d: any) => d.latencyMs).sort((a: number, b: number) => a - b);
@@ -239,12 +256,15 @@ export default function RecognitionScreen({ navigation }: any) {
         const offline = data.filter((d: any) => d.path === 'offline').length;
         const cloud = data.filter((d: any) => d.path === 'cloud').length;
         const total = data.length;
-        setDebugStats({
+        setDebugStats((prev) => ({
+          ...prev,
           medianLatency: Math.round(median),
           offlineRatio: total ? Math.round((offline / total) * 100) : 0,
           cloudRatio: total ? Math.round((cloud / total) * 100) : 0,
-        });
-      } catch {}
+        }));
+      } catch (error) {
+        logger.warn('Failed to update debug stats', { error });
+      }
     }, 1500);
     return () => clearInterval(id);
   }, [showDebug]);
@@ -284,7 +304,12 @@ export default function RecognitionScreen({ navigation }: any) {
   };
 
   const onGestureResult = useCallback(
-    async (result: any, detectedLandmarks: number[][], raw?: number[][]) => {
+    async (
+      result: any,
+      detectedLandmarks: number[][],
+      raw?: number[][],
+      metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean },
+    ) => {
     setLastDetection(Date.now());
     setLandmarks(detectedLandmarks);
     setLandmarksRaw(raw ?? detectedLandmarks);
@@ -307,7 +332,19 @@ export default function RecognitionScreen({ navigation }: any) {
         inferenceType: result?.isLocal ? 'local' : 'cloud',
       });
       setShowPerfBanner(perfMonitorRef.current.isDegraded());
-    } catch {}
+    } catch (error) {
+      logger.warn('Failed to update performance monitor', { error });
+    }
+
+    if (metrics) {
+      setDebugStats((prev) => ({
+        ...prev,
+        fps: Math.round(metrics.fps),
+        queueDepth: metrics.queueDepth,
+        circuitOpen: metrics.circuitBreakerOpen,
+        lastLatency: Math.round(metrics.processingMs),
+      }));
+    }
     if (isProcessing) return;
 
     if (
@@ -910,12 +947,18 @@ export default function RecognitionScreen({ navigation }: any) {
               {status}
             </Animated.Text>
 
-            {showDebug && (
-              <View style={styles.debugOverlay}>
-                <Text style={styles.debugText}>Median latency: {debugStats.medianLatency} ms</Text>
-                <Text style={styles.debugText}>Offline: {debugStats.offlineRatio}% · Cloud: {debugStats.cloudRatio}%</Text>
-              </View>
-            )}
+              {showDebug && (
+                <View style={styles.debugOverlay}>
+                  <Text style={styles.debugText}>
+                    Median latency: {debugStats.medianLatency} ms · Last: {debugStats.lastLatency} ms
+                  </Text>
+                  <Text style={styles.debugText}>Offline: {debugStats.offlineRatio}% · Cloud: {debugStats.cloudRatio}%</Text>
+                  <Text style={styles.debugText}>
+                    FPS: {debugStats.fps} · Queue: {debugStats.queueDepth} · Circuit:{' '}
+                    {debugStats.circuitOpen ? 'open' : 'closed'}
+                  </Text>
+                </View>
+              )}
 
             {showNeutralHint && !lastRecognizedGesture && (
               <Animated.Text
