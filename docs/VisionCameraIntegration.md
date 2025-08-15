@@ -7,14 +7,23 @@ This document summarizes key points from the official [`react-native-vision-came
 - **vision-camera-resize-plugin** is a Frame Processor plugin that converts camera frames to RGB buffers with optional resize, crop, rotation and data-type conversion.
 
 ## Installation Notes
-- Both packages require the React Native worklets runtime and must be linked in native builds.
-- The resize plugin must be registered with Metro using `withResizePlugin`.
-- At runtime the plugin is available through `VisionCameraProxy.initFrameProcessorPlugin('resize')`.
+- Both packages rely on `react-native-worklets-core`. Ensure it is installed and the Worklets Babel plugin is enabled (usually by adding `react-native-worklets-core/plugin` to `babel.config.js`).
+- Register the resize plugin in Metro by wrapping your config with `withResizePlugin`:
+
+  ```js
+  // app/metro.config.js
+  const { getDefaultConfig } = require('@react-native/metro-config');
+  const { withResizePlugin } = require('vision-camera-resize-plugin/metro');
+  const config = getDefaultConfig(__dirname);
+  module.exports = withResizePlugin(config);
+  ```
+- At runtime, initialize the plugin from a frame-processor worklet using `VisionCameraProxy.initFrameProcessorPlugin('resize')`.
+- For non-component worklets, the plugin is initialized via `createResizePlugin()`.
 
 ## Usage Patterns
-- Inside React components use `useResizePlugin` to obtain a `resize` function.
-- For non-component worklets, `createResizePlugin` can initialize the plugin once and reuse it.
-- The plugin accepts options for `scale`, `pixelFormat` and `dataType` (`uint8` or `float32`).
+- Inside React components, use the `useResizePlugin` hook to obtain a `resize` function.
+- The initialized plugin instance can then be used to `resize` frames in non-component worklets.
+- The plugin accepts options for `scale`, `pixelFormat`, and `dataType` (`uint8` or `float32`). See the upstream plugin's README for the full list of supported options and defaults.
 
 ## Example
 
@@ -44,10 +53,14 @@ const frameProcessor = useFrameProcessor((frame) => {
 ## Alignment With Our Code
 - `app/metro.config.js` registers the plugin via `withResizePlugin`.
 - `app/src/ml/tfliteRuntime.ts` uses `useResizePlugin` to feed resized RGB frames directly into TensorFlow Lite.
-- `app/src/services/landmarkExtractor.ts` falls back to `ArrayBuffer` processing when `VisionCameraProxy` is missing, logging a warning to aid debugging.
+- `app/src/services/landmarkExtractor.ts` falls back to `ArrayBuffer` processing when `VisionCameraProxy` is missing, logging a warning to aid in debugging.
 - Both code paths match the APIs described in the official docs and use the same option names (`scale`, `pixelFormat`, `dataType`).
 
 ## Troubleshooting
-- If logs show `VisionCameraProxy not found; using ArrayBuffer fallback` the native plugin was not loaded; ensure the dependency is installed and the build picked up the `withResizePlugin` metro config.
-- For Expo, run `expo prebuild` or `eas build` after installing native dependencies.
+- If logs show `VisionCameraProxy not found; using ArrayBuffer fallback`, the native plugin was not loaded; ensure the dependency is installed and the build picked up the `withResizePlugin` Metro config.
+- For Expo, run `expo prebuild` (or use `eas build`) after installing native dependencies. Frame Processors are not supported in Expo Go; use a development build.
+- After changing Metro/Babel config, rebuild the native app and clear caches:
+  - iOS (bare RN): `cd ios && pod install`
+  - Clear Metro cache: `rm -rf $TMPDIR/metro-* && rm -rf node_modules/.cache/metro`
+  - Restart bundler with `--reset-cache`
 
