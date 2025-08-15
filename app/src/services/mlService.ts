@@ -48,9 +48,9 @@ class LandmarkSmoother {
   private lastTimestamp: number;
 
   constructor() {
-    this.filters = Array(21)
-      .fill(0)
-      .map(() => Array(3).fill(new OneEuroFilter()));
+    this.filters = Array.from({ length: 21 }, () =>
+      Array.from({ length: 3 }, () => new OneEuroFilter()),
+    );
     this.lastTimestamp = -1;
   }
 
@@ -675,7 +675,9 @@ export const useGestureClassifier = (
   const frameBufferRef = useRef(new FrameBufferManager(recommendedBufferSize()));
   const perfManagerRef = useRef(new AdaptivePerformanceManager());
   const pluginAvailable = isResizePluginAvailable();
-  const pluginError = useSharedValue(false);
+  const pluginUnavailableLogged = useSharedValue(false);
+  const fallbackLogged = useSharedValue(false);
+  const errorLogged = useSharedValue(false);
 
   useEffect(() => {
     const readyInterval = setInterval(() => {
@@ -754,8 +756,8 @@ export const useGestureClassifier = (
         return;
       }
 
-      if (!pluginAvailable && !pluginError.value) {
-        pluginError.value = true;
+      if (!pluginAvailable && !pluginUnavailableLogged.value) {
+        pluginUnavailableLogged.value = true;
         onErrorJS('Frame processor plugin unavailable; using JS fallback');
       }
 
@@ -771,18 +773,37 @@ export const useGestureClassifier = (
 
       try {
         // Run dedicated worklet to extract and flatten landmarks
-        const flat = extractHandLandmarksWorklet(frame);
-        if (!flat) {
-          if (!pluginError.value) {
-            pluginError.value = true;
-            onErrorJS('Landmark extraction failed');
+        let rawLandmarks: number[][] = [];
+        const STRIDE = 3; // components per landmark: x, y, z
+        // Only invoke the worklet extractor when the native plugin is available
+        let flat = pluginAvailable ? extractHandLandmarksWorklet(frame) : null;
+        // Guard against invalid worklet output (e.g. empty or unexpected length)
+        if (!flat || flat.length % STRIDE !== 0) {
+          rawLandmarks = extractLandmarks(frame) || [];
+          if (rawLandmarks.length === 0) {
+            if (!errorLogged.value) {
+              errorLogged.value = true;
+              onErrorJS('Landmark extraction failed');
+            }
+            return;
           }
-          return;
+          flat = new Float32Array(rawLandmarks.flat());
+          if (!fallbackLogged.value) {
+            fallbackLogged.value = true;
+            onErrorJS('Using JS landmark extractor fallback');
+          }
+        } else {
+          // Derive 2D landmarks from the flattened worklet output to avoid duplicate extraction
+          const arr = flat as Float32Array | number[];
+          const count = arr.length / STRIDE;
+          rawLandmarks = new Array(count);
+          for (let i = 0; i < count; i++) {
+            const base = i * STRIDE;
+            rawLandmarks[i] = [arr[base], arr[base + 1], arr[base + 2]];
+          }
         }
         const predictions = classifyGesture(flat, localThreshold);
 
-        // Reconstruct landmark array shape for overlay using the hook extractor
-        const rawLandmarks = extractLandmarks(frame) || [];
         const end = Date.now();
         const processed: ProcessedFrame = {
           landmarks: rawLandmarks,
@@ -797,8 +818,8 @@ export const useGestureClassifier = (
         enqueueFrameJS(processed);
       } catch (error: any) {
         logErrorJS('WORKLET ERROR:', error);
-        if (!pluginError.value) {
-          pluginError.value = true;
+        if (!errorLogged.value) {
+          errorLogged.value = true;
           onErrorJS(error.message);
         }
       }
@@ -810,7 +831,9 @@ export const useGestureClassifier = (
       localThreshold,
       extractLandmarks,
       pluginAvailable,
-      pluginError,
+      pluginUnavailableLogged,
+      fallbackLogged,
+      errorLogged,
     ],
   );
 
@@ -835,7 +858,7 @@ export const useRecordingProcessor = (
   const extractWithPluginRec = useHandLandmarkExtractor();
   const extractLandmarksRec =
     pluginAvailable ? extractWithPluginRec : extractHandLandmarks;
-  const pluginError = useSharedValue(false);
+  const pluginUnavailableLogged = useSharedValue(false);
 
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
@@ -844,8 +867,8 @@ export const useRecordingProcessor = (
         return;
       }
 
-      if (!pluginAvailable && !pluginError.value) {
-        pluginError.value = true;
+      if (!pluginAvailable && !pluginUnavailableLogged.value) {
+        pluginUnavailableLogged.value = true;
         logErrorJS('Frame processor plugin unavailable; using JS fallback');
       }
 
@@ -865,7 +888,7 @@ export const useRecordingProcessor = (
         logErrorJS('WORKLET ERROR:', error);
       }
     },
-    [fps, extractLandmarksRec, pluginAvailable, pluginError],
+    [fps, extractLandmarksRec, pluginAvailable, pluginUnavailableLogged],
   );
 
   return frameProcessor;
