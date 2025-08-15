@@ -1,5 +1,5 @@
 export interface ClassificationOutput {
-  probabilities: number[];
+  probabilities: ReadonlyArray<number>;
   maxProbability: number;
   maxIndex: number;
 }

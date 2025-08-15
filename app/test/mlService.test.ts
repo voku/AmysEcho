@@ -141,7 +141,8 @@ describe('mlService', () => {
 
     const flat = frame.landmarks.flat();
     expect(gestureRunSync).toHaveBeenCalledWith([flat]);
-    const lastCall = onResult.mock.calls.at(-1)[0];
+    const calls = onResult.mock.calls;
+    const lastCall = calls[calls.length - 1][0];
     expect(lastCall.label).toBe('wave');
     expect(lastCall.confidence).toBeCloseTo(0.689974, 5);
   });

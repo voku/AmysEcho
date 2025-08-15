@@ -59,7 +59,7 @@ export function classifyGesture(
       }
     }
 
-    if (maxProb > confidenceThreshold) {
+    if (maxProb >= confidenceThreshold) {
       return {
         probabilities: Array.from(outputBuffer),
         maxProbability: maxProb,

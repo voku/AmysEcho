@@ -93,7 +93,10 @@ const createRunOnJS = Worklets?.createRunOnJS ? Worklets.createRunOnJS : ((fn: a
 
 class ModelManager {
   private tfliteModel: TensorflowModel | null = null;
-  private inferenceQueue: number[][] = [];
+  private inferenceQueue: Array<{
+    input: number[];
+    resolve: (result: ClassificationOutput) => void;
+  }> = [];
   private isInferring = false;
 
   setModel(model: TensorflowModel | null): void {
@@ -102,22 +105,22 @@ class ModelManager {
 
   async runInference(inputTensor: number[]): Promise<ClassificationOutput> {
     return new Promise((resolve) => {
-      this.inferenceQueue.push(inputTensor);
-      this.processQueue(resolve);
+      this.inferenceQueue.push({ input: inputTensor, resolve });
+      this.processQueue();
     });
   }
 
-  private async processQueue(resolve: (result: ClassificationOutput) => void) {
+  private async processQueue() {
     if (this.isInferring || this.inferenceQueue.length === 0) {
       return;
     }
     this.isInferring = true;
-    const inputTensor = this.inferenceQueue.shift()!;
+    const { input, resolve } = this.inferenceQueue.shift()!;
     try {
       if (!this.tfliteModel) {
         throw new Error('Model not loaded');
       }
-      const logits = (this.tfliteModel.runSync([inputTensor as any]) as any[])[0] as number[];
+      const logits = (this.tfliteModel.runSync([input as any]) as any[])[0] as number[];
       const len = logits.length;
       let maxLogit = -Infinity;
       for (let i = 0; i < len; i++) {
@@ -147,7 +150,7 @@ class ModelManager {
     } finally {
       this.isInferring = false;
       if (this.inferenceQueue.length > 0) {
-        this.processQueue(resolve);
+        this.processQueue();
       }
     }
   }
@@ -324,7 +327,7 @@ class MachineLearningService {
   isServiceReady = (): boolean => this.isReady;
 
   private shouldUseRemote(): boolean {
-    return !this.circuitBreaker.isOpen();
+    return this.allowRemote && !this.circuitBreaker.isOpen();
   }
 
   private handleRemoteFailure() {
@@ -515,7 +518,7 @@ class MachineLearningService {
     return { gesture, confidence: output.maxProbability };
   }
 
-  private getTopPredictions(output: number[], count = 3): string[] {
+  private getTopPredictions(output: readonly number[], count = 3): string[] {
     return output
       .map((confidence, index) => ({ confidence, index }))
       .sort((a, b) => b.confidence - a.confidence)
