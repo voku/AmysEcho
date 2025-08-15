@@ -29,6 +29,7 @@ import {
   ProcessedFrame,
   MLServiceConfig,
   GestureResult,
+  ClassificationOutput,
 } from '../types/ml';
 import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
 import { database } from '../../db';
@@ -99,14 +100,14 @@ class ModelManager {
     this.tfliteModel = model;
   }
 
-  async runInference(inputTensor: number[]): Promise<number[]> {
+  async runInference(inputTensor: number[]): Promise<ClassificationOutput> {
     return new Promise((resolve) => {
       this.inferenceQueue.push(inputTensor);
       this.processQueue(resolve);
     });
   }
 
-  private async processQueue(resolve: (result: number[]) => void) {
+  private async processQueue(resolve: (result: ClassificationOutput) => void) {
     if (this.isInferring || this.inferenceQueue.length === 0) {
       return;
     }
@@ -116,11 +117,33 @@ class ModelManager {
       if (!this.tfliteModel) {
         throw new Error('Model not loaded');
       }
-      const output = (this.tfliteModel.runSync([inputTensor as any]) as any[])[0] as number[];
-      resolve(output);
+      const logits = (this.tfliteModel.runSync([inputTensor as any]) as any[])[0] as number[];
+      const len = logits.length;
+      let maxLogit = -Infinity;
+      for (let i = 0; i < len; i++) {
+        if (logits[i] > maxLogit) maxLogit = logits[i];
+      }
+      let sum = 0;
+      const probs = new Array<number>(len);
+      for (let i = 0; i < len; i++) {
+        const e = Math.exp(logits[i] - maxLogit);
+        probs[i] = e;
+        sum += e;
+      }
+      let maxProbability = 0;
+      let maxIndex = -1;
+      for (let i = 0; i < len; i++) {
+        const p = probs[i] / sum;
+        probs[i] = p;
+        if (p > maxProbability) {
+          maxProbability = p;
+          maxIndex = i;
+        }
+      }
+      resolve({ probabilities: probs, maxProbability, maxIndex });
     } catch (error) {
       logger.error('Inference failed:', error);
-      resolve([]);
+      resolve({ probabilities: [], maxProbability: 0, maxIndex: -1 });
     } finally {
       this.isInferring = false;
       if (this.inferenceQueue.length > 0) {
@@ -318,7 +341,10 @@ class MachineLearningService {
     if (processed.predictions) {
       try {
         const { gesture, confidence } = this.processModelOutput(processed.predictions);
-        const suggestions = this.getTopPredictions(processed.predictions, 3);
+        const suggestions = this.getTopPredictions(
+          processed.predictions.probabilities,
+          3,
+        );
 
         result = {
           label: gesture,
@@ -357,7 +383,10 @@ class MachineLearningService {
               this.prepareTensorInput(processed),
             ));
           const { gesture, confidence } = this.processModelOutput(predictions);
-          const suggestions = this.getTopPredictions(predictions, 3);
+          const suggestions = this.getTopPredictions(
+            predictions.probabilities,
+            3,
+          );
 
           result = {
             label: gesture,
@@ -382,7 +411,10 @@ class MachineLearningService {
             this.prepareTensorInput(processed),
           ));
         const { gesture, confidence } = this.processModelOutput(predictions);
-        const suggestions = this.getTopPredictions(predictions, 3);
+        const suggestions = this.getTopPredictions(
+          predictions.probabilities,
+          3,
+        );
 
         result = {
           label: gesture,
@@ -475,11 +507,12 @@ class MachineLearningService {
     return data.landmarks.flat();
   }
 
-  private processModelOutput(output: number[]): { gesture: string; confidence: number } {
-    const maxConfidence = Math.max(...output);
-    const idx = output.indexOf(maxConfidence);
-    const gesture = this.labels[idx] || 'unknown';
-    return { gesture, confidence: maxConfidence };
+  private processModelOutput(output: ClassificationOutput): {
+    gesture: string;
+    confidence: number;
+  } {
+    const gesture = this.labels[output.maxIndex] || 'unknown';
+    return { gesture, confidence: output.maxProbability };
   }
 
   private getTopPredictions(output: number[], count = 3): string[] {

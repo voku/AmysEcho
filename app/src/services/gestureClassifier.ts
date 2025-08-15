@@ -1,6 +1,7 @@
 import { TensorflowModel } from 'react-native-fast-tflite';
 import { Worklets } from 'react-native-worklets-core';
 import { logger } from '../utils/logger';
+import type { ClassificationOutput } from '../types/ml';
 
 let gestureModel: TensorflowModel | null = null;
 let inputBuffer: Float32Array | null = null;
@@ -16,7 +17,7 @@ export function setGestureModel(model: TensorflowModel | null): void {
 export function classifyGesture(
   input: Float32Array,
   confidenceThreshold: number = 0.7,
-): number[] | null {
+): ClassificationOutput | null {
   'worklet';
   if (!gestureModel) return null;
   try {
@@ -48,14 +49,22 @@ export function classifyGesture(
     }
 
     let maxProb = 0;
+    let maxIndex = -1;
     for (let i = 0; i < len; i++) {
       const prob = outputBuffer[i] / sum;
       outputBuffer[i] = prob;
-      if (prob > maxProb) maxProb = prob;
+      if (prob > maxProb) {
+        maxProb = prob;
+        maxIndex = i;
+      }
     }
 
     if (maxProb > confidenceThreshold) {
-      return Array.from(outputBuffer);
+      return {
+        probabilities: Array.from(outputBuffer),
+        maxProbability: maxProb,
+        maxIndex,
+      };
     }
     return null;
   } catch (e) {
