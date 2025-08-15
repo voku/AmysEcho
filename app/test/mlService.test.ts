@@ -141,9 +141,10 @@ describe('mlService', () => {
 
     const flat = frame.landmarks.flat();
     expect(gestureRunSync).toHaveBeenCalledWith([flat]);
-    expect(onResult).toHaveBeenLastCalledWith(
-      expect.objectContaining({ label: 'wave', confidence: 0.9 }),
-    );
+    const calls = onResult.mock.calls;
+    const lastCall = calls[calls.length - 1][0];
+    expect(lastCall.label).toBe('wave');
+    expect(lastCall.confidence).toBeCloseTo(0.689974, 5);
   });
 
   it('requests remote classification when worklet prediction confidence is low', async () => {
@@ -171,7 +172,7 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
-      predictions: [0.5, 0.5],
+      predictions: { probabilities: [0.5, 0.5], maxProbability: 0.5, maxIndex: 0 },
     } as any;
 
     const onResult = jest.fn();
@@ -272,7 +273,7 @@ describe('mlService', () => {
       width: 1,
       height: 1,
       timestamp: Date.now(),
-      predictions: [0.5, 0.5],
+      predictions: { probabilities: [0.5, 0.5], maxProbability: 0.5, maxIndex: 0 },
     } as any;
 
     const onResult = jest.fn();

@@ -1,10 +1,16 @@
+export interface ClassificationOutput {
+  probabilities: ReadonlyArray<number>;
+  maxProbability: number;
+  maxIndex: number;
+}
+
 export interface ProcessedFrame {
   landmarks: number[][];
   landmarksRaw?: number[][];
   width: number;
   height: number;
   timestamp: number;
-  predictions?: number[];
+  predictions?: ClassificationOutput;
 }
 
 export interface GestureResult {
