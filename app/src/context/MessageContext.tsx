@@ -14,12 +14,21 @@ export function MessageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const originalWarn = console.warn;
     const originalError = console.error;
+
+    let logging = false;
+    const appendMessage = (msg: string) => {
+      if (logging) return;
+      logging = true;
+      setMessage((prev) => [prev, msg].filter(Boolean).join('\n'));
+      logging = false;
+    };
+
     console.warn = (...args: any[]) => {
-      setMessage(args.map(String).join(' '));
+      appendMessage(args.map(String).join(' '));
       originalWarn(...args);
     };
     console.error = (...args: any[]) => {
-      setMessage(args.map(String).join(' '));
+      appendMessage(args.map(String).join(' '));
       originalError(...args);
     };
     return () => {
