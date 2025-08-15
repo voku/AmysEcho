@@ -772,8 +772,10 @@ export const useGestureClassifier = (
       try {
         // Run dedicated worklet to extract and flatten landmarks
         let rawLandmarks: number[][] = [];
-        let flat = extractHandLandmarksWorklet(frame);
-        if (!flat) {
+        // Only invoke the worklet extractor when the native plugin is available
+        let flat = pluginAvailable ? extractHandLandmarksWorklet(frame) : null;
+        // Guard against invalid worklet output (e.g. empty or unexpected length)
+        if (!flat || flat.length % 3 !== 0) {
           rawLandmarks = extractLandmarks(frame) || [];
           if (rawLandmarks.length === 0) {
             if (!pluginError.value) {
@@ -782,21 +784,19 @@ export const useGestureClassifier = (
             }
             return;
           }
-          const out = new Float32Array(rawLandmarks.length * 3);
-          let k = 0;
-          for (let i = 0; i < rawLandmarks.length; i++) {
-            const p = rawLandmarks[i];
-            out[k++] = p[0];
-            out[k++] = p[1];
-            out[k++] = p[2];
-          }
-          flat = out;
+          flat = new Float32Array(rawLandmarks.flat());
           if (!pluginError.value) {
             pluginError.value = true;
             onErrorJS('Using JS landmark extractor fallback');
           }
         } else {
-          rawLandmarks = extractLandmarks(frame) || [];
+          // Derive 2D landmarks from the flattened worklet output to avoid duplicate extraction
+          const arr = flat as any; // Float32Array or number[]
+          const count = Math.floor(arr.length / 3);
+          rawLandmarks = new Array(count);
+          for (let i = 0, k = 0; i < count; i++) {
+            rawLandmarks[i] = [arr[k++], arr[k++], arr[k++]];
+          }
         }
         const predictions = classifyGesture(flat, localThreshold);
 
