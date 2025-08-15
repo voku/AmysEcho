@@ -262,7 +262,9 @@ export default function RecognitionScreen({ navigation }: any) {
           offlineRatio: total ? Math.round((offline / total) * 100) : 0,
           cloudRatio: total ? Math.round((cloud / total) * 100) : 0,
         }));
-      } catch {}
+      } catch (error) {
+        logger.warn('Failed to update debug stats', { error });
+      }
     }, 1500);
     return () => clearInterval(id);
   }, [showDebug]);
@@ -321,26 +323,28 @@ export default function RecognitionScreen({ navigation }: any) {
     } catch {}
 
     // Update performance monitor
-      try {
-        perfMonitorRef.current.add({
-          t: Date.now(),
-          label: result?.label ?? 'uncertain',
-          confidence: result?.confidence ?? 0,
-          requiresConfirmation: result?.requiresConfirmation ?? true,
-          inferenceType: result?.isLocal ? 'local' : 'cloud',
-        });
-        setShowPerfBanner(perfMonitorRef.current.isDegraded());
-      } catch {}
+    try {
+      perfMonitorRef.current.add({
+        t: Date.now(),
+        label: result?.label ?? 'uncertain',
+        confidence: result?.confidence ?? 0,
+        requiresConfirmation: result?.requiresConfirmation ?? true,
+        inferenceType: result?.isLocal ? 'local' : 'cloud',
+      });
+      setShowPerfBanner(perfMonitorRef.current.isDegraded());
+    } catch (error) {
+      logger.warn('Failed to update performance monitor', { error });
+    }
 
-      if (metrics) {
-        setDebugStats((prev) => ({
-          ...prev,
-          fps: Math.round(metrics.fps),
-          queueDepth: metrics.queueDepth,
-          circuitOpen: metrics.circuitBreakerOpen,
-          lastLatency: Math.round(metrics.processingMs),
-        }));
-      }
+    if (metrics) {
+      setDebugStats((prev) => ({
+        ...prev,
+        fps: Math.round(metrics.fps),
+        queueDepth: metrics.queueDepth,
+        circuitOpen: metrics.circuitBreakerOpen,
+        lastLatency: Math.round(metrics.processingMs),
+      }));
+    }
     if (isProcessing) return;
 
     if (

@@ -645,17 +645,17 @@ class MachineLearningService {
 
 export const mlService = new MachineLearningService();
 
-  export const useGestureClassifier = (
-    onResult: (
-      result: GestureResult | null,
-      landmarks: number[][],
-      raw?: number[][],
-      metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean },
-    ) => void,
-    isProcessing: boolean,
-    localThreshold: number,
-    onError?: (message: string) => void,
-  ) => {
+export const useGestureClassifier = (
+  onResult: (
+    result: GestureResult | null,
+    landmarks: number[][],
+    raw?: number[][],
+    metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean },
+  ) => void,
+  isProcessing: boolean,
+  localThreshold: number,
+  onError?: (message: string) => void,
+) => {
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
 
