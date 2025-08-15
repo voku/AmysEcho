@@ -14,7 +14,7 @@ jest.mock('../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false }),
 }));
 
-import { MessageProvider } from '../src/context/MessageContext';
+import { MessageProvider, useMessage } from '../src/context/MessageContext';
 import ErrorMessage from '../src/components/ErrorMessage';
 
 describe('MessageProvider', () => {
@@ -46,10 +46,37 @@ describe('MessageProvider', () => {
     });
     act(() => {
       console.warn('first');
+    });
+    act(() => {
       console.error('second');
     });
     const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
     expect(error.props.message).toBe('first\nsecond');
+    (component as renderer.ReactTestRenderer).unmount();
+  });
+
+  it('ignores logs triggered during re-render', () => {
+    const Child = () => {
+      const { message } = useMessage();
+      if (message && !message.includes('child')) {
+        console.warn('child');
+      }
+      return null;
+    };
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MessageProvider>
+          <Child />
+        </MessageProvider>
+      );
+    });
+    act(() => {
+      console.warn('parent');
+    });
+    const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
+    expect(error.props.message).toBe('parent');
     (component as renderer.ReactTestRenderer).unmount();
   });
 });

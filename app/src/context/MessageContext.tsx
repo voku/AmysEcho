@@ -11,16 +11,20 @@ const MessageContext = createContext<MessageContextValue | undefined>(undefined)
 export function MessageProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
 
+  const logging = React.useRef(false);
+
+  useEffect(() => {
+    logging.current = false;
+  });
+
   useEffect(() => {
     const originalWarn = console.warn;
     const originalError = console.error;
 
-    let logging = false;
     const appendMessage = (msg: string) => {
-      if (logging) return;
-      logging = true;
+      if (logging.current) return;
+      logging.current = true;
       setMessage((prev) => [prev, msg].filter(Boolean).join('\n'));
-      logging = false;
     };
 
     console.warn = (...args: any[]) => {
