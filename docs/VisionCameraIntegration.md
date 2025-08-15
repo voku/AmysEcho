@@ -16,6 +16,31 @@ This document summarizes key points from the official [`react-native-vision-came
 - For non-component worklets, `createResizePlugin` can initialize the plugin once and reuse it.
 - The plugin accepts options for `scale`, `pixelFormat` and `dataType` (`uint8` or `float32`).
 
+## Example
+
+Below is a simplified Frame Processor that resizes each camera frame to `320x320` RGB bytes and feeds it into a TensorFlow Lite model:
+
+```tsx
+const objectDetection = useTensorflowModel(require('assets/efficientdet.tflite'))
+const model = objectDetection.state === 'loaded' ? objectDetection.model : undefined
+
+const { resize } = useResizePlugin()
+
+const frameProcessor = useFrameProcessor((frame) => {
+  'worklet'
+
+  const data = resize(frame, {
+    scale: { width: 320, height: 320 },
+    pixelFormat: 'rgb',
+    dataType: 'uint8',
+  })
+  const output = model.runSync([data])
+
+  const numDetections = output[0]
+  console.log(`Detected ${numDetections} objects!`)
+}, [model])
+```
+
 ## Alignment With Our Code
 - `app/metro.config.js` registers the plugin via `withResizePlugin`.
 - `app/src/ml/tfliteRuntime.ts` uses `useResizePlugin` to feed resized RGB frames directly into TensorFlow Lite.
