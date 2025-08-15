@@ -10,6 +10,8 @@ export interface ProcessedFrame {
   width: number;
   height: number;
   timestamp: number;
+  processingMs: number;
+  fps: number;
   predictions?: ClassificationOutput;
 }
 
