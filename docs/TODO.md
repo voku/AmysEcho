@@ -19,6 +19,244 @@ The project has a stable foundation after a major refactor. The database, naviga
    - exercise both online and offline recognition paths within the 400 ms timeout.
    - run `integration/offlineFallback.spec.ts` and `integration/offlineBoot.spec.ts`.
 
+# Amy's Echo - Hand Gesture Recognition Implementation Plan
+
+## Mission: Get Hand Gestures Actually Working
+Priority: Make the hand gesture pipeline robust, real-time, and production-ready like the MediaPipe Android sample.
+
+## Current State Analysis
+Recent commits show solid foundation work:
+- ✅ **Landmark extraction simplified**: Direct Float32Array → 2D (21×3) processing
+- ✅ **Camera robustness**: Device selection works across VisionCamera versions
+- ✅ **Stability improvements**: One Euro filter smoothing, duplicate extraction prevention
+- ✅ **Error handling**: JS fallback, malformed output guards
+
+**Gap**: Need to bridge from "stable landmarks" to "reliable gesture classification"
+
+---
+
+## Task 1: Fix the Gesture Classification Pipeline
+
+### Objective
+Ensure the TFLite gesture classifier actually works with real camera data.
+
+### Critical Implementation
+**File**: `app/src/services/mlService.ts`
+
+**Current Issue**: The classifier might not be getting properly formatted data or the model isn't loading correctly.
+
+**Action Steps**:
+1. **Verify model loading**:
+2. **Validate input format**:
+3. **Check output parsing**:
+
+**Expected Fix**: Classification should work consistently with live camera frames.
+
+---
+
+## Task 2: Real-Time Performance Optimization
+
+### Objective
+Achieve MediaPipe-level responsiveness (15-30 FPS processing).
+
+### Implementation Areas
+
+#### A. Frame Processing Efficiency
+**File**: `app/src/services/cameraService.ts`
+
+**Optimizations**:
+- Skip frames if ML pipeline is busy
+- Implement frame dropping to maintain real-time feel
+- Add FPS monitoring and display
+
+#### B. Landmark Processing Speed
+**File**: `app/src/services/landmarkExtractor.ts`
+
+**Current Win**: Direct Float32Array processing is good
+**Enhancement**: Add timing logs to identify bottlenecks
+
+---
+
+## Task 3: Gesture Recognition Reliability
+
+### Objective
+Make gesture detection as reliable as the MediaPipe sample.
+
+### Implementation Focus
+
+#### A. Input Normalization
+**File**: `app/src/services/landmarkNormalizer.ts` (create)
+
+**Missing Piece**: Landmarks need normalization before classification
+```typescript
+export function normalizeLandmarks(landmarks: number[][]): number[] {
+  // 1. Translate to wrist (landmark[0])
+  const wrist = landmarks[0];
+  const translated = landmarks.map(point => 
+    [point[0] - wrist[0], point[1] - wrist[1], point[2] - wrist[2]]
+  );
+  
+  // 2. Scale by hand size (distance from wrist to middle finger tip)
+  const middleTip = translated[12];
+  const handSize = Math.sqrt(
+    middleTip[0] ** 2 + middleTip[1] ** 2 + middleTip[2] ** 2
+  );
+  
+  const normalized = translated.map(point => 
+    [point[0] / handSize, point[1] / handSize, point[2] / handSize]
+  );
+  
+  return normalized.flat();
+}
+```
+
+#### B. Confidence Thresholding
+**File**: `app/src/services/mlService.ts`
+
+**Enhancement**: Add proper confidence handling like MediaPipe
+
+#### C. Temporal Stability
+**File**: `app/src/services/gestureStabilizer.ts` (create)
+
+**Missing**: Gesture debouncing like MediaPipe sample
+```typescript
+class GestureStabilizer {
+  private gestureHistory: string[] = [];
+  private readonly historySize = 5;
+  
+  addGesture(gesture: string): string | null {
+    this.gestureHistory.push(gesture);
+    if (this.gestureHistory.length > this.historySize) {
+      this.gestureHistory.shift();
+    }
+    
+    // Return gesture only if it's stable across multiple frames
+    const counts = this.gestureHistory.reduce((acc, g) => {
+      acc[g] = (acc[g] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const dominant = Object.keys(counts).reduce((a, b) => 
+      counts[a] > counts[b] ? a : b
+    );
+    
+    // Need 60% consistency to accept gesture
+    if (counts[dominant] / this.gestureHistory.length >= 0.6) {
+      return dominant;
+    }
+    
+    return null;
+  }
+}
+```
+
+---
+
+## Task 4: Debug & Validation Tools
+
+### Objective
+Add MediaPipe-style debug overlays to verify the pipeline works.
+
+### Implementation
+
+#### A. Debug Overlay
+**File**: `app/src/components/DebugOverlay.tsx` (create)
+
+**Features**:
+- Live FPS counter
+- Current gesture + confidence
+- Landmark points visualization
+- Processing time metrics
+- Model loading status
+
+```tsx
+export function DebugOverlay({ 
+  fps, 
+  currentGesture, 
+  confidence, 
+  landmarks,
+  processingTime 
+}) {
+  return (
+    <View style={styles.debugOverlay}>
+      <Text>FPS: {fps.toFixed(1)}</Text>
+      <Text>Gesture: {currentGesture} ({(confidence * 100).toFixed(1)}%)</Text>
+      <Text>Processing: {processingTime.toFixed(1)}ms</Text>
+      {landmarks && <LandmarkPoints landmarks={landmarks} />}
+    </View>
+  );
+}
+```
+
+#### B. Device Testing Script
+**File**: `scripts/test-gestures.js` (create)
+
+**Purpose**: Quick validation on Android device
+```javascript
+// Test script to verify:
+// 1. Camera starts
+// 2. Landmarks are detected
+// 3. Gestures are classified
+// 4. FPS is acceptable (>10 FPS)
+// 5. No crashes after 5 minutes
+```
+
+---
+
+## Task 5: Production Readiness
+
+### Objective
+Ensure gesture recognition works reliably in real-world conditions.
+
+### Critical Fixes
+
+#### A. Error Recovery
+**File**: `app/src/services/gestureService.ts`
+
+**Robust Pipeline**:
+
+#### B. Memory Management
+**File**: `app/src/services/mlService.ts`
+
+**Critical**: Prevent memory leaks during continuous processing
+
+---
+
+## Success Criteria - "It Actually Works"
+
+### Immediate Validation
+- [ ] **Camera → Landmarks**: Consistent 21×3 landmark detection
+- [ ] **Landmarks → Gestures**: Reliable classification (>80% accuracy)
+- [ ] **Real-time**: 15+ FPS on target Android device
+- [ ] **Stability**: No crashes during 5-minute continuous use
+- [ ] **Responsiveness**: Gesture changes detected within 500ms
+
+### MediaPipe Parity Checklist
+- [ ] Smooth landmark tracking (no jitter)
+- [ ] Confident gesture recognition with proper thresholds
+- [ ] Temporal stability (no flickering between gestures)
+- [ ] Graceful handling of no-hand scenarios
+- [ ] Debug overlay shows live pipeline status
+
+### Device Testing Protocol
+1. **Deploy to Android device**: `expo run:android`
+2. **Test core gestures**: Open palm, closed fist, pointing
+3. **Stress test**: 5 minutes continuous use
+4. **Edge cases**: Poor lighting, partial occlusion, fast movement
+5. **Performance**: Monitor FPS, battery drain, memory usage
+
+---
+
+## Next Development Iteration
+
+After gesture recognition is solid:
+1. **Multi-hand support**: Extend to two hands if needed
+2. **Custom gesture training**: Allow users to add gestures
+3. **Gesture combinations**: Support sequential gestures
+4. **Performance optimization**: GPU acceleration, model quantization
+
+**Bottom Line**: Focus on making the basic gesture pipeline bulletproof before adding complexity.
+
 ## Recognition Stabilization (TFLite, VisionCamera v4) — 2025-08
 - ✅ Worklets correctness: 'worklet' directive + Worklets.createRunOnJS (no Reanimated runOnJS).
 - ✅ Camera `pixelFormat="yuv"` for ML path (`app/src/screens/RecognitionScreen.tsx`, `app/src/screens/TrainingScreen.tsx`).
