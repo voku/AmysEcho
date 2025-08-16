@@ -76,6 +76,9 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             enableRemoteClassification: offline ? false : ENABLE_REMOTE_CLASSIFICATION,
             remoteRetryMs: REMOTE_RETRY_MS,
             processingTimeout: REMOTE_TIMEOUT_MS,
+            smootherMinCutOff: 1.0,
+            smootherBeta: 0.5,
+            smootherDerivateCutOff: 1.0,
           },
         );
         await audioService.initialize();
