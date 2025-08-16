@@ -15,6 +15,8 @@ import { logger } from './src/utils/logger';
 import { useAmyGestureModel } from './src/ml/tfliteRuntime';
 import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashReporting';
 
+import { PerformanceProvider } from './src/context/PerformanceContext';
+
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
@@ -94,21 +96,23 @@ export default function App() {
 
   return (
     <MessageProvider>
-      <AppServicesProvider offline={isOffline}>
-        <AccessibilityContext.Provider
-          value={{
-            ...accessibility,
-            update: (s: Partial<AccessibilitySettings>) =>
-              setAccessibility((prev) => ({ ...prev, ...s })),
-          }}
-        >
-          <LinearGradient colors={gradientColors} style={styles.gradient}>
-            <NavigationContainer>
-              <RootNavigator />
-            </NavigationContainer>
-          </LinearGradient>
-        </AccessibilityContext.Provider>
-      </AppServicesProvider>
+      <PerformanceProvider>
+        <AppServicesProvider offline={isOffline}>
+          <AccessibilityContext.Provider
+            value={{
+              ...accessibility,
+              update: (s: Partial<AccessibilitySettings>) =>
+                setAccessibility((prev) => ({ ...prev, ...s })),
+            }}
+          >
+            <LinearGradient colors={gradientColors} style={styles.gradient}>
+              <NavigationContainer>
+                <RootNavigator />
+              </NavigationContainer>
+            </LinearGradient>
+          </AccessibilityContext.Provider>
+        </AppServicesProvider>
+      </PerformanceProvider>
     </MessageProvider>
   );
 }

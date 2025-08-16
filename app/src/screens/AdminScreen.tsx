@@ -26,10 +26,13 @@ import { Symbol as DBSymbol } from '../../db/models';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 
+import { usePerformance } from '../context/PerformanceContext';
+
 const SYMBOL_EXPORT_PATH = `${FileSystem.documentDirectory || ''}symbols-export.json`;
 
 export default function AdminScreen({ navigation }: any) {
   const { audioService, backupService } = useServices();
+  const { isLowPerformanceMode, toggleLowPerformanceMode } = usePerformance();
   const [symbols, setSymbols] = useState<DBSymbol[]>([]);
   const [editing, setEditing] = useState<DBSymbol | null>(null);
   const [label, setLabel] = useState('');
@@ -378,6 +381,15 @@ export default function AdminScreen({ navigation }: any) {
         accessibilityLabel="Analytics-Dashboard öffnen"
       />
       <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+
+      <View style={{ marginTop: SPACING.lg }}>
+        <Text>Low Performance Mode: {isLowPerformanceMode ? 'On' : 'Off'}</Text>
+        <Button
+          title="Toggle Low Performance Mode"
+          onPress={toggleLowPerformanceMode}
+          accessibilityLabel="Toggle Low Performance Mode"
+        />
+      </View>
 
       <Modal visible={modalVisible} animationType="slide">
         <View style={styles.modal}>
