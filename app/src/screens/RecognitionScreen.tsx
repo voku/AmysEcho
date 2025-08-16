@@ -105,6 +105,7 @@ export default function RecognitionScreen({ navigation }: any) {
     queueDepth: number;
     circuitOpen: boolean;
     lastLatency: number;
+    pluginUsed?: boolean;
   }>({
     medianLatency: 0,
     offlineRatio: 0,
@@ -113,6 +114,7 @@ export default function RecognitionScreen({ navigation }: any) {
     queueDepth: 0,
     circuitOpen: false,
     lastLatency: 0,
+    pluginUsed: undefined,
   });
   const sessionManagerRef = useRef<ChildSessionManager | null>(null);
 
@@ -312,7 +314,7 @@ export default function RecognitionScreen({ navigation }: any) {
       result: any,
       detectedLandmarks: number[][],
       raw?: number[][],
-      metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean },
+      metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean; pluginUsed?: boolean },
     ) => {
     setLastDetection(Date.now());
     setLandmarks(detectedLandmarks);
@@ -347,6 +349,7 @@ export default function RecognitionScreen({ navigation }: any) {
         queueDepth: metrics.queueDepth,
         circuitOpen: metrics.circuitBreakerOpen,
         lastLatency: Math.round(metrics.processingMs),
+        pluginUsed: metrics.pluginUsed,
       }));
     }
     if (isProcessing) return;
@@ -958,8 +961,7 @@ export default function RecognitionScreen({ navigation }: any) {
                   </Text>
                   <Text style={styles.debugText}>Offline: {debugStats.offlineRatio}% · Cloud: {debugStats.cloudRatio}%</Text>
                   <Text style={styles.debugText}>
-                    FPS: {debugStats.fps} · Queue: {debugStats.queueDepth} · Circuit:{' '}
-                    {debugStats.circuitOpen ? 'open' : 'closed'}
+                    FPS: {debugStats.fps} · Queue: {debugStats.queueDepth} · Circuit: {debugStats.circuitOpen ? 'open' : 'closed'} · Plugin: {debugStats.pluginUsed ? 'yes' : 'no'}
                   </Text>
                 </View>
               )}

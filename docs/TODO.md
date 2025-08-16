@@ -19,6 +19,36 @@ The project has a stable foundation after a major refactor. The database, naviga
    - exercise both online and offline recognition paths within the 400 ms timeout.
    - run `integration/offlineFallback.spec.ts` and `integration/offlineBoot.spec.ts`.
 
+6. [x] Make camera device selection robust (VisionCamera v4 array vs keyed object)
+   - Update `RecognitionScreen` to normalize `useCameraDevices()` output and prefer back → front → first available.
+   - Acceptance: No “no device” state on typical Android phones; app enters recognition with a camera selected.
+
+7. [x] Simplify landmark extractor for clarity and correctness
+   - `app/src/services/landmarkExtractor.ts`:
+     - Remove `extractHandLandmarksFlat` and the `FLATTENED_LANDMARKS_SIZE` constant.
+     - Process the model’s `Float32Array` directly and reshape to 2D (21×3).
+     - Provide a single internal path `extractLandmarksFromFrame` used by both exported APIs.
+   - Acceptance: Landmark array length is exactly 21 with 3 coordinates per landmark; logs note plugin vs fallback once.
+
+8. [x] Update classifier integration to consume 2D landmarks
+   - `app/src/services/mlService.ts` flattens 2D (21×3) locally for `classifyGesture` and preserves plugin/fallback telemetry.
+   - Acceptance: Classification triggers on stable landmarks; no runtime errors from shape mismatches.
+
+9. [ ] Normalize landmarks before classification (MediaPipe-style)
+   - Add a lightweight normalizer (translate to wrist, scale by hand size, optional rotation alignment) before flattening.
+   - Gate by a flag to allow A/B testing; document impact on accuracy.
+   - Acceptance: Reduced variance across distance/orientation; fewer “uncertain” results for the same gesture.
+
+10. [ ] Visualization mapping audit and tests
+    - Verify coordinate mapping accounts for aspect-fit letterboxing and mirroring on front camera.
+    - Add a tiny unit that validates `mapLandmark` math with synthetic preview/layout sizes.
+    - Acceptance: Overlay lines and points align the user’s hand on device (visual inspection checklist included).
+
+11. [ ] Unified debug overlay for field testing
+    - Expose FPS, queue depth, circuit breaker, inference path (local/cloud), and plugin vs fallback in one banner.
+    - Add a long-press gesture on status text to toggle (already partially implemented; consolidate output).
+    - Acceptance: Caregiver/dev can confirm pipeline health on-device without a debugger.
+
 # Amy's Echo - Hand Gesture Recognition Implementation Plan
 
 ## Mission: Get Hand Gestures Actually Working

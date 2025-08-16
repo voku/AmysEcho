@@ -14,6 +14,10 @@ export const REMOTE_TIMEOUT_MS = Number(
   process.env.EXPO_PUBLIC_REMOTE_TIMEOUT_MS || 400,
 );
 
+// Enable landmark normalization before classification (wrist-center, scale)
+export const NORMALIZE_LANDMARKS =
+  process.env.EXPO_PUBLIC_NORMALIZE_LANDMARKS !== 'false';
+
 export const LOG_LEVEL =
   (process.env.EXPO_PUBLIC_LOG_LEVEL ||
     (process.env.NODE_ENV === 'development' ? 'debug' : 'info')) as

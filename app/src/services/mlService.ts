@@ -30,7 +30,8 @@ import {
   GestureResult,
   ClassificationOutput,
 } from '../types/ml';
-import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD } from '../constants';
+import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD, NORMALIZE_LANDMARKS } from '../constants';
+import { normalizeLandmarksToFlat } from './landmarkNormalizer';
 import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
@@ -665,7 +666,7 @@ export const useGestureClassifier = (
     result: GestureResult | null,
     landmarks: number[][],
     raw?: number[][],
-    metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean },
+    metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean; pluginUsed?: boolean },
   ) => void,
   isProcessing: boolean,
   localThreshold: number,
@@ -737,6 +738,7 @@ export const useGestureClassifier = (
           processingMs: next.processingMs,
           queueDepth: frameQueueRef.current.length,
           circuitBreakerOpen: mlService.isCircuitBreakerOpen(),
+          pluginUsed: pluginAvailable,
         });
       })
       .finally(() => {
@@ -809,15 +811,20 @@ export const useGestureClassifier = (
           onErrorJS('Using JS landmark extractor fallback');
         }
 
-        // Flatten for the gesture classifier
-        const flat = new Float32Array(EXPECTED_LANDMARKS * STRIDE);
-        let k = 0;
-        for (let i = 0; i < EXPECTED_LANDMARKS; i++) {
-          const p = rawLandmarks[i];
-          flat[k++] = p[0];
-          flat[k++] = p[1];
-          flat[k++] = p[2];
-        }
+        // Flatten for the gesture classifier (optionally normalized)
+        const flat = NORMALIZE_LANDMARKS
+          ? normalizeLandmarksToFlat(rawLandmarks)
+          : (() => {
+              const out = new Float32Array(EXPECTED_LANDMARKS * STRIDE);
+              let kk = 0;
+              for (let i = 0; i < EXPECTED_LANDMARKS; i++) {
+                const p = rawLandmarks[i];
+                out[kk++] = p[0];
+                out[kk++] = p[1];
+                out[kk++] = p[2];
+              }
+              return out;
+            })();
 
         const predictions = classifyGesture(flat, localThreshold);
 
