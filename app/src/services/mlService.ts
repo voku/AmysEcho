@@ -47,9 +47,12 @@ class LandmarkSmoother {
   private filters: OneEuroFilter[][];
   private lastTimestamp: number;
 
-  constructor() {
+  constructor(minCutOff = 1.0, beta = 0.5, derivateCutOff = 1.0) {
     this.filters = Array.from({ length: 21 }, () =>
-      Array.from({ length: 3 }, () => new OneEuroFilter()),
+      Array.from(
+        { length: 3 },
+        () => new OneEuroFilter(minCutOff, beta, derivateCutOff),
+      ),
     );
     this.lastTimestamp = -1;
   }
@@ -671,7 +674,7 @@ export const useGestureClassifier = (
   const serviceReady = useSharedValue(mlService.isServiceReady());
   const targetFps = useSharedValue(8);
   const lastFrameTime = useSharedValue(0);
-  const smootherRef = useRef(new LandmarkSmoother());
+  const smootherRef = useRef(new LandmarkSmoother(1.0, 0.5, 1.0));
   const frameBufferRef = useRef(new FrameBufferManager(recommendedBufferSize()));
   const perfManagerRef = useRef(new AdaptivePerformanceManager());
   const pluginAvailable = isResizePluginAvailable();
