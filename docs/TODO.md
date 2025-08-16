@@ -34,10 +34,10 @@ The project has a stable foundation after a major refactor. The database, naviga
    - `app/src/services/mlService.ts` flattens 2D (21×3) locally for `classifyGesture` and preserves plugin/fallback telemetry.
    - Acceptance: Classification triggers on stable landmarks; no runtime errors from shape mismatches.
 
-9. [ ] Normalize landmarks before classification (MediaPipe-style)
-   - Add a lightweight normalizer (translate to wrist, scale by hand size, optional rotation alignment) before flattening.
-   - Gate by a flag to allow A/B testing; document impact on accuracy.
-   - Acceptance: Reduced variance across distance/orientation; fewer “uncertain” results for the same gesture.
+9. [x] Normalize landmarks before classification (MediaPipe-style)
+   - Implemented a lightweight normalizer (translate to wrist, scale by hand size) before flattening.
+   - Gated by `EXPO_PUBLIC_NORMALIZE_LANDMARKS` (default on) for A/B.
+   - Acceptance: Reduced variance across distance/orientation; fewer “uncertain” results.
 
 10. [ ] Visualization mapping audit and tests
     - Verify coordinate mapping accounts for aspect-fit letterboxing and mirroring on front camera.

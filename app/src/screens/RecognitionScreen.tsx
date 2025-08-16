@@ -46,6 +46,7 @@ import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { useGestureClassifier } from '../services';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { mapToPreview } from '../utils/landmarkMapping';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { HAND_CONNECTIONS } from '../constants/hand';
 import { useMessage } from '../context/MessageContext';
@@ -478,24 +479,14 @@ export default function RecognitionScreen({ navigation }: any) {
   }, [detectionActive]);
 
   const mapLandmark = useCallback(
-    (lm: number[]) => {
-      const formatRatio = (format?.videoWidth ?? 1) / (format?.videoHeight ?? 1);
-      const screenRatio = previewRect.width / previewRect.height;
-      let contentWidth = previewRect.width;
-      let contentHeight = previewRect.height;
-      let offsetX = 0;
-      let offsetY = 0;
-      if (screenRatio > formatRatio) {
-        contentHeight = previewRect.width / formatRatio;
-        offsetY = (previewRect.height - contentHeight) / 2;
-      } else {
-        contentWidth = previewRect.height * formatRatio;
-        offsetX = (previewRect.width - contentWidth) / 2;
-      }
-      const x = offsetX + (mirror ? 1 - lm[0] : lm[0]) * contentWidth;
-      const y = offsetY + lm[1] * contentHeight;
-      return { x, y };
-    },
+    (lm: number[]) =>
+      mapToPreview(
+        [lm[0], lm[1], lm[2] ?? 0],
+        format?.videoWidth ?? 1,
+        format?.videoHeight ?? 1,
+        { width: previewRect.width, height: previewRect.height },
+        mirror,
+      ),
     [previewRect, format, mirror],
   );
 
