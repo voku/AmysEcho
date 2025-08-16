@@ -31,3 +31,21 @@ test('normalizeLandmarksToFlat returns a flattened float array of length 63', ()
   expect(flat.length).toBe(21 * 3);
 });
 
+test('normalizeLandmarks2D with rotation alignment aligns middle MCP to +X axis', () => {
+  const hand = makeHand();
+  // rotate synthetic hand by ~45 degrees to simulate device/hand rotation
+  const angle = Math.PI / 4;
+  const cosA = Math.cos(angle);
+  const sinA = Math.sin(angle);
+  const rotated = hand.map((p) => {
+    const x = p[0] - hand[0][0];
+    const y = p[1] - hand[0][1];
+    const xr = x * cosA - y * sinA;
+    const yr = x * sinA + y * cosA;
+    return [xr + hand[0][0], yr + hand[0][1], p[2]];
+  });
+
+  const normAligned = normalizeLandmarks2D(rotated, { alignRotation: true });
+  // after alignment, middle MCP (index 9) should have y ~ 0
+  expect(normAligned[9][1]).toBeCloseTo(0, 2);
+});

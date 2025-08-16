@@ -34,6 +34,7 @@ import {
 } from '../types/ml';
 import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD, NORMALIZE_LANDMARKS } from '../constants';
 import { normalizeLandmarksToFlat } from './landmarkNormalizer';
+import { NORMALIZE_ALIGN_ROTATION } from '../constants';
 import { database } from '../../db';
 import { InteractionLog } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
@@ -821,7 +822,7 @@ export const useGestureClassifier = (
         for (let h = 0; h < hands.length; h++) {
           const lms = hands[h];
           const flatH = NORMALIZE_LANDMARKS
-            ? normalizeLandmarksToFlat(lms)
+            ? normalizeLandmarksToFlat(lms, { alignRotation: NORMALIZE_ALIGN_ROTATION })
             : (() => {
                 const out = new Float32Array(EXPECTED_LANDMARKS * STRIDE);
                 let kk = 0;

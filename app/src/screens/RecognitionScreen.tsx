@@ -945,7 +945,9 @@ export default function RecognitionScreen({ navigation }: any) {
                 style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]}
               />
               <Text style={styles.detectionText}>
-                {detectionActive ? `Hands detected` : 'No hand'}
+                {detectionActive
+                  ? `Hands detected: ${Math.max(1, Math.floor(lmDisplay.length / 21))}`
+                  : 'No hand'}
               </Text>
             </View>
 
