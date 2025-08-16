@@ -119,11 +119,15 @@ export default function RecognitionScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
 
-  const devices = useCameraDevices();
+  // Support both VisionCamera returns: array (v4) and object with keys (older)
+  const devices = useCameraDevices() as any;
+  const deviceList: any[] = Array.isArray(devices)
+    ? devices
+    : [devices?.back, devices?.front, devices?.external].filter(Boolean);
   const device =
-    devices.find((d) => d.position === 'back') ??
-    devices.find((d) => d.position === 'front') ??
-    devices[0];
+    deviceList.find((d) => d.position === 'back') ??
+    deviceList.find((d) => d.position === 'front') ??
+    deviceList[0];
   const format = useCameraFormat(device, [{ videoResolution: { width: 1280, height: 720 }, fps: 30 }]);
   const mirror = device?.position === 'front';
   const camera = useRef<Camera>(null);
