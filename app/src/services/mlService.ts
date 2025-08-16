@@ -175,6 +175,9 @@ class MachineLearningService {
   private cloudThreshold = 0.8;
   private baseConfidence = 0.6;
   private lowPowerConfidence = 0.7;
+  private smootherMinCutOff = 1.0;
+  private smootherBeta = 0.5;
+  private smootherDerivateCutOff = 1.0;
   private perfMonitor = new ModelPerformanceMonitor();
   private labels: string[] = [];
   private teachingSession: { id: string; label: string } | null = null;
@@ -305,6 +308,16 @@ class MachineLearningService {
           this.remoteFailureThreshold,
           this.remoteRetryMs,
         );
+      }
+
+      if (config?.smootherMinCutOff) {
+        this.smootherMinCutOff = config.smootherMinCutOff;
+      }
+      if (config?.smootherBeta) {
+        this.smootherBeta = config.smootherBeta;
+      }
+      if (config?.smootherDerivateCutOff) {
+        this.smootherDerivateCutOff = config.smootherDerivateCutOff;
       }
 
       this.labels = labels;
@@ -674,7 +687,13 @@ export const useGestureClassifier = (
   const serviceReady = useSharedValue(mlService.isServiceReady());
   const targetFps = useSharedValue(8);
   const lastFrameTime = useSharedValue(0);
-  const smootherRef = useRef(new LandmarkSmoother(1.0, 0.5, 1.0));
+  const smootherRef = useRef(
+    new LandmarkSmoother(
+      (mlService as any).smootherMinCutOff,
+      (mlService as any).smootherBeta,
+      (mlService as any).smootherDerivateCutOff,
+    ),
+  );
   const frameBufferRef = useRef(new FrameBufferManager(recommendedBufferSize()));
   const perfManagerRef = useRef(new AdaptivePerformanceManager());
   const pluginAvailable = isResizePluginAvailable();

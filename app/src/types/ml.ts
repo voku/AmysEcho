@@ -35,4 +35,7 @@ export interface MLServiceConfig {
   processingTimeout?: number;
   enableRemoteClassification?: boolean;
   remoteRetryMs?: number;
+  smootherMinCutOff?: number;
+  smootherBeta?: number;
+  smootherDerivateCutOff?: number;
 }
