@@ -15,8 +15,10 @@ async function getFileSystem() {
 }
 import {
   useHandLandmarkExtractor,
+  useMultiHandLandmarkExtractor,
   setHandLandmarkModel,
   extractHandLandmarks,
+  extractMultiHandLandmarks,
   isResizePluginAvailable,
 } from './landmarkExtractor';
 import {
@@ -770,8 +772,10 @@ export const useGestureClassifier = (
   const logErrorJS = createRunOnJS(logger.error);
   const onErrorJS = createRunOnJS((message: string) => onErrorRef.current?.(message));
   const extractWithPlugin = useHandLandmarkExtractor();
-  const extractLandmarks =
-    pluginAvailable ? extractWithPlugin : extractHandLandmarks;
+  const extractWithPluginMulti = useMultiHandLandmarkExtractor();
+  const extractLandmarks = pluginAvailable ? extractWithPlugin : extractHandLandmarks;
+  const extractLandmarksMulti =
+    pluginAvailable ? extractWithPluginMulti : extractMultiHandLandmarks;
   const frameProcessor = useFrameProcessor(
     (frame: Frame) => {
       'worklet';
@@ -795,11 +799,11 @@ export const useGestureClassifier = (
       const start = Date.now();
 
       try {
-        // Extract 2D landmarks (plugin-backed if available, otherwise JS fallback)
+        // Extract 2D landmarks for up to two hands (plugin-backed if available, otherwise JS fallback)
         const EXPECTED_LANDMARKS = 21;
         const STRIDE = 3; // x, y, z
-        const rawLandmarks = extractLandmarks(frame) || [];
-        if (rawLandmarks.length !== EXPECTED_LANDMARKS) {
+        const hands = extractLandmarksMulti(frame) || [];
+        if (hands.length === 0 || hands[0].length !== EXPECTED_LANDMARKS) {
           if (!errorLogged.value) {
             errorLogged.value = true;
             onErrorJS('No hand detected');
@@ -811,26 +815,37 @@ export const useGestureClassifier = (
           onErrorJS('Using JS landmark extractor fallback');
         }
 
-        // Flatten for the gesture classifier (optionally normalized)
-        const flat = NORMALIZE_LANDMARKS
-          ? normalizeLandmarksToFlat(rawLandmarks)
-          : (() => {
-              const out = new Float32Array(EXPECTED_LANDMARKS * STRIDE);
-              let kk = 0;
-              for (let i = 0; i < EXPECTED_LANDMARKS; i++) {
-                const p = rawLandmarks[i];
-                out[kk++] = p[0];
-                out[kk++] = p[1];
-                out[kk++] = p[2];
-              }
-              return out;
-            })();
+        // Classify each hand and pick the best by maxProbability
+        let bestPred: ClassificationOutput | null = null;
+        let bestHandIdx = 0;
+        for (let h = 0; h < hands.length; h++) {
+          const lms = hands[h];
+          const flatH = NORMALIZE_LANDMARKS
+            ? normalizeLandmarksToFlat(lms)
+            : (() => {
+                const out = new Float32Array(EXPECTED_LANDMARKS * STRIDE);
+                let kk = 0;
+                for (let i = 0; i < EXPECTED_LANDMARKS; i++) {
+                  const p = lms[i];
+                  out[kk++] = p[0];
+                  out[kk++] = p[1];
+                  out[kk++] = p[2];
+                }
+                return out;
+              })();
+          const pred = classifyGesture(flatH, localThreshold);
+          if (pred && (!bestPred || pred.maxProbability > bestPred.maxProbability)) {
+            bestPred = pred;
+            bestHandIdx = h;
+          }
+        }
 
-        const predictions = classifyGesture(flat, localThreshold);
+        const predictions = bestPred;
 
         const end = Date.now();
         const processed: ProcessedFrame = {
-          landmarks: rawLandmarks,
+          // For visualization, include all hands flattened into one array of points (multiples of 21)
+          landmarks: hands.flat(),
           width: frame.width,
           height: frame.height,
           timestamp: start,

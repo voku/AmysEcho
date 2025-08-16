@@ -904,28 +904,40 @@ export default function RecognitionScreen({ navigation }: any) {
             )}
             {lmDisplay.length > 0 && (
               <Svg style={StyleSheet.absoluteFill} viewBox={`0 0 ${previewRect.width} ${previewRect.height}`}>
-                {HAND_CONNECTIONS.map(([startIdx, endIdx], idx) => {
-                  const start = lmDisplay[startIdx];
-                  const end = lmDisplay[endIdx];
-                  if (!start || !end) return null;
-                  const s = mapLandmark(start);
-                  const e = mapLandmark(end);
-                  return (
-                    <Line
-                      key={`conn-${idx}`}
-                      x1={s.x}
-                      y1={s.y}
-                      x2={e.x}
-                      y2={e.y}
-                      stroke={COLORS.warning}
-                      strokeWidth={3}
-                    />
-                  );
-                })}
-                {lmDisplay.map((l, idx) => {
-                  const p = mapLandmark(l);
-                  return <Circle key={`point-${idx}`} cx={p.x} cy={p.y} r={5} fill={COLORS.warning} />;
-                })}
+                {(() => {
+                  const HAND_SIZE = 21;
+                  const handCount = Math.floor(lmDisplay.length / HAND_SIZE) || 1;
+                  const lines: any[] = [];
+                  for (let h = 0; h < handCount; h++) {
+                    const base = h * HAND_SIZE;
+                    HAND_CONNECTIONS.forEach(([startIdx, endIdx], cIdx) => {
+                      const start = lmDisplay[base + startIdx];
+                      const end = lmDisplay[base + endIdx];
+                      if (!start || !end) return;
+                      const s = mapLandmark(start);
+                      const e = mapLandmark(end);
+                      lines.push(
+                        <Line
+                          key={`conn-${h}-${cIdx}`}
+                          x1={s.x}
+                          y1={s.y}
+                          x2={e.x}
+                          y2={e.y}
+                          stroke={COLORS.warning}
+                          strokeWidth={3}
+                        />,
+                      );
+                    });
+                  }
+                  return lines;
+                })()}
+                {(() => {
+                  const HAND_SIZE = 21;
+                  return lmDisplay.map((l, idx) => {
+                    const p = mapLandmark(l);
+                    return <Circle key={`point-${idx}`} cx={p.x} cy={p.y} r={5} fill={COLORS.warning} />;
+                  });
+                })()}
               </Svg>
             )}
             <View style={styles.detectionIndicator}>
@@ -933,7 +945,7 @@ export default function RecognitionScreen({ navigation }: any) {
                 style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]}
               />
               <Text style={styles.detectionText}>
-                {detectionActive ? 'Hand detected' : 'No hand'}
+                {detectionActive ? `Hands detected` : 'No hand'}
               </Text>
             </View>
 

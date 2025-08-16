@@ -64,9 +64,24 @@ function reshapeTo2D(raw: Float32Array): number[][] | null {
   return out;
 }
 
-function extractLandmarksFromFrame(frame: Frame): { landmarks: number[][] | null; confidence: number } {
+function reshapeHands(raw: Float32Array): number[][][] {
   'worklet';
-  if (!handModel) return { landmarks: null, confidence: 0 };
+  const chunk = NUM_HAND_LANDMARKS * NUM_COORDINATES;
+  const hands: number[][][] = [];
+  if (raw.length < chunk) return hands;
+  const count = Math.floor(raw.length / chunk);
+  for (let h = 0; h < count; h++) {
+    const start = h * chunk;
+    const view = raw.subarray(start, start + chunk);
+    const hand = reshapeTo2D(view);
+    if (hand) hands.push(hand);
+  }
+  return hands;
+}
+
+function extractLandmarksFromFrame(frame: Frame): { hands: number[][][]; confidences: number[] } {
+  'worklet';
+  if (!handModel) return { hands: [], confidences: [] };
   try {
     const input = resizePlugin
       ? resizePlugin.resize(frame, {
@@ -77,16 +92,17 @@ function extractLandmarksFromFrame(frame: Frame): { landmarks: number[][] | null
       : new Uint8Array(frame.toArrayBuffer());
     const result = handModel.runSync([input]) as any[];
     const arr = result[0] instanceof Float32Array ? (result[0] as Float32Array) : new Float32Array(result[0]);
-    const landmarks = reshapeTo2D(arr);
+    const hands = reshapeHands(arr);
     const confSource = result[1];
-    let confidence = 0;
+    const confidences: number[] = [];
     if (confSource && typeof confSource === 'object' && 'length' in confSource) {
-      confidence = (confSource as any)[0] ?? 0;
+      const cArr = confSource as any;
+      for (let i = 0; i < hands.length; i++) confidences.push(cArr[i] ?? 0);
     }
-    return { landmarks, confidence };
+    return { hands, confidences };
   } catch (e: any) {
     logErrorJS(e.message);
-    return { landmarks: null, confidence: 0 };
+    return { hands: [], confidences: [] };
   }
 }
 
@@ -94,10 +110,12 @@ export function useHandLandmarkExtractor(): (frame: Frame) => number[][] | null 
   const { resize } = useResizePlugin();
   return (frame: Frame): number[][] | null => {
     'worklet';
-    const { landmarks, confidence } = extractLandmarksFromFrame(frame);
+    const { hands, confidences } = extractLandmarksFromFrame(frame);
+    const landmarks = hands[0] ?? null;
     if (__DEV__ && Date.now() - lastLog > 500) {
       lastLog = Date.now();
-      logJS(`LM ok: ${landmarks?.length ?? 0} pts, conf=${confidence.toFixed(2)}`);
+      const conf = confidences[0] ?? 0;
+      logJS(`LM ok: ${landmarks?.length ?? 0} pts, conf=${conf.toFixed(2)} hands=${hands.length}`);
     }
     return landmarks;
   };
@@ -105,12 +123,28 @@ export function useHandLandmarkExtractor(): (frame: Frame) => number[][] | null 
 
 export function extractHandLandmarks(frame: Frame): number[][] | null {
   'worklet';
-  const { landmarks } = extractLandmarksFromFrame(frame);
+  const { hands } = extractLandmarksFromFrame(frame);
+  const landmarks = hands[0] ?? null;
   if (typeof __DEV__ !== 'undefined' && __DEV__ && Date.now() - lastLog > 500) {
     lastLog = Date.now();
     logLandmarks(landmarks);
   }
   return landmarks;
+}
+
+export function useMultiHandLandmarkExtractor(): (frame: Frame) => number[][][] {
+  const { resize } = useResizePlugin();
+  return (frame: Frame): number[][][] => {
+    'worklet';
+    const { hands } = extractLandmarksFromFrame(frame);
+    return hands;
+  };
+}
+
+export function extractMultiHandLandmarks(frame: Frame): number[][][] {
+  'worklet';
+  const { hands } = extractLandmarksFromFrame(frame);
+  return hands;
 }
 
 // extractHandLandmarksFlat removed; consumers should reshape/flatten as needed from 2D landmarks
