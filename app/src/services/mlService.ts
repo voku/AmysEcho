@@ -774,30 +774,34 @@ export const useGestureClassifier = (
       try {
         // Run dedicated worklet to extract and flatten landmarks
         let rawLandmarks: number[][] = [];
-        const STRIDE = 3; // components per landmark: x, y, z
-        // Only invoke the worklet extractor when the native plugin is available
+        const STRIDE = 3; // x, y, z
+        const EXPECTED_LANDMARKS = 21;
+        const EXPECTED_LEN = EXPECTED_LANDMARKS * STRIDE;
+
         let flat = pluginAvailable ? extractHandLandmarksWorklet(frame) : null;
-        // Guard against invalid worklet output (e.g. empty or unexpected length)
-        if (!flat || flat.length % STRIDE !== 0) {
+
+        // Guard against invalid worklet output
+        if (!flat || flat.length !== EXPECTED_LEN) {
+          // Fallback to JS-based extractor
           rawLandmarks = extractLandmarks(frame) || [];
-          if (rawLandmarks.length === 0) {
+          if (rawLandmarks.length !== EXPECTED_LANDMARKS) {
             if (!errorLogged.value) {
               errorLogged.value = true;
-              onErrorJS('Landmark extraction failed');
+              onErrorJS('No hand detected');
             }
             return;
           }
           flat = new Float32Array(rawLandmarks.flat());
+
           if (!fallbackLogged.value) {
             fallbackLogged.value = true;
             onErrorJS('Using JS landmark extractor fallback');
           }
         } else {
-          // Derive 2D landmarks from the flattened worklet output to avoid duplicate extraction
-          const arr = flat as Float32Array | number[];
-          const count = arr.length / STRIDE;
-          rawLandmarks = new Array(count);
-          for (let i = 0; i < count; i++) {
+          // Worklet output is valid, derive 2D landmarks from the flattened array
+          const arr = flat as Float32Array;
+          rawLandmarks = new Array(EXPECTED_LANDMARKS);
+          for (let i = 0; i < EXPECTED_LANDMARKS; i++) {
             const base = i * STRIDE;
             rawLandmarks[i] = [arr[base], arr[base + 1], arr[base + 2]];
           }
