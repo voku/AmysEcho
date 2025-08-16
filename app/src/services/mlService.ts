@@ -16,7 +16,6 @@ async function getFileSystem() {
 import {
   useHandLandmarkExtractor,
   setHandLandmarkModel,
-  extractHandLandmarksFlat as extractHandLandmarksWorklet,
   extractHandLandmarks,
   isResizePluginAvailable,
 } from './landmarkExtractor';
@@ -794,40 +793,32 @@ export const useGestureClassifier = (
       const start = Date.now();
 
       try {
-        // Run dedicated worklet to extract and flatten landmarks
-        let rawLandmarks: number[][] = [];
-        const STRIDE = 3; // x, y, z
+        // Extract 2D landmarks (plugin-backed if available, otherwise JS fallback)
         const EXPECTED_LANDMARKS = 21;
-        const EXPECTED_LEN = EXPECTED_LANDMARKS * STRIDE;
-
-        let flat = pluginAvailable ? extractHandLandmarksWorklet(frame) : null;
-
-        // Guard against invalid worklet output
-        if (!flat || flat.length !== EXPECTED_LEN) {
-          // Fallback to JS-based extractor
-          rawLandmarks = extractLandmarks(frame) || [];
-          if (rawLandmarks.length !== EXPECTED_LANDMARKS) {
-            if (!errorLogged.value) {
-              errorLogged.value = true;
-              onErrorJS('No hand detected');
-            }
-            return;
+        const STRIDE = 3; // x, y, z
+        const rawLandmarks = extractLandmarks(frame) || [];
+        if (rawLandmarks.length !== EXPECTED_LANDMARKS) {
+          if (!errorLogged.value) {
+            errorLogged.value = true;
+            onErrorJS('No hand detected');
           }
-          flat = new Float32Array(rawLandmarks.flat());
-
-          if (!fallbackLogged.value) {
-            fallbackLogged.value = true;
-            onErrorJS('Using JS landmark extractor fallback');
-          }
-        } else {
-          // Worklet output is valid, derive 2D landmarks from the flattened array
-          const arr = flat as Float32Array;
-          rawLandmarks = new Array(EXPECTED_LANDMARKS);
-          for (let i = 0; i < EXPECTED_LANDMARKS; i++) {
-            const base = i * STRIDE;
-            rawLandmarks[i] = [arr[base], arr[base + 1], arr[base + 2]];
-          }
+          return;
         }
+        if (!pluginAvailable && !fallbackLogged.value) {
+          fallbackLogged.value = true;
+          onErrorJS('Using JS landmark extractor fallback');
+        }
+
+        // Flatten for the gesture classifier
+        const flat = new Float32Array(EXPECTED_LANDMARKS * STRIDE);
+        let k = 0;
+        for (let i = 0; i < EXPECTED_LANDMARKS; i++) {
+          const p = rawLandmarks[i];
+          flat[k++] = p[0];
+          flat[k++] = p[1];
+          flat[k++] = p[2];
+        }
+
         const predictions = classifyGesture(flat, localThreshold);
 
         const end = Date.now();

@@ -11,7 +11,6 @@ let resizePlugin: any | null = null;
 
 const NUM_HAND_LANDMARKS = 21;
 const NUM_COORDINATES = 3;
-const FLATTENED_LANDMARKS_SIZE = NUM_HAND_LANDMARKS * NUM_COORDINATES;
 
 if ((globalThis as any).VisionCameraProxy) {
   try {
@@ -53,128 +52,68 @@ const logLandmarks = Worklets?.createRunOnJS
     )
   : (_: number[][] | null) => {};
 
-function reshapeLandmarks(raw: unknown): number[][] | null {
+function reshapeTo2D(raw: Float32Array): number[][] | null {
   'worklet';
-  let values: ArrayLike<number> | null = null;
-  if (Array.isArray(raw)) {
-    if (Array.isArray(raw[0])) {
-      return raw as number[][];
-    }
-    values = raw as number[];
-  } else if (raw && typeof raw === 'object' && 'length' in raw) {
-    if (ArrayBuffer.isView(raw)) {
-      const isBigInt64 = typeof BigInt64Array !== 'undefined' && raw instanceof BigInt64Array;
-      const isBigUint64 = typeof BigUint64Array !== 'undefined' && raw instanceof BigUint64Array;
-      if (isBigInt64 || isBigUint64) {
-        return null;
-      }
-      values = raw as ArrayLike<number>;
-    } else {
-      values = Array.from(raw as ArrayLike<number>);
-    }
-  }
-  if (!values || values.length !== FLATTENED_LANDMARKS_SIZE) return null;
-  const landmarks: number[][] = [];
+  const expected = NUM_HAND_LANDMARKS * NUM_COORDINATES;
+  if (raw.length !== expected) return null;
+  const out: number[][] = new Array(NUM_HAND_LANDMARKS);
   for (let i = 0; i < NUM_HAND_LANDMARKS; i++) {
     const base = i * NUM_COORDINATES;
-    landmarks.push([values[base], values[base + 1], values[base + 2]]);
+    out[i] = [raw[base], raw[base + 1], raw[base + 2]];
   }
-  return landmarks;
+  return out;
+}
+
+function extractLandmarksFromFrame(frame: Frame): { landmarks: number[][] | null; confidence: number } {
+  'worklet';
+  if (!handModel) return { landmarks: null, confidence: 0 };
+  try {
+    const input = resizePlugin
+      ? resizePlugin.resize(frame, {
+          scale: { width: 192, height: 192 },
+          pixelFormat: 'rgb',
+          dataType: 'uint8',
+        })
+      : new Uint8Array(frame.toArrayBuffer());
+    const result = handModel.runSync([input]) as any[];
+    const arr = result[0] instanceof Float32Array ? (result[0] as Float32Array) : new Float32Array(result[0]);
+    const landmarks = reshapeTo2D(arr);
+    const confSource = result[1];
+    let confidence = 0;
+    if (confSource && typeof confSource === 'object' && 'length' in confSource) {
+      confidence = (confSource as any)[0] ?? 0;
+    }
+    return { landmarks, confidence };
+  } catch (e: any) {
+    logErrorJS(e.message);
+    return { landmarks: null, confidence: 0 };
+  }
 }
 
 export function useHandLandmarkExtractor(): (frame: Frame) => number[][] | null {
   const { resize } = useResizePlugin();
   return (frame: Frame): number[][] | null => {
     'worklet';
-    if (!handModel) return null;
-    try {
-      const input = resize(frame, {
-        scale: { width: 192, height: 192 },
-        pixelFormat: 'rgb',
-        dataType: 'uint8',
-      });
-      const result = handModel.runSync([input]) as any[];
-      const landmarks = reshapeLandmarks(result[0]);
-      const confSource = result[1];
-      let conf = 0;
-      if (confSource && typeof confSource === 'object' && 'length' in confSource) {
-        conf = (confSource as any)[0] ?? 0;
-      }
-      if (__DEV__ && Date.now() - lastLog > 500) {
-        lastLog = Date.now();
-        logJS(`LM ok: ${landmarks?.length ?? 0} pts, conf=${conf.toFixed(2)}`);
-      }
-      return landmarks;
-    } catch (e: any) {
-      logErrorJS(e.message);
-      return null;
+    const { landmarks, confidence } = extractLandmarksFromFrame(frame);
+    if (__DEV__ && Date.now() - lastLog > 500) {
+      lastLog = Date.now();
+      logJS(`LM ok: ${landmarks?.length ?? 0} pts, conf=${confidence.toFixed(2)}`);
     }
+    return landmarks;
   };
 }
 
 export function extractHandLandmarks(frame: Frame): number[][] | null {
   'worklet';
-  if (!handModel) return null;
-  try {
-    const input = resizePlugin
-      ? resizePlugin.resize(frame, {
-          scale: { width: 192, height: 192 },
-          pixelFormat: 'rgb',
-          dataType: 'uint8',
-        })
-      : new Uint8Array(frame.toArrayBuffer());
-    const result = handModel.runSync([input]) as any[];
-    const landmarks = reshapeLandmarks(result[0]);
-    if (typeof __DEV__ !== 'undefined' && __DEV__ && Date.now() - lastLog > 500) {
-      lastLog = Date.now();
-      logLandmarks(landmarks);
-    }
-    return landmarks;
-  } catch (e: any) {
-    logErrorJS(e.message);
-    return null;
+  const { landmarks } = extractLandmarksFromFrame(frame);
+  if (typeof __DEV__ !== 'undefined' && __DEV__ && Date.now() - lastLog > 500) {
+    lastLog = Date.now();
+    logLandmarks(landmarks);
   }
+  return landmarks;
 }
 
-/**
- * Extracts hand landmarks and returns a flattened view of the coordinates.
- * The returned array may be a borrowed Float32Array from the model output;
- * consumers must treat it as read-only and avoid mutating it.
- */
-export function extractHandLandmarksFlat(frame: Frame): Float32Array | null {
-  'worklet';
-  if (!handModel) return null;
-  try {
-    const input = resizePlugin
-      ? resizePlugin.resize(frame, {
-          scale: { width: 192, height: 192 },
-          pixelFormat: 'rgb',
-          dataType: 'uint8',
-        })
-      : new Uint8Array(frame.toArrayBuffer());
-    const result = handModel.runSync([input]) as any[];
-    const raw = result[0];
-    let flat: Float32Array | null = null;
-    if (Array.isArray(raw) && Array.isArray(raw[0])) {
-      const src = raw as number[][];
-      const out = new Float32Array(src.length * NUM_COORDINATES);
-      let k = 0;
-      for (let i = 0; i < src.length; i++) {
-        const p = src[i];
-        out[k++] = p[0];
-        out[k++] = p[1];
-        out[k++] = p[2];
-      }
-      flat = out;
-    } else if (raw && typeof raw === 'object' && 'length' in raw) {
-      flat = raw instanceof Float32Array ? raw : Float32Array.from(raw as ArrayLike<number>);
-    }
-    return flat && flat.length === FLATTENED_LANDMARKS_SIZE ? flat : null;
-  } catch (e: any) {
-    logErrorJS(e.message);
-    return null;
-  }
-}
+// extractHandLandmarksFlat removed; consumers should reshape/flatten as needed from 2D landmarks
 
 async function loadHandModel(): Promise<void> {
   if (handModel) return;
