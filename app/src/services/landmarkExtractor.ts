@@ -64,7 +64,7 @@ function reshapeTo2D(raw: Float32Array): number[][] | null {
   return out;
 }
 
-function reshapeHands(raw: Float32Array): number[][][] {
+function reshapeHandsFromFlat(raw: Float32Array): number[][][] {
   'worklet';
   const chunk = NUM_HAND_LANDMARKS * NUM_COORDINATES;
   const hands: number[][][] = [];
@@ -79,6 +79,47 @@ function reshapeHands(raw: Float32Array): number[][][] {
   return hands;
 }
 
+function toFloat32(arrLike: any): Float32Array | null {
+  'worklet';
+  if (!arrLike) return null;
+  if (arrLike instanceof Float32Array) return arrLike as Float32Array;
+  if (ArrayBuffer.isView(arrLike)) return new Float32Array(arrLike as any);
+  if (Array.isArray(arrLike)) return new Float32Array(arrLike as any);
+  return null;
+}
+
+function reshapeHandsGeneric(raw0: any): number[][][] {
+  'worklet';
+  // Prefer flat float path
+  const flat = toFloat32(raw0);
+  if (flat && flat.length >= NUM_HAND_LANDMARKS * NUM_COORDINATES) {
+    return reshapeHandsFromFlat(flat);
+  }
+  // Fallback: nested arrays [[x,y,z], ...] possibly repeated per hand
+  if (Array.isArray(raw0) && raw0.length > 0 && Array.isArray(raw0[0])) {
+    const pts: any[] = raw0 as any[];
+    const hands: number[][][] = [];
+    if (pts.length === NUM_HAND_LANDMARKS) {
+      const hand = pts.map((p) => [p[0] || 0, p[1] || 0, p[2] || 0]);
+      hands.push(hand);
+      return hands;
+    }
+    // If multiple of 21, chunk
+    if (pts.length % NUM_HAND_LANDMARKS === 0) {
+      const count = Math.floor(pts.length / NUM_HAND_LANDMARKS);
+      for (let h = 0; h < count; h++) {
+        const start = h * NUM_HAND_LANDMARKS;
+        const hand = pts
+          .slice(start, start + NUM_HAND_LANDMARKS)
+          .map((p) => [p[0] || 0, p[1] || 0, p[2] || 0]);
+        hands.push(hand);
+      }
+      return hands;
+    }
+  }
+  return [];
+}
+
 function extractLandmarksFromFrame(frame: Frame): { hands: number[][][]; confidences: number[] } {
   'worklet';
   if (!handModel) return { hands: [], confidences: [] };
@@ -91,8 +132,7 @@ function extractLandmarksFromFrame(frame: Frame): { hands: number[][][]; confide
         })
       : new Uint8Array(frame.toArrayBuffer());
     const result = handModel.runSync([input]) as any[];
-    const arr = result[0] instanceof Float32Array ? (result[0] as Float32Array) : new Float32Array(result[0]);
-    const hands = reshapeHands(arr);
+    const hands = reshapeHandsGeneric(result[0]);
     const confSource = result[1];
     const confidences: number[] = [];
     if (confSource && typeof confSource === 'object' && 'length' in confSource) {

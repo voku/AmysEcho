@@ -804,7 +804,7 @@ export const useGestureClassifier = (
         const EXPECTED_LANDMARKS = 21;
         const STRIDE = 3; // x, y, z
         const hands = extractLandmarksMulti(frame) || [];
-        if (hands.length === 0 || hands[0].length !== EXPECTED_LANDMARKS) {
+        if (hands.length === 0) {
           if (!errorLogged.value) {
             errorLogged.value = true;
             onErrorJS('No hand detected');
