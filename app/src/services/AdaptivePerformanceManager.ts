@@ -5,17 +5,8 @@ export type PerformanceProfile = {
   lowPower: boolean;
 };
 
-export type BatteryModule = {
-  getBatteryLevelAsync: () => Promise<number>;
-};
-
 export type DeviceModule = {
   getThermalStateAsync?: () => Promise<number>;
-};
-
-const getBatteryModule = async (): Promise<BatteryModule> => {
-  const Battery = await import('expo-battery');
-  return Battery;
 };
 
 const getDeviceModule = async (): Promise<DeviceModule> => {
@@ -26,23 +17,17 @@ const getDeviceModule = async (): Promise<DeviceModule> => {
 export class AdaptivePerformanceManager {
   private lowBattery = 0.2;
   private highThermal = 2; // >= Fair
-  private battery: BatteryModule | null = null;
   private device: DeviceModule | null = null;
   private frameInterval = 1000 / 8;
   private lastFrameTime = 0;
 
   constructor(
-    battery?: BatteryModule,
     device?: DeviceModule,
   ) {
-    if (battery) this.battery = battery;
     if (device) this.device = device;
   }
 
   private async ensureModules() {
-    if (!this.battery) {
-      this.battery = await getBatteryModule();
-    }
     if (!this.device) {
       this.device = await getDeviceModule();
     }
@@ -50,7 +35,8 @@ export class AdaptivePerformanceManager {
 
   async getProfile(): Promise<PerformanceProfile> {
     await this.ensureModules();
-    const level = await this.battery!.getBatteryLevelAsync();
+    // Battery module not required; default to full if unavailable to avoid bundling issues
+    const level = 1.0;
     let thermal = 0;
     try {
       thermal = (await this.device!.getThermalStateAsync?.()) ?? 0;
@@ -81,4 +67,3 @@ export class AdaptivePerformanceManager {
     return false;
   }
 }
-
