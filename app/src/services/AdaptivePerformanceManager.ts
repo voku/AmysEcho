@@ -5,45 +5,28 @@ export type PerformanceProfile = {
   lowPower: boolean;
 };
 
-export type DeviceModule = {
-  getThermalStateAsync?: () => Promise<number>;
-};
-
-const getDeviceModule = async (): Promise<DeviceModule> => {
-  const Device = await import('expo-device');
-  return Device;
-};
+// Note: We avoid importing optional native modules (expo-device/expo-battery)
+// in dev-client to prevent Metro resolution errors. Thermal/battery hints are
+// treated as unavailable and we use a safe, fixed profile instead.
 
 export class AdaptivePerformanceManager {
   private lowBattery = 0.2;
-  private highThermal = 2; // >= Fair
-  private device: DeviceModule | null = null;
+  private highThermal = 2; // kept for future use if modules are added
   private frameInterval = 1000 / 8;
   private lastFrameTime = 0;
 
   constructor(
-    device?: DeviceModule,
+    device?: unknown,
   ) {
-    if (device) this.device = device;
+    // Optional device module intentionally ignored to keep dev-client simple
   }
 
-  private async ensureModules() {
-    if (!this.device) {
-      this.device = await getDeviceModule();
-    }
-  }
+  private async ensureModules() {}
 
   async getProfile(): Promise<PerformanceProfile> {
     await this.ensureModules();
-    // Battery module not required; default to full if unavailable to avoid bundling issues
-    const level = 1.0;
-    let thermal = 0;
-    try {
-      thermal = (await this.device!.getThermalStateAsync?.()) ?? 0;
-    } catch {
-      thermal = 0;
-    }
-    const lowPower = level < this.lowBattery || thermal >= this.highThermal;
+    // Without optional native modules, assume normal conditions
+    const lowPower = false;
     return {
       fps: lowPower ? 5 : 8,
       lowPower,
