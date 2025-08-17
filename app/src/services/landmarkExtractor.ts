@@ -38,6 +38,9 @@ const logErrorJS = Worklets?.createRunOnJS
 const logJS = Worklets?.createRunOnJS
   ? Worklets.createRunOnJS((m: string) => logger.debug(m))
   : (m: string) => console.log(m);
+const logWarnJS = Worklets?.createRunOnJS
+  ? Worklets.createRunOnJS((m: string) => logger.warn(m))
+  : (m: string) => console.warn(m);
 let useResizePlugin: any = () => ({ resize: () => { throw new Error('resize plugin unavailable'); } });
 if ((globalThis as any).VisionCameraProxy) {
   try {
@@ -46,6 +49,7 @@ if ((globalThis as any).VisionCameraProxy) {
   } catch {}
 }
 let lastLog = 0;
+let lensLoggedOnce = false;
 const logLandmarks = Worklets?.createRunOnJS
   ? Worklets.createRunOnJS((pts: number[][] | null) =>
       console.log('LM raw:', Array.isArray(pts) ? pts.slice(0, 2) : pts),
@@ -124,16 +128,92 @@ function extractLandmarksFromFrame(frame: Frame): { hands: number[][][]; confide
   'worklet';
   if (!handModel) return { hands: [], confidences: [] };
   try {
-    const input = resizePlugin
-      ? resizePlugin.resize(frame, {
-          scale: { width: 192, height: 192 },
+    const attempts = [
+      { w: 224, h: 224, type: 'float32' as const, norm: 'neg1to1' as const },
+      { w: 192, h: 192, type: 'float32' as const, norm: 'zeroto1' as const },
+      { w: 192, h: 192, type: 'uint8' as const, norm: 'none' as const },
+      { w: 256, h: 256, type: 'float32' as const, norm: 'neg1to1' as const },
+    ];
+
+    let result: any[] = [];
+    let hands: number[][][] = [];
+    let attemptUsed = -1;
+
+    for (let i = 0; i < attempts.length; i++) {
+      let input: any;
+      if (resizePlugin) {
+        input = resizePlugin.resize(frame, {
+          scale: { width: attempts[i].w, height: attempts[i].h },
           pixelFormat: 'rgb',
-          dataType: 'uint8',
-        })
-      : new Uint8Array(frame.toArrayBuffer());
-    const result = handModel.runSync([input]) as any[];
-    const hands = reshapeHandsGeneric(result[0]);
-    const confSource = result[1];
+          dataType: attempts[i].type,
+        });
+        if (attempts[i].type === 'float32' && input instanceof Float32Array) {
+          const v0 = input[0] || 0;
+          if (attempts[i].norm === 'neg1to1') {
+            // Normalize to [-1,1]
+            if (v0 > 1.5) {
+              for (let k = 0; k < input.length; k++) input[k] = input[k] / 127.5 - 1.0;
+            }
+          } else if (attempts[i].norm === 'zeroto1') {
+            // Normalize to [0,1]
+            if (v0 > 1.5) {
+              for (let k = 0; k < input.length; k++) input[k] = input[k] / 255.0;
+            }
+          }
+        }
+      } else {
+        input = new Uint8Array(frame.toArrayBuffer());
+      }
+      try {
+        const r = handModel.runSync([input]) as any[];
+        result = Array.isArray(r) ? r as any[] : [];
+        if (!lensLoggedOnce && result && result.length) {
+          try {
+            const lens = result.map((x) => (x && typeof x === 'object' && 'length' in (x as any) ? (x as any).length : -1));
+            logWarnJS(`LM outputs lens: ${JSON.stringify(lens)} attempt=${i}`);
+            lensLoggedOnce = true;
+          } catch {}
+        }
+        hands = result && result.length ? reshapeHandsGeneric(result[0]) : [];
+        if (hands.length > 0) {
+          attemptUsed = i;
+          break;
+        }
+      } catch (err) {
+        // try next attempt
+      }
+    }
+    if (hands.length === 0) {
+      // Fallback: attempt to coerce first 63 values into a single hand
+      const flat = toFloat32(result[0]);
+      if (flat && flat.length >= NUM_HAND_LANDMARKS * NUM_COORDINATES) {
+        const view = flat.subarray(0, NUM_HAND_LANDMARKS * NUM_COORDINATES);
+        const coerced: number[][] = new Array(NUM_HAND_LANDMARKS);
+        for (let i = 0; i < NUM_HAND_LANDMARKS; i++) {
+          const base = i * NUM_COORDINATES;
+          // Clamp to [0,1] for x,y to ensure on-screen mapping; z unchanged
+          const x = view[base];
+          const y = view[base + 1];
+          const z = view[base + 2];
+          coerced[i] = [Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)), z];
+        }
+        hands = [coerced];
+        if (__DEV__ && Date.now() - lastLog > 500) {
+          lastLog = Date.now();
+          logJS('LM fallback decode used (first 63 floats)');
+        }
+      } else if (__DEV__ && Date.now() - lastLog > 500) {
+        lastLog = Date.now();
+        try {
+          const t0 = typeof result[0];
+          const len0 = (result[0] && typeof result[0] === 'object' && 'length' in (result[0] as any))
+            ? (result[0] as any).length
+            : -1;
+          logJS(`LM decode failed: type=${t0} length=${len0}`);
+        } catch {}
+      }
+    }
+    const confSource = result && result.length ? (result[1] as any) : null;
     const confidences: number[] = [];
     if (confSource && typeof confSource === 'object' && 'length' in confSource) {
       const cArr = confSource as any;

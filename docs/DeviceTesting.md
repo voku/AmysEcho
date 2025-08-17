@@ -10,6 +10,23 @@
 ```
 - Use `--host tunnel` if LAN discovery fails.
 
+### Start Server (local)
+In a new terminal, start the Node server with a dev token and port 5000:
+```
+./scripts/server-start.sh
+```
+
+### Connect App ↔ Server (USB)
+If your Android device is USB‑connected, reverse the server port so the app can reach `http://localhost:5000`:
+```
+./scripts/adb-reverse.sh 5000
+```
+Alternatively, set an explicit LAN API URL before starting Metro:
+```
+export EXPO_PUBLIC_API_URL=http://<HOST_LAN_IP>:5000
+export EXPO_PUBLIC_API_TOKEN=demo-token
+```
+
 ### Install/Launch on Android
 - In another terminal:
 ```
@@ -53,4 +70,3 @@ export EXPO_PUBLIC_REMOTE_TIMEOUT_MS=400
 - If overlay misaligned: verify device aspect ratio; try switching front/back camera.
 - If plugin says unavailable: clean rebuild and ensure `vision-camera-resize-plugin` linked; app may be using JS fallback (slower).
 - If performance dips: close background apps, keep FPS target ~8–12, and ensure debug overlay is hidden during normal use.
-

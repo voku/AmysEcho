@@ -205,6 +205,59 @@ For more detailed build and testing instructions, see [docs/BUILD_AND_TEST.md](d
 
 ---
 
+## 🔗 Local Dev: App + Server (End‑to‑End)
+
+Start the backend server and connect the mobile app to it during development.
+
+1) Start the server (Terminal A)
+
+```
+./scripts/server-start.sh
+```
+
+- Uses `PORT=5000` and `API_TOKEN=demo-token` by default.
+- Seeds `server/trained_model.tflite` from `app/assets/models/gesture_classifier.tflite` so `/latest-model` works immediately.
+
+2) Reverse port for USB device (Terminal B)
+
+```
+./scripts/adb-reverse.sh 5000
+```
+
+- Allows the app on a USB‑connected device to reach `http://localhost:5000`.
+- Alternatively, skip reverse and set a LAN URL before starting Metro:
+
+```
+export EXPO_PUBLIC_API_URL=http://<HOST_LAN_IP>:5000
+export EXPO_PUBLIC_API_TOKEN=demo-token
+```
+
+3) Start Metro with Expo dev client (Terminal C)
+
+```
+./scripts/dev-run.sh --clear --host lan
+```
+
+- Defaults expose `EXPO_PUBLIC_API_URL=http://localhost:5000` and token for the app.
+
+4) Install/launch on Android (Terminal D)
+
+```
+cd app && expo run:android
+```
+
+5) Verify connectivity
+
+- Server logs show requests to `/model-version`, `/latest-model`, and `/api/*`.
+- App logs should not show “Network request failed”.
+
+6) Model download 404 fix
+
+- If the app logs `Failed to download model: 404`, ensure `server/trained_model.tflite` exists.
+- The server start script seeds it from the app asset; if you removed it, add any `.tflite` at `server/trained_model.tflite` or retrain via `/train-model` + `/train-status/:id`.
+
+---
+
 ## 🤝 Contributing
 
 This is a focused project with one user. That means:
@@ -231,4 +284,3 @@ MIT – But with one request:
 To help her be understood.
 To help her learn.
 To help the world finally listen.
-
