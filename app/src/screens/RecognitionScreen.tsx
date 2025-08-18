@@ -44,6 +44,7 @@ import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
+import { mapRecognitionToGesture } from '../services/recognitionMapping';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { mapToPreview } from '../utils/landmarkMapping';
@@ -353,9 +354,10 @@ export default function RecognitionScreen({ navigation }: any) {
             setLastDetection(Date.now());
             setMessage(null);
             setLastResultAt(Date.now());
-            // Show simple recognized label
-            if (rec.result?.label && rec.result.label !== 'no_hand' && rec.result.label !== 'uncertain') {
-              const entry = { id: rec.result.label, label: rec.result.label, videoUri: undefined, dgsVideoUri: undefined } as any;
+            // Show mapped DGS/in-app label when possible
+            const mapped = mapRecognitionToGesture(rec);
+            if (mapped && mapped.label && rec.result?.label !== 'no_hand' && rec.result?.label !== 'uncertain') {
+              const entry = { id: mapped.id, label: mapped.label, videoUri: undefined, dgsVideoUri: undefined } as any;
               setLastRecognizedGesture(entry);
               updateStatus(entry.label);
             }
