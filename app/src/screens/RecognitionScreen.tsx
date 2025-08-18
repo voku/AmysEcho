@@ -119,6 +119,9 @@ export default function RecognitionScreen({ navigation }: any) {
     lastLatency: 0,
     pluginUsed: undefined,
   });
+  const [lastRemoteLabel, setLastRemoteLabel] = useState<string | null>(null);
+  const [lastRemoteConfidence, setLastRemoteConfidence] = useState<number | null>(null);
+  const [lastHandedness, setLastHandedness] = useState<string | null>(null);
   const sessionManagerRef = useRef<ChildSessionManager | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -355,6 +358,9 @@ export default function RecognitionScreen({ navigation }: any) {
             setMessage(null);
             setLastResultAt(Date.now());
             // Show mapped DGS/in-app label when possible
+            setLastRemoteLabel(rec.result?.label ?? null);
+            setLastRemoteConfidence(typeof rec.result?.confidence === 'number' ? rec.result.confidence : null);
+            setLastHandedness((rec as any).handedness ?? null);
             const mapped = mapRecognitionToGesture(rec);
             if (mapped && mapped.label && rec.result?.label !== 'no_hand' && rec.result?.label !== 'uncertain') {
               const entry = { id: mapped.id, label: mapped.label, videoUri: undefined, dgsVideoUri: undefined } as any;
@@ -864,13 +870,16 @@ export default function RecognitionScreen({ navigation }: any) {
 
               {showDebug && (
                 <View style={styles.debugOverlay}>
-                  <Text style={styles.debugText}>
-                    Median latency: {debugStats.medianLatency} ms · Last: {debugStats.lastLatency} ms
-                  </Text>
-                  <Text style={styles.debugText}>Offline: {debugStats.offlineRatio}% · Cloud: {debugStats.cloudRatio}%</Text>
-                  <Text style={styles.debugText}>
-                    FPS: {debugStats.fps} · Queue: {debugStats.queueDepth} · Circuit: {debugStats.circuitOpen ? 'open' : 'closed'} · Plugin: {debugStats.pluginUsed ? 'yes' : 'no'}
-                  </Text>
+              <Text style={styles.debugText}>
+                Median latency: {debugStats.medianLatency} ms · Last: {debugStats.lastLatency} ms
+              </Text>
+              <Text style={styles.debugText}>Offline: {debugStats.offlineRatio}% · Cloud: {debugStats.cloudRatio}%</Text>
+              <Text style={styles.debugText}>
+                FPS: {debugStats.fps} · Queue: {debugStats.queueDepth} · Circuit: {debugStats.circuitOpen ? 'open' : 'closed'} · Plugin: {debugStats.pluginUsed ? 'yes' : 'no'}
+              </Text>
+              <Text style={styles.debugText}>
+                Rec: {lastRemoteLabel ?? '-'} ({lastRemoteConfidence ?? 0}) · Hand: {lastHandedness ?? '-'}
+              </Text>
                 </View>
               )}
 
