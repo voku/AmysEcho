@@ -26,7 +26,8 @@
     "type-check": "tsc --noEmit --project tsconfig.json",
     "build": "tsc",
     "start": "node dist/server.js",
-    "download-models": "ts-node src/tools/downloadModels.ts"
+    "download-models": "ts-node src/tools/downloadModels.ts",
+    "download-gesture-task": "ts-node src/tools/getGestureTask.ts"
   },
   "engines": {
     "node": ">=18"

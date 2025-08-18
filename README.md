@@ -212,6 +212,10 @@ Start the backend server and connect the mobile app to it during development.
 1) Start the server (Terminal A)
 
 ```
+# Optional (once): download MediaPipe Tasks gesture model (requires network)
+# npm run download-gesture-task --prefix server
+
+npm run build --prefix server
 ./scripts/server-start.sh
 ```
 
