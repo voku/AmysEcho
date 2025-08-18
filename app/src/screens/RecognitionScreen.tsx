@@ -44,6 +44,7 @@ import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
+import { useGestureClassifier } from '../services';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { mapToPreview } from '../utils/landmarkMapping';
@@ -314,10 +315,40 @@ export default function RecognitionScreen({ navigation }: any) {
     updateStatus("I'm listening...");
   };
 
-  // Server-side hand detection loop
+  // Offline fallback via frame processor (on-device)
+  const onGestureError = useCallback((message: string) => {
+    logger.error('Offline pipeline error:', message);
+  }, []);
+
+  const onGestureResult = useCallback(
+    (
+      result: any,
+      detectedLandmarks: number[][],
+      raw?: number[][],
+      metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean; pluginUsed?: boolean },
+    ) => {
+      setLastDetection(Date.now());
+      setLandmarks(detectedLandmarks);
+      setMessage(null);
+      setLastResultAt(Date.now());
+      if (result && result.label && result.confidence >= 0.7) {
+        const entry = { id: result.label, label: result.label, videoUri: undefined, dgsVideoUri: undefined } as any;
+        setLastRecognizedGesture(entry);
+        updateStatus(entry.label);
+      }
+    },
+    [updateStatus, setMessage],
+  );
+
+  const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, onGestureError);
+
+  const [usingOffline, setUsingOffline] = useState(false);
+  const [remoteFailures, setRemoteFailures] = useState(0);
+
+  // Server-side detection/recognition loop (disabled while offline fallback active)
   useEffect(() => {
     const detectionInterval = setInterval(async () => {
-      if (!canUseCamera || !camera.current) return;
+      if (!canUseCamera || !camera.current || usingOffline) return;
       try {
         const snapshot = await camera.current.takeSnapshot({
           quality: 70, // reduce payload size a bit
@@ -373,13 +404,24 @@ export default function RecognitionScreen({ navigation }: any) {
             setLandmarks([]);
           }
         }
+        // reset failures and offline mode on success
+        if (remoteFailures > 0) setRemoteFailures(0);
+        if (usingOffline) setUsingOffline(false);
       } catch (e: any) {
         logger.error('Failed to detect landmarks remotely:', e?.message || String(e));
         setLandmarks([]);
+        setRemoteFailures((c) => {
+          const next = c + 1;
+          if (next >= 3 && !usingOffline) {
+            setUsingOffline(true);
+            updateStatus('Offline-Erkennung aktiv');
+          }
+          return next;
+        });
       }
     }, 1000);
     return () => clearInterval(detectionInterval);
-  }, [canUseCamera]);
+  }, [canUseCamera, usingOffline, remoteFailures, updateStatus]);
   const detectionActive = now - lastDetection < 1000;
 
   useEffect(() => {
@@ -783,6 +825,7 @@ export default function RecognitionScreen({ navigation }: any) {
               style={StyleSheet.absoluteFill}
               device={device}
               isActive={true}
+              {...(usingOffline ? { frameProcessor } : {})}
               pixelFormat="yuv"
               format={format}
               onError={handleCameraError}
