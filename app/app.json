@@ -28,6 +28,12 @@
         {
           "enableFrameProcessors": true
         }
+      ],
+      [
+        "react-native-fast-tflite",
+        {
+          "enableAndroidGpuLibraries": true
+        }
       ]
     ]
   }

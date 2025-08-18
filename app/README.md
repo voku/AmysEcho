@@ -1,6 +1,6 @@
 # Amy's Echo
 
-This is the mobile application for Amy's Echo, a multimodal, offline-first communication platform for non-verbal children.
+This is the mobile application for Amy's Echo, a multimodal communication platform for non-verbal children. The app uses a hybrid approach: reliable server-side detection/recognition by default, with on-device fallback when offline.
 
 ## Getting Started
 

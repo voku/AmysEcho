@@ -4,7 +4,7 @@ This document provides a set of guidelines for agents (human or AI) to follow wh
 
 ## 1. Project Mission
 
-Amy's Echo is a multimodal, offline-first communication platform for non-verbal children. The primary goal is to create an adaptive and intelligent tool that grows with the child, as detailed in the project specification. The project is built for a single user, Amy, a four-year-old with 22q11 Deletion Syndrome who uses German Sign Language (DGS).
+Amy's Echo is a multimodal communication platform for non-verbal children. The primary goal is to create an adaptive and intelligent tool that grows with the child, as detailed in the project specification. The project is built for a single user, Amy, a four-year-old with 22q11 Deletion Syndrome who uses German Sign Language (DGS).
 
 ## 2. Agent Standard Operating Procedure (SOP)
 
@@ -60,7 +60,7 @@ Amy's Echo is a multimodal, offline-first communication platform for non-verbal 
 | Cloud ML          | Custom API / OpenAI           | Accurate gesture classification & dialog          |
 | UI/UX             | RN Animated API + Skia (opt.) | Gentle, trust-based feedback                      |
 | Audio             | `expo-audio`, `expo-speech`   | Speech output + sound effects                     |
-| Database          | WatermelonDB (SQLite)         | Encrypted, offline-first local storage            |
+| Database          | WatermelonDB (SQLite)         | Encrypted local storage (sync-enabled)            |
 
 ## 6. Setup and Execution
 

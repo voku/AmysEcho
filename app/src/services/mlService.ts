@@ -786,7 +786,9 @@ export const useGestureClassifier = (
 
       if (!pluginAvailable && !pluginUnavailableLogged.value) {
         pluginUnavailableLogged.value = true;
-        onErrorJS('Frame processor plugin unavailable; using JS fallback');
+        onErrorJS(
+          'VisionCamera resize plugin not available in dev client. Please rebuild the dev client (cd app && expo run:android) to enable landmark extraction.',
+        );
       }
 
       const now = Date.now();
@@ -800,7 +802,7 @@ export const useGestureClassifier = (
       const start = Date.now();
 
       try {
-        // Extract 2D landmarks for up to two hands (plugin-backed if available, otherwise JS fallback)
+        // Extract 2D landmarks for up to two hands (requires resize plugin for reliable RGB input)
         const EXPECTED_LANDMARKS = 21;
         const STRIDE = 3; // x, y, z
         const hands = extractLandmarksMulti(frame) || [];

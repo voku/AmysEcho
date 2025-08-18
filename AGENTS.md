@@ -4,7 +4,9 @@ This document provides a set of guidelines for agents (human or AI) to follow wh
 
 ## 1. Project Mission
 
-Amy's Echo is a multimodal, offline-first communication platform for non-verbal children. The primary goal is to create an adaptive and intelligent tool that grows with the child, as detailed in the project specification.
+Amy's Echo is a multimodal communication platform for non-verbal children. The primary goal is to create an adaptive and intelligent tool that grows with the child, as detailed in the project specification.
+
+Note on connectivity: We have adopted a hybrid approach that prioritizes reliability. Hand detection and gesture recognition now run server-side for stability and accuracy, with on-device capabilities acting as an offline fallback to keep core interactions usable when the network is unavailable.
 
 ## 2. Agent Standard Operating Procedure (SOP)
 

@@ -43,7 +43,7 @@ import { incrementUsage } from '../services';
 import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
-import { useGestureClassifier } from '../services';
+import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { mapToPreview } from '../utils/landmarkMapping';
@@ -54,6 +54,7 @@ import { logger } from '../utils/logger';
 import { ModelPerformanceMonitor } from '../services/ModelPerformanceMonitor';
 import { telemetry } from '../telemetry/recorder';
 import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
 
@@ -310,168 +311,59 @@ export default function RecognitionScreen({ navigation }: any) {
     updateStatus("I'm listening...");
   };
 
-  const onGestureResult = useCallback(
-    async (
-      result: any,
-      detectedLandmarks: number[][],
-      raw?: number[][],
-      metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean; pluginUsed?: boolean },
-    ) => {
-    setLastDetection(Date.now());
-    setLandmarks(detectedLandmarks);
-    setLandmarksRaw(raw ?? detectedLandmarks);
-    setMessage(null);
-    setLastResultAt(Date.now());
-
-    // Assess occlusion to guide user positioning
-    try {
-      const assessment = assessOcclusion(detectedLandmarks);
-      setOcclusionHints(assessment.occluded ? assessment.hints : null);
-    } catch {}
-
-    // Update performance monitor
-    try {
-      perfMonitorRef.current.add({
-        t: Date.now(),
-        label: result?.label ?? 'uncertain',
-        confidence: result?.confidence ?? 0,
-        requiresConfirmation: result?.requiresConfirmation ?? true,
-        inferenceType: result?.isLocal ? 'local' : 'cloud',
-      });
-      setShowPerfBanner(perfMonitorRef.current.isDegraded());
-    } catch (error) {
-      logger.warn('Failed to update performance monitor', { error });
-    }
-
-    if (metrics) {
-      setDebugStats((prev) => ({
-        ...prev,
-        fps: Math.round(metrics.fps),
-        queueDepth: metrics.queueDepth,
-        circuitOpen: metrics.circuitBreakerOpen,
-        lastLatency: Math.round(metrics.processingMs),
-        pluginUsed: metrics.pluginUsed,
-      }));
-    }
-    if (isProcessing) return;
-
-    if (
-      result &&
-      result.label &&
-      result.label !== 'uncertain' &&
-      !result.requiresConfirmation
-    ) {
-      setIsProcessing(true);
-
-      const recognizedSymbolLabel =
-        getSymbolLabelForGesture(result.label) || result.label;
-      const entry =
-        gestureModel.gestures.find((g) => g.id === result.label) || {
-          id: result.label,
-          label: recognizedSymbolLabel,
-          videoUri: undefined,
-          dgsVideoUri: undefined,
-        };
-
-      setLastRecognizedGesture(entry);
-      updateStatus(
-        recognizedSymbolLabel,
-        createGestureAccessibilityLabel(recognizedSymbolLabel, result.confidence),
-      );
-      announceGestureRecognition(recognizedSymbolLabel, result.confidence);
-      startFeedbackAnimation();
-      triggerSpeakAndShow(
-        recognizedSymbolLabel,
-        result.confidence,
-        () => {
-          void playSymbolVideo(entry, useDgs);
-          if (useDgs && entry.dgsVideoUri) {
-            setShowVideoPlayer(true);
-          } else if (entry.videoUri) {
-            setShowVideoPlayer(true);
-          }
-        },
-      ).catch((error) => {
-        logger.warn('Feedback failed:', error);
-      });
-
-      sessionManagerRef.current?.recordActivity();
-
-      if (profile) {
-        try {
-          incrementUsage(entry, profile.id);
-        } catch (error) {
-          logger.warn('Usage tracking failed:', error);
-        }
-        try {
-          await gestureDataProtector.storeGesture({
-            gestureClass: entry.id,
-            confidence: result.confidence,
-            timestamp: Date.now(),
-            sessionId: profile.id,
-          });
-        } catch (error) {
-          logger.warn('Failed to store protected gesture:', error);
-        }
-      }
-
+  // Server-side hand detection loop
+  useEffect(() => {
+    const detectionInterval = setInterval(async () => {
+      if (!canUseCamera || !camera.current) return;
       try {
-        const adv = await dialogEngine.getLLMSuggestions({
-          input: recognizedSymbolLabel,
-          context: dialogContext,
-          language: 'de',
-          age: 4,
+        const snapshot = await camera.current.takeSnapshot({
+          quality: 70, // reduce payload size a bit
         });
-        setSuggestions(adv);
-        setDialogContext((ctx) => {
-          const next = [...ctx, recognizedSymbolLabel];
-          return next.slice(-5);
-        });
-      } catch (error) {
-        logger.warn('Failed to get LLM suggestions:', error);
+        let base64Image: string | undefined;
+        if ((snapshot as any)?.base64) {
+          base64Image = (snapshot as any).base64 as string;
+        } else if (snapshot?.path) {
+          try {
+            let uri = snapshot.path;
+            if (!uri.startsWith('file://') && !uri.startsWith('content://')) {
+              uri = `file://${uri}`;
+            }
+            base64Image = await FileSystem.readAsStringAsync(uri, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+          } catch (e) {
+            logger.warn('Failed to read snapshot as base64', e);
+          }
+        }
+        if (base64Image) {
+          const rec = await recognizeGestureRemotely(base64Image);
+          if (rec && rec.landmarks && rec.landmarks.length > 0) {
+            const points: number[][] = rec.landmarks.map((p: any) => [p[0], p[1], p[2] ?? 0]);
+            setLandmarks(points);
+            setLastDetection(Date.now());
+            setMessage(null);
+            setLastResultAt(Date.now());
+            // Show simple recognized label
+            if (rec.result?.label && rec.result.label !== 'no_hand' && rec.result.label !== 'uncertain') {
+              const entry = { id: rec.result.label, label: rec.result.label, videoUri: undefined, dgsVideoUri: undefined } as any;
+              setLastRecognizedGesture(entry);
+              updateStatus(entry.label);
+            }
+            try {
+              const assessment = assessOcclusion(points);
+              setOcclusionHints(assessment.occluded ? assessment.hints : null);
+            } catch {}
+          } else {
+            setLandmarks([]);
+          }
+        }
+      } catch (e: any) {
+        logger.error('Failed to detect landmarks remotely:', e?.message || String(e));
+        setLandmarks([]);
       }
-
-      setTimeout(() => {
-        setIsProcessing(false);
-        updateStatus("I'm listening...");
-      }, 3000);
-    } else if (result && result.requiresConfirmation) {
-      setIsProcessing(true);
-      setPendingGesture(result.label);
-      const opts =
-        result.suggestions && result.suggestions.length > 0
-          ? result.suggestions
-          : [result.label];
-      const mapped = opts.map((id: string) => ({
-        id,
-        label: getSymbolLabelForGesture(id) || id,
-      }));
-      setCorrectionOptions(mapped);
-      setLastRecognizedGesture(null);
-      updateStatus("Can you help me?");
-      setShowHelp(true);
-      startFeedbackAnimation();
-      audioService.playErrorFeedback().catch((error) => {
-        logger.warn('Error feedback failed:', error);
-      });
-      sessionManagerRef.current?.recordActivity();
-    }
-  }, [isProcessing, useDgs, profile, startFeedbackAnimation, updateStatus]);
-
-  const onGestureError = useCallback(
-    (message: string) => {
-      logger.error('Gesture pipeline error:', message);
-      showUserFriendlyMessage(message);
-    },
-    [showUserFriendlyMessage],
-  );
-
-  const frameProcessor = useGestureClassifier(
-    onGestureResult,
-    isProcessing,
-    0.7,
-    onGestureError,
-  );
+    }, 1000);
+    return () => clearInterval(detectionInterval);
+  }, [canUseCamera]);
   const detectionActive = now - lastDetection < 1000;
 
   useEffect(() => {
@@ -490,7 +382,7 @@ export default function RecognitionScreen({ navigation }: any) {
     [previewRect, format, mirror],
   );
 
-  const lmDisplay = showDebug ? landmarksRaw : landmarks;
+  const lmDisplay = landmarks;
 
   // Neutral UX fail-safe: periodically reassure user when there is no result
   useEffect(() => {
@@ -878,7 +770,6 @@ export default function RecognitionScreen({ navigation }: any) {
               style={StyleSheet.absoluteFill}
               device={device}
               isActive={true}
-              frameProcessor={frameProcessor}
               pixelFormat="yuv"
               format={format}
               onError={handleCameraError}

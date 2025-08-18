@@ -14,7 +14,7 @@ This document records the major architectural choices made for Amy's Echo.
 
 ## Data Storage
 - **Decision**: Store local data with WatermelonDB backed by SQLite.
-- **Rationale**: WatermelonDB provides an encrypted, offline-first database that synchronizes efficiently when connectivity is available.
+- **Rationale**: WatermelonDB provides an encrypted local database that synchronizes efficiently when connectivity is available.
 - **Consequences**: Database schema and interactions must be defined in WatermelonDB models and kept reactive for UI updates.
 
 ## Audio and Video Feedback
@@ -26,4 +26,3 @@ This document records the major architectural choices made for Amy's Echo.
 - **Decision**: Prioritize graceful degradation and user trust over raw accuracy.
 - **Rationale**: The system must remain supportive even when recognition fails, especially for a young child.
 - **Consequences**: Every failure state requires a recovery path (e.g., "Help Me" flow) rather than exposing technical errors.
-

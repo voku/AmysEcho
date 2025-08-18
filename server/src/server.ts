@@ -41,7 +41,9 @@ import portalRouter from './portal';
 import { appendCrashReports, CrashReport } from './services/crashService';
 
 const app = express();
-app.use(express.json());
+// Increase JSON body size limit to accommodate base64 images from the app
+app.use(express.json({ limit: '8mb' }));
+app.use(express.urlencoded({ extended: true, limit: '8mb' }));
 
 const dialogLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -304,6 +306,39 @@ app.post('/api/telemetry', auth, async (req: Request, res: Response) => {
       res.status(500).json({ error: 'Failed to save telemetry data' });
     }
   });
+
+// New endpoint for server-side hand landmark detection
+app.post('/api/v1/detect-landmarks', auth, async (req: Request, res: Response) => {
+  const { image } = req.body; // Expects a base64 encoded image string
+  if (!image || typeof image !== 'string') {
+    return res.status(400).json({ error: 'Base64 image string is required.' });
+  }
+
+  try {
+    const { detectHandLandmarks } = await import('./services/handDetectionService');
+    const landmarks = await detectHandLandmarks(image);
+    res.json({ landmarks });
+  } catch (error: any) {
+    console.error('[hand-detection] Error:', error.message);
+    res.status(500).json({ error: 'Failed to detect hand landmarks.', details: error.message });
+  }
+});
+
+// Gesture recognition + landmarks
+app.post('/api/v1/recognize-gesture', auth, async (req: Request, res: Response) => {
+  const { image } = req.body;
+  if (!image || typeof image !== 'string') {
+    return res.status(400).json({ error: 'Base64 image string is required.' });
+  }
+  try {
+    const { recognizeGesture } = await import('./services/gestureRecognitionService');
+    const data = await recognizeGesture(image);
+    res.json(data);
+  } catch (error: any) {
+    console.error('[gesture-recognition] Error:', error?.message || error);
+    res.status(500).json({ error: 'Failed to recognize gesture', details: String(error?.message || error) });
+  }
+});
 
 // Crash report ingestion
 app.post('/api/crash-reports', auth, async (req: Request, res: Response) => {

@@ -94,7 +94,7 @@ The system will operate in two modes to provide the best possible experience.
 |---|---|---|
 | Framework | React Native (CLI) | Required for native module integration (Camera, DB, ML). |
 | Language | TypeScript (strict mode) | Enforces type safety, reducing runtime errors. |
-| Database | WatermelonDB with SQLite Adapter | High-performance, reactive, offline-first, encrypted database. |
+| Database | WatermelonDB with SQLite Adapter | High-performance, reactive, encrypted database with sync support. |
 | Camera | react-native-vision-camera | Provides high-performance, low-latency access to camera frames for ML. |
 | ML Inference | react-native-fast-tflite | Enables efficient, on-device execution of TensorFlow Lite models. |
 | Audio | expo-audio & expo-speech | Provides a robust API for both pre-recorded audio and TTS fallbacks. |
