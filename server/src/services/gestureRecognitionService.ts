@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { mapRawToAppLabel } from './labelMap';
 
 export interface GestureResult {
   label: string;
@@ -14,6 +15,8 @@ export interface RecognitionResponse {
   image_size?: { width: number; height: number };
   handedness?: string | null;
   categories?: Array<{ name: string | null; score: number }>;
+  appLabel?: string | null;
+  appConfidence?: number | null;
 }
 
 // Resolve Python script path robustly for dev/dist
@@ -38,7 +41,11 @@ export function recognizeGesture(base64Image: string): Promise<RecognitionRespon
       try {
         const parsed = JSON.parse(out);
         if (parsed.error) return reject(new Error(parsed.error));
-        resolve(parsed as RecognitionResponse);
+        // Map to app labels
+        const rawLabel: string | null = parsed?.result?.label ?? null;
+        const mapped = mapRawToAppLabel(rawLabel, parsed?.categories);
+        const enriched: RecognitionResponse = { ...parsed, appLabel: mapped.appLabel, appConfidence: mapped.appConfidence };
+        resolve(enriched);
       } catch (e: any) {
         reject(new Error(`Invalid JSON from recognizer: ${e.message}`));
       }

@@ -44,7 +44,6 @@ import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
 import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
-import { mapRecognitionToGesture } from '../services/recognitionMapping';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { mapToPreview } from '../utils/landmarkMapping';
@@ -358,12 +357,11 @@ export default function RecognitionScreen({ navigation }: any) {
             setMessage(null);
             setLastResultAt(Date.now());
             // Show mapped DGS/in-app label when possible
-            setLastRemoteLabel(rec.result?.label ?? null);
-            setLastRemoteConfidence(typeof rec.result?.confidence === 'number' ? rec.result.confidence : null);
+            setLastRemoteLabel((rec.appLabel as string) ?? rec.result?.label ?? null);
+            setLastRemoteConfidence(typeof rec.appConfidence === 'number' ? rec.appConfidence : (typeof rec.result?.confidence === 'number' ? rec.result.confidence : null));
             setLastHandedness((rec as any).handedness ?? null);
-            const mapped = mapRecognitionToGesture(rec);
-            if (mapped && mapped.label && rec.result?.label !== 'no_hand' && rec.result?.label !== 'uncertain') {
-              const entry = { id: mapped.id, label: mapped.label, videoUri: undefined, dgsVideoUri: undefined } as any;
+            if (rec.appLabel && rec.result?.label !== 'no_hand' && rec.result?.label !== 'uncertain') {
+              const entry = { id: rec.appLabel, label: rec.appLabel, videoUri: undefined, dgsVideoUri: undefined } as any;
               setLastRecognizedGesture(entry);
               updateStatus(entry.label);
             }
@@ -419,10 +417,7 @@ export default function RecognitionScreen({ navigation }: any) {
         } catch {}
         neutralCooldownRef.current = ts + 7000;
       }
-      if (isCameraActive && ts - Math.max(lastDetection, lastResultAt) > 30000) {
-        setIsCameraActive(false);
-        updateStatus('Paused to save power', 'Camera paused to save battery');
-      }
+      // Do not pause the camera automatically; continuous feedback helps Amy
     }, 1000);
     return () => clearInterval(id);
   }, [canUseCamera, isProcessing, lastDetection, lastResultAt, isCameraActive, updateStatus]);

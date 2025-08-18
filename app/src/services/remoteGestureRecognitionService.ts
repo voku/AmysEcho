@@ -12,6 +12,8 @@ export interface RecognitionResponse {
   image_size?: { width: number; height: number };
   handedness?: string | null;
   categories?: Array<{ name: string | null; score: number }>;
+  appLabel?: string | null;
+  appConfidence?: number | null;
 }
 
 export async function recognizeGestureRemotely(base64Image: string): Promise<RecognitionResponse | null> {
