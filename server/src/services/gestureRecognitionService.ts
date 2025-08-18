@@ -12,6 +12,8 @@ export interface RecognitionResponse {
   landmarks: Array<[number, number, number]>;
   landmarks_px?: Array<[number, number, number]>;
   image_size?: { width: number; height: number };
+  handedness?: string | null;
+  categories?: Array<{ name: string | null; score: number }>;
 }
 
 // Resolve Python script path robustly for dev/dist

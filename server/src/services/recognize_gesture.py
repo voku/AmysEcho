@@ -51,11 +51,28 @@ def _try_tasks_recognizer(rgb) -> Dict[str, Any]:
         confidence = float(top.score or 0.0)
 
     lms_px = [[lm[0] * w, lm[1] * h, lm[2]] for lm in lms]
+    # Handedness (Left/Right) and full gesture categories if present
+    handed = None
+    categories = []
+    try:
+        if result and result.handedness and len(result.handedness) > 0:
+            top_h = result.handedness[0][0]
+            handed = getattr(top_h, 'category_name', None)
+        if result and result.gestures and len(result.gestures) > 0:
+            for c in result.gestures[0]:
+                categories.append({
+                    'name': getattr(c, 'category_name', None),
+                    'score': float(getattr(c, 'score', 0.0)),
+                })
+    except Exception:
+        pass
     return {
         'result': {'label': label, 'confidence': round(confidence, 3)},
         'landmarks': lms,
         'landmarks_px': lms_px,
         'image_size': {'width': w, 'height': h},
+        'handedness': handed,
+        'categories': categories,
     }
 
 
@@ -123,6 +140,8 @@ def recognize(base64_image_string):
                         "landmarks": lm,
                         "landmarks_px": lms_px,
                         "image_size": {"width": w, "height": h},
+                        "handedness": None,
+                        "categories": [],
                     })
             # no hands
             return json.dumps({
@@ -130,6 +149,8 @@ def recognize(base64_image_string):
                 "landmarks": [],
                 "landmarks_px": [],
                 "image_size": {"width": w, "height": h},
+                "handedness": None,
+                "categories": [],
             })
     except Exception as e:
         return json.dumps({"error": str(e)})

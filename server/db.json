@@ -20,8 +20,44 @@
     }
   ],
   "gestureDefinitions": [],
-  "gestureTrainingData": [],
-  "interactionLogs": [],
+  "gestureTrainingData": [
+    {
+      "id": "mehqvmxycymsxqadtxt",
+      "gestureDefinitionId": "correction",
+      "landmarkData": null,
+      "source": "HIP_3",
+      "syncStatus": "pending",
+      "approved": false
+    },
+    {
+      "id": "mehqvqx27kbrb5y0674",
+      "gestureDefinitionId": "correction",
+      "landmarkData": null,
+      "source": "HIP_3",
+      "syncStatus": "pending",
+      "approved": false
+    }
+  ],
+  "interactionLogs": [
+    {
+      "id": "mehqvmxy7hitkkeue7a",
+      "gestureDefinitionId": "unknown",
+      "wasSuccessful": false,
+      "confidenceScore": 0,
+      "timestamp": 1755559633894,
+      "caregiverOverrideId": "correction",
+      "processedBy": "local"
+    },
+    {
+      "id": "mehqvqx24mif80qxnqd",
+      "gestureDefinitionId": "unknown",
+      "wasSuccessful": false,
+      "confidenceScore": 0,
+      "timestamp": 1755559639046,
+      "caregiverOverrideId": "correction",
+      "processedBy": "local"
+    }
+  ],
   "profiles": [
     {
       "id": "default",
@@ -68,5 +104,22 @@
     }
   ],
   "learningAnalytics": [],
-  "corrections": []
+  "corrections": [
+    {
+      "id": "mehqvmxy7o2o7xfz3gl",
+      "predictedGesture": "unknown",
+      "actualGesture": "correction",
+      "confidence": 0,
+      "timestamp": 1755559633894,
+      "isSynced": false
+    },
+    {
+      "id": "mehqvqx2o5ckp93p3fp",
+      "predictedGesture": "unknown",
+      "actualGesture": "correction",
+      "confidence": 0,
+      "timestamp": 1755559639046,
+      "isSynced": false
+    }
+  ]
 }

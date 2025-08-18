@@ -10,6 +10,8 @@ export interface RecognitionResponse {
   landmarks: Array<[number, number, number]>;
   landmarks_px?: Array<[number, number, number]>;
   image_size?: { width: number; height: number };
+  handedness?: string | null;
+  categories?: Array<{ name: string | null; score: number }>;
 }
 
 export async function recognizeGestureRemotely(base64Image: string): Promise<RecognitionResponse | null> {

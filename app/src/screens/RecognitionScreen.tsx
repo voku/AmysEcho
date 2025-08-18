@@ -338,8 +338,18 @@ export default function RecognitionScreen({ navigation }: any) {
         if (base64Image) {
           const rec = await recognizeGestureRemotely(base64Image);
           if (rec && rec.landmarks && rec.landmarks.length > 0) {
-            const points: number[][] = rec.landmarks.map((p: any) => [p[0], p[1], p[2] ?? 0]);
-            setLandmarks(points);
+            const current: number[][] = rec.landmarks.map((p: any) => [p[0], p[1], p[2] ?? 0]);
+            // Simple temporal smoothing to reduce jitter
+            setLandmarks(prev => {
+              if (!prev || prev.length !== current.length) return current;
+              const alpha = 0.6; // weight for current
+              const smoothed = current.map((p, i) => [
+                alpha * p[0] + (1 - alpha) * prev[i][0],
+                alpha * p[1] + (1 - alpha) * prev[i][1],
+                alpha * p[2] + (1 - alpha) * prev[i][2],
+              ]);
+              return smoothed;
+            });
             setLastDetection(Date.now());
             setMessage(null);
             setLastResultAt(Date.now());
@@ -350,7 +360,7 @@ export default function RecognitionScreen({ navigation }: any) {
               updateStatus(entry.label);
             }
             try {
-              const assessment = assessOcclusion(points);
+              const assessment = assessOcclusion(current);
               setOcclusionHints(assessment.occluded ? assessment.hints : null);
             } catch {}
           } else {
