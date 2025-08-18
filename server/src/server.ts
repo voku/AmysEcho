@@ -39,7 +39,7 @@ import {
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
 import portalRouter from './portal';
 import { appendCrashReports, CrashReport } from './services/crashService';
-import fs from 'fs';
+import * as fsSync from 'fs';
 import { spawnSync } from 'child_process';
 
 const app = express();
@@ -352,7 +352,7 @@ app.get('/health/recognizer', (_req: Request, res: Response) => {
     path.join(process.cwd(), 'server', 'models', 'gesture_recognizer.task'),
   ].filter(Boolean);
   const tasksModelFound = candidates.some((p) => {
-    try { return fs.existsSync(p); } catch { return false; }
+    try { return fsSync.existsSync(p); } catch { return false; }
   });
   // Basic python/mediapipe availability check
   let pythonOk = false;
