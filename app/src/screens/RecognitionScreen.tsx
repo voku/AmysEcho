@@ -56,6 +56,7 @@ import { ModelPerformanceMonitor } from '../services/ModelPerformanceMonitor';
 import { telemetry } from '../telemetry/recorder';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
+import { sendDgsSample } from '../services/dgsTrainingService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -565,6 +566,13 @@ export default function RecognitionScreen({ navigation }: any) {
       } catch (error) {
         logger.warn('Failed to get LLM suggestions:', error);
       }
+
+      // Send current landmarks as a labeled DGS sample to server (if any)
+      try {
+        if (landmarks && landmarks.length >= 21) {
+          void sendDgsSample(choiceId, landmarks);
+        }
+      } catch {}
 
       setPendingGesture(null);
       setTimeout(() => {

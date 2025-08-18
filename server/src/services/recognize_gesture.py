@@ -5,6 +5,9 @@ import numpy as np
 import cv2
 import mediapipe as mp
 from typing import Any, Dict, List
+import os
+
+DATASET_PATH = os.path.join(os.path.dirname(__file__), '../../data/dgs_samples.json')
 
 def _try_tasks_recognizer(rgb) -> Dict[str, Any]:
     """
@@ -135,14 +138,23 @@ def recognize(base64_image_string):
                     lm = [[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark]
                     result = _heuristic_label(lm)
                     lms_px = [[p[0] * w, p[1] * h, p[2]] for p in lm]
-                    return json.dumps({
+                    payload = {
                         "result": result,
                         "landmarks": lm,
                         "landmarks_px": lms_px,
                         "image_size": {"width": w, "height": h},
                         "handedness": None,
                         "categories": [],
-                    })
+                    }
+                    # Optional DGS classification from dataset
+                    try:
+                        dgs = classify_from_dataset(lm)
+                        if dgs:
+                            payload["dgs_label"] = dgs["label"]
+                            payload["dgs_confidence"] = dgs["confidence"]
+                    except Exception:
+                        pass
+                    return json.dumps(payload)
             # no hands
             return json.dumps({
                 "result": {"label": "no_hand", "confidence": 0.0},
@@ -152,6 +164,64 @@ def recognize(base64_image_string):
                 "handedness": None,
                 "categories": [],
             })
+
+def _normalize(lm: List[List[float]]) -> List[List[float]]:
+    # Wrist-center and scale by max distance to keep scale-invariant
+    if not lm or len(lm) < 21:
+        return lm
+    wx, wy, wz = lm[0]
+    pts = [[x - wx, y - wy, (z - wz) if z is not None else 0.0] for (x,y, z) in lm]
+    maxd = max((abs(x) + abs(y)) for (x,y,_) in pts) or 1.0
+    return [[x / maxd, y / maxd, z] for (x,y,z) in pts]
+
+def classify_from_dataset(lm: List[List[float]]):
+    try:
+        with open(DATASET_PATH, 'r') as f:
+            data = json.load(f)
+    except Exception:
+        return None
+    samples = data.get('samples', [])
+    if not samples:
+        return None
+    q = _normalize(lm)
+    # Simple nearest-centroid per label
+    import math
+    from collections import defaultdict
+    by_label = defaultdict(list)
+    for s in samples:
+        if 'label' in s and 'landmarks' in s:
+            by_label[s['label']].append(_normalize(s['landmarks']))
+    if not by_label:
+        return None
+    # compute centroid
+    centroids = {}
+    for label, arrs in by_label.items():
+        # average per coordinate
+        n = len(arrs)
+        c = [[0.0,0.0,0.0] for _ in range(len(q))]
+        for a in arrs:
+            for i,(x,y,z) in enumerate(a):
+                c[i][0]+=x; c[i][1]+=y; c[i][2]+=z
+        for i in range(len(c)):
+            c[i][0]/=n; c[i][1]/=n; c[i][2]/=n
+        centroids[label]=c
+    # distance
+    def dist(a,b):
+        s=0.0
+        for i in range(min(len(a),len(b))):
+            dx=a[i][0]-b[i][0]; dy=a[i][1]-b[i][1]
+            s+=dx*dx+dy*dy
+        return math.sqrt(s)
+    best_label=None; best_d=1e9
+    for label,c in centroids.items():
+        d=dist(q,c)
+        if d<best_d:
+            best_d=d; best_label=label
+    if best_label is None:
+        return None
+    # confidence heuristic: mapped from distance
+    conf = max(0.0, min(1.0, 1.0/(1.0+best_d)))
+    return {"label": best_label, "confidence": round(conf,3)}
     except Exception as e:
         return json.dumps({"error": str(e)})
 
