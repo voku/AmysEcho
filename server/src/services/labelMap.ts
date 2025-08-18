@@ -17,7 +17,7 @@ export type AppGestureId = typeof APP_GESTURES[number];
 
 // Synonyms map raw recognizer label -> our AppGestureId
 // You can extend this list without changing client code.
-const RAW_TO_APP: Record<string, AppGestureId> = {
+const DEFAULT_RAW_TO_APP: Record<string, AppGestureId> = {
   // MediaPipe common categories
   Thumb_Up: 'yes',
   Thumb_Down: 'no',
@@ -36,9 +36,20 @@ function norm(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, '_');
 }
 
-const NORMALIZED_TO_APP: Record<string, AppGestureId> = Object.fromEntries(
-  Object.entries(RAW_TO_APP).map(([k, v]) => [norm(k), v]),
-) as Record<string, AppGestureId>;
+// Load optional config from server/config/label-map.json
+import fs from 'fs';
+import path from 'path';
+let NORMALIZED_TO_APP: Record<string, AppGestureId> = {} as any;
+try {
+  const configPath = path.join(process.cwd(), 'server/config/label-map.json');
+  const raw = fs.readFileSync(configPath, 'utf8');
+  const cfg = JSON.parse(raw) as { synonyms?: Record<string, AppGestureId> };
+  const merged = { ...DEFAULT_RAW_TO_APP, ...(cfg.synonyms || {}) } as Record<string, AppGestureId>;
+  NORMALIZED_TO_APP = Object.fromEntries(Object.entries(merged).map(([k, v]) => [norm(k), v])) as Record<string, AppGestureId>;
+} catch {
+  const merged = { ...DEFAULT_RAW_TO_APP } as Record<string, AppGestureId>;
+  NORMALIZED_TO_APP = Object.fromEntries(Object.entries(merged).map(([k, v]) => [norm(k), v])) as Record<string, AppGestureId>;
+}
 
 export function mapRawToAppLabel(raw: string | null | undefined, categories?: Array<{ name?: string | null; score?: number }>): { appLabel: AppGestureId | null; appConfidence: number | null } {
   // Prefer the top category if available
@@ -56,4 +67,3 @@ export function mapRawToAppLabel(raw: string | null | undefined, categories?: Ar
   }
   return { appLabel: null, appConfidence: null };
 }
-

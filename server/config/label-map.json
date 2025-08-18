@@ -1,0 +1,14 @@
+{
+  "synonyms": {
+    "Thumb_Up": "yes",
+    "Thumb_Down": "no",
+    "Open_Palm": "hello",
+    "Closed_Fist": "no",
+    "Pointing_Up": "help",
+    "Victory": "play",
+    "ILoveYou": "please",
+    "open_hand": "hello",
+    "fist": "no"
+  }
+}
+

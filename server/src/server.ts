@@ -39,6 +39,8 @@ import {
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
 import portalRouter from './portal';
 import { appendCrashReports, CrashReport } from './services/crashService';
+import fs from 'fs';
+import { spawnSync } from 'child_process';
 
 const app = express();
 // Increase JSON body size limit to accommodate base64 images from the app
@@ -338,6 +340,27 @@ app.post('/api/v1/recognize-gesture', auth, async (req: Request, res: Response) 
     console.error('[gesture-recognition] Error:', error?.message || error);
     res.status(500).json({ error: 'Failed to recognize gesture', details: String(error?.message || error) });
   }
+});
+
+// Health: recognizer readiness (lightweight)
+app.get('/health/recognizer', (_req: Request, res: Response) => {
+  // Check if Tasks model is present in common locations
+  const candidates = [
+    process.env.GESTURE_TASK_PATH || '',
+    path.join(__dirname, 'models', 'gesture_recognizer.task'),
+    path.join(__dirname, '../../models', 'gesture_recognizer.task'),
+    path.join(process.cwd(), 'server', 'models', 'gesture_recognizer.task'),
+  ].filter(Boolean);
+  const tasksModelFound = candidates.some((p) => {
+    try { return fs.existsSync(p); } catch { return false; }
+  });
+  // Basic python/mediapipe availability check
+  let pythonOk = false;
+  try {
+    const out = spawnSync('python3', ['-c', 'import mediapipe,cv2; print(1)'], { timeout: 2000 });
+    pythonOk = out.status === 0;
+  } catch {}
+  res.json({ tasksModelFound, pythonOk });
 });
 
 // Crash report ingestion

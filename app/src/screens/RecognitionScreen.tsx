@@ -88,6 +88,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [now, setNow] = useState(Date.now());
   const [landmarks, setLandmarks] = useState<number[][]>([]);
   const [landmarksRaw, setLandmarksRaw] = useState<number[][]>([]);
+  const [renderPoints, setRenderPoints] = useState<number[][]>([]);
   const [previewRect, setPreviewRect] = useState({ x: 0, y: 0, width, height });
   const { setMessage } = useMessage();
   const [showManualInputMode, setShowManualInputMode] = useState(false);
@@ -336,6 +337,14 @@ export default function RecognitionScreen({ navigation }: any) {
         setLastRecognizedGesture(entry);
         updateStatus(entry.label);
       }
+      // Compute render points from normalized offline landmarks via mapToPreview
+      try {
+        const pts = detectedLandmarks.map((p) => {
+          const m = mapToPreview([p[0], p[1], p[2] ?? 0], format?.videoWidth ?? 1, format?.videoHeight ?? 1, { width: previewRect.width, height: previewRect.height }, mirror);
+          return [m.x, m.y, p[2] ?? 0];
+        });
+        setRenderPoints(pts);
+      } catch {}
     },
     [updateStatus, setMessage],
   );
@@ -396,12 +405,36 @@ export default function RecognitionScreen({ navigation }: any) {
               setLastRecognizedGesture(entry);
               updateStatus(entry.label);
             }
+            // Compute render points in preview coordinates (prefer pixel landmarks if provided)
+            try {
+              if (rec.landmarks_px && rec.image_size?.width && rec.image_size?.height) {
+                const imgW = rec.image_size.width;
+                const imgH = rec.image_size.height;
+                const scale = Math.max(previewRect.width / imgW, previewRect.height / imgH);
+                const offsetX = (previewRect.width - imgW * scale) / 2;
+                const offsetY = (previewRect.height - imgH * scale) / 2;
+                const pts = rec.landmarks_px.map((p: any) => {
+                  let x = p[0] * scale + offsetX;
+                  const y = p[1] * scale + offsetY;
+                  if (mirror) x = previewRect.width - x;
+                  return [x, y, p[2] ?? 0];
+                });
+                setRenderPoints(pts);
+              } else {
+                const pts = current.map((p) => {
+                  const m = mapToPreview([p[0], p[1], p[2] ?? 0], format?.videoWidth ?? 1, format?.videoHeight ?? 1, { width: previewRect.width, height: previewRect.height }, mirror);
+                  return [m.x, m.y, p[2] ?? 0];
+                });
+                setRenderPoints(pts);
+              }
+            } catch {}
             try {
               const assessment = assessOcclusion(current);
               setOcclusionHints(assessment.occluded ? assessment.hints : null);
             } catch {}
           } else {
             setLandmarks([]);
+            setRenderPoints([]);
           }
         }
         // reset failures and offline mode on success
@@ -410,6 +443,7 @@ export default function RecognitionScreen({ navigation }: any) {
       } catch (e: any) {
         logger.error('Failed to detect landmarks remotely:', e?.message || String(e));
         setLandmarks([]);
+        setRenderPoints([]);
         setRemoteFailures((c) => {
           const next = c + 1;
           if (next >= 3 && !usingOffline) {
@@ -441,6 +475,8 @@ export default function RecognitionScreen({ navigation }: any) {
   );
 
   const lmDisplay = landmarks;
+  // Prefer precomputed render points when available (already mapped to preview space)
+  const lmDraw = renderPoints.length > 0 ? renderPoints : lmDisplay;
 
   // Neutral UX fail-safe: periodically reassure user when there is no result
   useEffect(() => {
@@ -849,20 +885,20 @@ export default function RecognitionScreen({ navigation }: any) {
                 ))}
               </View>
             )}
-            {lmDisplay.length > 0 && (
+            {lmDraw.length > 0 && (
               <Svg style={StyleSheet.absoluteFill} viewBox={`0 0 ${previewRect.width} ${previewRect.height}`}>
                 {(() => {
                   const HAND_SIZE = 21;
-                  const handCount = Math.floor(lmDisplay.length / HAND_SIZE) || 1;
+                  const handCount = Math.floor(lmDraw.length / HAND_SIZE) || 1;
                   const lines: any[] = [];
                   for (let h = 0; h < handCount; h++) {
                     const base = h * HAND_SIZE;
                     HAND_CONNECTIONS.forEach(([startIdx, endIdx], cIdx) => {
-                      const start = lmDisplay[base + startIdx];
-                      const end = lmDisplay[base + endIdx];
+                      const start = lmDraw[base + startIdx];
+                      const end = lmDraw[base + endIdx];
                       if (!start || !end) return;
-                      const s = mapLandmark(start);
-                      const e = mapLandmark(end);
+                      const s = { x: start[0], y: start[1] };
+                      const e = { x: end[0], y: end[1] };
                       lines.push(
                         <Line
                           key={`conn-${h}-${cIdx}`}
@@ -880,8 +916,8 @@ export default function RecognitionScreen({ navigation }: any) {
                 })()}
                 {(() => {
                   const HAND_SIZE = 21;
-                  return lmDisplay.map((l, idx) => {
-                    const p = mapLandmark(l);
+                  return lmDraw.map((l, idx) => {
+                    const p = { x: l[0], y: l[1] };
                     return <Circle key={`point-${idx}`} cx={p.x} cy={p.y} r={5} fill={COLORS.warning} />;
                   });
                 })()}
@@ -893,7 +929,7 @@ export default function RecognitionScreen({ navigation }: any) {
               />
               <Text style={styles.detectionText}>
                 {detectionActive
-                  ? `Hands detected: ${Math.max(1, Math.floor(lmDisplay.length / 21))}`
+                  ? `Hands detected: ${Math.max(1, Math.floor(lmDraw.length / 21))}`
                   : 'No hand'}
               </Text>
             </View>
