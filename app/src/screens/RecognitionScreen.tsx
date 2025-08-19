@@ -56,6 +56,8 @@ import { ModelPerformanceMonitor } from '../services/ModelPerformanceMonitor';
 import { telemetry } from '../telemetry/recorder';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
+import { fetchCentroids, getCachedCentroids } from '../services/dgsModelClient';
+import { classifyWithCentroids } from '../services/offlineClassifier';
 import { sendDgsSample } from '../services/dgsTrainingService';
 
 const { width, height } = Dimensions.get('window');
@@ -211,6 +213,16 @@ export default function RecognitionScreen({ navigation }: any) {
 
   useEffect(() => {
     loadProfile().then(setProfile);
+
+    // Prefetch centroids for offline classification once profile is known
+    (async () => {
+      const p = await loadProfile();
+      const cached = await getCachedCentroids(p?.id);
+      if (!cached) {
+        await fetchCentroids(p?.id || undefined);
+      }
+    })();
+    
     const fetchWeakGesture = async () => {
       const gesture = await adaptiveLearningService.getWeakGesture();
       setWeakGesture(gesture);

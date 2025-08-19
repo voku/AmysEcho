@@ -41,6 +41,7 @@ import portalRouter from './portal';
 import { appendCrashReports, CrashReport } from './services/crashService';
 import * as fsSync from 'fs';
 import { spawnSync } from 'child_process';
+import { getCentroids } from './services/dgsModelService';
 
 const app = express();
 // Increase JSON body size limit to accommodate base64 images from the app
@@ -361,6 +362,17 @@ app.get('/health/recognizer', (_req: Request, res: Response) => {
     pythonOk = out.status === 0;
   } catch {}
   res.json({ tasksModelFound, pythonOk });
+});
+
+// Serve per-profile centroids for offline/edge usage
+app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
+  try {
+    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    const data = await getCentroids(profileId);
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to compute centroids' });
+  }
 });
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
