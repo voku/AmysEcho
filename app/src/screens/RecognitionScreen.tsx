@@ -345,10 +345,28 @@ export default function RecognitionScreen({ navigation }: any) {
       setLandmarks(detectedLandmarks);
       setMessage(null);
       setLastResultAt(Date.now());
+      let decided = false;
       if (result && result.label && result.confidence >= 0.7) {
         const entry = { id: result.label, label: result.label, videoUri: undefined, dgsVideoUri: undefined } as any;
         setLastRecognizedGesture(entry);
         updateStatus(entry.label);
+        decided = true;
+      }
+      // Try offline centroid model if not decided
+      if (!decided) {
+        (async () => {
+          try {
+            const model = await getCachedCentroids(profile?.id || undefined);
+            if (model && model.centroids) {
+              const cls = classifyWithCentroids(detectedLandmarks, model.centroids as any);
+              if (cls && cls.confidence >= 0.6) {
+                const entry = { id: cls.label, label: cls.label, videoUri: undefined, dgsVideoUri: undefined } as any;
+                setLastRecognizedGesture(entry);
+                updateStatus(entry.label);
+              }
+            }
+          } catch {}
+        })();
       }
       // Compute render points from normalized offline landmarks via mapToPreview
       try {
@@ -359,7 +377,7 @@ export default function RecognitionScreen({ navigation }: any) {
         setRenderPoints(pts);
       } catch {}
     },
-    [updateStatus, setMessage],
+    [updateStatus, setMessage, profile?.id],
   );
 
   const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, onGestureError);
