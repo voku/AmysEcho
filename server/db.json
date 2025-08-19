@@ -36,6 +36,14 @@
       "source": "HIP_3",
       "syncStatus": "pending",
       "approved": false
+    },
+    {
+      "id": "mehsdno1nthawht2so",
+      "gestureDefinitionId": "correction",
+      "landmarkData": null,
+      "source": "HIP_3",
+      "syncStatus": "pending",
+      "approved": false
     }
   ],
   "interactionLogs": [
@@ -54,6 +62,15 @@
       "wasSuccessful": false,
       "confidenceScore": 0,
       "timestamp": 1755559639046,
+      "caregiverOverrideId": "correction",
+      "processedBy": "local"
+    },
+    {
+      "id": "mehsdno1ewj984n38j4",
+      "gestureDefinitionId": "unknown",
+      "wasSuccessful": false,
+      "confidenceScore": 0,
+      "timestamp": 1755562154257,
       "caregiverOverrideId": "correction",
       "processedBy": "local"
     }
@@ -119,6 +136,14 @@
       "actualGesture": "correction",
       "confidence": 0,
       "timestamp": 1755559639046,
+      "isSynced": false
+    },
+    {
+      "id": "mehsdno16o4yeixks07",
+      "predictedGesture": "unknown",
+      "actualGesture": "correction",
+      "confidence": 0,
+      "timestamp": 1755562154257,
       "isSynced": false
     }
   ]

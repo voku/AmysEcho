@@ -75,6 +75,22 @@ Run notes
    - or `scripts/adb-reverse.sh 5000 && scripts/dev-run.sh --android`
 - Uses demo-token by default for auth.
 
+How to use it
+
+- Start server:
+   - Optional once: npm run download-gesture-task --prefix server (for Tasks recognizer; requires
+     network)
+   - npm run build --prefix server && ./scripts/server-start.sh
+   - Health: curl http://localhost:5000/health/recognizer
+- Run app:
+   - Android emulator: EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 scripts/dev-run.sh --android
+   - Or scripts/adb-reverse.sh 5000 && scripts/dev-run.sh --android
+- Workflow:
+   - Use Training screen to record a few samples for key DGS gestures (per child).
+   - Use Recognition screen; when it’s wrong, correct it; the app uploads the sample for that child.
+   - Recognition will start using the child’s dataset to generate dgs_label with rising confidence as
+     samples grow.
+
 Run `npm run ios --prefix app` or `npm run android --prefix app` to launch the mobile app.
 
 See [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) for full details.
