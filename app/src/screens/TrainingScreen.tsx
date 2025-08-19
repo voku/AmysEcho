@@ -9,6 +9,8 @@ import { sendDgsSample } from '../services/dgsTrainingService';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useRecordingProcessor, audioService } from '../services';
+import * as FileSystem from 'expo-file-system';
+import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
 import { useTensorflowModel } from '../hooks/useTensorflowModel';
 import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
@@ -26,6 +28,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const backCamera = useCameraDevice('back');
   const frontCamera = useCameraDevice('front');
   const device = backCamera ?? frontCamera;
+  const camRef = useRef<Camera>(null);
   const { hasPermission, requestPermission } = useCameraPermissionStatus();
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
@@ -85,7 +88,43 @@ export default function TrainingScreen({ navigation, route }: any) {
       setRecordedLandmarks((prev) => [...prev, lm]);
       setFramesCaptured((c) => c + 1);
     }
-  }, true);
+  }, isRecording);
+
+  // Remote fallback: if no local detections, periodically sample via server
+  useEffect(() => {
+    const id = setInterval(async () => {
+      if (!canUseCamera || !device) return;
+      // If we recently had a detection, skip
+      if (Date.now() - lastDetection < 900) return;
+      try {
+        // Take a small snapshot and send to server
+        const camera = camRef.current as any;
+        if (!camera || !camera.takeSnapshot) return;
+        const snapshot = await camera.takeSnapshot({ quality: 70 });
+        let base64Image: string | undefined;
+        if ((snapshot as any)?.base64) base64Image = (snapshot as any).base64 as string;
+        else if (snapshot?.path) {
+          let uri = snapshot.path;
+          if (!uri.startsWith('file://') && !uri.startsWith('content://')) uri = `file://${uri}`;
+          base64Image = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+        }
+        if (!base64Image) return;
+        const rec = await recognizeGestureRemotely(base64Image, profile?.id);
+        if (rec && rec.landmarks && rec.landmarks.length >= 21) {
+          const lm = rec.landmarks.map((p: any) => [p[0], p[1], p[2] ?? 0]);
+          setLandmarks(lm);
+          setLastDetection(Date.now());
+          if (isRecordingRef.current) {
+            setRecordedLandmarks((prev) => [...prev, lm]);
+            setFramesCaptured((c) => c + 1);
+          }
+        }
+      } catch (e) {
+        // ignore; this is best-effort fallback
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [canUseCamera, device, profile?.id, lastDetection, isRecordingRef]);
 
   useEffect(() => {
     if (!detectionActive) setLandmarks([]);
@@ -246,6 +285,7 @@ export default function TrainingScreen({ navigation, route }: any) {
             {device && (
               <View style={styles.cameraContainer}>
                 <Camera
+                  ref={camRef}
                   style={styles.camera}
                   device={device}
                   isActive={canUseCamera}
