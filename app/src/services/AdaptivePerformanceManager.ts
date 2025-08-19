@@ -1,6 +1,6 @@
 import type { SharedValue } from 'react-native-reanimated';
 import type * as Battery from 'expo-battery';
-import type * as Device from 'expo-device';
+import * as Device from 'expo-device';
 
 export type PerformanceProfile = {
   fps: number;
@@ -9,7 +9,7 @@ export type PerformanceProfile = {
 
 export class AdaptivePerformanceManager {
   private lowBatteryThreshold = 0.2;
-  private highThermalState: number; // Device.ThermalState.SERIOUS
+  private highThermalState: number;
   private frameInterval = 1000 / 8;
   private lastFrameTime = 0;
 
@@ -19,7 +19,7 @@ export class AdaptivePerformanceManager {
   constructor(battery?: typeof Battery, device?: typeof Device) {
     this.batteryModule = battery;
     this.deviceModule = device;
-    this.highThermalState = this.deviceModule?.ThermalState?.SERIOUS ?? 3;
+    this.highThermalState = (this.deviceModule as any)?.ThermalState?.SERIOUS ?? 3;
   }
 
   async getProfile(): Promise<PerformanceProfile> {

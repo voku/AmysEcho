@@ -7,7 +7,7 @@ import * as Device from 'expo-device';
  */
 export function recommendedBufferSize(): number {
   // On low-memory devices, use a smaller buffer to reduce memory pressure.
-  if (Device.totalMemory && Device.totalMemory < 1024 * 1024 * 1024) { // Less than 1GB
+  if ((Device as any).totalMemory && (Device as any).totalMemory < 1024 * 1024 * 1024) { // Less than 1GB
     return 2;
   }
   return 3; // safe default that balances memory and throughput
