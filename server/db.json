@@ -22,7 +22,7 @@
   "gestureDefinitions": [],
   "gestureTrainingData": [
     {
-      "id": "meixnt4f84ppp736pke",
+      "id": "meixs0pjkgp7ctkbc3",
       "gestureDefinitionId": "hello",
       "landmarkData": [
         1,
@@ -56,25 +56,25 @@
   ],
   "vocabularySetSymbols": [
     {
-      "id": "meixnsoj442oc4605xd",
+      "id": "meixs098q6p5rxoh81s",
       "vocabularySetId": "basic",
       "symbolId": "hello"
     },
     {
-      "id": "meixnsojgbtzlk0bw94",
+      "id": "meixs098f8nzlah7wm",
       "vocabularySetId": "basic",
       "symbolId": "drink"
     }
   ],
   "usageStats": [
     {
-      "id": "meixnsojdwnv1itc52m",
+      "id": "meixs0987ek67s40i82",
       "symbolId": "hello",
       "profileId": "default",
       "count": 0
     },
     {
-      "id": "meixnsojhy5b6a4522v",
+      "id": "meixs098oru0su2ro6s",
       "symbolId": "drink",
       "profileId": "default",
       "count": 0

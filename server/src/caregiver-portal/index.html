@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amy's Echo - Caregiver Portal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Amy's Echo Caregiver Portal</h1>
+        </header>
+        <main>
+            <section id="dgs-samples">
+                <h2>DGS Gesture Samples</h2>
+                <div class="actions">
+                    <button id="retrain-btn">Re-train MLP Model</button>
+                    <span id="retrain-status"></span>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Profile ID</th>
+                                <th>Label</th>
+                                <th>Timestamp</th>
+                                <th>Frames</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="samples-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+            <section id="label-synonyms">
+                <h2>Label Synonyms</h2>
+                <div id="synonyms-container"></div>
+                <div class="actions">
+                    <button id="add-synonym-btn">Add Synonym</button>
+                    <button id="save-synonyms-btn">Save Synonyms</button>
+                    <span id="synonyms-status"></span>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>

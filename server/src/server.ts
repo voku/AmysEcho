@@ -76,6 +76,12 @@ app.get('/portal', (_req: Request, res: Response) => {
 // API routes for caregiver portal
 app.use('/portal', portalRouter);
 
+// Serve static files from the caregiver portal directory
+app.use('/caregiver-portal', express.static(path.join(__dirname, 'caregiver-portal')));
+
+import caregiverPortalApiRouter from './caregiverPortalApi';
+app.use('/api/caregiver-portal', auth, caregiverPortalApiRouter);
+
 // Apply generic rate limiting to API namespace
 app.use('/api', apiLimiter);
 
