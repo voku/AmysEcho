@@ -29,11 +29,31 @@ const PYTHON_SCRIPT_PATH = scriptCandidates.find((p) => {
   try { return fs.existsSync(p); } catch { return false; }
 }) || scriptCandidates[0];
 
+import { DB_FILE_PATH } from '../constants/dbPaths';
+import { loadDatabase } from '../db';
+
 export function recognizeGesture(base64Image: string, profileId?: string): Promise<RecognitionResponse> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     // Avoid E2BIG by sending image via stdin; pass profileId via env
     const env = { ...process.env } as NodeJS.ProcessEnv;
     env['AE_PROFILE_ID'] = profileId ?? '';
+
+    // Calculate gesture bias from correction history
+    if (profileId) {
+      try {
+        const db = await loadDatabase(DB_FILE_PATH);
+        const scores = db.corrections
+          .filter(c => c.profileId === profileId)
+          .reduce((acc, c) => {
+            acc[c.actualGesture] = (acc[c.actualGesture] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+        env['AE_GESTURE_BIAS'] = JSON.stringify(scores);
+      } catch (e) {
+        console.error('Failed to calculate gesture bias', e);
+      }
+    }
+
     const python = spawn('python3', [PYTHON_SCRIPT_PATH], { env });
     let out = '';
     let err = '';

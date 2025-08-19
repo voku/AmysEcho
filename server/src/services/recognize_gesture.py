@@ -201,6 +201,47 @@ def _predict_mlp(q_flat, model):
     
     return {"label": label, "confidence": round(float(confidence), 3)}
 
+def _predict_mlp(q_flat, model):
+    w1, b1, w2, b2, idx_to_label = model['w1'], model['b1'], model['w2'], model['b2'], model['idx_to_label'].item()
+    
+    def relu(x):
+        return np.maximum(0, x)
+
+    def softmax(x):
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum()
+
+    z1 = np.dot(q_flat, w1) + b1
+    a1 = relu(z1)
+    z2 = np.dot(a1, w2) + b2
+    probs = softmax(z2)
+
+    # Apply bias from correction history
+    bias_str = os.environ.get('AE_GESTURE_BIAS')
+    if bias_str:
+        try:
+            bias_scores = json.loads(bias_str)
+            if bias_scores:
+                for label, score in bias_scores.items():
+                    # Find the index for this label
+                    try:
+                        idx = list(idx_to_label.values()).index(label)
+                        # Apply a gentle logarithmic bias
+                        bias_factor = 1.0 + 0.1 * np.log1p(score)
+                        probs[0, idx] *= bias_factor
+                    except ValueError:
+                        continue # Label from bias not in this model
+                # Re-normalize probabilities after biasing
+                probs /= np.sum(probs)
+        except (json.JSONDecodeError, IndexError):
+            pass # Ignore malformed bias string
+
+    top_idx = np.argmax(probs)
+    confidence = probs[0, top_idx]
+    label = idx_to_label.get(top_idx, 'unknown')
+    
+    return {"label": label, "confidence": round(float(confidence), 3)}
+
 def classify_from_dataset(lm: List[List[float]]):
     q = _normalize(lm)
     if q is None:
@@ -217,7 +258,6 @@ def classify_from_dataset(lm: List[List[float]]):
         print(f"MLP prediction failed: {e}") # Log error but still fallback
 
     # --- Fallback to k-NN ---
-
     try:
         with open(DATASET_PATH, 'r') as f:
             data = json.load(f)
@@ -227,7 +267,7 @@ def classify_from_dataset(lm: List[List[float]]):
     if not samples:
         return None
     profile_id = os.environ.get('AE_PROFILE_ID') or ''
-    q = _normalize(lm)
+    
     # k-NN over samples with inverse-distance weighting and per-profile preference
     import math
     k = int(os.environ.get('AE_KNN_K') or '5')
@@ -238,24 +278,21 @@ def classify_from_dataset(lm: List[List[float]]):
     for s in samples:
         lbl = s.get('label')
         lm_s = s.get('landmarks')
-        if not isinstance(lbl, str) or not isinstance(lm_s, list):
+        if not isinstance(lbl, str) or not isinstance(lm_s, list) or len(lm_s) == 0:
             continue
+
         # If the sample is a sequence, use the middle frame for classification
         frame_to_classify = lm_s
         if lm_s and isinstance(lm_s[0], list) and isinstance(lm_s[0][0], list):
             frame_to_classify = lm_s[len(lm_s) // 2]
 
         a = _normalize(frame_to_classify)
-        # distance in XY only
-        m = min(len(a), len(q))
-        if m < 21:
+        if a is None:
             continue
-        d_sum = 0.0
-        for i in range(m):
-            dx = a[i][0] - q[i][0]
-            dy = a[i][1] - q[i][1]
-            d_sum += dx*dx + dy*dy
-        dist = math.sqrt(d_sum)
+        
+        # distance in XY only
+        dist = np.linalg.norm(a - q)
+        
         # Prefer profile-specific samples with a multiplier; globals get a lower factor
         pf = s.get('profileId')
         weight_factor = 1.0 if (profile_id and pf == profile_id) else 0.7 if not pf else 0.5
@@ -271,6 +308,22 @@ def classify_from_dataset(lm: List[List[float]]):
         w = wf * (1.0 / (1e-6 + dist))
         scores[lbl] = scores.get(lbl, 0.0) + w
         total += w
+
+    # Apply bias from correction history
+    bias_str = os.environ.get('AE_GESTURE_BIAS')
+    if bias_str:
+        try:
+            bias_scores = json.loads(bias_str)
+            for label, score in bias_scores.items():
+                if label in scores:
+                    bias_factor = 1.0 + 0.1 * np.log1p(score)
+                    scores[label] *= bias_factor
+        except (json.JSONDecodeError, IndexError):
+            pass # Ignore malformed bias string
+
+    # Re-calculate total for confidence after bias
+    total = sum(scores.values())
+
     best_label = None
     best_score = -1.0
     for lbl, s in scores.items():
