@@ -156,25 +156,10 @@ export default function TrainingScreen({ navigation, route }: any) {
       await saveTrainingSample(gestureId, recordedLandmarks, isPractice ? 'HIP_4' : 'HIP_2');
       setCount((c) => c + 1);
       setError(null);
-      // Also send a collapsed representative sample to the server dataset for DGS
+      // Also send the full sample sequence to the server dataset for DGS
       try {
         if (recordedLandmarks.length > 0) {
-          const n = 21;
-          const acc = Array.from({ length: n }, () => [0, 0, 0]);
-          let m = 0;
-          for (const frame of recordedLandmarks) {
-            if (!frame || frame.length < n) continue;
-            for (let i = 0; i < n; i++) {
-              acc[i][0] += frame[i][0];
-              acc[i][1] += frame[i][1];
-              acc[i][2] += frame[i][2] ?? 0;
-            }
-            m++;
-          }
-          if (m > 0) {
-            const rep = acc.map(([x, y, z]) => [x / m, y / m, z / m]);
-            void sendDgsSample(gestureId, rep, profile?.id || undefined);
-          }
+          void sendDgsSample(gestureId, recordedLandmarks, profile?.id || undefined);
         }
       } catch {}
       if (isPractice) {

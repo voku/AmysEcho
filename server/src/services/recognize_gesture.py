@@ -199,7 +199,12 @@ def classify_from_dataset(lm: List[List[float]]):
         lm_s = s.get('landmarks')
         if not isinstance(lbl, str) or not isinstance(lm_s, list):
             continue
-        a = _normalize(lm_s)
+        # If the sample is a sequence, use the middle frame for classification
+        frame_to_classify = lm_s
+        if lm_s and isinstance(lm_s[0], list) and isinstance(lm_s[0][0], list):
+            frame_to_classify = lm_s[len(lm_s) // 2]
+
+        a = _normalize(frame_to_classify)
         # distance in XY only
         m = min(len(a), len(q))
         if m < 21:

@@ -379,8 +379,14 @@ app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
   try {
     const { label, landmarks, profileId } = req.body || {};
-    if (typeof label !== 'string' || !Array.isArray(landmarks) || landmarks.length < 21) {
-      return res.status(400).json({ error: 'label and landmarks (21x3) required' });
+    if (
+      typeof label !== 'string' ||
+      !Array.isArray(landmarks) ||
+      landmarks.length === 0 ||
+      !Array.isArray(landmarks[0]) ||
+      landmarks[0].length < 21
+    ) {
+      return res.status(400).json({ error: 'label and a sequence of landmarks (Nx21x3) required' });
     }
     const dataPath = path.join(process.cwd(), 'server', 'data', 'dgs_samples.json');
     await fs.mkdir(path.dirname(dataPath), { recursive: true });

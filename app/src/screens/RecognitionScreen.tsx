@@ -126,6 +126,8 @@ export default function RecognitionScreen({ navigation }: any) {
   const [lastRemoteLabel, setLastRemoteLabel] = useState<string | null>(null);
   const [lastRemoteConfidence, setLastRemoteConfidence] = useState<number | null>(null);
   const [lastHandedness, setLastHandedness] = useState<string | null>(null);
+  const [lastOfflineLabel, setLastOfflineLabel] = useState<string | null>(null);
+  const [lastOfflineConfidence, setLastOfflineConfidence] = useState<number | null>(null);
   const sessionManagerRef = useRef<ChildSessionManager | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -359,6 +361,8 @@ export default function RecognitionScreen({ navigation }: any) {
             const model = await getCachedCentroids(profile?.id || undefined);
             if (model && model.centroids) {
               const cls = classifyWithCentroids(detectedLandmarks, model.centroids as any);
+              setLastOfflineLabel(cls?.label ?? null);
+              setLastOfflineConfidence(cls?.confidence ?? null);
               if (cls && cls.confidence >= 0.6) {
                 const entry = { id: cls.label, label: cls.label, videoUri: undefined, dgsVideoUri: undefined } as any;
                 setLastRecognizedGesture(entry);
@@ -600,7 +604,7 @@ export default function RecognitionScreen({ navigation }: any) {
       // Send current landmarks as a labeled DGS sample to server (if any)
       try {
         if (landmarks && landmarks.length >= 21) {
-          void sendDgsSample(choiceId, landmarks, profile?.id || undefined);
+          void sendDgsSample(choiceId, [landmarks], profile?.id || undefined);
         }
       } catch {}
 
@@ -991,6 +995,9 @@ export default function RecognitionScreen({ navigation }: any) {
               </Text>
               <Text style={styles.debugText}>
                 Rec: {lastRemoteLabel ?? '-'} ({lastRemoteConfidence ?? 0}) · Hand: {lastHandedness ?? '-'}
+              </Text>
+              <Text style={styles.debugText}>
+                Offline Rec: {lastOfflineLabel ?? '-'} ({lastOfflineConfidence ?? 0})
               </Text>
                 </View>
               )}
