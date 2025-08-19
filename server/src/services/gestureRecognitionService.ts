@@ -31,13 +31,17 @@ const PYTHON_SCRIPT_PATH = scriptCandidates.find((p) => {
 
 export function recognizeGesture(base64Image: string, profileId?: string): Promise<RecognitionResponse> {
   return new Promise((resolve, reject) => {
-    const args = [PYTHON_SCRIPT_PATH, base64Image];
-    if (profileId) args.push(profileId);
-    const python = spawn('python3', args);
+    // Avoid E2BIG by sending image via stdin; pass profileId via env
+    const env = { ...process.env } as NodeJS.ProcessEnv;
+    env['AE_PROFILE_ID'] = profileId ?? '';
+    const python = spawn('python3', [PYTHON_SCRIPT_PATH], { env });
     let out = '';
     let err = '';
     python.stdout.on('data', (d) => (out += d.toString()));
     python.stderr.on('data', (d) => (err += d.toString()));
+    // write base64 payload to stdin
+    python.stdin.write(base64Image);
+    python.stdin.end();
     python.on('close', (code) => {
       if (code !== 0) return reject(new Error(`Python exited ${code}: ${err}`));
       try {

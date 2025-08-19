@@ -238,9 +238,15 @@ def classify_from_dataset(lm: List[List[float]]):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        # argv[1] = base64 image, argv[2] = optional profile id (used by dataset classifier)
-        os.environ['AE_PROFILE_ID'] = sys.argv[2] if len(sys.argv) > 2 else ''
-        print(recognize(sys.argv[1]))
-    else:
-        print(json.dumps({"error": "No image data provided."}))
+    try:
+        if len(sys.argv) > 1:
+            base64_input = sys.argv[1]
+        else:
+            # Read from stdin to avoid huge argv limits
+            base64_input = sys.stdin.read().strip()
+        if not base64_input:
+            print(json.dumps({"error": "No image data provided."}))
+        else:
+            print(recognize(base64_input))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
