@@ -180,26 +180,7 @@ function extractLandmarksFromFrame(frame: Frame): { hands: number[][][]; confide
     return { hands: [], confidences: [] };
   }
 
-  // Fallback for safety, though it shouldn't be reached if the logic above is correct.
-  if (hands.length === 0) {
-    const flat = toFloat32(result[2]); // Still check the 3rd tensor
-    if (flat && flat.length >= NUM_HAND_LANDMARKS * NUM_COORDINATES) {
-      const view = flat.subarray(0, NUM_HAND_LANDMARKS * NUM_COORDINATES);
-      const coerced: number[][] = new Array(NUM_HAND_LANDMARKS);
-      for (let i = 0; i < NUM_HAND_LANDMARKS; i++) {
-        const base = i * NUM_COORDINATES;
-        const x = view[base];
-        const y = view[base + 1];
-        const z = view[base + 2];
-        coerced[i] = [Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)), z];
-      }
-      hands = [coerced];
-      if (__DEV__ && Date.now() - lastLog > 500) {
-        lastLog = Date.now();
-        logJS('LM fallback decode used (first 63 floats)');
-      }
-    }
-  }
+  
 
   return { hands, confidences };
 }

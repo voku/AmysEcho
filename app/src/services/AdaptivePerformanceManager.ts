@@ -1,32 +1,46 @@
 import type { SharedValue } from 'react-native-reanimated';
+import type * as Battery from 'expo-battery';
+import type * as Device from 'expo-device';
 
 export type PerformanceProfile = {
   fps: number;
   lowPower: boolean;
 };
 
-// Note: We avoid importing optional native modules (expo-device/expo-battery)
-// in dev-client to prevent Metro resolution errors. Thermal/battery hints are
-// treated as unavailable and we use a safe, fixed profile instead.
-
 export class AdaptivePerformanceManager {
-  private lowBattery = 0.2;
-  private highThermal = 2; // kept for future use if modules are added
+  private lowBatteryThreshold = 0.2;
+  private highThermalState: number; // Device.ThermalState.SERIOUS
   private frameInterval = 1000 / 8;
   private lastFrameTime = 0;
 
-  constructor(
-    device?: unknown,
-  ) {
-    // Optional device module intentionally ignored to keep dev-client simple
+  private batteryModule?: typeof Battery;
+  private deviceModule?: typeof Device;
+
+  constructor(battery?: typeof Battery, device?: typeof Device) {
+    this.batteryModule = battery;
+    this.deviceModule = device;
+    this.highThermalState = this.deviceModule?.ThermalState?.SERIOUS ?? 3;
   }
 
-  private async ensureModules() {}
-
   async getProfile(): Promise<PerformanceProfile> {
-    await this.ensureModules();
-    // Without optional native modules, assume normal conditions
-    const lowPower = false;
+    let lowPower = false;
+    try {
+      if (this.batteryModule) {
+        const batteryLevel = await this.batteryModule.getBatteryLevelAsync();
+        if (batteryLevel !== -1 && batteryLevel <= this.lowBatteryThreshold) {
+          lowPower = true;
+        }
+      }
+      if (this.deviceModule && !lowPower) {
+        const thermalState = await this.deviceModule.getThermalStateAsync();
+        if (thermalState >= this.highThermalState) {
+          lowPower = true;
+        }
+      }
+    } catch (e) {
+      // Fails silently if modules are unavailable
+    }
+
     return {
       fps: lowPower ? 5 : 8,
       lowPower,

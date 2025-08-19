@@ -22,59 +22,19 @@
   "gestureDefinitions": [],
   "gestureTrainingData": [
     {
-      "id": "mehqvmxycymsxqadtxt",
-      "gestureDefinitionId": "correction",
-      "landmarkData": null,
-      "source": "HIP_3",
+      "id": "meixf272uz73h8njfin",
+      "gestureDefinitionId": "hello",
+      "landmarkData": [
+        1,
+        2,
+        3
+      ],
+      "source": "HIP_2",
       "syncStatus": "pending",
-      "approved": false
-    },
-    {
-      "id": "mehqvqx27kbrb5y0674",
-      "gestureDefinitionId": "correction",
-      "landmarkData": null,
-      "source": "HIP_3",
-      "syncStatus": "pending",
-      "approved": false
-    },
-    {
-      "id": "mehsdno1nthawht2so",
-      "gestureDefinitionId": "correction",
-      "landmarkData": null,
-      "source": "HIP_3",
-      "syncStatus": "pending",
-      "approved": false
+      "approved": true
     }
   ],
-  "interactionLogs": [
-    {
-      "id": "mehqvmxy7hitkkeue7a",
-      "gestureDefinitionId": "unknown",
-      "wasSuccessful": false,
-      "confidenceScore": 0,
-      "timestamp": 1755559633894,
-      "caregiverOverrideId": "correction",
-      "processedBy": "local"
-    },
-    {
-      "id": "mehqvqx24mif80qxnqd",
-      "gestureDefinitionId": "unknown",
-      "wasSuccessful": false,
-      "confidenceScore": 0,
-      "timestamp": 1755559639046,
-      "caregiverOverrideId": "correction",
-      "processedBy": "local"
-    },
-    {
-      "id": "mehsdno1ewj984n38j4",
-      "gestureDefinitionId": "unknown",
-      "wasSuccessful": false,
-      "confidenceScore": 0,
-      "timestamp": 1755562154257,
-      "caregiverOverrideId": "correction",
-      "processedBy": "local"
-    }
-  ],
+  "interactionLogs": [],
   "profiles": [
     {
       "id": "default",
@@ -96,55 +56,31 @@
   ],
   "vocabularySetSymbols": [
     {
-      "id": "mdn8ie0lp7gjsp4r2id",
+      "id": "meixf1oo1kdv80la20y",
       "vocabularySetId": "basic",
       "symbolId": "hello"
     },
     {
-      "id": "mdn8ie0log7mboguk37",
+      "id": "meixf1ooavytfacppy8",
       "vocabularySetId": "basic",
       "symbolId": "drink"
     }
   ],
   "usageStats": [
     {
-      "id": "mdn8ie0l2f168aeqgpa",
+      "id": "meixf1oojg160llne6a",
       "symbolId": "hello",
       "profileId": "default",
       "count": 0
     },
     {
-      "id": "mdn8ie0l4ji0wz52aw8",
+      "id": "meixf1oocr8wtgj46ua",
       "symbolId": "drink",
       "profileId": "default",
       "count": 0
     }
   ],
   "learningAnalytics": [],
-  "corrections": [
-    {
-      "id": "mehqvmxy7o2o7xfz3gl",
-      "predictedGesture": "unknown",
-      "actualGesture": "correction",
-      "confidence": 0,
-      "timestamp": 1755559633894,
-      "isSynced": false
-    },
-    {
-      "id": "mehqvqx2o5ckp93p3fp",
-      "predictedGesture": "unknown",
-      "actualGesture": "correction",
-      "confidence": 0,
-      "timestamp": 1755559639046,
-      "isSynced": false
-    },
-    {
-      "id": "mehsdno16o4yeixks07",
-      "predictedGesture": "unknown",
-      "actualGesture": "correction",
-      "confidence": 0,
-      "timestamp": 1755562154257,
-      "isSynced": false
-    }
-  ]
+  "corrections": [],
+  "negativeSamples": []
 }

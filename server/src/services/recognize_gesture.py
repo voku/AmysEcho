@@ -176,7 +176,48 @@ def _normalize(lm: List[List[float]]) -> List[List[float]]:
     maxd = max((abs(x) + abs(y)) for (x,y,_) in pts) or 1.0
     return [[x / maxd, y / maxd, z] for (x,y,z) in pts]
 
+import numpy as np
+
+MODEL_PATH = os.path.join(os.path.dirname(__file__), '../../data/dgs_model.npz')
+
+def _predict_mlp(q_flat, model):
+    w1, b1, w2, b2, idx_to_label = model['w1'], model['b1'], model['w2'], model['b2'], model['idx_to_label'].item()
+    
+    def relu(x):
+        return np.maximum(0, x)
+
+    def softmax(x):
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum()
+
+    z1 = np.dot(q_flat, w1) + b1
+    a1 = relu(z1)
+    z2 = np.dot(a1, w2) + b2
+    probs = softmax(z2)
+
+    top_idx = np.argmax(probs)
+    confidence = probs[0, top_idx]
+    label = idx_to_label.get(top_idx, 'unknown')
+    
+    return {"label": label, "confidence": round(float(confidence), 3)}
+
 def classify_from_dataset(lm: List[List[float]]):
+    q = _normalize(lm)
+    if q is None:
+        return None
+
+    # --- Try MLP first ---
+    try:
+        model = np.load(MODEL_PATH, allow_pickle=True)
+        if model:
+            return _predict_mlp(q, model)
+    except FileNotFoundError:
+        pass # Fallback to k-NN
+    except Exception as e:
+        print(f"MLP prediction failed: {e}") # Log error but still fallback
+
+    # --- Fallback to k-NN ---
+
     try:
         with open(DATASET_PATH, 'r') as f:
             data = json.load(f)
