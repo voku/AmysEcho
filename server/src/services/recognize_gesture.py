@@ -183,6 +183,7 @@ def classify_from_dataset(lm: List[List[float]]):
     samples = data.get('samples', [])
     if not samples:
         return None
+    profile_id = os.environ.get('AE_PROFILE_ID') or ''
     q = _normalize(lm)
     # Simple nearest-centroid per label
     import math
@@ -190,9 +191,16 @@ def classify_from_dataset(lm: List[List[float]]):
     by_label = defaultdict(list)
     for s in samples:
         if 'label' in s and 'landmarks' in s:
+            if profile_id and s.get('profileId') and s.get('profileId') != profile_id:
+                continue
             by_label[s['label']].append(_normalize(s['landmarks']))
     if not by_label:
-        return None
+        # fallback to global dataset (samples without profileId)
+        for s in samples:
+            if 'label' in s and 'landmarks' in s and not s.get('profileId'):
+                by_label[s['label']].append(_normalize(s['landmarks']))
+        if not by_label:
+            return None
     # compute centroid
     centroids = {}
     for label, arrs in by_label.items():
@@ -228,6 +236,8 @@ def classify_from_dataset(lm: List[List[float]]):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
+        # argv[1] = base64 image, argv[2] = optional profile id (used by dataset classifier)
+        os.environ['AE_PROFILE_ID'] = sys.argv[2] if len(sys.argv) > 2 else ''
         print(recognize(sys.argv[1]))
     else:
         print(json.dumps({"error": "No image data provided."}))

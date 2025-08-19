@@ -328,13 +328,13 @@ app.post('/api/v1/detect-landmarks', auth, async (req: Request, res: Response) =
 
 // Gesture recognition + landmarks
 app.post('/api/v1/recognize-gesture', auth, async (req: Request, res: Response) => {
-  const { image } = req.body;
+  const { image, profileId } = req.body;
   if (!image || typeof image !== 'string') {
     return res.status(400).json({ error: 'Base64 image string is required.' });
   }
   try {
     const { recognizeGesture } = await import('./services/gestureRecognitionService');
-    const data = await recognizeGesture(image);
+    const data = await recognizeGesture(image, typeof profileId === 'string' ? profileId : undefined);
     res.json(data);
   } catch (error: any) {
     console.error('[gesture-recognition] Error:', error?.message || error);
@@ -366,7 +366,7 @@ app.get('/health/recognizer', (_req: Request, res: Response) => {
 // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
   try {
-    const { label, landmarks } = req.body || {};
+    const { label, landmarks, profileId } = req.body || {};
     if (typeof label !== 'string' || !Array.isArray(landmarks) || landmarks.length < 21) {
       return res.status(400).json({ error: 'label and landmarks (21x3) required' });
     }
@@ -378,7 +378,7 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
       data = JSON.parse(raw);
       if (!Array.isArray(data.samples)) data.samples = [];
     } catch {}
-    data.samples.push({ id: genId(), label, landmarks, ts: Date.now() });
+    data.samples.push({ id: genId(), label, profileId: typeof profileId === 'string' ? profileId : undefined, landmarks, ts: Date.now() });
     await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
     res.json({ status: 'ok' });
   } catch (e) {

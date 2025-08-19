@@ -380,7 +380,7 @@ export default function RecognitionScreen({ navigation }: any) {
           }
         }
         if (base64Image) {
-          const rec = await recognizeGestureRemotely(base64Image);
+          const rec = await recognizeGestureRemotely(base64Image, profile?.id);
           if (rec && rec.landmarks && rec.landmarks.length > 0) {
             const current: number[][] = rec.landmarks.map((p: any) => [p[0], p[1], p[2] ?? 0]);
             // Simple temporal smoothing to reduce jitter
@@ -570,7 +570,7 @@ export default function RecognitionScreen({ navigation }: any) {
       // Send current landmarks as a labeled DGS sample to server (if any)
       try {
         if (landmarks && landmarks.length >= 21) {
-          void sendDgsSample(choiceId, landmarks);
+          void sendDgsSample(choiceId, landmarks, profile?.id || undefined);
         }
       } catch {}
 

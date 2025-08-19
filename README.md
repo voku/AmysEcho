@@ -64,6 +64,17 @@ npm run build --prefix server
 node server/dist/tools/downloadModels.js
 ```
 
+Run notes
+
+- Server:
+   - Optional (once): npm run download-gesture-task --prefix server (requires network)
+   - Build + start: npm run build --prefix server && ./scripts/server-start.sh
+- App:
+   - Android emulator:
+   - `EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 scripts/dev-run.sh --android`
+   - or `scripts/adb-reverse.sh 5000 && scripts/dev-run.sh --android`
+- Uses demo-token by default for auth.
+
 Run `npm run ios --prefix app` or `npm run android --prefix app` to launch the mobile app.
 
 See [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) for full details.

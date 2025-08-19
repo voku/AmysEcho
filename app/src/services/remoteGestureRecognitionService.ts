@@ -16,7 +16,7 @@ export interface RecognitionResponse {
   appConfidence?: number | null;
 }
 
-export async function recognizeGestureRemotely(base64Image: string): Promise<RecognitionResponse | null> {
+export async function recognizeGestureRemotely(base64Image: string, profileId?: string): Promise<RecognitionResponse | null> {
   try {
     const resp = await fetch(`${API_URL}/api/v1/recognize-gesture`, {
       method: 'POST',
@@ -24,7 +24,7 @@ export async function recognizeGestureRemotely(base64Image: string): Promise<Rec
         'Content-Type': 'application/json',
         Authorization: `Bearer ${API_TOKEN}`,
       },
-      body: JSON.stringify({ image: base64Image }),
+      body: JSON.stringify({ image: base64Image, profileId }),
     });
     if (!resp.ok) {
       let msg = 'Unknown error';

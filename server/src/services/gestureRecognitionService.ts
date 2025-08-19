@@ -29,9 +29,11 @@ const PYTHON_SCRIPT_PATH = scriptCandidates.find((p) => {
   try { return fs.existsSync(p); } catch { return false; }
 }) || scriptCandidates[0];
 
-export function recognizeGesture(base64Image: string): Promise<RecognitionResponse> {
+export function recognizeGesture(base64Image: string, profileId?: string): Promise<RecognitionResponse> {
   return new Promise((resolve, reject) => {
-    const python = spawn('python3', [PYTHON_SCRIPT_PATH, base64Image]);
+    const args = [PYTHON_SCRIPT_PATH, base64Image];
+    if (profileId) args.push(profileId);
+    const python = spawn('python3', args);
     let out = '';
     let err = '';
     python.stdout.on('data', (d) => (out += d.toString()));
