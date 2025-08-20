@@ -28,6 +28,11 @@ jest.mock('expo-file-system', () => ({
   documentDirectory: '/tmp/',
 }));
 
+jest.mock('../db/models', () => ({
+  InteractionLog: class {},
+  GestureDefinition: class {},
+}));
+
 jest.mock('../db', () => ({
   database: {
     write: async () => {},

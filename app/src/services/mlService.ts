@@ -36,7 +36,7 @@ import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD, NORMALIZE_LANDMARKS } from '.
 import { normalizeLandmarksToFlat } from './landmarkNormalizer';
 import { NORMALIZE_ALIGN_ROTATION } from '../constants';
 import { database } from '../../db';
-import { InteractionLog } from '../../db/models';
+import { InteractionLog, GestureDefinition } from '../../db/models';
 import { recordInteraction } from './adaptiveLearningService';
 import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
@@ -198,6 +198,7 @@ class MachineLearningService {
   private lastRecognizedGesture: string | null = null;
   private allowRemote = true;
   private circuitBreaker: CircuitBreaker;
+  private profileId?: string;
 
   constructor() {
     this.circuitBreaker = new CircuitBreaker(
@@ -212,6 +213,10 @@ class MachineLearningService {
 
   setCameraActive(active: boolean): void {
     this._isCameraActive = active;
+  }
+
+  setProfileId(id: string): void {
+    this.profileId = id;
   }
 
   addCollectedSample(sample: ProcessedFrame) {
@@ -357,6 +362,17 @@ class MachineLearningService {
     return this.circuitBreaker.isOpen();
   }
 
+  private async getDynamicThreshold(gestureLabel: string): Promise<number> {
+    try {
+      const collection: any = database.get<GestureDefinition>('gesture_definitions');
+      const gesture = await collection.find?.(gestureLabel);
+      if (gesture && typeof gesture.minConfidenceThreshold === 'number') {
+        return gesture.minConfidenceThreshold;
+      }
+    } catch {}
+    return this.localThreshold;
+  }
+
   private shouldUseRemote(): boolean {
     return this.allowRemote && !this.circuitBreaker.isOpen();
   }
@@ -367,7 +383,7 @@ class MachineLearningService {
 
   async processFrameAsync(
     processed: ProcessedFrame,
-    onResult: (result: { label: string; confidence: number; ts: number } | null) => void,
+    onResult: (result: GestureResult | null) => void,
   ): Promise<void> {
     let result: DetailedGestureResult | null = null;
     let localConfidence = 0;
@@ -386,7 +402,7 @@ class MachineLearningService {
           isLocal: true,
           timestamp: Date.now(),
           suggestions,
-          requiresConfirmation: confidence < this.localThreshold,
+          requiresConfirmation: false,
         };
         localConfidence = confidence;
       } catch (error) {
@@ -428,7 +444,7 @@ class MachineLearningService {
             isLocal: true,
             timestamp: Date.now(),
             suggestions,
-            requiresConfirmation: confidence < this.localThreshold,
+            requiresConfirmation: false,
           };
         } catch (localError) {
           logger.error('Local gesture classification failed:', localError);
@@ -456,7 +472,7 @@ class MachineLearningService {
           isLocal: true,
           timestamp: Date.now(),
           suggestions,
-          requiresConfirmation: confidence < this.localThreshold,
+          requiresConfirmation: false,
         };
       } catch (error) {
         logger.error('Local gesture classification failed:', error);
@@ -465,6 +481,8 @@ class MachineLearningService {
     }
 
     if (result) {
+      const threshold = await this.getDynamicThreshold(result.label);
+      result.requiresConfirmation = result.confidence < threshold;
       const smoothed = this.applyGestureSmoothing(result);
       if (!smoothed) {
         this.perfMonitor.recordDroppedFrame();
@@ -493,7 +511,13 @@ class MachineLearningService {
         wasSuccessful: result.label !== 'uncertain',
         processingTimeMs: processingTime,
       });
-      onResult({ label: result.label, confidence: result.confidence, ts: result.timestamp });
+      onResult({
+        label: result.label,
+        confidence: result.confidence,
+        ts: result.timestamp,
+        isLocal: result.isLocal,
+        requiresConfirmation: result.requiresConfirmation,
+      });
       return;
     }
 
@@ -515,9 +539,7 @@ class MachineLearningService {
         Authorization: `Bearer ${API_TOKEN}`,
       },
       body: JSON.stringify({
-        landmarks: processedFrame.landmarks,
-        width: processedFrame.width,
-        height: processedFrame.height,
+        landmarks: processedFrame.landmarks.flat(),
       }),
     });
 
@@ -531,9 +553,8 @@ class MachineLearningService {
       confidence: data.confidence,
       isLocal: false,
       timestamp: Date.now(),
-      suggestions: data.suggestions || [],
-      requiresConfirmation:
-        data.requiresConfirmation || data.confidence < this.cloudThreshold,
+      suggestions: [],
+      requiresConfirmation: data.confidence < this.cloudThreshold,
     };
   }
 
