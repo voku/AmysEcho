@@ -97,7 +97,7 @@ Use the `ErrorMessage` component to surface processing issues to the user:
 ### Adaptive Threshold Lookup
 
 After each classification, the service looks up a gesture-specific confidence
-threshold. Thresholds are stored in WatermelonDB and scoped per profile. To
+threshold. Thresholds are stored in `WatermelonDB` and scoped per profile. To
 avoid repeated queries, results are cached briefly in-memory. If a custom value
 is unavailable, the service falls back to a global default.
 
@@ -119,11 +119,10 @@ local predictions so the user still receives a result even when offline.
 
 ## 6. Profile ID Propagation
 
-The active profile is set when a user begins a session and is passed to
-`mlService.setProfileId`. The service caches the value so both paths remain
-profile-aware:
+The active profile is set when a user begins a session. `mlService` stores this
+value via `setProfileId`, caching it so both paths remain profile-aware:
 
-- **Local path** – adaptive threshold lookups query WatermelonDB using the
+- **Local path** – adaptive threshold lookups query `WatermelonDB` using the
   current profile ID.
 - **Remote path** – the profile ID is included in the JSON payload sent to the
   server, keeping analytics and model personalization scoped to the correct
@@ -131,7 +130,7 @@ profile-aware:
 
 ## 7. Data Collection and Training
 
-Caregivers can record samples on `TrainingScreen.tsx`. Landmarks are extracted from recorded videos and stored in WatermelonDB. When the device syncs, these samples are uploaded to the server, where `server/src/train.py` trains a personalized model:
+Caregivers can record samples on `TrainingScreen.tsx`. Landmarks are extracted from recorded videos and stored in `WatermelonDB`. When the device syncs, these samples are uploaded to the server, where `server/src/train.py` trains a personalized model:
 
 ```python
 model = tf.keras.Sequential([
