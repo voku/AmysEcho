@@ -92,27 +92,41 @@ Use the `ErrorMessage` component to surface processing issues to the user:
 <ErrorMessage message={processingError} />
 ```
 
-## 4. Offline Fallback Logic
+## 4. Confidence Calibration
 
-`mlService` first attempts remote classification with a short timeout. If that fails, it falls back to the local model:
+### Adaptive Threshold Lookup
 
-```typescript
-result = await Promise.race([
-  this.classifyRemotely(processed),
-  new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout)),
-]);
+After each classification, the service looks up a gesture-specific confidence
+threshold. Thresholds are stored in WatermelonDB and scoped per profile. To
+avoid repeated queries, results are cached briefly in-memory. If a custom value
+is unavailable, the service falls back to a global default.
 
-if (!result) {
-  const tensor = this.prepareTensorInput(processed);
-  const output = this.gestureModel.runSync([tensor]) as any[];
-  const { gesture, confidence } = this.processModelOutput(output[0] as number[]);
-  result = { label: gesture, confidence, isLocal: true, timestamp: Date.now(), suggestions: [], requiresConfirmation: confidence < this.confidenceThreshold };
-}
-```
+### Softmax Temperature Scaling
 
-This ensures quick responsiveness even without connectivity.
+Local inference applies a configurable softmax temperature before computing the
+final probabilities. Lower temperatures sharpen predictions while higher
+temperatures produce a softer distribution. The value is supplied at startup and
+clamped to avoid invalid inputs.
 
-## 5. Data Collection and Training
+## 5. Remote Classification & Offline Fallback
+
+`mlService` optimistically attempts a cloud lookup. A request is issued with an
+`AbortController`, so the fetch is cancelled if the timeout elapses. Failed
+requests trigger a circuit breaker to prevent rapid retries. When the remote
+path fails or times out, the service seamlessly falls back to the on-device
+model for a response.
+
+## 6. Profile ID Propagation
+
+The active profile is set when a user begins a session. `mlService` stores this
+ID so both paths remain profile-aware:
+
+- **Local path** – the profile ID scopes adaptive threshold queries, ensuring
+  personalization of confirmation requirements.
+- **Remote path** – the profile ID is included in the classification payload so
+  server-side models and analytics stay tied to the correct child.
+
+## 7. Data Collection and Training
 
 Caregivers can record samples on `TrainingScreen.tsx`. Landmarks are extracted from recorded videos and stored in WatermelonDB. When the device syncs, these samples are uploaded to the server, where `server/src/train.py` trains a personalized model:
 
