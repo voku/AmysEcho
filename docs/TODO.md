@@ -6,7 +6,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 > Integration tests live under the repo's `integration/test` directory.
 
 ## Recognition Ensemble Summary
-- Finalized ensemble order: `TFLite → remote → centroid`.
+- Finalized ensemble order: `TFLite → remote → centroid` (centroid acts as the final offline fallback).
 - Profile-aware thresholds use caching to avoid repeated lookups.
 - Server recognition remains active during offline fallback for automatic recovery when connectivity returns.
 - Softmax temperature calibration balances model confidence outputs.
@@ -238,7 +238,7 @@ const handleFrame = useCallback(async (frame: any) => {
 ## Task 2: Implement Hybrid Recognition Strategy
 
 ### Objective
-Create a unified recognition flow: try on-device first, fallback to cloud if confidence is low.
+Create a unified recognition flow: try on-device first, fall back to cloud when confidence is low, and use a centroid classifier as the final offline recovery.
 
 ### Implementation
 
@@ -248,11 +248,13 @@ Create a unified recognition flow: try on-device first, fallback to cloud if con
 **Purpose**: Orchestrate local-first, cloud-fallback recognition strategy.
 
 ```typescript
+import { centroidClassifier } from '../ml/centroidClassifier';
+
 // Add these interfaces
 interface RecognitionResult {
   gesture: string;
   confidence: number;
-  source: 'local' | 'cloud';
+  source: 'local' | 'cloud' | 'centroid';
 }
 
 // Add configuration constants
@@ -263,7 +265,7 @@ const CLOUD_FALLBACK_TIMEOUT = 2000; // 2 seconds
 const recognizeGesture = useCallback(async (landmarks: number[]): Promise<RecognitionResult | null> => {
   // Step 1: Try local classification first
   const localResult = classifyGesture(landmarks);
-  
+
   if (localResult && localResult.confidence >= LOCAL_CONFIDENCE_THRESHOLD) {
     // High confidence local result - use it immediately
     return {
@@ -272,7 +274,7 @@ const recognizeGesture = useCallback(async (landmarks: number[]): Promise<Recogn
       source: 'local'
     };
   }
-  
+
   // Step 2: Local confidence too low, try cloud
   try {
     console.log('Local confidence low, trying cloud...');
@@ -298,8 +300,18 @@ const recognizeGesture = useCallback(async (landmarks: number[]): Promise<Recogn
   } catch (error) {
     console.warn('Cloud recognition failed:', error);
   }
-  
-  // Step 3: Both failed - return local result if available, or null
+
+  // Step 3: Cloud unreachable or uncertain – fallback to centroid classifier
+  const centroidResult = centroidClassifier.classify(landmarks);
+  if (centroidResult) {
+    return {
+      gesture: centroidResult.label,
+      confidence: centroidResult.confidence,
+      source: 'centroid'
+    };
+  }
+
+  // Step 4: Still nothing – return local result if available, or null
   if (localResult) {
     return {
       gesture: localResult.label,
@@ -307,7 +319,7 @@ const recognizeGesture = useCallback(async (landmarks: number[]): Promise<Recogn
       source: 'local'
     };
   }
-  
+
   return null;
 }, [classifyGesture]);
 
