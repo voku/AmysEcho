@@ -311,15 +311,7 @@ const recognizeGesture = useCallback(async (landmarks: number[]): Promise<Recogn
     };
   }
 
-  // Step 4: Still nothing – return local result if available, or null
-  if (localResult) {
-    return {
-      gesture: localResult.label,
-      confidence: localResult.confidence,
-      source: 'local'
-    };
-  }
-
+  // Step 4: Still nothing – signal uncertainty
   return null;
 }, [classifyGesture]);
 
@@ -564,10 +556,9 @@ export class ModelUpdateService {
       );
 
       if (downloadResult.status === 200) {
-        // Verify checksum
-        const fileData = await FileSystem.readAsStringAsync(localPath, { encoding: FileSystem.EncodingType.Base64 });
-        const { digestStringAsync, CryptoDigestAlgorithm } = await import('expo-crypto');
-        const computed = await digestStringAsync(CryptoDigestAlgorithm.SHA256, fileData);
+        // Verify checksum without loading file into memory
+        const { digestFileAsync, CryptoDigestAlgorithm } = await import('expo-crypto');
+        const computed = await digestFileAsync(CryptoDigestAlgorithm.SHA256, localPath);
         if (computed.toLowerCase() !== modelInfo.checksum.toLowerCase()) {
           await FileSystem.deleteAsync(localPath, { idempotent: true });
           throw new Error('Checksum mismatch for downloaded model');
