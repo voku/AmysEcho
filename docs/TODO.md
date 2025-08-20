@@ -5,6 +5,13 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 > Integration tests live under the repo's `integration/test` directory.
 
+## Recognition Ensemble Summary
+- Finalized ensemble order: `TFLite → centroid → remote`.
+- Profile-aware thresholds use caching to avoid repeated lookups.
+- Server recognition remains active during offline fallback for automatic recovery when connectivity returns.
+- Softmax temperature calibration balances model confidence outputs.
+- Remote inference leverages `AbortController`-based timeouts.
+
 ## 🔑 Immediate Gesture Detection & Visualization Fixes
 
 1. [x] Integrate `vision-camera-resize-plugin` for zero-copy frame resizing and color conversion.
