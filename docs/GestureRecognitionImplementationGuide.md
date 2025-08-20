@@ -54,24 +54,26 @@ Screens that perform recognition use the `useGestureClassifier` hook from `app/s
 Example from `RecognitionScreen.tsx`:
 
 ```typescript
+import { CONFIDENCE_THRESHOLD } from '../constants';
 const [processingError, setProcessingError] = useState<string | null>(null);
+const baseThreshold = CONFIDENCE_THRESHOLD; // global default; per-gesture overrides are applied internally
 
 const onGestureResult = useCallback(async (result: any) => {
   if (isProcessing) return;
 
-  if (result && result.label && result.label !== 'uncertain' && result.confidence > 0.7) {
+  if (result && result.label && result.label !== 'uncertain' && result.confidence > baseThreshold) {
     // ... handle recognized gesture ...
   } else if (result && result.label === 'uncertain') {
     setStatus("I didn't understand. Please try again.");
   }
-}, [isProcessing, useDgs, profile, startFeedbackAnimation]);
+}, [isProcessing, useDgs, profile, baseThreshold, startFeedbackAnimation]);
 
 const handleError = (msg: string) => {
   logger.warn('Frame processor error:', msg);
   setProcessingError(msg);
 };
 
-const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, handleError);
+const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, baseThreshold, handleError);
 ```
 
 Attach the frame processor to the camera component:
@@ -98,35 +100,46 @@ Use the `ErrorMessage` component to surface processing issues to the user:
 
 After each classification, the service looks up a gesture-specific confidence
 threshold. Thresholds are stored in `WatermelonDB` and scoped per profile. To
-avoid repeated queries, results are cached briefly in-memory. If a custom value
-is unavailable, the service falls back to a global default.
+avoid repeated queries, results are cached briefly in-memory. The cache uses a
+short TTL (≈1 s) to ensure fresh thresholds after updates. If a custom value is
+unavailable, the service falls back to a global default defined centrally (the
+`CONFIDENCE_THRESHOLD` constant) to keep behavior consistent.
 
 ### Softmax Temperature Scaling
 
 Local inference applies a configurable softmax temperature before computing the
 final probabilities. Lower temperatures sharpen predictions while higher
 temperatures produce a softer distribution. The value is supplied at startup and
-clamped to avoid invalid inputs.
+clamped to avoid invalid inputs. We apply temperature scaling before evaluating
+confidence thresholds: probabilities are computed as
+`softmax(logits / T)`, where `T` is the configured temperature. Inputs are
+clamped to a minimum of `0.01` and default to `1.0`; values in the 0.7–1.5
+range are typical in production.
 
 ## 5. Remote Classification & Offline Fallback
 
 `mlService` optimistically attempts a cloud lookup. Each request is wrapped in
 an `AbortController` whose `signal` is passed to `fetch`. A timer based on
-`REMOTE_TIMEOUT_MS` (400 ms by default) aborts the call if the server does not
-respond in time. Non-OK responses or aborts trip a short circuit breaker to
-avoid rapid retries. Whenever the remote path fails, `mlService` reuses the
-local predictions so the user still receives a result even when offline.
+`REMOTE_TIMEOUT_MS` (400 ms by default, configurable via
+`EXPO_PUBLIC_REMOTE_TIMEOUT_MS`) aborts the call if the server does not respond
+in time. Non-OK responses or aborts trip a short circuit breaker to avoid rapid
+retries. The breaker exposes a failure threshold (default `3`), an open duration
+(`REMOTE_RETRY_MS`, 30 s by default), and a success threshold to close (default
+`2`), allowing operators to tune retry/backoff behavior. Whenever the remote path
+fails, `mlService` reuses the local predictions so the user still receives a
+result even when offline.
 
 ## 6. Profile ID Propagation
 
-The active profile is set when a user begins a session. `mlService` stores this
-value via `setProfileId`, caching it so both paths remain profile-aware:
+The active profile is set when a user begins a session and is passed to
+`mlService.setProfileId`. The service caches the value so both paths remain
+profile-aware:
 
 - **Local path** – adaptive threshold lookups query `WatermelonDB` using the
-  current profile ID.
-- **Remote path** – the profile ID is included in the JSON payload sent to the
+  current `profileId`.
+- **Remote path** – the `profileId` is included in the JSON payload sent to the
   server, keeping analytics and model personalization scoped to the correct
-  child.
+  profile.
 
 ## 7. Data Collection and Training
 
@@ -164,6 +177,14 @@ following roadmap adds a robust local pipeline:
    `.tflite` models and swap them in at startup.
 6. **Testing & Device Protocols** – add unit/integration tests for the classifier
    and document manual device testing in `docs/GestureRecognitionTesting.md`.
+   - Validate adaptive thresholds: per‑profile overrides, DB miss → global default,
+     cache expiry.
+   - Temperature scaling: `T` at min/max clamps and `T = 1.0` baseline equivalence.
+   - Remote path: timeout/`AbortError` handling, non‑OK responses, and
+     circuit‑breaker open/half‑open/close transitions.
+   - Offline mode: ensure local predictions are returned when remote is
+     unavailable.
+   - Regression tests for threshold changes across app restarts (DB as source of truth).
 
 ---
 
