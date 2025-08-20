@@ -6,7 +6,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 > Integration tests live under the repo's `integration/test` directory.
 
 ## Recognition Ensemble Summary
-- Finalized ensemble order: `TFLite → remote → centroid` (centroid acts as the final offline fallback).
+- Finalized ensemble order: `TFLite → centroid → remote` (cloud path only runs when local classifiers are uncertain).
 - Profile-aware thresholds use caching to avoid repeated lookups.
 - Server recognition remains active during offline fallback for automatic recovery when connectivity returns.
 - Softmax temperature calibration balances model confidence outputs.
