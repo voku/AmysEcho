@@ -38,4 +38,5 @@ export interface MLServiceConfig {
   smootherMinCutOff?: number;
   smootherBeta?: number;
   smootherDerivateCutOff?: number;
+  softmaxTemperature?: number;
 }
