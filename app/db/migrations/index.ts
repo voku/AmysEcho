@@ -7,6 +7,17 @@ import {
 export const migrations = schemaMigrations({
   migrations: [
     {
+      toVersion: 8,
+      steps: [
+        addColumns({
+          table: 'gesture_definitions',
+          columns: [
+            { name: 'profile_id', type: 'string', isIndexed: true, isOptional: true },
+          ],
+        }),
+      ],
+    },
+    {
       toVersion: 7,
       steps: [
         addColumns({

@@ -129,6 +129,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [classifierUsed, setClassifierUsed] = useState<'tflite' | 'centroid' | 'remote' | null>(null);
   const [lastConfidence, setLastConfidence] = useState<number | null>(null);
   const sessionManagerRef = useRef<ChildSessionManager | null>(null);
+  const latestResultId = useRef(0);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -349,6 +350,7 @@ export default function RecognitionScreen({ navigation }: any) {
       raw?: number[][],
       metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean; pluginUsed?: boolean },
     ) => {
+      const currentResultId = ++latestResultId.current;
       setLastDetection(Date.now());
       setLandmarks(detectedLandmarks);
       setMessage(null);
@@ -371,8 +373,10 @@ export default function RecognitionScreen({ navigation }: any) {
       (async () => {
         try {
           const model = await getCachedCentroids(profile?.id || undefined);
+          if (latestResultId.current !== currentResultId) return;
           if (model && model.centroids) {
             const cls = classifyWithCentroids(detectedLandmarks, model.centroids as any);
+            if (latestResultId.current !== currentResultId) return;
             if (cls && cls.confidence >= 0.6) {
               const entry = { id: cls.label, label: cls.label, videoUri: undefined, dgsVideoUri: undefined } as any;
               setLastRecognizedGesture(entry);

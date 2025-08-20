@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 7,
+  version: 8,
   tables: [
     tableSchema({
       name: 'profiles',
@@ -56,6 +56,7 @@ export const mySchema = appSchema({
     tableSchema({
       name: 'gesture_definitions',
       columns: [
+        { name: 'profile_id', type: 'string', isIndexed: true, isOptional: true },
         { name: 'name', type: 'string' },
         { name: 'status', type: 'string', isIndexed: true },
         { name: 'health_score', type: 'number' },

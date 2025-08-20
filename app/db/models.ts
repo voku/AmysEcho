@@ -81,6 +81,7 @@ export class GestureDefinition extends Model {
     gesture_training_data: { type: 'has_many', foreignKey: 'gesture_definition_id' },
   } as const;
 
+  @text('profile_id') profileId!: string;
   @text('name') name!: string;
   @text('status') status!: string;
   @field('health_score') healthScore!: number;

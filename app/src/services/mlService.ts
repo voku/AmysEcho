@@ -112,7 +112,8 @@ class ModelManager {
   }
 
   setTemperature(temp: number): void {
-    this.softmaxTemperature = temp;
+    // Guard against invalid temperatures that could cause division by zero or overflow
+    this.softmaxTemperature = Number.isFinite(temp) && temp > 0 ? temp : 1.0;
   }
 
   async runInference(inputTensor: number[]): Promise<ClassificationOutput> {
@@ -140,9 +141,9 @@ class ModelManager {
       }
       let sum = 0;
       const probs = new Array<number>(len);
-      const temp = this.softmaxTemperature;
+      const invT = 1 / Math.max(0.01, this.softmaxTemperature);
       for (let i = 0; i < len; i++) {
-        const e = Math.exp((logits[i] - maxLogit) / temp);
+        const e = Math.exp((logits[i] - maxLogit) * invT);
         probs[i] = e;
         sum += e;
       }
@@ -206,6 +207,8 @@ class MachineLearningService {
   private allowRemote = true;
   private circuitBreaker: CircuitBreaker;
   private profileId?: string;
+  private thresholdCache = new Map<string, { value: number; ts: number }>();
+  private readonly thresholdCacheTtl = 1000; // ms
 
   constructor() {
     this.circuitBreaker = new CircuitBreaker(
@@ -340,7 +343,10 @@ class MachineLearningService {
         this.smootherDerivateCutOff = config.smootherDerivateCutOff;
       }
       if (config?.softmaxTemperature !== undefined) {
-        this.softmaxTemperature = config.softmaxTemperature;
+        this.softmaxTemperature =
+          Number.isFinite(config.softmaxTemperature) && config.softmaxTemperature > 0
+            ? config.softmaxTemperature
+            : 1.0;
         this.modelManager.setTemperature(this.softmaxTemperature);
       }
 
@@ -371,26 +377,43 @@ class MachineLearningService {
   }
 
   private async getDynamicThreshold(gestureLabel: string): Promise<number> {
+    if (!gestureLabel || gestureLabel === 'uncertain') {
+      return this.localThreshold;
+    }
+    const cacheKey = `${this.profileId ?? 'default'}::${gestureLabel}`;
+    const cached = this.thresholdCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < this.thresholdCacheTtl) {
+      return cached.value;
+    }
     try {
       const collection: any = database.get<GestureDefinition>('gesture_definitions');
       // Try by PK first (in case label equals ID)
       try {
         const byId = await collection.find?.(gestureLabel);
         if (byId && typeof byId.minConfidenceThreshold === 'number') {
-          return byId.minConfidenceThreshold;
+          const value = byId.minConfidenceThreshold;
+          this.thresholdCache.set(cacheKey, { value, ts: Date.now() });
+          return value;
         }
       } catch (error) {
         logger.debug('Dynamic threshold lookup by id failed', error);
       }
-      // Build query by name and optional profile
-      const conditions: any[] = [Q.where('name', gestureLabel)];
+      const where = (Q as any)?.where;
+      if (typeof where !== 'function') {
+        logger.debug('WatermelonDB Q.where not available; skipping dynamic threshold query');
+        this.thresholdCache.set(cacheKey, { value: this.localThreshold, ts: Date.now() });
+        return this.localThreshold;
+      }
+      const conditions: any[] = [where('name', gestureLabel)];
       if (this.profileId) {
-        conditions.push(Q.where('profile_id', this.profileId));
+        conditions.push(where('profile_id', this.profileId));
       }
       const results = await collection.query?.(...conditions)?.fetch?.();
       const g = results && results[0];
       if (g && typeof g.minConfidenceThreshold === 'number') {
-        return g.minConfidenceThreshold;
+        const value = g.minConfidenceThreshold;
+        this.thresholdCache.set(cacheKey, { value, ts: Date.now() });
+        return value;
       }
     } catch (e) {
       logger.debug(
@@ -398,6 +421,7 @@ class MachineLearningService {
         e,
       );
     }
+    this.thresholdCache.set(cacheKey, { value: this.localThreshold, ts: Date.now() });
     return this.localThreshold;
   }
 
@@ -521,6 +545,10 @@ class MachineLearningService {
       }
 
       result = smoothed;
+      {
+        const postThreshold = await this.getDynamicThreshold(result.label);
+        result.requiresConfirmation = result.confidence < postThreshold;
+      }
       const processingTime = Date.now() - processed.timestamp;
       telemetry.add(processingTime);
       this.perfMonitor.add({
