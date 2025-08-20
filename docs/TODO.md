@@ -128,17 +128,34 @@ export class GestureClassifier {
     if (!this.model) {
       throw new Error('Model not loaded');
     }
+    if (landmarks.length === 0) {
+      throw new Error('No landmarks provided');
+    }
 
     // Prepare input tensor from landmarks
     const input = new Float32Array(landmarks);
-    
+
     // Run inference
     const output = this.model.runSync([input]) as Float32Array[];
-    const probabilities = Array.from(output[0]);
-    
+    const raw = Array.from(output?.[0] ?? []);
+    if (raw.length === 0) {
+      throw new Error('Model returned no outputs');
+    }
+    // If not already a probability vector, treat as logits and apply temperature-calibrated softmax
+    const sum = raw.reduce((a, b) => a + b, 0);
+    const temperature = 1.0; // expose/configure as needed
+    const softmax = (xs: number[], t: number) => {
+      const scaled = xs.map(v => v / Math.max(t, 1e-6));
+      const max = Math.max(...scaled);
+      const exps = scaled.map(v => Math.exp(v - max));
+      const denom = exps.reduce((a, b) => a + b, 0) || 1;
+      return exps.map(v => v / denom);
+    };
+    const probabilities = (sum > 0.99 && sum < 1.01) ? raw : softmax(raw, temperature);
+
     // Find best prediction
     const maxIndex = probabilities.indexOf(Math.max(...probabilities));
-    const confidence = probabilities[maxIndex];
+    const confidence = probabilities[maxIndex] ?? 0;
     
     return {
       label: this.labels[maxIndex] || 'unknown',
@@ -177,7 +194,7 @@ interface TensorflowModelHook {
 // Inside the hook implementation
 const classifyGesture = useCallback((landmarks: number[]) => {
   try {
-    if (!isModelLoaded || landmarks.length === 0) {
+    if (!isModelLoaded || landmarks.length !== 63) {
       return null;
     }
     
@@ -258,7 +275,7 @@ interface RecognitionResult {
 }
 
 // Add configuration constants
-const LOCAL_CONFIDENCE_THRESHOLD = 0.7;
+export const LOCAL_CONFIDENCE_THRESHOLD = 0.7;
 const CLOUD_FALLBACK_TIMEOUT = 2000; // 2 seconds
 
 // Add hybrid recognition function
@@ -370,10 +387,10 @@ const [recognitionState, setRecognitionState] = useState<'listening' | 'thinking
 
 // Add confidence evaluation function
 const evaluateConfidence = useCallback((confidence: number, source: 'local' | 'cloud') => {
-  if (confidence >= 0.8) {
+  if (confidence >= LOCAL_CONFIDENCE_THRESHOLD + 0.1) {
     setRecognitionState('confident');
     setShowUncertainty(false);
-  } else if (confidence >= 0.5) {
+  } else if (confidence >= LOCAL_CONFIDENCE_THRESHOLD - 0.2) {
     setRecognitionState('thinking');
     setShowUncertainty(false);
   } else {
@@ -386,7 +403,7 @@ const evaluateConfidence = useCallback((confidence: number, source: 'local' | 'c
 const handleRecognitionResult = useCallback((result: RecognitionResult) => {
   evaluateConfidence(result.confidence, result.source);
   
-  if (result.confidence >= 0.6) {
+  if (result.confidence >= LOCAL_CONFIDENCE_THRESHOLD) {
     // Show the recognized gesture
     setCurrentGesture(result.gesture);
     
@@ -545,24 +562,28 @@ export class ModelUpdateService {
       const response = await fetch(ModelUpdateService.UPDATE_CHECK_URL);
       const modelInfo: ModelVersion = await response.json();
 
-      // Create local file path
+      // Create local file paths
       const localPath = `${FileSystem.documentDirectory}gesture_model_${modelInfo.version}.tflite`;
+      const tmpPath = `${localPath}.tmp`;
 
-      // Download the model
+      // Download the model to a temporary file
       console.log('Downloading model version:', modelInfo.version);
       const downloadResult = await FileSystem.downloadAsync(
         modelInfo.downloadUrl,
-        localPath
+        tmpPath,
+        { headers: { 'If-None-Match': modelInfo.checksum } }
       );
 
       if (downloadResult.status === 200) {
         // Verify checksum without loading file into memory
         const { digestFileAsync, CryptoDigestAlgorithm } = await import('expo-crypto');
-        const computed = await digestFileAsync(CryptoDigestAlgorithm.SHA256, localPath);
+        const computed = await digestFileAsync(CryptoDigestAlgorithm.SHA256, tmpPath);
         if (computed.toLowerCase() !== modelInfo.checksum.toLowerCase()) {
-          await FileSystem.deleteAsync(localPath, { idempotent: true });
+          await FileSystem.deleteAsync(tmpPath, { idempotent: true });
           throw new Error('Checksum mismatch for downloaded model');
         }
+        // Atomically move tmp -> final
+        await FileSystem.moveAsync({ from: tmpPath, to: localPath });
 
         // Save version info
         await AsyncStorage.setItem(ModelUpdateService.MODEL_VERSION_KEY, modelInfo.version);
@@ -624,8 +645,14 @@ useEffect(() => {
         await gestureClassifier.loadModel(localModelPath, labels);
       } else {
         console.log('Using bundled model');
-        // Load the bundled model and labels
-        await gestureClassifier.loadModel('../assets/models/gesture_classifier.tflite', labels);
+        // Resolve bundled asset to a local file URI
+        const { Asset } = await import('expo-asset');
+        const modelAsset = Asset.fromModule(require('../assets/models/gesture_classifier.tflite'));
+        await modelAsset.downloadAsync();
+        if (!modelAsset.localUri) {
+          throw new Error('Failed to resolve bundled model asset');
+        }
+        await gestureClassifier.loadModel(modelAsset.localUri, labels);
       }
       
       // Check for updates in background
@@ -666,9 +693,16 @@ import { GestureClassifier } from '../../src/ml/gestureClassifier';
 
 describe('GestureClassifier', () => {
   let classifier: GestureClassifier;
-  
+
   beforeEach(() => {
     classifier = new GestureClassifier();
+    // Inject test doubles
+    // @ts-expect-error test-only access
+    classifier['labels'] = ['stop', 'wave', 'point', 'peace', 'fist'];
+    // @ts-expect-error test-only access
+    classifier['model'] = {
+      runSync: () => [Float32Array.from([0.05, 0.85, 0.05, 0.03, 0.02])]
+    } as any;
   });
   
   afterEach(() => {
@@ -719,9 +753,7 @@ describe('GestureClassifier', () => {
   });
   
   test('should handle empty landmark input gracefully', () => {
-    expect(() => {
-      classifier.classify([]);
-    }).toThrow('Model not loaded');
+    expect(() => classifier.classify([])).toThrow();
   });
 });
 ```
@@ -883,7 +915,6 @@ adb logcat | grep -E "(Performance|Latency)"
 
 # Save full test session log
 adb logcat > test_session_$(date +%Y%m%d_%H%M%S).log
-```
 ```
 
 #### B. Performance Monitor Utility
