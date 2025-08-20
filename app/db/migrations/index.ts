@@ -7,12 +7,17 @@ import {
 export const migrations = schemaMigrations({
   migrations: [
     {
-      toVersion: 8,
+      toVersion: 6,
       steps: [
-        addColumns({
-          table: 'gesture_definitions',
+        createTable({
+          name: 'corrections',
           columns: [
-            { name: 'profile_id', type: 'string', isIndexed: true, isOptional: true },
+            { name: 'predicted_gesture', type: 'string', isIndexed: true },
+            { name: 'actual_gesture', type: 'string', isIndexed: true },
+            { name: 'confidence', type: 'number' },
+            { name: 'landmarks', type: 'string' },
+            { name: 'timestamp', type: 'number', isIndexed: true },
+            { name: 'is_synced', type: 'boolean' },
           ],
         }),
       ],
@@ -28,18 +33,13 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
-     {
-      toVersion: 6,
+    {
+      toVersion: 8,
       steps: [
-        createTable({
-          name: 'corrections',
+        addColumns({
+          table: 'gesture_definitions',
           columns: [
-            { name: 'predicted_gesture', type: 'string', isIndexed: true },
-            { name: 'actual_gesture', type: 'string', isIndexed: true },
-            { name: 'confidence', type: 'number' },
-            { name: 'landmarks', type: 'string' },
-            { name: 'timestamp', type: 'number', isIndexed: true },
-            { name: 'is_synced', type: 'boolean' },
+            { name: 'profile_id', type: 'string', isIndexed: true, isOptional: true },
           ],
         }),
       ],
