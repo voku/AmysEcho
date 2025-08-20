@@ -181,6 +181,7 @@ class MachineLearningService {
   private smootherMinCutOff = 1.0;
   private smootherBeta = 0.5;
   private smootherDerivateCutOff = 1.0;
+  private softmaxTemperature = 1.0;
   private perfMonitor = new ModelPerformanceMonitor();
   private labels: string[] = [];
   private teachingSession: { id: string; label: string } | null = null;
@@ -225,6 +226,10 @@ class MachineLearningService {
 
   setLowPowerMode(low: boolean) {
     this.localThreshold = low ? this.lowPowerConfidence : this.baseConfidence;
+  }
+
+  getSoftmaxTemperature(): number {
+    return this.softmaxTemperature;
   }
 
   getPerfMetrics() {
@@ -321,6 +326,9 @@ class MachineLearningService {
       }
       if (config?.smootherDerivateCutOff) {
         this.smootherDerivateCutOff = config.smootherDerivateCutOff;
+      }
+      if (config?.softmaxTemperature !== undefined) {
+        this.softmaxTemperature = config.softmaxTemperature;
       }
 
       this.labels = labels;
@@ -703,6 +711,7 @@ export const useGestureClassifier = (
   const pluginUnavailableLogged = useSharedValue(false);
   const fallbackLogged = useSharedValue(false);
   const errorLogged = useSharedValue(false);
+  const softmaxTemp = mlService.getSoftmaxTemperature();
 
   useEffect(() => {
     const readyInterval = setInterval(() => {
@@ -836,8 +845,12 @@ export const useGestureClassifier = (
                 }
                 return out;
               })();
-          const pred = classifyGesture(flatH, localThreshold);
-          if (pred && (!bestPred || pred.maxProbability > bestPred.maxProbability)) {
+          const pred = classifyGesture(flatH, { temperature: softmaxTemp });
+          if (
+            pred &&
+            pred.maxProbability >= localThreshold &&
+            (!bestPred || pred.maxProbability > bestPred.maxProbability)
+          ) {
             bestPred = pred;
             bestHandIdx = h;
           }
@@ -876,6 +889,7 @@ export const useGestureClassifier = (
       pluginUnavailableLogged,
       fallbackLogged,
       errorLogged,
+      softmaxTemp,
     ],
   );
 

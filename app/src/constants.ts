@@ -14,6 +14,10 @@ export const REMOTE_TIMEOUT_MS = Number(
   process.env.EXPO_PUBLIC_REMOTE_TIMEOUT_MS || 400,
 );
 
+export const SOFTMAX_TEMPERATURE = Number(
+  process.env.EXPO_PUBLIC_SOFTMAX_TEMPERATURE || 1.0,
+);
+
 // Enable landmark normalization before classification (wrist-center, scale)
 export const NORMALIZE_LANDMARKS =
   process.env.EXPO_PUBLIC_NORMALIZE_LANDMARKS !== 'false';

@@ -10,17 +10,22 @@ const logError = Worklets?.createRunOnJS
   ? Worklets.createRunOnJS(logger.error)
   : (message?: any, ...optional: any[]) => logger.error(message, ...optional);
 
+export interface ClassificationOptions {
+  temperature?: number;
+}
+
 export function setGestureModel(model: TensorflowModel | null): void {
   gestureModel = model;
 }
 
 export function classifyGesture(
   input: Float32Array,
-  confidenceThreshold: number = 0.7,
+  options: ClassificationOptions = {},
 ): ClassificationOutput | null {
   'worklet';
   if (!gestureModel) return null;
   try {
+    const { temperature = 1.0 } = options;
     if (!inputBuffer || inputBuffer.length !== input.length) {
       inputBuffer = new Float32Array(input.length);
     }
@@ -42,8 +47,9 @@ export function classifyGesture(
     }
 
     let sum = 0;
+    const temp = temperature <= 0 ? 1 : temperature;
     for (let i = 0; i < len; i++) {
-      const e = Math.exp(logits[i] - maxLogit);
+      const e = Math.exp((logits[i] - maxLogit) / temp);
       outputBuffer[i] = e;
       sum += e;
     }
@@ -59,14 +65,11 @@ export function classifyGesture(
       }
     }
 
-    if (maxProb >= confidenceThreshold) {
-      return {
-        probabilities: Array.from(outputBuffer),
-        maxProbability: maxProb,
-        maxIndex,
-      };
-    }
-    return null;
+    return {
+      probabilities: Array.from(outputBuffer),
+      maxProbability: maxProb,
+      maxIndex,
+    };
   } catch (e) {
     logError('Gesture classification failed', e);
     return null;

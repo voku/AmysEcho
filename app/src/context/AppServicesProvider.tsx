@@ -19,6 +19,7 @@ import {
   ENABLE_REMOTE_CLASSIFICATION,
   REMOTE_RETRY_MS,
   REMOTE_TIMEOUT_MS,
+  SOFTMAX_TEMPERATURE,
 } from '../constants';
 import { logger } from '../utils/logger';
 import { ServicesContext, type Services } from './ServicesContext';
@@ -79,6 +80,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             smootherMinCutOff: 1.0,
             smootherBeta: 0.5,
             smootherDerivateCutOff: 1.0,
+            softmaxTemperature: SOFTMAX_TEMPERATURE,
           },
         );
         await audioService.initialize();
