@@ -41,7 +41,6 @@ jest.mock('../db', () => ({
       query: () => ({ fetch: async () => [] }),
     }),
   },
-  InteractionLog: class {},
 }));
 
 jest.mock('react-native-reanimated', () => ({

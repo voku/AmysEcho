@@ -37,6 +37,7 @@ import { normalizeLandmarksToFlat } from './landmarkNormalizer';
 import { NORMALIZE_ALIGN_ROTATION } from '../constants';
 import { database } from '../../db';
 import { InteractionLog, GestureDefinition } from '../../db/models';
+import { Q } from '@nozbe/watermelondb';
 import { recordInteraction } from './adaptiveLearningService';
 import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
@@ -104,9 +105,14 @@ class ModelManager {
     resolve: (result: ClassificationOutput) => void;
   }> = [];
   private isInferring = false;
+  private softmaxTemperature = 1.0;
 
   setModel(model: TensorflowModel | null): void {
     this.tfliteModel = model;
+  }
+
+  setTemperature(temp: number): void {
+    this.softmaxTemperature = temp;
   }
 
   async runInference(inputTensor: number[]): Promise<ClassificationOutput> {
@@ -134,8 +140,9 @@ class ModelManager {
       }
       let sum = 0;
       const probs = new Array<number>(len);
+      const temp = this.softmaxTemperature;
       for (let i = 0; i < len; i++) {
-        const e = Math.exp(logits[i] - maxLogit);
+        const e = Math.exp((logits[i] - maxLogit) / temp);
         probs[i] = e;
         sum += e;
       }
@@ -334,6 +341,7 @@ class MachineLearningService {
       }
       if (config?.softmaxTemperature !== undefined) {
         this.softmaxTemperature = config.softmaxTemperature;
+        this.modelManager.setTemperature(this.softmaxTemperature);
       }
 
       this.labels = labels;
@@ -365,11 +373,29 @@ class MachineLearningService {
   private async getDynamicThreshold(gestureLabel: string): Promise<number> {
     try {
       const collection: any = database.get<GestureDefinition>('gesture_definitions');
-      const gesture = await collection.find?.(gestureLabel);
-      if (gesture && typeof gesture.minConfidenceThreshold === 'number') {
-        return gesture.minConfidenceThreshold;
+      // Try by PK first (in case label equals ID)
+      try {
+        const byId = await collection.find?.(gestureLabel);
+        if (byId && typeof byId.minConfidenceThreshold === 'number') {
+          return byId.minConfidenceThreshold;
+        }
+      } catch {}
+      // Build query by name and optional profile
+      const conditions: any[] = [Q.where('name', gestureLabel)];
+      if (this.profileId) {
+        conditions.push(Q.where('profile_id', this.profileId));
       }
-    } catch {}
+      const results = await collection.query?.(...conditions)?.fetch?.();
+      const g = results && results[0];
+      if (g && typeof g.minConfidenceThreshold === 'number') {
+        return g.minConfidenceThreshold;
+      }
+    } catch (e) {
+      logger.debug(
+        'Dynamic threshold lookup failed, falling back to local threshold',
+        e,
+      );
+    }
     return this.localThreshold;
   }
 
@@ -413,12 +439,14 @@ class MachineLearningService {
 
     if ((localConfidence < this.localThreshold || !result) && this.shouldUseRemote()) {
       try {
-        const remote = await Promise.race([
-          this.classifyRemotely(processed),
-          new Promise<null>((_, reject) =>
-            setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout),
-          ),
-        ]);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.remoteTimeout);
+        let remote: DetailedGestureResult | null = null;
+        try {
+          remote = await this.classifyRemotely(processed, controller.signal);
+        } finally {
+          clearTimeout(timeoutId);
+        }
         if (remote) {
           this.circuitBreaker.recordSuccess();
           result = remote;
@@ -514,7 +542,7 @@ class MachineLearningService {
       onResult({
         label: result.label,
         confidence: result.confidence,
-        ts: result.timestamp,
+        timestamp: result.timestamp,
         isLocal: result.isLocal,
         requiresConfirmation: result.requiresConfirmation,
       });
@@ -527,6 +555,7 @@ class MachineLearningService {
 
   private async classifyRemotely(
     processedFrame: ProcessedFrame,
+    signal?: AbortSignal,
   ): Promise<DetailedGestureResult | null> {
     if (!API_URL || !API_TOKEN) {
       throw new Error('Remote API not configured');
@@ -540,7 +569,9 @@ class MachineLearningService {
       },
       body: JSON.stringify({
         landmarks: processedFrame.landmarks.flat(),
+        profileId: this.profileId ?? undefined,
       }),
+      signal,
     });
 
     if (!response.ok) {
