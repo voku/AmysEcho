@@ -382,7 +382,9 @@ export default function RecognitionScreen({ navigation }: any) {
               return;
             }
           }
-        } catch {}
+        } catch (error) {
+          logger.warn('Failed to classify with centroids', error);
+        }
       })();
 
       try {
@@ -391,11 +393,15 @@ export default function RecognitionScreen({ navigation }: any) {
           return [m.x, m.y, p[2] ?? 0];
         });
         setRenderPoints(pts);
-      } catch {}
+      } catch (error) {
+        logger.warn('Failed to map landmarks to preview', error);
+      }
       try {
         const assessment = assessOcclusion(detectedLandmarks);
         setOcclusionHints(assessment.occluded ? assessment.hints : null);
-      } catch {}
+      } catch (error) {
+        logger.warn('Failed to assess occlusion', error);
+      }
     },
     [updateStatus, setMessage, profile?.id, format, previewRect, mirror],
   );
@@ -472,7 +478,9 @@ export default function RecognitionScreen({ navigation }: any) {
                 });
                 setRenderPoints(pts);
               }
-            } catch {}
+            } catch (error) {
+              logger.warn('Failed to map remote landmarks to preview', error);
+            }
 
             const label = (rec as any).appLabel || rec.result?.label || 'unknown';
             const confidence =
@@ -549,10 +557,14 @@ export default function RecognitionScreen({ navigation }: any) {
           await audioService.speak('Ich bin hier und höre zu.');
           try {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          } catch {}
+          } catch (error) {
+            logger.warn('Neutral hint haptics failed', error);
+          }
           setShowNeutralHint(true);
           setTimeout(() => setShowNeutralHint(false), 2000);
-        } catch {}
+        } catch (error) {
+          logger.warn('Neutral hint speech failed', error);
+        }
         neutralCooldownRef.current = ts + 7000;
       }
       // Do not pause the camera automatically; continuous feedback helps Amy
@@ -631,7 +643,9 @@ export default function RecognitionScreen({ navigation }: any) {
         if (landmarks && landmarks.length >= 21) {
           void sendDgsSample(choiceId, [landmarks], profile?.id || undefined);
         }
-      } catch {}
+      } catch (error) {
+        logger.warn('Failed to send DGS sample', error);
+      }
 
       setPendingGesture(null);
       setTimeout(() => {

@@ -379,7 +379,9 @@ class MachineLearningService {
         if (byId && typeof byId.minConfidenceThreshold === 'number') {
           return byId.minConfidenceThreshold;
         }
-      } catch {}
+      } catch (error) {
+        logger.debug('Dynamic threshold lookup by id failed', error);
+      }
       // Build query by name and optional profile
       const conditions: any[] = [Q.where('name', gestureLabel)];
       if (this.profileId) {
