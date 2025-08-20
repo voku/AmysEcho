@@ -6,7 +6,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 > Integration tests live under the repo's `integration/test` directory.
 
 ## Recognition Ensemble Summary
-- Finalized ensemble order: `TFLite → centroid → remote`.
+- Finalized ensemble order: `TFLite → remote → centroid`.
 - Profile-aware thresholds use caching to avoid repeated lookups.
 - Server recognition remains active during offline fallback for automatic recovery when connectivity returns.
 - Softmax temperature calibration balances model confidence outputs.
@@ -107,14 +107,20 @@ export class GestureClassifier {
   private model: TensorflowModel | null = null;
   private labels: string[] = [];
 
-  async loadModel(modelPath: string, labelPath: string): Promise<void> {
+  async loadModel(modelPath: string, labelsOrPath: string[] | string): Promise<void> {
     // Load the gesture classification model
     this.model = await TensorflowModel.loadFromPath(modelPath);
-    
+
     // Load gesture labels
-    const labelData = require(labelPath);
-    this.labels = Array.isArray(labelData) ? labelData : labelData.labels || [];
-    
+    if (Array.isArray(labelsOrPath)) {
+      this.labels = labelsOrPath;
+    } else {
+      const { default: FileSystem } = await import('expo-file-system');
+      const json = await FileSystem.readAsStringAsync(labelsOrPath);
+      const labelData = JSON.parse(json);
+      this.labels = Array.isArray(labelData) ? labelData : labelData.labels || [];
+    }
+
     console.log('Gesture classifier loaded with', this.labels.length, 'gestures');
   }
 
@@ -270,18 +276,17 @@ const recognizeGesture = useCallback(async (landmarks: number[]): Promise<Recogn
   // Step 2: Local confidence too low, try cloud
   try {
     console.log('Local confidence low, trying cloud...');
-    
-    const cloudResponse = await Promise.race([
-      fetch('/api/recognize-gesture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ landmarks })
-      }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Cloud timeout')), CLOUD_FALLBACK_TIMEOUT)
-      )
-    ]) as Response;
-    
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CLOUD_FALLBACK_TIMEOUT);
+    const cloudResponse = await fetch('https://your-server.com/api/recognize-gesture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ landmarks }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
     if (cloudResponse.ok) {
       const cloudResult = await cloudResponse.json();
       return {
@@ -535,21 +540,30 @@ export class ModelUpdateService {
     try {
       const response = await fetch(ModelUpdateService.UPDATE_CHECK_URL);
       const modelInfo: ModelVersion = await response.json();
-      
+
       // Create local file path
       const localPath = `${FileSystem.documentDirectory}gesture_model_${modelInfo.version}.tflite`;
-      
+
       // Download the model
       console.log('Downloading model version:', modelInfo.version);
       const downloadResult = await FileSystem.downloadAsync(
         modelInfo.downloadUrl,
         localPath
       );
-      
+
       if (downloadResult.status === 200) {
+        // Verify checksum
+        const fileData = await FileSystem.readAsStringAsync(localPath, { encoding: FileSystem.EncodingType.Base64 });
+        const { digestStringAsync, CryptoDigestAlgorithm } = await import('expo-crypto');
+        const computed = await digestStringAsync(CryptoDigestAlgorithm.SHA256, fileData);
+        if (computed.toLowerCase() !== modelInfo.checksum.toLowerCase()) {
+          await FileSystem.deleteAsync(localPath, { idempotent: true });
+          throw new Error('Checksum mismatch for downloaded model');
+        }
+
         // Save version info
         await AsyncStorage.setItem(ModelUpdateService.MODEL_VERSION_KEY, modelInfo.version);
-        
+
         console.log('Model downloaded successfully to:', localPath);
         return localPath;
       } else {
@@ -591,6 +605,7 @@ export const modelUpdateService = new ModelUpdateService();
 **Action**: Check for model updates when the app starts.
 
 ```typescript
+import labels from '../assets/models/gesture_labels.json';
 import { modelUpdateService } from '../services/modelUpdateService';
 
 // Add to your main component's useEffect
@@ -602,12 +617,12 @@ useEffect(() => {
       
       if (localModelPath) {
         console.log('Using downloaded model:', localModelPath);
-        // Load the downloaded model
-        await gestureClassifier.loadModel(localModelPath, '../assets/models/gesture_labels.json');
+        // Load the downloaded model with labels from bundle
+        await gestureClassifier.loadModel(localModelPath, labels);
       } else {
         console.log('Using bundled model');
-        // Load the bundled model
-        await gestureClassifier.loadModel('../assets/models/gesture_classifier.tflite', '../assets/models/gesture_labels.json');
+        // Load the bundled model and labels
+        await gestureClassifier.loadModel('../assets/models/gesture_classifier.tflite', labels);
       }
       
       // Check for updates in background
@@ -660,10 +675,28 @@ describe('GestureClassifier', () => {
   test('should classify known gesture with high confidence', () => {
     // Mock landmark data for a "wave" gesture
     const waveLandmarks = [
-      // ... 21 landmarks x 3 coordinates each
+      // Provide a full array of 63 numbers (21 landmarks × 3 coords)
       0.5, 0.3, 0.1,  // wrist
       0.6, 0.2, 0.1,  // thumb tip
-      // ... more landmarks
+      0.7, 0.4, 0.1,
+      0.8, 0.5, 0.1,
+      0.4, 0.2, 0.1,
+      0.3, 0.4, 0.1,
+      0.2, 0.5, 0.1,
+      0.1, 0.6, 0.1,
+      0.5, 0.4, 0.1,
+      0.4, 0.5, 0.1,
+      0.3, 0.6, 0.1,
+      0.2, 0.7, 0.1,
+      0.1, 0.8, 0.1,
+      0.5, 0.2, 0.1,
+      0.4, 0.3, 0.1,
+      0.3, 0.4, 0.1,
+      0.2, 0.5, 0.1,
+      0.1, 0.6, 0.1,
+      0.5, 0.1, 0.1,
+      0.4, 0.2, 0.1,
+      0.3, 0.3, 0.1
     ];
     
     const result = classifier.classify(waveLandmarks);
@@ -755,7 +788,7 @@ describe('Hybrid Recognition Integration', () => {
     // Simulate frame processing
     await waitFor(() => {
       // Verify cloud API was called
-      expect(global.fetch).toHaveBeenCalledWith('/api/recognize-gesture', expect.any(Object));
+      expect(global.fetch).toHaveBeenCalledWith('https://your-server.com/api/recognize-gesture', expect.any(Object));
       
       // Verify UI shows cloud result
       expect(getByTestId('current-gesture')).toHaveTextContent('point');
