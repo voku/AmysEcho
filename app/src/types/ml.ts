@@ -19,6 +19,8 @@ export interface GestureResult {
   label: string;
   confidence: number;
   ts: number;
+  isLocal?: boolean;
+  requiresConfirmation?: boolean;
 }
 
 export interface DetailedGestureResult {
