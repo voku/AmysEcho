@@ -33,6 +33,7 @@ import {
   playSymbolVideo,
   gestureDataProtector,
   ChildSessionManager,
+  mlService,
 } from '../services';
 import { assessOcclusion } from '../services/GestureOcclusion';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
@@ -43,8 +44,8 @@ import { incrementUsage } from '../services';
 import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
-import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
 import { useGestureClassifier } from '../services';
+import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { mapToPreview } from '../utils/landmarkMapping';
@@ -98,6 +99,8 @@ export default function RecognitionScreen({ navigation }: any) {
   const [showStaticMode, setShowStaticMode] = useState(false);
   const [showFallbackMode, setShowFallbackMode] = useState(false);
   const [occlusionHints, setOcclusionHints] = useState<string[] | null>(null);
+  const [usingOffline, setUsingOffline] = useState(false);
+  const [remoteFailures, setRemoteFailures] = useState(0);
   const neutralCooldownRef = useRef<number>(0);
   const [lastResultAt, setLastResultAt] = useState<number>(0);
   const [showNeutralHint, setShowNeutralHint] = useState(false);
@@ -123,12 +126,10 @@ export default function RecognitionScreen({ navigation }: any) {
     lastLatency: 0,
     pluginUsed: undefined,
   });
-  const [lastRemoteLabel, setLastRemoteLabel] = useState<string | null>(null);
-  const [lastRemoteConfidence, setLastRemoteConfidence] = useState<number | null>(null);
-  const [lastHandedness, setLastHandedness] = useState<string | null>(null);
-  const [lastOfflineLabel, setLastOfflineLabel] = useState<string | null>(null);
-  const [lastOfflineConfidence, setLastOfflineConfidence] = useState<number | null>(null);
+  const [classifierUsed, setClassifierUsed] = useState<'tflite' | 'centroid' | 'remote' | null>(null);
+  const [lastConfidence, setLastConfidence] = useState<number | null>(null);
   const sessionManagerRef = useRef<ChildSessionManager | null>(null);
+  const latestResultId = useRef(0);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -240,6 +241,12 @@ export default function RecognitionScreen({ navigation }: any) {
   }, []);
 
   useEffect(() => {
+    if (profile?.id) {
+      mlService.setProfileId(profile.id);
+    }
+  }, [profile?.id]);
+
+  useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
   }, []);
@@ -343,64 +350,76 @@ export default function RecognitionScreen({ navigation }: any) {
       raw?: number[][],
       metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean; pluginUsed?: boolean },
     ) => {
+      const currentResultId = ++latestResultId.current;
       setLastDetection(Date.now());
       setLandmarks(detectedLandmarks);
       setMessage(null);
       setLastResultAt(Date.now());
-      let decided = false;
-      if (result && result.label && result.confidence >= 0.7) {
+      setLastConfidence(result?.confidence ?? null);
+      if (result && result.label && !result.requiresConfirmation) {
         const entry = { id: result.label, label: result.label, videoUri: undefined, dgsVideoUri: undefined } as any;
         setLastRecognizedGesture(entry);
         updateStatus(entry.label);
-        decided = true;
+        setClassifierUsed(result.isLocal ? 'tflite' : 'remote');
+        return;
       }
-      // Try offline centroid model if not decided
-      if (!decided) {
-        (async () => {
-          try {
-            const model = await getCachedCentroids(profile?.id || undefined);
-            if (model && model.centroids) {
-              const cls = classifyWithCentroids(detectedLandmarks, model.centroids as any);
-              setLastOfflineLabel(cls?.label ?? null);
-              setLastOfflineConfidence(cls?.confidence ?? null);
-              if (cls && cls.confidence >= 0.6) {
-                const entry = { id: cls.label, label: cls.label, videoUri: undefined, dgsVideoUri: undefined } as any;
-                setLastRecognizedGesture(entry);
-                updateStatus(entry.label);
-              }
+
+      if (result) {
+        setClassifierUsed(result.isLocal ? 'tflite' : 'remote');
+      } else {
+        setClassifierUsed(null);
+      }
+
+      (async () => {
+        try {
+          const model = await getCachedCentroids(profile?.id || undefined);
+          if (latestResultId.current !== currentResultId) return;
+          if (model && model.centroids) {
+            const cls = classifyWithCentroids(detectedLandmarks, model.centroids as any);
+            if (latestResultId.current !== currentResultId) return;
+            if (cls && cls.confidence >= 0.6) {
+              const entry = { id: cls.label, label: cls.label, videoUri: undefined, dgsVideoUri: undefined } as any;
+              setLastRecognizedGesture(entry);
+              updateStatus(entry.label);
+              setClassifierUsed('centroid');
+              setLastConfidence(cls.confidence);
+              return;
             }
-          } catch {}
-        })();
-      }
-      // Compute render points from normalized offline landmarks via mapToPreview
+          }
+        } catch (error) {
+          logger.warn('Failed to classify with centroids', error);
+        }
+      })();
+
       try {
         const pts = detectedLandmarks.map((p) => {
           const m = mapToPreview([p[0], p[1], p[2] ?? 0], format?.videoWidth ?? 1, format?.videoHeight ?? 1, { width: previewRect.width, height: previewRect.height }, mirror);
           return [m.x, m.y, p[2] ?? 0];
         });
         setRenderPoints(pts);
-      } catch {}
+      } catch (error) {
+        logger.warn('Failed to map landmarks to preview', error);
+      }
+      try {
+        const assessment = assessOcclusion(detectedLandmarks);
+        setOcclusionHints(assessment.occluded ? assessment.hints : null);
+      } catch (error) {
+        logger.warn('Failed to assess occlusion', error);
+      }
     },
-    [updateStatus, setMessage, profile?.id],
+    [updateStatus, setMessage, profile?.id, format, previewRect, mirror],
   );
 
   const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, onGestureError);
 
-  const [usingOffline, setUsingOffline] = useState(false);
-  const [remoteFailures, setRemoteFailures] = useState(0);
-
-  // Server-side detection/recognition loop (disabled while offline fallback active)
   useEffect(() => {
+    if (!canUseCamera || !camera.current) return;
+    const intervalMs = usingOffline ? 3000 : 1000;
     const detectionInterval = setInterval(async () => {
-      if (!canUseCamera || !camera.current || usingOffline) return;
       try {
-        const snapshot = await camera.current.takeSnapshot({
-          quality: 70, // reduce payload size a bit
-        });
-        let base64Image: string | undefined;
-        if ((snapshot as any)?.base64) {
-          base64Image = (snapshot as any).base64 as string;
-        } else if (snapshot?.path) {
+        const snapshot = await camera.current?.takeSnapshot({ quality: 85 });
+        let base64Image: string | undefined = (snapshot as any)?.base64;
+        if (!base64Image && snapshot?.path) {
           try {
             let uri = snapshot.path;
             if (!uri.startsWith('file://') && !uri.startsWith('content://')) {
@@ -416,31 +435,26 @@ export default function RecognitionScreen({ navigation }: any) {
         if (base64Image) {
           const rec = await recognizeGestureRemotely(base64Image, profile?.id);
           if (rec && rec.landmarks && rec.landmarks.length > 0) {
-            const current: number[][] = rec.landmarks.map((p: any) => [p[0], p[1], p[2] ?? 0]);
-            // Simple temporal smoothing to reduce jitter
-            setLandmarks(prev => {
+            const current: number[][] = rec.landmarks.map((p: any) => [
+              p[0],
+              p[1],
+              p[2] ?? 0,
+            ]);
+
+            setLandmarks((prev) => {
               if (!prev || prev.length !== current.length) return current;
-              const alpha = 0.6; // weight for current
-              const smoothed = current.map((p, i) => [
+              const alpha = 0.6;
+              return current.map((p, i) => [
                 alpha * p[0] + (1 - alpha) * prev[i][0],
                 alpha * p[1] + (1 - alpha) * prev[i][1],
                 alpha * p[2] + (1 - alpha) * prev[i][2],
               ]);
-              return smoothed;
             });
+
             setLastDetection(Date.now());
-            setMessage(null);
             setLastResultAt(Date.now());
-            // Show mapped DGS/in-app label when possible
-            setLastRemoteLabel((rec.appLabel as string) ?? rec.result?.label ?? null);
-            setLastRemoteConfidence(typeof rec.appConfidence === 'number' ? rec.appConfidence : (typeof rec.result?.confidence === 'number' ? rec.result.confidence : null));
-            setLastHandedness((rec as any).handedness ?? null);
-            if (rec.appLabel && rec.result?.label !== 'no_hand' && rec.result?.label !== 'uncertain') {
-              const entry = { id: rec.appLabel, label: rec.appLabel, videoUri: undefined, dgsVideoUri: undefined } as any;
-              setLastRecognizedGesture(entry);
-              updateStatus(entry.label);
-            }
-            // Compute render points in preview coordinates (prefer pixel landmarks if provided)
+            setMessage(null);
+
             try {
               if (rec.landmarks_px && rec.image_size?.width && rec.image_size?.height) {
                 const imgW = rec.image_size.width;
@@ -457,40 +471,63 @@ export default function RecognitionScreen({ navigation }: any) {
                 setRenderPoints(pts);
               } else {
                 const pts = current.map((p) => {
-                  const m = mapToPreview([p[0], p[1], p[2] ?? 0], format?.videoWidth ?? 1, format?.videoHeight ?? 1, { width: previewRect.width, height: previewRect.height }, mirror);
+                  const m = mapToPreview(
+                    [p[0], p[1], p[2] ?? 0],
+                    format?.videoWidth ?? 1,
+                    format?.videoHeight ?? 1,
+                    { width: previewRect.width, height: previewRect.height },
+                    mirror,
+                  );
                   return [m.x, m.y, p[2] ?? 0];
                 });
                 setRenderPoints(pts);
               }
-            } catch {}
-            try {
-              const assessment = assessOcclusion(current);
-              setOcclusionHints(assessment.occluded ? assessment.hints : null);
-            } catch {}
-          } else {
-            setLandmarks([]);
-            setRenderPoints([]);
+            } catch (error) {
+              logger.warn('Failed to map remote landmarks to preview', error);
+            }
+
+            const label = (rec as any).appLabel || rec.result?.label || 'unknown';
+            const confidence =
+              (rec as any).appConfidence ?? rec.result?.confidence ?? 0;
+            onGestureResult(
+              {
+                label,
+                confidence,
+                isLocal: false,
+                requiresConfirmation: confidence < 0.7,
+              },
+              current,
+            );
+            setRemoteFailures(0);
+            if (usingOffline) setUsingOffline(false);
+            return;
           }
         }
-        // reset failures and offline mode on success
-        if (remoteFailures > 0) setRemoteFailures(0);
-        if (usingOffline) setUsingOffline(false);
+        setRemoteFailures((c) => c + 1);
       } catch (e: any) {
         logger.error('Failed to detect landmarks remotely:', e?.message || String(e));
-        setLandmarks([]);
-        setRenderPoints([]);
-        setRemoteFailures((c) => {
-          const next = c + 1;
-          if (next >= 3 && !usingOffline) {
-            setUsingOffline(true);
-            updateStatus('Offline-Erkennung aktiv');
-          }
-          return next;
-        });
+        setRemoteFailures((c) => c + 1);
       }
-    }, 1000);
+    }, intervalMs);
     return () => clearInterval(detectionInterval);
-  }, [canUseCamera, usingOffline, remoteFailures, updateStatus]);
+  }, [
+    canUseCamera,
+    usingOffline,
+    onGestureResult,
+    profile?.id,
+    format,
+    previewRect,
+    mirror,
+    setMessage,
+  ]);
+
+  useEffect(() => {
+    if (remoteFailures >= 3 && !usingOffline) {
+      setUsingOffline(true);
+      updateStatus('Offline-Erkennung aktiv');
+    }
+  }, [remoteFailures, usingOffline, updateStatus]);
+
   const detectionActive = now - lastDetection < 1000;
 
   useEffect(() => {
@@ -524,10 +561,14 @@ export default function RecognitionScreen({ navigation }: any) {
           await audioService.speak('Ich bin hier und höre zu.');
           try {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          } catch {}
+          } catch (error) {
+            logger.warn('Neutral hint haptics failed', error);
+          }
           setShowNeutralHint(true);
           setTimeout(() => setShowNeutralHint(false), 2000);
-        } catch {}
+        } catch (error) {
+          logger.warn('Neutral hint speech failed', error);
+        }
         neutralCooldownRef.current = ts + 7000;
       }
       // Do not pause the camera automatically; continuous feedback helps Amy
@@ -606,7 +647,9 @@ export default function RecognitionScreen({ navigation }: any) {
         if (landmarks && landmarks.length >= 21) {
           void sendDgsSample(choiceId, [landmarks], profile?.id || undefined);
         }
-      } catch {}
+      } catch (error) {
+        logger.warn('Failed to send DGS sample', error);
+      }
 
       setPendingGesture(null);
       setTimeout(() => {
@@ -994,10 +1037,7 @@ export default function RecognitionScreen({ navigation }: any) {
                 FPS: {debugStats.fps} · Queue: {debugStats.queueDepth} · Circuit: {debugStats.circuitOpen ? 'open' : 'closed'} · Plugin: {debugStats.pluginUsed ? 'yes' : 'no'}
               </Text>
               <Text style={styles.debugText}>
-                Rec: {lastRemoteLabel ?? '-'} ({lastRemoteConfidence ?? 0}) · Hand: {lastHandedness ?? '-'}
-              </Text>
-              <Text style={styles.debugText}>
-                Offline Rec: {lastOfflineLabel ?? '-'} ({lastOfflineConfidence ?? 0})
+                Classifier: {classifierUsed ?? '-'} · Confidence: {lastConfidence?.toFixed(2) ?? '-'}
               </Text>
                 </View>
               )}

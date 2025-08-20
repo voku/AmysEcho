@@ -28,6 +28,11 @@ jest.mock('expo-file-system', () => ({
   documentDirectory: '/tmp/',
 }));
 
+jest.mock('../db/models', () => ({
+  InteractionLog: class {},
+  GestureDefinition: class {},
+}));
+
 jest.mock('../db', () => ({
   database: {
     write: async () => {},
@@ -36,7 +41,6 @@ jest.mock('../db', () => ({
       query: () => ({ fetch: async () => [] }),
     }),
   },
-  InteractionLog: class {},
 }));
 
 jest.mock('react-native-reanimated', () => ({

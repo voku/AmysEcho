@@ -18,7 +18,9 @@ export interface ProcessedFrame {
 export interface GestureResult {
   label: string;
   confidence: number;
-  ts: number;
+  timestamp: number;
+  isLocal?: boolean;
+  requiresConfirmation?: boolean;
 }
 
 export interface DetailedGestureResult {

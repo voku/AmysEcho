@@ -36,7 +36,8 @@ import { API_TOKEN, API_URL, CONFIDENCE_THRESHOLD, NORMALIZE_LANDMARKS } from '.
 import { normalizeLandmarksToFlat } from './landmarkNormalizer';
 import { NORMALIZE_ALIGN_ROTATION } from '../constants';
 import { database } from '../../db';
-import { InteractionLog } from '../../db/models';
+import { InteractionLog, GestureDefinition } from '../../db/models';
+import { Q } from '@nozbe/watermelondb';
 import { recordInteraction } from './adaptiveLearningService';
 import { telemetry } from '../telemetry/recorder';
 import { AdaptivePerformanceManager } from './AdaptivePerformanceManager';
@@ -104,9 +105,15 @@ class ModelManager {
     resolve: (result: ClassificationOutput) => void;
   }> = [];
   private isInferring = false;
+  private softmaxTemperature = 1.0;
 
   setModel(model: TensorflowModel | null): void {
     this.tfliteModel = model;
+  }
+
+  setTemperature(temp: number): void {
+    // Guard against invalid temperatures that could cause division by zero or overflow
+    this.softmaxTemperature = Number.isFinite(temp) && temp > 0 ? temp : 1.0;
   }
 
   async runInference(inputTensor: number[]): Promise<ClassificationOutput> {
@@ -134,8 +141,9 @@ class ModelManager {
       }
       let sum = 0;
       const probs = new Array<number>(len);
+      const invT = 1 / Math.max(0.01, this.softmaxTemperature);
       for (let i = 0; i < len; i++) {
-        const e = Math.exp(logits[i] - maxLogit);
+        const e = Math.exp((logits[i] - maxLogit) * invT);
         probs[i] = e;
         sum += e;
       }
@@ -198,6 +206,9 @@ class MachineLearningService {
   private lastRecognizedGesture: string | null = null;
   private allowRemote = true;
   private circuitBreaker: CircuitBreaker;
+  private profileId?: string;
+  private thresholdCache = new Map<string, { value: number; ts: number }>();
+  private readonly thresholdCacheTtl = 1000; // ms
 
   constructor() {
     this.circuitBreaker = new CircuitBreaker(
@@ -212,6 +223,10 @@ class MachineLearningService {
 
   setCameraActive(active: boolean): void {
     this._isCameraActive = active;
+  }
+
+  setProfileId(id: string): void {
+    this.profileId = id;
   }
 
   addCollectedSample(sample: ProcessedFrame) {
@@ -328,7 +343,11 @@ class MachineLearningService {
         this.smootherDerivateCutOff = config.smootherDerivateCutOff;
       }
       if (config?.softmaxTemperature !== undefined) {
-        this.softmaxTemperature = config.softmaxTemperature;
+        this.softmaxTemperature =
+          Number.isFinite(config.softmaxTemperature) && config.softmaxTemperature > 0
+            ? config.softmaxTemperature
+            : 1.0;
+        this.modelManager.setTemperature(this.softmaxTemperature);
       }
 
       this.labels = labels;
@@ -357,6 +376,55 @@ class MachineLearningService {
     return this.circuitBreaker.isOpen();
   }
 
+  private async getDynamicThreshold(gestureLabel: string): Promise<number> {
+    if (!gestureLabel || gestureLabel === 'uncertain') {
+      return this.localThreshold;
+    }
+    const cacheKey = `${this.profileId ?? 'default'}::${gestureLabel}`;
+    const cached = this.thresholdCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < this.thresholdCacheTtl) {
+      return cached.value;
+    }
+    try {
+      const collection: any = database.get<GestureDefinition>('gesture_definitions');
+      // Try by PK first (in case label equals ID)
+      try {
+        const byId = await collection.find?.(gestureLabel);
+        if (byId && typeof byId.minConfidenceThreshold === 'number') {
+          const value = byId.minConfidenceThreshold;
+          this.thresholdCache.set(cacheKey, { value, ts: Date.now() });
+          return value;
+        }
+      } catch (error) {
+        logger.debug('Dynamic threshold lookup by id failed', error);
+      }
+      const where = (Q as any)?.where;
+      if (typeof where !== 'function') {
+        logger.debug('WatermelonDB Q.where not available; skipping dynamic threshold query');
+        this.thresholdCache.set(cacheKey, { value: this.localThreshold, ts: Date.now() });
+        return this.localThreshold;
+      }
+      const conditions: any[] = [where('name', gestureLabel)];
+      if (this.profileId) {
+        conditions.push(where('profile_id', this.profileId));
+      }
+      const results = await collection.query?.(...conditions)?.fetch?.();
+      const g = results && results[0];
+      if (g && typeof g.minConfidenceThreshold === 'number') {
+        const value = g.minConfidenceThreshold;
+        this.thresholdCache.set(cacheKey, { value, ts: Date.now() });
+        return value;
+      }
+    } catch (e) {
+      logger.debug(
+        'Dynamic threshold lookup failed, falling back to local threshold',
+        e,
+      );
+    }
+    this.thresholdCache.set(cacheKey, { value: this.localThreshold, ts: Date.now() });
+    return this.localThreshold;
+  }
+
   private shouldUseRemote(): boolean {
     return this.allowRemote && !this.circuitBreaker.isOpen();
   }
@@ -367,7 +435,7 @@ class MachineLearningService {
 
   async processFrameAsync(
     processed: ProcessedFrame,
-    onResult: (result: { label: string; confidence: number; ts: number } | null) => void,
+    onResult: (result: GestureResult | null) => void,
   ): Promise<void> {
     let result: DetailedGestureResult | null = null;
     let localConfidence = 0;
@@ -386,7 +454,7 @@ class MachineLearningService {
           isLocal: true,
           timestamp: Date.now(),
           suggestions,
-          requiresConfirmation: confidence < this.localThreshold,
+          requiresConfirmation: false,
         };
         localConfidence = confidence;
       } catch (error) {
@@ -397,12 +465,14 @@ class MachineLearningService {
 
     if ((localConfidence < this.localThreshold || !result) && this.shouldUseRemote()) {
       try {
-        const remote = await Promise.race([
-          this.classifyRemotely(processed),
-          new Promise<null>((_, reject) =>
-            setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout),
-          ),
-        ]);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.remoteTimeout);
+        let remote: DetailedGestureResult | null = null;
+        try {
+          remote = await this.classifyRemotely(processed, controller.signal);
+        } finally {
+          clearTimeout(timeoutId);
+        }
         if (remote) {
           this.circuitBreaker.recordSuccess();
           result = remote;
@@ -428,7 +498,7 @@ class MachineLearningService {
             isLocal: true,
             timestamp: Date.now(),
             suggestions,
-            requiresConfirmation: confidence < this.localThreshold,
+            requiresConfirmation: false,
           };
         } catch (localError) {
           logger.error('Local gesture classification failed:', localError);
@@ -456,7 +526,7 @@ class MachineLearningService {
           isLocal: true,
           timestamp: Date.now(),
           suggestions,
-          requiresConfirmation: confidence < this.localThreshold,
+          requiresConfirmation: false,
         };
       } catch (error) {
         logger.error('Local gesture classification failed:', error);
@@ -465,6 +535,8 @@ class MachineLearningService {
     }
 
     if (result) {
+      const threshold = await this.getDynamicThreshold(result.label);
+      result.requiresConfirmation = result.confidence < threshold;
       const smoothed = this.applyGestureSmoothing(result);
       if (!smoothed) {
         this.perfMonitor.recordDroppedFrame();
@@ -473,6 +545,10 @@ class MachineLearningService {
       }
 
       result = smoothed;
+      {
+        const postThreshold = await this.getDynamicThreshold(result.label);
+        result.requiresConfirmation = result.confidence < postThreshold;
+      }
       const processingTime = Date.now() - processed.timestamp;
       telemetry.add(processingTime);
       this.perfMonitor.add({
@@ -493,7 +569,13 @@ class MachineLearningService {
         wasSuccessful: result.label !== 'uncertain',
         processingTimeMs: processingTime,
       });
-      onResult({ label: result.label, confidence: result.confidence, ts: result.timestamp });
+      onResult({
+        label: result.label,
+        confidence: result.confidence,
+        timestamp: result.timestamp,
+        isLocal: result.isLocal,
+        requiresConfirmation: result.requiresConfirmation,
+      });
       return;
     }
 
@@ -503,6 +585,7 @@ class MachineLearningService {
 
   private async classifyRemotely(
     processedFrame: ProcessedFrame,
+    signal?: AbortSignal,
   ): Promise<DetailedGestureResult | null> {
     if (!API_URL || !API_TOKEN) {
       throw new Error('Remote API not configured');
@@ -515,10 +598,10 @@ class MachineLearningService {
         Authorization: `Bearer ${API_TOKEN}`,
       },
       body: JSON.stringify({
-        landmarks: processedFrame.landmarks,
-        width: processedFrame.width,
-        height: processedFrame.height,
+        landmarks: processedFrame.landmarks.flat(),
+        profileId: this.profileId ?? undefined,
       }),
+      signal,
     });
 
     if (!response.ok) {
@@ -531,9 +614,8 @@ class MachineLearningService {
       confidence: data.confidence,
       isLocal: false,
       timestamp: Date.now(),
-      suggestions: data.suggestions || [],
-      requiresConfirmation:
-        data.requiresConfirmation || data.confidence < this.cloudThreshold,
+      suggestions: [],
+      requiresConfirmation: data.confidence < this.cloudThreshold,
     };
   }
 
