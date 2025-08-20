@@ -110,21 +110,24 @@ clamped to avoid invalid inputs.
 
 ## 5. Remote Classification & Offline Fallback
 
-`mlService` optimistically attempts a cloud lookup. A request is issued with an
-`AbortController`, so the fetch is cancelled if the timeout elapses. Failed
-requests trigger a circuit breaker to prevent rapid retries. When the remote
-path fails or times out, the service seamlessly falls back to the on-device
-model for a response.
+`mlService` optimistically attempts a cloud lookup. Each request is wrapped in
+an `AbortController` whose `signal` is passed to `fetch`. A timer based on
+`REMOTE_TIMEOUT_MS` (400 ms by default) aborts the call if the server does not
+respond in time. Non-OK responses or aborts trip a short circuit breaker to
+avoid rapid retries. Whenever the remote path fails, `mlService` reuses the
+local predictions so the user still receives a result even when offline.
 
 ## 6. Profile ID Propagation
 
-The active profile is set when a user begins a session. `mlService` stores this
-ID so both paths remain profile-aware:
+The active profile is set when a user begins a session and is passed to
+`mlService.setProfileId`. The service caches the value so both paths remain
+profile-aware:
 
-- **Local path** – the profile ID scopes adaptive threshold queries, ensuring
-  personalization of confirmation requirements.
-- **Remote path** – the profile ID is included in the classification payload so
-  server-side models and analytics stay tied to the correct child.
+- **Local path** – adaptive threshold lookups query WatermelonDB using the
+  current profile ID.
+- **Remote path** – the profile ID is included in the JSON payload sent to the
+  server, keeping analytics and model personalization scoped to the correct
+  child.
 
 ## 7. Data Collection and Training
 
@@ -142,6 +145,26 @@ model = tf.keras.Sequential([
 ```
 
 The server converts the trained model to `.tflite` and makes it available via the `/latest-model` endpoint. The app downloads this file and `loadCustomModelUri` returns its path for future sessions.
+
+## 8. Implementation Plan for On‑Device Recognition
+
+To support reliable use in classrooms and other network‑constrained spaces, the
+following roadmap adds a robust local pipeline:
+
+1. **Gesture Classifier Module** – create `app/src/ml/gestureClassifier.ts` to
+   convert landmarks into gesture labels and confidence scores.
+2. **TensorFlow Hook Integration** – expose the classifier through
+   `useTensorflowModel.ts` so screens can call `classifyGesture` after landmark
+   extraction.
+3. **Hybrid Recognition Flow** – update `RecognitionScreen.tsx` to perform
+   local classification first and fall back to the cloud when confidence drops
+   below a threshold.
+4. **Confidence‑Based UI** – display status messages and a confidence bar,
+   triggering correction flows when uncertainty is high.
+5. **Model Update Service** – add `modelUpdateService.ts` to download newer
+   `.tflite` models and swap them in at startup.
+6. **Testing & Device Protocols** – add unit/integration tests for the classifier
+   and document manual device testing in `docs/GestureRecognitionTesting.md`.
 
 ---
 
