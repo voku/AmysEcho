@@ -33,8 +33,14 @@ export function mapToPreview(
   const xNorm = mirror ? 1 - lm[0] : lm[0];
   const yNorm = lm[1];
 
-  const x = offsetX + xNorm * contentWidth;
-  const y = offsetY + yNorm * contentHeight;
+  // Map normalized coords into content box, then clamp to preview bounds
+  let x = offsetX + xNorm * contentWidth;
+  let y = offsetY + yNorm * contentHeight;
+
+  // Guard against tiny floating error escaping the preview rect
+  if (x < 0) x = 0;
+  if (y < 0) y = 0;
+  if (x > preview.width) x = preview.width;
+  if (y > preview.height) y = preview.height;
   return { x, y };
 }
-

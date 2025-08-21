@@ -44,11 +44,13 @@ import { incrementUsage } from '../services';
 import { gestureModel, GestureModelEntry } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { getSymbolLabelForGesture } from '../components/gestureMap';
-import { useGestureClassifier } from '../services';
+// ML pipeline is provided by mlService via the hybrid frame processor
 import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
+import { useHybridFrameProcessor } from '../services/HybridRecognizer';
 import BottomNav from '../components/BottomNav';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { mapToPreview } from '../utils/landmarkMapping';
+import { isResizePluginAvailable } from '../services/landmarkExtractor';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { HAND_CONNECTIONS } from '../constants/hand';
 import { useMessage } from '../context/MessageContext';
@@ -60,8 +62,18 @@ import * as FileSystem from 'expo-file-system';
 import { fetchCentroids, getCachedCentroids } from '../services/dgsModelClient';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import { sendDgsSample } from '../services/dgsTrainingService';
+import { LOCAL_CONFIDENCE_THRESHOLD } from '../config/recognition';
+import { determineRecognitionState, type RecognitionPath } from '../utils/recognitionState';
 
 const { width, height } = Dimensions.get('window');
+
+interface RecognitionResult {
+  gesture: string;
+  confidence: number;
+  source: 'local' | 'cloud' | 'centroid';
+}
+
+const CLOUD_FALLBACK_TIMEOUT = 2000; // 2 seconds
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -134,6 +146,22 @@ export default function RecognitionScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
 
+  const [currentGesture, setCurrentGesture] = useState<string>('');
+  const [gestureConfidence, setGestureConfidence] = useState<number>(0);
+  const [showUncertainty, setShowUncertainty] = useState(false);
+  const [recognitionState, setRecognitionState] = useState<'listening' | 'thinking' | 'confident' | 'uncertain'>('listening');
+  const lastPathRef = useRef<RecognitionPath | null>(null);
+
+  const evaluateConfidence = useCallback((confidence: number, source: RecognitionPath) => {
+    lastPathRef.current = source;
+    const state = determineRecognitionState(confidence, LOCAL_CONFIDENCE_THRESHOLD);
+    setRecognitionState(state);
+    setShowUncertainty(state === 'uncertain');
+  }, []);
+
+  // Legacy local/centroid/cloud path removed in favor of mlService hybrid processor
+
+
   // Support both VisionCamera returns: array (v4) and object with keys (older)
   const devices = useCameraDevices() as any;
   const deviceList: any[] = Array.isArray(devices)
@@ -203,6 +231,55 @@ export default function RecognitionScreen({ navigation }: any) {
     }, 5000);
     return () => clearInterval(healthCheck);
   }, [device]);
+
+  // Hybrid ML frame processor: feeds results + metrics for the unified debug overlay
+  const frameProcessor = useHybridFrameProcessor(
+    (result, lms, raw, metrics) => {
+      setLastDetection(Date.now());
+      // Keep landmarks for other UI needs
+      setLandmarks(lms);
+      setLandmarksRaw(raw || lms);
+
+      // Map to preview for drawing overlay
+      const mapped = lms.map((p) => {
+        const pt = mapToPreview(
+          [p[0], p[1], p[2] ?? 0] as any,
+          format?.videoWidth ?? 1,
+          format?.videoHeight ?? 1,
+          { width: previewRect.width, height: previewRect.height },
+          mirror,
+        );
+        return [pt.x, pt.y];
+      });
+      setRenderPoints(mapped);
+
+      if (result) {
+        setCurrentGesture(result.label);
+        setGestureConfidence(result.confidence);
+        evaluateConfidence(result.confidence, result.isLocal ? 'local' : 'cloud');
+        setClassifierUsed(result.isLocal ? 'tflite' : 'remote');
+        setLastResultAt(Date.now());
+      } else {
+        setCurrentGesture('uncertain');
+        setGestureConfidence(0);
+        setClassifierUsed(null);
+      }
+
+      if (metrics) {
+        setDebugStats((prev) => ({
+          ...prev,
+          fps: Math.round(metrics.fps || 0),
+          queueDepth: metrics.queueDepth ?? 0,
+          lastLatency: Math.round(metrics.processingMs || 0),
+          circuitOpen: metrics.circuitBreakerOpen ?? prev.circuitOpen,
+          pluginUsed: metrics.pluginUsed ?? prev.pluginUsed,
+        }));
+      }
+    },
+    isProcessing,
+    LOCAL_CONFIDENCE_THRESHOLD,
+    (message) => setMessage(message),
+  );
 
   const handleRequestPermission = useCallback(async () => {
     logger.debug('Requesting camera permission...');
@@ -296,12 +373,20 @@ export default function RecognitionScreen({ navigation }: any) {
           medianLatency: Math.round(median),
           offlineRatio: total ? Math.round((offline / total) * 100) : 0,
           cloudRatio: total ? Math.round((cloud / total) * 100) : 0,
+          circuitOpen: mlService.isCircuitBreakerOpen(),
         }));
       } catch (error) {
         logger.warn('Failed to update debug stats', { error });
       }
     }, 1500);
     return () => clearInterval(id);
+  }, [showDebug]);
+
+  // Initialize plugin availability once for the debug banner
+  useEffect(() => {
+    if (showDebug) {
+      setDebugStats((prev) => ({ ...prev, pluginUsed: isResizePluginAvailable() }));
+    }
   }, [showDebug]);
 
   const startFeedbackAnimation = useCallback(() => {
@@ -338,188 +423,9 @@ export default function RecognitionScreen({ navigation }: any) {
     updateStatus("I'm listening...");
   };
 
-  // Offline fallback via frame processor (on-device)
-  const onGestureError = useCallback((message: string) => {
-    logger.error('Offline pipeline error:', message);
-  }, []);
+  
 
-  const onGestureResult = useCallback(
-    (
-      result: any,
-      detectedLandmarks: number[][],
-      raw?: number[][],
-      metrics?: { fps: number; processingMs: number; queueDepth: number; circuitBreakerOpen: boolean; pluginUsed?: boolean },
-    ) => {
-      const currentResultId = ++latestResultId.current;
-      setLastDetection(Date.now());
-      setLandmarks(detectedLandmarks);
-      setMessage(null);
-      setLastResultAt(Date.now());
-      setLastConfidence(result?.confidence ?? null);
-      if (result && result.label && !result.requiresConfirmation) {
-        const entry = { id: result.label, label: result.label, videoUri: undefined, dgsVideoUri: undefined } as any;
-        setLastRecognizedGesture(entry);
-        updateStatus(entry.label);
-        setClassifierUsed(result.isLocal ? 'tflite' : 'remote');
-        return;
-      }
-
-      if (result) {
-        setClassifierUsed(result.isLocal ? 'tflite' : 'remote');
-      } else {
-        setClassifierUsed(null);
-      }
-
-      (async () => {
-        try {
-          const model = await getCachedCentroids(profile?.id || undefined);
-          if (latestResultId.current !== currentResultId) return;
-          if (model && model.centroids) {
-            const cls = classifyWithCentroids(detectedLandmarks, model.centroids as any);
-            if (latestResultId.current !== currentResultId) return;
-            if (cls && cls.confidence >= 0.6) {
-              const entry = { id: cls.label, label: cls.label, videoUri: undefined, dgsVideoUri: undefined } as any;
-              setLastRecognizedGesture(entry);
-              updateStatus(entry.label);
-              setClassifierUsed('centroid');
-              setLastConfidence(cls.confidence);
-              return;
-            }
-          }
-        } catch (error) {
-          logger.warn('Failed to classify with centroids', error);
-        }
-      })();
-
-      try {
-        const pts = detectedLandmarks.map((p) => {
-          const m = mapToPreview([p[0], p[1], p[2] ?? 0], format?.videoWidth ?? 1, format?.videoHeight ?? 1, { width: previewRect.width, height: previewRect.height }, mirror);
-          return [m.x, m.y, p[2] ?? 0];
-        });
-        setRenderPoints(pts);
-      } catch (error) {
-        logger.warn('Failed to map landmarks to preview', error);
-      }
-      try {
-        const assessment = assessOcclusion(detectedLandmarks);
-        setOcclusionHints(assessment.occluded ? assessment.hints : null);
-      } catch (error) {
-        logger.warn('Failed to assess occlusion', error);
-      }
-    },
-    [updateStatus, setMessage, profile?.id, format, previewRect, mirror],
-  );
-
-  const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, onGestureError);
-
-  useEffect(() => {
-    if (!canUseCamera || !camera.current) return;
-    const intervalMs = usingOffline ? 3000 : 1000;
-    const detectionInterval = setInterval(async () => {
-      try {
-        const snapshot = await camera.current?.takeSnapshot({ quality: 85 });
-        let base64Image: string | undefined = (snapshot as any)?.base64;
-        if (!base64Image && snapshot?.path) {
-          try {
-            let uri = snapshot.path;
-            if (!uri.startsWith('file://') && !uri.startsWith('content://')) {
-              uri = `file://${uri}`;
-            }
-            base64Image = await FileSystem.readAsStringAsync(uri, {
-              encoding: FileSystem.EncodingType.Base64,
-            });
-          } catch (e) {
-            logger.warn('Failed to read snapshot as base64', e);
-          }
-        }
-        if (base64Image) {
-          const rec = await recognizeGestureRemotely(base64Image, profile?.id);
-          if (rec && rec.landmarks && rec.landmarks.length > 0) {
-            const current: number[][] = rec.landmarks.map((p: any) => [
-              p[0],
-              p[1],
-              p[2] ?? 0,
-            ]);
-
-            setLandmarks((prev) => {
-              if (!prev || prev.length !== current.length) return current;
-              const alpha = 0.6;
-              return current.map((p, i) => [
-                alpha * p[0] + (1 - alpha) * prev[i][0],
-                alpha * p[1] + (1 - alpha) * prev[i][1],
-                alpha * p[2] + (1 - alpha) * prev[i][2],
-              ]);
-            });
-
-            setLastDetection(Date.now());
-            setLastResultAt(Date.now());
-            setMessage(null);
-
-            try {
-              if (rec.landmarks_px && rec.image_size?.width && rec.image_size?.height) {
-                const imgW = rec.image_size.width;
-                const imgH = rec.image_size.height;
-                const scale = Math.max(previewRect.width / imgW, previewRect.height / imgH);
-                const offsetX = (previewRect.width - imgW * scale) / 2;
-                const offsetY = (previewRect.height - imgH * scale) / 2;
-                const pts = rec.landmarks_px.map((p: any) => {
-                  let x = p[0] * scale + offsetX;
-                  const y = p[1] * scale + offsetY;
-                  if (mirror) x = previewRect.width - x;
-                  return [x, y, p[2] ?? 0];
-                });
-                setRenderPoints(pts);
-              } else {
-                const pts = current.map((p) => {
-                  const m = mapToPreview(
-                    [p[0], p[1], p[2] ?? 0],
-                    format?.videoWidth ?? 1,
-                    format?.videoHeight ?? 1,
-                    { width: previewRect.width, height: previewRect.height },
-                    mirror,
-                  );
-                  return [m.x, m.y, p[2] ?? 0];
-                });
-                setRenderPoints(pts);
-              }
-            } catch (error) {
-              logger.warn('Failed to map remote landmarks to preview', error);
-            }
-
-            const label = (rec as any).appLabel || rec.result?.label || 'unknown';
-            const confidence =
-              (rec as any).appConfidence ?? rec.result?.confidence ?? 0;
-            onGestureResult(
-              {
-                label,
-                confidence,
-                isLocal: false,
-                requiresConfirmation: confidence < 0.7,
-              },
-              current,
-            );
-            setRemoteFailures(0);
-            if (usingOffline) setUsingOffline(false);
-            return;
-          }
-        }
-        setRemoteFailures((c) => c + 1);
-      } catch (e: any) {
-        logger.error('Failed to detect landmarks remotely:', e?.message || String(e));
-        setRemoteFailures((c) => c + 1);
-      }
-    }, intervalMs);
-    return () => clearInterval(detectionInterval);
-  }, [
-    canUseCamera,
-    usingOffline,
-    onGestureResult,
-    profile?.id,
-    format,
-    previewRect,
-    mirror,
-    setMessage,
-  ]);
+  
 
   useEffect(() => {
     if (remoteFailures >= 3 && !usingOffline) {
@@ -678,6 +584,25 @@ export default function RecognitionScreen({ navigation }: any) {
     if (weakGesture) {
       navigation.navigate('Training', { gestureLabel: weakGesture.name, isPractice: true });
       setWeakGesture(null);
+    }
+  };
+
+  const getStatusMessage = () => {
+    switch (recognitionState) {
+      case 'listening': return "Show me your gesture...";
+      case 'thinking': return "Let me think...";
+      case 'confident': return currentGesture;
+      case 'uncertain': return "I'm not sure. Can you help me?";
+      default: return "Ready";
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (recognitionState) {
+      case 'confident': return '#4CAF50'; // Green
+      case 'thinking': return '#FF9800';  // Orange
+      case 'uncertain': return '#F44336'; // Red
+      default: return '#2196F3';          // Blue
     }
   };
 
@@ -875,6 +800,31 @@ export default function RecognitionScreen({ navigation }: any) {
       textAlign: 'center',
       fontWeight: '600',
     },
+    statusContainer: {
+      position: 'absolute',
+      bottom: 100,
+      left: 20,
+      right: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderRadius: 10,
+      padding: 15,
+    },
+    statusText: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 10,
+    },
+    confidenceBar: {
+      height: 6,
+      backgroundColor: '#E0E0E0',
+      borderRadius: 3,
+      marginBottom: 10,
+    },
+    confidenceFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
   });
 
   if (!hasPermission) {
@@ -946,7 +896,7 @@ export default function RecognitionScreen({ navigation }: any) {
               style={StyleSheet.absoluteFill}
               device={device}
               isActive={true}
-              {...(usingOffline ? { frameProcessor } : {})}
+              frameProcessor={frameProcessor}
               pixelFormat="yuv"
               format={format}
               onError={handleCameraError}
@@ -1019,13 +969,37 @@ export default function RecognitionScreen({ navigation }: any) {
               </Text>
             </View>
 
-            <Animated.Text
+            <Pressable
               onLongPress={() => setShowDebug((v) => !v)}
-              style={[styles.status]}
-              accessibilityLabel={statusA11y}
+              accessibilityLabel="Long press to toggle debug overlay"
+              testID="status-container"
+              style={styles.statusContainer}
             >
-              {status}
-            </Animated.Text>
+              <Text testID="current-gesture" style={[styles.statusText, { color: getStatusColor() }]}>
+                {getStatusMessage()}
+              </Text>
+              
+              {/* Confidence bar */}
+              <View style={styles.confidenceBar}>
+                <View 
+                  style={[
+                    styles.confidenceFill, 
+                    { 
+                      width: `${gestureConfidence * 100}%`,
+                      backgroundColor: getStatusColor()
+                    }
+                  ]} 
+                />
+              </View>
+              
+              {/* Show correction panel when uncertain */}
+              {showUncertainty && (
+                <Button 
+                  title="Help Me Choose" 
+                  onPress={handleHelpPress}
+                />
+              )}
+            </Pressable>
 
               {showDebug && (
                 <View style={styles.debugOverlay}>
@@ -1037,7 +1011,7 @@ export default function RecognitionScreen({ navigation }: any) {
                 FPS: {debugStats.fps} · Queue: {debugStats.queueDepth} · Circuit: {debugStats.circuitOpen ? 'open' : 'closed'} · Plugin: {debugStats.pluginUsed ? 'yes' : 'no'}
               </Text>
               <Text style={styles.debugText}>
-                Classifier: {classifierUsed ?? '-'} · Confidence: {lastConfidence?.toFixed(2) ?? '-'}
+                Path: {lastPathRef.current ?? '-'} · Classifier: {classifierUsed ?? '-'} · Confidence: {lastConfidence?.toFixed(2) ?? '-'}
               </Text>
                 </View>
               )}

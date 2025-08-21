@@ -45,14 +45,14 @@ export default function TrainingScreen({ navigation, route }: any) {
   useEffect(() => {
     setMessage(error);
   }, [error, setMessage]);
-  const landmarkModel = useTensorflowModel(HAND_LANDMARKER_MODEL);
+  const { model: landmarkModel } = useTensorflowModel(HAND_LANDMARKER_MODEL);
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 
   useEffect(() => {
-    setHandLandmarkModel(landmarkModel);
+    setHandLandmarkModel(landmarkModel || null);
     return () => setHandLandmarkModel(null);
   }, [landmarkModel]);
 

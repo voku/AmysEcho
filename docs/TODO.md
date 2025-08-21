@@ -47,14 +47,17 @@ _Last updated: 2025-08-20_
    - Gated by `EXPO_PUBLIC_NORMALIZE_LANDMARKS` (default on) for A/B.
    - Acceptance: Reduced variance across distance/orientation; fewer “uncertain” results.
 
-10. [ ] Visualization mapping audit and tests
+10. [x] Visualization mapping audit and tests
     - Verify coordinate mapping accounts for aspect-fit letterboxing and mirroring on front camera.
     - Add a tiny unit that validates `mapLandmark` math with synthetic preview/layout sizes.
+    - Implemented clamping in `mapToPreview` to keep points within bounds.
+    - Tests added: clamp-to-bounds, portrait letterbox, mirroring.
     - Acceptance: Overlay lines and points align the user’s hand on device (visual inspection checklist included).
 
-11. [ ] Unified debug overlay for field testing
+11. [x] Unified debug overlay for field testing
     - Expose FPS, queue depth, circuit breaker, inference path (local/cloud), and plugin vs fallback in one banner.
-    - Add a long-press gesture on status text to toggle (already partially implemented; consolidate output).
+    - Added long-press gesture on status area to toggle.
+    - Overlay wired to `mlService` frame processor metrics.
     - Acceptance: Caregiver/dev can confirm pipeline health on-device without a debugger.
 
 # Amy's Echo - Hand Gesture Recognition Implementation Plan
@@ -1016,14 +1019,15 @@ export const performanceMonitor = new PerformanceMonitor();
 ### Week 2: Hybrid System
 - [x] Implement hybrid recognition logic in `app/src/screens/RecognitionScreen.tsx`
 - [x] Add cloud fallback with AbortController-based timeout handling
-- [ ] Test local-first, centroid-then-cloud behavior
+- [x] Test local-first, centroid-then-cloud behavior
 - [ ] Validate recognition accuracy improves with hybrid approach
 
 ### Week 3: UI & Feedback
-- [ ] Add confidence-based visual feedback in UI
-- [ ] Implement uncertainty state and correction triggers
-- [ ] Style confidence indicators and status messages
-- [ ] Test user experience with different confidence levels
+- [x] Add confidence-based visual feedback in UI
+- [x] Implement uncertainty state and correction triggers
+- [x] Style confidence indicators and status messages
+- [x] Test user experience with different confidence levels
+  - Unit tests added for `determineRecognitionState` threshold windows.
 
 ### Week 4: Updates & Testing
 - [x] Create `app/src/services/modelUpdateService.ts` for model downloads

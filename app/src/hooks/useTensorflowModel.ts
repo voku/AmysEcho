@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TensorflowModel, loadTensorflowModel } from 'react-native-fast-tflite';
 import { loadCustomModelUri } from '../storage';
 import { logger } from '../utils/logger';
+export interface TensorflowModelHook {
+  model: TensorflowModel | null;
+  isModelLoaded: boolean;
+}
 
 /**
  * Load a TensorFlow Lite model with optional personalization support.
@@ -11,8 +15,9 @@ import { logger } from '../utils/logger';
 export function useTensorflowModel(
   defaultModel: any,
   personalized?: boolean,
-): TensorflowModel | null {
+): TensorflowModelHook {
   const [model, setModel] = useState<TensorflowModel | null>(null);
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -28,7 +33,10 @@ export function useTensorflowModel(
           }
         }
         loaded = await loadTensorflowModel(source);
-        if (isMounted) setModel(loaded);
+        if (isMounted) {
+          setModel(loaded);
+          setIsModelLoaded(true);
+        }
       } catch (e) {
         logger.error('Model load failed', e);
       }
@@ -41,5 +49,5 @@ export function useTensorflowModel(
     };
   }, [defaultModel, personalized]);
 
-  return model;
+  return { model, isModelLoaded };
 }

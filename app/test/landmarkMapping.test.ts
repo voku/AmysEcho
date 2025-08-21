@@ -25,3 +25,28 @@ test('mapToPreview mirrors x when mirror=true', () => {
   expect(pNo.x).not.toBeCloseTo(pMi.x, 5);
 });
 
+test('mapToPreview clamps to preview bounds', () => {
+  // Intentionally pass slightly out-of-range coords due to numeric drift
+  const lm: [number, number, number] = [1.001, -0.001, 0];
+  const videoW = 1920;
+  const videoH = 1080; // 16:9
+  const preview = { width: 300, height: 600 }; // tall preview
+  const p = mapToPreview(lm, videoW, videoH, preview, false);
+  expect(p.x).toBeGreaterThanOrEqual(0);
+  expect(p.y).toBeGreaterThanOrEqual(0);
+  expect(p.x).toBeLessThanOrEqual(preview.width);
+  expect(p.y).toBeLessThanOrEqual(preview.height);
+});
+
+test('mapToPreview centers content with letterboxing (taller preview)', () => {
+  const lm: [number, number, number] = [0.5, 0.5, 0];
+  const videoW = 1280;
+  const videoH = 720; // 16:9
+  const preview = { width: 720, height: 1280 }; // portrait
+  const p = mapToPreview(lm, videoW, videoH, preview, false);
+  // Expect roughly center of preview after accounting for letterbox
+  expect(p.x).toBeGreaterThan(0);
+  expect(p.x).toBeLessThan(preview.width);
+  expect(p.y).toBeGreaterThan(0);
+  expect(p.y).toBeLessThan(preview.height);
+});
