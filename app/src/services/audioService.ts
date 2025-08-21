@@ -232,13 +232,14 @@ export class AudioService {
       }
     }
 
-    // Speak the recognized gesture
-    const text = confidence > 0.9 ? `${gesture}` : `Ich denke, du meinst: ${gesture}`;
-
-    await this.speak(text, {
-      pitch: 1.1,
-      rate: 0.8,
-    });
+    if (confidence > 0.9) {
+      await playSymbolAudio({ id: gesture, label: gesture });
+    } else {
+      await this.speak(`Ich denke, du meinst: ${gesture}`, {
+        pitch: 1.1,
+        rate: 0.8,
+      });
+    }
   }
 
   /**
