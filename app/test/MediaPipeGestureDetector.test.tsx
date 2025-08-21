@@ -1,0 +1,90 @@
+import React from 'react';
+import renderer, { act } from 'react-test-renderer';
+import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDetector';
+
+jest.mock('react-native', () => {
+  const React = require('react');
+  return {
+    View: (props: any) => React.createElement('View', props, props.children),
+    StyleSheet: { create: (styles: any) => styles },
+  };
+});
+
+jest.mock('react-native-webview', () => ({
+  WebView: (props: any) => <mock-webview {...props} />,
+}));
+
+describe('MediaPipeGestureDetector', () => {
+  it('calls onGestureDetected when a gesture message is received', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({
+            type: 'gesture',
+            gesture: 'thumbs_up',
+            confidence: 0.9,
+            landmarks: [[1, 2, 3]],
+          }),
+        },
+      });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[1, 2, 3]]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('calls onError when an error message is received', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: 'error', message: 'Camera access denied' }),
+        },
+      });
+    });
+
+    expect(onError).toHaveBeenCalledWith('Camera access denied');
+    expect(onGestureDetected).not.toHaveBeenCalled();
+  });
+
+  it('calls onError when the message data is invalid JSON', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: 'invalid json' } });
+    });
+
+    expect(onError).toHaveBeenCalledWith('Failed to parse gesture data');
+    expect(onGestureDetected).not.toHaveBeenCalled();
+  });
+});
