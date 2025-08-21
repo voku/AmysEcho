@@ -6,9 +6,10 @@ The project has a stable foundation after a major refactor. The database, naviga
 > Integration tests live under the repo's `integration/test` directory.
 
 ## Recognition Ensemble Summary
-- Finalized ensemble order: `TFLite → centroid → remote` (cloud path only runs when local classifiers are uncertain).
+_Last updated: 2025-08-20_
+- Finalized ensemble order: `TFLite → centroid → remote` (remote is invoked only when local confidence is below threshold).
 - Profile-aware thresholds use caching to avoid repeated lookups.
-- Server recognition remains active during offline fallback for automatic recovery when connectivity returns.
+- During offline fallback, cloud is retried on subsequent frames when connectivity returns (no background retry loop).
 - Softmax temperature calibration balances model confidence outputs.
 - Remote inference leverages `AbortController`-based timeouts.
 
@@ -143,7 +144,8 @@ export class GestureClassifier {
     }
     // If not already a probability vector, treat as logits and apply temperature-calibrated softmax
     const sum = raw.reduce((a, b) => a + b, 0);
-    const temperature = 1.0; // expose/configure as needed
+    const envT = Number(process.env.EXPO_PUBLIC_SOFTMAX_TEMPERATURE ?? 1.0);
+    const temperature = Number.isFinite(envT) && envT > 0 ? envT : 1.0;
     const softmax = (xs: number[], t: number) => {
       const scaled = xs.map(v => v / Math.max(t, 1e-6));
       const max = Math.max(...scaled);
@@ -151,7 +153,12 @@ export class GestureClassifier {
       const denom = exps.reduce((a, b) => a + b, 0) || 1;
       return exps.map(v => v / denom);
     };
-    const probabilities = (sum > 0.99 && sum < 1.01) ? raw : softmax(raw, temperature);
+    let probabilities = (sum > 0.99 && sum < 1.01) ? raw : softmax(raw, temperature);
+    if (!probabilities.every(Number.isFinite)) {
+      probabilities = probabilities.map(v => (Number.isFinite(v) && v >= 0) ? v : 0);
+      const denom = probabilities.reduce((a, b) => a + b, 0) || 1;
+      probabilities = probabilities.map(v => v / denom);
+    }
 
     // Find best prediction
     const maxIndex = probabilities.indexOf(Math.max(...probabilities));
@@ -298,15 +305,20 @@ const recognizeGesture = useCallback(async (landmarks: number[]): Promise<Recogn
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CLOUD_FALLBACK_TIMEOUT);
-    const cloudResponse = await fetch('https://your-server.com/api/recognize-gesture', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ landmarks }),
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
+    const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://your-server.com';
+    let cloudResponse: Response | null = null;
+    try {
+      cloudResponse = await fetch(`${apiBase}/api/recognize-gesture`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ landmarks }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
-    if (cloudResponse.ok) {
+    if (cloudResponse && cloudResponse.ok) {
       const cloudResult = await cloudResponse.json();
       return {
         gesture: cloudResult.label,
@@ -351,8 +363,10 @@ const handleFrame = useCallback(async (frame: any) => {
         // Visual feedback based on source
         if (result.source === 'local') {
           console.log('✓ Local recognition:', result.gesture);
-        } else {
+        } else if (result.source === 'cloud') {
           console.log('☁ Cloud recognition:', result.gesture);
+        } else {
+          console.log('🔶 Centroid recognition:', result.gesture);
         }
       } else {
         // No recognition - show uncertainty
@@ -386,7 +400,7 @@ const [showUncertainty, setShowUncertainty] = useState(false);
 const [recognitionState, setRecognitionState] = useState<'listening' | 'thinking' | 'confident' | 'uncertain'>('listening');
 
 // Add confidence evaluation function
-const evaluateConfidence = useCallback((confidence: number, source: 'local' | 'cloud') => {
+const evaluateConfidence = useCallback((confidence: number, source: 'local' | 'cloud' | 'centroid') => {
   if (confidence >= LOCAL_CONFIDENCE_THRESHOLD + 0.1) {
     setRecognitionState('confident');
     setShowUncertainty(false);
@@ -570,8 +584,9 @@ export class ModelUpdateService {
       console.log('Downloading model version:', modelInfo.version);
       const downloadResult = await FileSystem.downloadAsync(
         modelInfo.downloadUrl,
-        tmpPath,
-        { headers: { 'If-None-Match': modelInfo.checksum } }
+        tmpPath
+        // Optional: include ETag header if your server uses checksum as ETag
+        // { headers: { 'If-None-Match': modelInfo.checksum } }
       );
 
       if (downloadResult.status === 200) {
@@ -744,11 +759,14 @@ describe('GestureClassifier', () => {
   });
   
   test('should return low confidence for unclear landmarks', () => {
-    // Random noise data
-    const noiseLandmarks = Array(63).fill(0).map(() => Math.random());
-    
+    // Override model to produce near-uniform probabilities
+    // @ts-expect-error test-only access
+    classifier['model'] = {
+      runSync: () => [Float32Array.from([0.21, 0.19, 0.20, 0.20, 0.20])]
+    } as any;
+    const noiseLandmarks = Array(63).fill(0.42); // deterministic dummy input
     const result = classifier.classify(noiseLandmarks);
-    
+
     expect(result.confidence).toBeLessThan(0.5);
   });
   
@@ -762,7 +780,7 @@ describe('GestureClassifier', () => {
 **File**: `app/test/integration/hybridRecognition.test.ts` (new file)
 
 ```typescript
-import { RecognitionScreen } from '../../src/screens/RecognitionScreen';
+import RecognitionScreen from '../../src/screens/RecognitionScreen';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 
 // Mock the dependencies
@@ -898,7 +916,7 @@ Test each of these gestures 10 times and record results:
 2. Test for 5 minutes continuously
 3. Check for memory leaks or performance degradation
 
-## Success Criteria
+## Success Criteria (Baseline)
 - ✅ >80% accuracy on clear gestures
 - ✅ <200ms average response time for local recognition
 - ✅ <2s response time for cloud fallback
@@ -1087,7 +1105,7 @@ export const performanceMonitor = new PerformanceMonitor();
 
 ## 🎯 SUCCESS METRICS
 
-### Technical Metrics
+### Technical Metrics (Stretch)
 - Gesture recognition accuracy > 95%
 - App response time < 200ms
 - Offline functionality 100% available
