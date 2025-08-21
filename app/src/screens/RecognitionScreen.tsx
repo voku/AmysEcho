@@ -256,6 +256,7 @@ export default function RecognitionScreen({ navigation }: any) {
       if (result) {
         setCurrentGesture(result.label);
         setGestureConfidence(result.confidence);
+        setLastConfidence(result.confidence);
         evaluateConfidence(result.confidence, result.isLocal ? 'local' : 'cloud');
         setClassifierUsed(result.isLocal ? 'tflite' : 'remote');
         setLastResultAt(Date.now());
@@ -996,6 +997,7 @@ export default function RecognitionScreen({ navigation }: any) {
               {showUncertainty && (
                 <Button 
                   title="Help Me Choose" 
+                  testID="btn-help-me-choose"
                   onPress={handleHelpPress}
                 />
               )}
