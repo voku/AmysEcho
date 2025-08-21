@@ -9,7 +9,7 @@ The project has a stable foundation after a major refactor. The database, naviga
 _Last updated: 2025-08-20_
 - Finalized ensemble order: `TFLite → centroid → remote` (remote is invoked only when local confidence is below threshold).
 - Profile-aware thresholds use caching to avoid repeated lookups.
-- During offline fallback, cloud is retried on subsequent frames when connectivity returns (no background retry loop).
+- Server recognition remains active during offline fallback, retrying on subsequent frames to enable automatic recovery when connectivity returns.
 - Softmax temperature calibration balances model confidence outputs.
 - Remote inference leverages `AbortController`-based timeouts.
 
