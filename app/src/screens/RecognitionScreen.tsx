@@ -159,7 +159,7 @@ export default function RecognitionScreen({ navigation }: any) {
     setShowUncertainty(state === 'uncertain');
   }, []);
 
-  // Legacy local/centroid/cloud path removed in favor of mlService hybrid processor
+  // Using mlService hybrid frame processor for recognition
 
 
   // Support both VisionCamera returns: array (v4) and object with keys (older)
