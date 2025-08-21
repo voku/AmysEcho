@@ -32,7 +32,7 @@ _Last updated: 2025-08-21_
     - Added rule-based fallback inside the WebView HTML (thumbs_up, point, open_palm, fist) used when Tasks Vision confidence is low.
     - Keep iterating as we add Amy-specific gestures.
 
-6.  **[ ] Update Documentation**
+6.  **[x] Update Documentation**
     - **[x] `docs/ExpoGestureRecognition.md`** has been created and updated.
     - **[x] `README.md`** has been updated.
     - **[x] `spec/AmysEcho.md`** has been reviewed and updated.

@@ -47,5 +47,5 @@ You should see `gesture_classifier.tflite`, `hand_landmarker.tflite`, and `gestu
 
 ## Next steps
 
-With the models in place you can launch the app with `npm run ios` or `npm run android` from the `app` directory. For details on how the models are used at runtime, see [`docs/GestureRecognitionImplementationGuide.md`](./GestureRecognitionImplementationGuide.md).
+With the models in place you can launch the app with `npm run ios` or `npm run android` from the `app` directory. For details on the WebView-based recognition pipeline, see [`docs/ExpoGestureRecognition.md`](./ExpoGestureRecognition.md).
 
