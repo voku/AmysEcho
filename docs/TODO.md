@@ -5,6 +5,14 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 > Integration tests live under the repo's `integration/test` directory.
 
+## Recognition Ensemble Summary
+_Last updated: 2025-08-20_
+- Finalized ensemble order: `TFLite → centroid → remote`.
+- Profile-aware thresholds are cached per gesture to avoid repeated database lookups.
+- Server recognition remains active during offline fallback so it automatically resumes when connectivity returns.
+- Softmax temperature calibration balances model confidence outputs.
+- Remote inference uses `AbortController`-based timeouts.
+
 ## 🔑 Immediate Gesture Detection & Visualization Fixes
 
 1. [x] Integrate `vision-camera-resize-plugin` for zero-copy frame resizing and color conversion.
@@ -51,523 +59,985 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 # Amy's Echo - Hand Gesture Recognition Implementation Plan
 
-## Mission: Get Hand Gestures Actually Working
-Priority: Make the hand gesture pipeline robust, real-time, and production-ready like the MediaPipe Android sample.
+## Mission: Complete the Hand Gesture Recognition Pipeline
+
+This plan focuses on implementing the missing pieces to make Amy's hand gesture recognition work reliably, based on the actual codebase structure and existing components.
 
 ## Current State Analysis
-Recent commits show solid foundation work:
-- ✅ **Landmark extraction simplified**: Direct Float32Array → 2D (21×3) processing
-- ✅ **Camera robustness**: Device selection works across VisionCamera versions
-- ✅ **Stability improvements**: One Euro filter smoothing, duplicate extraction prevention
-- ✅ **Error handling**: JS fallback, malformed output guards
 
-**Gap**: Need to bridge from "stable landmarks" to "reliable gesture classification"
+**What exists:**
+- ✅ `app/src/screens/RecognitionScreen.tsx` - Main UI that orchestrates camera and recognition
+- ✅ `app/src/hooks/useTensorflowModel.ts` - On-device TensorFlow Lite processing
+- ✅ `server/src/recognizer.ts` - Remote API for cloud-based gesture classification
+- ✅ `app/assets/models/` - TensorFlow Lite model files
+- ✅ `CorrectionPanel` component for user feedback
 
----
-
-## Task 1: Fix the Gesture Classification Pipeline
-
-### Objective
-Ensure the TFLite gesture classifier actually works with real camera data.
-
-### Critical Implementation
-**File**: `app/src/services/mlService.ts`
-
-**Current Issue**: The classifier might not be getting properly formatted data or the model isn't loading correctly.
-
-**Action Steps**:
-1. **Verify model loading**:
-2. **Validate input format**:
-3. **Check output parsing**:
-
-**Expected Fix**: Classification should work consistently with live camera frames.
+**What's missing:**
+- On-device gesture classification (currently only landmark extraction)
+- Unified hybrid strategy (local-first, cloud fallback)
+- Confidence-based UI feedback
+- Model update mechanism
 
 ---
 
-## Task 2: Real-Time Performance Optimization
+## Task 1: Implement On-Device Gesture Classification
 
 ### Objective
-Achieve MediaPipe-level responsiveness (15-30 FPS processing).
+Create a dedicated gesture classifier that works with the existing landmark extraction to classify gestures locally.
 
-### Implementation Areas
-
-#### A. Frame Processing Efficiency
-**File**: `app/src/services/cameraService.ts`
-
-**Optimizations**:
-- Skip frames if ML pipeline is busy
-- Implement frame dropping to maintain real-time feel
-- Add FPS monitoring and display
-
-#### B. Landmark Processing Speed
-**File**: `app/src/services/landmarkExtractor.ts`
-
-**Current Win**: Direct Float32Array processing is good
-**Enhancement**: Add timing logs to identify bottlenecks
-
----
-
-## Task 3: Gesture Recognition Reliability
-
-### Objective
-Make gesture detection as reliable as the MediaPipe sample.
-
-### Implementation Focus
-
-#### A. Input Normalization
-**File**: `app/src/services/landmarkNormalizer.ts` (create)
-
-**Missing Piece**: Landmarks need normalization before classification
-```typescript
-export function normalizeLandmarks(landmarks: number[][]): number[] {
-  // 1. Translate to wrist (landmark[0])
-  const wrist = landmarks[0];
-  const translated = landmarks.map(point => 
-    [point[0] - wrist[0], point[1] - wrist[1], point[2] - wrist[2]]
-  );
-  
-  // 2. Scale by hand size (distance from wrist to middle finger tip)
-  const middleTip = translated[12];
-  const handSize = Math.sqrt(
-    middleTip[0] ** 2 + middleTip[1] ** 2 + middleTip[2] ** 2
-  );
-  
-  const normalized = translated.map(point => 
-    [point[0] / handSize, point[1] / handSize, point[2] / handSize]
-  );
-  
-  return normalized.flat();
-}
-```
-
-#### B. Confidence Thresholding
-**File**: `app/src/services/mlService.ts`
-
-**Enhancement**: Add proper confidence handling like MediaPipe
-
-#### C. Temporal Stability
-**File**: `app/src/services/gestureStabilizer.ts` (create)
-
-**Missing**: Gesture debouncing like MediaPipe sample
-```typescript
-class GestureStabilizer {
-  private gestureHistory: string[] = [];
-  private readonly historySize = 5;
-  
-  addGesture(gesture: string): string | null {
-    this.gestureHistory.push(gesture);
-    if (this.gestureHistory.length > this.historySize) {
-      this.gestureHistory.shift();
-    }
-    
-    // Return gesture only if it's stable across multiple frames
-    const counts = this.gestureHistory.reduce((acc, g) => {
-      acc[g] = (acc[g] || 0) + 1;
-      return acc;
-    }, {});
-    
-    const dominant = Object.keys(counts).reduce((a, b) => 
-      counts[a] > counts[b] ? a : b
-    );
-    
-    // Need 60% consistency to accept gesture
-    if (counts[dominant] / this.gestureHistory.length >= 0.6) {
-      return dominant;
-    }
-    
-    return null;
-  }
-}
-```
-
----
-
-## Task 4: Debug & Validation Tools
-
-### Objective
-Add MediaPipe-style debug overlays to verify the pipeline works.
+### Current State
+`useTensorflowModel.ts` processes camera frames but doesn't classify gestures - it likely only extracts hand landmarks.
 
 ### Implementation
 
-#### A. Debug Overlay
-**File**: `app/src/components/DebugOverlay.tsx` (create)
+#### A. Create Gesture Classifier Module
+**File**: `app/src/ml/gestureClassifier.ts` (new file)
 
-**Features**:
-- Live FPS counter
-- Current gesture + confidence
-- Landmark points visualization
-- Processing time metrics
-- Model loading status
+**Purpose**: Take hand landmarks and output classified gestures with confidence scores.
 
-```tsx
-export function DebugOverlay({ 
-  fps, 
-  currentGesture, 
-  confidence, 
-  landmarks,
-  processingTime 
-}) {
-  return (
-    <View style={styles.debugOverlay}>
-      <Text>FPS: {fps.toFixed(1)}</Text>
-      <Text>Gesture: {currentGesture} ({(confidence * 100).toFixed(1)}%)</Text>
-      <Text>Processing: {processingTime.toFixed(1)}ms</Text>
-      {landmarks && <LandmarkPoints landmarks={landmarks} />}
-    </View>
-  );
+```typescript
+import { TensorflowModel } from 'react-native-fast-tflite';
+
+export interface GestureResult {
+  label: string;
+  confidence: number;
+  probabilities: number[];
 }
+
+export class GestureClassifier {
+  private model: TensorflowModel | null = null;
+  private labels: string[] = [];
+
+  async loadModel(modelPath: string, labelsOrPath: string[] | string): Promise<void> {
+    // Load the gesture classification model
+    this.model = await TensorflowModel.loadFromPath(modelPath);
+
+    // Load gesture labels
+    if (Array.isArray(labelsOrPath)) {
+      this.labels = labelsOrPath;
+    } else {
+      const { default: FileSystem } = await import('expo-file-system');
+      const json = await FileSystem.readAsStringAsync(labelsOrPath);
+      const labelData = JSON.parse(json);
+      this.labels = Array.isArray(labelData) ? labelData : labelData.labels || [];
+    }
+
+    console.log('Gesture classifier loaded with', this.labels.length, 'gestures');
+  }
+
+  classify(landmarks: number[]): GestureResult {
+    if (!this.model) {
+      throw new Error('Model not loaded');
+    }
+    if (landmarks.length === 0) {
+      throw new Error('No landmarks provided');
+    }
+
+    // Prepare input tensor from landmarks
+    const input = new Float32Array(landmarks);
+
+    // Run inference
+    const output = this.model.runSync([input]) as Float32Array[];
+    const raw = Array.from(output?.[0] ?? []);
+    if (raw.length === 0) {
+      throw new Error('Model returned no outputs');
+    }
+    // If not already a probability vector, treat as logits and apply temperature-calibrated softmax
+    const sum = raw.reduce((a, b) => a + b, 0);
+    const envT = Number(process.env.EXPO_PUBLIC_SOFTMAX_TEMPERATURE ?? 1.0);
+    const temperature = Number.isFinite(envT) && envT > 0 ? envT : 1.0;
+    const softmax = (xs: number[], t: number) => {
+      const scaled = xs.map(v => v / Math.max(t, 1e-6));
+      const max = Math.max(...scaled);
+      const exps = scaled.map(v => Math.exp(v - max));
+      const denom = exps.reduce((a, b) => a + b, 0) || 1;
+      return exps.map(v => v / denom);
+    };
+    let probabilities = (sum > 0.99 && sum < 1.01) ? raw : softmax(raw, temperature);
+    if (!probabilities.every(Number.isFinite)) {
+      probabilities = probabilities.map(v => (Number.isFinite(v) && v >= 0) ? v : 0);
+      const denom = probabilities.reduce((a, b) => a + b, 0) || 1;
+      probabilities = probabilities.map(v => v / denom);
+    }
+
+    // Find best prediction
+    const maxIndex = probabilities.indexOf(Math.max(...probabilities));
+    const confidence = probabilities[maxIndex] ?? 0;
+    
+    return {
+      label: this.labels[maxIndex] || 'unknown',
+      confidence,
+      probabilities
+    };
+  }
+
+  dispose(): void {
+    if (this.model) {
+      this.model.dispose();
+      this.model = null;
+    }
+  }
+}
+
+// Singleton instance
+export const gestureClassifier = new GestureClassifier();
 ```
 
-#### B. Device Testing Script
-**File**: `scripts/test-gestures.js` (create)
+#### B. Integrate with Existing TensorFlow Hook
+**File**: `app/src/hooks/useTensorflowModel.ts`
 
-**Purpose**: Quick validation on Android device
-```javascript
-// Test script to verify:
-// 1. Camera starts
-// 2. Landmarks are detected
-// 3. Gestures are classified
-// 4. FPS is acceptable (>10 FPS)
-// 5. No crashes after 5 minutes
+**Action**: Modify the hook to use the new gesture classifier after landmark extraction.
+
+```typescript
+// Add this import
+import { gestureClassifier, GestureResult } from '../ml/gestureClassifier';
+
+// Add to the hook's return interface
+interface TensorflowModelHook {
+  // ... existing properties
+  classifyGesture: (landmarks: number[]) => GestureResult | null;
+}
+
+// Inside the hook implementation
+const classifyGesture = useCallback((landmarks: number[]) => {
+  try {
+    if (!isModelLoaded || landmarks.length !== 63) {
+      return null;
+    }
+    
+    return gestureClassifier.classify(landmarks);
+  } catch (error) {
+    console.warn('Gesture classification failed:', error);
+    return null;
+  }
+}, [isModelLoaded]);
+
+// Add to return object
+return {
+  // ... existing returns
+  classifyGesture,
+};
+```
+
+#### C. Update RecognitionScreen Integration
+**File**: `app/src/screens/RecognitionScreen.tsx`
+
+**Action**: Use the new gesture classification capability.
+
+```typescript
+// Import the hook with new capability
+import { useTensorflowModel } from '../hooks/useTensorflowModel';
+
+// Inside RecognitionScreen component
+const { processFrame, classifyGesture, isModelLoaded } = useTensorflowModel();
+
+// Add state for gesture results
+const [currentGesture, setCurrentGesture] = useState<string>('');
+const [gestureConfidence, setGestureConfidence] = useState<number>(0);
+
+// Example frame processing with gesture classification
+const handleFrame = useCallback(async (frame: any) => {
+  if (!isModelLoaded) return;
+  
+  // Extract landmarks (existing functionality)
+  const landmarks = await processFrame(frame);
+  
+  if (landmarks && landmarks.length > 0) {
+    // NEW: Classify gesture from landmarks
+    const gestureResult = classifyGesture(landmarks);
+    
+    if (gestureResult && gestureResult.confidence > 0.6) {
+      setCurrentGesture(gestureResult.label);
+      setGestureConfidence(gestureResult.confidence);
+      
+      // Show gesture to user
+      console.log('Recognized gesture:', gestureResult.label, 'confidence:', gestureResult.confidence);
+    }
+  }
+}, [isModelLoaded, processFrame, classifyGesture]);
 ```
 
 ---
 
-## Task 5: Production Readiness
+## Task 2: Implement Hybrid Recognition Strategy
 
 ### Objective
-Ensure gesture recognition works reliably in real-world conditions.
+Create a unified recognition flow: try on-device first, fall back to cloud when confidence is low, and use a centroid classifier as the final offline recovery.
 
-### Critical Fixes
+### Implementation
 
-#### A. Error Recovery
-**File**: `app/src/services/gestureService.ts`
+#### A. Add Hybrid Logic to RecognitionScreen
+**File**: `app/src/screens/RecognitionScreen.tsx`
 
-**Robust Pipeline**:
+**Purpose**: Orchestrate local-first, cloud-fallback recognition strategy.
 
-#### B. Memory Management
-**File**: `app/src/services/mlService.ts`
+```typescript
+import { centroidClassifier } from '../ml/centroidClassifier';
+import { LOCAL_CONFIDENCE_THRESHOLD } from '../config/recognition';
 
-**Critical**: Prevent memory leaks during continuous processing
+// Add these interfaces
+interface RecognitionResult {
+  gesture: string;
+  confidence: number;
+  source: 'local' | 'cloud' | 'centroid';
+}
 
----
+const CLOUD_FALLBACK_TIMEOUT = 2000; // 2 seconds
 
-## Success Criteria - "It Actually Works"
+// Add hybrid recognition function
+const recognizeGesture = useCallback(async (landmarks: number[]): Promise<RecognitionResult | null> => {
+  // Step 1: Try local classification first
+  const localResult = classifyGesture(landmarks);
 
-### Immediate Validation
-- [ ] **Camera → Landmarks**: Consistent 21×3 landmark detection
-- [ ] **Landmarks → Gestures**: Reliable classification (>80% accuracy)
-- [ ] **Real-time**: 15+ FPS on target Android device
-- [ ] **Stability**: No crashes during 5-minute continuous use
-- [ ] **Responsiveness**: Gesture changes detected within 500ms
+  if (localResult && localResult.confidence >= LOCAL_CONFIDENCE_THRESHOLD) {
+    // High confidence local result - use it immediately
+    return {
+      gesture: localResult.label,
+      confidence: localResult.confidence,
+      source: 'local'
+    };
+  }
 
-### MediaPipe Parity Checklist
-- [ ] Smooth landmark tracking (no jitter)
-- [ ] Confident gesture recognition with proper thresholds
-- [ ] Temporal stability (no flickering between gestures)
-- [ ] Graceful handling of no-hand scenarios
-- [ ] Debug overlay shows live pipeline status
+  // Step 2: Local confidence too low, try centroid
+  const centroidResult = centroidClassifier.classify(landmarks);
+  if (centroidResult && centroidResult.confidence >= LOCAL_CONFIDENCE_THRESHOLD) {
+    return {
+      gesture: centroidResult.label,
+      confidence: centroidResult.confidence,
+      source: 'centroid'
+    };
+  }
 
-### Device Testing Protocol
-1. **Deploy to Android device**: `expo run:android`
-2. **Test core gestures**: Open palm, closed fist, pointing
-3. **Stress test**: 5 minutes continuous use
-4. **Edge cases**: Poor lighting, partial occlusion, fast movement
-5. **Performance**: Monitor FPS, battery drain, memory usage
+  // Step 3: Still uncertain – try cloud
+  try {
+    console.log('Local+centroid uncertain, trying cloud...');
 
----
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CLOUD_FALLBACK_TIMEOUT);
+    const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://your-server.com';
+    let cloudResponse: Response | null = null;
+    try {
+      cloudResponse = await fetch(`${apiBase}/api/recognize-gesture`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ landmarks }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
-## Next Development Iteration
+    if (cloudResponse && cloudResponse.ok) {
+      const cloudResult = await cloudResponse.json();
+      return {
+        gesture: cloudResult.label,
+        confidence: cloudResult.confidence,
+        source: 'cloud'
+      };
+    }
+  } catch (error) {
+    console.warn('Cloud recognition failed:', error);
+  }
 
-After gesture recognition is solid:
-1. **Multi-hand support**: Extend to two hands if needed
-2. **Custom gesture training**: Allow users to add gestures
-3. **Gesture combinations**: Support sequential gestures
-4. **Performance optimization**: GPU acceleration, model quantization
+  // Step 4: Still nothing – signal uncertainty
+  return null;
+}, [classifyGesture]);
 
-**Bottom Line**: Focus on making the basic gesture pipeline bulletproof before adding complexity.
+// Update frame handler to use hybrid recognition
+const handleFrame = useCallback(async (frame: any) => {
+  if (!isModelLoaded || isProcessing) return;
+  
+  setIsProcessing(true);
+  
+  try {
+    const landmarks = await processFrame(frame);
+    if (!landmarks || landmarks.length === 0) {
+      return;
+    }
 
-## Recognition Stabilization (TFLite, VisionCamera v4) — 2025-08
-- ✅ Worklets correctness: 'worklet' directive + Worklets.createRunOnJS (no Reanimated runOnJS).
-- ✅ Camera `pixelFormat="yuv"` for ML path (`app/src/screens/RecognitionScreen.tsx`, `app/src/screens/TrainingScreen.tsx`).
-- ✅ `useFrameProcessor` hooks implemented in `app/src/services/mlService.ts`.
-- ✅ Backpressure: single in-flight inference; JS callbacks only on state change.
-- ✅ One-time TFLite load; no per-frame allocations.
-- ✅ Bounded, PII-free telemetry buffer; perf budget test.
- - [x] Move resize/convert into a VisionCamera frame processor plugin for zero-copy via `vision-camera-resize-plugin`.
- - ✅ Metro bundler configured to load `.tflite` and MediaPipe `.task` model assets via `app/metro.config.js`.
- - [x] Register `vision-camera-resize-plugin` in `app/metro.config.js`.
- - [x] Replace inference stub with plugin-backed implementation in `app/src/services/mlService.ts`.
+    const result = await recognizeGesture(landmarks);
 
-## 🔁 Enhancements & Extensions
+    if (result) {
+      setCurrentGesture(result.gesture);
+      setGestureConfidence(result.confidence);
 
-1. [x] **Deterministic Builds & Version Freeze**
-   - Pin all RN/Expo/WatermelonDB/VisionCamera/worklets-core dependencies to known-good versions.
-   - Regenerate and commit a clean `package-lock.json` / `yarn.lock`.
-   - Ensure CI builds only from tagged releases.
-   - Export a dependency snapshot (`npm ls`, `gradle dependencies`) for reproducibility.
-
-2. [x] **CI Pipeline Hardening**
-   - Introduce a single entry script (`./scripts/full-check.sh`) to run type checks, unit tests, server tests, and integration tests.
-   - Isolate or mark flaky tests and remove unconditional retries (allow only for infra-related flakes).
-   - Treat any failed build as blocking.
-
-3. [x] **Android / WSL2 Development Flow**
-   - Add a reliable setup guide for USB debugging via `adb` / `usbipd` in WSL2.
-   - Automate device checks (`expo doctor`, dev-client vs self-contained APK builds).
-   - CI should produce both dev-client APK and full APK artifacts for manual field testing.
-
-4. [x] **VisionCamera & Worklets Compatibility**
-   - Lock to a tested combination of VisionCamera v4 and react-native-worklets-core.
-   - Validate with real devices for both frame rate and recognition accuracy.
-   - Document the performance budget in ms/frame.
-
-5. [x] **Gesture Recognizer Hybrid Pipeline**
-   - Implement a clear fallback matrix: Cloud inference when available, TFLite offline when not.
-   - Add telemetry for each recognition: confidence score, latency, and inference path (cloud/offline).
-   - Use this telemetry as a baseline for regression alerts.
-
-6. [x] **Correction & Learning Flow**
-   - “Help-Me” button should always store deterministic correction data with a re-prompt suggestion.
-   - Capture negative samples and ambiguous gestures for retraining.
-   - Ensure retraining actually improves accuracy (avoid polluting the dataset). (Note: This requires a robust validation process for the retraining pipeline.)
-
-7. [x] **Offline Model Retraining**
-   - Add reproducibility features to `server/dist/tools/retrainOfflineModel.js`: fixed random seeds, version tagging, and metrics (accuracy, top-k accuracy).
-   - Version both the trained model (`offlineModel.json`) and the associated metrics (`metrics.json`).
-
-8. [x] **Analytics & Dashboard**
-   - Require authentication tokens for the server API.
-   - Enforce `401` as the default for unauthorized access and add rate limiting.
-   - Dashboard should display: correction rate, uncertainty ratio, median latency, top misclassifications.
-
-9. [x] **Audio & UX Fail-safes**
-  - [x] Never leave the app silent: in uncertain cases, output a neutral voice line plus visual symbol and haptic feedback.
-  - [x] Add a UI timer to detect "no frame / no result" situations and degrade gracefully instead of freezing.
-
-10. [x] **Documentation & Roadmap Cleanup**
-    - [x] Keep `README.md` as a short landing page, move deeper technical documentation to `docs/*`.
-    - [x] Consolidate developer notes into `docs/CodebaseOverview.md`, `docs/UserStories.md`, and `docs/TODO.md`.
-    - [x] Define milestones: Stabilization → Accuracy → UX improvements ([ProjectMilestones.md](ProjectMilestones.md)) stored in the repo.
----
-
-## 🚨 PRIORITY 1: Core Functionality (Critical Path)
-
-### ✅ COMPLETED
-- [x] React Native baseline setup
-- [x] Database, navigation, and core app structure
-- [x] Project architecture and foundation
-- [x] **Gesture Recognition Implementation**
-  - [x] Complete `mlService.ts` TFLite model loading
-  - [x] Implement live gesture classification pipeline
-  - [x] Test offline gesture recognition fallback
-  - [x] Validate recognition accuracy with test gestures
-  - [x] **Add memory management**
-    - Introduced a `FrameBufferManager` to limit stored frames and dispose old ones.
-  - [x] **TFLite model lifecycle cleanup**
-    - Wrapped model access in a `ModelManager` that sets `isInferenceRunning` and calls `dispose()` after use.
-  - [x] **Offline fallback reliability** _(update `app/src/services/mlService.ts`; see `integration/offlineFallback.spec.ts`)_
-    - Ensure cloud inference failures hot‑swap to the local TFLite model within one frame.
-    - Implemented in `app/src/services/mlService.ts`; test: `integration/offlineFallback.spec.ts`.
-  - [x] **Offline boot mode** _(update `app/src/App.tsx`; see `integration/offlineBoot.spec.ts`)_
-    - Detect offline state at startup and preload local models immediately.
-    - Implemented in `app/App.tsx` and `app/src/context/AppServicesProvider.tsx`; test: `integration/offlineBoot.spec.ts`.
-- [x] **Rich Audio Feedback System**
-  - [x] Complete `audioService.ts` implementation using `expo-audio`
-  - [x] Add success/error sound effects
-  - [x] Implement speech synthesis for recognized gestures
-  - [x] Test audio output quality and timing
-- [x] **Speak + Show dual-trigger** _(see `app/test/speakShow.test.tsx`)_
-  - Guarantee that recognition fires both speech and symbol display together with fallback handling.
-  - Add haptic and visual confirmation so one failure does not block the other.
-- [x] **Camera Integration**
-  - [x] Finalize `react-native-vision-camera` integration
-  - [x] Implement high-performance gesture capture
-  - [x] Add camera permission handling
-  - [x] Test frame rate and gesture capture quality
-  - [x] **Comprehensive error handling**
-    - Added `handleCameraError` with fallbacks for permission denial, missing devices and hardware failures.
-    - Included periodic health checks using `Camera.getAvailableCameraDevices()`.
+      // Visual feedback based on source
+      if (result.source === 'local') {
+        console.log('✓ Local recognition:', result.gesture);
+      } else if (result.source === 'cloud') {
+        console.log('☁ Cloud recognition:', result.gesture);
+      } else {
+        console.log('🔶 Centroid recognition:', result.gesture);
+      }
+    } else {
+      // No recognition - show uncertainty
+      setCurrentGesture('uncertain');
+      setGestureConfidence(0);
+    }
+  } finally {
+    setIsProcessing(false);
+  }
+}, [isModelLoaded, isProcessing, processFrame, recognizeGesture]);
+```
 
 ---
 
-## 🎯 PRIORITY 2: Intelligence & User Experience
+## Task 3: Add Confidence-Based UI Feedback
 
-### Core HIP (Human Interaction Protocol) Implementation
-- [x] **HIP 1: Onboarding Flow**
-  - [x] Complete consent and first-use setup
-  - [x] Add privacy explanation for caregivers
-  - [x] Implement gesture recognition tutorial
-  - [x] Test with non-technical users
-    - See [NonTechnicalUserTestingGuide](NonTechnicalUserTestingGuide.md).
+### Objective
+Provide clear visual feedback to Amy about recognition confidence and trigger correction flow when needed.
 
-- [x] **HIP 3: “This Is What She Meant” Correction Mode ("Help Me" Flow)** _(spec §5.2 "Correction Panel")_
-  - [x] Implement gesture correction interface
-  - [x] Add "Help Me" repair workflow
-  - [x] Store corrections for model improvement
-  - [x] Test correction feedback loop
-  - [x] Log corrections to server training queue _(update `app/src/services/correctionService.ts`; see `server/test/test_training_queue.py`)_
+### Implementation
 
-- [x] **HIP 2: “Let’s Learn Together” Teach Mode (Training Interface)** _(spec §5.2 "Training Flow")_
-  - [x] Build caregiver training interface for new signs
-  - [x] Implement gesture recording workflow
-  - [x] Add gesture validation feedback
-  - [x] Create training progress tracking
-  - [x] Complete end-to-end pipeline: save samples and trigger retraining _(update `app/src/screens/TeachingScreen.tsx`; see `integration/teachMode.spec.ts`)_
+#### A. Add Confidence Visualization
+**File**: `app/src/screens/RecognitionScreen.tsx`
 
-- [x] **HIP 4: “I’m a Little Confused” Practice Mode (Proactive Maintenance)** _(spec §5.2 "Proactive Banner")_
-  - [x] Implement "Let's practice this again" feature
-  - [x] Add gesture practice sessions
-  - [x] Create progress tracking dashboard
-  - [x] Implement gentle encouragement system
-  - [x] Add dedicated practice screen for rehearsal _(update `app/src/screens/PracticeScreen.tsx`; see `integration/test/practiceMode.test.js`)_
+**Purpose**: Show Amy when the system is confident vs. uncertain about her gesture.
 
-- [x] **Caregiver portal completion** _(implement routes in `server/src/portal`; see `integration/test/portal.test.js`)_
-  - Review, approve, and export recorded samples for training.
+```typescript
+// Add these state variables for UI feedback
+const [showUncertainty, setShowUncertainty] = useState(false);
+const [recognitionState, setRecognitionState] = useState<'listening' | 'thinking' | 'confident' | 'uncertain'>('listening');
 
-### Enhanced Intelligence Features
-- [x] **Live LLM Dialog Engine** _(spec “LLM/DEV HINT”)_
-  - [x] Complete `dialogEngine.ts` OpenAI API integration
-  - [x] Implement context-aware suggestions
-  - [x] Add conversation memory for better responses
-  - [x] Test suggestion quality and relevance
-  - [x] Add `APIRetryManager` with exponential backoff for failed requests _(add `app/src/services/APIRetryManager.ts`; see `app/test/apiRetry.test.ts`)_
-    - Example:
-      ```ts
-      const retry = new APIRetryManager();
-      await retry.executeWithRetry(() => callLLM(), 'dialogEngine');
-      ```
+// Add confidence evaluation function
+const evaluateConfidence = useCallback((confidence: number, source: 'local' | 'cloud' | 'centroid') => {
+  if (confidence >= LOCAL_CONFIDENCE_THRESHOLD + 0.1) {
+    setRecognitionState('confident');
+    setShowUncertainty(false);
+  } else if (confidence >= LOCAL_CONFIDENCE_THRESHOLD - 0.2) {
+    setRecognitionState('thinking');
+    setShowUncertainty(false);
+  } else {
+    setRecognitionState('uncertain');
+    setShowUncertainty(true);
+  }
+}, []);
 
-- [x] **DGS Video Playback System** _(spec §5.2 "DGS Screen")_
-  - [x] Complete DGS video integration on `DgsScreen`
-  - [x] Add video toggle functionality
-  - [x] Implement video playback controls
-  - [x] Test video loading and playback performance
+// Update the recognition handler
+const handleRecognitionResult = useCallback((result: RecognitionResult) => {
+  evaluateConfidence(result.confidence, result.source);
+  
+  if (result.confidence >= LOCAL_CONFIDENCE_THRESHOLD) {
+    // Show the recognized gesture
+    setCurrentGesture(result.gesture);
+    
+    // Speak the gesture name
+    // (assuming you have a speech service)
+    speakGesture(result.gesture);
+    
+  } else {
+    // Show correction panel for low confidence
+    setShowUncertainty(true);
+    // Could trigger CorrectionPanel here
+  }
+}, [evaluateConfidence]);
 
-  - [x] **Admin Panel Enhancement**
-    - [x] Complete CRUD functionality in `AdminScreen.tsx`
-    - [x] Add symbol and vocabulary management
-    - [x] Implement data export/import features
-    - [x] Add analytics dashboard for caregivers
+// Add visual feedback in the render section
+const getStatusMessage = () => {
+  switch (recognitionState) {
+    case 'listening': return "Show me your gesture...";
+    case 'thinking': return "Let me think...";
+    case 'confident': return currentGesture;
+    case 'uncertain': return "I'm not sure. Can you help me?";
+    default: return "Ready";
+  }
+};
 
----
+const getStatusColor = () => {
+  switch (recognitionState) {
+    case 'confident': return '#4CAF50'; // Green
+    case 'thinking': return '#FF9800';  // Orange
+    case 'uncertain': return '#F44336'; // Red
+    default: return '#2196F3';          // Blue
+  }
+};
 
-## 🔧 PRIORITY 3: Technical Infrastructure
+// In the render section, add confidence indicator
+<View style={styles.statusContainer}>
+  <Text testID="current-gesture" style={[styles.statusText, { color: getStatusColor() }]}>
+    {getStatusMessage()}
+  </Text>
+  
+  {/* Confidence bar */}
+  <View style={styles.confidenceBar}>
+    <View 
+      style={[
+        styles.confidenceFill, 
+        { 
+          width: `${gestureConfidence * 100}%`,
+          backgroundColor: getStatusColor()
+        }
+      ]} 
+    />
+  </View>
+  
+  {/* Show correction panel when uncertain */}
+  {showUncertainty && (
+    <Button 
+      title="Help Me Choose" 
+      onPress={() => {
+        // Show CorrectionPanel with options
+      }}
+    />
+  )}
+</View>
+```
 
-### Model Management & Training
-- [x] **Pre-trained Model Integration**
-  - [x] Download and bundle MediaPipe models via `src/tools/downloadModels.ts`
-  - [x] Implement model versioning system
-  - [x] Add model validation checks
-  - [x] Test model loading performance
+#### B. Add Styling for Confidence UI
+Add to styles in `RecognitionScreen.tsx`:
 
-- [x] **Two-Stage Frame Processor**
-  - [x] Implement landmark detection in `useFrameProcessor` worklet
-  - [x] Add gesture classification pipeline
-  - [x] Optimize processing performance
-  - [x] Test real-time processing accuracy
-
-- [x] **Training Interface**
-  - [x] Complete `TrainingScreen` UI implementation
-  - [x] Add guided gesture recording interface
-  - [x] Implement sample validation feedback
-  - [x] Create training progress visualization
-
-- [x] **Training Data Quality Assurance**
-  - [x] Validate gesture samples with `TrainingDataValidator`
-    - Example: check landmark confidence, completeness and motion.
-  - [x] Provide retake suggestions based on detected issues.
-
-- [x] **Model Performance Monitoring**
-  - [x] Track predictions with `ModelPerformanceMonitor`
-  - [x] Alert on accuracy drops >15% and suggest retraining.
-
-- [x] **Occlusion Handling**
-  - [x] Detect partially hidden hands using `GestureOcclusionHandler`
-  - [x] Guide users to adjust positioning when occlusion is too high.
-
-### Backend Services
-- [x] **Secure LLM Dialog Endpoint**
-  - [x] Create authenticated OpenAI proxy server
-  - [x] Implement rate limiting and security measures
-  - [x] Add request logging and monitoring
-  - [x] Test API security and performance
-
-- [x] **Model Training Pipeline**
-  - [x] Create model training endpoint for landmark data
-  - [x] Implement LSTM gesture model training
-  - [x] Add training progress monitoring
-  - [x] Test model accuracy improvements
-
-- [x] **Model Deployment System**
-  - [x] Create model download endpoint
-  - [x] Implement secure model distribution
-  - [x] Add model activation in app
-  - [x] Test model update workflow
-
-- [x] **Portal Completion** _(see `integration/test/portal.test.js`)_
-  - Implement review and approval routes in `server/src/portal`
-  - Add export features for gesture samples
-
----
-
-## 🎨 PRIORITY 4: Polish & Accessibility
-
-### UI/UX Improvements
- - [x] **Accessibility Enhancement**
-  - [x] Complete accessibility label implementation
-  - [x] Add screen reader support for bottom navigation
-  - [x] Implement high contrast mode
-  - [x] Test with accessibility tools
-  - [x] Add rich gesture descriptions and live announcements
-    - Example:
-      ```ts
-      announceGestureRecognition(name, confidence);
-      const label = createGestureAccessibilityLabel(g, conf, ctx);
-      ```
-  - [x] Implement German language support
-    - Hint: load `i18n/de.json` via `LanguageManager` and update gesture translations.
-
-- [ ] **Animation & Feedback**
-  - [x] Implement RN Animated API for smooth transitions
-  - [x] Add Skia-based animations (optional)
-  - [x] Create gentle haptic feedback system
-  - [x] Add visual highlight during confirmation for accessibility
-  - Test animation performance on older devices
-
-- [x] **Child-Friendly Interface**
-  - [x] Optimize UI for 4-year-old usability
-  - [x] Add colorful, engaging visual elements
-  - [x] Implement large touch targets
-    - Hint: use `childFriendlyStyles.minTouchTarget` (60x60, padding 12) and add haptic feedback.
-    - Example:
-      ```ts
-      import { childFriendlyStyles } from '../styles/touchTargets';
-      <Pressable style={childFriendlyStyles.primaryButton} onPress={childHaptic} />
-      ```
-  - [x] Test with child users
-    - See [ChildUserTestingGuide](ChildUserTestingGuide.md).
-  - [x] Add session management for attention span
-    - Hint: implement `ChildSessionManager` to schedule encouragements and suggest breaks.
-
-### Quality Assurance
-- [x] **Testing Suite**
-  - [x] Implement unit tests for core services
-  - [x] Add integration tests for HIP workflows
-  - [x] Create end-to-end testing scenarios
-  - [x] Set up automated testing pipeline
-
- - [x] **Performance Optimization**
-  - [x] Profile gesture recognition speed
-  - [x] Minimize battery usage during operation
-    - Camera auto-pauses after inactivity to conserve power.
-  - [x] Optimize memory usage for older devices
-  - [x] Test performance across device range
-  - [x] Implement adaptive processing based on battery & thermal state
-    - Hint: create `AdaptivePerformanceManager` that adjusts frame rate and model complexity.
+```typescript
+const styles = StyleSheet.create({
+  // ... existing styles
+  
+  statusContainer: {
+    position: 'absolute',
+    bottom: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
+    padding: 15,
+  },
+  
+  statusText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  
+  confidenceBar: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    marginBottom: 10,
+  },
+  
+  confidenceFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+});
+```
 
 ---
 
+## Task 4: Add Model Update Service
+
+### Objective
+Allow the app to download updated gesture models without requiring app store updates.
+
+### Implementation
+
+#### A. Create Model Update Service
+**File**: `app/src/services/modelUpdateService.ts` (new file)
+
+**Purpose**: Check for and download updated TensorFlow Lite models.
+
+```typescript
+import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+interface ModelVersion {
+  version: string;
+  downloadUrl: string;
+  checksum: string;
+}
+
+export class ModelUpdateService {
+  private static readonly MODEL_VERSION_KEY = 'gesture_model_version';
+  private static readonly UPDATE_CHECK_URL = 'https://your-server.com/api/model-version';
+  
+  async checkForUpdates(): Promise<boolean> {
+    try {
+      // Get current model version
+      const currentVersion = await AsyncStorage.getItem(ModelUpdateService.MODEL_VERSION_KEY);
+      
+      // Check server for latest version
+      const response = await fetch(ModelUpdateService.UPDATE_CHECK_URL);
+      const latestInfo: ModelVersion = await response.json();
+      
+      // Compare versions
+      if (!currentVersion || currentVersion !== latestInfo.version) {
+        console.log('New model version available:', latestInfo.version);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.warn('Failed to check for model updates:', error);
+      return false;
+    }
+  }
+  
+  async downloadLatestModel(): Promise<string | null> {
+    try {
+      const response = await fetch(ModelUpdateService.UPDATE_CHECK_URL);
+      const modelInfo: ModelVersion = await response.json();
+
+      // Create local file paths
+      const localPath = `${FileSystem.documentDirectory}gesture_model_${modelInfo.version}.tflite`;
+      const tmpPath = `${localPath}.tmp`;
+
+      // Download the model to a temporary file
+      console.log('Downloading model version:', modelInfo.version);
+      const downloadResult = await FileSystem.downloadAsync(
+        modelInfo.downloadUrl,
+        tmpPath
+        // Optional: include ETag header if your server uses checksum as ETag
+        // { headers: { 'If-None-Match': modelInfo.checksum } }
+      );
+
+      if (downloadResult.status === 200) {
+        // Verify checksum without loading file into memory
+        const { digestFileAsync, CryptoDigestAlgorithm } = await import('expo-crypto');
+        const computed = await digestFileAsync(CryptoDigestAlgorithm.SHA256, tmpPath);
+        if (computed.toLowerCase() !== modelInfo.checksum.toLowerCase()) {
+          await FileSystem.deleteAsync(tmpPath, { idempotent: true });
+          throw new Error('Checksum mismatch for downloaded model');
+        }
+        // Atomically move tmp -> final
+        await FileSystem.moveAsync({ from: tmpPath, to: localPath });
+
+        // Save version info
+        await AsyncStorage.setItem(ModelUpdateService.MODEL_VERSION_KEY, modelInfo.version);
+
+        console.log('Model downloaded successfully to:', localPath);
+        return localPath;
+      } else {
+        throw new Error(`Download failed with status: ${downloadResult.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to download model:', error);
+      return null;
+    }
+  }
+  
+  async getLocalModelPath(): Promise<string | null> {
+    try {
+      const version = await AsyncStorage.getItem(ModelUpdateService.MODEL_VERSION_KEY);
+      
+      if (version) {
+        const localPath = `${FileSystem.documentDirectory}gesture_model_${version}.tflite`;
+        const fileInfo = await FileSystem.getInfoAsync(localPath);
+        
+        if (fileInfo.exists) {
+          return localPath;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('Failed to get local model path:', error);
+      return null;
+    }
+  }
+}
+
+export const modelUpdateService = new ModelUpdateService();
+```
+
+#### B. Integrate with App Startup
+**File**: `app/App.tsx` or `app/src/screens/RecognitionScreen.tsx`
+
+**Action**: Check for model updates when the app starts.
+
+```typescript
+import labels from '../assets/models/gesture_labels.json';
+import { modelUpdateService } from '../services/modelUpdateService';
+
+// Add to your main component's useEffect
+useEffect(() => {
+  const initializeModels = async () => {
+    try {
+      // Check if we have a locally downloaded model
+      const localModelPath = await modelUpdateService.getLocalModelPath();
+      
+      if (localModelPath) {
+        console.log('Using downloaded model:', localModelPath);
+        // Load the downloaded model with labels from bundle
+        await gestureClassifier.loadModel(localModelPath, labels);
+      } else {
+        console.log('Using bundled model');
+        // Resolve bundled asset to a local file URI
+        const { Asset } = await import('expo-asset');
+        const modelAsset = Asset.fromModule(require('../assets/models/gesture_classifier.tflite'));
+        await modelAsset.downloadAsync();
+        if (!modelAsset.localUri) {
+          throw new Error('Failed to resolve bundled model asset');
+        }
+        await gestureClassifier.loadModel(modelAsset.localUri, labels);
+      }
+      
+      // Check for updates in background
+      const hasUpdate = await modelUpdateService.checkForUpdates();
+      if (hasUpdate) {
+        console.log('Model update available, downloading...');
+        const newModelPath = await modelUpdateService.downloadLatestModel();
+        
+        if (newModelPath) {
+          // Optionally restart recognition with new model
+          // or show user a message that update will apply on next app start
+        }
+      }
+      
+    } catch (error) {
+      console.error('Failed to initialize models:', error);
+    }
+  };
+  
+  initializeModels();
+}, []);
+```
+
+---
+
+## Task 5: Add Comprehensive Testing
+
+### Objective
+Ensure the gesture recognition pipeline works correctly through automated tests.
+
+### Implementation
+
+#### A. Unit Tests for Gesture Classifier
+**File**: `app/test/unit/gestureClassifier.test.ts` (new file)
+
+```typescript
+import { GestureClassifier } from '../../src/ml/gestureClassifier';
+
+describe('GestureClassifier', () => {
+  let classifier: GestureClassifier;
+
+  beforeEach(() => {
+    classifier = new GestureClassifier();
+    // Inject test doubles
+    // @ts-expect-error test-only access
+    classifier['labels'] = ['stop', 'wave', 'point', 'peace', 'fist'];
+    // @ts-expect-error test-only access
+    classifier['model'] = {
+      runSync: () => [Float32Array.from([0.05, 0.85, 0.05, 0.03, 0.02])]
+    } as any;
+  });
+  
+  afterEach(() => {
+    classifier.dispose();
+  });
+  
+  test('should classify known gesture with high confidence', () => {
+    // Mock landmark data for a "wave" gesture
+    const waveLandmarks = [
+      // Provide a full array of 63 numbers (21 landmarks × 3 coords)
+      0.5, 0.3, 0.1,  // wrist
+      0.6, 0.2, 0.1,  // thumb tip
+      0.7, 0.4, 0.1,
+      0.8, 0.5, 0.1,
+      0.4, 0.2, 0.1,
+      0.3, 0.4, 0.1,
+      0.2, 0.5, 0.1,
+      0.1, 0.6, 0.1,
+      0.5, 0.4, 0.1,
+      0.4, 0.5, 0.1,
+      0.3, 0.6, 0.1,
+      0.2, 0.7, 0.1,
+      0.1, 0.8, 0.1,
+      0.5, 0.2, 0.1,
+      0.4, 0.3, 0.1,
+      0.3, 0.4, 0.1,
+      0.2, 0.5, 0.1,
+      0.1, 0.6, 0.1,
+      0.5, 0.1, 0.1,
+      0.4, 0.2, 0.1,
+      0.3, 0.3, 0.1
+    ];
+    
+    const result = classifier.classify(waveLandmarks);
+    
+    expect(result.label).toBe('wave');
+    expect(result.confidence).toBeGreaterThan(0.7);
+    expect(result.probabilities).toHaveLength(5); // assuming 5 gestures
+  });
+  
+  test('should return low confidence for unclear landmarks', () => {
+    // Override model to produce near-uniform probabilities
+    // @ts-expect-error test-only access
+    classifier['model'] = {
+      runSync: () => [Float32Array.from([0.21, 0.19, 0.20, 0.20, 0.20])]
+    } as any;
+    const noiseLandmarks = Array(63).fill(0.42); // deterministic dummy input
+    const result = classifier.classify(noiseLandmarks);
+
+    expect(result.confidence).toBeLessThan(0.5);
+  });
+  
+  test('should handle empty landmark input gracefully', () => {
+    expect(() => classifier.classify([])).toThrow();
+  });
+});
+```
+
+#### B. Integration Tests for Hybrid Recognition
+**File**: `app/test/integration/hybridRecognition.test.ts` (new file)
+
+```typescript
+import RecognitionScreen from '../../src/screens/RecognitionScreen';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+
+// Mock the dependencies
+jest.mock('../../src/hooks/useTensorflowModel');
+jest.mock('../../src/ml/gestureClassifier');
+
+describe('Hybrid Recognition Integration', () => {
+  test('should use local classification when confidence is high', async () => {
+    const mockClassifyGesture = jest.fn().mockReturnValue({
+      label: 'thumbs_up',
+      confidence: 0.9,
+      probabilities: [0.1, 0.9, 0.0, 0.0, 0.0]
+    });
+    
+    // Mock the hook to return our mock function
+    require('../../src/hooks/useTensorflowModel').useTensorflowModel.mockReturnValue({
+      classifyGesture: mockClassifyGesture,
+      processFrame: jest.fn().mockResolvedValue([/* mock landmarks */]),
+      isModelLoaded: true
+    });
+    
+    const { getByTestId } = render(<RecognitionScreen />);
+    
+    // Simulate frame processing
+    const mockFrame = { /* mock camera frame */ };
+    // Trigger frame processing somehow (this depends on your implementation)
+    
+    await waitFor(() => {
+      // Verify local classification was used
+      expect(mockClassifyGesture).toHaveBeenCalled();
+      
+      // Verify UI shows the result
+      expect(getByTestId('current-gesture')).toHaveTextContent('thumbs_up');
+    });
+  });
+  
+  test('should fallback to cloud when local confidence is low', async () => {
+    const mockClassifyGesture = jest.fn().mockReturnValue({
+      label: 'uncertain',
+      confidence: 0.3,
+      probabilities: [0.3, 0.2, 0.2, 0.2, 0.1]
+    });
+    
+    // Mock fetch for cloud API
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ label: 'point', confidence: 0.8 })
+    });
+    
+    require('../../src/hooks/useTensorflowModel').useTensorflowModel.mockReturnValue({
+      classifyGesture: mockClassifyGesture,
+      processFrame: jest.fn().mockResolvedValue([/* mock landmarks */]),
+      isModelLoaded: true
+    });
+    
+    const { getByTestId } = render(<RecognitionScreen />);
+    
+    // Simulate frame processing
+    await waitFor(() => {
+      // Verify cloud API was called
+      expect(global.fetch).toHaveBeenCalledWith('https://your-server.com/api/recognize-gesture', expect.any(Object));
+      
+      // Verify UI shows cloud result
+      expect(getByTestId('current-gesture')).toHaveTextContent('point');
+    });
+  });
+});
+```
+
+---
+
+## Task 6: Device Testing Protocol
+
+### Objective
+Create a systematic approach to test gesture recognition on real devices.
+
+### Implementation
+
+#### A. Testing Documentation
+**File**: `docs/GestureRecognitionTesting.md` (new file)
+
+```markdown
+# Gesture Recognition Testing Protocol
+
+## Setup
+1. Install the app on an Android device: `npx expo run:android`
+2. Ensure good lighting and clear background
+3. Enable developer options and USB debugging
+4. Connect device to computer for log monitoring
+
+## Test Gestures
+Test each of these gestures 10 times and record results:
+
+1. **Thumbs Up**
+   - Hold thumb up, other fingers closed
+   - Expected: Should recognize as "thumbs_up" with >80% confidence
+   - Record: Recognition accuracy, confidence scores, response time
+
+2. **Open Palm (Stop)**
+   - Show open palm facing camera
+   - Expected: Should recognize as "stop" with >80% confidence
+   - Record: Recognition accuracy, confidence scores, response time
+
+3. **Pointing**
+   - Point index finger, other fingers closed
+   - Expected: Should recognize as "point" with >80% confidence
+   - Record: Recognition accuracy, confidence scores, response time
+
+4. **Peace Sign**
+   - Show peace sign (V with index and middle finger)
+   - Expected: Should recognize as "peace" with >80% confidence
+   - Record: Recognition accuracy, confidence scores, response time
+
+5. **Closed Fist**
+   - Make closed fist
+   - Expected: Should recognize as "fist" with >80% confidence
+   - Record: Recognition accuracy, confidence scores, response time
+
+## Testing Scenarios
+
+### Confidence Threshold Testing
+1. Perform each gesture with varying clarity (clear, partially occluded, fast movement)
+2. Note when the system triggers cloud fallback
+3. Note when correction panel appears
+
+### Hybrid System Testing
+1. Test with internet connection (should use cloud fallback when needed)
+2. Test without internet (should work with local-only)
+3. Verify response times for both modes
+
+### Performance Testing
+1. Monitor frame processing time via `adb logcat | grep GestureClassifier`
+2. Test for 5 minutes continuously
+3. Check for memory leaks or performance degradation
+
+## Success Criteria (Baseline)
+- ✅ >80% accuracy on clear gestures
+- ✅ <200ms average response time for local recognition
+- ✅ <2s response time for cloud fallback
+- ✅ No crashes during 5-minute continuous use
+- ✅ Appropriate confidence indicators in UI
+
+## Logging Commands
+```bash
+# Monitor gesture classification logs
+adb logcat | grep -E "(GestureClassifier|Recognition)"
+
+# Monitor performance logs
+adb logcat | grep -E "(Performance|Latency)"
+
+# Save full test session log
+adb logcat > test_session_$(date +%Y%m%d_%H%M%S).log
+```
+
+#### B. Performance Monitor Utility
+**File**: `app/src/utils/performanceMonitor.ts` (new file)
+
+```typescript
+interface PerformanceMetric {
+  operation: string;
+  startTime: number;
+  endTime: number;
+  metadata?: Record<string, any>;
+}
+
+class PerformanceMonitor {
+  private metrics: PerformanceMetric[] = [];
+  private maxMetrics = 100; // Keep last 100 measurements
+  
+  startTiming(operation: string): number {
+    const startTime = Date.now();
+    console.log(`[PERF] Starting ${operation}`);
+    return startTime;
+  }
+  
+  endTiming(operation: string, startTime: number, metadata?: Record<string, any>): void {
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    console.log(`[PERF] ${operation} completed in ${duration}ms`, metadata);
+    
+    this.metrics.push({
+      operation,
+      startTime,
+      endTime,
+      metadata
+    });
+    
+    // Keep only recent metrics
+    if (this.metrics.length > this.maxMetrics) {
+      this.metrics.shift();
+    }
+  }
+  
+  getAverageTime(operation: string): number {
+    const operationMetrics = this.metrics.filter(m => m.operation === operation);
+    
+    if (operationMetrics.length === 0) return 0;
+    
+    const totalTime = operationMetrics.reduce((sum, m) => sum + (m.endTime - m.startTime), 0);
+    return totalTime / operationMetrics.length;
+  }
+  
+  logSummary(): void {
+    const operations = [...new Set(this.metrics.map(m => m.operation))];
+    
+    console.log('[PERF] Performance Summary:');
+    operations.forEach(operation => {
+      const avgTime = this.getAverageTime(operation);
+      console.log(`  ${operation}: ${avgTime.toFixed(1)}ms average`);
+    });
+  }
+}
+
+export const performanceMonitor = new PerformanceMonitor();
+
+// Usage example in RecognitionScreen:
+// const startTime = performanceMonitor.startTiming('gesture_classification');
+// const result = await classifyGesture(landmarks);
+// performanceMonitor.endTiming('gesture_classification', startTime, { confidence: result.confidence });
+```
+
+---
+
+## Implementation Checklist
+
+### Week 1: Core Classification
+- [x] Create `app/src/ml/gestureClassifier.ts` with TensorFlow Lite integration
+- [x] Modify `app/src/hooks/useTensorflowModel.ts` to include gesture classification
+- [x] Update `app/src/screens/RecognitionScreen.tsx` to use local gesture classification
+- [ ] Test basic gesture recognition on device
+
+### Week 2: Hybrid System
+- [x] Implement hybrid recognition logic in `app/src/screens/RecognitionScreen.tsx`
+- [x] Add cloud fallback with AbortController-based timeout handling
+- [ ] Test local-first, centroid-then-cloud behavior
+- [ ] Validate recognition accuracy improves with hybrid approach
+
+### Week 3: UI & Feedback
+- [ ] Add confidence-based visual feedback in UI
+- [ ] Implement uncertainty state and correction triggers
+- [ ] Style confidence indicators and status messages
+- [ ] Test user experience with different confidence levels
+
+### Week 4: Updates & Testing
+- [x] Create `app/src/services/modelUpdateService.ts` for model downloads
+- [x] Integrate model updates with app startup
+- [x] Write comprehensive unit and integration tests
+- [x] Create device testing protocol and run full validation
+
+### Success Metrics
+- [ ] **Accuracy**: >80% correct recognition on clear gestures
+- [ ] **Speed**: <200ms local classification, <2s cloud fallback
+- [ ] **Reliability**: No crashes during 5-minute continuous use
+- [ ] **User Experience**: Clear feedback when uncertain, smooth recognition flow
+
+---
 ## 🚀 PRIORITY 5: Production Readiness
 
 ### Deployment & Distribution
@@ -635,7 +1105,7 @@ After gesture recognition is solid:
 
 ## 🎯 SUCCESS METRICS
 
-### Technical Metrics
+### Technical Metrics (Stretch)
 - Gesture recognition accuracy > 95%
 - App response time < 200ms
 - Offline functionality 100% available
