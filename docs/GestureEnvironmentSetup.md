@@ -1,6 +1,6 @@
 # Gesture Environment Setup
 
-This guide explains how to prepare the gesture recognition environment for Amy's Echo. It covers downloading the default MediaPipe models and where to place them so the app can load them.
+This guide explains how to prepare the gesture recognition environment for Amy's Echo. The current implementation uses a **WebView** with MediaPipe for hand landmark detection and relies on a **server‑side classifier**. No TensorFlow Lite models are bundled with the mobile app.
 
 ## Prerequisites
 
@@ -17,35 +17,27 @@ npm install --prefix server
 pip install -r server/requirements.txt
 ```
 
-## Download default models
+## Download server model
 
-The app relies on two TensorFlow Lite models:
-
-- `hand_landmarker.tflite`
-- `gesture_classifier.tflite`
-
-They should live under `app/assets/models/`. The repository includes a helper script that downloads the latest versions from Google MediaPipe and saves them to that directory.
-
-From the repository root run:
+The server requires MediaPipe's `gesture_recognizer.task` file for classification. Download it into `server/models/`:
 
 ```bash
-npm run build --prefix server
-node server/dist/tools/downloadModels.js
+npm run download-gesture-task --prefix server
 ```
 
-If the files already exist you can skip this step.
+If the file already exists you can skip this step.
 
-## Verify the assets
+## Verify the asset
 
-After the download, confirm the files are present:
+After the download, confirm the file is present:
 
 ```bash
-ls app/assets/models
+ls server/models
 ```
 
-You should see `gesture_classifier.tflite`, `hand_landmarker.tflite`, and `gesture_labels.json`.
+You should see `gesture_recognizer.task`.
 
 ## Next steps
 
-With the models in place you can launch the app with `npm run ios` or `npm run android` from the `app` directory. For details on the WebView-based recognition pipeline, see [`docs/ExpoGestureRecognition.md`](./ExpoGestureRecognition.md).
+With the server model in place you can launch the app with `npm run ios` or `npm run android` from the `app` directory. For details on the WebView-based recognition pipeline, see [`docs/ExpoGestureRecognition.md`](./ExpoGestureRecognition.md).
 

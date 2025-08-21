@@ -4,7 +4,7 @@ This document records the major architectural choices made for Amy's Echo.
 
 ## Hybrid-First Recognition
 - **Decision**: Use a hybrid online/offline gesture recognition pipeline.
-- **Rationale**: Online services provide higher accuracy and faster iteration, while an on-device TensorFlow Lite model guarantees functionality without network access.
+- **Rationale**: Online services provide higher accuracy and faster iteration, while a WebView-based detector with a small rule-based classifier ensures functionality without network access.
 - **Consequences**: The app must seamlessly switch between modes within 400 ms and always maintain an offline fallback to protect the user experience.
 
 ## Technology Stack

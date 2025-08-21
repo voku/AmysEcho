@@ -20,15 +20,15 @@ The logger automatically filters output by build type and keeps the console cons
 
 ## 2. Pass errors through callbacks
 
-Hooks such as `useGestureClassifier` accept an optional `onError` callback. The hook invokes the callback whenever a processing failure occurs, allowing screens to react:
+Components such as `MediaPipeGestureDetector` accept an `onError` callback. The component invokes the callback whenever the WebView reports a problem, allowing screens to react:
 
-```ts
+```tsx
 const handleError = (msg: string) => {
-  logger.warn('Frame processor error:', msg);
+  logger.warn('Gesture detector error:', msg);
   setProcessingError(msg);
 };
 
-const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, handleError);
+<MediaPipeGestureDetector onGestureDetected={onGestureResult} onError={handleError} />
 ```
 
 ## 3. Display a friendly message
