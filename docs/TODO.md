@@ -273,6 +273,7 @@ Create a unified recognition flow: try on-device first, fall back to cloud when 
 
 ```typescript
 import { centroidClassifier } from '../ml/centroidClassifier';
+import { LOCAL_CONFIDENCE_THRESHOLD } from '../config/recognition';
 
 // Add these interfaces
 interface RecognitionResult {
@@ -281,8 +282,6 @@ interface RecognitionResult {
   source: 'local' | 'cloud' | 'centroid';
 }
 
-// Add configuration constants
-export const LOCAL_CONFIDENCE_THRESHOLD = 0.7;
 const CLOUD_FALLBACK_TIMEOUT = 2000; // 2 seconds
 
 // Add hybrid recognition function
@@ -299,9 +298,19 @@ const recognizeGesture = useCallback(async (landmarks: number[]): Promise<Recogn
     };
   }
 
-  // Step 2: Local confidence too low, try cloud
+  // Step 2: Local confidence too low, try centroid
+  const centroidResult = centroidClassifier.classify(landmarks);
+  if (centroidResult && centroidResult.confidence >= LOCAL_CONFIDENCE_THRESHOLD) {
+    return {
+      gesture: centroidResult.label,
+      confidence: centroidResult.confidence,
+      source: 'centroid'
+    };
+  }
+
+  // Step 3: Still uncertain – try cloud
   try {
-    console.log('Local confidence low, trying cloud...');
+    console.log('Local+centroid uncertain, trying cloud...');
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CLOUD_FALLBACK_TIMEOUT);
@@ -330,16 +339,6 @@ const recognizeGesture = useCallback(async (landmarks: number[]): Promise<Recogn
     console.warn('Cloud recognition failed:', error);
   }
 
-  // Step 3: Cloud unreachable or uncertain – fallback to centroid classifier
-  const centroidResult = centroidClassifier.classify(landmarks);
-  if (centroidResult) {
-    return {
-      gesture: centroidResult.label,
-      confidence: centroidResult.confidence,
-      source: 'centroid'
-    };
-  }
-
   // Step 4: Still nothing – signal uncertainty
   return null;
 }, [classifyGesture]);
@@ -352,27 +351,28 @@ const handleFrame = useCallback(async (frame: any) => {
   
   try {
     const landmarks = await processFrame(frame);
-    
-    if (landmarks && landmarks.length > 0) {
-      const result = await recognizeGesture(landmarks);
-      
-      if (result) {
-        setCurrentGesture(result.gesture);
-        setGestureConfidence(result.confidence);
-        
-        // Visual feedback based on source
-        if (result.source === 'local') {
-          console.log('✓ Local recognition:', result.gesture);
-        } else if (result.source === 'cloud') {
-          console.log('☁ Cloud recognition:', result.gesture);
-        } else {
-          console.log('🔶 Centroid recognition:', result.gesture);
-        }
+    if (!landmarks || landmarks.length === 0) {
+      return;
+    }
+
+    const result = await recognizeGesture(landmarks);
+
+    if (result) {
+      setCurrentGesture(result.gesture);
+      setGestureConfidence(result.confidence);
+
+      // Visual feedback based on source
+      if (result.source === 'local') {
+        console.log('✓ Local recognition:', result.gesture);
+      } else if (result.source === 'cloud') {
+        console.log('☁ Cloud recognition:', result.gesture);
       } else {
-        // No recognition - show uncertainty
-        setCurrentGesture('uncertain');
-        setGestureConfidence(0);
+        console.log('🔶 Centroid recognition:', result.gesture);
       }
+    } else {
+      // No recognition - show uncertainty
+      setCurrentGesture('uncertain');
+      setGestureConfidence(0);
     }
   } finally {
     setIsProcessing(false);
@@ -454,7 +454,7 @@ const getStatusColor = () => {
 
 // In the render section, add confidence indicator
 <View style={styles.statusContainer}>
-  <Text style={[styles.statusText, { color: getStatusColor() }]}>
+  <Text testID="current-gesture" style={[styles.statusText, { color: getStatusColor() }]}>
     {getStatusMessage()}
   </Text>
   
@@ -1008,15 +1008,15 @@ export const performanceMonitor = new PerformanceMonitor();
 ## Implementation Checklist
 
 ### Week 1: Core Classification
-- [x] Create `app/src/services/gestureClassifier.ts` with TensorFlow Lite integration
-- [x] Expose on-device classifier via `useGestureClassifier` in `app/src/services/mlService.ts`
-- [x] Update `RecognitionScreen.tsx` to use local gesture classification
+- [x] Create `app/src/ml/gestureClassifier.ts` with TensorFlow Lite integration
+- [x] Modify `app/src/hooks/useTensorflowModel.ts` to include gesture classification
+- [x] Update `app/src/screens/RecognitionScreen.tsx` to use local gesture classification
 - [ ] Test basic gesture recognition on device
 
 ### Week 2: Hybrid System
-- [x] Implement hybrid recognition logic in `mlService.ts` and `RecognitionScreen.tsx`
+- [x] Implement hybrid recognition logic in `app/src/screens/RecognitionScreen.tsx`
 - [x] Add cloud fallback with AbortController-based timeout handling
-- [ ] Test local-first, cloud-fallback behavior
+- [ ] Test local-first, centroid-then-cloud behavior
 - [ ] Validate recognition accuracy improves with hybrid approach
 
 ### Week 3: UI & Feedback
@@ -1026,7 +1026,7 @@ export const performanceMonitor = new PerformanceMonitor();
 - [ ] Test user experience with different confidence levels
 
 ### Week 4: Updates & Testing
-- [x] Create `app/src/services/modelUpdate.ts` for model downloads
+- [x] Create `app/src/services/modelUpdateService.ts` for model downloads
 - [x] Integrate model updates with app startup
 - [x] Write comprehensive unit and integration tests
 - [x] Create device testing protocol and run full validation
