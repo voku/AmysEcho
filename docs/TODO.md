@@ -52,7 +52,7 @@ _Last updated: 2025-08-21_
 - [x] Serve gesture_recognizer.task at `/static/models/gesture_recognizer.task`.
 - [x] Proxy/cache MediaPipe Tasks Vision assets at `/static/mediapipe/tasks-vision/<version>/...`.
 - [x] Prewarm `vision_bundle.mjs` and a common WASM file on server start.
-- [ ] Prewarm all WASM variants by parsing the bundle or logging first-hit filenames.
+- [x] Prewarm all WASM variants by parsing the bundle or logging first-hit filenames.
 
 ## Telemetry & Observability
 
