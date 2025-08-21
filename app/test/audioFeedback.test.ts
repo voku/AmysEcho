@@ -38,9 +38,11 @@ jest.mock('../db', () => ({
   Symbol: class {},
 }));
 
-import { audioService } from '../src/services/audioService';
+import { audioService } from '../src/services';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
+import * as FileSystem from 'expo-file-system';
+import { database } from '../db';
 
 describe('audioService feedback', () => {
   const soundMock = () => ({
@@ -63,15 +65,15 @@ describe('audioService feedback', () => {
     (audioService as any).speechQueue = [];
   });
 
-  it('plays success sound before speech with haptic feedback', async () => {
-    await audioService.playSuccessFeedback('Hallo', 1);
+  it('plays success sound and speaks guidance when confidence is low', async () => {
+    await audioService.playSuccessFeedback('Hallo', 0.8);
 
     const successSound = (audioService as any).sounds.get('success');
     const confirmationSound = (audioService as any).sounds.get('confirmation');
     expect(successSound.play).toHaveBeenCalled();
     expect(confirmationSound.play).toHaveBeenCalled();
     expect(Speech.speak).toHaveBeenCalledWith(
-      'Hallo',
+      'Ich denke, du meinst: Hallo',
       expect.objectContaining({ pitch: 1.1, rate: 0.8 })
     );
     expect(Haptics.notificationAsync).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
@@ -97,6 +99,22 @@ describe('audioService feedback', () => {
       'Lass uns Winken nochmal versuchen!',
       'Wie wäre es mit etwas Übung für Winken?',
     ]).toContain(phrase);
+  });
+
+  it('plays pre-recorded audio when available', async () => {
+    const findMock = jest.fn().mockResolvedValue({ audioUri: '/doc/sounds/papa.mp3' });
+    const originalGet = database.get;
+    (database as any).get = jest.fn(() => ({ find: findMock }));
+    (FileSystem.getInfoAsync as jest.Mock).mockResolvedValue({ exists: true });
+    const customSpy = jest.spyOn(audioService, 'playCustomAudio').mockResolvedValue();
+
+    await audioService.playSuccessFeedback('papa', 1);
+
+    expect(customSpy).toHaveBeenCalledWith('/doc/sounds/papa.mp3');
+    expect(Speech.speak).not.toHaveBeenCalled();
+
+    (database as any).get = originalGet;
+    customSpy.mockRestore();
   });
 });
 
