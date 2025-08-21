@@ -54,24 +54,26 @@ Screens that perform recognition use the `useGestureClassifier` hook from `app/s
 Example from `RecognitionScreen.tsx`:
 
 ```typescript
+import { CONFIDENCE_THRESHOLD } from '../constants';
 const [processingError, setProcessingError] = useState<string | null>(null);
+const baseThreshold = CONFIDENCE_THRESHOLD; // global default; per-gesture overrides are applied internally
 
 const onGestureResult = useCallback(async (result: any) => {
   if (isProcessing) return;
 
-  if (result && result.label && result.label !== 'uncertain' && result.confidence > 0.7) {
+  if (result && result.label && result.label !== 'uncertain' && result.confidence > baseThreshold) {
     // ... handle recognized gesture ...
   } else if (result && result.label === 'uncertain') {
     setStatus("I didn't understand. Please try again.");
   }
-}, [isProcessing, useDgs, profile, startFeedbackAnimation]);
+}, [isProcessing, useDgs, profile, baseThreshold, startFeedbackAnimation]);
 
 const handleError = (msg: string) => {
   logger.warn('Frame processor error:', msg);
   setProcessingError(msg);
 };
 
-const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, 0.7, handleError);
+const frameProcessor = useGestureClassifier(onGestureResult, isProcessing, baseThreshold, handleError);
 ```
 
 Attach the frame processor to the camera component:
@@ -92,29 +94,82 @@ Use the `ErrorMessage` component to surface processing issues to the user:
 <ErrorMessage message={processingError} />
 ```
 
-## 4. Offline Fallback Logic
+## 4. Confidence Calibration
 
-`mlService` first attempts remote classification with a short timeout. If that fails, it falls back to the local model:
+### Adaptive Threshold Lookup
 
-```typescript
-result = await Promise.race([
-  this.classifyRemotely(processed),
-  new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Remote timeout')), this.remoteTimeout)),
-]);
+After each classification, the service looks up a gesture-specific confidence
+threshold. Thresholds are stored in `WatermelonDB` and scoped per profile. To
+avoid repeated queries, results are cached briefly in-memory. The TTL is
+controlled by `CALIBRATION_CACHE_TTL_MS` (default `1000` ms) and writes to
+`WatermelonDB` invalidate the corresponding `gesture+profile` cache key. If a
+custom value is unavailable, the service falls back to a global default defined
+centrally (the `CONFIDENCE_THRESHOLD` constant) to keep behavior consistent.
 
-if (!result) {
-  const tensor = this.prepareTensorInput(processed);
-  const output = this.gestureModel.runSync([tensor]) as any[];
-  const { gesture, confidence } = this.processModelOutput(output[0] as number[]);
-  result = { label: gesture, confidence, isLocal: true, timestamp: Date.now(), suggestions: [], requiresConfirmation: confidence < this.confidenceThreshold };
+### Softmax Temperature Scaling
+
+Local inference applies a configurable softmax temperature before computing the
+final probabilities. Lower temperatures sharpen predictions while higher
+temperatures produce a softer distribution. Configured via
+`EXPO_PUBLIC_SOFTMAX_TEMPERATURE` (default `1.0`), `T` is clamped to `[0.01, 5.0]`
+at startup. Temperature scaling is applied before evaluating confidence
+thresholds: probabilities are computed as `softmax(logits / T)`. Setting
+`T = 1.0` reproduces baseline logits; values in the 0.7–1.5 range are typical in
+production.
+
+## 5. Remote Classification & Offline Fallback
+
+`mlService` optimistically attempts a cloud lookup. Each request is wrapped in
+an `AbortController` whose `signal` is passed to `fetch`. A timer based on
+`REMOTE_TIMEOUT_MS` (400 ms by default, configurable via
+`EXPO_PUBLIC_REMOTE_TIMEOUT_MS`) aborts the call if the server does not respond
+in time. Non-OK responses or aborts trip a short circuit breaker to avoid rapid
+retries. The breaker exposes `REMOTE_FAILURE_THRESHOLD` (default `3`), an open
+duration `REMOTE_RETRY_MS` (30 s by default), and `REMOTE_SUCCESS_THRESHOLD`
+(`2`) before closing, allowing operators to tune retry/backoff behavior.
+
+```ts
+const ac = new AbortController();
+const id = setTimeout(() => ac.abort(), REMOTE_TIMEOUT_MS); // from EXPO_PUBLIC_REMOTE_TIMEOUT_MS
+try {
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    signal: ac.signal,
+  });
+  if (!res.ok) throw new Error(`HTTP_${res.status}`);
+  breaker.onSuccess();
+  return await res.json();
+} catch (err) {
+  breaker.onFailure(err);
+  return localPrediction;
+} finally {
+  clearTimeout(id);
 }
 ```
 
-This ensures quick responsiveness even without connectivity.
+Whenever the remote path fails, `mlService` reuses the local predictions so the
+user still receives a result even when offline.
 
-## 5. Data Collection and Training
+## 6. Profile ID Propagation
 
-Caregivers can record samples on `TrainingScreen.tsx`. Landmarks are extracted from recorded videos and stored in WatermelonDB. When the device syncs, these samples are uploaded to the server, where `server/src/train.py` trains a personalized model:
+The active profile is set when a user begins a session and is passed to
+`mlService.setProfileId`. The service caches the value so both paths remain
+profile-aware:
+
+- **Local path** – adaptive threshold lookups query `WatermelonDB` using the
+  current `profileId`.
+- **Remote path** – the `profileId` is included in the JSON payload sent to the
+  server, keeping analytics and model personalization scoped to the correct
+  profile.
+
+`profileId` is a UUID or similarly opaque identifier—never user-entered text.
+All network calls are HTTPS-only, and application logs redact `profileId`.
+See our [privacy policy](../PrivacyPolicy.md) for details.
+
+## 7. Data Collection and Training
+
+Caregivers can record samples on `TrainingScreen.tsx`. Landmarks are extracted from recorded videos and stored in `WatermelonDB`. When the device syncs, these samples are uploaded to the server, where `server/src/train.py` trains a personalized model:
 
 ```python
 model = tf.keras.Sequential([
@@ -128,6 +183,37 @@ model = tf.keras.Sequential([
 ```
 
 The server converts the trained model to `.tflite` and makes it available via the `/latest-model` endpoint. The app downloads this file and `loadCustomModelUri` returns its path for future sessions.
+
+## 8. Implementation Plan for On‑Device Recognition
+
+Note: The current production flow is remote‑first (see §5). The items below
+outline a future local‑first roadmap. To support reliable use in classrooms and
+other network‑constrained spaces, the following roadmap adds a robust local
+pipeline:
+
+1. **Gesture Classifier Module** – create `app/src/ml/gestureClassifier.ts` to
+   convert landmarks into gesture labels and confidence scores.
+2. **TensorFlow Hook Integration** – expose the classifier through
+   `useTensorflowModel.ts` so screens can call `classifyGesture` after landmark
+   extraction.
+3. **Hybrid Recognition Flow** – update `RecognitionScreen.tsx` to perform
+   local classification first and fall back to the cloud when confidence drops
+   below the adaptive per‑gesture threshold. Optionally gate cloud calls with
+   `REMOTE_TRIGGER_DELTA` to require a margin before invoking the server.
+4. **Confidence‑Based UI** – display status messages and a confidence bar,
+   triggering correction flows when uncertainty is high.
+5. **Model Update Service** – add `modelUpdateService.ts` to download newer
+   `.tflite` models and swap them in at startup.
+6. **Testing & Device Protocols** – add unit/integration tests for the classifier
+   and document manual device testing in `docs/GestureRecognitionTesting.md`.
+  - Validate adaptive thresholds: per‑profile overrides, DB miss → global default,
+    cache expiry honoring `CALIBRATION_CACHE_TTL_MS`, and cache invalidation on writes.
+  - Temperature scaling: `T` at min/max clamps and `T = 1.0` baseline equivalence.
+  - Remote path: timeout/`AbortError` handling, non‑OK responses, and
+    circuit‑breaker open/half‑open/close transitions.
+  - Offline mode: ensure local predictions are returned when remote is
+    unavailable.
+  - Persistence: thresholds survive app restarts with `WatermelonDB` as source of truth.
 
 ---
 
