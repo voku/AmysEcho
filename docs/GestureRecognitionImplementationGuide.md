@@ -100,21 +100,22 @@ Use the `ErrorMessage` component to surface processing issues to the user:
 
 After each classification, the service looks up a gesture-specific confidence
 threshold. Thresholds are stored in `WatermelonDB` and scoped per profile. To
-avoid repeated queries, results are cached briefly in-memory. The cache uses a
-short TTL (≈1 s) to ensure fresh thresholds after updates. If a custom value is
-unavailable, the service falls back to a global default defined centrally (the
-`CONFIDENCE_THRESHOLD` constant) to keep behavior consistent.
+avoid repeated queries, results are cached briefly in-memory. The TTL is
+controlled by `CALIBRATION_CACHE_TTL_MS` (default `1000` ms) and writes to
+`WatermelonDB` invalidate the corresponding `gesture+profile` cache key. If a
+custom value is unavailable, the service falls back to a global default defined
+centrally (the `CONFIDENCE_THRESHOLD` constant) to keep behavior consistent.
 
 ### Softmax Temperature Scaling
 
 Local inference applies a configurable softmax temperature before computing the
 final probabilities. Lower temperatures sharpen predictions while higher
-temperatures produce a softer distribution. The value is supplied at startup and
-clamped to avoid invalid inputs. We apply temperature scaling before evaluating
-confidence thresholds: probabilities are computed as
-`softmax(logits / T)`, where `T` is the configured temperature. Inputs are
-clamped to a minimum of `0.01` and default to `1.0`; values in the 0.7–1.5
-range are typical in production.
+temperatures produce a softer distribution. Configured via
+`EXPO_PUBLIC_SOFTMAX_TEMPERATURE` (default `1.0`), `T` is clamped to `[0.01, 5.0]`
+at startup. Temperature scaling is applied before evaluating confidence
+thresholds: probabilities are computed as `softmax(logits / T)`. Setting
+`T = 1.0` reproduces baseline logits; values in the 0.7–1.5 range are typical in
+production.
 
 ## 5. Remote Classification & Offline Fallback
 
@@ -123,11 +124,32 @@ an `AbortController` whose `signal` is passed to `fetch`. A timer based on
 `REMOTE_TIMEOUT_MS` (400 ms by default, configurable via
 `EXPO_PUBLIC_REMOTE_TIMEOUT_MS`) aborts the call if the server does not respond
 in time. Non-OK responses or aborts trip a short circuit breaker to avoid rapid
-retries. The breaker exposes a failure threshold (default `3`), an open duration
-(`REMOTE_RETRY_MS`, 30 s by default), and a success threshold to close (default
-`2`), allowing operators to tune retry/backoff behavior. Whenever the remote path
-fails, `mlService` reuses the local predictions so the user still receives a
-result even when offline.
+retries. The breaker exposes `REMOTE_FAILURE_THRESHOLD` (default `3`), an open
+duration `REMOTE_RETRY_MS` (30 s by default), and `REMOTE_SUCCESS_THRESHOLD`
+(`2`) before closing, allowing operators to tune retry/backoff behavior.
+
+```ts
+const ac = new AbortController();
+const id = setTimeout(() => ac.abort(), REMOTE_TIMEOUT_MS); // from EXPO_PUBLIC_REMOTE_TIMEOUT_MS
+try {
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    signal: ac.signal,
+  });
+  if (!res.ok) throw new Error(`HTTP_${res.status}`);
+  breaker.onSuccess();
+  return await res.json();
+} catch (err) {
+  breaker.onFailure(err);
+  return localPrediction;
+} finally {
+  clearTimeout(id);
+}
+```
+
+Whenever the remote path fails, `mlService` reuses the local predictions so the
+user still receives a result even when offline.
 
 ## 6. Profile ID Propagation
 
@@ -140,6 +162,10 @@ profile-aware:
 - **Remote path** – the `profileId` is included in the JSON payload sent to the
   server, keeping analytics and model personalization scoped to the correct
   profile.
+
+`profileId` is a UUID or similarly opaque identifier—never user-entered text.
+All network calls are HTTPS-only, and application logs redact `profileId`.
+See our [privacy policy](../PrivacyPolicy.md) for details.
 
 ## 7. Data Collection and Training
 
@@ -160,8 +186,10 @@ The server converts the trained model to `.tflite` and makes it available via th
 
 ## 8. Implementation Plan for On‑Device Recognition
 
-To support reliable use in classrooms and other network‑constrained spaces, the
-following roadmap adds a robust local pipeline:
+Note: The current production flow is remote‑first (see §5). The items below
+outline a future local‑first roadmap. To support reliable use in classrooms and
+other network‑constrained spaces, the following roadmap adds a robust local
+pipeline:
 
 1. **Gesture Classifier Module** – create `app/src/ml/gestureClassifier.ts` to
    convert landmarks into gesture labels and confidence scores.
@@ -170,21 +198,22 @@ following roadmap adds a robust local pipeline:
    extraction.
 3. **Hybrid Recognition Flow** – update `RecognitionScreen.tsx` to perform
    local classification first and fall back to the cloud when confidence drops
-   below a threshold.
+   below the adaptive per‑gesture threshold. Optionally gate cloud calls with
+   `REMOTE_TRIGGER_DELTA` to require a margin before invoking the server.
 4. **Confidence‑Based UI** – display status messages and a confidence bar,
    triggering correction flows when uncertainty is high.
 5. **Model Update Service** – add `modelUpdateService.ts` to download newer
    `.tflite` models and swap them in at startup.
 6. **Testing & Device Protocols** – add unit/integration tests for the classifier
    and document manual device testing in `docs/GestureRecognitionTesting.md`.
-   - Validate adaptive thresholds: per‑profile overrides, DB miss → global default,
-     cache expiry.
-   - Temperature scaling: `T` at min/max clamps and `T = 1.0` baseline equivalence.
-   - Remote path: timeout/`AbortError` handling, non‑OK responses, and
-     circuit‑breaker open/half‑open/close transitions.
-   - Offline mode: ensure local predictions are returned when remote is
-     unavailable.
-   - Regression tests for threshold changes across app restarts (DB as source of truth).
+  - Validate adaptive thresholds: per‑profile overrides, DB miss → global default,
+    cache expiry honoring `CALIBRATION_CACHE_TTL_MS`, and cache invalidation on writes.
+  - Temperature scaling: `T` at min/max clamps and `T = 1.0` baseline equivalence.
+  - Remote path: timeout/`AbortError` handling, non‑OK responses, and
+    circuit‑breaker open/half‑open/close transitions.
+  - Offline mode: ensure local predictions are returned when remote is
+    unavailable.
+  - Persistence: thresholds survive app restarts with `WatermelonDB` as source of truth.
 
 ---
 
