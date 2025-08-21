@@ -11,13 +11,13 @@ This guide lists common issues encountered when setting up or running **Amy's Ec
   ```
 - If the metro bundler does not start, run `npm start --prefix app` manually.
 
-## Models fail to download
-- Run the model download script again:
+## Gesture task download fails
+- Run the download script again:
   ```bash
   npm run build --prefix server
-  node server/dist/tools/downloadModels.js
+  npm run download-gesture-task --prefix server
   ```
-- Confirm that the device has enough storage space.
+- Confirm the server has network access and write permission to `server/models`.
 
 ## Camera or microphone not working
 - Verify that permissions are granted in the device settings.

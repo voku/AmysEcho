@@ -9,12 +9,16 @@ This guide helps caregivers get Amy's Echo running and begin supporting a child'
    npm install --prefix app
    npm install --prefix server
    ```
-2. Download the default gesture models so the recognizer works offline:
+2. Build the backend and download the gesture model it serves:
    ```bash
    npm run build --prefix server
-   node server/dist/tools/downloadModels.js
+   npm run download-gesture-task --prefix server
    ```
-3. Start the app:
+3. Start the backend server:
+   ```bash
+   API_TOKEN=<secret> npm start --prefix server
+   ```
+4. Start the app:
    ```bash
    npm run android --prefix app   # or `npm run ios --prefix app`
    ```

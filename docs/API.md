@@ -199,8 +199,8 @@ Retrieve stored analytics summary.
 }
 ```
 
-### POST /classify
-Classify a gesture from raw landmarks. Falls back to cloud recognition when the local model is unavailable.
+### POST /api/classify-landmarks
+Send an array of 21 hand landmarks for server-side classification. The server forwards the landmarks to a cloud model and falls back to a lightweight local classifier if the request fails.
 
 **Body**
 ```json
@@ -209,6 +209,19 @@ Classify a gesture from raw landmarks. Falls back to cloud recognition when the 
 
 **Response**
 ```json
-{ "label": "wave", "confidence": 0.92 }
+{ "label": "wave", "confidence": 0.92, "processedBy": "cloud" }
+```
+
+### POST /classify
+Legacy endpoint that first attempts classification with a local model and then falls back to the remote pipeline. New clients should use `/api/classify-landmarks`.
+
+**Body**
+```json
+{ "landmarks": [...] }
+```
+
+**Response**
+```json
+{ "label": "wave", "confidence": 0.92, "processedBy": "local" }
 ```
 
