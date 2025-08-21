@@ -56,7 +56,7 @@ Amy's Echo is a multimodal communication platform for non-verbal children. The p
 | App Framework     | React Native (CLI)            | Cross-platform + native module access             |
 | Language          | TypeScript (strict mode)      | Predictable, type-safe code                       |
 | Camera            | `react-native-vision-camera`  | High-performance gesture capture                  |
-| ML Inference      | `react-native-fast-tflite`    | Local fallback via TensorFlow Lite                |
+| ML Inference      | `react-native-webview` + MediaPipe Tasks JS (locally served) | On-device hand landmarks + gestures via WASM |
 | Cloud ML          | Custom API / OpenAI           | Accurate gesture classification & dialog          |
 | UI/UX             | RN Animated API + Skia (opt.) | Gentle, trust-based feedback                      |
 | Audio             | `expo-audio`, `expo-speech`   | Speech output + sound effects                     |
@@ -71,8 +71,16 @@ Amy's Echo is a multimodal communication platform for non-verbal children. The p
 5. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 6. Alternatively, run `./scripts/full-check.sh` from the repo root to run all checks at once, including Expo dependency checks
 
+### MediaPipe Assets Hosting
+
+- The backend serves the MediaPipe Tasks model at `/static/models/gesture_recognizer.task` (place the file under `server/models/` or set `GESTURE_TASK_PATH`).
+- The backend proxies and caches MediaPipe Tasks Vision assets (JS/WASM) under `/static/mediapipe/tasks-vision/<version>/...` to avoid direct CDN usage from the app.
+- The app’s WebView imports `vision_bundle.mjs` and the WASM directory from these local endpoints.
+
 ### Backend
 
 - Start the server: `npm run build && node dist/server.js`
-- Retrain offline model: `npm run build && node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json dist/metrics.json [seed]`
+- Place `gesture_recognizer.task` under `server/models` (or provide `GESTURE_TASK_PATH`).
+- The server will prewarm the Tasks Vision bundle into `server/.cache` on startup.
+- Retrain offline model (deprecated in WebView path): `npm run build && node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json dist/metrics.json [seed]`
 - Update analytics: `npm run build && node dist/tools/updateAnalytics.js <path/to/db.json>`

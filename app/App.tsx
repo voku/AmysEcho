@@ -12,7 +12,6 @@ import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/stor
 import RootNavigator from './src/navigation/RootNavigator';
 import { COLORS } from './src/constants/ui';
 import { logger } from './src/utils/logger';
-import { useAmyGestureModel } from './src/ml/tfliteRuntime';
 import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashReporting';
 // Model updates are coordinated by AppServicesProvider
 
@@ -26,8 +25,7 @@ export default function App() {
     highContrast: false,
   });
 
-  // Load gesture model once and expose global inference for worklets
-  useAmyGestureModel(require('./assets/models/gesture_classifier.tflite'));
+  // ML models are initialized in AppServicesProvider; avoid duplicate native loads here
 
   useEffect(() => {
     async function initialize() {

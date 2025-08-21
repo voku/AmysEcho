@@ -39,7 +39,7 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 | App Framework | React Native (CLI)            | Cross-platform + native module access  |
 | Language      | TypeScript (strict mode)      | Predictable, type-safe code            |
 | Camera        | `react-native-vision-camera`  | High-performance gesture capture       |
-| ML Inference  | `react-native-fast-tflite`    | Local fallback via TensorFlow Lite     |
+| ML Inference  | `react-native-webview`        | Landmark detection via MediaPipe in WebView |
 | Cloud ML      | Custom API                    | Accurate gesture classification        |
 | UI/UX         | RN Animated API + Skia (opt.) | Gentle, trust-based feedback           |
 | Audio         | `expo-audio`, `expo-speech`   | Speech output + sound effects          |

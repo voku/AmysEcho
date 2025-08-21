@@ -1,35 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Button, StyleSheet, AppState, SafeAreaView } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
-import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
+// Camera preview replaced by MediaPipe WebView detector
 import Svg, { Circle } from 'react-native-svg';
 import { saveTrainingSample, loadProfile, Profile } from '../storage';
 import { sendDgsSample } from '../services/dgsTrainingService';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { useRecordingProcessor, audioService } from '../services';
-import * as FileSystem from 'expo-file-system';
-import { recognizeGestureRemotely } from '../services/remoteGestureRecognitionService';
+import { audioService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
-import { useTensorflowModel } from '../hooks/useTensorflowModel';
-import { HAND_LANDMARKER_MODEL } from '../constants/modelPaths';
-import { setHandLandmarkModel } from '../services/landmarkExtractor';
+// Local TFLite landmark detection removed; relies on server fallback below.
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
+import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const PREVIEW_SIZE = 200;
   const { gestureLabel, isPractice } = route.params || {};
-  // Prefer the back camera but fall back to front if unavailable
-  const backCamera = useCameraDevice('back');
-  const frontCamera = useCameraDevice('front');
-  const device = backCamera ?? frontCamera;
-  const camRef = useRef<Camera>(null);
-  const { hasPermission, requestPermission } = useCameraPermissionStatus();
+  // No camera ref needed; WebView handles its own camera
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -45,16 +36,12 @@ export default function TrainingScreen({ navigation, route }: any) {
   useEffect(() => {
     setMessage(error);
   }, [error, setMessage]);
-  const { model: landmarkModel } = useTensorflowModel(HAND_LANDMARKER_MODEL);
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 
-  useEffect(() => {
-    setHandLandmarkModel(landmarkModel || null);
-    return () => setHandLandmarkModel(null);
-  }, [landmarkModel]);
+  // No-op: local landmark model removed.
 
   const isFocused = useIsFocused();
   const [appState, setAppState] = useState(AppState.currentState);
@@ -77,54 +64,11 @@ export default function TrainingScreen({ navigation, route }: any) {
       });
   }, []);
 
-  const canUseCamera =
-    hasPermission && device != null && isFocused && appState === 'active';
   const detectionActive = now - lastDetection < 1000;
 
-  const recordingProcessor = useRecordingProcessor((lm) => {
-    setLandmarks(lm);
-    setLastDetection(Date.now());
-    if (isRecordingRef.current) {
-      setRecordedLandmarks((prev) => [...prev, lm]);
-      setFramesCaptured((c) => c + 1);
-    }
-  }, isRecording);
+  // Local frame processor removed; remote fallback below now drives landmark updates.
 
-  // Remote fallback: if no local detections, periodically sample via server
-  useEffect(() => {
-    const id = setInterval(async () => {
-      if (!canUseCamera || !device) return;
-      // If we recently had a detection, skip
-      if (Date.now() - lastDetection < 900) return;
-      try {
-        // Take a small snapshot and send to server
-        const camera = camRef.current as any;
-        if (!camera || !camera.takeSnapshot) return;
-        const snapshot = await camera.takeSnapshot({ quality: 70 });
-        let base64Image: string | undefined;
-        if ((snapshot as any)?.base64) base64Image = (snapshot as any).base64 as string;
-        else if (snapshot?.path) {
-          let uri = snapshot.path;
-          if (!uri.startsWith('file://') && !uri.startsWith('content://')) uri = `file://${uri}`;
-          base64Image = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-        }
-        if (!base64Image) return;
-        const rec = await recognizeGestureRemotely(base64Image, profile?.id);
-        if (rec && rec.landmarks && rec.landmarks.length >= 21) {
-          const lm = rec.landmarks.map((p: any) => [p[0], p[1], p[2] ?? 0]);
-          setLandmarks(lm);
-          setLastDetection(Date.now());
-          if (isRecordingRef.current) {
-            setRecordedLandmarks((prev) => [...prev, lm]);
-            setFramesCaptured((c) => c + 1);
-          }
-        }
-      } catch (e) {
-        // ignore; this is best-effort fallback
-      }
-    }, 1000);
-    return () => clearInterval(id);
-  }, [canUseCamera, device, profile?.id, lastDetection, isRecordingRef]);
+  // Detection is handled by the MediaPipe WebView detector, which also falls back to server.
 
   useEffect(() => {
     if (!detectionActive) setLandmarks([]);
@@ -132,10 +76,6 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const startRecording = () => {
     if (!gestureId) return;
-    if (!device) {
-      setError('Camera not available');
-      return;
-    }
     setError(null);
     setRecordedLandmarks([]);
     setFramesCaptured(0);
@@ -230,21 +170,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     },
   });
 
-  if (!hasPermission) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Training Mode</Text>
-          <Button
-            title="Grant Camera Permission"
-            onPress={requestPermission}
-            accessibilityLabel="Kameraberechtigung erteilen"
-          />
-        </View>
-        {profile && <BottomNav active="training" profileId={profile.id} />}
-      </SafeAreaView>
-    );
-  }
+  // Camera permission handled by WebView context.
 
   return (
     <SafeAreaView style={styles.container}>
@@ -267,44 +193,42 @@ export default function TrainingScreen({ navigation, route }: any) {
           ))
         ) : count < 5 ? (
           <>
-            {device && (
-              <View style={styles.cameraContainer}>
-                <Camera
-                  ref={camRef}
-                  style={styles.camera}
-                  device={device}
-                  isActive={canUseCamera}
-                  frameProcessor={recordingProcessor}
-                  pixelFormat="yuv"
-                  // Consistent YUV format ensures training matches inference
-                />
-                {landmarks.length > 0 && (
-                  <Svg
-                    style={StyleSheet.absoluteFill}
-                    viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
-                    pointerEvents="none"
-                  >
-                {landmarks.map((l, idx) => (
-                      <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill={COLORS.warning} />
+            <View style={styles.cameraContainer}>
+              <MediaPipeGestureDetector
+                onGestureDetected={(_g, _c, lm) => {
+                  setLandmarks(lm);
+                  setLastDetection(Date.now());
+                  if (isRecordingRef.current) {
+                    setRecordedLandmarks((prev) => [...prev, lm]);
+                    setFramesCaptured((c) => c + 1);
+                  }
+                }}
+                onError={(m) => logger.warn('TrainingScreen detector error:', m)}
+              />
+              {landmarks.length > 0 && (
+                <Svg
+                  style={StyleSheet.absoluteFill}
+                  viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
+                  pointerEvents="none"
+                >
+                  {landmarks.map((l, idx) => (
+                    <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill={COLORS.warning} />
                   ))}
                 </Svg>
               )}
               <View style={styles.detectionIndicator}>
-                <View
-                    style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]}
-                />
-                  <Text style={styles.detectionText}>
-                    {isRecording
-                      ? detectionActive
-                        ? `Recording... ${framesCaptured}`
-                        : 'No hand detected'
-                      : detectionActive
-                      ? 'Hand detected'
-                      : 'No hand'}
-                  </Text>
-                </View>
+                <View style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]} />
+                <Text style={styles.detectionText}>
+                  {isRecording
+                    ? detectionActive
+                      ? `Recording... ${framesCaptured}`
+                      : 'No hand detected'
+                    : detectionActive
+                    ? 'Hand detected'
+                    : 'No hand'}
+                </Text>
               </View>
-            )}
+            </View>
             <View
               style={styles.progressBar}
               accessibilityRole="progressbar"

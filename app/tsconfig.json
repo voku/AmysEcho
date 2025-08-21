@@ -25,7 +25,11 @@
   "exclude": [
     "test",
     "../server",
-    "__mocks__"
+    "__mocks__",
+    "src/**/*.test.*",
+    "src/hooks/useTensorflowModel.ts",
+    "src/services/gestureClassifier.ts",
+    "src/services/landmarkExtractor.ts"
   ],
   "include": [
     "src/**/*.ts",

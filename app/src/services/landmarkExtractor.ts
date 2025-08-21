@@ -160,19 +160,67 @@ function extractLandmarksFromFrame(frame: Frame): { hands: number[][][]; confide
       const modelResult = handModel.runSync([input]) as any[];
       result = Array.isArray(modelResult) ? modelResult : [];
 
-      // The metadata told us that the landmarks are in the 3rd output tensor (index 2).
-      // The presence score is in the 2nd output tensor (index 1).
-      const presenceScore = result && result.length > 1 ? toFloat32(result[1]) : null;
-      const landmarksRaw = result && result.length > 2 ? toFloat32(result[2]) : null;
+      // Try to locate presence and landmarks tensors even if indices differ across builds
+      const tensors: Float32Array[] = [];
+      for (let i = 0; i < result.length; i++) {
+        const t = toFloat32(result[i]);
+        if (t) tensors.push(t);
+      }
 
-      if (presenceScore && presenceScore[0] > 0.5 && landmarksRaw) {
-        // A hand is present, and we have landmark data.
-        // The landmark tensor is a flat array of 63 floats (21 * 3).
-        const hand = reshapeTo2D(landmarksRaw);
-        if (hand) {
-          hands.push(hand);
-          confidences.push(presenceScore[0]);
+      let presenceVal = 1.0;
+      // Prefer index 1 if available; else pick a small-length tensor (<=4) as presence
+      const presenceScore = result.length > 1 ? toFloat32(result[1]) : null;
+      if (presenceScore && presenceScore.length >= 1) {
+        presenceVal = presenceScore[0];
+      } else {
+        const small = tensors.find((t) => t.length >= 1 && t.length <= 4);
+        if (small) presenceVal = small[0];
+      }
+
+      // Find a tensor containing 21*(3 or 4) floats per hand (allow visibility channel)
+      let landmarksRaw: Float32Array | null = (result.length > 2 ? toFloat32(result[2]) : null) || null;
+      const chunk3 = NUM_HAND_LANDMARKS * 3;
+      const chunk4 = NUM_HAND_LANDMARKS * 4;
+      if (!landmarksRaw || (landmarksRaw.length % chunk3 !== 0 && landmarksRaw.length % chunk4 !== 0)) {
+        const candidate = tensors.find(
+          (t) => (t.length % chunk3 === 0 || t.length % chunk4 === 0) && t.length >= chunk3,
+        );
+        if (candidate) landmarksRaw = candidate;
+      }
+
+      // Lower presence threshold slightly to be robust across models; we'll rely on classifier confidence later
+      const PRESENCE_THRESHOLD = 0.2;
+      if (presenceVal >= PRESENCE_THRESHOLD && landmarksRaw) {
+        const len = landmarksRaw.length;
+        let handsArr: number[][][] = [];
+        if (len % chunk3 === 0) {
+          handsArr = reshapeHandsFromFlat(landmarksRaw);
+        } else if (len % chunk4 === 0) {
+          // Convert from 4D (x,y,z,vis) to 3D (x,y,z) by skipping every 4th value
+          const nHands = Math.floor(len / chunk4);
+          const out = new Float32Array(nHands * chunk3);
+          let oi = 0;
+          for (let h = 0; h < nHands; h++) {
+            const base = h * chunk4;
+            for (let i = 0; i < NUM_HAND_LANDMARKS; i++) {
+              const bi = base + i * 4;
+              out[oi++] = landmarksRaw[bi + 0];
+              out[oi++] = landmarksRaw[bi + 1];
+              out[oi++] = landmarksRaw[bi + 2];
+            }
+          }
+          handsArr = reshapeHandsFromFlat(out);
         }
+        if (handsArr.length > 0) {
+          hands.push(handsArr[0]);
+          confidences.push(presenceVal);
+        }
+      }
+
+      if (!lensLoggedOnce) {
+        lensLoggedOnce = true;
+        const shapes = tensors.map((t) => t.length).join(',');
+        logWarnJS(`Hand model outputs lengths: [${shapes}] presence=${presenceVal.toFixed(2)} sel=${landmarksRaw?.length ?? 0}`);
       }
     }
   } catch (e: any) {

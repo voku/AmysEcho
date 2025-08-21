@@ -57,7 +57,7 @@ describe('extractHandLandmarks', () => {
     const fakeModel = {
       runSync: (_: any[]) => [
         null,
-        new Float32Array([0.4]),
+        new Float32Array([0.1]),
         new Float32Array(NUM_HAND_LANDMARKS * NUM_COORDINATES),
       ],
     };

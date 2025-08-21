@@ -7,5 +7,6 @@ module.exports = {
   ],
   moduleNameMapper: {
     "\\.(tflite|task)$": "<rootDir>/test/__mocks__/fileMock.js",
+    "^react-native-webview$": "<rootDir>/test/__mocks__/react-native-webview.js",
   },
 };

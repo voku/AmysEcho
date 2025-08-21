@@ -112,6 +112,24 @@ setupDatabase(DB_FILE_PATH)
     } catch (err) {
       console.error('ML model load failed:', err);
     }
+    // Prewarm MediaPipe Tasks Vision bundle into cache to avoid first-hit latency
+    try {
+      const version = '0.10.9';
+      const cacheRoot = path.join(process.cwd(), 'server', '.cache', 'mediapipe', 'tasks-vision', version);
+      await fs.mkdir(cacheRoot, { recursive: true });
+      const localFile = path.join(cacheRoot, 'vision_bundle.mjs');
+      if (!fsSync.existsSync(localFile)) {
+        const upstream = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/vision_bundle.mjs`;
+        const r = await (globalThis as any).fetch(upstream);
+        if (r?.ok) {
+          const ab = await r.arrayBuffer();
+          await fs.writeFile(localFile, Buffer.from(ab));
+          console.log('[prewarm] Cached tasks-vision bundle');
+        }
+      }
+    } catch (e) {
+      console.warn('[prewarm] tasks-vision bundle prewarm failed', e);
+    }
   })
   .catch((err) => {
     console.error('Database setup failed:', err);
@@ -369,6 +387,52 @@ app.get('/health/recognizer', (_req: Request, res: Response) => {
     pythonOk = out.status === 0;
   } catch {}
   res.json({ tasksModelFound, pythonOk });
+});
+
+// Serve gesture_recognizer.task from any known location
+app.get('/static/models/gesture_recognizer.task', (_req: Request, res: Response) => {
+  const candidates = [
+    process.env.GESTURE_TASK_PATH || '',
+    path.join(__dirname, 'models', 'gesture_recognizer.task'),
+    path.join(__dirname, '../../models', 'gesture_recognizer.task'),
+    path.join(process.cwd(), 'server', 'models', 'gesture_recognizer.task'),
+  ].filter(Boolean);
+  for (const p of candidates) {
+    try {
+      if (fsSync.existsSync(p)) {
+        return res.sendFile(p);
+      }
+    } catch {}
+  }
+  res.status(404).json({ error: 'gesture_recognizer.task not found' });
+});
+
+// Proxy/cache MediaPipe Tasks Vision assets locally to avoid direct CDN usage in the app
+app.get('/static/mediapipe/tasks-vision/:version/*', async (req: Request, res: Response) => {
+  try {
+    const version = req.params.version;
+    const tail = (req.params as any)[0] as string;
+    const cacheRoot = path.join(process.cwd(), 'server', '.cache', 'mediapipe', 'tasks-vision', version);
+    const localFile = path.join(cacheRoot, tail);
+    await fs.mkdir(path.dirname(localFile), { recursive: true });
+    if (!fsSync.existsSync(localFile)) {
+      const upstream = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/${tail}`;
+      const r = await (globalThis as any).fetch(upstream);
+      if (!r?.ok) {
+        const txt = r ? await r.text() : 'fetch failed';
+        res.status(r?.status || 502).send(txt);
+        return;
+      }
+      const ab = await r.arrayBuffer();
+      const buf = Buffer.from(ab);
+      await fs.writeFile(localFile, buf);
+    }
+    if (localFile.endsWith('.mjs') || localFile.endsWith('.js')) res.type('application/javascript');
+    if (localFile.endsWith('.wasm')) res.type('application/wasm');
+    res.sendFile(localFile);
+  } catch (e: any) {
+    res.status(500).json({ error: 'proxy fetch failed', details: e?.message || String(e) });
+  }
 });
 
 // Serve per-profile centroids for offline/edge usage
@@ -682,6 +746,20 @@ app.post('/classify', auth, async (req: Request, res: Response) => {
     if (!result) {
       result = await classifyGesture(landmarks);
     }
+    res.json(result);
+  } catch (error) {
+    console.error('Classification failed:', error);
+    res.status(500).json({ error: 'Classification failed' });
+  }
+});
+
+app.post('/api/classify-landmarks', auth, async (req: Request, res: Response) => {
+  const { landmarks } = req.body;
+  if (!landmarks) {
+    return res.status(400).json({ error: 'Landmarks are required' });
+  }
+  try {
+    const result = await classifyGesture(landmarks);
     res.json(result);
   } catch (error) {
     console.error('Classification failed:', error);

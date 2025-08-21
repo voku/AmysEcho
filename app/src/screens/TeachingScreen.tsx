@@ -3,7 +3,7 @@ import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing, Saf
 import { LinearGradient } from 'expo-linear-gradient';
 import { Camera, useCameraDevices } from 'react-native-vision-camera';
 import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
-import { mlService } from '../services/mlService';
+// mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
 import { saveTrainingSample, loadProfile, Profile, loadTrainingSampleCount } from '../storage';
 import { extractLandmarksFromImages } from '../services/landmarkExtractor';
@@ -77,7 +77,7 @@ export default function TeachingScreen({ navigation }: any) {
         Alert.alert('Training Complete', `The gesture "${gestureLabel}" already has enough samples.`);
         return;
       }
-      sessionId.current = await mlService.startTeachingSession(gestureLabel);
+      sessionId.current = `local-${Date.now()}`;
       setError(null);
       setIsSessionActive(true);
       setSampleCount(existingCount);

@@ -6,8 +6,8 @@ import { COLORS, SPACING } from '../constants/ui';
 
 export default function ParentScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
-  const { mlService } = useServices();
-  const [isCameraActive, setIsCameraActive] = useState(mlService.isCameraActive);
+  useServices();
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [useDgs, setUseDgs] = useState(false);
 
   const styles = StyleSheet.create({
@@ -33,10 +33,7 @@ export default function ParentScreen({ navigation }: any) {
         <Text style={styles.toggleLabel}>Camera Active</Text>
         <Switch
           value={isCameraActive}
-          onValueChange={(value) => {
-            setIsCameraActive(value);
-            mlService.setCameraActive(value);
-          }}
+          onValueChange={(value) => setIsCameraActive(value)}
           accessibilityLabel="Toggle camera"
         />
       </View>

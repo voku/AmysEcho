@@ -1,9 +1,8 @@
 import React, { useContext } from 'react';
-import type { mlService, audioService, backupService, gestureDataProtector } from '../services';
+import type { audioService, backupService, gestureDataProtector } from '../services';
 import type { adaptiveLearningService } from '../services/adaptiveLearningService';
 
 export interface Services {
-  mlService: typeof mlService;
   audioService: typeof audioService;
   adaptiveLearningService: typeof adaptiveLearningService;
   backupService: typeof backupService;
