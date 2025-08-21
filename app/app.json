@@ -22,19 +22,6 @@
         "NSMicrophoneUsageDescription": "Allow Amy's Echo to access your microphone to record audio."
       }
     },
-    "plugins": [
-      [
-        "react-native-vision-camera",
-        {
-          "enableFrameProcessors": true
-        }
-      ],
-      [
-        "react-native-fast-tflite",
-        {
-          "enableAndroidGpuLibraries": true
-        }
-      ]
-    ]
+    "plugins": []
   }
 }

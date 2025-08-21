@@ -26,23 +26,12 @@ jest.mock('react-native', () => {
   };
 });
 
-jest.mock('react-native-vision-camera', () => ({
-  Camera: (props: any) => React.createElement('Camera', props, props.children),
-  useCameraDevices: () => [{ id: '1', position: 'back' }],
-  useCameraFormat: () => ({ videoWidth: 1280, videoHeight: 720 }),
-  useFrameProcessor: (fn: any) => fn,
-}));
-
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: (props: any) => React.createElement('LinearGradient', props, props.children),
 }));
 
 jest.mock('../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
-}));
-
-jest.mock('../src/hooks/useCameraPermissionStatus', () => ({
-  useCameraPermissionStatus: () => ({ hasPermission: true, requestPermission: jest.fn() }),
 }));
 
 jest.mock('@react-navigation/native', () => ({ useIsFocused: () => true }));

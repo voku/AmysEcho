@@ -4552,44 +4552,6 @@
         }
       }
     },
-    "expo-camera": {
-      "version": "16.1.11",
-      "resolved": "https://registry.npmjs.org/expo-camera/-/expo-camera-16.1.11.tgz",
-      "overridden": false,
-      "dependencies": {
-        "expo": {
-          "version": "53.0.20"
-        },
-        "invariant": {
-          "version": "2.2.4",
-          "resolved": "https://registry.npmjs.org/invariant/-/invariant-2.2.4.tgz",
-          "overridden": false,
-          "dependencies": {
-            "loose-envify": {
-              "version": "1.4.0",
-              "resolved": "https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz",
-              "overridden": false,
-              "dependencies": {
-                "js-tokens": {
-                  "version": "4.0.0"
-                }
-              }
-            }
-          }
-        },
-        "react-native-web": {},
-        "react-native": {
-          "version": "0.79.5"
-        },
-        "react": {
-          "version": "19.0.0",
-          "invalid": "\"^16||^17||^18\" from node_modules/@nozbe/with-observables",
-          "problems": [
-            "invalid: react@19.0.0 /home/lars/PhpstormProjects/AmysEcho/app/node_modules/react"
-          ]
-        }
-      }
-    },
     "expo-dev-client": {
       "version": "5.2.4",
       "resolved": "https://registry.npmjs.org/expo-dev-client/-/expo-dev-client-5.2.4.tgz",
@@ -13740,30 +13702,6 @@
         },
         "warn-once": {
           "version": "0.1.1"
-        }
-      }
-    },
-    "react-native-vision-camera": {
-      "version": "4.7.1",
-      "resolved": "https://registry.npmjs.org/react-native-vision-camera/-/react-native-vision-camera-4.7.1.tgz",
-      "overridden": false,
-      "dependencies": {
-        "@shopify/react-native-skia": {},
-        "react-native-reanimated": {
-          "version": "3.17.5"
-        },
-        "react-native-worklets-core": {
-          "version": "1.6.0"
-        },
-        "react-native": {
-          "version": "0.79.5"
-        },
-        "react": {
-          "version": "19.0.0",
-          "invalid": "\"^16||^17||^18\" from node_modules/@nozbe/with-observables",
-          "problems": [
-            "invalid: react@19.0.0 /home/lars/PhpstormProjects/AmysEcho/app/node_modules/react"
-          ]
         }
       }
     },

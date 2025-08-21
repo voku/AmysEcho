@@ -38,9 +38,8 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 |---------------|-------------------------------|----------------------------------------|
 | App Framework | React Native (CLI)            | Cross-platform + native module access  |
 | Language      | TypeScript (strict mode)      | Predictable, type-safe code            |
-| Camera        | `react-native-vision-camera`  | High-performance gesture capture       |
-| ML Inference  | `react-native-webview`        | Landmark detection via MediaPipe in WebView |
-| Cloud ML      | Custom API                    | Accurate gesture classification        |
+| Camera        | `react-native-webview`        | In-app camera feed & landmark detection |
+| Cloud ML      | Custom API                    | Gesture classification                 |
 | UI/UX         | RN Animated API + Skia (opt.) | Gentle, trust-based feedback           |
 | Audio         | `expo-audio`, `expo-speech`   | Speech output + sound effects          |
 | Video         | `expo-video`                  | Video output                           |
@@ -270,9 +269,6 @@ export EXPO_PUBLIC_API_TOKEN=demo-token
 ```
 
 - Defaults expose `EXPO_PUBLIC_API_URL=http://localhost:5000` and token for the app.
- - Ensure the native frame processor plugin is compiled into your dev client:
-   - vision-camera-resize-plugin is required for RGB resize. After installing dependencies or updating native modules, rebuild the dev client:
-   - `cd app && expo run:android`
 
 4) Install/launch on Android (Terminal D)
 

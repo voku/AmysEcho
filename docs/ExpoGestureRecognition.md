@@ -245,7 +245,7 @@ Older examples used `@mediapipe/hands` together with `@mediapipe/gesture_recogni
 ```bash
 cd app
 npm install @thinksys/react-native-mediapipe
-npx expo install expo-gl expo-gl-cpp expo-camera
+npx expo install expo-gl expo-gl-cpp
 ```
 
 ### Usage
