@@ -14,9 +14,7 @@ import { COLORS } from './src/constants/ui';
 import { logger } from './src/utils/logger';
 import { useAmyGestureModel } from './src/ml/tfliteRuntime';
 import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashReporting';
-import { modelUpdateService } from './src/services/modelUpdateService';
-import { gestureClassifier } from './src/ml/gestureClassifier';
-import labels from './assets/models/gesture_labels.json';
+// Model updates are coordinated by AppServicesProvider
 
 import { PerformanceProvider } from './src/context/PerformanceContext';
 
@@ -65,31 +63,7 @@ export default function App() {
           logger.warn('No profile found, user needs onboarding');
         }
 
-        // Initialize models
-        const localModelPath = await modelUpdateService.getLocalModelPath();
-        if (localModelPath) {
-          console.log('Using downloaded model:', localModelPath);
-          await gestureClassifier.loadModel(localModelPath, labels);
-        } else {
-          console.log('Using bundled model');
-          const { Asset } = await import('expo-asset');
-          const modelAsset = Asset.fromModule(require('./assets/models/gesture_classifier.tflite'));
-          await modelAsset.downloadAsync();
-          if (!modelAsset.localUri) {
-            throw new Error('Failed to resolve bundled model asset');
-          }
-          await gestureClassifier.loadModel(modelAsset.localUri, labels);
-        }
-
-        const hasUpdate = await modelUpdateService.checkForUpdates();
-        if (hasUpdate) {
-          console.log('Model update available, downloading...');
-          const newModelPath = await modelUpdateService.downloadLatestModel();
-          if (newModelPath) {
-            // Optionally restart recognition with new model
-            // or show user a message that update will apply on next app start
-          }
-        }
+        // Model loading and update checks are handled in AppServicesProvider
 
       } catch (e) {
         logger.error('Failed to initialize app:', e);
