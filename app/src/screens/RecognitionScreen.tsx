@@ -15,6 +15,7 @@ import CorrectionPanel from '../components/CorrectionPanel';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { audioService, triggerSpeakAndShow, correctionService, dialogEngine } from '../services';
+import { telemetry } from '../telemetry/recorder';
 import { API_URL, API_TOKEN } from '../constants';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
@@ -62,6 +63,7 @@ export default function RecognitionScreen({ navigation }: any) {
   }, [fadeAnim, symbolScaleAnim]);
 
   const handleGestureDetected = useCallback(async (gesture: string, confidence: number, landmarks: number[][]) => {
+    const start = Date.now();
     try {
       const response = await fetch(`${API_URL}/api/classify-landmarks`, {
         method: 'POST',
@@ -71,6 +73,8 @@ export default function RecognitionScreen({ navigation }: any) {
         },
         body: JSON.stringify({ landmarks }),
       });
+
+      telemetry.add('classify_landmarks', Date.now() - start, 'recognition-screen');
 
       if (!response.ok) {
         throw new Error('Server error');
@@ -112,6 +116,7 @@ export default function RecognitionScreen({ navigation }: any) {
         setShowCorrection(true);
       }
     } catch (error) {
+      telemetry.add('classify_landmarks_error', Date.now() - start, 'recognition-screen');
       logger.error('Failed to classify landmarks:', error);
       setError('Could not connect to server.');
     }

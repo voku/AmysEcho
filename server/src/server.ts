@@ -358,7 +358,10 @@ app.get('/api/analytics/insights', auth, async (_req: Request, res: Response) =>
 
 app.post('/api/telemetry', auth, async (req: Request, res: Response) => {
     const events = Array.isArray(req.body) ? req.body : [req.body];
-    if (!events.every(e => typeof e.latencyMs === 'number' && typeof e.timestamp === 'number')) {
+    if (!events.every(e => typeof e.latencyMs === 'number' && typeof e.timestamp === 'number' &&
+      (e.event === undefined || typeof e.event === 'string') &&
+      (e.source === undefined || typeof e.source === 'string'))
+    ) {
       return res.status(400).json({ error: 'Invalid telemetry event payload' });
     }
   

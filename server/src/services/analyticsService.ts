@@ -86,9 +86,11 @@ export interface SummaryMetrics {
   successRate: number;
 }
 export interface TelemetryEvent {
-    timestamp: number;
-    latencyMs: number;
-  }
+  timestamp: number;
+  latencyMs: number;
+  event?: string;
+  source?: string;
+}
   
   const TELEMETRY_PATH = path.join(process.cwd(), 'telemetry.json');
   
@@ -123,8 +125,9 @@ export function computeSummaryMetrics(
 
   // Server currently does not record per-interaction latency; leave as null
   let medianLatencyMs: number | null = null;
-  if (telemetry.length > 0) {
-    const latencies = telemetry.map((t) => t.latencyMs).sort((a, b) => a - b);
+  const latencyEvents = telemetry.filter((t) => t.latencyMs > 0);
+  if (latencyEvents.length > 0) {
+    const latencies = latencyEvents.map((t) => t.latencyMs).sort((a, b) => a - b);
     const mid = Math.floor(latencies.length / 2);
     medianLatencyMs =
       latencies.length % 2 !== 0

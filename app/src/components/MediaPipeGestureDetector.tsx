@@ -9,7 +9,7 @@ interface Props {
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError }) => {
-  const webviewRef = useRef<WebView>(null);
+  const webviewRef = useRef<any>(null);
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -57,13 +57,19 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     }
 
     let lastVideoTime = -1; // Added for performance optimization
+    let frameCount = 0;
     function predictWebcam() {
       try {
         if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
           if (lastVideoTime !== video.currentTime) { // Only process if video frame has changed
             lastVideoTime = video.currentTime;
-            const nowInMs = performance.now();
-            const results = gestureRecognizer.recognizeForVideo(video, nowInMs);
+            const start = performance.now();
+            const results = gestureRecognizer.recognizeForVideo(video, start);
+            const frameLatency = Math.round(performance.now() - start);
+            frameCount++;
+            if (frameCount % 30 === 0) {
+              window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }));
+            }
             const lms = (results?.landmarks?.[0] || []).map(lm => [lm.x, lm.y, lm.z ?? 0]);
             let outGesture = null;
             let outScore = 0;
@@ -103,6 +109,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       try {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'server_fallback', ms: 0 }));
         const sendFrame = async () => {
           if (!ctx || video.readyState < 2) return;
           canvas.width = video.videoWidth || 320;

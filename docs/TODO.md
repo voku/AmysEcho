@@ -57,7 +57,7 @@ _Last updated: 2025-08-21_
 ## Telemetry & Observability
 
 - [x] Send recognizer init time from WebView to `/telemetry`.
-- [ ] Add telemetry for server fallback usage + periodic per-frame processing latency.
+ - [x] Add telemetry for server fallback usage + periodic per-frame processing latency.
 
 ## Cleanup & Consistency
 
