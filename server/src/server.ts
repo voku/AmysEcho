@@ -127,17 +127,44 @@ setupDatabase(DB_FILE_PATH)
           console.log('[prewarm] Cached tasks-vision bundle');
         }
       }
-      // Try to prewarm a common WASM filename; if missing, route will fetch on demand
+
       const wasmDir = path.join(cacheRoot, 'wasm');
       await fs.mkdir(wasmDir, { recursive: true });
-      const wasmFile = path.join(wasmDir, 'tasks_vision_wasm_internal.wasm');
-      if (!fsSync.existsSync(wasmFile)) {
-        const upstreamWasm = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/wasm/tasks_vision_wasm_internal.wasm`;
-        const r2 = await (globalThis as any).fetch(upstreamWasm);
-        if (r2?.ok) {
-          const ab2 = await r2.arrayBuffer();
-          await fs.writeFile(wasmFile, Buffer.from(ab2));
-          console.log('[prewarm] Cached tasks-vision wasm');
+
+      // Parse vision bundle to discover all wasm filenames
+      let wasmFiles: string[] = [];
+      try {
+        const bundleContent = await fs.readFile(localFile, 'utf8');
+        const regex = /["']([^"']+\.wasm)["']/g;
+        const matches = bundleContent.matchAll(regex);
+        const unique = new Set<string>();
+        for (const m of matches) {
+          const fname = path.basename(m[1]);
+          if (fname) unique.add(fname);
+        }
+        wasmFiles = Array.from(unique);
+      } catch (parseErr) {
+        console.warn('[prewarm] Failed to parse bundle for wasm names', parseErr);
+      }
+
+      if (wasmFiles.length === 0) {
+        // Fallback to common filename if parsing failed
+        wasmFiles = ['tasks_vision_wasm_internal.wasm'];
+      }
+
+      for (const file of wasmFiles) {
+        const wasmFile = path.join(wasmDir, file);
+        if (fsSync.existsSync(wasmFile)) continue;
+        const upstreamWasm = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/wasm/${file}`;
+        try {
+          const r2 = await (globalThis as any).fetch(upstreamWasm);
+          if (r2?.ok) {
+            const ab2 = await r2.arrayBuffer();
+            await fs.writeFile(wasmFile, Buffer.from(ab2));
+            console.log('[prewarm] Cached tasks-vision wasm', file);
+          }
+        } catch (wasmErr) {
+          console.warn(`[prewarm] Failed to cache wasm ${file}`, wasmErr);
         }
       }
     } catch (e) {
