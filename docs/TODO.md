@@ -1020,7 +1020,8 @@ export const performanceMonitor = new PerformanceMonitor();
 - [x] Implement hybrid recognition logic in `app/src/screens/RecognitionScreen.tsx`
 - [x] Add cloud fallback with AbortController-based timeout handling
 - [x] Test local-first, centroid-then-cloud behavior
-- [ ] Validate recognition accuracy improves with hybrid approach
+- [x] Validate recognition accuracy improves with hybrid approach
+  - Added unit test that simulates low-confidence local logits vs confident remote result; verifies hybrid selects the better remote result.
 
 ### Week 3: UI & Feedback
 - [x] Add confidence-based visual feedback in UI

@@ -194,6 +194,58 @@ describe('mlService', () => {
     expect(onResult).toHaveBeenLastCalledWith(expect.objectContaining({ label: 'remote' }));
     expect(gestureRunSync).not.toHaveBeenCalled();
   });
+
+  it('hybrid improves result vs local-only when remote returns higher confidence', async () => {
+    const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
+    // Local logits produce a low-confidence top class
+    const localRunSync = jest.fn().mockReturnValue([[0.22, 0.21, 0.20, 0.19, 0.18]]);
+    const gestureTflite: any = { runSync: localRunSync };
+
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['A', 'B', 'C', 'D', 'E'], {
+      enableRemoteClassification: true,
+      confidenceThreshold: 0.6,
+    });
+
+    // Mock remote API to return a confident label
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ label: 'C', confidence: 0.9 }),
+    });
+
+    const frame = {
+      landmarks: Array.from({ length: 21 }, () => [0, 0, 0]),
+      width: 1,
+      height: 1,
+      timestamp: Date.now(),
+      processingMs: 0,
+      fps: 0,
+    } as any;
+
+    const results: any[] = [];
+    const onResult = (r: any) => r && results.push(r);
+
+    // warm up smoothing
+    await mlService.processFrameAsync(frame, onResult);
+    await mlService.processFrameAsync(frame, onResult);
+    const hybrid = results[results.length - 1];
+    expect(hybrid.label).toBe('C');
+    expect(hybrid.confidence).toBeCloseTo(0.9);
+
+    // Now disable remote and expect low-conf local result stays
+    await mlService.loadModels(landmarkTflite, gestureTflite, ['A', 'B', 'C', 'D', 'E'], {
+      enableRemoteClassification: false,
+      confidenceThreshold: 0.6,
+    });
+    (global as any).fetch = jest.fn();
+    const resultsLocal: any[] = [];
+    const onResultLocal = (r: any) => r && resultsLocal.push(r);
+    await mlService.processFrameAsync(frame, onResultLocal);
+    await mlService.processFrameAsync(frame, onResultLocal);
+    const localOnly = resultsLocal[resultsLocal.length - 1];
+    // With low logits, top likely index 0 with ~0.22/(sum) confidence < 0.6 threshold
+    expect(localOnly.label).toBeDefined();
+    expect(localOnly.confidence).toBeLessThan(0.6);
+  });
   it('maintains accuracy across jittery frames', async () => {
     const landmarkTflite: any = { runSync: () => [[1, 2, 3]] };
     const gestureTflite: any = { runSync: () => [[0.9, 0.1]] };
@@ -312,4 +364,3 @@ describe('mlService', () => {
     jest.useRealTimers();
   });
 });
-
