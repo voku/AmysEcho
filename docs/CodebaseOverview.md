@@ -8,9 +8,10 @@ This document summarizes the repository in seven key areas with concrete file re
 - Services and hooks are in `app/src/services/` and `app/src/hooks/`
 
 ## 2. Gesture Recognition Pipeline
-- `app/src/screens/RecognitionScreen.tsx` and `app/src/screens/LearningScreen.tsx` run the frame processor
-- The `useGestureClassifier` hook in `app/src/services/mlService.ts` provides the frame processor
-- Default model paths live in `app/src/constants/modelPaths.ts`
+- `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks with MediaPipe
+- `app/src/screens/RecognitionScreen.tsx` hosts the detector and forwards landmarks to `remoteGestureRecognitionService.ts` for server classification
+- `app/src/services/offlineClassifier.ts` provides a lightweight rule-based fallback when the network is unavailable
+- Legacy model references in `app/src/constants/modelPaths.ts` remain only for tests; no TFLite models are loaded at runtime
 
 ## 3. Training and Personalization
 - Sample collection UI in `app/src/screens/TrainingScreen.tsx`

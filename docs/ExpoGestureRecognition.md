@@ -261,17 +261,23 @@ import { MediaPipeProvider, HandsDetector } from '@thinksys/react-native-mediapi
 
 ## 4. Pure JavaScript rules
 
-**No model required** – simple math on landmark positions.
+**No model required** – simple math on landmark positions. The rules live directly inside `MediaPipeGestureDetector.tsx` and run whenever the remote classifier is unavailable or low-confidence.
 
-**File:** `app/src/utils/simpleGestureClassifier.ts`
+**File:** `app/src/components/MediaPipeGestureDetector.tsx`
 ```ts
-export function classifySimpleGesture(lm: { x: number; y: number; z?: number }[]) {
-  if (!lm || lm.length !== 21) return { gesture: 'unknown', confidence: 0 };
-  const thumbUp = lm[4].y < lm[2].y;
-  const indexUp = lm[8].y < lm[6].y;
-  if (thumbUp && !indexUp) return { gesture: 'thumbs_up', confidence: 0.9 };
-  if (indexUp) return { gesture: 'point', confidence: 0.8 };
-  return { gesture: 'unknown', confidence: 0.3 };
+// Inside predictWebcam()
+if ((!outGesture || outScore < 0.5) && lms.length === 21) {
+  const thumbUp = lms[4][1] < lms[2][1];
+  const indexUp = lms[8][1] < lms[6][1];
+  const middleUp = lms[12][1] < lms[10][1];
+  const ringUp = lms[16][1] < lms[14][1];
+  const pinkyUp = lms[20][1] < lms[18][1];
+  const allUp = indexUp && middleUp && ringUp && pinkyUp;
+  const noneUp = !indexUp && !middleUp && !ringUp && !pinkyUp;
+  if (thumbUp && !indexUp && !middleUp) { outGesture = 'thumbs_up'; outScore = 0.8; }
+  else if (indexUp && !middleUp && !ringUp && !pinkyUp) { outGesture = 'point'; outScore = 0.7; }
+  else if (allUp) { outGesture = 'open_palm'; outScore = 0.6; }
+  else if (noneUp) { outGesture = 'fist'; outScore = 0.6; }
 }
 ```
 

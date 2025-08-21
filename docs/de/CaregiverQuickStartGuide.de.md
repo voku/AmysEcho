@@ -9,12 +9,16 @@ Diese Anleitung hilft Betreuungspersonen, Amy's Echo in wenigen Minuten zum Lauf
    npm install --prefix app
    npm install --prefix server
    ```
-2. Standard-Gestenmodelle herunterladen, damit der Erkenner offline funktioniert:
+2. Backend bauen und die Gestenerkennungsdatei herunterladen, die vom Server bereitgestellt wird:
    ```bash
    npm run build --prefix server
-   node server/dist/tools/downloadModels.js
+   npm run download-gesture-task --prefix server
    ```
-3. App starten:
+3. Backend-Server starten:
+   ```bash
+   API_TOKEN=<geheim> npm start --prefix server
+   ```
+4. App starten:
    ```bash
    npm run android --prefix app   # oder `npm run ios --prefix app`
    ```

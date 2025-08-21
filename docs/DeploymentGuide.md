@@ -25,16 +25,15 @@ This guide explains how to deploy both the mobile app and the backend server.
    pip install -r server/requirements.txt
    npm run build --prefix server
    ```
-2. Set an authentication token and start the server:
+2. Download the MediaPipe gesture model so the server can serve it to the app:
+   ```bash
+   npm run download-gesture-task --prefix server
+   ```
+3. Set an authentication token and start the server:
    ```bash
    API_TOKEN=<secret> node server/dist/server.js
    ```
-3. Reverse proxy or containerize the service as needed for your environment.
-4. Use the `downloadModels` tool to provision gesture models:
-   ```bash
-   node server/dist/tools/downloadModels.js
-   ```
-   The models are placed in `app/assets/models/` for the mobile app.
+4. Reverse proxy or containerize the service as needed for your environment.
 
 ## Updating Models and Analytics
 - Retrain the offline model with new gesture data:

@@ -2,9 +2,9 @@
 
 ## I. Performance & Efficiency
 
-1. **Optimized ML Model Quantization:** Explore further quantization techniques (e.g., post-training dynamic range quantization, full integer quantization) for `hand_landmarker.tflite` and `gesture_classifier.tflite` to reduce model size and inference latency on device, especially for lower-end mobile hardware. This would improve offline performance and reduce battery consumption.
-2. **GPU Delegation for ML Inference:** Investigate and implement GPU delegation for TensorFlow Lite models on both Android and iOS using `react-native-fast-tflite` to leverage hardware acceleration, significantly speeding up gesture recognition.
-3. **Frame Processor Optimization:** Profile and optimize the `RecognitionScreen.tsx` and `LearningScreen.tsx` frame processors to minimize CPU usage and ensure smooth video capture and ML inference, potentially by offloading more work to native modules or dedicated threads.
+1. **Optimize MediaPipe WebView Performance:** Reduce the resolution or frame rate of the WebView camera feed and explore OffscreenCanvas or WebGL optimizations to lower CPU usage and battery drain.
+2. **Lightweight Landmark Transfer:** Compress or quantize landmark data before sending it to the server to minimize network bandwidth and improve remote classification latency.
+3. **WebView Message Batching:** Batch telemetry and gesture messages between the WebView and React Native to reduce bridge overhead and keep recognition responsive.
 4. **Batch Processing for Cloud ML:** For cloud-based ML inference, implement batch processing of gesture frames when network conditions allow, reducing API call overhead and improving throughput for continuous recognition.
 5. **Efficient Data Synchronization:** Optimize `syncService.ts` to use more efficient data synchronization algorithms (e.g., differential sync, compression) to reduce network usage and speed up data transfer for corrections and personalized models.
 6. **Database Query Optimization:** Analyze and optimize WatermelonDB queries, especially for frequently accessed data like gesture definitions, user profiles, and correction logs, to ensure fast retrieval and storage.
