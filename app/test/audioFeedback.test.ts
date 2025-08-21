@@ -38,7 +38,7 @@ jest.mock('../db', () => ({
   Symbol: class {},
 }));
 
-import { audioService } from '../src/services/audioService';
+import { audioService } from '../src/services';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import * as FileSystem from 'expo-file-system';

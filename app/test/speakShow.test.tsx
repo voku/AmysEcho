@@ -7,8 +7,7 @@ jest.mock('../src/services/audioService', () => ({
   audioService: { playSuccessFeedback: jest.fn() },
 }));
 
-import { triggerSpeakAndShow } from '../src/services/feedbackService';
-import { audioService } from '../src/services/audioService';
+import { triggerSpeakAndShow, audioService } from '../src/services';
 import * as Haptics from 'expo-haptics';
 
 describe('triggerSpeakAndShow', () => {
