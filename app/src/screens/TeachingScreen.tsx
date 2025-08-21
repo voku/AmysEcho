@@ -145,23 +145,26 @@ export default function TeachingScreen({ navigation }: any) {
     );
   }
 
-  if (false) {
-    const gradientColors = highContrast
-      ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-      : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
-    return (
-      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-        <SafeAreaView style={styles.container}>
-          <Text style={styles.title}>Teach New Gesture</Text>
-          <Button
-            title="Grant Camera Permission"
-            onPress={requestPermission}
-            accessibilityLabel="Kameraberechtigung erteilen"
-          />
-        </SafeAreaView>
-      </LinearGradient>
-    );
-  }
+  // Camera permissions are currently handled within the WebView-based detector.
+  // Retain this block as a reference for a potential native fallback, but keep it
+  // disabled to avoid unused variables and type errors.
+  // if (!hasPermission) {
+  //   const gradientColors = highContrast
+  //     ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+  //     : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
+  //   return (
+  //     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+  //       <SafeAreaView style={styles.container}>
+  //         <Text style={styles.title}>Teach New Gesture</Text>
+  //         <Button
+  //           title="Grant Camera Permission"
+  //           onPress={requestPermission}
+  //           accessibilityLabel="Kameraberechtigung erteilen"
+  //         />
+  //       </SafeAreaView>
+  //     </LinearGradient>
+  //   );
+  // }
 
   const gradientColors = highContrast
     ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)

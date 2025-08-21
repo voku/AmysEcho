@@ -38,6 +38,7 @@ import {
 } from './services/analyticsService';
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine';
 import portalRouter from './portal';
+import caregiverPortalApiRouter from './caregiverPortalApi';
 
 import { appendCrashReports, CrashReport } from './services/crashService';
 import * as fsSync from 'fs';
@@ -79,7 +80,6 @@ app.use('/portal', portalRouter);
 // Serve static files from the caregiver portal directory
 app.use('/caregiver-portal', express.static(path.join(__dirname, 'caregiver-portal')));
 
-import caregiverPortalApiRouter from './caregiverPortalApi';
 app.use('/api/caregiver-portal', auth, caregiverPortalApiRouter);
 
 // Apply generic rate limiting to API namespace
@@ -448,10 +448,10 @@ app.get('/static/models/gesture_recognizer.task', (_req: Request, res: Response)
 });
 
 // Proxy/cache MediaPipe Tasks Vision assets locally to avoid direct CDN usage in the app
-app.get('/static/mediapipe/tasks-vision/:version/*', async (req: Request, res: Response) => {
+app.get('/static/mediapipe/tasks-vision/:version/:file', async (req: Request, res: Response) => {
   try {
     const version = req.params.version;
-    const tail = (req.params as any)[0] as string;
+    const tail = req.params.file;
     const cacheRoot = path.join(process.cwd(), 'server', '.cache', 'mediapipe', 'tasks-vision', version);
     const localFile = path.join(cacheRoot, tail);
     await fs.mkdir(path.dirname(localFile), { recursive: true });

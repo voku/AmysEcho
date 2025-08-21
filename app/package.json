@@ -62,7 +62,7 @@
     "@babel/preset-flow": "7.27.1",
     "@babel/preset-typescript": "7.27.1",
     "@react-native-community/cli": "latest",
-    "@testing-library/react-native": "13.3.1",
+    "@testing-library/react-native": "^13.3.1",
     "@types/crypto-js": "4.2.1",
     "@types/jest": "30.0.0",
     "@types/react": "19.0.10",
