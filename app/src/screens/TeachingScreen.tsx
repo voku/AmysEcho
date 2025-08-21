@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 // Camera handled inside WebView detector
 // mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
-import { saveTrainingSample, loadProfile, Profile, loadTrainingSampleCount } from '../storage';
+import { saveTrainingSample, loadProfile, Profile, loadTrainingSampleCount, saveCustomGesture } from '../storage';
+import { addGesture } from '../model';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -116,6 +117,13 @@ export default function TeachingScreen({ navigation }: any) {
     audioService.speak(`Great! I've learned "${gestureLabel}".`);
     Alert.alert('Success', `The new gesture "${gestureLabel}" has been trained with ${SAMPLES_NEEDED} samples.`);
     sessionId.current = null;
+    const id = gestureLabel.trim().toLowerCase().replace(/\s+/g, '_');
+    try {
+      await saveCustomGesture({ id, label: gestureLabel });
+      addGesture({ id, label: gestureLabel });
+    } catch (e) {
+      logger.warn('Failed to store custom gesture', e);
+    }
     setGestureLabel('');
     setSampleCount(0);
     try {

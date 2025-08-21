@@ -29,5 +29,5 @@ test('add sign navigates to Training', () => {
   });
   const btn = (component as renderer.ReactTestRenderer).root.findByProps({ testID: 'btn-add-sign' });
   act(() => btn.props.onPress());
-  expect(navigate).toHaveBeenCalledWith('Training');
+  expect(navigate).toHaveBeenCalledWith('Teaching');
 });

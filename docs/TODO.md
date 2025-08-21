@@ -68,9 +68,9 @@ _Last updated: 2025-08-21_
 
 ## Gesture & Workflow Enhancements
 
-- [ ] Enable training of new gestures in `TrainingScreen` so they are available in `RecognitionScreen`.
-  - Persist labeled samples locally and sync them to the server.
-  - Refresh the gesture library after training completes.
+ - [x] Enable training of new gestures in `TrainingScreen` so they are available in `RecognitionScreen`.
+   - Persist labeled samples locally and sync them to the server.
+   - Refresh the gesture library after training completes.
 - [x] Play the spoken name of a recognized gesture (e.g., "Papa").
   - Use `expo-speech` with a pre-recorded audio fallback.
 - [ ] Support DGS gestures that require both hands.

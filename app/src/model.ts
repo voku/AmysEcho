@@ -1,3 +1,5 @@
+import { loadCustomGestures } from './storage';
+
 export interface GestureModelEntry {
   id: string;
   label: string;
@@ -67,5 +69,16 @@ export function getGesturesForVocabularySet(setId: string): GestureModelEntry[] 
   if (!vocabSet) return [];
 
   return gestureModel.gestures.filter(g => vocabSet.gestures.includes(g.id));
+}
+
+export function addGesture(entry: GestureModelEntry): void {
+  if (!gestureModel.gestures.find((g) => g.id === entry.id)) {
+    gestureModel.gestures.push(entry);
+  }
+}
+
+export async function initGestureModel(): Promise<void> {
+  const custom = await loadCustomGestures();
+  custom.forEach((g) => addGesture(g));
 }
 

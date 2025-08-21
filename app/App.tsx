@@ -9,6 +9,7 @@ import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { MessageProvider } from './src/context/MessageContext';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
+import { initGestureModel } from './src/model';
 import RootNavigator from './src/navigation/RootNavigator';
 import { COLORS } from './src/constants/ui';
 import { logger } from './src/utils/logger';
@@ -61,6 +62,7 @@ export default function App() {
           logger.warn('No profile found, user needs onboarding');
         }
 
+        await initGestureModel();
         // Model loading and update checks are handled in AppServicesProvider
 
       } catch (e) {
