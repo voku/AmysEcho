@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Camera, useCameraDevices } from 'react-native-vision-camera';
-import { useCameraPermissionStatus } from '../hooks/useCameraPermissionStatus';
+// Camera handled inside WebView detector
 // mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
 import { saveTrainingSample, loadProfile, Profile, loadTrainingSampleCount } from '../storage';
-import { extractLandmarksFromImages } from '../services/landmarkExtractor';
+import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
@@ -16,16 +15,15 @@ import { syncTrainingData } from '../services';
 
 export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
-  const devices = useCameraDevices();
-  const device = devices.find(d => d.position === 'back') ?? devices.find(d => d.position === 'front') ?? devices[0];
-  const { hasPermission, requestPermission } = useCameraPermissionStatus();
-  const camera = useRef<Camera>(null);
+  // No native camera refs
   const [gestureLabel, setGestureLabel] = useState('');
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [sampleCount, setSampleCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
+  const PREVIEW_SIZE = 240;
+  const [landmarks, setLandmarks] = useState<number[][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
@@ -33,9 +31,7 @@ export default function TeachingScreen({ navigation }: any) {
   useEffect(() => {
     setMessage(error);
   }, [error, setMessage]);
-  useEffect(() => {
-    if (!device) setError('Camera not available');
-  }, [device]);
+  // WebView will indicate camera issues via onError
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
 
@@ -89,18 +85,18 @@ export default function TeachingScreen({ navigation }: any) {
   };
 
   const recordSample = async () => {
-    if (!camera.current || !sessionId.current || isRecording) return;
+    if (!sessionId.current || isRecording) return;
     setIsRecording(true);
     setError(null);
-    const imageUris: string[] = [];
     try {
-      for (let i = 0; i < 30; i++) {
-        const photo = await camera.current.takePhoto({});
-        imageUris.push(photo.path);
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      const frames: number[][][] = [];
+      const start = Date.now();
+      while (Date.now() - start < 2000) {
+        if (landmarks.length === 21) frames.push(landmarks);
+        await new Promise((r) => setTimeout(r, 66));
       }
-      const landmarks = await extractLandmarksFromImages(imageUris);
-      await saveTrainingSample(gestureLabel, landmarks);
+      if (frames.length === 0) throw new Error('No landmarks captured');
+      await saveTrainingSample(gestureLabel, frames);
       setSampleCount((c) => c + 1);
       startSampleCaptureAnimation();
       audioService.playSound('confirmation');
@@ -137,7 +133,7 @@ export default function TeachingScreen({ navigation }: any) {
 
   const styles = createStyles(largeText, highContrast);
 
-  if (device == null) {
+  if (false) {
     const gradientColors = highContrast
       ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
       : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
@@ -149,7 +145,7 @@ export default function TeachingScreen({ navigation }: any) {
     );
   }
 
-  if (!hasPermission) {
+  if (false) {
     const gradientColors = highContrast
       ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
       : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
@@ -191,14 +187,9 @@ export default function TeachingScreen({ navigation }: any) {
         </View>
       ) : (
         <View style={styles.recordingContainer}>
-          <Camera
-            ref={camera}
-            style={styles.camera}
-            device={device}
-            isActive={true}
-            video={true}
-            photo={true}
-          />
+          <View style={styles.camera}>
+            <MediaPipeGestureDetector onGestureDetected={(_g,_c,lms)=>setLandmarks(lms)} onError={(m)=>setError(m)} />
+          </View>
           <Animated.View style={[
             styles.sampleIndicator,
             { opacity: sampleCaptureAnim, transform: [{ scale: sampleCaptureAnim.interpolate({
@@ -267,7 +258,7 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       borderRadius: RADIUS,
     },
     recordingContainer: { alignItems: 'center' },
-    camera: { width: 200, height: 200, marginBottom: SPACING.sm },
+    camera: { width: 240, height: 240, marginBottom: SPACING.sm, borderRadius: RADIUS, overflow: 'hidden' },
     prompt: { fontSize: largeText ? 22 : 18, marginVertical: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
     progress: { marginBottom: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
     sampleIndicator: {

@@ -28,9 +28,9 @@ _Last updated: 2025-08-21_
 4.  **[x] Implement Server-Side Classification**
     - A new endpoint on the server (`/api/classify-landmarks`) accepts an array of landmarks and returns a gesture classification.
 
-5.  **[ ] Enhance the In-WebView Classifier**
-    - The current rule-based classifier is very basic.
-    - Add more gestures (e.g., pointing, open palm) to the `classifyGesture` function in the WebView's HTML.
+5.  **[x] Enhance the In-WebView Classifier**
+    - Added rule-based fallback inside the WebView HTML (thumbs_up, point, open_palm, fist) used when Tasks Vision confidence is low.
+    - Keep iterating as we add Amy-specific gestures.
 
 6.  **[ ] Update Documentation**
     - **[x] `docs/ExpoGestureRecognition.md`** has been created and updated.
@@ -46,6 +46,25 @@ _Last updated: 2025-08-21_
 - [ ] **Store Preparation**: Finalize EAS Build config, screenshots, etc.
 - [ ] **Data Management**: Implement backup/restore and GDPR features.
 - [ ] **User Documentation**: Create caregiver guides and tutorials.
+
+## Backend + Hosting Tasks
+
+- [x] Serve gesture_recognizer.task at `/static/models/gesture_recognizer.task`.
+- [x] Proxy/cache MediaPipe Tasks Vision assets at `/static/mediapipe/tasks-vision/<version>/...`.
+- [x] Prewarm `vision_bundle.mjs` and a common WASM file on server start.
+- [ ] Prewarm all WASM variants by parsing the bundle or logging first-hit filenames.
+
+## Telemetry & Observability
+
+- [x] Send recognizer init time from WebView to `/telemetry`.
+- [ ] Add telemetry for server fallback usage + periodic per-frame processing latency.
+
+## Cleanup & Consistency
+
+- [x] Remove runtime dependence on `.tflite` and mlService in app.
+- [x] Migrate TrainingScreen to use WebView landmarks.
+- [ ] Remove or rehome legacy TFLite-only modules (useTensorflowModel, landmarkExtractor, gestureClassifier) and update tests accordingly
+      so TS excludes can be dropped entirely.
 
 ---
 

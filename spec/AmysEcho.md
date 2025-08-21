@@ -95,18 +95,18 @@ The system will operate in two modes to provide the best possible experience.
 | Framework | React Native (CLI) | Required for native module integration (Camera, DB, ML). |
 | Language | TypeScript (strict mode) | Enforces type safety, reducing runtime errors. |
 | Database | WatermelonDB with SQLite Adapter | High-performance, reactive, encrypted database with sync support. |
-| Camera | react-native-vision-camera | Provides high-performance, low-latency access to camera frames for ML. |
-| ML Inference | react-native-fast-tflite | Enables efficient, on-device execution of TensorFlow Lite models. |
+| Camera | WebView getUserMedia (MediaPipe Tasks) | Expo-friendly camera capture inside WebView. |
+| ML Inference | MediaPipe Tasks Vision (JS/WASM) + Server Classifier | On-device landmark detection + server classification. |
 | Audio | expo-audio & expo-speech | Provides a robust API for both pre-recorded audio and TTS fallbacks. |
 | Video | expo-video | Provides a robust API for Video playing. |
 | UI/Animation | React Native Animated API | Sufficient for the required gentle animations; Skia is an optional enhancement. |
 
 3.3 The Hybrid Perception Loop
- * See: Camera captures frame → hand_landmarker.tflite extracts landmarks for one or two hands locally.
+ * See: WebView camera (getUserMedia) → MediaPipe Tasks Vision extracts landmarks on-device (WASM). When confident, emits gesture; otherwise proceeds to hybrid step.
  * Think (Hybrid):
-   * If Online: Send the normalized landmark data (a small array of numbers) to the Cloud ML API.
+   * If Online: Send normalized landmark data to the server classifier (primary path, 400ms timeout).
    * Set a Timeout: Wait for a response for a maximum of 400ms.
-   * If Offline or Timeout: Immediately use the local gesture_classifier.tflite model as a fallback.
+   * Timeout/Offline: Use local Tasks Vision class + lightweight rule-based fallback.
  * Decide, Act, Remember: The rest of the loop proceeds as defined in Chapter 2.
 
 3.4 Error Handling Rules (Emotional Fail-Safes)

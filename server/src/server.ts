@@ -127,6 +127,19 @@ setupDatabase(DB_FILE_PATH)
           console.log('[prewarm] Cached tasks-vision bundle');
         }
       }
+      // Try to prewarm a common WASM filename; if missing, route will fetch on demand
+      const wasmDir = path.join(cacheRoot, 'wasm');
+      await fs.mkdir(wasmDir, { recursive: true });
+      const wasmFile = path.join(wasmDir, 'tasks_vision_wasm_internal.wasm');
+      if (!fsSync.existsSync(wasmFile)) {
+        const upstreamWasm = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/wasm/tasks_vision_wasm_internal.wasm`;
+        const r2 = await (globalThis as any).fetch(upstreamWasm);
+        if (r2?.ok) {
+          const ab2 = await r2.arrayBuffer();
+          await fs.writeFile(wasmFile, Buffer.from(ab2));
+          console.log('[prewarm] Cached tasks-vision wasm');
+        }
+      }
     } catch (e) {
       console.warn('[prewarm] tasks-vision bundle prewarm failed', e);
     }

@@ -26,10 +26,7 @@
     "test",
     "../server",
     "__mocks__",
-    "src/**/*.test.*",
-    "src/hooks/useTensorflowModel.ts",
-    "src/services/gestureClassifier.ts",
-    "src/services/landmarkExtractor.ts"
+    "src/**/*.test.*"
   ],
   "include": [
     "src/**/*.ts",

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { API_URL, API_TOKEN } from '../constants';
+import { API_URL, API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
 
 interface Props {
   onGestureDetected: (gesture: string, confidence: number, landmarks: number[][]) => void;
@@ -34,6 +34,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
     async function createGestureRecognizer() {
       try {
+        const visionStart = performance.now();
         const vision = await FilesetResolver.forVisionTasks(
           "${API_URL}/static/mediapipe/tasks-vision/0.10.9/wasm"
         );
@@ -45,6 +46,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           runningMode,
           numHands: 1,
         });
+        const initMs = Math.round(performance.now() - visionStart);
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }));
       } catch (e) {
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'warn', message: 'Init failed, switching to server: ' + (e?.message || e) }));
         startServerFallback();
@@ -143,7 +146,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 <body></body>
 </html>`;
 
-  const handleMessage = (event: any) => {
+  const handleMessage = async (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       
@@ -151,6 +154,23 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         onGestureDetected(data.gesture, data.confidence, data.landmarks);
       } else if (data.type === 'error') {
         onError(data.message);
+      } else if (data.type === 'warn') {
+        // Optionally forward warning to analytics if needed
+      } else if (data.type === 'telemetry') {
+        try {
+          await fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_TOKEN}` },
+            body: JSON.stringify({
+              latencyMs: typeof data.ms === 'number' ? data.ms : 0,
+              timestamp: Date.now(),
+              event: data.event || 'unknown',
+              source: 'webview-gesture-detector',
+            }),
+          });
+        } catch {
+          // ignore telemetry failures
+        }
       }
     } catch (error) {
       onError('Failed to parse gesture data');
