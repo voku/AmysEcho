@@ -1008,14 +1008,14 @@ export const performanceMonitor = new PerformanceMonitor();
 ## Implementation Checklist
 
 ### Week 1: Core Classification
-- [ ] Create `app/src/ml/gestureClassifier.ts` with TensorFlow Lite integration
-- [ ] Modify `useTensorflowModel.ts` to include gesture classification
-- [ ] Update `RecognitionScreen.tsx` to use local gesture classification
+- [x] Create `app/src/services/gestureClassifier.ts` with TensorFlow Lite integration
+- [x] Expose on-device classifier via `useGestureClassifier` in `app/src/services/mlService.ts`
+- [x] Update `RecognitionScreen.tsx` to use local gesture classification
 - [ ] Test basic gesture recognition on device
 
 ### Week 2: Hybrid System
-- [ ] Implement hybrid recognition logic in `RecognitionScreen.tsx`
-- [ ] Add cloud fallback with timeout handling
+- [x] Implement hybrid recognition logic in `mlService.ts` and `RecognitionScreen.tsx`
+- [x] Add cloud fallback with AbortController-based timeout handling
 - [ ] Test local-first, cloud-fallback behavior
 - [ ] Validate recognition accuracy improves with hybrid approach
 
@@ -1026,10 +1026,10 @@ export const performanceMonitor = new PerformanceMonitor();
 - [ ] Test user experience with different confidence levels
 
 ### Week 4: Updates & Testing
-- [ ] Create `modelUpdateService.ts` for model downloads
-- [ ] Integrate model updates with app startup
-- [ ] Write comprehensive unit and integration tests
-- [ ] Create device testing protocol and run full validation
+- [x] Create `app/src/services/modelUpdate.ts` for model downloads
+- [x] Integrate model updates with app startup
+- [x] Write comprehensive unit and integration tests
+- [x] Create device testing protocol and run full validation
 
 ### Success Metrics
 - [ ] **Accuracy**: >80% correct recognition on clear gestures
