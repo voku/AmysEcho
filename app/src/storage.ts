@@ -185,3 +185,25 @@ export async function saveCustomModelHash(hash: string): Promise<void> {
 export async function loadCustomModelHash(): Promise<string | null> {
   return AsyncStorage.getItem(CUSTOM_MODEL_HASH_KEY);
 }
+
+const CUSTOM_GESTURES_KEY = 'customGestures';
+
+export interface CustomGesture {
+  id: string;
+  label: string;
+  emoji?: string;
+}
+
+export async function saveCustomGesture(gesture: CustomGesture): Promise<void> {
+  const raw = await AsyncStorage.getItem(CUSTOM_GESTURES_KEY);
+  const gestures: CustomGesture[] = raw ? JSON.parse(raw) : [];
+  if (!gestures.find((g) => g.id === gesture.id)) {
+    gestures.push(gesture);
+    await AsyncStorage.setItem(CUSTOM_GESTURES_KEY, JSON.stringify(gestures));
+  }
+}
+
+export async function loadCustomGestures(): Promise<CustomGesture[]> {
+  const raw = await AsyncStorage.getItem(CUSTOM_GESTURES_KEY);
+  return raw ? JSON.parse(raw) : [];
+}

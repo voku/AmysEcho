@@ -20,6 +20,7 @@ const CorrectionScreen = lazyScreen(() => import('../screens/CorrectionScreen'))
 const PracticeScreen = lazyScreen(() => import('../screens/PracticeScreen'));
 const TeachScreen = lazyScreen(() => import('../screens/TeachScreen'));
 const TrainingScreen = lazyScreen(() => import('../screens/TrainingScreen'));
+const TeachingScreen = lazyScreen(() => import('../screens/TeachingScreen'));
 const ParentScreen = lazyScreen(() => import('../screens/ParentScreen'));
 const ProfileManagerScreen = lazyScreen(() => import('../screens/ProfileManagerScreen'));
 const ParentalGateScreen = lazyScreen(() => import('../screens/ParentalGateScreen'));
@@ -83,6 +84,11 @@ const RootNavigator = () => {
       <Stack.Screen
         name="Teach"
         component={TeachScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Teaching"
+        component={TeachingScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

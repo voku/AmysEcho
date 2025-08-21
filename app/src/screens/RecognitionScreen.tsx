@@ -223,7 +223,10 @@ export default function RecognitionScreen({ navigation }: any) {
       {showCorrection && (
         <CorrectionPanel
           onSelect={handleSelectCorrection}
-          onAddNew={() => {}}
+          onAddNew={() => {
+            setShowCorrection(false);
+            navigation.navigate('Teaching');
+          }}
           onCancel={handleCancelCorrection}
           suggestions={[]}
         />

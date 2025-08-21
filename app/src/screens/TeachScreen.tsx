@@ -19,7 +19,7 @@ export default function TeachScreen({ navigation }: any) {
           title="Add New Sign"
           testID="btn-add-sign"
           accessibilityLabel="Add New Sign"
-          onPress={() => navigation.navigate('Training')}
+          onPress={() => navigation.navigate('Teaching')}
         />
       </SafeAreaView>
     </LinearGradient>
