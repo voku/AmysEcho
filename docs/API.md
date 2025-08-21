@@ -81,12 +81,18 @@ Return aggregated metrics such as correction rate, uncertainty ratio, median lat
 ```
 
 ### POST /api/telemetry
-Submit telemetry events recording gesture classification latency. Accepts a single event object or an array of events. Returns `202 Accepted`.
+Submit telemetry events recording gesture processing metrics and fallback usage. Accepts a single event object or an array of events. Returns `202 Accepted`.
+
+Each event includes:
+- `latencyMs` (number)
+- `timestamp` (number)
+- `event` (string, optional) — e.g., `recognizer_init`, `frame_latency`, `server_fallback`, `classify_landmarks`
+- `source` (string, optional) — client module sending the event
 
 **Body**
 ```json
 [
-  { "latencyMs": 120, "timestamp": 1700000000000 }
+  { "event": "frame_latency", "latencyMs": 33, "timestamp": 1700000000000, "source": "webview-gesture-detector" }
 ]
 ```
 
