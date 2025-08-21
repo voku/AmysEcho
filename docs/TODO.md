@@ -7,11 +7,11 @@ The project has a stable foundation after a major refactor. The database, naviga
 
 ## Recognition Ensemble Summary
 _Last updated: 2025-08-20_
-- Finalized ensemble order: `TFLite → centroid → remote` (remote is invoked only when local confidence is below threshold).
-- Profile-aware thresholds use caching to avoid repeated lookups.
-- Server recognition remains active during offline fallback, retrying on subsequent frames to enable automatic recovery when connectivity returns.
+- Finalized ensemble order: `TFLite → centroid → remote`.
+- Profile-aware thresholds are cached per gesture to avoid repeated database lookups.
+- Server recognition remains active during offline fallback so it automatically resumes when connectivity returns.
 - Softmax temperature calibration balances model confidence outputs.
-- Remote inference leverages `AbortController`-based timeouts.
+- Remote inference uses `AbortController`-based timeouts.
 
 ## 🔑 Immediate Gesture Detection & Visualization Fixes
 
