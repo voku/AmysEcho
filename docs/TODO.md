@@ -63,7 +63,7 @@ _Last updated: 2025-08-21_
 
 - [x] Remove runtime dependence on `.tflite` and mlService in app.
 - [x] Migrate TrainingScreen to use WebView landmarks.
-- [ ] Remove or rehome legacy TFLite-only modules (useTensorflowModel, landmarkExtractor, gestureClassifier) and update tests accordingly
+- [x] Remove or rehome legacy TFLite-only modules (useTensorflowModel, landmarkExtractor, gestureClassifier) and update tests accordingly
       so TS excludes can be dropped entirely.
 
 ## Gesture & Workflow Enhancements

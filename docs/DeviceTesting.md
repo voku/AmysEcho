@@ -68,5 +68,4 @@ export EXPO_PUBLIC_REMOTE_TIMEOUT_MS=400
 
 ### Troubleshooting
 - If overlay misaligned: verify device aspect ratio; try switching front/back camera.
-- If plugin says unavailable: clean rebuild and ensure `vision-camera-resize-plugin` linked; app may be using JS fallback (slower).
 - If performance dips: close background apps, keep FPS target ~8–12, and ensure debug overlay is hidden during normal use.

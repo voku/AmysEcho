@@ -26,7 +26,7 @@ const criticalAppDeps = [
   'react',
   'react-native',
   'expo',
-  'react-native-vision-camera',
+  'react-native-webview',
   'react-native-worklets-core',
   'react-native-reanimated',
   '@nozbe/watermelondb',

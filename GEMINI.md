@@ -55,8 +55,7 @@ Amy's Echo is a multimodal communication platform for non-verbal children. The p
 |------------------|-------------------------------|---------------------------------------------------|
 | App Framework     | React Native (CLI)            | Cross-platform + native module access             |
 | Language          | TypeScript (strict mode)      | Predictable, type-safe code                       |
-| Camera            | `react-native-vision-camera`  | High-performance gesture capture                  |
-| ML Inference      | `react-native-webview` + MediaPipe Tasks JS (locally served) | On-device hand landmarks + gestures via WASM |
+| Camera & ML       | `react-native-webview` + MediaPipe Tasks JS (locally served) | In-app hand landmark extraction via WASM |
 | Cloud ML          | Custom API / OpenAI           | Accurate gesture classification & dialog          |
 | UI/UX             | RN Animated API + Skia (opt.) | Gentle, trust-based feedback                      |
 | Audio             | `expo-audio`, `expo-speech`   | Speech output + sound effects                     |
