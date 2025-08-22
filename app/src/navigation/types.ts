@@ -15,4 +15,5 @@ export type RootStackParamList = {
   Dashboard: undefined;
   Progress: undefined;
   Help: undefined;
+  PracticeScheduler: undefined;
 };

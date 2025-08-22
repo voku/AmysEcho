@@ -25,6 +25,7 @@ import { logInteractionEvent } from '../services/analytics';
 import { logHIPEvent } from '../services/hipEvents';
 import { shouldPromptPractice } from '../services/healthScore';
 import { OneEuroFilter } from '../services/OneEuroFilter';
+import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
@@ -42,14 +43,37 @@ export default function RecognitionScreen({ navigation }: any) {
   const [pendingGesture, setPendingGesture] = useState<string | null>(null);
   const [lastRecognizedGesture, setLastRecognizedGesture] = useState<GestureModelEntry | null>(null);
   const [showPracticeBanner, setShowPracticeBanner] = useState(false);
+  const [scheduledGesture, setScheduledGesture] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
   const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
   const labelHistoryRef = useRef<string[]>([]);
+  const seqDefsRef = useRef<SequenceDefinition[]>([
+    { id: 'more_please', pattern: ['more', 'please'], windowMs: 3000 },
+  ]);
+  const seqRef = useRef(new SequenceRecognizer(seqDefsRef.current));
 
   useEffect(() => {
     loadProfile().then(setProfile);
+  }, []);
+
+  // Check practice schedules periodically and show banner when due
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    (async () => {
+      try {
+        const { getDueGesture } = await import('../services/practiceScheduler');
+        timer = setInterval(async () => {
+          const due = await getDueGesture();
+          if (due) {
+            setScheduledGesture(due);
+            setShowPracticeBanner(true);
+          }
+        }, 60 * 1000);
+      } catch {}
+    })();
+    return () => timer && clearInterval(timer);
   }, []);
 
   const startFeedbackAnimation = useCallback(() => {
@@ -138,6 +162,16 @@ export default function RecognitionScreen({ navigation }: any) {
         shouldPromptPractice(entry.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
           .then(setShowPracticeBanner)
           .catch(() => setShowPracticeBanner(false));
+
+        // Sequence recognition (non-blocking): if a sequence matches, provide gentle feedback
+        try {
+          const seqId = seqRef.current.push(entry.id);
+          if (seqId) {
+            void logHIPEvent('HIP_2', 'sequence_detected', { sequence: seqId });
+            // Optional extra cue without altering primary status
+            void audioService.playEncouragement(seqId);
+          }
+        } catch {}
       } else {
         setStatus("I'm not sure. Please try again.");
         setPendingGesture(stableGesture);
@@ -279,7 +313,7 @@ export default function RecognitionScreen({ navigation }: any) {
         <MaintenanceBanner
           onPractice={() => {
             setShowPracticeBanner(false);
-            const target = lastRecognizedGesture?.id || 'practice';
+            const target = scheduledGesture || lastRecognizedGesture?.id || 'practice';
             navigation.navigate('Training', { gestureLabel: target, isPractice: true });
           }}
         />

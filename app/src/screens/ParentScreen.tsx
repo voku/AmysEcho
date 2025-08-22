@@ -66,6 +66,11 @@ export default function ParentScreen({ navigation }: any) {
         accessibilityLabel="View analytics"
       />
       <Button
+        title="Practice Scheduler"
+        onPress={() => navigation.navigate('PracticeScheduler')}
+        accessibilityLabel="Practice Scheduler"
+      />
+      <Button
         title="Progress"
         onPress={() => navigation.navigate('Progress')}
         accessibilityLabel="View progress"

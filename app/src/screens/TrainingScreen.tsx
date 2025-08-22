@@ -16,6 +16,8 @@ import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import { logHIPEvent } from '../services/hipEvents';
+import DgsVideoPlayer from '../components/DgsVideoPlayer';
+import { gestureModel as gestures } from '../model';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -199,12 +201,22 @@ export default function TrainingScreen({ navigation, route }: any) {
           ))
         ) : count < TARGET_SAMPLES ? (
           <>
-            <View style={styles.cameraContainer}>
-              <MediaPipeGestureDetector
-                onGestureDetected={(_g, _c, lm) => {
-                  setLandmarks(lm);
-                  setLastDetection(Date.now());
-                  if (isRecordingRef.current) {
+          {/* Optional DGS demo video if available */}
+          {gestureId && (() => {
+            const entry = gestures.gestures.find(g => g.id === gestureId);
+            const videoSource = entry?.dgsVideoUri ? { uri: entry.dgsVideoUri } : undefined;
+            return videoSource ? (
+              <View style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, marginBottom: SPACING.sm }}>
+                <DgsVideoPlayer videoSource={videoSource} shouldPlay={true} />
+              </View>
+            ) : null;
+          })()}
+          <View style={styles.cameraContainer}>
+            <MediaPipeGestureDetector
+              onGestureDetected={(_g, _c, lm) => {
+                setLandmarks(lm);
+                setLastDetection(Date.now());
+                if (isRecordingRef.current) {
                     setRecordedLandmarks((prev) => [...prev, lm]);
                     setFramesCaptured((c) => c + 1);
                   }
