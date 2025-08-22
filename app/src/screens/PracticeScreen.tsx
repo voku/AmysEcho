@@ -18,6 +18,7 @@ import { loadProfile, Profile } from '../storage';
 export default function PracticeScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [targetSamples, setTargetSamples] = useState<number>(3);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -45,12 +46,11 @@ export default function PracticeScreen({ navigation }: any) {
         title={item.label}
         testID={`practice-${item.id}`}
         accessibilityLabel={`Übe ${item.label}`}
-        onPress={() =>
-          navigation.navigate('Training', {
-            gestureLabel: item.id,
-            isPractice: true,
-          })
-        }
+        onPress={() => {
+          const params: any = { gestureLabel: item.id, isPractice: true };
+          if (targetSamples !== 3) params.targetSamples = targetSamples;
+          navigation.navigate('Training', params);
+        }}
       />
     </View>
   );
@@ -60,6 +60,13 @@ export default function PracticeScreen({ navigation }: any) {
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <SafeAreaView style={styles.container}>
           <Text style={styles.title}>Practice Gestures</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: SPACING.md }}>
+            <Button title="3" onPress={() => setTargetSamples(3)} accessibilityLabel="3 Beispiele" color={targetSamples===3? COLORS.primaryAccent : undefined} />
+            <View style={{ width: SPACING.sm }} />
+            <Button title="5" onPress={() => setTargetSamples(5)} accessibilityLabel="5 Beispiele" color={targetSamples===5? COLORS.primaryAccent : undefined} />
+            <View style={{ width: SPACING.sm }} />
+            <Button title="8" onPress={() => setTargetSamples(8)} accessibilityLabel="8 Beispiele" color={targetSamples===8? COLORS.primaryAccent : undefined} />
+          </View>
           <FlatList
             data={gestureModel.gestures}
             keyExtractor={(item) => item.id}

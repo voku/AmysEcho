@@ -24,6 +24,7 @@ import MaintenanceBanner from '../components/MaintenanceBanner';
 import { logInteractionEvent } from '../services/analytics';
 import { logHIPEvent } from '../services/hipEvents';
 import { shouldPromptPractice } from '../services/healthScore';
+import { OneEuroFilter } from '../services/OneEuroFilter';
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
@@ -44,6 +45,8 @@ export default function RecognitionScreen({ navigation }: any) {
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
+  const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
+  const labelHistoryRef = useRef<string[]>([]);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -80,22 +83,37 @@ export default function RecognitionScreen({ navigation }: any) {
       finalConfidence: number,
       processedBy: 'local' | 'cloud',
     ) => {
-      setDetectedGesture(finalGesture);
-      setGestureConfidence(finalConfidence);
+      // Smooth confidence and label
+      const smoothed = confidenceFilterRef.current.filter(
+        Math.max(0, Math.min(1, finalConfidence)),
+        Date.now() / 1000,
+      );
+      const hist = labelHistoryRef.current;
+      hist.push(finalGesture);
+      if (hist.length > 5) hist.shift();
+      const freq = hist.reduce<Record<string, number>>((acc, g) => {
+        acc[g] = (acc[g] || 0) + 1;
+        return acc;
+      }, {});
+      const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
+      const stableGesture = top && top[1] >= 3 ? top[0] : finalGesture;
+
+      setDetectedGesture(stableGesture);
+      setGestureConfidence(smoothed);
       setError(null);
 
-      if (finalConfidence > 0.7 && finalGesture !== 'unknown') {
-        const entry = (gestureModel.gestures.find((g) => g.id === finalGesture) || { id: finalGesture, label: finalGesture }) as GestureModelEntry;
+      if (smoothed > 0.7 && stableGesture !== 'unknown') {
+        const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
         setLastRecognizedGesture(entry);
         setStatus(entry.label);
-        triggerSpeakAndShow(entry.label, finalConfidence, () => {});
+        triggerSpeakAndShow(entry.label, smoothed, () => {});
         startFeedbackAnimation();
 
         // Log success
         logInteractionEvent({
           gestureDefinitionId: entry.id,
           wasSuccessful: true,
-          confidenceScore: finalConfidence,
+          confidenceScore: smoothed,
           timestamp: Date.now(),
           processedBy,
         }).catch(() => {});
@@ -122,18 +140,18 @@ export default function RecognitionScreen({ navigation }: any) {
           .catch(() => setShowPracticeBanner(false));
       } else {
         setStatus("I'm not sure. Please try again.");
-        setPendingGesture(finalGesture);
+        setPendingGesture(stableGesture);
         setShowCorrection(true);
         // Gentle nudge to retry
         try { await audioService.playEncouragement(); } catch {}
         // HIP 3: opened correction/uncertainty path
         void logHIPEvent('HIP_3', 'help_me_opened', { suggestionFor: finalGesture });
         // Log failure for the incoming gesture id (could be 'unknown')
-        const id = (gestureModel.gestures.find((g) => g.id === finalGesture)?.id) || finalGesture || 'unknown';
+        const id = (gestureModel.gestures.find((g) => g.id === stableGesture)?.id) || stableGesture || 'unknown';
         logInteractionEvent({
           gestureDefinitionId: id,
           wasSuccessful: false,
-          confidenceScore: finalConfidence,
+          confidenceScore: smoothed,
           timestamp: Date.now(),
           processedBy,
         }).catch(() => {});

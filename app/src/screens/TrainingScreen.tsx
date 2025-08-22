@@ -20,7 +20,8 @@ import { logHIPEvent } from '../services/hipEvents';
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const PREVIEW_SIZE = 200;
-  const { gestureLabel, isPractice } = route.params || {};
+  const { gestureLabel, isPractice, targetSamples } = route.params || {};
+  const TARGET_SAMPLES = isPractice ? (typeof targetSamples === 'number' ? targetSamples : 5) : 5;
   // No camera ref needed; WebView handles its own camera
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
@@ -196,7 +197,7 @@ export default function TrainingScreen({ navigation, route }: any) {
               accessibilityLabel={`Trainiere Geste ${g.label}`}
             />
           ))
-        ) : count < 5 ? (
+        ) : count < TARGET_SAMPLES ? (
           <>
             <View style={styles.cameraContainer}>
               <MediaPipeGestureDetector
@@ -245,17 +246,17 @@ export default function TrainingScreen({ navigation, route }: any) {
             <View
               style={styles.progressBar}
               accessibilityRole="progressbar"
-              accessibilityValue={{ now: count, min: 0, max: 5 }}
+              accessibilityValue={{ now: count, min: 0, max: TARGET_SAMPLES }}
             >
               <View
                 style={[
                   styles.progressFill,
-                  { width: `${(count / 5) * 100}%` },
+                  { width: `${(count / TARGET_SAMPLES) * 100}%` },
                 ]}
               />
             </View>
             <Button
-              title={isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / 5`}
+              title={isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / ${TARGET_SAMPLES}`}
               onPress={isRecording ? stopRecording : startRecording}
               accessibilityLabel="Gestenaufnahme starten"
               disabled={!gestureId}
@@ -268,9 +269,15 @@ export default function TrainingScreen({ navigation, route }: any) {
           </>
         ) : (
           <Button
-            title="Save Training Data"
-            onPress={handleFinish}
-            accessibilityLabel="Trainingsdaten speichern"
+            title={isPractice ? 'Finish Practice' : 'Save Training Data'}
+            onPress={async () => {
+              if (isPractice && gestureId) {
+                try { await audioService.playCelebrationFeedback(); } catch {}
+                try { await logHIPEvent('HIP_4', 'practice_completed', { gestureId, samples: TARGET_SAMPLES }); } catch {}
+              }
+              handleFinish();
+            }}
+            accessibilityLabel={isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
           />
         )}
       </View>
