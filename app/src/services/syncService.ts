@@ -53,14 +53,17 @@ export const syncService = {
       logger.info(`Found ${pendingSamples.length} pending training samples.`);
 
       try {
-        const payload = pendingSamples.map((s) => JSON.parse(s.landmarkData));
+        const payload = pendingSamples.map((s) => ({
+          gestureDefinitionId: s.gestureDefinition.id,
+          landmarkData: JSON.parse(s.landmarkData),
+        }));
         const response = await fetch(`${API_URL}/train-model`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${API_TOKEN}`,
           },
-          body: JSON.stringify({ landmarks: payload }),
+          body: JSON.stringify({ samples: payload }),
         });
 
         if (response.ok) {

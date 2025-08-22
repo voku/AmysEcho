@@ -19,17 +19,21 @@ export async function syncTrainingData(): Promise<void> {
 
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
-  const pending = data.filter(d => d.syncStatus === 'pending');
+  const pending = data.filter((d) => d.syncStatus === 'pending');
   if (pending.length === 0) return;
   try {
     const token = await loadBackendApiToken();
+    const samples = pending.map((p) => ({
+      gestureDefinitionId: p.gestureDefinitionId,
+      landmarkData: p.landmarkData,
+    }));
     await fetch(`${API_URL}/train-model`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token || ''}`,
       },
-      body: JSON.stringify({ landmarks: pending.map(p => p.landmarkData) }),
+      body: JSON.stringify({ samples }),
     });
     for (const p of pending) p.syncStatus = 'synced';
     await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
