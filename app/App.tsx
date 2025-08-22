@@ -19,6 +19,7 @@ import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashRe
 import { PerformanceProvider } from './src/context/PerformanceContext';
 import ChildErrorBoundary from './src/components/ChildErrorBoundary';
 import OfflineBanner from './src/components/OfflineBanner';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -106,28 +107,30 @@ export default function App() {
   }
 
   return (
-    <MessageProvider>
-      <PerformanceProvider>
-        <AppServicesProvider offline={isOffline}>
-          <AccessibilityContext.Provider
-            value={{
-              ...accessibility,
-              update: (s: Partial<AccessibilitySettings>) =>
-                setAccessibility((prev) => ({ ...prev, ...s })),
-            }}
-          >
-            <ChildErrorBoundary>
-              <LinearGradient colors={gradientColors} style={styles.gradient}>
-                <OfflineBanner visible={isOffline} />
-                <NavigationContainer>
-                  <RootNavigator />
-                </NavigationContainer>
-              </LinearGradient>
-            </ChildErrorBoundary>
-          </AccessibilityContext.Provider>
-        </AppServicesProvider>
-      </PerformanceProvider>
-    </MessageProvider>
+    <SafeAreaProvider>
+      <MessageProvider>
+        <PerformanceProvider>
+          <AppServicesProvider offline={isOffline}>
+            <AccessibilityContext.Provider
+              value={{
+                ...accessibility,
+                update: (s: Partial<AccessibilitySettings>) =>
+                  setAccessibility((prev) => ({ ...prev, ...s })),
+              }}
+            >
+              <ChildErrorBoundary>
+                <LinearGradient colors={gradientColors} style={styles.gradient}>
+                  <OfflineBanner visible={isOffline} />
+                  <NavigationContainer>
+                    <RootNavigator />
+                  </NavigationContainer>
+                </LinearGradient>
+              </ChildErrorBoundary>
+            </AccessibilityContext.Provider>
+          </AppServicesProvider>
+        </PerformanceProvider>
+      </MessageProvider>
+    </SafeAreaProvider>
   );
 }
 
