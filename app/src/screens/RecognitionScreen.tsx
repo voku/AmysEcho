@@ -19,6 +19,9 @@ import { telemetry } from '../telemetry/recorder';
 import { USE_EXPO_CAMERA } from '../constants';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
+import { buildLocalCentroids } from '../services/localCentroids';
+import { classifyWithCentroids } from '../services/offlineClassifier';
+import type { CentroidMap } from '../services/dgsModelClient';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
 import MaintenanceBanner from '../components/MaintenanceBanner';
 import { logInteractionEvent } from '../services/analytics';
@@ -61,9 +64,14 @@ export default function RecognitionScreen({ navigation }: any) {
   const seqRef = useRef(new SequenceRecognizer(seqDefsRef.current));
   const uncertainCountRef = useRef(0);
   const lastUncertainAtRef = useRef<number>(0);
+  const centroidsRef = useRef<CentroidMap>({});
 
   useEffect(() => {
     loadProfile().then(setProfile);
+  }, []);
+
+  useEffect(() => {
+    buildLocalCentroids().then((c) => { centroidsRef.current = c; }).catch(() => {});
   }, []);
 
   // Auto-fallback to Expo camera if WebView doesn't start camera within 5 seconds
@@ -112,12 +120,35 @@ export default function RecognitionScreen({ navigation }: any) {
     }).start();
   }, [fadeAnim, symbolScaleAnim]);
 
+  const flattenHands = (hands: number[][][]): number[][] => {
+    const left = hands[0] || [];
+    const right = hands[1] || [];
+    const out: number[][] = [];
+    for (let i = 0; i < 21; i++) {
+      out.push(left[i] ? [...left[i]] : [0, 0, 0]);
+    }
+    for (let i = 0; i < 21; i++) {
+      out.push(right[i] ? [...right[i]] : [0, 0, 0]);
+    }
+    return out;
+  };
+
   const handleGestureDetected = useCallback(async (
     gesture: string,
     confidence: number,
     landmarks: number[][][],
   ) => {
-    const start = Date.now();
+    let g = gesture;
+    let c = confidence;
+
+    if (centroidsRef.current && (!g || c < 0.6)) {
+      const flat = flattenHands(landmarks);
+      const res = classifyWithCentroids(flat, centroidsRef.current);
+      if (res && res.confidence > c) {
+        g = res.label;
+        c = res.confidence;
+      }
+    }
 
     // Helper to apply a classification to UI + logs
     const handleOutcome = async (
@@ -227,8 +258,8 @@ export default function RecognitionScreen({ navigation }: any) {
       }
     };
 
-    // On-device classification only: use provided gesture/confidence from WebView
-    await handleOutcome(gesture, confidence, 'local');
+    // On-device classification only: use provided or locally-classified gesture
+    await handleOutcome(g, c, 'local');
   }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
@@ -325,6 +356,15 @@ export default function RecognitionScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Button
+        title={facingMode === 'user' ? 'Use Back Camera' : 'Use Front Camera'}
+        onPress={() => {
+          const m = facingMode === 'user' ? 'environment' : 'user';
+          setFacingMode(m);
+          setWebviewKey((k) => k + 1);
+        }}
+        accessibilityLabel="Switch camera"
+      />
       <View style={styles.cameraContainer}>
         {
           <MediaPipeGestureDetector

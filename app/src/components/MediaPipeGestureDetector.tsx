@@ -209,7 +209,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
                 const left = perHand.find(h => /left/i.test(h.hand)) || perHand[0];
                 const right = perHand.find(h => /right/i.test(h.hand)) || perHand[1];
                 if (left && right) {
-                  outGesture = `${left.label}+${right.label}`;
+                  outGesture = left.label + '+' + right.label;
                   outScore = Math.min(left.score, right.score);
                 }
               }

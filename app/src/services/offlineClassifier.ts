@@ -1,9 +1,22 @@
 import type { CentroidMap } from './dgsModelClient';
 
 function normalize(lm: number[][]): number[][] {
-  if (!lm || lm.length < 21) return lm;
-  const [wx, wy, wz] = lm[0];
-  const pts = lm.map(([x, y, z]) => [x - wx, y - wy, (z ?? 0) - (wz ?? 0)]);
+  if (!lm || lm.length === 0) return lm;
+  const pts = lm.map((p) => [...p]);
+
+  const normalizeHand = (start: number) => {
+    if (pts.length < start + 1) return;
+    const [wx, wy, wz] = pts[start];
+    for (let i = 0; i < 21 && start + i < pts.length; i++) {
+      const [x, y, z] = pts[start + i];
+      pts[start + i] = [x - wx, y - wy, (z ?? 0) - (wz ?? 0)];
+    }
+  };
+
+  // Normalize first hand and second hand (if present) separately
+  normalizeHand(0);
+  if (pts.length >= 42) normalizeHand(21);
+
   let maxd = 0;
   for (const [x, y] of pts) maxd = Math.max(maxd, Math.abs(x) + Math.abs(y));
   const s = maxd || 1;
