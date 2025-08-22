@@ -11,7 +11,7 @@
 ## Phase 1: User Experience & Stability (Weeks 1-2)
 *Focus on child-centric reliability and error resilience*
 
-### 1.1 User-Friendly Error Shielding 
+### 1.1 User-Friendly Error Shielding
 **Priority: Critical - Child Safety First**
 - **Implement centralized error boundary system**
   - Create child-safe error messages with gentle visual feedback
@@ -58,12 +58,12 @@
 
 ### 2.1 ML Pipeline Activation
 **Priority: Critical**
-- **Complete mlService.ts implementation**
-  - Integrate TFLite model loading with proper error handling
-  - Implement cloud-local fallback logic with performance telemetry
+- **Finalize server-first classifier integration**
+  - Harden API error handling and latency metrics
+  - Strengthen offline rule-based fallback with performance telemetry
   - Add confidence thresholding and uncertainty handling
 - **Gesture classification pipeline**
-  - Connect frame processor output to ML service
+  - Connect frame processor output to classifier service
   - Implement real-time classification with smoothing
   - Add gesture sequence recognition for complex signs
 
@@ -183,7 +183,7 @@
 | Enhanced telemetry | Medium | Low | **P1** |
 | WebView error handling | High | Medium | **P1** |
 
-### Next Sprint (Weeks 3-4) 
+### Next Sprint (Weeks 3-4)
 | Task | Impact | Effort | Priority |
 |------|--------|--------|----------|
 | Adaptive gesture suggestions | High | High | **P1** |
@@ -204,7 +204,7 @@
 ### Technical Excellence KPIs
 - **Error rate for children**: <0.1% user-visible errors during active use
 - **Gesture recognition accuracy**: >95% for Amy's trained vocabulary
-- **System availability**: >99.9% uptime for core recognition features  
+  - **System availability**: >99.9% uptime for core recognition features
 - **Learning loop efficiency**: <24 hours from data collection to model improvement
 
 ### User Experience KPIs
