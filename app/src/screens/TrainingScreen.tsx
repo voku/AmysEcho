@@ -211,9 +211,17 @@ export default function TrainingScreen({ navigation, route }: any) {
                   viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
                   pointerEvents="none"
                 >
-                  {landmarks.flat().map((l, idx) => (
-                    <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill={COLORS.warning} />
-                  ))}
+                  {landmarks.map((hand, handIdx) =>
+                    hand.map((l, lmIdx) => (
+                      <Circle
+                        key={`${handIdx}-${lmIdx}`}
+                        cx={l[0] * PREVIEW_SIZE}
+                        cy={l[1] * PREVIEW_SIZE}
+                        r={3}
+                        fill={COLORS.warning}
+                      />
+                    ))
+                  )}
                 </Svg>
               )}
               <View style={styles.detectionIndicator}>

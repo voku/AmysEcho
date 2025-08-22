@@ -80,9 +80,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             let outGesture = null;
             let outScore = 0;
             if (results?.gestures?.length) {
-              const top = results.gestures[0][0];
-              outGesture = top.categoryName;
-              outScore = top.score;
+              for (const handGestures of results.gestures) {
+                const top = handGestures?.[0];
+                if (top && top.score > outScore) {
+                  outGesture = top.categoryName;
+                  outScore = top.score;
+                }
+              }
             }
             // Custom gesture logic (preserved for single-hand fallback)
             const firstHand = allLandmarks[0] || [];
