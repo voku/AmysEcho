@@ -12,7 +12,7 @@ export interface ValidationResult {
 
 // Basic quality checks for recorded gesture samples used in training.
 // Assumes landmarks are normalized to [0,1] if available.
-export function validateLandmarkSequence(samples: number[][][]): ValidationResult {
+export function validateLandmarkSequence(samples: number[][][][]): ValidationResult {
   const issues: ValidationIssue[] = [];
   const suggestions: string[] = [];
 
@@ -28,7 +28,7 @@ export function validateLandmarkSequence(samples: number[][][]): ValidationResul
   let motionSamples = 0;
 
   for (let i = 0; i < frameCount; i++) {
-    const frame = samples[i];
+    const frame = samples[i].flat();
     if (!frame || frame.length === 0) {
       hasMissing = true;
       continue;
@@ -51,12 +51,15 @@ export function validateLandmarkSequence(samples: number[][][]): ValidationResul
       ) {
         outOfRange = true;
       }
-      if (i > 0 && samples[i - 1] && samples[i - 1][j]) {
-        const [px, py] = samples[i - 1][j];
-        const dx = x - px;
-        const dy = y - py;
-        totalMotion += Math.hypot(dx, dy);
-        motionSamples += 1;
+      if (i > 0) {
+        const prev = samples[i - 1].flat();
+        if (prev[j]) {
+          const [px, py] = prev[j];
+          const dx = x - px;
+          const dy = y - py;
+          totalMotion += Math.hypot(dx, dy);
+          motionSamples += 1;
+        }
       }
     }
   }

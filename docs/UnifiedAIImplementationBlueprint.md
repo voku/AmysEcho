@@ -24,7 +24,7 @@ For a list of alternative approaches and the current implementation status, refe
     *   `@mediapipe/hands`: The JavaScript library for hand tracking.
 *   **Functionality**:
     *   The component renders an HTML page with the necessary JavaScript to access the device's camera and run the MediaPipe hand tracking model.
-    *   When hands are detected, the component extracts the 21 hand landmarks.
+*   When hands are detected, the component extracts 21 landmarks per hand (supports two hands).
     *   It then uses `window.ReactNativeWebView.postMessage` to send the landmark data back to the React Native application.
 
 ### **Section 2: Integration with `RecognitionScreen.tsx`**
@@ -46,7 +46,7 @@ For a list of alternative approaches and the current implementation status, refe
 
 *   **Endpoint**: `POST /api/classify-landmarks`
 *   **Logic**:
-    *   Receives an array of 21 hand landmarks.
+*   Receives an array of hand landmarks (one or two hands, each with 21 points).
     *   Uses a powerful, server-side machine learning model to classify the gesture.
     *   Returns the gesture label and a confidence score.
 

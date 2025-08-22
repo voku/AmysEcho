@@ -151,7 +151,12 @@ Upload hand landmarks and trigger model training.
 
 **Body**
 ```json
-{ "landmarks": [...] }
+{
+  "landmarks": [
+    [[0.1,0.2,0], ...21],
+    [[0.3,0.4,0], ...21]
+  ]
+}
 ```
 
 **Response**
@@ -200,11 +205,16 @@ Retrieve stored analytics summary.
 ```
 
 ### POST /api/classify-landmarks
-Send an array of 21 hand landmarks for server-side classification. The server forwards the landmarks to a cloud model and falls back to a lightweight local classifier if the request fails.
+Send an array of hand landmarks for server-side classification. Each frame contains one or two hands, where each hand is an array of 21 landmark `[x,y,z]` coordinates. The server forwards the landmarks to a cloud model and falls back to a lightweight local classifier if the request fails.
 
 **Body**
 ```json
-{ "landmarks": [...] }
+{
+  "landmarks": [
+    [[0.1,0.2,0], ...21],
+    [[0.3,0.4,0], ...21]
+  ]
+}
 ```
 
 **Response**

@@ -8,7 +8,7 @@ Below are four proven approaches for Expo projects. Each option includes code sa
 
 ## 1. MediaPipe Tasks in WebView (recommended)
 
-MediaPipe Tasks Vision `GestureRecognizer` runs inside a `WebView` using WebAssembly. It detects hand landmarks and recognized gestures on-device and streams landmarks to the backend classifier when available.
+MediaPipe Tasks Vision `GestureRecognizer` runs inside a `WebView` using WebAssembly. It detects hand landmarks (up to two hands) and recognized gestures on-device and streams landmarks to the backend classifier when available.
 
 ### Install
 ```bash
@@ -25,7 +25,11 @@ import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 interface Props {
-  onGestureDetected: (gesture: string, confidence: number, landmarks: number[][]) => void;
+  onGestureDetected: (
+    gesture: string,
+    confidence: number,
+    landmarks: number[][][],
+  ) => void;
   onError: (error: string) => void;
 }
 
@@ -49,20 +53,20 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       const vision = await FilesetResolver.forVisionTasks('${API_URL}/static/mediapipe/tasks-vision/0.10.9/wasm');
       gestureRecognizer = await GestureRecognizer.createFromOptions(vision,{
         baseOptions:{ modelAssetPath:'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task', delegate:'GPU' },
-        runningMode, numHands:1
+        runningMode, numHands:2
       });
     }
-    function predict(){
-      if(gestureRecognizer && video.currentTime>0 && !video.paused){
-        const r = gestureRecognizer.recognizeForVideo(video, performance.now());
-        if(r?.gestures?.length){
-          const g = r.gestures[0][0];
-          const lms = (r.landmarks?.[0]||[]).map(l=>[l.x,l.y,l.z||0]);
-          window.ReactNativeWebView?.postMessage?.(JSON.stringify({type:'gesture',gesture:g.categoryName,confidence:g.score,landmarks:lms}));
+      function predict(){
+        if(gestureRecognizer && video.currentTime>0 && !video.paused){
+          const r = gestureRecognizer.recognizeForVideo(video, performance.now());
+          if(r?.gestures?.length){
+            const g = r.gestures[0][0];
+            const lms = (r.landmarks||[]).map(hand=>hand.map(l=>[l.x,l.y,l.z||0]));
+            window.ReactNativeWebView?.postMessage?.(JSON.stringify({type:'gesture',gesture:g.categoryName,confidence:g.score,landmarks:lms}));
+          }
         }
+        requestAnimationFrame(predict);
       }
-      requestAnimationFrame(predict);
-    }
     async function start(){
       try{ const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}}); video.srcObject=s; await createGestureRecognizer(); video.addEventListener('loadeddata',()=>requestAnimationFrame(predict)); }
       catch(e){ window.ReactNativeWebView?.postMessage?.(JSON.stringify({type:'error',message:'Camera error: '+(e?.message||e)})); }

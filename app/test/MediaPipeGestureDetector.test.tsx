@@ -34,13 +34,13 @@ describe('MediaPipeGestureDetector', () => {
             type: 'gesture',
             gesture: 'thumbs_up',
             confidence: 0.9,
-            landmarks: [[1, 2, 3]],
+            landmarks: [[[1, 2, 3]]],
           }),
         },
       });
     });
 
-    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[1, 2, 3]]);
+    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[[1, 2, 3]]]);
     expect(onError).not.toHaveBeenCalled();
   });
 
