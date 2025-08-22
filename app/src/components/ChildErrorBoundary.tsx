@@ -15,7 +15,7 @@ interface State {
 
 export class ChildErrorBoundary extends Component<Props, State> {
   static contextType = AccessibilityContext;
-  declare context: React.ContextType<typeof AccessibilityContext>;
+  context!: React.ContextType<typeof AccessibilityContext>;
 
   state: State = { hasError: false };
 
