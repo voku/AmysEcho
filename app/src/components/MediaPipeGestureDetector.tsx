@@ -9,6 +9,7 @@ interface Props {
     landmarks: number[][][],
   ) => void;
   onError: (error: string) => void;
+  onWebViewEvent?: (event: string) => void;
 }
 
 // Optional require to avoid crashing when native WebView module is not in the binary
@@ -20,7 +21,7 @@ try {
   WebViewImpl = null;
 }
 
-export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError }) => {
+export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent }) => {
   const webviewRef = useRef<any>(null);
 
   if (!WebViewImpl) {
@@ -237,6 +238,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
       } else if (data.type === 'telemetry') {
+        try { onWebViewEvent && onWebViewEvent(String(data.event || '')); } catch {}
         try {
           await fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
             method: 'POST',

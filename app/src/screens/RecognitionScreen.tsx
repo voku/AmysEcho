@@ -45,6 +45,8 @@ export default function RecognitionScreen({ navigation }: any) {
   const [lastRecognizedGesture, setLastRecognizedGesture] = useState<GestureModelEntry | null>(null);
   const [showPracticeBanner, setShowPracticeBanner] = useState(false);
   const [scheduledGesture, setScheduledGesture] = useState<string | null>(null);
+  const [webviewReady, setWebviewReady] = useState(false);
+  const [useExpoFallback, setUseExpoFallback] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -58,6 +60,16 @@ export default function RecognitionScreen({ navigation }: any) {
   useEffect(() => {
     loadProfile().then(setProfile);
   }, []);
+
+  // Auto-fallback to Expo camera if WebView doesn't start camera within 5 seconds
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!webviewReady) {
+        setUseExpoFallback(true);
+      }
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [webviewReady]);
 
   // Check practice schedules periodically and show banner when due
   useEffect(() => {
@@ -325,10 +337,14 @@ export default function RecognitionScreen({ navigation }: any) {
         />
       )}
       <View style={styles.cameraContainer}>
-        {USE_EXPO_CAMERA ? (
-          <ExpoCameraDetector onGestureDetected={handleGestureDetected} onError={handleGestureError} />
+        {useExpoFallback || USE_EXPO_CAMERA ? (
+          <ExpoCameraDetector onGestureDetected={handleGestureDetected} onError={(e)=>{ setError(e); }} />
         ) : (
-          <MediaPipeGestureDetector onGestureDetected={handleGestureDetected} onError={handleGestureError} />
+          <MediaPipeGestureDetector
+            onGestureDetected={handleGestureDetected}
+            onError={(e)=>{ setError(e); setUseExpoFallback(true); }}
+            onWebViewEvent={(ev)=>{ if (ev === 'camera_started') setWebviewReady(true); }}
+          />
         )}
       </View>
 
