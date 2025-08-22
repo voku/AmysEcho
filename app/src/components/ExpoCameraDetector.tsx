@@ -1,9 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-// Stub types are provided in mock-types.d.ts for CI; install real module with: npx expo install expo-camera
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Camera } = require('expo-camera');
 import { API_URL, API_TOKEN } from '../constants';
+
+// Dynamically require expo-camera at runtime only when this component is rendered.
+// This prevents Metro from failing the bundle if the dependency is not installed yet.
+let CameraModule: any = null;
+try {
+  // eslint-disable-next-line no-new-func
+  const runtimeRequire = Function('return require')();
+  CameraModule = runtimeRequire('expo-camera');
+} catch {}
 
 interface Props {
   onGestureDetected: (gesture: string, confidence: number, landmarks: number[][][]) => void;
@@ -11,7 +17,17 @@ interface Props {
 }
 
 const ExpoCameraDetector: React.FC<Props> = ({ onGestureDetected, onError }) => {
-  const [permission, requestPermission] = Camera.useCameraPermissions ? Camera.useCameraPermissions() : [null, null];
+  if (!CameraModule) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.text}>
+          expo-camera not installed. Run:\n(cd app && npx expo install expo-camera)
+        </Text>
+      </View>
+    );
+  }
+  const { Camera } = CameraModule;
+  const [permission, requestPermission] = Camera?.useCameraPermissions ? Camera.useCameraPermissions() : [null, null];
   const [ready, setReady] = useState(false);
   const cameraRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
@@ -67,4 +83,3 @@ const ExpoCameraDetector: React.FC<Props> = ({ onGestureDetected, onError }) => 
 const styles = StyleSheet.create({ center: { flex: 1, justifyContent: 'center', alignItems: 'center' }, text: { color: '#fff' } });
 
 export default ExpoCameraDetector;
-
