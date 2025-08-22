@@ -134,7 +134,7 @@ export default function RecognitionScreen({ navigation }: any) {
   };
 
   const handleGestureDetected = useCallback(async (
-    gesture: string,
+    gesture: string | null,
     confidence: number,
     landmarks: number[][][],
   ) => {
@@ -259,7 +259,7 @@ export default function RecognitionScreen({ navigation }: any) {
     };
 
     // On-device classification only: use provided or locally-classified gesture
-    await handleOutcome(g, c, 'local');
+    await handleOutcome(g || 'unknown', c, 'local');
   }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
