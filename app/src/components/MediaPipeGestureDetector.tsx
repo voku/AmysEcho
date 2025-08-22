@@ -10,6 +10,7 @@ interface Props {
   ) => void;
   onError: (error: string) => void;
   onWebViewEvent?: (event: string) => void;
+  facingMode?: 'user' | 'environment';
 }
 
 // Optional require to avoid crashing when native WebView module is not in the binary
@@ -21,7 +22,7 @@ try {
   WebViewImpl = null;
 }
 
-export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent }) => {
+export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode = 'user' }) => {
   const webviewRef = useRef<any>(null);
 
   if (!WebViewImpl) {
@@ -207,7 +208,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
     async function startCamera() { // Renamed from start() for clarity
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: '${facingMode}', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
         video.srcObject = stream;
         try { video.muted = true; await video.play(); } catch {}
         const tracks = stream.getVideoTracks();

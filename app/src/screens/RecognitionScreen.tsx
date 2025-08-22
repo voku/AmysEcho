@@ -47,6 +47,9 @@ export default function RecognitionScreen({ navigation }: any) {
   const [scheduledGesture, setScheduledGesture] = useState<string | null>(null);
   const [webviewReady, setWebviewReady] = useState(false);
   const [useExpoFallback, setUseExpoFallback] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
+  const [webviewKey, setWebviewKey] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -336,14 +339,26 @@ export default function RecognitionScreen({ navigation }: any) {
           }}
         />
       )}
+      {/* Fallback status controls */}
+      {(useExpoFallback) && (
+        <View style={{ position: 'absolute', top: 8, left: 8, right: 8, zIndex: 2, backgroundColor: '#0009', padding: 8, borderRadius: 8 }}>
+          <Text style={{ color: '#fff', textAlign: 'center' }}>Using fallback camera</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 6 }}>
+            <Button title="Retry WebView" onPress={() => { setUseExpoFallback(false); setWebviewReady(false); setWebviewKey(k=>k+1); }} />
+            <Button title={cameraType === 'front' ? 'Back Cam' : 'Front Cam'} onPress={() => setCameraType(t => t === 'front' ? 'back' : 'front')} />
+          </View>
+        </View>
+      )}
       <View style={styles.cameraContainer}>
         {useExpoFallback || USE_EXPO_CAMERA ? (
-          <ExpoCameraDetector onGestureDetected={handleGestureDetected} onError={(e)=>{ setError(e); }} />
+          <ExpoCameraDetector onGestureDetected={handleGestureDetected} onError={(e)=>{ setError(e); }} cameraType={cameraType} />
         ) : (
           <MediaPipeGestureDetector
+            key={webviewKey}
             onGestureDetected={handleGestureDetected}
             onError={(e)=>{ setError(e); setUseExpoFallback(true); }}
             onWebViewEvent={(ev)=>{ if (ev === 'camera_started') setWebviewReady(true); }}
+            facingMode={facingMode}
           />
         )}
       </View>
@@ -375,6 +390,11 @@ export default function RecognitionScreen({ navigation }: any) {
       )}
 
       <View style={{ padding: SPACING.md }}>
+        <Button
+          title={facingMode === 'user' ? 'Flip to Back (WebView)' : 'Flip to Front (WebView)'}
+          onPress={() => { setFacingMode(m => m === 'user' ? 'environment' : 'user'); setWebviewKey(k=>k+1); }}
+        />
+        <View style={{ height: SPACING.sm }} />
         <Button
           testID="btn-help-me-choose"
           title="Help me choose"

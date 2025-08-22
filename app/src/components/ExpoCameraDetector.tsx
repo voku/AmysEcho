@@ -14,9 +14,10 @@ try {
 interface Props {
   onGestureDetected: (gesture: string, confidence: number, landmarks: number[][][]) => void;
   onError: (error: string) => void;
+  cameraType?: 'front' | 'back';
 }
 
-const ExpoCameraDetector: React.FC<Props> = ({ onGestureDetected, onError }) => {
+const ExpoCameraDetector: React.FC<Props> = ({ onGestureDetected, onError, cameraType = 'front' }) => {
   if (!CameraModule) {
     return (
       <View style={styles.center}>
@@ -76,7 +77,13 @@ const ExpoCameraDetector: React.FC<Props> = ({ onGestureDetected, onError }) => 
     );
   }
   return (
-    <Camera ref={cameraRef} style={{ flex: 1 }} onCameraReady={() => setReady(true)} ratio="16:9" />
+    <Camera
+      ref={cameraRef}
+      style={{ flex: 1 }}
+      onCameraReady={() => setReady(true)}
+      ratio="16:9"
+      type={cameraType}
+    />
   );
 };
 
