@@ -18,6 +18,7 @@ import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashRe
 
 import { PerformanceProvider } from './src/context/PerformanceContext';
 import ChildErrorBoundary from './src/components/ChildErrorBoundary';
+import OfflineBanner from './src/components/OfflineBanner';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -82,6 +83,13 @@ export default function App() {
     initialize();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOffline(!state.isConnected);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const gradientColors = accessibility.highContrast
     ? [COLORS.highContrastBackground, COLORS.highContrastBackground]
     : [COLORS.backgroundStart, COLORS.backgroundEnd];
@@ -112,6 +120,7 @@ export default function App() {
           >
             <ChildErrorBoundary>
               <LinearGradient colors={gradientColors} style={styles.gradient}>
+                <OfflineBanner visible={isOffline} />
                 <NavigationContainer>
                   <RootNavigator />
                 </NavigationContainer>
