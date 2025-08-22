@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Platform, ToastAndroid } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,13 +39,8 @@ export default function App() {
         logger.info('Database setup complete, initial profile:', profileId);
 
         const netState = await NetInfo.fetch();
-        if (!netState.isConnected) {
+        if (netState.isConnected === false || netState.isInternetReachable === false) {
           setIsOffline(true);
-          if (Platform.OS === 'android') {
-            ToastAndroid.show('Working offline', ToastAndroid.SHORT);
-          } else {
-            Alert.alert('Working offline');
-          }
         }
 
         const activeId = await loadActiveProfileId();
@@ -85,7 +80,7 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsOffline(!state.isConnected);
+      setIsOffline(state.isConnected === false || state.isInternetReachable === false);
     });
     return () => unsubscribe();
   }, []);
