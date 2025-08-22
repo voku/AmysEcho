@@ -407,6 +407,21 @@ export default function RecognitionScreen({ navigation }: any) {
 
       {/* Optional controls could be reintroduced as overlays if needed */}
 
+      <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.md }}>
+        <Button
+          testID="btn-correction"
+          title="Correction"
+          accessibilityLabel="Open correction screen"
+          onPress={() => navigation.navigate('Correction')}
+        />
+        <Button
+          testID="btn-help-me-choose"
+          title="Help Me Choose"
+          accessibilityLabel="Open help me choose"
+          onPress={() => setShowCorrection(true)}
+        />
+      </View>
+
       <BottomNav active="recognition" profileId={profile?.id || 'default'} />
     </SafeAreaView>
   );
