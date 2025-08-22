@@ -7,6 +7,8 @@ export const ANALYTICS_TELEMETRY_ENDPOINT = `${API_URL}/telemetry`;
 
 export const ENABLE_REMOTE_CLASSIFICATION =
   process.env.EXPO_PUBLIC_ENABLE_REMOTE_CLASSIFICATION !== 'false';
+export const USE_EXPO_CAMERA =
+  process.env.EXPO_PUBLIC_USE_EXPO_CAMERA === 'true';
 export const REMOTE_RETRY_MS = Number(
   process.env.EXPO_PUBLIC_REMOTE_RETRY_MS || 30_000,
 );

@@ -16,7 +16,7 @@ import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { audioService, triggerSpeakAndShow, correctionService, dialogEngine } from '../services';
 import { telemetry } from '../telemetry/recorder';
-import { API_URL, API_TOKEN } from '../constants';
+import { API_URL, API_TOKEN, USE_EXPO_CAMERA } from '../constants';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
@@ -26,6 +26,7 @@ import { logHIPEvent } from '../services/hipEvents';
 import { shouldPromptPractice } from '../services/healthScore';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
+import ExpoCameraDetector from '../components/ExpoCameraDetector';
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
@@ -200,30 +201,35 @@ export default function RecognitionScreen({ navigation }: any) {
 
     // Server classification with timeout; fallback to local values on timeout/error
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 400);
-      const response = await fetch(`${API_URL}/api/classify-landmarks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_TOKEN}`,
-        },
-        body: JSON.stringify({ landmarks }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
+      if (!landmarks || landmarks.length === 0) {
+        // When using the ExpoCameraDetector path, results are already final
+        await handleOutcome(gesture, confidence, 'cloud');
+      } else {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 400);
+        const response = await fetch(`${API_URL}/api/classify-landmarks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_TOKEN}`,
+          },
+          body: JSON.stringify({ landmarks }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
 
-      telemetry.add('classify_landmarks', Date.now() - start, 'recognition-screen');
+        telemetry.add('classify_landmarks', Date.now() - start, 'recognition-screen');
 
-      if (!response.ok) {
-        throw new Error('Server error');
+        if (!response.ok) {
+          throw new Error('Server error');
+        }
+
+        const result = await response.json();
+        const { gesture: serverGesture, confidence: serverConfidence } = result;
+        await handleOutcome(serverGesture, serverConfidence, 'cloud');
       }
-
-      const result = await response.json();
-      const { gesture: serverGesture, confidence: serverConfidence } = result;
-      await handleOutcome(serverGesture, serverConfidence, 'cloud');
     } catch (error) {
-      telemetry.add('classify_landmarks_error', Date.now() - start, 'recognition-screen');
+      telemetry.add('classify_landmarks_error', Date.now() - start, 'recogniction-screen');
       logger.warn('Falling back to local classification:', error);
       // Use locally detected gesture/confidence to keep the seam intact
       await handleOutcome(gesture, confidence, 'local');
@@ -319,10 +325,11 @@ export default function RecognitionScreen({ navigation }: any) {
         />
       )}
       <View style={styles.cameraContainer}>
-        <MediaPipeGestureDetector
-          onGestureDetected={handleGestureDetected}
-          onError={handleGestureError}
-        />
+        {USE_EXPO_CAMERA ? (
+          <ExpoCameraDetector onGestureDetected={handleGestureDetected} onError={handleGestureError} />
+        ) : (
+          <MediaPipeGestureDetector onGestureDetected={handleGestureDetected} onError={handleGestureError} />
+        )}
       </View>
 
       {error &&

@@ -26,3 +26,6 @@ declare module 'react-native-fast-tflite' {
 }
 
 declare module '@testing-library/react-native';
+declare module 'expo-camera' {
+  export const Camera: any;
+}
