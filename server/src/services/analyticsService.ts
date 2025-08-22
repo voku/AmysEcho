@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 const ANALYTICS_PATH = path.join(process.cwd(), 'analytics.json');
+const TELEMETRY_PATH = path.join(process.cwd(), 'telemetry.json');
 
 export function computeLearningAnalytics(db: Database): LearningAnalytics {
   const now = Date.now();
@@ -91,21 +92,19 @@ export interface TelemetryEvent {
   event?: string;
   source?: string;
 }
-  
-  const TELEMETRY_PATH = path.join(process.cwd(), 'telemetry.json');
-  
-  export async function loadTelemetry(): Promise<TelemetryEvent[]> {
-    try {
-      const data = await fs.readFile(TELEMETRY_PATH, 'utf8');
-      return JSON.parse(data) as TelemetryEvent[];
-    } catch {
-      return [];
-    }
+
+export async function loadTelemetry(): Promise<TelemetryEvent[]> {
+  try {
+    const data = await fs.readFile(TELEMETRY_PATH, 'utf8');
+    return JSON.parse(data) as TelemetryEvent[];
+  } catch {
+    return [];
   }
-  
-  export async function saveTelemetry(events: TelemetryEvent[]): Promise<void> {
-    await fs.writeFile(TELEMETRY_PATH, JSON.stringify(events, null, 2), 'utf8');
-  }
+}
+
+export async function saveTelemetry(events: TelemetryEvent[]): Promise<void> {
+  await fs.writeFile(TELEMETRY_PATH, JSON.stringify(events, null, 2), 'utf8');
+}
   
 export function computeSummaryMetrics(
     db: Database,
