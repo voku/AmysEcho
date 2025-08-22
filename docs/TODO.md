@@ -8,6 +8,26 @@
 - Training/recognition workflow operational
 - Documentation updated in `docs/ExpoGestureRecognition.md`
 
+## Now: Android USB Device Runbook
+*Quick steps to validate on a real device connected via USB*
+
+- Device detection: `adb devices` shows the phone.
+- Port bridge: `adb reverse tcp:5000 tcp:5000` (and optionally `adb reverse tcp:8081 tcp:8081`).
+- Backend: `npm run build --prefix server && ./scripts/server-start.sh`.
+  - Sanity checks:
+    - `curl http://localhost:5000/health/recognizer` → JSON with `tasksModelFound`.
+    - `curl http://localhost:5000/static/mediapipe/tasks-vision/0.10.9/vision_bundle.mjs` → JS content (prewarmed on server start).
+- App: `npm run android --prefix app`.
+  - If not using `adb reverse`, set `EXPO_PUBLIC_API_URL=http://<HOST_LAN_IP>:5000` before launch.
+  - Token: if server `API_TOKEN` is customized, set `EXPO_PUBLIC_API_TOKEN` to match; default is `demo-token`.
+- Smoke test: permit camera; perform a thumbs‑up; expect status change + audio/visual feedback; briefly drop network and confirm graceful fallback without alarming UI.
+
+Troubleshooting
+- Black/white preview: ensure camera permission is granted; restart app.
+- 401 Unauthorized: token mismatch between app and server.
+- No classifications: verify `adb reverse` or use LAN `EXPO_PUBLIC_API_URL`.
+- First-load latency: confirm server prewarm logs; hitting the `/static/mediapipe/...` route once caches assets.
+
 ## Phase 1: User Experience & Stability (Weeks 1-2)
 *Focus on child-centric reliability and error resilience*
 
@@ -19,8 +39,8 @@
   - ✅ Add automatic recovery mechanisms that don't require adult intervention
   - ✅ Log detailed errors for developers while showing simple "try again" prompts to Amy
 - **WebView-to-React Native error bridge**
-  - Catch MediaPipe failures gracefully in WebView
-  - Implement seamless fallback to rule-based classifier
+  - ✅ Catch MediaPipe failures gracefully in WebView
+  - ✅ Implement seamless fallback to rule-based classifier
   - ✅ Add visual indicators when offline mode is active (without alarming the child)
 - **Network resilience patterns**
   - Handle server classification timeouts elegantly
@@ -59,11 +79,11 @@
 ### 2.1 ML Pipeline Activation
 **Priority: Critical**
 - **Finalize server-first classifier integration**
-  - Harden API error handling and latency metrics
-  - Strengthen offline rule-based fallback with performance telemetry
-  - Add confidence thresholding and uncertainty handling
+  - ✅ Harden API error handling and latency metrics
+  - ✅ Strengthen offline rule-based fallback with performance telemetry
+  - ✅ Add confidence thresholding and uncertainty handling
 - **Gesture classification pipeline**
-  - Connect frame processor output to classifier service
+  - ✅ Connect WebView landmarks to classifier service (`/api/classify-landmarks`)
   - Implement real-time classification with smoothing
   - Add gesture sequence recognition for complex signs
 
@@ -182,6 +202,15 @@
 | HIP 4 practice flow | High | Medium | **P1** |
 | Enhanced telemetry | Medium | Low | **P1** |
 | WebView error handling | High | Medium | **P1** |
+
+### Developer Checks Before PRs
+- Type safety: `npm run type-check --prefix app`
+- App tests: `npm test --prefix app`
+- Expo sanity: `(cd app && npx expo install --check)` and `(cd app && npx expo-doctor)`
+- Server deps: `pip install -r server/requirements.txt`
+- Server tests: `npm test --prefix server`
+- Integration: `npm test --prefix integration`
+- All-in-one: `./scripts/full-check.sh`
 
 ### Next Sprint (Weeks 3-4)
 | Task | Impact | Effort | Priority |

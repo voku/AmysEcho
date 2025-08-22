@@ -13,6 +13,8 @@ import {
 } from '../constants';
 import { logger } from '../utils/logger';
 import { ServicesContext, type Services } from './ServicesContext';
+import { uploadTelemetry } from '../services/analytics';
+import { telemetry } from '../telemetry/recorder';
 
 const gestureLabels = require('../../assets/models/gesture_labels.json');
 
@@ -29,6 +31,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
+    let telemetryInterval: ReturnType<typeof setInterval> | undefined;
     async function initializeServices() {
       try {
         // WebView + server path: no native TFLite model loading here.
@@ -46,6 +49,12 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           checkForModelUpdate().catch(() => {});
           syncService.uploadPendingTrainingData().catch(() => {});
           syncService.checkForNewModel().catch(() => {});
+
+          // Lightweight periodic telemetry upload
+          telemetryInterval = setInterval(() => {
+            const events = telemetry.dump();
+            if (events.length) uploadTelemetry(events).catch(() => {});
+          }, 30 * 1000);
         } else {
           logger.info('Starting in offline mode; skipping cloud sync');
         }
@@ -62,6 +71,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     initializeServices();
     return () => {
       if (interval) clearInterval(interval);
+      if (telemetryInterval) clearInterval(telemetryInterval);
       audioService.dispose().catch(() => {});
     };
   }, []);

@@ -20,6 +20,9 @@ import { API_URL, API_TOKEN } from '../constants';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
+import MaintenanceBanner from '../components/MaintenanceBanner';
+import { logInteractionEvent } from '../services/analytics';
+import { shouldPromptPractice } from '../services/healthScore';
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
@@ -36,6 +39,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [dialogContext, setDialogContext] = useState<string[]>([]);
   const [pendingGesture, setPendingGesture] = useState<string | null>(null);
   const [lastRecognizedGesture, setLastRecognizedGesture] = useState<GestureModelEntry | null>(null);
+  const [showPracticeBanner, setShowPracticeBanner] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -68,35 +72,32 @@ export default function RecognitionScreen({ navigation }: any) {
     landmarks: number[][][],
   ) => {
     const start = Date.now();
-    try {
-      const response = await fetch(`${API_URL}/api/classify-landmarks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_TOKEN}`,
-        },
-        body: JSON.stringify({ landmarks }),
-      });
 
-      telemetry.add('classify_landmarks', Date.now() - start, 'recognition-screen');
-
-      if (!response.ok) {
-        throw new Error('Server error');
-      }
-
-      const result = await response.json();
-      const { gesture: serverGesture, confidence: serverConfidence } = result;
-
-      setDetectedGesture(serverGesture);
-      setGestureConfidence(serverConfidence);
+    // Helper to apply a classification to UI + logs
+    const handleOutcome = async (
+      finalGesture: string,
+      finalConfidence: number,
+      processedBy: 'local' | 'cloud',
+    ) => {
+      setDetectedGesture(finalGesture);
+      setGestureConfidence(finalConfidence);
       setError(null);
 
-      if (serverConfidence > 0.7 && serverGesture !== 'unknown') {
-        const entry = gestureModel.gestures.find((g) => g.id === serverGesture) || { id: serverGesture, label: serverGesture };
-        setLastRecognizedGesture(entry as GestureModelEntry);
+      if (finalConfidence > 0.7 && finalGesture !== 'unknown') {
+        const entry = (gestureModel.gestures.find((g) => g.id === finalGesture) || { id: finalGesture, label: finalGesture }) as GestureModelEntry;
+        setLastRecognizedGesture(entry);
         setStatus(entry.label);
-        triggerSpeakAndShow(entry.label, serverConfidence, () => {})
+        triggerSpeakAndShow(entry.label, finalConfidence, () => {});
         startFeedbackAnimation();
+
+        // Log success
+        logInteractionEvent({
+          gestureDefinitionId: entry.id,
+          wasSuccessful: true,
+          confidenceScore: finalConfidence,
+          timestamp: Date.now(),
+          processedBy,
+        }).catch(() => {});
 
         try {
           const adv = await dialogEngine.getLLMSuggestions({
@@ -114,17 +115,63 @@ export default function RecognitionScreen({ navigation }: any) {
           logger.warn('Failed to get LLM suggestions:', error);
         }
 
+        // Evaluate practice prompt
+        shouldPromptPractice(entry.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
+          .then(setShowPracticeBanner)
+          .catch(() => setShowPracticeBanner(false));
       } else {
         setStatus("I'm not sure. Please try again.");
-        setPendingGesture(serverGesture);
+        setPendingGesture(finalGesture);
         setShowCorrection(true);
+        // Log failure for the incoming gesture id (could be 'unknown')
+        const id = (gestureModel.gestures.find((g) => g.id === finalGesture)?.id) || finalGesture || 'unknown';
+        logInteractionEvent({
+          gestureDefinitionId: id,
+          wasSuccessful: false,
+          confidenceScore: finalConfidence,
+          timestamp: Date.now(),
+          processedBy,
+        }).catch(() => {});
+        // Practice prompt check on last recognized if present
+        if (lastRecognizedGesture) {
+          shouldPromptPractice(lastRecognizedGesture.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
+            .then(setShowPracticeBanner)
+            .catch(() => setShowPracticeBanner(false));
+        }
       }
+    };
+
+    // Server classification with timeout; fallback to local values on timeout/error
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 400);
+      const response = await fetch(`${API_URL}/api/classify-landmarks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({ landmarks }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      telemetry.add('classify_landmarks', Date.now() - start, 'recognition-screen');
+
+      if (!response.ok) {
+        throw new Error('Server error');
+      }
+
+      const result = await response.json();
+      const { gesture: serverGesture, confidence: serverConfidence } = result;
+      await handleOutcome(serverGesture, serverConfidence, 'cloud');
     } catch (error) {
       telemetry.add('classify_landmarks_error', Date.now() - start, 'recognition-screen');
-      logger.error('Failed to classify landmarks:', error);
-      setError('Could not connect to server.');
+      logger.warn('Falling back to local classification:', error);
+      // Use locally detected gesture/confidence to keep the seam intact
+      await handleOutcome(gesture, confidence, 'local');
     }
-  }, [dialogContext, startFeedbackAnimation]);
+  }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
     logger.error('Gesture detection error:', errorMessage);
@@ -203,6 +250,15 @@ export default function RecognitionScreen({ navigation }: any) {
       <View testID="status-container">
         <Text style={styles.statusText}>{status}</Text>
       </View>
+      {showPracticeBanner && (
+        <MaintenanceBanner
+          onPractice={() => {
+            setShowPracticeBanner(false);
+            const target = lastRecognizedGesture?.id || 'practice';
+            navigation.navigate('Training', { gestureLabel: target, isPractice: true });
+          }}
+        />
+      )}
       <View style={styles.cameraContainer}>
         <MediaPipeGestureDetector
           onGestureDetected={handleGestureDetected}
