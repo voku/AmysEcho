@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Platform, ToastAndroid } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, AccessibilityInfo } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +18,7 @@ import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashRe
 
 import { PerformanceProvider } from './src/context/PerformanceContext';
 import ChildErrorBoundary from './src/components/ChildErrorBoundary';
+import OfflineBanner from './src/components/OfflineBanner';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -36,16 +37,6 @@ export default function App() {
         initCrashReporting();
         const profileId = await setupDatabase();
         logger.info('Database setup complete, initial profile:', profileId);
-
-        const netState = await NetInfo.fetch();
-        if (!netState.isConnected) {
-          setIsOffline(true);
-          if (Platform.OS === 'android') {
-            ToastAndroid.show('Working offline', ToastAndroid.SHORT);
-          } else {
-            Alert.alert('Working offline');
-          }
-        }
 
         const activeId = await loadActiveProfileId();
         if (!activeId) {
@@ -82,6 +73,21 @@ export default function App() {
     initialize();
   }, []);
 
+  const handledInitial = useRef(false);
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const offline = state.isConnected === false || state.isInternetReachable === false;
+      setIsOffline(offline);
+      if (!handledInitial.current) {
+        handledInitial.current = true;
+        if (offline) {
+          AccessibilityInfo.announceForAccessibility('Offline mode');
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const gradientColors = accessibility.highContrast
     ? [COLORS.highContrastBackground, COLORS.highContrastBackground]
     : [COLORS.backgroundStart, COLORS.backgroundEnd];
@@ -112,6 +118,7 @@ export default function App() {
           >
             <ChildErrorBoundary>
               <LinearGradient colors={gradientColors} style={styles.gradient}>
+                <OfflineBanner visible={isOffline} />
                 <NavigationContainer>
                   <RootNavigator />
                 </NavigationContainer>
