@@ -19,19 +19,25 @@ jest.mock('../../src/components/AccessibilityContext', () => ({
 }));
 
 describe('TeachScreen', () => {
-  it('add sign button navigates to Teaching screen', async () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('add sign button navigates to Teaching screen', () => {
     const navigate = jest.fn();
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
+    let component!: renderer.ReactTestRenderer;
+    act(() => {
       component = renderer.create(<TeachScreen navigation={{ navigate }} />);
     });
-    component.root.findByProps({ testID: 'btn-add-sign' }).props.onPress();
+    act(() => {
+      component.root.findByProps({ testID: 'btn-add-sign' }).props.onPress();
+    });
     expect(navigate).toHaveBeenCalledWith('Teaching');
   });
 
-  it('button exposes accessibility label', async () => {
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
+  it('button exposes accessibility label', () => {
+    let component!: renderer.ReactTestRenderer;
+    act(() => {
       component = renderer.create(<TeachScreen navigation={{ navigate: jest.fn() }} />);
     });
     const btn = component.root.findByProps({ testID: 'btn-add-sign' });

@@ -29,9 +29,13 @@ jest.mock('../../src/components/AccessibilityContext', () => ({
 jest.mock('../../src/components/PulsingCircle', () => () => null);
 
 describe('CorrectionScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('submit logs correction and goes back', async () => {
     const goBack = jest.fn();
-    let component: renderer.ReactTestRenderer;
+    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(<CorrectionScreen navigation={{ goBack }} />);
     });
@@ -44,15 +48,16 @@ describe('CorrectionScreen', () => {
   });
 
   it('cancel goes back without logging', async () => {
-    correctionService.logCorrection.mockClear();
-    (logCorrection as jest.Mock).mockClear();
     const goBack = jest.fn();
-    let component: renderer.ReactTestRenderer;
+    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(<CorrectionScreen navigation={{ goBack }} />);
     });
-    component.root.findByProps({ testID: 'btn-cancel-correction' }).props.onPress();
+    act(() => {
+      component.root.findByProps({ testID: 'btn-cancel-correction' }).props.onPress();
+    });
     expect(goBack).toHaveBeenCalled();
     expect(correctionService.logCorrection).not.toHaveBeenCalled();
+    expect(logCorrection).not.toHaveBeenCalled();
   });
 });

@@ -28,25 +28,32 @@ jest.mock('../../src/model', () => ({
   availableVocabularySets: [{ id: 'basic', label: 'Basic' }],
   setActiveVocabularySet: jest.fn(),
 }));
+import { setActiveVocabularySet } from '../../src/model';
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ update: jest.fn() }),
 }));
 
 describe('OnboardingScreen', () => {
-  it('skip button navigates to Recognition', async () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('skip button navigates to Recognition', () => {
     const replace = jest.fn();
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
+    let component!: renderer.ReactTestRenderer;
+    act(() => {
       component = renderer.create(<OnboardingScreen navigation={{ replace }} />);
     });
-    component.root.findByProps({ testID: 'btn-skip' }).props.onPress();
+    act(() => {
+      component.root.findByProps({ testID: 'btn-skip' }).props.onPress();
+    });
     expect(replace).toHaveBeenCalledWith('Recognition');
   });
 
   it('next button creates profile and goes to Tutorial', async () => {
     const replace = jest.fn();
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
+    let component!: renderer.ReactTestRenderer;
+    act(() => {
       component = renderer.create(<OnboardingScreen navigation={{ replace }} />);
     });
     await act(async () => {
@@ -54,11 +61,12 @@ describe('OnboardingScreen', () => {
     });
     expect(createProfile).toHaveBeenCalled();
     expect(replace).toHaveBeenCalledWith('Tutorial');
+    expect(setActiveVocabularySet).toHaveBeenCalledWith('basic');
   });
 
-  it('buttons expose accessibility labels', async () => {
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
+  it('buttons expose accessibility labels', () => {
+    let component!: renderer.ReactTestRenderer;
+    act(() => {
       component = renderer.create(<OnboardingScreen navigation={{ replace: jest.fn() }} />);
     });
     expect(component.root.findByProps({ testID: 'btn-next' }).props.accessibilityLabel).toBe('Next');

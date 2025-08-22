@@ -17,6 +17,7 @@ jest.mock('react-native', () => {
     Animated: {
       Value: class { constructor(public v: any) {} },
       timing: () => ({ start: jest.fn() }),
+      spring: () => ({ start: jest.fn() }),
       View: (p: any) => React.createElement('Animated.View', p, p.children),
     },
     StyleSheet: { create: (s: any) => s },
@@ -34,20 +35,24 @@ jest.mock('../../src/storage', () => ({ loadProfile: () => Promise.resolve({ id:
 jest.mock('../../src/model', () => ({ gestureModel: { gestures: [{ id: 'hello', label: 'Hallo' }] } }));
 
 describe('PracticeScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('navigates to Training when practice button pressed', async () => {
     const navigate = jest.fn();
-    let component: renderer.ReactTestRenderer;
+    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(<PracticeScreen navigation={{ navigate }} />);
     });
-    await act(async () => {
+    act(() => {
       component.root.findByProps({ testID: 'practice-hello' }).props.onPress();
     });
     expect(navigate).toHaveBeenCalledWith('Training', { gestureLabel: 'hello', isPractice: true });
   });
 
   it('practice button exposes accessibility label', async () => {
-    let component: renderer.ReactTestRenderer;
+    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(<PracticeScreen navigation={{ navigate: jest.fn() }} />);
     });
