@@ -9,10 +9,12 @@
     },
     "production": {
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "autoIncrement": true
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "autoIncrement": true
       }
     },
     "apk": {
