@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import type { audioService, backupService, gestureDataProtector } from '../services';
+import type { audioService, backupService, gestureDataProtector, gdprService } from '../services';
 import type { adaptiveLearningService } from '../services/adaptiveLearningService';
 
 export interface Services {
@@ -7,6 +7,7 @@ export interface Services {
   adaptiveLearningService: typeof adaptiveLearningService;
   backupService: typeof backupService;
   gestureDataProtector: typeof gestureDataProtector;
+  gdprService: typeof gdprService;
 }
 
 export const ServicesContext = React.createContext<Services | null>(null);

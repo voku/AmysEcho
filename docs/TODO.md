@@ -44,7 +44,7 @@ _Last updated: 2025-08-21_
 ## 🚀 Production Readiness
 
 - [ ] **Store Preparation**: Finalize EAS Build config, screenshots, etc.
-- [ ] **Data Management**: Implement backup/restore and GDPR features.
+- [x] **Data Management**: Implement backup/restore and GDPR features.
 - [x] **User Documentation**: Create caregiver guides and tutorials.
 
 ## Backend + Hosting Tasks
