@@ -16,6 +16,7 @@ import {
 } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { logHIPEvent } from '../services/hipEvents';
 
 export default function OnboardingScreen({ navigation }: any) {
   const [name, setName] = useState('');
@@ -34,6 +35,12 @@ export default function OnboardingScreen({ navigation }: any) {
       vocabularySetId: vocabSet,
       largeText,
       highContrast,
+    });
+    // HIP 1: Onboarding completion with consent details
+    await logHIPEvent('HIP_1', 'onboarding_completed', {
+      consentDataUpload,
+      consentHelpMeGetSmarter,
+      vocabularySetId: vocabSet,
     });
     setActiveVocabularySet(vocabSet);
     update({ largeText, highContrast });
@@ -161,4 +168,3 @@ export default function OnboardingScreen({ navigation }: any) {
     </LinearGradient>
   );
 }
-

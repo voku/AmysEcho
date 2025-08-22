@@ -22,6 +22,7 @@ import { gestureModel, GestureModelEntry } from '../model';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
 import MaintenanceBanner from '../components/MaintenanceBanner';
 import { logInteractionEvent } from '../services/analytics';
+import { logHIPEvent } from '../services/hipEvents';
 import { shouldPromptPractice } from '../services/healthScore';
 
 export default function RecognitionScreen({ navigation }: any) {
@@ -123,6 +124,10 @@ export default function RecognitionScreen({ navigation }: any) {
         setStatus("I'm not sure. Please try again.");
         setPendingGesture(finalGesture);
         setShowCorrection(true);
+        // Gentle nudge to retry
+        try { await audioService.playEncouragement(); } catch {}
+        // HIP 3: opened correction/uncertainty path
+        void logHIPEvent('HIP_3', 'help_me_opened', { suggestionFor: finalGesture });
         // Log failure for the incoming gesture id (could be 'unknown')
         const id = (gestureModel.gestures.find((g) => g.id === finalGesture)?.id) || finalGesture || 'unknown';
         logInteractionEvent({
@@ -181,6 +186,8 @@ export default function RecognitionScreen({ navigation }: any) {
   const handleSelectCorrection = async (choiceId: string) => {
     if (pendingGesture) {
       await correctionService.logCorrection(choiceId);
+      // HIP 3: correction submitted
+      void logHIPEvent('HIP_3', 'correction_submitted', { actual: choiceId, predicted: pendingGesture });
     }
     setShowCorrection(false);
     setPendingGesture(null);

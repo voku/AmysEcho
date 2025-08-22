@@ -15,6 +15,7 @@ import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
+import { logHIPEvent } from '../services/hipEvents';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -81,6 +82,8 @@ export default function TrainingScreen({ navigation, route }: any) {
     setFramesCaptured(0);
     setLastDetection(0);
     setIsRecording(true);
+    // HIP 2 or 4: sample start
+    void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
   };
 
   const stopRecording = async () => {
@@ -96,6 +99,8 @@ export default function TrainingScreen({ navigation, route }: any) {
       await saveTrainingSample(gestureId, recordedLandmarks, isPractice ? 'HIP_4' : 'HIP_2');
       setCount((c) => c + 1);
       setError(null);
+      // HIP 2 or 4: sample saved
+      void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', { gestureId, frames: framesCaptured });
       // Also send the full sample sequence to the server dataset for DGS
       try {
         if (recordedLandmarks.length > 0) {

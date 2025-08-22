@@ -6,6 +6,7 @@ import { logCorrection } from '../storage';
 import { correctionService } from '../services/correctionService';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { logHIPEvent } from '../services/hipEvents';
 
 export default function CorrectionScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -13,6 +14,7 @@ export default function CorrectionScreen({ navigation, route }: any) {
   const handleSubmit = async () => {
     await correctionService.logCorrection('correction');
     await logCorrection('correction');
+    void logHIPEvent('HIP_3', 'correction_submitted', { actual: 'correction' });
     navigation.goBack();
   };
 
