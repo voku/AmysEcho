@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { View, StyleSheet, Text } from 'react-native';
 import { API_URL, API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
 
 interface Props {
@@ -12,8 +11,29 @@ interface Props {
   onError: (error: string) => void;
 }
 
+// Optional require to avoid crashing when native WebView module is not in the binary
+let WebViewImpl: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  WebViewImpl = require('react-native-webview').WebView;
+} catch (e) {
+  WebViewImpl = null;
+}
+
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError }) => {
   const webviewRef = useRef<any>(null);
+
+  if (!WebViewImpl) {
+    // Provide a non-crashing fallback with a clear developer hint
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>
+          WebView unavailable. Build the development client including react-native-webview.
+          {'\n'}Run: expo run:android (or npm run android --prefix app)
+        </Text>
+      </View>
+    );
+  }
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -224,7 +244,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
   return (
     <View style={styles.container}>
-      <WebView
+      <WebViewImpl
         ref={webviewRef}
         source={{ html: htmlContent }}
         style={styles.webview}
