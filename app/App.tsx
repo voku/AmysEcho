@@ -17,6 +17,7 @@ import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashRe
 // Model updates are coordinated by AppServicesProvider
 
 import { PerformanceProvider } from './src/context/PerformanceContext';
+import ChildErrorBoundary from './src/components/ChildErrorBoundary';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -109,11 +110,13 @@ export default function App() {
                 setAccessibility((prev) => ({ ...prev, ...s })),
             }}
           >
-            <LinearGradient colors={gradientColors} style={styles.gradient}>
-              <NavigationContainer>
-                <RootNavigator />
-              </NavigationContainer>
-            </LinearGradient>
+            <ChildErrorBoundary>
+              <LinearGradient colors={gradientColors} style={styles.gradient}>
+                <NavigationContainer>
+                  <RootNavigator />
+                </NavigationContainer>
+              </LinearGradient>
+            </ChildErrorBoundary>
           </AccessibilityContext.Provider>
         </AppServicesProvider>
       </PerformanceProvider>
