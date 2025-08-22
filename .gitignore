@@ -9,3 +9,5 @@ app/watermelon.db
 .idea
 
 **/jest-results.json
+server/analytics.json
+server/telemetry.json
