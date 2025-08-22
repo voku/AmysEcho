@@ -55,6 +55,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     video.setAttribute('muted', '');
     document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(video);
+      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'dom_ready' }));
     });
 
     async function createGestureRecognizer() {
@@ -199,6 +200,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
         video.srcObject = stream;
         try { video.muted = true; await video.play(); } catch {}
+        const tracks = stream.getVideoTracks();
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'camera_started', tracks: tracks.map(t=>t.label) }));
         // createGestureRecognizer will add the loadeddata listener
       } catch (err) {
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: 'Camera error: ' + (err?.message || err) }));
@@ -259,6 +262,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         // On Android, auto-grant media capture permissions if app holds CAMERA
         mediaCapturePermissionGrantType={'grant'}
         androidLayerType={'hardware'}
+        onPermissionRequest={(event: any) => {
+          try {
+            // Grant all requested resources (VIDEO_CAPTURE/AUDIO_CAPTURE)
+            event.nativeEvent.grant(event.nativeEvent.resources);
+          } catch {}
+        }}
       />
     </View>
   );
