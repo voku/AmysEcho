@@ -16,10 +16,11 @@ async function startServer() {
   // Ensure a clean database so prior runs don't influence API tests
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'trained_model.tflite'), { force: true }).catch(() => {});
 
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
-    env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken' },
+    env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken', TRAIN_SCRIPT: 'mockTrain.py' },
     // Discard stdio so the child process can't block if it writes a lot of
     // logs that no one reads.
     stdio: ['ignore', 'ignore', 'ignore'],
@@ -79,6 +80,35 @@ test('POST /train-model invalid payload', async () => {
     body: JSON.stringify({ samples: 'bad' }),
   });
   assert.strictEqual(res.status, 400);
+});
+
+test('POST /train-model processes samples and returns model', async () => {
+  const res = await fetch(`http://localhost:${PORT}/train-model`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer testtoken',
+    },
+    body: JSON.stringify({ samples: [{ gestureDefinitionId: 'g1', landmarkData: [[0, 0, 0]] }] }),
+  });
+  assert.strictEqual(res.status, 202);
+  const { jobId } = await res.json();
+
+  const statusUrl = `http://localhost:${PORT}/train-status/${jobId}`;
+  const headers = { Authorization: 'Bearer testtoken' };
+  const start = Date.now();
+  while (true) {
+    const s = await fetch(statusUrl, { headers });
+    const info = await s.json();
+    if (info.status === 'completed') break;
+    if (Date.now() - start > 30000) throw new Error('training did not complete');
+    await delay(200);
+  }
+
+  const modelRes = await fetch(`http://localhost:${PORT}/latest-model`, { headers });
+  assert.strictEqual(modelRes.status, 200);
+  const buf = Buffer.from(await modelRes.arrayBuffer());
+  assert.ok(buf.length > 0);
 });
 
 test('GET /model-version returns version and path', async () => {

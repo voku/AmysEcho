@@ -134,7 +134,7 @@ export default function RecognitionScreen({ navigation }: any) {
   };
 
   const handleGestureDetected = useCallback(async (
-    gesture: string,
+    gesture: string | null,
     confidence: number,
     landmarks: number[][][],
   ) => {
@@ -259,7 +259,7 @@ export default function RecognitionScreen({ navigation }: any) {
     };
 
     // On-device classification only: use provided or locally-classified gesture
-    await handleOutcome(g, c, 'local');
+    await handleOutcome(g || 'unknown', c, 'local');
   }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
@@ -406,6 +406,21 @@ export default function RecognitionScreen({ navigation }: any) {
       )}
 
       {/* Optional controls could be reintroduced as overlays if needed */}
+
+      <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.md }}>
+        <Button
+          testID="btn-correction"
+          title="Correction"
+          accessibilityLabel="Open correction screen"
+          onPress={() => navigation.navigate('Correction')}
+        />
+        <Button
+          testID="btn-help-me-choose"
+          title="Help Me Choose"
+          accessibilityLabel="Open help me choose"
+          onPress={() => setShowCorrection(true)}
+        />
+      </View>
 
       <BottomNav active="recognition" profileId={profile?.id || 'default'} />
     </SafeAreaView>

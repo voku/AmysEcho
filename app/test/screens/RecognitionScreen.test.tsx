@@ -29,6 +29,10 @@ jest.mock('../../src/components/BottomNav', () => () => null);
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false }),
 }));
+jest.mock('../../src/components/CorrectionPanel', () => {
+  const React = require('react');
+  return (props: any) => React.createElement('CorrectionPanel', props, null);
+});
 jest.mock('../../src/services', () => ({
   audioService: { speak: jest.fn(), playEncouragement: jest.fn(), playSuccessFeedback: jest.fn() },
   triggerSpeakAndShow: jest.fn(),
@@ -67,17 +71,17 @@ describe('RecognitionScreen', () => {
     expect(navigate).toHaveBeenCalledWith('Correction');
   });
 
-  it('navigates to Correction screen when help-me-choose button is pressed', async () => {
-    const navigate = jest.fn();
+  it('shows correction panel when help-me-choose button is pressed', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate }} />);
+      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
     });
     const button = component.root.findByProps({ testID: 'btn-help-me-choose' });
     act(() => {
       button.props.onPress();
     });
-    expect(navigate).toHaveBeenCalledWith('Correction');
+    const panels = component.root.findAllByType('CorrectionPanel');
+    expect(panels.length).toBe(1);
   });
 
   it('exposes correction button accessibility label', async () => {

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 // mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
 import { saveTrainingSample, loadProfile, Profile, loadTrainingSampleCount, saveCustomGesture } from '../storage';
+import { captureSamples } from '../services/gestureRecorder';
 import { addGesture } from '../model';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import BottomNav from '../components/BottomNav';
@@ -90,17 +91,7 @@ export default function TeachingScreen({ navigation }: any) {
     setIsRecording(true);
     setError(null);
     try {
-      const frames: number[][][][] = [];
-      const start = Date.now();
-      while (Date.now() - start < 2000) {
-        if (
-          landmarks.length > 0 &&
-          landmarks.every((h) => h.length === 21)
-        )
-          frames.push(landmarks);
-        await new Promise((r) => setTimeout(r, 66));
-      }
-      if (frames.length === 0) throw new Error('No landmarks captured');
+      const frames = await captureSamples(() => landmarks);
       await saveTrainingSample(gestureLabel, frames);
       setSampleCount((c) => c + 1);
       startSampleCaptureAnimation();

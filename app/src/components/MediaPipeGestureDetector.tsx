@@ -4,7 +4,7 @@ import { API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
 
 interface Props {
   onGestureDetected: (
-    gesture: string,
+    gesture: string | null,
     confidence: number,
     landmarks: number[][][],
   ) => void;
@@ -284,11 +284,11 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               }
             } catch {}
 
-            if (outGesture) {
+            if (allLandmarks.length) {
               window.ReactNativeWebView?.postMessage?.(
                 JSON.stringify({
                   type: 'gesture',
-                  gesture: outGesture,
+                  gesture: outGesture || null,
                   confidence: outScore,
                   landmarks: allLandmarks,
                   hands: perHand,

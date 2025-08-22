@@ -87,4 +87,28 @@ describe('MediaPipeGestureDetector', () => {
     expect(onError).toHaveBeenCalledWith('Failed to parse gesture data');
     expect(onGestureDetected).not.toHaveBeenCalled();
   });
+
+  it('passes landmarks even when no gesture is classified', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: 'gesture', gesture: null, confidence: 0, landmarks: [[[1, 2, 3]]] }),
+        },
+      });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith(null, 0, [[[1, 2, 3]]]);
+    expect(onError).not.toHaveBeenCalled();
+  });
 });
