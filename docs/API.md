@@ -147,21 +147,21 @@ Ask the dialog engine for caregiver suggestions.
 ```
 
 ### POST /train-model
-Upload hand landmarks and trigger model training.
+Upload labeled hand landmark samples and trigger model training.
 
 **Body**
 ```json
 {
-  "landmarks": [
-    [[0.1,0.2,0], ...21],
-    [[0.3,0.4,0], ...21]
+  "samples": [
+    { "gestureDefinitionId": "wave", "landmarkData": [[0.1,0.2,0], ...21] },
+    { "gestureDefinitionId": "wave", "landmarkData": [[0.3,0.4,0], ...21] }
   ]
 }
 ```
 
 **Response**
 ```json
-{ "status": "ok" }
+{ "status": "queued", "jobId": "abc123" }
 ```
 
 ### GET /model-version

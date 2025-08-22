@@ -615,13 +615,13 @@ app.post('/dialog', auth, dialogLimiter, async (req: Request, res: Response) => 
 });
 
 app.post('/train-model', auth, async (req: Request, res: Response) => {
-  const landmarks = req.body?.landmarks;
-  if (!Array.isArray(landmarks)) {
-    res.status(400).json({ error: 'Invalid landmarks' });
+  const samples = req.body?.samples;
+  if (!Array.isArray(samples)) {
+    res.status(400).json({ error: 'Invalid samples' });
     return;
   }
   const tmp = path.join(process.cwd(), 'tmp_landmarks.json');
-  await fs.writeFile(tmp, JSON.stringify(landmarks));
+  await fs.writeFile(tmp, JSON.stringify(samples));
 
   const id = genId();
   const job: TrainingJob = { id, status: 'queued', progress: 0 };

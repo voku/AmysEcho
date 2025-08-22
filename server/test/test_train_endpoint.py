@@ -1,8 +1,8 @@
-import os
-import json
 import time
 import urllib.request
 import subprocess
+import os
+import json
 from pathlib import Path
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
@@ -49,8 +49,8 @@ def test_train_endpoint(tmp_path):
     proc = start_server()
     try:
         url = f'http://localhost:{PORT}/train-model'
-        landmarks = [[0.0] * 63]
-        data = json.dumps({'landmarks': landmarks}).encode('utf-8')
+        samples = [{"gestureDefinitionId": "g1", "landmarkData": [[0.0] * 63]}]
+        data = json.dumps({'samples': samples}).encode('utf-8')
         headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer testtoken'}
         req = urllib.request.Request(url, data=data, headers=headers)
         with urllib.request.urlopen(req) as resp:

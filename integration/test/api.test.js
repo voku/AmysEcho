@@ -76,7 +76,7 @@ test('POST /train-model invalid payload', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer testtoken',
     },
-    body: JSON.stringify({ landmarks: 'bad' }),
+    body: JSON.stringify({ samples: 'bad' }),
   });
   assert.strictEqual(res.status, 400);
 });
