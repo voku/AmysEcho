@@ -4,7 +4,11 @@ import { WebView } from 'react-native-webview';
 import { API_URL, API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
 
 interface Props {
-  onGestureDetected: (gesture: string, confidence: number, landmarks: number[][]) => void;
+  onGestureDetected: (
+    gesture: string,
+    confidence: number,
+    landmarks: number[][][],
+  ) => void;
   onError: (error: string) => void;
 }
 
@@ -44,7 +48,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             delegate: "GPU",
           },
           runningMode,
-          numHands: 1,
+          numHands: 2,
         });
         const initMs = Math.round(performance.now() - visionStart);
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }));
@@ -70,30 +74,53 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             if (frameCount % 30 === 0) {
               window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }));
             }
-            const lms = (results?.landmarks?.[0] || []).map(lm => [lm.x, lm.y, lm.z ?? 0]);
+            const allLandmarks = (results?.landmarks || []).map(hand =>
+              hand.map(lm => [lm.x, lm.y, lm.z ?? 0])
+            );
             let outGesture = null;
             let outScore = 0;
             if (results?.gestures?.length) {
-              const top = results.gestures[0][0];
-              outGesture = top.categoryName;
-              outScore = top.score;
+              for (const handGestures of results.gestures) {
+                const top = handGestures?.[0];
+                if (top && top.score > outScore) {
+                  outGesture = top.categoryName;
+                  outScore = top.score;
+                }
+              }
             }
-            // Custom gesture logic (preserved)
-            if ((!outGesture || outScore < 0.5) && lms.length === 21) {
-              const thumbUp = lms[4][1] < lms[2][1];
-              const indexUp = lms[8][1] < lms[6][1];
-              const middleUp = lms[12][1] < lms[10][1];
-              const ringUp = lms[16][1] < lms[14][1];
-              const pinkyUp = lms[20][1] < lms[18][1];
+            // Custom gesture logic (preserved for single-hand fallback)
+            const firstHand = allLandmarks[0] || [];
+            if ((!outGesture || outScore < 0.5) && firstHand.length === 21) {
+              const thumbUp = firstHand[4][1] < firstHand[2][1];
+              const indexUp = firstHand[8][1] < firstHand[6][1];
+              const middleUp = firstHand[12][1] < firstHand[10][1];
+              const ringUp = firstHand[16][1] < firstHand[14][1];
+              const pinkyUp = firstHand[20][1] < firstHand[18][1];
               const allUp = indexUp && middleUp && ringUp && pinkyUp;
               const noneUp = !indexUp && !middleUp && !ringUp && !pinkyUp;
-              if (thumbUp && !indexUp && !middleUp) { outGesture = 'thumbs_up'; outScore = 0.8; }
-              else if (indexUp && !middleUp && !ringUp && !pinkyUp) { outGesture = 'point'; outScore = 0.7; }
-              else if (allUp) { outGesture = 'open_palm'; outScore = 0.6; }
-              else if (noneUp) { outGesture = 'fist'; outScore = 0.6; }
+              if (thumbUp && !indexUp && !middleUp) {
+                outGesture = 'thumbs_up';
+                outScore = 0.8;
+              } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+                outGesture = 'point';
+                outScore = 0.7;
+              } else if (allUp) {
+                outGesture = 'open_palm';
+                outScore = 0.6;
+              } else if (noneUp) {
+                outGesture = 'fist';
+                outScore = 0.6;
+              }
             }
             if (outGesture) {
-              window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'gesture', gesture: outGesture, confidence: outScore, landmarks: lms }));
+              window.ReactNativeWebView?.postMessage?.(
+                JSON.stringify({
+                  type: 'gesture',
+                  gesture: outGesture,
+                  confidence: outScore,
+                  landmarks: allLandmarks,
+                }),
+              );
             }
           }
         }
@@ -127,8 +154,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               const result = await resp.json();
               const g = result?.gesture || 'unknown';
               const conf = result?.confidence ?? 0;
-              const lms = Array.isArray(result?.landmarks) ? result.landmarks : [];
-              window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'gesture', gesture: g, confidence: conf, landmarks: lms }));
+              // normalize landmarks to always be number[][][]
+              let lms = Array.isArray(result?.landmarks?.[0]?.[0])
+                ? result.landmarks
+                : [result.landmarks || []];
+              window.ReactNativeWebView?.postMessage?.(
+                JSON.stringify({ type: 'gesture', gesture: g, confidence: conf, landmarks: lms }),
+              );
             }
           } catch (e) {
             window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'warn', message: 'Server fallback error: ' + (e?.message || e) }));

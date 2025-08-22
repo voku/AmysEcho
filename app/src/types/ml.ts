@@ -5,8 +5,8 @@ export interface ClassificationOutput {
 }
 
 export interface ProcessedFrame {
-  landmarks: number[][];
-  landmarksRaw?: number[][];
+  landmarks: number[][][];
+  landmarksRaw?: number[][][];
   width: number;
   height: number;
   timestamp: number;

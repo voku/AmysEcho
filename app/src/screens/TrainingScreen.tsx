@@ -24,11 +24,11 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedLandmarks, setRecordedLandmarks] = useState<number[][][]>([]);
+  const [recordedLandmarks, setRecordedLandmarks] = useState<number[][][][]>([]);
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
-  const [landmarks, setLandmarks] = useState<number[][]>([]);
+  const [landmarks, setLandmarks] = useState<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
@@ -211,9 +211,17 @@ export default function TrainingScreen({ navigation, route }: any) {
                   viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
                   pointerEvents="none"
                 >
-                  {landmarks.map((l, idx) => (
-                    <Circle key={idx} cx={l[0] * PREVIEW_SIZE} cy={l[1] * PREVIEW_SIZE} r={3} fill={COLORS.warning} />
-                  ))}
+                  {landmarks.map((hand, handIdx) =>
+                    hand.map((l, lmIdx) => (
+                      <Circle
+                        key={`${handIdx}-${lmIdx}`}
+                        cx={l[0] * PREVIEW_SIZE}
+                        cy={l[1] * PREVIEW_SIZE}
+                        r={3}
+                        fill={COLORS.warning}
+                      />
+                    ))
+                  )}
                 </Svg>
               )}
               <View style={styles.detectionIndicator}>

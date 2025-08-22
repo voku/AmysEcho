@@ -24,7 +24,7 @@ export default function TeachingScreen({ navigation }: any) {
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
   const PREVIEW_SIZE = 240;
-  const [landmarks, setLandmarks] = useState<number[][]>([]);
+  const [landmarks, setLandmarks] = useState<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
@@ -90,10 +90,14 @@ export default function TeachingScreen({ navigation }: any) {
     setIsRecording(true);
     setError(null);
     try {
-      const frames: number[][][] = [];
+      const frames: number[][][][] = [];
       const start = Date.now();
       while (Date.now() - start < 2000) {
-        if (landmarks.length === 21) frames.push(landmarks);
+        if (
+          landmarks.length > 0 &&
+          landmarks.every((h) => h.length === 21)
+        )
+          frames.push(landmarks);
         await new Promise((r) => setTimeout(r, 66));
       }
       if (frames.length === 0) throw new Error('No landmarks captured');

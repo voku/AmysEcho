@@ -62,7 +62,11 @@ export default function RecognitionScreen({ navigation }: any) {
     }).start();
   }, [fadeAnim, symbolScaleAnim]);
 
-  const handleGestureDetected = useCallback(async (gesture: string, confidence: number, landmarks: number[][]) => {
+  const handleGestureDetected = useCallback(async (
+    gesture: string,
+    confidence: number,
+    landmarks: number[][][],
+  ) => {
     const start = Date.now();
     try {
       const response = await fetch(`${API_URL}/api/classify-landmarks`, {

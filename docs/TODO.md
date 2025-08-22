@@ -73,7 +73,7 @@ _Last updated: 2025-08-21_
    - Refresh the gesture library after training completes.
 - [x] Play the spoken name of a recognized gesture (e.g., "Papa").
   - Use `expo-speech` with a pre-recorded audio fallback.
-- [ ] Support DGS gestures that require both hands.
+- [x] Support DGS gestures that require both hands.
   - Capture and classify dual-hand landmarks in the WebView and server pipeline.
 
 ---
