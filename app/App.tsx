@@ -8,6 +8,7 @@ import { setupDatabase } from './db';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { MessageProvider } from './src/context/MessageContext';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
 import { initGestureModel } from './src/model';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -109,11 +110,13 @@ export default function App() {
                 setAccessibility((prev) => ({ ...prev, ...s })),
             }}
           >
-            <LinearGradient colors={gradientColors} style={styles.gradient}>
-              <NavigationContainer>
-                <RootNavigator />
-              </NavigationContainer>
-            </LinearGradient>
+            <ErrorBoundary>
+              <LinearGradient colors={gradientColors} style={styles.gradient}>
+                <NavigationContainer>
+                  <RootNavigator />
+                </NavigationContainer>
+              </LinearGradient>
+            </ErrorBoundary>
           </AccessibilityContext.Provider>
         </AppServicesProvider>
       </PerformanceProvider>

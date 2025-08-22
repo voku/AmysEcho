@@ -2,7 +2,11 @@
 
 Amy's Echo aims to surface user-friendly messages while capturing technical details for developers. This document describes the standard pattern for dealing with errors in the mobile app.
 
-## 1. Log with the shared logger
+## 1. Global Error Boundary
+
+The app wraps its navigation tree in a shared `ErrorBoundary` (`app/src/components/ErrorBoundary.tsx`). It records unexpected exceptions with the logger and shows a friendly "Try Again" screen so Amy never sees technical details.
+
+## 2. Log with the shared logger
 
 Use the `logger` utility instead of `console.*` to record errors:
 
@@ -18,7 +22,7 @@ try {
 
 The logger automatically filters output by build type and keeps the console consistent.
 
-## 2. Pass errors through callbacks
+## 3. Pass errors through callbacks
 
 Components such as `MediaPipeGestureDetector` accept an `onError` callback. The component invokes the callback whenever the WebView reports a problem, allowing screens to react:
 
@@ -31,7 +35,7 @@ const handleError = (msg: string) => {
 <MediaPipeGestureDetector onGestureDetected={onGestureResult} onError={handleError} />
 ```
 
-## 3. Display a friendly message
+## 4. Display a friendly message
 
 Use the shared `ErrorMessage` component to surface problems to the user. It respects accessibility settings and can be reused on any screen.
 
@@ -41,7 +45,7 @@ import ErrorMessage from '../components/ErrorMessage';
 <ErrorMessage message={processingError} />
 ```
 
-## 4. Reset when recovered
+## 5. Reset when recovered
 
 Clear the error state when the operation succeeds so the UI returns to normal. In gesture recognition, `onGestureResult` resets the `processingError` state when a frame is processed successfully.
 
