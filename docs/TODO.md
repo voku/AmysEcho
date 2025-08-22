@@ -50,15 +50,15 @@ Troubleshooting
 ### 1.2 HIP 4 Proactive Practice Implementation
 **Priority: High - Learning Continuity**
 - **Health score-based practice prompts**
-  - Design non-blocking banner UI for practice suggestions
-  - Implement gentle nudges when gesture `healthScore` falls below threshold
-  - Create caregiver-friendly scheduling for practice sessions
-  - Add gamification elements to make practice engaging for Amy
+  - ✅ Design non-blocking banner UI for practice suggestions
+  - ✅ Implement gentle nudges when gesture `healthScore` falls below threshold
+  - Implement caregiver-friendly scheduling for practice sessions
+  - ✅ Add simple gamification (celebration feedback) after sessions
 - **Practice session workflow**
-  - Build guided practice interface with immediate feedback
-  - Implement progress tracking with visual rewards
-  - Add session length controls appropriate for 4-year-old attention spans
-  - Create caregiver dashboard for monitoring practice effectiveness
+  - ✅ Build guided practice interface with immediate feedback
+  - ✅ Implement progress tracking and basic rewards
+  - ✅ Add session length controls (3/5/8 samples)
+  - ✅ Extend caregiver dashboard with summary + insights
 
 ### 1.3 Enhanced Telemetry for Usage Insights
 **Priority: Medium - Data-Driven Improvements**
@@ -84,7 +84,7 @@ Troubleshooting
   - ✅ Add confidence thresholding and uncertainty handling
 - **Gesture classification pipeline**
   - ✅ Connect WebView landmarks to classifier service (`/api/classify-landmarks`)
-  - Implement real-time classification with smoothing
+  - ✅ Implement real-time classification with smoothing (confidence + label)
   - Add gesture sequence recognition for complex signs
 
 ### 2.2 Audio-Visual Feedback System
