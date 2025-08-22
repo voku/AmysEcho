@@ -43,8 +43,8 @@ Troubleshooting
   - ✅ Implement seamless fallback to rule-based classifier
   - ✅ Add visual indicators when offline mode is active (without alarming the child)
 - **Network resilience patterns**
-  - Handle server classification timeouts elegantly
-  - Implement progressive degradation (server → WebView fallback → encouraging gesture retry)
+  - ✅ Handle server classification timeouts elegantly
+  - ✅ Implement progressive degradation (server → WebView fallback → encouraging gesture retry)
   - ✅ Add connection status awareness without technical complexity for users
 
 ### 1.2 HIP 4 Proactive Practice Implementation
@@ -63,10 +63,10 @@ Troubleshooting
 ### 1.3 Enhanced Telemetry for Usage Insights
 **Priority: Medium - Data-Driven Improvements**
 - **HIP event tracking system**
-  - Log all user interactions across HIP 1-4 workflows
+  - ✅ Log key interactions across HIP 1-4 workflows (onboarding, practice samples, correction open/submit)
   - Track gesture recognition success/failure patterns
-  - Monitor practice session completion rates and engagement
-  - Add privacy-compliant analytics for usage optimization
+  - ✅ Monitor practice session completion (local logs) and engagement (sessions)
+  - ✅ Privacy-compliant telemetry upload (buffered, best-effort, token auth)
 - **Health score trend analysis**
   - Implement historical tracking of gesture proficiency
   - Add alerts for declining recognition accuracy
