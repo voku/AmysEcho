@@ -206,14 +206,15 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
     async function startCamera() { // Renamed from start() for clarity
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
         video.srcObject = stream;
         try { video.muted = true; await video.play(); } catch {}
         const tracks = stream.getVideoTracks();
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'camera_started', tracks: tracks.map(t=>t.label) }));
         // createGestureRecognizer will add the loadeddata listener
       } catch (err) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: 'Camera error: ' + (err?.message || err) }));
+        const msg = (err && (err.name+': '+err.message)) || String(err);
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: 'Camera error: ' + msg }));
       }
     }
 
@@ -260,7 +261,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     <View style={styles.container}>
       <WebViewImpl
         ref={webviewRef}
-        source={{ html: htmlContent }}
+        source={{ html: htmlContent, baseUrl: 'https://camera.local' }}
         style={styles.webview}
         onMessage={handleMessage}
         mediaPlaybackRequiresUserAction={false}
