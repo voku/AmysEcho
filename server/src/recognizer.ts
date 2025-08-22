@@ -50,29 +50,18 @@ function loadOfflineModel(): void {
 }
 
 function flattenLandmarks(data: unknown): number[] {
-  const result: number[] = [];
-  if (Array.isArray(data)) {
-    for (const hand of data as any[]) {
-      if (Array.isArray(hand)) {
-        for (const p of hand as any[]) {
-          if (Array.isArray(p)) {
-            result.push(Number(p[0] ?? 0), Number(p[1] ?? 0), Number(p[2] ?? 0));
-          }
-        }
-      }
-    }
+  if (!Array.isArray(data)) {
+    return [];
   }
-  return result;
+  return (data as any[]).flat(Infinity).map((v) => Number(v ?? 0));
 }
 
 function classifyOffline(landmarks: unknown): ClassificationResult {
   loadOfflineModel();
-  if (!offlineModel || !Array.isArray(landmarks)) {
+  const input = flattenLandmarks(landmarks);
+  if (!offlineModel || input.length === 0) {
     return { label: 'unknown', confidence: 0.5, processedBy: 'local' };
   }
-  const input = Array.isArray((landmarks as any)[0])
-    ? flattenLandmarks(landmarks)
-    : (landmarks as number[]).map(Number);
 
   let bestLabel = 'unknown';
   let bestScore = Number.POSITIVE_INFINITY;

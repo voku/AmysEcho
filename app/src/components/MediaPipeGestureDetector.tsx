@@ -150,7 +150,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               const result = await resp.json();
               const g = result?.gesture || 'unknown';
               const conf = result?.confidence ?? 0;
-              let lms = Array.isArray(result?.landmarks?.[0])
+              // normalize landmarks to always be number[][][]
+              let lms = Array.isArray(result?.landmarks?.[0]?.[0])
                 ? result.landmarks
                 : [result.landmarks || []];
               window.ReactNativeWebView?.postMessage?.(
