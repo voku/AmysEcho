@@ -12,7 +12,7 @@ Diese Anleitung hilft Betreuungspersonen, Amy's Echo in wenigen Minuten zum Lauf
 2. Backend bauen und die Gestenerkennungsdatei herunterladen, die vom Server bereitgestellt wird:
    ```bash
    npm run build --prefix server
-   npm run download-gesture-task --prefix server
+   (Keine Aktion nötig – MediaPipe-Assets werden über CDN geladen)
    ```
 3. Backend-Server starten:
    ```bash

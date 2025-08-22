@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, AccessibilityInfo } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, AccessibilityInfo, LogBox } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +30,15 @@ export default function App() {
   });
 
   // ML models are initialized in AppServicesProvider; avoid duplicate native loads here
+
+  useEffect(() => {
+    // Tame noisy dev warnings that overwhelm the screen
+    LogBox.ignoreLogs([
+      '[WARN] Sound not found',
+      'API key integrity check failed',
+      '[DEBUG] Speaking',
+    ]);
+  }, []);
 
   useEffect(() => {
     async function initialize() {

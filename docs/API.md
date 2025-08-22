@@ -86,7 +86,7 @@ Submit telemetry events recording gesture processing metrics and fallback usage.
 Each event includes:
 - `latencyMs` (number)
 - `timestamp` (number)
-- `event` (string, optional) — e.g., `recognizer_init`, `frame_latency`, `server_fallback`, `classify_landmarks`
+- `event` (string, optional) — e.g., `recognizer_init`, `frame_latency`
 - `source` (string, optional) — client module sending the event
 
 **Body**
@@ -204,34 +204,8 @@ Retrieve stored analytics summary.
 }
 ```
 
-### POST /api/classify-landmarks
-Send an array of hand landmarks for server-side classification. Each frame contains one or two hands, where each hand is an array of 21 landmark `[x,y,z]` coordinates. The server forwards the landmarks to a cloud model and falls back to a lightweight local classifier if the request fails.
+### POST /api/classify-landmarks (optional)
+This endpoint is deprecated for the mobile app, which performs on-device classification via MediaPipe Tasks JS. It remains available for experiments and server-side analytics.
 
-**Body**
-```json
-{
-  "landmarks": [
-    [[0.1,0.2,0], ...21],
-    [[0.3,0.4,0], ...21]
-  ]
-}
-```
-
-**Response**
-```json
-{ "label": "wave", "confidence": 0.92, "processedBy": "cloud" }
-```
-
-### POST /classify
-Legacy endpoint that first attempts classification with a local model and then falls back to the remote pipeline. New clients should use `/api/classify-landmarks`.
-
-**Body**
-```json
-{ "landmarks": [...] }
-```
-
-**Response**
-```json
-{ "label": "wave", "confidence": 0.92, "processedBy": "local" }
-```
-
+### POST /classify (legacy)
+Legacy endpoint for historical reference. Not used by the current mobile client.

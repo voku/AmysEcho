@@ -2,12 +2,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 describe('model loading performance', () => {
-  it('WebView uses locally hosted Tasks Vision bundle', async () => {
+  it('WebView uses CDN-hosted Tasks Vision bundle', async () => {
     const detector = path.resolve(__dirname, '../src/components/MediaPipeGestureDetector.tsx');
     const content = await fs.readFile(detector, 'utf8');
-    expect(content).toMatch(/static\/mediapipe\/tasks-vision\/0\.10\.9\/vision_bundle\.mjs/);
-    expect(content).toMatch(/static\/mediapipe\/tasks-vision\/0\.10\.9\/wasm/);
-    expect(content).toMatch(/static\/models\/gesture_recognizer\.task/);
+    expect(content).toMatch(/cdn\.jsdelivr\.net\/npm\/@mediapipe\/tasks-vision\/vision_bundle\.js/);
+    expect(content).toMatch(/cdn\.jsdelivr\.net\/npm\/@mediapipe\/tasks-vision\/wasm/);
+    expect(content).toMatch(/storage\.googleapis\.com\/mediapipe-models\/gesture_recognizer/);
   });
 
   it('keeps dummy task bundling for compatibility', () => {

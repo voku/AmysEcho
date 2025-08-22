@@ -42,7 +42,11 @@ class SecureConfigManager {
       if (key && storedHash && this.hashKey(key) === storedHash) {
         return key;
       }
-      logger.error('API key integrity check failed');
+      // Non-fatal: no key set or hash mismatch. Log once at warn level.
+      if (!(global as any).__ae_key_warned) {
+        logger.warn('API key integrity check failed');
+        (global as any).__ae_key_warned = true;
+      }
       return null;
     } catch (error) {
       logger.error('Failed to retrieve API key:', error);

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { API_URL, API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
+import { API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
 
 interface Props {
   onGestureDetected: (
@@ -44,40 +44,120 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body { margin: 0; padding: 0; background: #000; }
-    video { width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); }
+    video { position: absolute; inset: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); }
+    canvas#overlay { position: absolute; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
     #tapToStart { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(0,0,0,0.4); font-family: sans-serif; }
     #tapToStart.hidden { display: none; }
   </style>
-  <script type="module">
-    import { GestureRecognizer, FilesetResolver } from "${API_URL}/static/mediapipe/tasks-vision/0.10.9/vision_bundle.mjs";
+  <script>
+    // Dynamically load MediaPipe Tasks Vision from CDN and wait until it's ready
+    async function loadTasksVision() {
+      // Resolve a pinned version dynamically if possible, otherwise fall back to generic.
+      async function resolvePinnedBase() {
+        const cdns = ['https://cdn.jsdelivr.net/npm', 'https://unpkg.com'];
+        for (const base of cdns) {
+          try {
+            const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', { method: 'GET' });
+            if (pkg.ok) {
+              const json = await pkg.json().catch(()=>null);
+              const v = json?.version;
+              if (typeof v === 'string' && v.length) {
+                return { base, version: v };
+              }
+            }
+          } catch {}
+        }
+        return null;
+      }
 
+      function tryLoadScript(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('Failed to load script: ' + src));
+          document.head.appendChild(s);
+        });
+      }
+
+      const haveUMD = () => (window.fileset_resolver && window.fileset_resolver.FilesetResolver) && (window.vision && window.vision.GestureRecognizer);
+
+      // Compute preferred URLs
+      const pinned = await resolvePinnedBase();
+      const candidates = [];
+      if (pinned) {
+        candidates.push({
+          umd: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/vision_bundle.js',
+          esm: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/vision_bundle.mjs',
+          wasm: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/wasm',
+        });
+      }
+      // Generic latest as fallback
+      candidates.push({
+        umd: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js',
+        esm: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs',
+        wasm: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm',
+      });
+      candidates.push({
+        umd: 'https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.js',
+        esm: 'https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.mjs',
+        wasm: 'https://unpkg.com/@mediapipe/tasks-vision/wasm',
+      });
+
+      let lastError = null;
+      for (const c of candidates) {
+        try {
+          // Try UMD first
+          if (!haveUMD()) {
+            await tryLoadScript(c.umd);
+          }
+          if (haveUMD()) {
+            return {
+              FilesetResolver: window.fileset_resolver.FilesetResolver,
+              GestureRecognizer: window.vision.GestureRecognizer,
+              wasmBase: c.wasm,
+            };
+          }
+          // Try ESM next
+          try {
+            const mod = await import(/* @vite-ignore */ c.esm);
+            if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+              return { FilesetResolver: mod.FilesetResolver, GestureRecognizer: mod.GestureRecognizer, wasmBase: c.wasm };
+            }
+          } catch (e) { lastError = e; }
+        } catch (e) { lastError = e; }
+      }
+      throw new Error('Tasks Vision globals not available' + (lastError ? (': ' + (lastError.message||lastError)) : ''));
+    }
     let gestureRecognizer;
     let runningMode = "VIDEO";
     const video = document.createElement('video');
+    const overlay = document.createElement('canvas');
+    overlay.id = 'overlay';
     video.setAttribute('autoplay', '');
     video.setAttribute('playsinline', '');
     video.setAttribute('muted', '');
     document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(video);
-      const overlay = document.createElement('div');
-      overlay.id = 'tapToStart';
-      overlay.innerText = 'Tap to start camera';
-      overlay.addEventListener('click', async () => {
-        try { await startCamera(); overlay.classList.add('hidden'); window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start' })); } catch {}
-      });
       document.body.appendChild(overlay);
+      const tap = document.createElement('div');
+      tap.id = 'tapToStart';
+      tap.innerText = 'Tap to start camera';
+      tap.addEventListener('click', async () => {
+        try { await startCamera(); tap.classList.add('hidden'); window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start' })); } catch {}
+      });
+      document.body.appendChild(tap);
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'dom_ready' }));
     });
 
     async function createGestureRecognizer() {
       try {
         const visionStart = performance.now();
-        const vision = await FilesetResolver.forVisionTasks(
-          "${API_URL}/static/mediapipe/tasks-vision/0.10.9/wasm"
-        );
+        const { FilesetResolver, GestureRecognizer, wasmBase } = await loadTasksVision();
+        const vision = await FilesetResolver.forVisionTasks(wasmBase || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm");
         gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
           baseOptions: {
-            modelAssetPath: "${API_URL}/static/models/gesture_recognizer.task",
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
             delegate: "GPU",
           },
           runningMode,
@@ -88,8 +168,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         // Start prediction loop after recognizer is created and video is loaded
         video.addEventListener('loadeddata', predictWebcam);
       } catch (e) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'warn', message: 'Init failed, switching to server: ' + (e?.message || e) }));
-        startServerFallback();
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: 'Recognizer init failed: ' + (e?.message || e) }));
       }
     }
 
@@ -112,12 +191,26 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             );
             let outGesture = null;
             let outScore = 0;
+            const perHand = [];
             if (results?.gestures?.length) {
-              for (const handGestures of results.gestures) {
+              for (let i=0; i<results.gestures.length; i++) {
+                const handGestures = results.gestures[i] || [];
                 const top = handGestures?.[0];
-                if (top && top.score > outScore) {
-                  outGesture = top.categoryName;
-                  outScore = top.score;
+                const handed = (results?.handednesses?.[i]?.[0]?.categoryName) || 'unknown';
+                if (top) {
+                  perHand.push({ hand: handed, label: top.categoryName, score: top.score });
+                  if (top.score > outScore) {
+                    outGesture = top.categoryName;
+                    outScore = top.score;
+                  }
+                }
+              }
+              if (perHand.length >= 2) {
+                const left = perHand.find(h => /left/i.test(h.hand)) || perHand[0];
+                const right = perHand.find(h => /right/i.test(h.hand)) || perHand[1];
+                if (left && right) {
+                  outGesture = `${left.label}+${right.label}`;
+                  outScore = Math.min(left.score, right.score);
                 }
               }
             }
@@ -145,6 +238,52 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
                 outScore = 0.6;
               }
             }
+            // Draw overlay landmarks
+            try {
+              const w = video.clientWidth || window.innerWidth;
+              const h = video.clientHeight || window.innerHeight;
+              if (overlay.width !== w || overlay.height !== h) {
+                overlay.width = w; overlay.height = h;
+              }
+              const ctx = overlay.getContext('2d');
+              if (ctx) {
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                ctx.save();
+                // Mirror horizontally to match video
+                ctx.scale(-1, 1);
+                ctx.translate(-overlay.width, 0);
+                const HAND_CONNECTIONS = [
+                  [0,1],[1,2],[2,3],[3,4],
+                  [0,5],[5,6],[6,7],[7,8],
+                  [5,9],[9,10],[10,11],[11,12],
+                  [9,13],[13,14],[14,15],[15,16],
+                  [13,17],[17,18],[18,19],[19,20],
+                  [0,17]
+                ];
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
+                ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
+                for (const hand of (results?.landmarks || [])) {
+                  // connectors
+                  ctx.beginPath();
+                  for (const [a,b] of HAND_CONNECTIONS) {
+                    const pa = hand[a]; const pb = hand[b];
+                    if (!pa || !pb) continue;
+                    ctx.moveTo(pa.x * overlay.width, pa.y * overlay.height);
+                    ctx.lineTo(pb.x * overlay.width, pb.y * overlay.height);
+                  }
+                  ctx.stroke();
+                  // points
+                  for (const lm of hand) {
+                    ctx.beginPath();
+                    ctx.arc(lm.x * overlay.width, lm.y * overlay.height, 4, 0, Math.PI*2);
+                    ctx.fill();
+                  }
+                }
+                ctx.restore();
+              }
+            } catch {}
+
             if (outGesture) {
               window.ReactNativeWebView?.postMessage?.(
                 JSON.stringify({
@@ -152,6 +291,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
                   gesture: outGesture,
                   confidence: outScore,
                   landmarks: allLandmarks,
+                  hands: perHand,
                 }),
               );
             }
@@ -163,54 +303,21 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       window.requestAnimationFrame(predictWebcam);
     }
 
-    // Fallback: capture frames and send to server for recognition (preserved)
-    let serverTimer;
-    async function startServerFallback() {
+    // Note: server-based fallback removed; on-device recognition only
+
+    function resizeOverlay() {
       try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'server_fallback', ms: 0 }));
-        const sendFrame = async () => {
-          if (!ctx || video.readyState < 2) return;
-          canvas.width = video.videoWidth || 320;
-          canvas.height = video.videoHeight || 240;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          const base64 = dataUrl.split(',')[1] || '';
-          try {
-            const resp = await fetch('${API_URL}/api/v1/recognize-gesture', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${API_TOKEN}' },
-              body: JSON.stringify({ image: base64 }),
-            });
-            if (resp.ok) {
-              const result = await resp.json();
-              const g = result?.gesture || 'unknown';
-              const conf = result?.confidence ?? 0;
-              // normalize landmarks to always be number[][][]
-              let lms = Array.isArray(result?.landmarks?.[0]?.[0])
-                ? result.landmarks
-                : [result.landmarks || []];
-              window.ReactNativeWebView?.postMessage?.(
-                JSON.stringify({ type: 'gesture', gesture: g, confidence: conf, landmarks: lms }),
-              );
-            }
-          } catch (e) {
-            window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'warn', message: 'Server fallback error: ' + (e?.message || e) }));
-          }
-        };
-        clearInterval(serverTimer);
-        serverTimer = setInterval(sendFrame, 500);
-      } catch (e) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: 'Fallback init error: ' + (e?.message || e) }));
-      }
+        const w = video.clientWidth || window.innerWidth;
+        const h = video.clientHeight || window.innerHeight;
+        if (overlay.width !== w || overlay.height !== h) { overlay.width = w; overlay.height = h; }
+      } catch {}
     }
 
     async function startCamera() { // Renamed from start() for clarity
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: '${facingMode}', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
         video.srcObject = stream;
-        try { video.muted = true; await video.play(); } catch {}
+        try { video.muted = true; await video.play(); resizeOverlay(); } catch {}
         const tracks = stream.getVideoTracks();
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'camera_started', tracks: tracks.map(t=>t.label) }));
         // createGestureRecognizer will add the loadeddata listener
@@ -223,6 +330,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     // Start camera and then create recognizer
     startCamera();
     createGestureRecognizer();
+    window.addEventListener('resize', ()=>{ try { resizeOverlay(); } catch {} });
   </script>
 </head>
 <body></body>

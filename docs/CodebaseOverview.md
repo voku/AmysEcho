@@ -8,9 +8,9 @@ This document summarizes the repository in seven key areas with concrete file re
 - Services and hooks are in `app/src/services/` and `app/src/hooks/`
 
 ## 2. Gesture Recognition Pipeline
-- `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks with MediaPipe
-- `app/src/screens/RecognitionScreen.tsx` hosts the detector and forwards landmarks to `remoteGestureRecognitionService.ts` for server classification
-- `app/src/services/offlineClassifier.ts` provides a lightweight rule-based fallback when the network is unavailable
+- `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.
+- `app/src/screens/RecognitionScreen.tsx` hosts the detector and handles gesture events.
+- `app/src/services/offlineClassifier.ts` provides a lightweight rule-based assist for ambiguous cases; no network is required.
 - Legacy model references in `app/src/constants/modelPaths.ts` remain only for tests; no TFLite models are loaded at runtime
 
 ## 3. Training and Personalization
@@ -43,7 +43,6 @@ The performance budget for the gesture recognition pipeline is as follows:
 - **Frame Rate:** 10 FPS (100ms per frame)
 - **Landmark Extraction:** < 30ms
 - **Gesture Classification (local):** < 20ms
-- **Gesture Classification (remote):** < 400ms (network latency)
 
 These are target values and should be validated on real devices.
 
@@ -53,4 +52,3 @@ Runtime enforcement of this budget is handled by the `AdaptivePerformanceManager
 - All persistent data lives in `server/db.json`
 - `GET /api/profiles/:id/export` returns a profile's stored data as JSON
 - `DELETE /api/profiles/:id` removes a profile and associated usage/correction records to honor caregiver deletion requests
-

@@ -67,7 +67,7 @@ node server/dist/tools/downloadModels.js
 Run notes
 
 - Server:
-   - Optional (once): npm run download-gesture-task --prefix server (requires network)
+   - MediaPipe assets are loaded via CDN; no server model download is required.
    - Build + start: npm run build --prefix server && ./scripts/server-start.sh
 - App:
    - Android emulator:
@@ -77,9 +77,7 @@ Run notes
 
 How to use it
 
-- Start server:
-   - Optional once: npm run download-gesture-task --prefix server (for Tasks recognizer; requires
-     network)
+- Start server (optional for non-gesture features):
    - npm run build --prefix server && ./scripts/server-start.sh
    - Health: curl http://localhost:5000/health/recognizer
 - Run app:
@@ -239,9 +237,6 @@ Start the backend server and connect the mobile app to it during development.
 1) Start the server (Terminal A)
 
 ```
-# Optional (once): download MediaPipe Tasks gesture model (requires network)
-# npm run download-gesture-task --prefix server
-
 npm run build --prefix server
 ./scripts/server-start.sh
 ```

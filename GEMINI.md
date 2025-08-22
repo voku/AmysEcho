@@ -55,7 +55,7 @@ Amy's Echo is a multimodal communication platform for non-verbal children. The p
 |------------------|-------------------------------|---------------------------------------------------|
 | App Framework     | React Native (CLI)            | Cross-platform + native module access             |
 | Language          | TypeScript (strict mode)      | Predictable, type-safe code                       |
-| Camera & ML       | `react-native-webview` + MediaPipe Tasks JS (locally served) | In-app hand landmark extraction via WASM |
+| Camera & ML       | `react-native-webview` + MediaPipe Tasks JS (CDN) | In-app hand landmark extraction via WASM |
 | Cloud ML          | Custom API / OpenAI           | Accurate gesture classification & dialog          |
 | UI/UX             | RN Animated API + Skia (opt.) | Gentle, trust-based feedback                      |
 | Audio             | `expo-audio`, `expo-speech`   | Speech output + sound effects                     |
@@ -70,16 +70,14 @@ Amy's Echo is a multimodal communication platform for non-verbal children. The p
 5. Inside `app`, run `npm run ios` or `npm run android` to launch the app
 6. Alternatively, run `./scripts/full-check.sh` from the repo root to run all checks at once, including Expo dependency checks
 
-### MediaPipe Assets Hosting
+### MediaPipe Assets Usage
 
-- The backend serves the MediaPipe Tasks model at `/static/models/gesture_recognizer.task` (place the file under `server/models/` or set `GESTURE_TASK_PATH`).
-- The backend proxies and caches MediaPipe Tasks Vision assets (JS/WASM) under `/static/mediapipe/tasks-vision/<version>/...` to avoid direct CDN usage from the app.
-- The app’s WebView imports `vision_bundle.mjs` and the WASM directory from these local endpoints.
+- The app loads MediaPipe Tasks Vision runtime from CDN: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js`.
+- The app loads Google-hosted model asset: `gesture_recognizer.task` from `https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task`.
+- No backend proxying/caching is required for MediaPipe assets.
 
 ### Backend
 
-- Start the server: `npm run build && node dist/server.js`
-- Place `gesture_recognizer.task` under `server/models` (or provide `GESTURE_TASK_PATH`).
-- The server will prewarm the Tasks Vision bundle into `server/.cache` on startup.
-- Retrain offline model (deprecated in WebView path): `npm run build && node dist/tools/retrainOfflineModel.js <path/to/db.json> dist/offlineModel.json dist/metrics.json [seed]`
-- Update analytics: `npm run build && node dist/tools/updateAnalytics.js <path/to/db.json>`
+- Start the server (if needed for non-gesture features): `npm run build && node dist/server.js`
+- Gesture recognition does not require the backend.
+- Update analytics or other data pipelines as needed: `npm run build && node dist/tools/updateAnalytics.js <path/to/db.json>`

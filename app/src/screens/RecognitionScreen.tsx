@@ -16,7 +16,7 @@ import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { audioService, triggerSpeakAndShow, correctionService, dialogEngine } from '../services';
 import { telemetry } from '../telemetry/recorder';
-import { API_URL, API_TOKEN, USE_EXPO_CAMERA } from '../constants';
+import { USE_EXPO_CAMERA } from '../constants';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
@@ -26,7 +26,7 @@ import { logHIPEvent } from '../services/hipEvents';
 import { shouldPromptPractice } from '../services/healthScore';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
-import ExpoCameraDetector from '../components/ExpoCameraDetector';
+// ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
@@ -59,6 +59,8 @@ export default function RecognitionScreen({ navigation }: any) {
     { id: 'more_please', pattern: ['more', 'please'], windowMs: 3000 },
   ]);
   const seqRef = useRef(new SequenceRecognizer(seqDefsRef.current));
+  const uncertainCountRef = useRef(0);
+  const lastUncertainAtRef = useRef<number>(0);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -141,6 +143,7 @@ export default function RecognitionScreen({ navigation }: any) {
       setDetectedGesture(stableGesture);
       setGestureConfidence(smoothed);
       setError(null);
+      uncertainCountRef.current = 0;
 
       if (smoothed > 0.7 && stableGesture !== 'unknown') {
         const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
@@ -191,7 +194,17 @@ export default function RecognitionScreen({ navigation }: any) {
       } else {
         setStatus("I'm not sure. Please try again.");
         setPendingGesture(stableGesture);
-        setShowCorrection(true);
+        // Only open correction after several consecutive uncertain frames
+        const now = Date.now();
+        if (now - lastUncertainAtRef.current > 1500) {
+          uncertainCountRef.current = 0;
+        }
+        lastUncertainAtRef.current = now;
+        uncertainCountRef.current += 1;
+        if (!showCorrection && uncertainCountRef.current >= 3) {
+          setShowCorrection(true);
+          uncertainCountRef.current = 0;
+        }
         // Gentle nudge to retry
         try { await audioService.playEncouragement(); } catch {}
         // HIP 3: opened correction/uncertainty path
@@ -214,46 +227,16 @@ export default function RecognitionScreen({ navigation }: any) {
       }
     };
 
-    // Server classification with timeout; fallback to local values on timeout/error
-    try {
-      if (!landmarks || landmarks.length === 0) {
-        // When using the ExpoCameraDetector path, results are already final
-        await handleOutcome(gesture, confidence, 'cloud');
-      } else {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 400);
-        const response = await fetch(`${API_URL}/api/classify-landmarks`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_TOKEN}`,
-          },
-          body: JSON.stringify({ landmarks }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        telemetry.add('classify_landmarks', Date.now() - start, 'recognition-screen');
-
-        if (!response.ok) {
-          throw new Error('Server error');
-        }
-
-        const result = await response.json();
-        const { gesture: serverGesture, confidence: serverConfidence } = result;
-        await handleOutcome(serverGesture, serverConfidence, 'cloud');
-      }
-    } catch (error) {
-      telemetry.add('classify_landmarks_error', Date.now() - start, 'recogniction-screen');
-      logger.warn('Falling back to local classification:', error);
-      // Use locally detected gesture/confidence to keep the seam intact
-      await handleOutcome(gesture, confidence, 'local');
-    }
+    // On-device classification only: use provided gesture/confidence from WebView
+    await handleOutcome(gesture, confidence, 'local');
   }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
-    logger.error('Gesture detection error:', errorMessage);
-    setError(errorMessage);
+    // Avoid flooding the UI; only surface critical init/camera errors
+    logger.warn('Gesture detection warning:', errorMessage);
+    if (/Camera error|Recognizer init failed/i.test(errorMessage)) {
+      setError(errorMessage);
+    }
   }, []);
 
   const handleSelectCorrection = async (choiceId: string) => {
@@ -280,102 +263,95 @@ export default function RecognitionScreen({ navigation }: any) {
     },
     cameraContainer: {
       flex: 1,
-      borderRadius: SPACING.md,
+      borderRadius: 0,
       overflow: 'hidden',
-      margin: SPACING.md,
+      margin: 0,
+      position: 'relative',
     },
     gestureInfo: {
-      padding: SPACING.lg,
-      backgroundColor: COLORS.surface,
+      position: 'absolute',
+      bottom: SPACING.lg,
+      left: SPACING.md,
+      right: SPACING.md,
+      padding: SPACING.md,
+      backgroundColor: '#000A',
       borderRadius: SPACING.md,
-      margin: SPACING.md,
       alignItems: 'center',
     },
     gestureText: {
-      fontSize: largeText ? 28 : 22,
+      fontSize: largeText ? 22 : 18,
       fontWeight: 'bold',
       color: COLORS.text,
     },
     confidenceText: {
-      fontSize: largeText ? 20 : 16,
+      fontSize: largeText ? 16 : 14,
       color: COLORS.textMuted,
       marginTop: SPACING.sm,
     },
     statusText: {
-      fontSize: largeText ? 24 : 20,
+      position: 'absolute',
+      top: SPACING.md,
+      left: SPACING.md,
+      right: SPACING.md,
+      fontSize: largeText ? 18 : 16,
       fontWeight: 'bold',
-      color: COLORS.text,
+      color: '#fff',
       textAlign: 'center',
-      margin: SPACING.md,
+      backgroundColor: '#0008',
+      paddingVertical: 4,
+      borderRadius: 6,
+      overflow: 'hidden',
     },
     errorContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: SPACING.lg,
+      position: 'absolute',
+      bottom: SPACING.md,
+      left: SPACING.md,
+      right: SPACING.md,
+      backgroundColor: '#000C',
+      padding: SPACING.md,
+      borderRadius: 8,
     },
     errorText: {
-      color: COLORS.warning,
-      fontSize: largeText ? 20 : 16,
+      color: '#fff',
+      fontSize: largeText ? 16 : 14,
       textAlign: 'center',
     },
     symbolDisplay: {
-      fontSize: largeText ? 120 : 100,
-      marginBottom: SPACING.lg,
+      fontSize: largeText ? 48 : 36,
+      marginBottom: SPACING.sm,
+      color: '#fff',
     },
   });
 
   return (
     <SafeAreaView style={styles.container}>
-      <View testID="status-container">
-        <Text style={styles.statusText}>{status}</Text>
-      </View>
-      {showPracticeBanner && (
-        <MaintenanceBanner
-          onPractice={() => {
-            setShowPracticeBanner(false);
-            const target = scheduledGesture || lastRecognizedGesture?.id || 'practice';
-            navigation.navigate('Training', { gestureLabel: target, isPractice: true });
-          }}
-        />
-      )}
-      {/* Fallback status controls */}
-      {(useExpoFallback) && (
-        <View style={{ position: 'absolute', top: 8, left: 8, right: 8, zIndex: 2, backgroundColor: '#0009', padding: 8, borderRadius: 8 }}>
-          <Text style={{ color: '#fff', textAlign: 'center' }}>Using fallback camera</Text>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 6 }}>
-            <Button title="Retry WebView" onPress={() => { setUseExpoFallback(false); setWebviewReady(false); setWebviewKey(k=>k+1); }} />
-            <Button title={cameraType === 'front' ? 'Back Cam' : 'Front Cam'} onPress={() => setCameraType(t => t === 'front' ? 'back' : 'front')} />
-          </View>
-        </View>
-      )}
       <View style={styles.cameraContainer}>
-        {useExpoFallback || USE_EXPO_CAMERA ? (
-          <ExpoCameraDetector onGestureDetected={handleGestureDetected} onError={(e)=>{ setError(e); }} cameraType={cameraType} />
-        ) : (
+        {
           <MediaPipeGestureDetector
             key={webviewKey}
             onGestureDetected={handleGestureDetected}
-            onError={(e)=>{ setError(e); setUseExpoFallback(true); }}
+            onError={handleGestureError}
             onWebViewEvent={(ev)=>{ if (ev === 'camera_started') setWebviewReady(true); }}
             facingMode={facingMode}
           />
+        }
+        <Text style={styles.statusText}>{status}</Text>
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {!error && !showCorrection && lastRecognizedGesture && (
+          <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}>
+            <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>
+              {lastRecognizedGesture.label}
+            </Animated.Text>
+            <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
+          </Animated.View>
         )}
       </View>
-
-      {error &&
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      }
-
-      {!error && !showCorrection && lastRecognizedGesture &&
-        <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}>
-          <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>
-            {lastRecognizedGesture.label}
-          </Animated.Text>
-        </Animated.View>
-      }
 
       {showCorrection && (
         <CorrectionPanel
@@ -389,28 +365,7 @@ export default function RecognitionScreen({ navigation }: any) {
         />
       )}
 
-      <View style={{ padding: SPACING.md }}>
-        <Button
-          title={facingMode === 'user' ? 'Flip to Back (WebView)' : 'Flip to Front (WebView)'}
-          onPress={() => { setFacingMode(m => m === 'user' ? 'environment' : 'user'); setWebviewKey(k=>k+1); }}
-        />
-        <View style={{ height: SPACING.sm }} />
-        <Button
-          testID="btn-help-me-choose"
-          title="Help me choose"
-          accessibilityLabel="Open correction screen"
-          onPress={() => navigation.navigate('Correction')}
-        />
-        <View style={{ height: SPACING.sm }} />
-        <Button
-          testID="btn-correction"
-          title="Correction"
-          accessibilityLabel="Open correction screen"
-          onPress={() => navigation.navigate('Correction')}
-        />
-        {/* Debug overlay path text marker for tests */}
-        <Text style={{ opacity: 0 }}>Path: debug-overlay</Text>
-      </View>
+      {/* Optional controls could be reintroduced as overlays if needed */}
 
       <BottomNav active="recognition" profileId={profile?.id || 'default'} />
     </SafeAreaView>

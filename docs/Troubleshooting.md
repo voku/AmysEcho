@@ -11,13 +11,10 @@ This guide lists common issues encountered when setting up or running **Amy's Ec
   ```
 - If the metro bundler does not start, run `npm start --prefix app` manually.
 
-## Gesture task download fails
-- Run the download script again:
-  ```bash
-  npm run build --prefix server
-  npm run download-gesture-task --prefix server
-  ```
-- Confirm the server has network access and write permission to `server/models`.
+## CDN assets blocked
+- Ensure the device/network can reach:
+  - `https://cdn.jsdelivr.net` (Tasks Vision runtime/WASM)
+  - `https://storage.googleapis.com` (gesture_recognizer.task model)
 
 ## Camera or microphone not working
 - Verify that permissions are granted in the device settings.
@@ -28,4 +25,3 @@ This guide lists common issues encountered when setting up or running **Amy's Ec
 - Re-run the gesture teaching flow from the **Admin Panel** to add more samples.
 
 If problems persist, please open an issue in the repository with logs or screenshots so the team can assist.
-

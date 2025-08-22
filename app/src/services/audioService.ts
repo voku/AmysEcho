@@ -113,7 +113,8 @@ export class AudioService {
 
     const sound = this.sounds.get(soundName);
     if (!sound) {
-      logger.warn(`Sound not found: ${soundName}`);
+      // Missing bundled sound is not critical; avoid dev-screen spam
+      logger.debug(`Sound not found: ${soundName}`);
       return;
     }
 

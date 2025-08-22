@@ -41,18 +41,22 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>html,body{margin:0;padding:0;background:#000}video{width:100vw;height:100vh;object-fit:cover;transform:scaleX(-1)}</style>
-  <script type="module">
-    // Import locally-served Tasks Vision bundle to avoid CDN usage
-    // Backend proxies and caches JS/WASM under /static/mediapipe/tasks-vision/<version>
-    import { GestureRecognizer, FilesetResolver } from '${API_URL}/static/mediapipe/tasks-vision/0.10.9/vision_bundle.mjs';
+  <script>
+    // Load MediaPipe Tasks Vision bundle from CDN
+    // Runtime: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js
+    // WASM path: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm
+    // Model: https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js';
+    document.head.appendChild(script);
     let gestureRecognizer; let runningMode = 'VIDEO';
     const video = document.createElement('video');
     video.setAttribute('autoplay',''); video.setAttribute('playsinline','');
     document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(video));
     async function createGestureRecognizer(){
-      const vision = await FilesetResolver.forVisionTasks('${API_URL}/static/mediapipe/tasks-vision/0.10.9/wasm');
-      gestureRecognizer = await GestureRecognizer.createFromOptions(vision,{
-        baseOptions:{ modelAssetPath:'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task', delegate:'GPU' },
+      const vision = await window.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm');
+      gestureRecognizer = await window.GestureRecognizer.createFromOptions(vision,{
+        baseOptions:{ modelAssetPath:'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task', delegate:'GPU' },
         runningMode, numHands:2
       });
     }
@@ -234,10 +238,10 @@ export default function RecognitionScreen({ navigation }: any) {
 
 ---
 
-## 2. Local hosting of MediaPipe assets
+## 2. CDN usage of MediaPipe assets
 
-- The backend serves `gesture_recognizer.task` at `/static/models/gesture_recognizer.task`.
-- The backend proxies and caches Tasks Vision JS/WASM at `/static/mediapipe/tasks-vision/<version>/...` so the app never hits external CDNs.
+- The app loads the Tasks Vision bundle and WASM from jsDelivr.
+- The app downloads the `gesture_recognizer.task` model from Google Cloud Storage.
 
 ## 3. Legacy MediaPipe (`@mediapipe/hands` + `@mediapipe/gesture_recognizer`)
 
@@ -289,9 +293,9 @@ if ((!outGesture || outScore < 0.5) && lms.length === 21) {
 
 ---
 
-## 5. Cloud‑first image upload
+## 5. Deprecated: server image upload (reference only)
 
-**Heavyweight but robust** – send frames to the server and run MediaPipe Python.
+Not used by the mobile client anymore. Kept here as a historical reference/example.
 
 ### Client
 ```ts

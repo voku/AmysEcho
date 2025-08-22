@@ -4,11 +4,10 @@
 
 For a list of alternative approaches and the current implementation status, refer to [`docs/ExpoGestureRecognition.md`](docs/ExpoGestureRecognition.md).
 
-**Executive Summary**: To ensure stability and performance within the Expo ecosystem, we have adopted a **WebView-based, remote-first** gesture recognition strategy.
+**Executive Summary**: To ensure stability and performance within the Expo ecosystem, we have adopted a **WebView-based, on-device** gesture recognition strategy using MediaPipe Tasks JS loaded from a CDN.
 
-1.  **Gesture Recognition**: A `WebView` component renders a web page with MediaPipe's JavaScript library. This library handles hand landmark detection directly in the WebView.
-2.  **Classification**: The extracted landmarks are then sent to a remote server for classification, ensuring the highest possible accuracy.
-3.  **Offline Fallback**: A simple, rule-based classifier is implemented in the WebView's JavaScript to provide basic gesture recognition when the device is offline.
+1.  **Landmarks + Classification (On-Device)**: A `WebView` component renders a web page with MediaPipe Tasks Vision. It performs hand landmark detection and gesture classification fully on-device.
+2.  **Heuristic Assist**: A simple, rule-based classifier in the WebView augments recognition for ambiguous cases.
 
 ---
 
@@ -38,17 +37,15 @@ For a list of alternative approaches and the current implementation status, refe
 
 ---
 
-## **Part II: Server-Side Classification**
+## **Part II: CDN Assets and Model**
 
-**Objective**: To provide a high-accuracy classification service for the landmark data sent from the client.
+**Objective**: Use stable, public CDNs for the runtime and model.
 
-### **Section 3: The Classification Endpoint**
+### **Section 3: MediaPipe Tasks JS**
 
-*   **Endpoint**: `POST /api/classify-landmarks`
-*   **Logic**:
-*   Receives an array of hand landmarks (one or two hands, each with 21 points).
-    *   Uses a powerful, server-side machine learning model to classify the gesture.
-    *   Returns the gesture label and a confidence score.
+*   Runtime: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js`
+*   WASM path: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm`
+*   Model: `https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task`
 
 ---
 

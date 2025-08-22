@@ -115,11 +115,11 @@ setupDatabase(DB_FILE_PATH)
     // Prewarm MediaPipe Tasks Vision bundle into cache to avoid first-hit latency
     try {
       const version = '0.10.9';
-      const cacheRoot = path.join(process.cwd(), 'server', '.cache', 'mediapipe', 'tasks-vision', version);
+      const cacheRoot = path.join(process.cwd(), '.cache', 'mediapipe', 'tasks-vision', version);
       await fs.mkdir(cacheRoot, { recursive: true });
-      const localFile = path.join(cacheRoot, 'vision_bundle.mjs');
+      const localFile = path.join(cacheRoot, 'vision_bundle.js');
       if (!fsSync.existsSync(localFile)) {
-        const upstream = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/vision_bundle.mjs`;
+        const upstream = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/vision_bundle.js`;
         const r = await (globalThis as any).fetch(upstream);
         if (r?.ok) {
           const ab = await r.arrayBuffer();
@@ -452,28 +452,39 @@ app.get('/static/models/gesture_recognizer.task', (_req: Request, res: Response)
 
 // Proxy/cache MediaPipe Tasks Vision assets locally to avoid direct CDN usage in the app
 app.get('/static/mediapipe/tasks-vision/:version/:file', async (req: Request, res: Response) => {
+  console.log(`[MediaPipe Proxy] Request for: ${req.params.version}/${req.params.file}`);
   try {
     const version = req.params.version;
     const tail = req.params.file;
-    const cacheRoot = path.join(process.cwd(), 'server', '.cache', 'mediapipe', 'tasks-vision', version);
+    const cacheRoot = path.join(process.cwd(), '.cache', 'mediapipe', 'tasks-vision', version);
     const localFile = path.join(cacheRoot, tail);
+    console.log(`[MediaPipe Proxy] Local file path: ${localFile}`);
     await fs.mkdir(path.dirname(localFile), { recursive: true });
     if (!fsSync.existsSync(localFile)) {
+      console.log(`[MediaPipe Proxy] File not in cache. Fetching from CDN...`);
       const upstream = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/${tail}`;
+      console.log(`[MediaPipe Proxy] Upstream URL: ${upstream}`);
       const r = await (globalThis as any).fetch(upstream);
       if (!r?.ok) {
         const txt = r ? await r.text() : 'fetch failed';
+        console.error(`[MediaPipe Proxy] CDN fetch failed with status ${r?.status}`);
         res.status(r?.status || 502).send(txt);
         return;
       }
       const ab = await r.arrayBuffer();
       const buf = Buffer.from(ab);
       await fs.writeFile(localFile, buf);
+      console.log(`[MediaPipe Proxy] Cached file from CDN.`);
+    } else {
+      console.log(`[MediaPipe Proxy] File found in cache.`);
     }
-    if (localFile.endsWith('.mjs') || localFile.endsWith('.js')) res.type('application/javascript');
+    if (localFile.endsWith('.js')) res.type('application/javascript');
     if (localFile.endsWith('.wasm')) res.type('application/wasm');
-    res.sendFile(localFile);
+    console.log(`[MediaPipe Proxy] Reading and sending file.`);
+    const fileContent = await fs.readFile(localFile);
+    res.send(fileContent);
   } catch (e: any) {
+    console.error(`[MediaPipe Proxy] Error:`, e);
     res.status(500).json({ error: 'proxy fetch failed', details: e?.message || String(e) });
   }
 });
