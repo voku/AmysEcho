@@ -1,0 +1,91 @@
+import React from 'react';
+import renderer, { act } from 'react-test-renderer';
+
+jest.mock('react-native', () => {
+  const React = require('react');
+  return {
+    View: (props: any) => React.createElement('View', props, props.children),
+    Text: (props: any) => React.createElement('Text', props, props.children),
+    Button: (props: any) => React.createElement('Button', props, props.children),
+    SafeAreaView: (props: any) => React.createElement('SafeAreaView', props, props.children),
+    StyleSheet: { create: (s: any) => s },
+    Animated: {
+      Value: class { constructor(public v: any) {} setValue(_: any) {} },
+      timing: () => ({ start: jest.fn() }),
+      spring: () => ({ start: jest.fn() }),
+      View: (p: any) => React.createElement('Animated.View', p, p.children),
+      Text: (p: any) => React.createElement('Animated.Text', p, p.children),
+    },
+    Easing: { out: (fn: any) => fn, ease: (t: number) => t },
+  } as any;
+});
+
+import RecognitionScreen from '../../src/screens/RecognitionScreen';
+
+jest.mock('../../src/components/MediaPipeGestureDetector', () => ({
+  MediaPipeGestureDetector: () => null,
+}));
+jest.mock('../../src/components/BottomNav', () => () => null);
+jest.mock('../../src/components/AccessibilityContext', () => ({
+  useAccessibility: () => ({ largeText: false }),
+}));
+jest.mock('../../src/services', () => ({
+  audioService: { speak: jest.fn(), playEncouragement: jest.fn(), playSuccessFeedback: jest.fn() },
+  triggerSpeakAndShow: jest.fn(),
+  correctionService: { logCorrection: jest.fn() },
+  dialogEngine: { getLLMSuggestions: jest.fn() },
+}));
+jest.mock('../../src/telemetry/recorder', () => ({
+  telemetry: { add: jest.fn() },
+}));
+jest.mock('../../src/storage', () => ({
+  loadProfile: () => Promise.resolve(null),
+  logCorrection: jest.fn(),
+}));
+jest.mock('../../src/model', () => ({
+  gestureModel: { gestures: [] },
+}));
+jest.mock('../../src/services/HybridRecognizer', () => ({
+  useHybridFrameProcessor: () => undefined,
+}));
+
+describe('RecognitionScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('navigates to Correction screen when correction button is pressed', async () => {
+    const navigate = jest.fn();
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate }} />);
+    });
+    const button = component.root.findByProps({ testID: 'btn-correction' });
+    act(() => {
+      button.props.onPress();
+    });
+    expect(navigate).toHaveBeenCalledWith('Correction');
+  });
+
+  it('navigates to Correction screen when help-me-choose button is pressed', async () => {
+    const navigate = jest.fn();
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate }} />);
+    });
+    const button = component.root.findByProps({ testID: 'btn-help-me-choose' });
+    act(() => {
+      button.props.onPress();
+    });
+    expect(navigate).toHaveBeenCalledWith('Correction');
+  });
+
+  it('exposes correction button accessibility label', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+    });
+    const button = component.root.findByProps({ testID: 'btn-correction' });
+    expect(button.props.accessibilityLabel).toBe('Open correction screen');
+  });
+});
