@@ -16,3 +16,4 @@ export * from './accessibilityService';
 export * from './AdaptivePerformanceManager';
 export * from './backupService';
 export * from './dataProtection';
+export * from './gdprService';

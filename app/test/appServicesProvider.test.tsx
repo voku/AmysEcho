@@ -64,6 +64,7 @@ jest.mock('../src/services', () => ({
   adaptiveLearningService: {},
   backupService: {},
   gestureDataProtector: {},
+  gdprService: {},
   checkForModelUpdate: jest.fn(),
   syncTrainingData: jest.fn(),
   syncService: {

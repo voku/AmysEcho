@@ -15,6 +15,7 @@ import {
   loadBackendApiToken,
   saveBackendApiToken,
   saveCustomModelUri,
+  loadActiveProfileId,
 } from '../storage';
 import * as FileSystem from 'expo-file-system';
 import { API_URL } from '../constants';
@@ -31,7 +32,7 @@ import { usePerformance } from '../context/PerformanceContext';
 const SYMBOL_EXPORT_PATH = `${FileSystem.documentDirectory || ''}symbols-export.json`;
 
 export default function AdminScreen({ navigation }: any) {
-  const { audioService, backupService } = useServices();
+  const { audioService, backupService, gdprService } = useServices();
   const { isLowPerformanceMode, toggleLowPerformanceMode } = usePerformance();
   const [symbols, setSymbols] = useState<DBSymbol[]>([]);
   const [editing, setEditing] = useState<DBSymbol | null>(null);
@@ -265,6 +266,44 @@ export default function AdminScreen({ navigation }: any) {
     }
   };
 
+  const handleExportProfile = async () => {
+    try {
+      const profileId = await loadActiveProfileId();
+      if (!profileId) {
+        Alert.alert('No active profile');
+        return;
+      }
+      const data = await gdprService.exportProfile(profileId);
+      if (!data) {
+        Alert.alert('Export failed');
+        return;
+      }
+      const path = `${FileSystem.documentDirectory || ''}profile-export.json`;
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(data, null, 2));
+      Alert.alert('Profile export complete', `Saved to ${path}`);
+    } catch (e) {
+      Alert.alert('Export failed', (e as Error).message || 'Unknown error');
+    }
+  };
+
+  const handleDeleteProfile = async () => {
+    try {
+      const profileId = await loadActiveProfileId();
+      if (!profileId) {
+        Alert.alert('No active profile');
+        return;
+      }
+      const ok = await gdprService.deleteProfile(profileId);
+      if (ok) {
+        Alert.alert('Profile deleted');
+      } else {
+        Alert.alert('Delete failed');
+      }
+    } catch (e) {
+      Alert.alert('Delete failed', (e as Error).message || 'Unknown error');
+    }
+  };
+
   const handleDelete = (sym: DBSymbol) => {
     Alert.alert('Symbol löschen', `"${sym.name}" wirklich entfernen?`, [
       { text: 'Abbrechen', style: 'cancel' },
@@ -363,6 +402,16 @@ export default function AdminScreen({ navigation }: any) {
         title="Gesten wiederherstellen"
         onPress={handleRestoreGestures}
         accessibilityLabel="Gesten wiederherstellen"
+      />
+      <Button
+        title="Export Profile"
+        onPress={handleExportProfile}
+        accessibilityLabel="Profil exportieren"
+      />
+      <Button
+        title="Delete Profile"
+        onPress={handleDeleteProfile}
+        accessibilityLabel="Profil löschen"
       />
       <Button title="Add Symbol" onPress={openAdd} accessibilityLabel="Symbol hinzufügen" />
       <Button

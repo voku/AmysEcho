@@ -54,9 +54,11 @@ export class ModelUpdateService {
       if (downloadResult.status === 200) {
         // Verify checksum if expo-crypto is available; otherwise skip (best-effort)
         try {
-          // @ts-ignore dynamic optional dependency
-          const mod = await import('expo-crypto');
-          const computed = await mod.digestFileAsync(mod.CryptoDigestAlgorithm.SHA256, tmpPath);
+          const crypto = await import('expo-crypto');
+          const computed = await crypto.digestFileAsync(
+            crypto.CryptoDigestAlgorithm.SHA256,
+            tmpPath
+          );
           if (
             typeof computed === 'string' &&
             modelInfo.checksum &&

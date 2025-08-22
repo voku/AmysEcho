@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useState } from 'react';
-import { audioService, backupService, checkForModelUpdate, syncService, syncTrainingData, gestureDataProtector } from '../services';
+import { audioService, backupService, checkForModelUpdate, syncService, syncTrainingData, gestureDataProtector, gdprService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
 import { useMessage } from './MessageContext';
@@ -21,7 +21,7 @@ interface ProviderProps {
   offline?: boolean;
 }
 
-const services: Services = { audioService, adaptiveLearningService, backupService, gestureDataProtector };
+const services: Services = { audioService, adaptiveLearningService, backupService, gestureDataProtector, gdprService };
 
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const [areServicesReady, setAreServicesReady] = useState(false);
