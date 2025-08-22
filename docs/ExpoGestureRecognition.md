@@ -60,9 +60,11 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         if(gestureRecognizer && video.currentTime>0 && !video.paused){
           const r = gestureRecognizer.recognizeForVideo(video, performance.now());
           if(r?.gestures?.length){
-            const g = r.gestures[0][0];
-            const lms = (r.landmarks||[]).map(hand=>hand.map(l=>[l.x,l.y,l.z||0]));
-            window.ReactNativeWebView?.postMessage?.(JSON.stringify({type:'gesture',gesture:g.categoryName,confidence:g.score,landmarks:lms}));
+            const topGesture = r.gestures.flatMap(g => g).sort((a, b) => b.score - a.score)[0];
+            if (topGesture) {
+              const lms = (r.landmarks || []).map(hand => hand.map(l => [l.x, l.y, l.z || 0]));
+              window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'gesture', gesture: topGesture.categoryName, confidence: topGesture.score, landmarks: lms }));
+            }
           }
         }
         requestAnimationFrame(predict);
