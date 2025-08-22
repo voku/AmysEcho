@@ -1,82 +1,263 @@
-# Amy's Echo - Updated TODO List
+# AmysEcho Development Action Plan
+*Updated roadmap incorporating PR #328 and WebView + MediaPipe architecture*
 
-## Current Status Summary
-The gesture recognition pipeline has been refactored to use a `WebView` running MediaPipe for hand landmark detection. The landmarks are then sent to a server-side endpoint for classification. This provides a reliable, cross-platform solution that works well with Expo's development client.
+## Current Architecture Status
+✅ **WebView + MediaPipe Integration Complete** (as of 2025-08-21)
+- Hand landmark extraction via MediaPipe in WebView
+- Server-side gesture classification with offline rule-based fallback
+- Training/recognition workflow operational
+- Documentation updated in `docs/ExpoGestureRecognition.md`
 
-> The new implementation guide is available at: [`docs/ExpoGestureRecognition.md`](docs/ExpoGestureRecognition.md)
+## Phase 1: User Experience & Stability (Weeks 1-2)
+*Focus on child-centric reliability and error resilience*
 
-## Recognition Architecture: WebView + Remote Classification
-_Last updated: 2025-08-21_
+### 1.1 User-Friendly Error Shielding
+**Priority: Critical - Child Safety First**
+- **Implement centralized error boundary system**
+  - Create child-safe error messages with gentle visual feedback
+  - Replace all technical errors with age-appropriate responses
+  - Add automatic recovery mechanisms that don't require adult intervention
+  - Log detailed errors for developers while showing simple "try again" prompts to Amy
+- **WebView-to-React Native error bridge**
+  - Catch MediaPipe failures gracefully in WebView
+  - Implement seamless fallback to rule-based classifier
+  - Add visual indicators when offline mode is active (without alarming the child)
+- **Network resilience patterns**
+  - Handle server classification timeouts elegantly
+  - Implement progressive degradation (server → WebView fallback → encouraging gesture retry)
+  - Add connection status awareness without technical complexity for users
 
-- **Primary Recognition**: A `WebView` running MediaPipe extracts hand landmarks on the client.
-- **Classification**: The landmarks are sent to a remote server for classification.
-- **Offline Fallback**: A simple, rule-based classifier is included in the WebView's JavaScript for offline scenarios.
+### 1.2 HIP 4 Proactive Practice Implementation
+**Priority: High - Learning Continuity**
+- **Health score-based practice prompts**
+  - Design non-blocking banner UI for practice suggestions
+  - Implement gentle nudges when gesture `healthScore` falls below threshold
+  - Create caregiver-friendly scheduling for practice sessions
+  - Add gamification elements to make practice engaging for Amy
+- **Practice session workflow**
+  - Build guided practice interface with immediate feedback
+  - Implement progress tracking with visual rewards
+  - Add session length controls appropriate for 4-year-old attention spans
+  - Create caregiver dashboard for monitoring practice effectiveness
 
----
+### 1.3 Enhanced Telemetry for Usage Insights
+**Priority: Medium - Data-Driven Improvements**
+- **HIP event tracking system**
+  - Log all user interactions across HIP 1-4 workflows
+  - Track gesture recognition success/failure patterns
+  - Monitor practice session completion rates and engagement
+  - Add privacy-compliant analytics for usage optimization
+- **Health score trend analysis**
+  - Implement historical tracking of gesture proficiency
+  - Add alerts for declining recognition accuracy
+  - Create caregiver reports on learning progress
+  - Build predictive models for optimal practice timing
 
-## 🔑 High-Priority Task: Stabilize and Enhance the WebView Solution
+## Phase 2: Core Functionality Implementation (Weeks 3-5)
+*Deliver the primary gesture recognition capabilities*
 
-1.  **[x] Implement `MediaPipeGestureDetector.tsx`**
-    - A new component that encapsulates the `WebView` and MediaPipe logic.
+### 2.1 ML Pipeline Activation
+**Priority: Critical**
+- **Finalize server-first classifier integration**
+  - Harden API error handling and latency metrics
+  - Strengthen offline rule-based fallback with performance telemetry
+  - Add confidence thresholding and uncertainty handling
+- **Gesture classification pipeline**
+  - Connect frame processor output to classifier service
+  - Implement real-time classification with smoothing
+  - Add gesture sequence recognition for complex signs
 
-2.  **[x] Integrate into `RecognitionScreen.tsx`**
-    - The main recognition screen now uses the new component.
+### 2.2 Audio-Visual Feedback System
+**Priority: High**
+- **Rich feedback implementation**
+  - Complete audioService.ts with contextual sound design
+  - Implement visual confirmation system with accessibility support
+  - Add haptic feedback for tactile confirmation
+- **DGS video integration**
+  - Complete video playback system for learning mode
+  - Implement gesture demonstration with proper synchronization
+  - Add video controls optimized for child interaction
 
-3.  **[x] Re-introduce User Feedback and State Management**
-    - The `RecognitionScreen` has been updated to include status messages, feedback animations, and the correction flow.
+### 2.3 Core User Flows (HIP Protocol)
+**Priority: High**
+- **HIP 1: Onboarding flow completion**
+  - Implement consent and setup with child-friendly UI
+  - Add parent/caregiver configuration options
+  - Create accessibility-first interaction patterns
+- **HIP 3: Correction flow implementation**
+  - Build "Help Me" repair interface
+  - Implement correction logging for model improvement
+  - Add gentle feedback for incorrect recognition
 
-4.  **[x] Implement Server-Side Classification**
-    - A new endpoint on the server (`/api/classify-landmarks`) accepts an array of landmarks and returns a gesture classification.
+## Phase 3: Advanced Features & Optimization (Weeks 6-7)
+*Build sophisticated learning and interaction capabilities*
 
-5.  **[x] Enhance the In-WebView Classifier**
-    - Added rule-based fallback inside the WebView HTML (thumbs_up, point, open_palm, fist) used when Tasks Vision confidence is low.
-    - Keep iterating as we add Amy-specific gestures.
+### 3.1 WebView + MediaPipe Performance Optimization
+**Priority: Medium - Technical Excellence**
+- **Landmark extraction efficiency**
+  - Optimize MediaPipe processing for mobile devices
+  - Implement adaptive quality settings based on device performance
+  - Add frame rate throttling during low battery or thermal conditions
+  - Create memory management for sustained WebView operations
+- **Server communication optimization**
+  - Implement request batching for multiple gestures
+  - Add intelligent caching of recent classifications
+  - Create connection pooling for server requests
+  - Build compression for landmark data transmission
 
-6.  **[x] Update Documentation**
-    - **[x] `docs/ExpoGestureRecognition.md`** has been created and updated.
-    - **[x] `README.md`** has been updated.
-    - **[x] `spec/AmysEcho.md`** has been reviewed and updated.
-    - **[x] `docs/UnifiedAIImplementationBlueprint.md`** has been updated.
-    - **[x] `docs/GestureRecognitionImplementationGuide.md`** has been removed.
+### 3.2 Enhanced User Experience Features
+**Priority: Medium - User Delight**
+- **Rich audio-visual feedback expansion**
+  - Add contextual celebration animations for successful gestures
+  - Implement ambient sound design that responds to Amy's mood and energy
+  - Create visual themes that can be customized by caregivers
+  - Add haptic feedback patterns that reinforce learning
+- **Multi-modal interaction support**
+  - Implement voice commands for navigation assistance
+  - Add switch/button accessibility options for motor limitations
+  - Create eye-gaze support for alternative interaction methods
+  - Build customizable UI layouts for different accessibility needs
 
----
+### 3.3 Caregiver Tools and Analytics
+**Priority: Medium - Family Support**
+- **Advanced caregiver dashboard**
+  - Create detailed progress reports with visual charts
+  - Add comparative analysis with typical development milestones
+  - Implement goal-setting and tracking tools
+  - Build export functionality for sharing with therapists and educators
+- **Collaborative learning features**
+  - Add multi-user support for family members
+  - Create shared gesture libraries between family devices
+  - Implement progress sharing with permission controls
+  - Build communication bridge with speech therapists and educators
 
-## 🚀 Production Readiness
+## Phase 4: Production Excellence & Scale Preparation (Weeks 8-10)
+*Ensure production readiness and sustainable operation*
 
-- [x] **Store Preparation**: Finalize EAS Build config, screenshots, etc.
-- [x] **Data Management**: Implement backup/restore and GDPR features.
-- [x] **User Documentation**: Create caregiver guides and tutorials.
+### 4.1 Security & Privacy Excellence
+**Priority: Critical - Child Protection**
+- **Comprehensive data protection audit**
+  - Implement end-to-end encryption for all gesture data
+  - Add COPPA-compliant privacy controls and consent management
+  - Create data retention policies with automatic expiration
+  - Build secure key management for model encryption
+- **Network security hardening**
+  - Implement certificate pinning for all server communications
+  - Add request signing and validation for API calls
+  - Create secure model download verification
+  - Build intrusion detection for suspicious usage patterns
 
-## Backend + Hosting Tasks
+### 4.2 Scalability & Performance
+**Priority: High - Sustainable Growth**
+- **Server infrastructure optimization**
+  - Implement auto-scaling for gesture classification endpoints
+  - Add CDN distribution for model downloads
+  - Create database optimization for learning loop data
+  - Build monitoring and alerting for service health
+- **Mobile performance optimization**
+  - Optimize WebView memory usage for extended sessions
+  - Implement efficient gesture history management
+  - Add intelligent preloading of frequently used models
+  - Create background processing optimization for battery life
 
-- [x] Serve gesture_recognizer.task at `/static/models/gesture_recognizer.task`.
-- [x] Proxy/cache MediaPipe Tasks Vision assets at `/static/mediapipe/tasks-vision/<version>/...`.
-- [x] Prewarm `vision_bundle.mjs` and a common WASM file on server start.
-- [x] Prewarm all WASM variants by parsing the bundle or logging first-hit filenames.
+### 4.3 Production Deployment & Monitoring
+**Priority: High - Operational Excellence**
+- **Deployment pipeline completion**
+  - Finalize iOS and Android release configurations
+  - Implement automated testing including gesture recognition accuracy
+  - Add crash reporting with privacy-safe error collection
+  - Create staged rollout system for updates
+- **Operational monitoring**
+  - Build comprehensive health monitoring dashboard
+  - Add real-time alerting for critical system failures
+  - Create user experience monitoring with success rate tracking
+  - Implement cost monitoring and optimization for cloud services
 
-## Telemetry & Observability
+## Implementation Priority Matrix
 
-- [x] Send recognizer init time from WebView to `/telemetry`.
- - [x] Add telemetry for server fallback usage + periodic per-frame processing latency.
+### Immediate Sprint (Next 2 Weeks)
+| Task | Impact | Effort | Priority |
+|------|--------|--------|----------|
+| User-friendly error shielding | Critical | Medium | **P0** |
+| HIP 4 practice flow | High | Medium | **P1** |
+| Enhanced telemetry | Medium | Low | **P1** |
+| WebView error handling | High | Medium | **P1** |
 
-## Cleanup & Consistency
+### Next Sprint (Weeks 3-4)
+| Task | Impact | Effort | Priority |
+|------|--------|--------|----------|
+| Adaptive gesture suggestions | High | High | **P1** |
+| Global learning loop foundation | High | High | **P1** |
+| Server optimization | Medium | Medium | **P2** |
+| Advanced analytics | Medium | Medium | **P2** |
 
-- [x] Remove runtime dependence on `.tflite` and mlService in app.
-- [x] Migrate TrainingScreen to use WebView landmarks.
-- [x] Remove or rehome legacy TFLite-only modules (useTensorflowModel, landmarkExtractor, gestureClassifier) and update tests accordingly
-      so TS excludes can be dropped entirely.
+### Future Sprints (Weeks 5-10)
+| Task | Impact | Effort | Priority |
+|------|--------|--------|----------|
+| Multi-modal interaction | Medium | High | **P2** |
+| Caregiver collaboration tools | Medium | High | **P2** |
+| Security audit & hardening | Critical | Medium | **P1** |
+| Production deployment | Critical | High | **P0** |
 
-## Gesture & Workflow Enhancements
+## Updated Success Metrics
 
- - [x] Enable training of new gestures in `TrainingScreen` so they are available in `RecognitionScreen`.
-   - Persist labeled samples locally and sync them to the server.
-   - Refresh the gesture library after training completes.
-- [x] Play the spoken name of a recognized gesture (e.g., "Papa").
-  - Use `expo-speech` with a pre-recorded audio fallback.
-- [x] Support DGS gestures that require both hands.
-  - Capture and classify dual-hand landmarks in the WebView and server pipeline.
+### Technical Excellence KPIs
+- **Error rate for children**: <0.1% user-visible errors during active use
+- **Gesture recognition accuracy**: >95% for Amy's trained vocabulary
+  - **System availability**: >99.9% uptime for core recognition features
+- **Learning loop efficiency**: <24 hours from data collection to model improvement
 
----
+### User Experience KPIs
+- **Amy's engagement**: Daily voluntary usage sessions
+- **Caregiver satisfaction**: >90% report communication improvement
+- **Learning velocity**: Measurable vocabulary expansion week-over-week
+- **Family adoption**: Multiple family members actively using suggestion features
 
-*Last Updated: 2025-08-21*
-*Project Goal: Turn Amy's gestures into understanding. Every time.*
+### Platform Readiness KPIs
+- **Privacy compliance**: 100% COPPA/GDPR adherence
+- **Performance optimization**: <5% battery drain during active recognition
+- **Scalability testing**: Support for 1000+ concurrent users
+- **Documentation quality**: Zero blockers for new developer onboarding
+
+## Architecture Integration Strategy
+
+### WebView + MediaPipe Optimization
+The current architecture using WebView for MediaPipe hand landmark extraction is solid but needs optimization:
+
+- **Maintain WebView isolation** while improving React Native bridge communication
+- **Leverage server classification** as primary method with robust offline fallback
+- **Build upon existing training/recognition workflow** rather than rebuilding
+- **Optimize for mobile constraints** while preserving accuracy
+
+### Service Architecture Stability
+Recent commits show recurring issues with React context and hooks. The updated plan addresses this by:
+
+- **Focusing on error boundaries** rather than architectural rewrites
+- **Implementing graceful degradation** when services fail
+- **Centralizing error handling** to protect the child user experience
+- **Maintaining existing service patterns** while hardening them
+
+### Learning Loop Enhancement
+The global learning loop represents the most ambitious technical challenge:
+
+- **Privacy-first data collection** with granular consent controls
+- **Automated model improvement** without manual intervention
+- **Seamless deployment** of updated classifiers to all app instances
+- **Performance monitoring** to ensure improvements don't degrade experience
+
+## Risk Mitigation & Contingency Plans
+
+### Child Safety Risks
+- **Technical error exposure**: Comprehensive error shielding prevents Amy from seeing system failures
+- **Privacy breaches**: End-to-end encryption and minimal data collection principles
+- **Interaction frustration**: Graceful fallbacks ensure the app never "breaks" from a child's perspective
+
+### Technical Implementation Risks
+- **WebView performance**: Adaptive quality settings and memory management prevent crashes
+- **Server dependencies**: Offline-first architecture ensures core functionality without network
+- **Learning loop complexity**: Phased rollout with manual oversight before full automation
+
+### Timeline & Scope Risks
+- **Feature creep**: Strict prioritization matrix focuses on core gesture→understanding pipeline
+- **Architecture changes**: Build upon existing WebView foundation rather than rebuilding
+- **Third-party dependencies**: Minimal new dependencies, focus on optimizing current stack
