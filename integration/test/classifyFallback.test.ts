@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { once } from 'events';
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -11,7 +11,7 @@ import { test, before, after } from 'node:test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', 'server');
 const PORT = 5052; // dedicated port so tests don't clash
-let proc;
+let proc: ChildProcess;
 
 async function startServer() {
   // Ensure a clean database so prior runs don't influence results
@@ -29,7 +29,7 @@ async function startServer() {
       CLOUD_API_URL: 'http://127.0.0.1:5999/unreachable',
       OFFLINE_MODEL_PATH: join(serverDir, 'src', 'offlineModel.json'),
     },
-    stdio: ['ignore', 'ignore', 'ignore'],
+    stdio: ['ignore', 'ignore', 'inherit'],
   });
 
   const start = Date.now();
@@ -54,7 +54,9 @@ async function startServer() {
 async function stopServer() {
   if (proc) {
     proc.kill();
-    await once(proc, 'exit').catch(() => {});
+    await once(proc, 'exit').catch((err) =>
+      console.warn('Error waiting for server to exit:', err)
+    );
   }
 }
 
