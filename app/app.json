@@ -3,8 +3,10 @@
     "name": "AmysEcho",
     "slug": "amysecho",
     "owner": "voku1987",
+    "version": "1.0.0",
     "android": {
       "package": "com.anonymous.amysecho",
+      "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
@@ -17,6 +19,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.anonymous.amysecho",
+      "buildNumber": "1.0.0",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow Amy's Echo to access your camera to recognize gestures.",
         "NSMicrophoneUsageDescription": "Allow Amy's Echo to access your microphone to record audio."
