@@ -43,6 +43,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   <style>
     html, body { margin: 0; padding: 0; background: #000; }
     video { width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); }
+    #tapToStart { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(0,0,0,0.4); font-family: sans-serif; }
+    #tapToStart.hidden { display: none; }
   </style>
   <script type="module">
     import { GestureRecognizer, FilesetResolver } from "${API_URL}/static/mediapipe/tasks-vision/0.10.9/vision_bundle.mjs";
@@ -55,6 +57,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     video.setAttribute('muted', '');
     document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(video);
+      const overlay = document.createElement('div');
+      overlay.id = 'tapToStart';
+      overlay.innerText = 'Tap to start camera';
+      overlay.addEventListener('click', async () => {
+        try { await startCamera(); overlay.classList.add('hidden'); window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start' })); } catch {}
+      });
+      document.body.appendChild(overlay);
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'dom_ready' }));
     });
 
@@ -262,6 +271,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         // On Android, auto-grant media capture permissions if app holds CAMERA
         mediaCapturePermissionGrantType={'grant'}
         androidLayerType={'hardware'}
+        mixedContentMode={'always'}
         onPermissionRequest={(event: any) => {
           try {
             // Grant all requested resources (VIDEO_CAPTURE/AUDIO_CAPTURE)
