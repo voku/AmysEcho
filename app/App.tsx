@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, AccessibilityInfo } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,11 +38,6 @@ export default function App() {
         const profileId = await setupDatabase();
         logger.info('Database setup complete, initial profile:', profileId);
 
-        const netState = await NetInfo.fetch();
-        if (netState.isConnected === false || netState.isInternetReachable === false) {
-          setIsOffline(true);
-        }
-
         const activeId = await loadActiveProfileId();
         if (!activeId) {
           await setActiveProfileId(profileId);
@@ -78,9 +73,17 @@ export default function App() {
     initialize();
   }, []);
 
+  const handledInitial = useRef(false);
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsOffline(state.isConnected === false || state.isInternetReachable === false);
+      const offline = state.isConnected === false || state.isInternetReachable === false;
+      setIsOffline(offline);
+      if (!handledInitial.current) {
+        handledInitial.current = true;
+        if (offline) {
+          AccessibilityInfo.announceForAccessibility('Offline mode');
+        }
+      }
     });
     return () => unsubscribe();
   }, []);

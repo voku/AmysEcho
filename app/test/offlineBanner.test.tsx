@@ -7,6 +7,10 @@ jest.mock('react-native', () => {
   };
 });
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0 }),
+}));
+
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import OfflineBanner from '../src/components/OfflineBanner';
@@ -30,8 +34,11 @@ describe('OfflineBanner', () => {
         </AccessibilityContext.Provider>,
       );
     });
-    const text = (component as renderer.ReactTestRenderer).root.findByType('Text');
+    const tree = component as renderer.ReactTestRenderer;
+    const view = tree.root.findByType('View');
+    const text = tree.root.findByType('Text');
     expect(text.props.children).toBe('Offline mode');
+    expect(view.props.accessibilityRole).toBe('alert');
   });
 
   it('applies high contrast styles', () => {
