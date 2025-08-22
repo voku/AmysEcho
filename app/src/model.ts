@@ -1,4 +1,5 @@
-import { loadCustomGestures } from './storage';
+// Dynamically import storage only when initializing to avoid bundling React Native
+// modules in non-native environments (e.g., integration tests).
 
 export interface GestureModelEntry {
   id: string;
@@ -78,6 +79,7 @@ export function addGesture(entry: GestureModelEntry): void {
 }
 
 export async function initGestureModel(): Promise<void> {
+  const { loadCustomGestures } = await import('./storage');
   const custom = await loadCustomGestures();
   custom.forEach((g) => addGesture(g));
 }
