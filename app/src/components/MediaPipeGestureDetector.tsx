@@ -52,6 +52,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     const video = document.createElement('video');
     video.setAttribute('autoplay', '');
     video.setAttribute('playsinline', '');
+    video.setAttribute('muted', '');
     document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(video);
     });
@@ -197,6 +198,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
         video.srcObject = stream;
+        try { video.muted = true; await video.play(); } catch {}
         // createGestureRecognizer will add the loadeddata listener
       } catch (err) {
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: 'Camera error: ' + (err?.message || err) }));
@@ -254,6 +256,9 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         javaScriptEnabled={true}
         allowsInlineMediaPlayback={true}
         originWhitelist={['*']}
+        // On Android, auto-grant media capture permissions if app holds CAMERA
+        mediaCapturePermissionGrantType={'grant'}
+        androidLayerType={'hardware'}
       />
     </View>
   );
