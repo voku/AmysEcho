@@ -15,6 +15,8 @@ import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { syncTrainingData } from '../services';
 
+const PREVIEW_SIZE = 240;
+
 export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   // No native camera refs
@@ -24,8 +26,7 @@ export default function TeachingScreen({ navigation }: any) {
   const [isRecording, setIsRecording] = useState(false);
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
-  const PREVIEW_SIZE = 240;
-  const [landmarks, setLandmarks] = useState<number[][][]>([]);
+  const landmarksRef = useRef<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
@@ -45,6 +46,13 @@ export default function TeachingScreen({ navigation }: any) {
         setError('Failed to load profile');
       });
   }, []);
+
+  const handleGestureDetected = useCallback(
+    (_gesture: string | null, _confidence: number, lms: number[][][]) => {
+      landmarksRef.current = lms;
+    },
+    []
+  );
 
   const startSampleCaptureAnimation = useCallback(() => {
     sampleCaptureAnim.setValue(0);
@@ -91,7 +99,7 @@ export default function TeachingScreen({ navigation }: any) {
     setIsRecording(true);
     setError(null);
     try {
-      const frames = await captureSamples(() => landmarks);
+      const frames = await captureSamples(() => landmarksRef.current);
       await saveTrainingSample(gestureLabel, frames);
       setSampleCount((c) => c + 1);
       startSampleCaptureAnimation();
@@ -194,7 +202,7 @@ export default function TeachingScreen({ navigation }: any) {
       ) : (
         <View style={styles.recordingContainer}>
           <View style={styles.camera}>
-            <MediaPipeGestureDetector onGestureDetected={(_g,_c,lms)=>setLandmarks(lms)} onError={(m)=>setError(m)} />
+            <MediaPipeGestureDetector onGestureDetected={handleGestureDetected} onError={setError} />
           </View>
           <Animated.View style={[
             styles.sampleIndicator,
@@ -264,7 +272,7 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       borderRadius: RADIUS,
     },
     recordingContainer: { alignItems: 'center' },
-    camera: { width: 240, height: 240, marginBottom: SPACING.sm, borderRadius: RADIUS, overflow: 'hidden' },
+    camera: { width: PREVIEW_SIZE, height: PREVIEW_SIZE, marginBottom: SPACING.sm, borderRadius: RADIUS, overflow: 'hidden' },
     prompt: { fontSize: largeText ? 22 : 18, marginVertical: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
     progress: { marginBottom: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
     sampleIndicator: {
