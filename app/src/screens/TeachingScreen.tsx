@@ -24,8 +24,7 @@ export default function TeachingScreen({ navigation }: any) {
   const [isRecording, setIsRecording] = useState(false);
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
-  const PREVIEW_SIZE = 240;
-  const [landmarks, setLandmarks] = useState<number[][][]>([]);
+  const landmarksRef = useRef<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
@@ -91,7 +90,7 @@ export default function TeachingScreen({ navigation }: any) {
     setIsRecording(true);
     setError(null);
     try {
-      const frames = await captureSamples(() => landmarks);
+      const frames = await captureSamples(() => landmarksRef.current);
       await saveTrainingSample(gestureLabel, frames);
       setSampleCount((c) => c + 1);
       startSampleCaptureAnimation();
@@ -194,7 +193,7 @@ export default function TeachingScreen({ navigation }: any) {
       ) : (
         <View style={styles.recordingContainer}>
           <View style={styles.camera}>
-            <MediaPipeGestureDetector onGestureDetected={(_g,_c,lms)=>setLandmarks(lms)} onError={(m)=>setError(m)} />
+            <MediaPipeGestureDetector onGestureDetected={(_g,_c,lms)=>{landmarksRef.current = lms;}} onError={(m)=>setError(m)} />
           </View>
           <Animated.View style={[
             styles.sampleIndicator,
