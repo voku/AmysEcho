@@ -65,17 +65,17 @@ export default function CorrectionScreen({ navigation, route }: any) {
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>Submit Correction</Text>
+        <Text style={styles.title}>Korrektur senden</Text>
         <View style={styles.pulseWrapper}>
           <PulsingCircle size={120} color={highContrast ? COLORS.highContrastText : '#ffffff'} />
           <Pressable
             style={[styles.choiceButton, highContrast && styles.choiceButtonHC]}
             testID="btn-submit-correction"
             accessibilityRole="button"
-            accessibilityLabel="Submit correction"
+            accessibilityLabel="Korrektur senden"
             onPress={handleSubmit}
           >
-            <Text style={styles.choiceButtonText}>Submit Correction</Text>
+            <Text style={styles.choiceButtonText}>Korrektur senden</Text>
           </Pressable>
         </View>
         <View style={{ marginBottom: SPACING.sm }}>
@@ -83,10 +83,10 @@ export default function CorrectionScreen({ navigation, route }: any) {
             style={[styles.choiceButton, highContrast && styles.choiceButtonHC]}
             testID="btn-cancel-correction"
             accessibilityRole="button"
-            accessibilityLabel="Cancel"
+            accessibilityLabel="Abbrechen"
             onPress={handleCancel}
           >
-            <Text style={styles.choiceButtonText}>Cancel</Text>
+            <Text style={styles.choiceButtonText}>Abbrechen</Text>
           </Pressable>
         </View>
       </SafeAreaView>

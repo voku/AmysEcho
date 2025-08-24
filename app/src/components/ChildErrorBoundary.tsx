@@ -40,9 +40,9 @@ export class ChildErrorBoundary extends Component<Props, State> {
       const textColor = highContrast ? COLORS.highContrastText : COLORS.text;
       return (
         <View style={[styles.overlay, { backgroundColor }]}> 
-          <Text testID="error-text" style={[styles.text, { color: textColor, fontSize }]}>Oops, let's try again!</Text>
-          <Pressable testID="retry-button" accessibilityLabel="Try again" onPress={this.handleRetry} style={[styles.button, { backgroundColor: highContrast ? COLORS.highContrastPressed : COLORS.surface }]}> 
-            <Text style={[styles.buttonText, { color: highContrast ? COLORS.highContrastText : COLORS.text, fontSize }]}>Try again</Text>
+          <Text testID="error-text" style={[styles.text, { color: textColor, fontSize }]}>Ups, lass es uns noch einmal versuchen!</Text>
+          <Pressable testID="retry-button" accessibilityLabel="Nochmal versuchen" onPress={this.handleRetry} style={[styles.button, { backgroundColor: highContrast ? COLORS.highContrastPressed : COLORS.surface }]}>
+            <Text style={[styles.buttonText, { color: highContrast ? COLORS.highContrastText : COLORS.text, fontSize }]}>Nochmal versuchen</Text>
           </Pressable>
         </View>
       );

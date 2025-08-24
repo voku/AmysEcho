@@ -25,6 +25,9 @@
         "NSMicrophoneUsageDescription": "Allow Amy's Echo to access your microphone to record audio."
       }
     },
-    "plugins": []
+    "plugins": [
+      "expo-audio",
+      "expo-secure-store"
+    ]
   }
 }

@@ -82,14 +82,14 @@ export default function TeachingScreen({ navigation }: any) {
     try {
       const existingCount = await loadTrainingSampleCount(gestureLabel);
       if (existingCount >= SAMPLES_NEEDED) {
-        Alert.alert('Training Complete', `The gesture "${gestureLabel}" already has enough samples.`);
+        Alert.alert('Training abgeschlossen', `Die Geste "${gestureLabel}" hat bereits genug Beispiele.`);
         return;
       }
       sessionId.current = `local-${Date.now()}`;
       setError(null);
       setIsSessionActive(true);
       setSampleCount(existingCount);
-      audioService.speak(`Okay, let's learn how to make "${gestureLabel}".`);
+      audioService.speak(`Okay, lass uns lernen, wie man "${gestureLabel}" macht.`);
     } catch (e) {
       logger.error('Failed to start teaching session', e);
       setError('Failed to start teaching session');
@@ -119,8 +119,8 @@ export default function TeachingScreen({ navigation }: any) {
 
   const endSession = async () => {
     setIsSessionActive(false);
-    audioService.speak(`Great! I've learned "${gestureLabel}".`);
-    Alert.alert('Success', `The new gesture "${gestureLabel}" has been trained with ${SAMPLES_NEEDED} samples.`);
+    audioService.speak(`Super! Ich habe "${gestureLabel}" gelernt.`);
+    Alert.alert('Erfolg', `Die neue Geste "${gestureLabel}" wurde mit ${SAMPLES_NEEDED} Beispielen trainiert.`);
     sessionId.current = null;
     const id = gestureLabel.trim().toLowerCase().replace(/\s+/g, '_');
     try {
@@ -135,10 +135,10 @@ export default function TeachingScreen({ navigation }: any) {
       setSyncing(true);
       setProgress(0);
       await syncTrainingData({ onProgress: (p) => setProgress(p) });
-      Alert.alert('Training', 'Model update completed.');
+      Alert.alert('Training', 'Modellaktualisierung abgeschlossen.');
     } catch (e) {
       logger.warn('Failed to sync training data', e);
-      Alert.alert('Training', 'Model update may have failed. Will retry later.');
+      Alert.alert('Training', 'Modellaktualisierung möglicherweise fehlgeschlagen. Es wird später erneut versucht.');
     } finally {
       setSyncing(false);
       setProgress(0);
@@ -148,7 +148,7 @@ export default function TeachingScreen({ navigation }: any) {
   const handleRetry = () => {
     setSampleCount(0);
     setIsSessionActive(true);
-    audioService.speak(`Let's try "${gestureLabel}" again.`);
+    audioService.speak(`Versuchen wir "${gestureLabel}" noch einmal.`);
   };
 
   const styles = createStyles(largeText, highContrast);
@@ -197,13 +197,13 @@ export default function TeachingScreen({ navigation }: any) {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Name of new gesture"
+            placeholder="Name der neuen Geste"
             value={gestureLabel}
             onChangeText={setGestureLabel}
-            accessibilityLabel="Name of new gesture"
+            accessibilityLabel="Name der neuen Geste"
           />
           <Button
-            title="Start Training"
+            title="Training starten"
             onPress={startSession}
             accessibilityLabel="Training starten"
           />
@@ -222,7 +222,7 @@ export default function TeachingScreen({ navigation }: any) {
           ]}>
             <Text style={styles.sampleIndicatorText}>Sample Captured!</Text>
           </Animated.View>
-          <Text style={styles.prompt}>Show the gesture "{gestureLabel}"</Text>
+          <Text style={styles.prompt}>Zeige die Geste "{gestureLabel}"</Text>
           <Text style={styles.progress}>{sampleCount} / {SAMPLES_NEEDED} samples</Text>
           <Button
             title={isRecording ? 'Recording...' : 'Record Sample'}
@@ -232,14 +232,14 @@ export default function TeachingScreen({ navigation }: any) {
           />
           {sampleCount > 0 && sampleCount < SAMPLES_NEEDED && (
             <Button
-              title="Retry All Samples"
+              title="Alle Beispiele erneut aufnehmen"
               onPress={handleRetry}
               accessibilityLabel="Alle Beispiele wiederholen"
             />
           )}
           {sampleCount >= SAMPLES_NEEDED && (
             <Button
-              title="Finish Training"
+              title="Training abschließen"
               onPress={endSession}
               accessibilityLabel="Training beenden"
             />
@@ -255,7 +255,7 @@ export default function TeachingScreen({ navigation }: any) {
         </View>
       )}
       <Button
-        title="Back"
+        title="Zurück"
         onPress={() => navigation.goBack()}
         accessibilityLabel="Zurück"
       />

@@ -16,9 +16,9 @@ export default function TeachScreen({ navigation }: any) {
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
         <Button
-          title="Add New Sign"
+          title="Neue Gebärde hinzufügen"
           testID="btn-add-sign"
-          accessibilityLabel="Add New Sign"
+          accessibilityLabel="Neue Gebärde hinzufügen"
           onPress={() => navigation.navigate('Teaching')}
         />
       </SafeAreaView>

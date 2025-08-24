@@ -56,13 +56,13 @@ export default function ProgressScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Progress</Text>
+      <Text style={styles.title}>Fortschritt</Text>
       <View style={styles.summaryItem}>
-        <Text style={styles.label}>Sessions</Text>
+        <Text style={styles.label}>Sitzungen</Text>
         <Text style={styles.label}>{engagement.totalSessions}</Text>
       </View>
       <View style={styles.summaryItem}>
-        <Text style={styles.label}>Avg Session (s)</Text>
+        <Text style={styles.label}>Durchschnittliche Sitzungsdauer (s)</Text>
         <Text style={styles.label}>{Math.round(engagement.averageDurationMs / 1000)}</Text>
       </View>
       <FlatList
@@ -74,9 +74,9 @@ export default function ProgressScreen({ navigation }: any) {
             <Text style={styles.label}>{item.count}</Text>
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.label}>No usage yet</Text>}
+        ListEmptyComponent={<Text style={styles.label}>Noch keine Nutzung</Text>}
       />
-      <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
     </View>
   );
 }

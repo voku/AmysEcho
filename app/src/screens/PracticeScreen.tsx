@@ -59,7 +59,7 @@ export default function PracticeScreen({ navigation }: any) {
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <SafeAreaView style={styles.container}>
-          <Text style={styles.title}>Practice Gestures</Text>
+          <Text style={styles.title}>Gesten üben</Text>
           <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: SPACING.md }}>
             <Button title="3" onPress={() => setTargetSamples(3)} accessibilityLabel="3 Beispiele" color={targetSamples===3? COLORS.primaryAccent : undefined} />
             <View style={{ width: SPACING.sm }} />
@@ -72,7 +72,7 @@ export default function PracticeScreen({ navigation }: any) {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={styles.list}
-            ListEmptyComponent={<Text style={styles.empty}>No gestures available</Text>}
+            ListEmptyComponent={<Text style={styles.empty}>Keine Gesten verfügbar</Text>}
           />
         </SafeAreaView>
       </Animated.View>

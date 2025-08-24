@@ -90,13 +90,13 @@ export default function OnboardingScreen({ navigation }: any) {
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
     <SafeAreaView style={styles.container}>
       <Text style={styles.heart}>❤️</Text>
-      <Text style={styles.title}>Welcome to Amy's Echo</Text>
+      <Text style={styles.title}>Willkommen bei Amys Echo</Text>
       <Text
         style={styles.privacy}
         accessibilityLabel="Datenschutzhinweis"
       >
-        Your child's data stays on this device unless you allow uploads. Uploading
-        anonymized data helps improve recognition.
+        Die Daten deines Kindes bleiben auf diesem Gerät, es sei denn, du erlaubst das Hochladen.
+        Das Hochladen anonymisierter Daten hilft, die Erkennung zu verbessern.
       </Text>
       <TextInput
         style={styles.input}
@@ -106,7 +106,7 @@ export default function OnboardingScreen({ navigation }: any) {
         accessibilityLabel="Profilname"
       />
       <View style={styles.toggleRow}>
-        <Text style={styles.label}>Allow data upload</Text>
+        <Text style={styles.label}>Datenupload erlauben</Text>
         <Switch
           value={consentDataUpload}
           onValueChange={setConsentDataUpload}
@@ -115,7 +115,7 @@ export default function OnboardingScreen({ navigation }: any) {
         />
       </View>
       <View style={styles.toggleRow}>
-        <Text style={styles.label}>Help me get smarter</Text>
+        <Text style={styles.label}>Beim Lernen helfen</Text>
         <Switch
           value={consentHelpMeGetSmarter}
           onValueChange={setConsentHelpMeGetSmarter}
@@ -124,7 +124,7 @@ export default function OnboardingScreen({ navigation }: any) {
         />
       </View>
       <View style={styles.toggleRow}>
-        <Text style={styles.label}>Large text</Text>
+        <Text style={styles.label}>Große Schrift</Text>
         <Switch
           value={largeText}
           onValueChange={setLargeText}
@@ -133,7 +133,7 @@ export default function OnboardingScreen({ navigation }: any) {
         />
       </View>
       <View style={styles.toggleRow}>
-        <Text style={styles.label}>High contrast</Text>
+        <Text style={styles.label}>Hoher Kontrast</Text>
         <Switch
           value={highContrast}
           onValueChange={setHighContrast}
@@ -153,16 +153,16 @@ export default function OnboardingScreen({ navigation }: any) {
         ))}
       </View>
       <Button
-        title="Next"
+        title="Weiter"
         testID="btn-next"
         onPress={handleContinue}
-        accessibilityLabel="Next"
+        accessibilityLabel="Weiter"
       />
       <Button
-        title="Skip"
+        title="Überspringen"
         testID="btn-skip"
         onPress={() => navigation.replace('Recognition')}
-        accessibilityLabel="Skip"
+        accessibilityLabel="Überspringen"
       />
     </SafeAreaView>
     </LinearGradient>

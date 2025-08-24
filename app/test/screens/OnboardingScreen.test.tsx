@@ -69,7 +69,7 @@ describe('OnboardingScreen', () => {
     act(() => {
       component = renderer.create(<OnboardingScreen navigation={{ replace: jest.fn() }} />);
     });
-    expect(component.root.findByProps({ testID: 'btn-next' }).props.accessibilityLabel).toBe('Next');
-    expect(component.root.findByProps({ testID: 'btn-skip' }).props.accessibilityLabel).toBe('Skip');
+    expect(component.root.findByProps({ testID: 'btn-next' }).props.accessibilityLabel).toBe('Weiter');
+    expect(component.root.findByProps({ testID: 'btn-skip' }).props.accessibilityLabel).toBe('Überspringen');
   });
 });

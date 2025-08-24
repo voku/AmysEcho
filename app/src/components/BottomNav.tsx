@@ -28,9 +28,9 @@ export default function BottomNav({ active, profileId }: Props) {
           styles.item,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
         ]}
-        accessibilityLabel="Listen"
+        accessibilityLabel="Zuhören"
         accessibilityRole="button"
-        accessibilityHint="Start gesture recognition"
+        accessibilityHint="Gestenerkennung starten"
       >
         <Hand
           size={24}
@@ -52,7 +52,7 @@ export default function BottomNav({ active, profileId }: Props) {
             active === 'recognition' && (highContrast ? styles.activeHC : styles.active),
           ]}
         >
-          Listen
+          Zuhören
         </Text>
       </Pressable>
       <Pressable
@@ -65,9 +65,9 @@ export default function BottomNav({ active, profileId }: Props) {
           styles.item,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
         ]}
-        accessibilityLabel="Learn"
+        accessibilityLabel="Lernen"
         accessibilityRole="button"
-        accessibilityHint="Record or practice gestures"
+        accessibilityHint="Gesten aufnehmen oder üben"
       >
         <BookOpen
           size={24}
@@ -89,7 +89,7 @@ export default function BottomNav({ active, profileId }: Props) {
             active === 'training' && (highContrast ? styles.activeHC : styles.active),
           ]}
         >
-          Learn
+          Lernen
         </Text>
       </Pressable>
       <Pressable
@@ -102,9 +102,9 @@ export default function BottomNav({ active, profileId }: Props) {
           styles.item,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
         ]}
-        accessibilityLabel="Menu"
+        accessibilityLabel="Menü"
         accessibilityRole="button"
-        accessibilityHint="Open profile and settings menu"
+        accessibilityHint="Profil- und Einstellungsmenü öffnen"
       >
         <Settings
           size={24}
@@ -126,7 +126,7 @@ export default function BottomNav({ active, profileId }: Props) {
             active === 'parent' && (highContrast ? styles.activeHC : styles.active),
           ]}
         >
-          Menu
+          Menü
         </Text>
       </Pressable>
     </View>
