@@ -51,7 +51,7 @@ def test_train_endpoint(tmp_path):
         url = f'http://localhost:{PORT}/train-model'
         samples = [{
             "gestureDefinitionId": "g1",
-            "landmarkData": [[0.0, 0.0, 0.0]] * 42,
+            "landmarkData": [[0.0, 0.0, 0.0] for _ in range(42)],
         }]
         data = json.dumps({'samples': samples}).encode('utf-8')
         headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer testtoken'}
