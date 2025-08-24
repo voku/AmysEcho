@@ -30,7 +30,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
   try {
     const token = await loadBackendApiToken();
     const samples = pending.flatMap((p) =>
-      (p.landmarkData as any[])
+      (p.landmarkData as number[][][][])
         .filter(frameHasAnyLandmarks)
         .map((frame) => ({
           gestureDefinitionId: p.gestureDefinitionId,
