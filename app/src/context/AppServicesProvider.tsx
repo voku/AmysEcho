@@ -3,7 +3,7 @@ import { audioService, backupService, checkForModelUpdate, syncService, syncTrai
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
 import { useMessage } from './MessageContext';
-import { loadCustomModelUri } from '../storage';
+import { loadCustomModelUri, loadActiveProfileId } from '../storage';
 import {
   CONFIDENCE_THRESHOLD,
   ENABLE_REMOTE_CLASSIFICATION,
@@ -32,6 +32,12 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     let telemetryInterval: ReturnType<typeof setInterval> | undefined;
+    async function runModelUpdate() {
+      try {
+        const pid = await loadActiveProfileId().catch(() => null);
+        await checkForModelUpdate(pid ?? undefined);
+      } catch {}
+    }
     async function initializeServices() {
       try {
         // WebView + server path: no native TensorFlow model loading here.
@@ -40,12 +46,12 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         if (!offline) {
           interval = setInterval(() => {
             syncTrainingData().catch(() => {});
-            checkForModelUpdate().catch(() => {});
+            runModelUpdate().catch(() => {});
             syncService.uploadPendingTrainingData().catch(() => {});
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          checkForModelUpdate().catch(() => {});
+          runModelUpdate().catch(() => {});
           syncService.uploadPendingTrainingData().catch(() => {});
 
           // Lightweight periodic telemetry upload

@@ -35,6 +35,9 @@ export const LOG_LEVEL =
     | 'info'
     | 'warn'
     | 'error';
-
-export const CUSTOM_GESTURE_MODEL_PATH =
-  (FileSystem.documentDirectory || '') + 'custom_model.json';
+const BASE_DIR = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
+if (!BASE_DIR) {
+  // Fail fast to surface misconfiguration early
+  throw new Error('No writable FileSystem directory available');
+}
+export const CUSTOM_GESTURE_MODEL_PATH = `${BASE_DIR}custom_model.json`;

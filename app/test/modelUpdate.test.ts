@@ -70,12 +70,20 @@ describe('checkForModelUpdate', () => {
     await checkForModelUpdate('p1');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://example.com/model-metadata?profileId=p1',
-      expect.anything(),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+      }),
     );
     expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
       'https://example.com/latest-model?profileId=p1',
       CUSTOM_GESTURE_MODEL_PATH,
-      expect.anything(),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+      }),
     );
+    const { saveCustomModelHash, saveCustomModelUri } =
+      jest.requireMock('../src/storage');
+    expect(saveCustomModelHash).toHaveBeenCalledWith('h');
+    expect(saveCustomModelUri).toHaveBeenCalledWith('/tmp/model.json');
   });
 });

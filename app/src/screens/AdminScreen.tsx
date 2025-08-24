@@ -153,8 +153,10 @@ export default function AdminScreen({ navigation }: any) {
     try {
       const uri = CUSTOM_GESTURE_MODEL_PATH;
       const token = await loadBackendApiToken();
+      const profileId = await loadActiveProfileId().catch(() => undefined);
+      const qs = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
       const res = await FileSystem.downloadAsync(
-        `${API_URL}/latest-model`,
+        `${API_URL}/latest-model${qs}`,
         uri,
         { headers: { Authorization: `Bearer ${token || ''}` } },
       );

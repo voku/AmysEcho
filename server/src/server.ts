@@ -541,9 +541,10 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       // Compute centroids (global) and publish as the trained model
       const { centroids, counts } = await getCentroids();
       job.progress = 75;
+      const updatedAt = Date.now();
       const out: CentroidModel = {
         type: 'centroid_model',
-        updatedAt: Date.now(),
+        updatedAt,
         centroids,
         counts,
       };
@@ -564,7 +565,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         const { centroids: pc, counts: pcnts } = await getCentroids(pid);
         const pOut: CentroidModel = {
           type: 'centroid_model',
-          updatedAt: Date.now(),
+          updatedAt,
           centroids: pc,
           counts: pcnts,
         };
@@ -612,10 +613,10 @@ app.get('/model-version', auth, async (_req: Request, res: Response) => {
   }
 });
 
-function resolveModelFile(
+async function resolveModelFile(
   profileId: string | undefined,
   res: Response,
-): string | undefined {
+): Promise<string | undefined> {
   let file: string;
   try {
     file = getTrainedModelPath(profileId);
@@ -623,8 +624,13 @@ function resolveModelFile(
     res.status(400).json({ error: 'Invalid profileId' });
     return;
   }
-  const resolvedFile = path.resolve(file);
-  if (!resolvedFile.startsWith(path.resolve(DATA_DIR) + path.sep)) {
+  const base = await fs
+    .realpath(DATA_DIR)
+    .catch(() => path.resolve(DATA_DIR));
+  const resolvedFile = await fs
+    .realpath(file)
+    .catch(() => path.resolve(file));
+  if (!resolvedFile.startsWith(base + path.sep)) {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }
@@ -634,7 +640,7 @@ function resolveModelFile(
 app.get('/latest-model', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-  const resolvedFile = resolveModelFile(profileId, res);
+  const resolvedFile = await resolveModelFile(profileId, res);
   if (!resolvedFile) return;
   try {
     const stat = await fs.stat(resolvedFile);
@@ -653,7 +659,7 @@ app.get('/latest-model', auth, async (req: Request, res: Response) => {
 app.get('/model-metadata', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-  const resolvedFile = resolveModelFile(profileId, res);
+  const resolvedFile = await resolveModelFile(profileId, res);
   if (!resolvedFile) return;
   try {
     const pkgPath = path.join(__dirname, '..', 'package.json');
