@@ -7,6 +7,7 @@ jest.mock('react-native', () => {
     View: (props: any) => React.createElement('View', props, props.children),
     Text: (props: any) => React.createElement('Text', props, props.children),
     Button: (props: any) => React.createElement('Button', props, props.children),
+    Switch: (props: any) => React.createElement('Switch', props, props.children),
     SafeAreaView: (props: any) => React.createElement('SafeAreaView', props, props.children),
     StyleSheet: { create: (s: any) => s },
     Animated: {
@@ -22,9 +23,12 @@ jest.mock('react-native', () => {
 
 import RecognitionScreen from '../../src/screens/RecognitionScreen';
 
-jest.mock('../../src/components/MediaPipeGestureDetector', () => ({
-  MediaPipeGestureDetector: () => null,
-}));
+jest.mock('../../src/components/MediaPipeGestureDetector', () => {
+  const React = require('react');
+  return {
+    MediaPipeGestureDetector: (props: any) => React.createElement('MediaPipeGestureDetector', props, null),
+  };
+});
 jest.mock('../../src/components/BottomNav', () => () => null);
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false }),
@@ -33,6 +37,11 @@ jest.mock('../../src/components/CorrectionPanel', () => {
   const React = require('react');
   return (props: any) => React.createElement('CorrectionPanel', props, null);
 });
+jest.mock('../../src/components/DgsVideoPlayer', () => {
+  const React = require('react');
+  return (props: any) => React.createElement('DgsVideoPlayer', props, null);
+});
+jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Medium: 'Medium' } }));
 jest.mock('../../src/services', () => ({
   audioService: { speak: jest.fn(), playEncouragement: jest.fn(), playSuccessFeedback: jest.fn() },
   triggerSpeakAndShow: jest.fn(),
@@ -47,7 +56,7 @@ jest.mock('../../src/storage', () => ({
   logCorrection: jest.fn(),
 }));
 jest.mock('../../src/model', () => ({
-  gestureModel: { gestures: [] },
+  gestureModel: { gestures: [{ id: 'hello', label: 'Hello', dgsVideoUri: 'video.mp4' }] },
 }));
 jest.mock('../../src/services/HybridRecognizer', () => ({
   useHybridFrameProcessor: () => undefined,
@@ -91,5 +100,22 @@ describe('RecognitionScreen', () => {
     });
     const button = component.root.findByProps({ testID: 'btn-correction' });
     expect(button.props.accessibilityLabel).toBe('Open correction screen');
+  });
+
+  it('shows DGS video when toggle enabled and gesture recognized', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+    });
+    const toggle = component.root.findByProps({ accessibilityLabel: 'Toggle DGS video' });
+    act(() => {
+      toggle.props.onValueChange(true);
+    });
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      detector.props.onGestureDetected('hello', 0.9, []);
+    });
+    const vids = component.root.findAllByType('DgsVideoPlayer');
+    expect(vids.length).toBe(1);
   });
 });

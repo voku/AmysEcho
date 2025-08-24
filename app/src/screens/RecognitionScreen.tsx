@@ -6,7 +6,8 @@ import {
   SafeAreaView,
   Animated,
   Easing,
-  Button
+  Button,
+  Switch,
 } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
@@ -33,6 +34,7 @@ import { shouldPromptPractice } from '../services/healthScore';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
 import { RecognitionPath } from '../utils/recognitionState';
+import DgsVideoPlayer from '../components/DgsVideoPlayer';
 // ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
@@ -58,6 +60,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
   const [webviewKey, setWebviewKey] = useState(0);
   const [recognitionPath, setRecognitionPath] = useState<RecognitionPath>('local');
+  const [showDgsVideo, setShowDgsVideo] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -355,6 +358,24 @@ export default function RecognitionScreen({ navigation }: any) {
       marginBottom: SPACING.sm,
       color: '#fff',
     },
+    videoOverlay: {
+      position: 'absolute',
+      top: SPACING.md,
+      right: SPACING.md,
+      width: 160,
+      height: 160,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.md,
+    },
+    toggleLabel: {
+      marginRight: SPACING.sm,
+      color: COLORS.text,
+      fontSize: largeText ? 18 : 16,
+    },
   });
 
   return (
@@ -386,20 +407,29 @@ export default function RecognitionScreen({ navigation }: any) {
           </View>
         )}
 
-        {!error && !showCorrection && lastRecognizedGesture && (
-          <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}> 
-            <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}> 
-              {lastRecognizedGesture.label} 
-            </Animated.Text> 
-            <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
-            <Text style={styles.confidenceText}>via {recognitionPath}</Text>
-          </Animated.View>
-        )}
-      </View>
+      {!error && !showCorrection && lastRecognizedGesture && (
+        <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}> 
+          <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}> 
+            {lastRecognizedGesture.label}
+          </Animated.Text>
+          <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
+          <Text style={styles.confidenceText}>via {recognitionPath}</Text>
+        </Animated.View>
+      )}
 
-      {showCorrection && (
-        <CorrectionPanel
-          onSelect={handleSelectCorrection}
+      {showDgsVideo && lastRecognizedGesture?.dgsVideoUri && (
+        <View style={styles.videoOverlay}>
+          <DgsVideoPlayer
+            videoSource={{ uri: lastRecognizedGesture.dgsVideoUri }}
+            shouldPlay={true}
+          />
+        </View>
+      )}
+    </View>
+
+    {showCorrection && (
+      <CorrectionPanel
+        onSelect={handleSelectCorrection}
           onAddNew={() => {
             setShowCorrection(false);
             navigation.navigate('Teaching');
@@ -418,15 +448,24 @@ export default function RecognitionScreen({ navigation }: any) {
           accessibilityLabel="Open correction screen"
           onPress={() => navigation.navigate('Correction')}
         />
-        <Button
-          testID="btn-help-me-choose"
-          title="Help Me Choose"
-          accessibilityLabel="Open help me choose"
-          onPress={() => setShowCorrection(true)}
-        />
-      </View>
+      <Button
+        testID="btn-help-me-choose"
+        title="Help Me Choose"
+        accessibilityLabel="Open help me choose"
+        onPress={() => setShowCorrection(true)}
+      />
+    </View>
 
-      <BottomNav active="recognition" profileId={profile?.id || 'default'} />
-    </SafeAreaView>
-  );
+    <View style={styles.toggleRow}>
+      <Text style={styles.toggleLabel}>Show DGS Video</Text>
+      <Switch
+        value={showDgsVideo}
+        onValueChange={setShowDgsVideo}
+        accessibilityLabel="Toggle DGS video"
+      />
+    </View>
+
+    <BottomNav active="recognition" profileId={profile?.id || 'default'} />
+  </SafeAreaView>
+);
 }

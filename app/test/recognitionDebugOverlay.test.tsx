@@ -53,6 +53,7 @@ jest.mock('../src/utils/landmarkMapping', () => ({ mapToPreview: (p: any) => ({ 
 
 jest.mock('../src/components/BottomNav', () => () => React.createElement('BottomNav'));
 jest.mock('../src/components/SymbolVideoPlayer', () => () => React.createElement('SymbolVideoPlayer'));
+jest.mock('../src/components/DgsVideoPlayer', () => () => React.createElement('DgsVideoPlayer'));
 jest.mock('../src/components/CorrectionPanel', () => () => React.createElement('CorrectionPanel'));
 jest.mock('react-native-svg', () => ({
   __esModule: true,
