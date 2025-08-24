@@ -16,7 +16,7 @@ This document summarizes the repository in seven key areas with concrete file re
 ## 3. Training and Personalization
 - Sample collection UI in `app/src/screens/TrainingScreen.tsx`
 - Personalized models managed in `app/src/screens/AdminScreen.tsx`
-- Server training logic in `server/src/train.py` and `server/src/services/mlService.ts`
+- Server training logic in `server/src/train.py`
 
 ## 4. Dialog & OpenAI Integration
 - Client requests handled in `app/src/services/dialogEngine.ts`

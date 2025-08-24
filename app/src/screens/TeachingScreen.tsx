@@ -24,6 +24,8 @@ export default function TeachingScreen({ navigation }: any) {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [sampleCount, setSampleCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [progress, setProgress] = useState(0);
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
   const landmarksRef = useRef<number[][][]>([]);
@@ -130,9 +132,16 @@ export default function TeachingScreen({ navigation }: any) {
     setGestureLabel('');
     setSampleCount(0);
     try {
-      await syncTrainingData();
+      setSyncing(true);
+      setProgress(0);
+      await syncTrainingData({ onProgress: (p) => setProgress(p) });
+      Alert.alert('Training', 'Model update completed.');
     } catch (e) {
       logger.warn('Failed to sync training data', e);
+      Alert.alert('Training', 'Model update may have failed. Will retry later.');
+    } finally {
+      setSyncing(false);
+      setProgress(0);
     }
   };
 
@@ -235,6 +244,14 @@ export default function TeachingScreen({ navigation }: any) {
               accessibilityLabel="Training beenden"
             />
           )}
+        </View>
+      )}
+      {syncing && (
+        <View style={{ width: '100%', padding: SPACING.md }}>
+          <Text>Training model… {Math.round(progress)}%</Text>
+          <View style={{ height: 8, backgroundColor: COLORS.border, borderRadius: RADIUS, overflow: 'hidden', marginTop: 6 }}>
+            <View style={{ height: '100%', width: `${Math.max(0, Math.min(100, progress))}%`, backgroundColor: COLORS.success }} />
+          </View>
         </View>
       )}
       <Button

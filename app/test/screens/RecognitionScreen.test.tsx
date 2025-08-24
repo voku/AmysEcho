@@ -37,7 +37,7 @@ jest.mock('../../src/services', () => ({
   audioService: { speak: jest.fn(), playEncouragement: jest.fn(), playSuccessFeedback: jest.fn() },
   triggerSpeakAndShow: jest.fn(),
   correctionService: { logCorrection: jest.fn() },
-  dialogEngine: { getLLMSuggestions: jest.fn() },
+  dialogEngine: { getSuggestions: jest.fn() },
 }));
 jest.mock('../../src/telemetry/recorder', () => ({
   telemetry: { add: jest.fn() },

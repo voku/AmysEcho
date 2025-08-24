@@ -164,6 +164,31 @@ Upload labeled hand landmark samples and trigger model training.
 { "status": "queued", "jobId": "abc123" }
 ```
 
+Validation
+- Expects `samples` to be an array of objects with `gestureDefinitionId` (string) and `landmarkData` (array).
+- Responds with `400` if the payload is malformed.
+
+Example error response
+```json
+{ "error": "Invalid samples payload. Expecting an array of objects with gestureDefinitionId (string) and landmarkData (array)." }
+```
+
+Optional fields
+- `profileId` may be included per sample to support profile-aware training. Currently optional and ignored by validators.
+
+### POST /dialog
+Return LLM-powered word and phrase suggestions.
+
+Body
+```json
+{ "input": "hi", "context": ["play"], "language": "de", "age": 4 }
+```
+
+Response
+```json
+{ "nextWords": ["friend"], "caregiverPhrases": ["Good job!"] }
+```
+
 ### GET /model-version
 Fetch the current model version and path information.
 
@@ -174,6 +199,10 @@ Fetch the current model version and path information.
 
 ### GET /latest-model
 Download the latest trained gesture model file.
+
+Note: As of the centroid-based pipeline, this returns a JSON payload
+representing the centroid model `{ type: "centroid_model", centroids, counts, updatedAt }`.
+Clients may continue to treat this as an opaque file and verify via `/model-metadata`.
 
 ### POST /analytics
 Store high level analytics.

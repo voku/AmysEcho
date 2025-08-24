@@ -1,22 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CentroidMap } from './dgsModelClient';
+import { flattenHands, frameHasAnyLandmarks } from './handUtils';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
 type Frame = number[][][]; // hands -> 21x3
-
-function flattenHands(frame: Frame): number[][] {
-  const left = frame[0] || [];
-  const right = frame[1] || [];
-  const out: number[][] = [];
-  for (let i = 0; i < 21; i++) {
-    out.push(left[i] ? [...left[i]] : [0, 0, 0]);
-  }
-  for (let i = 0; i < 21; i++) {
-    out.push(right[i] ? [...right[i]] : [0, 0, 0]);
-  }
-  return out;
-}
 
 export async function buildLocalCentroids(): Promise<CentroidMap> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
@@ -30,8 +18,9 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
     const framesAny = sample.landmarkData as any;
     const frames: Frame[] = Array.isArray(framesAny) ? framesAny : [];
     for (const frame of frames) {
+      // Skip frames with no landmarks to avoid skewing centroids
+      if (!frameHasAnyLandmarks(frame)) continue;
       const flat = flattenHands(frame);
-      if (flat.length < 21) continue;
       if (!sums[label]) {
         sums[label] = { sum: flat.map(() => [0, 0, 0]), count: 0 };
       }
@@ -51,5 +40,20 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
     }
   }
   return centroids;
+}
+
+export async function getLocalCentroidSummary(): Promise<Record<string, number>> {
+  const raw = await AsyncStorage.getItem(TRAINING_KEY);
+  if (!raw) return {};
+  let data: Array<{ gestureDefinitionId: string; landmarkData: Frame[] | Frame[][][] }> = [];
+  try { data = JSON.parse(raw); } catch { return {}; }
+
+  const counts: Record<string, number> = {};
+  for (const sample of data) {
+    const label = sample.gestureDefinitionId;
+    if (!counts[label]) counts[label] = 0;
+    counts[label] += 1;
+  }
+  return counts;
 }
 

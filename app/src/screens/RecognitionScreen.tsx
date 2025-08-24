@@ -15,6 +15,7 @@ import CorrectionPanel from '../components/CorrectionPanel';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { audioService, triggerSpeakAndShow, correctionService, dialogEngine } from '../services';
+import * as Haptics from 'expo-haptics';
 import { telemetry } from '../telemetry/recorder';
 import { USE_EXPO_CAMERA } from '../constants';
 import { loadProfile, Profile, logCorrection } from '../storage';
@@ -23,12 +24,15 @@ import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap } from '../services/dgsModelClient';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
+import { flattenHands } from '../services/handUtils';
+import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
 import MaintenanceBanner from '../components/MaintenanceBanner';
 import { logInteractionEvent } from '../services/analytics';
 import { logHIPEvent } from '../services/hipEvents';
 import { shouldPromptPractice } from '../services/healthScore';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
+import { RecognitionPath } from '../utils/recognitionState';
 // ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
@@ -53,6 +57,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
   const [webviewKey, setWebviewKey] = useState(0);
+  const [recognitionPath, setRecognitionPath] = useState<RecognitionPath>('local');
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -71,7 +76,12 @@ export default function RecognitionScreen({ navigation }: any) {
   }, []);
 
   useEffect(() => {
-    buildLocalCentroids().then((c) => { centroidsRef.current = c; }).catch(() => {});
+    buildLocalCentroids()
+      .then((c) => {
+        logger.info(`Built ${Object.keys(c).length} local centroids`);
+        centroidsRef.current = c;
+      })
+      .catch((error) => { logger.warn('Failed to build local centroids:', error); });
   }, []);
 
   // Auto-fallback to Expo camera if WebView doesn't start camera within 5 seconds
@@ -120,19 +130,6 @@ export default function RecognitionScreen({ navigation }: any) {
     }).start();
   }, [fadeAnim, symbolScaleAnim]);
 
-  const flattenHands = (hands: number[][][]): number[][] => {
-    const left = hands[0] || [];
-    const right = hands[1] || [];
-    const out: number[][] = [];
-    for (let i = 0; i < 21; i++) {
-      out.push(left[i] ? [...left[i]] : [0, 0, 0]);
-    }
-    for (let i = 0; i < 21; i++) {
-      out.push(right[i] ? [...right[i]] : [0, 0, 0]);
-    }
-    return out;
-  };
-
   const handleGestureDetected = useCallback(async (
     gesture: string | null,
     confidence: number,
@@ -140,21 +137,24 @@ export default function RecognitionScreen({ navigation }: any) {
   ) => {
     let g = gesture;
     let c = confidence;
+    let path: RecognitionPath = 'local';
 
-    if (centroidsRef.current && (!g || c < 0.6)) {
+    if (centroidsRef.current && (!g || c < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD)) {
       const flat = flattenHands(landmarks);
       const res = classifyWithCentroids(flat, centroidsRef.current);
       if (res && res.confidence > c) {
         g = res.label;
         c = res.confidence;
+        path = 'centroid';
       }
     }
+    setRecognitionPath(path);
 
     // Helper to apply a classification to UI + logs
     const handleOutcome = async (
       finalGesture: string,
       finalConfidence: number,
-      processedBy: 'local' | 'cloud',
+      processedBy: RecognitionPath,
     ) => {
       // Smooth confidence and label
       const smoothed = confidenceFilterRef.current.filter(
@@ -182,10 +182,12 @@ export default function RecognitionScreen({ navigation }: any) {
         setStatus(entry.label);
         triggerSpeakAndShow(entry.label, smoothed, () => {});
         startFeedbackAnimation();
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         // Log success
         logInteractionEvent({
           gestureDefinitionId: entry.id,
+          gestureName: entry.label,
           wasSuccessful: true,
           confidenceScore: smoothed,
           timestamp: Date.now(),
@@ -193,7 +195,7 @@ export default function RecognitionScreen({ navigation }: any) {
         }).catch(() => {});
 
         try {
-          const adv = await dialogEngine.getLLMSuggestions({
+          const adv = await dialogEngine.getSuggestions({
             input: entry.label,
             context: dialogContext,
             language: 'de',
@@ -244,6 +246,7 @@ export default function RecognitionScreen({ navigation }: any) {
         const id = (gestureModel.gestures.find((g) => g.id === stableGesture)?.id) || stableGesture || 'unknown';
         logInteractionEvent({
           gestureDefinitionId: id,
+          gestureName: stableGesture,
           wasSuccessful: false,
           confidenceScore: smoothed,
           timestamp: Date.now(),
@@ -259,7 +262,7 @@ export default function RecognitionScreen({ navigation }: any) {
     };
 
     // On-device classification only: use provided or locally-classified gesture
-    await handleOutcome(g || 'unknown', c, 'local');
+    await handleOutcome(g || 'unknown', c, path);
   }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
@@ -384,11 +387,12 @@ export default function RecognitionScreen({ navigation }: any) {
         )}
 
         {!error && !showCorrection && lastRecognizedGesture && (
-          <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}>
-            <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>
-              {lastRecognizedGesture.label}
-            </Animated.Text>
+          <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}> 
+            <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}> 
+              {lastRecognizedGesture.label} 
+            </Animated.Text> 
             <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
+            <Text style={styles.confidenceText}>via {recognitionPath}</Text>
           </Animated.View>
         )}
       </View>

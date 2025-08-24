@@ -1,4 +1,3 @@
-import { processLandmarks } from '../../server/src/services/mlService';
 import { playAudio, playSystemSound } from '../../server/src/services/audioService';
 import { playVideo } from '../../server/src/services/videoService';
 import { getLLMSuggestions } from '../../server/src/services/dialogEngine';
@@ -8,9 +7,6 @@ import path from 'path';
 
 describe('Services', () => {
   it('should run all services without errors', async () => {
-    const result = await processLandmarks([[0,0]]);
-    expect(result.processedBy).toBe('local');
-
     const file = path.join(tmpdir(), 'dummy.mp3');
     await fs.writeFile(file, '');
     await playAudio(file);

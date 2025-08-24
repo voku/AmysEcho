@@ -16,7 +16,7 @@ async function startServer() {
   // Ensure a clean database so prior runs don't influence API tests
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'trained_model.tflite'), { force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data', 'trained_model.json'), { force: true }).catch(() => {});
 
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
@@ -55,21 +55,6 @@ async function stopServer() {
 before(startServer);
 after(stopServer);
 
-test('POST /classify returns label and confidence', async () => {
-  const res = await fetch(`http://localhost:${PORT}/classify`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer testtoken',
-    },
-    body: JSON.stringify({ landmarks: [0, 0, 0] }),
-  });
-  assert.strictEqual(res.status, 200);
-  const data = await res.json();
-  assert.ok('label' in data);
-  assert.ok('confidence' in data);
-});
-
 test('POST /train-model invalid payload', async () => {
   const res = await fetch(`http://localhost:${PORT}/train-model`, {
     method: 'POST',
@@ -78,6 +63,18 @@ test('POST /train-model invalid payload', async () => {
       Authorization: 'Bearer testtoken',
     },
     body: JSON.stringify({ samples: 'bad' }),
+  });
+  assert.strictEqual(res.status, 400);
+});
+
+test('POST /train-model invalid sample items', async () => {
+  const res = await fetch(`http://localhost:${PORT}/train-model`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer testtoken',
+    },
+    body: JSON.stringify({ samples: [{ gestureDefinitionId: 123, landmarkData: {} }] }),
   });
   assert.strictEqual(res.status, 400);
 });
@@ -122,8 +119,9 @@ test('GET /model-version returns version and path', async () => {
 });
 
 test('GET /latest-model serves model file when present', async () => {
-  const filePath = join(serverDir, 'trained_model.tflite');
-  await fs.writeFile(filePath, 'dummy model');
+  const filePath = join(serverDir, 'data', 'trained_model.json');
+  await fs.mkdir(join(serverDir, 'data'), { recursive: true });
+  await fs.writeFile(filePath, '{}');
   const res = await fetch(`http://localhost:${PORT}/latest-model`, {
     headers: { Authorization: 'Bearer testtoken' },
   });
@@ -154,3 +152,4 @@ test('POST /analytics then GET returns same data', async () => {
   assert.strictEqual(data.successRate7d, payload.successRate7d);
   assert.strictEqual(data.improvementTrend, payload.improvementTrend);
 });
+

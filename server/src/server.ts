@@ -1,10 +1,11 @@
 import express, { Request, Response } from 'express';
-import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { createHash } from 'crypto';
+import { getCentroids } from './services/dgsModelService';
+import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { TRAINED_MODEL_PATH } from './constants/modelPaths';
+import { TRAINED_MODEL_PATH, DATA_DIR } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
 import {
   setupDatabase,
@@ -17,7 +18,6 @@ import {
   deleteProfileData,
 } from './db';
 import auth from './middleware/auth';
-import { mlService } from './services/mlService';
 import {
   Correction,
   UsageStat,
@@ -26,7 +26,6 @@ import {
   SymbolRecord,
   NegativeSample,
 } from './types';
-import { classifyGesture, ClassificationResult } from './recognizer';
 import {
   saveAnalyticsToFile,
   loadAnalyticsFromFile,
@@ -41,9 +40,6 @@ import portalRouter from './portal';
 import caregiverPortalApiRouter from './caregiverPortalApi';
 
 import { appendCrashReports, CrashReport } from './services/crashService';
-import * as fsSync from 'fs';
-import { spawnSync } from 'child_process';
-import { getCentroids } from './services/dgsModelService';
 
 const app = express();
 // Increase JSON body size limit to accommodate base64 images from the app
@@ -105,71 +101,8 @@ const genId = () =>
 
 // Ensure the database file exists with default content and load it
 setupDatabase(DB_FILE_PATH)
-  .then(async (db) => {
+  .then((db) => {
     dbInstance = db;
-    try {
-      await mlService.loadModels();
-    } catch (err) {
-      console.error('ML model load failed:', err);
-    }
-    // Prewarm MediaPipe Tasks Vision bundle into cache to avoid first-hit latency
-    try {
-      const version = '0.10.9';
-      const cacheRoot = path.join(process.cwd(), '.cache', 'mediapipe', 'tasks-vision', version);
-      await fs.mkdir(cacheRoot, { recursive: true });
-      const localFile = path.join(cacheRoot, 'vision_bundle.js');
-      if (!fsSync.existsSync(localFile)) {
-        const upstream = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/vision_bundle.js`;
-        const r = await (globalThis as any).fetch(upstream);
-        if (r?.ok) {
-          const ab = await r.arrayBuffer();
-          await fs.writeFile(localFile, Buffer.from(ab));
-          console.log('[prewarm] Cached tasks-vision bundle');
-        }
-      }
-
-      const wasmDir = path.join(cacheRoot, 'wasm');
-      await fs.mkdir(wasmDir, { recursive: true });
-
-      // Parse vision bundle to discover all wasm filenames
-      let wasmFiles: string[] = [];
-      try {
-        const bundleContent = await fs.readFile(localFile, 'utf8');
-        const regex = /["']([^"']+\.wasm)["']/g;
-        const matches = bundleContent.matchAll(regex);
-        const unique = new Set<string>();
-        for (const m of matches) {
-          const fname = path.basename(m[1]);
-          if (fname) unique.add(fname);
-        }
-        wasmFiles = Array.from(unique);
-      } catch (parseErr) {
-        console.warn('[prewarm] Failed to parse bundle for wasm names', parseErr);
-      }
-
-      if (wasmFiles.length === 0) {
-        // Fallback to common filename if parsing failed
-        wasmFiles = ['tasks_vision_wasm_internal.wasm'];
-      }
-
-      for (const file of wasmFiles) {
-        const wasmFile = path.join(wasmDir, file);
-        if (fsSync.existsSync(wasmFile)) continue;
-        const upstreamWasm = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/wasm/${file}`;
-        try {
-          const r2 = await (globalThis as any).fetch(upstreamWasm);
-          if (r2?.ok) {
-            const ab2 = await r2.arrayBuffer();
-            await fs.writeFile(wasmFile, Buffer.from(ab2));
-            console.log('[prewarm] Cached tasks-vision wasm', file);
-          }
-        } catch (wasmErr) {
-          console.warn(`[prewarm] Failed to cache wasm ${file}`, wasmErr);
-        }
-      }
-    } catch (e) {
-      console.warn('[prewarm] tasks-vision bundle prewarm failed', e);
-    }
   })
   .catch((err) => {
     console.error('Database setup failed:', err);
@@ -378,117 +311,6 @@ app.post('/api/telemetry', auth, async (req: Request, res: Response) => {
     }
   });
 
-// New endpoint for server-side hand landmark detection
-app.post('/api/v1/detect-landmarks', auth, async (req: Request, res: Response) => {
-  const { image } = req.body; // Expects a base64 encoded image string
-  if (!image || typeof image !== 'string') {
-    return res.status(400).json({ error: 'Base64 image string is required.' });
-  }
-
-  try {
-    const { detectHandLandmarks } = await import('./services/handDetectionService');
-    const landmarks = await detectHandLandmarks(image);
-    res.json({ landmarks });
-  } catch (error: any) {
-    console.error('[hand-detection] Error:', error.message);
-    res.status(500).json({ error: 'Failed to detect hand landmarks.', details: error.message });
-  }
-});
-
-// Gesture recognition + landmarks
-app.post('/api/v1/recognize-gesture', auth, async (req: Request, res: Response) => {
-  const { image, profileId } = req.body;
-  if (!image || typeof image !== 'string') {
-    return res.status(400).json({ error: 'Base64 image string is required.' });
-  }
-  try {
-    const { recognizeGesture } = await import('./services/gestureRecognitionService');
-    const data = await recognizeGesture(image, typeof profileId === 'string' ? profileId : undefined);
-    res.json(data);
-  } catch (error: any) {
-    console.error('[gesture-recognition] Error:', error?.message || error);
-    res.status(500).json({ error: 'Failed to recognize gesture', details: String(error?.message || error) });
-  }
-});
-
-// Health: recognizer readiness (lightweight)
-app.get('/health/recognizer', (_req: Request, res: Response) => {
-  // Check if Tasks model is present in common locations
-  const candidates = [
-    process.env.GESTURE_TASK_PATH || '',
-    path.join(__dirname, 'models', 'gesture_recognizer.task'),
-    path.join(__dirname, '../../models', 'gesture_recognizer.task'),
-    path.join(process.cwd(), 'server', 'models', 'gesture_recognizer.task'),
-  ].filter(Boolean);
-  const tasksModelFound = candidates.some((p) => {
-    try { return fsSync.existsSync(p); } catch { return false; }
-  });
-  // Basic python/mediapipe availability check
-  let pythonOk = false;
-  try {
-    const out = spawnSync('python3', ['-c', 'import mediapipe,cv2; print(1)'], { timeout: 2000 });
-    pythonOk = out.status === 0;
-  } catch {}
-  res.json({ tasksModelFound, pythonOk });
-});
-
-// Serve gesture_recognizer.task from any known location
-app.get('/static/models/gesture_recognizer.task', (_req: Request, res: Response) => {
-  const candidates = [
-    process.env.GESTURE_TASK_PATH || '',
-    path.join(__dirname, 'models', 'gesture_recognizer.task'),
-    path.join(__dirname, '../../models', 'gesture_recognizer.task'),
-    path.join(process.cwd(), 'server', 'models', 'gesture_recognizer.task'),
-  ].filter(Boolean);
-  for (const p of candidates) {
-    try {
-      if (fsSync.existsSync(p)) {
-        return res.sendFile(p);
-      }
-    } catch {}
-  }
-  res.status(404).json({ error: 'gesture_recognizer.task not found' });
-});
-
-// Proxy/cache MediaPipe Tasks Vision assets locally to avoid direct CDN usage in the app
-app.get('/static/mediapipe/tasks-vision/:version/:file', async (req: Request, res: Response) => {
-  console.log(`[MediaPipe Proxy] Request for: ${req.params.version}/${req.params.file}`);
-  try {
-    const version = req.params.version;
-    const tail = req.params.file;
-    const cacheRoot = path.join(process.cwd(), '.cache', 'mediapipe', 'tasks-vision', version);
-    const localFile = path.join(cacheRoot, tail);
-    console.log(`[MediaPipe Proxy] Local file path: ${localFile}`);
-    await fs.mkdir(path.dirname(localFile), { recursive: true });
-    if (!fsSync.existsSync(localFile)) {
-      console.log(`[MediaPipe Proxy] File not in cache. Fetching from CDN...`);
-      const upstream = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}/${tail}`;
-      console.log(`[MediaPipe Proxy] Upstream URL: ${upstream}`);
-      const r = await (globalThis as any).fetch(upstream);
-      if (!r?.ok) {
-        const txt = r ? await r.text() : 'fetch failed';
-        console.error(`[MediaPipe Proxy] CDN fetch failed with status ${r?.status}`);
-        res.status(r?.status || 502).send(txt);
-        return;
-      }
-      const ab = await r.arrayBuffer();
-      const buf = Buffer.from(ab);
-      await fs.writeFile(localFile, buf);
-      console.log(`[MediaPipe Proxy] Cached file from CDN.`);
-    } else {
-      console.log(`[MediaPipe Proxy] File found in cache.`);
-    }
-    if (localFile.endsWith('.js')) res.type('application/javascript');
-    if (localFile.endsWith('.wasm')) res.type('application/wasm');
-    console.log(`[MediaPipe Proxy] Reading and sending file.`);
-    const fileContent = await fs.readFile(localFile);
-    res.send(fileContent);
-  } catch (e: any) {
-    console.error(`[MediaPipe Proxy] Error:`, e);
-    res.status(500).json({ error: 'proxy fetch failed', details: e?.message || String(e) });
-  }
-});
-
 // Serve per-profile centroids for offline/edge usage
 app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
   try {
@@ -500,28 +322,28 @@ app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
   }
 });
 
-// Add a labeled DGS sample (landmarks normalized [0..1])
-app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
+  // Add a labeled DGS sample (landmarks normalized [0..1])
+  app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
   try {
-    const { label, landmarks, profileId } = req.body || {};
-    if (
-      typeof label !== 'string' ||
-      !Array.isArray(landmarks) ||
-      landmarks.length === 0 ||
-      !Array.isArray(landmarks[0]) ||
-      landmarks[0].length < 21
-    ) {
+    const Body = z.object({
+      label: z.string().min(1),
+      profileId: z.string().optional(),
+      landmarks: z.array(z.array(z.array(z.number()))).min(1),
+    });
+    const parsed = Body.safeParse(req.body);
+    if (!parsed.success) {
       return res.status(400).json({ error: 'label and a sequence of landmarks (Nx21x3) required' });
     }
-    const dataPath = path.join(process.cwd(), 'server', 'data', 'dgs_samples.json');
-    await fs.mkdir(path.dirname(dataPath), { recursive: true });
+    const { label, profileId, landmarks } = parsed.data;
+    const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
+    await fs.mkdir(DATA_DIR, { recursive: true });
     let data: any = { samples: [] };
     try {
       const raw = await fs.readFile(dataPath, 'utf8');
       data = JSON.parse(raw);
       if (!Array.isArray(data.samples)) data.samples = [];
     } catch {}
-    data.samples.push({ id: genId(), label, profileId: typeof profileId === 'string' ? profileId : undefined, landmarks, ts: Date.now() });
+    data.samples.push({ id: genId(), label, profileId, landmarks, ts: Date.now() });
     await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
     res.json({ status: 'ok' });
   } catch (e) {
@@ -616,82 +438,64 @@ app.post('/dialog', auth, dialogLimiter, async (req: Request, res: Response) => 
 
 app.post('/train-model', auth, async (req: Request, res: Response) => {
   const samples = req.body?.samples;
-  if (!Array.isArray(samples)) {
-    res.status(400).json({ error: 'Invalid samples' });
+  // Basic payload validation to avoid cryptic training failures
+  if (
+    !Array.isArray(samples) ||
+    !samples.every(
+      (s: any) =>
+        s && typeof s.gestureDefinitionId === 'string' && Array.isArray(s.landmarkData),
+    )
+  ) {
+    res.status(400).json({
+      error:
+        'Invalid samples payload. Expecting an array of objects with gestureDefinitionId (string) and landmarkData (array).',
+    });
     return;
   }
-  const tmp = path.join(process.cwd(), 'tmp_landmarks.json');
-  await fs.writeFile(tmp, JSON.stringify(samples));
 
   const id = genId();
   const job: TrainingJob = { id, status: 'queued', progress: 0 };
   trainingJobs.set(id, job);
 
-  // Start background job
-  const baseDir = path.resolve(__dirname, '..', 'src');
-  const name = (process.env.TRAIN_SCRIPT || 'train.py').trim();
-  const resolved = path.resolve(baseDir, name);
-  const script = resolved.startsWith(baseDir + path.sep)
-    ? resolved
-    : path.join(baseDir, 'train.py');
-  const pythonBin = (process.env.PYTHON_BIN || 'python3').trim() || 'python3';
-  const child = spawn(pythonBin, [script, tmp], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  child.on('error', async (err) => {
-    job.status = 'failed';
-    job.error = `spawn failed: ${err.message}`;
-    job.endedAt = Date.now();
-    await fs.unlink(tmp).catch(() => {});
-  });
+  // Start background job: append samples and recompute centroid model
   job.status = 'running';
   job.startedAt = Date.now();
-
-  // Parse progress lines from stdout: lines like "PROGRESS:42"
-  child.stdout.setEncoding('utf8');
-  child.stdout.on('data', (chunk: string) => {
-    for (const line of chunk.split(/\r?\n/)) {
-      const m = /^PROGRESS:(\d{1,3})$/.exec(line.trim());
-      if (m) {
-        job.progress = Math.max(0, Math.min(100, parseInt(m[1], 10)));
-      }
-    }
-  });
-  child.stderr.setEncoding('utf8');
-  child.stderr.on('data', (chunk: string) => {
-    // Keep last error line for diagnostics
-    job.error = chunk.toString();
-  });
-  child.on('exit', async (code) => {
-    job.endedAt = Date.now();
-    if (code === 0) {
-      job.status = 'completed';
-      job.progress = 100;
-      // Ensure the trained model is present where the API serves it from
-      const outPath = TRAINED_MODEL_PATH;
+  setImmediate(async () => {
+    try {
+      job.progress = 10;
+      const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
+      await fs.mkdir(DATA_DIR, { recursive: true });
+      let data: any = { samples: [] };
       try {
-        await fs.access(outPath);
-      } catch {
-        // If the script saved elsewhere, try to move from CWD
-        const cwdOut = path.join(process.cwd(), 'trained_model.tflite');
-        try {
-          await fs.access(cwdOut);
-          await fs.rename(cwdOut, outPath).catch(async () => {
-            // If rename across devices fails, copy instead
-            const data = await fs.readFile(cwdOut);
-            await fs.writeFile(outPath, data);
-            await fs.unlink(cwdOut).catch(() => {});
-          });
-        } catch (e) {
-          console.warn('Trained model file not found after training:', e);
-        }
-      }
-    } else {
+        const raw = await fs.readFile(dataPath, 'utf8');
+        data = JSON.parse(raw);
+        if (!Array.isArray(data.samples)) data.samples = [];
+      } catch {}
+      const toAdd = samples.map((s: any) => ({
+        id: genId(),
+        label: s.gestureDefinitionId,
+        profileId: typeof s.profileId === 'string' ? s.profileId : undefined,
+        landmarks: s.landmarkData,
+        ts: Date.now(),
+      }));
+      data.samples.push(...toAdd);
+      await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
+
+      job.progress = 60;
+      // Compute centroids (global) and publish as the trained model
+      const { centroids, counts } = await getCentroids();
+      const out = { type: 'centroid_model', updatedAt: Date.now(), centroids, counts } as any;
+      await fs.mkdir(path.dirname(TRAINED_MODEL_PATH), { recursive: true });
+      await fs.writeFile(TRAINED_MODEL_PATH, JSON.stringify(out));
+
+      job.progress = 100;
+      job.status = 'completed';
+      job.endedAt = Date.now();
+    } catch (e: any) {
       job.status = 'failed';
-      job.error = job.error || `exit ${code}`;
+      job.error = e?.message || String(e);
+      job.endedAt = Date.now();
     }
-    // Cleanup tmp file
-    await fs.unlink(tmp).catch(() => {});
   });
 
   res.status(202).json({ status: 'queued', jobId: id });
@@ -780,45 +584,6 @@ app.get('/analytics', auth, async (_req: Request, res: Response) => {
     return;
   }
   res.json(data);
-});
-
-// New /classify endpoint
-app.post('/classify', auth, async (req: Request, res: Response) => {
-  const { landmarks } = req.body;
-  if (!landmarks) {
-    return res.status(400).json({ error: 'Landmarks are required' });
-  }
-  try {
-    let result: ClassificationResult | null = null;
-    if (mlService.isServiceReady()) {
-      try {
-        result = await mlService.classifyGesture(landmarks);
-      } catch (err) {
-        console.error('Local model failed:', err);
-      }
-    }
-    if (!result) {
-      result = await classifyGesture(landmarks);
-    }
-    res.json(result);
-  } catch (error) {
-    console.error('Classification failed:', error);
-    res.status(500).json({ error: 'Classification failed' });
-  }
-});
-
-app.post('/api/classify-landmarks', auth, async (req: Request, res: Response) => {
-  const { landmarks } = req.body;
-  if (!landmarks) {
-    return res.status(400).json({ error: 'Landmarks are required' });
-  }
-  try {
-    const result = await classifyGesture(landmarks);
-    res.json(result);
-  } catch (error) {
-    console.error('Classification failed:', error);
-    res.status(500).json({ error: 'Classification failed' });
-  }
 });
 
 const port = process.env.PORT || 5000;
