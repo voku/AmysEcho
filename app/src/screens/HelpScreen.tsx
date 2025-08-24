@@ -5,24 +5,23 @@ import { COLORS, SPACING } from '../constants/ui';
 export default function HelpScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>How to Help Amy</Text>
+      <Text style={styles.title}>Wie du Amy helfen kannst</Text>
       <Text style={styles.text}>
-        If Amy is struggling to be understood, here are some ways you can help:
+        Wenn Amy Schwierigkeiten hat, verstanden zu werden, kannst du Folgendes tun:
       </Text>
       <Text style={styles.text}>
-        • Encourage her to try the gesture again, perhaps more clearly.
+        • Ermutige sie, die Geste erneut und vielleicht deutlicher zu zeigen.
       </Text>
       <Text style={styles.text}>
-        • If the app shows a correction panel, select the correct symbol.
+        • Wenn die App ein Korrekturfenster zeigt, wähle das richtige Symbol aus.
       </Text>
       <Text style={styles.text}>
-        • If the app is consistently misunderstanding, consider reviewing the
-        "Training" section to add new gestures or refine existing ones.
+        • Wenn die App wiederholt falsch erkennt, sieh dir den Bereich "Training" an, um neue Gesten hinzuzufügen oder bestehende zu verfeinern.
       </Text>
       <Text style={styles.text}>
-        • Ensure Amy is in a well-lit area and her hands are clearly visible to the camera.
+        • Achte darauf, dass Amy in einem gut beleuchteten Bereich ist und ihre Hände für die Kamera klar sichtbar sind.
       </Text>
-      <Button title="Go Back" onPress={() => navigation.goBack()} />
+      <Button title="Zurück" onPress={() => navigation.goBack()} />
     </View>
   );
 }

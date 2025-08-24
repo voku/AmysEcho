@@ -49,7 +49,7 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
           player={player}
           style={styles.video}
           contentFit={'contain'}
-          accessibilityLabel="DGS Video"
+          accessibilityLabel="DGS-Video"
         />
       ) : (
         <Text

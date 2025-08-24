@@ -21,23 +21,23 @@ export default function ProfileSelectScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>What do you want to do?</Text>
+      <Text style={styles.title}>Was möchtest du tun?</Text>
       <View style={styles.row}>
         <Button
-          title="Listen"
+          title="Zuhören"
           onPress={() => profile && navigation.navigate('Recognition', { profileId: profile.id })}
           accessibilityLabel="Zum Erkennungsmodus"
           disabled={!profile}
         />
         <Button
-          title="Learn"
+          title="Lernen"
           onPress={() => navigation.navigate('Training', { gestureLabel: undefined })}
           accessibilityLabel="Zum Lernmodus"
         />
       </View>
       <View style={styles.row}>
         <Button
-          title="Parent"
+          title="Eltern"
           onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
           accessibilityLabel="Elternprofil"
         />
@@ -47,7 +47,7 @@ export default function ProfileSelectScreen({ navigation }: any) {
           accessibilityLabel="Adminbereich"
         />
         <Button
-          title="Manage Profiles"
+          title="Profile verwalten"
           onPress={() => navigation.navigate('ProfileManager')}
           accessibilityLabel="Profile verwalten"
         />

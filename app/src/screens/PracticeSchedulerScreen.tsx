@@ -13,7 +13,7 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
   const [minute, setMinute] = useState('0');
   const [days, setDays] = useState<number[]>([]);
 
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayLabels = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
   const load = async () => {
     setSchedules(await listSchedules());
@@ -44,9 +44,9 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Practice Scheduler</Text>
+      <Text style={styles.title}>Übungsplaner</Text>
       <View style={styles.row}>
-        <Text style={styles.label}>Gesture</Text>
+        <Text style={styles.label}>Geste</Text>
         <FlatList
           data={gestureModel.gestures}
           horizontal
@@ -58,21 +58,21 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
         />
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>Time (24h)</Text>
-        <TextInput style={styles.input} keyboardType="number-pad" value={hour} onChangeText={setHour} accessibilityLabel="Hour" />
+        <Text style={styles.label}>Zeit (24h)</Text>
+        <TextInput style={styles.input} keyboardType="number-pad" value={hour} onChangeText={setHour} accessibilityLabel="Stunde" />
         <Text style={styles.label}>:</Text>
         <TextInput style={styles.input} keyboardType="number-pad" value={minute} onChangeText={setMinute} accessibilityLabel="Minute" />
-        <Button title="Add" onPress={async () => {
+        <Button title="Hinzufügen" onPress={async () => {
           const h = Math.max(0, Math.min(23, parseInt(hour || '0', 10)));
           const m = Math.max(0, Math.min(59, parseInt(minute || '0', 10)));
           await addSchedule({ gestureId, hour: h, minute: m, daysOfWeek: days, enabled: true } as any);
           setDays([]);
           await load();
-        }} accessibilityLabel="Add schedule" />
+        }} accessibilityLabel="Plan hinzufügen" />
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Days</Text>
+        <Text style={styles.label}>Tage</Text>
         <FlatList
           data={dayLabels}
           horizontal
@@ -104,18 +104,18 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
               {item.gestureId} @ {String(item.hour).padStart(2, '0')}:{String(item.minute).padStart(2, '0')} (
               {item.daysOfWeek && item.daysOfWeek.length
                 ? item.daysOfWeek.map((d) => dayLabels[d]).join(',')
-                : 'daily'})
+                : 'täglich'})
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Switch value={item.enabled} onValueChange={async (v) => { await setScheduleEnabled(item.id, v); await load(); }} />
-              <Button title="Delete" onPress={async () => { await removeSchedule(item.id); await load(); }} accessibilityLabel="Delete schedule" />
+              <Button title="Löschen" onPress={async () => { await removeSchedule(item.id); await load(); }} accessibilityLabel="Plan löschen" />
             </View>
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.label}>No schedules</Text>}
+        ListEmptyComponent={<Text style={styles.label}>Keine Pläne</Text>}
       />
 
-      <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
     </View>
   );
 }

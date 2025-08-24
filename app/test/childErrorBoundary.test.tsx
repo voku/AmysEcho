@@ -44,7 +44,7 @@ describe('ChildErrorBoundary', () => {
       );
     });
     const text = (component as any).root.findByProps({ testID: 'error-text' });
-    expect(String(text.props.children)).toContain("let's try again");
+    expect(String(text.props.children)).toContain('noch einmal versuchen');
     expect(enqueueCrashReport).toHaveBeenCalled();
     (component as renderer.ReactTestRenderer).unmount();
   });

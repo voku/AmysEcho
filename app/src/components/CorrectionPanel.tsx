@@ -100,7 +100,7 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
     >
       <View style={styles.modal}>
         <View style={styles.container}>
-          <Text style={styles.title}>What did Amy sign?</Text>
+          <Text style={styles.title}>Welche Gebärde hat Amy gezeigt?</Text>
 
           <View style={styles.optionsGrid}>
             {suggestions.map((s) => (
@@ -109,7 +109,7 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
                 style={({ pressed }) => [styles.optionButton, pressed && styles.optionButtonPressed]}
                 onPress={() => onSelect(s.id)}
                 accessibilityRole="button"
-                accessibilityLabel={`Select ${s.label}`}
+                accessibilityLabel={`Wähle ${s.label}`}
               >
                 <Text style={styles.optionLabel}>{s.label}</Text>
               </Pressable>
@@ -121,18 +121,18 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
               style={({ pressed }) => [styles.actionButton, styles.actionButtonSecondary, pressed && styles.optionButtonPressed]}
               onPress={onCancel}
               accessibilityRole="button"
-              accessibilityLabel="Cancel correction"
+              accessibilityLabel="Korrektur abbrechen"
             >
-              <Text style={styles.actionButtonText}>Cancel</Text>
+              <Text style={styles.actionButtonText}>Abbrechen</Text>
             </Pressable>
 
             <Pressable
               style={({ pressed }) => [styles.actionButton, pressed && styles.optionButtonPressed]}
               onPress={onAddNew}
               accessibilityRole="button"
-              accessibilityLabel="Add new gesture"
+              accessibilityLabel="Neue Geste hinzufügen"
             >
-              <Text style={styles.actionButtonText}>Add New</Text>
+              <Text style={styles.actionButtonText}>Neu hinzufügen</Text>
             </Pressable>
           </View>
         </View>

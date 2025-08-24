@@ -28,17 +28,17 @@ export default function ParentScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Parent Screen</Text>
+      <Text style={styles.title}>Elternbereich</Text>
       <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Camera Active</Text>
+        <Text style={styles.toggleLabel}>Kamera aktiv</Text>
         <Switch
           value={isCameraActive}
           onValueChange={(value) => setIsCameraActive(value)}
-          accessibilityLabel="Toggle camera"
+          accessibilityLabel="Kamera umschalten"
         />
       </View>
       <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Show DGS Video</Text>
+        <Text style={styles.toggleLabel}>DGS-Video anzeigen</Text>
         <Switch
           value={useDgs}
           onValueChange={setUseDgs}
@@ -46,56 +46,56 @@ export default function ParentScreen({ navigation }: any) {
         />
       </View>
       <Button
-        title="Profile Manager"
+        title="Profilverwaltung"
         onPress={() => navigation.navigate('ProfileManager')}
         accessibilityLabel="Profilverwaltung"
       />
       <Button
-        title="Parental Gate"
+        title="Zugangsprüfung"
         onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
         accessibilityLabel="Zugangsprüfung"
       />
       <Button
-        title="Admin"
+        title="Verwaltung"
         onPress={() => navigation.navigate('Admin')}
         accessibilityLabel="Verwaltung"
       />
       <Button
-        title="Analytics"
+        title="Analysen"
         onPress={() => navigation.navigate('Dashboard')}
-        accessibilityLabel="View analytics"
+        accessibilityLabel="Analysen ansehen"
       />
       <Button
-        title="Practice Scheduler"
+        title="Übungsplaner"
         onPress={() => navigation.navigate('PracticeScheduler')}
-        accessibilityLabel="Practice Scheduler"
+        accessibilityLabel="Übungsplaner"
       />
       <Button
-        title="Progress"
+        title="Fortschritt"
         onPress={() => navigation.navigate('Progress')}
-        accessibilityLabel="View progress"
+        accessibilityLabel="Fortschritt ansehen"
       />
       <Button
-        title="Help"
+        title="Hilfe"
         onPress={() => navigation.navigate('Help')}
-        accessibilityLabel="Get help"
+        accessibilityLabel="Hilfe erhalten"
       />
       <Button
-        title="Simulate Low Confidence"
+        title="Geringe Sicherheit simulieren"
         onPress={() => navigation.navigate('Recognition', { simulateLowConfidence: true })}
-        accessibilityLabel="Simulate low confidence"
+        accessibilityLabel="Geringe Sicherheit simulieren"
       />
       <Button
-        title="Menu"
+        title="Menü"
         onPress={() => navigation.navigate('Parent')}
         accessibilityLabel="Menü öffnen"
       />
       <Button
-        title="Recognition"
+        title="Erkennen"
         onPress={() => navigation.navigate('Recognition')}
         accessibilityLabel="Zum Erkennungsmodus"
       />
-      <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
     </View>
   );
 }

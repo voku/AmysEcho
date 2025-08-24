@@ -69,16 +69,16 @@ describe('BottomNav', () => {
     expect(pressables).toHaveLength(3);
     const expected = [
       {
-        label: 'Listen',
-        hint: 'Start gesture recognition',
+        label: 'Zuhören',
+        hint: 'Gestenerkennung starten',
       },
       {
-        label: 'Learn',
-        hint: 'Record or practice gestures',
+        label: 'Lernen',
+        hint: 'Gesten aufnehmen oder üben',
       },
       {
-        label: 'Menu',
-        hint: 'Open profile and settings menu',
+        label: 'Menü',
+        hint: 'Profil- und Einstellungsmenü öffnen',
       },
     ];
     pressables.forEach((p, idx) => {

@@ -40,7 +40,7 @@ import DgsVideoPlayer from '../components/DgsVideoPlayer';
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [status, setStatus] = useState("I'm listening...");
+  const [status, setStatus] = useState('Ich höre zu…');
   const [detectedGesture, setDetectedGesture] = useState<string>('listening...');
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
@@ -228,7 +228,7 @@ export default function RecognitionScreen({ navigation }: any) {
           }
         } catch {}
       } else {
-        setStatus("I'm not sure. Please try again.");
+        setStatus('Ich bin mir nicht sicher. Bitte versuche es erneut.');
         setPendingGesture(stableGesture);
         // Only open correction after several consecutive uncertain frames
         const now = Date.now();
@@ -284,13 +284,13 @@ export default function RecognitionScreen({ navigation }: any) {
     }
     setShowCorrection(false);
     setPendingGesture(null);
-    setStatus("Thank you for teaching me!");
+    setStatus('Danke, dass du es mir beigebracht hast!');
   };
 
   const handleCancelCorrection = () => {
     setShowCorrection(false);
     setPendingGesture(null);
-    setStatus("I'm listening...");
+    setStatus('Ich höre zu…');
   };
 
   const styles = StyleSheet.create({
@@ -387,7 +387,7 @@ export default function RecognitionScreen({ navigation }: any) {
           setFacingMode(m);
           setWebviewKey((k) => k + 1);
         }}
-        accessibilityLabel="Switch camera"
+        accessibilityLabel="Kamera wechseln"
       />
       <View style={styles.cameraContainer}>
         {
@@ -444,14 +444,14 @@ export default function RecognitionScreen({ navigation }: any) {
       <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.md }}>
         <Button
           testID="btn-correction"
-          title="Correction"
-          accessibilityLabel="Open correction screen"
+          title="Korrektur"
+          accessibilityLabel="Korrekturseite öffnen"
           onPress={() => navigation.navigate('Correction')}
         />
       <Button
         testID="btn-help-me-choose"
-        title="Help Me Choose"
-        accessibilityLabel="Open help me choose"
+        title="Hilf mir wählen"
+        accessibilityLabel="Hilf mir wählen öffnen"
         onPress={() => setShowCorrection(true)}
       />
     </View>
@@ -461,7 +461,7 @@ export default function RecognitionScreen({ navigation }: any) {
       <Switch
         value={showDgsVideo}
         onValueChange={setShowDgsVideo}
-        accessibilityLabel="Toggle DGS video"
+        accessibilityLabel="DGS-Video umschalten"
       />
     </View>
 

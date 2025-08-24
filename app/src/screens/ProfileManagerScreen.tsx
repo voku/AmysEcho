@@ -31,12 +31,12 @@ export default function ProfileManagerScreen({ navigation }: any) {
 
   const handleDelete = async (id: string) => {
     Alert.alert(
-      'Delete Profile',
-      'Are you sure you want to delete this profile? This action cannot be undone.',
+      'Profil löschen',
+      'Möchtest du dieses Profil wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Abbrechen', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Löschen',
           onPress: async () => {
             await database.write(async () => {
               const profileToDelete = await database.get<DBProfile>('profiles').find(id);
@@ -58,7 +58,7 @@ export default function ProfileManagerScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Profiles</Text>
+      <Text style={styles.title}>Profile</Text>
       <FlatList
         data={profiles}
         keyExtractor={(item) => item.id}
@@ -66,12 +66,12 @@ export default function ProfileManagerScreen({ navigation }: any) {
           <View style={styles.row}>
             <Text style={styles.name}>{item.name}</Text>
             <Button
-              title="Select"
+              title="Auswählen"
               onPress={() => handleSelect(item.id)}
               accessibilityLabel={`Profil ${item.name} auswählen`}
             />
             <Button
-              title="Delete"
+              title="Löschen"
               onPress={() => handleDelete(item.id)}
               accessibilityLabel={`Profil ${item.name} löschen`}
             />
@@ -79,7 +79,7 @@ export default function ProfileManagerScreen({ navigation }: any) {
         )}
       />
       <Button
-        title="New Profile"
+        title="Neues Profil"
         onPress={() => navigation.navigate('Onboarding')}
         accessibilityLabel="Neues Profil anlegen"
       />

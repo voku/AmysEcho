@@ -39,13 +39,13 @@ export default function GestureTutorialScreen({ navigation }: any) {
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>How to use gestures</Text>
-        <Text style={styles.text}>1. Make sure your hand is visible to the camera.</Text>
-        <Text style={styles.text}>2. Hold your hand steady while making the sign.</Text>
-        <Text style={styles.text}>3. Wait for the sound to confirm recognition.</Text>
+        <Text style={styles.title}>Wie man Gesten verwendet</Text>
+        <Text style={styles.text}>1. Stelle sicher, dass deine Hand für die Kamera sichtbar ist.</Text>
+        <Text style={styles.text}>2. Halte deine Hand ruhig, während du die Gebärde machst.</Text>
+        <Text style={styles.text}>3. Warte auf den Ton, der die Erkennung bestätigt.</Text>
         <View style={styles.button}>
           <Button
-            title="Start"
+            title="Starten"
             onPress={() => navigation.replace('ProfileSelect')}
             accessibilityLabel="Tutorial beenden"
             color={COLORS.primaryAccent}

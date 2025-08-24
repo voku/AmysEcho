@@ -41,10 +41,10 @@ export default function ParentalGateScreen({ route, navigation }: any) {
         keyboardType="number-pad"
         value={answer}
         onChangeText={setAnswer}
-        accessibilityLabel="Parental Gate Answer"
+        accessibilityLabel="Antwort auf Elternprüfung"
       />
       <Button title="OK" onPress={handleCheck} accessibilityLabel="Antwort bestätigen" />
-      <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
     </View>
   );
 }

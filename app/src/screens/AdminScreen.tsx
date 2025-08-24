@@ -71,7 +71,7 @@ export default function AdminScreen({ navigation }: any) {
       setCentroidSummary(summary);
     } catch (e) {
       logger.warn('Failed to refresh local centroid summary', e);
-      Alert.alert('Centroid summary failed');
+      Alert.alert('Centroid-Zusammenfassung fehlgeschlagen');
     } finally {
       setLoadingSummary(false);
     }
@@ -161,10 +161,10 @@ export default function AdminScreen({ navigation }: any) {
         { headers: { Authorization: `Bearer ${token || ''}` } },
       );
       await saveCustomModelUri(res.uri);
-      Alert.alert('Model downloaded');
+      Alert.alert('Modell heruntergeladen');
     } catch (e) {
       logger.error('Model download failed', e);
-      Alert.alert('Download failed', (e as Error).message || 'Unknown error');
+      Alert.alert('Download fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');
     }
   };
 
@@ -174,14 +174,14 @@ export default function AdminScreen({ navigation }: any) {
         await audioService.startRecording();
         setIsRecording(true);
       } catch {
-        Alert.alert('Recording failed');
+        Alert.alert('Aufnahme fehlgeschlagen');
       }
     } else {
       try {
         const uri = await audioService.stopRecording();
         if (uri) setAudioUri(uri);
       } catch {
-        Alert.alert('Stop failed');
+        Alert.alert('Stopp fehlgeschlagen');
       }
       setIsRecording(false);
     }
@@ -199,10 +199,10 @@ export default function AdminScreen({ navigation }: any) {
         SYMBOL_EXPORT_PATH,
         JSON.stringify(data, null, 2),
       );
-      Alert.alert('Export complete', `Saved to ${SYMBOL_EXPORT_PATH}`);
+      Alert.alert('Export abgeschlossen', `In ${SYMBOL_EXPORT_PATH} gespeichert`);
     } catch (e) {
       logger.error('export failed', e);
-      Alert.alert('Export failed', (e as Error).message || 'Unknown error');
+      Alert.alert('Export fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');
     }
   };
 
@@ -239,10 +239,10 @@ export default function AdminScreen({ navigation }: any) {
           }
         }
       });
-      Alert.alert('Import complete');
+      Alert.alert('Import abgeschlossen');
     } catch (e) {
       logger.error('import failed', e);
-      Alert.alert('Import failed', (e as Error).message || 'Unknown error');
+      Alert.alert('Import fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');
     }
   };
 
@@ -250,12 +250,12 @@ export default function AdminScreen({ navigation }: any) {
     try {
       const path = await backupService.backupProtectedGestures();
       if (path) {
-        Alert.alert('Backup complete', `Saved to ${path}`);
+        Alert.alert('Sicherung abgeschlossen', `In ${path} gespeichert`);
       } else {
-        Alert.alert('No data to backup');
+        Alert.alert('Keine Daten zum Sichern');
       }
     } catch (e) {
-      Alert.alert('Backup failed', (e as Error).message || 'Unknown error');
+      Alert.alert('Sicherung fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');
     }
   };
 
@@ -263,12 +263,12 @@ export default function AdminScreen({ navigation }: any) {
     try {
       const path = await backupService.exportProtectedGestures();
       if (path) {
-        Alert.alert('Export complete', `Saved to ${path}`);
+        Alert.alert('Export abgeschlossen', `In ${path} gespeichert`);
       } else {
-        Alert.alert('No data to export');
+        Alert.alert('Keine Daten zum Exportieren');
       }
     } catch (e) {
-      Alert.alert('Export failed', (e as Error).message || 'Unknown error');
+      Alert.alert('Export fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');
     }
   };
 
@@ -276,12 +276,12 @@ export default function AdminScreen({ navigation }: any) {
     try {
       const ok = await backupService.restoreProtectedGestures();
       if (ok) {
-        Alert.alert('Restore complete');
+        Alert.alert('Wiederherstellung abgeschlossen');
       } else {
-        Alert.alert('No backup found');
+        Alert.alert('Keine Sicherung gefunden');
       }
     } catch (e) {
-      Alert.alert('Restore failed', (e as Error).message || 'Unknown error');
+      Alert.alert('Wiederherstellung fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');
     }
   };
 
@@ -289,19 +289,19 @@ export default function AdminScreen({ navigation }: any) {
     try {
       const profileId = await loadActiveProfileId();
       if (!profileId) {
-        Alert.alert('No active profile');
+        Alert.alert('Kein aktives Profil');
         return;
       }
       const data = await gdprService.exportProfile(profileId);
       if (!data) {
-        Alert.alert('Export failed');
+        Alert.alert('Export fehlgeschlagen');
         return;
       }
       const path = `${FileSystem.documentDirectory || ''}profile-export.json`;
       await FileSystem.writeAsStringAsync(path, JSON.stringify(data, null, 2));
-      Alert.alert('Profile export complete', `Saved to ${path}`);
+      Alert.alert('Profilexport abgeschlossen', `In ${path} gespeichert`);
     } catch (e) {
-      Alert.alert('Export failed', (e as Error).message || 'Unknown error');
+      Alert.alert('Export fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');
     }
   };
 
@@ -309,17 +309,17 @@ export default function AdminScreen({ navigation }: any) {
     try {
       const profileId = await loadActiveProfileId();
       if (!profileId) {
-        Alert.alert('No active profile');
+        Alert.alert('Kein aktives Profil');
         return;
       }
       const ok = await gdprService.deleteProfile(profileId);
       if (ok) {
-        Alert.alert('Profile deleted');
+        Alert.alert('Profil gelöscht');
       } else {
-        Alert.alert('Delete failed');
+        Alert.alert('Löschen fehlgeschlagen');
       }
     } catch (e) {
-      Alert.alert('Delete failed', (e as Error).message || 'Unknown error');
+      Alert.alert('Löschen fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');
     }
   };
 
@@ -348,7 +348,7 @@ export default function AdminScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Admin Panel</Text>
+      <Text style={styles.title}>Adminbereich</Text>
       <FlatList
         data={symbols}
         keyExtractor={(item) => item.id}
@@ -370,40 +370,40 @@ export default function AdminScreen({ navigation }: any) {
       />
       <TextInput
         style={styles.apiInput}
-        placeholder="OpenAI API Key"
+        placeholder="OpenAI API-Schlüssel"
         value={apiKey}
         onChangeText={setApiKey}
-        accessibilityLabel="OpenAI API Key"
+        accessibilityLabel="OpenAI API-Schlüssel"
       />
       <Button
-        title="Save API Key"
+        title="API-Schlüssel speichern"
         onPress={handleSaveApiKey}
         accessibilityLabel="OpenAI API-Schlüssel speichern"
       />
       <TextInput
         style={styles.apiInput}
-        placeholder="Backend API Token"
+        placeholder="Backend-API-Token"
         value={backendToken}
         onChangeText={setBackendToken}
-        accessibilityLabel="Backend API Token"
+        accessibilityLabel="Backend-API-Token"
       />
       <Button
-        title="Save Backend Token"
+        title="Backend-Token speichern"
         onPress={handleSaveBackendToken}
         accessibilityLabel="Backend-Token speichern"
       />
       <Button
-        title="Download Latest Model"
+        title="Neuestes Modell herunterladen"
         onPress={handleDownloadModel}
         accessibilityLabel="Neueste Modellversion herunterladen"
       />
       <Button
-        title="Export Symbols"
+        title="Symbole exportieren"
         onPress={handleExportSymbols}
         accessibilityLabel="Symbole exportieren"
       />
       <Button
-        title="Import Symbols"
+        title="Symbole importieren"
         onPress={handleImportSymbols}
         accessibilityLabel="Symbole importieren"
       />
@@ -423,23 +423,23 @@ export default function AdminScreen({ navigation }: any) {
         accessibilityLabel="Gesten wiederherstellen"
       />
       <Button
-        title="Export Profile"
+        title="Profil exportieren"
         onPress={handleExportProfile}
         accessibilityLabel="Profil exportieren"
       />
       <Button
-        title="Delete Profile"
+        title="Profil löschen"
         onPress={handleDeleteProfile}
         accessibilityLabel="Profil löschen"
       />
-      <Button title="Add Symbol" onPress={openAdd} accessibilityLabel="Symbol hinzufügen" />
+      <Button title="Symbol hinzufügen" onPress={openAdd} accessibilityLabel="Symbol hinzufügen" />
       <Button
         title="Training"
         onPress={() => navigation.navigate('Training')}
         accessibilityLabel="Trainingsmodus öffnen"
       />
       <Button
-        title="Correction"
+        title="Korrektur"
         onPress={() => navigation.navigate('Correction')}
         accessibilityLabel="Korrekturmodus öffnen"
       />
@@ -449,21 +449,21 @@ export default function AdminScreen({ navigation }: any) {
         accessibilityLabel="Analytics-Dashboard öffnen"
       />
       <Button
-        title="Practice Schedules"
+        title="Übungspläne"
         onPress={() => navigation.navigate('PracticeSchedule')}
-        accessibilityLabel="Practice Schedules öffnen"
+        accessibilityLabel="Übungspläne öffnen"
       />
-      <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
 
       <View style={{ marginTop: SPACING.lg }}>
-        <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Centroid Summary</Text>
+        <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Centroid-Zusammenfassung</Text>
         <Button
-          title={loadingSummary ? 'Loading…' : 'Refresh Summary'}
+          title={loadingSummary ? 'Wird geladen…' : 'Zusammenfassung aktualisieren'}
           onPress={refreshCentroidSummary}
           disabled={loadingSummary}
         />
         {Object.keys(centroidSummary).length === 0 ? (
-          <Text style={{ marginTop: 8 }}>No data yet.</Text>
+          <Text style={{ marginTop: 8 }}>Noch keine Daten.</Text>
         ) : (
           <View style={{ marginTop: 8 }}>
             {Object.entries(centroidSummary).map(([label, count]) => (
@@ -474,11 +474,11 @@ export default function AdminScreen({ navigation }: any) {
       </View>
 
       <View style={{ marginTop: SPACING.lg }}>
-        <Text>Low Performance Mode: {isLowPerformanceMode ? 'On' : 'Off'}</Text>
+        <Text>Niedriger Leistungsmodus: {isLowPerformanceMode ? 'An' : 'Aus'}</Text>
         <Button
-          title="Toggle Low Performance Mode"
+          title="Niedrigen Leistungsmodus umschalten"
           onPress={toggleLowPerformanceMode}
-          accessibilityLabel="Toggle Low Performance Mode"
+          accessibilityLabel="Niedrigen Leistungsmodus umschalten"
         />
       </View>
 
@@ -489,30 +489,30 @@ export default function AdminScreen({ navigation }: any) {
             placeholder="ID"
             value={id}
             onChangeText={setId}
-            accessibilityLabel="Symbol ID"
+            accessibilityLabel="Symbol-ID"
           />
           <TextInput
             style={styles.input}
-            placeholder="Label"
+            placeholder="Bezeichnung"
             value={label}
             onChangeText={setLabel}
-            accessibilityLabel="Symbol Label"
+            accessibilityLabel="Symbolbezeichnung"
           />
           <TextInput
             style={styles.input}
-            placeholder="Category"
+            placeholder="Kategorie"
             value={category}
             onChangeText={setCategory}
             accessibilityLabel="Symbolkategorie"
           />
           <Button
-            title={isRecording ? 'Stop Recording' : 'Record Audio'}
+            title={isRecording ? 'Aufnahme stoppen' : 'Audio aufnehmen'}
             onPress={handleRecordAudio}
             accessibilityLabel="Audioaufnahme"
           />
-          {audioUri ? <Text>Audio saved</Text> : null}
-          <Button title="Save" onPress={handleSave} accessibilityLabel="Symbol speichern" />
-          <Button title="Cancel" onPress={() => setModalVisible(false)} accessibilityLabel="Abbrechen" />
+          {audioUri ? <Text>Audio gespeichert</Text> : null}
+          <Button title="Speichern" onPress={handleSave} accessibilityLabel="Symbol speichern" />
+          <Button title="Abbrechen" onPress={() => setModalVisible(false)} accessibilityLabel="Abbrechen" />
         </View>
       </Modal>
     </View>

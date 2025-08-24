@@ -99,7 +99,7 @@ describe('RecognitionScreen', () => {
       component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
     });
     const button = component.root.findByProps({ testID: 'btn-correction' });
-    expect(button.props.accessibilityLabel).toBe('Open correction screen');
+    expect(button.props.accessibilityLabel).toBe('Korrekturseite öffnen');
   });
 
   it('shows DGS video when toggle enabled and gesture recognized', async () => {
@@ -107,7 +107,7 @@ describe('RecognitionScreen', () => {
     await act(async () => {
       component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
     });
-    const toggle = component.root.findByProps({ accessibilityLabel: 'Toggle DGS video' });
+    const toggle = component.root.findByProps({ accessibilityLabel: 'DGS-Video umschalten' });
     act(() => {
       toggle.props.onValueChange(true);
     });

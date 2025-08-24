@@ -41,6 +41,6 @@ describe('TeachScreen', () => {
       component = renderer.create(<TeachScreen navigation={{ navigate: jest.fn() }} />);
     });
     const btn = component.root.findByProps({ testID: 'btn-add-sign' });
-    expect(btn.props.accessibilityLabel).toBe('Add New Sign');
+    expect(btn.props.accessibilityLabel).toBe('Neue Gebärde hinzufügen');
   });
 });

@@ -60,7 +60,7 @@ export default function DashboardScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Analytics Dashboard</Text>
+      <Text style={styles.label}>Analyse-Dashboard</Text>
       {data ? (
         <>
           <View style={styles.barBackground}>
@@ -72,32 +72,32 @@ export default function DashboardScreen({ navigation }: any) {
             />
           </View>
           <Text style={styles.label}>
-            Success Rate (7d): {(data.successRate7d * 100).toFixed(0)}%
+            Erfolgsrate (7 Tage): {(data.successRate7d * 100).toFixed(0)}%
           </Text>
           <Text style={styles.label}>
             Trend: {(data.improvementTrend * 100).toFixed(0)}%
           </Text>
           {summary && (
             <>
-              <Text style={styles.label}>Corrections: {(summary.correctionRate * 100).toFixed(0)}%</Text>
-              <Text style={styles.label}>Uncertainty: {(summary.uncertaintyRatio * 100).toFixed(0)}%</Text>
+              <Text style={styles.label}>Korrekturen: {(summary.correctionRate * 100).toFixed(0)}%</Text>
+              <Text style={styles.label}>Unsicherheit: {(summary.uncertaintyRatio * 100).toFixed(0)}%</Text>
               {summary.medianLatencyMs != null && (
-                <Text style={styles.label}>Median Latency: {summary.medianLatencyMs} ms</Text>
+                <Text style={styles.label}>Mittlere Latenz: {summary.medianLatencyMs} ms</Text>
               )}
             </>
           )}
           {insights && Array.isArray(insights.recommendations) && insights.recommendations.length > 0 && (
             <>
-              <Text style={styles.label}>Recommendations:</Text>
+              <Text style={styles.label}>Empfehlungen:</Text>
               <Text style={styles.label}>{insights.recommendations.map((r: any) => r.gesture).join(', ')}</Text>
             </>
           )}
         </>
       ) : (
-        <Text style={styles.label}>No data</Text>
+        <Text style={styles.label}>Keine Daten</Text>
       )}
       <Button
-        title="Back"
+        title="Zurück"
         onPress={() => navigation.goBack()}
         accessibilityLabel="Zurück"
       />
