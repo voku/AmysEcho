@@ -8,6 +8,8 @@ This project turns those gestures into speech and symbols so she can be heard an
 Each child profile receives a personalized gesture model trained from its own samples, making the system effective for 22q11 workflows in group settings like kindergartens.
 Runtime classification relies on centroid-based models cached on the device; no TFLite files remain in the project.
 
+All app UI text and error messages are written in German to match Amy's language environment.
+
 ---
 
 ## 📚 Documentation
@@ -53,17 +55,21 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 ## 🚀 Quick Start
 
 ```bash
-npm install --prefix app
-npm install --prefix server
+npm ci --prefix app
+npm ci --prefix server
 pip install -r server/requirements.txt
+npm ci --prefix integration
 
 npm run type-check --prefix app
 npm test --prefix app
+npm run type-check --prefix server
 npm test --prefix server
 npm test --prefix integration
 
 npm run build --prefix server
 ```
+
+Commands use `--prefix` and should be run from the repository root.
 
 Run notes
 
@@ -288,7 +294,7 @@ This is a focused project with one user. That means:
 - ✅ Emotional context matters — build with care
 
 If you’re here to help: thank you.
-PRs are welcome, but **read the [spec](spec/AmysEcho.md) first**.
+PRs are welcome, but **read the [spec](spec/AmysEcho.md)** and the contributor guides in `AGENTS.md`, `app/AGENTS.md`, and `server/AGENTS.md` first.
 
 ---
 
