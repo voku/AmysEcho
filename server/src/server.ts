@@ -356,20 +356,21 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
     const Body = z.object({
       label: z.string().min(1),
       profileId: z.string().optional(),
-      // exactly 21 points of [x,y,z] in [0,1]
+      // exactly 42 points of [x,y,z] in [0,1]
       landmarks: z
         .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
         .length(42)
         .refine(
-          (pts) => pts.every(([x, y, z]) => x >= 0 && x <= 1 && y >= 0 && y <= 1 && Number.isFinite(z)),
-          'landmarks must be 21 points of [x,y,z] within [0,1] for x,y',
+          (pts: [number, number, number][]) =>
+            pts.every(([x, y, z]: [number, number, number]) => x >= 0 && x <= 1 && y >= 0 && y <= 1 && Number.isFinite(z)),
+          'landmarks must be 42 points of [x,y,z] within [0,1] for x,y',
         ),
     });
     const parsed = Body.safeParse(req.body);
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ error: 'label and landmarks (21 × [x,y,z]) required', details: parsed.error.flatten() });
+        .json({ error: 'label and landmarks (42 × [x,y,z]) required', details: parsed.error.flatten() });
     }
     const { label, profileId, landmarks } = parsed.data;
     const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
@@ -379,9 +380,13 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
         const raw = await fs.readFile(dataPath, 'utf8');
         data = JSON.parse(raw);
         if (!Array.isArray(data.samples)) data.samples = [];
-      } catch {}
+      } catch (err: any) {
+        if (err?.code !== 'ENOENT') throw err;
+      }
       data.samples.push({ id: genId(), label, profileId, landmarks, ts: Date.now() });
-      await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
+      const tmp = `${dataPath}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+      await fs.rename(tmp, dataPath);
     });
     res.json({ status: 'ok' });
   } catch (e) {
@@ -521,7 +526,9 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
           data.samples.push(s);
           job.progress = Math.round(((idx + 1) / total) * 50);
         });
-        await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
+        const tmp = `${dataPath}.tmp`;
+        await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+        await fs.rename(tmp, dataPath);
       });
 
       // Compute centroids (global) and publish as the trained model

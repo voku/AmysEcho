@@ -85,13 +85,14 @@ test('POST /train-model invalid sample items', async () => {
 });
 
 test('POST /train-model processes samples and returns model', async () => {
+  const sample = { gestureDefinitionId: 'g1', landmarkData: Array.from({ length: 42 }, () => [0, 0, 0]), profileId: 'p1' };
   const res = await fetch(`http://localhost:${PORT}/train-model`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: 'Bearer testtoken',
     },
-    body: JSON.stringify({ samples: [{ gestureDefinitionId: 'g1', landmarkData: Array.from({ length: 21 }, () => [0, 0, 0]) }] }),
+    body: JSON.stringify({ samples: [sample] }),
   });
   assert.strictEqual(res.status, 202);
   const { jobId } = await res.json();
@@ -118,6 +119,11 @@ test('POST /train-model processes samples and returns model', async () => {
   assert.strictEqual(json.type, 'centroid_model');
   assert.ok(json.centroids && typeof json.centroids === 'object');
   assert.ok(json.counts && typeof json.counts === 'object');
+
+  const profileRes = await fetch(`http://localhost:${PORT}/api/v1/dgs/model?profileId=p1`, { headers });
+  assert.strictEqual(profileRes.status, 200);
+  const profileModel = await profileRes.json();
+  assert.strictEqual(profileModel.counts.g1, 1);
 });
 
 test('GET /model-version returns version and path', async () => {
