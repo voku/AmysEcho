@@ -450,7 +450,8 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       .status(400)
       .json({ error: 'Invalid samples payload.', details: parsed.error.flatten() });
   }
-  const samples = parsed.data.samples;
+  type Sample = z.infer<typeof SampleSchema>;
+  const samples: Sample[] = parsed.data.samples;
 
   const id = genId();
   const job: TrainingJob = { id, status: 'queued', progress: 0 };
@@ -476,7 +477,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         data = JSON.parse(raw);
         if (!Array.isArray(data.samples)) data.samples = [];
       } catch {}
-      const toAdd = samples.map((s) => ({
+      const toAdd = samples.map((s: Sample) => ({
         id: genId(),
         label: s.gestureDefinitionId,
         profileId: s.profileId,
@@ -484,7 +485,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         ts: Date.now(),
       }));
       const total = toAdd.length || 1;
-      toAdd.forEach((s, idx) => {
+      toAdd.forEach((s: typeof toAdd[number], idx: number) => {
         data.samples.push(s);
         job.progress = Math.round(((idx + 1) / total) * 50);
       });
