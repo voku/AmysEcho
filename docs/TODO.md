@@ -24,6 +24,8 @@
 8. **Fallback strategy** – if loading fails, fall back to centroid or rule-based classification while logging an error for caregivers.
 9. **Version checks** – compare model timestamps and refresh when a newer file is available from the server.
 10. **End-to-end test** – train with real samples, download the model, and verify app predictions on-device.
+11. **Server integration details** – enqueue `python3 src/tools/train_mlp.py` after centroid updates, track JSON lines in `trainingJobs`, and fail the job if copying to `data/dgs_model_<profileId>.npz` fails.
+12. **App wiring** – extend `MediaPipeGestureDetector.tsx` to fetch `/latest-mlp-model`, parse `.npz` weights, and run the MLP forward pass with centroid or rule-based fallback.
 
 ## Now: Android USB Device Runbook
 *Quick steps to validate on a real device connected via USB*
