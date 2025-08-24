@@ -5,7 +5,7 @@ import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
 
-export async function checkForModelUpdate(): Promise<boolean> {
+export async function checkForModelUpdate(profileId?: string): Promise<boolean> {
   const net = await NetInfo.fetch();
   if (
     !net.isConnected ||
@@ -15,7 +15,8 @@ export async function checkForModelUpdate(): Promise<boolean> {
     return false;
   try {
     const token = await loadBackendApiToken();
-    const metaRes = await fetch(`${API_URL}/model-metadata`, {
+    const qs = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
+    const metaRes = await fetch(`${API_URL}/model-metadata${qs}`, {
       headers: { Authorization: `Bearer ${token || ''}` },
     });
     if (!metaRes.ok) return false;
@@ -26,7 +27,7 @@ export async function checkForModelUpdate(): Promise<boolean> {
     }
     const uri = CUSTOM_GESTURE_MODEL_PATH;
     const res = await FileSystem.downloadAsync(
-      `${API_URL}/latest-model`,
+      `${API_URL}/latest-model${qs}`,
       uri,
       { headers: { Authorization: `Bearer ${token || ''}` } }
     );

@@ -58,4 +58,26 @@ describe('checkForModelUpdate', () => {
     expect(result).toBe(true);
     expect(FileSystem.downloadAsync).toHaveBeenCalled();
   });
+
+  it('includes profileId in requests when provided', async () => {
+    (NetInfo.fetch as jest.Mock).mockResolvedValue({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    });
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ sha256: 'h' }) });
+    (global as any).fetch = fetchMock;
+    await checkForModelUpdate('p1');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://example.com/model-metadata?profileId=p1',
+      expect.anything(),
+    );
+    expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
+      'https://example.com/latest-model?profileId=p1',
+      '/tmp/model.tflite',
+      expect.anything(),
+    );
+  });
 });

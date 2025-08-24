@@ -5,7 +5,12 @@ import { createHash } from 'crypto';
 import { getCentroids } from './services/dgsModelService';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { TRAINED_MODEL_PATH, DATA_DIR, ensureDataDir } from './constants/modelPaths';
+import {
+  TRAINED_MODEL_PATH,
+  DATA_DIR,
+  ensureDataDir,
+  getTrainedModelPath,
+} from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
 import {
   setupDatabase,
@@ -541,6 +546,25 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         await fs.rename(tmp, TRAINED_MODEL_PATH);
       });
 
+      const profileIds = Array.from(
+        new Set(samples.map((s) => s.profileId).filter((p): p is string => !!p)),
+      );
+      for (const pid of profileIds) {
+        const { centroids: pc, counts: pcnts } = await getCentroids(pid);
+        const pOut = {
+          type: 'centroid_model',
+          updatedAt: Date.now(),
+          centroids: pc,
+          counts: pcnts,
+        } as any;
+        const file = getTrainedModelPath(pid);
+        await withFileLock(file, async () => {
+          const tmp = `${file}.tmp`;
+          await fs.writeFile(tmp, JSON.stringify(pOut));
+          await fs.rename(tmp, file);
+        });
+      }
+
       job.progress = 100;
       job.status = 'completed';
       job.endedAt = Date.now();
@@ -577,8 +601,10 @@ app.get('/model-version', auth, async (_req: Request, res: Response) => {
   }
 });
 
-app.get('/latest-model', auth, async (_req: Request, res: Response) => {
-  const file = TRAINED_MODEL_PATH;
+app.get('/latest-model', auth, async (req: Request, res: Response) => {
+  const profileId =
+    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+  const file = getTrainedModelPath(profileId);
   try {
     const stat = await fs.stat(file);
     const buf = await fs.readFile(file);
@@ -593,13 +619,16 @@ app.get('/latest-model', auth, async (_req: Request, res: Response) => {
 });
 
 // Model metadata: version, size, sha256
-app.get('/model-metadata', auth, async (_req: Request, res: Response) => {
+app.get('/model-metadata', auth, async (req: Request, res: Response) => {
+  const profileId =
+    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+  const file = getTrainedModelPath(profileId);
   try {
     const pkgPath = path.join(__dirname, '..', 'package.json');
     const pkgRaw = await fs.readFile(pkgPath, 'utf8');
     const { version } = JSON.parse(pkgRaw);
-    const stat = await fs.stat(TRAINED_MODEL_PATH);
-    const buf = await fs.readFile(TRAINED_MODEL_PATH);
+    const stat = await fs.stat(file);
+    const buf = await fs.readFile(file);
     const sha256 = createHash('sha256').update(buf).digest('hex');
     res.json({ version, size: stat.size, sha256 });
   } catch (err) {
