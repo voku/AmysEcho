@@ -630,7 +630,12 @@ async function resolveModelFile(
   const resolvedFile = await fs
     .realpath(file)
     .catch(() => path.resolve(file));
-  if (!resolvedFile.startsWith(base + path.sep)) {
+  // Check path containment robustly
+  const relative = path.relative(base, resolvedFile);
+  if (
+    relative.startsWith('..') ||
+    path.isAbsolute(relative)
+  ) {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }
