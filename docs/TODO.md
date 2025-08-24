@@ -1,6 +1,11 @@
 # AmysEcho Development Action Plan
 *Updated roadmap incorporating PR #328 and WebView + MediaPipe architecture*
 
+## LLM Task Board
+- [ ] Audit app UI strings for German language compliance (`app/src/`)
+- [ ] Run `npx expo install --check` in `app/` and update any flagged dependencies
+- [ ] Run `npx expo-doctor` in `app/` once network access is available
+
 ## Current Architecture Status
 ✅ **WebView + MediaPipe Integration Complete** (as of 2025-08-21)
 - Hand landmark extraction via MediaPipe in WebView

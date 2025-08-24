@@ -1,76 +1,111 @@
-# AGENTS.md - Standard Operating Procedure for Amy's Echo
+# AGENTS.md - Amy's Echo Contributor Guide
 
-This document provides a set of guidelines for agents (human or AI) to follow when working on the Amy's Echo codebase. Its purpose is to streamline development, ensure consistency, and provide a clear entry point for any given task.
+Amy's Echo is a multimodal communication platform for non-verbal children. This guide defines how to work in this repository. Favor real implementations over mocks and do not skip tests.
 
-## 1. Project Mission
+For guidelines specific to the application or server, see the `AGENTS.md` files within the `app/` and `server/` directories. Paths in this document are relative to the repository root unless noted otherwise.
 
-Amy's Echo is a multimodal communication platform for non-verbal children. The primary goal is to create an adaptive and intelligent tool that grows with the child, as detailed in the project specification.
+## AI Assistant Workflow
 
-Note on connectivity: We have adopted a hybrid approach that prioritizes reliability. Hand detection and gesture recognition now run server-side for stability and accuracy, with on-device capabilities acting as an offline fallback to keep core interactions usable when the network is unavailable.
+**IMPORTANT**: AI assistants (Codex, Gemini, etc.) must follow this step-by-step approach:
 
-## 2. Agent Standard Operating Procedure (SOP)
+### 1. Discovery Phase (ALWAYS do this first)
+- **Read the TODO.md or task description completely**
+- **Examine the existing codebase structure** using `find` or `ls` commands
+- **Study similar existing files** - look for patterns, naming conventions, and architectural decisions
+- **Run the test suite** to understand current functionality and ensure nothing is broken
+- **Check dependencies and configuration files** (`package.json`, `tsconfig.json`, etc.)
 
-**All agents must follow this procedure for every task.**
+### 2. Planning Phase (Before any implementation)
+- **Create a detailed implementation plan** that explains:
+  - Which files need to be created/modified
+  - What existing patterns you'll follow
+  - How your changes integrate with current architecture
+  - What tests need to be added/updated
+- **Identify potential breaking changes** and mitigation strategies
+- **Plan your testing approach** - don't just implement features, plan how to verify they work
 
-1.  **Consult This File First**: Always begin by reading this `AGENTS.md` file to understand the standard workflow.
-2.  **Read the Specification**: The primary source of truth for all project requirements and goals is located at:
-    > **/spec/AmysEcho.md**
+### 3. Implementation Phase
+- **Start with tests** when adding new functionality (TDD approach)
+- **Make small, incremental changes** - don't implement everything at once
+- **Follow existing code patterns exactly** - don't introduce new architectural concepts without justification
+- **Test continuously** - run relevant tests after each significant change
 
-    This file contains the definitive specification. Do not infer requirements from other files if they conflict with the specification.
-3.  **Review the Action Plan**: For detailed, actionable tasks that have been pre-planned based on the specification, consult:
-    > **docs/TODO.md**
+### 4. Verification Phase (MANDATORY)
+- **Run the full test suite** - all tests must pass
+- **Verify type checking** - no TypeScript errors
+- **Test the actual functionality** - don't assume it works because tests pass
+- **Check for integration issues** - ensure your changes work with existing features
 
-    This file breaks down the high-level goals from the specification into concrete coding tasks with implementation hints.
-4.  **Implement Changes**: Locate the relevant files using the directory map below and implement the required changes.
-5.  **Validate and Report**: After implementation, review your changes for correctness. When reporting completion, provide a summary and, if applicable, a diff/patch of the changed files.
+## General Workflow
 
-6.  **Run Tests and Type Checks**: Before submitting a pull request, run the following commands:
-    ```bash
-    npm run type-check --prefix app
-    npm test --prefix app
-    (cd app && npx expo install --check)
-    (cd app && npx expo-doctor)
-    pip install -r server/requirements.txt
-    npm test --prefix server
-    npm test --prefix integration
-    ```
-    You can also execute `./scripts/full-check.sh` from the repo root to run all of the above in one step, including the Expo checks.
+1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
+2. **Explore codebase**: understand the current state and patterns.
+3. **Understand existing code**: look at similar files and tests to follow established patterns.
+   - App: `app/src/components/*`, hooks in `app/src/hooks/`, tests in `app/test/*`.
+   - Server: services in `server/src/services/*`, tools in `server/src/tools/*`, tests in `server/test/*`.
+4. **Plan thoroughly** before implementing - explain your approach and get feedback if possible.
+5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
+6. **Use German for all user-facing text and error messages in the app.**
 
-## 3. Authoritative Document Map
+## Testing Rules
 
-| Purpose                                   | File Location         |
-| ----------------------------------------- | --------------------- |
-| **Definitive Project Specification** | `/spec/AmysEcho.md`   |
-| **Detailed Implementation Tasks & Todos** | `docs/TODO.md`        |
-| **High-Level Overview & Setup** | `README.md`           |
-| **Agent Workflow & Guidelines** | `AGENTS.md` (this file) |
+- Never skip or comment out existing tests. Update them when behavior changes.
+- Use mocks sparingly; only mock network or other system boundaries.
+- Write tests for new functionality before or alongside implementation.
+- Ensure all tests pass before considering work complete.
 
-## 4. Key Code Directory Structure
+## Commands to Run from Repository Root
 
--   `app/`: Contains the React Native mobile application.
--   `app/src/screens`: Main UI screen components.
--   `app/src/services`: Business logic and external API clients.
--   `app/src/components`: Reusable UI components.
--   `app/test/`: Test files for both the mobile app and backend modules.
+```bash
+npm ci --prefix app
+npm run type-check --prefix app
+npm test --prefix app
+(cd app && npx expo install --check)
+# Optional: `expo-doctor` can fail when offline; run when networked
+(cd app && npx expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")
+npm ci --prefix server
+npm run type-check --prefix server
+pip install -r server/requirements.txt
+npm test --prefix server
+npm ci --prefix integration
+npm test --prefix integration
+```
 
--   `server/test/`: Python tests for the training pipeline.
+## Directory Structure
 
--   `server/`: Backend server code.
--   `server/src/services`: Backend service logic.
--   `server/src/tools`: Scripts for tasks like model downloading and retraining.
+| Component                                | Path                   |
+| ---------------------------------------- | ---------------------- |
+| React Native app                         | `app/`                 |
+| App screens                              | `app/src/screens/`     |
+| App components                           | `app/src/components/`  |
+| App tests                                | `app/test/`            |
+| Server services                          | `server/src/services/` |
+| Server tools (Python/TS scripts)         | `server/src/tools/`    |
+| Server tests                             | `server/test/`         |
+| Node/TS server and Python utilities      | `server/`              |
+| Integration tests                        | `integration/`         |
 
--   `spec/`: Project specification.
--   `docs/`: Project documentation.
+## Shell Command Conventions
 
-## 5. Approved Shell Commands
+- Use `rg` (ripgrep, may require installation) for searching code (e.g., `rg -n -C3 "symbol(" --type=ts`); `grep -R` is acceptable if `rg` is unavailable.
+- Use `ls` for directory listings. Avoid recursive `ls -R` unless necessary.
 
-To avoid syntax errors, use the following correct commands for repository exploration.
+## Common AI Assistant Mistakes to Avoid
 
-* **Find a file by name (repo-wide):**
-    ```shell
-    find . -name "AmysEcho.md"
-    ```
-* **List all files recursively:**
-    ```shell
-    ls -R
-    ```
+1. **Don't implement without understanding** - rushing to code without studying existing patterns
+2. **Don't skip the discovery phase** - always explore the codebase first
+3. **Don't create new architectural patterns** - follow existing conventions
+4. **Don't assume tests pass** - always run them to verify
+5. **Don't ignore type errors** - fix all TypeScript issues
+6. **Don't mock internal app code** - only mock external boundaries
+7. **Don't leave broken tests** - all tests must pass when you're done
+
+## Questions AI Assistants Should Ask
+
+Before starting implementation, consider:
+- "What similar functionality already exists that I can learn from?"
+- "What existing tests can guide my understanding?"
+- "How do other components handle similar use cases?"
+- "What patterns are already established for this type of change?"
+- "Are there any integration points I need to be aware of?"
+

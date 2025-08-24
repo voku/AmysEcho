@@ -149,6 +149,7 @@ The system’s memory is a diary of attempts to understand. Everything stored mu
  * Warm > Sterile: Rounded corners, pastel tones, emojis.
  * Clarity > Density: One clear task per screen, large text, generous spacing.
  * Guidance > Error: Failures must always offer a clear, calm path forward.
+ * German-first: All user-facing text and error messages must be in German.
 
 5.2 The Screens
  * Onboarding (HIP 1): A centered, single-column layout with a large heart icon, clear title, and two large, off-by-default consent toggles.
@@ -195,6 +196,8 @@ Each child profile maintains its own centroid model on the server. Training data
 
 🧾 Chapter 7 – The Handoff: For Future Developers and LLMs
 “You’re not inheriting code. You’re inheriting trust.”
+
+Before making changes, read the contributor guides in `AGENTS.md`, `app/AGENTS.md`, and `server/AGENTS.md` and follow their instructions.
 
 7.1 What You Must Not Do
  * ❌ Never break the offline fallback: The app must always function without internet.
