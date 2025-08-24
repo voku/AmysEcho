@@ -594,6 +594,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
           for (const line of lines) {
             if (!line.trim()) continue;
             try {
+              // trainer emits JSON progress lines
               const msg = JSON.parse(line);
               if (msg && msg.type === 'progress') {
                 const cur = Number(msg.current);
