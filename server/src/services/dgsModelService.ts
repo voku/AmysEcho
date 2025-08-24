@@ -1,4 +1,5 @@
 import path from 'path';
+import { DATA_DIR } from '../constants/modelPaths';
 import { promises as fs } from 'fs';
 
 type Point = [number, number, number];
@@ -26,7 +27,7 @@ function normalize(lm: Point[]): Point[] {
 }
 
 export async function getCentroids(profileId?: string): Promise<{ centroids: Record<string, Point[]>; counts: Record<string, number> }> {
-  const dataPath = path.join(process.cwd(), 'server', 'data', 'dgs_samples.json');
+  const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
   let data: DatasetFile = { samples: [] };
   try {
     const raw = await fs.readFile(dataPath, 'utf8');

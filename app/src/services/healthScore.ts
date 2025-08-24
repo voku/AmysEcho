@@ -9,7 +9,7 @@ export interface InteractionLog {
   wasSuccessful: boolean;
   confidenceScore: number;
   timestamp: number;
-  processedBy: 'local' | 'cloud';
+  processedBy: 'local' | 'cloud' | 'centroid';
   caregiverOverrideId?: string;
 }
 

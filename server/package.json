@@ -9,11 +9,12 @@
   "type": "commonjs",
   "dependencies": {
     "express": "5.0.0",
-    "express-rate-limit": "6.7.0"
+    "express-rate-limit": "6.7.0",
+    "zod": "^4.1.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.14",
     "@types/express": "5.0.3",
+    "@types/jest": "^29.5.14",
     "@types/node": "24.1.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.4.1",

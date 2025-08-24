@@ -26,6 +26,7 @@ import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
+import { getLocalCentroidSummary } from '../services/localCentroids';
 
 import { usePerformance } from '../context/PerformanceContext';
 
@@ -44,6 +45,8 @@ export default function AdminScreen({ navigation }: any) {
   const [audioUri, setAudioUri] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [category, setCategory] = useState('');
+  const [centroidSummary, setCentroidSummary] = useState<Record<string, number>>({});
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   React.useEffect(() => {
     const sub = database
@@ -57,8 +60,22 @@ export default function AdminScreen({ navigation }: any) {
     loadBackendApiToken().then((t) => {
       if (t) setBackendToken(t);
     });
+    refreshCentroidSummary();
     return () => sub.unsubscribe();
   }, []);
+
+  const refreshCentroidSummary = async () => {
+    setLoadingSummary(true);
+    try {
+      const summary = await getLocalCentroidSummary();
+      setCentroidSummary(summary);
+    } catch (e) {
+      logger.warn('Failed to refresh local centroid summary', e);
+      Alert.alert('Centroid summary failed');
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
 
   const openAdd = () => {
     setEditing(null);
@@ -429,7 +446,30 @@ export default function AdminScreen({ navigation }: any) {
         onPress={() => navigation.navigate('Dashboard')}
         accessibilityLabel="Analytics-Dashboard öffnen"
       />
+      <Button
+        title="Practice Schedules"
+        onPress={() => navigation.navigate('PracticeSchedule')}
+        accessibilityLabel="Practice Schedules öffnen"
+      />
       <Button title="Back" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+
+      <View style={{ marginTop: SPACING.lg }}>
+        <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Centroid Summary</Text>
+        <Button
+          title={loadingSummary ? 'Loading…' : 'Refresh Summary'}
+          onPress={refreshCentroidSummary}
+          disabled={loadingSummary}
+        />
+        {Object.keys(centroidSummary).length === 0 ? (
+          <Text style={{ marginTop: 8 }}>No data yet.</Text>
+        ) : (
+          <View style={{ marginTop: 8 }}>
+            {Object.entries(centroidSummary).map(([label, count]) => (
+              <Text key={label}>{label}: {count}</Text>
+            ))}
+          </View>
+        )}
+      </View>
 
       <View style={{ marginTop: SPACING.lg }}>
         <Text>Low Performance Mode: {isLowPerformanceMode ? 'On' : 'Off'}</Text>

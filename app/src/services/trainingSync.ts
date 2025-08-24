@@ -3,10 +3,15 @@ import NetInfo from '@react-native-community/netinfo';
 import { loadProfile, TrainingSample, loadBackendApiToken } from '../storage';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
+import { fetchCentroids } from './dgsModelClient';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
-export async function syncTrainingData(): Promise<void> {
+export interface SyncProgressOptions {
+  onProgress?: (progress: number) => void;
+}
+
+export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void> {
   const profile = await loadProfile();
   if (!profile?.consentHelpMeGetSmarter) return;
   const net = await NetInfo.fetch();
@@ -26,8 +31,9 @@ export async function syncTrainingData(): Promise<void> {
     const samples = pending.map((p) => ({
       gestureDefinitionId: p.gestureDefinitionId,
       landmarkData: p.landmarkData,
+      profileId: profile?.id,
     }));
-    await fetch(`${API_URL}/train-model`, {
+    const response = await fetch(`${API_URL}/train-model`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -35,6 +41,61 @@ export async function syncTrainingData(): Promise<void> {
       },
       body: JSON.stringify({ samples }),
     });
+    if (!response.ok) {
+      throw new Error(`Failed to sync training data: ${response.status}`);
+    }
+
+    let jobId: string | undefined;
+    try {
+      const parsed = await response.json();
+      jobId = parsed?.jobId;
+    } catch (e) {
+      logger.warn('failed to parse training response', e);
+    }
+
+    if (jobId) {
+      const headers = { Authorization: `Bearer ${token || ''}` } as any;
+      const start = Date.now();
+      const POLL_TIMEOUT_MS = 60000;
+      const POLL_INTERVAL_MS = 1000;
+      let failures = 0;
+      let completed = false;
+      opts?.onProgress?.(0);
+      while (Date.now() - start < POLL_TIMEOUT_MS) {
+        try {
+          const s = await fetch(`${API_URL}/train-status/${jobId}`, { headers });
+          if (s.ok) {
+            const info = await s.json().catch(() => null);
+            if (info) {
+              if (typeof info.progress === 'number') {
+                opts?.onProgress?.(Math.max(0, Math.min(100, info.progress)));
+              }
+              if (info.status === 'completed') {
+                opts?.onProgress?.(100);
+                completed = true;
+                break;
+              }
+              if (info.status === 'failed') throw new Error('training failed');
+              failures = 0;
+            } else {
+              failures += 1;
+            }
+          } else {
+            failures += 1;
+          }
+        } catch (err) {
+          failures += 1;
+        }
+        if (failures >= 3) {
+          throw new Error('training status polling failed');
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+      if (!completed) {
+        throw new Error('training status polling timed out');
+      }
+      await fetchCentroids(profile?.id || undefined).catch(() => {});
+    }
     for (const p of pending) p.syncStatus = 'synced';
     await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
   } catch (e) {

@@ -40,7 +40,7 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 | App Framework | React Native (CLI)            | Cross-platform + native module access  |
 | Language      | TypeScript (strict mode)      | Predictable, type-safe code            |
 | Camera        | `react-native-webview`        | In-app camera feed & landmark detection |
-| Cloud ML      | Custom API                    | Gesture classification                 |
+| Backend API   | Node/Express server           | Training sync & dialog suggestions     |
 | UI/UX         | RN Animated API + Skia (opt.) | Gentle, trust-based feedback           |
 | Audio         | `expo-audio`, `expo-speech`   | Speech output + sound effects          |
 | Video         | `expo-video`                  | Video output                           |
@@ -61,13 +61,12 @@ npm test --prefix server
 npm test --prefix integration
 
 npm run build --prefix server
-node server/dist/tools/downloadModels.js
 ```
 
 Run notes
 
 - Server:
-   - MediaPipe assets are loaded via CDN; no server model download is required.
+   - MediaPipe assets load via CDN; no manual model download is required.
    - Build + start: npm run build --prefix server && ./scripts/server-start.sh
 - App:
    - Android emulator:
@@ -77,17 +76,15 @@ Run notes
 
 How to use it
 
-- Start server (optional for non-gesture features):
+- Start server (optional for training and dialog):
    - npm run build --prefix server && ./scripts/server-start.sh
-   - Health: curl http://localhost:5000/health/recognizer
 - Run app:
    - Android emulator: EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 scripts/dev-run.sh --android
    - Or scripts/adb-reverse.sh 5000 && scripts/dev-run.sh --android
 - Workflow:
    - Use Training screen to record a few samples for key DGS gestures (per child).
    - Use Recognition screen; when it’s wrong, correct it; the app uploads the sample for that child.
-   - Recognition will start using the child’s dataset to generate dgs_label with rising confidence as
-     samples grow.
+   - Recognition runs locally; as training samples accumulate, centroids improve confidence.
 
 Run `npm run ios --prefix app` or `npm run android --prefix app` to launch the mobile app.
 
@@ -133,7 +130,7 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 ## 🗃️ Core Goals
 
 - **Turn gestures into speech and visuals**
-- **Reliable by default (hybrid)**: The app uses a server-side detection/recognition path for stability and accuracy, and falls back to on-device when offline.
+- **Reliable by default (hybrid)**: Gestures are classified on-device using cached centroids, while the server handles training and dialog suggestions.
 - **Handle uncertainty with grace, not silence**
 - **Log every correction to learn and adapt**
 - **Make it simple for a child to succeed**
@@ -242,7 +239,7 @@ npm run build --prefix server
 ```
 
 - Uses `PORT=5000` and `API_TOKEN=demo-token` by default.
-- Seeds `server/trained_model.tflite` from `app/assets/models/gesture_classifier.tflite` so `/latest-model` works immediately.
+- Stores centroid model at `server/data/trained_model.json` once training completes.
 
 2) Reverse port for USB device (Terminal B)
 
@@ -274,13 +271,8 @@ cd app && expo run:android
 
 5) Verify connectivity
 
-- Server logs show requests to `/model-version`, `/latest-model`, and `/api/*`.
+- Server logs show requests to `/latest-model` and `/api/*`.
 - App logs should not show “Network request failed”.
-
-6) Model download 404 fix
-
-- If the app logs `Failed to download model: 404`, ensure `server/trained_model.tflite` exists.
-- The server start script seeds it from the app asset; if you removed it, add any `.tflite` at `server/trained_model.tflite` or retrain via `/train-model` + `/train-status/:id`.
 
 ---
 

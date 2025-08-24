@@ -2,10 +2,11 @@ import express, { Request, Response } from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
+import { DATA_DIR } from './constants/modelPaths';
 
 const router = express.Router();
 
-const DGS_SAMPLES_PATH = path.join(process.cwd(), 'server', 'data', 'dgs_samples.json');
+const DGS_SAMPLES_PATH = path.join(DATA_DIR, 'dgs_samples.json');
 const LABEL_MAP_PATH = path.join(process.cwd(), 'server', 'config', 'label-map.json');
 
 // --- DGS Samples API ---

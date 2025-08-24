@@ -12,10 +12,11 @@ const LOG_KEY = 'interactionLogs';
 export interface InteractionLog {
   id: string;
   gestureDefinitionId: string;
+  gestureName: string;
   wasSuccessful: boolean;
   confidenceScore: number;
   timestamp: number;
-  processedBy: 'local' | 'cloud';
+  processedBy: 'local' | 'cloud' | 'centroid';
   caregiverOverrideId?: string;
 }
 

@@ -9,14 +9,15 @@ This document summarizes the repository in seven key areas with concrete file re
 
 ## 2. Gesture Recognition Pipeline
 - `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.
-- `app/src/screens/RecognitionScreen.tsx` hosts the detector and handles gesture events.
-- `app/src/services/offlineClassifier.ts` provides a lightweight rule-based assist for ambiguous cases; no network is required.
-- Legacy model references in `app/src/constants/modelPaths.ts` remain only for tests; no TFLite models are loaded at runtime
+- `app/src/screens/RecognitionScreen.tsx` hosts the detector, fuses results with cached centroids, and logs outcomes.
+- `app/src/services/offlineClassifier.ts` performs centroid-based fallback classification when confidence is low.
+- Legacy TFLite model paths remain only for tests; recognition is fully on-device.
 
 ## 3. Training and Personalization
-- Sample collection UI in `app/src/screens/TrainingScreen.tsx`
-- Personalized models managed in `app/src/screens/AdminScreen.tsx`
-- Server training logic in `server/src/train.py` and `server/src/services/mlService.ts`
+- Sample collection UI in `app/src/screens/TeachingScreen.tsx`
+- Centroid summaries and refresh actions live in `app/src/screens/AdminScreen.tsx`
+- `app/src/services/trainingSync.ts` uploads samples and polls `/train-status` for progress
+- Server recomputes centroids in `server/src/server.ts`, persisting data under `server/data/`
 
 ## 4. Dialog & OpenAI Integration
 - Client requests handled in `app/src/services/dialogEngine.ts`

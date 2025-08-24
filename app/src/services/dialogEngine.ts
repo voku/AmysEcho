@@ -1,7 +1,8 @@
 import { Symbol } from '../../db/models';
-import { loadOpenAIApiKey } from '../storage';
+import { loadOpenAIApiKey, loadBackendApiToken } from '../storage';
 import { logger } from '../utils/logger';
 import { APIRetryManager } from './APIRetryManager';
+import { API_URL } from '../constants';
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const MODEL = 'gpt-4-turbo';
@@ -114,6 +115,54 @@ class DialogEngine {
       logger.error('LLM suggestion fetch error:', error);
       return { nextWords: [], caregiverPhrases: [] };
     }
+  }
+
+  /**
+   * Request suggestions from the server `/dialog` endpoint (preferred),
+   * falling back to direct OpenAI call when no backend token is available.
+   */
+  public async getSuggestions({
+    input,
+    context,
+    language,
+    age,
+  }: {
+    input: string;
+    context: string[];
+    language: string;
+    age: number;
+  }): Promise<LLMSuggestionResponse> {
+    try {
+      const token = await loadBackendApiToken();
+      if (token) {
+        const retry = new APIRetryManager();
+        const response = await retry.executeWithRetry(() =>
+          fetch(`${API_URL}/dialog`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ input, context, language, age }),
+          }),
+          'serverDialog'
+        );
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            nextWords: Array.isArray(data.nextWords) ? data.nextWords : [],
+            caregiverPhrases: Array.isArray(data.caregiverPhrases)
+              ? data.caregiverPhrases
+              : [],
+          };
+        }
+        logger.warn(`Server /dialog returned status ${response.status}; falling back`);
+      }
+    } catch (e) {
+      logger.warn('Server /dialog request failed; falling back', e);
+    }
+    // Fallback to direct OpenAI call if available
+    return this.getLLMSuggestions({ input, context, language, age });
   }
 }
 

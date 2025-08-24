@@ -16,7 +16,7 @@ async function startServer() {
   // Ensure a clean database so prior runs don't influence API tests
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'trained_model.tflite'), { force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data', 'trained_model.json'), { force: true }).catch(() => {});
 
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
@@ -55,21 +55,6 @@ async function stopServer() {
 before(startServer);
 after(stopServer);
 
-test('POST /classify returns label and confidence', async () => {
-  const res = await fetch(`http://localhost:${PORT}/classify`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer testtoken',
-    },
-    body: JSON.stringify({ landmarks: [0, 0, 0] }),
-  });
-  assert.strictEqual(res.status, 200);
-  const data = await res.json();
-  assert.ok('label' in data);
-  assert.ok('confidence' in data);
-});
-
 test('POST /train-model invalid payload', async () => {
   const res = await fetch(`http://localhost:${PORT}/train-model`, {
     method: 'POST',
@@ -80,6 +65,23 @@ test('POST /train-model invalid payload', async () => {
     body: JSON.stringify({ samples: 'bad' }),
   });
   assert.strictEqual(res.status, 400);
+  const body = await res.json();
+  assert.ok(typeof body.error === 'string');
+});
+
+test('POST /train-model invalid sample items', async () => {
+  const res = await fetch(`http://localhost:${PORT}/train-model`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer testtoken',
+    },
+    body: JSON.stringify({ samples: [{ gestureDefinitionId: 123, landmarkData: {} }] }),
+  });
+  assert.strictEqual(res.status, 400);
+  const body = await res.json();
+  assert.ok(typeof body.error === 'string');
+  assert.ok(body.details);
 });
 
 test('POST /train-model processes samples and returns model', async () => {
@@ -89,7 +91,7 @@ test('POST /train-model processes samples and returns model', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer testtoken',
     },
-    body: JSON.stringify({ samples: [{ gestureDefinitionId: 'g1', landmarkData: [[0, 0, 0]] }] }),
+    body: JSON.stringify({ samples: [{ gestureDefinitionId: 'g1', landmarkData: Array.from({ length: 21 }, () => [0, 0, 0]) }] }),
   });
   assert.strictEqual(res.status, 202);
   const { jobId } = await res.json();
@@ -100,7 +102,10 @@ test('POST /train-model processes samples and returns model', async () => {
   while (true) {
     const s = await fetch(statusUrl, { headers });
     const info = await s.json();
-    if (info.status === 'completed') break;
+    if (info.status === 'completed') {
+      assert.strictEqual(info.progress, 100);
+      break;
+    }
     if (Date.now() - start > 30000) throw new Error('training did not complete');
     await delay(200);
   }
@@ -109,6 +114,10 @@ test('POST /train-model processes samples and returns model', async () => {
   assert.strictEqual(modelRes.status, 200);
   const buf = Buffer.from(await modelRes.arrayBuffer());
   assert.ok(buf.length > 0);
+  const json = JSON.parse(buf.toString('utf8'));
+  assert.strictEqual(json.type, 'centroid_model');
+  assert.ok(json.centroids && typeof json.centroids === 'object');
+  assert.ok(json.counts && typeof json.counts === 'object');
 });
 
 test('GET /model-version returns version and path', async () => {
@@ -122,15 +131,19 @@ test('GET /model-version returns version and path', async () => {
 });
 
 test('GET /latest-model serves model file when present', async () => {
-  const filePath = join(serverDir, 'trained_model.tflite');
-  await fs.writeFile(filePath, 'dummy model');
-  const res = await fetch(`http://localhost:${PORT}/latest-model`, {
-    headers: { Authorization: 'Bearer testtoken' },
-  });
-  assert.strictEqual(res.status, 200);
-  const buf = Buffer.from(await res.arrayBuffer());
-  assert.ok(buf.length > 0);
-  await fs.unlink(filePath);
+  const filePath = join(serverDir, 'data', 'trained_model.json');
+  await fs.mkdir(join(serverDir, 'data'), { recursive: true });
+  await fs.writeFile(filePath, '{}');
+  try {
+    const res = await fetch(`http://localhost:${PORT}/latest-model`, {
+      headers: { Authorization: 'Bearer testtoken' },
+    });
+    assert.strictEqual(res.status, 200);
+    const buf = Buffer.from(await res.arrayBuffer());
+    assert.ok(buf.length > 0);
+  } finally {
+    await fs.unlink(filePath).catch(() => {});
+  }
 });
 
 test('POST /analytics then GET returns same data', async () => {
@@ -154,3 +167,4 @@ test('POST /analytics then GET returns same data', async () => {
   assert.strictEqual(data.successRate7d, payload.successRate7d);
   assert.strictEqual(data.improvementTrend, payload.improvementTrend);
 });
+
