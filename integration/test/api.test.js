@@ -91,7 +91,7 @@ test('POST /train-model processes samples and returns model', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer testtoken',
     },
-    body: JSON.stringify({ samples: [{ gestureDefinitionId: 'g1', landmarkData: Array.from({ length: 21 }, () => [0, 0, 0]) }] }),
+    body: JSON.stringify({ samples: [{ gestureDefinitionId: 'g1', landmarkData: Array.from({ length: 42 }, () => [0, 0, 0]) }] }),
   });
   assert.strictEqual(res.status, 202);
   const { jobId } = await res.json();

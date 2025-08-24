@@ -22,7 +22,18 @@ describe('syncTrainingData', () => {
     await AsyncStorage.setItem(
       TRAINING_KEY,
       JSON.stringify([
-        { id: '1', gestureDefinitionId: 'g1', landmarkData: [1, 2, 3], source: 'HIP_2', syncStatus: 'pending' },
+        {
+          id: '1',
+          gestureDefinitionId: 'g1',
+          landmarkData: [
+            [
+              [[1, 2, 3]],
+              [],
+            ],
+          ],
+          source: 'HIP_2',
+          syncStatus: 'pending',
+        },
       ]),
     );
 
@@ -32,7 +43,8 @@ describe('syncTrainingData', () => {
     const [, options] = (global.fetch as jest.Mock).mock.calls[0];
     const body = JSON.parse(options.body);
     expect(body.samples[0].gestureDefinitionId).toBe('g1');
-    expect(body.samples[0].landmarkData).toEqual([1, 2, 3]);
+    expect(body.samples[0].landmarkData[0]).toEqual([1, 2, 3]);
+    expect(body.samples[0].landmarkData).toHaveLength(42);
     const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
     expect(updated[0].syncStatus).toBe('synced');
   });

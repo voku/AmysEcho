@@ -379,9 +379,13 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
         const raw = await fs.readFile(dataPath, 'utf8');
         data = JSON.parse(raw);
         if (!Array.isArray(data.samples)) data.samples = [];
-      } catch {}
+      } catch (err: any) {
+        if (err?.code !== 'ENOENT') throw err;
+      }
       data.samples.push({ id: genId(), label, profileId, landmarks, ts: Date.now() });
-      await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
+      const tmp = `${dataPath}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+      await fs.rename(tmp, dataPath);
     });
     res.json({ status: 'ok' });
   } catch (e) {
