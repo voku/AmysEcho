@@ -51,12 +51,19 @@ def stop_server(proc):
 def test_train_endpoint(tmp_path):
     proc = start_server()
     try:
-        url = f'http://localhost:{PORT}/train-model'
+        url = f"http://localhost:{PORT}/train-model"
         # vary landmark coordinates slightly so normalization succeeds
         landmarks = [[i * 0.01, 0.1, 0.1] for i in range(42)]
-        samples = [{"gestureDefinitionId": "g1", "profileId": "p1", "landmarkData": landmarks}]
-        data = json.dumps({'samples': samples}).encode('utf-8')
-        headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer testtoken'}
+        samples = [{
+            "gestureDefinitionId": "g1",
+            "profileId": "p1",
+            "landmarkData": landmarks,
+        }]
+        data = json.dumps({"samples": samples}).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer testtoken",
+        }
         req = urllib.request.Request(url, data=data, headers=headers)
         with urllib.request.urlopen(req) as resp:
             assert resp.getcode() == 202
