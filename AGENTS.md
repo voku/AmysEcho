@@ -41,7 +41,7 @@ For guidelines specific to the application or server, see the `AGENTS.md` files 
 1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
 2. **Explore codebase**: understand the current state and patterns.
 3. **Understand existing code**: look at similar files and tests to follow established patterns.
-   - App: `app/src/components/*`, hooks in `app/src/*/use*.ts`, tests in `app/test/*`.
+   - App: `app/src/components/*`, hooks in `app/src/hooks/`, tests in `app/test/*`.
    - Server: services in `server/src/services/*`, tools in `server/src/tools/*`, tests in `server/test/*`.
 4. **Plan thoroughly** before implementing - explain your approach and get feedback if possible.
 5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
@@ -76,9 +76,12 @@ npm test --prefix integration
 | Component                                | Path                   |
 | ---------------------------------------- | ---------------------- |
 | React Native app                         | `app/`                 |
+| App screens                              | `app/src/screens/`     |
 | App components                           | `app/src/components/`  |
+| App tests                                | `app/test/`            |
 | Server services                          | `server/src/services/` |
 | Server tools (Python/TS scripts)         | `server/src/tools/`    |
+| Server tests                             | `server/test/`         |
 | Node/TS server and Python utilities      | `server/`              |
 | Integration tests                        | `integration/`         |
 
