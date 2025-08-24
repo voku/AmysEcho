@@ -1,7 +1,8 @@
 import path from 'path';
 
 // Resolve paths relative to the compiled server directory to avoid CWD issues
-export const SERVER_DIR = path.join(__dirname, '..');
+// __dirname is .../dist/constants after build, so go two levels up to reach repo's server dir
+export const SERVER_DIR = path.join(__dirname, '..', '..');
 export const DATA_DIR = path.join(SERVER_DIR, 'data');
 
 export const HAND_LANDMARKER_MODEL_PATH = path.join(__dirname, '../../../app/assets/models/hand_landmarker.tflite');

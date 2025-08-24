@@ -440,7 +440,7 @@ app.post('/dialog', auth, dialogLimiter, async (req: Request, res: Response) => 
 app.post('/train-model', auth, async (req: Request, res: Response) => {
   const SampleSchema = z.object({
     gestureDefinitionId: z.string().min(1),
-    landmarkData: z.array(z.any()),
+    landmarkData: z.array(z.array(z.array(z.number()))),
     profileId: z.string().optional(),
   });
   const BodySchema = z.object({ samples: z.array(SampleSchema) });
