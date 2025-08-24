@@ -53,11 +53,11 @@ def test_train_endpoint(tmp_path):
     try:
         url = f"http://localhost:{PORT}/train-model"
         # vary landmark coordinates slightly so normalization succeeds
-        landmarks = [[i * 0.01, 0.1, 0.1] for i in range(42)]
+        landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
         samples = [{
             "gestureDefinitionId": "g1",
             "profileId": "p1",
-            "landmarkData": landmarks,
+            "landmarkData": landmarks_one_hand,
         }]
         data = json.dumps({"samples": samples}).encode("utf-8")
         headers = {

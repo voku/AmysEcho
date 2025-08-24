@@ -21,11 +21,15 @@ EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
 
 # --- Normalization (must match recognizer) ---
 def _normalize(lm):
-    """Normalize two-hand landmarks to be wrist-centered and scale-invariant."""
-    if not lm or len(lm) < 42:
+    """Normalize one or two hands to be wrist-centered and scale-invariant."""
+    if not lm or len(lm) < 21:
         return None
 
-    pts = np.array(lm[:42])
+    pts = np.array(lm[:42], dtype=float)
+    two_hands = len(pts) >= 42 and len(lm) >= 42
+    if len(pts) < 42:
+        pad = np.zeros((42 - len(pts), 3))
+        pts = np.vstack([pts, pad])
 
     def _norm_hand(hand: np.ndarray) -> np.ndarray | None:
         wrist = hand[0]
@@ -38,8 +42,12 @@ def _normalize(lm):
 
     left = _norm_hand(pts[:21])
     right = _norm_hand(pts[21:])
-    if left is None or right is None:
+    if left is None:
         return None
+    if right is None:
+        if two_hands:
+            return None
+        right = np.zeros_like(pts[:21])
 
     return np.concatenate([left, right]).flatten()
 

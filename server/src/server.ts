@@ -495,7 +495,9 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
     profileId: z.string().optional(),
     landmarkData: z
       .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
-      .length(42),
+      .refine((arr) => arr.length === 21 || arr.length === 42, {
+        message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1]',
+      }),
   });
   const BodySchema = z.object({ samples: z.array(SampleSchema).min(1) });
   const parsed = BodySchema.safeParse(req.body);
