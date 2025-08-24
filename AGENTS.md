@@ -1,6 +1,8 @@
 # AGENTS.md - Amy's Echo Contributor Guide
 
 Amy's Echo is a multimodal communication platform for non-verbal children. This guide defines how to work in this repository. Study the existing code and tests before writing new code. Favour real implementations over mocks and keep tests active.
+For guidelines specific to the application or server, see the `AGENTS.md` files in the `app/` and `server/` directories.
+Paths in this document are relative to the repository root unless noted otherwise.
 
 ## Workflow
 
@@ -40,5 +42,5 @@ npm test --prefix integration
 
 ## Shell Conventions
 
-- Use `rg` for searching code (`rg "text"`).
-- Use `ls` for directory listings. Avoid recursive `ls -R` or `grep -R`.
+- Use `rg` (ripgrep, may require installation) for searching code; `grep -R` is acceptable if `rg` is unavailable.
+- Use `ls` for directory listings. Avoid recursive `ls -R` unless necessary.

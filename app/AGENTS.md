@@ -1,6 +1,6 @@
 # AGENTS.md - App Guidelines
 
-Scope: All files under `app/`.
+Scope: All files under `app/`. Paths are relative to this directory.
 
 ## Coding
 
@@ -10,7 +10,7 @@ Scope: All files under `app/`.
 
 ## Testing
 
-- When modifying code, update or add tests in `app/test`.
+- When modifying code, update or add tests in `test/`.
 - Do not use `test.skip` or `describe.skip`.
 - Keep mocks minimal; mock only external modules or native APIs.
 - Run:

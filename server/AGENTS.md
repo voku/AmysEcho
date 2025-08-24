@@ -1,6 +1,6 @@
 # AGENTS.md - Server Guidelines
 
-Scope: All files under `server/`.
+Scope: All files under `server/`. Paths are relative to this directory.
 
 ## Coding
 
