@@ -480,7 +480,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
     profileId: z.string().optional(),
     landmarkData: z
       .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
-      .length(21),
+      .length(42),
   });
   const BodySchema = z.object({ samples: z.array(SampleSchema).min(1) });
   const parsed = BodySchema.safeParse(req.body);
