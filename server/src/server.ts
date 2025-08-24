@@ -94,6 +94,7 @@ interface TrainingJob {
   endedAt?: number;
 }
 const trainingJobs = new Map<string, TrainingJob>();
+let trainingLock = false;
 
 // Utility to generate lightweight unique ids
 const genId = () =>
@@ -459,6 +460,13 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
   job.status = 'running';
   job.startedAt = Date.now();
   setImmediate(async () => {
+    if (trainingLock) {
+      job.status = 'failed';
+      job.error = 'Another training job is in progress.';
+      job.endedAt = Date.now();
+      return;
+    }
+    trainingLock = true;
     try {
       const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
       await fs.mkdir(DATA_DIR, { recursive: true });
@@ -496,6 +504,8 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       job.status = 'failed';
       job.error = e instanceof Error ? e.message : String(e);
       job.endedAt = Date.now();
+    } finally {
+      trainingLock = false;
     }
   });
 

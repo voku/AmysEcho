@@ -9,7 +9,7 @@ type Frame = number[][][]; // hands -> 21x3
 export async function buildLocalCentroids(): Promise<CentroidMap> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   if (!raw) return {};
-  let data: Array<{ gestureDefinitionId: string; landmarkData: Frame[] | Frame[][][] }> = [];
+  let data: Array<{ gestureDefinitionId: string; landmarkData: Frame[] }> = [];
   try { data = JSON.parse(raw); } catch { return {}; }
 
   const sums: Record<string, { sum: number[][]; count: number }> = {};
@@ -45,7 +45,7 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
 export async function getLocalCentroidSummary(): Promise<Record<string, number>> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   if (!raw) return {};
-  let data: Array<{ gestureDefinitionId: string; landmarkData: Frame[] | Frame[][][] }> = [];
+  let data: Array<{ gestureDefinitionId: string; landmarkData: Frame[] }> = [];
   try { data = JSON.parse(raw); } catch { return {}; }
 
   const counts: Record<string, number> = {};
