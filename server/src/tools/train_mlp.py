@@ -1,25 +1,34 @@
+#!/usr/bin/env python3
 
 import json
-import numpy as np
 import os
 from collections import defaultdict
 
+import numpy as np
+
 # --- Config ---
-DATASET_PATH = os.path.join(os.path.dirname(__file__), '../../data/dgs_samples.json')
-MODEL_PATH = os.path.join(os.path.dirname(__file__), '../../data/dgs_model.npz')
-INPUT_SIZE = 63  # 21 landmarks * 3 coords (x, y, z)
-HIDDEN_SIZE = 128
-LEARNING_RATE = 0.01
-EPOCHS = 500
+DATASET_PATH = os.environ.get(
+    "MLP_DATASET_PATH",
+    os.path.join(os.path.dirname(__file__), "../../data/dgs_samples.json"),
+)
+MODEL_PATH = os.environ.get(
+    "MLP_MODEL_PATH",
+    os.path.join(os.path.dirname(__file__), "../../data/dgs_model.npz"),
+)
+HIDDEN_SIZE = int(os.environ.get("MLP_HIDDEN_SIZE", "128"))
+LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))
+EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
 
 # --- Normalization (must match recognizer) ---
 def _normalize(lm):
+    """Normalize landmarks to be wrist-centered and scale-invariant."""
     if not lm or len(lm) < 21:
         return None
-    # Center on wrist
-    wrist = np.array(lm[0])
-    pts = np.array(lm) - wrist
-    # Scale by max distance
+
+    pts = np.array(lm[:21])
+    wrist = pts[0]
+    pts = pts - wrist
+
     max_dist = np.max(np.sum(np.abs(pts[:, :2]), axis=1))
     if max_dist == 0:
         return None
@@ -39,9 +48,11 @@ def softmax(x):
 
 def train_mlp(X, y, output_size):
     print(f"Training MLP for {EPOCHS} epochs...")
-    
+
+    input_size = X.shape[1]
+
     # Initialize weights
-    w1 = np.random.randn(INPUT_SIZE, HIDDEN_SIZE) * 0.01
+    w1 = np.random.randn(input_size, HIDDEN_SIZE) * 0.01
     b1 = np.zeros((1, HIDDEN_SIZE))
     w2 = np.random.randn(HIDDEN_SIZE, output_size) * 0.01
     b2 = np.zeros((1, output_size))
@@ -79,8 +90,7 @@ def train_mlp(X, y, output_size):
         w2 -= LEARNING_RATE * dw2
         b2 -= LEARNING_RATE * db2
 
-        if (epoch + 1) % 100 == 0:
-            print(f"  Epoch {epoch + 1}/{EPOCHS}, Loss: {loss:.4f}")
+        print(f"Epoch {epoch + 1}/{EPOCHS}, Loss: {loss:.4f}", flush=True)
             
     return w1, b1, w2, b2
 

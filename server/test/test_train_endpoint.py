@@ -13,10 +13,13 @@ def start_server():
     env = os.environ.copy()
     env.setdefault('API_TOKEN', 'testtoken')
     env.setdefault('PORT', PORT)
-    env.setdefault('TRAIN_SCRIPT', 'mockTrain.py')
-    model_file = SERVER_DIR / 'data' / 'trained_model.json'
-    if model_file.exists():
-        model_file.unlink()
+    # Run the real training script but keep epochs low for test speed
+    env.setdefault('MLP_SCRIPT', 'src/tools/train_mlp.py')
+    env.setdefault('MLP_EPOCHS', '5')
+    data_dir = SERVER_DIR / 'data'
+    if data_dir.exists():
+        for f in data_dir.glob('*'):
+            f.unlink()
     subprocess.run(['npm', 'run', 'build'], cwd=SERVER_DIR, env=env, check=True, stdout=subprocess.DEVNULL)
     proc = subprocess.Popen(['node', 'dist/server.js'], cwd=SERVER_DIR, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     # wait for server up
@@ -49,7 +52,9 @@ def test_train_endpoint(tmp_path):
     proc = start_server()
     try:
         url = f'http://localhost:{PORT}/train-model'
-        samples = [{"gestureDefinitionId": "g1", "landmarkData": [[0.0] * 63]}]
+        # vary landmark coordinates slightly so normalization succeeds
+        landmarks = [[i * 0.01, 0.1, 0.1] for i in range(42)]
+        samples = [{"gestureDefinitionId": "g1", "profileId": "p1", "landmarkData": landmarks}]
         data = json.dumps({'samples': samples}).encode('utf-8')
         headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer testtoken'}
         req = urllib.request.Request(url, data=data, headers=headers)
@@ -71,7 +76,7 @@ def test_train_endpoint(tmp_path):
                 raise RuntimeError('training did not complete')
             time.sleep(0.2)
 
-        # ensure model downloadable
+        # ensure centroid model downloadable
         model_req = urllib.request.Request(
             f'http://localhost:{PORT}/latest-model',
             headers={'Authorization': 'Bearer testtoken'},
@@ -79,10 +84,17 @@ def test_train_endpoint(tmp_path):
         with urllib.request.urlopen(model_req) as mresp:
             assert mresp.getcode() == 200
             data = json.loads(mresp.read().decode())
-            assert data == {"mock": True}
+            assert data.get('type') == 'centroid_model'
+
+        # verify MLP model files created
+        npz = SERVER_DIR / 'data' / 'dgs_model.npz'
+        prof_npz = SERVER_DIR / 'data' / 'dgs_model_p1.npz'
+        assert npz.exists()
+        assert prof_npz.exists()
     finally:
         stop_server(proc)
-        # cleanup produced model
-        model_file = SERVER_DIR / 'data' / 'trained_model.json'
-        if model_file.exists():
-            model_file.unlink()
+        # cleanup produced model files
+        data_dir = SERVER_DIR / 'data'
+        if data_dir.exists():
+            for f in data_dir.glob('*'):
+                f.unlink()

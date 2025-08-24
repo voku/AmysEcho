@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { createHash } from 'crypto';
+import { spawn } from 'child_process';
 import { getCentroids } from './services/dgsModelService';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
@@ -575,6 +576,40 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
           await fs.writeFile(tmp, JSON.stringify(pOut));
           await fs.rename(tmp, file);
         });
+      }
+
+      // Run MLP training script after centroids succeed
+      const scriptPath = process.env.MLP_SCRIPT || 'src/tools/train_mlp.py';
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn('python3', [scriptPath], {
+          cwd: path.join(__dirname, '..'),
+        });
+        proc.stdout.on('data', (d) => {
+          d
+            .toString()
+            .split(/\r?\n/)
+            .forEach((line: string) => {
+              const m = line.match(/Epoch\s+(\d+)\/(\d+)/);
+              if (m) {
+                const cur = parseInt(m[1], 10);
+                const total = parseInt(m[2], 10);
+                if (total > 0) {
+                  job.progress = 75 + Math.round((cur / total) * 25);
+                }
+              }
+            });
+        });
+        proc.on('error', reject);
+        proc.on('close', (code) => {
+          code === 0 ? resolve() : reject(new Error(`MLP training failed (${code})`));
+        });
+      });
+
+      // Copy model for profile-specific variants
+      const baseModel = path.join(DATA_DIR, 'dgs_model.npz');
+      for (const pid of profileIds) {
+        const dest = path.join(DATA_DIR, `dgs_model_${pid}.npz`);
+        await fs.copyFile(baseModel, dest).catch(() => {});
       }
 
       job.progress = 100;
