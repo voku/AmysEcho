@@ -90,7 +90,7 @@ def train_mlp(X, y, output_size):
         w2 -= LEARNING_RATE * dw2
         b2 -= LEARNING_RATE * db2
 
-        print(f"Epoch {epoch + 1}/{EPOCHS}, Loss: {loss:.4f}", flush=True)
+        print(json.dumps({"type": "progress", "current": epoch + 1, "total": EPOCHS}), flush=True)
             
     return w1, b1, w2, b2
 

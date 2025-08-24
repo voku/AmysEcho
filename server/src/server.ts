@@ -592,14 +592,18 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
           const lines = lineBuffer.split(/\r?\n/);
           lineBuffer = lines.pop() ?? '';
           for (const line of lines) {
-            if (!line) continue;
-            const m = line.match(/Epoch\s+(\d+)\/(\d+)/);
-            if (m) {
-              const cur = parseInt(m[1], 10);
-              const total = parseInt(m[2], 10);
-              if (total > 0) {
-                job.progress = 75 + Math.round((cur / total) * 25);
+            if (!line.trim()) continue;
+            try {
+              const msg = JSON.parse(line);
+              if (msg && msg.type === 'progress') {
+                const cur = Number(msg.current);
+                const total = Number(msg.total);
+                if (total > 0) {
+                  job.progress = 75 + Math.round((cur / total) * 25);
+                }
               }
+            } catch {
+              /* ignore non-JSON lines */
             }
           }
         });
