@@ -6,6 +6,7 @@ Amy is four years old. She was born with **22q11 Deletion Syndrome** and communi
 
 This project turns those gestures into speech and symbols so she can be heard anywhere.
 Each child profile receives a personalized gesture model trained from its own samples, making the system effective for 22q11 workflows in group settings like kindergartens.
+Runtime classification relies on centroid-based models cached on the device; tiny `.tflite` files under `app/assets/models` are legacy placeholders kept only for tests.
 
 ---
 
