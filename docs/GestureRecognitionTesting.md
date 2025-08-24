@@ -33,13 +33,13 @@ Test each of these gestures 10 times and record results:
 
 ### Confidence Threshold Testing
 1. Perform each gesture with varying clarity (clear, partially occluded, fast movement)
-2. Note when the server classification fails and the offline fallback takes over
+2. Note when centroid fallback triggers due to low confidence
 3. Note when correction panel appears
 
-### Hybrid System Testing
-1. Test with internet connection (should classify via the remote server)
-2. Test without internet (should rely on the offline rule-based classifier)
-3. Verify response times for both modes
+### Network Variance Testing
+1. Test with internet connection to allow training uploads
+2. Disable internet connection and confirm gestures still classify locally
+3. After reconnecting, verify queued samples sync successfully
 
 ### Performance Testing
 1. Monitor WebView telemetry via `adb logcat | grep -i webview-gesture`
@@ -48,8 +48,7 @@ Test each of these gestures 10 times and record results:
 
 ## Success Criteria (Baseline)
 - ✅ >80% accuracy on clear gestures
-- ✅ <400ms average response time for server classification
-- ✅ <200ms response time for offline fallback
+- ✅ <200ms average response time for on-device classification
 - ✅ No crashes during 5-minute continuous use
 - ✅ Appropriate confidence indicators in UI
 
