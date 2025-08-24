@@ -44,28 +44,47 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
     if (!response.ok) {
       throw new Error(`Failed to sync training data: ${response.status}`);
     }
+
+    let jobId: string | undefined;
     try {
-      const { jobId } = await response.json().catch(() => ({} as any));
-      if (jobId) {
-        const headers = { Authorization: `Bearer ${token || ''}` } as any;
-        const start = Date.now();
-        opts?.onProgress?.(0);
-        while (Date.now() - start < 30000) {
+      const parsed = await response.json();
+      jobId = parsed?.jobId;
+    } catch (e) {
+      logger.warn('failed to parse training response', e);
+    }
+
+    if (jobId) {
+      const headers = { Authorization: `Bearer ${token || ''}` } as any;
+      const start = Date.now();
+      const POLL_TIMEOUT_MS = 60000;
+      const POLL_INTERVAL_MS = 1000;
+      let failures = 0;
+      opts?.onProgress?.(0);
+      while (Date.now() - start < POLL_TIMEOUT_MS) {
+        try {
           const s = await fetch(`${API_URL}/train-status/${jobId}`, { headers });
           if (s.ok) {
-            const info = await s.json();
-            if (typeof info.progress === 'number') {
-              opts?.onProgress?.(Math.max(0, Math.min(100, info.progress)));
+            const info = await s.json().catch(() => null);
+            if (info) {
+              if (typeof info.progress === 'number') {
+                opts?.onProgress?.(Math.max(0, Math.min(100, info.progress)));
+              }
+              if (info.status === 'completed') { opts?.onProgress?.(100); break; }
+              if (info.status === 'failed') throw new Error('training failed');
             }
-            if (info.status === 'completed') { opts?.onProgress?.(100); break; }
-            if (info.status === 'failed') throw new Error('training failed');
+            failures = 0;
+          } else {
+            failures += 1;
           }
-          await new Promise((r) => setTimeout(r, 500));
+        } catch (err) {
+          failures += 1;
         }
-        await fetchCentroids(profile?.id || undefined).catch(() => {});
+        if (failures >= 3) {
+          throw new Error('training status polling failed');
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       }
-    } catch (e) {
-      logger.warn('training status polling failed', e);
+      await fetchCentroids(profile?.id || undefined).catch(() => {});
     }
     for (const p of pending) p.syncStatus = 'synced';
     await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));

@@ -437,21 +437,19 @@ app.post('/dialog', auth, dialogLimiter, async (req: Request, res: Response) => 
 });
 
 app.post('/train-model', auth, async (req: Request, res: Response) => {
-  const samples = req.body?.samples;
-  // Basic payload validation to avoid cryptic training failures
-  if (
-    !Array.isArray(samples) ||
-    !samples.every(
-      (s: any) =>
-        s && typeof s.gestureDefinitionId === 'string' && Array.isArray(s.landmarkData),
-    )
-  ) {
-    res.status(400).json({
-      error:
-        'Invalid samples payload. Expecting an array of objects with gestureDefinitionId (string) and landmarkData (array).',
-    });
-    return;
+  const SampleSchema = z.object({
+    gestureDefinitionId: z.string().min(1),
+    landmarkData: z.array(z.any()),
+    profileId: z.string().optional(),
+  });
+  const BodySchema = z.object({ samples: z.array(SampleSchema) });
+  const parsed = BodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: 'Invalid samples payload.', details: parsed.error.flatten() });
   }
+  const samples = parsed.data.samples;
 
   const id = genId();
   const job: TrainingJob = { id, status: 'queued', progress: 0 };
@@ -462,7 +460,6 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
   job.startedAt = Date.now();
   setImmediate(async () => {
     try {
-      job.progress = 10;
       const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
       await fs.mkdir(DATA_DIR, { recursive: true });
       let data: any = { samples: [] };
@@ -478,12 +475,16 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         landmarks: s.landmarkData,
         ts: Date.now(),
       }));
-      data.samples.push(...toAdd);
+      const total = toAdd.length || 1;
+      toAdd.forEach((s: any, idx: number) => {
+        data.samples.push(s);
+        job.progress = Math.round(((idx + 1) / total) * 50);
+      });
       await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
 
-      job.progress = 60;
       // Compute centroids (global) and publish as the trained model
       const { centroids, counts } = await getCentroids();
+      job.progress = 75;
       const out = { type: 'centroid_model', updatedAt: Date.now(), centroids, counts } as any;
       await fs.mkdir(path.dirname(TRAINED_MODEL_PATH), { recursive: true });
       await fs.writeFile(TRAINED_MODEL_PATH, JSON.stringify(out));
