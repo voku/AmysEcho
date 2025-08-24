@@ -85,7 +85,7 @@ def test_train_endpoint(tmp_path):
             assert model.get("type") == "centroid_model"
             assert "g1" in model.get("centroids", {})
             assert len(model["centroids"]["g1"]) == 42
-            assert model["counts"].get("g1") == 1
+            assert model.get("counts", {}).get("g1") == 1
     finally:
         stop_server(proc)
         # cleanup produced model
