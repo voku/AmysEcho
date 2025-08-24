@@ -34,7 +34,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let telemetryInterval: ReturnType<typeof setInterval> | undefined;
     async function initializeServices() {
       try {
-        // WebView + server path: no native TFLite model loading here.
+        // WebView + server path: no native TensorFlow model loading here.
         await audioService.initialize();
         setAreServicesReady(true);
         if (!offline) {
@@ -42,13 +42,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             syncTrainingData().catch(() => {});
             checkForModelUpdate().catch(() => {});
             syncService.uploadPendingTrainingData().catch(() => {});
-            syncService.checkForNewModel().catch(() => {});
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
           checkForModelUpdate().catch(() => {});
           syncService.uploadPendingTrainingData().catch(() => {});
-          syncService.checkForNewModel().catch(() => {});
 
           // Lightweight periodic telemetry upload
           telemetryInterval = setInterval(() => {

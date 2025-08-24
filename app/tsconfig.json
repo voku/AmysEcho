@@ -10,7 +10,6 @@
     "moduleResolution": "Bundler",
     "types": [
       "node",
-      "./mock-types",
       "jest"
     ],
     "resolveJsonModule": true,
@@ -31,7 +30,8 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/declarations.d.ts"
+    "src/declarations.d.ts",
+    "mock-types.d.ts"
   ],
   "extends": "expo/tsconfig.base"
 }

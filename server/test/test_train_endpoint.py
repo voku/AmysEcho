@@ -14,7 +14,7 @@ def start_server():
     env.setdefault('API_TOKEN', 'testtoken')
     env.setdefault('PORT', PORT)
     env.setdefault('TRAIN_SCRIPT', 'mockTrain.py')
-    model_file = SERVER_DIR / 'trained_model.tflite'
+    model_file = SERVER_DIR / 'trained_model.json'
     if model_file.exists():
         model_file.unlink()
     subprocess.run(['npm', 'run', 'build'], cwd=SERVER_DIR, env=env, check=True, stdout=subprocess.DEVNULL)
@@ -72,13 +72,17 @@ def test_train_endpoint(tmp_path):
             time.sleep(0.2)
 
         # ensure model downloadable
-        model_req = urllib.request.Request(f'http://localhost:{PORT}/latest-model', headers={'Authorization': 'Bearer testtoken'})
+        model_req = urllib.request.Request(
+            f'http://localhost:{PORT}/latest-model',
+            headers={'Authorization': 'Bearer testtoken'},
+        )
         with urllib.request.urlopen(model_req) as mresp:
             assert mresp.getcode() == 200
-            assert mresp.read() == b'MOCK'
+            data = json.loads(mresp.read().decode())
+            assert data == {"mock": True}
     finally:
         stop_server(proc)
         # cleanup produced model
-        model_file = SERVER_DIR / 'trained_model.tflite'
+        model_file = SERVER_DIR / 'trained_model.json'
         if model_file.exists():
             model_file.unlink()

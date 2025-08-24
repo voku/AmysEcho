@@ -20,11 +20,6 @@ declare module 'expo-device' {
   export function getThermalStateAsync(): Promise<number>;
 }
 
-declare module 'react-native-fast-tflite' {
-  export type TensorflowModel = any;
-  export function loadTensorflowModel(source: any): Promise<any>;
-}
-
 declare module '@testing-library/react-native';
 declare module 'expo-camera' {
   export const Camera: any;

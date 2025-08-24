@@ -7,7 +7,7 @@ jest.mock('@react-native-community/netinfo', () => ({
 }));
 
 jest.mock('expo-file-system', () => ({
-  downloadAsync: jest.fn().mockResolvedValue({ uri: '/tmp/model.tflite' }),
+  downloadAsync: jest.fn().mockResolvedValue({ uri: '/tmp/model.json' }),
 }));
 
 jest.mock('../src/storage', () => ({
@@ -18,7 +18,7 @@ jest.mock('../src/storage', () => ({
 }));
 
 jest.mock('../src/constants/modelPaths', () => ({
-  CUSTOM_GESTURE_MODEL_PATH: '/tmp/model.tflite',
+  CUSTOM_GESTURE_MODEL_PATH: '/tmp/model.json',
 }));
 
 jest.mock('../src/constants', () => ({
@@ -76,7 +76,7 @@ describe('checkForModelUpdate', () => {
     );
     expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
       'https://example.com/latest-model?profileId=p1',
-      '/tmp/model.tflite',
+      '/tmp/model.json',
       expect.anything(),
     );
   });

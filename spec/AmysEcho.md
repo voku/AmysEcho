@@ -89,7 +89,7 @@ The system will operate in two modes to provide the best possible experience.
 | Offline (Fallback) | Required | Uses a local, on-device centroid model cached from the server to ensure the app is always functional, even without internet. |
 ❗ LLM/DEV HINT: Do not assume a persistent connection. The system must gracefully and instantly transition between Online and Offline modes without any user-facing errors.
 
-*Note: TFLite artifacts such as `gesture_classifier.tflite` remain only as placeholders for legacy tests; runtime classification relies on these centroid models instead.*
+*Runtime classification relies on centroid models; TFLite artifacts have been removed.*
 
 3.2 Component Stack
 | Layer | Technology/Library | Justification |
@@ -188,7 +188,7 @@ This is the cloud-based loop for long-term, powerful model improvement.
  * Consent Check: It will only proceed if consent_helpMeGetSmarter is true.
  * Sync: The consented training data (the anonymized landmark vectors and their correct labels) is securely uploaded to a cloud service.
  * Retraining: Periodically, this new data is used to retrain the global cloud ML model, creating a new, more accurate version.
-* Deployment: The updated cloud model is deployed. The app refreshes its cached centroid JSON; legacy `gesture_classifier.tflite` files remain test placeholders only.
+* Deployment: The updated cloud model is deployed. The app refreshes its cached centroid JSON.
 
 6.3 Profile-Specific Models
 Each child profile maintains its own centroid model on the server. Training data uploaded with a profileId updates that child's model, and the client passes this profileId to `/latest-model` or `/model-metadata` to fetch the personalized artifact. If no profileId is provided, a shared fallback model is used.

@@ -28,20 +28,3 @@ This is the mobile application for Amy's Echo, a multimodal communication platfo
     npm run ios
     ```
 
-## Troubleshooting
-
-### `.tflite` files not found
-
-If you encounter an error where the `.tflite` model files are not found, you may need to create a `metro.config.js` file in the `app` directory with the following content:
-
-```javascript
-const { getDefaultConfig } = require('expo/metro-config');
-
-const config = getDefaultConfig(__dirname);
-
-config.resolver.assetExts.push('tflite');
-
-module.exports = config;
-```
-
-This will ensure that the Metro bundler includes the `.tflite` files in the build.

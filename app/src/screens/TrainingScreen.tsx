@@ -9,7 +9,7 @@ import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { audioService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
-// Local TFLite landmark detection removed; relies on server fallback below.
+  // Local landmark detection removed; relies on server fallback below.
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';

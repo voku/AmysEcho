@@ -340,4 +340,4 @@ def recognize_gesture():
 ## Recommended path
 Start with **Solution 1 (WebView + Tasks Vision)**. It works instantly in Expo dev builds, produces landmarks for server classification, and now avoids CDNs by pulling required assets through the backend.
 
-Note on `.tflite` assets: TFLite models are no longer used at runtime in this WebView path. Tiny placeholder files exist under `app/assets/models` to satisfy a couple of tests. If we update or remove those tests, the files can be deleted.
+Note: TFLite models are no longer used at runtime, and related assets have been removed.
