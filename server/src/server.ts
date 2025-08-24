@@ -468,15 +468,15 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         data = JSON.parse(raw);
         if (!Array.isArray(data.samples)) data.samples = [];
       } catch {}
-      const toAdd = samples.map((s: any) => ({
+      const toAdd = samples.map((s) => ({
         id: genId(),
         label: s.gestureDefinitionId,
-        profileId: typeof s.profileId === 'string' ? s.profileId : undefined,
+        profileId: s.profileId,
         landmarks: s.landmarkData,
         ts: Date.now(),
       }));
       const total = toAdd.length || 1;
-      toAdd.forEach((s: any, idx: number) => {
+      toAdd.forEach((s, idx) => {
         data.samples.push(s);
         job.progress = Math.round(((idx + 1) / total) * 50);
       });
@@ -492,9 +492,9 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       job.progress = 100;
       job.status = 'completed';
       job.endedAt = Date.now();
-    } catch (e: any) {
+    } catch (e: unknown) {
       job.status = 'failed';
-      job.error = e?.message || String(e);
+      job.error = e instanceof Error ? e.message : String(e);
       job.endedAt = Date.now();
     }
   });

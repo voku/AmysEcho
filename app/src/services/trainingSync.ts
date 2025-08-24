@@ -76,8 +76,10 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
                 break;
               }
               if (info.status === 'failed') throw new Error('training failed');
+              failures = 0;
+            } else {
+              failures += 1;
             }
-            failures = 0;
           } else {
             failures += 1;
           }
