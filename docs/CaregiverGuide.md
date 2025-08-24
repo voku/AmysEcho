@@ -23,6 +23,7 @@ This guide helps caregivers set up and use **Amy's Echo** with a child who commu
 ## Review and Practice
 - Practice banners occasionally appear to rehearse signs. Tap to begin a guided practice session.
 - Each correction and practice improves future recognition automatically.
+- For recurring reminders, open the **Practice Scheduler** from the Parent area to choose days and times for sessions.
 
 ## Tips
 - The app logs corrections and training data; avoid sharing the device without supervision.
