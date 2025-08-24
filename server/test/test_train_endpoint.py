@@ -14,7 +14,7 @@ def start_server():
     env.setdefault('API_TOKEN', 'testtoken')
     env.setdefault('PORT', PORT)
     env.setdefault('TRAIN_SCRIPT', 'mockTrain.py')
-    model_file = SERVER_DIR / 'trained_model.json'
+    model_file = SERVER_DIR / 'data' / 'trained_model.json'
     if model_file.exists():
         model_file.unlink()
     subprocess.run(['npm', 'run', 'build'], cwd=SERVER_DIR, env=env, check=True, stdout=subprocess.DEVNULL)
@@ -83,6 +83,6 @@ def test_train_endpoint(tmp_path):
     finally:
         stop_server(proc)
         # cleanup produced model
-        model_file = SERVER_DIR / 'trained_model.json'
+        model_file = SERVER_DIR / 'data' / 'trained_model.json'
         if model_file.exists():
             model_file.unlink()

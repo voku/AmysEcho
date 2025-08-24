@@ -1,6 +1,7 @@
 import { checkForModelUpdate } from '../src/services/modelUpdate';
 import NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
+import { CUSTOM_GESTURE_MODEL_PATH } from '../src/constants';
 
 jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(),
@@ -17,12 +18,9 @@ jest.mock('../src/storage', () => ({
   saveCustomModelHash: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('../src/constants/modelPaths', () => ({
-  CUSTOM_GESTURE_MODEL_PATH: '/tmp/model.json',
-}));
-
 jest.mock('../src/constants', () => ({
   API_URL: 'https://example.com',
+  CUSTOM_GESTURE_MODEL_PATH: '/tmp/model.json',
 }));
 
 jest.mock('../src/utils/logger', () => ({
@@ -76,7 +74,7 @@ describe('checkForModelUpdate', () => {
     );
     expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
       'https://example.com/latest-model?profileId=p1',
-      '/tmp/model.json',
+      CUSTOM_GESTURE_MODEL_PATH,
       expect.anything(),
     );
   });

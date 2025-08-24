@@ -1,3 +1,5 @@
+import * as FileSystem from 'expo-file-system';
+
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 export const API_TOKEN = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
 export const CONFIDENCE_THRESHOLD = 0.7;
@@ -33,3 +35,6 @@ export const LOG_LEVEL =
     | 'info'
     | 'warn'
     | 'error';
+
+export const CUSTOM_GESTURE_MODEL_PATH =
+  (FileSystem.documentDirectory || '') + 'custom_model.json';

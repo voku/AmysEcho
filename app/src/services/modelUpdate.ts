@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import NetInfo from '@react-native-community/netinfo';
 import { loadBackendApiToken, saveCustomModelUri, loadCustomModelHash, saveCustomModelHash } from '../storage';
-import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
+import { CUSTOM_GESTURE_MODEL_PATH } from '../constants';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
 

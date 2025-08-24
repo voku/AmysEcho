@@ -612,9 +612,10 @@ app.get('/model-version', auth, async (_req: Request, res: Response) => {
   }
 });
 
-app.get('/latest-model', auth, async (req: Request, res: Response) => {
-  const profileId =
-    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+function resolveModelFile(
+  profileId: string | undefined,
+  res: Response,
+): string | undefined {
   let file: string;
   try {
     file = getTrainedModelPath(profileId);
@@ -627,6 +628,14 @@ app.get('/latest-model', auth, async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }
+  return resolvedFile;
+}
+
+app.get('/latest-model', auth, async (req: Request, res: Response) => {
+  const profileId =
+    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+  const resolvedFile = resolveModelFile(profileId, res);
+  if (!resolvedFile) return;
   try {
     const stat = await fs.stat(resolvedFile);
     const buf = await fs.readFile(resolvedFile);
@@ -644,18 +653,8 @@ app.get('/latest-model', auth, async (req: Request, res: Response) => {
 app.get('/model-metadata', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-  let file: string;
-  try {
-    file = getTrainedModelPath(profileId);
-  } catch {
-    res.status(400).json({ error: 'Invalid profileId' });
-    return;
-  }
-  const resolvedFile = path.resolve(file);
-  if (!resolvedFile.startsWith(path.resolve(DATA_DIR) + path.sep)) {
-    res.status(403).json({ error: 'Forbidden' });
-    return;
-  }
+  const resolvedFile = resolveModelFile(profileId, res);
+  if (!resolvedFile) return;
   try {
     const pkgPath = path.join(__dirname, '..', 'package.json');
     const pkgRaw = await fs.readFile(pkgPath, 'utf8');
