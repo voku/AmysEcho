@@ -45,7 +45,7 @@ Troubleshooting
 - **Health score-based practice prompts**
   - ✅ Design non-blocking banner UI for practice suggestions
   - ✅ Implement gentle nudges when gesture `healthScore` falls below threshold
-  - Implement caregiver-friendly scheduling for practice sessions
+  - ✅ Implement caregiver-friendly scheduling for practice sessions
   - ✅ Add simple gamification (celebration feedback) after sessions
 - **Practice session workflow**
   - ✅ Build guided practice interface with immediate feedback
