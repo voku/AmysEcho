@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { createHash } from 'crypto';
+import { spawn } from 'child_process';
 import { getCentroids } from './services/dgsModelService';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
@@ -10,6 +11,7 @@ import {
   DATA_DIR,
   ensureDataDir,
   getTrainedModelPath,
+  getMlpModelPath,
   PROFILE_ID_PATTERN,
 } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
@@ -577,6 +579,43 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         });
       }
 
+      // Run MLP training script after centroids succeed
+      const scriptRel = process.env.MLP_SCRIPT || 'src/tools/train_mlp.py';
+      const serverRoot = path.join(__dirname, '..');
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn('python3', [path.join(serverRoot, scriptRel)], {
+          cwd: serverRoot,
+        });
+        let lineBuffer = '';
+        proc.stdout.on('data', (d) => {
+          lineBuffer += d.toString();
+          const lines = lineBuffer.split(/\r?\n/);
+          lineBuffer = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line) continue;
+            const m = line.match(/Epoch\s+(\d+)\/(\d+)/);
+            if (m) {
+              const cur = parseInt(m[1], 10);
+              const total = parseInt(m[2], 10);
+              if (total > 0) {
+                job.progress = 75 + Math.round((cur / total) * 25);
+              }
+            }
+          }
+        });
+        proc.on('error', reject);
+        proc.on('close', (code) => {
+          code === 0 ? resolve() : reject(new Error(`MLP training failed (${code})`));
+        });
+      });
+
+      // Copy model for profile-specific variants
+      const baseModel = getMlpModelPath();
+      for (const pid of profileIds) {
+        const dest = getMlpModelPath(pid);
+        await fs.copyFile(baseModel, dest);
+      }
+
       job.progress = 100;
       job.status = 'completed';
       job.endedAt = Date.now();
@@ -616,10 +655,11 @@ app.get('/model-version', auth, async (_req: Request, res: Response) => {
 async function resolveModelFile(
   profileId: string | undefined,
   res: Response,
+  getPath: (profileId?: string) => string,
 ): Promise<string | undefined> {
   let file: string;
   try {
-    file = getTrainedModelPath(profileId);
+    file = getPath(profileId);
   } catch {
     res.status(400).json({ error: 'Invalid profileId' });
     return;
@@ -645,7 +685,25 @@ async function resolveModelFile(
 app.get('/latest-model', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-  const resolvedFile = await resolveModelFile(profileId, res);
+  const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
+  if (!resolvedFile) return;
+  try {
+    const stat = await fs.stat(resolvedFile);
+    const buf = await fs.readFile(resolvedFile);
+    const sha256 = createHash('sha256').update(buf).digest('hex');
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Length', stat.size.toString());
+    res.setHeader('ETag', `"sha256-${sha256}"`);
+    res.send(buf);
+  } catch {
+    res.status(404).json({ error: 'Model not found' });
+  }
+});
+
+app.get('/latest-mlp-model', auth, async (req: Request, res: Response) => {
+  const profileId =
+    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+  const resolvedFile = await resolveModelFile(profileId, res, getMlpModelPath);
   if (!resolvedFile) return;
   try {
     const stat = await fs.stat(resolvedFile);
@@ -664,7 +722,7 @@ app.get('/latest-model', auth, async (req: Request, res: Response) => {
 app.get('/model-metadata', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-  const resolvedFile = await resolveModelFile(profileId, res);
+  const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
   if (!resolvedFile) return;
   try {
     const pkgPath = path.join(__dirname, '..', 'package.json');

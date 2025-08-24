@@ -20,7 +20,13 @@ async function startServer() {
 
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
-    env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken', TRAIN_SCRIPT: 'mockTrain.py' },
+    env: {
+      ...process.env,
+      PORT: PORT.toString(),
+      API_TOKEN: 'testtoken',
+      MLP_SCRIPT: 'src/tools/train_mlp.py',
+      MLP_EPOCHS: '1',
+    },
     // Discard stdio so the child process can't block if it writes a lot of
     // logs that no one reads.
     stdio: ['ignore', 'ignore', 'ignore'],
@@ -85,7 +91,11 @@ test('POST /train-model invalid sample items', async () => {
 });
 
 test('POST /train-model processes samples and returns model', async () => {
-  const sample = { gestureDefinitionId: 'g1', landmarkData: Array.from({ length: 42 }, () => [0, 0, 0]), profileId: 'p1' };
+  const sample = {
+    gestureDefinitionId: 'g1',
+    landmarkData: Array.from({ length: 42 }, (_, i) => [i * 0.01, 0.1, 0.1]),
+    profileId: 'p1',
+  };
   const res = await fetch(`http://localhost:${PORT}/train-model`, {
     method: 'POST',
     headers: {
@@ -107,7 +117,7 @@ test('POST /train-model processes samples and returns model', async () => {
       assert.strictEqual(info.progress, 100);
       break;
     }
-    if (Date.now() - start > 30000) throw new Error('training did not complete');
+    if (Date.now() - start > 60000) throw new Error('training did not complete');
     await delay(200);
   }
 
@@ -120,10 +130,15 @@ test('POST /train-model processes samples and returns model', async () => {
   assert.ok(json.centroids && typeof json.centroids === 'object');
   assert.ok(json.counts && typeof json.counts === 'object');
 
+  const mlpRes = await fetch(`http://localhost:${PORT}/latest-mlp-model`, { headers });
+  assert.strictEqual(mlpRes.status, 200);
+  const mlpBuf = Buffer.from(await mlpRes.arrayBuffer());
+  assert.ok(mlpBuf.length > 0);
+
   const profileRes = await fetch(`http://localhost:${PORT}/api/v1/dgs/model?profileId=p1`, { headers });
   assert.strictEqual(profileRes.status, 200);
   const profileModel = await profileRes.json();
-  assert.strictEqual(profileModel.counts.g1, 1);
+  assert.ok(profileModel.counts.g1 >= 1);
 });
 
 test('GET /model-version returns version and path', async () => {

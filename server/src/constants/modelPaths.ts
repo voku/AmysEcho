@@ -18,6 +18,18 @@ export function getTrainedModelPath(profileId?: string): string {
   }
   return TRAINED_MODEL_PATH;
 }
+
+// MLP model path (.npz)
+export const TRAINED_MLP_MODEL_PATH = path.join(DATA_DIR, 'dgs_model.npz');
+export function getMlpModelPath(profileId?: string): string {
+  if (profileId) {
+    if (!PROFILE_ID_PATTERN.test(profileId)) {
+      throw new Error('Invalid profileId');
+    }
+    return path.join(DATA_DIR, `dgs_model_${profileId}.npz`);
+  }
+  return TRAINED_MLP_MODEL_PATH;
+}
 export const GESTURE_LABELS_PATH = path.join(
   __dirname,
   '../../../app/assets/models/gesture_labels.json',
