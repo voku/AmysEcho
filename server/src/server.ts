@@ -359,7 +359,7 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
       // exactly 21 points of [x,y,z] in [0,1]
       landmarks: z
         .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
-        .length(21)
+        .length(42)
         .refine(
           (pts) => pts.every(([x, y, z]) => x >= 0 && x <= 1 && y >= 0 && y <= 1 && Number.isFinite(z)),
           'landmarks must be 21 points of [x,y,z] within [0,1] for x,y',
