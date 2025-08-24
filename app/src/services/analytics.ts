@@ -20,6 +20,12 @@ export interface InteractionLog {
   caregiverOverrideId?: string;
 }
 
+export interface GestureStats {
+  gestureDefinitionId: string;
+  successCount: number;
+  failureCount: number;
+}
+
 function genId(): string {
   return (
     Date.now().toString(36) + Math.random().toString(36).slice(2)
@@ -56,6 +62,24 @@ export async function loadAnalytics(): Promise<LearningAnalytics> {
     successRate7d: Number(success.toFixed(2)),
     improvementTrend: Number(improvement.toFixed(2)),
   };
+}
+
+export async function getGestureStats(): Promise<GestureStats[]> {
+  const raw = await AsyncStorage.getItem(LOG_KEY);
+  const logs: InteractionLog[] = raw ? JSON.parse(raw) : [];
+  const map: Record<string, { success: number; failure: number }> = {};
+
+  for (const log of logs) {
+    const entry = map[log.gestureDefinitionId] || { success: 0, failure: 0 };
+    if (log.wasSuccessful) entry.success += 1; else entry.failure += 1;
+    map[log.gestureDefinitionId] = entry;
+  }
+
+  return Object.entries(map).map(([gestureDefinitionId, { success, failure }]) => ({
+    gestureDefinitionId,
+    successCount: success,
+    failureCount: failure,
+  }));
 }
 
 export async function uploadAnalytics(
