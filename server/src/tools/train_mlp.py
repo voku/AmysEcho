@@ -21,19 +21,27 @@ EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
 
 # --- Normalization (must match recognizer) ---
 def _normalize(lm):
-    """Normalize landmarks to be wrist-centered and scale-invariant."""
-    if not lm or len(lm) < 21:
+    """Normalize two-hand landmarks to be wrist-centered and scale-invariant."""
+    if not lm or len(lm) < 42:
         return None
 
-    pts = np.array(lm[:21])
-    wrist = pts[0]
-    pts = pts - wrist
+    pts = np.array(lm[:42])
 
-    max_dist = np.max(np.sum(np.abs(pts[:, :2]), axis=1))
-    if max_dist == 0:
+    def _norm_hand(hand: np.ndarray) -> np.ndarray | None:
+        wrist = hand[0]
+        hand = hand - wrist
+        max_dist = np.max(np.sum(np.abs(hand[:, :2]), axis=1))
+        if max_dist == 0:
+            return None
+        hand /= max_dist
+        return hand
+
+    left = _norm_hand(pts[:21])
+    right = _norm_hand(pts[21:])
+    if left is None or right is None:
         return None
-    pts /= max_dist
-    return pts.flatten()
+
+    return np.concatenate([left, right]).flatten()
 
 # --- MLP Implementation (NumPy) ---
 def relu(x):
@@ -90,7 +98,7 @@ def train_mlp(X, y, output_size):
         w2 -= LEARNING_RATE * dw2
         b2 -= LEARNING_RATE * db2
 
-        print(json.dumps({"type": "progress", "current": epoch + 1, "total": EPOCHS}), flush=True)
+        print(json.dumps({"type": "progress", "current": epoch + 1, "total": EPOCHS, "loss": f"{loss:.4f}"}), flush=True)
             
     return w1, b1, w2, b2
 

@@ -3,6 +3,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { createHash } from 'crypto';
 import { spawn } from 'child_process';
+import readline from 'readline';
 import { getCentroids } from './services/dgsModelService';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
@@ -586,31 +587,34 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         const proc = spawn('python3', [path.join(serverRoot, scriptRel)], {
           cwd: serverRoot,
         });
-        let lineBuffer = '';
-        proc.stdout.on('data', (d) => {
-          lineBuffer += d.toString();
-          const lines = lineBuffer.split(/\r?\n/);
-          lineBuffer = lines.pop() ?? '';
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            try {
-              // trainer emits JSON progress lines
-              const msg = JSON.parse(line);
-              if (msg && msg.type === 'progress') {
-                const cur = Number(msg.current);
-                const total = Number(msg.total);
-                if (total > 0) {
-                  job.progress = 75 + Math.round((cur / total) * 25);
-                }
+        const stderrOutput: string[] = [];
+        proc.stderr.on('data', (d) => stderrOutput.push(d.toString()));
+
+        const rl = readline.createInterface({ input: proc.stdout });
+        rl.on('line', (line: string) => {
+          if (!line.trim()) return;
+          try {
+            const msg = JSON.parse(line);
+            if (msg && msg.type === 'progress') {
+              const cur = Number(msg.current);
+              const total = Number(msg.total);
+              if (total > 0) {
+                job.progress = 75 + Math.round((cur / total) * 25);
               }
-            } catch {
-              /* ignore non-JSON lines */
             }
+          } catch {
+            /* ignore non-JSON lines */
           }
         });
+
         proc.on('error', reject);
         proc.on('close', (code) => {
-          code === 0 ? resolve() : reject(new Error(`MLP training failed (${code})`));
+          rl.close();
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`MLP training failed (${code}): ${stderrOutput.join('')}`));
+          }
         });
       });
 
