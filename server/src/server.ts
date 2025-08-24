@@ -579,10 +579,11 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       }
 
       // Run MLP training script after centroids succeed
-      const scriptPath = process.env.MLP_SCRIPT || 'src/tools/train_mlp.py';
+      const scriptRel = process.env.MLP_SCRIPT || 'src/tools/train_mlp.py';
+      const serverRoot = path.join(__dirname, '..');
       await new Promise<void>((resolve, reject) => {
-        const proc = spawn('python3', [scriptPath], {
-          cwd: path.join(__dirname, '..'),
+        const proc = spawn('python3', [path.join(serverRoot, scriptRel)], {
+          cwd: serverRoot,
         });
         proc.stdout.on('data', (d) => {
           d
@@ -609,7 +610,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       const baseModel = path.join(DATA_DIR, 'dgs_model.npz');
       for (const pid of profileIds) {
         const dest = path.join(DATA_DIR, `dgs_model_${pid}.npz`);
-        await fs.copyFile(baseModel, dest).catch(() => {});
+        await fs.copyFile(baseModel, dest);
       }
 
       job.progress = 100;
