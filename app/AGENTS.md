@@ -16,12 +16,12 @@ Scope: All files under `app/`. Paths are relative to this directory.
 - Do not use `test.skip` or `describe.skip`.
 - Keep mocks minimal; mock only external modules or native APIs (no app internals).
 - When snapshots are intended, update them deliberately: `npm test -- --updateSnapshot`.
-- Run:
+- Run these commands from within the `app/` directory:
 
 ```bash
-npm ci --prefix app
-npm run type-check --prefix app
-npm test --prefix app
-(cd app && npx expo install --check)
-(cd app && npx expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")
+npm ci
+npm run type-check
+npm test
+npx expo install --check
+npx expo-doctor || echo "expo-doctor skipped/failed (non-blocking)"
 ```

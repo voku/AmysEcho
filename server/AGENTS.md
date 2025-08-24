@@ -21,13 +21,13 @@ Scope: All files under `server/`. Paths are relative to this directory.
 ## Testing
 
 - Avoid `test.skip` or `describe.skip` and limit mocks to external systems.
-- Run:
+- Run these commands from within the `server/` directory:
 
 ```bash
-pip install -r server/requirements.txt
-npm run type-check --prefix server # or: npx tsc -p server/tsconfig.json --noEmit
-npm test --prefix server
+pip install -r requirements.txt
+npm run type-check # or: npx tsc -p tsconfig.json --noEmit
+npm test
 # Optional (only if present in repo):
-# ruff check server && ruff format --check server
-# pytest -q server  # if Python tests exist
+# ruff check . && ruff format --check .
+# pytest -q .  # if Python tests exist
 ```

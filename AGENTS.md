@@ -67,6 +67,7 @@ npm ci --prefix server
 npm run type-check --prefix server
 pip install -r server/requirements.txt
 npm test --prefix server
+npm ci --prefix integration
 npm test --prefix integration
 ```
 
