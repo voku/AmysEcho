@@ -49,7 +49,10 @@ def test_train_endpoint(tmp_path):
     proc = start_server()
     try:
         url = f'http://localhost:{PORT}/train-model'
-        samples = [{"gestureDefinitionId": "g1", "landmarkData": [[0.0] * 63]}]
+        samples = [{
+            "gestureDefinitionId": "g1",
+            "landmarkData": [[0.0, 0.0, 0.0] for _ in range(42)],
+        }]
         data = json.dumps({'samples': samples}).encode('utf-8')
         headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer testtoken'}
         req = urllib.request.Request(url, data=data, headers=headers)
@@ -78,8 +81,11 @@ def test_train_endpoint(tmp_path):
         )
         with urllib.request.urlopen(model_req) as mresp:
             assert mresp.getcode() == 200
-            data = json.loads(mresp.read().decode())
-            assert data == {"mock": True}
+            model = json.loads(mresp.read().decode())
+            assert model.get("type") == "centroid_model"
+            assert "g1" in model.get("centroids", {})
+            assert len(model["centroids"]["g1"]) == 42
+            assert model.get("counts", {}).get("g1") == 1
     finally:
         stop_server(proc)
         # cleanup produced model
