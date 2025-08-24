@@ -186,7 +186,10 @@ This is the cloud-based loop for long-term, powerful model improvement.
  * Consent Check: It will only proceed if consent_helpMeGetSmarter is true.
  * Sync: The consented training data (the anonymized landmark vectors and their correct labels) is securely uploaded to a cloud service.
  * Retraining: Periodically, this new data is used to retrain the global cloud ML model, creating a new, more accurate version.
- * Deployment: The updated cloud model is deployed. The app can also be updated with a new, improved version of the local gesture_classifier.tflite derived from this global training.
+* Deployment: The updated cloud model is deployed. The app can also be updated with a new, improved version of the local gesture_classifier.tflite derived from this global training.
+
+6.3 Profile-Specific Models
+Each child profile maintains its own centroid model on the server. Training data uploaded with a profileId updates that child's model, and the client passes this profileId to `/latest-model` or `/model-metadata` to fetch the personalized artifact. If no profileId is provided, a shared fallback model is used.
 
 🧾 Chapter 7 – The Handoff: For Future Developers and LLMs
 “You’re not inheriting code. You’re inheriting trust.”

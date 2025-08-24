@@ -7,6 +7,7 @@
 - On-device gesture classification via MediaPipe Tasks JS (CDN), with simple rule-based assist
 - Training/recognition workflow operational
 - Documentation updated in `docs/ExpoGestureRecognition.md`
+- Server persists and serves centroid models per child profile via `profileId`
 
 ## Now: Android USB Device Runbook
 *Quick steps to validate on a real device connected via USB*
