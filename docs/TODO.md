@@ -13,6 +13,17 @@
 - Training/recognition workflow operational
 - Documentation updated in `docs/ExpoGestureRecognition.md`
 - Server persists and serves centroid models per child profile via `profileId`
+## MLP Model Training & App Integration Plan
+1. **Collect samples** – record 21/42 landmark arrays and upload via `/train-model` with an optional `profileId`.
+2. **Run training** – server updates centroids, then spawns `python3 src/tools/train_mlp.py` and streams JSON progress.
+3. **Monitor status** – client polls `/train-status` until `progress` reaches 100.
+4. **Persist models** – training writes `data/dgs_model.npz` and copies `data/dgs_model_<profileId>.npz` when a profile is supplied.
+5. **Download weights** – app requests `/latest-mlp-model` (with `profileId` when needed) and stores the `.npz` file locally.
+6. **Parse `.npz`** – implement a lightweight NPZ parser to extract weight matrices and bias vectors.
+7. **Run inference** – execute the MLP forward pass on normalized landmarks within the WebView and map outputs to gesture labels.
+8. **Fallback strategy** – if loading fails, fall back to centroid or rule-based classification while logging an error for caregivers.
+9. **Version checks** – compare model timestamps and refresh when a newer file is available from the server.
+10. **End-to-end test** – train with real samples, download the model, and verify app predictions on-device.
 
 ## Now: Android USB Device Runbook
 *Quick steps to validate on a real device connected via USB*
