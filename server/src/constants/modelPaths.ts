@@ -1,4 +1,5 @@
 import path from 'path';
+import { promises as fs } from 'fs';
 
 // Resolve paths relative to the compiled server directory to avoid CWD issues
 // __dirname is .../dist/constants after build, so go two levels up to reach repo's server dir
@@ -11,3 +12,8 @@ export const GESTURE_CLASSIFIER_MODEL_PATH = path.join(__dirname, '../../../app/
 export const TRAINED_MODEL_PATH = path.join(DATA_DIR, 'trained_model.json');
 export const GESTURE_LABELS_PATH = path.join(__dirname, '../../../app/assets/models/gesture_labels.json');
 export const MODEL_VERSIONS_PATH = path.join(__dirname, '../../../app/assets/models/versions.json');
+
+// Ensure DATA_DIR exists before any read/write
+export async function ensureDataDir(): Promise<void> {
+  await fs.mkdir(DATA_DIR, { recursive: true });
+}

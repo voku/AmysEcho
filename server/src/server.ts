@@ -5,7 +5,7 @@ import { createHash } from 'crypto';
 import { getCentroids } from './services/dgsModelService';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { TRAINED_MODEL_PATH, DATA_DIR } from './constants/modelPaths';
+import { TRAINED_MODEL_PATH, DATA_DIR, ensureDataDir } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
 import {
   setupDatabase,
@@ -78,6 +78,34 @@ app.use('/caregiver-portal', express.static(path.join(__dirname, 'caregiver-port
 
 app.use('/api/caregiver-portal', auth, caregiverPortalApiRouter);
 
+// Simple per-file async lock
+const fileLocks = new Map<string, Promise<void>>();
+async function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
+  const prev = fileLocks.get(file) ?? Promise.resolve();
+  let release!: () => void;
+  const next = new Promise<void>((res) => (release = res));
+  fileLocks.set(file, prev.finally(() => next));
+  try {
+    return await fn();
+  } finally {
+    release();
+    if (fileLocks.get(file) === next) fileLocks.delete(file);
+  }
+}
+
+// In-memory training job queue to serialize model updates
+const trainingQueue: Array<() => Promise<void>> = [];
+let trainingRunning = false;
+function runNextTraining() {
+  if (trainingRunning) return;
+  const next = trainingQueue.shift();
+  if (!next) return;
+  trainingRunning = true;
+  next().finally(() => {
+    trainingRunning = false;
+    runNextTraining();
+  });
+}
 // Apply generic rate limiting to API namespace
 app.use('/api', apiLimiter);
 
@@ -94,7 +122,6 @@ interface TrainingJob {
   endedAt?: number;
 }
 const trainingJobs = new Map<string, TrainingJob>();
-let trainingLock = false;
 
 // Utility to generate lightweight unique ids
 const genId = () =>
@@ -324,28 +351,38 @@ app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
 });
 
   // Add a labeled DGS sample (landmarks normalized [0..1])
-  app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
+app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
   try {
     const Body = z.object({
       label: z.string().min(1),
       profileId: z.string().optional(),
-      landmarks: z.array(z.array(z.array(z.number()))).min(1),
+      // exactly 21 points of [x,y,z] in [0,1]
+      landmarks: z
+        .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
+        .length(21)
+        .refine(
+          (pts) => pts.every(([x, y, z]) => x >= 0 && x <= 1 && y >= 0 && y <= 1 && Number.isFinite(z)),
+          'landmarks must be 21 points of [x,y,z] within [0,1] for x,y',
+        ),
     });
     const parsed = Body.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'label and a sequence of landmarks (Nx21x3) required' });
+      return res
+        .status(400)
+        .json({ error: 'label and landmarks (21 × [x,y,z]) required', details: parsed.error.flatten() });
     }
     const { label, profileId, landmarks } = parsed.data;
     const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    let data: any = { samples: [] };
-    try {
-      const raw = await fs.readFile(dataPath, 'utf8');
-      data = JSON.parse(raw);
-      if (!Array.isArray(data.samples)) data.samples = [];
-    } catch {}
-    data.samples.push({ id: genId(), label, profileId, landmarks, ts: Date.now() });
-    await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
+    await withFileLock(dataPath, async () => {
+      let data: any = { samples: [] };
+      try {
+        const raw = await fs.readFile(dataPath, 'utf8');
+        data = JSON.parse(raw);
+        if (!Array.isArray(data.samples)) data.samples = [];
+      } catch {}
+      data.samples.push({ id: genId(), label, profileId, landmarks, ts: Date.now() });
+      await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
+    });
     res.json({ status: 'ok' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to save sample' });
@@ -440,10 +477,12 @@ app.post('/dialog', auth, dialogLimiter, async (req: Request, res: Response) => 
 app.post('/train-model', auth, async (req: Request, res: Response) => {
   const SampleSchema = z.object({
     gestureDefinitionId: z.string().min(1),
-    landmarkData: z.array(z.array(z.array(z.number()))),
     profileId: z.string().optional(),
+    landmarkData: z
+      .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
+      .length(21),
   });
-  const BodySchema = z.object({ samples: z.array(SampleSchema) });
+  const BodySchema = z.object({ samples: z.array(SampleSchema).min(1) });
   const parsed = BodySchema.safeParse(req.body);
   if (!parsed.success) {
     return res
@@ -457,26 +496,12 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
   const job: TrainingJob = { id, status: 'queued', progress: 0 };
   trainingJobs.set(id, job);
 
-  // Start background job: append samples and recompute centroid model
-  job.status = 'running';
-  job.startedAt = Date.now();
-  setImmediate(async () => {
-    if (trainingLock) {
-      job.status = 'failed';
-      job.error = 'Another training job is in progress.';
-      job.endedAt = Date.now();
-      return;
-    }
-    trainingLock = true;
+  // Enqueue training job to run sequentially
+  trainingQueue.push(async () => {
+    job.status = 'running';
+    job.startedAt = Date.now();
     try {
       const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
-      await fs.mkdir(DATA_DIR, { recursive: true });
-      let data: any = { samples: [] };
-      try {
-        const raw = await fs.readFile(dataPath, 'utf8');
-        data = JSON.parse(raw);
-        if (!Array.isArray(data.samples)) data.samples = [];
-      } catch {}
       const toAdd = samples.map((s: Sample) => ({
         id: genId(),
         label: s.gestureDefinitionId,
@@ -485,18 +510,29 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         ts: Date.now(),
       }));
       const total = toAdd.length || 1;
-      toAdd.forEach((s: typeof toAdd[number], idx: number) => {
-        data.samples.push(s);
-        job.progress = Math.round(((idx + 1) / total) * 50);
+      await withFileLock(dataPath, async () => {
+        let data: any = { samples: [] };
+        try {
+          const raw = await fs.readFile(dataPath, 'utf8');
+          data = JSON.parse(raw);
+          if (!Array.isArray(data.samples)) data.samples = [];
+        } catch {}
+        toAdd.forEach((s, idx) => {
+          data.samples.push(s);
+          job.progress = Math.round(((idx + 1) / total) * 50);
+        });
+        await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
       });
-      await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
 
       // Compute centroids (global) and publish as the trained model
       const { centroids, counts } = await getCentroids();
       job.progress = 75;
       const out = { type: 'centroid_model', updatedAt: Date.now(), centroids, counts } as any;
-      await fs.mkdir(path.dirname(TRAINED_MODEL_PATH), { recursive: true });
-      await fs.writeFile(TRAINED_MODEL_PATH, JSON.stringify(out));
+      await withFileLock(TRAINED_MODEL_PATH, async () => {
+        const tmp = `${TRAINED_MODEL_PATH}.tmp`;
+        await fs.writeFile(tmp, JSON.stringify(out));
+        await fs.rename(tmp, TRAINED_MODEL_PATH);
+      });
 
       job.progress = 100;
       job.status = 'completed';
@@ -505,10 +541,9 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       job.status = 'failed';
       job.error = e instanceof Error ? e.message : String(e);
       job.endedAt = Date.now();
-    } finally {
-      trainingLock = false;
     }
   });
+  runNextTraining();
 
   res.status(202).json({ status: 'queued', jobId: id });
 });
@@ -599,7 +634,11 @@ app.get('/analytics', auth, async (_req: Request, res: Response) => {
 });
 
 const port = process.env.PORT || 5000;
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+(async () => {
+  try {
+    await ensureDataDir();
+  } catch {}
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+})();
