@@ -1,31 +1,67 @@
 # AGENTS.md - Amy's Echo Contributor Guide
 
-Amy's Echo is a multimodal communication platform for non-verbal children. This guide defines how to work in this repository. Study the existing code and tests before writing new code. Favor real implementations over mocks and do not skip tests.
-For guidelines specific to the application or server, see the `AGENTS.md` files in the `app/` and `server/` directories.
-Paths in this document are relative to the repository root unless noted otherwise.
+Amy's Echo is a multimodal communication platform for non-verbal children. This guide defines how to work in this repository. Favor real implementations over mocks and do not skip tests.
 
-## Workflow
+For guidelines specific to the application or server, see the `AGENTS.md` files within the `app/` and `server/` directories. Paths in this document are relative to the repository root unless noted otherwise.
 
-1. **Read the spec**: `/spec/AmysEcho.md` is the source of truth.
-2. **Check the TODOs**: `docs/TODO.md` lists actionable tasks.
+## AI Assistant Workflow
+
+**IMPORTANT**: AI assistants (Codex, Gemini, etc.) must follow this step-by-step approach:
+
+### 1. Discovery Phase (ALWAYS do this first)
+- **Read the TODO.md or task description completely**
+- **Examine the existing codebase structure** using `find` or `ls` commands
+- **Study similar existing files** - look for patterns, naming conventions, and architectural decisions
+- **Run the test suite** to understand current functionality and ensure nothing is broken
+- **Check dependencies and configuration files** (`package.json`, `tsconfig.json`, etc.)
+
+### 2. Planning Phase (Before any implementation)
+- **Create a detailed implementation plan** that explains:
+  - Which files need to be created/modified
+  - What existing patterns you'll follow
+  - How your changes integrate with current architecture
+  - What tests need to be added/updated
+- **Identify potential breaking changes** and mitigation strategies
+- **Plan your testing approach** - don't just implement features, plan how to verify they work
+
+### 3. Implementation Phase
+- **Start with tests** when adding new functionality (TDD approach)
+- **Make small, incremental changes** - don't implement everything at once
+- **Follow existing code patterns exactly** - don't introduce new architectural concepts without justification
+- **Test continuously** - run relevant tests after each significant change
+
+### 4. Verification Phase (MANDATORY)
+- **Run the full test suite** - all tests must pass
+- **Verify type checking** - no TypeScript errors
+- **Test the actual functionality** - don't assume it works because tests pass
+- **Check for integration issues** - ensure your changes work with existing features
+
+## General Workflow
+
+1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
+2. **Explore codebase**: understand the current state and patterns.
 3. **Understand existing code**: look at similar files and tests to follow established patterns.
    - App: `app/src/components/*`, hooks in `app/src/*/use*.ts`, tests in `app/test/*`.
    - Server: services in `server/src/services/*`, tools in `server/src/tools/*`, tests in `server/test/*`.
-4. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
-5. **Test** your work (see Testing below).
-6. **Commit and document** your changes.
+4. **Plan thoroughly** before implementing - explain your approach and get feedback if possible.
+5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
+6. **Use German for all user-facing text and error messages in the app.**
 
-## Testing
+## Testing Rules
 
 - Never skip or comment out existing tests. Update them when behavior changes.
 - Use mocks sparingly; only mock network or other system boundaries.
-- From the repository root run:
+- Write tests for new functionality before or alongside implementation.
+- Ensure all tests pass before considering work complete.
+
+## Commands to Run from Repository Root
 
 ```bash
 npm ci --prefix app
 npm run type-check --prefix app
 npm test --prefix app
 (cd app && npx expo install --check)
+# Optional: `expo-doctor` can fail when offline; run when networked
 (cd app && npx expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")
 npm ci --prefix server
 npm run type-check --prefix server
@@ -34,20 +70,38 @@ npm test --prefix server
 npm test --prefix integration
 ```
 
-## Directory Overview
+## Directory Structure
 
-| Purpose                                  | Location            |
-|------------------------------------------|---------------------|
-| Project specification                    | `/spec/AmysEcho.md` |
-| Implementation tasks                     | `docs/TODO.md`      |
-| React Native application                 | `app/`              |
-| Node/TS server and Python utilities      | `server/`           |
+| Component                                | Path                   |
+| ---------------------------------------- | ---------------------- |
+| React Native app                         | `app/`                 |
+| App components                           | `app/src/components/`  |
 | Server services                          | `server/src/services/` |
-| Server tools (Python/TS scripts)         | `server/src/tools/` |
-| Integration tests                        | `integration/`      |
-| Documentation                            | `docs/`             |
+| Server tools (Python/TS scripts)         | `server/src/tools/`    |
+| Node/TS server and Python utilities      | `server/`              |
+| Integration tests                        | `integration/`         |
 
-## Shell Conventions
+## Shell Command Conventions
 
-- Use `rg` for searching code (e.g., `rg -n -C3 "symbol\(" --type=ts`); `grep -R` is acceptable if `rg` is unavailable.
+- Use `rg` (ripgrep, may require installation) for searching code (e.g., `rg -n -C3 "symbol(" --type=ts`); `grep -R` is acceptable if `rg` is unavailable.
 - Use `ls` for directory listings. Avoid recursive `ls -R` unless necessary.
+
+## Common AI Assistant Mistakes to Avoid
+
+1. **Don't implement without understanding** - rushing to code without studying existing patterns
+2. **Don't skip the discovery phase** - always explore the codebase first
+3. **Don't create new architectural patterns** - follow existing conventions
+4. **Don't assume tests pass** - always run them to verify
+5. **Don't ignore type errors** - fix all TypeScript issues
+6. **Don't mock internal app code** - only mock external boundaries
+7. **Don't leave broken tests** - all tests must pass when you're done
+
+## Questions AI Assistants Should Ask
+
+Before starting implementation, consider:
+- "What similar functionality already exists that I can learn from?"
+- "What existing tests can guide my understanding?"
+- "How do other components handle similar use cases?"
+- "What patterns are already established for this type of change?"
+- "Are there any integration points I need to be aware of?"
+

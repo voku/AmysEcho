@@ -6,8 +6,9 @@ Scope: All files under `app/`. Paths are relative to this directory.
 
 - Use TypeScript in strict mode (no implicit any; prefer exact types) and React Native functional components.
 - Keep source files in `src/` and tests in `test/`.
-- Place reusable UI components under `app/src/components/`.
+- Place reusable UI components under `src/components/`.
 - Follow existing naming and hook patterns. Study similar modules before writing new ones.
+- Write all UI text and error messages in German.
 
 ## Testing
 
