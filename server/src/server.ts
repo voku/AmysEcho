@@ -11,6 +11,7 @@ import {
   ensureDataDir,
   getTrainedModelPath,
   PROFILE_ID_PATTERN,
+  getMlpModelPath,
 } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
 import {
@@ -354,6 +355,23 @@ app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: 'Failed to compute centroids' });
+  }
+});
+
+// Serve per-profile MLP models (NPZ)
+app.get('/api/v1/dgs/mlp-model', auth, async (req: any, res: any) => {
+  try {
+    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    const filePath = getMlpModelPath(profileId);
+    try {
+      const buf = await fs.readFile(filePath);
+      res.set('Content-Type', 'application/octet-stream');
+      res.send(buf);
+    } catch {
+      res.status(404).json({ error: 'MLP model not found' });
+    }
+  } catch {
+    res.status(500).json({ error: 'Failed to load MLP model' });
   }
 });
 

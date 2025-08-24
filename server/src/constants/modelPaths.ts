@@ -8,6 +8,8 @@ export const DATA_DIR = path.join(SERVER_DIR, 'data');
 
 // Centroid-based model path (JSON)
 export const TRAINED_MODEL_PATH = path.join(DATA_DIR, 'trained_model.json');
+// MLP-based model path (NPZ)
+export const MLP_MODEL_PATH = path.join(DATA_DIR, 'dgs_model.npz');
 export const PROFILE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 export function getTrainedModelPath(profileId?: string): string {
   if (profileId) {
@@ -17,6 +19,16 @@ export function getTrainedModelPath(profileId?: string): string {
     return path.join(DATA_DIR, `trained_model_${profileId}.json`);
   }
   return TRAINED_MODEL_PATH;
+}
+
+export function getMlpModelPath(profileId?: string): string {
+  if (profileId) {
+    if (!PROFILE_ID_PATTERN.test(profileId)) {
+      throw new Error('Invalid profileId');
+    }
+    return path.join(DATA_DIR, `dgs_model_${profileId}.npz`);
+  }
+  return MLP_MODEL_PATH;
 }
 export const GESTURE_LABELS_PATH = path.join(
   __dirname,

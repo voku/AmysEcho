@@ -17,6 +17,8 @@ async function startServer() {
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
   await fs.rm(join(serverDir, 'data', 'trained_model.json'), { force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data', 'dgs_model.npz'), { force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data', 'dgs_samples.json'), { force: true }).catch(() => {});
 
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
@@ -172,5 +174,30 @@ test('POST /analytics then GET returns same data', async () => {
   const data = await get.json();
   assert.strictEqual(data.successRate7d, payload.successRate7d);
   assert.strictEqual(data.improvementTrend, payload.improvementTrend);
+});
+
+test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
+  const modelDir = join(serverDir, 'data');
+  await fs.mkdir(modelDir, { recursive: true });
+  const buf = Buffer.from('mlp-model');
+  const modelPath = join(modelDir, 'dgs_model_p1.npz');
+  await fs.writeFile(modelPath, buf);
+  try {
+    const res = await fetch(`http://localhost:${PORT}/api/v1/dgs/mlp-model?profileId=p1`, {
+      headers: { Authorization: 'Bearer testtoken' },
+    });
+    assert.strictEqual(res.status, 200);
+    const out = Buffer.from(await res.arrayBuffer());
+    assert.deepEqual(out, buf);
+
+    process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
+    process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
+    const { fetchMlpModel, getCachedMlpModel } = await import('../../app/src/services/dgsModelClient.ts');
+    const b64 = await fetchMlpModel('p1');
+    assert.ok(b64 === null || typeof b64 === 'string');
+    await getCachedMlpModel('p1');
+  } finally {
+    await fs.unlink(modelPath).catch(() => {});
+  }
 });
 
