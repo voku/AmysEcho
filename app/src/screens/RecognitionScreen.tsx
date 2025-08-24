@@ -362,8 +362,8 @@ export default function RecognitionScreen({ navigation }: any) {
       position: 'absolute',
       top: SPACING.md,
       right: SPACING.md,
-      width: 160,
-      height: 160,
+      width: SPACING.md * 10,
+      height: SPACING.md * 10,
     },
     toggleRow: {
       flexDirection: 'row',
