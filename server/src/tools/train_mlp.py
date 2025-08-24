@@ -25,7 +25,7 @@ def _normalize(lm):
     if not lm or len(lm) < 21:
         return None
 
-    pts = np.array(lm[:21])
+    pts = np.array(lm[:NUM_LANDMARKS_PER_HAND])
     wrist = pts[0]
     pts = pts - wrist
 
