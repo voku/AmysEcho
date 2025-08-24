@@ -11,4 +11,4 @@ for p in (0, 50, 100):
     time.sleep(0.01)
 
 # write dummy model file
-Path('trained_model.tflite').write_bytes(b'MOCK')
+Path('trained_model.json').write_text('{"mock": true}')

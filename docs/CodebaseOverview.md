@@ -11,7 +11,7 @@ This document summarizes the repository in seven key areas with concrete file re
 - `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.
 - `app/src/screens/RecognitionScreen.tsx` hosts the detector, fuses results with cached centroids, and logs outcomes.
 - `app/src/services/offlineClassifier.ts` performs centroid-based fallback classification when confidence is low.
-- Legacy TFLite model paths remain only for tests; recognition is fully on-device.
+- Runtime classification uses cached centroid JSON models; no TFLite artifacts remain.
 
 ## 3. Training and Personalization
 - Sample collection UI in `app/src/screens/TeachingScreen.tsx`

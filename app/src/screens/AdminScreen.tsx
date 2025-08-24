@@ -21,7 +21,7 @@ import * as FileSystem from 'expo-file-system';
 import { API_URL } from '../constants';
 import { database } from '../../db';
 import { useServices } from '../context/ServicesContext';
-import { CUSTOM_GESTURE_MODEL_PATH } from '../constants/modelPaths';
+import { CUSTOM_GESTURE_MODEL_PATH } from '../constants';
 import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
@@ -153,8 +153,10 @@ export default function AdminScreen({ navigation }: any) {
     try {
       const uri = CUSTOM_GESTURE_MODEL_PATH;
       const token = await loadBackendApiToken();
+      const profileId = await loadActiveProfileId().catch(() => undefined);
+      const qs = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
       const res = await FileSystem.downloadAsync(
-        `${API_URL}/latest-model`,
+        `${API_URL}/latest-model${qs}`,
         uri,
         { headers: { Authorization: `Bearer ${token || ''}` } },
       );

@@ -28,10 +28,7 @@ jest.mock('../src/storage', () => ({
   loadCustomModelUri: jest.fn().mockResolvedValue(null),
 }));
 
-jest.mock('../src/constants/modelPaths', () => ({
-  GESTURE_CLASSIFIER_MODEL: 1,
-  HAND_LANDMARKER_MODEL: 2,
-}));
+
 
 jest.mock('../src/constants', () => ({
   CONFIDENCE_THRESHOLD: 0.5,
@@ -67,10 +64,9 @@ jest.mock('../src/services', () => ({
   gdprService: {},
   checkForModelUpdate: jest.fn(),
   syncTrainingData: jest.fn(),
-  syncService: {
-    uploadPendingTrainingData: jest.fn(),
-    checkForNewModel: jest.fn(),
-  },
+    syncService: {
+      uploadPendingTrainingData: jest.fn(),
+    },
 }));
 
 import { AppServicesProvider } from '../src/context/AppServicesProvider';

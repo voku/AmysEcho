@@ -5,6 +5,8 @@
 Amy is four years old. She was born with **22q11 Deletion Syndrome** and communicates using **German Sign Language (DGS)**. Her gestures are expressive, her intent is clear — but most people around her don’t understand what she’s trying to say.
 
 This project turns those gestures into speech and symbols so she can be heard anywhere.
+Each child profile receives a personalized gesture model trained from its own samples, making the system effective for 22q11 workflows in group settings like kindergartens.
+Runtime classification relies on centroid-based models cached on the device; no TFLite files remain in the project.
 
 ---
 
@@ -133,6 +135,7 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 - **Reliable by default (hybrid)**: Gestures are classified on-device using cached centroids, while the server handles training and dialog suggestions.
 - **Handle uncertainty with grace, not silence**
 - **Log every correction to learn and adapt**
+- **Personalize models per child profile** so caregivers can train and deploy custom gestures for each 22q11 child
 - **Make it simple for a child to succeed**
 
 ---

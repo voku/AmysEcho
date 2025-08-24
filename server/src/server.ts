@@ -5,7 +5,13 @@ import { createHash } from 'crypto';
 import { getCentroids } from './services/dgsModelService';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { TRAINED_MODEL_PATH, DATA_DIR, ensureDataDir } from './constants/modelPaths';
+import {
+  TRAINED_MODEL_PATH,
+  DATA_DIR,
+  ensureDataDir,
+  getTrainedModelPath,
+  PROFILE_ID_PATTERN,
+} from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
 import {
   setupDatabase,
@@ -25,6 +31,7 @@ import {
   Profile,
   SymbolRecord,
   NegativeSample,
+  CentroidModel,
 } from './types';
 import {
   saveAnalyticsToFile,
@@ -534,12 +541,41 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       // Compute centroids (global) and publish as the trained model
       const { centroids, counts } = await getCentroids();
       job.progress = 75;
-      const out = { type: 'centroid_model', updatedAt: Date.now(), centroids, counts } as any;
+      const updatedAt = Date.now();
+      const out: CentroidModel = {
+        type: 'centroid_model',
+        updatedAt,
+        centroids,
+        counts,
+      };
       await withFileLock(TRAINED_MODEL_PATH, async () => {
         const tmp = `${TRAINED_MODEL_PATH}.tmp`;
         await fs.writeFile(tmp, JSON.stringify(out));
         await fs.rename(tmp, TRAINED_MODEL_PATH);
       });
+
+      const profileIds = Array.from(
+        new Set(
+          samples
+            .map((s) => s.profileId)
+            .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p)),
+        ),
+      );
+      for (const pid of profileIds) {
+        const { centroids: pc, counts: pcnts } = await getCentroids(pid);
+        const pOut: CentroidModel = {
+          type: 'centroid_model',
+          updatedAt,
+          centroids: pc,
+          counts: pcnts,
+        };
+        const file = getTrainedModelPath(pid);
+        await withFileLock(file, async () => {
+          const tmp = `${file}.tmp`;
+          await fs.writeFile(tmp, JSON.stringify(pOut));
+          await fs.rename(tmp, file);
+        });
+      }
 
       job.progress = 100;
       job.status = 'completed';
@@ -577,11 +613,43 @@ app.get('/model-version', auth, async (_req: Request, res: Response) => {
   }
 });
 
-app.get('/latest-model', auth, async (_req: Request, res: Response) => {
-  const file = TRAINED_MODEL_PATH;
+async function resolveModelFile(
+  profileId: string | undefined,
+  res: Response,
+): Promise<string | undefined> {
+  let file: string;
   try {
-    const stat = await fs.stat(file);
-    const buf = await fs.readFile(file);
+    file = getTrainedModelPath(profileId);
+  } catch {
+    res.status(400).json({ error: 'Invalid profileId' });
+    return;
+  }
+  const base = await fs
+    .realpath(DATA_DIR)
+    .catch(() => path.resolve(DATA_DIR));
+  const resolvedFile = await fs
+    .realpath(file)
+    .catch(() => path.resolve(file));
+  // Check path containment robustly
+  const relative = path.relative(base, resolvedFile);
+  if (
+    relative.startsWith('..') ||
+    path.isAbsolute(relative)
+  ) {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+  return resolvedFile;
+}
+
+app.get('/latest-model', auth, async (req: Request, res: Response) => {
+  const profileId =
+    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+  const resolvedFile = await resolveModelFile(profileId, res);
+  if (!resolvedFile) return;
+  try {
+    const stat = await fs.stat(resolvedFile);
+    const buf = await fs.readFile(resolvedFile);
     const sha256 = createHash('sha256').update(buf).digest('hex');
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Content-Length', stat.size.toString());
@@ -593,13 +661,17 @@ app.get('/latest-model', auth, async (_req: Request, res: Response) => {
 });
 
 // Model metadata: version, size, sha256
-app.get('/model-metadata', auth, async (_req: Request, res: Response) => {
+app.get('/model-metadata', auth, async (req: Request, res: Response) => {
+  const profileId =
+    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+  const resolvedFile = await resolveModelFile(profileId, res);
+  if (!resolvedFile) return;
   try {
     const pkgPath = path.join(__dirname, '..', 'package.json');
     const pkgRaw = await fs.readFile(pkgPath, 'utf8');
     const { version } = JSON.parse(pkgRaw);
-    const stat = await fs.stat(TRAINED_MODEL_PATH);
-    const buf = await fs.readFile(TRAINED_MODEL_PATH);
+    const stat = await fs.stat(resolvedFile);
+    const buf = await fs.readFile(resolvedFile);
     const sha256 = createHash('sha256').update(buf).digest('hex');
     res.json({ version, size: stat.size, sha256 });
   } catch (err) {

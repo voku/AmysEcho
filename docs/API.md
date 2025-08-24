@@ -200,9 +200,23 @@ Fetch the current model version and path information.
 ### GET /latest-model
 Download the latest trained gesture model file.
 
-Note: As of the centroid-based pipeline, this returns a JSON payload
-representing the centroid model `{ type: "centroid_model", centroids, counts, updatedAt }`.
-Clients may continue to treat this as an opaque file and verify via `/model-metadata`.
+Query parameter `profileId` returns a profile-specific model if available.
+`profileId` may contain only letters, numbers, underscores, and dashes.
+
+Note: As of the centroid-based pipeline, this returns a JSON payload representing the
+centroid model `{ type: "centroid_model", centroids, counts, updatedAt }`. Clients may
+continue to treat this as an opaque file and verify via `/model-metadata`.
+
+### GET /model-metadata
+Return metadata about the current model file.
+
+Query parameter `profileId` mirrors `/latest-model` for profile-specific metadata.
+`profileId` may contain only letters, numbers, underscores, and dashes.
+
+**Response**
+```json
+{ "version": "1.0.0", "size": 1234, "sha256": "<hash>" }
+```
 
 ### POST /analytics
 Store high level analytics.

@@ -1,13 +1,14 @@
 import { checkForModelUpdate } from '../src/services/modelUpdate';
 import NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
+import { CUSTOM_GESTURE_MODEL_PATH } from '../src/constants';
 
 jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(),
 }));
 
 jest.mock('expo-file-system', () => ({
-  downloadAsync: jest.fn().mockResolvedValue({ uri: '/tmp/model.tflite' }),
+  downloadAsync: jest.fn().mockResolvedValue({ uri: '/tmp/model.json' }),
 }));
 
 jest.mock('../src/storage', () => ({
@@ -17,12 +18,9 @@ jest.mock('../src/storage', () => ({
   saveCustomModelHash: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('../src/constants/modelPaths', () => ({
-  CUSTOM_GESTURE_MODEL_PATH: '/tmp/model.tflite',
-}));
-
 jest.mock('../src/constants', () => ({
   API_URL: 'https://example.com',
+  CUSTOM_GESTURE_MODEL_PATH: '/tmp/model.json',
 }));
 
 jest.mock('../src/utils/logger', () => ({
@@ -57,5 +55,35 @@ describe('checkForModelUpdate', () => {
     const result = await checkForModelUpdate();
     expect(result).toBe(true);
     expect(FileSystem.downloadAsync).toHaveBeenCalled();
+  });
+
+  it('includes profileId in requests when provided', async () => {
+    (NetInfo.fetch as jest.Mock).mockResolvedValue({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    });
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ sha256: 'h' }) });
+    (global as any).fetch = fetchMock;
+    await checkForModelUpdate('p1');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://example.com/model-metadata?profileId=p1',
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+      }),
+    );
+    expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
+      'https://example.com/latest-model?profileId=p1',
+      CUSTOM_GESTURE_MODEL_PATH,
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+      }),
+    );
+    const { saveCustomModelHash, saveCustomModelUri } =
+      jest.requireMock('../src/storage');
+    expect(saveCustomModelHash).toHaveBeenCalledWith('h');
+    expect(saveCustomModelUri).toHaveBeenCalledWith('/tmp/model.json');
   });
 });

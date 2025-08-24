@@ -1,7 +1,8 @@
+import * as FileSystem from 'expo-file-system';
+
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 export const API_TOKEN = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
 export const CONFIDENCE_THRESHOLD = 0.7;
-export const MODEL_VERSION_URL = `${API_URL}/model-version`;
 export const ANALYTICS_ENDPOINT = `${API_URL}/analytics`;
 export const ANALYTICS_TELEMETRY_ENDPOINT = `${API_URL}/telemetry`;
 
@@ -34,3 +35,9 @@ export const LOG_LEVEL =
     | 'info'
     | 'warn'
     | 'error';
+const BASE_DIR = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
+if (!BASE_DIR) {
+  // Fail fast to surface misconfiguration early
+  throw new Error('No writable FileSystem directory available');
+}
+export const CUSTOM_GESTURE_MODEL_PATH = `${BASE_DIR}custom_model.json`;

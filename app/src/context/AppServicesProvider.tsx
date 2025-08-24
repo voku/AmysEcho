@@ -3,7 +3,7 @@ import { audioService, backupService, checkForModelUpdate, syncService, syncTrai
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import { ActivityIndicator, View } from 'react-native';
 import { useMessage } from './MessageContext';
-import { loadCustomModelUri } from '../storage';
+import { loadCustomModelUri, loadActiveProfileId } from '../storage';
 import {
   CONFIDENCE_THRESHOLD,
   ENABLE_REMOTE_CLASSIFICATION,
@@ -32,23 +32,29 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     let telemetryInterval: ReturnType<typeof setInterval> | undefined;
+    async function runModelUpdate() {
+      try {
+        const pid = await loadActiveProfileId().catch(() => null);
+        await checkForModelUpdate(pid ?? undefined);
+      } catch (e) {
+        logger.warn('Failed to run model update check', e);
+      }
+    }
     async function initializeServices() {
       try {
-        // WebView + server path: no native TFLite model loading here.
+        // WebView + server path: no native TensorFlow model loading here.
         await audioService.initialize();
         setAreServicesReady(true);
         if (!offline) {
           interval = setInterval(() => {
             syncTrainingData().catch(() => {});
-            checkForModelUpdate().catch(() => {});
+            runModelUpdate().catch(() => {});
             syncService.uploadPendingTrainingData().catch(() => {});
-            syncService.checkForNewModel().catch(() => {});
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          checkForModelUpdate().catch(() => {});
+          runModelUpdate().catch(() => {});
           syncService.uploadPendingTrainingData().catch(() => {});
-          syncService.checkForNewModel().catch(() => {});
 
           // Lightweight periodic telemetry upload
           telemetryInterval = setInterval(() => {
