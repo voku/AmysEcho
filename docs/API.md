@@ -201,6 +201,7 @@ Fetch the current model version and path information.
 Download the latest trained gesture model file.
 
 Query parameter `profileId` returns a profile-specific model if available.
+`profileId` may contain only letters, numbers, underscores, and dashes.
 
 Note: As of the centroid-based pipeline, this returns a JSON payload representing the
 centroid model `{ type: "centroid_model", centroids, counts, updatedAt }`. Clients may
@@ -210,6 +211,7 @@ continue to treat this as an opaque file and verify via `/model-metadata`.
 Return metadata about the current model file.
 
 Query parameter `profileId` mirrors `/latest-model` for profile-specific metadata.
+`profileId` may contain only letters, numbers, underscores, and dashes.
 
 **Response**
 ```json

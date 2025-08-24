@@ -1,5 +1,9 @@
 import path from 'path';
-import { getTrainedModelPath, TRAINED_MODEL_PATH, DATA_DIR } from './modelPaths';
+import {
+  getTrainedModelPath,
+  TRAINED_MODEL_PATH,
+  DATA_DIR,
+} from './modelPaths';
 
 describe('getTrainedModelPath', () => {
   it('returns global path when no profileId provided', () => {
@@ -9,5 +13,8 @@ describe('getTrainedModelPath', () => {
     expect(getTrainedModelPath('abc')).toBe(
       path.join(DATA_DIR, 'trained_model_abc.json'),
     );
+  });
+  it('throws for invalid profileId', () => {
+    expect(() => getTrainedModelPath('../etc/passwd')).toThrow('Invalid');
   });
 });
