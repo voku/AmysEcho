@@ -36,7 +36,9 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       try {
         const pid = await loadActiveProfileId().catch(() => null);
         await checkForModelUpdate(pid ?? undefined);
-      } catch {}
+      } catch (e) {
+        logger.warn('Failed to run model update check', e);
+      }
     }
     async function initializeServices() {
       try {
