@@ -1,10 +1,16 @@
 # AmysEcho Development Action Plan
-*Updated roadmap incorporating PR #328 and WebView + MediaPipe architecture*
+*Updated roadmap incorporating PR #349 and WebView + MediaPipe architecture*
 
 ## LLM Task Board
 - [ ] Audit app UI strings for German language compliance (`app/src/`)
 - [ ] Run `npx expo install --check` in `app/` and update any flagged dependencies
 - [ ] Run `npx expo-doctor` in `app/` once network access is available
+- [ ] Enqueue `python3 src/tools/train_mlp.py` after centroid updates in `/train-model`
+- [ ] Track MLP training progress in `trainingJobs` and expose via `/train-status`
+- [ ] Persist `.npz` models under `data/`, copying to `dgs_model_<profileId>.npz` when applicable
+- [ ] Add unit tests ensuring MLP training runs and creates model files
+ - [ ] Enforce per-profile authorization on `/latest-mlp-model` (403 on unauthorized access; non-enumerable errors)
+ - [ ] Write models atomically (temp file + rename) and serve with `ETag` + `X-Model-Version`
 
 ## Current Architecture Status
 ✅ **WebView + MediaPipe Integration Complete** (as of 2025-08-21)
@@ -13,6 +19,35 @@
 - Training/recognition workflow operational
 - Documentation updated in `docs/ExpoGestureRecognition.md`
 - Server persists and serves centroid models per child profile via `profileId`
+## MLP Model Training & App Integration Plan
+1. **Collect samples** – record 21/42 landmark arrays and upload via `/train-model` with an optional `profileId`.
+2. **Run training** – server updates centroids, then spawns `python3 src/tools/train_mlp.py` and streams JSON progress.
+3. **Monitor status** – client polls `/train-status` until `progress` reaches 100.
+   - Server returns `202 Accepted` while training, `200 OK` when done, and appropriate `4xx/5xx` on errors.
+   - Client polling uses exponential backoff (e.g., 0.5 s → 1 s → 2 s, capped at 5 s).
+4. **Persist models** – training writes `data/dgs_model.npz` and copies `data/dgs_model_<profileId>.npz` when a profile is supplied.
+   - Atomic write: save to a temp file then rename to avoid partial reads.
+   - Paths: always use `getMlpModelPath(profileId?)`; disallow user-provided filenames; validate `profileId`.
+   - Permissions: set files to `0640` owned by the serving user.
+5. **Download weights** – app requests `/latest-mlp-model` (optionally with `profileId`) and stores the `.npz` file locally.
+   - Authorization: include standard auth token; server verifies caller's rights and returns `403` without revealing profile existence.
+   - Headers: `Content-Type: application/octet-stream`, `Content-Disposition: attachment; filename="dgs_model[_<profileId>].npz"`.
+   - Caching & integrity: support `ETag`/`Cache-Control`, `X-Model-Version`, and `X-Checksum-SHA256`; app verifies before use.
+   - Range requests: allow `Range` for resume; respond `404` when no model exists.
+6. **Parse `.npz`** – implement a lightweight NPZ parser to extract weight matrices and bias vectors.
+   - Safety: enforce max file size (≤5 MB), bounded entry counts, and expected tensor shapes.
+7. **Run inference** – execute the MLP forward pass on normalized landmarks within the WebView and map outputs to gesture labels.
+8. **Fallback strategy** – if loading fails, fall back to centroid or rule-based classification while logging an error for caregivers.
+9. **Version checks** – compare model versions (`ETag`/`X-Model-Version`) and refresh only when changed to avoid clock drift.
+10. **End-to-end test** – train with real samples, download the model, and verify app predictions on-device.
+11. **Server integration details**
+    - Enqueue a child process `python3 src/tools/train_mlp.py` once centroid updates succeed.
+    - Capture training progress and status in `trainingJobs` so clients can poll `/train-status`.
+    - Persist the resulting `.npz` under `data/` and copy to `data/dgs_model_<profileId>.npz` when `profileId` is provided.
+    - Add tests:
+      - Uploading samples triggers MLP training and creates model files.
+      - `/latest-mlp-model` returns 200 for an authorized owner, 403 for unauthorized access, and 404 when no model exists.
+12. **App wiring** – extend `MediaPipeGestureDetector.tsx` to fetch `/latest-mlp-model`, parse `.npz` weights, and run the MLP forward pass with centroid or rule-based fallback.
 
 ## Now: Android USB Device Runbook
 *Quick steps to validate on a real device connected via USB*

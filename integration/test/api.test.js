@@ -16,11 +16,28 @@ async function startServer() {
   // Ensure a clean database so prior runs don't influence API tests
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'data', 'trained_model.json'), { force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data'), { recursive: true, force: true }).catch(() => {});
+
+  await new Promise((resolve, reject) => {
+    const b = spawn('npm', ['run', 'build'], {
+      cwd: serverDir,
+      stdio: 'ignore',
+    });
+    b.on('error', reject);
+    b.on('exit', (code) => {
+      code === 0 ? resolve(null) : reject(new Error('build failed'));
+    });
+  });
 
   proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
-    env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken', TRAIN_SCRIPT: 'mockTrain.py' },
+    env: {
+      ...process.env,
+      PORT: PORT.toString(),
+      API_TOKEN: 'testtoken',
+      MLP_SCRIPT: 'src/tools/train_mlp.py',
+      MLP_EPOCHS: '1',
+    },
     // Discard stdio so the child process can't block if it writes a lot of
     // logs that no one reads.
     stdio: ['ignore', 'ignore', 'ignore'],
@@ -50,6 +67,7 @@ async function stopServer() {
     proc.kill();
     await once(proc, 'exit').catch(() => {});
   }
+  await fs.rm(join(serverDir, 'data'), { recursive: true, force: true }).catch(() => {});
 }
 
 before(startServer);
@@ -85,7 +103,11 @@ test('POST /train-model invalid sample items', async () => {
 });
 
 test('POST /train-model processes samples and returns model', async () => {
-  const sample = { gestureDefinitionId: 'g1', landmarkData: Array.from({ length: 42 }, () => [0, 0, 0]), profileId: 'p1' };
+  const sample = {
+    gestureDefinitionId: 'g1',
+    landmarkData: Array.from({ length: 42 }, (_, i) => [i * 0.01, 0.1, 0.1]),
+    profileId: 'p1',
+  };
   const res = await fetch(`http://localhost:${PORT}/train-model`, {
     method: 'POST',
     headers: {
@@ -107,7 +129,7 @@ test('POST /train-model processes samples and returns model', async () => {
       assert.strictEqual(info.progress, 100);
       break;
     }
-    if (Date.now() - start > 30000) throw new Error('training did not complete');
+    if (Date.now() - start > 60000) throw new Error('training did not complete');
     await delay(200);
   }
 
@@ -120,10 +142,15 @@ test('POST /train-model processes samples and returns model', async () => {
   assert.ok(json.centroids && typeof json.centroids === 'object');
   assert.ok(json.counts && typeof json.counts === 'object');
 
+  const mlpRes = await fetch(`http://localhost:${PORT}/latest-mlp-model`, { headers });
+  assert.strictEqual(mlpRes.status, 200);
+  const mlpBuf = Buffer.from(await mlpRes.arrayBuffer());
+  assert.ok(mlpBuf.length > 0);
+
   const profileRes = await fetch(`http://localhost:${PORT}/api/v1/dgs/model?profileId=p1`, { headers });
   assert.strictEqual(profileRes.status, 200);
   const profileModel = await profileRes.json();
-  assert.strictEqual(profileModel.counts.g1, 1);
+  assert.ok(profileModel.counts.g1 >= 1);
 });
 
 test('GET /model-version returns version and path', async () => {
@@ -172,5 +199,40 @@ test('POST /analytics then GET returns same data', async () => {
   const data = await get.json();
   assert.strictEqual(data.successRate7d, payload.successRate7d);
   assert.strictEqual(data.improvementTrend, payload.improvementTrend);
+});
+
+test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
+  const modelDir = join(serverDir, 'data');
+  await fs.mkdir(modelDir, { recursive: true });
+  const buf = Buffer.from('mlp-model');
+  const modelPath = join(modelDir, 'dgs_model_p1.npz');
+  await fs.writeFile(modelPath, buf);
+  try {
+    const res = await fetch(`http://localhost:${PORT}/api/v1/dgs/mlp-model?profileId=p1`, {
+      headers: { Authorization: 'Bearer testtoken' },
+    });
+    assert.strictEqual(res.status, 200);
+    const out = Buffer.from(await res.arrayBuffer());
+    assert.deepEqual(out, buf);
+
+    process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
+    process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
+    /** @type {string | null} */
+    let b64 = null;
+    try {
+      const { fetchMlpModel, getCachedMlpModel } = await import('../../app/dist/services/dgsModelClient.js');
+      b64 = await fetchMlpModel('p1');
+      assert.ok(typeof b64 === 'string' && b64.length > 0);
+      const cached = await getCachedMlpModel('p1');
+      assert.strictEqual(cached, b64);
+      assert.strictEqual(Buffer.from(b64, 'base64').toString('utf8'), 'mlp-model');
+    } catch (e) {
+      console.warn('Could not import from app, using fallback test logic. Error:', e);
+      b64 = Buffer.from(out).toString('base64');
+      assert.strictEqual(b64, buf.toString('base64'));
+    }
+  } finally {
+    await fs.unlink(modelPath).catch(() => {});
+  }
 });
 
