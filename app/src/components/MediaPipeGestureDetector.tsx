@@ -6,9 +6,10 @@ import {
   MLP_CONFIDENCE_THRESHOLD,
 } from '../constants';
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
-import { loadActiveProfileId } from '../storage';
+import { loadActiveProfileId, onActiveProfileChange } from '../storage';
 import { LanguageManager } from '../services/LanguageManager';
 import { installMlp } from '../webview/installMlp';
+import { fflateBase64 } from '../webview/fflateBase64';
 import WebView from 'react-native-webview';
 
 interface Props {
@@ -42,7 +43,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   }, []);
 
   const escapeJs = (s: string) =>
-    s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+    s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\n/g, '\\n');
   const tapToStartText = escapeJs(LanguageManager.t('mediapipe.tapToStart'));
   const recognizerInitFailed = escapeJs(LanguageManager.t('mediapipe.recognizerInitFailed'));
   const predictionError = escapeJs(LanguageManager.t('mediapipe.predictionError'));
@@ -81,6 +82,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       }
     };
     loadAndInjectModel();
+    const unsubscribe = onActiveProfileChange(() => {
+      loadAndInjectModel();
+    });
+    return unsubscribe;
   }, []);
 
   if (!WebViewImpl) {
@@ -93,7 +98,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       </View>
     );
   }
-  const mlpInstallScript = `(${installMlp.toString()})();`;
+  const fflateLoader = `(() => { const s=document.createElement('script'); s.src='data:application/javascript;base64,${fflateBase64}'; document.head.appendChild(s); })();`;
+  const mlpInstallScript = `${fflateLoader}(${installMlp.toString()})();`;
 
   const htmlContent = `
 <!DOCTYPE html>

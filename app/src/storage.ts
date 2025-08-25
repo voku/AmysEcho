@@ -64,8 +64,23 @@ export async function createProfile(profile: Omit<Profile, 'id'>): Promise<Profi
   return full;
 }
 
+const activeProfileListeners: Array<(id: string | null) => void> = [];
+
+export function onActiveProfileChange(listener: (id: string | null) => void): () => void {
+  activeProfileListeners.push(listener);
+  return () => {
+    const i = activeProfileListeners.indexOf(listener);
+    if (i >= 0) activeProfileListeners.splice(i, 1);
+  };
+}
+
 export async function setActiveProfileId(id: string): Promise<void> {
   await AsyncStorage.setItem(ACTIVE_PROFILE_KEY, id);
+  activeProfileListeners.forEach((cb) => {
+    try {
+      cb(id);
+    } catch {}
+  });
 }
 
 export async function loadActiveProfileId(): Promise<string | null> {

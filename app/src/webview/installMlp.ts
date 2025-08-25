@@ -1,12 +1,4 @@
 export function installMlp() {
-  const loadFflate = () =>
-    new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/fflate/umd/index.min.js';
-      s.onload = () => res(null);
-      s.onerror = () => rej(new Error('fflate load failed'));
-      document.head.appendChild(s);
-    });
   type Tensor = { data: Float64Array; shape: number[] };
   type MlpModel = {
     w1: Tensor;
@@ -81,8 +73,9 @@ export function installMlp() {
       if (bin.length > maxSize) throw new Error('too big');
       const u8 = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-      if (!(window as any).fflate || !(window as any).fflate.unzipSync) await loadFflate();
-      const files = (window as any).fflate.unzipSync(u8);
+      const unzip = (window as any).fflate?.unzipSync;
+      if (!unzip) throw new Error('fflate unavailable');
+      const files = unzip(u8);
       const entries = Object.keys(files);
       if (entries.length > 32) throw new Error('too many entries');
       const map: Record<string, Uint8Array> = {};

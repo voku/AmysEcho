@@ -20,12 +20,31 @@ jest.mock('../src/services/dgsModelClient', () => ({
   fetchMlpModel: jest.fn(() => Promise.resolve(null)),
 }));
 
-jest.mock('../src/storage', () => ({
-  loadActiveProfileId: jest.fn(() => Promise.resolve(null)),
-}));
+jest.mock('../src/storage', () => {
+  const listeners: Array<(id: string | null) => void> = [];
+  return {
+    loadActiveProfileId: jest.fn(() => Promise.resolve(null)),
+    onActiveProfileChange: jest.fn((cb: (id: string | null) => void) => {
+      listeners.push(cb);
+      return () => {
+        const i = listeners.indexOf(cb);
+        if (i >= 0) listeners.splice(i, 1);
+      };
+    }),
+    __emitProfileChange: (id: string | null) => {
+      listeners.forEach((cb) => cb(id));
+    },
+    __clearProfileListeners: () => {
+      listeners.length = 0;
+    },
+  };
+});
 
 describe('MediaPipeGestureDetector', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+    const storage = require('../src/storage');
+    storage.__clearProfileListeners();
     LanguageManager.setLanguage('de');
   });
   it('calls onGestureDetected when a gesture message is received', () => {
@@ -139,6 +158,31 @@ describe('MediaPipeGestureDetector', () => {
 
     expect(getCachedMlpModel).toHaveBeenCalled();
     expect(fetchMlpModel).toHaveBeenCalled();
+  });
+
+  it('reloads model when active profile changes', async () => {
+    const { getCachedMlpModel, fetchMlpModel } = require('../src/services/dgsModelClient');
+    const { __emitProfileChange } = require('../src/storage');
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    await act(async () => {
+      renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+      await Promise.resolve();
+    });
+
+    expect(getCachedMlpModel).toHaveBeenCalledTimes(1);
+    expect(fetchMlpModel).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      __emitProfileChange('new');
+      await Promise.resolve();
+    });
+
+    expect(getCachedMlpModel).toHaveBeenCalledTimes(2);
+    expect(fetchMlpModel).toHaveBeenCalledTimes(2);
   });
 
   it('updates translations when language changes', () => {
