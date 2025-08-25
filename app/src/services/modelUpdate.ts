@@ -4,6 +4,7 @@ import { loadBackendApiToken, saveCustomModelUri, loadCustomModelHash, saveCusto
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
+import { fetchCentroids, fetchMlpModel } from './dgsModelClient';
 
 export async function checkForModelUpdate(profileId?: string): Promise<boolean> {
   const net = await NetInfo.fetch();
@@ -47,4 +48,12 @@ export async function checkForModelUpdate(profileId?: string): Promise<boolean> 
     logger.warn('model update failed', e);
     return false;
   }
+}
+
+// Update local DGS recognition model, preferring MLP over centroid
+export async function refreshDgsModel(profileId?: string): Promise<'mlp' | 'centroid' | null> {
+  const mlp = await fetchMlpModel(profileId);
+  if (mlp) return 'mlp';
+  const centroid = await fetchCentroids(profileId);
+  return centroid ? 'centroid' : null;
 }

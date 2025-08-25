@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { createHash } from 'crypto';
+import { spawn } from 'child_process';
+import readline from 'readline';
 import { getCentroids } from './services/dgsModelService';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
@@ -10,6 +12,7 @@ import {
   DATA_DIR,
   ensureDataDir,
   getTrainedModelPath,
+  getMlpModelPath,
   PROFILE_ID_PATTERN,
 } from './constants/modelPaths';
 import { DB_FILE_PATH } from './constants/dbPaths';
@@ -357,6 +360,24 @@ app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
   }
 });
 
+// Serve per-profile MLP models (NPZ) with containment checks
+app.get('/api/v1/dgs/mlp-model', auth, async (req: Request, res: Response) => {
+  try {
+    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    const resolvedFile = await resolveModelFile(profileId, res, getMlpModelPath);
+    if (!resolvedFile) return;
+    try {
+      const buf = await fs.readFile(resolvedFile);
+      res.set('Content-Type', 'application/octet-stream');
+      res.send(buf);
+    } catch {
+      res.status(404).json({ error: 'MLP model not found' });
+    }
+  } catch {
+    res.status(500).json({ error: 'Failed to load MLP model' });
+  }
+});
+
   // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
   try {
@@ -492,7 +513,9 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
     profileId: z.string().optional(),
     landmarkData: z
       .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
-      .length(42),
+      .refine((arr) => arr.length === 21 || arr.length === 42, {
+        message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1]',
+      }),
   });
   const BodySchema = z.object({ samples: z.array(SampleSchema).min(1) });
   const parsed = BodySchema.safeParse(req.body);
@@ -577,6 +600,57 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         });
       }
 
+      // Run MLP training script after centroids succeed
+      const scriptRel = process.env.MLP_SCRIPT || 'src/tools/train_mlp.py';
+      const serverRoot = path.join(__dirname, '..');
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn('python3', [path.join(serverRoot, scriptRel)], {
+          cwd: serverRoot,
+        });
+        const stderrOutput: string[] = [];
+        const MAX_STDERR_LINES = 50;
+        proc.stderr.on('data', (d) => {
+          stderrOutput.push(d.toString());
+          if (stderrOutput.length > MAX_STDERR_LINES) {
+            stderrOutput.splice(0, stderrOutput.length - MAX_STDERR_LINES);
+          }
+        });
+
+        const rl = readline.createInterface({ input: proc.stdout });
+        rl.on('line', (line: string) => {
+          if (!line.trim()) return;
+          try {
+            const msg = JSON.parse(line);
+            if (msg && msg.type === 'progress') {
+              const cur = Number(msg.current);
+              const total = Number(msg.total);
+              if (total > 0) {
+                job.progress = 75 + Math.round((cur / total) * 25);
+              }
+            }
+          } catch {
+            console.log(`MLP script non-JSON output: ${line}`);
+          }
+        });
+
+        proc.on('error', reject);
+        proc.on('close', (code) => {
+          rl.close();
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`MLP training failed (${code}): ${stderrOutput.join('')}`));
+          }
+        });
+      });
+
+      // Copy model for profile-specific variants
+      const baseModel = getMlpModelPath();
+      for (const pid of profileIds) {
+        const dest = getMlpModelPath(pid);
+        await fs.copyFile(baseModel, dest);
+      }
+
       job.progress = 100;
       job.status = 'completed';
       job.endedAt = Date.now();
@@ -616,10 +690,11 @@ app.get('/model-version', auth, async (_req: Request, res: Response) => {
 async function resolveModelFile(
   profileId: string | undefined,
   res: Response,
+  getPath: (profileId?: string) => string,
 ): Promise<string | undefined> {
   let file: string;
   try {
-    file = getTrainedModelPath(profileId);
+    file = getPath(profileId);
   } catch {
     res.status(400).json({ error: 'Invalid profileId' });
     return;
@@ -645,7 +720,25 @@ async function resolveModelFile(
 app.get('/latest-model', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-  const resolvedFile = await resolveModelFile(profileId, res);
+  const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
+  if (!resolvedFile) return;
+  try {
+    const stat = await fs.stat(resolvedFile);
+    const buf = await fs.readFile(resolvedFile);
+    const sha256 = createHash('sha256').update(buf).digest('hex');
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Length', stat.size.toString());
+    res.setHeader('ETag', `"sha256-${sha256}"`);
+    res.send(buf);
+  } catch {
+    res.status(404).json({ error: 'Model not found' });
+  }
+});
+
+app.get('/latest-mlp-model', auth, async (req: Request, res: Response) => {
+  const profileId =
+    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+  const resolvedFile = await resolveModelFile(profileId, res, getMlpModelPath);
   if (!resolvedFile) return;
   try {
     const stat = await fs.stat(resolvedFile);
@@ -664,7 +757,7 @@ app.get('/latest-model', auth, async (req: Request, res: Response) => {
 app.get('/model-metadata', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-  const resolvedFile = await resolveModelFile(profileId, res);
+  const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
   if (!resolvedFile) return;
   try {
     const pkgPath = path.join(__dirname, '..', 'package.json');

@@ -3,6 +3,7 @@ import urllib.request
 import subprocess
 import os
 import json
+import shutil
 from pathlib import Path
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
@@ -13,10 +14,12 @@ def start_server():
     env = os.environ.copy()
     env.setdefault('API_TOKEN', 'testtoken')
     env.setdefault('PORT', PORT)
-    env.setdefault('TRAIN_SCRIPT', 'mockTrain.py')
-    model_file = SERVER_DIR / 'data' / 'trained_model.json'
-    if model_file.exists():
-        model_file.unlink()
+    # Run the real training script but keep epochs low for test speed
+    env.setdefault('MLP_SCRIPT', 'src/tools/train_mlp.py')
+    env.setdefault('MLP_EPOCHS', '5')
+    data_dir = SERVER_DIR / 'data'
+    if data_dir.exists():
+        shutil.rmtree(data_dir)
     subprocess.run(['npm', 'run', 'build'], cwd=SERVER_DIR, env=env, check=True, stdout=subprocess.DEVNULL)
     proc = subprocess.Popen(['node', 'dist/server.js'], cwd=SERVER_DIR, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     # wait for server up
@@ -48,13 +51,19 @@ def stop_server(proc):
 def test_train_endpoint(tmp_path):
     proc = start_server()
     try:
-        url = f'http://localhost:{PORT}/train-model'
+        url = f"http://localhost:{PORT}/train-model"
+        # vary landmark coordinates slightly so normalization succeeds
+        landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
         samples = [{
             "gestureDefinitionId": "g1",
-            "landmarkData": [[0.0, 0.0, 0.0] for _ in range(42)],
+            "profileId": "p1",
+            "landmarkData": landmarks_one_hand,
         }]
-        data = json.dumps({'samples': samples}).encode('utf-8')
-        headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer testtoken'}
+        data = json.dumps({"samples": samples}).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer testtoken",
+        }
         req = urllib.request.Request(url, data=data, headers=headers)
         with urllib.request.urlopen(req) as resp:
             assert resp.getcode() == 202
@@ -74,21 +83,46 @@ def test_train_endpoint(tmp_path):
                 raise RuntimeError('training did not complete')
             time.sleep(0.2)
 
-        # ensure model downloadable
+        # ensure centroid model downloadable
         model_req = urllib.request.Request(
             f'http://localhost:{PORT}/latest-model',
             headers={'Authorization': 'Bearer testtoken'},
         )
         with urllib.request.urlopen(model_req) as mresp:
             assert mresp.getcode() == 200
-            model = json.loads(mresp.read().decode())
-            assert model.get("type") == "centroid_model"
-            assert "g1" in model.get("centroids", {})
-            assert len(model["centroids"]["g1"]) == 42
-            assert model.get("counts", {}).get("g1") == 1
+            data = json.loads(mresp.read().decode())
+            assert data.get('type') == 'centroid_model'
+            assert 'g1' in data.get('centroids', {})
+            assert len(data['centroids']['g1']) == 21
+            assert data.get('counts', {}).get('g1') == 1
+
+        # verify MLP model files created
+        npz = SERVER_DIR / 'data' / 'dgs_model.npz'
+        prof_npz = SERVER_DIR / 'data' / 'dgs_model_p1.npz'
+        assert npz.exists()
+        assert prof_npz.exists()
+
+        # ensure MLP model downloadable
+        mlp_req = urllib.request.Request(
+            f'http://localhost:{PORT}/latest-mlp-model',
+            headers={'Authorization': 'Bearer testtoken'},
+        )
+        with urllib.request.urlopen(mlp_req) as mlp_resp:
+            assert mlp_resp.getcode() == 200
+            buf = mlp_resp.read()
+            assert len(buf) > 0
+
+        mlp_prof_req = urllib.request.Request(
+            f'http://localhost:{PORT}/latest-mlp-model?profileId=p1',
+            headers={'Authorization': 'Bearer testtoken'},
+        )
+        with urllib.request.urlopen(mlp_prof_req) as mlp_presp:
+            assert mlp_presp.getcode() == 200
+            buf = mlp_presp.read()
+            assert len(buf) > 0
     finally:
         stop_server(proc)
-        # cleanup produced model
-        model_file = SERVER_DIR / 'data' / 'trained_model.json'
-        if model_file.exists():
-            model_file.unlink()
+        # cleanup produced model files
+        data_dir = SERVER_DIR / 'data'
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
