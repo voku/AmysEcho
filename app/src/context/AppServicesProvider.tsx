@@ -1,4 +1,4 @@
-import { runDailyJobs } from '../services/dailyJobs';
+import { runDailyJobs, checkAllGesturesForDecliningAccuracy } from '../services/dailyJobs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
@@ -55,6 +55,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             if (lastRun !== now) {
               runDailyJobs().then(() => {
                 AsyncStorage.setItem(LAST_DAILY_JOB_KEY, now);
+                checkAllGesturesForDecliningAccuracy();
               });
             }
           });

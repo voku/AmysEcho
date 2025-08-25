@@ -30,6 +30,7 @@ const HelpScreen = lazyScreen(() => import('../screens/HelpScreen'));
 const ProgressScreen = lazyScreen(() => import('../screens/ProgressScreen'));
 const ProgressChartScreen = lazyScreen(() => import('../screens/ProgressChartScreen'));
 const PracticeSchedulerScreen = lazyScreen(() => import('../screens/PracticeSchedulerScreen'));
+const CaregiverReportScreen = lazyScreen(() => import('../screens/CaregiverReportScreen'));
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -142,6 +143,11 @@ const RootNavigator = () => {
         name="PracticeScheduler"
         component={PracticeSchedulerScreen}
         options={{ title: 'Übungsplaner' }}
+      />
+      <Stack.Screen
+        name="CaregiverReport"
+        component={CaregiverReportScreen}
+        options={{ title: 'Lernfortschritt' }}
       />
       </Stack.Navigator>
     </Suspense>

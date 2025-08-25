@@ -71,6 +71,11 @@ export default function ParentScreen({ navigation }: any) {
         accessibilityLabel="Übungsplaner"
       />
       <Button
+        title="Lernfortschritt"
+        onPress={() => navigation.navigate('CaregiverReport')}
+        accessibilityLabel="Lernfortschritt ansehen"
+      />
+      <Button
         title="Fortschritt"
         onPress={() => navigation.navigate('Progress')}
         accessibilityLabel="Fortschritt ansehen"

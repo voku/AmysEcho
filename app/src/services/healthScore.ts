@@ -81,3 +81,28 @@ export async function loadHistoricalHealthData(
   return data[gestureId] || [];
 }
 
+
+
+export async function checkForDecliningAccuracy(
+  gestureId: string,
+): Promise<boolean> {
+  const data = await loadHistoricalHealthData(gestureId);
+  if (data.length < 7) {
+    return false;
+  }
+
+  const recentData = data.slice(-7);
+  const x = recentData.map((_, i) => i);
+  const y = recentData.map(d => d.successRate);
+
+  const n = x.length;
+  const sx = x.reduce((a, b) => a + b, 0);
+  const sy = y.reduce((a, b) => a + b, 0);
+  const sxy = x.map((_, i) => x[i] * y[i]).reduce((a, b) => a + b, 0);
+  const sx2 = x.map(v => v * v).reduce((a, b) => a + b, 0);
+
+  const slope = (n * sxy - sx * sy) / (n * sx2 - sx * sx);
+
+  return slope < -0.1;
+}
+
