@@ -14,6 +14,15 @@ jest.mock('react-native-webview', () => ({
   WebView: (props: any) => <mock-webview {...props} />,
 }));
 
+jest.mock('../src/services/dgsModelClient', () => ({
+  getCachedMlpModel: jest.fn(() => Promise.resolve(null)),
+  fetchMlpModel: jest.fn(() => Promise.resolve(null)),
+}));
+
+jest.mock('../src/storage', () => ({
+  loadActiveProfileId: jest.fn(() => Promise.resolve(null)),
+}));
+
 describe('MediaPipeGestureDetector', () => {
   it('calls onGestureDetected when a gesture message is received', () => {
     const onGestureDetected = jest.fn();
@@ -84,7 +93,7 @@ describe('MediaPipeGestureDetector', () => {
       webview.props.onMessage({ nativeEvent: { data: 'invalid json' } });
     });
 
-    expect(onError).toHaveBeenCalledWith('Failed to parse gesture data');
+    expect(onError).toHaveBeenCalledWith('Fehler beim Verarbeiten der Gestendaten');
     expect(onGestureDetected).not.toHaveBeenCalled();
   });
 
@@ -110,5 +119,21 @@ describe('MediaPipeGestureDetector', () => {
 
     expect(onGestureDetected).toHaveBeenCalledWith(null, 0, [[[1, 2, 3]]]);
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('loads MLP model on mount', async () => {
+    const { getCachedMlpModel, fetchMlpModel } = require('../src/services/dgsModelClient');
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    await act(async () => {
+      renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+      await Promise.resolve();
+    });
+
+    expect(getCachedMlpModel).toHaveBeenCalled();
+    expect(fetchMlpModel).toHaveBeenCalled();
   });
 });
