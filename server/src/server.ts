@@ -360,6 +360,23 @@ app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
   }
 });
 
+// Serve per-profile MLP models (NPZ)
+app.get('/api/v1/dgs/mlp-model', auth, async (req: any, res: any) => {
+  try {
+    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    const filePath = getMlpModelPath(profileId);
+    try {
+      const buf = await fs.readFile(filePath);
+      res.set('Content-Type', 'application/octet-stream');
+      res.send(buf);
+    } catch {
+      res.status(404).json({ error: 'MLP model not found' });
+    }
+  } catch {
+    res.status(500).json({ error: 'Failed to load MLP model' });
+  }
+});
+
   // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
   try {
