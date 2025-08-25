@@ -7,11 +7,12 @@ export function installMlp() {
       s.onerror = () => rej(new Error('fflate load failed'));
       document.head.appendChild(s);
     });
+  type Tensor = { data: Float64Array; shape: number[] };
   type MlpModel = {
-    w1: Float64Array;
-    b1: Float64Array;
-    w2: Float64Array;
-    b2: Float64Array;
+    w1: Tensor;
+    b1: Tensor;
+    w2: Tensor;
+    b2: Tensor;
     labels: string[];
   };
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,labels }
@@ -108,10 +109,10 @@ export function installMlp() {
         labels = parsed.data as string[];
       }
       mlp = {
-        w1: Float64Array.from(w1.data as ArrayLike<number>),
-        b1: Float64Array.from(b1.data as ArrayLike<number>),
-        w2: Float64Array.from(w2.data as ArrayLike<number>),
-        b2: Float64Array.from(b2.data as ArrayLike<number>),
+        w1: { data: Float64Array.from(w1.data as ArrayLike<number>), shape: w1.shape },
+        b1: { data: Float64Array.from(b1.data as ArrayLike<number>), shape: b1.shape },
+        w2: { data: Float64Array.from(w2.data as ArrayLike<number>), shape: w2.shape },
+        b2: { data: Float64Array.from(b2.data as ArrayLike<number>), shape: b2.shape },
         labels,
       };
       return true;
@@ -196,12 +197,16 @@ export function installMlp() {
     const x = normalizeLandmarks(all, handednesses);
     if (!x) return null;
     const cols1 = x.length;
-    const rows1 = mlp.b1.length;
-    const z1 = addBias(dotMV(mlp.w1, rows1, cols1, x), mlp.b1);
+    if (mlp.w1.shape[1] !== cols1) throw new Error('Input dimension mismatch');
+    const rows1 = mlp.w1.shape[0];
+    if (mlp.b1.shape[0] !== rows1) throw new Error('b1 dimension mismatch');
+    const z1 = addBias(dotMV(mlp.w1.data, rows1, cols1, x), mlp.b1.data);
     const a1 = relu(z1);
-    const rows2 = mlp.b2.length;
-    const cols2 = a1.length;
-    const z2 = addBias(dotMV(mlp.w2, rows2, cols2, a1), mlp.b2);
+    const rows2 = mlp.w2.shape[0];
+    const cols2 = mlp.w2.shape[1];
+    if (cols2 !== a1.length) throw new Error('Hidden layer size mismatch');
+    if (mlp.b2.shape[0] !== rows2) throw new Error('b2 dimension mismatch');
+    const z2 = addBias(dotMV(mlp.w2.data, rows2, cols2, a1), mlp.b2.data);
     const probs = softmax(Array.from(z2));
     let bestI = 0;
     let best = probs[0];

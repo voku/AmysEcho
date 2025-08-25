@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import {
   API_TOKEN,
@@ -34,6 +34,12 @@ try {
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode = 'user' }) => {
   type WebViewRef = InstanceType<typeof WebView>;
   const webviewRef = useRef<WebViewRef | null>(null);
+  const [, setLangTick] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = LanguageManager.subscribe(() => setLangTick((v) => v + 1));
+    return unsubscribe;
+  }, []);
 
   const escapeJs = (s: string) =>
     s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
@@ -432,6 +438,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   return (
     <View style={styles.container}>
       <WebViewImpl
+        key={LanguageManager.getLanguage()}
         ref={webviewRef}
         source={{ html: htmlContent, baseUrl: 'https://camera.local' }}
         style={styles.webview}

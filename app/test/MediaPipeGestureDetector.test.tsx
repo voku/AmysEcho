@@ -25,6 +25,9 @@ jest.mock('../src/storage', () => ({
 }));
 
 describe('MediaPipeGestureDetector', () => {
+  beforeEach(() => {
+    LanguageManager.setLanguage('de');
+  });
   it('calls onGestureDetected when a gesture message is received', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
@@ -136,5 +139,27 @@ describe('MediaPipeGestureDetector', () => {
 
     expect(getCachedMlpModel).toHaveBeenCalled();
     expect(fetchMlpModel).toHaveBeenCalled();
+  });
+
+  it('updates translations when language changes', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    let webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    expect(webview.props.source.html).toContain('Tippe, um die Kamera zu starten');
+
+    act(() => {
+      LanguageManager.setLanguage('en');
+    });
+
+    webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    expect(webview.props.source.html).toContain('Tap to start camera');
   });
 });
