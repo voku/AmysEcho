@@ -1,0 +1,227 @@
+[auto-gemini] Iteration #1 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225545.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-225545.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225545.md
+[run-gemini] Started gemini (PID 603661). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225545.log
+cat: /tmp/gemini_prompt_603645.txt: No such file or directory
+[watch-gemini] Watching PID 603661
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225545.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225545.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225545.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #2 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225553.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-225553.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225553.md
+[run-gemini] Started gemini (PID 604113). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225553.log
+cat: /tmp/gemini_prompt_604105.txt: No such file or directory
+[watch-gemini] Watching PID 604113
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225553.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225553.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225553.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #3 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225600.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-225600.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225600.md
+[run-gemini] Started gemini (PID 605024). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225600.log
+cat: /tmp/gemini_prompt_605016.txt: No such file or directory
+[watch-gemini] Watching PID 605024
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225600.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225600.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225600.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #4 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225609.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-225609.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225609.md
+[run-gemini] Started gemini (PID 605429). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225609.log
+cat: /tmp/gemini_prompt_605411.txt: No such file or directory
+[watch-gemini] Watching PID 605429
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225609.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225609.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225609.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #5 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225616.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-225616.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225616.md
+[run-gemini] Started gemini (PID 606353). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225616.log
+cat: /tmp/gemini_prompt_606342.txt: No such file or directory
+[watch-gemini] Watching PID 606353
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225616.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225616.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225616.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 2 seconds.
+[auto-gemini] Iteration #6 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225623.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-225623.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225623.md
+[run-gemini] Started gemini (PID 607336). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225623.log
+[watch-gemini] Watching PID 607336
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-225623.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225623.md
+[watch-gemini] Timeout waiting for summary. Still running.
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 4 seconds.
+[auto-gemini] Iteration #7 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-230703.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-230703.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-230703.md
+[run-gemini] Started gemini (PID 661229). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-230703.log
+[watch-gemini] Watching PID 661229
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-230703.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-230703.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-230703.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 8 seconds.
+[auto-gemini] Iteration #8 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-230830.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-230830.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-230830.md
+[run-gemini] Started gemini (PID 669041). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-230830.log
+[watch-gemini] Watching PID 669041
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-230830.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-230830.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-230830.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 16 seconds.
+[auto-gemini] Iteration #9 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231019.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-231019.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231019.md
+[run-gemini] Started gemini (PID 678187). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231019.log
+[watch-gemini] Watching PID 678187
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231019.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231019.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231019.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 32 seconds.
+[auto-gemini] Iteration #10 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231212.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-231212.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231212.md
+[run-gemini] Started gemini (PID 688350). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231212.log
+cat: /tmp/gemini_prompt_688335.txt: No such file or directory
+[watch-gemini] Watching PID 688350
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231212.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231212.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231212.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #11 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231219.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-231219.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231219.md
+[run-gemini] Started gemini (PID 688766). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231219.log
+[watch-gemini] Watching PID 688766
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231219.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231219.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231219.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 64 seconds.
+[auto-gemini] Iteration #12 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231445.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-231445.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231445.md
+[run-gemini] Started gemini (PID 702011). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231445.log
+[watch-gemini] Watching PID 702011
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231445.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231445.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231445.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 128 seconds.
+[auto-gemini] Iteration #13 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231816.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-231816.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231816.md
+[run-gemini] Started gemini (PID 719544). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231816.log
+cat: /tmp/gemini_prompt_719536.txt: No such file or directory
+[watch-gemini] Watching PID 719544
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231816.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231816.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231816.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #14 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231823.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-231823.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231823.md
+[run-gemini] Started gemini (PID 719932). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231823.log
+[watch-gemini] Watching PID 719932
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231823.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-231823.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-231823.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 256 seconds.
+[auto-gemini] Iteration #15 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-232406.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-232406.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-232406.md
+[run-gemini] Started gemini (PID 749139). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-232406.log
+[watch-gemini] Watching PID 749139
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-232406.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-232406.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-232406.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 512 seconds.
+[auto-gemini] Iteration #16 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-233416.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-233416.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-233416.md
+[run-gemini] Started gemini (PID 800069). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-233416.log
+[watch-gemini] Watching PID 800069
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-233416.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-233416.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-233416.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 1024 seconds.
+[auto-gemini] Iteration #17 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-235339.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-235339.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-235339.md
+[run-gemini] Started gemini (PID 897995). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-235339.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #18 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-235341.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-235341.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-235341.md
+[run-gemini] Started gemini (PID 898144). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-235341.log
+cat: /tmp/gemini_prompt_898136.txt: No such file or directory
+[watch-gemini] Watching PID 898144
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-235341.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-235341.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-235341.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 1800 seconds.
+[auto-gemini] Iteration #19 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-002527.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250824-002527.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-002527.md
+[run-gemini] Started gemini (PID 1058722). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-002527.log
+cat: /tmp/gemini_prompt_1058714.txt: No such file or directory
+[watch-gemini] Watching PID 1058722
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-002527.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-002527.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-002527.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #20 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-002534.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250824-002534.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-002534.md
+[run-gemini] Started gemini (PID 1059586). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-002534.log
+[watch-gemini] Watching PID 1059586
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-002534.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-002534.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-002534.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 1800 seconds.
+[auto-gemini] Iteration #21 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-005859.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250824-005859.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-005859.md
+[run-gemini] Started gemini (PID 1225353). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-005859.log
+cat: /tmp/gemini_prompt_1225335.txt: No such file or directory
+[watch-gemini] Watching PID 1225353
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-005859.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-005859.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-005859.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #22 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-005907.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250824-005907.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-005907.md
+[run-gemini] Started gemini (PID 1225738). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-005907.log
+[watch-gemini] Watching PID 1225738
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-005907.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-005907.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-005907.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 1800 seconds.
+[auto-gemini] Iteration #23 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-225424.md
+[run-gemini] Launching Gemini...\n  model: gemini-2.5-flash\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-013248.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250824-013248.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-013248.md
+[run-gemini] Started gemini (PID 1396703). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-013248.log
+[watch-gemini] Watching PID 1396703
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-013248.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250824-013248.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250824-013248.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Detected API quota exhaustion (429/RESOURCE_EXHAUSTED). Backing off for 1800 seconds.

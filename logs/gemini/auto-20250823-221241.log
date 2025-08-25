@@ -1,0 +1,61 @@
+[auto-gemini] Iteration #1 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-220943.md
+[run-gemini] Launching Gemini...\n  model: gemini-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221241.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-221241.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221241.md
+[run-gemini] Started gemini (PID 440363). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221241.log
+[watch-gemini] Watching PID 440363
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221241.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221241.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221241.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #2 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-220943.md
+[run-gemini] Launching Gemini...\n  model: gemini-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221248.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-221248.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221248.md
+[run-gemini] Started gemini (PID 441135). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221248.log
+cat: /tmp/gemini_prompt_441127.txt: No such file or directory
+[watch-gemini] Watching PID 441135
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221248.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221248.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221248.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #3 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-220943.md
+[run-gemini] Launching Gemini...\n  model: gemini-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221256.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-221256.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221256.md
+[run-gemini] Started gemini (PID 441609). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221256.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #4 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-220943.md
+[run-gemini] Launching Gemini...\n  model: gemini-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221258.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-221258.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221258.md
+[run-gemini] Started gemini (PID 441785). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221258.log
+cat: /tmp/gemini_prompt_441777.txt: No such file or directory
+[watch-gemini] Watching PID 441785
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221258.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221258.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221258.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #5 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-220943.md
+[run-gemini] Launching Gemini...\n  model: gemini-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221306.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-221306.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221306.md
+[run-gemini] Started gemini (PID 441941). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221306.log
+[watch-gemini] Watching PID 441941
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221306.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221306.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221306.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #6 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221054.md
+[run-gemini] Launching Gemini...\n  model: gemini-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221319.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-221319.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221319.md
+[run-gemini] Started gemini (PID 442524). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221319.log
+[watch-gemini] Watching PID 442524
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221319.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221319.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221319.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini
+[auto-gemini] Iteration #7 starting...
+[auto-gemini] Building follow-up prompt from /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221054.md
+[run-gemini] Launching Gemini...\n  model: gemini-pro\n  log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221326.log\n  telemetry: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/telemetry-20250823-221326.jsonl\n  summary: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221326.md
+[run-gemini] Started gemini (PID 442975). Tail logs with: tail -f /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221326.log
+[watch-gemini] Watching PID 442975
+[watch-gemini] Log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221319.log
+[watch-gemini] Summary (target): /home/lars/PhpstormProjects/AmysEcho/logs/gemini/summary-20250823-221319.md
+[watch-gemini] Process exited without summary. See log: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/run-20250823-221319.log
+[auto-gemini] Gemini exited without writing a summary. See latest log in /home/lars/PhpstormProjects/AmysEcho/logs/gemini

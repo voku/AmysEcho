@@ -120,12 +120,12 @@ const RootNavigator = () => {
       <Stack.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{ title: 'Analytics' }}
+        options={{ title: 'Auswertung' }}
       />
       <Stack.Screen
         name="Progress"
         component={ProgressScreen}
-        options={{ title: 'Progress' }}
+        options={{ title: 'Fortschritt' }}
       />
       <Stack.Screen
         name="Help"
@@ -135,7 +135,7 @@ const RootNavigator = () => {
       <Stack.Screen
         name="PracticeScheduler"
         component={PracticeSchedulerScreen}
-        options={{ title: 'Practice Scheduler' }}
+        options={{ title: 'Übungsplaner' }}
       />
       </Stack.Navigator>
     </Suspense>

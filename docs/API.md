@@ -218,6 +218,24 @@ Query parameter `profileId` mirrors `/latest-model` for profile-specific metadat
 { "version": "1.0.0", "size": 1234, "sha256": "<hash>" }
 ```
 
+### GET /latest-mlp-model
+Download the latest trained MLP weights file (NPZ).
+
+Query parameter `profileId` returns a profile-specific model if available.
+`profileId` may contain only letters, numbers, underscores, and dashes.
+
+Per-profile authorization: when requesting a profile-specific model (`?profileId=...`), clients must include header `X-Profile-Id: <profileId>`. If the header is missing or does not match, the server returns `403 Forbidden` without revealing whether the profile exists.
+
+Response headers:
+- `ETag`: Strong hash in the form `"sha256-<hex>"` for cache validation.
+- `X-Model-Version`: Monotonic version derived from file mtime (ms since epoch).
+- `X-Checksum-SHA256`: Hex digest of the file for integrity verification.
+- `Cache-Control`: `private, max-age=0, must-revalidate`.
+- `Content-Disposition`: `attachment; filename="dgs_model[_<profileId>].npz"`.
+- `Accept-Ranges`: `bytes` with support for HTTP range requests.
+
+Range requests: clients may include `Range: bytes=start-end`. The server replies with `206 Partial Content` and `Content-Range`.
+
 ### POST /analytics
 Store high level analytics.
 

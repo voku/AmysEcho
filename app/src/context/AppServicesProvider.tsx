@@ -66,10 +66,8 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         }
 
       } catch (e) {
-        logger.error('Failed to initialize services:', e);
-        setMessage(
-          'Failed to initialize services. Please check your connection and try again.',
-        );
+        logger.error('Dienste konnten nicht initialisiert werden:', e);
+        setMessage('Dienste konnten nicht gestartet werden. Bitte Internetverbindung prüfen und erneut versuchen.');
         setAreServicesReady(true);
       }
     }

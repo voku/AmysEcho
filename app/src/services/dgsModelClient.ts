@@ -5,6 +5,7 @@ const getApiToken = () => process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
 
 const KEY = 'dgsCentroids';
 const MLP_KEY = 'dgsMlpModel';
+const MLP_META_KEY = 'dgsMlpModelMeta';
 
 type StorageLike = {
   setItem(key: string, value: string): Promise<void>;
@@ -57,18 +58,41 @@ export async function getCachedCentroids(profileId?: string): Promise<{ centroid
   try { return JSON.parse(raw); } catch { return null; }
 }
 
+type MlpMeta = { etag?: string; checksum?: string; version?: string };
+
 export async function fetchMlpModel(profileId?: string): Promise<string | null> {
   try {
     const url = new URL('/api/v1/dgs/mlp-model', getApiUrl());
     if (profileId) url.searchParams.set('profileId', profileId);
-    const resp = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${getApiToken()}` },
-    });
+    const headers: Record<string, string> = { Authorization: `Bearer ${getApiToken()}` };
+    if (profileId) headers['X-Profile-Id'] = profileId;
+    // Conditional request using cached ETag
+    const storage = await getStorage();
+    const prevMetaRaw = await storage.getItem(`${MLP_META_KEY}:${profileId || 'global'}`);
+    let prevMeta: MlpMeta | null = null;
+    try { prevMeta = prevMetaRaw ? JSON.parse(prevMetaRaw) : null; } catch {}
+    if (prevMeta?.etag) headers['If-None-Match'] = prevMeta.etag;
+
+    const resp = await fetch(url.toString(), { headers });
+    if (resp.status === 304) {
+      // Not modified, keep cached model
+      return storage.getItem(`${MLP_KEY}:${profileId || 'global'}`);
+    }
     if (!resp.ok) return null;
+    const lenHeader = resp.headers.get('Content-Length');
+    if (lenHeader && parseInt(lenHeader, 10) > 5 * 1024 * 1024) {
+      // Safety: do not accept files larger than 5 MB
+      return null;
+    }
     const buf = Buffer.from(await resp.arrayBuffer());
     const b64 = buf.toString('base64');
-    const storage = await getStorage();
     await storage.setItem(`${MLP_KEY}:${profileId || 'global'}`, b64);
+    const meta: MlpMeta = {
+      etag: resp.headers.get('ETag') || undefined,
+      checksum: resp.headers.get('X-Checksum-SHA256') || undefined,
+      version: resp.headers.get('X-Model-Version') || undefined,
+    };
+    await storage.setItem(`${MLP_META_KEY}:${profileId || 'global'}`, JSON.stringify(meta));
     return b64;
   } catch (error) {
     console.error('Failed to fetch MLP model:', error);

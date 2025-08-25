@@ -209,7 +209,7 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
   await fs.writeFile(modelPath, buf);
   try {
     const res = await fetch(`http://localhost:${PORT}/api/v1/dgs/mlp-model?profileId=p1`, {
-      headers: { Authorization: 'Bearer testtoken' },
+      headers: { Authorization: 'Bearer testtoken', 'X-Profile-Id': 'p1' },
     });
     assert.strictEqual(res.status, 200);
     const out = Buffer.from(await res.arrayBuffer());
@@ -235,4 +235,3 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
     await fs.unlink(modelPath).catch(() => {});
   }
 });
-

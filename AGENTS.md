@@ -47,6 +47,54 @@ For guidelines specific to the application or server, see the `AGENTS.md` files 
 5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
 6. **Use German for all user-facing text and error messages in the app.**
 
+## Automated Agent Workflow (`auto-agent.sh`)
+
+For complex, iterative tasks like fixing a large number of type errors or refactoring a module, an automated agent script is available. This script, `scripts/auto-agent.sh`, runs the Gemini CLI in a loop, feeding the results of one run into the prompt for the next. This creates a continuous feedback cycle that allows the agent to work towards a goal autonomously.
+
+### How it Works
+
+1.  **Initial Prompt**: The loop starts with a high-level goal defined in a prompt file (by default, `docs/TODO.md`).
+2.  **Execution**: It runs the Gemini CLI in a non-interactive mode (`--approval-mode yolo`) and saves the full output to a log file in `logs/gemini/`.
+3.  **Analysis**: After each run, the script analyzes the log for error patterns (e.g., `TypeScript error`, `failed`).
+4.  **Follow-up Prompt**: It then generates a new prompt for the next iteration. 
+    - If errors were found, the new prompt instructs the agent to fix the errors, providing the full log of the failed run as context.
+    - If no errors were found, the prompt instructs the agent to continue the task based on the summary of the last run.
+5.  **Loop**: The process repeats until a maximum number of retries is reached.
+
+### How to Use
+
+**To start the agent:**
+
+```bash
+# Start the agent in the background
+nohup bash scripts/auto-agent.sh &
+
+# Save its PID for easy access
+echo $! > logs/gemini/auto_last_pid
+```
+
+**To monitor the agent's progress:**
+
+```bash
+# Tail the main log for the entire session
+tail -f $(ls -1t logs/gemini/agent-run-*.log | head -n1)
+
+# Tail the log of the current, active Gemini run
+tail -f $(ls -1t logs/gemini/run-*.log | head -n1)
+```
+
+**To stop the agent:**
+
+```bash
+kill $(cat logs/gemini/auto_last_pid)
+```
+
+### Best Practices
+
+-   **Use for focused tasks**: This tool is most effective when the initial prompt (`docs/TODO.md`) is clear and specific (e.g., "Fix all TypeScript errors in the `app/src/services` directory").
+-   **Monitor the first few runs**: Check the logs to ensure the agent is on the right track before leaving it to run unattended.
+-   **Review the results**: After the agent finishes, review the code changes and test them thoroughly. The agent is a tool to accelerate development, not replace human oversight.
+
 ## Testing Rules
 
 - Never skip or comment out existing tests. Update them when behavior changes.

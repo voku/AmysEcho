@@ -47,9 +47,10 @@ export async function removeSchedule(id: string): Promise<void> {
 export async function getDueGesture(now: Date = new Date()): Promise<string | null> {
   const all = await listSchedules();
   if (all.length === 0) return null;
-  const day = now.getDay();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
+  // Use UTC-based fields for deterministic behavior across time zones
+  const day = now.getUTCDay();
+  const hour = now.getUTCHours();
+  const minute = now.getUTCMinutes();
   const lastShownRaw = await AsyncStorage.getItem(LAST_SHOWN_KEY);
   const lastShown: Record<string, string> = lastShownRaw ? JSON.parse(lastShownRaw) : {};
   for (const s of all) {
@@ -65,4 +66,3 @@ export async function getDueGesture(now: Date = new Date()): Promise<string | nu
   }
   return null;
 }
-

@@ -1,0 +1,8 @@
+--- Starting Auto-Agent ---
+Full log for this session: /home/lars/PhpstormProjects/AmysEcho/logs/gemini/agent-run-20250825-104218.log
+Initial prompt file: docs/TODO.md
+---------------------------
+
+--- Starting Run 1 of 10 ---
+Run Log: logs/gemini/run-1.log
+Gemini process started with PID: 8433

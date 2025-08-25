@@ -364,15 +364,12 @@ app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
 app.get('/api/v1/dgs/mlp-model', auth, async (req: Request, res: Response) => {
   try {
     const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    if (profileId && !isProfileAuthorized(req, profileId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     const resolvedFile = await resolveModelFile(profileId, res, getMlpModelPath);
     if (!resolvedFile) return;
-    try {
-      const buf = await fs.readFile(resolvedFile);
-      res.set('Content-Type', 'application/octet-stream');
-      res.send(buf);
-    } catch {
-      res.status(404).json({ error: 'MLP model not found' });
-    }
+    await sendBinaryModel(res, resolvedFile, profileId ? `dgs_model_${profileId}.npz` : 'dgs_model.npz');
   } catch {
     res.status(500).json({ error: 'Failed to load MLP model' });
   }
@@ -644,11 +641,14 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
         });
       });
 
-      // Copy model for profile-specific variants
+      // Copy model for profile-specific variants (atomic)
       const baseModel = getMlpModelPath();
       for (const pid of profileIds) {
         const dest = getMlpModelPath(pid);
-        await fs.copyFile(baseModel, dest);
+        const tmp = `${dest}.tmp`;
+        await fs.copyFile(baseModel, tmp);
+        await fs.rename(tmp, dest);
+        try { await fs.chmod(dest, 0o640); } catch {}
       }
 
       job.progress = 100;
@@ -717,40 +717,72 @@ async function resolveModelFile(
   return resolvedFile;
 }
 
+// Simple per-profile authorization: require matching X-Profile-Id header when requesting a profiled resource
+function isProfileAuthorized(req: Request, profileId: string): boolean {
+  const claimed = req.header('x-profile-id');
+  return typeof claimed === 'string' && claimed === profileId;
+}
+
+async function sendBinaryModel(res: Response, filePath: string, downloadName: string) {
+  try {
+    const stat = await fs.stat(filePath);
+    // ETag & checksum
+    const buf = await fs.readFile(filePath);
+    const sha256 = createHash('sha256').update(buf).digest('hex');
+
+    // Range support
+    const range = (res.req.headers['range'] as string | undefined) || undefined;
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('ETag', `"sha256-${sha256}"`);
+    res.setHeader('X-Checksum-SHA256', sha256);
+    res.setHeader('X-Model-Version', String(Math.floor(stat.mtimeMs)));
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+
+    if (range && range.startsWith('bytes=')) {
+      const [startStr, endStr] = range.replace('bytes=', '').split('-');
+      let start = parseInt(startStr, 10);
+      let end = endStr ? parseInt(endStr, 10) : stat.size - 1;
+      if (Number.isNaN(start)) start = 0;
+      if (Number.isNaN(end) || end >= stat.size) end = stat.size - 1;
+      if (start > end || start < 0) {
+        res.status(416).setHeader('Content-Range', `bytes */${stat.size}`).end();
+        return;
+      }
+      const chunkSize = end - start + 1;
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${stat.size}`);
+      res.setHeader('Content-Length', String(chunkSize));
+      const stream = (await import('fs')).createReadStream(filePath, { start, end });
+      stream.pipe(res);
+      return;
+    }
+
+    res.setHeader('Content-Length', String(stat.size));
+    res.send(buf);
+  } catch {
+    res.status(404).json({ error: 'Model not found' });
+  }
+}
+
 app.get('/latest-model', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
   const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
   if (!resolvedFile) return;
-  try {
-    const stat = await fs.stat(resolvedFile);
-    const buf = await fs.readFile(resolvedFile);
-    const sha256 = createHash('sha256').update(buf).digest('hex');
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Length', stat.size.toString());
-    res.setHeader('ETag', `"sha256-${sha256}"`);
-    res.send(buf);
-  } catch {
-    res.status(404).json({ error: 'Model not found' });
-  }
+  await sendBinaryModel(res, resolvedFile, profileId ? `centroid_model_${profileId}.json` : 'centroid_model.json');
 });
 
 app.get('/latest-mlp-model', auth, async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+  if (profileId && !isProfileAuthorized(req, profileId)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   const resolvedFile = await resolveModelFile(profileId, res, getMlpModelPath);
   if (!resolvedFile) return;
-  try {
-    const stat = await fs.stat(resolvedFile);
-    const buf = await fs.readFile(resolvedFile);
-    const sha256 = createHash('sha256').update(buf).digest('hex');
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Length', stat.size.toString());
-    res.setHeader('ETag', `"sha256-${sha256}"`);
-    res.send(buf);
-  } catch {
-    res.status(404).json({ error: 'Model not found' });
-  }
+  await sendBinaryModel(res, resolvedFile, profileId ? `dgs_model_${profileId}.npz` : 'dgs_model.npz');
 });
 
 // Model metadata: version, size, sha256

@@ -10,7 +10,7 @@ const translations: Record<Language, TranslationMap> = {
   de,
 };
 
-let current: Language = 'en';
+let current: Language = 'de';
 
 function getNested(obj: TranslationMap, path: string[]): any {
   return path.reduce((acc: any, key: string) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);

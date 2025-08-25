@@ -89,10 +89,10 @@ describe('AppServicesProvider', () => {
     await act(async () => {});
     const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
     expect(error.props.message).toBe(
-      'Failed to initialize services. Please check your connection and try again.',
+      'Dienste konnten nicht gestartet werden. Bitte Internetverbindung prüfen und erneut versuchen.',
     );
     expect(logger.error).toHaveBeenCalledWith(
-      'Failed to initialize services:',
+      'Dienste konnten nicht initialisiert werden:',
       expect.any(Error),
     );
   });

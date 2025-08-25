@@ -169,7 +169,16 @@ def main():
     # Save model
     idx_to_label = {i: l for l, i in label_to_idx.items()}
     
-    np.savez(MODEL_PATH, w1=w1, b1=b1, w2=w2, b2=b2, idx_to_label=idx_to_label)
+    # Atomic write to avoid partial reads
+    tmp_path = MODEL_PATH + ".tmp"
+    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+    np.savez(tmp_path, w1=w1, b1=b1, w2=w2, b2=b2, idx_to_label=idx_to_label)
+    # Replace atomically and set restrictive permissions
+    os.replace(tmp_path, MODEL_PATH)
+    try:
+        os.chmod(MODEL_PATH, 0o640)
+    except Exception:
+        pass
     print(f"MLP model saved to {MODEL_PATH}")
 
 if __name__ == "__main__":
