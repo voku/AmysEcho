@@ -1,6 +1,7 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDetector';
+import { LanguageManager } from '../src/services/LanguageManager';
 
 jest.mock('react-native', () => {
   const React = require('react');
@@ -93,7 +94,7 @@ describe('MediaPipeGestureDetector', () => {
       webview.props.onMessage({ nativeEvent: { data: 'invalid json' } });
     });
 
-    expect(onError).toHaveBeenCalledWith('Fehler beim Verarbeiten der Gestendaten');
+    expect(onError).toHaveBeenCalledWith(LanguageManager.t('mediapipe.gestureProcessingError'));
     expect(onGestureDetected).not.toHaveBeenCalled();
   });
 

@@ -15,5 +15,13 @@
     "bad": "Schlecht",
     "happy": "Glücklich",
     "sad": "Traurig"
+  },
+  "mediapipe": {
+    "webviewUnavailable": "WebView nicht verfügbar. Baue den Development-Client inklusive react-native-webview.\nBefehl: expo run:android (oder npm run android --prefix app)",
+    "tapToStart": "Tippe, um die Kamera zu starten",
+    "gestureProcessingError": "Fehler beim Verarbeiten der Gestendaten",
+    "recognizerInitFailed": "Erkennung konnte nicht initialisiert werden: ",
+    "predictionError": "Vorhersagefehler: ",
+    "cameraError": "Kamerafehler: "
   }
 }
