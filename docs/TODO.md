@@ -64,7 +64,7 @@
   - Ensure camera feed is visible and landmark detection is active.
   - Verify that recorded samples are correctly captured and sent to the server.
 
-- [ ] **Revert MediaPipeGestureDetector.tsx to working state and re-integrate MLP/Centroid logic**
+- [x] **Revert MediaPipeGestureDetector.tsx to working state and re-integrate MLP/Centroid logic**
   - The `MediaPipeGestureDetector.tsx` file is currently reverted to a known working state (`baf462a23ea3aca54caace5354ac4091e38eabe3`) to ensure WebView functionality. This task involves carefully re-integrating the newer MLP model loading and centroid-based classification logic into this file. Ensure the camera feed remains visible, landmark detection is active, and the new classification pipeline is fully functional. Also, verify that the `TeachingScreen.tsx` WebView also works correctly after these changes.
 
 ## Now: Android USB Device Runbook

@@ -1,10 +1,20 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
+import {
+  API_TOKEN,
+  ANALYTICS_TELEMETRY_ENDPOINT,
+  MLP_CONFIDENCE_THRESHOLD,
+} from '../constants';
+import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
+import { loadActiveProfileId, onActiveProfileChange } from '../storage';
+import { LanguageManager } from '../services/LanguageManager';
+import { installMlp } from '../webview/installMlp';
+import { fflateBase64 } from '../webview/fflateBase64';
+import WebView from 'react-native-webview';
 
 interface Props {
   onGestureDetected: (
-    gesture: string,
+    gesture: string | null,
     confidence: number,
     landmarks: number[][][],
   ) => void;
@@ -14,7 +24,7 @@ interface Props {
 }
 
 // Optional require to avoid crashing when native WebView module is not in the binary
-let WebViewImpl: any = null;
+let WebViewImpl: typeof WebView | null = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   WebViewImpl = require('react-native-webview').WebView;
@@ -23,19 +33,72 @@ try {
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode = 'user' }) => {
-  const webviewRef = useRef<any>(null);
+  type WebViewRef = InstanceType<typeof WebView>;
+  const webviewRef = useRef<WebViewRef | null>(null);
+  const [, setLangTick] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = LanguageManager.subscribe(() => setLangTick((v) => v + 1));
+    return unsubscribe;
+  }, []);
+
+  const escapeJs = (s: string) =>
+    s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\n/g, '\\n');
+  const tapToStartText = escapeJs(LanguageManager.t('mediapipe.tapToStart'));
+  const recognizerInitFailed = escapeJs(LanguageManager.t('mediapipe.recognizerInitFailed'));
+  const predictionError = escapeJs(LanguageManager.t('mediapipe.predictionError'));
+  const cameraError = escapeJs(LanguageManager.t('mediapipe.cameraError'));
+
+  useEffect(() => {
+    const loadAndInjectModel = async () => {
+      try {
+        const pid = await loadActiveProfileId().catch((err) => {
+          console.warn('Failed to load active profile ID, falling back to global model.', err);
+          return null;
+        });
+
+        const inject = (b64: string) => {
+          if (!b64 || !webviewRef.current) return;
+          const safe = b64
+            .replace(/\\/g, "\\\\")
+            .replace(/`/g, "\\`")
+            .replace(/[\u2028\u2029]/g, '');
+          webviewRef.current.injectJavaScript(
+            `try{window.__setMlpModelB64 && window.__setMlpModelB64(\`${safe}\`);}catch(e){}`,
+          );
+        };
+
+        const cached = await getCachedMlpModel(pid ?? undefined);
+        if (cached) {
+          inject(cached);
+        }
+
+        const latest = await fetchMlpModel(pid ?? undefined);
+        if (latest && latest !== cached) {
+          inject(latest);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch or inject MLP model', e);
+      }
+    };
+    loadAndInjectModel();
+    const unsubscribe = onActiveProfileChange(() => {
+      loadAndInjectModel();
+    });
+    return unsubscribe;
+  }, []);
 
   if (!WebViewImpl) {
     // Provide a non-crashing fallback with a clear developer hint
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>
-          WebView unavailable. Build the development client including react-native-webview.
-          {'\n'}Run: expo run:android (or npm run android --prefix app)
+          {LanguageManager.t('mediapipe.webviewUnavailable')}
         </Text>
       </View>
     );
   }
+  const mlpInstallScript = `const s=document.createElement('script'); s.src='data:application/javascript;base64,${fflateBase64}'; s.onload=()=>{(${installMlp.toString()})();}; document.head.appendChild(s);`;
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -50,6 +113,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     #tapToStart.hidden { display: none; }
   </style>
   <script>
+    ${mlpInstallScript}
     // Dynamically load MediaPipe Tasks Vision from CDN and wait until it's ready
     async function loadTasksVision() {
       // Resolve a pinned version dynamically if possible, otherwise fall back to generic.
@@ -142,7 +206,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       document.body.appendChild(overlay);
       const tap = document.createElement('div');
       tap.id = 'tapToStart';
-      tap.innerText = 'Tap to start camera';
+      tap.innerText = '${tapToStartText}';
       tap.addEventListener('click', async () => {
         try { await startCamera(); tap.classList.add('hidden'); window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start' })); } catch {}
       });
@@ -168,7 +232,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         // Start prediction loop after recognizer is created and video is loaded
         video.addEventListener('loadeddata', predictWebcam);
       } catch (e) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: 'Recognizer init failed: ' + (e?.message || e) }));
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: '${recognizerInitFailed}' + (e?.message || e) }));
       }
     }
 
@@ -212,6 +276,14 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
                   outGesture = left.label + '+' + right.label;
                   outScore = Math.min(left.score, right.score);
                 }
+              }
+            }
+            // ** MLP Gesture Prediction **
+            if ((window as any).__mlpPredict) {
+              const mlpResult = (window as any).__mlpPredict(allLandmarks, results.handednesses);
+              if (mlpResult && mlpResult.score > ${MLP_CONFIDENCE_THRESHOLD}) {
+                outGesture = mlpResult.label;
+                outScore = mlpResult.score;
               }
             }
             // Custom gesture logic (preserved for single-hand fallback)
@@ -284,21 +356,21 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               }
             } catch {}
 
-            if (outGesture) {
-              window.ReactNativeWebView?.postMessage?.(
-                JSON.stringify({
-                  type: 'gesture',
-                  gesture: outGesture,
-                  confidence: outScore,
-                  landmarks: allLandmarks,
-                  hands: perHand,
-                }),
-              );
-            }
+              if (allLandmarks.length) {
+                window.ReactNativeWebView?.postMessage?.(
+                  JSON.stringify({
+                    type: 'gesture',
+                    gesture: outGesture || null,
+                    confidence: outScore,
+                    landmarks: allLandmarks,
+                    hands: perHand,
+                  }),
+                );
+              }
           }
         }
       } catch (e) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'warn', message: 'Prediction error: ' + (e?.message || e) }));
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'warn', message: '${predictionError}' + (e?.message || e) }));
       }
       window.requestAnimationFrame(predictWebcam);
     }
@@ -323,7 +395,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         // createGestureRecognizer will add the loadeddata listener
       } catch (err) {
         const msg = (err && (err.name+': '+err.message)) || String(err);
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: 'Camera error: ' + msg }));
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: '${cameraError}' + msg }));
       }
     }
 
@@ -364,13 +436,14 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         }
       }
     } catch (error) {
-      onError('Failed to parse gesture data');
+      onError(LanguageManager.t('mediapipe.gestureProcessingError'));
     }
   };
 
   return (
     <View style={styles.container}>
       <WebViewImpl
+        key={LanguageManager.getLanguage()}
         ref={webviewRef}
         source={{ html: htmlContent, baseUrl: 'https://camera.local' }}
         style={styles.webview}

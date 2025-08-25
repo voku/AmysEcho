@@ -11,6 +11,7 @@ const translations: Record<Language, TranslationMap> = {
 };
 
 let current: Language = 'de';
+const listeners = new Set<() => void>();
 
 function getNested(obj: TranslationMap, path: string[]): any {
   return path.reduce((acc: any, key: string) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);
@@ -21,8 +22,9 @@ export const LanguageManager = {
     return current;
   },
   setLanguage(lang: Language) {
-    if (translations[lang]) {
+    if (translations[lang] && lang !== current) {
       current = lang;
+      listeners.forEach((cb) => cb());
     }
   },
   t(key: string): string {
@@ -31,5 +33,11 @@ export const LanguageManager = {
   },
   getGestureLabel(id: string): string {
     return LanguageManager.t(`gestures.${id}`);
+  },
+  subscribe(listener: () => void) {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   },
 };
