@@ -18,4 +18,4 @@ echo "API: $EXPO_PUBLIC_API_URL (token set: ${#EXPO_PUBLIC_API_TOKEN} chars)"
 echo "(Tip) Use --host tunnel if LAN discovery fails."
 echo
 
-npx expo start --no-dev --minify --dev-client "$@"
+npx expo start --dev-client "$@"

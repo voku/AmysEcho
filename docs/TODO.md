@@ -49,6 +49,21 @@
       - `/latest-mlp-model` returns 200 for an authorized owner, 403 for unauthorized access, and 404 when no model exists.
 12. **App wiring** – extend `MediaPipeGestureDetector.tsx` to fetch `/latest-mlp-model`, parse `.npz` weights, and run the MLP forward pass with centroid or rule-based fallback.
 
+## Immediate Next Steps
+
+- [ ] **Test App/Server Integration & Document Setup**
+  - Test the full app/server integration, ensuring correct data flow and authentication.
+  - Document proper startup procedure for both server (with `API_TOKEN=demo-token npm start --prefix server`) and app (`./scripts/dev-run.sh`).
+  - Verify training data upload from app to server.
+  - Verify model metadata and model download from server to app.
+  - Confirm resolution of `training sync failed` and `model metadata request failed` errors.
+
+- [ ] **Fix "Teach New Gesture" WebView**
+  - Fix the black WebView issue in the 'Teach New Gesture' screen (`app/src/screens/TeachingScreen.tsx`).
+  - Adapt the working WebView code from `RecognitionScreen.tsx` (`MediaPipeGestureDetector.tsx`).
+  - Ensure camera feed is visible and landmark detection is active.
+  - Verify that recorded samples are correctly captured and sent to the server.
+
 ## Now: Android USB Device Runbook
 *Quick steps to validate on a real device connected via USB*
 
