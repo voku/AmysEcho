@@ -79,7 +79,9 @@ export async function setActiveProfileId(id: string): Promise<void> {
   activeProfileListeners.forEach((cb) => {
     try {
       cb(id);
-    } catch {}
+    } catch (e) {
+      console.warn('onActiveProfileChange listener failed:', e);
+    }
   });
 }
 

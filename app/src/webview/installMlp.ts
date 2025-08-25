@@ -12,9 +12,10 @@ export function installMlp() {
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     if (view.getUint8(0) !== 0x93) throw new Error('bad npy');
-    const ver = view.getUint8(2);
-    const headerLen = ver === 1 ? view.getUint16(8, true) : view.getUint32(8, true);
-    const headerStart = ver === 1 ? 10 : 12;
+    const major = view.getUint8(6);
+    const _minor = view.getUint8(7); // unused but kept for completeness
+    const headerLen = major === 1 ? view.getUint16(8, true) : view.getUint32(8, true);
+    const headerStart = major === 1 ? 10 : 12;
     const headerBytes = buf.subarray(headerStart, headerStart + headerLen);
     const headerStr = new TextDecoder().decode(headerBytes);
     const dtypeMatch = headerStr.match(/'descr':\s*'([^']+)'/);
@@ -22,6 +23,10 @@ export function installMlp() {
     const shapeMatch = headerStr.match(/'shape':\s*\(([^\)]*)\)/);
     if (!dtypeMatch || !fortranMatch || !shapeMatch) throw new Error('npy header');
     const descr = dtypeMatch[1];
+    const endian = descr[0];
+    if (endian !== '<' && endian !== '|') {
+      throw new Error('big-endian dtype not supported');
+    }
     const fortran = fortranMatch[1] === 'True';
     const shapeStr = shapeMatch[1].trim();
     const shape = shapeStr.length
@@ -218,7 +223,9 @@ export function installMlp() {
         (window as any).ReactNativeWebView?.postMessage?.(
           JSON.stringify({ type: 'telemetry', event: 'mlp_loaded' })
         );
-      } catch {}
+      } catch (e) {
+        console.warn('mlp_loaded postMessage failed', e);
+      }
     });
   };
   (window as any).__mlpPredict = mlpPredict;

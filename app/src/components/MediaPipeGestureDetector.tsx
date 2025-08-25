@@ -98,8 +98,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       </View>
     );
   }
-  const fflateLoader = `(() => { const s=document.createElement('script'); s.src='data:application/javascript;base64,${fflateBase64}'; document.head.appendChild(s); })();`;
-  const mlpInstallScript = `${fflateLoader}(${installMlp.toString()})();`;
+  const mlpInstallScript = `const s=document.createElement('script'); s.src='data:application/javascript;base64,${fflateBase64}'; s.onload=()=>{(${installMlp.toString()})();}; document.head.appendChild(s);`;
 
   const htmlContent = `
 <!DOCTYPE html>
