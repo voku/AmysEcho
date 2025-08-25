@@ -155,7 +155,7 @@ export function installMlp() {
     }
     return out;
   }
-  function normalizeLandmarks(all: any[]) {
+  function normalizeLandmarks(all: any[], handednesses: any[]) {
     const flat: number[] = [];
     function normHand(hand: any[]) {
       if (!hand || hand.length < 21) return null;
@@ -173,9 +173,17 @@ export function installMlp() {
       }
       return centered;
     }
-    const left = normHand(all[0] || []);
-    const right = normHand(all[1] || []);
-    if (!left) return null;
+
+    const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Left');
+    const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Right');
+
+    const leftHand = leftHandIndex > -1 ? all[leftHandIndex] : null;
+    const rightHand = rightHandIndex > -1 ? all[rightHandIndex] : null;
+
+    const left = normHand(leftHand);
+    if (!left) return null; // Model expects left hand
+
+    const right = normHand(rightHand);
     const r = right || new Array(21).fill(0).map(() => [0, 0, 0]);
     const both = left.concat(r);
     for (const p of both) {
@@ -183,9 +191,9 @@ export function installMlp() {
     }
     return new Float64Array(flat);
   }
-  function mlpPredict(all: any) {
+  function mlpPredict(all: any, handednesses: any[]) {
     if (!mlp) return null;
-    const x = normalizeLandmarks(all);
+    const x = normalizeLandmarks(all, handednesses);
     if (!x) return null;
     const cols1 = x.length;
     const rows1 = mlp.b1.length;

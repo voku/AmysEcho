@@ -269,8 +269,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             }
             // ** MLP Gesture Prediction **
             if ((window as any).__mlpPredict) {
-              const mlpResult = (window as any).__mlpPredict(allLandmarks);
-              if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
+              const mlpResult = (window as any).__mlpPredict(allLandmarks, results.handednesses);
+              if (mlpResult && mlpResult.score > ${MLP_CONFIDENCE_THRESHOLD}) {
                 outGesture = mlpResult.label;
                 outScore = mlpResult.score;
               }
