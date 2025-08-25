@@ -92,6 +92,9 @@ def test_train_endpoint(tmp_path):
             assert mresp.getcode() == 200
             data = json.loads(mresp.read().decode())
             assert data.get('type') == 'centroid_model'
+            assert "g1" in model.get("centroids", {})
+            assert len(model["centroids"]["g1"]) == 42
+            assert model.get("counts", {}).get("g1") == 1
 
         # verify MLP model files created
         npz = SERVER_DIR / 'data' / 'dgs_model.npz'
