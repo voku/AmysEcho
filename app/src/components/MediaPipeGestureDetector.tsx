@@ -43,9 +43,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const cameraError = escapeJs(LanguageManager.t('mediapipe.cameraError'));
 
   useEffect(() => {
-    (async () => {
+    const loadAndInjectModel = async () => {
       try {
-        const pid = await loadActiveProfileId().catch(() => null);
+        const pid = await loadActiveProfileId().catch((err) => {
+          console.warn('Failed to load active profile ID, falling back to global model.', err);
+          return null;
+        });
 
         const inject = (b64: string) => {
           if (!b64 || !webviewRef.current) return;
@@ -70,7 +73,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       } catch (e) {
         console.warn('Failed to fetch or inject MLP model', e);
       }
-    })();
+    };
+    loadAndInjectModel();
   }, []);
 
   if (!WebViewImpl) {

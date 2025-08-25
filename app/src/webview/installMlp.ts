@@ -58,7 +58,7 @@ export function installMlp() {
     }
     if (type.startsWith('U')) {
       const itemSize = parseInt(type.slice(1), 10);
-      const raw = new Uint16Array(buf.buffer, buf.byteOffset + offset, size * itemSize);
+      const raw = new Uint32Array(buf.buffer, buf.byteOffset + offset, size * itemSize);
       const out: string[] = [];
       for (let i = 0; i < size; i++) {
         const start = i * itemSize;
@@ -66,7 +66,7 @@ export function installMlp() {
         for (let j = 0; j < itemSize; j++) {
           const code = raw[start + j];
           if (code === 0) break;
-          s += String.fromCharCode(code);
+          s += String.fromCodePoint(code);
         }
         out.push(s);
       }
@@ -86,7 +86,7 @@ export function installMlp() {
       if (entries.length > 32) throw new Error('too many entries');
       const map: Record<string, Uint8Array> = {};
       for (const name of entries) {
-        map[name.replace(/^.*\\\//, '')] = files[name];
+        map[name.replace(/.*\//, '')] = files[name];
       }
       function npzFind(prefix: string) {
         const k = Object.keys(map).find((n) => n === prefix || n === prefix + '.npy');
