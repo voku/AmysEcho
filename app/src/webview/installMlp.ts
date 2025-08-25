@@ -154,6 +154,8 @@ export function installMlp() {
     }
     return out;
   }
+  const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0]);
+
   function normalizeLandmarks(all: any[], handednesses: any[]) {
     const flat: number[] = [];
     function normHand(hand: any[]) {
@@ -183,7 +185,7 @@ export function installMlp() {
     if (!left) return null; // Model expects left hand
 
     const right = normHand(rightHand);
-    const r = right || new Array(21).fill(0).map(() => [0, 0, 0]);
+    const r = right || EMPTY_HAND;
     const both = left.concat(r);
     for (const p of both) {
       flat.push(p[0], p[1], p[2] || 0);
