@@ -60,7 +60,10 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
   try {
     const url = new URL('/api/v1/dgs/mlp-model', getApiUrl());
     if (profileId) url.searchParams.set('profileId', profileId);
-    const resp = await fetch(url.toString(), { headers: { Authorization: `Bearer ${getApiToken()}` } });
+    const resp = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${getApiToken()}` },
+    });
+    if (!resp.ok) return null;
     const buf = Buffer.from(await resp.arrayBuffer());
     const b64 = buf.toString('base64');
     const storage = await getStorage();

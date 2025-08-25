@@ -3,6 +3,7 @@ import urllib.request
 import subprocess
 import os
 import json
+import shutil
 from pathlib import Path
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
@@ -18,8 +19,7 @@ def start_server():
     env.setdefault('MLP_EPOCHS', '5')
     data_dir = SERVER_DIR / 'data'
     if data_dir.exists():
-        for f in data_dir.glob('*'):
-            f.unlink()
+        shutil.rmtree(data_dir)
     subprocess.run(['npm', 'run', 'build'], cwd=SERVER_DIR, env=env, check=True, stdout=subprocess.DEVNULL)
     proc = subprocess.Popen(['node', 'dist/server.js'], cwd=SERVER_DIR, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     # wait for server up
@@ -122,5 +122,4 @@ def test_train_endpoint(tmp_path):
         # cleanup produced model files
         data_dir = SERVER_DIR / 'data'
         if data_dir.exists():
-            for f in data_dir.glob('*'):
-                f.unlink()
+            shutil.rmtree(data_dir)

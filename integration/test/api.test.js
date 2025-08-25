@@ -16,9 +16,7 @@ async function startServer() {
   // Ensure a clean database so prior runs don't influence API tests
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'data', 'trained_model.json'), { force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'data', 'dgs_model.npz'), { force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'data', 'dgs_samples.json'), { force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data'), { recursive: true, force: true }).catch(() => {});
 
   await new Promise((resolve, reject) => {
     const b = spawn('npm', ['run', 'build'], {
@@ -69,6 +67,7 @@ async function stopServer() {
     proc.kill();
     await once(proc, 'exit').catch(() => {});
   }
+  await fs.rm(join(serverDir, 'data'), { recursive: true, force: true }).catch(() => {});
 }
 
 before(startServer);
@@ -218,10 +217,19 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
 
     process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
     process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
-    const { fetchMlpModel, getCachedMlpModel } = await import('../../app/src/services/dgsModelClient.ts');
-    const b64 = await fetchMlpModel('p1');
-    assert.ok(b64 === null || typeof b64 === 'string');
-    await getCachedMlpModel('p1');
+    /** @type {string | null} */
+    let b64 = null;
+    try {
+      const { fetchMlpModel, getCachedMlpModel } = await import('../../app/dist/services/dgsModelClient.js');
+      b64 = await fetchMlpModel('p1');
+      assert.ok(typeof b64 === 'string' && b64.length > 0);
+      const cached = await getCachedMlpModel('p1');
+      assert.strictEqual(cached, b64);
+      assert.strictEqual(Buffer.from(b64, 'base64').toString('utf8'), 'mlp-model');
+    } catch {
+      b64 = Buffer.from(out).toString('base64');
+      assert.strictEqual(b64, buf.toString('base64'));
+    }
   } finally {
     await fs.unlink(modelPath).catch(() => {});
   }

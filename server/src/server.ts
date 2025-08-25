@@ -360,13 +360,14 @@ app.get('/api/v1/dgs/model', auth, async (req: any, res: any) => {
   }
 });
 
-// Serve per-profile MLP models (NPZ)
-app.get('/api/v1/dgs/mlp-model', auth, async (req: any, res: any) => {
+// Serve per-profile MLP models (NPZ) with containment checks
+app.get('/api/v1/dgs/mlp-model', auth, async (req: Request, res: Response) => {
   try {
     const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-    const filePath = getMlpModelPath(profileId);
+    const resolvedFile = await resolveModelFile(profileId, res, getMlpModelPath);
+    if (!resolvedFile) return;
     try {
-      const buf = await fs.readFile(filePath);
+      const buf = await fs.readFile(resolvedFile);
       res.set('Content-Type', 'application/octet-stream');
       res.send(buf);
     } catch {
@@ -607,7 +608,13 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
           cwd: serverRoot,
         });
         const stderrOutput: string[] = [];
-        proc.stderr.on('data', (d) => stderrOutput.push(d.toString()));
+        const MAX_STDERR_LINES = 50;
+        proc.stderr.on('data', (d) => {
+          stderrOutput.push(d.toString());
+          if (stderrOutput.length > MAX_STDERR_LINES) {
+            stderrOutput.splice(0, stderrOutput.length - MAX_STDERR_LINES);
+          }
+        });
 
         const rl = readline.createInterface({ input: proc.stdout });
         rl.on('line', (line: string) => {
@@ -622,7 +629,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
               }
             }
           } catch {
-            /* ignore non-JSON lines */
+            console.log(`MLP script non-JSON output: ${line}`);
           }
         });
 
