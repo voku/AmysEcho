@@ -2,9 +2,9 @@
 *Updated roadmap incorporating PR #349 and WebView + MediaPipe architecture*
 
 ## LLM Task Board
-- [ ] Audit app UI strings for German language compliance (`app/src/`)
-- [ ] Run `npx expo install --check` in `app/` and update any flagged dependencies
-- [ ] Run `npx expo-doctor` in `app/` once network access is available
+- [x] Audit app UI strings for German language compliance (`app/src/`)
+- [x] Run `npx expo install --check` in `app/` and update any flagged dependencies
+- [x] Run `npx expo-doctor` in `app/` once network access is available
 - [x] Enqueue `python3 src/tools/train_mlp.py` after centroid updates in `/train-model`
 - [x] Track MLP training progress in `trainingJobs` and expose via `/train-status`
 - [x] Persist `.npz` models under `data/`, copying to `dgs_model_<profileId>.npz` when applicable
