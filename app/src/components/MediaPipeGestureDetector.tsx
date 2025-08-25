@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
+import {
+  API_TOKEN,
+  ANALYTICS_TELEMETRY_ENDPOINT,
+  MLP_CONFIDENCE_THRESHOLD,
+} from '../constants';
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
 import { loadActiveProfileId } from '../storage';
 import { LanguageManager } from '../services/LanguageManager';
@@ -30,7 +34,6 @@ try {
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode = 'user' }) => {
   type WebViewRef = InstanceType<typeof WebView>;
   const webviewRef = useRef<WebViewRef | null>(null);
-  const mlpLoadedRef = useRef(false);
 
   const escapeJs = (s: string) =>
     s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
@@ -53,7 +56,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           webviewRef.current.injectJavaScript(
             `try{window.__setMlpModelB64 && window.__setMlpModelB64(\`${safe}\`);}catch(e){}`,
           );
-          mlpLoadedRef.current = true;
         };
 
         const cached = await getCachedMlpModel(pid ?? undefined);
@@ -264,7 +266,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             // ** MLP Gesture Prediction **
             if ((window as any).__mlpPredict) {
               const mlpResult = (window as any).__mlpPredict(allLandmarks);
-              if (mlpResult && mlpResult.score > 0.6) {
+              if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
                 outGesture = mlpResult.label;
                 outScore = mlpResult.score;
               }

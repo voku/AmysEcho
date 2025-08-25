@@ -7,7 +7,14 @@ export function installMlp() {
       s.onerror = () => rej(new Error('fflate load failed'));
       document.head.appendChild(s);
     });
-  let mlp: any = null; // { w1,b1,w2,b2,labels }
+  type MlpModel = {
+    w1: Float64Array;
+    b1: Float64Array;
+    w2: Float64Array;
+    b2: Float64Array;
+    labels: string[];
+  };
+  let mlp: MlpModel | null = null; // { w1,b1,w2,b2,labels }
   const maxSize = 5 * 1024 * 1024; // 5MB safety
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -33,7 +40,7 @@ export function installMlp() {
     const offset = headerStart + headerLen;
     const type = descr.slice(1);
     if (fortran) throw new Error('fortran not supported');
-    const size = shape.reduce((a, b) => a * (b || 1), 1);
+    const size = shape.reduce((a, b) => a * b, 1);
     if (type === 'f8') {
       return { data: new Float64Array(buf.buffer, buf.byteOffset + offset, size), shape };
     }
@@ -94,13 +101,19 @@ export function installMlp() {
       const b1 = parseNPY(b1b);
       const w2 = parseNPY(w2b);
       const b2 = parseNPY(b2b);
-      let labels: any = [];
+      let labels: string[] = [];
       const lb = npzFind('labels');
       if (lb) {
         const parsed = parseNPY(lb);
-        labels = parsed.data;
+        labels = parsed.data as string[];
       }
-      mlp = { w1: w1.data, b1: b1.data, w2: w2.data, b2: b2.data, labels };
+      mlp = {
+        w1: Float64Array.from(w1.data as ArrayLike<number>),
+        b1: Float64Array.from(b1.data as ArrayLike<number>),
+        w2: Float64Array.from(w2.data as ArrayLike<number>),
+        b2: Float64Array.from(b2.data as ArrayLike<number>),
+        labels,
+      };
       return true;
     } catch (e: any) {
       console.warn('mlp load failed', e?.message || e);
@@ -175,12 +188,12 @@ export function installMlp() {
     const x = normalizeLandmarks(all);
     if (!x) return null;
     const cols1 = x.length;
-    const rows1 = (mlp.b1 as any).length || 128;
-    const z1 = addBias(dotMV(new Float64Array(mlp.w1 as any), rows1, cols1, x), new Float64Array(mlp.b1 as any));
+    const rows1 = mlp.b1.length;
+    const z1 = addBias(dotMV(mlp.w1, rows1, cols1, x), mlp.b1);
     const a1 = relu(z1);
-    const rows2 = (mlp.b2 as any).length || 1;
+    const rows2 = mlp.b2.length;
     const cols2 = a1.length;
-    const z2 = addBias(dotMV(new Float64Array(mlp.w2 as any), rows2, cols2, a1), new Float64Array(mlp.b2 as any));
+    const z2 = addBias(dotMV(mlp.w2, rows2, cols2, a1), mlp.b2);
     const probs = softmax(Array.from(z2));
     let bestI = 0;
     let best = probs[0];
