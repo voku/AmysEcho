@@ -5,6 +5,10 @@
 - [ ] Audit app UI strings for German language compliance (`app/src/`)
 - [ ] Run `npx expo install --check` in `app/` and update any flagged dependencies
 - [ ] Run `npx expo-doctor` in `app/` once network access is available
+- [ ] Enqueue `python3 src/tools/train_mlp.py` after centroid updates in `/train-model`
+- [ ] Track MLP training progress in `trainingJobs` and expose via `/train-status`
+- [ ] Persist `.npz` models under `data/`, copying to `dgs_model_<profileId>.npz` when applicable
+- [ ] Add unit tests ensuring MLP training runs and creates model files
 
 ## Current Architecture Status
 ✅ **WebView + MediaPipe Integration Complete** (as of 2025-08-21)
