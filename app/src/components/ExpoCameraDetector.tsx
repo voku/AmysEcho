@@ -22,7 +22,8 @@ const ExpoCameraDetector: React.FC<Props> = ({ onGestureDetected, onError, camer
     return (
       <View style={styles.center}>
         <Text style={styles.text}>
-          expo-camera not installed. Run:\n(cd app && npx expo install expo-camera)
+          expo-camera nicht installiert. Führen Sie aus:
+(cd app && npx expo install expo-camera)
         </Text>
       </View>
     );

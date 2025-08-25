@@ -225,7 +225,7 @@ export default function TeachingScreen({ navigation }: any) {
           <Text style={styles.prompt}>Zeige die Geste "{gestureLabel}"</Text>
           <Text style={styles.progress}>{sampleCount} / {SAMPLES_NEEDED} samples</Text>
           <Button
-            title={isRecording ? 'Recording...' : 'Record Sample'}
+            title={isRecording ? 'Aufnahme...' : 'Beispiel aufnehmen'}
             onPress={recordSample}
             disabled={isRecording || sampleCount >= SAMPLES_NEEDED}
             accessibilityLabel="Beispiel aufzeichnen"

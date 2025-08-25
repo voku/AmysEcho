@@ -20,7 +20,7 @@ export function SymbolCard({
       <Image source={map[gesture] ?? map.OPEN_PALM} style={s.img} />
       <Text style={s.title}>{gesture.replace('_', ' ')}</Text>
       <Text style={s.sub}>{Math.round(confidence * 100)}%</Text>
-      <Text style={s.hint}>Tippen für DGS‑Video</Text>
+      <Text style={s.hint}>Für DGS-Video tippen</Text>
     </TouchableOpacity>
   );
 }

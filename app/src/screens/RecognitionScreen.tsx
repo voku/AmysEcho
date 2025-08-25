@@ -381,7 +381,7 @@ export default function RecognitionScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <Button
-        title={facingMode === 'user' ? 'Use Back Camera' : 'Use Front Camera'}
+        title={facingMode === 'user' ? 'Hintere Kamera verwenden' : 'Vordere Kamera verwenden'}
         onPress={() => {
           const m = facingMode === 'user' ? 'environment' : 'user';
           setFacingMode(m);

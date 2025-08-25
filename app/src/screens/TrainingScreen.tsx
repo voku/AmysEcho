@@ -281,7 +281,7 @@ export default function TrainingScreen({ navigation, route }: any) {
           </>
         ) : (
           <Button
-            title={isPractice ? 'Finish Practice' : 'Save Training Data'}
+                            title={isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
             onPress={async () => {
               if (isPractice && gestureId) {
                 try { await audioService.playCelebrationFeedback(); } catch {}
