@@ -71,6 +71,7 @@ export default function ProgressScreen({ navigation }: any) {
         renderItem={({ item }) => (
           <View style={styles.item}>
             <Text style={styles.label}>{item.label}</Text>
+            <Button title="Details" onPress={() => navigation.navigate('ProgressChart', { gestureId: item.id })} />
             <Text style={styles.label}>{item.count}</Text>
           </View>
         )}

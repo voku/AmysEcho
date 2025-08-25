@@ -50,3 +50,34 @@ export async function shouldPromptPractice(
   return health.count >= minSamples && health.successRate < threshold;
 }
 
+
+
+const HISTORICAL_HEALTH_KEY = "historicalHealthData";
+
+export interface HistoricalHealthEntry {
+  date: string; // YYYY-MM-DD
+  successRate: number;
+  count: number;
+}
+
+export async function saveHistoricalHealthData(
+  gestureId: string,
+  entry: HistoricalHealthEntry,
+): Promise<void> {
+  const raw = await AsyncStorage.getItem(HISTORICAL_HEALTH_KEY);
+  const data: Record<string, HistoricalHealthEntry[]> = raw ? JSON.parse(raw) : {};
+  if (!data[gestureId]) {
+    data[gestureId] = [];
+  }
+  data[gestureId].push(entry);
+  await AsyncStorage.setItem(HISTORICAL_HEALTH_KEY, JSON.stringify(data));
+}
+
+export async function loadHistoricalHealthData(
+  gestureId: string,
+): Promise<HistoricalHealthEntry[]> {
+  const raw = await AsyncStorage.getItem(HISTORICAL_HEALTH_KEY);
+  const data: Record<string, HistoricalHealthEntry[]> = raw ? JSON.parse(raw) : {};
+  return data[gestureId] || [];
+}
+

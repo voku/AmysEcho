@@ -28,6 +28,7 @@ const AdminScreen = lazyScreen(() => import('../screens/AdminScreen'));
 const DashboardScreen = lazyScreen(() => import('../screens/DashboardScreen'));
 const HelpScreen = lazyScreen(() => import('../screens/HelpScreen'));
 const ProgressScreen = lazyScreen(() => import('../screens/ProgressScreen'));
+const ProgressChartScreen = lazyScreen(() => import('../screens/ProgressChartScreen'));
 const PracticeSchedulerScreen = lazyScreen(() => import('../screens/PracticeSchedulerScreen'));
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -126,6 +127,11 @@ const RootNavigator = () => {
         name="Progress"
         component={ProgressScreen}
         options={{ title: 'Fortschritt' }}
+      />
+      <Stack.Screen
+        name="ProgressChart"
+        component={ProgressChartScreen}
+        options={{ title: 'Fortschrittsdiagramm' }}
       />
       <Stack.Screen
         name="Help"

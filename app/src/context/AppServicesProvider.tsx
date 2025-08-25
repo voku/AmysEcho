@@ -1,3 +1,7 @@
+import { runDailyJobs } from '../services/dailyJobs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LAST_DAILY_JOB_KEY = 'lastDailyJob';
 import React, { ReactNode, useEffect, useState } from 'react';
 import { audioService, backupService, checkForModelUpdate, syncService, syncTrainingData, gestureDataProtector, gdprService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
@@ -46,6 +50,15 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         await audioService.initialize();
         setAreServicesReady(true);
         if (!offline) {
+          const now = new Date().toISOString().slice(0, 10);
+          AsyncStorage.getItem(LAST_DAILY_JOB_KEY).then(lastRun => {
+            if (lastRun !== now) {
+              runDailyJobs().then(() => {
+                AsyncStorage.setItem(LAST_DAILY_JOB_KEY, now);
+              });
+            }
+          });
+
           interval = setInterval(() => {
             syncTrainingData().catch(() => {});
             runModelUpdate().catch(() => {});
