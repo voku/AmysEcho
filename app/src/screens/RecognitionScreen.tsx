@@ -395,7 +395,7 @@ export default function RecognitionScreen({ navigation }: any) {
             key={webviewKey}
             onGestureDetected={handleGestureDetected}
             onError={handleGestureError}
-            onWebViewEvent={(ev)=>{ if (ev === 'camera_started') setWebviewReady(true); }}
+            onWebViewEvent={(ev) => { if (ev.event === 'camera_started') setWebviewReady(true); }}
             facingMode={facingMode}
           />
         }

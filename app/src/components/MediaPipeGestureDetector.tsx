@@ -11,7 +11,22 @@ import { loadActiveProfileId, onActiveProfileChange } from '../storage';
 import { LanguageManager } from '../services/LanguageManager';
 import { installMlp } from '../webview/installMlp';
 import { fflateBase64 } from '../webview/fflateBase64';
-import WebView from 'react-native-webview';
+// Avoid pulling the module at import time. Use dynamic require below.
+import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
+
+export type WebViewTelemetryEvent =
+  | 'dom_ready'
+  | 'tap_start'
+  | 'camera_started'
+  | 'recognizer_init'
+  | 'frame_latency'
+  | (string & {});
+
+export interface WebViewTelemetry {
+  event: WebViewTelemetryEvent;
+  ms?: number;
+  tracks?: string[];
+}
 
 interface Props {
   onGestureDetected: (
@@ -20,22 +35,23 @@ interface Props {
     landmarks: number[][][],
   ) => void;
   onError: (error: string) => void;
-  onWebViewEvent?: (event: string) => void;
+  onWebViewEvent?: (telemetry: WebViewTelemetry) => void;
   facingMode?: 'user' | 'environment';
 }
 
 // Optional require to avoid crashing when native WebView module is not in the binary
-let WebViewImpl: typeof WebView | null = null;
+let WebViewImpl: React.ComponentType<any> | null = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  WebViewImpl = require('react-native-webview').WebView;
+  WebViewImpl = require('react-native-webview').WebView as unknown as React.ComponentType<any>;
 } catch (e) {
   WebViewImpl = null;
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode = 'user' }) => {
-  type WebViewRef = InstanceType<typeof WebView>;
-  const webviewRef = useRef<WebViewRef | null>(null);
+  // Minimal shape we rely on; keeps optional semantics and strict-mode help.
+  type WebViewLike = { injectJavaScript: (src: string) => void } | null;
+  const webviewRef = useRef<WebViewLike>(null);
   const [, setLangTick] = useState(0);
 
   useEffect(() => {
@@ -91,6 +107,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
   if (!WebViewImpl) {
     // Provide a non-crashing fallback with a clear developer hint
+    console.warn('react-native-webview unavailable; showing fallback UI');
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>
@@ -239,6 +256,9 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
     let lastVideoTime = -1; // Added for performance optimization
     let frameCount = 0;
+    let lastSentAt = 0;
+    let lastSentGesture = null;
+    let lastSentScore = 0;
     function predictWebcam() {
       try {
         if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
@@ -357,12 +377,18 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               }
             } catch {}
 
-              if (allLandmarks.length) {
+              const now = performance.now();
+              const confidence = allLandmarks.length ? outScore : 0;
+              const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
+              if (changed || now - lastSentAt >= 100) {
+                lastSentGesture = outGesture;
+                lastSentScore = confidence;
+                lastSentAt = now;
                 window.ReactNativeWebView?.postMessage?.(
                   JSON.stringify({
                     type: 'gesture',
                     gesture: outGesture || null,
-                    confidence: outScore,
+                    confidence,
                     landmarks: allLandmarks,
                     hands: perHand,
                   }),
@@ -403,13 +429,24 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     // Start camera and then create recognizer
     startCamera();
     createGestureRecognizer();
+    function stopCamera() {
+      try {
+        const s = video.srcObject;
+        if (s) {
+          s.getTracks().forEach(t => t.stop());
+          video.srcObject = null;
+        }
+      } catch {}
+    }
+    window.addEventListener('pagehide', stopCamera);
+    window.addEventListener('beforeunload', stopCamera);
     window.addEventListener('resize', ()=>{ try { resizeOverlay(); } catch {} });
   </script>
 </head>
 <body></body>
 </html>`;
 
-  const handleMessage = async (event: any) => {
+  const handleMessage = async (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       
@@ -420,18 +457,33 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
       } else if (data.type === 'telemetry') {
-        try { onWebViewEvent && onWebViewEvent(String(data.event || '')); } catch {}
         try {
-          await fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_TOKEN}` },
-            body: JSON.stringify({
-              latencyMs: typeof data.ms === 'number' ? data.ms : 0,
-              timestamp: Date.now(),
-              event: data.event || 'unknown',
-              source: 'webview-gesture-detector',
-            }),
+          onWebViewEvent?.({
+            event: String(data.event || ''),
+            ms: typeof data.ms === 'number' ? data.ms : undefined,
+            ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {}),
           });
+        } catch (e) {
+          console.warn('Error in onWebViewEvent handler:', e);
+        }
+        try {
+          // Fire-and-forget telemetry to avoid backpressure in onMessage (skip in dev)
+          if (API_TOKEN && API_TOKEN !== 'demo-token') {
+            void fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${API_TOKEN}`,
+              },
+              body: JSON.stringify({
+                latencyMs: typeof data.ms === 'number' ? data.ms : 0,
+                timestamp: Date.now(),
+                event: data.event || 'unknown',
+                source: 'webview-gesture-detector',
+                ...(Array.isArray(data.tracks) ? { tracks: data.tracks } : {}),
+              }),
+            });
+          }
         } catch {
           // ignore telemetry failures
         }
@@ -460,8 +512,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         mixedContentMode={'always'}
         onPermissionRequest={(event: any) => {
           try {
-            // Grant all requested resources (VIDEO_CAPTURE/AUDIO_CAPTURE)
-            event.nativeEvent.grant(event.nativeEvent.resources);
+            const videoOnly = (event.nativeEvent.resources || []).filter((r: string) => r === 'VIDEO_CAPTURE');
+            event.nativeEvent.grant(videoOnly);
           } catch {}
         }}
       />
