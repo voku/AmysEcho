@@ -80,16 +80,18 @@ def running_server():
 @pytest.fixture
 def missing_data_dir():
     data_dir = SERVER_DIR / "data"
-    backup = data_dir.with_suffix(".bak")
+    backup = data_dir.with_suffix(".missing_data_dir.bak")
     moved = False
     if data_dir.exists():
         os.rename(data_dir, backup)
         moved = True
-    yield data_dir
-    if data_dir.exists():
-        shutil.rmtree(data_dir)
-    if moved and backup.exists():
-        os.rename(backup, data_dir)
+    try:
+        yield data_dir
+    finally:
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
+        if moved and backup.exists():
+            os.rename(backup, data_dir)
 
 @pytest.fixture
 def model_file():
