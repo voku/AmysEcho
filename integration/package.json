@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "pretest": "npm ci --include=dev && npm run build --prefix ../server",
-    "test": "tsx --test offlineFallback.spec.ts offlineBoot.spec.ts teachMode.spec.ts onboardingFlow.spec.ts correctionFlow.spec.ts navigationConsistency.spec.ts practiceMode.spec.ts test/api.test.js test/practiceMode.test.js test/portal.test.js"
+    "test": "tsx --test $(find . -name '*.spec.ts' -o -name '*.test.js')"
   },
   "devDependencies": {
     "tsx": "^4.20.3"
