@@ -11,15 +11,21 @@ jest.mock('../src/services/dgsModelClient', () => ({
   fetchCentroids: jest.fn(async () => null),
 }));
 
+jest.mock('../src/utils/logger', () => ({
+  logger: { warn: jest.fn() },
+}));
+
 import { syncTrainingData } from '../src/services/trainingSync';
 import { fetchCentroids } from '../src/services/dgsModelClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../src/utils/logger';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
 describe('syncTrainingData', () => {
   beforeEach(() => {
     (AsyncStorage as any).clear();
+    jest.clearAllMocks();
     (global as any).fetch = jest.fn(async (url: string) => {
       if (url.includes('/train-model')) {
         return { ok: true, json: async () => ({ jobId: '1' }) } as any;
@@ -59,5 +65,31 @@ describe('syncTrainingData', () => {
     expect(fetchCentroids).toHaveBeenCalledWith('amy');
     const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
     expect(updated[0].syncStatus).toBe('synced');
+  });
+
+  it('logs warning and keeps samples pending on failure', async () => {
+    await AsyncStorage.setItem(
+      TRAINING_KEY,
+      JSON.stringify([
+        {
+          id: '1',
+          gestureDefinitionId: 'g1',
+          landmarkData: [[[1, 2, 3]], []],
+          source: 'HIP_2',
+          syncStatus: 'pending',
+        },
+      ]),
+    );
+
+    (global as any).fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
+
+    await syncTrainingData();
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      'training sync failed',
+      expect.any(Error),
+    );
+    const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
+    expect(updated[0].syncStatus).toBe('pending');
   });
 });
