@@ -58,7 +58,7 @@
   - Verify model metadata and model download from server to app.
   - Confirm resolution of `training sync failed` and `model metadata request failed` errors.
 
-- [ ] **Fix "Teach New Gesture" WebView**
+- [x] **Fix "Teach New Gesture" WebView**
   - Fix the black WebView issue in the 'Teach New Gesture' screen (`app/src/screens/TeachingScreen.tsx`).
   - Adapt the working WebView code from `RecognitionScreen.tsx` (`MediaPipeGestureDetector.tsx`).
   - Ensure camera feed is visible and landmark detection is active.
