@@ -96,16 +96,22 @@ def missing_data_dir():
 @pytest.fixture
 def model_file():
     data_dir = SERVER_DIR / "data"
+    backup = data_dir.with_suffix(".model_file.bak")
+    moved = False
     if data_dir.exists():
-        shutil.rmtree(data_dir)
-    data_dir.mkdir()
-    model_path = data_dir / "dgs_model_p1.npz"
-    model_path.write_bytes(b"placeholder")
+        os.rename(data_dir, backup)
+        moved = True
+
     try:
+        data_dir.mkdir()
+        model_path = data_dir / "dgs_model_p1.npz"
+        model_path.write_bytes(b"placeholder")
         yield model_path
     finally:
         if data_dir.exists():
             shutil.rmtree(data_dir)
+        if moved and backup.exists():
+            os.rename(backup, data_dir)
 
 def test_latest_mlp_model_requires_authorization(model_file, running_server):
     status = fetch_latest_mlp_model(profile_id="p1")
