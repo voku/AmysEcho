@@ -172,7 +172,8 @@ def main():
     # Atomic write to avoid partial reads
     tmp_path = MODEL_PATH + ".tmp"
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    np.savez(tmp_path, w1=w1, b1=b1, w2=w2, b2=b2, idx_to_label=idx_to_label)
+    with open(tmp_path, "wb") as f:
+        np.savez(f, w1=w1, b1=b1, w2=w2, b2=b2, idx_to_label=idx_to_label)
     # Replace atomically and set restrictive permissions
     os.replace(tmp_path, MODEL_PATH)
     try:
