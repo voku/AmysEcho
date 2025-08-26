@@ -227,11 +227,11 @@ describe('MediaPipeGestureDetector', () => {
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
-          data: JSON.stringify({ type: 'telemetry', event: 'camera_started', ms: 123 }),
+          data: JSON.stringify({ type: 'telemetry', event: 'camera_started', ms: 123, tracks: ['front-camera'] }),
         },
       });
     });
 
-    expect(onWebViewEvent).toHaveBeenCalledWith({ event: 'camera_started', ms: 123 });
+    expect(onWebViewEvent).toHaveBeenCalledWith({ event: 'camera_started', ms: 123, tracks: ['front-camera'] });
   });
 });

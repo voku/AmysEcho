@@ -12,8 +12,7 @@ import { LanguageManager } from '../services/LanguageManager';
 import { installMlp } from '../webview/installMlp';
 import { fflateBase64 } from '../webview/fflateBase64';
 // Avoid pulling the module at import time. Use dynamic require below.
-// If you need types, switch to a type-only import:
-// import type { WebView as RNWebView } from 'react-native-webview';
+import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 
 export type WebViewTelemetryEvent =
   | 'dom_ready'
@@ -26,6 +25,7 @@ export type WebViewTelemetryEvent =
 export interface WebViewTelemetry {
   event: WebViewTelemetryEvent;
   ms?: number;
+  tracks?: string[];
 }
 
 interface Props {
@@ -107,7 +107,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
   if (!WebViewImpl) {
     // Provide a non-crashing fallback with a clear developer hint
-    console.warn('react-native-webview nicht verfügbar; zeige Fallback-UI');
+    console.warn('react-native-webview unavailable; showing fallback UI');
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>
@@ -256,6 +256,9 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
     let lastVideoTime = -1; // Added for performance optimization
     let frameCount = 0;
+    let lastSentAt = 0;
+    let lastSentGesture = null;
+    let lastSentScore = 0;
     function predictWebcam() {
       try {
         if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
@@ -374,15 +377,23 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               }
             } catch {}
 
-              window.ReactNativeWebView?.postMessage?.(
-                JSON.stringify({
-                  type: 'gesture',
-                  gesture: outGesture || null,
-                  confidence: allLandmarks.length ? outScore : 0,
-                  landmarks: allLandmarks,
-                  hands: perHand,
-                }),
-              );
+              const now = performance.now();
+              const confidence = allLandmarks.length ? outScore : 0;
+              const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
+              if (changed || now - lastSentAt >= 100) {
+                lastSentGesture = outGesture;
+                lastSentScore = confidence;
+                lastSentAt = now;
+                window.ReactNativeWebView?.postMessage?.(
+                  JSON.stringify({
+                    type: 'gesture',
+                    gesture: outGesture || null,
+                    confidence,
+                    landmarks: allLandmarks,
+                    hands: perHand,
+                  }),
+                );
+              }
           }
         }
       } catch (e) {
@@ -418,13 +429,24 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     // Start camera and then create recognizer
     startCamera();
     createGestureRecognizer();
+    function stopCamera() {
+      try {
+        const s = video.srcObject;
+        if (s) {
+          s.getTracks().forEach(t => t.stop());
+          video.srcObject = null;
+        }
+      } catch {}
+    }
+    window.addEventListener('pagehide', stopCamera);
+    window.addEventListener('beforeunload', stopCamera);
     window.addEventListener('resize', ()=>{ try { resizeOverlay(); } catch {} });
   </script>
 </head>
 <body></body>
 </html>`;
 
-  const handleMessage = async (event: any) => {
+  const handleMessage = async (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       
@@ -439,25 +461,29 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           onWebViewEvent?.({
             event: String(data.event || ''),
             ms: typeof data.ms === 'number' ? data.ms : undefined,
+            ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {}),
           });
         } catch (e) {
-          console.warn('Fehler im onWebViewEvent-Handler:', e);
+          console.warn('Error in onWebViewEvent handler:', e);
         }
         try {
-          // Fire-and-forget telemetry to avoid backpressure in onMessage
-          void fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${API_TOKEN}`,
-            },
-            body: JSON.stringify({
-              latencyMs: typeof data.ms === 'number' ? data.ms : 0,
-              timestamp: Date.now(),
-              event: data.event || 'unknown',
-              source: 'webview-gesture-detector',
-            }),
-          });
+          // Fire-and-forget telemetry to avoid backpressure in onMessage (skip in dev)
+          if (API_TOKEN && API_TOKEN !== 'demo-token') {
+            void fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${API_TOKEN}`,
+              },
+              body: JSON.stringify({
+                latencyMs: typeof data.ms === 'number' ? data.ms : 0,
+                timestamp: Date.now(),
+                event: data.event || 'unknown',
+                source: 'webview-gesture-detector',
+                ...(Array.isArray(data.tracks) ? { tracks: data.tracks } : {}),
+              }),
+            });
+          }
         } catch {
           // ignore telemetry failures
         }
@@ -486,8 +512,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         mixedContentMode={'always'}
         onPermissionRequest={(event: any) => {
           try {
-            // Grant all requested resources (VIDEO_CAPTURE/AUDIO_CAPTURE)
-            event.nativeEvent.grant(event.nativeEvent.resources);
+            const videoOnly = (event.nativeEvent.resources || []).filter((r: string) => r === 'VIDEO_CAPTURE');
+            event.nativeEvent.grant(videoOnly);
           } catch {}
         }}
       />
