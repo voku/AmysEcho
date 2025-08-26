@@ -151,6 +151,13 @@ test('POST /train-model processes samples and returns model', async () => {
   assert.strictEqual(profileRes.status, 200);
   const profileModel = await profileRes.json();
   assert.ok(profileModel.counts.g1 >= 1);
+
+  process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
+  process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
+  const { fetchMlpModel } = await import('../../app/src/services/dgsModelClient.ts');
+  const b64 = await fetchMlpModel('p1');
+  assert.ok(typeof b64 === 'string' && b64.length > 0);
+  assert.strictEqual(Buffer.from(b64, 'base64').length, mlpBuf.length);
 });
 
 test('GET /model-version returns version and path', async () => {
@@ -217,10 +224,9 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
 
     process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
     process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
-    /** @type {string | null} */
     let b64 = null;
     try {
-      const { fetchMlpModel, getCachedMlpModel } = await import('../../app/dist/services/dgsModelClient.js');
+      const { fetchMlpModel, getCachedMlpModel } = await import('../../app/src/services/dgsModelClient.ts');
       b64 = await fetchMlpModel('p1');
       assert.ok(typeof b64 === 'string' && b64.length > 0);
       const cached = await getCachedMlpModel('p1');
