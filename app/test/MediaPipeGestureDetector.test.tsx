@@ -206,4 +206,32 @@ describe('MediaPipeGestureDetector', () => {
     webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
     expect(webview.props.source.html).toContain('Tap to start camera');
   });
+
+  it('forwards telemetry events to onWebViewEvent', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onWebViewEvent = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onWebViewEvent={onWebViewEvent}
+        />,
+      );
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: 'telemetry', event: 'camera_started', ms: 123 }),
+        },
+      });
+    });
+
+    expect(onWebViewEvent).toHaveBeenCalledWith({ event: 'camera_started', ms: 123 });
+  });
 });

@@ -13,6 +13,11 @@ import { installMlp } from '../webview/installMlp';
 import { fflateBase64 } from '../webview/fflateBase64';
 import WebView from 'react-native-webview';
 
+export interface WebViewTelemetry {
+  event: string;
+  ms?: number;
+}
+
 interface Props {
   onGestureDetected: (
     gesture: string | null,
@@ -20,7 +25,7 @@ interface Props {
     landmarks: number[][][],
   ) => void;
   onError: (error: string) => void;
-  onWebViewEvent?: (event: string) => void;
+  onWebViewEvent?: (telemetry: WebViewTelemetry) => void;
   facingMode?: 'user' | 'environment';
 }
 
@@ -420,11 +425,20 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
       } else if (data.type === 'telemetry') {
-        try { onWebViewEvent && onWebViewEvent(String(data.event || '')); } catch {}
+        try {
+          onWebViewEvent &&
+            onWebViewEvent({
+              event: String(data.event || ''),
+              ms: typeof data.ms === 'number' ? data.ms : undefined,
+            });
+        } catch {}
         try {
           await fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_TOKEN}` },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${API_TOKEN}`,
+            },
             body: JSON.stringify({
               latencyMs: typeof data.ms === 'number' ? data.ms : 0,
               timestamp: Date.now(),
