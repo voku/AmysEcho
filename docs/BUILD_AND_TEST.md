@@ -29,6 +29,27 @@ npm test
 
 If all tests pass, you should see a success message in the console. This indicates that the core functionality of the application is working as expected.
 
+## Running the Server and App
+
+To exercise the full training and recognition flow, start both the Node server and the Expo client from the repository root:
+
+```bash
+# build and launch the backend on port 5000 with the demo token
+npm run build --prefix server
+API_TOKEN=demo-token npm start --prefix server
+
+# in another terminal, start the mobile app
+EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 ./scripts/dev-run.sh --android
+```
+
+When running on a physical device instead of the Android emulator, you can map the server port with:
+
+```bash
+scripts/adb-reverse.sh 5000 && EXPO_PUBLIC_API_URL=http://localhost:5000 ./scripts/dev-run.sh --android
+```
+
+The server defaults to port `5000`. `scripts/dev-run.sh` wraps Expo's development launcher, so you can pass `--android` or `--ios` to target the appropriate platform.
+
 ## Integration Tests
 
 Integration tests verify that the Node server and app API clients work together correctly. From the repository root run:

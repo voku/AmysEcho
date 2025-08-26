@@ -53,7 +53,7 @@
 
 - [ ] **Test App/Server Integration & Document Setup**
   - Test the full app/server integration, ensuring correct data flow and authentication.
-  - Document proper startup procedure for both server (with `API_TOKEN=demo-token npm start --prefix server`) and app (`./scripts/dev-run.sh`).
+  - [x] Document proper startup procedure for both server (with `API_TOKEN=demo-token npm start --prefix server`) and app (`./scripts/dev-run.sh`).
   - Verify training data upload from app to server.
   - Verify model metadata and model download from server to app.
   - Confirm resolution of `training sync failed` and `model metadata request failed` errors.
