@@ -213,13 +213,23 @@ export default function TeachingScreen({ navigation }: any) {
           <View style={styles.camera}>
             <MediaPipeGestureDetector onGestureDetected={handleGestureDetected} onError={setError} />
           </View>
-          <Animated.View style={[
-            styles.sampleIndicator,
-            { opacity: sampleCaptureAnim, transform: [{ scale: sampleCaptureAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.8, 1.2],
-            })}]}
-          ]}>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.sampleIndicator,
+              {
+                opacity: sampleCaptureAnim,
+                transform: [
+                  {
+                    scale: sampleCaptureAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1.2],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <Text style={styles.sampleIndicatorText}>Beispiel erfasst!</Text>
           </Animated.View>
           <Text style={styles.prompt}>Zeige die Geste "{gestureLabel}"</Text>
@@ -288,8 +298,13 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       color: COLORS.text,
       borderRadius: RADIUS,
     },
-    recordingContainer: { alignItems: 'center' },
-    camera: { width: PREVIEW_SIZE, height: PREVIEW_SIZE, marginBottom: SPACING.sm, borderRadius: RADIUS, overflow: 'hidden' },
+    recordingContainer: { alignItems: 'center', position: 'relative' },
+    camera: {
+      width: PREVIEW_SIZE,
+      height: PREVIEW_SIZE,
+      marginBottom: SPACING.sm,
+      position: 'relative',
+    },
     prompt: { fontSize: largeText ? 22 : 18, marginVertical: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
     progress: { marginBottom: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
     sampleIndicator: {
