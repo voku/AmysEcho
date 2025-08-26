@@ -51,8 +51,8 @@
 
 ## Immediate Next Steps
 
-- [ ] **Test App/Server Integration & Document Setup**
-  - Test the full app/server integration, ensuring correct data flow and authentication.
+- [x] **Test App/Server Integration & Document Setup**
+  - [x] Test the full app/server integration, ensuring correct data flow and authentication. See [`AppServerIntegrationGuide.md`](AppServerIntegrationGuide.md).
   - [x] Document proper startup procedure for both server (with `API_TOKEN=demo-token npm start --prefix server`) and app (`./scripts/dev-run.sh`).
   - [x] Verify training data upload from app to server.
   - [x] Verify model metadata and model download from server to app.
