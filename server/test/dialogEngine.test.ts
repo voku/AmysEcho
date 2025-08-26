@@ -53,4 +53,36 @@ describe('getLLMSuggestions', () => {
     const res = await getLLMSuggestions(req);
     expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
   });
+
+  it('returns empty arrays when response JSON parsing fails', async () => {
+    process.env.OPENAI_API_KEY = 'test';
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => {
+        throw new Error('invalid json');
+      },
+    });
+    const res = await getLLMSuggestions(req);
+    expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('returns empty arrays when API response is not ok', async () => {
+    process.env.OPENAI_API_KEY = 'test';
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+    const res = await getLLMSuggestions(req);
+    expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
+  });
+
+  it('returns empty arrays when fetch throws an error', async () => {
+    process.env.OPENAI_API_KEY = 'test';
+    (global as any).fetch = jest.fn().mockRejectedValue(new Error('network'));
+    const res = await getLLMSuggestions(req);
+    expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
+  });
 });

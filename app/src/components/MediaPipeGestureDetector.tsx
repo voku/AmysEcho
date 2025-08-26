@@ -117,7 +117,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     );
   }
   const mlpInstallScript = `const s=document.createElement('script'); s.src='data:application/javascript;base64,${fflateBase64}'; s.onload=()=>{(${installMlp.toString()})();}; document.head.appendChild(s);`;
-
+  const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
   const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -125,7 +125,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body { margin: 0; padding: 0; background: #000; }
-    video { position: absolute; inset: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); }
+    video { position: absolute; inset: 0; width: 100vw; height: 100vh; object-fit: cover; ${videoTransform} }
     canvas#overlay { position: absolute; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
     #tapToStart { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(0,0,0,0.4); font-family: sans-serif; }
     #tapToStart.hidden { display: none; }

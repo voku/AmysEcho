@@ -234,4 +234,26 @@ describe('MediaPipeGestureDetector', () => {
 
     expect(onWebViewEvent).toHaveBeenCalledWith({ event: 'camera_started', ms: 123, tracks: ['front-camera'] });
   });
+
+  it('wendet eine horizontale Spiegelung nur für die Nutzerkamera an', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} facingMode="user" />,
+      );
+    });
+    const userHtml = (component as renderer.ReactTestRenderer).root.findByType('mock-webview').props.source.html;
+    expect(userHtml).toContain('transform: scaleX(-1);');
+
+    act(() => {
+      component.update(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} facingMode="environment" />,
+      );
+    });
+    const envHtml = (component as renderer.ReactTestRenderer).root.findByType('mock-webview').props.source.html;
+    expect(envHtml).not.toContain('transform: scaleX(-1);');
+  });
 });
