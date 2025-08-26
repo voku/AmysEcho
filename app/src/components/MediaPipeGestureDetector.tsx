@@ -118,6 +118,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   }
   const mlpInstallScript = `const s=document.createElement('script'); s.src='data:application/javascript;base64,${fflateBase64}'; s.onload=()=>{(${installMlp.toString()})();}; document.head.appendChild(s);`;
   const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
+  const mirrorOverlayFlag = facingMode === 'user' ? 'true' : 'false';
   const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -132,6 +133,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   </style>
   <script>
     ${mlpInstallScript}
+    const mirrorOverlay = ${mirrorOverlayFlag};
     // Dynamically load MediaPipe Tasks Vision from CDN and wait until it's ready
     async function loadTasksVision() {
       // Resolve a pinned version dynamically if possible, otherwise fall back to generic.
@@ -342,9 +344,11 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               if (ctx) {
                 ctx.clearRect(0, 0, overlay.width, overlay.height);
                 ctx.save();
-                // Mirror horizontally to match video
-                ctx.scale(-1, 1);
-                ctx.translate(-overlay.width, 0);
+                // Mirror horizontally to match video when using the front camera
+                if (mirrorOverlay) {
+                  ctx.scale(-1, 1);
+                  ctx.translate(-overlay.width, 0);
+                }
                 const HAND_CONNECTIONS = [
                   [0,1],[1,2],[2,3],[3,4],
                   [0,5],[5,6],[6,7],[7,8],

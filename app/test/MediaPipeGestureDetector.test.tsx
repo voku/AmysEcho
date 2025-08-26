@@ -235,25 +235,31 @@ describe('MediaPipeGestureDetector', () => {
     expect(onWebViewEvent).toHaveBeenCalledWith({ event: 'camera_started', ms: 123, tracks: ['front-camera'] });
   });
 
-  it('wendet eine horizontale Spiegelung nur für die Nutzerkamera an', () => {
+  const renderHtml = (facingMode: 'user' | 'environment') => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
-
     let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
-        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} facingMode="user" />,
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          facingMode={facingMode}
+        />,
       );
     });
-    const userHtml = (component as renderer.ReactTestRenderer).root.findByType('mock-webview').props.source.html;
-    expect(userHtml).toContain('transform: scaleX(-1);');
+    return (component as renderer.ReactTestRenderer).root.findByType('mock-webview').props.source.html as string;
+  };
 
-    act(() => {
-      component.update(
-        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} facingMode="environment" />,
-      );
-    });
-    const envHtml = (component as renderer.ReactTestRenderer).root.findByType('mock-webview').props.source.html;
-    expect(envHtml).not.toContain('transform: scaleX(-1);');
+  it('mirrors video and overlay for the user-facing camera', () => {
+    const html = renderHtml('user');
+    expect(html).toContain('transform: scaleX(-1);');
+    expect(html).toContain('const mirrorOverlay = true');
+  });
+
+  it('does not mirror video or overlay for the rear-facing camera', () => {
+    const html = renderHtml('environment');
+    expect(html).not.toContain('transform: scaleX(-1);');
+    expect(html).toContain('const mirrorOverlay = false');
   });
 });
