@@ -2,6 +2,7 @@ import { checkForModelUpdate } from '../src/services/modelUpdate';
 import NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../src/constants';
+import { logger } from '../src/utils/logger';
 
 jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(),
@@ -28,6 +29,9 @@ jest.mock('../src/utils/logger', () => ({
 }));
 
 describe('checkForModelUpdate', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   it('returns false when not on wifi', async () => {
     (NetInfo.fetch as jest.Mock).mockResolvedValue({
       isConnected: true,
@@ -85,5 +89,23 @@ describe('checkForModelUpdate', () => {
       jest.requireMock('../src/storage');
     expect(saveCustomModelHash).toHaveBeenCalledWith('h');
     expect(saveCustomModelUri).toHaveBeenCalledWith('/tmp/model.json');
+  });
+
+  it('returns false and logs when metadata request fails', async () => {
+    (NetInfo.fetch as jest.Mock).mockResolvedValue({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    });
+    (global as any).fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: false, status: 500 });
+
+    const result = await checkForModelUpdate();
+    expect(result).toBe(false);
+    expect(FileSystem.downloadAsync).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith('model metadata request failed', {
+      status: 500,
+    });
   });
 });
