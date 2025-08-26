@@ -234,4 +234,32 @@ describe('MediaPipeGestureDetector', () => {
 
     expect(onWebViewEvent).toHaveBeenCalledWith({ event: 'camera_started', ms: 123, tracks: ['front-camera'] });
   });
+
+  const renderHtml = (facingMode: 'user' | 'environment') => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          facingMode={facingMode}
+        />,
+      );
+    });
+    return (component as renderer.ReactTestRenderer).root.findByType('mock-webview').props.source.html as string;
+  };
+
+  it('mirrors video and overlay for the user-facing camera', () => {
+    const html = renderHtml('user');
+    expect(html).toContain('transform: scaleX(-1);');
+    expect(html).toContain('const mirrorOverlay = true');
+  });
+
+  it('does not mirror video or overlay for the rear-facing camera', () => {
+    const html = renderHtml('environment');
+    expect(html).not.toContain('transform: scaleX(-1);');
+    expect(html).toContain('const mirrorOverlay = false');
+  });
 });
