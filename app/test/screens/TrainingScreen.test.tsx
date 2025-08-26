@@ -76,7 +76,7 @@ describe('TrainingScreen', () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
-        <TrainingScreen navigation={{}} route={{ params: { gestureLabel: 'hello' } }} /> as any,
+        <TrainingScreen navigation={{ goBack: jest.fn() }} route={{ params: { gestureLabel: 'hello' } }} /> as any,
       );
       await Promise.resolve();
     });
