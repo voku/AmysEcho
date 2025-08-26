@@ -426,12 +426,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         // Optionally forward warning to analytics if needed
       } else if (data.type === 'telemetry') {
         try {
-          onWebViewEvent &&
-            onWebViewEvent({
-              event: String(data.event || ''),
-              ms: typeof data.ms === 'number' ? data.ms : undefined,
-            });
-        } catch {}
+          onWebViewEvent?.({
+            event: String(data.event || ''),
+            ms: typeof data.ms === 'number' ? data.ms : undefined,
+          });
+        } catch (e) {
+          console.warn('Fehler im onWebViewEvent-Handler:', e);
+        }
         try {
           await fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
             method: 'POST',
