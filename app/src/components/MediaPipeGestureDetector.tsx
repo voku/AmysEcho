@@ -11,7 +11,9 @@ import { loadActiveProfileId, onActiveProfileChange } from '../storage';
 import { LanguageManager } from '../services/LanguageManager';
 import { installMlp } from '../webview/installMlp';
 import { fflateBase64 } from '../webview/fflateBase64';
-import WebView from 'react-native-webview';
+// Avoid pulling the module at import time. Use dynamic require below.
+// If you need types, switch to a type-only import:
+// import type { WebView as RNWebView } from 'react-native-webview';
 
 export interface WebViewTelemetry {
   event: string;
@@ -30,17 +32,17 @@ interface Props {
 }
 
 // Optional require to avoid crashing when native WebView module is not in the binary
-let WebViewImpl: typeof WebView | null = null;
+let WebViewImpl: React.ComponentType<any> | null = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  WebViewImpl = require('react-native-webview').WebView;
+  WebViewImpl = require('react-native-webview').WebView as unknown as React.ComponentType<any>;
 } catch (e) {
   WebViewImpl = null;
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode = 'user' }) => {
-  type WebViewRef = InstanceType<typeof WebView>;
-  const webviewRef = useRef<WebViewRef | null>(null);
+  // Keep ref loosely typed to preserve optional module semantics.
+  const webviewRef = useRef<any>(null);
   const [, setLangTick] = useState(0);
 
   useEffect(() => {
