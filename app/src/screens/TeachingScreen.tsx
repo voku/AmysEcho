@@ -45,7 +45,7 @@ export default function TeachingScreen({ navigation }: any) {
       .then(setProfile)
       .catch((e) => {
         logger.error('Failed to load profile', e);
-        setError('Failed to load profile');
+        setError('Profil konnte nicht geladen werden.');
       });
   }, []);
 
@@ -76,7 +76,7 @@ export default function TeachingScreen({ navigation }: any) {
 
   const startSession = async () => {
     if (!gestureLabel.trim()) {
-      setError('Please enter a name for the gesture.');
+      setError('Bitte gib einen Namen für die Geste ein.');
       return;
     }
     try {
@@ -92,7 +92,7 @@ export default function TeachingScreen({ navigation }: any) {
       audioService.speak(`Okay, lass uns lernen, wie man "${gestureLabel}" macht.`);
     } catch (e) {
       logger.error('Failed to start teaching session', e);
-      setError('Failed to start teaching session');
+      setError('Lehr-Sitzung konnte nicht gestartet werden.');
     }
   };
 
@@ -111,7 +111,7 @@ export default function TeachingScreen({ navigation }: any) {
       }
     } catch (e) {
       logger.error('Recording failed', e);
-      setError('Recording failed');
+      setError('Aufnahme fehlgeschlagen');
     } finally {
       setIsRecording(false);
     }
@@ -192,7 +192,7 @@ export default function TeachingScreen({ navigation }: any) {
   return (
     <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Teach New Gesture</Text>
+      <Text style={styles.title}>Neue Geste beibringen</Text>
       {!isSessionActive ? (
         <View style={styles.inputContainer}>
           <TextInput
@@ -220,10 +220,10 @@ export default function TeachingScreen({ navigation }: any) {
               outputRange: [0.8, 1.2],
             })}]}
           ]}>
-            <Text style={styles.sampleIndicatorText}>Sample Captured!</Text>
+            <Text style={styles.sampleIndicatorText}>Beispiel erfasst!</Text>
           </Animated.View>
           <Text style={styles.prompt}>Zeige die Geste "{gestureLabel}"</Text>
-          <Text style={styles.progress}>{sampleCount} / {SAMPLES_NEEDED} samples</Text>
+          <Text style={styles.progress}>{sampleCount} / {SAMPLES_NEEDED} Beispiele</Text>
           <Button
             title={isRecording ? 'Aufnahme...' : 'Beispiel aufnehmen'}
             onPress={recordSample}
@@ -248,7 +248,7 @@ export default function TeachingScreen({ navigation }: any) {
       )}
       {syncing && (
         <View style={{ width: '100%', padding: SPACING.md }}>
-          <Text>Training model… {Math.round(progress)}%</Text>
+          <Text>Modell wird trainiert… {Math.round(progress)}%</Text>
           <View style={{ height: 8, backgroundColor: COLORS.border, borderRadius: RADIUS, overflow: 'hidden', marginTop: 6 }}>
             <View style={{ height: '100%', width: `${Math.max(0, Math.min(100, progress))}%`, backgroundColor: COLORS.success }} />
           </View>
