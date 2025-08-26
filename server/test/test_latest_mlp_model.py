@@ -5,6 +5,7 @@ import time
 import urllib.request
 import urllib.error
 import shutil
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -136,3 +137,20 @@ def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_s
         profile_id="p1", extra_headers={"x-profile-id": "p1"}
     )
     assert status == 200
+
+
+def test_latest_mlp_model_sets_headers(model_file, running_server):
+    url = f"{BASE_URL}/latest-mlp-model?profileId=p1"
+    headers = {"Authorization": "Bearer testtoken", "x-profile-id": "p1"}
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        assert resp.getcode() == 200
+        # consume body to ensure headers are final
+        resp.read()
+        expected_sha256 = hashlib.sha256(b"placeholder").hexdigest()
+        assert resp.headers.get("ETag") == f'"sha256-{expected_sha256}"'
+        assert resp.headers.get("X-Checksum-SHA256") == expected_sha256
+        version = resp.headers.get("X-Model-Version")
+        assert version is not None and version.isdigit()
+        cache_control = resp.headers.get("Cache-Control")
+        assert cache_control == "private, max-age=0, must-revalidate"
