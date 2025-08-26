@@ -45,8 +45,8 @@
     - Capture training progress and status in `trainingJobs` so clients can poll `/train-status`.
     - Persist the resulting `.npz` under `data/` and copy to `data/dgs_model_<profileId>.npz` when `profileId` is provided.
     - Add tests:
-      - Uploading samples triggers MLP training and creates model files.
-      - `/latest-mlp-model` returns 200 for an authorized owner, 403 for unauthorized access, and 404 when no model exists.
+      - [x] Uploading samples triggers MLP training and creates model files.
+      - [x] `/latest-mlp-model` returns 200 for an authorized owner, 403 for unauthorized access, and 404 when no model exists.
 12. **App wiring** – extend `MediaPipeGestureDetector.tsx` to fetch `/latest-mlp-model`, parse `.npz` weights, and run the MLP forward pass with centroid or rule-based fallback.
 
 ## Immediate Next Steps
