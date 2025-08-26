@@ -47,6 +47,7 @@
     - Add tests:
       - [x] Uploading samples triggers MLP training and creates model files.
       - [x] `/latest-mlp-model` returns 200 for an authorized owner, 403 for unauthorized access, and 404 when no model exists.
+      - [x] `/latest-mlp-model` sets `ETag`, `X-Checksum-SHA256` and `X-Model-Version` headers.
 12. **App wiring** – extend `MediaPipeGestureDetector.tsx` to fetch `/latest-mlp-model`, parse `.npz` weights, and run the MLP forward pass with centroid or rule-based fallback.
 
 ## Immediate Next Steps
