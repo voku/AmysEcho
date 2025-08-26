@@ -42,7 +42,7 @@ def start_server():
             with urllib.request.urlopen(req) as resp:
                 if resp.getcode() == 200:
                     break
-        except Exception:
+        except urllib.error.URLError:
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time")
             time.sleep(0.5)
