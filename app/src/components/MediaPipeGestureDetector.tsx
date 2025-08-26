@@ -15,8 +15,16 @@ import { fflateBase64 } from '../webview/fflateBase64';
 // If you need types, switch to a type-only import:
 // import type { WebView as RNWebView } from 'react-native-webview';
 
+export type WebViewTelemetryEvent =
+  | 'dom_ready'
+  | 'tap_start'
+  | 'camera_started'
+  | 'recognizer_init'
+  | 'frame_latency'
+  | (string & {});
+
 export interface WebViewTelemetry {
-  event: string;
+  event: WebViewTelemetryEvent;
   ms?: number;
 }
 
@@ -41,8 +49,9 @@ try {
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode = 'user' }) => {
-  // Keep ref loosely typed to preserve optional module semantics.
-  const webviewRef = useRef<any>(null);
+  // Minimal shape we rely on; keeps optional semantics and strict-mode help.
+  type WebViewLike = { injectJavaScript: (src: string) => void } | null;
+  const webviewRef = useRef<WebViewLike>(null);
   const [, setLangTick] = useState(0);
 
   useEffect(() => {
@@ -98,6 +107,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
   if (!WebViewImpl) {
     // Provide a non-crashing fallback with a clear developer hint
+    console.warn('react-native-webview nicht verfügbar; zeige Fallback-UI');
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>
@@ -364,17 +374,15 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               }
             } catch {}
 
-              if (allLandmarks.length) {
-                window.ReactNativeWebView?.postMessage?.(
-                  JSON.stringify({
-                    type: 'gesture',
-                    gesture: outGesture || null,
-                    confidence: outScore,
-                    landmarks: allLandmarks,
-                    hands: perHand,
-                  }),
-                );
-              }
+              window.ReactNativeWebView?.postMessage?.(
+                JSON.stringify({
+                  type: 'gesture',
+                  gesture: outGesture || null,
+                  confidence: allLandmarks.length ? outScore : 0,
+                  landmarks: allLandmarks,
+                  hands: perHand,
+                }),
+              );
           }
         }
       } catch (e) {
@@ -436,7 +444,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           console.warn('Fehler im onWebViewEvent-Handler:', e);
         }
         try {
-          await fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
+          // Fire-and-forget telemetry to avoid backpressure in onMessage
+          void fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
