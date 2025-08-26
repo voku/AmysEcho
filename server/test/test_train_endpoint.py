@@ -114,7 +114,10 @@ def test_train_endpoint(tmp_path):
 
         mlp_prof_req = urllib.request.Request(
             f'http://localhost:{PORT}/latest-mlp-model?profileId=p1',
-            headers={'Authorization': 'Bearer testtoken'},
+            headers={
+                'Authorization': 'Bearer testtoken',
+                'x-profile-id': 'p1',
+            },
         )
         with urllib.request.urlopen(mlp_prof_req) as mlp_presp:
             assert mlp_presp.getcode() == 200
