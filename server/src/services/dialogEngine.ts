@@ -1,10 +1,17 @@
 
 // LLM Hint: Define a clear type for the expected JSON response from the LLM.
 // This helps with type safety and makes it clear what structure the prompt should request.
+import { z } from 'zod';
+
 export type LLMSuggestionResponse = {
   nextWords: string[];
   caregiverPhrases: string[];
 };
+
+const suggestionSchema = z.object({
+  nextWords: z.array(z.string()),
+  caregiverPhrases: z.array(z.string()),
+});
 
 export interface LLMRequest {
   input: string;
@@ -56,7 +63,8 @@ export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionR
     if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
     const data = (await response.json()) as any;
     const content = JSON.parse(data.choices[0].message.content as string);
-    return content as LLMSuggestionResponse;
+    const parsed = suggestionSchema.parse(content);
+    return parsed as LLMSuggestionResponse;
   } catch (error) {
     console.error('LLM suggestion error:', error);
     return { nextWords: [], caregiverPhrases: [] };
