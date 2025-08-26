@@ -304,6 +304,8 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       height: PREVIEW_SIZE,
       marginBottom: SPACING.sm,
       position: 'relative',
+      borderRadius: RADIUS,
+      overflow: 'hidden',
     },
     prompt: { fontSize: largeText ? 22 : 18, marginVertical: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
     progress: { marginBottom: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
