@@ -457,7 +457,7 @@ export default function RecognitionScreen({ navigation }: any) {
     </View>
 
     <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>Show DGS Video</Text>
+      <Text style={styles.toggleLabel}>DGS-Video anzeigen</Text>
       <Switch
         value={showDgsVideo}
         onValueChange={setShowDgsVideo}
