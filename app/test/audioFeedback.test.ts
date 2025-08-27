@@ -63,6 +63,8 @@ describe('audioService feedback', () => {
     (audioService as any).isInitialized = true;
     (audioService as any).isSpeaking = false;
     (audioService as any).speechQueue = [];
+    (audioService as any).lastSpokenText = '';
+    (audioService as any).lastSpokenAt = 0;
   });
 
   it('plays success sound and speaks guidance when confidence is low', async () => {
@@ -99,6 +101,12 @@ describe('audioService feedback', () => {
       'Lass uns Winken nochmal versuchen!',
       'Wie wäre es mit etwas Übung für Winken?',
     ]).toContain(phrase);
+  });
+
+  it('skips duplicate speech requests in quick succession', async () => {
+    await audioService.speak('Hallo');
+    await audioService.speak('Hallo');
+    expect(Speech.speak).toHaveBeenCalledTimes(1);
   });
 
   it('plays pre-recorded audio when available', async () => {

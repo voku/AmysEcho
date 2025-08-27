@@ -22,6 +22,8 @@ export class AudioService {
   private speechQueue: Array<{ text: string; options: SpeechOptions }> = [];
   private isSpeaking = false;
   private recording: AudioRecorder | null = null;
+  private lastSpokenText = '';
+  private lastSpokenAt = 0;
 
   constructor(config: AudioConfig) {
     this.config = {...config};
@@ -137,6 +139,11 @@ export class AudioService {
       logger.warn('Audio service not initialized');
       return;
     }
+    const now = Date.now();
+    if (text === this.lastSpokenText && now - this.lastSpokenAt < 2000) {
+      logger.debug(`Duplicate speech skipped: ${text}`);
+      return;
+    }
 
     const speechOptions: SpeechOptions = {
       language: this.config.speechLanguage,
@@ -146,9 +153,15 @@ export class AudioService {
       ...options,
     };
 
-    // Add to queue if already speaking
+    this.lastSpokenText = text;
+    this.lastSpokenAt = now;
+
+    // Add to queue if already speaking, avoid duplicate queue entries
     if (this.isSpeaking) {
-      this.speechQueue.push({ text, options: speechOptions });
+      const lastQueued = this.speechQueue[this.speechQueue.length - 1];
+      if (!lastQueued || lastQueued.text !== text) {
+        this.speechQueue.push({ text, options: speechOptions });
+      }
       return;
     }
 
