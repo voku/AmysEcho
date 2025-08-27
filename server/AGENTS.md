@@ -12,10 +12,10 @@ Scope: All files under `server/`. Paths are relative to this directory.
 ## Coding
 
 - The server uses TypeScript with Node.js. Place runtime code in `src/` and tests in `test/`.
-- Python utilities live in `src/tools`; ensure scripts:
+- Python utilities live in `src/amyserver_tools`; ensure scripts:
   - include a shebang (e.g., `#!/usr/bin/env python3`),
   - have executable permissions where appropriate (`chmod +x`),
-  - are invokable as modules (e.g., `python -m server.src.tools.my_tool`) and do not run on import (use an `if __name__ == "__main__":` block).
+  - are invokable as modules (e.g., `python -m amyserver_tools.my_tool`) and do not run on import (use an `if __name__ == "__main__"` block).
 - Follow existing service and middleware patterns. Study similar files before adding new ones.
 
 ## Testing

@@ -22,6 +22,7 @@
     "gestureProcessingError": "Fehler beim Verarbeiten der Gestendaten",
     "recognizerInitFailed": "Erkennung konnte nicht initialisiert werden: ",
     "predictionError": "Vorhersagefehler: ",
-    "cameraError": "Kamerafehler: "
+    "cameraError": "Kamerafehler: ",
+    "noLandmarksCaptured": "Keine Landmarken erfasst"
   }
 }

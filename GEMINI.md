@@ -44,7 +44,8 @@ Amy's Echo is a multimodal communication platform for non-verbal children. The p
 
 -   `server/`: Backend server code.
 -   `server/src/services`: Backend service logic.
--   `server/src/tools`: Scripts for tasks like model downloading and retraining.
+-   `server/src/tools`: TypeScript scripts for tasks like model downloading and retraining.
+-   `server/src/amyserver_tools`: Python utilities for MLP training and preprocessing.
 
 -   `spec/`: Project specification.
 -   `docs/`: Project documentation.

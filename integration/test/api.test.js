@@ -35,7 +35,7 @@ async function startServer() {
       ...process.env,
       PORT: PORT.toString(),
       API_TOKEN: 'testtoken',
-      MLP_SCRIPT: 'src/tools/train_mlp.py',
+      MLP_SCRIPT: 'src/amyserver_tools/train_mlp.py',
       MLP_EPOCHS: '1',
     },
     // Discard stdio so the child process can't block if it writes a lot of

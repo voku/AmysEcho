@@ -128,7 +128,8 @@ npm test --prefix integration
 | App components                           | `app/src/components/`  |
 | App tests                                | `app/test/`            |
 | Server services                          | `server/src/services/` |
-| Server tools (Python/TS scripts)         | `server/src/tools/`    |
+| Server TypeScript tools                  | `server/src/tools/`    |
+| Server Python tools                      | `server/src/amyserver_tools/` |
 | Server tests                             | `server/test/`         |
 | Node/TS server and Python utilities      | `server/`              |
 | Integration tests                        | `integration/`         |

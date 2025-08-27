@@ -22,6 +22,7 @@
     "gestureProcessingError": "Error processing gesture data",
     "recognizerInitFailed": "Recognizer init failed: ",
     "predictionError": "Prediction error: ",
-    "cameraError": "Camera error: "
+    "cameraError": "Camera error: ",
+    "noLandmarksCaptured": "No landmarks captured"
   }
 }
