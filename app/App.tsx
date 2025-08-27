@@ -70,8 +70,8 @@ export default function App() {
       } catch (e) {
         logger.error('Failed to initialize app:', e);
         Alert.alert(
-          'Initialization Error',
-          "Amy's Echo failed to start properly. Please restart the app.",
+          'Fehler beim Start',
+          "Amy's Echo konnte nicht richtig gestartet werden. Bitte starte die App neu.",
           [{ text: 'OK' }],
         );
       } finally {
@@ -91,7 +91,7 @@ export default function App() {
       if (!handledInitial.current) {
         handledInitial.current = true;
         if (offline) {
-          AccessibilityInfo.announceForAccessibility('Offline mode');
+          AccessibilityInfo.announceForAccessibility('Offline-Modus');
         }
       }
     });
@@ -109,7 +109,7 @@ export default function App() {
           size="large"
           color={accessibility.highContrast ? COLORS.highContrastText : COLORS.primaryAccent}
           accessibilityRole="progressbar"
-          accessibilityLabel="Loading Amy's Echo"
+          accessibilityLabel="Amy's Echo wird geladen"
         />
       </LinearGradient>
     );

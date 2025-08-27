@@ -37,7 +37,7 @@ describe('OfflineBanner', () => {
     const tree = component as renderer.ReactTestRenderer;
     const view = tree.root.findByType('View');
     const text = tree.root.findByType('Text');
-    expect(text.props.children).toBe('Offline mode');
+    expect(text.props.children).toBe('Offline-Modus');
     expect(view.props.accessibilityRole).toBe('alert');
   });
 
