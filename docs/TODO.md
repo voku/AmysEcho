@@ -11,6 +11,8 @@
 - [x] Add unit tests ensuring MLP training runs and creates model files
  - [x] Enforce per-profile authorization on `/latest-mlp-model` (403 on unauthorized access; non-enumerable errors)
  - [x] Write models atomically (temp file + rename) and serve with `ETag` + `X-Model-Version`
+- [ ] Review TTS de-duplication window and make it configurable (see `SpeechDeduplicationLearnings.md`)
+- [ ] Reevaluate LanguageManager to simplify localization and allow additional languages (see `LocalizationLearnings.md`)
 
 ## Current Architecture Status
 ✅ **WebView + MediaPipe Integration Complete** (as of 2025-08-21)

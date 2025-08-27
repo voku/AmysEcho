@@ -56,7 +56,7 @@ cd app/android
 - Perform known gesture:
   - Speak + Show (animation) when confident.
   - “Help Me” + correction flow when uncertain.
-- Toggle “Show DGS Video” to verify playback.
+- Toggle “DGS-Video anzeigen” to verify playback.
 
 ### Env Toggles (before starting Metro)
 ```

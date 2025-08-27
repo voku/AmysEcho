@@ -23,7 +23,7 @@ This short field guide shows how kindergarten staff who do not understand German
 3. Select the correct symbol. The app responds as if it recognized the gesture and remembers the correction for next time.
 
 ## Step 4: Show DGS Reference Videos
-1. Toggle **Show DGS Video** on the recognition screen to display a short clip for each symbol.
+1. Toggle **DGS-Video anzeigen** on the recognition screen to display a short clip for each symbol.
 2. These videos help staff learn or review the correct sign without leaving recognition mode.
 
 ## Step 5: Review and Practice
