@@ -25,7 +25,7 @@
     "test": "npm run test:ts && npm run test:py",
     "test:ts": "jest",
     "test:py": "pytest -q",
-    "train:mlp": "python3 src/tools/train_mlp.py",
+    "train:mlp": "python3 src/amyserver_tools/train_mlp.py",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "build": "tsc",
     "start": "node dist/server.js",

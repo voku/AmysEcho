@@ -7,7 +7,17 @@ name = "amyserver-tools"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = []
+description = "Training and preprocessing tools for Amy's Echo server"
+license = { text = "MIT" }
+authors = [{ name = "Amy's Echo Team" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["tools"]
+packages = { find = { where = ["src"], include = ["amyserver_tools*"] } }
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

@@ -5,7 +5,7 @@
 - [x] Audit app UI strings for German language compliance (`app/src/`)
 - [x] Run `npx expo install --check` in `app/` and update any flagged dependencies
 - [x] Run `npx expo-doctor` in `app/` once network access is available
-- [x] Enqueue `python3 src/tools/train_mlp.py` after centroid updates in `/train-model`
+- [x] Enqueue `python3 src/amyserver_tools/train_mlp.py` after centroid updates in `/train-model`
 - [x] Track MLP training progress in `trainingJobs` and expose via `/train-status`
 - [x] Persist `.npz` models under `data/`, copying to `dgs_model_<profileId>.npz` when applicable
 - [x] Add unit tests ensuring MLP training runs and creates model files
@@ -21,7 +21,7 @@
 - Server persists and serves centroid models per child profile via `profileId`
 ## MLP Model Training & App Integration Plan
 1. **Collect samples** – record 21/42 landmark arrays and upload via `/train-model` with an optional `profileId`.
-2. **Run training** – server updates centroids, then spawns `python3 src/tools/train_mlp.py` and streams JSON progress.
+2. **Run training** – server updates centroids, then spawns `python3 src/amyserver_tools/train_mlp.py` and streams JSON progress.
 3. **Monitor status** – client polls `/train-status` until `progress` reaches 100.
    - Server returns `202 Accepted` while training, `200 OK` when done, and appropriate `4xx/5xx` on errors.
    - Client polling uses exponential backoff (e.g., 0.5 s → 1 s → 2 s, capped at 5 s).
@@ -41,7 +41,7 @@
 9. **Version checks** – compare model versions (`ETag`/`X-Model-Version`) and refresh only when changed to avoid clock drift.
 10. **End-to-end test** – train with real samples, download the model, and verify app predictions on-device.
 11. **Server integration details**
-    - Enqueue a child process `python3 src/tools/train_mlp.py` once centroid updates succeed.
+    - Enqueue a child process `python3 src/amyserver_tools/train_mlp.py` once centroid updates succeed.
     - Capture training progress and status in `trainingJobs` so clients can poll `/train-status`.
     - Persist the resulting `.npz` under `data/` and copy to `data/dgs_model_<profileId>.npz` when `profileId` is provided.
     - Add tests:

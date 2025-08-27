@@ -598,7 +598,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
       }
 
       // Run MLP training script after centroids succeed
-      const scriptRel = process.env.MLP_SCRIPT || 'src/tools/train_mlp.py';
+      const scriptRel = process.env.MLP_SCRIPT || 'src/amyserver_tools/train_mlp.py';
       const serverRoot = path.join(__dirname, '..');
       await new Promise<void>((resolve, reject) => {
         const proc = spawn('python3', [path.join(serverRoot, scriptRel)], {
