@@ -13,6 +13,6 @@ export async function captureSamples(
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  if (frames.length === 0) throw new Error('No landmarks captured');
+  if (frames.length === 0) throw new Error('Keine Landmarken erfasst');
   return frames;
 }

@@ -2,7 +2,6 @@
 
 import json
 import os
-from collections import defaultdict
 
 import numpy as np
 
@@ -18,6 +17,7 @@ MODEL_PATH = os.environ.get(
 HIDDEN_SIZE = int(os.environ.get("MLP_HIDDEN_SIZE", "128"))
 LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))
 EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
+
 
 # --- Normalization (must match recognizer) ---
 def _normalize(lm):
@@ -51,16 +51,20 @@ def _normalize(lm):
 
     return np.concatenate([left, right]).flatten()
 
+
 # --- MLP Implementation (NumPy) ---
 def relu(x):
     return np.maximum(0, x)
 
+
 def relu_derivative(x):
     return np.where(x > 0, 1, 0)
+
 
 def softmax(x):
     e_x = np.exp(x - np.max(x, axis=1, keepdims=True))
     return e_x / np.sum(e_x, axis=1, keepdims=True)
+
 
 def train_mlp(X, y, output_size):
     print(f"Training MLP for {EPOCHS} epochs...")
@@ -96,7 +100,7 @@ def train_mlp(X, y, output_size):
 
         da1 = np.dot(dz2, w2.T)
         dz1 = da1 * relu_derivative(z1)
-        
+
         dw1 = np.dot(X.T, dz1)
         db1 = np.sum(dz1, axis=0, keepdims=True)
 
@@ -106,21 +110,32 @@ def train_mlp(X, y, output_size):
         w2 -= LEARNING_RATE * dw2
         b2 -= LEARNING_RATE * db2
 
-        print(json.dumps({"type": "progress", "current": epoch + 1, "total": EPOCHS, "loss": f"{loss:.4f}"}), flush=True)
-            
+        print(
+            json.dumps(
+                {
+                    "type": "progress",
+                    "current": epoch + 1,
+                    "total": EPOCHS,
+                    "loss": f"{loss:.4f}",
+                }
+            ),
+            flush=True,
+        )
+
     return w1, b1, w2, b2
+
 
 # --- Main ---
 def main():
     print(f"Loading dataset from {DATASET_PATH}...")
     try:
-        with open(DATASET_PATH, 'r') as f:
+        with open(DATASET_PATH, "r") as f:
             data = json.load(f)
     except FileNotFoundError:
         print("Error: Dataset not found. Please create dgs_samples.json first.")
         return
 
-    samples = data.get('samples', [])
+    samples = data.get("samples", [])
     if not samples:
         print("No samples found in the dataset.")
         return
@@ -132,9 +147,9 @@ def main():
     idx_counter = 0
 
     for sample in samples:
-        label = sample.get('label')
-        landmarks = sample.get('landmarks')
-        
+        label = sample.get("label")
+        landmarks = sample.get("landmarks")
+
         if not label or not landmarks:
             continue
 
@@ -146,11 +161,11 @@ def main():
         normalized_lm = _normalize(frame_to_process)
         if normalized_lm is None:
             continue
-            
+
         if label not in label_to_idx:
             label_to_idx[label] = idx_counter
             idx_counter += 1
-            
+
         X_raw.append(normalized_lm)
         y_raw.append(label_to_idx[label])
 
@@ -160,15 +175,15 @@ def main():
 
     X = np.array(X_raw)
     y = np.array(y_raw)
-    
+
     print(f"Processed {len(X)} samples for {len(label_to_idx)} unique gestures.")
 
     # Train
     w1, b1, w2, b2 = train_mlp(X, y, len(label_to_idx))
 
     # Save model
-    idx_to_label = {i: l for l, i in label_to_idx.items()}
-    
+    idx_to_label = {i: label for label, i in label_to_idx.items()}
+
     # Atomic write to avoid partial reads
     tmp_path = MODEL_PATH + ".tmp"
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
@@ -181,6 +196,7 @@ def main():
     except Exception:
         pass
     print(f"MLP model saved to {MODEL_PATH}")
+
 
 if __name__ == "__main__":
     main()
