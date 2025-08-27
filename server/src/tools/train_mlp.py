@@ -26,9 +26,9 @@ def _normalize(lm):
         return None
 
     pts = np.array(lm[:42], dtype=float)
-    two_hands = len(pts) >= 42 and len(lm) >= 42
-    if len(pts) < 42:
-        pad = np.zeros((42 - len(pts), 3))
+    two_hands = len(lm) >= 42
+    if len(lm) < 42:
+        pad = np.zeros((42 - len(lm), 3))
         pts = np.vstack([pts, pad])
 
     def _norm_hand(hand: np.ndarray) -> np.ndarray | None:
