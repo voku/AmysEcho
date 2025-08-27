@@ -113,7 +113,7 @@ describe('RecognitionScreen', () => {
     });
     const detector = component.root.findByType('MediaPipeGestureDetector');
     await act(async () => {
-      detector.props.onGestureDetected('hello', 0.9, []);
+      detector.props.onGestureDetected('hello', 0.9, [], []);
     });
     const vids = component.root.findAllByType('DgsVideoPlayer');
     expect(vids.length).toBe(1);

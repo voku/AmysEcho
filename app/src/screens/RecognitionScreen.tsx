@@ -25,7 +25,7 @@ import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap } from '../services/dgsModelClient';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
-import { flattenHands } from '../services/handUtils';
+import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
 import MaintenanceBanner from '../components/MaintenanceBanner';
 import { logInteractionEvent } from '../services/analytics';
@@ -138,13 +138,14 @@ export default function RecognitionScreen({ navigation }: any) {
     gesture: string | null,
     confidence: number,
     landmarks: number[][][],
+    handedness: string[],
   ) => {
     let g = gesture;
     let c = confidence;
     let path: RecognitionPath = 'local';
 
     if (centroidsRef.current && (!g || c < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD)) {
-      const flat = flattenHands(landmarks);
+      const flat = flattenHandsWithHandedness(landmarks, handedness);
       const res = classifyWithCentroids(flat, centroidsRef.current);
       if (res && res.confidence > c) {
         g = res.label;

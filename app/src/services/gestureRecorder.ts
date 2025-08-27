@@ -1,17 +1,18 @@
 import { LanguageManager } from './LanguageManager';
+import type { TrainingFrame } from '../storage';
 
 export async function captureSamples(
-  getLandmarks: () => number[][][],
+  getFrame: () => { landmarks: number[][][]; handedness: string[] },
   durationMs = 2000,
   intervalMs = 66,
-): Promise<number[][][][]> {
-  const frames: number[][][][] = [];
+): Promise<TrainingFrame[]> {
+  const frames: TrainingFrame[] = [];
   const start = Date.now();
   while (Date.now() - start < durationMs) {
-    const lms = getLandmarks();
-    if (lms.length > 0 && lms.every((h) => h.length === 21)) {
-      const clone = lms.map((hand) => hand.map((pt) => [...pt]));
-      frames.push(clone);
+    const { landmarks, handedness } = getFrame();
+    if (landmarks.length > 0 && landmarks.every((h) => h.length === 21)) {
+      const clone = landmarks.map((hand) => hand.map((pt) => [...pt]));
+      frames.push({ landmarks: clone, handedness: [...handedness] });
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }

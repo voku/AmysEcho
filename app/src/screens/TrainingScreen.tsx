@@ -29,6 +29,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [count, setCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedLandmarks, setRecordedLandmarks] = useState<number[][][][]>([]);
+  const [recordedHandedness, setRecordedHandedness] = useState<string[][]>([]);
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
@@ -82,6 +83,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     if (!gestureId) return;
     setError(null);
     setRecordedLandmarks([]);
+    setRecordedHandedness([]);
     setFramesCaptured(0);
     setLastDetection(0);
     setIsRecording(true);
@@ -99,7 +101,8 @@ export default function TrainingScreen({ navigation, route }: any) {
       return;
     }
     try {
-      await saveTrainingSample(gestureId, recordedLandmarks, isPractice ? 'HIP_4' : 'HIP_2');
+      const frames = recordedLandmarks.map((lm, i) => ({ landmarks: lm, handedness: recordedHandedness[i] || [] }));
+      await saveTrainingSample(gestureId, frames, isPractice ? 'HIP_4' : 'HIP_2');
       setCount((c) => c + 1);
       setError(null);
       // HIP 2 or 4: sample saved
@@ -213,16 +216,17 @@ export default function TrainingScreen({ navigation, route }: any) {
           })()}
           <View style={styles.cameraContainer}>
             <MediaPipeGestureDetector
-              onGestureDetected={(_g, _c, lm) => {
+              onGestureDetected={(_g, _c, lm, hands) => {
                 setLandmarks(lm);
                 setLastDetection(Date.now());
                 if (isRecordingRef.current) {
-                    setRecordedLandmarks((prev) => [...prev, lm]);
-                    setFramesCaptured((c) => c + 1);
-                  }
-                }}
-                onError={(m) => logger.warn('TrainingScreen detector error:', m)}
-              />
+                  setRecordedLandmarks((prev) => [...prev, lm]);
+                  setRecordedHandedness((prev) => [...prev, hands]);
+                  setFramesCaptured((c) => c + 1);
+                }
+              }}
+              onError={(m) => logger.warn('TrainingScreen detector error:', m)}
+            />
               {landmarks.length > 0 && (
                 <Svg
                   style={StyleSheet.absoluteFill}

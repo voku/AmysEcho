@@ -86,13 +86,13 @@ describe('TrainingScreen', () => {
     });
     const detector = component.root.findByType('MediaPipeGestureDetector');
     act(() => {
-      detector.props.onGestureDetected(null, 0.9, [[[1, 2, 3]]]);
+      detector.props.onGestureDetected(null, 0.9, [[[1, 2, 3]]], ['Left']);
     });
     await act(async () => {
       button.props.onPress();
       await Promise.resolve();
     });
-    expect(saveTrainingSample).toHaveBeenCalledWith('hello', [[[[1, 2, 3]]]], 'HIP_2');
+    expect(saveTrainingSample).toHaveBeenCalledWith('hello', [{ landmarks: [[[1, 2, 3]]], handedness: ['Left'] }], 'HIP_2');
   });
 });
 

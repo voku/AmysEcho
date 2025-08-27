@@ -13,14 +13,15 @@
  - [x] Write models atomically (temp file + rename) and serve with `ETag` + `X-Model-Version`
 - [ ] Review TTS de-duplication window and make it configurable (see `SpeechDeduplicationLearnings.md`)
 - [ ] Reevaluate LanguageManager to simplify localization and allow additional languages (see `LocalizationLearnings.md`)
+- [ ] Address gesture training blind spot tasks (see section below)
 
 ## Gesture Training Blind Spot Tasks
 *For Amy – voku/AmysEcho*
 
-- [ ] Preserve handedness when saving training samples
-- [ ] Flatten DGS samples before POST
-- [ ] Align MLP label storage with WebView
-- [ ] Unify landmark normalization algorithms
+- [x] Preserve handedness when saving training samples (`app/src/components/MediaPipeGestureDetector.tsx`, `app/src/services/dgsTrainingService.ts`)
+- [ ] Flatten DGS samples before POST (`app/src/services/dgsTrainingService.ts`)
+- [ ] Align MLP label storage with WebView (`server/src/amyserver_tools/train_mlp.py`, `app/src/webview/installMlp.ts`)
+- [ ] Unify landmark normalization algorithms (`app/src/services/landmarkNormalizer.ts`, `app/src/webview/installMlp.ts`, `server/src/amyserver_tools/train_mlp.py`, `server/src/services/dgsModelService.ts`)
 - [ ] Report basic training metrics
 
 

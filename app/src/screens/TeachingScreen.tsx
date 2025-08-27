@@ -29,6 +29,7 @@ export default function TeachingScreen({ navigation }: any) {
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
   const landmarksRef = useRef<number[][][]>([]);
+  const handednessRef = useRef<string[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
@@ -50,8 +51,9 @@ export default function TeachingScreen({ navigation }: any) {
   }, []);
 
   const handleGestureDetected = useCallback(
-    (_gesture: string | null, _confidence: number, lms: number[][][]) => {
+    (_gesture: string | null, _confidence: number, lms: number[][][], hands: string[]) => {
       landmarksRef.current = lms;
+      handednessRef.current = hands;
     },
     []
   );
@@ -101,7 +103,7 @@ export default function TeachingScreen({ navigation }: any) {
     setIsRecording(true);
     setError(null);
     try {
-      const frames = await captureSamples(() => landmarksRef.current);
+      const frames = await captureSamples(() => ({ landmarks: landmarksRef.current, handedness: handednessRef.current }));
       await saveTrainingSample(gestureLabel, frames);
       setSampleCount((c) => c + 1);
       startSampleCaptureAnimation();

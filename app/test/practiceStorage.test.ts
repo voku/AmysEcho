@@ -29,7 +29,7 @@ jest.mock('../db', () => ({
 
 jest.mock('../db/models', () => ({}));
 
-import { saveTrainingSample } from '../src/storage';
+import { saveTrainingSample, TrainingFrame } from '../src/storage';
 
 describe('saveTrainingSample', () => {
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('saveTrainingSample', () => {
   });
 
   it('stores samples with default HIP_2 source', async () => {
-    await saveTrainingSample('gesture1', []);
+    await saveTrainingSample('gesture1', [] as TrainingFrame[]);
     const raw = store['gestureTrainingData'];
     expect(raw).toBeTruthy();
     const data = JSON.parse(raw as string);
@@ -46,7 +46,7 @@ describe('saveTrainingSample', () => {
   });
 
   it('stores samples with HIP_4 source when specified', async () => {
-    await saveTrainingSample('gesture1', [], 'HIP_4');
+    await saveTrainingSample('gesture1', [] as TrainingFrame[], 'HIP_4');
     const raw = store['gestureTrainingData'];
     expect(raw).toBeTruthy();
     const data = JSON.parse(raw as string);

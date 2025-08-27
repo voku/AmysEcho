@@ -33,6 +33,7 @@ interface Props {
     gesture: string | null,
     confidence: number,
     landmarks: number[][][],
+    handedness: string[],
   ) => void;
   onError: (error: string) => void;
   onWebViewEvent?: (telemetry: WebViewTelemetry) => void;
@@ -279,11 +280,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             let outGesture = null;
             let outScore = 0;
             const perHand = [];
+            const handedArr = (results?.handednesses || []).map(h => (h?.[0]?.categoryName) || 'unknown');
             if (results?.gestures?.length) {
               for (let i=0; i<results.gestures.length; i++) {
                 const handGestures = results.gestures[i] || [];
                 const top = handGestures?.[0];
-                const handed = (results?.handednesses?.[i]?.[0]?.categoryName) || 'unknown';
+                const handed = handedArr[i] || 'unknown';
                 if (top) {
                   perHand.push({ hand: handed, label: top.categoryName, score: top.score });
                   if (top.score > outScore) {
@@ -394,7 +396,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
                     gesture: outGesture || null,
                     confidence,
                     landmarks: allLandmarks,
-                    hands: perHand,
+                    handednesses: handedArr,
                   }),
                 );
               }
@@ -455,7 +457,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'gesture') {
-        onGestureDetected(data.gesture, data.confidence, data.landmarks);
+        onGestureDetected(data.gesture, data.confidence, data.landmarks, data.handednesses || []);
       } else if (data.type === 'error') {
         onError(data.message);
       } else if (data.type === 'warn') {

@@ -41,11 +41,14 @@ describe('syncTrainingData', () => {
         {
           id: '1',
           gestureDefinitionId: 'g1',
-          landmarkData: [
-            [
-              [[1, 2, 3]],
-              [],
-            ],
+          frames: [
+            {
+              landmarks: [
+                [[1, 2, 3]],
+                [],
+              ],
+              handedness: ['Left', 'Right'],
+            },
           ],
           source: 'HIP_2',
           syncStatus: 'pending',
@@ -67,6 +70,35 @@ describe('syncTrainingData', () => {
     expect(updated[0].syncStatus).toBe('synced');
   });
 
+  it('orders landmarks using handedness when hands are reversed', async () => {
+    const left = Array.from({ length: 21 }, (_, i) => [i, i, i]);
+    const right = Array.from({ length: 21 }, (_, i) => [i + 100, i + 100, i + 100]);
+    await AsyncStorage.setItem(
+      TRAINING_KEY,
+      JSON.stringify([
+        {
+          id: '1',
+          gestureDefinitionId: 'g1',
+          frames: [
+            {
+              landmarks: [right, left],
+              handedness: ['Right', 'Left'],
+            },
+          ],
+          source: 'HIP_2',
+          syncStatus: 'pending',
+        },
+      ]),
+    );
+
+    await syncTrainingData();
+
+    const [, options] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.samples[0].landmarkData[0]).toEqual([0, 0, 0]);
+    expect(body.samples[0].landmarkData[21]).toEqual([100, 100, 100]);
+  });
+
   it('logs warning and keeps samples pending on failure', async () => {
     await AsyncStorage.setItem(
       TRAINING_KEY,
@@ -74,7 +106,9 @@ describe('syncTrainingData', () => {
         {
           id: '1',
           gestureDefinitionId: 'g1',
-          landmarkData: [[[1, 2, 3]], []],
+          frames: [
+            { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
+          ],
           source: 'HIP_2',
           syncStatus: 'pending',
         },
