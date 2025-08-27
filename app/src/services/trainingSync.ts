@@ -4,7 +4,7 @@ import { loadProfile, TrainingSample, loadBackendApiToken } from '../storage';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
 import { fetchCentroids } from './dgsModelClient';
-import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
+import { processFramesForUpload } from './handUtils';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
@@ -32,16 +32,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
     const samples = pending.flatMap((p) => {
       const framesAny = (p as any).frames || (p as any).landmarkData;
       const frames = Array.isArray(framesAny) ? framesAny : [];
-      return frames
-        .filter((f) => frameHasAnyLandmarks((f as any).landmarks || f))
-        .map((f) => ({
-          gestureDefinitionId: p.gestureDefinitionId,
-          landmarkData: flattenHandsWithHandedness(
-            (f as any).landmarks || f,
-            (f as any).handedness || [],
-          ),
-          profileId: profile?.id,
-        }));
+      return processFramesForUpload(frames, p.gestureDefinitionId, profile?.id);
     });
     if (samples.length === 0) return;
     const response = await fetch(`${API_URL}/train-model`, {

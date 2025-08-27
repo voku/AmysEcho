@@ -3,7 +3,7 @@ import { GestureTrainingData } from '../../db/models';
 import { API_URL, API_TOKEN } from '../constants';
 import { logger } from '../utils/logger';
 import { loadActiveProfileId, loadProfile } from '../storage';
-import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
+import { processFramesForUpload } from './handUtils';
 import { Q } from '@nozbe/watermelondb';
 import { uploadTelemetry } from './analytics';
 import { telemetry } from '../telemetry/recorder';
@@ -54,15 +54,7 @@ export const syncService = {
         const payload = pendingSamples.flatMap((s) => {
           let frames: any[] = [];
           try { frames = JSON.parse(s.landmarkData); } catch {}
-          return (Array.isArray(frames) ? frames : [])
-            .filter((f) => frameHasAnyLandmarks((f as any).landmarks || f))
-            .map((f) => ({
-              gestureDefinitionId: s.gestureDefinition.id,
-              landmarkData: flattenHandsWithHandedness(
-                (f as any).landmarks || f,
-                (f as any).handedness || [],
-              ),
-            }));
+          return processFramesForUpload(frames, s.gestureDefinition.id);
         });
         const response = await fetch(`${API_URL}/train-model`, {
           method: 'POST',

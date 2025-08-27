@@ -153,6 +153,7 @@ export async function saveTrainingSample(
   await database.write(async () => {
     await collection.create((record) => {
       record.gestureDefinition.id = gestureDefinitionId;
+      // Stores stringified TrainingFrame[]; legacy field name maintained for compatibility
       record.landmarkData = JSON.stringify(frames);
       record.source = source;
       record.qualityScore = 1;

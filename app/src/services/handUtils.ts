@@ -35,3 +35,20 @@ export function frameHasAnyLandmarks(frame: number[][][]): boolean {
   return frame.some((hand) => Array.isArray(hand) && hand.length > 0);
 }
 
+export function processFramesForUpload(
+  frames: any[],
+  gestureDefinitionId: string,
+  profileId?: string,
+): { gestureDefinitionId: string; landmarkData: number[][]; profileId?: string }[] {
+  return (Array.isArray(frames) ? frames : [])
+    .filter((f) => frameHasAnyLandmarks((f as any).landmarks || f))
+    .map((f) => ({
+      gestureDefinitionId,
+      landmarkData: flattenHandsWithHandedness(
+        (f as any).landmarks || f,
+        (f as any).handedness || [],
+      ),
+      ...(profileId ? { profileId } : {}),
+    }));
+}
+
