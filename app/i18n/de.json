@@ -23,5 +23,9 @@
     "recognizerInitFailed": "Erkennung konnte nicht initialisiert werden: ",
     "predictionError": "Vorhersagefehler: ",
     "cameraError": "Kamerafehler: "
+  },
+  "recognition": {
+    "showDgsVideo": "DGS-Video anzeigen",
+    "toggleDgsVideo": "DGS-Video umschalten"
   }
 }

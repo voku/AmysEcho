@@ -22,6 +22,7 @@ jest.mock('react-native', () => {
 });
 
 import RecognitionScreen from '../../src/screens/RecognitionScreen';
+import { LanguageManager } from '../../src/services/LanguageManager';
 
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   const React = require('react');
@@ -107,7 +108,9 @@ describe('RecognitionScreen', () => {
     await act(async () => {
       component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
     });
-    const toggle = component.root.findByProps({ accessibilityLabel: 'DGS-Video umschalten' });
+    const toggle = component.root.findByProps({
+      accessibilityLabel: LanguageManager.t('recognition.toggleDgsVideo'),
+    });
     act(() => {
       toggle.props.onValueChange(true);
     });

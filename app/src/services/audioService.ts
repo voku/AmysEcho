@@ -16,6 +16,7 @@ import { Symbol } from '../../db/models';
 import * as FileSystem from 'expo-file-system';
 
 export class AudioService {
+  private static readonly DUPLICATE_SPEECH_DEBOUNCE_MS = 2000;
   private sounds: Map<string, ReturnType<typeof createAudioPlayer>> = new Map();
   private isInitialized = false;
   private config: AudioConfig;
@@ -140,7 +141,10 @@ export class AudioService {
       return;
     }
     const now = Date.now();
-    if (text === this.lastSpokenText && now - this.lastSpokenAt < 2000) {
+    if (
+      text === this.lastSpokenText &&
+      now - this.lastSpokenAt < AudioService.DUPLICATE_SPEECH_DEBOUNCE_MS
+    ) {
       logger.debug(`Duplicate speech skipped: ${text}`);
       return;
     }

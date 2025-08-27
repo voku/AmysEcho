@@ -35,6 +35,7 @@ import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
 import { RecognitionPath } from '../utils/recognitionState';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
+import { LanguageManager } from '../services/LanguageManager';
 // ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
@@ -61,6 +62,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [webviewKey, setWebviewKey] = useState(0);
   const [recognitionPath, setRecognitionPath] = useState<RecognitionPath>('local');
   const [showDgsVideo, setShowDgsVideo] = useState(false);
+  const [, setLangTick] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -76,6 +78,11 @@ export default function RecognitionScreen({ navigation }: any) {
 
   useEffect(() => {
     loadProfile().then(setProfile);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = LanguageManager.subscribe(() => setLangTick((v) => v + 1));
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -457,11 +464,11 @@ export default function RecognitionScreen({ navigation }: any) {
     </View>
 
     <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>DGS-Video anzeigen</Text>
+      <Text style={styles.toggleLabel}>{LanguageManager.t('recognition.showDgsVideo')}</Text>
       <Switch
         value={showDgsVideo}
         onValueChange={setShowDgsVideo}
-        accessibilityLabel="DGS-Video umschalten"
+        accessibilityLabel={LanguageManager.t('recognition.toggleDgsVideo')}
       />
     </View>
 

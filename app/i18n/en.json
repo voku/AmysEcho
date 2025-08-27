@@ -23,5 +23,9 @@
     "recognizerInitFailed": "Recognizer init failed: ",
     "predictionError": "Prediction error: ",
     "cameraError": "Camera error: "
+  },
+  "recognition": {
+    "showDgsVideo": "Show DGS Video",
+    "toggleDgsVideo": "Toggle DGS Video"
   }
 }
