@@ -5,7 +5,7 @@ const LAST_DAILY_JOB_KEY = 'lastDailyJob';
 import React, { ReactNode, useEffect, useState } from 'react';
 import { audioService, backupService, checkForModelUpdate, syncService, syncTrainingData, gestureDataProtector, gdprService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
-import { ActivityIndicator, View } from 'react-native';
+import LoadingIndicator from '../components/LoadingIndicator';
 import { useMessage } from './MessageContext';
 import { loadCustomModelUri, loadActiveProfileId } from '../storage';
 import {
@@ -96,11 +96,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
   }, []);
 
   if (!areServicesReady) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <LoadingIndicator />;
   }
 
   return (

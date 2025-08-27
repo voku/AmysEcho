@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, AccessibilityInfo, LogBox } from 'react-native';
+import { Alert, StyleSheet, AccessibilityInfo, LogBox } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +19,7 @@ import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashRe
 import { PerformanceProvider } from './src/context/PerformanceContext';
 import ChildErrorBoundary from './src/components/ChildErrorBoundary';
 import OfflineBanner from './src/components/OfflineBanner';
+import LoadingIndicator from './src/components/LoadingIndicator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function App() {
@@ -105,12 +106,7 @@ export default function App() {
   if (!isReady) {
     return (
       <LinearGradient colors={gradientColors} style={styles.container}>
-        <ActivityIndicator
-          size="large"
-          color={accessibility.highContrast ? COLORS.highContrastText : COLORS.primaryAccent}
-          accessibilityRole="progressbar"
-          accessibilityLabel="Amy's Echo wird geladen"
-        />
+        <LoadingIndicator />
       </LinearGradient>
     );
   }
