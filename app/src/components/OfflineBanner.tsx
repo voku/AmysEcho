@@ -26,7 +26,7 @@ export default function OfflineBanner({ visible }: Props) {
       <Text
         style={[styles.text, highContrast && styles.textHC, { fontSize: largeText ? 16 : 14 }]}
       >
-        Offline mode
+        Offline-Modus
       </Text>
     </View>
   );
