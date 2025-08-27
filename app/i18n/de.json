@@ -24,5 +24,9 @@
     "predictionError": "Vorhersagefehler: ",
     "cameraError": "Kamerafehler: ",
     "noLandmarksCaptured": "Keine Landmarken erfasst"
+  },
+  "recognition": {
+    "showDgsVideo": "DGS-Video anzeigen",
+    "toggleDgsVideo": "DGS-Video umschalten"
   }
 }

@@ -15,12 +15,16 @@ import { database } from '../../db';
 import { Symbol } from '../../db/models';
 import * as FileSystem from 'expo-file-system';
 
+const DUPLICATE_SPEECH_DEBOUNCE_MS = 2000;
+
 export class AudioService {
   private sounds: Map<string, ReturnType<typeof createAudioPlayer>> = new Map();
   private isInitialized = false;
   private config: AudioConfig;
   private speechQueue: Array<{ text: string; options: SpeechOptions }> = [];
   private isSpeaking = false;
+  private lastSpokenText = '';
+  private lastSpokenAt = 0;
   private recording: AudioRecorder | null = null;
 
   constructor(config: AudioConfig) {
@@ -146,9 +150,21 @@ export class AudioService {
       ...options,
     };
 
+    const now = Date.now();
+    const key = (text ?? '').trim().toLowerCase();
+    if (key === this.lastSpokenText && now - this.lastSpokenAt < DUPLICATE_SPEECH_DEBOUNCE_MS) {
+      logger.debug(`Duplicate speech skipped: ${text}`);
+      return;
+    }
+    this.lastSpokenText = key;
+    this.lastSpokenAt = now;
+
     // Add to queue if already speaking
     if (this.isSpeaking) {
-      this.speechQueue.push({ text, options: speechOptions });
+      const lastQueued = this.speechQueue[this.speechQueue.length - 1];
+      if (!lastQueued || lastQueued.text.trim().toLowerCase() !== this.lastSpokenText) {
+        this.speechQueue.push({ text, options: speechOptions });
+      }
       return;
     }
 

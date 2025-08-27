@@ -53,8 +53,7 @@ describe('audioService feedback', () => {
     remove: jest.fn(),
   });
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+  const resetService = () => {
     (audioService as any).sounds = new Map([
       ['success', soundMock()],
       ['error', soundMock()],
@@ -63,6 +62,13 @@ describe('audioService feedback', () => {
     (audioService as any).isInitialized = true;
     (audioService as any).isSpeaking = false;
     (audioService as any).speechQueue = [];
+    (audioService as any).lastSpokenText = '';
+    (audioService as any).lastSpokenAt = 0;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetService();
   });
 
   it('plays success sound and speaks guidance when confidence is low', async () => {
@@ -115,6 +121,26 @@ describe('audioService feedback', () => {
 
     (database as any).get = originalGet;
     customSpy.mockRestore();
+  });
+
+  it('skips duplicate speech requests in quick succession', async () => {
+    await audioService.speak('Hallo');
+    await audioService.speak('hallo');
+    expect(Speech.speak).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows repeat after debounce window', async () => {
+    await audioService.speak('Hallo');
+    await new Promise((res) => setTimeout(res, 2100));
+    await audioService.speak('Hallo');
+    expect(Speech.speak).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not enqueue duplicate while speaking', async () => {
+    (audioService as any).isSpeaking = true;
+    await audioService.speak('Hallo');
+    await audioService.speak('  hallo  ');
+    expect((audioService as any).speechQueue.length).toBe(1);
   });
 });
 

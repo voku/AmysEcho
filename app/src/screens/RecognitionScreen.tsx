@@ -35,6 +35,7 @@ import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
 import { RecognitionPath } from '../utils/recognitionState';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
+import { LanguageManager } from '../services/LanguageManager';
 // ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
@@ -457,11 +458,11 @@ export default function RecognitionScreen({ navigation }: any) {
     </View>
 
     <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>Show DGS Video</Text>
+      <Text style={styles.toggleLabel}>{LanguageManager.t('recognition.showDgsVideo')}</Text>
       <Switch
         value={showDgsVideo}
         onValueChange={setShowDgsVideo}
-        accessibilityLabel="DGS-Video umschalten"
+        accessibilityLabel={LanguageManager.t('recognition.toggleDgsVideo')}
       />
     </View>
 
