@@ -106,7 +106,7 @@ export default function App() {
   if (!isReady) {
     return (
       <LinearGradient colors={gradientColors} style={styles.container}>
-        <LoadingIndicator />
+        <LoadingIndicator label="Amy's Echo wird geladen" />
       </LinearGradient>
     );
   }
