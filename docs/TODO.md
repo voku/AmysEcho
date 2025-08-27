@@ -14,6 +14,16 @@
 - [ ] Review TTS de-duplication window and make it configurable (see `SpeechDeduplicationLearnings.md`)
 - [ ] Reevaluate LanguageManager to simplify localization and allow additional languages (see `LocalizationLearnings.md`)
 
+## Gesture Training Blind Spot Tasks
+*For Amy – voku/AmysEcho*
+
+- [ ] Preserve handedness when saving training samples
+- [ ] Flatten DGS samples before POST
+- [ ] Align MLP label storage with WebView
+- [ ] Unify landmark normalization algorithms
+- [ ] Report basic training metrics
+
+
 ## Current Architecture Status
 ✅ **WebView + MediaPipe Integration Complete** (as of 2025-08-21)
 - Hand landmark extraction via MediaPipe in WebView
