@@ -1,3 +1,5 @@
+import { LanguageManager } from './LanguageManager';
+
 export async function captureSamples(
   getLandmarks: () => number[][][],
   durationMs = 2000,
@@ -13,6 +15,6 @@ export async function captureSamples(
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  if (frames.length === 0) throw new Error('Keine Landmarken erfasst');
+  if (frames.length === 0) throw new Error(LanguageManager.t('mediapipe.noLandmarksCaptured'));
   return frames;
 }

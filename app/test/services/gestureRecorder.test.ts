@@ -1,4 +1,5 @@
 import { captureSamples } from '../../src/services/gestureRecorder';
+import { LanguageManager } from '../../src/services/LanguageManager';
 
 describe('captureSamples', () => {
   beforeEach(() => {
@@ -24,10 +25,10 @@ describe('captureSamples', () => {
     expect(frames[0][0][0][0]).toBe(0);
   });
 
-  it('wirft Fehler, wenn keine Landmarken erfasst wurden', async () => {
+  it('throws an error when no landmarks are captured', async () => {
     const getter = () => [] as number[][][];
     const promise = captureSamples(getter, 100, 50);
     jest.advanceTimersByTime(100);
-    await expect(promise).rejects.toThrow('Keine Landmarken erfasst');
+    await expect(promise).rejects.toThrow(LanguageManager.t('mediapipe.noLandmarksCaptured'));
   });
 });
