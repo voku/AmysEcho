@@ -1,9 +1,9 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import { loadProfiles } from '../storage';
+import LoadingIndicator from '../components/LoadingIndicator';
 
 const lazyScreen = (
   factory: () => Promise<any>,
@@ -34,12 +34,6 @@ const CaregiverReportScreen = lazyScreen(() => import('../screens/CaregiverRepor
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const Loading = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <ActivityIndicator size="large" />
-  </View>
-);
-
 const RootNavigator = () => {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | undefined>();
 
@@ -49,10 +43,10 @@ const RootNavigator = () => {
     });
   }, []);
 
-  if (!initialRoute) return <Loading />;
+  if (!initialRoute) return <LoadingIndicator />;
 
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<LoadingIndicator />}>
       <Stack.Navigator initialRouteName={initialRoute}>
       <Stack.Screen
         name="Onboarding"
