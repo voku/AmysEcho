@@ -70,6 +70,39 @@ describe('syncTrainingData', () => {
     expect(updated[0].syncStatus).toBe('synced');
   });
 
+  it('uploads legacy samples stored under landmarkData', async () => {
+    await AsyncStorage.setItem(
+      TRAINING_KEY,
+      JSON.stringify([
+        {
+          id: '1',
+          gestureDefinitionId: 'g1',
+          landmarkData: [
+            {
+              landmarks: [
+                [[1, 2, 3]],
+                [],
+              ],
+              handedness: ['Left', 'Right'],
+            },
+          ],
+          source: 'HIP_2',
+          syncStatus: 'pending',
+        },
+      ]),
+    );
+
+    await syncTrainingData();
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    const [, options] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.samples[0].gestureDefinitionId).toBe('g1');
+    expect(body.samples[0].landmarkData[0]).toEqual([1, 2, 3]);
+    const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
+    expect(updated[0].syncStatus).toBe('synced');
+  });
+
   it('orders landmarks using handedness when hands are reversed', async () => {
     const left = Array.from({ length: 21 }, (_, i) => [i, i, i]);
     const right = Array.from({ length: 21 }, (_, i) => [i + 100, i + 100, i + 100]);

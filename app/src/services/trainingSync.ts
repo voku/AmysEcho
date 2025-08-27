@@ -30,12 +30,16 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
   try {
     const token = await loadBackendApiToken();
     const samples = pending.flatMap((p) => {
-      const frames = p.frames as any;
-      return (Array.isArray(frames) ? frames : [])
-        .filter((f) => frameHasAnyLandmarks(f.landmarks))
+      const framesAny = (p as any).frames || (p as any).landmarkData;
+      const frames = Array.isArray(framesAny) ? framesAny : [];
+      return frames
+        .filter((f) => frameHasAnyLandmarks((f as any).landmarks || f))
         .map((f) => ({
           gestureDefinitionId: p.gestureDefinitionId,
-          landmarkData: flattenHandsWithHandedness(f.landmarks, f.handedness || []),
+          landmarkData: flattenHandsWithHandedness(
+            (f as any).landmarks || f,
+            (f as any).handedness || [],
+          ),
           profileId: profile?.id,
         }));
     });
