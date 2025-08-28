@@ -82,3 +82,7 @@ Amy's Echo is a multimodal communication platform for non-verbal children. The p
 - Start the server (if needed for non-gesture features): `npm run build && node dist/server.js`
 - Gesture recognition does not require the backend.
 - Update analytics or other data pipelines as needed: `npm run build && node dist/tools/updateAnalytics.js <path/to/db.json>`
+
+## Known Blind Spots and Mitigations
+
+For a list of known blind spots and mitigations when working with AI assistants, please refer to the [AI Assistant Blind Spots and Mitigations section in AGENTS.md](./AGENTS.md#ai-assistant-blind-spots-and-mitigations).
