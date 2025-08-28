@@ -27,7 +27,12 @@ jest.mock('../src/utils/logger', () => ({
 import { syncService } from '../src/services/syncService';
 
 beforeEach(() => {
-  const sample: any = {
+  const sample: {
+    landmarkData: string;
+    gestureDefinition: { id: string };
+    customSyncStatus: 'pending' | 'synced';
+    update: jest.Mock;
+  } = {
     landmarkData: JSON.stringify([
       { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
     ]),
@@ -35,7 +40,7 @@ beforeEach(() => {
     customSyncStatus: 'pending',
     update: jest.fn(),
   };
-  sample.update.mockImplementation((fn: any) => fn(sample));
+  sample.update.mockImplementation((fn: (s: typeof sample) => void) => fn(sample));
   mockSamples = [sample];
   mockDatabase.get.mockReturnValue({
     query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue(mockSamples) })),
