@@ -30,8 +30,8 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
   try {
     const token = await loadBackendApiToken();
     const samples = pending.flatMap((p) => {
-      const framesAny = (p as any).frames || (p as any).landmarkData;
-      const frames = Array.isArray(framesAny) ? framesAny : [];
+      // Handle both new `frames` and legacy `landmarkData` fields for backward compatibility.
+      const frames = (p as any).frames || (p as any).landmarkData || [];
       return processFramesForUpload(frames, p.gestureDefinitionId, profile?.id);
     });
     if (samples.length === 0) return;
