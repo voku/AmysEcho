@@ -18,8 +18,8 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
     const framesAny = sample.frames || sample.landmarkData;
     const frames: FrameData[] = Array.isArray(framesAny) ? framesAny : [];
     for (const f of frames) {
-      const lms = (f as any).landmarks || f;
-      const handed = (f as any).handedness || [];
+      const lms = Array.isArray(f) ? f : (f as any)?.landmarks || [];
+      const handed = Array.isArray(f) ? [] : (f as any)?.handedness || [];
       if (!frameHasAnyLandmarks(lms)) continue;
       const flat = flattenHandsWithHandedness(lms, handed);
       if (!sums[label]) {

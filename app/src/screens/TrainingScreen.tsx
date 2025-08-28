@@ -99,8 +99,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       return;
     }
     try {
-      const frames = recordedFrames;
-      await saveTrainingSample(gestureId, frames, isPractice ? 'HIP_4' : 'HIP_2');
+      await saveTrainingSample(gestureId, recordedFrames, isPractice ? 'HIP_4' : 'HIP_2');
       setCount((c) => c + 1);
       setError(null);
       // HIP 2 or 4: sample saved

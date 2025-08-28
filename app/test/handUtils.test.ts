@@ -23,6 +23,20 @@ describe('flattenHandsWithHandedness', () => {
     expect(out.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(zeros);
     expect(out.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
   });
+
+  it('coerces landmarks to 3D triplets', () => {
+    const left = Array.from({ length: HAND_LANDMARKS_PER_HAND }, () => [0, 0, 0]);
+    const right = Array.from({ length: HAND_LANDMARKS_PER_HAND }, () => [0, 0, 0]);
+    left[0] = [1, 2, 3, 4];
+    left[1] = [5, 6];
+    right[0] = [7, 8, 9, 10];
+    right[1] = [11, 12];
+    const out = flattenHandsWithHandedness([left, right], ['Left', 'Right']);
+    expect(out[0]).toEqual([1, 2, 3]);
+    expect(out[1]).toEqual([5, 6, 0]);
+    expect(out[HAND_LANDMARKS_PER_HAND]).toEqual([7, 8, 9]);
+    expect(out[HAND_LANDMARKS_PER_HAND + 1]).toEqual([11, 12, 0]);
+  });
 });
 
 describe('processFramesForUpload', () => {
@@ -50,6 +64,16 @@ describe('processFramesForUpload', () => {
     const right = makeHand(100);
     const frames = [[left, right]];
     const out = processFramesForUpload(frames, 'g1');
+    expect(out).toHaveLength(1);
+    expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
+    expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+  });
+
+  it('normalizes flattened legacy arrays', () => {
+    const left = makeHand(0);
+    const right = makeHand(100);
+    const flattened = [...left, ...right];
+    const out = processFramesForUpload(flattened, 'g1');
     expect(out).toHaveLength(1);
     expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
     expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
