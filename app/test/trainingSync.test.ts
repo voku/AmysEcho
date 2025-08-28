@@ -213,6 +213,6 @@ describe('syncTrainingData', () => {
 
     expect(progress).toHaveBeenCalledWith(0);
     expect(progress).toHaveBeenCalledWith(100);
-    expect(progress.mock.calls.length).toBeLessThanOrEqual(3);
+    expect(progress).toHaveBeenCalledTimes(2);
   });
 });
