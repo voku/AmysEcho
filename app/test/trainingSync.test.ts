@@ -242,14 +242,8 @@ describe('syncTrainingData', () => {
     });
 
     it('keeps samples pending when polling fails repeatedly', async () => {
-      const original = setTimeout;
+      jest.useFakeTimers();
       try {
-        // Execute timers immediately to avoid long waits
-        (global as any).setTimeout = (fn: any) => {
-          fn();
-          return 0 as any;
-        };
-
         await setupPendingSample();
 
         let polls = 0;
@@ -261,10 +255,12 @@ describe('syncTrainingData', () => {
           return { ok: false, status: 500 } as any;
         });
 
-        await syncTrainingData();
+        const syncPromise = syncTrainingData();
+        await jest.advanceTimersByTimeAsync(3000);
+        await syncPromise;
         expect(polls).toBeGreaterThanOrEqual(3);
       } finally {
-        (global as any).setTimeout = original;
+        jest.useRealTimers();
       }
 
       expect(logger.warn).toHaveBeenCalledWith(

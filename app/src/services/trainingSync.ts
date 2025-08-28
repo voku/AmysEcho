@@ -68,11 +68,12 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
         const s = await fetch(`${API_URL}/train-status/${jobId}`, { headers });
         if (s.ok) {
           const info = await s.json().catch(() => null);
-          const isObject = info && typeof info === 'object' && !Array.isArray(info);
-          if (isObject) {
+          if (info && typeof info === 'object' && !Array.isArray(info)) {
             let useful = false;
-            const progress = (info as any).progress;
-            const status = (info as any).status as string | undefined;
+            const { progress, status } = info as {
+              progress?: unknown;
+              status?: unknown;
+            };
             if (typeof progress === 'number') {
               opts?.onProgress?.(Math.max(0, Math.min(100, progress)));
               useful = true;
