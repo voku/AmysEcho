@@ -12,7 +12,12 @@ try {
 } catch {}
 
 interface Props {
-  onGestureDetected: (gesture: string, confidence: number, landmarks: number[][][]) => void;
+  onGestureDetected: (
+    gesture: string,
+    confidence: number,
+    landmarks: number[][][],
+    handedness: string[],
+  ) => void;
   onError: (error: string) => void;
   cameraType?: 'front' | 'back';
 }
@@ -63,7 +68,7 @@ const ExpoCameraDetector: React.FC<Props> = ({ onGestureDetected, onError, camer
           const json = await res.json();
           const g = json?.gesture || 'unknown';
           const c = json?.confidence ?? 0;
-          onGestureDetected(g, c, []);
+          onGestureDetected(g, c, [], []);
         }
       } catch (e: any) {
         // only surface once

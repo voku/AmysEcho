@@ -3,7 +3,7 @@ import { View, Text, Button, StyleSheet, AppState, SafeAreaView } from 'react-na
 import { useIsFocused } from '@react-navigation/native';
 // Camera preview replaced by MediaPipe WebView detector
 import Svg, { Circle } from 'react-native-svg';
-import { saveTrainingSample, loadProfile, Profile } from '../storage';
+import { saveTrainingSample, loadProfile, Profile, TrainingFrame } from '../storage';
 import { sendDgsSample } from '../services/dgsTrainingService';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -28,7 +28,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedLandmarks, setRecordedLandmarks] = useState<number[][][][]>([]);
+  const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
@@ -81,7 +81,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const startRecording = () => {
     if (!gestureId) return;
     setError(null);
-    setRecordedLandmarks([]);
+    setRecordedFrames([]);
     setFramesCaptured(0);
     setLastDetection(0);
     setIsRecording(true);
@@ -92,22 +92,26 @@ export default function TrainingScreen({ navigation, route }: any) {
   const stopRecording = async () => {
     setIsRecording(false);
     if (!gestureId) return;
-    const validation = validateLandmarkSequence(recordedLandmarks);
+    const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
     if (!validation.ok) {
       const msg = `Sample needs improvement: ${validation.suggestions.join(' ')}`;
       setError(msg);
       return;
     }
     try {
-      await saveTrainingSample(gestureId, recordedLandmarks, isPractice ? 'HIP_4' : 'HIP_2');
+      await saveTrainingSample(gestureId, recordedFrames, isPractice ? 'HIP_4' : 'HIP_2');
       setCount((c) => c + 1);
       setError(null);
       // HIP 2 or 4: sample saved
       void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', { gestureId, frames: framesCaptured });
       // Also send the full sample sequence to the server dataset for DGS
       try {
-        if (recordedLandmarks.length > 0) {
-          void sendDgsSample(gestureId, recordedLandmarks, profile?.id || undefined);
+        if (recordedFrames.length > 0) {
+          void sendDgsSample(
+            gestureId,
+            recordedFrames.map((f) => f.landmarks),
+            profile?.id || undefined,
+          );
         }
       } catch {}
       if (isPractice) {
@@ -213,16 +217,16 @@ export default function TrainingScreen({ navigation, route }: any) {
           })()}
           <View style={styles.cameraContainer}>
             <MediaPipeGestureDetector
-              onGestureDetected={(_g, _c, lm) => {
+              onGestureDetected={(_g, _c, lm, hands) => {
                 setLandmarks(lm);
                 setLastDetection(Date.now());
                 if (isRecordingRef.current) {
-                    setRecordedLandmarks((prev) => [...prev, lm]);
-                    setFramesCaptured((c) => c + 1);
-                  }
-                }}
-                onError={(m) => logger.warn('TrainingScreen detector error:', m)}
-              />
+                  setRecordedFrames((prev) => [...prev, { landmarks: lm, handedness: hands }]);
+                  setFramesCaptured((c) => c + 1);
+                }
+              }}
+              onError={(m) => logger.warn('TrainingScreen detector error:', m)}
+            />
               {landmarks.length > 0 && (
                 <Svg
                   style={StyleSheet.absoluteFill}

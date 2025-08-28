@@ -13,20 +13,24 @@ describe('captureSamples', () => {
   it('collects frames and clones landmark data', async () => {
     const hand = Array.from({ length: 21 }, (_, i) => [i, i, i]);
     let current = hand;
-    const getter = () => [current];
+    const handed = ['Left'];
+    const getter = () => ({ landmarks: [current], handedness: handed });
 
     const promise = captureSamples(getter, 100, 50);
     jest.advanceTimersByTime(100);
     const frames = await promise;
 
-    // mutate original after capture
+    // mutate originals after capture
     current[0][0] = 999;
+    handed[0] = 'Right';
+
     expect(frames.length).toBeGreaterThan(0);
-    expect(frames[0][0][0][0]).toBe(0);
+    expect(frames[0].landmarks[0][0][0]).toBe(0);
+    expect(frames[0].handedness[0]).toBe('Left');
   });
 
   it('throws an error when no landmarks are captured', async () => {
-    const getter = () => [] as number[][][];
+    const getter = () => ({ landmarks: [] as number[][][], handedness: [] });
     const promise = captureSamples(getter, 100, 50);
     jest.advanceTimersByTime(100);
     await expect(promise).rejects.toThrow(LanguageManager.t('mediapipe.noLandmarksCaptured'));

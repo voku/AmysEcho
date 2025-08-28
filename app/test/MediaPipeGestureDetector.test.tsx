@@ -67,12 +67,13 @@ describe('MediaPipeGestureDetector', () => {
             gesture: 'thumbs_up',
             confidence: 0.9,
             landmarks: [[[1, 2, 3]]],
+            handednesses: ['Left'],
           }),
         },
       });
     });
 
-    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[[1, 2, 3]]]);
+    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[[1, 2, 3]]], ['Left']);
     expect(onError).not.toHaveBeenCalled();
   });
 
@@ -135,12 +136,12 @@ describe('MediaPipeGestureDetector', () => {
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
-          data: JSON.stringify({ type: 'gesture', gesture: null, confidence: 0, landmarks: [[[1, 2, 3]]] }),
+          data: JSON.stringify({ type: 'gesture', gesture: null, confidence: 0, landmarks: [[[1, 2, 3]]], handednesses: ['Left'] }),
         },
       });
     });
 
-    expect(onGestureDetected).toHaveBeenCalledWith(null, 0, [[[1, 2, 3]]]);
+    expect(onGestureDetected).toHaveBeenCalledWith(null, 0, [[[1, 2, 3]]], ['Left']);
     expect(onError).not.toHaveBeenCalled();
   });
 

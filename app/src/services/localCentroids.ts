@@ -1,26 +1,27 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CentroidMap } from './dgsModelClient';
-import { flattenHands, frameHasAnyLandmarks } from './handUtils';
+import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
-type Frame = number[][][]; // hands -> 21x3
+interface FrameData { landmarks: number[][][]; handedness: string[] }
 
 export async function buildLocalCentroids(): Promise<CentroidMap> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   if (!raw) return {};
-  let data: Array<{ gestureDefinitionId: string; landmarkData: Frame[] }> = [];
+  let data: Array<{ gestureDefinitionId: string; frames?: FrameData[]; landmarkData?: any }>; // backward compat
   try { data = JSON.parse(raw); } catch { return {}; }
 
   const sums: Record<string, { sum: number[][]; count: number }> = {};
   for (const sample of data) {
     const label = sample.gestureDefinitionId;
-    const framesAny = sample.landmarkData as any;
-    const frames: Frame[] = Array.isArray(framesAny) ? framesAny : [];
-    for (const frame of frames) {
-      // Skip frames with no landmarks to avoid skewing centroids
-      if (!frameHasAnyLandmarks(frame)) continue;
-      const flat = flattenHands(frame);
+    const framesAny = sample.frames || sample.landmarkData;
+  const frames: (FrameData | number[][][])[] = Array.isArray(framesAny) ? framesAny : [];
+    for (const f of frames) {
+      const lms = Array.isArray(f) ? f : f.landmarks || [];
+      const handed = Array.isArray(f) ? [] : f.handedness || [];
+      if (!frameHasAnyLandmarks(lms)) continue;
+      const flat = flattenHandsWithHandedness(lms, handed);
       if (!sums[label]) {
         sums[label] = { sum: flat.map(() => [0, 0, 0]), count: 0 };
       }
@@ -45,7 +46,7 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
 export async function getLocalCentroidSummary(): Promise<Record<string, number>> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   if (!raw) return {};
-  let data: Array<{ gestureDefinitionId: string; landmarkData: Frame[] }> = [];
+  let data: Array<{ gestureDefinitionId: string }> = [];
   try { data = JSON.parse(raw); } catch { return {}; }
 
   const counts: Record<string, number> = {};

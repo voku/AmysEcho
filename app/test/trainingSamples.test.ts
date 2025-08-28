@@ -23,7 +23,7 @@ const dbMock = {
 jest.mock('../db', () => ({ database: dbMock }));
 jest.mock('../db/models', () => ({ GestureTrainingData: {} }));
 
-import { saveTrainingSample, loadTrainingSampleCount } from '../src/storage';
+import { saveTrainingSample, loadTrainingSampleCount, TrainingFrame } from '../src/storage';
 
 describe('training sample persistence', () => {
   beforeEach(() => {
@@ -32,8 +32,9 @@ describe('training sample persistence', () => {
   });
 
   it('saves samples and counts them', async () => {
-    await saveTrainingSample('g1', [1, 2, 3]);
-    await saveTrainingSample('g1', [4, 5, 6]);
+    const frame: TrainingFrame = { landmarks: [[[1, 2, 3]]], handedness: ['Left'] } as any;
+    await saveTrainingSample('g1', [frame]);
+    await saveTrainingSample('g1', [frame]);
     const count = await loadTrainingSampleCount('g1');
     expect(count).toBe(2);
     expect(createMock).toHaveBeenCalledTimes(2);

@@ -18,10 +18,15 @@ const ACTIVE_PROFILE_KEY = 'activeProfileId';
 const TRAINING_KEY = 'gestureTrainingData';
 const LOG_KEY = 'interactionLogs';
 
+export interface TrainingFrame {
+  landmarks: number[][][];
+  handedness: string[];
+}
+
 export interface TrainingSample {
   id: string;
   gestureDefinitionId: string;
-  landmarkData: unknown;
+  frames: TrainingFrame[];
   source: 'HIP_2' | 'HIP_3' | 'HIP_4';
   syncStatus: 'pending' | 'synced';
 }
@@ -109,7 +114,7 @@ export async function logCorrection(correctId: string): Promise<void> {
   training.push({
     id: genId(),
     gestureDefinitionId: correctId,
-    landmarkData: null,
+    frames: [],
     source: 'HIP_3',
     syncStatus: 'pending',
   });
@@ -130,7 +135,7 @@ export async function logCorrection(correctId: string): Promise<void> {
 
 export async function saveTrainingSample(
   gestureDefinitionId: string,
-  landmarkData: unknown,
+  frames: TrainingFrame[],
   source: 'HIP_2' | 'HIP_4' = 'HIP_2',
 ): Promise<void> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
@@ -138,7 +143,7 @@ export async function saveTrainingSample(
   data.push({
     id: genId(),
     gestureDefinitionId,
-    landmarkData,
+    frames,
     source,
     syncStatus: 'pending',
   });
@@ -148,7 +153,8 @@ export async function saveTrainingSample(
   await database.write(async () => {
     await collection.create((record) => {
       record.gestureDefinition.id = gestureDefinitionId;
-      record.landmarkData = JSON.stringify(landmarkData);
+      // Stores stringified TrainingFrame[]; legacy field name maintained for compatibility
+      record.landmarkData = JSON.stringify(frames);
       record.source = source;
       record.qualityScore = 1;
       record.frameMetadata = '';
