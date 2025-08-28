@@ -1,8 +1,4 @@
-export interface SequenceDefinition {
-  id: string;
-  pattern: string[]; // e.g., ['more', 'please']
-  windowMs: number; // max time window to match whole sequence
-}
+import { SequenceDefinition } from '../types';
 
 export class SequenceRecognizer {
   private events: { g: string; t: number }[] = [];

@@ -1,13 +1,7 @@
 import { API_URL, API_TOKEN } from '../constants';
 
 // Define the structure of the landmark data for clarity
-export interface Landmark {
-  x: number;
-  y: number;
-  z: number;
-}
-
-export type Hand = Landmark[];
+import {Hand } from '../types';
 
 // Base URL and token from shared app constants
 const API_BASE_URL = API_URL;

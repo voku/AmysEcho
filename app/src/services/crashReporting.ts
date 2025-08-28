@@ -5,14 +5,7 @@ import { logger } from '../utils/logger';
 const STORAGE_KEY = 'crashReportsQueue';
 const CRASH_ENDPOINT = `${API_URL}/api/crash-reports`;
 
-export interface CrashReport {
-  id: string;
-  name: string;
-  message: string;
-  stack?: string;
-  timestamp: number;
-  extra?: Record<string, unknown>;
-}
+import { CrashReport } from '../types';
 
 function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);

@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { CentroidMap } from './dgsModelClient';
-import type { FrameData } from '../types';
+import type { CentroidMap,FrameData } from '../types';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
 
 const TRAINING_KEY = 'gestureTrainingData';

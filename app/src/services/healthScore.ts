@@ -1,22 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { InteractionLog,HealthResult, HistoricalHealthEntry } from '../types';
+
 // Reuse the same key as analytics interaction logs
 const LOG_KEY = 'interactionLogs';
 
-export interface InteractionLog {
-  id: string;
-  gestureDefinitionId: string;
-  wasSuccessful: boolean;
-  confidenceScore: number;
-  timestamp: number;
-  processedBy: 'local' | 'cloud' | 'centroid';
-  caregiverOverrideId?: string;
-}
 
-export interface HealthResult {
-  successRate: number; // 0..1
-  count: number;
-}
+
+
 
 export async function getGestureHealth(
   gestureId: string,
@@ -54,11 +45,7 @@ export async function shouldPromptPractice(
 
 const HISTORICAL_HEALTH_KEY = "historicalHealthData";
 
-export interface HistoricalHealthEntry {
-  date: string; // YYYY-MM-DD
-  successRate: number;
-  count: number;
-}
+
 
 export async function saveHistoricalHealthData(
   gestureId: string,

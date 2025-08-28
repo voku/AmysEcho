@@ -1,8 +1,4 @@
-export enum CircuitBreakerState {
-  CLOSED,
-  OPEN,
-  HALF_OPEN,
-}
+import { CircuitBreakerState } from '../types';
 
 export class CircuitBreaker {
   private state: CircuitBreakerState = CircuitBreakerState.CLOSED;

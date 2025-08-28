@@ -1,14 +1,4 @@
-export type ValidationIssue =
-  | 'too_few_frames'
-  | 'insufficient_motion'
-  | 'landmarks_missing'
-  | 'values_out_of_range';
-
-export interface ValidationResult {
-  ok: boolean;
-  issues: ValidationIssue[];
-  suggestions: string[];
-}
+import { ValidationIssue, ValidationResult } from '../types';
 
 // Basic quality checks for recorded gesture samples used in training.
 // Assumes landmarks are normalized to [0,1] if available.

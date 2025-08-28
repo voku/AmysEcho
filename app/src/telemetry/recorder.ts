@@ -1,10 +1,5 @@
 
-export interface TelemetryEvent {
-  timestamp: number;
-  latencyMs: number;
-  event?: string;
-  source?: string;
-}
+import { TelemetryEvent } from '../types';
 
 class Telemetry {
   private buffer: TelemetryEvent[] = [];

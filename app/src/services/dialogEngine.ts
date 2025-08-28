@@ -8,10 +8,7 @@ const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const MODEL = 'gpt-4-turbo';
 
 // LLM Hint: Define a clear type for the expected JSON response from the LLM.
-export type LLMSuggestionResponse = {
-  nextWords: string[];
-  caregiverPhrases: string[];
-};
+import { LLMSuggestionResponse } from '../types';
 
 class DialogEngine {
   private history: { role: 'user' | 'assistant'; content: string }[] = [];

@@ -8,9 +8,7 @@ import { processFramesForUpload } from './handUtils';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
-export interface SyncProgressOptions {
-  onProgress?: (progress: number) => void;
-}
+import { SyncProgressOptions } from '../types';
 
 export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void> {
   const profile = await loadProfile();

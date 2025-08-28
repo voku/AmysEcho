@@ -1,9 +1,7 @@
 import en from '../../i18n/en.json';
 import de from '../../i18n/de.json';
 
-type Language = 'en' | 'de';
-
-type TranslationMap = Record<string, any>;
+import { Language, TranslationMap } from '../types';
 
 const translations: Record<Language, TranslationMap> = {
   en,

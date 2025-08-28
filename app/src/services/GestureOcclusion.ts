@@ -1,7 +1,4 @@
-export interface OcclusionAssessment {
-  occluded: boolean;
-  hints: string[];
-}
+import { OcclusionAssessment } from '../types';
 
 // Simple occlusion heuristic: too few keypoints or bounding box near edges
 export function assessOcclusion(landmarks: number[][], widthHint = 1, heightHint = 1): OcclusionAssessment {

@@ -2,19 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import CryptoJS from 'crypto-js';
 
-export interface GestureData {
-  gestureClass: string;
-  confidence: number;
-  timestamp: number;
-  sessionId: string;
-}
-
-interface AnonymizedGestureData {
-  gestureClass: string;
-  confidence: number;
-  timestamp: number;
-  sessionId: string;
-}
+import { GestureData, AnonymizedGestureData } from '../types';
 
 class GestureDataProtector {
   private encryptionKey: string | null = null;

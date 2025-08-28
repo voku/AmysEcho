@@ -7,10 +7,7 @@ const KEY = 'dgsCentroids';
 const MLP_KEY = 'dgsMlpModel';
 const MLP_META_KEY = 'dgsMlpModelMeta';
 
-type StorageLike = {
-  setItem(key: string, value: string): Promise<void>;
-  getItem(key: string): Promise<string | null>;
-};
+import { Point, CentroidMap, StorageLike, MlpMeta } from '../types';
 
 async function getStorage(): Promise<StorageLike> {
   try {
@@ -31,9 +28,6 @@ async function getStorage(): Promise<StorageLike> {
     };
   }
 }
-
-export type Point = [number, number, number];
-export type CentroidMap = Record<string, Point[]>;
 
 export async function fetchCentroids(profileId?: string): Promise<{ centroids: CentroidMap; counts: Record<string, number> } | null> {
   try {
@@ -58,7 +52,6 @@ export async function getCachedCentroids(profileId?: string): Promise<{ centroid
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-type MlpMeta = { etag?: string; checksum?: string; version?: string };
 
 export async function fetchMlpModel(profileId?: string): Promise<string | null> {
   try {

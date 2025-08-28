@@ -3,16 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const KEY = 'engagementStats';
 let sessionStart: number | null = null;
 
-interface StoredStats {
-  sessions: number;
-  totalMs: number;
-}
-
-interface EngagementStats {
-  totalSessions: number;
-  totalDurationMs: number;
-  averageDurationMs: number;
-}
+import { StoredStats, EngagementStats } from '../types';
 
 export async function startSession(): Promise<void> {
   sessionStart = Date.now();

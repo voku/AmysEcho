@@ -1,9 +1,6 @@
 import { startSession as startEngagement, endSession as endEngagement } from './engagementTracker';
 
-export type SessionCallbacks = {
-  onEncouragement: () => void;
-  onBreak: () => void;
-};
+import { SessionCallbacks } from '../types';
 
 export class ChildSessionManager {
   private encouragementInterval: number;

@@ -3,15 +3,7 @@ import { telemetry } from '../telemetry/recorder';
 
 const KEY = 'hipEvents';
 
-export type HIPEndpoint = 'HIP_1' | 'HIP_2' | 'HIP_3' | 'HIP_4';
-
-export interface HIPEvent {
-  id: string;
-  hip: HIPEndpoint;
-  type: string;
-  timestamp: number;
-  details?: Record<string, any>;
-}
+import { HIPEndpoint, HIPEvent } from '../types';
 
 function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);

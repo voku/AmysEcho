@@ -1,11 +1,7 @@
 import { API_URL, API_TOKEN } from '../constants';
 import { logger } from '../utils/logger';
 
-export interface ExportedProfileData {
-  profile: any;
-  usageStats: any[];
-  corrections: any[];
-}
+import { ExportedProfileData } from '../types';
 
 async function request(url: string, options: RequestInit = {}): Promise<Response | null> {
   try {

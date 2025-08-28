@@ -1,30 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ANALYTICS_ENDPOINT, API_TOKEN, ANALYTICS_TELEMETRY_ENDPOINT } from '../constants';
-import { TelemetryEvent } from '../telemetry/recorder';
+import { TelemetryEvent,LearningAnalytics, InteractionLog, GestureStats } from '../types';
 
-export interface LearningAnalytics {
-  successRate7d: number;
-  improvementTrend: number;
-}
 
 const LOG_KEY = 'interactionLogs';
-
-export interface InteractionLog {
-  id: string;
-  gestureDefinitionId: string;
-  gestureName: string;
-  wasSuccessful: boolean;
-  confidenceScore: number;
-  timestamp: number;
-  processedBy: 'local' | 'cloud' | 'centroid';
-  caregiverOverrideId?: string;
-}
-
-export interface GestureStats {
-  gestureDefinitionId: string;
-  successCount: number;
-  failureCount: number;
-}
 
 function genId(): string {
   return (
