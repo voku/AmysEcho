@@ -1,3 +1,5 @@
+import type { FrameData } from '../types/frames';
+
 export const HAND_LANDMARKS_PER_HAND = 21;
 
 export function flattenHandsWithHandedness(
@@ -45,15 +47,14 @@ export function frameHasAnyLandmarks(frame: number[][][]): boolean {
 }
 
 type Triplet = [number, number, number];
-type Frame = { landmarks: number[][][]; handedness?: string[] };
 
 function isTriplet(x: unknown): x is Triplet {
-  return Array.isArray(x) && x.length >= 3 && x.slice(0, 3).every((n) => typeof n === 'number');
+  return Array.isArray(x) && x.length === 3 && x.every((n) => typeof n === 'number');
 }
 
 function normalizeFramesInput(
   input: unknown,
-): (number[][][] | { landmarks: number[][][]; handedness?: string[] })[] {
+): (number[][][] | FrameData)[] {
   if (!Array.isArray(input)) return [];
 
   if (
@@ -69,9 +70,10 @@ function normalizeFramesInput(
   if (input.every(isTriplet)) {
     const arr = input as Triplet[];
     const perFrame = HAND_LANDMARKS_PER_HAND * 2;
-    if (arr.length % perFrame !== 0) return [];
-    const out: Frame[] = [];
-    for (let i = 0; i < arr.length; i += perFrame) {
+    const usableFrames = Math.floor(arr.length / perFrame);
+    if (usableFrames === 0) return [];
+    const out: FrameData[] = [];
+    for (let i = 0; i < usableFrames * perFrame; i += perFrame) {
       const block = arr.slice(i, i + perFrame);
       const left = block.slice(0, HAND_LANDMARKS_PER_HAND);
       const right = block.slice(HAND_LANDMARKS_PER_HAND, perFrame);
@@ -84,7 +86,7 @@ function normalizeFramesInput(
 }
 
 export function processFramesForUpload(
-  frames: (number[][][] | { landmarks: number[][][]; handedness?: string[] })[],
+  frames: (number[][][] | FrameData)[],
   gestureDefinitionId: string,
   profileId?: string,
 ): { gestureDefinitionId: string; landmarkData: number[][]; profileId?: string }[] {
