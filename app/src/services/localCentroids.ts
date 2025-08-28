@@ -16,10 +16,10 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
   for (const sample of data) {
     const label = sample.gestureDefinitionId;
     const framesAny = sample.frames || sample.landmarkData;
-    const frames: FrameData[] = Array.isArray(framesAny) ? framesAny : [];
+  const frames: (FrameData | number[][][])[] = Array.isArray(framesAny) ? framesAny : [];
     for (const f of frames) {
-      const lms = Array.isArray(f) ? f : (f as any)?.landmarks || [];
-      const handed = Array.isArray(f) ? [] : (f as any)?.handedness || [];
+      const lms = Array.isArray(f) ? f : f.landmarks || [];
+      const handed = Array.isArray(f) ? [] : f.handedness || [];
       if (!frameHasAnyLandmarks(lms)) continue;
       const flat = flattenHandsWithHandedness(lms, handed);
       if (!sums[label]) {
