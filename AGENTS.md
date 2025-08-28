@@ -51,6 +51,8 @@ For guidelines specific to the application or server, see the `AGENTS.md` files 
 
 For complex, iterative tasks like fixing a large number of type errors or refactoring a module, an automated agent script is available. This script, `scripts/auto-agent.sh`, runs the Gemini CLI in a loop, feeding the results of one run into the prompt for the next. This creates a continuous feedback cycle that allows the agent to work towards a goal autonomously.
 
+**Prerequisite**: The workflow requires the Gemini CLI to be installed and configured on the host machine. Container-only environments may not include Gemini, so confirm availability with the user before attempting to run `scripts/auto-agent.sh`.
+
 ### How it Works
 
 1.  **Initial Prompt**: The loop starts with a high-level goal defined in a prompt file (by default, `docs/TODO.md`).
@@ -158,3 +160,15 @@ Before starting implementation, consider:
 - "What patterns are already established for this type of change?"
 - "Are there any integration points I need to be aware of?"
 
+
+## AI Assistant Blind Spots and Mitigations
+
+- **Local environment unknown** – tools like Gemini or `auto-agent.sh` may not be installed. Confirm with the user before relying on them.
+- **External configuration assumptions** – hardware, permissions, or OS differences can affect outcomes. Ask users to highlight special constraints.
+- **Hidden dependencies** – undocumented packages or services may be required. Request explicit dependency lists or installation steps.
+- **Opaque runtime failures** – some commands may fail silently. Encourage verbose logging and sharing of error output.
+- **User-specific settings** – API keys or environment variables can change behavior. Ask which configuration values are needed (without requesting secrets).
+- **Incomplete validation steps** – missing tests or manual checks lead to gaps. Verify instructions and request clarification when necessary.
+- **Context drift** – documentation and code can become unsynchronized. Prompt contributors to keep them aligned.
+- **Time-limited visibility** – uncommitted or in-progress work is invisible. Ask about relevant WIP.
+- **Need for human oversight** – automated checks cannot replace human judgment. Ensure final review and real-world testing.
