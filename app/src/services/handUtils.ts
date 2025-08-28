@@ -36,19 +36,23 @@ export function frameHasAnyLandmarks(frame: number[][][]): boolean {
 }
 
 export function processFramesForUpload(
-  frames: any[],
+  frames: (number[][][] | { landmarks: number[][][]; handedness?: string[] })[],
   gestureDefinitionId: string,
   profileId?: string,
 ): { gestureDefinitionId: string; landmarkData: number[][]; profileId?: string }[] {
   return (Array.isArray(frames) ? frames : [])
-    .filter((f) => frameHasAnyLandmarks((f as any).landmarks || f))
-    .map((f) => ({
-      gestureDefinitionId,
-      landmarkData: flattenHandsWithHandedness(
-        (f as any).landmarks || f,
-        (f as any).handedness || [],
-      ),
-      ...(profileId ? { profileId } : {}),
-    }));
+    .filter((f) =>
+      frameHasAnyLandmarks('landmarks' in f ? f.landmarks : (f as number[][][])),
+    )
+    .map((f) => {
+      const isNewFrame = 'landmarks' in f;
+      const landmarks = isNewFrame ? f.landmarks : (f as number[][][]);
+      const handedness = isNewFrame ? f.handedness || [] : [];
+      return {
+        gestureDefinitionId,
+        landmarkData: flattenHandsWithHandedness(landmarks, handedness),
+        ...(profileId ? { profileId } : {}),
+      };
+    });
 }
 

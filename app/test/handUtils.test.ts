@@ -44,5 +44,15 @@ describe('processFramesForUpload', () => {
     const out = processFramesForUpload(frames, 'g1');
     expect(out).toHaveLength(0);
   });
+
+  it('supports legacy frame format', () => {
+    const left = makeHand(0);
+    const right = makeHand(100);
+    const frames = [[left, right]];
+    const out = processFramesForUpload(frames, 'g1');
+    expect(out).toHaveLength(1);
+    expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
+    expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+  });
 });
 
