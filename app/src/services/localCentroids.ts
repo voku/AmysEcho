@@ -17,10 +17,11 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
     const framesAny = sample.frames || sample.landmarkData;
     const frames: (FrameData | number[][][])[] = Array.isArray(framesAny) ? framesAny : [];
     for (const f of frames) {
-      // Check if it's a new format frame with landmarks property
-      const isNewFormat = f && typeof f === 'object' && 'landmarks' in f;
-      const lms = isNewFormat ? (f as FrameData).landmarks || [] : (f as number[][][]);
-      const handed = isNewFormat ? (f as FrameData).handedness || [] : [];
+      if (!f) {
+        continue;
+      }
+      const lms = Array.isArray(f) ? f : f.landmarks || [];
+      const handed = Array.isArray(f) ? [] : f.handedness || [];
       if (!frameHasAnyLandmarks(lms)) continue;
       const flat = flattenHandsWithHandedness(lms, handed);
       if (!sums[label]) {
