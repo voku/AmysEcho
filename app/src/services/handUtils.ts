@@ -46,7 +46,7 @@ export function frameHasAnyLandmarks(frame: number[][][]): boolean {
   return frame.some((hand) => Array.isArray(hand) && hand.length > 0);
 }
 
-import type { Triplet } from '../types/handUtilsType';
+import type { Triplet } from '../types';
 
 function isTriplet(x: unknown): x is Triplet {
   return Array.isArray(x) && x.length === 3 && x.every((n) => typeof n === 'number');
