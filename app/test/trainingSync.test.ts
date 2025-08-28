@@ -4,6 +4,8 @@ const mockNetInfoFetch = jest.fn(async () => ({
   type: 'wifi',
 }));
 jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true,
+  default: { fetch: mockNetInfoFetch },
   fetch: mockNetInfoFetch,
 }));
 
@@ -27,9 +29,25 @@ import { logger } from '../src/utils/logger';
 
 const TRAINING_KEY = 'gestureTrainingData';
 
+const setupPendingSample = () =>
+  AsyncStorage.setItem(
+    TRAINING_KEY,
+    JSON.stringify([
+      {
+        id: '1',
+        gestureDefinitionId: 'g1',
+        frames: [
+          { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
+        ],
+        source: 'HIP_2',
+        syncStatus: 'pending',
+      },
+    ]),
+  );
+
 describe('syncTrainingData', () => {
-  beforeEach(() => {
-    (AsyncStorage as any).clear();
+  beforeEach(async () => {
+    await (AsyncStorage as any).clear();
     jest.clearAllMocks();
     mockNetInfoFetch.mockResolvedValue({
       isConnected: true,
@@ -171,20 +189,7 @@ describe('syncTrainingData', () => {
   });
 
   it('skips syncing when network is not wifi', async () => {
-    await AsyncStorage.setItem(
-      TRAINING_KEY,
-      JSON.stringify([
-        {
-          id: '1',
-          gestureDefinitionId: 'g1',
-          frames: [
-            { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
-          ],
-          source: 'HIP_2',
-          syncStatus: 'pending',
-        },
-      ]),
-    );
+    await setupPendingSample();
 
     mockNetInfoFetch.mockResolvedValueOnce({
       isConnected: true,
@@ -195,30 +200,19 @@ describe('syncTrainingData', () => {
     await syncTrainingData();
 
     expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockNetInfoFetch).toHaveBeenCalledTimes(1);
     const stored = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
     expect(stored[0].syncStatus).toBe('pending');
   });
 
   it('reports progress via callback', async () => {
-    await AsyncStorage.setItem(
-      TRAINING_KEY,
-      JSON.stringify([
-        {
-          id: '1',
-          gestureDefinitionId: 'g1',
-          frames: [
-            { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
-          ],
-          source: 'HIP_2',
-          syncStatus: 'pending',
-        },
-      ]),
-    );
+    await setupPendingSample();
 
     const progress = jest.fn();
     await syncTrainingData({ onProgress: progress });
 
     expect(progress).toHaveBeenCalledWith(0);
     expect(progress).toHaveBeenCalledWith(100);
+    expect(progress.mock.calls.length).toBeLessThanOrEqual(3);
   });
 });

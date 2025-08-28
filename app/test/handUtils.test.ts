@@ -51,6 +51,13 @@ describe('frameHasAnyLandmarks', () => {
     expect(frameHasAnyLandmarks([[]])).toBe(false);
     expect(frameHasAnyLandmarks([[[1, 2, 3]], []])).toBe(true);
   });
+
+  it('returns false for non-array inner values', () => {
+    // @ts-expect-error
+    expect(frameHasAnyLandmarks([null as any])).toBe(false);
+    // @ts-expect-error
+    expect(frameHasAnyLandmarks([123 as any])).toBe(false);
+  });
 });
 
 describe('processFramesForUpload', () => {

@@ -27,16 +27,16 @@ jest.mock('../src/utils/logger', () => ({
 import { syncService } from '../src/services/syncService';
 
 beforeEach(() => {
-  mockSamples = [
-    {
-      landmarkData: JSON.stringify([
-        { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
-      ]),
-      gestureDefinition: { id: 'g1' },
-      customSyncStatus: 'pending',
-      update: jest.fn(function (fn: any) { fn(this); }),
-    },
-  ];
+  const sample: any = {
+    landmarkData: JSON.stringify([
+      { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
+    ]),
+    gestureDefinition: { id: 'g1' },
+    customSyncStatus: 'pending',
+    update: jest.fn(),
+  };
+  sample.update.mockImplementation((fn: any) => fn(sample));
+  mockSamples = [sample];
   mockDatabase.get.mockReturnValue({
     query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue(mockSamples) })),
   });
@@ -57,6 +57,7 @@ describe('syncService.uploadPendingTrainingData', () => {
     expect(body.samples[0].gestureDefinitionId).toBe('g1');
     expect(body.samples[0].landmarkData[0]).toEqual([1, 2, 3]);
     expect(mockSamples[0].customSyncStatus).toBe('synced');
+    expect(mockDatabase.write).toHaveBeenCalled();
   });
 
   it('logs error and leaves samples pending on failure', async () => {

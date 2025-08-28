@@ -9,14 +9,17 @@ const asyncStub = {
   async removeItem(key: string) {
     delete store[key];
   },
+  async clear() {
+    for (const k of Object.keys(store)) delete store[k];
+  },
 };
 
 jest.mock('@react-native-async-storage/async-storage', () => asyncStub);
 
 import { buildLocalCentroids, getLocalCentroidSummary } from '../src/services/localCentroids';
 
-beforeEach(() => {
-  for (const k of Object.keys(store)) delete store[k];
+beforeEach(async () => {
+  await asyncStub.clear();
 });
 
 describe('local centroids', () => {
@@ -46,5 +49,20 @@ describe('local centroids', () => {
     await asyncStub.setItem('gestureTrainingData', JSON.stringify(samples));
     const summary = await getLocalCentroidSummary();
     expect(summary).toEqual({ g1: 2, g2: 1 });
+  });
+
+  it('handles handedness case-insensitively', async () => {
+    const makeHand = (val: number) => Array.from({ length: 21 }, () => [val, val, val]);
+    const frame = {
+      landmarks: [makeHand(100), makeHand(1)],
+      handedness: ['RIGHT', 'left'],
+    };
+    await asyncStub.setItem(
+      'gestureTrainingData',
+      JSON.stringify([{ gestureDefinitionId: 'g1', frames: [frame] }]),
+    );
+    const centroids = await buildLocalCentroids();
+    expect(centroids.g1[0]).toEqual([1, 1, 1]);
+    expect(centroids.g1[21]).toEqual([100, 100, 100]);
   });
 });
