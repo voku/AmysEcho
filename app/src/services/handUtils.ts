@@ -60,7 +60,7 @@ function normalizeFramesInput(
     input.every(
       (f) =>
         (f && typeof f === 'object' && 'landmarks' in (f as any)) ||
-        (Array.isArray(f) && Array.isArray((f as any)[0]) && Array.isArray((f as any)[0][0])),
+        (Array.isArray(f) && (f.length === 0 || Array.isArray(f[0]))),
     )
   ) {
     return input as any[];
