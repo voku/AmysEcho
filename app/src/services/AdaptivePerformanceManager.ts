@@ -2,7 +2,7 @@ import type { SharedValue } from 'react-native-reanimated';
 import type * as Battery from 'expo-battery';
 import * as Device from 'expo-device';
 
-import { PerformanceProfile } from '../types';
+import type { PerformanceProfile } from '../types';
 
 export class AdaptivePerformanceManager {
   private lowBatteryThreshold = 0.2;
