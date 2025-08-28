@@ -68,20 +68,20 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
           const s = await fetch(`${API_URL}/train-status/${jobId}`, { headers });
           if (s.ok) {
             const info = await s.json().catch(() => null);
-            if (info) {
-              if (typeof info.progress === 'number') {
-                opts?.onProgress?.(Math.max(0, Math.min(100, info.progress)));
+              if (info) {
+                if (typeof info.progress === 'number') {
+                  opts?.onProgress?.(Math.max(0, Math.min(100, info.progress)));
+                }
+                if (info.status === 'completed') {
+                  if (info.progress !== 100) opts?.onProgress?.(100);
+                  completed = true;
+                  break;
+                }
+                if (info.status === 'failed') throw new Error('training failed');
+                failures = 0;
+              } else {
+                failures += 1;
               }
-              if (info.status === 'completed') {
-                opts?.onProgress?.(100);
-                completed = true;
-                break;
-              }
-              if (info.status === 'failed') throw new Error('training failed');
-              failures = 0;
-            } else {
-              failures += 1;
-            }
           } else {
             failures += 1;
           }
