@@ -1,10 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CentroidMap } from './dgsModelClient';
+import type { FrameData } from '../types/frames';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
 
 const TRAINING_KEY = 'gestureTrainingData';
-
-interface FrameData { landmarks: number[][][]; handedness: string[] }
 
 export async function buildLocalCentroids(): Promise<CentroidMap> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
@@ -16,10 +15,12 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
   for (const sample of data) {
     const label = sample.gestureDefinitionId;
     const framesAny = sample.frames || sample.landmarkData;
-  const frames: (FrameData | number[][][])[] = Array.isArray(framesAny) ? framesAny : [];
+    const frames: (FrameData | number[][][])[] = Array.isArray(framesAny) ? framesAny : [];
     for (const f of frames) {
-      const lms = Array.isArray(f) ? f : f.landmarks || [];
-      const handed = Array.isArray(f) ? [] : f.handedness || [];
+      // Check if it's a new format frame with landmarks property
+      const isNewFormat = f && typeof f === 'object' && 'landmarks' in f;
+      const lms = isNewFormat ? (f as FrameData).landmarks || [] : (f as number[][][]);
+      const handed = isNewFormat ? (f as FrameData).handedness || [] : [];
       if (!frameHasAnyLandmarks(lms)) continue;
       const flat = flattenHandsWithHandedness(lms, handed);
       if (!sums[label]) {
@@ -34,7 +35,7 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
       s.count += 1;
     }
   }
-  const centroids: CentroidMap = {} as any;
+  const centroids: CentroidMap = {};
   for (const [label, { sum, count }] of Object.entries(sums)) {
     if (count > 0) {
       centroids[label] = sum.map(([x,y,z]) => [x/count, y/count, z/count]);

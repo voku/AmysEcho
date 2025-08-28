@@ -78,5 +78,15 @@ describe('processFramesForUpload', () => {
     expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
     expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
   });
+
+  it('drops incomplete trailing landmarks in flattened legacy arrays', () => {
+    const left = makeHand(0);
+    const right = makeHand(100);
+    const flattened = [...left, ...right, [1, 2, 3]];
+    const out = processFramesForUpload(flattened, 'g1');
+    expect(out).toHaveLength(1);
+    expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
+    expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+  });
 });
 
