@@ -10,12 +10,11 @@ import {
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import {logger} from '../utils/logger';
-import {AudioConfig, SpeechOptions} from '../types/audio';
+import {AudioConfig, SpeechOptions, SpeakRequestOptions} from '../types/audio';
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
 import * as FileSystem from 'expo-file-system';
 
-const DUPLICATE_SPEECH_DEBOUNCE_MS = 2000;
 
 export class AudioService {
   private sounds: Map<string, ReturnType<typeof createAudioPlayer>> = new Map();
@@ -28,7 +27,7 @@ export class AudioService {
   private recording: AudioRecorder | null = null;
 
   constructor(config: AudioConfig) {
-    this.config = {...config};
+    this.config = { ...config };
   }
 
   /**
@@ -136,23 +135,26 @@ export class AudioService {
   /**
    * Speak text with gesture context
    */
-  async speak(text: string, options?: SpeechOptions): Promise<void> {
+  async speak(text: string, options?: SpeakRequestOptions): Promise<void> {
     if (!this.isInitialized) {
       logger.warn('Audio service not initialized');
       return;
     }
-
-    const speechOptions: SpeechOptions = {
+    const { allowDuplicates, ...speechOptions } = {
       language: this.config.speechLanguage,
       pitch: this.config.speechPitch,
       rate: this.config.speechRate,
       volume: this.config.volume,
       ...options,
-    };
+    } as SpeakRequestOptions;
 
     const now = Date.now();
     const key = (text ?? '').trim().toLowerCase();
-    if (key === this.lastSpokenText && now - this.lastSpokenAt < DUPLICATE_SPEECH_DEBOUNCE_MS) {
+    if (
+      !allowDuplicates &&
+      key === this.lastSpokenText &&
+      now - this.lastSpokenAt < this.config.duplicateSpeechDebounceMs
+    ) {
       logger.debug(`Duplicate speech skipped: ${text}`);
       return;
     }
@@ -410,6 +412,7 @@ export const audioService = new AudioService({
   speechPitch: 1.0,
   speechLanguage: 'de-DE',
   enableHaptics: true,
+  duplicateSpeechDebounceMs: 2000,
 });
 
 /**
