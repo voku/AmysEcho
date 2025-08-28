@@ -85,12 +85,4 @@ Amy's Echo is a multimodal communication platform for non-verbal children. The p
 
 ## Known Blind Spots and Mitigations
 
-- The `scripts/auto-agent.sh` workflow depends on the Gemini CLI being installed and configured on the host machine. Container environments may not have Gemini, so confirm availability before using the script.
-- External configuration differences (hardware, permissions, OS) may lead to unexpected results. Ask users to highlight special constraints.
-- Missing or undocumented dependencies can cause failures. Request explicit dependency lists or installation instructions.
-- Commands may fail silently. Encourage verbose logging and sharing of error output.
-- API keys or environment variables remain invisible to the agent. Clarify required settings without sharing secrets.
-- Test coverage or manual checks may be incomplete. Verify instructions and seek clarification when steps are unclear.
-- Documentation can drift from code. Prompt maintainers to keep both synchronized.
-- Uncommitted or in-progress work is not visible. Ask about relevant WIP that might impact the task.
-- Human review and real-world testing are essential for production readiness.
+For a list of known blind spots and mitigations when working with AI assistants, please refer to the [AI Assistant Blind Spots and Mitigations section in AGENTS.md](./AGENTS.md#ai-assistant-blind-spots-and-mitigations).
