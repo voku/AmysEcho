@@ -91,7 +91,7 @@ const RootNavigator = () => {
       <Stack.Screen
         name="Training"
         component={TrainingScreen}
-        options={{ presentation: 'modal', headerShown: false }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Parent"
