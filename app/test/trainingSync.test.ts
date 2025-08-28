@@ -1,5 +1,10 @@
+const mockNetInfoFetch = jest.fn(async () => ({
+  isConnected: true,
+  isInternetReachable: true,
+  type: 'wifi',
+}));
 jest.mock('@react-native-community/netinfo', () => ({
-  fetch: async () => ({ isConnected: true, isInternetReachable: true, type: 'wifi' }),
+  fetch: mockNetInfoFetch,
 }));
 
 jest.mock('../src/storage', () => ({
@@ -26,6 +31,11 @@ describe('syncTrainingData', () => {
   beforeEach(() => {
     (AsyncStorage as any).clear();
     jest.clearAllMocks();
+    mockNetInfoFetch.mockResolvedValue({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    });
     (global as any).fetch = jest.fn(async (url: string) => {
       if (url.includes('/train-model')) {
         return { ok: true, json: async () => ({ jobId: '1' }) } as any;
@@ -158,5 +168,57 @@ describe('syncTrainingData', () => {
     );
     const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
     expect(updated[0].syncStatus).toBe('pending');
+  });
+
+  it('skips syncing when network is not wifi', async () => {
+    await AsyncStorage.setItem(
+      TRAINING_KEY,
+      JSON.stringify([
+        {
+          id: '1',
+          gestureDefinitionId: 'g1',
+          frames: [
+            { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
+          ],
+          source: 'HIP_2',
+          syncStatus: 'pending',
+        },
+      ]),
+    );
+
+    mockNetInfoFetch.mockResolvedValueOnce({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'cellular',
+    });
+
+    await syncTrainingData();
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    const stored = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
+    expect(stored[0].syncStatus).toBe('pending');
+  });
+
+  it('reports progress via callback', async () => {
+    await AsyncStorage.setItem(
+      TRAINING_KEY,
+      JSON.stringify([
+        {
+          id: '1',
+          gestureDefinitionId: 'g1',
+          frames: [
+            { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
+          ],
+          source: 'HIP_2',
+          syncStatus: 'pending',
+        },
+      ]),
+    );
+
+    const progress = jest.fn();
+    await syncTrainingData({ onProgress: progress });
+
+    expect(progress).toHaveBeenCalledWith(0);
+    expect(progress).toHaveBeenCalledWith(100);
   });
 });

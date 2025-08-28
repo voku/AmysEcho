@@ -2,6 +2,7 @@ import {
   flattenHandsWithHandedness,
   HAND_LANDMARKS_PER_HAND,
   processFramesForUpload,
+  frameHasAnyLandmarks,
 } from '../src/services/handUtils';
 
 describe('flattenHandsWithHandedness', () => {
@@ -36,6 +37,19 @@ describe('flattenHandsWithHandedness', () => {
     expect(out[1]).toEqual([5, 6, 0]);
     expect(out[HAND_LANDMARKS_PER_HAND]).toEqual([7, 8, 9]);
     expect(out[HAND_LANDMARKS_PER_HAND + 1]).toEqual([11, 12, 0]);
+  });
+});
+
+describe('frameHasAnyLandmarks', () => {
+  it('returns false for non-array input', () => {
+    // @ts-expect-error intentionally passing invalid input
+    expect(frameHasAnyLandmarks(null)).toBe(false);
+  });
+
+  it('detects presence of landmarks', () => {
+    expect(frameHasAnyLandmarks([])).toBe(false);
+    expect(frameHasAnyLandmarks([[]])).toBe(false);
+    expect(frameHasAnyLandmarks([[[1, 2, 3]], []])).toBe(true);
   });
 });
 
