@@ -1,12 +1,9 @@
-interface GestureResult {
-  label: string;
-  confidence: number;
-}
+import { Vector3D,GestureRecognitionResult } from '../';
 
 export interface RecognitionResponse {
-  result: GestureResult;
-  landmarks: Array<[number, number, number]>;
-  landmarks_px?: Array<[number, number, number]>;
+  result: GestureRecognitionResult;
+  landmarks: Vector3D[];
+  landmarks_px?: Vector3D[];
   image_size?: { width: number; height: number };
   handedness?: string | null;
   categories?: Array<{ name: string | null; score: number }>;

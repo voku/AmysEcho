@@ -1,1 +1,3 @@
-export type Triplet = [number, number, number];
+import { Vector3D } from '../';
+
+export type Triplet = Vector3D;

@@ -1,7 +1,7 @@
-export type PerfEvent = {
+import { GestureRecognitionResult } from '../';
+
+export type PerfEvent = GestureRecognitionResult & {
   t: number;
-  label: string;
-  confidence: number;
   requiresConfirmation?: boolean;
   latencyMs?: number;
   inferenceType?: 'local' | 'cloud';

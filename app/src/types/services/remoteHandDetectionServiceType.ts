@@ -1,7 +1,3 @@
-interface Landmark {
-  x: number;
-  y: number;
-  z: number;
-}
+import { Vector3D } from '../';
 
-export type Hand = Landmark[];
+export type Hand = Vector3D[];

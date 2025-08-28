@@ -1,7 +1,6 @@
-import { Buffer } from 'buffer';
+import { Vector3D } from '../';
 
-export type Point = [number, number, number];
-export type CentroidMap = Record<string, Point[]>;
+export type CentroidMap = Record<string, Vector3D[]>;
 
 export type StorageLike = {
   setItem(key: string, value: string): Promise<void>;

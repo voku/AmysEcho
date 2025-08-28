@@ -1,13 +1,9 @@
-export interface GestureData {
-  gestureClass: string;
-  confidence: number;
-  timestamp: number;
+import { GestureRecognitionResult } from '../';
+
+export interface GestureData extends GestureRecognitionResult {
   sessionId: string;
 }
 
-export interface AnonymizedGestureData {
-  gestureClass: string;
-  confidence: number;
-  timestamp: number;
+export interface AnonymizedGestureData extends GestureRecognitionResult {
   sessionId: string;
 }

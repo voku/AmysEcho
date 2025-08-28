@@ -1,4 +1,6 @@
+import { Vector3D } from '../';
+
 export interface FrameData {
-  landmarks: number[][][];
+  landmarks: Vector3D[][];
   handedness?: string[];
 }

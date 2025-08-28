@@ -1,3 +1,5 @@
+import { Vector3D,GestureRecognitionResult } from '../';
+
 export interface ClassificationOutput {
   probabilities: ReadonlyArray<number>;
   maxProbability: number;
@@ -5,8 +7,8 @@ export interface ClassificationOutput {
 }
 
 export interface ProcessedFrame {
-  landmarks: number[][][];
-  landmarksRaw?: number[][][];
+  landmarks: Vector3D[][];
+  landmarksRaw?: Vector3D[][];
   width: number;
   height: number;
   timestamp: number;
@@ -15,19 +17,8 @@ export interface ProcessedFrame {
   predictions?: ClassificationOutput;
 }
 
-export interface GestureResult {
-  label: string;
-  confidence: number;
-  timestamp: number;
-  isLocal?: boolean;
-  requiresConfirmation?: boolean;
-}
-
-export interface DetailedGestureResult {
-  label: string;
-  confidence: number;
+export interface DetailedGestureResult extends GestureRecognitionResult {
   isLocal: boolean;
-  timestamp: number;
   suggestions: string[];
   requiresConfirmation: boolean;
 }
