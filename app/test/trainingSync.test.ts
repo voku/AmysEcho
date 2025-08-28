@@ -215,4 +215,59 @@ describe('syncTrainingData', () => {
     expect(progress).toHaveBeenCalledWith(100);
     expect(progress).toHaveBeenCalledTimes(2);
   });
+
+    it('keeps samples pending if server returns invalid JSON', async () => {
+      await setupPendingSample();
+
+      (global as any).fetch = jest.fn(async (url: string) => {
+        if (url.includes('/train-model')) {
+          return { ok: true, json: async () => { throw new Error('bad json'); } } as any;
+        }
+        return { ok: true, json: async () => ({}) } as any;
+      });
+
+      await syncTrainingData();
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        'failed to parse training response',
+        expect.any(Error),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        'training sync failed',
+        expect.any(Error),
+      );
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
+      expect(updated[0].syncStatus).toBe('pending');
+    });
+
+    it('keeps samples pending when polling fails repeatedly', async () => {
+      jest.useFakeTimers();
+      try {
+        await setupPendingSample();
+
+        let polls = 0;
+        (global as any).fetch = jest.fn(async (url: string) => {
+          if (url.includes('/train-model')) {
+            return { ok: true, json: async () => ({ jobId: '1' }) } as any;
+          }
+          polls += 1;
+          return { ok: false, status: 500 } as any;
+        });
+
+        const syncPromise = syncTrainingData();
+        await jest.advanceTimersByTimeAsync(3000);
+        await syncPromise;
+        expect(polls).toBeGreaterThanOrEqual(3);
+      } finally {
+        jest.useRealTimers();
+      }
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        'training sync failed',
+        expect.any(Error),
+      );
+      const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
+      expect(updated[0].syncStatus).toBe('pending');
+    });
 });

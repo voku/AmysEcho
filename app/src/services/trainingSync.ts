@@ -54,50 +54,55 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
     } catch (e) {
       logger.warn('failed to parse training response', e);
     }
+    if (!jobId) throw new Error('missing jobId in training response');
 
-    if (jobId) {
-      const headers = { Authorization: `Bearer ${token || ''}` } as any;
-      const start = Date.now();
-      const POLL_TIMEOUT_MS = 60000;
-      const POLL_INTERVAL_MS = 1000;
-      let failures = 0;
-      let completed = false;
-      opts?.onProgress?.(0);
-      while (Date.now() - start < POLL_TIMEOUT_MS) {
-        try {
-          const s = await fetch(`${API_URL}/train-status/${jobId}`, { headers });
-          if (s.ok) {
-            const info = await s.json().catch(() => null);
-            if (info) {
-              if (typeof info.progress === 'number') {
-                opts?.onProgress?.(Math.max(0, Math.min(100, info.progress)));
-              }
-              if (info.status === 'completed') {
-                opts?.onProgress?.(100);
-                completed = true;
-                break;
-              }
-              if (info.status === 'failed') throw new Error('training failed');
-              failures = 0;
-            } else {
-              failures += 1;
+    const headers = { Authorization: `Bearer ${token || ''}` } as any;
+    const start = Date.now();
+    const POLL_TIMEOUT_MS = 60000;
+    const POLL_INTERVAL_MS = 1000;
+    let failures = 0;
+    let completed = false;
+    opts?.onProgress?.(0);
+    while (Date.now() - start < POLL_TIMEOUT_MS) {
+      try {
+        const s = await fetch(`${API_URL}/train-status/${jobId}`, { headers });
+        if (s.ok) {
+          const info = await s.json().catch(() => null);
+          if (info && typeof info === 'object' && !Array.isArray(info)) {
+            let useful = false;
+            const { progress, status } = info as {
+              progress?: unknown;
+              status?: unknown;
+            };
+            if (typeof progress === 'number') {
+              opts?.onProgress?.(Math.max(0, Math.min(100, progress)));
+              useful = true;
             }
+            if (status === 'completed') {
+              if (progress !== 100) opts?.onProgress?.(100);
+              completed = true;
+              break;
+            }
+            if (status === 'failed') throw new Error('training failed');
+            failures = useful ? 0 : failures + 1;
           } else {
             failures += 1;
           }
-        } catch (err) {
+        } else {
           failures += 1;
         }
-        if (failures >= 3) {
-          throw new Error('training status polling failed');
-        }
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      } catch (err) {
+        failures += 1;
       }
-      if (!completed) {
-        throw new Error('training status polling timed out');
+      if (failures >= 3) {
+        throw new Error('training status polling failed');
       }
-      await fetchCentroids(profile?.id || undefined).catch(() => {});
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     }
+    if (!completed) {
+      throw new Error('training status polling timed out');
+    }
+    await fetchCentroids(profile?.id || undefined).catch(() => {});
     for (const p of pending) p.syncStatus = 'synced';
     await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
   } catch (e) {
