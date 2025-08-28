@@ -10,7 +10,7 @@ import {
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import {logger} from '../utils/logger';
-import {AudioConfig, SpeechOptions} from '../types/audio';
+import {AudioConfig, SpeechOptions} from '../types';
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
 import * as FileSystem from 'expo-file-system';

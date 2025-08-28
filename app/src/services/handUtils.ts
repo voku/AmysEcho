@@ -1,4 +1,4 @@
-import type { FrameData } from '../types/frames';
+import type { FrameData } from '../types';
 
 export const HAND_LANDMARKS_PER_HAND = 21;
 
