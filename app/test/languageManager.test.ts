@@ -13,4 +13,10 @@ describe('LanguageManager', () => {
     LanguageManager.setLanguage('de');
     expect(LanguageManager.getGestureLabel('hello')).toBe('Hallo');
   });
+
+  it('allows registering and using a new language', () => {
+    LanguageManager.addLanguage('es', { gestures: { hello: 'Hola' } });
+    LanguageManager.setLanguage('es');
+    expect(LanguageManager.getGestureLabel('hello')).toBe('Hola');
+  });
 });

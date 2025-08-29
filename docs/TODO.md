@@ -12,7 +12,7 @@
  - [x] Enforce per-profile authorization on `/latest-mlp-model` (403 on unauthorized access; non-enumerable errors)
  - [x] Write models atomically (temp file + rename) and serve with `ETag` + `X-Model-Version`
 - [x] Review TTS de-duplication window and make it configurable (see `SpeechDeduplicationLearnings.md`)
-- [ ] Reevaluate LanguageManager to simplify localization and allow additional languages (see `LocalizationLearnings.md`)
+- [x] Reevaluate LanguageManager to simplify localization and allow additional languages (see `LocalizationLearnings.md`)
 - [ ] Address gesture training blind spot tasks (see section below)
 
 ## Gesture Training Blind Spot Tasks

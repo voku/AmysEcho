@@ -93,6 +93,12 @@ describe('TrainingScreen', () => {
       await Promise.resolve();
     });
     expect(saveTrainingSample).toHaveBeenCalledWith('hello', [{ landmarks: [[[1, 2, 3]]], handedness: ['Left'] }], 'HIP_2');
+    const { sendDgsSample } = require('../../src/services/dgsTrainingService');
+    expect(sendDgsSample).toHaveBeenCalledWith(
+      'hello',
+      { landmarks: [[[1, 2, 3]]], handedness: ['Left'] },
+      undefined,
+    );
   });
 });
 

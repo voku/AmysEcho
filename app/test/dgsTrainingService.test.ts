@@ -34,17 +34,29 @@ describe('sendDgsSample', () => {
       status: 500,
       text: async () => 'Server Error',
     });
-    await expect(
-      sendDgsSample('test', { landmarks: [], handedness: [] }),
-    )
-      .rejects.toThrow('Senden der DGS-Probe fehlgeschlagen. Status: 500. Antwort: Server Error');
+    const frame = {
+      landmarks: [Array.from({ length: 21 }, () => [1, 2, 3])],
+      handedness: ['Left'],
+    };
+    await expect(sendDgsSample('test', frame)).rejects.toThrow(
+      'Senden der DGS-Probe fehlgeschlagen. Status: 500. Antwort: Server Error',
+    );
   });
 
   it('throws on network error', async () => {
     (fetch as jest.Mock).mockRejectedValueOnce(new Error('kaputt'));
+    const frame = {
+      landmarks: [Array.from({ length: 21 }, () => [1, 2, 3])],
+      handedness: ['Left'],
+    };
+    await expect(sendDgsSample('test', frame)).rejects.toThrow(
+      'Netzwerkfehler beim Senden der DGS-Probe: kaputt',
+    );
+  });
+
+  it('throws on invalid frame', async () => {
     await expect(
       sendDgsSample('test', { landmarks: [], handedness: [] }),
-    )
-      .rejects.toThrow('Netzwerkfehler beim Senden der DGS-Probe: kaputt');
+    ).rejects.toThrow('Ungültiger DGS-Frame: landmarks fehlen oder sind leer');
   });
 });
