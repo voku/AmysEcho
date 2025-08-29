@@ -43,7 +43,7 @@ describe('Telemetry recorder', () => {
     const first = await recorder.dump();
     expect(first).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalledWith(
-      'Failed to clear telemetry from storage',
+      'Fehler beim Leeren der gespeicherten Telemetrie-Ereignisse',
       expect.any(Error),
     );
     warnSpy.mockRestore();
@@ -58,7 +58,7 @@ describe('Telemetry recorder', () => {
     const recorder = new Telemetry();
     await recorder.dump();
     expect(warnSpy).toHaveBeenCalledWith(
-      'Failed to parse persisted telemetry events.',
+      'Fehler beim Parsen der gespeicherten Telemetrie-Ereignisse.',
       expect.any(Error),
     );
     warnSpy.mockRestore();
@@ -72,10 +72,32 @@ describe('Telemetry recorder', () => {
     const recorder = new Telemetry();
     await recorder.dump();
     expect(warnSpy).toHaveBeenCalledWith(
-      'Failed to load telemetry events from storage.',
+      'Fehler beim Laden der Telemetrie-Ereignisse aus dem Speicher.',
       expect.any(Error),
     );
     warnSpy.mockRestore();
+  });
+
+  it('ignores non-array persisted telemetry', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('{}');
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const recorder = new Telemetry();
+    const events = await recorder.dump();
+    expect(events).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Persistierte Telemetrie ist kein Array und wird ignoriert.',
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('filters invalid events and clamps to MAX when loading', async () => {
+    const many = Array.from({ length: 501 }, (_, i) => ({ timestamp: i, latencyMs: 0 }));
+    many.unshift({ foo: 'bar' } as any);
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(JSON.stringify(many));
+    const recorder = new Telemetry();
+    const events = await recorder.dump();
+    expect(events).toHaveLength(500);
+    expect(events[0].timestamp).toBe(1);
   });
 
   it('serializes add and dump operations', async () => {

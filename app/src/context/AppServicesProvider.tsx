@@ -35,7 +35,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    let telemetryInterval: ReturnType<typeof setInterval> | undefined;
+    let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     async function runModelUpdate() {
       try {
         const pid = await loadActiveProfileId().catch(() => null);
@@ -72,12 +72,14 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           syncService.uploadPendingTrainingData().catch(() => {});
 
           // Lightweight periodic telemetry upload
-          telemetryInterval = setInterval(async () => {
+          const runPeriodicTelemetryUpload = async () => {
             const events = await telemetry.dump();
             if (events.length) {
               uploadTelemetry(events).catch(() => {});
             }
-          }, 30 * 1000);
+            telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
+          };
+          telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
         } else {
           logger.info('Starting in offline mode; skipping cloud sync');
         }
@@ -92,7 +94,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     initializeServices();
     return () => {
       if (interval) clearInterval(interval);
-      if (telemetryInterval) clearInterval(telemetryInterval);
+      if (telemetryTimeout) clearTimeout(telemetryTimeout);
       audioService.dispose().catch(() => {});
     };
   }, []);

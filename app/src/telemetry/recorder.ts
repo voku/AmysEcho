@@ -16,30 +16,46 @@ export class Telemetry {
   private buffer: TelemetryEvent[] = [];
   private readonly MAX = 500;
   private readonly KEY = 'telemetryEvents';
-  private workQueue: Promise<any>;
+  private workQueue: Promise<void> = Promise.resolve();
 
   constructor() {
-    this.workQueue = (async () => {
+    this.enqueue(async () => {
       try {
         const raw = await AsyncStorage.getItem(this.KEY);
-        if (raw) {
-          try {
-            this.buffer = JSON.parse(raw) as TelemetryEvent[];
-          } catch (e) {
-            console.warn('Failed to parse persisted telemetry events.', e);
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const sanitized = parsed
+              .filter(this.isTelemetryEvent)
+              .slice(-this.MAX) as TelemetryEvent[];
+            this.buffer = sanitized;
+          } else {
+            console.warn('Persistierte Telemetrie ist kein Array und wird ignoriert.');
           }
+        } catch (e) {
+          console.warn('Fehler beim Parsen der gespeicherten Telemetrie-Ereignisse.', e);
         }
       } catch (e) {
-        console.warn('Failed to load telemetry events from storage.', e);
+        console.warn('Fehler beim Laden der Telemetrie-Ereignisse aus dem Speicher.', e);
       }
-    })();
+    });
   }
 
   private enqueue<T>(task: () => Promise<T> | T): Promise<T> {
-    const result = this.workQueue.then(task);
-    // Prevent unhandled rejections from breaking the queue
-    this.workQueue = result.catch(() => {});
-    return result;
+    const run = this.workQueue.then(() => task());
+    // Do not let rejections break the queue
+    this.workQueue = run.then(() => undefined, () => undefined);
+    return run;
+  }
+
+  private isTelemetryEvent(value: unknown): value is TelemetryEvent {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as any).timestamp === 'number' &&
+      typeof (value as any).latencyMs === 'number'
+    );
   }
 
   add(event: string, latencyMs: number, source?: string): Promise<void> {
@@ -67,8 +83,8 @@ export class Telemetry {
         await AsyncStorage.setItem(this.KEY, '[]');
         return data;
       } catch (e) {
-        console.warn('Failed to clear telemetry from storage', e);
-        this.buffer = data.concat(this.buffer);
+        console.warn('Fehler beim Leeren der gespeicherten Telemetrie-Ereignisse', e);
+        this.buffer = data;
         return [];
       }
     });
