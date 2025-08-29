@@ -91,8 +91,12 @@ describe('Telemetry recorder', () => {
   });
 
   it('filters invalid events and clamps to MAX when loading', async () => {
-    const many = Array.from({ length: 501 }, (_, i) => ({ timestamp: i, latencyMs: 0 }));
-    many.unshift({ foo: 'bar' } as any);
+    const many = Array.from({ length: 501 }, (_, i) => ({
+      timestamp: i,
+      latencyMs: 0,
+      event: `e${i}`,
+    }));
+    many.unshift({ timestamp: -1, latencyMs: 0 } as any);
     (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(JSON.stringify(many));
     const recorder = new Telemetry();
     const events = await recorder.dump();

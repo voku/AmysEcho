@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface TelemetryEvent {
   timestamp: number;
   latencyMs: number;
-  event?: string;
+  event: string;
   source?: string;
 }
 
@@ -54,7 +54,8 @@ export class Telemetry {
       typeof value === 'object' &&
       value !== null &&
       typeof (value as any).timestamp === 'number' &&
-      typeof (value as any).latencyMs === 'number'
+      typeof (value as any).latencyMs === 'number' &&
+      typeof (value as any).event === 'string'
     );
   }
 

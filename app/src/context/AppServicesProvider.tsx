@@ -75,7 +75,9 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           const runPeriodicTelemetryUpload = async () => {
             const events = await telemetry.dump();
             if (events.length) {
-              uploadTelemetry(events).catch(() => {});
+              uploadTelemetry(events).catch((error) =>
+                logger.warn('Periodic telemetry upload failed', error),
+              );
             }
             telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
           };
