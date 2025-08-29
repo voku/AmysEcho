@@ -24,7 +24,7 @@ jest.mock('../../src/context/MessageContext', () => ({
 jest.mock('@react-navigation/native', () => ({ useIsFocused: () => true }));
 
 jest.mock('../../src/services/dgsTrainingService', () => ({
-  sendDgsSample: jest.fn(),
+  sendDgsSample: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../../src/services/TrainingDataValidator', () => ({
@@ -93,6 +93,12 @@ describe('TrainingScreen', () => {
       await Promise.resolve();
     });
     expect(saveTrainingSample).toHaveBeenCalledWith('hello', [{ landmarks: [[[1, 2, 3]]], handedness: ['Left'] }], 'HIP_2');
+    const { sendDgsSample } = require('../../src/services/dgsTrainingService');
+    expect(sendDgsSample).toHaveBeenCalledWith(
+      'hello',
+      { landmarks: [[[1, 2, 3]]], handedness: ['Left'] },
+      undefined,
+    );
   });
 });
 

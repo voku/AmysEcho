@@ -104,16 +104,21 @@ export default function TrainingScreen({ navigation, route }: any) {
       setError(null);
       // HIP 2 or 4: sample saved
       void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', { gestureId, frames: framesCaptured });
-      // Also send the full sample sequence to the server dataset for DGS
-      try {
-        if (recordedFrames.length > 0) {
-          void sendDgsSample(
-            gestureId,
-            recordedFrames.map((f) => f.landmarks),
-            profile?.id || undefined,
+      // Send each frame of the sample sequence to the server dataset for DGS
+      if (recordedFrames.length > 0) {
+        const sendAllFrames = async () => {
+          await Promise.all(
+            recordedFrames.map(async (frame) => {
+              try {
+                await sendDgsSample(gestureId, frame, profile?.id);
+              } catch (e) {
+                logger.warn('Failed to send DGS sample frame', e);
+              }
+            }),
           );
-        }
-      } catch {}
+        };
+        void sendAllFrames();
+      }
       if (isPractice) {
         await audioService.playEncouragement(gestureId);
       }

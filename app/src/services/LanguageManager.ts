@@ -1,16 +1,14 @@
 import en from '../../i18n/en.json';
 import de from '../../i18n/de.json';
 
-type Language = 'en' | 'de';
-
 type TranslationMap = Record<string, any>;
 
-const translations: Record<Language, TranslationMap> = {
+const translations: Record<string, TranslationMap> = {
   en,
   de,
 };
 
-let current: Language = 'de';
+let current: string = 'de';
 const listeners = new Set<() => void>();
 
 function getNested(obj: TranslationMap, path: string[]): any {
@@ -18,21 +16,27 @@ function getNested(obj: TranslationMap, path: string[]): any {
 }
 
 export const LanguageManager = {
-  getLanguage(): Language {
+  getLanguage(): string {
     return current;
   },
-  setLanguage(lang: Language) {
-    if (translations[lang] && lang !== current) {
+  setLanguage(lang: string) {
+    if (lang !== current) {
       current = lang;
       listeners.forEach((cb) => cb());
     }
   },
   t(key: string): string {
-    const result = getNested(translations[current], key.split('.'));
+    const result = getNested(translations[current] || {}, key.split('.'));
     return typeof result === 'string' ? result : key;
   },
   getGestureLabel(id: string): string {
     return LanguageManager.t(`gestures.${id}`);
+  },
+  addLanguage(lang: string, map: TranslationMap) {
+    translations[lang] = map;
+    if (lang === current) {
+      listeners.forEach((cb) => cb());
+    }
   },
   subscribe(listener: () => void) {
     listeners.add(listener);

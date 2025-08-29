@@ -4,6 +4,7 @@ export interface AudioConfig {
   speechPitch: number;
   speechLanguage: string;
   enableHaptics: boolean;
+  duplicateSpeechDebounceMs: number;
 }
 
 export interface SpeechOptions {
@@ -11,6 +12,10 @@ export interface SpeechOptions {
   pitch?: number;
   rate?: number;
   volume?: number;
+}
+
+export interface SpeakRequestOptions extends SpeechOptions {
+  allowDuplicates?: boolean;
 }
 
 export interface SoundEffect {

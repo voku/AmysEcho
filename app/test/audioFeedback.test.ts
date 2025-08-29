@@ -39,6 +39,7 @@ jest.mock('../db', () => ({
 }));
 
 import { audioService } from '../src/services';
+import { AudioService } from '../src/services/audioService';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import * as FileSystem from 'expo-file-system';
@@ -141,6 +142,21 @@ describe('audioService feedback', () => {
     await audioService.speak('Hallo');
     await audioService.speak('  hallo  ');
     expect((audioService as any).speechQueue.length).toBe(1);
+  });
+
+  it('respects configurable duplicate window', async () => {
+    const svc = new AudioService({
+      volume: 1,
+      speechRate: 1,
+      speechPitch: 1,
+      speechLanguage: 'de-DE',
+      enableHaptics: false,
+      duplicateSpeechDebounceMs: 0,
+    });
+    (svc as any).isInitialized = true;
+    await svc.speak('Hallo');
+    await svc.speak('hallo');
+    expect(Speech.speak).toHaveBeenCalledTimes(2);
   });
 });
 

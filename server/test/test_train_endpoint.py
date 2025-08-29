@@ -5,6 +5,7 @@ import os
 import json
 import shutil
 from pathlib import Path
+import numpy as np
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
@@ -101,6 +102,15 @@ def test_train_endpoint(tmp_path):
                 raise RuntimeError("training did not complete")
             time.sleep(0.2)
 
+        # metrics should be present after completion
+        status_req = urllib.request.Request(
+            status_url, headers={"Authorization": "Bearer testtoken"}
+        )
+        with urllib.request.urlopen(status_req) as sresp:
+            final_info = json.loads(sresp.read().decode())
+        assert "metrics" in final_info
+        assert "accuracy" in final_info["metrics"]
+
         # ensure centroid model downloadable
         model_req = urllib.request.Request(
             f"http://localhost:{PORT}/latest-model",
@@ -119,6 +129,9 @@ def test_train_endpoint(tmp_path):
         prof_npz = SERVER_DIR / "data" / "dgs_model_p1.npz"
         assert npz.exists()
         assert prof_npz.exists()
+        with np.load(npz) as model:
+            assert "labels" in model
+            assert model["labels"][0] == "g1"
 
         # ensure MLP model downloadable
         mlp_req = urllib.request.Request(

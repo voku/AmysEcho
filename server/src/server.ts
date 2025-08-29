@@ -130,6 +130,7 @@ interface TrainingJob {
   error?: string;
   startedAt?: number;
   endedAt?: number;
+  metrics?: Record<string, unknown>;
 }
 const trainingJobs = new Map<string, TrainingJob>();
 
@@ -624,6 +625,9 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
               if (total > 0) {
                 job.progress = 75 + Math.round((cur / total) * 25);
               }
+            }
+            if (msg && msg.type === 'metrics') {
+              job.metrics = msg;
             }
           } catch {
             console.log(`MLP script non-JSON output: ${line}`);

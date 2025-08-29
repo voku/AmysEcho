@@ -181,14 +181,32 @@ def main():
     # Train
     w1, b1, w2, b2 = train_mlp(X, y, len(label_to_idx))
 
-    # Save model
-    idx_to_label = {i: label for label, i in label_to_idx.items()}
+    # Report simple training metrics
+    z1 = relu(np.dot(X, w1) + b1)
+    z2 = np.dot(z1, w2) + b2
+    probs = softmax(z2)
+    preds = np.argmax(probs, axis=1)
+    acc = float(np.mean(preds == y))
+    print(
+        json.dumps(
+            {
+                "type": "metrics",
+                "samples": len(X),
+                "classes": len(label_to_idx),
+                "accuracy": f"{acc:.4f}",
+            }
+        ),
+        flush=True,
+    )
+
+    # Save model with labels array for WebView compatibility
+    labels = sorted(label_to_idx, key=label_to_idx.get)
 
     # Atomic write to avoid partial reads
     tmp_path = MODEL_PATH + ".tmp"
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     with open(tmp_path, "wb") as f:
-        np.savez(f, w1=w1, b1=b1, w2=w2, b2=b2, idx_to_label=idx_to_label)
+        np.savez(f, w1=w1, b1=b1, w2=w2, b2=b2, labels=np.array(labels))
     # Replace atomically and set restrictive permissions
     os.replace(tmp_path, MODEL_PATH)
     try:
