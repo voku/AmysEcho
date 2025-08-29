@@ -72,9 +72,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           syncService.uploadPendingTrainingData().catch(() => {});
 
           // Lightweight periodic telemetry upload
-          telemetryInterval = setInterval(() => {
-            const events = telemetry.dump();
-            if (events.length) uploadTelemetry(events).catch(() => {});
+          telemetryInterval = setInterval(async () => {
+            const events = await telemetry.dump();
+            if (events.length) {
+              uploadTelemetry(events).catch(() => {});
+            }
           }, 30 * 1000);
         } else {
           logger.info('Starting in offline mode; skipping cloud sync');

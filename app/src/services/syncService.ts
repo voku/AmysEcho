@@ -12,7 +12,7 @@ export const syncService = {
   async syncTelemetry(): Promise<void> {
     logger.info('Attempting to sync telemetry data...');
     try {
-      const events = telemetry.dump();
+      const events = await telemetry.dump();
       if (events.length > 0) {
         await uploadTelemetry(events);
         logger.info(`Uploaded ${events.length} telemetry events.`);
