@@ -111,7 +111,7 @@ export default function TrainingScreen({ navigation, route }: any) {
             try {
               await sendDgsSample(
                 gestureId,
-                frame.landmarks,
+                frame,
                 profile?.id || undefined,
               );
             } catch (e) {

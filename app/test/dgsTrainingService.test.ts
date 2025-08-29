@@ -12,11 +12,14 @@ describe('sendDgsSample', () => {
     (fetch as jest.Mock).mockClear();
   });
 
-  it('flattens landmarks and posts successfully', async () => {
-    const frame = [
-      Array.from({ length: 21 }, () => [1, 2, 3]),
-      Array.from({ length: 21 }, () => [4, 5, 6]),
-    ];
+  it('flattens landmarks and preserves handedness', async () => {
+    const frame = {
+      landmarks: [
+        Array.from({ length: 21 }, () => [4, 5, 6]),
+        Array.from({ length: 21 }, () => [1, 2, 3]),
+      ],
+      handedness: ['Right', 'Left'],
+    };
     await sendDgsSample('test', frame);
     expect(fetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body);
@@ -31,13 +34,17 @@ describe('sendDgsSample', () => {
       status: 500,
       text: async () => 'Server Error',
     });
-    await expect(sendDgsSample('test', []))
+    await expect(
+      sendDgsSample('test', { landmarks: [], handedness: [] }),
+    )
       .rejects.toThrow('Senden der DGS-Probe fehlgeschlagen. Status: 500. Antwort: Server Error');
   });
 
   it('throws on network error', async () => {
     (fetch as jest.Mock).mockRejectedValueOnce(new Error('kaputt'));
-    await expect(sendDgsSample('test', []))
+    await expect(
+      sendDgsSample('test', { landmarks: [], handedness: [] }),
+    )
       .rejects.toThrow('Netzwerkfehler beim Senden der DGS-Probe: kaputt');
   });
 });

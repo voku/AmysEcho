@@ -1,16 +1,16 @@
 import { API_URL, API_TOKEN } from '../constants';
-import { flattenHands } from './handUtils';
-
-type Landmark = number[];
-type Hand = Landmark[]; // 21 points
-type Frame = Hand[]; // one timestep of hands
+import { flattenHandsWithHandedness } from './handUtils';
+import type { FrameData } from '../types/frames';
 
 export async function sendDgsSample(
   label: string,
-  frame: Frame,
+  frame: FrameData,
   profileId?: string,
 ): Promise<void> {
-  const landmarks = flattenHands(frame || []);
+  const landmarks = flattenHandsWithHandedness(
+    frame?.landmarks || [],
+    frame?.handedness || [],
+  );
   const resp = await fetch(`${API_URL}/api/v1/dgs/samples`, {
     method: 'POST',
     headers: {
