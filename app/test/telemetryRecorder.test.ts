@@ -5,14 +5,21 @@ jest.mock('@react-native-async-storage/async-storage');
 
 describe('Telemetry recorder', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
     (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('persists events to AsyncStorage', async () => {
     const recorder = new Telemetry();
     await recorder.add('foo', 12, 'test');
+    jest.runAllTimers();
+    await (recorder as any).workQueue;
     expect(AsyncStorage.setItem).toHaveBeenCalledWith(
       'telemetryEvents',
       expect.any(String),
@@ -21,6 +28,19 @@ describe('Telemetry recorder', () => {
     expect(dump).toHaveLength(1);
     expect(dump[0].event).toBe('foo');
     expect(AsyncStorage.setItem).toHaveBeenLastCalledWith('telemetryEvents', '[]');
+  });
+
+  it('persists pending events before dumping', async () => {
+    const recorder = new Telemetry();
+    await recorder.add('foo', 1);
+    const dump = await recorder.dump();
+    expect(dump).toHaveLength(1);
+    const calls = (AsyncStorage.setItem as jest.Mock).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(JSON.parse(calls[0][1])).toEqual([
+      expect.objectContaining({ event: 'foo' }),
+    ]);
+    expect(calls[1]).toEqual(['telemetryEvents', '[]']);
   });
 
   it('loads existing events from storage', async () => {
@@ -36,6 +56,8 @@ describe('Telemetry recorder', () => {
   it('does not return events if clearing storage fails', async () => {
     const recorder = new Telemetry();
     await recorder.add('foo', 10);
+    jest.runAllTimers();
+    await (recorder as any).workQueue;
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(
       new Error('clear failed'),
@@ -85,6 +107,8 @@ describe('Telemetry recorder', () => {
       new Error('save failed'),
     );
     await recorder.add('foo', 1);
+    jest.runAllTimers();
+    await (recorder as any).workQueue;
     expect(warnSpy).toHaveBeenCalledWith(
       'Failed to persist telemetry events.',
       expect.any(Error),
@@ -121,6 +145,8 @@ describe('Telemetry recorder', () => {
   it('serializes add and dump operations', async () => {
     const recorder = new Telemetry();
     await recorder.add('first', 1);
+    jest.runAllTimers();
+    await (recorder as any).workQueue;
 
     const deferred: { promise: Promise<void>; resolve: () => void } = (() => {
       let resolve!: () => void;
@@ -146,5 +172,17 @@ describe('Telemetry recorder', () => {
     expect(firstDump.map((e) => e.event)).toEqual(['first']);
     const secondDump = await recorder.dump();
     expect(secondDump.map((e) => e.event)).toEqual(['second']);
+  });
+
+  it('batches rapid events into a single persistence call', async () => {
+    const recorder = new Telemetry();
+    await recorder.add('a', 1);
+    await recorder.add('b', 2);
+    expect(AsyncStorage.setItem).toHaveBeenCalledTimes(0);
+    jest.runAllTimers();
+    await (recorder as any).workQueue;
+    expect(AsyncStorage.setItem).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse((AsyncStorage.setItem as jest.Mock).mock.calls[0][1]);
+    expect(payload.map((e: any) => e.event)).toEqual(['a', 'b']);
   });
 });

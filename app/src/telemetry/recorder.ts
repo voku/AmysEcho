@@ -17,6 +17,8 @@ export class Telemetry {
   private readonly MAX = 500;
   private readonly KEY = 'telemetryEvents';
   private workQueue: Promise<void> = Promise.resolve();
+  private persistTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly PERSIST_DELAY_MS = 1000;
 
   constructor() {
     this.enqueue(async () => {
@@ -65,18 +67,25 @@ export class Telemetry {
       if (this.buffer.length > this.MAX) {
         this.buffer.shift();
       }
-      // TODO: Batch persistence to reduce AsyncStorage writes under high event volume
-      try {
-        await AsyncStorage.setItem(this.KEY, JSON.stringify(this.buffer));
-      } catch (e) {
-        // Best-effort persistence; ignore storage errors
-        console.warn('Failed to persist telemetry events.', e);
-      }
+      this.schedulePersist();
     });
   }
 
   dump(): Promise<TelemetryEvent[]> {
     return this.enqueue(async () => {
+      if (this.persistTimer) {
+        clearTimeout(this.persistTimer);
+        this.persistTimer = null;
+        try {
+          await AsyncStorage.setItem(this.KEY, JSON.stringify(this.buffer));
+        } catch (e) {
+          console.warn(
+            'Failed to persist telemetry before dump. Aborting dump to prevent data loss.',
+            e,
+          );
+          return [];
+        }
+      }
       const data = this.buffer;
       if (data.length === 0) {
         return [];
@@ -91,6 +100,23 @@ export class Telemetry {
         return [];
       }
     });
+  }
+
+  private schedulePersist(): void {
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer);
+    }
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      this.enqueue(async () => {
+        try {
+          await AsyncStorage.setItem(this.KEY, JSON.stringify(this.buffer));
+        } catch (e) {
+          // Best-effort persistence; ignore storage errors
+          console.warn('Failed to persist telemetry events.', e);
+        }
+      });
+    }, this.PERSIST_DELAY_MS);
   }
 }
 
