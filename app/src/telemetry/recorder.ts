@@ -76,6 +76,15 @@ export class Telemetry {
       if (this.persistTimer) {
         clearTimeout(this.persistTimer);
         this.persistTimer = null;
+        try {
+          await AsyncStorage.setItem(this.KEY, JSON.stringify(this.buffer));
+        } catch (e) {
+          console.warn(
+            'Failed to persist telemetry before dump. Aborting dump to prevent data loss.',
+            e,
+          );
+          return [];
+        }
       }
       const data = this.buffer;
       if (data.length === 0) {

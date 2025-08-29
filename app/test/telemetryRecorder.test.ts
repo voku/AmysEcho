@@ -30,6 +30,19 @@ describe('Telemetry recorder', () => {
     expect(AsyncStorage.setItem).toHaveBeenLastCalledWith('telemetryEvents', '[]');
   });
 
+  it('persists pending events before dumping', async () => {
+    const recorder = new Telemetry();
+    await recorder.add('foo', 1);
+    const dump = await recorder.dump();
+    expect(dump).toHaveLength(1);
+    const calls = (AsyncStorage.setItem as jest.Mock).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(JSON.parse(calls[0][1])).toEqual([
+      expect.objectContaining({ event: 'foo' }),
+    ]);
+    expect(calls[1]).toEqual(['telemetryEvents', '[]']);
+  });
+
   it('loads existing events from storage', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
       JSON.stringify([{ timestamp: 1, latencyMs: 5, event: 'stored' }]),
@@ -43,6 +56,8 @@ describe('Telemetry recorder', () => {
   it('does not return events if clearing storage fails', async () => {
     const recorder = new Telemetry();
     await recorder.add('foo', 10);
+    jest.runAllTimers();
+    await (recorder as any).workQueue;
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(
       new Error('clear failed'),
