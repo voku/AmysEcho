@@ -158,7 +158,7 @@ export function installMlp() {
     }
     return out;
   }
-  const EMPTY_HAND: Hand = new Array(21).fill(0).map(() => [0, 0, 0] as Landmark);
+  const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness) {
     const flat: number[] = [];
