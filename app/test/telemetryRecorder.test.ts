@@ -5,9 +5,9 @@ jest.mock('@react-native-async-storage/async-storage');
 
 describe('Telemetry recorder', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
     (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-    (AsyncStorage.removeItem as jest.Mock).mockResolvedValue(undefined);
   });
 
   it('persists events to AsyncStorage', async () => {
@@ -20,7 +20,7 @@ describe('Telemetry recorder', () => {
     const dump = await recorder.dump();
     expect(dump).toHaveLength(1);
     expect(dump[0].event).toBe('foo');
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('telemetryEvents');
+    expect(AsyncStorage.setItem).toHaveBeenLastCalledWith('telemetryEvents', '[]');
   });
 
   it('loads existing events from storage', async () => {
@@ -37,17 +37,16 @@ describe('Telemetry recorder', () => {
     const recorder = new Telemetry();
     await recorder.add('foo', 10);
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    (AsyncStorage.removeItem as jest.Mock).mockRejectedValueOnce(
-      new Error('remove failed'),
+    (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(
+      new Error('clear failed'),
     );
     const first = await recorder.dump();
     expect(first).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalledWith(
-      'Failed to remove telemetry from storage',
+      'Failed to clear telemetry from storage',
       expect.any(Error),
     );
     warnSpy.mockRestore();
-    (AsyncStorage.removeItem as jest.Mock).mockResolvedValueOnce(undefined);
     const second = await recorder.dump();
     expect(second).toHaveLength(1);
     expect(second[0].event).toBe('foo');
@@ -77,5 +76,35 @@ describe('Telemetry recorder', () => {
       expect.any(Error),
     );
     warnSpy.mockRestore();
+  });
+
+  it('serializes add and dump operations', async () => {
+    const recorder = new Telemetry();
+    await recorder.add('first', 1);
+
+    const deferred: { promise: Promise<void>; resolve: () => void } = (() => {
+      let resolve!: () => void;
+      return {
+        promise: new Promise<void>((res) => (resolve = res)),
+        resolve,
+      };
+    })();
+
+    // Next setItem call (for dump) will hang until we resolve
+    (AsyncStorage.setItem as jest.Mock).mockImplementationOnce(() => deferred.promise);
+
+    const dumpPromise = recorder.dump();
+    const addPromise = recorder.add('second', 2);
+    await Promise.resolve();
+    // add should not persist until dump finishes
+    expect((AsyncStorage.setItem as jest.Mock).mock.calls).toHaveLength(2);
+
+    deferred.resolve();
+    const firstDump = await dumpPromise;
+    await addPromise;
+
+    expect(firstDump.map((e) => e.event)).toEqual(['first']);
+    const secondDump = await recorder.dump();
+    expect(secondDump.map((e) => e.event)).toEqual(['second']);
   });
 });
