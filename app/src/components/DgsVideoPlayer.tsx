@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, Pressable } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { logger } from '../utils/logger';
@@ -13,6 +13,11 @@ interface DgsVideoPlayerProps {
 
 export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVideoPlayerProps) {
   const player = useVideoPlayer(videoSource);
+  const [isPlaying, setIsPlaying] = React.useState(shouldPlay);
+
+  React.useEffect(() => {
+    setIsPlaying(shouldPlay);
+  }, [shouldPlay]);
 
   React.useEffect(() => {
     if (!player) return;
@@ -30,17 +35,28 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
   React.useEffect(() => {
     if (player) {
       const isLoaded = player.status !== 'loading' && player.status !== 'error' && player.duration > 0;
-      if (shouldPlay && !player.playing) {
+      if (isPlaying && !player.playing) {
         if (isLoaded && player.currentTime < player.duration) {
           player.play();
         } else if (isLoaded && player.currentTime >= player.duration) {
           player.replay();
         }
-      } else if (!shouldPlay && player.playing) {
+      } else if (!isPlaying && player.playing) {
         player.pause();
       }
     }
-  }, [player, shouldPlay, player?.status]);
+  }, [player, isPlaying, player?.status]);
+
+  const togglePlayback = React.useCallback(() => {
+    if (!player) return;
+    if (isPlaying) {
+      player.pause();
+      setIsPlaying(false);
+    } else {
+      player.play();
+      setIsPlaying(true);
+    }
+  }, [player, isPlaying]);
 
   return (
     <View style={[styles.container, style]}>
@@ -63,6 +79,17 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={COLORS.highContrastText} />
         </View>
+      )}
+      {player && (
+        <Pressable
+          onPress={togglePlayback}
+          style={styles.controlButton}
+          accessibilityLabel={isPlaying ? 'Video pausieren' : 'Video abspielen'}
+        >
+          <Text style={styles.controlText}>
+            {isPlaying ? 'Pause' : 'Abspielen'}
+          </Text>
+        </Pressable>
       )}
     </View>
   );
@@ -89,6 +116,19 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: COLORS.highContrastText,
+  },
+  controlButton: {
+    position: 'absolute',
+    bottom: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: COLORS.highContrastBackground,
+    borderRadius: RADIUS,
+  },
+  controlText: {
+    color: COLORS.highContrastText,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
