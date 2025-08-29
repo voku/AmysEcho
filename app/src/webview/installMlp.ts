@@ -1,5 +1,9 @@
 export function installMlp() {
   type Tensor = { data: Float64Array; shape: number[] };
+  type Landmark = readonly [number, number, number];
+  type Hand = ReadonlyArray<Landmark>;
+  type HandednessEntry = ReadonlyArray<{ categoryName: 'Left' | 'Right' }>;
+  type Handedness = ReadonlyArray<HandednessEntry>;
   type MlpModel = {
     w1: Tensor;
     b1: Tensor;
@@ -115,7 +119,7 @@ export function installMlp() {
       };
       return true;
     } catch (e: any) {
-      console.warn('mlp load failed', e?.message || e);
+      console.warn('mlp load failed', e?.message ?? e);
       mlp = null;
       return false;
     }
@@ -154,26 +158,23 @@ export function installMlp() {
     }
     return out;
   }
-  const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0]);
+  const EMPTY_HAND: Hand = new Array(21).fill(0).map(() => [0, 0, 0] as Landmark);
 
-  function normalizeLandmarks(all: any[], handednesses: any[]) {
+  function normalizeLandmarks(all: Hand[], handednesses: Handedness) {
     const flat: number[] = [];
-    function normHand(hand: any[]) {
+    function normHand(hand: Hand | null): Hand | null {
       if (!hand || hand.length < 21) return null;
       const wrist = hand[0];
-      const centered = hand.map((p) => [p[0] - wrist[0], p[1] - wrist[1], (p[2] || 0) - (wrist[2] || 0)]);
+      const centered: Landmark[] = hand.map(
+        (p) => [p[0] - wrist[0], p[1] - wrist[1], (p[2] ?? 0) - (wrist[2] ?? 0)] as Landmark,
+      );
       let maxd = 0;
       for (let i = 0; i < centered.length; i++) {
         const d = Math.abs(centered[i][0]) + Math.abs(centered[i][1]);
         if (d > maxd) maxd = d;
       }
       if (maxd === 0) return null;
-      for (let i = 0; i < centered.length; i++) {
-        centered[i][0] /= maxd;
-        centered[i][1] /= maxd;
-        centered[i][2] /= maxd;
-      }
-      return centered;
+      return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd] as Landmark);
     }
 
     const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Left');
@@ -186,14 +187,14 @@ export function installMlp() {
     if (!left) return null; // Model expects left hand
 
     const right = normHand(rightHand);
-    const r = right || EMPTY_HAND;
+    const r = right ?? EMPTY_HAND;
     const both = left.concat(r);
     for (const p of both) {
-      flat.push(p[0], p[1], p[2] || 0);
+      flat.push(p[0], p[1], p[2] ?? 0);
     }
     return new Float64Array(flat);
   }
-  function mlpPredict(all: any, handednesses: any[]) {
+  function mlpPredict(all: Hand[], handednesses: Handedness) {
     if (!mlp) return null;
     const x = normalizeLandmarks(all, handednesses);
     if (!x) return null;
@@ -217,7 +218,7 @@ export function installMlp() {
         bestI = i;
       }
     }
-    const label = (mlp.labels && (mlp.labels as any)[bestI]) || String(bestI);
+    const label = mlp.labels?.[bestI] ?? String(bestI);
     return { label, score: best };
   }
   (window as any).__setMlpModelB64 = (b64: string) => {

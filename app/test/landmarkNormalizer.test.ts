@@ -34,3 +34,13 @@ test('normalizeLandmarksToFlat returns a flattened float array of length 63', ()
   // z of middle tip is scaled to 1
   expect(flat[12 * 3 + 2]).toBeCloseTo(1, 5);
 });
+
+test('normalizeLandmarks returns empty array for short input', () => {
+  expect(normalizeLandmarks([])).toEqual([]);
+});
+
+test('normalizeLandmarksToFlat returns empty array for short input', () => {
+  const flat = normalizeLandmarksToFlat([]);
+  expect(flat).toBeInstanceOf(Float32Array);
+  expect(flat.length).toBe(0);
+});
