@@ -14,6 +14,7 @@ jest.mock('react-native', () => {
 import { ActivityIndicator } from 'react-native';
 
 import DgsVideoPlayer from '../src/components/DgsVideoPlayer';
+import { LanguageManager } from '../src/services/LanguageManager';
 
 jest.mock('../src/utils/logger', () => ({
   logger: { error: jest.fn() },
@@ -21,6 +22,7 @@ jest.mock('../src/utils/logger', () => ({
 
 const play = jest.fn();
 const pause = jest.fn();
+const listeners: Record<string, Function> = {};
 const mockPlayer: any = {
   status: 'loading',
   duration: 10,
@@ -29,7 +31,10 @@ const mockPlayer: any = {
   play,
   pause,
   replay: jest.fn(),
-  addListener: jest.fn(() => ({ remove: jest.fn() })),
+  addListener: jest.fn((event: string, cb: Function) => {
+    listeners[event] = cb;
+    return { remove: jest.fn() };
+  }),
 };
 
 jest.mock('expo-video', () => ({
@@ -43,6 +48,8 @@ describe('DgsVideoPlayer performance', () => {
     mockPlayer.status = 'loading';
     mockPlayer.playing = false;
     mockPlayer.currentTime = 0;
+    mockPlayer.replay.mockClear();
+    Object.keys(listeners).forEach((key) => delete listeners[key]);
   });
 
   it('shows a loading indicator while buffering', () => {
@@ -84,7 +91,7 @@ describe('DgsVideoPlayer performance', () => {
       );
     });
     const playBtn = (component as renderer.ReactTestRenderer).root.findByProps({
-      accessibilityLabel: 'Video abspielen',
+      accessibilityLabel: LanguageManager.t('videoPlayer.playVideo'),
     });
     act(() => {
       playBtn.props.onPress();
@@ -94,11 +101,32 @@ describe('DgsVideoPlayer performance', () => {
     mockPlayer.playing = true;
 
     const pauseBtn = (component as renderer.ReactTestRenderer).root.findByProps({
-      accessibilityLabel: 'Video pausieren',
+      accessibilityLabel: LanguageManager.t('videoPlayer.pauseVideo'),
     });
     act(() => {
       pauseBtn.props.onPress();
     });
     expect(pause).toHaveBeenCalled();
+  });
+
+  it('stops playback when the video ends', () => {
+    mockPlayer.status = 'ready';
+    mockPlayer.playing = true;
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <DgsVideoPlayer videoSource={{ uri: 'foo' }} shouldPlay />
+      );
+    });
+    // simulate video ending
+    act(() => {
+      mockPlayer.playing = false;
+      listeners['playToEnd']();
+    });
+    expect(mockPlayer.replay).not.toHaveBeenCalled();
+    const playBtn = (component as renderer.ReactTestRenderer).root.findByProps({
+      accessibilityLabel: LanguageManager.t('videoPlayer.playVideo'),
+    });
+    expect(playBtn).toBeDefined();
   });
 });

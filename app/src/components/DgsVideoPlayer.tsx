@@ -4,6 +4,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { logger } from '../utils/logger';
 import { COLORS, RADIUS } from '../constants/ui';
+import { LanguageManager } from '../services/LanguageManager';
 
 interface DgsVideoPlayerProps {
   videoSource?: any;
@@ -28,6 +29,14 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
       // Status change can be used to update UI if needed
     });
     return () => subscription.remove();
+  }, [player]);
+
+  React.useEffect(() => {
+    if (!player) return;
+    const sub = player.addListener('playToEnd', () => {
+      setIsPlaying(false);
+    });
+    return () => sub.remove();
   }, [player]);
 
   const isBuffering = player?.status === 'loading';
@@ -59,14 +68,14 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
           player={player}
           style={styles.video}
           contentFit={'contain'}
-          accessibilityLabel="DGS-Video"
+          accessibilityLabel={LanguageManager.t('videoPlayer.dgsVideo')}
         />
       ) : (
         <Text
           style={styles.placeholderText}
-          accessibilityLabel="Kein Video vorhanden"
+          accessibilityLabel={LanguageManager.t('videoPlayer.noVideo')}
         >
-          Kein Video vorhanden
+          {LanguageManager.t('videoPlayer.noVideo')}
         </Text>
       )}
       {isBuffering && (
@@ -78,10 +87,16 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
         <Pressable
           onPress={togglePlayback}
           style={styles.controlButton}
-          accessibilityLabel={isPlaying ? 'Video pausieren' : 'Video abspielen'}
+          accessibilityLabel={
+            isPlaying
+              ? LanguageManager.t('videoPlayer.pauseVideo')
+              : LanguageManager.t('videoPlayer.playVideo')
+          }
         >
           <Text style={styles.controlText}>
-            {isPlaying ? 'Pause' : 'Abspielen'}
+            {isPlaying
+              ? LanguageManager.t('videoPlayer.pause')
+              : LanguageManager.t('videoPlayer.play')}
           </Text>
         </Pressable>
       )}

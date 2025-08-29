@@ -28,5 +28,13 @@
   "recognition": {
     "showDgsVideo": "DGS-Video anzeigen",
     "toggleDgsVideo": "DGS-Video umschalten"
+  },
+  "videoPlayer": {
+    "dgsVideo": "DGS-Video",
+    "noVideo": "Kein Video vorhanden",
+    "play": "Abspielen",
+    "pause": "Pause",
+    "playVideo": "Video abspielen",
+    "pauseVideo": "Video pausieren"
   }
 }
