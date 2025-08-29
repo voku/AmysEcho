@@ -102,6 +102,15 @@ def test_train_endpoint(tmp_path):
                 raise RuntimeError("training did not complete")
             time.sleep(0.2)
 
+        # metrics should be present after completion
+        status_req = urllib.request.Request(
+            status_url, headers={"Authorization": "Bearer testtoken"}
+        )
+        with urllib.request.urlopen(status_req) as sresp:
+            final_info = json.loads(sresp.read().decode())
+        assert "metrics" in final_info
+        assert "accuracy" in final_info["metrics"]
+
         # ensure centroid model downloadable
         model_req = urllib.request.Request(
             f"http://localhost:{PORT}/latest-model",

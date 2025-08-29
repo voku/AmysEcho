@@ -21,10 +21,9 @@ export async function sendDgsSample(
     ? setTimeout(() => controller.abort(), opts.timeoutMs ?? 10_000)
     : undefined;
 
-  let resp: Response;
   try {
     const body = profileId ? { label, landmarks, profileId } : { label, landmarks };
-    resp = await fetch(`${API_URL}/api/v1/dgs/samples`, {
+    const resp = await fetch(`${API_URL}/api/v1/dgs/samples`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,19 +32,24 @@ export async function sendDgsSample(
       body: JSON.stringify(body),
       signal: opts.signal ?? controller?.signal,
     });
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(
+        `Senden der DGS-Probe fehlgeschlagen. Status: ${resp.status}. Antwort: ${text}`,
+      );
+    }
   } catch (e: unknown) {
-    if (e instanceof Error && e.name === 'AbortError') {
-      throw new Error('Zeitüberschreitung beim Senden der DGS-Probe');
+    if (e instanceof Error) {
+      if (e.name === 'AbortError') {
+        throw new Error('Zeitüberschreitung beim Senden der DGS-Probe');
+      }
+      if (e.message.startsWith('Senden der DGS-Probe fehlgeschlagen')) {
+        throw e;
+      }
     }
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`Netzwerkfehler beim Senden der DGS-Probe: ${msg}`);
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
-  }
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(
-      `Senden der DGS-Probe fehlgeschlagen. Status: ${resp.status}. Antwort: ${text}`,
-    );
   }
 }

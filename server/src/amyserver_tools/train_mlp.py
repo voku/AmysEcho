@@ -181,9 +181,26 @@ def main():
     # Train
     w1, b1, w2, b2 = train_mlp(X, y, len(label_to_idx))
 
+    # Report simple training metrics
+    z1 = relu(np.dot(X, w1) + b1)
+    z2 = np.dot(z1, w2) + b2
+    probs = softmax(z2)
+    preds = np.argmax(probs, axis=1)
+    acc = float(np.mean(preds == y))
+    print(
+        json.dumps(
+            {
+                "type": "metrics",
+                "samples": len(X),
+                "classes": len(label_to_idx),
+                "accuracy": f"{acc:.4f}",
+            }
+        ),
+        flush=True,
+    )
+
     # Save model with labels array for WebView compatibility
-    idx_to_label = {i: label for label, i in label_to_idx.items()}
-    labels = [idx_to_label[i] for i in range(len(idx_to_label))]
+    labels = sorted(label_to_idx, key=label_to_idx.get)
 
     # Atomic write to avoid partial reads
     tmp_path = MODEL_PATH + ".tmp"
