@@ -1,12 +1,12 @@
 // Utilities for normalizing hand landmarks before classification
-// Strategy: translate to wrist, scale by max(|x| + |y|) to match server/WebView logic
+// Strategy: translate to wrist; scale all axes by max(|x| + |y|) over translated points (matches server/WebView)
 
 const WRIST_INDEX = 0;
 
 export function normalizeLandmarks(
   landmarks: number[][],
 ): number[][] {
-  if (!landmarks || landmarks.length < 21) return landmarks;
+  if (!landmarks || landmarks.length < 21) return [];
 
   const [wx, wy, wz] = landmarks[WRIST_INDEX];
   const translated = landmarks.map((p) => [
@@ -25,6 +25,7 @@ export function normalizeLandmarks(
 }
 
 export function normalizeLandmarksToFlat(landmarks: number[][]): Float32Array {
+  if (!landmarks || landmarks.length < 21) return new Float32Array(0);
   const norm = normalizeLandmarks(landmarks);
   const out = new Float32Array(norm.length * 3);
   let k = 0;
