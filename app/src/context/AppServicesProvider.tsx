@@ -79,7 +79,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             }
             telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
           };
-          telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
+          runPeriodicTelemetryUpload();
         } else {
           logger.info('Starting in offline mode; skipping cloud sync');
         }

@@ -43,7 +43,7 @@ describe('Telemetry recorder', () => {
     const first = await recorder.dump();
     expect(first).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalledWith(
-      'Fehler beim Leeren der gespeicherten Telemetrie-Ereignisse',
+      'Error clearing stored telemetry events',
       expect.any(Error),
     );
     warnSpy.mockRestore();
@@ -58,7 +58,7 @@ describe('Telemetry recorder', () => {
     const recorder = new Telemetry();
     await recorder.dump();
     expect(warnSpy).toHaveBeenCalledWith(
-      'Fehler beim Parsen der gespeicherten Telemetrie-Ereignisse.',
+      'Error parsing stored telemetry events.',
       expect.any(Error),
     );
     warnSpy.mockRestore();
@@ -72,7 +72,7 @@ describe('Telemetry recorder', () => {
     const recorder = new Telemetry();
     await recorder.dump();
     expect(warnSpy).toHaveBeenCalledWith(
-      'Fehler beim Laden der Telemetrie-Ereignisse aus dem Speicher.',
+      'Error loading telemetry events from storage.',
       expect.any(Error),
     );
     warnSpy.mockRestore();
@@ -85,7 +85,7 @@ describe('Telemetry recorder', () => {
     const events = await recorder.dump();
     expect(events).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalledWith(
-      'Persistierte Telemetrie ist kein Array und wird ignoriert.',
+      'Persisted telemetry is not an array and will be ignored.',
     );
     warnSpy.mockRestore();
   });

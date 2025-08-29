@@ -31,13 +31,13 @@ export class Telemetry {
               .slice(-this.MAX) as TelemetryEvent[];
             this.buffer = sanitized;
           } else {
-            console.warn('Persistierte Telemetrie ist kein Array und wird ignoriert.');
+            console.warn('Persisted telemetry is not an array and will be ignored.');
           }
         } catch (e) {
-          console.warn('Fehler beim Parsen der gespeicherten Telemetrie-Ereignisse.', e);
+          console.warn('Error parsing stored telemetry events.', e);
         }
       } catch (e) {
-        console.warn('Fehler beim Laden der Telemetrie-Ereignisse aus dem Speicher.', e);
+        console.warn('Error loading telemetry events from storage.', e);
       }
     });
   }
@@ -83,7 +83,7 @@ export class Telemetry {
         await AsyncStorage.setItem(this.KEY, '[]');
         return data;
       } catch (e) {
-        console.warn('Fehler beim Leeren der gespeicherten Telemetrie-Ereignisse', e);
+        console.warn('Error clearing stored telemetry events', e);
         this.buffer = data;
         return [];
       }
