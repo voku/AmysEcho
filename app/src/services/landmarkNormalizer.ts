@@ -31,7 +31,7 @@ export function normalizeLandmarksToFlat(landmarks: number[][]): Float32Array {
   for (let i = 0; i < norm.length; i++) {
     out[k++] = norm[i][0];
     out[k++] = norm[i][1];
-    out[k++] = norm[i][2] ?? 0;
+    out[k++] = norm[i][2];
   }
   return out;
 }
