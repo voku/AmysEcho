@@ -20,7 +20,7 @@
 
 - [x] Preserve handedness when saving training samples (`app/src/components/MediaPipeGestureDetector.tsx`, `app/src/services/dgsTrainingService.ts`)
 - [x] Flatten DGS samples before POST (`app/src/services/dgsTrainingService.ts`)
-- [ ] Align MLP label storage with WebView (`server/src/amyserver_tools/train_mlp.py`, `app/src/webview/installMlp.ts`)
+- [x] Align MLP label storage with WebView (`server/src/amyserver_tools/train_mlp.py`, `app/src/webview/installMlp.ts`)
 - [ ] Unify landmark normalization algorithms (`app/src/services/landmarkNormalizer.ts`, `app/src/webview/installMlp.ts`, `server/src/amyserver_tools/train_mlp.py`, `server/src/services/dgsModelService.ts`)
 - [ ] Report basic training metrics
 

@@ -181,14 +181,15 @@ def main():
     # Train
     w1, b1, w2, b2 = train_mlp(X, y, len(label_to_idx))
 
-    # Save model
+    # Save model with labels array for WebView compatibility
     idx_to_label = {i: label for label, i in label_to_idx.items()}
+    labels = [idx_to_label[i] for i in range(len(idx_to_label))]
 
     # Atomic write to avoid partial reads
     tmp_path = MODEL_PATH + ".tmp"
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     with open(tmp_path, "wb") as f:
-        np.savez(f, w1=w1, b1=b1, w2=w2, b2=b2, idx_to_label=idx_to_label)
+        np.savez(f, w1=w1, b1=b1, w2=w2, b2=b2, labels=np.array(labels))
     # Replace atomically and set restrictive permissions
     os.replace(tmp_path, MODEL_PATH)
     try:

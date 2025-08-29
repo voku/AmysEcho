@@ -21,7 +21,6 @@ export const LanguageManager = {
   },
   setLanguage(lang: string) {
     if (lang !== current) {
-      if (!translations[lang]) translations[lang] = {};
       current = lang;
       listeners.forEach((cb) => cb());
     }
@@ -35,6 +34,9 @@ export const LanguageManager = {
   },
   addLanguage(lang: string, map: TranslationMap) {
     translations[lang] = map;
+    if (lang === current) {
+      listeners.forEach((cb) => cb());
+    }
   },
   subscribe(listener: () => void) {
     listeners.add(listener);
