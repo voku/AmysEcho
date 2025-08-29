@@ -168,11 +168,10 @@ export function installMlp() {
       const centered: Landmark[] = hand.map(
         (p) => [p[0] - wx, p[1] - wy, p[2] - wz] as Landmark,
       );
-      let maxd = 0;
-      for (let i = 0; i < centered.length; i++) {
-        const d = Math.abs(centered[i][0]) + Math.abs(centered[i][1]);
-        if (d > maxd) maxd = d;
-      }
+      const maxd = centered.reduce(
+        (currentMax, [x, y]) => Math.max(currentMax, Math.abs(x) + Math.abs(y)),
+        0,
+      );
       if (maxd === 0) return null;
       return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd] as Landmark);
     }
