@@ -165,15 +165,15 @@ export function installMlp() {
     function normHand(hand: Hand | null): Hand | null {
       if (!hand || hand.length < 21) return null;
       const [wx, wy, wz] = hand[0];
-      const centered: Landmark[] = hand.map(
-        (p) => [p[0] - wx, p[1] - wy, p[2] - wz] as Landmark,
+      const centered = hand.map(
+        (p) => [p[0] - wx, p[1] - wy, p[2] - wz] as const,
       );
       const maxd = centered.reduce(
         (currentMax, [x, y]) => Math.max(currentMax, Math.abs(x) + Math.abs(y)),
         0,
       );
       if (maxd === 0) return null;
-      return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd] as Landmark);
+      return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd] as const);
     }
 
     const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Left');
