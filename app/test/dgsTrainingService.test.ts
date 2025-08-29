@@ -17,7 +17,7 @@ describe('sendDgsSample', () => {
       Array.from({ length: 21 }, () => [1, 2, 3]),
       Array.from({ length: 21 }, () => [4, 5, 6]),
     ];
-    const ok = await sendDgsSample('test', [frame]);
+    const ok = await sendDgsSample('test', frame);
     expect(ok).toBe(true);
     expect(fetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body);

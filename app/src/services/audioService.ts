@@ -140,13 +140,14 @@ export class AudioService {
       logger.warn('Audio service not initialized');
       return;
     }
-    const { allowDuplicates, ...speechOptions } = {
+    const { allowDuplicates, ...requestOpts } = {
       language: this.config.speechLanguage,
       pitch: this.config.speechPitch,
       rate: this.config.speechRate,
       volume: this.config.volume,
-      ...options,
+      ...(options ?? {}),
     } as SpeakRequestOptions;
+    const speechOptions: SpeechOptions = requestOpts;
 
     const now = Date.now();
     const key = (text ?? '').trim().toLowerCase();

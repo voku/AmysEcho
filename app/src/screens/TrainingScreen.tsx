@@ -109,7 +109,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         if (recordedFrames.length > 0) {
           void sendDgsSample(
             gestureId,
-            recordedFrames.map((f) => f.landmarks),
+            recordedFrames[0].landmarks,
             profile?.id || undefined,
           );
         }
