@@ -21,7 +21,9 @@ jest.mock('expo-speech', () => ({
 
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn().mockResolvedValue(undefined),
+  impactAsync: jest.fn().mockResolvedValue(undefined),
   NotificationFeedbackType: { Success: 'success', Error: 'error' },
+  ImpactFeedbackStyle: { Medium: 'medium' },
 }));
 
 jest.mock('expo-file-system', () => ({
@@ -59,6 +61,7 @@ describe('audioService feedback', () => {
       ['success', soundMock()],
       ['error', soundMock()],
       ['confirmation', soundMock()],
+      ['celebration', soundMock()],
     ]);
     (audioService as any).isInitialized = true;
     (audioService as any).isSpeaking = false;
@@ -98,7 +101,14 @@ describe('audioService feedback', () => {
     expect(Haptics.notificationAsync).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Error);
   });
 
-  it('speaks gentle encouragement for a gesture', async () => {
+  it('plays confirmation sound with haptic success', async () => {
+    await audioService.playSound('confirmation');
+    const confirmationSound = (audioService as any).sounds.get('confirmation');
+    expect(confirmationSound.play).toHaveBeenCalled();
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
+  });
+
+  it('speaks gentle encouragement for a gesture with haptic feedback', async () => {
     await audioService.playEncouragement('Winken');
     const phrase = (Speech.speak as jest.Mock).mock.calls[0][0];
     expect([
@@ -106,6 +116,18 @@ describe('audioService feedback', () => {
       'Lass uns Winken nochmal versuchen!',
       'Wie wäre es mit etwas Übung für Winken?',
     ]).toContain(phrase);
+    expect(Haptics.impactAsync).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Medium);
+  });
+
+  it('plays celebration feedback with haptic success', async () => {
+    await audioService.playCelebrationFeedback();
+    const celebrationSound = (audioService as any).sounds.get('celebration');
+    expect(celebrationSound.play).toHaveBeenCalled();
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
+    expect(Speech.speak).toHaveBeenCalledWith(
+      'Toll gemacht, Amy!',
+      expect.objectContaining({ pitch: 1.2, rate: 0.9 })
+    );
   });
 
   it('plays pre-recorded audio when available', async () => {

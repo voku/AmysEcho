@@ -127,6 +127,13 @@ export class AudioService {
       sound.seekTo(0);
       sound.play();
       logger.debug(`Played sound: ${soundName}`);
+      if (this.config.enableHaptics && soundName === 'confirmation') {
+        try {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (error) {
+          logger.warn('Haptics confirmation feedback failed:', error);
+        }
+      }
     } catch (error) {
       logger.error(`Failed to play sound ${soundName}:`, error);
     }
@@ -298,6 +305,13 @@ export class AudioService {
    */
   async playCelebrationFeedback(): Promise<void> {
     await this.playSound('celebration');
+    if (this.config.enableHaptics) {
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        logger.warn('Haptics celebration feedback failed:', error);
+      }
+    }
     await this.speak('Toll gemacht, Amy!', {
       pitch: 1.2,
       rate: 0.9,
@@ -322,6 +336,13 @@ export class AudioService {
         ];
 
     const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    if (this.config.enableHaptics) {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (error) {
+        logger.warn('Haptics encouragement feedback failed:', error);
+      }
+    }
     await this.speak(phrase, { pitch: 1.1, rate: 0.9 });
   }
 
