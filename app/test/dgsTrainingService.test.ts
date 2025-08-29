@@ -43,16 +43,29 @@ describe('sendDgsSample', () => {
     );
   });
 
-  it('throws on network error', async () => {
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error('kaputt'));
-    const frame = {
-      landmarks: [Array.from({ length: 21 }, () => [1, 2, 3])],
-      handedness: ['Left'],
-    };
-    await expect(sendDgsSample('test', frame)).rejects.toThrow(
-      'Netzwerkfehler beim Senden der DGS-Probe: kaputt',
-    );
-  });
+    it('throws on network error', async () => {
+      (fetch as jest.Mock).mockRejectedValueOnce(new Error('kaputt'));
+      const frame = {
+        landmarks: [Array.from({ length: 21 }, () => [1, 2, 3])],
+        handedness: ['Left'],
+      };
+      await expect(sendDgsSample('test', frame)).rejects.toThrow(
+        'Netzwerkfehler beim Senden der DGS-Probe: kaputt',
+      );
+    });
+
+    it('throws on timeout', async () => {
+      const abortErr = new Error('aborted');
+      abortErr.name = 'AbortError';
+      (fetch as jest.Mock).mockRejectedValueOnce(abortErr);
+      const frame = {
+        landmarks: [Array.from({ length: 21 }, () => [1, 2, 3])],
+        handedness: ['Left'],
+      };
+      await expect(sendDgsSample('test', frame)).rejects.toThrow(
+        'Zeitüberschreitung beim Senden der DGS-Probe',
+      );
+    });
 
   it('throws on invalid frame', async () => {
     await expect(

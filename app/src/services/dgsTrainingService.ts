@@ -34,6 +34,9 @@ export async function sendDgsSample(
       signal: opts.signal ?? controller?.signal,
     });
   } catch (e: unknown) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('Zeitüberschreitung beim Senden der DGS-Probe');
+    }
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`Netzwerkfehler beim Senden der DGS-Probe: ${msg}`);
   } finally {
