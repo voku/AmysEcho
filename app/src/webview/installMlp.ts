@@ -164,13 +164,7 @@ export function installMlp() {
     const flat: number[] = [];
     function normHand(hand: Hand | null): Hand | null {
       if (!hand || hand.length < 21) return null;
-      const wrist = hand[0];
-      const rawX = Number(wrist?.[0]);
-      const rawY = Number(wrist?.[1]);
-      const rawZ = Number(wrist?.[2]);
-      const wx = Number.isFinite(rawX) ? rawX : 0;
-      const wy = Number.isFinite(rawY) ? rawY : 0;
-      const wz = Number.isFinite(rawZ) ? rawZ : 0;
+      const [wx, wy, wz] = hand[0];
       const centered: Landmark[] = hand.map(
         (p) => [p[0] - wx, p[1] - wy, p[2] - wz] as Landmark,
       );
