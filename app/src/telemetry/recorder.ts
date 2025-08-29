@@ -24,10 +24,14 @@ export class Telemetry {
         if (raw) {
           try {
             this.buffer = JSON.parse(raw) as TelemetryEvent[];
-          } catch {}
+          } catch (e) {
+            console.warn('Failed to parse persisted telemetry events.', e);
+          }
         }
       })
-      .catch(() => {});
+      .catch((e) => {
+        console.warn('Failed to load telemetry events from storage.', e);
+      });
   }
 
   async add(event: string, latencyMs: number, source?: string) {
@@ -46,11 +50,12 @@ export class Telemetry {
   async dump(): Promise<TelemetryEvent[]> {
     await this.ready;
     const data = this.buffer;
-    this.buffer = [];
     try {
       await AsyncStorage.removeItem(this.KEY);
-    } catch {
-      // ignore storage errors
+      this.buffer = [];
+    } catch (e) {
+      console.warn('Failed to remove telemetry from storage', e);
+      return [];
     }
     return data;
   }
