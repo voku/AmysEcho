@@ -260,7 +260,7 @@ Troubleshooting
 |------|--------|--------|----------|
 | User-friendly error shielding | Critical | Medium | **P0** |
 | HIP 4 practice flow | High | Medium | **P1** |
-| Enhanced telemetry | Medium | Low | **P1** |
+| ✅ Enhanced telemetry | Medium | Low | **P1** |
 | WebView error handling | High | Medium | **P1** |
 
 ### Developer Checks Before PRs
