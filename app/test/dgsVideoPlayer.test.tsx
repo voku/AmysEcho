@@ -92,11 +92,6 @@ describe('DgsVideoPlayer performance', () => {
     expect(play).toHaveBeenCalled();
 
     mockPlayer.playing = true;
-    act(() => {
-      (component as renderer.ReactTestRenderer).update(
-        <DgsVideoPlayer videoSource={{ uri: 'foo' }} shouldPlay={false} />
-      );
-    });
 
     const pauseBtn = (component as renderer.ReactTestRenderer).root.findByProps({
       accessibilityLabel: 'Video pausieren',

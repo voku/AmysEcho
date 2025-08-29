@@ -49,14 +49,8 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
 
   const togglePlayback = React.useCallback(() => {
     if (!player) return;
-    if (isPlaying) {
-      player.pause();
-      setIsPlaying(false);
-    } else {
-      player.play();
-      setIsPlaying(true);
-    }
-  }, [player, isPlaying]);
+    setIsPlaying((prev) => !prev);
+  }, [player]);
 
   return (
     <View style={[styles.container, style]}>
