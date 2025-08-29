@@ -160,7 +160,7 @@ Troubleshooting
 - **DGS video integration**
   - ✅ Complete video playback system for learning mode (DgsVideoPlayer)
   - ✅ Implement gesture demonstration in practice/training flow
-  - [ ] Add simplified video controls optimized for child interaction
+  - [x] Add simplified video controls optimized for child interaction
 
 ### 2.3 Core User Flows (HIP Protocol)
 **Priority: High**

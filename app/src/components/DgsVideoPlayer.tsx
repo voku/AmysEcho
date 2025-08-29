@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, Pressable } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { logger } from '../utils/logger';
 import { COLORS, RADIUS } from '../constants/ui';
+import { LanguageManager } from '../services/LanguageManager';
 
 interface DgsVideoPlayerProps {
   videoSource?: any;
@@ -13,6 +14,11 @@ interface DgsVideoPlayerProps {
 
 export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVideoPlayerProps) {
   const player = useVideoPlayer(videoSource);
+  const [isPlaying, setIsPlaying] = React.useState(shouldPlay);
+
+  React.useEffect(() => {
+    setIsPlaying(shouldPlay);
+  }, [shouldPlay]);
 
   React.useEffect(() => {
     if (!player) return;
@@ -25,22 +31,35 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
     return () => subscription.remove();
   }, [player]);
 
+  React.useEffect(() => {
+    if (!player) return;
+    const sub = player.addListener('playToEnd', () => {
+      setIsPlaying(false);
+    });
+    return () => sub.remove();
+  }, [player]);
+
   const isBuffering = player?.status === 'loading';
 
   React.useEffect(() => {
     if (player) {
       const isLoaded = player.status !== 'loading' && player.status !== 'error' && player.duration > 0;
-      if (shouldPlay && !player.playing) {
+      if (isPlaying && !player.playing) {
         if (isLoaded && player.currentTime < player.duration) {
           player.play();
         } else if (isLoaded && player.currentTime >= player.duration) {
           player.replay();
         }
-      } else if (!shouldPlay && player.playing) {
+      } else if (!isPlaying && player.playing) {
         player.pause();
       }
     }
-  }, [player, shouldPlay, player?.status]);
+  }, [player, isPlaying, player?.status]);
+
+  const togglePlayback = React.useCallback(() => {
+    if (!player) return;
+    setIsPlaying((prev) => !prev);
+  }, [player]);
 
   return (
     <View style={[styles.container, style]}>
@@ -49,20 +68,37 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
           player={player}
           style={styles.video}
           contentFit={'contain'}
-          accessibilityLabel="DGS-Video"
+          accessibilityLabel={LanguageManager.t('videoPlayer.dgsVideo')}
         />
       ) : (
         <Text
           style={styles.placeholderText}
-          accessibilityLabel="Kein Video vorhanden"
+          accessibilityLabel={LanguageManager.t('videoPlayer.noVideo')}
         >
-          Kein Video vorhanden
+          {LanguageManager.t('videoPlayer.noVideo')}
         </Text>
       )}
       {isBuffering && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={COLORS.highContrastText} />
         </View>
+      )}
+      {player && (
+        <Pressable
+          onPress={togglePlayback}
+          style={styles.controlButton}
+          accessibilityLabel={
+            isPlaying
+              ? LanguageManager.t('videoPlayer.pauseVideo')
+              : LanguageManager.t('videoPlayer.playVideo')
+          }
+        >
+          <Text style={styles.controlText}>
+            {isPlaying
+              ? LanguageManager.t('videoPlayer.pause')
+              : LanguageManager.t('videoPlayer.play')}
+          </Text>
+        </Pressable>
       )}
     </View>
   );
@@ -89,6 +125,19 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: COLORS.highContrastText,
+  },
+  controlButton: {
+    position: 'absolute',
+    bottom: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: COLORS.highContrastBackground,
+    borderRadius: RADIUS,
+  },
+  controlText: {
+    color: COLORS.highContrastText,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
