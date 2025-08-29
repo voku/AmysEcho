@@ -21,7 +21,7 @@ export function normalizeLandmarks(
     if (d > maxd) maxd = d;
   }
   const scale = maxd || 1;
-  return translated.map(([x, y, z]) => [x / scale, y / scale, z]);
+  return translated.map(([x, y, z]) => [x / scale, y / scale, z / scale]);
 }
 
 export function normalizeLandmarksToFlat(landmarks: number[][]): Float32Array {

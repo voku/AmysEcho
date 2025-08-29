@@ -171,6 +171,7 @@ export function installMlp() {
       for (let i = 0; i < centered.length; i++) {
         centered[i][0] /= maxd;
         centered[i][1] /= maxd;
+        centered[i][2] /= maxd;
       }
       return centered;
     }
