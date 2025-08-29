@@ -78,6 +78,20 @@ describe('Telemetry recorder', () => {
     warnSpy.mockRestore();
   });
 
+  it('logs when persisting telemetry fails', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const recorder = new Telemetry();
+    (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(
+      new Error('save failed'),
+    );
+    await recorder.add('foo', 1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Failed to persist telemetry events.',
+      expect.any(Error),
+    );
+    warnSpy.mockRestore();
+  });
+
   it('ignores non-array persisted telemetry', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('{}');
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});

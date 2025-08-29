@@ -65,10 +65,12 @@ export class Telemetry {
       if (this.buffer.length > this.MAX) {
         this.buffer.shift();
       }
+      // TODO: Batch persistence to reduce AsyncStorage writes under high event volume
       try {
         await AsyncStorage.setItem(this.KEY, JSON.stringify(this.buffer));
-      } catch {
+      } catch (e) {
         // Best-effort persistence; ignore storage errors
+        console.warn('Failed to persist telemetry events.', e);
       }
     });
   }
