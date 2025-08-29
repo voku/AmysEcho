@@ -11,18 +11,21 @@ export async function sendDgsSample(
     frame?.landmarks || [],
     frame?.handedness || [],
   );
-  const resp = await fetch(`${API_URL}/api/v1/dgs/samples`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${API_TOKEN}`,
-    },
-    body: JSON.stringify({ label, landmarks, profileId }),
-  }).catch((e: any) => {
+  let resp: Response;
+  try {
+    resp = await fetch(`${API_URL}/api/v1/dgs/samples`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify({ label, landmarks, profileId }),
+    });
+  } catch (e: any) {
     throw new Error(
       `Netzwerkfehler beim Senden der DGS-Probe: ${e?.message ?? e}`,
     );
-  });
+  }
   if (!resp.ok) {
     const text = await resp.text();
     throw new Error(

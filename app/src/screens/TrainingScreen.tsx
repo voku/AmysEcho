@@ -107,17 +107,12 @@ export default function TrainingScreen({ navigation, route }: any) {
       // Send each frame of the sample sequence to the server dataset for DGS
       if (recordedFrames.length > 0) {
         (async () => {
-          for (const frame of recordedFrames) {
-            try {
-              await sendDgsSample(
-                gestureId,
-                frame,
-                profile?.id || undefined,
-              );
-            } catch (e) {
-              logger.warn('Failed to send DGS sample frame', e);
-            }
-          }
+          const promises = recordedFrames.map((frame) =>
+            sendDgsSample(gestureId, frame, profile?.id || undefined).catch((e) =>
+              logger.warn('Failed to send DGS sample frame', e),
+            ),
+          );
+          await Promise.all(promises);
         })();
       }
       if (isPractice) {

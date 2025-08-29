@@ -24,7 +24,7 @@ jest.mock('../../src/context/MessageContext', () => ({
 jest.mock('@react-navigation/native', () => ({ useIsFocused: () => true }));
 
 jest.mock('../../src/services/dgsTrainingService', () => ({
-  sendDgsSample: jest.fn(),
+  sendDgsSample: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../../src/services/TrainingDataValidator', () => ({
