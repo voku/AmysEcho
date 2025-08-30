@@ -4,11 +4,9 @@ import { useAccessibility } from './AccessibilityContext';
 import { COLORS } from '../constants/ui';
 import { LanguageManager } from '../services/LanguageManager';
 
-interface CelebrationProps {
-  visible: boolean;
-}
+export const CELEBRATION_DURATION_MS = 200 + 700 + 300;
 
-export default function Celebration({ visible }: CelebrationProps) {
+export default function Celebration() {
   const { largeText } = useAccessibility();
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -31,20 +29,12 @@ export default function Celebration({ visible }: CelebrationProps) {
   );
 
   useEffect(() => {
-    if (visible) {
-      opacity.setValue(0);
-      animation.start();
-    } else {
-      animation.stop();
-      opacity.setValue(0);
-    }
+    animation.start();
 
     return () => {
       animation.stop();
     };
-  }, [visible, animation, opacity]);
-
-  if (!visible) return null;
+  }, [animation]);
 
   return (
     <Animated.View

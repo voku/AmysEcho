@@ -35,11 +35,10 @@ import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceReco
 import { RecognitionPath } from '../utils/recognitionState';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import { LanguageManager } from '../services/LanguageManager';
-import Celebration from '../components/Celebration';
+import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 
 const FEEDBACK_THROTTLE_MS = 2000;
-// 200ms fade-in + 700ms delay + 300ms fade-out
-const CELEBRATION_DURATION_MS = 1200;
+// CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
 // ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
@@ -67,6 +66,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [recognitionPath, setRecognitionPath] = useState<RecognitionPath>('local');
   const [showDgsVideo, setShowDgsVideo] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationKey, setCelebrationKey] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -80,6 +80,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const lastUncertainAtRef = useRef<number>(0);
   const lastSuccessAtRef = useRef<number>(0);
   const lastGestureIdRef = useRef<string | null>(null);
+  const lastErrorFeedbackAtRef = useRef<number>(0);
   const centroidsRef = useRef<CentroidMap>({});
 
   useEffect(() => {
@@ -142,6 +143,7 @@ export default function RecognitionScreen({ navigation }: any) {
       useNativeDriver: true,
     }).start();
 
+    setCelebrationKey((k) => k + 1);
     setShowCelebration(true);
     if (celebrationTimeoutRef.current) {
       clearTimeout(celebrationTimeoutRef.current);
@@ -217,8 +219,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
         if (shouldProvideFeedback) {
           lastSuccessAtRef.current = now;
-          triggerSpeakAndShow(entry.label, smoothed, () => {});
-          startFeedbackAnimation();
+          void triggerSpeakAndShow(entry.label, smoothed, startFeedbackAnimation);
         }
 
         // Log success
@@ -276,7 +277,14 @@ export default function RecognitionScreen({ navigation }: any) {
           uncertainCountRef.current = 0;
         }
         // Gentle feedback when the gesture wasn't recognized
-        try { await audioService.playErrorFeedback(); } catch (error) { logger.warn('Failed to play error feedback:', error); }
+        if (Date.now() - lastErrorFeedbackAtRef.current > FEEDBACK_THROTTLE_MS) {
+          try {
+            await audioService.playErrorFeedback();
+            lastErrorFeedbackAtRef.current = Date.now();
+          } catch (error) {
+            logger.warn('Failed to play error feedback:', error);
+          }
+        }
         // HIP 3: opened correction/uncertainty path
         void logHIPEvent('HIP_3', 'help_me_opened', { suggestionFor: finalGesture });
         // Log failure for the incoming gesture id (could be 'unknown')
@@ -461,7 +469,7 @@ export default function RecognitionScreen({ navigation }: any) {
       )}
     </View>
 
-    <Celebration visible={showCelebration} />
+        {showCelebration && <Celebration key={celebrationKey} />}
 
     {showCorrection && (
       <CorrectionPanel

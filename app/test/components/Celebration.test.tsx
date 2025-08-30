@@ -26,10 +26,10 @@ jest.mock('../../src/services/LanguageManager', () => ({
 }));
 
 describe('Celebration', () => {
-  it('renders with German accessibility label when visible', () => {
+  it('renders with German accessibility label', () => {
     let component: renderer.ReactTestRenderer;
     act(() => {
-      component = renderer.create(<Celebration visible={true} />);
+      component = renderer.create(<Celebration />);
     });
     const view = component.root.findByType('Animated.View');
     expect(view.props.accessibilityLabel).toBe('Gut gemacht!');

@@ -65,7 +65,7 @@ jest.mock('../../src/services', () => ({
     playSuccessFeedback: jest.fn(),
     playErrorFeedback: jest.fn(),
   },
-  triggerSpeakAndShow: jest.fn(),
+  triggerSpeakAndShow: jest.fn((_: any, __: any, cb: () => void) => cb()),
   correctionService: { logCorrection: jest.fn() },
   dialogEngine: { getSuggestions: jest.fn() },
 }));
@@ -161,8 +161,8 @@ describe('RecognitionScreen', () => {
     await act(async () => {
       detector.props.onGestureDetected('hello', 0.9, [], []);
     });
-    const celebration = component.root.findByType(Celebration);
-    expect(celebration.props.visible).toBe(true);
+    const celebrations = component.root.findAllByType(Celebration);
+    expect(celebrations.length).toBe(1);
     expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
   });
 
