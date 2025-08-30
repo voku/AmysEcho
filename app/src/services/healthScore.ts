@@ -81,6 +81,21 @@ export async function loadHistoricalHealthData(
   return data[gestureId] || [];
 }
 
+function calculateTrend(data: HistoricalHealthEntry[]): number {
+  if (data.length < 2) {
+    return 0;
+  }
+  const x = data.map((_, i) => i);
+  const y = data.map((d) => d.successRate);
+  const n = x.length;
+  const sx = x.reduce((a, b) => a + b, 0);
+  const sy = y.reduce((a, b) => a + b, 0);
+  const sxy = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
+  const sx2 = x.reduce((acc, xi) => acc + xi * xi, 0);
+  const denom = n * sx2 - sx * sx;
+  return denom === 0 ? 0 : (n * sxy - sx * sy) / denom;
+}
+
 
 
 export async function checkForDecliningAccuracy(
@@ -92,18 +107,8 @@ export async function checkForDecliningAccuracy(
   }
 
   const recentData = data.slice(-7);
-  const x = recentData.map((_, i) => i);
-  const y = recentData.map(d => d.successRate);
-
-  const n = x.length;
-  const sx = x.reduce((a, b) => a + b, 0);
-  const sy = y.reduce((a, b) => a + b, 0);
-  const sxy = x.map((_, i) => x[i] * y[i]).reduce((a, b) => a + b, 0);
-  const sx2 = x.map(v => v * v).reduce((a, b) => a + b, 0);
-
-  const slope = (n * sxy - sx * sy) / (n * sx2 - sx * sx);
-
-  return slope < -0.1;
+  const trend = calculateTrend(recentData);
+  return trend < -0.1;
 }
 
 export interface ProgressReport {
@@ -117,27 +122,15 @@ export async function generateProgressReport(
 ): Promise<ProgressReport> {
   const data = await loadHistoricalHealthData(gestureId);
   if (data.length === 0) {
-    return { averageSuccessRate: 1, totalSamples: 0, trend: 0 };
+    return { averageSuccessRate: 0, totalSamples: 0, trend: 0 };
   }
-
-  const averageSuccessRate =
-    data.reduce((sum, d) => sum + d.successRate, 0) / data.length;
   const totalSamples = data.reduce((sum, d) => sum + d.count, 0);
-
-  if (data.length < 2) {
-    return { averageSuccessRate, totalSamples, trend: 0 };
-  }
-
-  const x = data.map((_, i) => i);
-  const y = data.map((d) => d.successRate);
-  const n = x.length;
-  const sx = x.reduce((a, b) => a + b, 0);
-  const sy = y.reduce((a, b) => a + b, 0);
-  const sxy = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
-  const sx2 = x.reduce((acc, xi) => acc + xi * xi, 0);
-  const denom = n * sx2 - sx * sx;
-  const trend = denom === 0 ? 0 : (n * sxy - sx * sy) / denom;
-
+  const averageSuccessRate =
+    totalSamples === 0
+      ? 0
+      : data.reduce((sum, d) => sum + d.successRate * d.count, 0) /
+        totalSamples;
+  const trend = calculateTrend(data);
   return { averageSuccessRate, totalSamples, trend };
 }
 
