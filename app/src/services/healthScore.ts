@@ -106,3 +106,39 @@ export async function checkForDecliningAccuracy(
   return slope < -0.1;
 }
 
+export interface ProgressReport {
+  averageSuccessRate: number;
+  totalSamples: number;
+  trend: number;
+}
+
+export async function generateProgressReport(
+  gestureId: string,
+): Promise<ProgressReport> {
+  const data = await loadHistoricalHealthData(gestureId);
+  if (data.length === 0) {
+    return { averageSuccessRate: 1, totalSamples: 0, trend: 0 };
+  }
+
+  const averageSuccessRate =
+    data.reduce((sum, d) => sum + d.successRate, 0) / data.length;
+  const totalSamples = data.reduce((sum, d) => sum + d.count, 0);
+
+  if (data.length < 2) {
+    return { averageSuccessRate, totalSamples, trend: 0 };
+  }
+
+  const x = data.map((_, i) => i);
+  const y = data.map((d) => d.successRate);
+  const n = x.length;
+  const sx = x.reduce((a, b) => a + b, 0);
+  const sy = y.reduce((a, b) => a + b, 0);
+  const sxy = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
+  const sx2 = x.reduce((acc, xi) => acc + xi * xi, 0);
+  const denom = n * sx2 - sx * sx;
+  const trend = denom === 0 ? 0 : (n * sxy - sx * sy) / denom;
+
+  return { averageSuccessRate, totalSamples, trend };
+}
+
+
