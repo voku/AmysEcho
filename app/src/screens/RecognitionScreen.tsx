@@ -138,7 +138,7 @@ export default function RecognitionScreen({ navigation }: any) {
     }).start();
 
     setShowCelebration(true);
-    setTimeout(() => setShowCelebration(false), 1000);
+    setTimeout(() => setShowCelebration(false), 1200);
   }, [fadeAnim, symbolScaleAnim]);
 
   const handleGestureDetected = useCallback(async (

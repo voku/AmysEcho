@@ -7,7 +7,9 @@ jest.mock('react-native', () => {
   return {
     Animated: {
       Value: class { constructor(public v: any) {} setValue(_: any) {} },
-      timing: () => ({ start: jest.fn() }),
+      timing: () => ({ start: jest.fn(), stop: jest.fn() }),
+      delay: () => ({ start: jest.fn(), stop: jest.fn() }),
+      sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
       View: (p: any) => React.createElement('Animated.View', p, p.children),
     },
     StyleSheet: { create: (s: any) => s },

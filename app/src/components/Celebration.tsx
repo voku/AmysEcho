@@ -12,27 +12,32 @@ export default function Celebration({ visible }: CelebrationProps) {
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout | undefined;
-    if (visible) {
-      opacity.setValue(0);
+    const animation = Animated.sequence([
       Animated.timing(opacity, {
         toValue: 1,
         duration: 200,
         useNativeDriver: true,
-      }).start(() => {
-        timeout = setTimeout(() => {
-          Animated.timing(opacity, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }).start();
-        }, 700);
-      });
+      }),
+      Animated.delay(700),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    if (visible) {
+      opacity.setValue(0);
+      animation.start();
     } else {
+      animation.stop();
       opacity.setValue(0);
     }
-    return () => timeout && clearTimeout(timeout);
-  }, [visible, opacity]);
+
+    return () => {
+      animation.stop();
+    };
+  }, [visible]);
 
   if (!visible) return null;
 
