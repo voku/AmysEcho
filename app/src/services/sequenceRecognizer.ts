@@ -41,7 +41,7 @@ export class SequenceRecognizer {
   /**
    * Expose current history size for testing and diagnostics.
    */
-  getEventCount(): number {
+  get eventCount(): number {
     return this.events.length;
   }
 }
