@@ -36,7 +36,7 @@ describe('SequenceRecognizer', () => {
     for (let i = 0; i < 10; i++) {
       rec.push('a', base + i * 10);
     }
-    expect(rec.getEventCount()).toBeLessThanOrEqual(3);
+    expect(rec.eventCount).toBeLessThanOrEqual(3);
     rec.push('b', base + 2000);
     expect(rec.eventCount).toBe(1);
   });
