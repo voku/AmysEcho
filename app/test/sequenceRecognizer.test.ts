@@ -27,5 +27,18 @@ describe('SequenceRecognizer', () => {
     expect(rec.push('b', base)).toBeNull();
     expect(rec.push('a', base + 100)).toBeNull();
   });
+
+  it('prunes old events and limits history size', () => {
+    const rec = new SequenceRecognizer([
+      { id: 'seq', pattern: ['a', 'b', 'c'], windowMs: 1000 },
+    ]);
+    const base = 0;
+    for (let i = 0; i < 10; i++) {
+      rec.push('a', base + i * 10);
+    }
+    expect(rec.eventCount).toBeLessThanOrEqual(3);
+    rec.push('b', base + 2000);
+    expect(rec.eventCount).toBe(1);
+  });
 });
 
