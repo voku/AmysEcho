@@ -14,6 +14,8 @@ jest.mock('react-native', () => {
       Value: class { constructor(public v: any) {} setValue(_: any) {} },
       timing: () => ({ start: jest.fn() }),
       spring: () => ({ start: jest.fn() }),
+      delay: () => ({ start: jest.fn(), stop: jest.fn() }),
+      sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
       View: (p: any) => React.createElement('Animated.View', p, p.children),
       Text: (p: any) => React.createElement('Animated.Text', p, p.children),
     },
@@ -21,7 +23,21 @@ jest.mock('react-native', () => {
   } as any;
 });
 
+jest.mock('../../src/services/LanguageManager', () => ({
+  LanguageManager: {
+    t: (k: string) =>
+      k === 'recognition.toggleDgsVideo'
+        ? 'DGS-Video umschalten'
+        : k === 'recognition.showDgsVideo'
+        ? 'DGS-Video anzeigen'
+        : k === 'celebration.label'
+        ? 'Gut gemacht!'
+        : k,
+  },
+}));
+
 import RecognitionScreen from '../../src/screens/RecognitionScreen';
+import Celebration from '../../src/components/Celebration';
 import { audioService, triggerSpeakAndShow } from '../../src/services';
 
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
@@ -42,11 +58,6 @@ jest.mock('../../src/components/DgsVideoPlayer', () => {
   const React = require('react');
   return (props: any) => React.createElement('DgsVideoPlayer', props, null);
 });
-jest.mock('../../src/components/Celebration', () => {
-  const React = require('react');
-  return (props: any) => React.createElement('Celebration', props, null);
-});
-jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Medium: 'Medium' } }));
 jest.mock('../../src/services', () => ({
   audioService: {
     speak: jest.fn(),
@@ -150,7 +161,7 @@ describe('RecognitionScreen', () => {
     await act(async () => {
       detector.props.onGestureDetected('hello', 0.9, [], []);
     });
-    const celebration = component.root.findByType('Celebration');
+    const celebration = component.root.findByType(Celebration);
     expect(celebration.props.visible).toBe(true);
     expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
   });

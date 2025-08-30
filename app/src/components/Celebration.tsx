@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS } from '../constants/ui';
+import { LanguageManager } from '../services/LanguageManager';
 
 interface CelebrationProps {
   visible: boolean;
@@ -11,21 +12,25 @@ export default function Celebration({ visible }: CelebrationProps) {
   const { largeText } = useAccessibility();
   const opacity = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    const animation = Animated.sequence([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.delay(700),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]);
+  const animation = useMemo(
+    () =>
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.delay(700),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]),
+    [opacity],
+  );
 
+  useEffect(() => {
     if (visible) {
       opacity.setValue(0);
       animation.start();
@@ -37,7 +42,7 @@ export default function Celebration({ visible }: CelebrationProps) {
     return () => {
       animation.stop();
     };
-  }, [visible]);
+  }, [visible, animation, opacity]);
 
   if (!visible) return null;
 
@@ -45,7 +50,7 @@ export default function Celebration({ visible }: CelebrationProps) {
     <Animated.View
       pointerEvents="none"
       accessibilityRole="alert"
-      accessibilityLabel="Gut gemacht!"
+      accessibilityLabel={LanguageManager.t('celebration.label')}
       style={[styles.overlay, { opacity }]}
     >
       <Text style={[styles.text, { fontSize: largeText ? 48 : 40 }]}>🎉</Text>

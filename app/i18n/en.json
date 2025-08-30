@@ -36,5 +36,8 @@
     "pause": "Pause",
     "playVideo": "Play video",
     "pauseVideo": "Pause video"
+  },
+  "celebration": {
+    "label": "Well done!"
   }
 }

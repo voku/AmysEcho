@@ -21,6 +21,10 @@ jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false }),
 }));
 
+jest.mock('../../src/services/LanguageManager', () => ({
+  LanguageManager: { t: (k: string) => (k === 'celebration.label' ? 'Gut gemacht!' : k) },
+}));
+
 describe('Celebration', () => {
   it('renders with German accessibility label when visible', () => {
     let component: renderer.ReactTestRenderer;
@@ -29,6 +33,7 @@ describe('Celebration', () => {
     });
     const view = component.root.findByType('Animated.View');
     expect(view.props.accessibilityLabel).toBe('Gut gemacht!');
+    expect(view.props.accessibilityRole).toBe('alert');
     const text = component.root.findByType('Text');
     expect(text.props.children).toBe('🎉');
   });

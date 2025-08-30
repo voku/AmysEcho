@@ -16,7 +16,6 @@ import CorrectionPanel from '../components/CorrectionPanel';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { audioService, triggerSpeakAndShow, correctionService, dialogEngine } from '../services';
-import * as Haptics from 'expo-haptics';
 import { telemetry } from '../telemetry/recorder';
 import { USE_EXPO_CAMERA } from '../constants';
 import { loadProfile, Profile, logCorrection } from '../storage';
@@ -37,6 +36,10 @@ import { RecognitionPath } from '../utils/recognitionState';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import { LanguageManager } from '../services/LanguageManager';
 import Celebration from '../components/Celebration';
+
+const FEEDBACK_THROTTLE_MS = 2000;
+// 200ms fade-in + 700ms delay + 300ms fade-out
+const CELEBRATION_DURATION_MS = 1200;
 // ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
@@ -120,6 +123,8 @@ export default function RecognitionScreen({ navigation }: any) {
     return () => timer && clearInterval(timer);
   }, []);
 
+  const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const startFeedbackAnimation = useCallback(() => {
     fadeAnim.setValue(0);
     Animated.timing(fadeAnim, {
@@ -138,8 +143,19 @@ export default function RecognitionScreen({ navigation }: any) {
     }).start();
 
     setShowCelebration(true);
-    setTimeout(() => setShowCelebration(false), 1200);
+    if (celebrationTimeoutRef.current) {
+      clearTimeout(celebrationTimeoutRef.current);
+    }
+    celebrationTimeoutRef.current = setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
   }, [fadeAnim, symbolScaleAnim]);
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimeoutRef.current) {
+        clearTimeout(celebrationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleGestureDetected = useCallback(async (
     gesture: string | null,
@@ -193,7 +209,7 @@ export default function RecognitionScreen({ navigation }: any) {
         const now = Date.now();
         const shouldProvideFeedback =
           lastGestureIdRef.current !== entry.id ||
-          now - lastSuccessAtRef.current > 2000;
+          now - lastSuccessAtRef.current > FEEDBACK_THROTTLE_MS;
 
         lastGestureIdRef.current = entry.id;
         setLastRecognizedGesture(entry);
@@ -203,7 +219,6 @@ export default function RecognitionScreen({ navigation }: any) {
           lastSuccessAtRef.current = now;
           triggerSpeakAndShow(entry.label, smoothed, () => {});
           startFeedbackAnimation();
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
 
         // Log success
