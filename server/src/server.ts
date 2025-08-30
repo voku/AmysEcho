@@ -742,8 +742,13 @@ async function sendBinaryModel(res: Response, filePath: string, downloadName: st
     // Range support
     const range = (res.req.headers['range'] as string | undefined) || undefined;
     res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-    res.setHeader('CDN-Cache-Control', 'max-age=3600');
+    const isProfileSpecific = /_[A-Za-z0-9_-]+\.(json|npz)$/.test(filePath);
+    if (isProfileSpecific) {
+      res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      res.setHeader('CDN-Cache-Control', 'max-age=3600');
+    }
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('ETag', `"sha256-${sha256}"`);
     res.setHeader('X-Checksum-SHA256', sha256);
