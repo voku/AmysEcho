@@ -80,6 +80,11 @@ app.get('/portal', (_req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, 'portal', 'index.html'));
 });
 
+// Basic health check endpoint for monitoring
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
 // API routes for caregiver portal
 app.use('/portal', portalRouter);
 
@@ -737,7 +742,8 @@ async function sendBinaryModel(res: Response, filePath: string, downloadName: st
     // Range support
     const range = (res.req.headers['range'] as string | undefined) || undefined;
     res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    res.setHeader('CDN-Cache-Control', 'max-age=3600');
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('ETag', `"sha256-${sha256}"`);
     res.setHeader('X-Checksum-SHA256', sha256);

@@ -153,4 +153,6 @@ def test_latest_mlp_model_sets_headers(model_file, running_server):
         version = resp.headers.get("X-Model-Version")
         assert version is not None and version.isdigit()
         cache_control = resp.headers.get("Cache-Control")
-        assert cache_control == "private, max-age=0, must-revalidate"
+        assert cache_control == "public, max-age=0, must-revalidate"
+        cdn_cache = resp.headers.get("CDN-Cache-Control")
+        assert cdn_cache == "max-age=3600"
