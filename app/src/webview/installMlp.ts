@@ -243,4 +243,11 @@ export function installMlp() {
     });
   };
   (window as any).__mlpPredict = mlpPredict;
+  try {
+    (window as any).ReactNativeWebView?.postMessage?.(
+      JSON.stringify({ type: 'telemetry', event: 'mlp_ready' })
+    );
+  } catch (e) {
+    console.warn('mlp_ready postMessage failed', e);
+  }
 }

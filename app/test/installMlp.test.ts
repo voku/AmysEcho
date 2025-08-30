@@ -11,10 +11,14 @@ describe('installMlp', () => {
     (window as any).ReactNativeWebView = { postMessage };
     (window as any).fflate = { unzipSync: () => ({}) };
     installMlp();
+    expect(postMessage).toHaveBeenCalledTimes(1);
+    const readyMsg = JSON.parse(postMessage.mock.calls[0][0]);
+    expect(readyMsg.event).toBe('mlp_ready');
+
     await (window as any).__setMlpModelB64('YQ==');
     await Promise.resolve();
-    expect(postMessage).toHaveBeenCalledTimes(1);
-    const msg = JSON.parse(postMessage.mock.calls[0][0]);
+    expect(postMessage).toHaveBeenCalledTimes(2);
+    const msg = JSON.parse(postMessage.mock.calls[1][0]);
     expect(msg.event).toBe('mlp_load_failed');
   });
 });

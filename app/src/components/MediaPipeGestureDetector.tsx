@@ -53,7 +53,20 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   // Minimal shape we rely on; keeps optional semantics and strict-mode help.
   type WebViewLike = { injectJavaScript: (src: string) => void } | null;
   const webviewRef = useRef<WebViewLike>(null);
+  const pendingModelRef = useRef<string | null>(null);
+  const mlpReadyRef = useRef(false);
   const [, setLangTick] = useState(0);
+
+  const injectModel = (b64: string | null) => {
+    if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
+    const safe = b64
+      .replace(/\\/g, "\\\\")
+      .replace(/`/g, "\\`")
+      .replace(/[\u2028\u2029]/g, '');
+    webviewRef.current.injectJavaScript(
+      `try{window.__setMlpModelB64 && window.__setMlpModelB64(\`${safe}\`);}catch(e){}`,
+    );
+  };
 
   useEffect(() => {
     const unsubscribe = LanguageManager.subscribe(() => setLangTick((v) => v + 1));
@@ -68,40 +81,31 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const cameraError = escapeJs(LanguageManager.t('mediapipe.cameraError'));
 
   useEffect(() => {
-    const loadAndInjectModel = async () => {
+    const loadModel = async () => {
       try {
         const pid = await loadActiveProfileId().catch((err) => {
           console.warn('Failed to load active profile ID, falling back to global model.', err);
           return null;
         });
 
-        const inject = (b64: string) => {
-          if (!b64 || !webviewRef.current) return;
-          const safe = b64
-            .replace(/\\/g, "\\\\")
-            .replace(/`/g, "\\`")
-            .replace(/[\u2028\u2029]/g, '');
-          webviewRef.current.injectJavaScript(
-            `try{window.__setMlpModelB64 && window.__setMlpModelB64(\`${safe}\`);}catch(e){}`,
-          );
-        };
-
         const cached = await getCachedMlpModel(pid ?? undefined);
         if (cached) {
-          inject(cached);
+          pendingModelRef.current = cached;
+          injectModel(cached);
         }
 
         const latest = await fetchMlpModel(pid ?? undefined);
         if (latest && latest !== cached) {
-          inject(latest);
+          pendingModelRef.current = latest;
+          injectModel(latest);
         }
       } catch (e) {
         console.warn('Failed to fetch or inject MLP model', e);
       }
     };
-    loadAndInjectModel();
+    loadModel();
     const unsubscribe = onActiveProfileChange(() => {
-      loadAndInjectModel();
+      loadModel();
     });
     return unsubscribe;
   }, []);
@@ -463,14 +467,19 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
       } else if (data.type === 'telemetry') {
+        const eventStr = String(data.event || '');
         try {
           onWebViewEvent?.({
-            event: String(data.event || ''),
+            event: eventStr,
             ms: typeof data.ms === 'number' ? data.ms : undefined,
             ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {}),
           });
         } catch (e) {
           console.warn('Error in onWebViewEvent handler:', e);
+        }
+        if (eventStr === 'mlp_ready') {
+          mlpReadyRef.current = true;
+          injectModel(pendingModelRef.current);
         }
         try {
           // Fire-and-forget telemetry to avoid backpressure in onMessage (skip in dev)
@@ -484,7 +493,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               body: JSON.stringify({
                 latencyMs: typeof data.ms === 'number' ? data.ms : 0,
                 timestamp: Date.now(),
-                event: data.event || 'unknown',
+                event: eventStr || 'unknown',
                 source: 'webview-gesture-detector',
                 ...(Array.isArray(data.tracks) ? { tracks: data.tracks } : {}),
               }),

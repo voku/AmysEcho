@@ -11,9 +11,16 @@ jest.mock('react-native', () => {
   };
 });
 
-jest.mock('react-native-webview', () => ({
-  WebView: (props: any) => <mock-webview {...props} />,
-}));
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  return {
+    WebView: React.forwardRef((props: any, ref) => {
+      const injectJavaScript = jest.fn();
+      React.useImperativeHandle(ref, () => ({ injectJavaScript }));
+      return <mock-webview {...props} injectJavaScript={injectJavaScript} />;
+    }),
+  };
+});
 
 jest.mock('../src/services/dgsModelClient', () => ({
   getCachedMlpModel: jest.fn(() => Promise.resolve(null)),
@@ -184,6 +191,34 @@ describe('MediaPipeGestureDetector', () => {
 
     expect(getCachedMlpModel).toHaveBeenCalledTimes(2);
     expect(fetchMlpModel).toHaveBeenCalledTimes(2);
+  });
+
+  it('injects model after mlp_ready telemetry', async () => {
+    const { getCachedMlpModel, fetchMlpModel } = require('../src/services/dgsModelClient');
+    (getCachedMlpModel as jest.Mock).mockResolvedValue('cached');
+    (fetchMlpModel as jest.Mock).mockResolvedValue('latest');
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+      await Promise.resolve();
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const injectJs = webview.props.injectJavaScript as jest.Mock;
+    expect(injectJs).not.toHaveBeenCalled();
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(injectJs).toHaveBeenCalledTimes(1);
   });
 
   it('updates translations when language changes', () => {
