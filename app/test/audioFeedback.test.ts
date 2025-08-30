@@ -181,17 +181,13 @@ describe('audioService feedback', () => {
     expect(Speech.speak).toHaveBeenCalledTimes(2);
   });
 
-  it('plays listening sound when camera is active', async () => {
+  it.each([
+    { sound: 'listening', method: 'playListeningFeedback', scenario: 'when camera is active' },
+    { sound: 'thinking', method: 'playThinkingFeedback', scenario: 'during processing' },
+  ])('plays $sound sound $scenario', async ({ sound, method }) => {
     const spy = jest.spyOn(audioService, 'playSound').mockResolvedValue();
-    await audioService.playListeningFeedback();
-    expect(spy).toHaveBeenCalledWith('listening');
-    spy.mockRestore();
-  });
-
-  it('plays thinking sound during processing', async () => {
-    const spy = jest.spyOn(audioService, 'playSound').mockResolvedValue();
-    await audioService.playThinkingFeedback();
-    expect(spy).toHaveBeenCalledWith('thinking');
+    await audioService[method as 'playListeningFeedback' | 'playThinkingFeedback']();
+    expect(spy).toHaveBeenCalledWith(sound);
     spy.mockRestore();
   });
 });
