@@ -243,8 +243,8 @@ export default function RecognitionScreen({ navigation }: any) {
           setShowCorrection(true);
           uncertainCountRef.current = 0;
         }
-        // Gentle nudge to retry
-        try { await audioService.playEncouragement(); } catch {}
+        // Gentle feedback when the gesture wasn't recognized
+        try { await audioService.playErrorFeedback(); } catch {}
         // HIP 3: opened correction/uncertainty path
         void logHIPEvent('HIP_3', 'help_me_opened', { suggestionFor: finalGesture });
         // Log failure for the incoming gesture id (could be 'unknown')
