@@ -22,6 +22,7 @@ jest.mock('react-native', () => {
 });
 
 import RecognitionScreen from '../../src/screens/RecognitionScreen';
+import { audioService } from '../../src/services';
 
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   const React = require('react');
@@ -43,7 +44,12 @@ jest.mock('../../src/components/DgsVideoPlayer', () => {
 });
 jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Medium: 'Medium' } }));
 jest.mock('../../src/services', () => ({
-  audioService: { speak: jest.fn(), playEncouragement: jest.fn(), playSuccessFeedback: jest.fn() },
+  audioService: {
+    speak: jest.fn(),
+    playEncouragement: jest.fn(),
+    playSuccessFeedback: jest.fn(),
+    playErrorFeedback: jest.fn(),
+  },
   triggerSpeakAndShow: jest.fn(),
   correctionService: { logCorrection: jest.fn() },
   dialogEngine: { getSuggestions: jest.fn() },
@@ -100,6 +106,18 @@ describe('RecognitionScreen', () => {
     });
     const button = component.root.findByProps({ testID: 'btn-correction' });
     expect(button.props.accessibilityLabel).toBe('Korrekturseite öffnen');
+  });
+
+  it('provides gentle feedback when gesture is not recognized', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+    });
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      await detector.props.onGestureDetected(null, 0.1, [], []);
+    });
+    expect(audioService.playErrorFeedback).toHaveBeenCalled();
   });
 
   it('shows DGS video when toggle enabled and gesture recognized', async () => {
