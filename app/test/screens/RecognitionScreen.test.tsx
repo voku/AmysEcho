@@ -22,7 +22,7 @@ jest.mock('react-native', () => {
 });
 
 import RecognitionScreen from '../../src/screens/RecognitionScreen';
-import { audioService } from '../../src/services';
+import { audioService, triggerSpeakAndShow } from '../../src/services';
 
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   const React = require('react');
@@ -41,6 +41,10 @@ jest.mock('../../src/components/CorrectionPanel', () => {
 jest.mock('../../src/components/DgsVideoPlayer', () => {
   const React = require('react');
   return (props: any) => React.createElement('DgsVideoPlayer', props, null);
+});
+jest.mock('../../src/components/Celebration', () => {
+  const React = require('react');
+  return (props: any) => React.createElement('Celebration', props, null);
 });
 jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Medium: 'Medium' } }));
 jest.mock('../../src/services', () => ({
@@ -135,5 +139,32 @@ describe('RecognitionScreen', () => {
     });
     const vids = component.root.findAllByType('DgsVideoPlayer');
     expect(vids.length).toBe(1);
+  });
+
+  it('shows celebration when gesture recognized with high confidence', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+    });
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      detector.props.onGestureDetected('hello', 0.9, [], []);
+    });
+    const celebration = component.root.findByType('Celebration');
+    expect(celebration.props.visible).toBe(true);
+    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not spam celebration for repeated gestures', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+    });
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      detector.props.onGestureDetected('hello', 0.9, [], []);
+      detector.props.onGestureDetected('hello', 0.95, [], []);
+    });
+    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
   });
 });

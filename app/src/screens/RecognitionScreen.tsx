@@ -36,6 +36,7 @@ import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceReco
 import { RecognitionPath } from '../utils/recognitionState';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import { LanguageManager } from '../services/LanguageManager';
+import Celebration from '../components/Celebration';
 // ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
@@ -62,6 +63,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [webviewKey, setWebviewKey] = useState(0);
   const [recognitionPath, setRecognitionPath] = useState<RecognitionPath>('local');
   const [showDgsVideo, setShowDgsVideo] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -73,6 +75,8 @@ export default function RecognitionScreen({ navigation }: any) {
   const seqRef = useRef(new SequenceRecognizer(seqDefsRef.current));
   const uncertainCountRef = useRef(0);
   const lastUncertainAtRef = useRef<number>(0);
+  const lastSuccessAtRef = useRef<number>(0);
+  const lastGestureIdRef = useRef<string | null>(null);
   const centroidsRef = useRef<CentroidMap>({});
 
   useEffect(() => {
@@ -132,6 +136,9 @@ export default function RecognitionScreen({ navigation }: any) {
       tension: 80,
       useNativeDriver: true,
     }).start();
+
+    setShowCelebration(true);
+    setTimeout(() => setShowCelebration(false), 1000);
   }, [fadeAnim, symbolScaleAnim]);
 
   const handleGestureDetected = useCallback(async (
@@ -183,11 +190,21 @@ export default function RecognitionScreen({ navigation }: any) {
 
       if (smoothed > 0.7 && stableGesture !== 'unknown') {
         const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
+        const now = Date.now();
+        const shouldProvideFeedback =
+          lastGestureIdRef.current !== entry.id ||
+          now - lastSuccessAtRef.current > 2000;
+
+        lastGestureIdRef.current = entry.id;
         setLastRecognizedGesture(entry);
         setStatus(entry.label);
-        triggerSpeakAndShow(entry.label, smoothed, () => {});
-        startFeedbackAnimation();
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        if (shouldProvideFeedback) {
+          lastSuccessAtRef.current = now;
+          triggerSpeakAndShow(entry.label, smoothed, () => {});
+          startFeedbackAnimation();
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
 
         // Log success
         logInteractionEvent({
@@ -428,6 +445,8 @@ export default function RecognitionScreen({ navigation }: any) {
         </View>
       )}
     </View>
+
+    <Celebration visible={showCelebration} />
 
     {showCorrection && (
       <CorrectionPanel
