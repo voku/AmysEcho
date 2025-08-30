@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const { spawnSync } = require('child_process');
 
 function chunk(str, size) {
   const out = [];
@@ -16,7 +17,7 @@ function writeTs(outPath, varName, base64, header) {
   fs.writeFileSync(outPath, content);
 }
 
-function fetch(url) {
+function fetchHttps(url) {
   return new Promise((resolve, reject) => {
     https
       .get(url, (res) => {
@@ -31,6 +32,16 @@ function fetch(url) {
       })
       .on('error', reject);
   });
+}
+
+async function fetch(url) {
+  try {
+    return await fetchHttps(url);
+  } catch (err) {
+    const curl = spawnSync('curl', ['-L', url], { encoding: null });
+    if (curl.status === 0) return Buffer.from(curl.stdout);
+    throw err;
+  }
 }
 
 async function updateFflate() {
