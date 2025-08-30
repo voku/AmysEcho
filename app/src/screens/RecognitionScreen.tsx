@@ -278,9 +278,9 @@ export default function RecognitionScreen({ navigation }: any) {
         }
         // Gentle feedback when the gesture wasn't recognized
         if (Date.now() - lastErrorFeedbackAtRef.current > FEEDBACK_THROTTLE_MS) {
+          lastErrorFeedbackAtRef.current = Date.now();
           try {
             await audioService.playErrorFeedback();
-            lastErrorFeedbackAtRef.current = Date.now();
           } catch (error) {
             logger.warn('Failed to play error feedback:', error);
           }
