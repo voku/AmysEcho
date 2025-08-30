@@ -81,6 +81,7 @@ export async function loadHistoricalHealthData(
   return data[gestureId] || [];
 }
 
+// Simple linear regression to track success-rate trends.
 function calculateTrend(data: HistoricalHealthEntry[]): number {
   if (data.length < 2) {
     return 0;
