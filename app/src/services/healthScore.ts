@@ -82,7 +82,10 @@ export async function loadHistoricalHealthData(
 }
 
 // Simple linear regression to track success-rate trends.
-function calculateTrend(data: HistoricalHealthEntry[]): number {
+// Requires data sorted by date ascending (oldest → newest).
+function calculateTrend(
+  data: ReadonlyArray<HistoricalHealthEntry>,
+): number {
   const n = data.length;
   if (n < 2) {
     return 0;
@@ -115,14 +118,18 @@ export async function checkForDecliningAccuracy(
     return false;
   }
 
-  const recentData = data.slice(-7);
+  const recentData = [...data]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7);
   const trend = calculateTrend(recentData);
-  return trend < -0.1;
+  return trend <= -0.1;
 }
 
 export interface ProgressReport {
+  // Weighted by entry.count; 0..1
   averageSuccessRate: number;
   totalSamples: number;
+  // Linear-regression slope per entry (older → newer).
   trend: number;
 }
 
@@ -133,13 +140,19 @@ export async function generateProgressReport(
   if (data.length === 0) {
     return { averageSuccessRate: 0, totalSamples: 0, trend: 0 };
   }
-  const totalSamples = data.reduce((sum, d) => sum + d.count, 0);
+  const { totalSamples, weightedSum } = data.reduce(
+    (acc, d) => {
+      acc.totalSamples += d.count;
+      acc.weightedSum += d.successRate * d.count;
+      return acc;
+    },
+    { totalSamples: 0, weightedSum: 0 },
+  );
   const averageSuccessRate =
-    totalSamples === 0
-      ? 0
-      : data.reduce((sum, d) => sum + d.successRate * d.count, 0) /
-        totalSamples;
-  const trend = calculateTrend(data);
+    totalSamples === 0 ? 0 : weightedSum / totalSamples;
+  const trend = calculateTrend(
+    [...data].sort((a, b) => a.date.localeCompare(b.date)),
+  );
   return { averageSuccessRate, totalSamples, trend };
 }
 
