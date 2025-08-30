@@ -180,5 +180,15 @@ describe('audioService feedback', () => {
     await svc.speak('hallo');
     expect(Speech.speak).toHaveBeenCalledTimes(2);
   });
+
+  it.each([
+    { sound: 'listening', method: 'playListeningFeedback', scenario: 'when camera is active' },
+    { sound: 'thinking', method: 'playThinkingFeedback', scenario: 'during processing' },
+  ])('plays $sound sound $scenario', async ({ sound, method }) => {
+    const spy = jest.spyOn(audioService, 'playSound').mockResolvedValue();
+    await audioService[method as 'playListeningFeedback' | 'playThinkingFeedback']();
+    expect(spy).toHaveBeenCalledWith(sound);
+    spy.mockRestore();
+  });
 });
 
