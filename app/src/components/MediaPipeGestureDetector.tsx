@@ -117,7 +117,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       </View>
     );
   }
-  const mlpInstallScript = `const f=document.createElement('script'); f.src='data:application/javascript;base64,${fflateBase64}'; f.onload=()=>{const m=document.createElement('script'); m.src='data:application/javascript;base64,${installMlpBase64}'; document.head.appendChild(m);}; document.head.appendChild(f);`;
+  const mlpInstallScript = `const f = document.createElement('script'); f.src = 'data:application/javascript;base64,${fflateBase64}'; f.onload = () => { const m = document.createElement('script'); m.src = 'data:application/javascript;base64,${installMlpBase64}'; document.head.appendChild(m); }; document.head.appendChild(f);`;
   const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
   const mirrorOverlayFlag = facingMode === 'user' ? 'true' : 'false';
   const htmlContent = `
