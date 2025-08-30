@@ -6,14 +6,24 @@ export interface SequenceDefinition {
 
 export class SequenceRecognizer {
   private events: { g: string; t: number }[] = [];
-  constructor(private defs: SequenceDefinition[]) {}
+  private maxWindow: number;
+  private maxLen: number;
+
+  constructor(private defs: SequenceDefinition[]) {
+    this.maxWindow = this.defs.reduce((m, d) => Math.max(m, d.windowMs), 0);
+    this.maxLen = this.defs.reduce((m, d) => Math.max(m, d.pattern.length), 0);
+  }
 
   push(gesture: string, timestamp: number = Date.now()): string | null {
-    // Add event and prune > max window
+    // Add event and prune > max window while bounding history size
     this.events.push({ g: gesture, t: timestamp });
-    const maxWindow = this.defs.reduce((m, d) => Math.max(m, d.windowMs), 0);
-    const cutoff = timestamp - maxWindow;
-    this.events = this.events.filter((e) => e.t >= cutoff);
+    const cutoff = timestamp - this.maxWindow;
+    while (this.events.length && this.events[0].t < cutoff) {
+      this.events.shift();
+    }
+    if (this.events.length > this.maxLen) {
+      this.events.splice(0, this.events.length - this.maxLen);
+    }
 
     for (const d of this.defs) {
       // Try to match last N events in order of pattern
@@ -26,6 +36,13 @@ export class SequenceRecognizer {
       }
     }
     return null;
+  }
+
+  /**
+   * Expose current history size for testing and diagnostics.
+   */
+  getEventCount(): number {
+    return this.events.length;
   }
 }
 
