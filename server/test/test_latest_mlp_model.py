@@ -1,5 +1,4 @@
 import time
-import time
 import urllib.request
 import urllib.error
 import shutil
@@ -60,6 +59,27 @@ def model_file():
         if backup_dir is not None and Path(backup_dir).exists():
             shutil.move(str(backup_dir), str(data_dir))
 
+
+@pytest.fixture
+def global_model_file():
+    data_dir = SERVER_DIR / "data"
+    backup_dir = None
+    if data_dir.exists():
+        backup_dir = data_dir.with_name(
+            f"{data_dir.name}.bak.{int(time.time())}"
+        )
+        shutil.move(str(data_dir), str(backup_dir))
+    data_dir.mkdir()
+    model_path = data_dir / "dgs_model.npz"
+    model_path.write_bytes(b"placeholder")
+    try:
+        yield model_path
+    finally:
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
+        if backup_dir is not None and Path(backup_dir).exists():
+            shutil.move(str(backup_dir), str(data_dir))
+
 def test_latest_mlp_model_requires_authorization(model_file, running_server, base_url):
     status = fetch_latest_mlp_model(base_url, profile_id="p1")
     assert status == 403
@@ -91,3 +111,16 @@ def test_latest_mlp_model_sets_headers(model_file, running_server, base_url):
         cache_control = resp.headers.get("Cache-Control")
         assert cache_control == "private, max-age=0, must-revalidate"
         assert "CDN-Cache-Control" not in resp.headers
+
+
+def test_latest_mlp_model_public_caching(global_model_file, running_server, base_url):
+    url = f"{base_url}/latest-mlp-model"
+    headers = {"Authorization": "Bearer testtoken"}
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        assert resp.getcode() == 200
+        resp.read()
+        cache_control = resp.headers.get("Cache-Control")
+        assert cache_control == "public, max-age=0, must-revalidate"
+        cdn_cache = resp.headers.get("CDN-Cache-Control")
+        assert cdn_cache == "max-age=3600"

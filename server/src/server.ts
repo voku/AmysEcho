@@ -732,6 +732,9 @@ function isProfileAuthorized(req: Request, profileId: string): boolean {
   return typeof claimed === 'string' && claimed === profileId;
 }
 
+const PROFILE_SPECIFIC_MODEL_REGEX = /_[A-Za-z0-9_-]+\.(json|npz)$/;
+const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
+
 async function sendBinaryModel(res: Response, filePath: string, downloadName: string) {
   try {
     const stat = await fs.stat(filePath);
@@ -742,12 +745,18 @@ async function sendBinaryModel(res: Response, filePath: string, downloadName: st
     // Range support
     const range = (res.req.headers['range'] as string | undefined) || undefined;
     res.setHeader('Accept-Ranges', 'bytes');
-    const isProfileSpecific = /_[A-Za-z0-9_-]+\.(json|npz)$/.test(filePath);
+    const baseName = path.basename(filePath, path.extname(filePath));
+    const isProfileSpecific =
+      PROFILE_SPECIFIC_MODEL_REGEX.test(filePath) &&
+      baseName.split('_').length > 2;
     if (isProfileSpecific) {
       res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-      res.setHeader('CDN-Cache-Control', 'max-age=3600');
+      res.setHeader(
+        'CDN-Cache-Control',
+        `max-age=${CDN_CACHE_MAX_AGE_SECONDS}`,
+      );
     }
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('ETag', `"sha256-${sha256}"`);
