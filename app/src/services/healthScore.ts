@@ -81,6 +81,33 @@ export async function loadHistoricalHealthData(
   return data[gestureId] || [];
 }
 
+// Simple linear regression to track success-rate trends.
+// Requires data sorted by date ascending (oldest → newest).
+function calculateTrend(
+  data: ReadonlyArray<HistoricalHealthEntry>,
+): number {
+  const n = data.length;
+  if (n < 2) {
+    return 0;
+  }
+
+  let sx = 0;
+  let sy = 0;
+  let sxy = 0;
+  let sx2 = 0;
+
+  for (let i = 0; i < n; i++) {
+    const y = data[i].successRate;
+    sx += i;
+    sy += y;
+    sxy += i * y;
+    sx2 += i * i;
+  }
+
+  const denom = n * sx2 - sx * sx;
+  return denom === 0 ? 0 : (n * sxy - sx * sy) / denom;
+}
+
 
 
 export async function checkForDecliningAccuracy(
@@ -91,18 +118,42 @@ export async function checkForDecliningAccuracy(
     return false;
   }
 
-  const recentData = data.slice(-7);
-  const x = recentData.map((_, i) => i);
-  const y = recentData.map(d => d.successRate);
-
-  const n = x.length;
-  const sx = x.reduce((a, b) => a + b, 0);
-  const sy = y.reduce((a, b) => a + b, 0);
-  const sxy = x.map((_, i) => x[i] * y[i]).reduce((a, b) => a + b, 0);
-  const sx2 = x.map(v => v * v).reduce((a, b) => a + b, 0);
-
-  const slope = (n * sxy - sx * sy) / (n * sx2 - sx * sx);
-
-  return slope < -0.1;
+  const recentData = [...data]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7);
+  const trend = calculateTrend(recentData);
+  return trend <= -0.1;
 }
+
+export interface ProgressReport {
+  // Weighted by entry.count; 0..1
+  averageSuccessRate: number;
+  totalSamples: number;
+  // Linear-regression slope per entry (older → newer).
+  trend: number;
+}
+
+export async function generateProgressReport(
+  gestureId: string,
+): Promise<ProgressReport> {
+  const data = await loadHistoricalHealthData(gestureId);
+  if (data.length === 0) {
+    return { averageSuccessRate: 0, totalSamples: 0, trend: 0 };
+  }
+  const { totalSamples, weightedSum } = data.reduce(
+    (acc, d) => {
+      acc.totalSamples += d.count;
+      acc.weightedSum += d.successRate * d.count;
+      return acc;
+    },
+    { totalSamples: 0, weightedSum: 0 },
+  );
+  const averageSuccessRate =
+    totalSamples === 0 ? 0 : weightedSum / totalSamples;
+  const trend = calculateTrend(
+    [...data].sort((a, b) => a.date.localeCompare(b.date)),
+  );
+  return { averageSuccessRate, totalSamples, trend };
+}
+
 
