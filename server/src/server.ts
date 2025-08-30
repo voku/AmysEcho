@@ -746,9 +746,7 @@ async function sendBinaryModel(res: Response, filePath: string, downloadName: st
     const range = (res.req.headers['range'] as string | undefined) || undefined;
     res.setHeader('Accept-Ranges', 'bytes');
     const baseName = path.basename(filePath, path.extname(filePath));
-    const isProfileSpecific =
-      PROFILE_SPECIFIC_MODEL_REGEX.test(filePath) &&
-      baseName.split('_').length > 2;
+    const isProfileSpecific = PROFILE_SPECIFIC_MODEL_REGEX.test(filePath);
     if (isProfileSpecific) {
       res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     } else {
