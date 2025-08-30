@@ -14,6 +14,8 @@ jest.mock('react-native', () => {
       Value: class { constructor(public v: any) {} setValue(_: any) {} },
       timing: () => ({ start: jest.fn() }),
       spring: () => ({ start: jest.fn() }),
+      delay: () => ({ start: jest.fn(), stop: jest.fn() }),
+      sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
       View: (p: any) => React.createElement('Animated.View', p, p.children),
       Text: (p: any) => React.createElement('Animated.Text', p, p.children),
     },
@@ -21,8 +23,22 @@ jest.mock('react-native', () => {
   } as any;
 });
 
+jest.mock('../../src/services/LanguageManager', () => ({
+  LanguageManager: {
+    t: (k: string) =>
+      k === 'recognition.toggleDgsVideo'
+        ? 'DGS-Video umschalten'
+        : k === 'recognition.showDgsVideo'
+        ? 'DGS-Video anzeigen'
+        : k === 'celebration.label'
+        ? 'Gut gemacht!'
+        : k,
+  },
+}));
+
 import RecognitionScreen from '../../src/screens/RecognitionScreen';
-import { audioService } from '../../src/services';
+import Celebration from '../../src/components/Celebration';
+import { audioService, triggerSpeakAndShow } from '../../src/services';
 
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   const React = require('react');
@@ -42,7 +58,6 @@ jest.mock('../../src/components/DgsVideoPlayer', () => {
   const React = require('react');
   return (props: any) => React.createElement('DgsVideoPlayer', props, null);
 });
-jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Medium: 'Medium' } }));
 jest.mock('../../src/services', () => ({
   audioService: {
     speak: jest.fn(),
@@ -50,7 +65,7 @@ jest.mock('../../src/services', () => ({
     playSuccessFeedback: jest.fn(),
     playErrorFeedback: jest.fn(),
   },
-  triggerSpeakAndShow: jest.fn(),
+  triggerSpeakAndShow: jest.fn((_: any, __: any, cb: () => void) => cb()),
   correctionService: { logCorrection: jest.fn() },
   dialogEngine: { getSuggestions: jest.fn() },
 }));
@@ -135,5 +150,32 @@ describe('RecognitionScreen', () => {
     });
     const vids = component.root.findAllByType('DgsVideoPlayer');
     expect(vids.length).toBe(1);
+  });
+
+  it('shows celebration when gesture recognized with high confidence', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+    });
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      detector.props.onGestureDetected('hello', 0.9, [], []);
+    });
+    const celebrations = component.root.findAllByType(Celebration);
+    expect(celebrations.length).toBe(1);
+    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not spam celebration for repeated gestures', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+    });
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      detector.props.onGestureDetected('hello', 0.9, [], []);
+      detector.props.onGestureDetected('hello', 0.95, [], []);
+    });
+    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
   });
 });
