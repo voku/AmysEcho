@@ -2,7 +2,7 @@
 
 ## I. Performance & Efficiency
 
-1. **Optimize MediaPipe WebView Performance:** Reduce the resolution or frame rate of the WebView camera feed and explore OffscreenCanvas or WebGL optimizations to lower CPU usage and battery drain.
+1. **Optimize MediaPipe WebView Performance:** Explore OffscreenCanvas or WebGL optimizations to lower CPU usage and battery drain while maintaining full camera resolution and frame rate.
 2. **Lightweight Landmark Transfer:** Compress or quantize landmark data before sending it to the server to minimize network bandwidth and improve remote classification latency.
 3. **WebView Message Batching:** Batch telemetry and gesture messages between the WebView and React Native to reduce bridge overhead and keep recognition responsive.
 4. **Batch Processing for Cloud ML:** For cloud-based ML inference, implement batch processing of gesture frames when network conditions allow, reducing API call overhead and improving throughput for continuous recognition.

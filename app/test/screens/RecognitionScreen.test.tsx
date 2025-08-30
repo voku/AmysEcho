@@ -79,6 +79,12 @@ jest.mock('../../src/storage', () => ({
 jest.mock('../../src/model', () => ({
   gestureModel: { gestures: [{ id: 'hello', label: 'Hello', dgsVideoUri: 'video.mp4' }] },
 }));
+jest.mock('../../src/context/MessageContext', () => ({
+  useMessage: () => ({ setMessage: jest.fn(), message: null }),
+}));
+jest.mock('../../src/services/dgsModelClient', () => ({
+  onMlpModelUpdated: jest.fn(() => () => {}),
+}));
 jest.mock('../../src/services/HybridRecognizer', () => ({
   useHybridFrameProcessor: () => undefined,
 }));
@@ -99,6 +105,19 @@ describe('RecognitionScreen', () => {
       button.props.onPress();
     });
     expect(navigate).toHaveBeenCalledWith('Correction');
+  });
+
+  it('navigates to Teaching screen when teach button is pressed', async () => {
+    const navigate = jest.fn();
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<RecognitionScreen navigation={{ navigate }} />);
+    });
+    const button = component.root.findByProps({ testID: 'btn-teach' });
+    act(() => {
+      button.props.onPress();
+    });
+    expect(navigate).toHaveBeenCalledWith('Teaching');
   });
 
   it('shows correction panel when help-me-choose button is pressed', async () => {
