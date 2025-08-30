@@ -63,7 +63,7 @@
   - ✅ **NEW**: Emergency gestures ("Hilfe") work even during system failures
   - ✅ **NEW**: Maintain last 10 recognized gestures in memory for instant replay
   - ✅ **NEW**: Visual confirmation for every gesture attempt (not just successes)
-  - 🧹 **Cleanup**: Entferne Fehlerbehandlungs-Pakete oder Screens, die vom LLM hinzugefügt wurden, aber ungenutzt sind
+  - 🧹 **Cleanup**: Remove error-handling packages or screens added by the LLM but left unused
 
 ### 1.2 Adaptive Practice System
 **Priority: HIGH - Learning Without Pressure**
@@ -77,7 +77,7 @@
   - ✅ **NEW**: Visual progress that celebrates effort over accuracy
   - ✅ **NEW**: Favorite gesture shortcuts for quick confidence boosts
   - ✅ Customizable rewards based on Amy's preferences
-  - 🧹 **Cleanup**: Überprüfe Übungs-Module und lösche nicht genutzte Screens oder Abhängigkeiten
+  - 🧹 **Cleanup**: Review practice modules and delete unused screens or dependencies
 
 ### 1.3 Telemetry for Amy's Success
 **Priority: MEDIUM - Understanding Amy's Needs**
@@ -91,7 +91,7 @@
   - [x] **NEW**: Measure confidence through usage frequency
   - [x] **NEW**: Identify Amy's preferred communication times
   - [x] **NEW**: Detect fatigue patterns for better support timing
-  - 🧹 **Cleanup**: Entferne Telemetrie-Pakete oder Dashboards, die nicht mehr benötigt werden
+  - 🧹 **Cleanup**: Remove telemetry packages or dashboards that are no longer needed
 
 ## Phase 2: Core Functionality - Always On (Weeks 3-5)
 *Recognition that never fails Amy when she needs it most*
@@ -107,7 +107,7 @@
   - ✅ **NEW**: Personalized confidence thresholds based on Amy's patterns
   - ✅ **NEW**: Context-aware recognition (time of day, recent gestures)
   - [x] **NEW**: Gesture combinations for complex needs
-  - 🧹 **Cleanup**: Bereinige ML-Bibliotheken und Skripte, die aus LLM-Experimenten übrig blieben
+  - 🧹 **Cleanup**: Clean up ML libraries and scripts leftover from LLM experiments
 
 ### 2.2 Instant Feedback System
 **Priority: HIGH - Every Gesture Acknowledged**
@@ -120,7 +120,7 @@
   - ✅ **NEW**: Picture-in-picture gesture guides during recognition
   - ✅ **NEW**: Slow-motion replay of Amy's successful gestures
   - [x] **NEW**: Side-by-side comparison without judgment
-  - 🧹 **Cleanup**: Lösche Feedback-Komponenten und Assets, die wir nicht einsetzen
+  - 🧹 **Cleanup**: Delete feedback components and assets we aren't using
 
 ### 2.3 Simplified Interaction Flows
 **Priority: HIGH - Reducing Cognitive Load**
@@ -133,7 +133,7 @@
   - [ ] **NEW**: Picture-based correction selection
   - [x] **NEW**: Undo last recognition with simple gesture
   - ✅ **NEW**: Positive reinforcement for correction attempts
-  - 🧹 **Cleanup**: Prüfe Navigation und entferne ungenutzte Screens oder Routen vom LLM
+  - 🧹 **Cleanup**: Audit navigation and remove unused screens or routes from the LLM
 
 ## Phase 3: Enhanced Accessibility (Weeks 6-7)
 *Features specifically for 22q11 syndrome needs*
@@ -145,7 +145,7 @@
   - [ ] **NEW**: Memory management that never drops frames
   - [ ] **NEW**: Battery optimization through efficiency, not throttling
   - [ ] **NEW**: Thermal management via better algorithms, not reduced service
-  - 🧹 **Cleanup**: Entferne übrig gebliebene Optimierungs-Flags oder Pakete für Throttling
+  - 🧹 **Cleanup**: Remove leftover optimization flags or throttling packages
 
 ### 3.2 22q11-Specific Features
 **Priority: HIGH - Targeted Support**
@@ -159,7 +159,7 @@
   - [ ] **NEW**: Adjustable gesture size tolerance
   - [ ] **NEW**: Support for partial gesture completion
   - [ ] **NEW**: Hand stability assistance mode
-  - 🧹 **Cleanup**: Lösche Prototyp-Screens und Module zur Barrierefreiheit, die wir nicht mehr verfolgen
+  - 🧹 **Cleanup**: Delete prototype screens and accessibility modules we no longer pursue
 
 ### 3.3 Family Integration Tools
 **Priority: MEDIUM - Supporting Amy's Circle**
@@ -173,7 +173,7 @@
   - [ ] **NEW**: Sibling/parent practice modes
   - [ ] **NEW**: Celebration sharing (with Amy's permission)
   - [ ] **NEW**: Multi-device gesture sync for consistency
-  - 🧹 **Cleanup**: Überarbeite Family-Mode-Pakete und streiche ungenutzten Code oder Assets
+  - 🧹 **Cleanup**: Refine family-mode packages and drop unused code or assets
 
 ## Phase 4: Production Excellence - Amy First (Weeks 8-10)
 *Reliability and privacy without compromise*
@@ -190,7 +190,7 @@
   - [ ] **NEW**: Emergency gesture bypass of all security features
   - [ ] **NEW**: Trusted device quick setup
   - [ ] **NEW**: Anti-bullying protections for shared devices
-  - 🧹 **Cleanup**: Prüfe Sicherheits-Abhängigkeiten und entferne redundante Bibliotheken
+  - 🧹 **Cleanup**: Review security dependencies and remove redundant libraries
 
 ### 4.2 Sustainable Performance
 **Priority: HIGH - Long-term Reliability**
@@ -199,7 +199,7 @@
   - [x] **NEW**: CDN usage that falls back gracefully
   - [ ] **NEW**: Background updates that never interrupt foreground
   - [x] **NEW**: Monitoring that never impacts performance
-  - 🧹 **Cleanup**: Entferne ungenutzte Monitoring- oder Caching-Tools aus LLM-Versuchen
+  - 🧹 **Cleanup**: Remove unused monitoring or caching tools from LLM experiments
 
 ### 4.3 Production Deployment - Zero Downtime
 **Priority: HIGH - Continuous Availability**
@@ -208,7 +208,7 @@
   - [ ] **NEW**: Instant rollback on any issue
   - [ ] **NEW**: A/B testing that never degrades Amy's experience
   - [ ] **NEW**: Update notifications that don't interrupt usage
-  - 🧹 **Cleanup**: Streiche veraltete Deployment-Skripte und Konfigurationen
+  - 🧹 **Cleanup**: Remove outdated deployment scripts and configurations
 
 ## Amy First Implementation Priority
 
@@ -235,7 +235,7 @@
 | Privacy protections | Safety | **P1** |
 | Performance optimization | Reliability | **P2** |
 | Production deployment | Availability | **P1** |
- - 🧹 **Cleanup**: Räum die Backlog-Tasks auf und entferne Screens, die nicht mehr zum Amy-Fokus passen
+ - 🧹 **Cleanup**: Clear backlog tasks and delete screens that no longer serve the Amy focus
 
 ## Amy First Success Metrics
 
@@ -256,7 +256,7 @@
 - **Therapy integration**: Measurable progress in sessions
 - **Family participation**: Multiple family members engaged
 - **Daily communication moments**: Steady increase
- - 🧹 **Cleanup**: Entferne Metriken oder Tracking-Code, die Amys Kommunikation nicht direkt unterstützen
+ - 🧹 **Cleanup**: Remove metrics or tracking code that doesn't directly support Amy's communication
 
 ## Development Guidelines - Amy First
 
@@ -269,7 +269,7 @@
 - [ ] Accessibility check - cognitive load assessment
 - [ ] Performance check - no frame drops?
 - [ ] Amy scenario test - works when she needs it most?
- - 🧹 **Cleanup**: Prüfe regelmäßig Abhängigkeiten und Screens vom LLM und entferne Unnötiges
+ - 🧹 **Cleanup**: Regularly audit dependencies and LLM screens and remove unnecessary ones
 
 ### Architecture Principles
 1. **Never throttle** - Find efficiency, not reduction
@@ -280,7 +280,7 @@
 6. **Never judge** - Celebrate attempts, not just success
 7. **Never assume** - Design for cognitive differences
 8. **Never compromise** - Amy's needs come first
- - 🧹 **Cleanup**: Halte Code und Dokumentation frei von Altlasten, die dem Amy-First-Ansatz widersprechen
+ - 🧹 **Cleanup**: Keep code and documentation free of leftovers that conflict with the Amy-first approach
 
 ## Risk Mitigation - Amy First
 
@@ -303,7 +303,7 @@
 - ✅ Focus on successful communication moments
 - ✅ Update seamlessly in background
 - ✅ Keep interfaces simple and clear
- - 🧹 **Cleanup**: Auditiere Code und Dokumente, um überflüssige Funktionen konsequent zu entfernen
+ - 🧹 **Cleanup**: Audit code and documentation to remove superfluous features consistently
 
 ## Remember: Amy's Communication Is Sacred
 Every line of code, every design decision, every optimization must enhance Amy's ability to communicate. When in doubt, choose reliability over elegance, simplicity over features, and Amy's needs over technical metrics. The last 5% of battery might be when she needs to say "Hilfe" - and that gesture must work perfectly.
