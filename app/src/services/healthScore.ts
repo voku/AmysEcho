@@ -83,16 +83,24 @@ export async function loadHistoricalHealthData(
 
 // Simple linear regression to track success-rate trends.
 function calculateTrend(data: HistoricalHealthEntry[]): number {
-  if (data.length < 2) {
+  const n = data.length;
+  if (n < 2) {
     return 0;
   }
-  const x = data.map((_, i) => i);
-  const y = data.map((d) => d.successRate);
-  const n = x.length;
-  const sx = x.reduce((a, b) => a + b, 0);
-  const sy = y.reduce((a, b) => a + b, 0);
-  const sxy = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
-  const sx2 = x.reduce((acc, xi) => acc + xi * xi, 0);
+
+  let sx = 0;
+  let sy = 0;
+  let sxy = 0;
+  let sx2 = 0;
+
+  for (let i = 0; i < n; i++) {
+    const y = data[i].successRate;
+    sx += i;
+    sy += y;
+    sxy += i * y;
+    sx2 += i * i;
+  }
+
   const denom = n * sx2 - sx * sx;
   return denom === 0 ? 0 : (n * sxy - sx * sy) / denom;
 }

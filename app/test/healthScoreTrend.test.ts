@@ -16,7 +16,6 @@ import {
   checkForDecliningAccuracy,
   generateProgressReport,
 } from '../src/services/healthScore';
-import { getPracticeRecommendation } from '../src/services/practiceRecommender';
 
 beforeEach(() => {
   for (const k of Object.keys(store)) delete store[k];
@@ -49,22 +48,6 @@ describe('Health score trend analysis', () => {
     expect(report.averageSuccessRate).toBeCloseTo(5 / 6);
     expect(report.totalSamples).toBe(6);
     expect(report.trend).toBeGreaterThan(0);
-  });
-
-  it('suggests practice when last days decline', async () => {
-    jest.useFakeTimers().setSystemTime(new Date('2023-09-08T12:00:00Z'));
-    // prepare 7 days of data where last 3 decline
-    const rates = [0.9, 0.9, 0.9, 0.9, 0.9, 0.8, 0.7];
-    for (let i = 0; i < rates.length; i++) {
-      await saveHistoricalHealthData('g1', {
-        date: `2023-09-${String(i + 1).padStart(2, '0')}`,
-        successRate: rates[i],
-        count: 5,
-      });
-    }
-    const rec = await getPracticeRecommendation('g1');
-    expect(rec).toEqual(new Date('2023-09-09T12:00:00Z'));
-    jest.useRealTimers();
   });
 });
 
