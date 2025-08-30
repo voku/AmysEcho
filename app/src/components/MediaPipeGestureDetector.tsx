@@ -9,8 +9,8 @@ import {
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
 import { LanguageManager } from '../services/LanguageManager';
-import { installMlp } from '../webview/installMlp';
 import { fflateBase64 } from '../webview/fflateBase64';
+import { installMlpBase64 } from '../webview/installMlpBase64';
 // Avoid pulling the module at import time. Use dynamic require below.
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 
@@ -117,7 +117,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       </View>
     );
   }
-  const mlpInstallScript = `const s=document.createElement('script'); s.src='data:application/javascript;base64,${fflateBase64}'; s.onload=()=>{(${installMlp.toString()})();}; document.head.appendChild(s);`;
+  const mlpInstallScript = `const f = document.createElement('script'); f.src = 'data:application/javascript;base64,${fflateBase64}'; f.onload = () => { const m = document.createElement('script'); m.src = 'data:application/javascript;base64,${installMlpBase64}'; document.head.appendChild(m); }; document.head.appendChild(f);`;
   const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
   const mirrorOverlayFlag = facingMode === 'user' ? 'true' : 'false';
   const htmlContent = `

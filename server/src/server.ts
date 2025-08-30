@@ -80,6 +80,11 @@ app.get('/portal', (_req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, 'portal', 'index.html'));
 });
 
+// Basic health check endpoint for monitoring
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
 // API routes for caregiver portal
 app.use('/portal', portalRouter);
 
@@ -727,6 +732,9 @@ function isProfileAuthorized(req: Request, profileId: string): boolean {
   return typeof claimed === 'string' && claimed === profileId;
 }
 
+const PROFILE_SPECIFIC_MODEL_REGEX = /_[A-Za-z0-9_-]+\.(json|npz)$/;
+const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
+
 async function sendBinaryModel(res: Response, filePath: string, downloadName: string) {
   try {
     const stat = await fs.stat(filePath);
@@ -737,7 +745,17 @@ async function sendBinaryModel(res: Response, filePath: string, downloadName: st
     // Range support
     const range = (res.req.headers['range'] as string | undefined) || undefined;
     res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+    const baseName = path.basename(filePath, path.extname(filePath));
+    const isProfileSpecific = PROFILE_SPECIFIC_MODEL_REGEX.test(filePath);
+    if (isProfileSpecific) {
+      res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      res.setHeader(
+        'CDN-Cache-Control',
+        `max-age=${CDN_CACHE_MAX_AGE_SECONDS}`,
+      );
+    }
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('ETag', `"sha256-${sha256}"`);
     res.setHeader('X-Checksum-SHA256', sha256);
