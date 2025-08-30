@@ -38,7 +38,7 @@ describe('SequenceRecognizer', () => {
     }
     expect(rec.getEventCount()).toBeLessThanOrEqual(3);
     rec.push('b', base + 2000);
-    expect(rec.getEventCount()).toBe(1);
+    expect(rec.eventCount).toBe(1);
   });
 });
 
