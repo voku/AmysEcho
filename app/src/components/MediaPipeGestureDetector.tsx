@@ -155,6 +155,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       if (data.type === 'gesture') {
         onGestureDetected(data.gesture, data.confidence, data.landmarks, data.handednesses || []);
       } else if (data.type === 'error') {
+        console.error('WebView error:', data.message);
         onError(data.message);
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
@@ -217,6 +218,15 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         mediaCapturePermissionGrantType={'grant'}
         androidLayerType={'hardware'}
         mixedContentMode={'always'}
+        onError={(e: any) => {
+          console.error('WebView runtime error', e.nativeEvent);
+          onError(LanguageManager.t('mediapipe.gestureProcessingError'));
+        }}
+        onConsoleMessage={(e: any) => {
+          try {
+            console.log('WV:', e.nativeEvent.message);
+          } catch {}
+        }}
         onPermissionRequest={(event: any) => {
           try {
             const videoOnly = (event.nativeEvent.resources || []).filter((r: string) => r === 'VIDEO_CAPTURE');

@@ -694,6 +694,14 @@
   }
 
   // webview/gestureDetector.ts
+  window.addEventListener("error", (e) => {
+    try {
+      window.ReactNativeWebView?.postMessage(
+        JSON.stringify({ type: "error", message: e.message })
+      );
+    } catch {
+    }
+  });
   window.fflate = { unzipSync };
   installMlp();
   var tapToStartText = window.__tapToStart || "";

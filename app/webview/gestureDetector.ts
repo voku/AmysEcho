@@ -1,6 +1,15 @@
 import { unzipSync } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
 
+// Forward script errors to React Native for easier debugging
+window.addEventListener('error', (e) => {
+  try {
+    (window as any).ReactNativeWebView?.postMessage(
+      JSON.stringify({ type: 'error', message: e.message }),
+    );
+  } catch {}
+});
+
 (window as any).fflate = { unzipSync };
 installMlp();
 
