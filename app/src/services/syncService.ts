@@ -75,7 +75,7 @@ export const syncService = {
             }
           });
           logger.info(`Uploaded ${pendingSamples.length} samples successfully.`);
-          await refreshDgsModel(activeProfileId).catch(() => {});
+          await refreshDgsModel(activeProfileId);
         } else {
           logger.error(`Failed to upload training data: ${response.status} ${response.statusText}`);
         }
