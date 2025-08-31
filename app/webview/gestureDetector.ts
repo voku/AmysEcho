@@ -1,4 +1,4 @@
-import { unzipSync } from 'fflate';
+import { unzipSync, unzip } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
 import { HAND_CONNECTIONS } from '../src/constants/hand';
 
@@ -11,7 +11,7 @@ window.addEventListener('error', (e) => {
   } catch {}
 });
 
-(window as any).fflate = { unzipSync };
+(window as any).fflate = { unzip, unzipSync };
 installMlp();
 try {
   (window as any).ReactNativeWebView?.postMessage?.(
@@ -20,9 +20,9 @@ try {
 } catch {}
 
 const tapToStartText = (window as any).__tapToStart || '';
-const recognizerInitFailed = (window as any).__recognizerInitFailed || 'Recognizer init failed: ';
-const predictionError = (window as any).__predictionError || 'Prediction error: ';
-const cameraError = (window as any).__cameraError || 'Camera error: ';
+const recognizerInitFailed = (window as any).__recognizerInitFailed || 'Erkennung konnte nicht gestartet werden: ';
+const predictionError = (window as any).__predictionError || 'Vorhersagefehler: ';
+const cameraError = (window as any).__cameraError || 'Kamerafehler: ';
 const facingMode = (window as any).__facingMode || 'user';
 const mirrorOverlay = (window as any).__mirrorOverlay === true;
 const MLP_CONFIDENCE_THRESHOLD = (window as any).__mlpThreshold ?? 0.6;
@@ -59,6 +59,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           if ((window as any).__visionBundleSri) {
             s.integrity = (window as any).__visionBundleSri;
             s.crossOrigin = 'anonymous';
+          }
+          if ((window as any).__visionBundleNonce) {
+            (s as any).nonce = (window as any).__visionBundleNonce;
           }
           s.async = true;
           const cleanup = () => {
@@ -146,7 +149,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       const tap = document.createElement('div');
       tap.id = 'tapToStart';
       tap.innerText = tapToStartText;
-      if ((window as any).__autostartCamera === true) {
+      if ((window as any).__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
         tap.classList.add('hidden');
       }
       tap.addEventListener('click', async () => {
@@ -157,10 +160,10 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         } catch (err) {
           try {
             (window as any).ReactNativeWebView?.postMessage?.(
-              JSON.stringify({ type: 'error', message: cameraError + (err?.message || err) }),
+              JSON.stringify({ type: 'error', message: cameraError + (err instanceof Error ? err.message : String(err)) }),
             );
           } catch (postErr) {
-            console.warn('Failed to post camera error:', postErr);
+            console.warn('Kamerafehler konnte nicht gesendet werden:', postErr);
           }
         }
       });
@@ -182,11 +185,17 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           numHands: 2,
         });
         const initMs = Math.round(performance.now() - visionStart);
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }));
+        try {
+          window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }));
+        } catch {}
         // Start prediction loop after recognizer is created and video is loaded
         video.addEventListener('loadeddata', predictWebcam);
       } catch (e) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: recognizerInitFailed + (e?.message || e) }));
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: 'error', message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) })
+          );
+        } catch {}
       }
     }
 
@@ -195,7 +204,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     let lastSentAt = 0;
     let lastSentGesture = null;
     let lastSentScore = 0;
+    let running = true;
     function predictWebcam() {
+      if (!running) return;
       try {
         if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
           if (lastVideoTime !== video.currentTime) { // Only process if video frame has changed
@@ -315,20 +326,26 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                 lastSentGesture = outGesture;
                 lastSentScore = confidence;
                 lastSentAt = now;
-                window.ReactNativeWebView?.postMessage?.(
-                  JSON.stringify({
-                    type: 'gesture',
-                    gesture: outGesture || null,
-                    confidence,
-                    landmarks: allLandmarks,
-                    handednesses: handedArr,
-                  }),
-                );
+                try {
+                  window.ReactNativeWebView?.postMessage?.(
+                    JSON.stringify({
+                      type: 'gesture',
+                      gesture: outGesture || null,
+                      confidence,
+                      landmarks: allLandmarks,
+                      handednesses: handedArr,
+                    }),
+                  );
+                } catch {}
               }
           }
         }
       } catch (e) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'warn', message: predictionError + (e?.message || e) }));
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: 'warn', message: predictionError + (e instanceof Error ? e.message : String(e)) })
+          );
+        } catch {}
       }
       window.requestAnimationFrame(predictWebcam);
     }
@@ -359,7 +376,12 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
 
     // Start camera only after user interaction unless explicitly allowed
     if ((window as any).__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
-      startCamera();
+      startCamera()
+        .then(() => {
+          document.getElementById('tapToStart')?.classList.add('hidden');
+          window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start_autostart' }));
+        })
+        .catch(() => {});
     }
     createGestureRecognizer();
     function stopCamera() {
@@ -371,7 +393,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         }
       } catch {}
     }
-    window.addEventListener('pagehide', stopCamera);
-    window.addEventListener('beforeunload', stopCamera);
+    window.addEventListener('pagehide', () => { running = false; stopCamera(); });
+    window.addEventListener('beforeunload', () => { running = false; stopCamera(); });
     window.addEventListener('resize', ()=>{ try { resizeOverlay(); } catch {} });
 

@@ -48,6 +48,12 @@ export function installMlp() {
     if (type === 'f4') {
       return { data: new Float32Array(buf.buffer, buf.byteOffset + offset, size), shape };
     }
+    if (type === 'f2') {
+      const src = new Uint16Array(buf.buffer, buf.byteOffset + offset, size);
+      const out = new Float32Array(size);
+      for (let i = 0; i < size; i++) out[i] = f16ToF32(src[i]);
+      return { data: out, shape };
+    }
     if (type === 'i4') {
       return { data: new Int32Array(buf.buffer, buf.byteOffset + offset, size), shape };
     }
@@ -75,14 +81,37 @@ export function installMlp() {
     }
     throw new Error('dtype ' + type);
   }
+
+  // IEEE-754 half -> float conversion
+  function f16ToF32(h: number): number {
+    const s = (h & 0x8000) << 16;
+    let e = (h & 0x7C00) >> 10;
+    let f = h & 0x03FF;
+    if (e === 0) {
+      if (f === 0) return s ? -0 : 0;
+      while ((f & 0x0400) === 0) { f <<= 1; e--; }
+      e++;
+      f &= ~0x0400;
+    } else if (e === 0x1F) {
+      const bits = s | 0x7F800000 | (f << 13);
+      return new Float32Array(new Uint32Array([bits]).buffer)[0];
+    }
+    e = e + (127 - 15);
+    const bits = s | (e << 23) | (f << 13);
+    return new Float32Array(new Uint32Array([bits]).buffer)[0];
+  }
   async function loadMlpFromB64(b64: string) {
     try {
       const bin = atob(b64);
       const u8 = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-      const unzip = (window as any).fflate?.unzipSync;
+      const unzip = (window as any).fflate?.unzip;
       if (!unzip) throw new Error('fflate unavailable');
-      const files = unzip(u8);
+      const files: Record<string, Uint8Array> = await new Promise((resolve, reject) => {
+        unzip(u8, (err: any, data: Record<string, Uint8Array>) => {
+          if (err) reject(err); else resolve(data);
+        });
+      });
       const entries = Object.keys(files);
       if (entries.length > 32) throw new Error('too many entries');
       const map: Record<string, Uint8Array> = {};
@@ -90,8 +119,8 @@ export function installMlp() {
         map[name.replace(/.*\//, '')] = files[name];
       }
       function npzFind(m: Record<string, Uint8Array>, prefix: string) {
-      const k = Object.keys(m).find((n) => n === prefix || n === prefix + '.npy');
-      return k ? m[k] : undefined;
+        const k = Object.keys(m).find((n) => n === prefix || n === prefix + '.npy');
+        return k ? m[k] : undefined;
       }
       const w1b = npzFind(map, 'w1');
       const b1b = npzFind(map, 'b1');
@@ -162,7 +191,7 @@ export function installMlp() {
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness) {
-    const flat: number[] = [];
+    const flat = new Float32Array(21 * 2 * 3);
     function normHand(hand: Hand | null): Hand | null {
       if (!hand || hand.length < 21) return null;
       const [wx, wy, wz] = hand[0];
@@ -187,10 +216,13 @@ export function installMlp() {
     const right = normHand(rightHand);
     const r = right ?? EMPTY_HAND;
     const both = left.concat(r);
+    let k = 0;
     for (const p of both) {
-      flat.push(p[0], p[1], p[2]);
+      flat[k++] = p[0];
+      flat[k++] = p[1];
+      flat[k++] = p[2];
     }
-    return new Float32Array(flat);
+    return flat;
   }
   function mlpPredict(all: Hand[], handednesses: Handedness) {
     if (!mlp) return null;
