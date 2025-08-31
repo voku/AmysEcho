@@ -308,8 +308,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               }
             }
             // ** MLP Gesture Prediction **
-            if ((window as any).__mlpPredict) {
-              const mlpResult = (window as any).__mlpPredict(allLandmarks, results.handednesses);
+            if (window.__mlpPredict) {
+              const mlpResult = window.__mlpPredict(allLandmarks, results.handednesses);
               if (mlpResult && mlpResult.score > ${MLP_CONFIDENCE_THRESHOLD}) {
                 outGesture = mlpResult.label;
                 outScore = mlpResult.score;
@@ -317,7 +317,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             }
             // Custom gesture logic (preserved for single-hand fallback)
             const firstHand = allLandmarks[0] || [];
-            if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21) {
+            if ((!outGesture || outScore < ${FALLBACK_CONFIDENCE_THRESHOLD}) && firstHand.length === 21) {
               const thumbUp = firstHand[4][1] < firstHand[2][1];
               const indexUp = firstHand[8][1] < firstHand[6][1];
               const middleUp = firstHand[12][1] < firstHand[10][1];

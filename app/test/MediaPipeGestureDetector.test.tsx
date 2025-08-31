@@ -298,4 +298,15 @@ describe('MediaPipeGestureDetector', () => {
     expect(html).not.toContain('transform: scaleX(-1);');
     expect(html).toContain('const mirrorOverlay = false');
   });
+
+  it('embeds thresholds and produces parsable script', () => {
+    const html = renderHtml('user');
+    expect(html).not.toContain('FALLBACK_CONFIDENCE_THRESHOLD');
+    expect(html).not.toContain('MLP_CONFIDENCE_THRESHOLD');
+    const scriptMatches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    expect(scriptMatches.length).toBeGreaterThan(0);
+    for (const [, script] of scriptMatches) {
+      expect(() => new Function(script)).not.toThrow();
+    }
+  });
 });
