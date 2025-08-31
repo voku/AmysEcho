@@ -522,12 +522,14 @@
     }
     async function loadMlpFromB64(b64) {
       try {
-        const npzFind = function(prefix) {
-          const k = Object.keys(map).find((n) => n === prefix || n === prefix + ".npy");
-          return k ? map[k] : void 0;
+        let npzFind2 = function(m, prefix) {
+          const k = Object.keys(m).find((n) => n === prefix || n === prefix + ".npy");
+          return k ? m[k] : void 0;
         };
-        const res = await fetch(`data:application/octet-stream;base64,${b64}`);
-        const u82 = new Uint8Array(await res.arrayBuffer());
+        var npzFind = npzFind2;
+        const bin = atob(b64);
+        const u82 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u82[i] = bin.charCodeAt(i);
         const unzip = window.fflate?.unzipSync;
         if (!unzip) throw new Error("fflate unavailable");
         const files = unzip(u82);
@@ -537,17 +539,17 @@
         for (const name of entries) {
           map[name.replace(/.*\//, "")] = files[name];
         }
-        const w1b = npzFind("w1");
-        const b1b = npzFind("b1");
-        const w2b = npzFind("w2");
-        const b2b = npzFind("b2");
+        const w1b = npzFind2(map, "w1");
+        const b1b = npzFind2(map, "b1");
+        const w2b = npzFind2(map, "w2");
+        const b2b = npzFind2(map, "b2");
         if (!w1b || !b1b || !w2b || !b2b) throw new Error("missing weights");
         const w1 = parseNPY(w1b);
         const b1 = parseNPY(b1b);
         const w2 = parseNPY(w2b);
         const b22 = parseNPY(b2b);
         let labels = [];
-        const lb = npzFind("labels");
+        const lb = npzFind2(map, "labels");
         if (lb) {
           const parsed = parseNPY(lb);
           labels = parsed.data;
@@ -599,19 +601,11 @@
       for (let r = 0; r < rows; r++) {
         let sum = 0;
         for (let c = 0; c < cols; c++) sum += mat[r * cols + c] * vec[c];
-        out[r] = sum + bias[r % bias.length];
+        out[r] = sum + bias[r];
       }
       return out;
     }
     const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0]);
-    const HAND_CONNECTIONS = [
-      [0, 1], [1, 2], [2, 3], [3, 4],
-      [0, 5], [5, 6], [6, 7], [7, 8],
-      [5, 9], [9, 10], [10, 11], [11, 12],
-      [9, 13], [13, 14], [14, 15], [15, 16],
-      [13, 17], [17, 18], [18, 19], [19, 20],
-      [0, 17]
-    ];
     function normalizeLandmarks(all, handednesses) {
       const flat = [];
       function normHand(hand) {
@@ -708,6 +702,31 @@
     };
   }
 
+  // src/constants/hand.ts
+  var HAND_CONNECTIONS = [
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [3, 4],
+    [0, 5],
+    [5, 6],
+    [6, 7],
+    [7, 8],
+    [5, 9],
+    [9, 10],
+    [10, 11],
+    [11, 12],
+    [9, 13],
+    [13, 14],
+    [14, 15],
+    [15, 16],
+    [13, 17],
+    [17, 18],
+    [18, 19],
+    [19, 20],
+    [0, 17]
+  ];
+
   // webview/gestureDetector.ts
   window.addEventListener("error", (e) => {
     try {
@@ -755,7 +774,7 @@
       }
       return null;
     }
-    function tryLoadScript(src, timeoutMs = 8000) {
+    function tryLoadScript(src, timeoutMs = 8e3) {
       return new Promise((resolve, reject) => {
         const s = document.createElement("script");
         s.src = src;
@@ -775,7 +794,7 @@
         s.onload = () => {
           clearTimeout(to);
           cleanup();
-          resolve();
+          resolve(null);
         };
         s.onerror = () => {
           clearTimeout(to);
@@ -857,8 +876,14 @@
         await startCamera();
         tap.classList.add("hidden");
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "tap_start" }));
-      } catch (err) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: cameraError + (err?.message || err) }));
+      } catch (err2) {
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "error", message: cameraError + (err2?.message || err2) })
+          );
+        } catch (postErr) {
+          console.warn("Failed to post camera error:", postErr);
+        }
       }
     });
     document.body.appendChild(tap);
@@ -1050,7 +1075,9 @@
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: cameraError + msg }));
     }
   }
-  if (window.__autostartCamera === true) startCamera();
+  if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+    startCamera();
+  }
   createGestureRecognizer();
   function stopCamera() {
     try {

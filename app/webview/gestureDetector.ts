@@ -1,11 +1,12 @@
 import { unzipSync } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
+import { HAND_CONNECTIONS } from '../src/constants/hand';
 
 // Forward script errors to React Native for easier debugging
 window.addEventListener('error', (e) => {
   try {
     (window as any).ReactNativeWebView?.postMessage(
-      JSON.stringify({ type: 'error', message: e.message }),
+      JSON.stringify({ type: 'error', message: e.message, file: (e as any).filename, line: (e as any).lineno, col: (e as any).colno }),
     );
   } catch {}
 });
@@ -29,14 +30,18 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
 
     // Dynamically load MediaPipe Tasks Vision from CDN and wait until it's ready
     async function loadTasksVision() {
-      // Resolve a pinned version dynamically if possible, otherwise fall back to generic.
+      // Resolve a pinned version from host config if provided
       async function resolvePinnedBase() {
+        const pinnedVersion = (window as any).__mediapipeVersion;
+        if (typeof pinnedVersion === 'string' && pinnedVersion.length) {
+          return { base: 'https://cdn.jsdelivr.net/npm', version: pinnedVersion };
+        }
         const cdns = ['https://cdn.jsdelivr.net/npm', 'https://unpkg.com'];
         for (const base of cdns) {
           try {
             const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', { method: 'GET' });
             if (pkg.ok) {
-              const json = await pkg.json().catch(()=>null);
+              const json = await pkg.json().catch(() => null);
               const v = json?.version;
               if (typeof v === 'string' && v.length) {
                 return { base, version: v };
@@ -47,12 +52,33 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         return null;
       }
 
-      function tryLoadScript(src) {
+      function tryLoadScript(src: string, timeoutMs = 8000) {
         return new Promise((resolve, reject) => {
           const s = document.createElement('script');
           s.src = src;
-          s.onload = resolve;
-          s.onerror = () => reject(new Error('Failed to load script: ' + src));
+          if ((window as any).__visionBundleSri) {
+            s.integrity = (window as any).__visionBundleSri;
+            s.crossOrigin = 'anonymous';
+          }
+          s.async = true;
+          const cleanup = () => {
+            s.onload = s.onerror = null;
+            if (s.parentNode) s.parentNode.removeChild(s);
+          };
+          const to = setTimeout(() => {
+            cleanup();
+            reject(new Error('Script load timeout: ' + src));
+          }, timeoutMs);
+          s.onload = () => {
+            clearTimeout(to);
+            cleanup();
+            resolve(null);
+          };
+          s.onerror = () => {
+            clearTimeout(to);
+            cleanup();
+            reject(new Error('Failed to load script: ' + src));
+          };
           document.head.appendChild(s);
         });
       }
@@ -120,8 +146,23 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       const tap = document.createElement('div');
       tap.id = 'tapToStart';
       tap.innerText = tapToStartText;
+      if ((window as any).__autostartCamera === true) {
+        tap.classList.add('hidden');
+      }
       tap.addEventListener('click', async () => {
-        try { await startCamera(); tap.classList.add('hidden'); window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start' })); } catch {}
+        try {
+          await startCamera();
+          tap.classList.add('hidden');
+          window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start' }));
+        } catch (err) {
+          try {
+            (window as any).ReactNativeWebView?.postMessage?.(
+              JSON.stringify({ type: 'error', message: cameraError + (err?.message || err) }),
+            );
+          } catch (postErr) {
+            console.warn('Failed to post camera error:', postErr);
+          }
+        }
       });
       document.body.appendChild(tap);
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'dom_ready' }));
@@ -243,14 +284,6 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   ctx.scale(-1, 1);
                   ctx.translate(-overlay.width, 0);
                 }
-                const HAND_CONNECTIONS = [
-                  [0,1],[1,2],[2,3],[3,4],
-                  [0,5],[5,6],[6,7],[7,8],
-                  [5,9],[9,10],[10,11],[11,12],
-                  [9,13],[13,14],[14,15],[15,16],
-                  [13,17],[17,18],[18,19],[19,20],
-                  [0,17]
-                ];
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
                 ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
@@ -324,8 +357,10 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       }
     }
 
-    // Start camera and then create recognizer
-    startCamera();
+    // Start camera only after user interaction unless explicitly allowed
+    if ((window as any).__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+      startCamera();
+    }
     createGestureRecognizer();
     function stopCamera() {
       try {
