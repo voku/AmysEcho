@@ -1,3 +1,7 @@
+/**
+ * Bundled into app/assets/gestureDetector.js for the WebView.
+ * Run `npm run build:webview --prefix app` to regenerate.
+ */
 import { unzipSync, unzip } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
 import { HAND_CONNECTIONS } from '../src/constants/hand';

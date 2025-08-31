@@ -15,7 +15,7 @@
     "build:android": "eas build --platform android --profile production --non-interactive",
     "build:android-apk": "eas build --platform android --profile apk --non-interactive",
     "build:ios": "eas build --platform ios --profile production --non-interactive",
-    "build:webview": "esbuild webview/gestureDetector.ts --bundle --format=iife --outfile=assets/gestureDetector.js"
+    "build:webview": "esbuild webview/gestureDetector.ts --bundle --format=iife --outfile=assets/gestureDetector.js --banner:js='// Generated from app/webview/gestureDetector.ts; run npm run build:webview --prefix app'"
   },
   "dependencies": {
     "@nozbe/watermelondb": "0.28.0",
