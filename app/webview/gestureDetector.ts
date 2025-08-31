@@ -12,6 +12,11 @@ window.addEventListener('error', (e) => {
 
 (window as any).fflate = { unzipSync };
 installMlp();
+try {
+  (window as any).ReactNativeWebView?.postMessage?.(
+    JSON.stringify({ type: 'telemetry', event: 'mlp_ready' })
+  );
+} catch {}
 
 const tapToStartText = (window as any).__tapToStart || '';
 const recognizerInitFailed = (window as any).__recognizerInitFailed || 'Recognizer init failed: ';

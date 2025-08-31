@@ -243,11 +243,29 @@ export function installMlp() {
     });
   };
   (window as any).__mlpPredict = mlpPredict;
-  try {
-    (window as any).ReactNativeWebView?.postMessage?.(
-      JSON.stringify({ type: 'telemetry', event: 'mlp_ready' })
-    );
-  } catch (e) {
-    console.warn('mlp_ready postMessage failed', e);
-  }
+  let transferBuf = '';
+  let transferStart = 0;
+  (window as any).__beginMlpTransfer = () => {
+    transferBuf = '';
+    transferStart = performance.now();
+  };
+  (window as any).__pushMlpChunk = (chunk: string) => {
+    transferBuf += chunk;
+  };
+  (window as any).__commitMlpTransfer = () => {
+    const bytes = transferBuf.length;
+    const start = transferStart;
+    try {
+      (window as any).__setMlpModelB64?.(transferBuf);
+      const ms = Math.round(performance.now() - start);
+      (window as any).ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: 'telemetry', event: 'mlp_transfer', bytes, ms })
+      );
+    } catch (err) {
+      console.warn('mlp_transfer failed', err);
+    } finally {
+      transferBuf = '';
+      transferStart = 0;
+    }
+  };
 }

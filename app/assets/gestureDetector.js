@@ -684,13 +684,31 @@
       });
     };
     window.__mlpPredict = mlpPredict;
-    try {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: "telemetry", event: "mlp_ready" })
-      );
-    } catch (e) {
-      console.warn("mlp_ready postMessage failed", e);
-    }
+    let transferBuf = "";
+    let transferStart = 0;
+    window.__beginMlpTransfer = () => {
+      transferBuf = "";
+      transferStart = performance.now();
+    };
+    window.__pushMlpChunk = (chunk) => {
+      transferBuf += chunk;
+    };
+    window.__commitMlpTransfer = () => {
+      const bytes = transferBuf.length;
+      const start = transferStart;
+      try {
+        window.__setMlpModelB64?.(transferBuf);
+        const ms = Math.round(performance.now() - start);
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "mlp_transfer", bytes, ms })
+        );
+      } catch (err2) {
+        console.warn("mlp_transfer failed", err2);
+      } finally {
+        transferBuf = "";
+        transferStart = 0;
+      }
+    };
   }
 
   // webview/gestureDetector.ts
@@ -704,6 +722,12 @@
   });
   window.fflate = { unzipSync };
   installMlp();
+  try {
+    window.ReactNativeWebView?.postMessage?.(
+      JSON.stringify({ type: "telemetry", event: "mlp_ready" })
+    );
+  } catch {
+  }
   var tapToStartText = window.__tapToStart || "";
   var recognizerInitFailed = window.__recognizerInitFailed || "Recognizer init failed: ";
   var predictionError = window.__predictionError || "Prediction error: ";

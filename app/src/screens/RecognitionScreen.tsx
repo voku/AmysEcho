@@ -100,11 +100,17 @@ export default function RecognitionScreen({ navigation }: any) {
   }, []);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const unsub = onMlpModelUpdated(() => {
       setMessage('Neues Modell geladen');
-      setTimeout(() => setMessage(null), 2000);
+      timeoutId = setTimeout(() => setMessage(null), 2000);
     });
-    return unsub;
+    return () => {
+      unsub();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [setMessage]);
 
   // Auto-fallback to Expo camera if WebView doesn't start camera within 5 seconds

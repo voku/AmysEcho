@@ -242,7 +242,12 @@ describe('MediaPipeGestureDetector', () => {
       });
     });
 
-    expect(injectJs).toHaveBeenCalledTimes(1);
+    expect(injectJs.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(injectJs.mock.calls[0][0]).toContain('__beginMlpTransfer');
+    expect(injectJs.mock.calls.some((c: any[]) => String(c[0]).includes('__pushMlpChunk'))).toBe(true);
+    expect(injectJs.mock.calls[injectJs.mock.calls.length - 1][0]).toContain(
+      '__commitMlpTransfer',
+    );
   });
 
   it('updates translations when language changes', () => {
@@ -327,7 +332,7 @@ describe('MediaPipeGestureDetector', () => {
     const html = renderHtml('user');
     expect(html).not.toContain('FALLBACK_CONFIDENCE_THRESHOLD');
     expect(html).not.toContain('MLP_CONFIDENCE_THRESHOLD');
-    const scriptMatches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    const scriptMatches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)];
     expect(scriptMatches.length).toBeGreaterThan(0);
     for (const [, script] of scriptMatches) {
       expect(() => new Function(script)).not.toThrow();
