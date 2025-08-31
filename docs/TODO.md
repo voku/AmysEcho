@@ -47,6 +47,7 @@
 
 ## Phase 1: Amy-Centric User Experience (Weeks 1-2)
 *Every feature designed for users with cognitive differences*
+**Keep simple: avoid feature creep.**
 
 ### 1.1 Child-Safe Error Handling
 **Priority: CRITICAL - Amy's Safety & Comfort**
@@ -95,6 +96,7 @@
 
 ## Phase 2: Core Functionality - Always On (Weeks 3-5)
 *Recognition that never fails Amy when she needs it most*
+**Keep simple: avoid feature creep.**
 
 ### 2.1 Uninterruptible ML Pipeline
 **Priority: CRITICAL**
@@ -137,6 +139,7 @@
 
 ## Phase 3: Enhanced Accessibility (Weeks 6-7)
 *Features specifically for 22q11 syndrome needs*
+**Keep simple: avoid feature creep.**
 
 ### 3.1 Performance Without Compromise
 **Priority: MEDIUM - But Never Degrading**
@@ -177,6 +180,7 @@
 
 ## Phase 4: Production Excellence - Amy First (Weeks 8-10)
 *Reliability and privacy without compromise*
+**Keep simple: avoid feature creep.**
 
 ### 4.1 Privacy & Security for Vulnerable Users
 **Priority: CRITICAL - Protecting Amy**
@@ -195,7 +199,6 @@
 ### 4.2 Sustainable Performance
 **Priority: HIGH - Long-term Reliability**
 - **Efficiency without compromise**
-  - [ ] **NEW**: Smart caching that never delays first gesture
   - [x] **NEW**: CDN usage that falls back gracefully
   - [ ] **NEW**: Background updates that never interrupt foreground
   - [x] **NEW**: Monitoring that never impacts performance
@@ -204,9 +207,7 @@
 ### 4.3 Production Deployment - Zero Downtime
 **Priority: HIGH - Continuous Availability**
 - **Seamless updates**
-  - [ ] **NEW**: Hot-swappable components
   - [ ] **NEW**: Instant rollback on any issue
-  - [ ] **NEW**: A/B testing that never degrades Amy's experience
   - [ ] **NEW**: Update notifications that don't interrupt usage
   - 🧹 **Cleanup**: Remove outdated deployment scripts and configurations
 
