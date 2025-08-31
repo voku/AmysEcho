@@ -522,11 +522,10 @@
     }
     async function loadMlpFromB64(b64) {
       try {
-        let npzFind2 = function(prefix) {
+        const npzFind = function(prefix) {
           const k = Object.keys(map).find((n) => n === prefix || n === prefix + ".npy");
           return k ? map[k] : void 0;
         };
-        var npzFind = npzFind2;
         const res = await fetch(`data:application/octet-stream;base64,${b64}`);
         const u82 = new Uint8Array(await res.arrayBuffer());
         const unzip = window.fflate?.unzipSync;
@@ -554,10 +553,10 @@
           labels = parsed.data;
         }
         mlp = {
-          w1: { data: Float64Array.from(w1.data), shape: w1.shape },
-          b1: { data: Float64Array.from(b1.data), shape: b1.shape },
-          w2: { data: Float64Array.from(w2.data), shape: w2.shape },
-          b2: { data: Float64Array.from(b22.data), shape: b22.shape },
+          w1: { data: Float32Array.from(w1.data), shape: w1.shape },
+          b1: { data: Float32Array.from(b1.data), shape: b1.shape },
+          w2: { data: Float32Array.from(w2.data), shape: w2.shape },
+          b2: { data: Float32Array.from(b22.data), shape: b22.shape },
           labels
         };
         return true;
@@ -583,7 +582,8 @@
       return x;
     }
     function softmax(x) {
-      const max2 = Math.max(...x);
+      let max2 = -Infinity;
+      for (let i = 0; i < x.length; i++) if (x[i] > max2) max2 = x[i];
       let s = 0;
       for (let i = 0; i < x.length; i++) {
         x[i] = Math.exp(x[i] - max2);
@@ -595,7 +595,7 @@
       return x;
     }
     function dotMV(mat, rows, cols, vec) {
-      const out = new Float64Array(rows);
+      const out = new Float32Array(rows);
       for (let r = 0; r < rows; r++) {
         let sum = 0;
         for (let c = 0; c < cols; c++) {
@@ -606,7 +606,7 @@
       return out;
     }
     function addBias(vec, bias) {
-      const out = new Float64Array(vec.length);
+      const out = new Float32Array(vec.length);
       for (let i = 0; i < vec.length; i++) {
         out[i] = vec[i] + bias[i % bias.length];
       }
@@ -632,15 +632,14 @@
       const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === "Right");
       const leftHand = leftHandIndex > -1 ? all[leftHandIndex] : null;
       const rightHand = rightHandIndex > -1 ? all[rightHandIndex] : null;
-      const left = normHand(leftHand);
-      if (!left) return null;
+      const left = normHand(leftHand) ?? EMPTY_HAND;
       const right = normHand(rightHand);
       const r = right ?? EMPTY_HAND;
       const both = left.concat(r);
       for (const p of both) {
         flat.push(p[0], p[1], p[2]);
       }
-      return new Float64Array(flat);
+      return new Float32Array(flat);
     }
     function mlpPredict(all, handednesses) {
       if (!mlp) return null;
@@ -657,7 +656,7 @@
       if (cols2 !== a1.length) throw new Error("Hidden layer size mismatch");
       if (mlp.b2.shape[0] !== rows2) throw new Error("b2 dimension mismatch");
       const z2 = addBias(dotMV(mlp.w2.data, rows2, cols2, a1), mlp.b2.data);
-      const probs = softmax(Array.from(z2));
+      const probs = softmax(z2);
       let bestI = 0;
       let best = probs[0];
       for (let i = 1; i < probs.length; i++) {
@@ -714,7 +713,7 @@
   window.addEventListener("error", (e) => {
     try {
       window.ReactNativeWebView?.postMessage(
-        JSON.stringify({ type: "error", message: e.message })
+        JSON.stringify({ type: "error", message: e.message, file: e.filename, line: e.lineno, col: e.colno })
       );
     } catch {
     }
@@ -737,6 +736,10 @@
   var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.5;
   async function loadTasksVision() {
     async function resolvePinnedBase() {
+      const pinnedVersion = window.__mediapipeVersion;
+      if (typeof pinnedVersion === "string" && pinnedVersion.length) {
+        return { base: "https://cdn.jsdelivr.net/npm", version: pinnedVersion };
+      }
       const cdns = ["https://cdn.jsdelivr.net/npm", "https://unpkg.com"];
       for (const base of cdns) {
         try {
@@ -753,12 +756,26 @@
       }
       return null;
     }
-    function tryLoadScript(src) {
+    function tryLoadScript(src, timeoutMs = 8000) {
       return new Promise((resolve, reject) => {
         const s = document.createElement("script");
         s.src = src;
-        s.onload = resolve;
-        s.onerror = () => reject(new Error("Failed to load script: " + src));
+        if (window.__visionBundleSri) {
+          s.integrity = window.__visionBundleSri;
+          s.crossOrigin = "anonymous";
+        }
+        const to = setTimeout(() => {
+          s.onload = s.onerror = null;
+          reject(new Error("Script load timeout: " + src));
+        }, timeoutMs);
+        s.onload = () => {
+          clearTimeout(to);
+          resolve();
+        };
+        s.onerror = () => {
+          clearTimeout(to);
+          reject(new Error("Failed to load script: " + src));
+        };
         document.head.appendChild(s);
       });
     }
@@ -831,7 +848,8 @@
         await startCamera();
         tap.classList.add("hidden");
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "tap_start" }));
-      } catch {
+      } catch (err) {
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: cameraError + (err?.message || err) }));
       }
     });
     document.body.appendChild(tap);
@@ -1046,7 +1064,7 @@
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: cameraError + msg }));
     }
   }
-  startCamera();
+  if (window.__autostartCamera === true) startCamera();
   createGestureRecognizer();
   function stopCamera() {
     try {
