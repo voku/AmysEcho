@@ -527,9 +527,8 @@
           return k ? map[k] : void 0;
         };
         var npzFind = npzFind2;
-        const bin = atob(b64);
-        const u82 = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) u82[i] = bin.charCodeAt(i);
+        const res = await fetch(`data:application/octet-stream;base64,${b64}`);
+        const u82 = new Uint8Array(await res.arrayBuffer());
         const unzip = window.fflate?.unzipSync;
         if (!unzip) throw new Error("fflate unavailable");
         const files = unzip(u82);
