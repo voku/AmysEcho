@@ -12,15 +12,9 @@ declare module 'expo-audio' {
   export const RecordingPresets: any;
 }
 
-declare module 'expo-battery' {
-  export function getBatteryLevelAsync(): Promise<number>;
-}
-
 declare module 'expo-device' {
   export function getThermalStateAsync(): Promise<number>;
 }
-
-declare module '@testing-library/react-native';
 declare module 'expo-camera' {
   export const Camera: any;
 }
