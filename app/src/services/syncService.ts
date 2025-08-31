@@ -7,6 +7,7 @@ import { processFramesForUpload } from './handUtils';
 import { Q } from '@nozbe/watermelondb';
 import { uploadTelemetry } from './analytics';
 import { telemetry } from '../telemetry/recorder';
+import { refreshDgsModel } from './modelUpdate';
 
 export const syncService = {
   async syncTelemetry(): Promise<void> {
@@ -74,6 +75,7 @@ export const syncService = {
             }
           });
           logger.info(`Uploaded ${pendingSamples.length} samples successfully.`);
+          await refreshDgsModel(activeProfileId);
         } else {
           logger.error(`Failed to upload training data: ${response.status} ${response.statusText}`);
         }

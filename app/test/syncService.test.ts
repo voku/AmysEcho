@@ -24,7 +24,12 @@ jest.mock('../src/utils/logger', () => ({
   logger: mockLogger,
 }));
 
+jest.mock('../src/services/modelUpdate', () => ({
+  refreshDgsModel: jest.fn(async () => 'centroid'),
+}));
+
 import { syncService } from '../src/services/syncService';
+import { refreshDgsModel } from '../src/services/modelUpdate';
 
 beforeEach(() => {
   const sample: {
@@ -63,6 +68,7 @@ describe('syncService.uploadPendingTrainingData', () => {
     expect(body.samples[0].landmarkData[0]).toEqual([1, 2, 3]);
     expect(mockSamples[0].customSyncStatus).toBe('synced');
     expect(mockDatabase.write).toHaveBeenCalled();
+    expect(refreshDgsModel).toHaveBeenCalledWith('p1');
   });
 
   it('logs error and leaves samples pending on failure', async () => {
@@ -71,6 +77,7 @@ describe('syncService.uploadPendingTrainingData', () => {
     expect(mockLogger.error).toHaveBeenCalledWith('Failed to upload training data: 500 fail');
     expect(mockSamples[0].customSyncStatus).toBe('pending');
     expect(mockDatabase.write).not.toHaveBeenCalled();
+    expect(refreshDgsModel).not.toHaveBeenCalled();
   });
 });
 
