@@ -102,7 +102,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
     if (!completed) {
       throw new Error('training status polling timed out');
     }
-    await refreshDgsModel(profile?.id || undefined).catch(() => {});
+    await refreshDgsModel(profile?.id);
     for (const p of pending) p.syncStatus = 'synced';
     await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
   } catch (e) {
