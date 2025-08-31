@@ -14,8 +14,8 @@ jest.mock('../src/storage', () => ({
   loadBackendApiToken: async () => 'token',
 }));
 
-jest.mock('../src/services/dgsModelClient', () => ({
-  fetchCentroids: jest.fn(async () => null),
+jest.mock('../src/services/modelUpdate', () => ({
+  refreshDgsModel: jest.fn(async () => 'centroid'),
 }));
 
 jest.mock('../src/utils/logger', () => ({
@@ -23,7 +23,7 @@ jest.mock('../src/utils/logger', () => ({
 }));
 
 import { syncTrainingData } from '../src/services/trainingSync';
-import { fetchCentroids } from '../src/services/dgsModelClient';
+import { refreshDgsModel } from '../src/services/modelUpdate';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../src/utils/logger';
 
@@ -93,7 +93,7 @@ describe('syncTrainingData', () => {
     expect(body.samples[0].landmarkData[0]).toEqual([1, 2, 3]);
     expect(body.samples[0].landmarkData).toHaveLength(42);
     expect(body.samples[0].profileId).toBe('amy');
-    expect(fetchCentroids).toHaveBeenCalledWith('amy');
+    expect(refreshDgsModel).toHaveBeenCalledWith('amy');
     const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
     expect(updated[0].syncStatus).toBe('synced');
   });

@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { loadProfile, TrainingSample, loadBackendApiToken } from '../storage';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
-import { fetchCentroids } from './dgsModelClient';
+import { refreshDgsModel } from './modelUpdate';
 import { processFramesForUpload } from './handUtils';
 
 const TRAINING_KEY = 'gestureTrainingData';
@@ -102,7 +102,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
     if (!completed) {
       throw new Error('training status polling timed out');
     }
-    await fetchCentroids(profile?.id || undefined).catch(() => {});
+    await refreshDgsModel(profile?.id || undefined).catch(() => {});
     for (const p of pending) p.syncStatus = 'synced';
     await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
   } catch (e) {
