@@ -537,17 +537,17 @@
         for (const name of entries) {
           map[name.replace(/.*\//, "")] = files[name];
         }
-        const w1b = npzFind2("w1");
-        const b1b = npzFind2("b1");
-        const w2b = npzFind2("w2");
-        const b2b = npzFind2("b2");
+        const w1b = npzFind("w1");
+        const b1b = npzFind("b1");
+        const w2b = npzFind("w2");
+        const b2b = npzFind("b2");
         if (!w1b || !b1b || !w2b || !b2b) throw new Error("missing weights");
         const w1 = parseNPY(w1b);
         const b1 = parseNPY(b1b);
         const w2 = parseNPY(w2b);
         const b22 = parseNPY(b2b);
         let labels = [];
-        const lb = npzFind2("labels");
+        const lb = npzFind("labels");
         if (lb) {
           const parsed = parseNPY(lb);
           labels = parsed.data;
@@ -594,25 +594,24 @@
       }
       return x;
     }
-    function dotMV(mat, rows, cols, vec) {
+    function affineMV(mat, rows, cols, vec, bias) {
       const out = new Float32Array(rows);
       for (let r = 0; r < rows; r++) {
         let sum = 0;
-        for (let c = 0; c < cols; c++) {
-          sum += mat[r * cols + c] * vec[c];
-        }
-        out[r] = sum;
-      }
-      return out;
-    }
-    function addBias(vec, bias) {
-      const out = new Float32Array(vec.length);
-      for (let i = 0; i < vec.length; i++) {
-        out[i] = vec[i] + bias[i % bias.length];
+        for (let c = 0; c < cols; c++) sum += mat[r * cols + c] * vec[c];
+        out[r] = sum + bias[r % bias.length];
       }
       return out;
     }
     const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0]);
+    const HAND_CONNECTIONS = [
+      [0, 1], [1, 2], [2, 3], [3, 4],
+      [0, 5], [5, 6], [6, 7], [7, 8],
+      [5, 9], [9, 10], [10, 11], [11, 12],
+      [9, 13], [13, 14], [14, 15], [15, 16],
+      [13, 17], [17, 18], [18, 19], [19, 20],
+      [0, 17]
+    ];
     function normalizeLandmarks(all, handednesses) {
       const flat = [];
       function normHand(hand) {
@@ -649,13 +648,13 @@
       if (mlp.w1.shape[1] !== cols1) throw new Error("Input dimension mismatch");
       const rows1 = mlp.w1.shape[0];
       if (mlp.b1.shape[0] !== rows1) throw new Error("b1 dimension mismatch");
-      const z1 = addBias(dotMV(mlp.w1.data, rows1, cols1, x), mlp.b1.data);
+      const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);
       const a1 = relu(z1);
       const rows2 = mlp.w2.shape[0];
       const cols2 = mlp.w2.shape[1];
       if (cols2 !== a1.length) throw new Error("Hidden layer size mismatch");
       if (mlp.b2.shape[0] !== rows2) throw new Error("b2 dimension mismatch");
-      const z2 = addBias(dotMV(mlp.w2.data, rows2, cols2, a1), mlp.b2.data);
+      const z2 = affineMV(mlp.w2.data, rows2, cols2, a1, mlp.b2.data);
       const probs = softmax(z2);
       let bestI = 0;
       let best = probs[0];
@@ -764,16 +763,23 @@
           s.integrity = window.__visionBundleSri;
           s.crossOrigin = "anonymous";
         }
-        const to = setTimeout(() => {
+        s.async = true;
+        const cleanup = () => {
           s.onload = s.onerror = null;
+          if (s.parentNode) s.parentNode.removeChild(s);
+        };
+        const to = setTimeout(() => {
+          cleanup();
           reject(new Error("Script load timeout: " + src));
         }, timeoutMs);
         s.onload = () => {
           clearTimeout(to);
+          cleanup();
           resolve();
         };
         s.onerror = () => {
           clearTimeout(to);
+          cleanup();
           reject(new Error("Failed to load script: " + src));
         };
         document.head.appendChild(s);
@@ -843,6 +849,9 @@
     const tap = document.createElement("div");
     tap.id = "tapToStart";
     tap.innerText = tapToStartText;
+    if (window.__autostartCamera === true) {
+      tap.classList.add("hidden");
+    }
     tap.addEventListener("click", async () => {
       try {
         await startCamera();
@@ -966,29 +975,6 @@
                 ctx.scale(-1, 1);
                 ctx.translate(-overlay.width, 0);
               }
-              const HAND_CONNECTIONS = [
-                [0, 1],
-                [1, 2],
-                [2, 3],
-                [3, 4],
-                [0, 5],
-                [5, 6],
-                [6, 7],
-                [7, 8],
-                [5, 9],
-                [9, 10],
-                [10, 11],
-                [11, 12],
-                [9, 13],
-                [13, 14],
-                [14, 15],
-                [15, 16],
-                [13, 17],
-                [17, 18],
-                [18, 19],
-                [19, 20],
-                [0, 17]
-              ];
               ctx.lineWidth = 3;
               ctx.strokeStyle = "rgba(0, 255, 180, 0.9)";
               ctx.fillStyle = "rgba(0, 255, 180, 0.9)";
