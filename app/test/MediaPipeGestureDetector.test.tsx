@@ -290,13 +290,13 @@ describe('MediaPipeGestureDetector', () => {
   it('mirrors video and overlay for the user-facing camera', () => {
     const html = renderHtml('user');
     expect(html).toContain('transform: scaleX(-1);');
-    expect(html).toContain('const mirrorOverlay = true');
+    expect(html).toContain('window.__mirrorOverlay = true');
   });
 
   it('does not mirror video or overlay for the rear-facing camera', () => {
     const html = renderHtml('environment');
     expect(html).not.toContain('transform: scaleX(-1);');
-    expect(html).toContain('const mirrorOverlay = false');
+    expect(html).toContain('window.__mirrorOverlay = false');
   });
 
   it('embeds thresholds and produces parsable script', () => {
