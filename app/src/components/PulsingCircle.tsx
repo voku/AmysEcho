@@ -5,6 +5,7 @@ import Animated, {
   withTiming,
   withRepeat,
   useAnimatedStyle,
+  cancelAnimation,
 } from 'react-native-reanimated';
 
 import { usePerformance } from '../context/PerformanceContext';
@@ -19,10 +20,16 @@ export default function PulsingCircle({ size, color = '#ffffff' }: PulsingCircle
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (!isLowPerformanceMode) {
-      progress.value = withRepeat(withTiming(1, { duration: 1000 }), -1, true);
+    if (isLowPerformanceMode) {
+      cancelAnimation(progress);
+      progress.value = 0;
+      return;
     }
-  }, [progress, isLowPerformanceMode]);
+    progress.value = withRepeat(withTiming(1, { duration: 1000 }), -1, true);
+    return () => {
+      cancelAnimation(progress);
+    };
+  }, [isLowPerformanceMode, progress]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: 1 - progress.value,
@@ -32,6 +39,7 @@ export default function PulsingCircle({ size, color = '#ffffff' }: PulsingCircle
   if (isLowPerformanceMode) {
     return (
       <View
+        pointerEvents="none"
         style={{
           width: size,
           height: size,
@@ -46,6 +54,7 @@ export default function PulsingCircle({ size, color = '#ffffff' }: PulsingCircle
 
   return (
     <Animated.View
+      pointerEvents="none"
       style={[
         {
           width: size,

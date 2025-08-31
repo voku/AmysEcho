@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import type { RootStackParamList } from '../navigation/types';
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
 interface IconProps {
   size: number;
   color: string;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 function HandIcon({ size, color, style }: IconProps) {

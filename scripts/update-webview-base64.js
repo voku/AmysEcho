@@ -66,7 +66,13 @@ async function updateFflate() {
 
 function updateInstallMlp() {
   const appDir = path.join(__dirname, '..', 'app');
-  const ts = require('typescript');
+  let ts;
+  try {
+    const tsPath = require.resolve('typescript', { paths: [appDir, __dirname] });
+    ts = require(tsPath);
+  } catch (e) {
+    throw new Error('TypeScript not found. Run "npm ci --prefix app" before this script.');
+  }
   const srcPath = path.join(appDir, 'src', 'webview', 'installMlp.ts');
   const tsCode = fs.readFileSync(srcPath, 'utf8');
   const { outputText } = ts.transpileModule(tsCode, {
@@ -76,8 +82,11 @@ function updateInstallMlp() {
   const m = new Module();
   m.paths = Module._nodeModulePaths(appDir);
   m._compile(outputText, srcPath);
-  const { installMlp } = m.exports;
-  const code = `(${installMlp.toString()})();`;
+  const install = m.exports.installMlp || m.exports.default;
+  if (typeof install !== 'function') {
+    throw new Error('installMlp export not found in installMlp.ts');
+  }
+  const code = `(${install.toString()})();`;
   const base64 = Buffer.from(code, 'utf8').toString('base64');
   const header = `/**\n * Generated from app/src/webview/installMlp.ts\n * Run scripts/update-webview-base64.js after modifying installMlp.ts.\n */`;
   const dest = path.join(appDir, 'src', 'webview', 'installMlpBase64.ts');
