@@ -29,7 +29,7 @@ export default function PulsingCircle({ size, color = '#ffffff' }: PulsingCircle
     return () => {
       cancelAnimation(progress);
     };
-  }, [isLowPerformanceMode, progress]);
+  }, [isLowPerformanceMode]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: 1 - progress.value,
