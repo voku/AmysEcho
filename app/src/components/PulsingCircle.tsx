@@ -1,6 +1,11 @@
 import React, { useEffect } from 'react';
-import { Canvas, Circle } from '@shopify/react-native-skia';
-import { useSharedValue, withTiming, withRepeat, useDerivedValue } from 'react-native-reanimated';
+import { View } from 'react-native';
+import Animated, {
+  useSharedValue,
+  withTiming,
+  withRepeat,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 
 import { usePerformance } from '../context/PerformanceContext';
 
@@ -19,20 +24,38 @@ export default function PulsingCircle({ size, color = '#ffffff' }: PulsingCircle
     }
   }, [progress, isLowPerformanceMode]);
 
-  const radius = useDerivedValue(() => (size / 2) * progress.value);
-  const opacity = useDerivedValue(() => 1 - progress.value);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: 1 - progress.value,
+    transform: [{ scale: progress.value }],
+  }));
 
   if (isLowPerformanceMode) {
     return (
-      <Canvas style={{ width: size, height: size, position: 'absolute' }}>
-        <Circle cx={size / 2} cy={size / 2} r={size / 2} color={color} opacity={0.5} />
-      </Canvas>
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          opacity: 0.5,
+          position: 'absolute',
+        }}
+      />
     );
   }
 
   return (
-    <Canvas style={{ width: size, height: size, position: 'absolute' }}>
-      <Circle cx={size / 2} cy={size / 2} r={radius} color={color} opacity={opacity} />
-    </Canvas>
+    <Animated.View
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          position: 'absolute',
+        },
+        animatedStyle,
+      ]}
+    />
   );
 }

@@ -1,4 +1,3 @@
-declare module '@shopify/react-native-skia';
 declare module 'crypto-js';
 declare module 'react-native-webview';
 declare module 'expo-crypto' {

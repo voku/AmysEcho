@@ -66,13 +66,17 @@ async function updateFflate() {
 
 function updateInstallMlp() {
   const appDir = path.join(__dirname, '..', 'app');
-  const tsNodePath = require.resolve('ts-node', { paths: [appDir] });
-  const tsNode = require(tsNodePath);
-  tsNode.register({
-    transpileOnly: true,
-    compilerOptions: { module: 'commonjs', target: 'es2018', lib: ['es2020', 'dom'] },
+  const ts = require('typescript');
+  const srcPath = path.join(appDir, 'src', 'webview', 'installMlp.ts');
+  const tsCode = fs.readFileSync(srcPath, 'utf8');
+  const { outputText } = ts.transpileModule(tsCode, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2018, lib: ['es2020', 'dom'] },
   });
-  const { installMlp } = require(path.join(appDir, 'src', 'webview', 'installMlp.ts'));
+  const Module = module.constructor;
+  const m = new Module();
+  m.paths = Module._nodeModulePaths(appDir);
+  m._compile(outputText, srcPath);
+  const { installMlp } = m.exports;
   const code = `(${installMlp.toString()})();`;
   const base64 = Buffer.from(code, 'utf8').toString('base64');
   const header = `/**\n * Generated from app/src/webview/installMlp.ts\n * Run scripts/update-webview-base64.js after modifying installMlp.ts.\n */`;

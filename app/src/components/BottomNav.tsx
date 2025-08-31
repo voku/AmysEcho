@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { Hand, BookOpen, Settings } from 'lucide-react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
 import type { RootStackParamList } from '../navigation/types';
 import { COLORS, SPACING } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
@@ -32,7 +32,7 @@ export default function BottomNav({ active, profileId }: Props) {
         accessibilityRole="button"
         accessibilityHint="Gestenerkennung starten"
       >
-        <Hand
+        <HandIcon
           size={24}
           color={
             highContrast
@@ -69,7 +69,7 @@ export default function BottomNav({ active, profileId }: Props) {
         accessibilityRole="button"
         accessibilityHint="Gesten aufnehmen oder üben"
       >
-        <BookOpen
+        <BookIcon
           size={24}
           color={
             highContrast
@@ -106,7 +106,7 @@ export default function BottomNav({ active, profileId }: Props) {
         accessibilityRole="button"
         accessibilityHint="Profil- und Einstellungsmenü öffnen"
       >
-        <Settings
+        <SettingsIcon
           size={24}
           color={
             highContrast
@@ -171,3 +171,68 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+interface IconProps {
+  size: number;
+  color: string;
+  style?: any;
+}
+
+function HandIcon({ size, color, style }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={style}
+    >
+      <Path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
+      <Path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2" />
+      <Path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8" />
+      <Path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+    </Svg>
+  );
+}
+
+function BookIcon({ size, color, style }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={style}
+    >
+      <Path d="M12 7v14" />
+      <Path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+    </Svg>
+  );
+}
+
+function SettingsIcon({ size, color, style }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={style}
+    >
+      <Path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+      <Circle cx="12" cy="12" r="3" />
+    </Svg>
+  );
+}
