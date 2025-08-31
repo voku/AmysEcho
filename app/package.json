@@ -74,7 +74,7 @@
     "jest-transform-stub": "2.0.0",
     "metro": "0.82.3",
     "metro-config": "0.82.3",
-    "metro-runtime": "0.82.3",
+    "metro-runtime": "0.83.1",
     "metro-source-map": "0.82.3",
     "ts-jest": "29.4.0",
     "ts-node": "10.9.2",
