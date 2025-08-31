@@ -9,6 +9,7 @@ This document summarizes the repository in seven key areas with concrete file re
 
 ## 2. Gesture Recognition Pipeline
 - `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.
+- `app/webview/gestureDetector.ts` compiles to `app/assets/gestureDetector.js`; a Jest test (`app/test/gestureDetectorBuild.test.ts`) keeps the bundle synced with its TypeScript source.
 - `app/src/screens/RecognitionScreen.tsx` hosts the detector, fuses results with cached centroids, and logs outcomes.
 - `app/src/services/offlineClassifier.ts` performs centroid-based fallback classification when confidence is low.
 - Runtime classification uses cached centroid JSON models; no TFLite artifacts remain.

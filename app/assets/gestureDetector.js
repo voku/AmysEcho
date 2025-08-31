@@ -1,6 +1,25 @@
+// Generated from app/webview/gestureDetector.ts; run npm run build:webview --prefix app
 "use strict";
 (() => {
   // node_modules/fflate/esm/browser.js
+  var ch2 = {};
+  var wk = function(c, id, msg, transfer, cb) {
+    var w = new Worker(ch2[id] || (ch2[id] = URL.createObjectURL(new Blob([
+      c + ';addEventListener("error",function(e){e=e.error;postMessage({$e$:[e.message,e.code,e.stack]})})'
+    ], { type: "text/javascript" }))));
+    w.onmessage = function(e) {
+      var d = e.data, ed = d.$e$;
+      if (ed) {
+        var err2 = new Error(ed[0]);
+        err2["code"] = ed[1];
+        err2.stack = ed[2];
+        cb(err2, null);
+      } else
+        cb(null, d);
+    };
+    w.postMessage(msg, transfer);
+    return w;
+  };
   var u8 = Uint8Array;
   var u16 = Uint16Array;
   var i32 = Int32Array;
@@ -354,6 +373,81 @@
     return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
   };
   var et = /* @__PURE__ */ new u8(0);
+  var mrg = function(a, b) {
+    var o = {};
+    for (var k in a)
+      o[k] = a[k];
+    for (var k in b)
+      o[k] = b[k];
+    return o;
+  };
+  var wcln = function(fn, fnStr, td2) {
+    var dt = fn();
+    var st = fn.toString();
+    var ks = st.slice(st.indexOf("[") + 1, st.lastIndexOf("]")).replace(/\s+/g, "").split(",");
+    for (var i = 0; i < dt.length; ++i) {
+      var v = dt[i], k = ks[i];
+      if (typeof v == "function") {
+        fnStr += ";" + k + "=";
+        var st_1 = v.toString();
+        if (v.prototype) {
+          if (st_1.indexOf("[native code]") != -1) {
+            var spInd = st_1.indexOf(" ", 8) + 1;
+            fnStr += st_1.slice(spInd, st_1.indexOf("(", spInd));
+          } else {
+            fnStr += st_1;
+            for (var t in v.prototype)
+              fnStr += ";" + k + ".prototype." + t + "=" + v.prototype[t].toString();
+          }
+        } else
+          fnStr += st_1;
+      } else
+        td2[k] = v;
+    }
+    return fnStr;
+  };
+  var ch = [];
+  var cbfs = function(v) {
+    var tl = [];
+    for (var k in v) {
+      if (v[k].buffer) {
+        tl.push((v[k] = new v[k].constructor(v[k])).buffer);
+      }
+    }
+    return tl;
+  };
+  var wrkr = function(fns, init, id, cb) {
+    if (!ch[id]) {
+      var fnStr = "", td_1 = {}, m = fns.length - 1;
+      for (var i = 0; i < m; ++i)
+        fnStr = wcln(fns[i], fnStr, td_1);
+      ch[id] = { c: wcln(fns[m], fnStr, td_1), e: td_1 };
+    }
+    var td2 = mrg({}, ch[id].e);
+    return wk(ch[id].c + ";onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=" + init.toString() + "}", id, td2, cbfs(td2), cb);
+  };
+  var bInflt = function() {
+    return [u8, u16, i32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gopt];
+  };
+  var pbf = function(msg) {
+    return postMessage(msg, [msg.buffer]);
+  };
+  var gopt = function(o) {
+    return o && {
+      out: o.size && new u8(o.size),
+      dictionary: o.dictionary
+    };
+  };
+  var cbify = function(dat, opts, fns, init, id, cb) {
+    var w = wrkr(fns, init, id, function(err2, dat2) {
+      w.terminate();
+      cb(err2, dat2);
+    });
+    w.postMessage([dat, opts], opts.consume ? [dat.buffer] : []);
+    return function() {
+      w.terminate();
+    };
+  };
   var b2 = function(d, b) {
     return d[b] | d[b + 1] << 8;
   };
@@ -363,6 +457,17 @@
   var b8 = function(d, b) {
     return b4(d, b) + b4(d, b + 4) * 4294967296;
   };
+  function inflate(data, opts, cb) {
+    if (!cb)
+      cb = opts, opts = {};
+    if (typeof cb != "function")
+      err(7);
+    return cbify(data, opts, [
+      bInflt
+    ], function(ev) {
+      return pbf(inflateSync(ev.data[0], gopt(ev.data[1])));
+    }, 1, cb);
+  }
   function inflateSync(data, opts) {
     return inflt(data, { i: 2 }, opts && opts.out, opts && opts.dictionary);
   }
@@ -417,6 +522,94 @@
       ;
     return [b8(d, b + 12), b8(d, b + 4), b8(d, b + 20)];
   };
+  var mt = typeof queueMicrotask == "function" ? queueMicrotask : typeof setTimeout == "function" ? setTimeout : function(fn) {
+    fn();
+  };
+  function unzip(data, opts, cb) {
+    if (!cb)
+      cb = opts, opts = {};
+    if (typeof cb != "function")
+      err(7);
+    var term = [];
+    var tAll = function() {
+      for (var i2 = 0; i2 < term.length; ++i2)
+        term[i2]();
+    };
+    var files = {};
+    var cbd = function(a, b) {
+      mt(function() {
+        cb(a, b);
+      });
+    };
+    mt(function() {
+      cbd = cb;
+    });
+    var e = data.length - 22;
+    for (; b4(data, e) != 101010256; --e) {
+      if (!e || data.length - e > 65558) {
+        cbd(err(13, 0, 1), null);
+        return tAll;
+      }
+    }
+    ;
+    var lft = b2(data, e + 8);
+    if (lft) {
+      var c = lft;
+      var o = b4(data, e + 16);
+      var z = o == 4294967295 || c == 65535;
+      if (z) {
+        var ze = b4(data, e - 12);
+        z = b4(data, ze) == 101075792;
+        if (z) {
+          c = lft = b4(data, ze + 32);
+          o = b4(data, ze + 48);
+        }
+      }
+      var fltr = opts && opts.filter;
+      var _loop_3 = function(i2) {
+        var _a2 = zh(data, o, z), c_1 = _a2[0], sc = _a2[1], su = _a2[2], fn = _a2[3], no = _a2[4], off = _a2[5], b = slzh(data, off);
+        o = no;
+        var cbl = function(e2, d) {
+          if (e2) {
+            tAll();
+            cbd(e2, null);
+          } else {
+            if (d)
+              files[fn] = d;
+            if (!--lft)
+              cbd(null, files);
+          }
+        };
+        if (!fltr || fltr({
+          name: fn,
+          size: sc,
+          originalSize: su,
+          compression: c_1
+        })) {
+          if (!c_1)
+            cbl(null, slc(data, b, b + sc));
+          else if (c_1 == 8) {
+            var infl = data.subarray(b, b + sc);
+            if (su < 524288 || sc > 0.8 * su) {
+              try {
+                cbl(null, inflateSync(infl, { out: new u8(su) }));
+              } catch (e2) {
+                cbl(e2, null);
+              }
+            } else
+              term.push(inflate(infl, { size: su }, cbl));
+          } else
+            cbl(err(14, "unknown compression type " + c_1, 1), null);
+        } else
+          cbl(null, null);
+      };
+      for (var i = 0; i < c; ++i) {
+        _loop_3(i);
+      }
+    } else
+      cbd(null, {});
+    return tAll;
+  }
   function unzipSync(data, opts) {
     var files = {};
     var e = data.length - 22;
@@ -526,10 +719,9 @@
       }
       throw new Error("dtype " + type);
     }
-
     function f16ToF32(h) {
       const s = (h & 32768) << 16;
-      let e = h >> 10 & 31;
+      let e = (h & 31744) >> 10;
       let f = h & 1023;
       if (e === 0) {
         if (f === 0) return s ? -0 : 0;
@@ -538,24 +730,32 @@
           e--;
         }
         e++;
-        f &= -1025;
+        f &= ~1024;
       } else if (e === 31) {
-        const bits = s | 2139095040 | f << 13;
-        return new Float32Array(new Uint32Array([bits]).buffer)[0];
+        const bits3 = s | 2139095040 | f << 13;
+        return new Float32Array(new Uint32Array([bits3]).buffer)[0];
       }
       e = e + (127 - 15);
-      const bits = s | e << 23 | f << 13;
-      return new Float32Array(new Uint32Array([bits]).buffer)[0];
+      const bits2 = s | e << 23 | f << 13;
+      return new Float32Array(new Uint32Array([bits2]).buffer)[0];
     }
     async function loadMlpFromB64(b64) {
       try {
+        let npzFind2 = function(m, prefix) {
+          const k = Object.keys(m).find((n) => n === prefix || n === prefix + ".npy");
+          return k ? m[k] : void 0;
+        };
+        var npzFind = npzFind2;
         const bin = atob(b64);
         const u82 = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) u82[i] = bin.charCodeAt(i);
-        const unzip = window.fflate?.unzip;
-        if (!unzip) throw new Error("fflate unavailable");
+        const unzip2 = window.fflate?.unzip;
+        if (!unzip2) throw new Error("fflate unavailable");
         const files = await new Promise((resolve, reject) => {
-          unzip(u82, (err, data) => err ? reject(err) : resolve(data));
+          unzip2(u82, (err2, data) => {
+            if (err2) reject(err2);
+            else resolve(data);
+          });
         });
         const entries = Object.keys(files);
         if (entries.length > 32) throw new Error("too many entries");
@@ -563,21 +763,17 @@
         for (const name of entries) {
           map[name.replace(/.*\//, "")] = files[name];
         }
-        function npzFind(m, prefix) {
-          const k = Object.keys(m).find((n) => n === prefix || n === prefix + ".npy");
-          return k ? m[k] : void 0;
-        }
-        const w1b = npzFind(map, "w1");
-        const b1b = npzFind(map, "b1");
-        const w2b = npzFind(map, "w2");
-        const b2b = npzFind(map, "b2");
+        const w1b = npzFind2(map, "w1");
+        const b1b = npzFind2(map, "b1");
+        const w2b = npzFind2(map, "w2");
+        const b2b = npzFind2(map, "b2");
         if (!w1b || !b1b || !w2b || !b2b) throw new Error("missing weights");
         const w1 = parseNPY(w1b);
         const b1 = parseNPY(b1b);
         const w2 = parseNPY(w2b);
         const b22 = parseNPY(b2b);
         let labels = [];
-        const lb = npzFind(map, "labels");
+        const lb = npzFind2(map, "labels");
         if (lb) {
           const parsed = parseNPY(lb);
           labels = parsed.data;
@@ -939,12 +1135,16 @@
       const initMs = Math.round(performance.now() - visionStart);
       try {
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: initMs }));
-      } catch {}
+      } catch {
+      }
       video.addEventListener("loadeddata", predictWebcam);
     } catch (e) {
       try {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) }));
-      } catch {}
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "error", message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) })
+        );
+      } catch {
+      }
     }
   }
   var lastVideoTime = -1;
@@ -1080,14 +1280,18 @@
                   handednesses: handedArr
                 })
               );
-            } catch {}
+            } catch {
+            }
           }
         }
       }
     } catch (e) {
       try {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "warn", message: predictionError + (e instanceof Error ? e.message : String(e)) }));
-      } catch {}
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "warn", message: predictionError + (e instanceof Error ? e.message : String(e)) })
+        );
+      } catch {
+      }
     }
     window.requestAnimationFrame(predictWebcam);
   }
@@ -1121,9 +1325,12 @@
   }
   if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
     startCamera().then(() => {
-      document.getElementById('tapToStart')?.classList.add('hidden');
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'tap_start_autostart' }));
-    }).catch(() => {});
+      document.getElementById("tapToStart")?.classList.add("hidden");
+      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "tap_start_autostart" }));
+    }).catch((err2) => {
+      console.warn("Autostart camera failed", err2);
+      document.getElementById("tapToStart")?.classList.remove("hidden");
+    });
   }
   createGestureRecognizer();
   function stopCamera() {
@@ -1136,8 +1343,14 @@
     } catch {
     }
   }
-  window.addEventListener("pagehide", () => { running = false; stopCamera(); });
-  window.addEventListener("beforeunload", () => { running = false; stopCamera(); });
+  window.addEventListener("pagehide", () => {
+    running = false;
+    stopCamera();
+  });
+  window.addEventListener("beforeunload", () => {
+    running = false;
+    stopCamera();
+  });
   window.addEventListener("resize", () => {
     try {
       resizeOverlay();
