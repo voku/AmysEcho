@@ -381,7 +381,10 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           document.getElementById('tapToStart')?.classList.add('hidden');
           window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start_autostart' }));
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.warn('Autostart camera failed', err);
+          document.getElementById('tapToStart')?.classList.remove('hidden');
+        });
     }
     createGestureRecognizer();
     function stopCamera() {
