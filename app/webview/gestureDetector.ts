@@ -1,16 +1,17 @@
-import { unzipSync } from 'fflate';
+import { unzipSync, unzip } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
+import { HAND_CONNECTIONS } from '../src/constants/hand';
 
 // Forward script errors to React Native for easier debugging
 window.addEventListener('error', (e) => {
   try {
     (window as any).ReactNativeWebView?.postMessage(
-      JSON.stringify({ type: 'error', message: e.message }),
+      JSON.stringify({ type: 'error', message: e.message, file: (e as any).filename, line: (e as any).lineno, col: (e as any).colno }),
     );
   } catch {}
 });
 
-(window as any).fflate = { unzipSync };
+(window as any).fflate = { unzip, unzipSync };
 installMlp();
 try {
   (window as any).ReactNativeWebView?.postMessage?.(
@@ -19,9 +20,9 @@ try {
 } catch {}
 
 const tapToStartText = (window as any).__tapToStart || '';
-const recognizerInitFailed = (window as any).__recognizerInitFailed || 'Recognizer init failed: ';
-const predictionError = (window as any).__predictionError || 'Prediction error: ';
-const cameraError = (window as any).__cameraError || 'Camera error: ';
+const recognizerInitFailed = (window as any).__recognizerInitFailed || 'Erkennung konnte nicht gestartet werden: ';
+const predictionError = (window as any).__predictionError || 'Vorhersagefehler: ';
+const cameraError = (window as any).__cameraError || 'Kamerafehler: ';
 const facingMode = (window as any).__facingMode || 'user';
 const mirrorOverlay = (window as any).__mirrorOverlay === true;
 const MLP_CONFIDENCE_THRESHOLD = (window as any).__mlpThreshold ?? 0.6;
@@ -29,14 +30,18 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
 
     // Dynamically load MediaPipe Tasks Vision from CDN and wait until it's ready
     async function loadTasksVision() {
-      // Resolve a pinned version dynamically if possible, otherwise fall back to generic.
+      // Resolve a pinned version from host config if provided
       async function resolvePinnedBase() {
+        const pinnedVersion = (window as any).__mediapipeVersion;
+        if (typeof pinnedVersion === 'string' && pinnedVersion.length) {
+          return { base: 'https://cdn.jsdelivr.net/npm', version: pinnedVersion };
+        }
         const cdns = ['https://cdn.jsdelivr.net/npm', 'https://unpkg.com'];
         for (const base of cdns) {
           try {
             const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', { method: 'GET' });
             if (pkg.ok) {
-              const json = await pkg.json().catch(()=>null);
+              const json = await pkg.json().catch(() => null);
               const v = json?.version;
               if (typeof v === 'string' && v.length) {
                 return { base, version: v };
@@ -47,12 +52,36 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         return null;
       }
 
-      function tryLoadScript(src) {
+      function tryLoadScript(src: string, timeoutMs = 8000) {
         return new Promise((resolve, reject) => {
           const s = document.createElement('script');
           s.src = src;
-          s.onload = resolve;
-          s.onerror = () => reject(new Error('Failed to load script: ' + src));
+          if ((window as any).__visionBundleSri) {
+            s.integrity = (window as any).__visionBundleSri;
+            s.crossOrigin = 'anonymous';
+          }
+          if ((window as any).__visionBundleNonce) {
+            (s as any).nonce = (window as any).__visionBundleNonce;
+          }
+          s.async = true;
+          const cleanup = () => {
+            s.onload = s.onerror = null;
+            if (s.parentNode) s.parentNode.removeChild(s);
+          };
+          const to = setTimeout(() => {
+            cleanup();
+            reject(new Error('Script load timeout: ' + src));
+          }, timeoutMs);
+          s.onload = () => {
+            clearTimeout(to);
+            cleanup();
+            resolve(null);
+          };
+          s.onerror = () => {
+            clearTimeout(to);
+            cleanup();
+            reject(new Error('Failed to load script: ' + src));
+          };
           document.head.appendChild(s);
         });
       }
@@ -120,8 +149,23 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       const tap = document.createElement('div');
       tap.id = 'tapToStart';
       tap.innerText = tapToStartText;
+      if ((window as any).__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+        tap.classList.add('hidden');
+      }
       tap.addEventListener('click', async () => {
-        try { await startCamera(); tap.classList.add('hidden'); window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start' })); } catch {}
+        try {
+          await startCamera();
+          tap.classList.add('hidden');
+          window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start' }));
+        } catch (err) {
+          try {
+            (window as any).ReactNativeWebView?.postMessage?.(
+              JSON.stringify({ type: 'error', message: cameraError + (err instanceof Error ? err.message : String(err)) }),
+            );
+          } catch (postErr) {
+            console.warn('Kamerafehler konnte nicht gesendet werden:', postErr);
+          }
+        }
       });
       document.body.appendChild(tap);
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'dom_ready' }));
@@ -141,11 +185,17 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           numHands: 2,
         });
         const initMs = Math.round(performance.now() - visionStart);
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }));
+        try {
+          window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }));
+        } catch {}
         // Start prediction loop after recognizer is created and video is loaded
         video.addEventListener('loadeddata', predictWebcam);
       } catch (e) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'error', message: recognizerInitFailed + (e?.message || e) }));
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: 'error', message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) })
+          );
+        } catch {}
       }
     }
 
@@ -154,7 +204,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     let lastSentAt = 0;
     let lastSentGesture = null;
     let lastSentScore = 0;
+    let running = true;
     function predictWebcam() {
+      if (!running) return;
       try {
         if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
           if (lastVideoTime !== video.currentTime) { // Only process if video frame has changed
@@ -243,14 +295,6 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   ctx.scale(-1, 1);
                   ctx.translate(-overlay.width, 0);
                 }
-                const HAND_CONNECTIONS = [
-                  [0,1],[1,2],[2,3],[3,4],
-                  [0,5],[5,6],[6,7],[7,8],
-                  [5,9],[9,10],[10,11],[11,12],
-                  [9,13],[13,14],[14,15],[15,16],
-                  [13,17],[17,18],[18,19],[19,20],
-                  [0,17]
-                ];
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
                 ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
@@ -282,20 +326,26 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                 lastSentGesture = outGesture;
                 lastSentScore = confidence;
                 lastSentAt = now;
-                window.ReactNativeWebView?.postMessage?.(
-                  JSON.stringify({
-                    type: 'gesture',
-                    gesture: outGesture || null,
-                    confidence,
-                    landmarks: allLandmarks,
-                    handednesses: handedArr,
-                  }),
-                );
+                try {
+                  window.ReactNativeWebView?.postMessage?.(
+                    JSON.stringify({
+                      type: 'gesture',
+                      gesture: outGesture || null,
+                      confidence,
+                      landmarks: allLandmarks,
+                      handednesses: handedArr,
+                    }),
+                  );
+                } catch {}
               }
           }
         }
       } catch (e) {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'warn', message: predictionError + (e?.message || e) }));
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: 'warn', message: predictionError + (e instanceof Error ? e.message : String(e)) })
+          );
+        } catch {}
       }
       window.requestAnimationFrame(predictWebcam);
     }
@@ -324,8 +374,18 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       }
     }
 
-    // Start camera and then create recognizer
-    startCamera();
+    // Start camera only after user interaction unless explicitly allowed
+    if ((window as any).__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+      startCamera()
+        .then(() => {
+          document.getElementById('tapToStart')?.classList.add('hidden');
+          window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start_autostart' }));
+        })
+        .catch((err) => {
+          console.warn('Autostart camera failed', err);
+          document.getElementById('tapToStart')?.classList.remove('hidden');
+        });
+    }
     createGestureRecognizer();
     function stopCamera() {
       try {
@@ -336,7 +396,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         }
       } catch {}
     }
-    window.addEventListener('pagehide', stopCamera);
-    window.addEventListener('beforeunload', stopCamera);
+    window.addEventListener('pagehide', () => { running = false; stopCamera(); });
+    window.addEventListener('beforeunload', () => { running = false; stopCamera(); });
     window.addEventListener('resize', ()=>{ try { resizeOverlay(); } catch {} });
 

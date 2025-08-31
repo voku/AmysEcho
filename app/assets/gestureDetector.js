@@ -493,6 +493,12 @@
       if (type === "f4") {
         return { data: new Float32Array(buf.buffer, buf.byteOffset + offset, size), shape };
       }
+      if (type === "f2") {
+        const src = new Uint16Array(buf.buffer, buf.byteOffset + offset, size);
+        const out = new Float32Array(size);
+        for (let i = 0; i < size; i++) out[i] = f16ToF32(src[i]);
+        return { data: out, shape };
+      }
       if (type === "i4") {
         return { data: new Int32Array(buf.buffer, buf.byteOffset + offset, size), shape };
       }
@@ -520,44 +526,67 @@
       }
       throw new Error("dtype " + type);
     }
+
+    function f16ToF32(h) {
+      const s = (h & 32768) << 16;
+      let e = h >> 10 & 31;
+      let f = h & 1023;
+      if (e === 0) {
+        if (f === 0) return s ? -0 : 0;
+        while ((f & 1024) === 0) {
+          f <<= 1;
+          e--;
+        }
+        e++;
+        f &= -1025;
+      } else if (e === 31) {
+        const bits = s | 2139095040 | f << 13;
+        return new Float32Array(new Uint32Array([bits]).buffer)[0];
+      }
+      e = e + (127 - 15);
+      const bits = s | e << 23 | f << 13;
+      return new Float32Array(new Uint32Array([bits]).buffer)[0];
+    }
     async function loadMlpFromB64(b64) {
       try {
-        let npzFind2 = function(prefix) {
-          const k = Object.keys(map).find((n) => n === prefix || n === prefix + ".npy");
-          return k ? map[k] : void 0;
-        };
-        var npzFind = npzFind2;
-        const res = await fetch(`data:application/octet-stream;base64,${b64}`);
-        const u82 = new Uint8Array(await res.arrayBuffer());
-        const unzip = window.fflate?.unzipSync;
+        const bin = atob(b64);
+        const u82 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u82[i] = bin.charCodeAt(i);
+        const unzip = window.fflate?.unzip;
         if (!unzip) throw new Error("fflate unavailable");
-        const files = unzip(u82);
+        const files = await new Promise((resolve, reject) => {
+          unzip(u82, (err, data) => err ? reject(err) : resolve(data));
+        });
         const entries = Object.keys(files);
         if (entries.length > 32) throw new Error("too many entries");
         const map = {};
         for (const name of entries) {
           map[name.replace(/.*\//, "")] = files[name];
         }
-        const w1b = npzFind2("w1");
-        const b1b = npzFind2("b1");
-        const w2b = npzFind2("w2");
-        const b2b = npzFind2("b2");
+        function npzFind(m, prefix) {
+          const k = Object.keys(m).find((n) => n === prefix || n === prefix + ".npy");
+          return k ? m[k] : void 0;
+        }
+        const w1b = npzFind(map, "w1");
+        const b1b = npzFind(map, "b1");
+        const w2b = npzFind(map, "w2");
+        const b2b = npzFind(map, "b2");
         if (!w1b || !b1b || !w2b || !b2b) throw new Error("missing weights");
         const w1 = parseNPY(w1b);
         const b1 = parseNPY(b1b);
         const w2 = parseNPY(w2b);
         const b22 = parseNPY(b2b);
         let labels = [];
-        const lb = npzFind2("labels");
+        const lb = npzFind(map, "labels");
         if (lb) {
           const parsed = parseNPY(lb);
           labels = parsed.data;
         }
         mlp = {
-          w1: { data: Float64Array.from(w1.data), shape: w1.shape },
-          b1: { data: Float64Array.from(b1.data), shape: b1.shape },
-          w2: { data: Float64Array.from(w2.data), shape: w2.shape },
-          b2: { data: Float64Array.from(b22.data), shape: b22.shape },
+          w1: { data: Float32Array.from(w1.data), shape: w1.shape },
+          b1: { data: Float32Array.from(b1.data), shape: b1.shape },
+          w2: { data: Float32Array.from(w2.data), shape: w2.shape },
+          b2: { data: Float32Array.from(b22.data), shape: b22.shape },
           labels
         };
         return true;
@@ -583,7 +612,8 @@
       return x;
     }
     function softmax(x) {
-      const max2 = Math.max(...x);
+      let max2 = -Infinity;
+      for (let i = 0; i < x.length; i++) if (x[i] > max2) max2 = x[i];
       let s = 0;
       for (let i = 0; i < x.length; i++) {
         x[i] = Math.exp(x[i] - max2);
@@ -594,27 +624,18 @@
       }
       return x;
     }
-    function dotMV(mat, rows, cols, vec) {
-      const out = new Float64Array(rows);
+    function affineMV(mat, rows, cols, vec, bias) {
+      const out = new Float32Array(rows);
       for (let r = 0; r < rows; r++) {
         let sum = 0;
-        for (let c = 0; c < cols; c++) {
-          sum += mat[r * cols + c] * vec[c];
-        }
-        out[r] = sum;
-      }
-      return out;
-    }
-    function addBias(vec, bias) {
-      const out = new Float64Array(vec.length);
-      for (let i = 0; i < vec.length; i++) {
-        out[i] = vec[i] + bias[i % bias.length];
+        for (let c = 0; c < cols; c++) sum += mat[r * cols + c] * vec[c];
+        out[r] = sum + bias[r];
       }
       return out;
     }
     const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0]);
     function normalizeLandmarks(all, handednesses) {
-      const flat = [];
+      const flat = new Float32Array(21 * 2 * 3);
       function normHand(hand) {
         if (!hand || hand.length < 21) return null;
         const [wx, wy, wz] = hand[0];
@@ -632,15 +653,17 @@
       const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === "Right");
       const leftHand = leftHandIndex > -1 ? all[leftHandIndex] : null;
       const rightHand = rightHandIndex > -1 ? all[rightHandIndex] : null;
-      const left = normHand(leftHand);
-      if (!left) return null;
+      const left = normHand(leftHand) ?? EMPTY_HAND;
       const right = normHand(rightHand);
       const r = right ?? EMPTY_HAND;
       const both = left.concat(r);
+      let k = 0;
       for (const p of both) {
-        flat.push(p[0], p[1], p[2]);
+        flat[k++] = p[0];
+        flat[k++] = p[1];
+        flat[k++] = p[2];
       }
-      return new Float64Array(flat);
+      return flat;
     }
     function mlpPredict(all, handednesses) {
       if (!mlp) return null;
@@ -650,14 +673,14 @@
       if (mlp.w1.shape[1] !== cols1) throw new Error("Input dimension mismatch");
       const rows1 = mlp.w1.shape[0];
       if (mlp.b1.shape[0] !== rows1) throw new Error("b1 dimension mismatch");
-      const z1 = addBias(dotMV(mlp.w1.data, rows1, cols1, x), mlp.b1.data);
+      const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);
       const a1 = relu(z1);
       const rows2 = mlp.w2.shape[0];
       const cols2 = mlp.w2.shape[1];
       if (cols2 !== a1.length) throw new Error("Hidden layer size mismatch");
       if (mlp.b2.shape[0] !== rows2) throw new Error("b2 dimension mismatch");
-      const z2 = addBias(dotMV(mlp.w2.data, rows2, cols2, a1), mlp.b2.data);
-      const probs = softmax(Array.from(z2));
+      const z2 = affineMV(mlp.w2.data, rows2, cols2, a1, mlp.b2.data);
+      const probs = softmax(z2);
       let bestI = 0;
       let best = probs[0];
       for (let i = 1; i < probs.length; i++) {
@@ -710,16 +733,41 @@
     };
   }
 
+  // src/constants/hand.ts
+  var HAND_CONNECTIONS = [
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [3, 4],
+    [0, 5],
+    [5, 6],
+    [6, 7],
+    [7, 8],
+    [5, 9],
+    [9, 10],
+    [10, 11],
+    [11, 12],
+    [9, 13],
+    [13, 14],
+    [14, 15],
+    [15, 16],
+    [13, 17],
+    [17, 18],
+    [18, 19],
+    [19, 20],
+    [0, 17]
+  ];
+
   // webview/gestureDetector.ts
   window.addEventListener("error", (e) => {
     try {
       window.ReactNativeWebView?.postMessage(
-        JSON.stringify({ type: "error", message: e.message })
+        JSON.stringify({ type: "error", message: e.message, file: e.filename, line: e.lineno, col: e.colno })
       );
     } catch {
     }
   });
-  window.fflate = { unzipSync };
+  window.fflate = { unzip, unzipSync };
   installMlp();
   try {
     window.ReactNativeWebView?.postMessage?.(
@@ -728,15 +776,19 @@
   } catch {
   }
   var tapToStartText = window.__tapToStart || "";
-  var recognizerInitFailed = window.__recognizerInitFailed || "Recognizer init failed: ";
-  var predictionError = window.__predictionError || "Prediction error: ";
-  var cameraError = window.__cameraError || "Camera error: ";
+  var recognizerInitFailed = window.__recognizerInitFailed || "Erkennung konnte nicht gestartet werden: ";
+  var predictionError = window.__predictionError || "Vorhersagefehler: ";
+  var cameraError = window.__cameraError || "Kamerafehler: ";
   var facingMode = window.__facingMode || "user";
   var mirrorOverlay = window.__mirrorOverlay === true;
   var MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.6;
   var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.5;
   async function loadTasksVision() {
     async function resolvePinnedBase() {
+      const pinnedVersion = window.__mediapipeVersion;
+      if (typeof pinnedVersion === "string" && pinnedVersion.length) {
+        return { base: "https://cdn.jsdelivr.net/npm", version: pinnedVersion };
+      }
       const cdns = ["https://cdn.jsdelivr.net/npm", "https://unpkg.com"];
       for (const base of cdns) {
         try {
@@ -753,12 +805,36 @@
       }
       return null;
     }
-    function tryLoadScript(src) {
+    function tryLoadScript(src, timeoutMs = 8e3) {
       return new Promise((resolve, reject) => {
         const s = document.createElement("script");
         s.src = src;
-        s.onload = resolve;
-        s.onerror = () => reject(new Error("Failed to load script: " + src));
+        if (window.__visionBundleSri) {
+          s.integrity = window.__visionBundleSri;
+          s.crossOrigin = "anonymous";
+        }
+        if (window.__visionBundleNonce) {
+          s.nonce = window.__visionBundleNonce;
+        }
+        s.async = true;
+        const cleanup = () => {
+          s.onload = s.onerror = null;
+          if (s.parentNode) s.parentNode.removeChild(s);
+        };
+        const to = setTimeout(() => {
+          cleanup();
+          reject(new Error("Script load timeout: " + src));
+        }, timeoutMs);
+        s.onload = () => {
+          clearTimeout(to);
+          cleanup();
+          resolve(null);
+        };
+        s.onerror = () => {
+          clearTimeout(to);
+          cleanup();
+          reject(new Error("Failed to load script: " + src));
+        };
         document.head.appendChild(s);
       });
     }
@@ -826,12 +902,22 @@
     const tap = document.createElement("div");
     tap.id = "tapToStart";
     tap.innerText = tapToStartText;
+    if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+      tap.classList.add("hidden");
+    }
     tap.addEventListener("click", async () => {
       try {
         await startCamera();
         tap.classList.add("hidden");
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "tap_start" }));
-      } catch {
+      } catch (err2) {
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "error", message: cameraError + (err2 instanceof Error ? err2.message : String(err2)) })
+          );
+        } catch (postErr) {
+          console.warn("Kamerafehler konnte nicht gesendet werden:", postErr);
+        }
       }
     });
     document.body.appendChild(tap);
@@ -851,10 +937,14 @@
         numHands: 2
       });
       const initMs = Math.round(performance.now() - visionStart);
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: initMs }));
+      try {
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: initMs }));
+      } catch {}
       video.addEventListener("loadeddata", predictWebcam);
     } catch (e) {
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: recognizerInitFailed + (e?.message || e) }));
+      try {
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) }));
+      } catch {}
     }
   }
   var lastVideoTime = -1;
@@ -862,7 +952,9 @@
   var lastSentAt = 0;
   var lastSentGesture = null;
   var lastSentScore = 0;
+  var running = true;
   function predictWebcam() {
+    if (!running) return;
     try {
       if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
         if (lastVideoTime !== video.currentTime) {
@@ -948,29 +1040,6 @@
                 ctx.scale(-1, 1);
                 ctx.translate(-overlay.width, 0);
               }
-              const HAND_CONNECTIONS = [
-                [0, 1],
-                [1, 2],
-                [2, 3],
-                [3, 4],
-                [0, 5],
-                [5, 6],
-                [6, 7],
-                [7, 8],
-                [5, 9],
-                [9, 10],
-                [10, 11],
-                [11, 12],
-                [9, 13],
-                [13, 14],
-                [14, 15],
-                [15, 16],
-                [13, 17],
-                [17, 18],
-                [18, 19],
-                [19, 20],
-                [0, 17]
-              ];
               ctx.lineWidth = 3;
               ctx.strokeStyle = "rgba(0, 255, 180, 0.9)";
               ctx.fillStyle = "rgba(0, 255, 180, 0.9)";
@@ -1001,20 +1070,24 @@
             lastSentGesture = outGesture;
             lastSentScore = confidence;
             lastSentAt = now;
-            window.ReactNativeWebView?.postMessage?.(
-              JSON.stringify({
-                type: "gesture",
-                gesture: outGesture || null,
-                confidence,
-                landmarks: allLandmarks,
-                handednesses: handedArr
-              })
-            );
+            try {
+              window.ReactNativeWebView?.postMessage?.(
+                JSON.stringify({
+                  type: "gesture",
+                  gesture: outGesture || null,
+                  confidence,
+                  landmarks: allLandmarks,
+                  handednesses: handedArr
+                })
+              );
+            } catch {}
           }
         }
       }
     } catch (e) {
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "warn", message: predictionError + (e?.message || e) }));
+      try {
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "warn", message: predictionError + (e instanceof Error ? e.message : String(e)) }));
+      } catch {}
     }
     window.requestAnimationFrame(predictWebcam);
   }
@@ -1046,7 +1119,12 @@
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: cameraError + msg }));
     }
   }
-  startCamera();
+  if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+    startCamera().then(() => {
+      document.getElementById('tapToStart')?.classList.add('hidden');
+      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'tap_start_autostart' }));
+    }).catch(() => {});
+  }
   createGestureRecognizer();
   function stopCamera() {
     try {
@@ -1058,8 +1136,8 @@
     } catch {
     }
   }
-  window.addEventListener("pagehide", stopCamera);
-  window.addEventListener("beforeunload", stopCamera);
+  window.addEventListener("pagehide", () => { running = false; stopCamera(); });
+  window.addEventListener("beforeunload", () => { running = false; stopCamera(); });
   window.addEventListener("resize", () => {
     try {
       resizeOverlay();
