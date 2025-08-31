@@ -66,14 +66,27 @@ async function updateFflate() {
 
 function updateInstallMlp() {
   const appDir = path.join(__dirname, '..', 'app');
-  const tsNodePath = require.resolve('ts-node', { paths: [appDir] });
-  const tsNode = require(tsNodePath);
-  tsNode.register({
-    transpileOnly: true,
-    compilerOptions: { module: 'commonjs', target: 'es2018', lib: ['es2020', 'dom'] },
+  let ts;
+  try {
+    const tsPath = require.resolve('typescript', { paths: [appDir, __dirname] });
+    ts = require(tsPath);
+  } catch (e) {
+    throw new Error('TypeScript not found. Run "npm ci --prefix app" before this script.');
+  }
+  const srcPath = path.join(appDir, 'src', 'webview', 'installMlp.ts');
+  const tsCode = fs.readFileSync(srcPath, 'utf8');
+  const { outputText } = ts.transpileModule(tsCode, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2018, lib: ['es2020', 'dom'] },
   });
-  const { installMlp } = require(path.join(appDir, 'src', 'webview', 'installMlp.ts'));
-  const code = `(${installMlp.toString()})();`;
+  const Module = module.constructor;
+  const m = new Module();
+  m.paths = Module._nodeModulePaths(appDir);
+  m._compile(outputText, srcPath);
+  const install = m.exports.installMlp || m.exports.default;
+  if (typeof install !== 'function') {
+    throw new Error('installMlp export not found in installMlp.ts');
+  }
+  const code = `(${install.toString()})();`;
   const base64 = Buffer.from(code, 'utf8').toString('base64');
   const header = `/**\n * Generated from app/src/webview/installMlp.ts\n * Run scripts/update-webview-base64.js after modifying installMlp.ts.\n */`;
   const dest = path.join(appDir, 'src', 'webview', 'installMlpBase64.ts');

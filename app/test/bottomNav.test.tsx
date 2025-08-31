@@ -17,12 +17,14 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate }),
 }));
 
-jest.mock('lucide-react-native', () => {
+
+jest.mock('react-native-svg', () => {
   const React = require('react');
   return {
-    Hand: (props: any) => React.createElement('Hand', props, props.children),
-    BookOpen: (props: any) => React.createElement('BookOpen', props, props.children),
-    Settings: (props: any) => React.createElement('Settings', props, props.children),
+    __esModule: true,
+    default: (props: any) => React.createElement('Svg', props, props.children),
+    Path: (props: any) => React.createElement('Path', props, props.children),
+    Circle: (props: any) => React.createElement('Circle', props, props.children),
   };
 });
 

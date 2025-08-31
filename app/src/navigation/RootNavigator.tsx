@@ -1,6 +1,6 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from './types';
 import { loadProfiles } from '../storage';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -32,7 +32,7 @@ const ProgressChartScreen = lazyScreen(() => import('../screens/ProgressChartScr
 const PracticeSchedulerScreen = lazyScreen(() => import('../screens/PracticeSchedulerScreen'));
 const CaregiverReportScreen = lazyScreen(() => import('../screens/CaregiverReportScreen'));
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | undefined>();

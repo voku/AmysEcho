@@ -1,6 +1,12 @@
 import React, { useEffect } from 'react';
-import { Canvas, Circle } from '@shopify/react-native-skia';
-import { useSharedValue, withTiming, withRepeat, useDerivedValue } from 'react-native-reanimated';
+import { View } from 'react-native';
+import Animated, {
+  useSharedValue,
+  withTiming,
+  withRepeat,
+  useAnimatedStyle,
+  cancelAnimation,
+} from 'react-native-reanimated';
 
 import { usePerformance } from '../context/PerformanceContext';
 
@@ -14,25 +20,51 @@ export default function PulsingCircle({ size, color = '#ffffff' }: PulsingCircle
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (!isLowPerformanceMode) {
-      progress.value = withRepeat(withTiming(1, { duration: 1000 }), -1, true);
+    if (isLowPerformanceMode) {
+      cancelAnimation(progress);
+      progress.value = 0;
+      return;
     }
-  }, [progress, isLowPerformanceMode]);
+    progress.value = withRepeat(withTiming(1, { duration: 1000 }), -1, true);
+    return () => {
+      cancelAnimation(progress);
+    };
+  }, [isLowPerformanceMode]);
 
-  const radius = useDerivedValue(() => (size / 2) * progress.value);
-  const opacity = useDerivedValue(() => 1 - progress.value);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: 1 - progress.value,
+    transform: [{ scale: progress.value }],
+  }));
 
   if (isLowPerformanceMode) {
     return (
-      <Canvas style={{ width: size, height: size, position: 'absolute' }}>
-        <Circle cx={size / 2} cy={size / 2} r={size / 2} color={color} opacity={0.5} />
-      </Canvas>
+      <View
+        pointerEvents="none"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          opacity: 0.5,
+          position: 'absolute',
+        }}
+      />
     );
   }
 
   return (
-    <Canvas style={{ width: size, height: size, position: 'absolute' }}>
-      <Circle cx={size / 2} cy={size / 2} r={radius} color={color} opacity={opacity} />
-    </Canvas>
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          position: 'absolute',
+        },
+        animatedStyle,
+      ]}
+    />
   );
 }

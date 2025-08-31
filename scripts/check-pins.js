@@ -27,7 +27,6 @@ const criticalAppDeps = [
   'react-native',
   'expo',
   'react-native-webview',
-  'react-native-worklets-core',
   'react-native-reanimated',
   '@nozbe/watermelondb',
 ];

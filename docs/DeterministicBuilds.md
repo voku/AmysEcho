@@ -7,8 +7,8 @@ Goals
 - Fail CI if critical deps are unpinned
 
 Critical packages
-- App: react, react-native, expo, react-native-webview, react-native-reanimated, react-native-worklets-core, @nozbe/watermelondb
-- Server: express, express-rate-limit
+ - App: react, react-native, expo, react-native-webview, react-native-reanimated, @nozbe/watermelondb
+ - Server: express, express-rate-limit
 
 Workflow
 1) Pin versions in `app/package.json` and `server/package.json` (no `^`, `~`, or `latest`).
