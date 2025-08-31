@@ -36,6 +36,8 @@ import { RecognitionPath } from '../utils/recognitionState';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import { LanguageManager } from '../services/LanguageManager';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
+import { useMessage } from '../context/MessageContext';
+import { onMlpModelUpdated } from '../services/dgsModelClient';
 
 const FEEDBACK_THROTTLE_MS = 2000;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
@@ -43,6 +45,7 @@ const FEEDBACK_THROTTLE_MS = 2000;
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
+  const { setMessage } = useMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState('Ich höre zu…');
   const [detectedGesture, setDetectedGesture] = useState<string>('listening...');
@@ -95,6 +98,20 @@ export default function RecognitionScreen({ navigation }: any) {
       })
       .catch((error) => { logger.warn('Failed to build local centroids:', error); });
   }, []);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const unsub = onMlpModelUpdated(() => {
+      setMessage('Neues Modell geladen');
+      timeoutId = setTimeout(() => setMessage(null), 2000);
+    });
+    return () => {
+      unsub();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [setMessage]);
 
   // Auto-fallback to Expo camera if WebView doesn't start camera within 5 seconds
   useEffect(() => {
@@ -486,17 +503,23 @@ export default function RecognitionScreen({ navigation }: any) {
       {/* Optional controls could be reintroduced as overlays if needed */}
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.md }}>
-        <Button
-          testID="btn-correction"
-          title="Korrektur"
-          accessibilityLabel="Korrekturseite öffnen"
-          onPress={() => navigation.navigate('Correction')}
-        />
+      <Button
+        testID="btn-correction"
+        title="Korrektur"
+        accessibilityLabel="Korrekturseite öffnen"
+        onPress={() => navigation.navigate('Correction')}
+      />
       <Button
         testID="btn-help-me-choose"
         title="Hilf mir wählen"
         accessibilityLabel="Hilf mir wählen öffnen"
         onPress={() => setShowCorrection(true)}
+      />
+      <Button
+        testID="btn-teach"
+        title="Neue Geste beibringen"
+        accessibilityLabel="Neue Geste beibringen"
+        onPress={() => navigation.navigate('Teaching')}
       />
     </View>
 

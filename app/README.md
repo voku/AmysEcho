@@ -17,6 +17,14 @@ This is the mobile application for Amy's Echo, a multimodal communication platfo
     npm install
     ```
 
+### Build WebView scripts
+
+Compile the standalone gesture detector code before bundling the app:
+
+```bash
+npm run build:webview
+```
+
 ### Running the App
 
 -   **To run on Android:**

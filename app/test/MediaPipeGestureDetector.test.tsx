@@ -11,9 +11,16 @@ jest.mock('react-native', () => {
   };
 });
 
-jest.mock('react-native-webview', () => ({
-  WebView: (props: any) => <mock-webview {...props} />,
-}));
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  return {
+    WebView: React.forwardRef((props: any, ref) => {
+      const injectJavaScript = jest.fn();
+      React.useImperativeHandle(ref, () => ({ injectJavaScript }));
+      return <mock-webview {...props} injectJavaScript={injectJavaScript} />;
+    }),
+  };
+});
 
 jest.mock('../src/services/dgsModelClient', () => ({
   getCachedMlpModel: jest.fn(() => Promise.resolve(null)),
@@ -77,9 +84,10 @@ describe('MediaPipeGestureDetector', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it('calls onError when an error message is received', () => {
+  it('logs and forwards error messages from the WebView', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     let component: renderer.ReactTestRenderer;
     act(() => {
@@ -97,8 +105,31 @@ describe('MediaPipeGestureDetector', () => {
       });
     });
 
+    expect(consoleSpy).toHaveBeenCalledWith('WebView error:', 'Camera access denied');
     expect(onError).toHaveBeenCalledWith('Camera access denied');
     expect(onGestureDetected).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('logs console messages from the WebView', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    act(() => {
+      webview.props.onConsoleMessage({ nativeEvent: { message: 'test log' } });
+    });
+
+    expect(logSpy).toHaveBeenCalledWith('WV:', 'test log');
+    logSpy.mockRestore();
   });
 
   it('calls onError when the message data is invalid JSON', () => {
@@ -186,6 +217,39 @@ describe('MediaPipeGestureDetector', () => {
     expect(fetchMlpModel).toHaveBeenCalledTimes(2);
   });
 
+  it('injects model after mlp_ready telemetry', async () => {
+    const { getCachedMlpModel, fetchMlpModel } = require('../src/services/dgsModelClient');
+    (getCachedMlpModel as jest.Mock).mockResolvedValue('cached');
+    (fetchMlpModel as jest.Mock).mockResolvedValue('latest');
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+      await Promise.resolve();
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const injectJs = webview.props.injectJavaScript as jest.Mock;
+    expect(injectJs).not.toHaveBeenCalled();
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(injectJs.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(injectJs.mock.calls[0][0]).toContain('__beginMlpTransfer');
+    expect(injectJs.mock.calls.some((c: any[]) => String(c[0]).includes('__pushMlpChunk'))).toBe(true);
+    expect(injectJs.mock.calls[injectJs.mock.calls.length - 1][0]).toContain(
+      '__commitMlpTransfer',
+    );
+  });
+
   it('updates translations when language changes', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
@@ -255,12 +319,23 @@ describe('MediaPipeGestureDetector', () => {
   it('mirrors video and overlay for the user-facing camera', () => {
     const html = renderHtml('user');
     expect(html).toContain('transform: scaleX(-1);');
-    expect(html).toContain('const mirrorOverlay = true');
+    expect(html).toContain('window.__mirrorOverlay = true');
   });
 
   it('does not mirror video or overlay for the rear-facing camera', () => {
     const html = renderHtml('environment');
     expect(html).not.toContain('transform: scaleX(-1);');
-    expect(html).toContain('const mirrorOverlay = false');
+    expect(html).toContain('window.__mirrorOverlay = false');
+  });
+
+  it('embeds thresholds and produces parsable script', () => {
+    const html = renderHtml('user');
+    expect(html).not.toContain('FALLBACK_CONFIDENCE_THRESHOLD');
+    expect(html).not.toContain('MLP_CONFIDENCE_THRESHOLD');
+    const scriptMatches = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)];
+    expect(scriptMatches.length).toBeGreaterThan(0);
+    for (const [, script] of scriptMatches) {
+      expect(() => new Function(script)).not.toThrow();
+    }
   });
 });

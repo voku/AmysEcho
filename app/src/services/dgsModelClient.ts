@@ -7,6 +7,24 @@ const KEY = 'dgsCentroids';
 const MLP_KEY = 'dgsMlpModel';
 const MLP_META_KEY = 'dgsMlpModelMeta';
 
+type MlpModelListener = () => void;
+const mlpModelListeners = new Set<MlpModelListener>();
+
+export function onMlpModelUpdated(listener: MlpModelListener): () => void {
+  mlpModelListeners.add(listener);
+  return () => mlpModelListeners.delete(listener);
+}
+
+function emitMlpModelUpdated() {
+  mlpModelListeners.forEach((l) => {
+    try {
+      l();
+    } catch {
+      // ignore listener errors
+    }
+  });
+}
+
 type StorageLike = {
   setItem(key: string, value: string): Promise<void>;
   getItem(key: string): Promise<string | null>;
@@ -79,11 +97,6 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
       return storage.getItem(`${MLP_KEY}:${profileId || 'global'}`);
     }
     if (!resp.ok) return null;
-    const lenHeader = resp.headers.get('Content-Length');
-    if (lenHeader && parseInt(lenHeader, 10) > 5 * 1024 * 1024) {
-      // Safety: do not accept files larger than 5 MB
-      return null;
-    }
     const buf = Buffer.from(await resp.arrayBuffer());
     const b64 = buf.toString('base64');
     await storage.setItem(`${MLP_KEY}:${profileId || 'global'}`, b64);
@@ -93,6 +106,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
       version: resp.headers.get('X-Model-Version') || undefined,
     };
     await storage.setItem(`${MLP_META_KEY}:${profileId || 'global'}`, JSON.stringify(meta));
+    emitMlpModelUpdated();
     return b64;
   } catch (error) {
     console.error('Failed to fetch MLP model:', error);

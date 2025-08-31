@@ -12,7 +12,6 @@ export function installMlp() {
     labels: string[];
   };
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,labels }
-  const maxSize = 5 * 1024 * 1024; // 5MB safety
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     if (view.getUint8(0) !== 0x93) throw new Error('bad npy');
@@ -79,7 +78,6 @@ export function installMlp() {
   async function loadMlpFromB64(b64: string) {
     try {
       const bin = atob(b64);
-      if (bin.length > maxSize) throw new Error('too big');
       const u8 = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
       const unzip = (window as any).fflate?.unzipSync;
@@ -120,6 +118,17 @@ export function installMlp() {
       return true;
     } catch (e: any) {
       console.warn('mlp load failed', e?.message ?? e);
+      try {
+        (window as any).ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'telemetry',
+            event: 'mlp_load_failed',
+            reason: e?.message ?? String(e),
+          }),
+        );
+      } catch (err) {
+        console.warn('mlp_load_failed postMessage failed', err);
+      }
       mlp = null;
       return false;
     }
@@ -221,15 +230,42 @@ export function installMlp() {
     return { label, score: best };
   }
   (window as any).__setMlpModelB64 = (b64: string) => {
-    loadMlpFromB64(b64).then(() => {
-      try {
-        (window as any).ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: 'telemetry', event: 'mlp_loaded' })
-        );
-      } catch (e) {
-        console.warn('mlp_loaded postMessage failed', e);
+    loadMlpFromB64(b64).then((ok) => {
+      if (ok) {
+        try {
+          (window as any).ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: 'telemetry', event: 'mlp_loaded' })
+          );
+        } catch (e) {
+          console.warn('mlp_loaded postMessage failed', e);
+        }
       }
     });
   };
   (window as any).__mlpPredict = mlpPredict;
+  let transferBuf = '';
+  let transferStart = 0;
+  (window as any).__beginMlpTransfer = () => {
+    transferBuf = '';
+    transferStart = performance.now();
+  };
+  (window as any).__pushMlpChunk = (chunk: string) => {
+    transferBuf += chunk;
+  };
+  (window as any).__commitMlpTransfer = () => {
+    const bytes = transferBuf.length;
+    const start = transferStart;
+    try {
+      (window as any).__setMlpModelB64?.(transferBuf);
+      const ms = Math.round(performance.now() - start);
+      (window as any).ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: 'telemetry', event: 'mlp_transfer', bytes, ms })
+      );
+    } catch (err) {
+      console.warn('mlp_transfer failed', err);
+    } finally {
+      transferBuf = '';
+      transferStart = 0;
+    }
+  };
 }
