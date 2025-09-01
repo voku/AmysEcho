@@ -308,3 +308,221 @@
 
 ## Remember: Amy's Communication Is Sacred
 Every line of code, every design decision, every optimization must enhance Amy's ability to communicate. When in doubt, choose reliability over elegance, simplicity over features, and Amy's needs over technical metrics. The last 5% of battery might be when she needs to say "Hilfe" - and that gesture must work perfectly.
+
+# GestureDetector.ts Improvement TODO List
+
+## High Priority Tasks (Critical for Production)
+
+### 1. Type Safety Overhaul
+**Task**: Convert from `any` types to proper TypeScript interfaces
+**Files to modify**: `app/webview/gestureDetector.ts`
+**Deliverables**:
+- [ ] Create `MediaPipeInterfaces.ts` with proper type definitions for MediaPipe results
+- [ ] Define `MLPPrediction`, `GestureResult`, `WebViewMessage` interfaces
+- [ ] Replace all `(window as any)` casts with properly typed window extensions
+- [ ] Add type guards for runtime type checking
+- [ ] Ensure zero TypeScript errors in strict mode
+
+**Example interfaces needed**:
+```typescript
+interface MediaPipeGestureResult {
+  landmarks?: HandLandmark[][];
+  gestures?: GestureCategory[][];
+  handednesses?: Handedness[][];
+}
+```
+
+### 2. Resource Management & Cleanup
+**Task**: Implement proper resource disposal to prevent memory leaks
+**Files to modify**: `app/webview/gestureDetector.ts`
+**Deliverables**:
+- [ ] Create `ResourceManager` class to handle MediaPipe resource cleanup
+- [ ] Implement `dispose()` method that properly closes MediaPipe recognizer
+- [ ] Add cleanup for video streams, canvas contexts, and event listeners
+- [ ] Test memory usage over extended periods
+- [ ] Add cleanup calls in all exit scenarios (pagehide, beforeunload, errors)
+
+### 3. Error Boundary Implementation
+**Task**: Add comprehensive error handling with recovery mechanisms
+**Files to modify**: `app/webview/gestureDetector.ts`
+**Deliverables**:
+- [ ] Create `ErrorRecoveryManager` class
+- [ ] Implement automatic retry logic for transient failures
+- [ ] Add circuit breaker pattern for repeated MediaPipe failures
+- [ ] Create fallback modes when primary systems fail
+- [ ] Add structured error reporting with error codes
+- [ ] Implement graceful degradation strategy
+
+## Medium Priority Tasks (Architecture Improvements)
+
+### 4. Code Organization Refactor
+**Task**: Break monolithic file into modular, testable components
+**Files to create**:
+- `MediaPipeLoader.ts`
+- `GestureRecognizer.ts` 
+- `CustomGestureDetector.ts`
+- `OverlayRenderer.ts`
+- `CameraManager.ts`
+**Deliverables**:
+- [ ] Extract MediaPipe loading logic into `MediaPipeLoader` class
+- [ ] Create `GestureRecognizer` class with clear public API
+- [ ] Move custom gesture detection to separate `CustomGestureDetector` class
+- [ ] Create `OverlayRenderer` for visual feedback
+- [ ] Implement `CameraManager` for video stream handling
+- [ ] Create main orchestrator class that coordinates all components
+- [ ] Ensure each class has single responsibility
+
+### 5. Configuration Management
+**Task**: Extract magic numbers and create centralized configuration
+**Files to create**: `GestureConfig.ts`
+**Deliverables**:
+- [ ] Create configuration object with all constants
+- [ ] Make configuration injectable/overridable from React Native
+- [ ] Add runtime configuration validation
+- [ ] Document all configuration options
+- [ ] Create development vs production config profiles
+
+**Config structure**:
+```typescript
+interface GestureDetectorConfig {
+  performance: {
+    telemetrySampleRate: number;
+    messageThrottleMs: number;
+    confidenceChangeThreshold: number;
+  };
+  thresholds: {
+    mlpConfidence: number;
+    fallbackConfidence: number;
+  };
+  // ... other config sections
+}
+```
+
+### 6. Performance Optimization
+**Task**: Implement advanced performance optimizations
+**Files to modify**: All gesture detection components
+**Deliverables**:
+- [ ] Implement OffscreenCanvas when available
+- [ ] Add requestIdleCallback for non-critical operations
+- [ ] Create object pooling for frequent allocations
+- [ ] Implement WebGL-accelerated overlay rendering
+- [ ] Add frame rate adaptive processing
+- [ ] Implement smart region-of-interest detection
+- [ ] Add performance monitoring and adaptive quality scaling
+
+### 7. Accessibility Enhancements
+**Task**: Improve accessibility and keyboard navigation
+**Files to modify**: `app/webview/gestureDetector.ts`
+**Deliverables**:
+- [ ] Add proper ARIA labels to all interactive elements
+- [ ] Implement keyboard navigation for camera controls
+- [ ] Add screen reader announcements for gesture detection
+- [ ] Create high contrast mode for overlay visualization
+- [ ] Add voice feedback option for detected gestures
+- [ ] Implement focus management for better tab navigation
+
+## Low Priority Tasks (Nice to Have)
+
+### 8. Advanced Gesture Detection
+**Task**: Enhance gesture recognition capabilities
+**Files to modify**: `CustomGestureDetector.ts` (new)
+**Deliverables**:
+- [ ] Implement temporal gesture recognition (gesture sequences)
+- [ ] Add gesture velocity and acceleration analysis
+- [ ] Create custom gesture training interface
+- [ ] Implement multi-hand gesture combinations
+- [ ] Add gesture confidence smoothing over time
+- [ ] Create gesture macro system (gesture → action mapping)
+
+### 9. Testing Infrastructure
+**Task**: Create comprehensive testing suite
+**Files to create**:
+- `__tests__/GestureDetector.test.ts`
+- `__mocks__/MediaPipe.mock.ts`
+**Deliverables**:
+- [ ] Create MediaPipe mock for unit testing
+- [ ] Add gesture detection algorithm unit tests
+- [ ] Create integration tests for WebView communication
+- [ ] Add performance regression tests
+- [ ] Create visual regression tests for overlay rendering
+- [ ] Implement automated accessibility testing
+
+### 10. Developer Experience
+**Task**: Improve debugging and development workflow
+**Files to create**:
+- `DevTools.ts`
+- `GestureDebugger.ts`
+**Deliverables**:
+- [ ] Create in-WebView debug overlay showing detection metrics
+- [ ] Add gesture recording and playback for testing
+- [ ] Implement real-time performance metrics display
+- [ ] Create gesture detection confidence visualizer
+- [ ] Add keyboard shortcuts for development features
+- [ ] Create gesture detection quality analyzer
+
+### 11. Security Hardening
+**Task**: Implement security best practices
+**Files to modify**: `MediaPipeLoader.ts`, main file
+**Deliverables**:
+- [ ] Add Content Security Policy compliance
+- [ ] Implement Subresource Integrity for all external resources
+- [ ] Add input validation for all window message parameters
+- [ ] Create secure communication protocol with React Native
+- [ ] Implement rate limiting for message passing
+- [ ] Add XSS protection for dynamic content
+
+### 12. Advanced Camera Features
+**Task**: Enhance camera handling capabilities
+**Files to create**: `CameraManager.ts`
+**Deliverables**:
+- [ ] Add camera resolution adaptation based on device capabilities
+- [ ] Implement auto-focus and exposure control
+- [ ] Add camera switching (front/back) support
+- [ ] Create camera calibration for better landmark accuracy
+- [ ] Implement camera frame preprocessing (noise reduction, etc.)
+- [ ] Add support for multiple camera feeds
+
+## Implementation Guidelines
+
+### For Each Task:
+1. **Create feature branch**: `feature/task-name`
+2. **Write tests first**: TDD approach where applicable
+3. **Maintain backward compatibility**: Ensure existing functionality works
+4. **Update documentation**: Add JSDoc comments and README updates
+5. **Performance testing**: Verify no performance regressions
+6. **Code review**: Get approval before merging
+
+### File Structure After Refactor:
+```
+webview/
+├── gestureDetector.ts          # Main orchestrator (simplified)
+├── core/
+│   ├── MediaPipeLoader.ts      # MediaPipe SDK loading
+│   ├── GestureRecognizer.ts    # Main recognition logic
+│   ├── CustomGestureDetector.ts # Fallback gesture detection
+│   ├── CameraManager.ts        # Video stream management
+│   └── OverlayRenderer.ts      # Visual feedback
+├── types/
+│   ├── MediaPipeTypes.ts       # MediaPipe type definitions
+│   ├── GestureTypes.ts         # Gesture-related types
+│   └── ConfigTypes.ts          # Configuration interfaces
+├── config/
+│   └── GestureConfig.ts        # Configuration management
+├── utils/
+│   ├── ErrorRecovery.ts        # Error handling utilities
+│   ├── PerformanceMonitor.ts   # Performance tracking
+│   └── ResourceManager.ts      # Resource cleanup
+└── __tests__/                  # Test files
+```
+
+### Success Criteria:
+- [ ] Zero TypeScript errors in strict mode
+- [ ] 100% test coverage for gesture detection algorithms
+- [ ] Memory usage stable over 24+ hour periods
+- [ ] Performance regression tests passing
+- [ ] Accessibility audit passing (WCAG 2.1 AA)
+- [ ] Security audit passing (no high/critical vulnerabilities)
+
+---
+
+**Note**: Each task should be implemented incrementally with thorough testing. Priority should be given to tasks that improve stability and maintainability before adding new features.
