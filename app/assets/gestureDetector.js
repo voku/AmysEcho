@@ -1419,17 +1419,17 @@
     });
     return stopPromise;
   }
-  var onPageHide = () => cleanup();
-  var onBeforeUnload = () => cleanup();
+  var onPageHide = () => void cleanup();
+  var onBeforeUnload = () => void cleanup();
   var onResize = () => resizeOverlay();
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("resize", onResize);
-  function cleanup() {
+  async function cleanup() {
     if (cleanedUp) return;
     cleanedUp = true;
     running = false;
-    void stopCamera();
+    await stopCamera();
     try {
       document.getElementById("tapToStart")?.remove();
     } catch (e) {

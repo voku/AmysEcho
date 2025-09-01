@@ -456,18 +456,18 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       return stopPromise;
     }
 
-    const onPageHide = () => cleanup();
-    const onBeforeUnload = () => cleanup();
+    const onPageHide = () => void cleanup();
+    const onBeforeUnload = () => void cleanup();
     const onResize = () => resizeOverlay();
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', onBeforeUnload);
     window.addEventListener('resize', onResize);
 
-    function cleanup() {
+    async function cleanup() {
       if (cleanedUp) return;
       cleanedUp = true;
       running = false;
-      void stopCamera();
+      await stopCamera();
       try {
         document.getElementById('tapToStart')?.remove();
       } catch (e) {
