@@ -53,20 +53,26 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const webviewRef = useRef<WebViewLike>(null);
   const pendingModelRef = useRef<string | null>(null);
   const mlpReadyRef = useRef(false);
+  const modelTransferLock = useRef(false);
+  const queuedModelRef = useRef(false);
   const [, setLangTick] = useState(0);
 
   const injectModel = (b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
+    if (modelTransferLock.current) {
+      console.warn('Modellübertragung läuft, neues Modell wird übersprungen.');
+      pendingModelRef.current = b64;
+      queuedModelRef.current = true;
+      return;
+    }
+    modelTransferLock.current = true;
+    queuedModelRef.current = false;
     const CHUNK = 64 * 1024;
     webviewRef.current.injectJavaScript(
       'window.__beginMlpTransfer&&window.__beginMlpTransfer();',
     );
     for (let i = 0; i < b64.length; i += CHUNK) {
-      const part = b64
-        .slice(i, i + CHUNK)
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/[\u2028\u2029]/g, '');
+      const part = b64.slice(i, i + CHUNK).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       webviewRef.current.injectJavaScript(
         `window.__pushMlpChunk&&window.__pushMlpChunk('${part}');`,
       );
@@ -195,6 +201,11 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         if (eventStr === 'mlp_ready') {
           mlpReadyRef.current = true;
           injectModel(pendingModelRef.current);
+        } else if (eventStr === 'mlp_transfer_complete') {
+          modelTransferLock.current = false;
+          if (queuedModelRef.current && pendingModelRef.current) {
+            injectModel(pendingModelRef.current);
+          }
         }
         try {
           // Fire-and-forget telemetry to avoid backpressure in onMessage (skip in dev)

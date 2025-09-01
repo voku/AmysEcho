@@ -295,6 +295,11 @@ export function installMlp() {
       transferBuf = '';
       transferStart = 0;
       transferLock = false;
+      try {
+        (window as any).ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: 'telemetry', event: 'mlp_transfer_complete' }),
+        );
+      } catch {}
     }
   };
 }

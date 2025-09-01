@@ -145,6 +145,10 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     const overlay = document.createElement('canvas');
     overlay.id = 'overlay';
     overlay.addEventListener('contextlost', (e) => { e.preventDefault(); });
+    overlay.addEventListener('contextrestored', () => {
+      // Ensure a fresh context can be obtained after restoration
+      overlay.getContext('2d');
+    });
     video.setAttribute('autoplay', '');
     video.setAttribute('playsinline', '');
     video.setAttribute('muted', '');
@@ -253,7 +257,8 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   }
                 }
               }
-              multiHand = perHand.length >= 2;
+              multiHand =
+                perHand.length >= 2 || (results?.landmarks?.length ?? 0) >= 2;
               if (multiHand) {
                 let left = perHand.find(h => /left/i.test(h.hand)) || null;
                 let right = perHand.find(h => /right/i.test(h.hand)) || null;
@@ -410,6 +415,8 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     }
     createGestureRecognizer();
     function stopCamera() {
+      try { video.pause(); } catch {}
+      try { video.removeEventListener('loadeddata', predictWebcam); } catch {}
       try {
         const s = video.srcObject as MediaStream | null;
         if (s) {
@@ -417,12 +424,12 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           video.srcObject = null;
         }
       } catch (e) {
-        console.warn('Error stopping camera stream:', e);
+        console.warn('Fehler beim Stoppen des Kamerastreams:', e);
       }
       try {
         gestureRecognizer?.close?.();
       } catch (e) {
-        console.warn('Error closing gesture recognizer:', e);
+        console.warn('Fehler beim Schließen des Gestenerkenners:', e);
       }
       gestureRecognizer = null;
     }
@@ -435,11 +442,17 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     window.addEventListener('resize', onResize);
 
     function cleanup() {
+      if (!running) return;
       running = false;
       stopCamera();
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('beforeunload', onBeforeUnload);
       window.removeEventListener('resize', onResize);
+      try {
+        (window as any).ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }),
+        );
+      } catch {}
     }
     (window as any).__cleanupGestureDetector = cleanup;
 

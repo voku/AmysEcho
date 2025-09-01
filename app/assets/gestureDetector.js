@@ -932,6 +932,12 @@
         transferBuf = "";
         transferStart = 0;
         transferLock = false;
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "mlp_transfer_complete" })
+          );
+        } catch {
+        }
       }
     };
   }
@@ -1099,6 +1105,9 @@
   overlay.addEventListener("contextlost", (e) => {
     e.preventDefault();
   });
+  overlay.addEventListener("contextrestored", () => {
+    overlay.getContext("2d");
+  });
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
@@ -1206,7 +1215,7 @@
                 }
               }
             }
-            multiHand = perHand.length >= 2;
+            multiHand = perHand.length >= 2 || (results?.landmarks?.length ?? 0) >= 2;
             if (multiHand) {
               let left = perHand.find((h) => /left/i.test(h.hand)) || null;
               let right = perHand.find((h) => /right/i.test(h.hand)) || null;
@@ -1361,18 +1370,26 @@
   createGestureRecognizer();
   function stopCamera() {
     try {
+      video.pause();
+    } catch {
+    }
+    try {
+      video.removeEventListener("loadeddata", predictWebcam);
+    } catch {
+    }
+    try {
       const s = video.srcObject;
       if (s) {
         s.getTracks().forEach((t) => t.stop());
         video.srcObject = null;
       }
     } catch (e) {
-      console.warn("Error stopping camera stream:", e);
+      console.warn("Fehler beim Stoppen des Kamerastreams:", e);
     }
     try {
       gestureRecognizer?.close?.();
     } catch (e) {
-      console.warn("Error closing gesture recognizer:", e);
+      console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
     }
     gestureRecognizer = null;
   }
@@ -1389,11 +1406,18 @@
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("resize", onResize);
   function cleanup() {
+    if (!running) return;
     running = false;
     stopCamera();
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("beforeunload", onBeforeUnload);
     window.removeEventListener("resize", onResize);
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: "telemetry", event: "cleanup_done" })
+      );
+    } catch {
+    }
   }
   window.__cleanupGestureDetector = cleanup;
 })();
