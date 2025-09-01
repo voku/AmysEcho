@@ -217,6 +217,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     let lastSentGesture = null;
     let lastSentScore = 0;
     let running = true;
+    let cleanedUp = false;
     const TARGET_FPS = 30;
     const MIN_FRAME_TIME = 1000 / TARGET_FPS;
     let lastFrameTs = 0;
@@ -419,7 +420,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     let stopping = false;
     let stopOnce: Promise<void> | null = null;
     async function stopCamera() {
-      if (stopping) return stopOnce ?? Promise.resolve();
+      if (stopping) return stopOnce!;
       stopping = true;
       stopOnce = (async () => {
         try {
@@ -457,15 +458,16 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       return stopOnce;
     }
 
-    const onPageHide = () => { running = false; void stopCamera(); };
-    const onBeforeUnload = () => { running = false; void stopCamera(); };
+    const onPageHide = () => cleanup();
+    const onBeforeUnload = () => cleanup();
     const onResize = () => resizeOverlay();
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', onBeforeUnload);
     window.addEventListener('resize', onResize);
 
     function cleanup() {
-      if (!running) return;
+      if (cleanedUp) return;
+      cleanedUp = true;
       running = false;
       void stopCamera();
       try {

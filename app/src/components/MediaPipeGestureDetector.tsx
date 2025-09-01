@@ -69,7 +69,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     modelTransferLock.current = true;
     queuedModelRef.current = false;
     const CHUNK = 64 * 1024;
-    const normalized = b64.replace(/\r?\n/g, '');
+    // Remove any non-base64 characters to keep the payload safe for injection
+    const normalized = b64.replace(/[^A-Za-z0-9+/=]/g, '');
     webviewRef.current.injectJavaScript(
       'window.__beginMlpTransfer&&window.__beginMlpTransfer();',
     );

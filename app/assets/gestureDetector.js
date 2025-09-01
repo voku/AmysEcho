@@ -1184,6 +1184,7 @@
   var lastSentGesture = null;
   var lastSentScore = 0;
   var running = true;
+  var cleanedUp = false;
   var TARGET_FPS = 30;
   var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
   var lastFrameTs = 0;
@@ -1383,7 +1384,7 @@
   var stopping = false;
   var stopOnce = null;
   async function stopCamera() {
-    if (stopping) return stopOnce ?? Promise.resolve();
+    if (stopping) return stopOnce;
     stopping = true;
     stopOnce = (async () => {
       try {
@@ -1420,20 +1421,15 @@
     });
     return stopOnce;
   }
-  var onPageHide = () => {
-    running = false;
-    void stopCamera();
-  };
-  var onBeforeUnload = () => {
-    running = false;
-    void stopCamera();
-  };
+  var onPageHide = () => cleanup();
+  var onBeforeUnload = () => cleanup();
   var onResize = () => resizeOverlay();
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("resize", onResize);
   function cleanup() {
-    if (!running) return;
+    if (cleanedUp) return;
+    cleanedUp = true;
     running = false;
     void stopCamera();
     try {
