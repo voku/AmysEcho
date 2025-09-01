@@ -456,9 +456,21 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       if (!running) return;
       running = false;
       stopCamera();
-      try { document.getElementById('tapToStart')?.remove(); } catch {}
-      try { overlay.remove(); } catch {}
-      try { video.remove(); } catch {}
+      try {
+        document.getElementById('tapToStart')?.remove();
+      } catch (e) {
+        console.warn('Fehler beim Entfernen des "tapToStart"-Elements:', e);
+      }
+      try {
+        overlay.remove();
+      } catch (e) {
+        console.warn('Fehler beim Entfernen des "overlay"-Elements:', e);
+      }
+      try {
+        video.remove();
+      } catch (e) {
+        console.warn('Fehler beim Entfernen des "video"-Elements:', e);
+      }
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('beforeunload', onBeforeUnload);
       window.removeEventListener('resize', onResize);

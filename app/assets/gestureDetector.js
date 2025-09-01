@@ -1426,15 +1426,18 @@
     stopCamera();
     try {
       document.getElementById("tapToStart")?.remove();
-    } catch {
+    } catch (e) {
+      console.warn('Fehler beim Entfernen des "tapToStart"-Elements:', e);
     }
     try {
       overlay.remove();
-    } catch {
+    } catch (e) {
+      console.warn('Fehler beim Entfernen des "overlay"-Elements:', e);
     }
     try {
       video.remove();
-    } catch {
+    } catch (e) {
+      console.warn('Fehler beim Entfernen des "video"-Elements:', e);
     }
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("beforeunload", onBeforeUnload);

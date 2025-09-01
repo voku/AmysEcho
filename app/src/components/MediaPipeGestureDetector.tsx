@@ -86,9 +86,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     webviewRef.current.injectJavaScript(
       'window.__commitMlpTransfer&&window.__commitMlpTransfer();',
     );
-    try {
-      if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
-    } catch {}
+    if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
     transferWatchdogRef.current = setTimeout(() => {
       console.warn('Zeitüberschreitung bei der Modellübertragung – Entsperre und versuche ggf. erneut.');
       modelTransferLock.current = false;
@@ -219,7 +217,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           injectModel(pendingModelRef.current);
         } else if (eventStr === 'mlp_transfer_complete' || eventStr === 'mlp_transfer_skipped') {
           if (transferWatchdogRef.current) {
-            try { clearTimeout(transferWatchdogRef.current); } catch {}
+            clearTimeout(transferWatchdogRef.current);
             transferWatchdogRef.current = null;
           }
           modelTransferLock.current = false;
