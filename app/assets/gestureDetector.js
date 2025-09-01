@@ -1366,7 +1366,8 @@
         s.getTracks().forEach((t) => t.stop());
         video.srcObject = null;
       }
-    } catch {
+    } catch (e) {
+      console.warn("Error stopping camera stream:", e);
     }
     try {
       gestureRecognizer?.close?.();

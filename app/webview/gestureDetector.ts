@@ -416,7 +416,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           s.getTracks().forEach((t) => t.stop());
           video.srcObject = null;
         }
-      } catch {}
+      } catch (e) {
+        console.warn('Error stopping camera stream:', e);
+      }
       try {
         gestureRecognizer?.close?.();
       } catch (e) {
