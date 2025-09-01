@@ -417,12 +417,10 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         });
     }
     createGestureRecognizer();
-    let stopping = false;
-    let stopOnce: Promise<void> | null = null;
+    let stopPromise: Promise<void> | null = null;
     async function stopCamera() {
-      if (stopping) return stopOnce!;
-      stopping = true;
-      stopOnce = (async () => {
+      if (stopPromise) return stopPromise;
+      stopPromise = (async () => {
         try {
           video.pause();
         } catch (e) {
@@ -453,9 +451,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         }
         gestureRecognizer = null;
       })().finally(() => {
-        stopping = false;
+        stopPromise = null;
       });
-      return stopOnce;
+      return stopPromise;
     }
 
     const onPageHide = () => cleanup();

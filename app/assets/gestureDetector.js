@@ -1381,12 +1381,10 @@
     });
   }
   createGestureRecognizer();
-  var stopping = false;
-  var stopOnce = null;
+  var stopPromise = null;
   async function stopCamera() {
-    if (stopping) return stopOnce;
-    stopping = true;
-    stopOnce = (async () => {
+    if (stopPromise) return stopPromise;
+    stopPromise = (async () => {
       try {
         video.pause();
       } catch (e) {
@@ -1417,9 +1415,9 @@
       }
       gestureRecognizer = null;
     })().finally(() => {
-      stopping = false;
+      stopPromise = null;
     });
-    return stopOnce;
+    return stopPromise;
   }
   var onPageHide = () => cleanup();
   var onBeforeUnload = () => cleanup();
