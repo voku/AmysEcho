@@ -118,6 +118,18 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    return () => {
+      try {
+        webviewRef.current?.injectJavaScript(
+          'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
+        );
+      } catch (e) {
+        console.warn('Failed to inject WebView cleanup script:', e);
+      }
+    };
+  }, []);
+
   if (!WebViewImpl) {
     // Provide a non-crashing fallback with a clear developer hint
     console.warn('react-native-webview unavailable; showing fallback UI');
@@ -210,16 +222,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       onError(LanguageManager.t('mediapipe.gestureProcessingError'));
     }
   };
-
-  useEffect(() => {
-    return () => {
-      try {
-        webviewRef.current?.injectJavaScript(
-          'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
-        );
-      } catch {}
-    };
-  }, []);
 
   return (
     <View style={styles.container}>

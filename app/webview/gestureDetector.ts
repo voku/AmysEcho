@@ -237,10 +237,11 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             );
             let outGesture = null;
             let outScore = 0;
-            const perHand = [];
+            const perHand: { hand: string; label: string; score: number }[] = [];
+            let multiHand = false;
             const handedArr = (results?.handednesses || []).map(h => (h?.[0]?.categoryName) || 'unknown');
             if (results?.gestures?.length) {
-              for (let i=0; i<results.gestures.length; i++) {
+              for (let i = 0; i < results.gestures.length; i++) {
                 const handGestures = results.gestures[i] || [];
                 const top = handGestures?.[0];
                 const handed = handedArr[i] || 'unknown';
@@ -252,7 +253,8 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   }
                 }
               }
-              if (perHand.length >= 2) {
+              multiHand = perHand.length >= 2;
+              if (multiHand) {
                 let left = perHand.find(h => /left/i.test(h.hand)) || null;
                 let right = perHand.find(h => /right/i.test(h.hand)) || null;
                 if (!left || !right) {
@@ -262,7 +264,8 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                 }
                 if (left && right) {
                   outGesture = left.label + '+' + right.label;
-                  outScore = left.score * right.score;
+                  // Geometric mean keeps confidence conservative without over-penalizing
+                  outScore = Math.sqrt(left.score * right.score);
                 }
               }
             }
@@ -276,7 +279,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             }
             // Custom gesture logic (preserved for single-hand fallback)
             const firstHand = allLandmarks[0] || [];
-            if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21) {
+            if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21 && !multiHand) {
               const thumbUp = firstHand[4][1] < firstHand[2][1];
               const indexUp = firstHand[8][1] < firstHand[6][1];
               const middleUp = firstHand[12][1] < firstHand[10][1];
@@ -416,13 +419,15 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       } catch {}
       try {
         gestureRecognizer?.close?.();
-      } catch {}
+      } catch (e) {
+        console.warn('Error closing gesture recognizer:', e);
+      }
       gestureRecognizer = null;
     }
 
     const onPageHide = () => { running = false; stopCamera(); };
     const onBeforeUnload = () => { running = false; stopCamera(); };
-    const onResize = () => { try { resizeOverlay(); } catch {} };
+    const onResize = () => resizeOverlay();
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', onBeforeUnload);
     window.addEventListener('resize', onResize);
