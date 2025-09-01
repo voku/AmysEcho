@@ -69,16 +69,16 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     modelTransferLock.current = true;
     queuedModelRef.current = false;
     const CHUNK = 64 * 1024;
+    const sanitized = b64
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\r?\n/g, '')
+      .replace(/\u2028|\u2029/g, '');
     webviewRef.current.injectJavaScript(
       'window.__beginMlpTransfer&&window.__beginMlpTransfer();',
     );
-    for (let i = 0; i < b64.length; i += CHUNK) {
-      const part = b64
-        .slice(i, i + CHUNK)
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/\r?\n/g, '\\n')
-        .replace(/\u2028|\u2029/g, '');
+    for (let i = 0; i < sanitized.length; i += CHUNK) {
+      const part = sanitized.slice(i, i + CHUNK);
       webviewRef.current.injectJavaScript(
         `window.__pushMlpChunk&&window.__pushMlpChunk('${part}');`,
       );
@@ -140,6 +140,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
 
   useEffect(() => {
     return () => {
+      if (transferWatchdogRef.current) {
+        clearTimeout(transferWatchdogRef.current);
+        transferWatchdogRef.current = null;
+      }
       try {
         webviewRef.current?.injectJavaScript(
           'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',

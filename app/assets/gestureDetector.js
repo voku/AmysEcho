@@ -1117,6 +1117,7 @@
   });
   overlay.addEventListener("contextrestored", () => {
     overlay.getContext("2d");
+    if (running) window.requestAnimationFrame(predictWebcam);
   });
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
@@ -1225,7 +1226,7 @@
                 }
               }
             }
-            multiHand = perHand.length >= 2 || (results?.landmarks?.length ?? 0) >= 2;
+            multiHand = perHand.length >= 2;
             if (multiHand) {
               let left = perHand.find((h) => /left/i.test(h.hand)) || null;
               let right = perHand.find((h) => /right/i.test(h.hand)) || null;
@@ -1378,7 +1379,7 @@
     });
   }
   createGestureRecognizer();
-  function stopCamera() {
+  async function stopCamera() {
     try {
       video.pause();
     } catch (e) {
@@ -1402,7 +1403,8 @@
       console.warn("Fehler beim Stoppen des Kamerastreams:", e);
     }
     try {
-      gestureRecognizer?.close?.();
+      const res = gestureRecognizer?.close?.();
+      if (res && typeof res.then === "function") await res;
     } catch (e) {
       console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
     }
@@ -1410,11 +1412,11 @@
   }
   var onPageHide = () => {
     running = false;
-    stopCamera();
+    void stopCamera();
   };
   var onBeforeUnload = () => {
     running = false;
-    stopCamera();
+    void stopCamera();
   };
   var onResize = () => resizeOverlay();
   window.addEventListener("pagehide", onPageHide);
@@ -1423,7 +1425,7 @@
   function cleanup() {
     if (!running) return;
     running = false;
-    stopCamera();
+    void stopCamera();
     try {
       document.getElementById("tapToStart")?.remove();
     } catch (e) {

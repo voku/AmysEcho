@@ -148,6 +148,8 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     overlay.addEventListener('contextrestored', () => {
       // Ensure a fresh context can be obtained after restoration
       overlay.getContext('2d');
+      // Trigger a redraw immediately so the overlay doesn't stay blank
+      if (running) window.requestAnimationFrame(predictWebcam);
     });
     video.setAttribute('autoplay', '');
     video.setAttribute('playsinline', '');
@@ -257,8 +259,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   }
                 }
               }
-              multiHand =
-                perHand.length >= 2 || (results?.landmarks?.length ?? 0) >= 2;
+              multiHand = perHand.length >= 2;
               if (multiHand) {
                 let left = perHand.find(h => /left/i.test(h.hand)) || null;
                 let right = perHand.find(h => /right/i.test(h.hand)) || null;
@@ -414,7 +415,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         });
     }
     createGestureRecognizer();
-    function stopCamera() {
+    async function stopCamera() {
       try {
         video.pause();
       } catch (e) {
@@ -438,15 +439,16 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         console.warn('Fehler beim Stoppen des Kamerastreams:', e);
       }
       try {
-        gestureRecognizer?.close?.();
+        const res = gestureRecognizer?.close?.();
+        if (res && typeof (res as any).then === 'function') await res;
       } catch (e) {
         console.warn('Fehler beim Schließen des Gestenerkenners:', e);
       }
       gestureRecognizer = null;
     }
 
-    const onPageHide = () => { running = false; stopCamera(); };
-    const onBeforeUnload = () => { running = false; stopCamera(); };
+    const onPageHide = () => { running = false; void stopCamera(); };
+    const onBeforeUnload = () => { running = false; void stopCamera(); };
     const onResize = () => resizeOverlay();
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -455,7 +457,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     function cleanup() {
       if (!running) return;
       running = false;
-      stopCamera();
+      void stopCamera();
       try {
         document.getElementById('tapToStart')?.remove();
       } catch (e) {
