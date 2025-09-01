@@ -787,7 +787,7 @@
         };
         return true;
       } catch (e) {
-        console.warn("mlp load failed", e?.message ?? e);
+        console.warn("MLP-Ladevorgang fehlgeschlagen:", e?.message ?? e);
         try {
           window.ReactNativeWebView?.postMessage?.(
             JSON.stringify({
@@ -797,7 +797,7 @@
             })
           );
         } catch (err2) {
-          console.warn("mlp_load_failed postMessage failed", err2);
+          console.warn("Senden des 'mlp_load_failed'-Telemetrieereignisses fehlgeschlagen:", err2);
         }
         mlp = null;
         return false;
@@ -917,17 +917,23 @@
       transferBuf += chunk;
     };
     window.__commitMlpTransfer = () => {
-      if (!transferLock) return;
+      const active = transferLock;
       const bytes = transferBuf.length;
       const start = transferStart;
       try {
-        window.__setMlpModelB64?.(transferBuf);
-        const ms = Math.round(performance.now() - start);
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "telemetry", event: "mlp_transfer", bytes, ms })
-        );
+        if (active) {
+          window.__setMlpModelB64?.(transferBuf);
+          const ms = Math.round(performance.now() - start);
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "mlp_transfer", bytes, ms })
+          );
+        } else {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "mlp_transfer_skipped" })
+          );
+        }
       } catch (err2) {
-        console.warn("mlp_transfer failed", err2);
+        console.warn("mlp_transfer fehlgeschlagen", err2);
       } finally {
         transferBuf = "";
         transferStart = 0;
@@ -1418,6 +1424,18 @@
     if (!running) return;
     running = false;
     stopCamera();
+    try {
+      document.getElementById("tapToStart")?.remove();
+    } catch {
+    }
+    try {
+      overlay.remove();
+    } catch {
+    }
+    try {
+      video.remove();
+    } catch {
+    }
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("beforeunload", onBeforeUnload);
     window.removeEventListener("resize", onResize);
@@ -1425,7 +1443,8 @@
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({ type: "telemetry", event: "cleanup_done" })
       );
-    } catch {
+    } catch (e) {
+      console.warn('Senden des "cleanup_done" Telemetrie-Ereignisses fehlgeschlagen:', e);
     }
   }
   window.__cleanupGestureDetector = cleanup;

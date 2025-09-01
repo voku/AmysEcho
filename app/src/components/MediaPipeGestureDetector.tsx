@@ -55,6 +55,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const mlpReadyRef = useRef(false);
   const modelTransferLock = useRef(false);
   const queuedModelRef = useRef(false);
+  const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setLangTick] = useState(0);
 
   const injectModel = (b64: string | null) => {
@@ -72,7 +73,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       'window.__beginMlpTransfer&&window.__beginMlpTransfer();',
     );
     for (let i = 0; i < b64.length; i += CHUNK) {
-      const part = b64.slice(i, i + CHUNK).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const part = b64
+        .slice(i, i + CHUNK)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\r?\n/g, '\\n')
+        .replace(/\u2028|\u2029/g, '');
       webviewRef.current.injectJavaScript(
         `window.__pushMlpChunk&&window.__pushMlpChunk('${part}');`,
       );
@@ -80,6 +86,16 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     webviewRef.current.injectJavaScript(
       'window.__commitMlpTransfer&&window.__commitMlpTransfer();',
     );
+    try {
+      if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
+    } catch {}
+    transferWatchdogRef.current = setTimeout(() => {
+      console.warn('Zeitüberschreitung bei der Modellübertragung – Entsperre und versuche ggf. erneut.');
+      modelTransferLock.current = false;
+      if (queuedModelRef.current && pendingModelRef.current) {
+        injectModel(pendingModelRef.current);
+      }
+    }, 15000);
   };
 
   useEffect(() => {
@@ -201,7 +217,11 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         if (eventStr === 'mlp_ready') {
           mlpReadyRef.current = true;
           injectModel(pendingModelRef.current);
-        } else if (eventStr === 'mlp_transfer_complete') {
+        } else if (eventStr === 'mlp_transfer_complete' || eventStr === 'mlp_transfer_skipped') {
+          if (transferWatchdogRef.current) {
+            try { clearTimeout(transferWatchdogRef.current); } catch {}
+            transferWatchdogRef.current = null;
+          }
           modelTransferLock.current = false;
           if (queuedModelRef.current && pendingModelRef.current) {
             injectModel(pendingModelRef.current);

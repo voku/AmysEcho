@@ -456,6 +456,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       if (!running) return;
       running = false;
       stopCamera();
+      try { document.getElementById('tapToStart')?.remove(); } catch {}
+      try { overlay.remove(); } catch {}
+      try { video.remove(); } catch {}
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('beforeunload', onBeforeUnload);
       window.removeEventListener('resize', onResize);
@@ -463,7 +466,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         (window as any).ReactNativeWebView?.postMessage?.(
           JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }),
         );
-      } catch {}
+      } catch (e) {
+        console.warn('Senden des "cleanup_done" Telemetrie-Ereignisses fehlgeschlagen:', e);
+      }
     }
     (window as any).__cleanupGestureDetector = cleanup;
 
