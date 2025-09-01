@@ -148,6 +148,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     overlay.addEventListener('contextrestored', () => {
       // Ensure a fresh context can be obtained after restoration
       overlay.getContext('2d');
+      resizeOverlay();
       // Trigger a redraw immediately so the overlay doesn't stay blank
       if (running) window.requestAnimationFrame(predictWebcam);
     });
@@ -415,36 +416,45 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         });
     }
     createGestureRecognizer();
+    let stopping = false;
+    let stopOnce: Promise<void> | null = null;
     async function stopCamera() {
-      try {
-        video.pause();
-      } catch (e) {
-        console.warn('Video konnte während des Aufräumens nicht pausiert werden:', e);
-      }
-      try {
-        video.removeEventListener('loadeddata', predictWebcam);
-      } catch (e) {
-        console.warn(
-          'Entfernen des "loadeddata"-Listeners während des Aufräumens fehlgeschlagen:',
-          e,
-        );
-      }
-      try {
-        const s = video.srcObject as MediaStream | null;
-        if (s) {
-          s.getTracks().forEach((t) => t.stop());
-          video.srcObject = null;
+      if (stopping) return stopOnce ?? Promise.resolve();
+      stopping = true;
+      stopOnce = (async () => {
+        try {
+          video.pause();
+        } catch (e) {
+          console.warn('Video konnte während des Aufräumens nicht pausiert werden:', e);
         }
-      } catch (e) {
-        console.warn('Fehler beim Stoppen des Kamerastreams:', e);
-      }
-      try {
-        const res = gestureRecognizer?.close?.();
-        if (res && typeof (res as any).then === 'function') await res;
-      } catch (e) {
-        console.warn('Fehler beim Schließen des Gestenerkenners:', e);
-      }
-      gestureRecognizer = null;
+        try {
+          video.removeEventListener('loadeddata', predictWebcam);
+        } catch (e) {
+          console.warn(
+            'Entfernen des "loadeddata"-Listeners während des Aufräumens fehlgeschlagen:',
+            e,
+          );
+        }
+        try {
+          const s = video.srcObject as MediaStream | null;
+          if (s) {
+            s.getTracks().forEach((t) => t.stop());
+            video.srcObject = null;
+          }
+        } catch (e) {
+          console.warn('Fehler beim Stoppen des Kamerastreams:', e);
+        }
+        try {
+          const res = gestureRecognizer?.close?.();
+          if (res && typeof (res as any).then === 'function') await res;
+        } catch (e) {
+          console.warn('Fehler beim Schließen des Gestenerkenners:', e);
+        }
+        gestureRecognizer = null;
+      })().finally(() => {
+        stopping = false;
+      });
+      return stopOnce;
     }
 
     const onPageHide = () => { running = false; void stopCamera(); };

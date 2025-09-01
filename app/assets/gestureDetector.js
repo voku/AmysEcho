@@ -1117,6 +1117,7 @@
   });
   overlay.addEventListener("contextrestored", () => {
     overlay.getContext("2d");
+    resizeOverlay();
     if (running) window.requestAnimationFrame(predictWebcam);
   });
   video.setAttribute("autoplay", "");
@@ -1379,36 +1380,45 @@
     });
   }
   createGestureRecognizer();
+  var stopping = false;
+  var stopOnce = null;
   async function stopCamera() {
-    try {
-      video.pause();
-    } catch (e) {
-      console.warn("Video konnte w\xE4hrend des Aufr\xE4umens nicht pausiert werden:", e);
-    }
-    try {
-      video.removeEventListener("loadeddata", predictWebcam);
-    } catch (e) {
-      console.warn(
-        'Entfernen des "loadeddata"-Listeners w\xE4hrend des Aufr\xE4umens fehlgeschlagen:',
-        e
-      );
-    }
-    try {
-      const s = video.srcObject;
-      if (s) {
-        s.getTracks().forEach((t) => t.stop());
-        video.srcObject = null;
+    if (stopping) return stopOnce ?? Promise.resolve();
+    stopping = true;
+    stopOnce = (async () => {
+      try {
+        video.pause();
+      } catch (e) {
+        console.warn("Video konnte w\xE4hrend des Aufr\xE4umens nicht pausiert werden:", e);
       }
-    } catch (e) {
-      console.warn("Fehler beim Stoppen des Kamerastreams:", e);
-    }
-    try {
-      const res = gestureRecognizer?.close?.();
-      if (res && typeof res.then === "function") await res;
-    } catch (e) {
-      console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
-    }
-    gestureRecognizer = null;
+      try {
+        video.removeEventListener("loadeddata", predictWebcam);
+      } catch (e) {
+        console.warn(
+          'Entfernen des "loadeddata"-Listeners w\xE4hrend des Aufr\xE4umens fehlgeschlagen:',
+          e
+        );
+      }
+      try {
+        const s = video.srcObject;
+        if (s) {
+          s.getTracks().forEach((t) => t.stop());
+          video.srcObject = null;
+        }
+      } catch (e) {
+        console.warn("Fehler beim Stoppen des Kamerastreams:", e);
+      }
+      try {
+        const res = gestureRecognizer?.close?.();
+        if (res && typeof res.then === "function") await res;
+      } catch (e) {
+        console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
+      }
+      gestureRecognizer = null;
+    })().finally(() => {
+      stopping = false;
+    });
+    return stopOnce;
   }
   var onPageHide = () => {
     running = false;
