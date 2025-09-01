@@ -144,6 +144,11 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     const video = document.createElement('video');
     const overlay = document.createElement('canvas');
     overlay.id = 'overlay';
+    overlay.addEventListener('contextlost', (e) => { e.preventDefault(); });
+    overlay.addEventListener('contextrestored', () => {
+      // Ensure a fresh context can be obtained after restoration
+      overlay.getContext('2d');
+    });
     video.setAttribute('autoplay', '');
     video.setAttribute('playsinline', '');
     video.setAttribute('muted', '');
@@ -209,8 +214,17 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     let lastSentGesture = null;
     let lastSentScore = 0;
     let running = true;
+    const TARGET_FPS = 30;
+    const MIN_FRAME_TIME = 1000 / TARGET_FPS;
+    let lastFrameTs = 0;
     function predictWebcam() {
       if (!running) return;
+      const nowTime = performance.now();
+      if (nowTime - lastFrameTs < MIN_FRAME_TIME) {
+        window.requestAnimationFrame(predictWebcam);
+        return;
+      }
+      lastFrameTs = nowTime;
       try {
         if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
           if (lastVideoTime !== video.currentTime) { // Only process if video frame has changed
@@ -227,10 +241,11 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             );
             let outGesture = null;
             let outScore = 0;
-            const perHand = [];
+            const perHand: { hand: string; label: string; score: number }[] = [];
+            let multiHand = false;
             const handedArr = (results?.handednesses || []).map(h => (h?.[0]?.categoryName) || 'unknown');
             if (results?.gestures?.length) {
-              for (let i=0; i<results.gestures.length; i++) {
+              for (let i = 0; i < results.gestures.length; i++) {
                 const handGestures = results.gestures[i] || [];
                 const top = handGestures?.[0];
                 const handed = handedArr[i] || 'unknown';
@@ -242,12 +257,20 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   }
                 }
               }
-              if (perHand.length >= 2) {
-                const left = perHand.find(h => /left/i.test(h.hand)) || perHand[0];
-                const right = perHand.find(h => /right/i.test(h.hand)) || perHand[1];
+              multiHand =
+                perHand.length >= 2 || (results?.landmarks?.length ?? 0) >= 2;
+              if (multiHand) {
+                let left = perHand.find(h => /left/i.test(h.hand)) || null;
+                let right = perHand.find(h => /right/i.test(h.hand)) || null;
+                if (!left || !right) {
+                  const others = perHand.filter(h => h !== left && h !== right);
+                  if (!left) left = others.shift() || null;
+                  if (!right) right = others.shift() || null;
+                }
                 if (left && right) {
                   outGesture = left.label + '+' + right.label;
-                  outScore = Math.min(left.score, right.score);
+                  // Geometric mean keeps confidence conservative without over-penalizing
+                  outScore = Math.sqrt(left.score * right.score);
                 }
               }
             }
@@ -261,7 +284,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             }
             // Custom gesture logic (preserved for single-hand fallback)
             const firstHand = allLandmarks[0] || [];
-            if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21) {
+            if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21 && !multiHand) {
               const thumbUp = firstHand[4][1] < firstHand[2][1];
               const indexUp = firstHand[8][1] < firstHand[6][1];
               const middleUp = firstHand[12][1] < firstHand[10][1];
@@ -393,14 +416,71 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     createGestureRecognizer();
     function stopCamera() {
       try {
-        const s = video.srcObject;
+        video.pause();
+      } catch (e) {
+        console.warn('Video konnte während des Aufräumens nicht pausiert werden:', e);
+      }
+      try {
+        video.removeEventListener('loadeddata', predictWebcam);
+      } catch (e) {
+        console.warn(
+          'Entfernen des "loadeddata"-Listeners während des Aufräumens fehlgeschlagen:',
+          e,
+        );
+      }
+      try {
+        const s = video.srcObject as MediaStream | null;
         if (s) {
-          s.getTracks().forEach(t => t.stop());
+          s.getTracks().forEach((t) => t.stop());
           video.srcObject = null;
         }
-      } catch {}
+      } catch (e) {
+        console.warn('Fehler beim Stoppen des Kamerastreams:', e);
+      }
+      try {
+        gestureRecognizer?.close?.();
+      } catch (e) {
+        console.warn('Fehler beim Schließen des Gestenerkenners:', e);
+      }
+      gestureRecognizer = null;
     }
-    window.addEventListener('pagehide', () => { running = false; stopCamera(); });
-    window.addEventListener('beforeunload', () => { running = false; stopCamera(); });
-    window.addEventListener('resize', ()=>{ try { resizeOverlay(); } catch {} });
+
+    const onPageHide = () => { running = false; stopCamera(); };
+    const onBeforeUnload = () => { running = false; stopCamera(); };
+    const onResize = () => resizeOverlay();
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('resize', onResize);
+
+    function cleanup() {
+      if (!running) return;
+      running = false;
+      stopCamera();
+      try {
+        document.getElementById('tapToStart')?.remove();
+      } catch (e) {
+        console.warn('Fehler beim Entfernen des "tapToStart"-Elements:', e);
+      }
+      try {
+        overlay.remove();
+      } catch (e) {
+        console.warn('Fehler beim Entfernen des "overlay"-Elements:', e);
+      }
+      try {
+        video.remove();
+      } catch (e) {
+        console.warn('Fehler beim Entfernen des "video"-Elements:', e);
+      }
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('resize', onResize);
+      try {
+        (window as any).ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }),
+        );
+      } catch (e) {
+        console.warn('Senden des "cleanup_done" Telemetrie-Ereignisses fehlgeschlagen:', e);
+      }
+    }
+    (window as any).__cleanupGestureDetector = cleanup;
 

@@ -53,10 +53,21 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const webviewRef = useRef<WebViewLike>(null);
   const pendingModelRef = useRef<string | null>(null);
   const mlpReadyRef = useRef(false);
+  const modelTransferLock = useRef(false);
+  const queuedModelRef = useRef(false);
+  const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setLangTick] = useState(0);
 
   const injectModel = (b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
+    if (modelTransferLock.current) {
+      console.warn('Modellübertragung läuft, neues Modell wird in die Warteschlange gestellt.');
+      pendingModelRef.current = b64;
+      queuedModelRef.current = true;
+      return;
+    }
+    modelTransferLock.current = true;
+    queuedModelRef.current = false;
     const CHUNK = 64 * 1024;
     webviewRef.current.injectJavaScript(
       'window.__beginMlpTransfer&&window.__beginMlpTransfer();',
@@ -66,7 +77,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         .slice(i, i + CHUNK)
         .replace(/\\/g, '\\\\')
         .replace(/'/g, "\\'")
-        .replace(/[\u2028\u2029]/g, '');
+        .replace(/\r?\n/g, '\\n')
+        .replace(/\u2028|\u2029/g, '');
       webviewRef.current.injectJavaScript(
         `window.__pushMlpChunk&&window.__pushMlpChunk('${part}');`,
       );
@@ -74,6 +86,14 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     webviewRef.current.injectJavaScript(
       'window.__commitMlpTransfer&&window.__commitMlpTransfer();',
     );
+    if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
+    transferWatchdogRef.current = setTimeout(() => {
+      console.warn('Zeitüberschreitung bei der Modellübertragung – Entsperre und versuche ggf. erneut.');
+      modelTransferLock.current = false;
+      if (queuedModelRef.current && pendingModelRef.current) {
+        injectModel(pendingModelRef.current);
+      }
+    }, 15000);
   };
 
   useEffect(() => {
@@ -116,6 +136,18 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       loadModel();
     });
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      try {
+        webviewRef.current?.injectJavaScript(
+          'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
+        );
+      } catch (e) {
+        console.warn('Failed to inject WebView cleanup script:', e);
+      }
+    };
   }, []);
 
   if (!WebViewImpl) {
@@ -183,6 +215,15 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         if (eventStr === 'mlp_ready') {
           mlpReadyRef.current = true;
           injectModel(pendingModelRef.current);
+        } else if (eventStr === 'mlp_transfer_complete' || eventStr === 'mlp_transfer_skipped') {
+          if (transferWatchdogRef.current) {
+            clearTimeout(transferWatchdogRef.current);
+            transferWatchdogRef.current = null;
+          }
+          modelTransferLock.current = false;
+          if (queuedModelRef.current && pendingModelRef.current) {
+            injectModel(pendingModelRef.current);
+          }
         }
         try {
           // Fire-and-forget telemetry to avoid backpressure in onMessage (skip in dev)

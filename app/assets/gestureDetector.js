@@ -787,7 +787,7 @@
         };
         return true;
       } catch (e) {
-        console.warn("mlp load failed", e?.message ?? e);
+        console.warn("MLP-Ladevorgang fehlgeschlagen:", e?.message ?? e);
         try {
           window.ReactNativeWebView?.postMessage?.(
             JSON.stringify({
@@ -797,7 +797,7 @@
             })
           );
         } catch (err2) {
-          console.warn("mlp_load_failed postMessage failed", err2);
+          console.warn("Senden des 'mlp_load_failed'-Telemetrieereignisses fehlgeschlagen:", err2);
         }
         mlp = null;
         return false;
@@ -904,27 +904,50 @@
     window.__mlpPredict = mlpPredict;
     let transferBuf = "";
     let transferStart = 0;
+    let transferLock = false;
     window.__beginMlpTransfer = () => {
+      if (transferLock) return false;
+      transferLock = true;
       transferBuf = "";
       transferStart = performance.now();
+      return true;
     };
     window.__pushMlpChunk = (chunk) => {
+      if (!transferLock) return;
       transferBuf += chunk;
     };
     window.__commitMlpTransfer = () => {
+      const active = transferLock;
       const bytes = transferBuf.length;
       const start = transferStart;
       try {
-        window.__setMlpModelB64?.(transferBuf);
-        const ms = Math.round(performance.now() - start);
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "telemetry", event: "mlp_transfer", bytes, ms })
-        );
+        if (active) {
+          window.__setMlpModelB64?.(transferBuf);
+          const ms = Math.round(performance.now() - start);
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "mlp_transfer", bytes, ms })
+          );
+        } else {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "mlp_transfer_skipped" })
+          );
+        }
       } catch (err2) {
-        console.warn("mlp_transfer failed", err2);
+        console.warn("mlp_transfer fehlgeschlagen", err2);
       } finally {
         transferBuf = "";
         transferStart = 0;
+        transferLock = false;
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "mlp_transfer_complete" })
+          );
+        } catch (e) {
+          console.warn(
+            "Senden des Telemetrie-Ereignisses 'mlp_transfer_complete' fehlgeschlagen:",
+            e
+          );
+        }
       }
     };
   }
@@ -1013,22 +1036,22 @@
           s.nonce = window.__visionBundleNonce;
         }
         s.async = true;
-        const cleanup = () => {
+        const cleanup2 = () => {
           s.onload = s.onerror = null;
           if (s.parentNode) s.parentNode.removeChild(s);
         };
         const to = setTimeout(() => {
-          cleanup();
+          cleanup2();
           reject(new Error("Script load timeout: " + src));
         }, timeoutMs);
         s.onload = () => {
           clearTimeout(to);
-          cleanup();
+          cleanup2();
           resolve(null);
         };
         s.onerror = () => {
           clearTimeout(to);
-          cleanup();
+          cleanup2();
           reject(new Error("Failed to load script: " + src));
         };
         document.head.appendChild(s);
@@ -1089,6 +1112,12 @@
   var video = document.createElement("video");
   var overlay = document.createElement("canvas");
   overlay.id = "overlay";
+  overlay.addEventListener("contextlost", (e) => {
+    e.preventDefault();
+  });
+  overlay.addEventListener("contextrestored", () => {
+    overlay.getContext("2d");
+  });
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
@@ -1153,8 +1182,17 @@
   var lastSentGesture = null;
   var lastSentScore = 0;
   var running = true;
+  var TARGET_FPS = 30;
+  var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
+  var lastFrameTs = 0;
   function predictWebcam() {
     if (!running) return;
+    const nowTime = performance.now();
+    if (nowTime - lastFrameTs < MIN_FRAME_TIME) {
+      window.requestAnimationFrame(predictWebcam);
+      return;
+    }
+    lastFrameTs = nowTime;
     try {
       if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
         if (lastVideoTime !== video.currentTime) {
@@ -1172,6 +1210,7 @@
           let outGesture = null;
           let outScore = 0;
           const perHand = [];
+          let multiHand = false;
           const handedArr = (results?.handednesses || []).map((h) => h?.[0]?.categoryName || "unknown");
           if (results?.gestures?.length) {
             for (let i = 0; i < results.gestures.length; i++) {
@@ -1186,12 +1225,18 @@
                 }
               }
             }
-            if (perHand.length >= 2) {
-              const left = perHand.find((h) => /left/i.test(h.hand)) || perHand[0];
-              const right = perHand.find((h) => /right/i.test(h.hand)) || perHand[1];
+            multiHand = perHand.length >= 2 || (results?.landmarks?.length ?? 0) >= 2;
+            if (multiHand) {
+              let left = perHand.find((h) => /left/i.test(h.hand)) || null;
+              let right = perHand.find((h) => /right/i.test(h.hand)) || null;
+              if (!left || !right) {
+                const others = perHand.filter((h) => h !== left && h !== right);
+                if (!left) left = others.shift() || null;
+                if (!right) right = others.shift() || null;
+              }
               if (left && right) {
                 outGesture = left.label + "+" + right.label;
-                outScore = Math.min(left.score, right.score);
+                outScore = Math.sqrt(left.score * right.score);
               }
             }
           }
@@ -1203,7 +1248,7 @@
             }
           }
           const firstHand = allLandmarks[0] || [];
-          if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21) {
+          if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21 && !multiHand) {
             const thumbUp = firstHand[4][1] < firstHand[2][1];
             const indexUp = firstHand[8][1] < firstHand[6][1];
             const middleUp = firstHand[12][1] < firstHand[10][1];
@@ -1335,26 +1380,75 @@
   createGestureRecognizer();
   function stopCamera() {
     try {
+      video.pause();
+    } catch (e) {
+      console.warn("Video konnte w\xE4hrend des Aufr\xE4umens nicht pausiert werden:", e);
+    }
+    try {
+      video.removeEventListener("loadeddata", predictWebcam);
+    } catch (e) {
+      console.warn(
+        'Entfernen des "loadeddata"-Listeners w\xE4hrend des Aufr\xE4umens fehlgeschlagen:',
+        e
+      );
+    }
+    try {
       const s = video.srcObject;
       if (s) {
         s.getTracks().forEach((t) => t.stop());
         video.srcObject = null;
       }
-    } catch {
+    } catch (e) {
+      console.warn("Fehler beim Stoppen des Kamerastreams:", e);
+    }
+    try {
+      gestureRecognizer?.close?.();
+    } catch (e) {
+      console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
+    }
+    gestureRecognizer = null;
+  }
+  var onPageHide = () => {
+    running = false;
+    stopCamera();
+  };
+  var onBeforeUnload = () => {
+    running = false;
+    stopCamera();
+  };
+  var onResize = () => resizeOverlay();
+  window.addEventListener("pagehide", onPageHide);
+  window.addEventListener("beforeunload", onBeforeUnload);
+  window.addEventListener("resize", onResize);
+  function cleanup() {
+    if (!running) return;
+    running = false;
+    stopCamera();
+    try {
+      document.getElementById("tapToStart")?.remove();
+    } catch (e) {
+      console.warn('Fehler beim Entfernen des "tapToStart"-Elements:', e);
+    }
+    try {
+      overlay.remove();
+    } catch (e) {
+      console.warn('Fehler beim Entfernen des "overlay"-Elements:', e);
+    }
+    try {
+      video.remove();
+    } catch (e) {
+      console.warn('Fehler beim Entfernen des "video"-Elements:', e);
+    }
+    window.removeEventListener("pagehide", onPageHide);
+    window.removeEventListener("beforeunload", onBeforeUnload);
+    window.removeEventListener("resize", onResize);
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: "telemetry", event: "cleanup_done" })
+      );
+    } catch (e) {
+      console.warn('Senden des "cleanup_done" Telemetrie-Ereignisses fehlgeschlagen:', e);
     }
   }
-  window.addEventListener("pagehide", () => {
-    running = false;
-    stopCamera();
-  });
-  window.addEventListener("beforeunload", () => {
-    running = false;
-    stopCamera();
-  });
-  window.addEventListener("resize", () => {
-    try {
-      resizeOverlay();
-    } catch {
-    }
-  });
+  window.__cleanupGestureDetector = cleanup;
 })();
