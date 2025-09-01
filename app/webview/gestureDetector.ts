@@ -148,6 +148,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     overlay.addEventListener('contextrestored', () => {
       // Ensure a fresh context can be obtained after restoration
       overlay.getContext('2d');
+      resizeOverlay();
+      // Trigger a redraw immediately so the overlay doesn't stay blank
+      if (running) window.requestAnimationFrame(predictWebcam);
     });
     video.setAttribute('autoplay', '');
     video.setAttribute('playsinline', '');
@@ -214,6 +217,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     let lastSentGesture = null;
     let lastSentScore = 0;
     let running = true;
+    let cleanedUp = false;
     const TARGET_FPS = 30;
     const MIN_FRAME_TIME = 1000 / TARGET_FPS;
     let lastFrameTs = 0;
@@ -242,7 +246,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             let outGesture = null;
             let outScore = 0;
             const perHand: { hand: string; label: string; score: number }[] = [];
-            let multiHand = false;
+            let multiHand = ((results?.landmarks?.length ?? 0) >= 2);
             const handedArr = (results?.handednesses || []).map(h => (h?.[0]?.categoryName) || 'unknown');
             if (results?.gestures?.length) {
               for (let i = 0; i < results.gestures.length; i++) {
@@ -257,9 +261,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   }
                 }
               }
-              multiHand =
-                perHand.length >= 2 || (results?.landmarks?.length ?? 0) >= 2;
-              if (multiHand) {
+              if (perHand.length >= 2) {
                 let left = perHand.find(h => /left/i.test(h.hand)) || null;
                 let right = perHand.find(h => /right/i.test(h.hand)) || null;
                 if (!left || !right) {
@@ -414,48 +416,57 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         });
     }
     createGestureRecognizer();
-    function stopCamera() {
-      try {
-        video.pause();
-      } catch (e) {
-        console.warn('Video konnte während des Aufräumens nicht pausiert werden:', e);
-      }
-      try {
-        video.removeEventListener('loadeddata', predictWebcam);
-      } catch (e) {
-        console.warn(
-          'Entfernen des "loadeddata"-Listeners während des Aufräumens fehlgeschlagen:',
-          e,
-        );
-      }
-      try {
-        const s = video.srcObject as MediaStream | null;
-        if (s) {
-          s.getTracks().forEach((t) => t.stop());
-          video.srcObject = null;
+    let stopPromise: Promise<void> | null = null;
+    async function stopCamera() {
+      if (stopPromise) return stopPromise;
+      stopPromise = (async () => {
+        try {
+          video.pause();
+        } catch (e) {
+          console.warn('Video konnte während des Aufräumens nicht pausiert werden:', e);
         }
-      } catch (e) {
-        console.warn('Fehler beim Stoppen des Kamerastreams:', e);
-      }
-      try {
-        gestureRecognizer?.close?.();
-      } catch (e) {
-        console.warn('Fehler beim Schließen des Gestenerkenners:', e);
-      }
-      gestureRecognizer = null;
+        try {
+          video.removeEventListener('loadeddata', predictWebcam);
+        } catch (e) {
+          console.warn(
+            'Entfernen des "loadeddata"-Listeners während des Aufräumens fehlgeschlagen:',
+            e,
+          );
+        }
+        try {
+          const s = video.srcObject as MediaStream | null;
+          if (s) {
+            s.getTracks().forEach((t) => t.stop());
+            video.srcObject = null;
+          }
+        } catch (e) {
+          console.warn('Fehler beim Stoppen des Kamerastreams:', e);
+        }
+        try {
+          const res = gestureRecognizer?.close?.();
+          if (res && typeof (res as any).then === 'function') await res;
+        } catch (e) {
+          console.warn('Fehler beim Schließen des Gestenerkenners:', e);
+        }
+        gestureRecognizer = null;
+      })().finally(() => {
+        stopPromise = null;
+      });
+      return stopPromise;
     }
 
-    const onPageHide = () => { running = false; stopCamera(); };
-    const onBeforeUnload = () => { running = false; stopCamera(); };
+    const onPageHide = () => void cleanup();
+    const onBeforeUnload = () => void cleanup();
     const onResize = () => resizeOverlay();
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', onBeforeUnload);
     window.addEventListener('resize', onResize);
 
-    function cleanup() {
-      if (!running) return;
+    async function cleanup() {
+      if (cleanedUp) return;
+      cleanedUp = true;
       running = false;
-      stopCamera();
+      await stopCamera();
       try {
         document.getElementById('tapToStart')?.remove();
       } catch (e) {

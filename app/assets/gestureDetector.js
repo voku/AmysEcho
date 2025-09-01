@@ -1117,6 +1117,8 @@
   });
   overlay.addEventListener("contextrestored", () => {
     overlay.getContext("2d");
+    resizeOverlay();
+    if (running) window.requestAnimationFrame(predictWebcam);
   });
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
@@ -1182,6 +1184,7 @@
   var lastSentGesture = null;
   var lastSentScore = 0;
   var running = true;
+  var cleanedUp = false;
   var TARGET_FPS = 30;
   var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
   var lastFrameTs = 0;
@@ -1210,7 +1213,7 @@
           let outGesture = null;
           let outScore = 0;
           const perHand = [];
-          let multiHand = false;
+          let multiHand = (results?.landmarks?.length ?? 0) >= 2;
           const handedArr = (results?.handednesses || []).map((h) => h?.[0]?.categoryName || "unknown");
           if (results?.gestures?.length) {
             for (let i = 0; i < results.gestures.length; i++) {
@@ -1225,8 +1228,7 @@
                 }
               }
             }
-            multiHand = perHand.length >= 2 || (results?.landmarks?.length ?? 0) >= 2;
-            if (multiHand) {
+            if (perHand.length >= 2) {
               let left = perHand.find((h) => /left/i.test(h.hand)) || null;
               let right = perHand.find((h) => /right/i.test(h.hand)) || null;
               if (!left || !right) {
@@ -1378,52 +1380,55 @@
     });
   }
   createGestureRecognizer();
-  function stopCamera() {
-    try {
-      video.pause();
-    } catch (e) {
-      console.warn("Video konnte w\xE4hrend des Aufr\xE4umens nicht pausiert werden:", e);
-    }
-    try {
-      video.removeEventListener("loadeddata", predictWebcam);
-    } catch (e) {
-      console.warn(
-        'Entfernen des "loadeddata"-Listeners w\xE4hrend des Aufr\xE4umens fehlgeschlagen:',
-        e
-      );
-    }
-    try {
-      const s = video.srcObject;
-      if (s) {
-        s.getTracks().forEach((t) => t.stop());
-        video.srcObject = null;
+  var stopPromise = null;
+  async function stopCamera() {
+    if (stopPromise) return stopPromise;
+    stopPromise = (async () => {
+      try {
+        video.pause();
+      } catch (e) {
+        console.warn("Video konnte w\xE4hrend des Aufr\xE4umens nicht pausiert werden:", e);
       }
-    } catch (e) {
-      console.warn("Fehler beim Stoppen des Kamerastreams:", e);
-    }
-    try {
-      gestureRecognizer?.close?.();
-    } catch (e) {
-      console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
-    }
-    gestureRecognizer = null;
+      try {
+        video.removeEventListener("loadeddata", predictWebcam);
+      } catch (e) {
+        console.warn(
+          'Entfernen des "loadeddata"-Listeners w\xE4hrend des Aufr\xE4umens fehlgeschlagen:',
+          e
+        );
+      }
+      try {
+        const s = video.srcObject;
+        if (s) {
+          s.getTracks().forEach((t) => t.stop());
+          video.srcObject = null;
+        }
+      } catch (e) {
+        console.warn("Fehler beim Stoppen des Kamerastreams:", e);
+      }
+      try {
+        const res = gestureRecognizer?.close?.();
+        if (res && typeof res.then === "function") await res;
+      } catch (e) {
+        console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
+      }
+      gestureRecognizer = null;
+    })().finally(() => {
+      stopPromise = null;
+    });
+    return stopPromise;
   }
-  var onPageHide = () => {
-    running = false;
-    stopCamera();
-  };
-  var onBeforeUnload = () => {
-    running = false;
-    stopCamera();
-  };
+  var onPageHide = () => void cleanup();
+  var onBeforeUnload = () => void cleanup();
   var onResize = () => resizeOverlay();
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("resize", onResize);
-  function cleanup() {
-    if (!running) return;
+  async function cleanup() {
+    if (cleanedUp) return;
+    cleanedUp = true;
     running = false;
-    stopCamera();
+    await stopCamera();
     try {
       document.getElementById("tapToStart")?.remove();
     } catch (e) {
