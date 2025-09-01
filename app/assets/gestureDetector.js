@@ -936,7 +936,11 @@
           window.ReactNativeWebView?.postMessage?.(
             JSON.stringify({ type: "telemetry", event: "mlp_transfer_complete" })
           );
-        } catch {
+        } catch (e) {
+          console.warn(
+            "Senden des Telemetrie-Ereignisses 'mlp_transfer_complete' fehlgeschlagen:",
+            e
+          );
         }
       }
     };
@@ -1371,11 +1375,16 @@
   function stopCamera() {
     try {
       video.pause();
-    } catch {
+    } catch (e) {
+      console.warn("Video konnte w\xE4hrend des Aufr\xE4umens nicht pausiert werden:", e);
     }
     try {
       video.removeEventListener("loadeddata", predictWebcam);
-    } catch {
+    } catch (e) {
+      console.warn(
+        'Entfernen des "loadeddata"-Listeners w\xE4hrend des Aufr\xE4umens fehlgeschlagen:',
+        e
+      );
     }
     try {
       const s = video.srcObject;

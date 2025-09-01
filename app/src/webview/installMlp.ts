@@ -299,7 +299,12 @@ export function installMlp() {
         (window as any).ReactNativeWebView?.postMessage?.(
           JSON.stringify({ type: 'telemetry', event: 'mlp_transfer_complete' }),
         );
-      } catch {}
+      } catch (e) {
+        console.warn(
+          "Senden des Telemetrie-Ereignisses 'mlp_transfer_complete' fehlgeschlagen:",
+          e,
+        );
+      }
     }
   };
 }

@@ -415,8 +415,19 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     }
     createGestureRecognizer();
     function stopCamera() {
-      try { video.pause(); } catch {}
-      try { video.removeEventListener('loadeddata', predictWebcam); } catch {}
+      try {
+        video.pause();
+      } catch (e) {
+        console.warn('Video konnte während des Aufräumens nicht pausiert werden:', e);
+      }
+      try {
+        video.removeEventListener('loadeddata', predictWebcam);
+      } catch (e) {
+        console.warn(
+          'Entfernen des "loadeddata"-Listeners während des Aufräumens fehlgeschlagen:',
+          e,
+        );
+      }
       try {
         const s = video.srcObject as MediaStream | null;
         if (s) {

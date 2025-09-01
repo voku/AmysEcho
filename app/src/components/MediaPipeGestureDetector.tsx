@@ -60,7 +60,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const injectModel = (b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
     if (modelTransferLock.current) {
-      console.warn('Modellübertragung läuft, neues Modell wird übersprungen.');
+      console.warn('Modellübertragung läuft, neues Modell wird in die Warteschlange gestellt.');
       pendingModelRef.current = b64;
       queuedModelRef.current = true;
       return;
