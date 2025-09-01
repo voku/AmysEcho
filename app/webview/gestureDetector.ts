@@ -246,7 +246,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             let outGesture = null;
             let outScore = 0;
             const perHand: { hand: string; label: string; score: number }[] = [];
-            let multiHand = false;
+            let multiHand = ((results?.landmarks?.length ?? 0) >= 2);
             const handedArr = (results?.handednesses || []).map(h => (h?.[0]?.categoryName) || 'unknown');
             if (results?.gestures?.length) {
               for (let i = 0; i < results.gestures.length; i++) {
@@ -261,8 +261,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   }
                 }
               }
-              multiHand = perHand.length >= 2;
-              if (multiHand) {
+              if (perHand.length >= 2) {
                 let left = perHand.find(h => /left/i.test(h.hand)) || null;
                 let right = perHand.find(h => /right/i.test(h.hand)) || null;
                 if (!left || !right) {
