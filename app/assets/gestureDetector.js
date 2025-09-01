@@ -904,14 +904,20 @@
     window.__mlpPredict = mlpPredict;
     let transferBuf = "";
     let transferStart = 0;
+    let transferLock = false;
     window.__beginMlpTransfer = () => {
+      if (transferLock) return false;
+      transferLock = true;
       transferBuf = "";
       transferStart = performance.now();
+      return true;
     };
     window.__pushMlpChunk = (chunk) => {
+      if (!transferLock) return;
       transferBuf += chunk;
     };
     window.__commitMlpTransfer = () => {
+      if (!transferLock) return;
       const bytes = transferBuf.length;
       const start = transferStart;
       try {
@@ -925,6 +931,7 @@
       } finally {
         transferBuf = "";
         transferStart = 0;
+        transferLock = false;
       }
     };
   }
@@ -1013,22 +1020,22 @@
           s.nonce = window.__visionBundleNonce;
         }
         s.async = true;
-        const cleanup = () => {
+        const cleanup2 = () => {
           s.onload = s.onerror = null;
           if (s.parentNode) s.parentNode.removeChild(s);
         };
         const to = setTimeout(() => {
-          cleanup();
+          cleanup2();
           reject(new Error("Script load timeout: " + src));
         }, timeoutMs);
         s.onload = () => {
           clearTimeout(to);
-          cleanup();
+          cleanup2();
           resolve(null);
         };
         s.onerror = () => {
           clearTimeout(to);
-          cleanup();
+          cleanup2();
           reject(new Error("Failed to load script: " + src));
         };
         document.head.appendChild(s);
@@ -1089,6 +1096,9 @@
   var video = document.createElement("video");
   var overlay = document.createElement("canvas");
   overlay.id = "overlay";
+  overlay.addEventListener("contextlost", (e) => {
+    e.preventDefault();
+  });
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
@@ -1153,8 +1163,17 @@
   var lastSentGesture = null;
   var lastSentScore = 0;
   var running = true;
+  var TARGET_FPS = 30;
+  var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
+  var lastFrameTs = 0;
   function predictWebcam() {
     if (!running) return;
+    const nowTime = performance.now();
+    if (nowTime - lastFrameTs < MIN_FRAME_TIME) {
+      window.requestAnimationFrame(predictWebcam);
+      return;
+    }
+    lastFrameTs = nowTime;
     try {
       if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
         if (lastVideoTime !== video.currentTime) {
@@ -1187,11 +1206,16 @@
               }
             }
             if (perHand.length >= 2) {
-              const left = perHand.find((h) => /left/i.test(h.hand)) || perHand[0];
-              const right = perHand.find((h) => /right/i.test(h.hand)) || perHand[1];
+              let left = perHand.find((h) => /left/i.test(h.hand)) || null;
+              let right = perHand.find((h) => /right/i.test(h.hand)) || null;
+              if (!left || !right) {
+                const others = perHand.filter((h) => h !== left && h !== right);
+                if (!left) left = others.shift() || null;
+                if (!right) right = others.shift() || null;
+              }
               if (left && right) {
                 outGesture = left.label + "+" + right.label;
-                outScore = Math.min(left.score, right.score);
+                outScore = left.score * right.score;
               }
             }
           }
@@ -1342,19 +1366,35 @@
       }
     } catch {
     }
+    try {
+      gestureRecognizer?.close?.();
+    } catch {
+    }
+    gestureRecognizer = null;
   }
-  window.addEventListener("pagehide", () => {
+  var onPageHide = () => {
     running = false;
     stopCamera();
-  });
-  window.addEventListener("beforeunload", () => {
+  };
+  var onBeforeUnload = () => {
     running = false;
     stopCamera();
-  });
-  window.addEventListener("resize", () => {
+  };
+  var onResize = () => {
     try {
       resizeOverlay();
     } catch {
     }
-  });
+  };
+  window.addEventListener("pagehide", onPageHide);
+  window.addEventListener("beforeunload", onBeforeUnload);
+  window.addEventListener("resize", onResize);
+  function cleanup() {
+    running = false;
+    stopCamera();
+    window.removeEventListener("pagehide", onPageHide);
+    window.removeEventListener("beforeunload", onBeforeUnload);
+    window.removeEventListener("resize", onResize);
+  }
+  window.__cleanupGestureDetector = cleanup;
 })();

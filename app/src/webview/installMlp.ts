@@ -267,14 +267,20 @@ export function installMlp() {
   (window as any).__mlpPredict = mlpPredict;
   let transferBuf = '';
   let transferStart = 0;
+  let transferLock = false;
   (window as any).__beginMlpTransfer = () => {
+    if (transferLock) return false;
+    transferLock = true;
     transferBuf = '';
     transferStart = performance.now();
+    return true;
   };
   (window as any).__pushMlpChunk = (chunk: string) => {
+    if (!transferLock) return;
     transferBuf += chunk;
   };
   (window as any).__commitMlpTransfer = () => {
+    if (!transferLock) return;
     const bytes = transferBuf.length;
     const start = transferStart;
     try {
@@ -288,6 +294,7 @@ export function installMlp() {
     } finally {
       transferBuf = '';
       transferStart = 0;
+      transferLock = false;
     }
   };
 }

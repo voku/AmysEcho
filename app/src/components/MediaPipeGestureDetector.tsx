@@ -211,6 +211,16 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     }
   };
 
+  useEffect(() => {
+    return () => {
+      try {
+        webviewRef.current?.injectJavaScript(
+          'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
+        );
+      } catch {}
+    };
+  }, []);
+
   return (
     <View style={styles.container}>
       <WebViewImpl

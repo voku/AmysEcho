@@ -144,6 +144,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     const video = document.createElement('video');
     const overlay = document.createElement('canvas');
     overlay.id = 'overlay';
+    overlay.addEventListener('contextlost', (e) => { e.preventDefault(); });
     video.setAttribute('autoplay', '');
     video.setAttribute('playsinline', '');
     video.setAttribute('muted', '');
@@ -209,8 +210,17 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     let lastSentGesture = null;
     let lastSentScore = 0;
     let running = true;
+    const TARGET_FPS = 30;
+    const MIN_FRAME_TIME = 1000 / TARGET_FPS;
+    let lastFrameTs = 0;
     function predictWebcam() {
       if (!running) return;
+      const nowTime = performance.now();
+      if (nowTime - lastFrameTs < MIN_FRAME_TIME) {
+        window.requestAnimationFrame(predictWebcam);
+        return;
+      }
+      lastFrameTs = nowTime;
       try {
         if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
           if (lastVideoTime !== video.currentTime) { // Only process if video frame has changed
@@ -243,11 +253,16 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                 }
               }
               if (perHand.length >= 2) {
-                const left = perHand.find(h => /left/i.test(h.hand)) || perHand[0];
-                const right = perHand.find(h => /right/i.test(h.hand)) || perHand[1];
+                let left = perHand.find(h => /left/i.test(h.hand)) || null;
+                let right = perHand.find(h => /right/i.test(h.hand)) || null;
+                if (!left || !right) {
+                  const others = perHand.filter(h => h !== left && h !== right);
+                  if (!left) left = others.shift() || null;
+                  if (!right) right = others.shift() || null;
+                }
                 if (left && right) {
                   outGesture = left.label + '+' + right.label;
-                  outScore = Math.min(left.score, right.score);
+                  outScore = left.score * right.score;
                 }
               }
             }
@@ -393,14 +408,31 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
     createGestureRecognizer();
     function stopCamera() {
       try {
-        const s = video.srcObject;
+        const s = video.srcObject as MediaStream | null;
         if (s) {
-          s.getTracks().forEach(t => t.stop());
+          s.getTracks().forEach((t) => t.stop());
           video.srcObject = null;
         }
       } catch {}
+      try {
+        gestureRecognizer?.close?.();
+      } catch {}
+      gestureRecognizer = null;
     }
-    window.addEventListener('pagehide', () => { running = false; stopCamera(); });
-    window.addEventListener('beforeunload', () => { running = false; stopCamera(); });
-    window.addEventListener('resize', ()=>{ try { resizeOverlay(); } catch {} });
+
+    const onPageHide = () => { running = false; stopCamera(); };
+    const onBeforeUnload = () => { running = false; stopCamera(); };
+    const onResize = () => { try { resizeOverlay(); } catch {} };
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('resize', onResize);
+
+    function cleanup() {
+      running = false;
+      stopCamera();
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('resize', onResize);
+    }
+    (window as any).__cleanupGestureDetector = cleanup;
 
