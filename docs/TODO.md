@@ -317,7 +317,7 @@ Every line of code, every design decision, every optimization must enhance Amy's
 **Task**: Convert from `any` types to proper TypeScript interfaces
 **Files to modify**: `app/webview/gestureDetector.ts`
 **Deliverables**:
-- [ ] Create `MediaPipeInterfaces.ts` with proper type definitions for MediaPipe results
+- [ ] Create `types/MediaPipeTypes.ts` with proper type definitions for MediaPipe results
 - [ ] Define `MLPPrediction`, `GestureResult`, `WebViewMessage` interfaces
 - [ ] Replace all `(window as any)` casts with properly typed window extensions
 - [ ] Add type guards for runtime type checking
@@ -359,7 +359,7 @@ interface MediaPipeGestureResult {
 **Task**: Break monolithic file into modular, testable components
 **Files to create**:
 - `MediaPipeLoader.ts`
-- `GestureRecognizer.ts` 
+- `GestureRecognizer.ts`
 - `CustomGestureDetector.ts`
 - `OverlayRenderer.ts`
 - `CameraManager.ts`
@@ -512,6 +512,9 @@ webview/
 │   ├── ErrorRecovery.ts        # Error handling utilities
 │   ├── PerformanceMonitor.ts   # Performance tracking
 │   └── ResourceManager.ts      # Resource cleanup
+├── dev/
+│   ├── DevTools.ts             # Development utilities
+│   └── GestureDebugger.ts      # Debug tools
 └── __tests__/                  # Test files
 ```
 
