@@ -1,34 +1,16 @@
 import type { CentroidMap } from './dgsModelClient';
+import { normalizeLandmarks as normalizeSingleHand } from './landmarkNormalizer';
 
-// NOTE: keep this normalize function in sync with
+// NOTE: keep `normalizeLandmarks` logic in sync with
 // server/src/services/dgsModelService.ts
 export function normalize(lm: number[][]): number[][] {
   if (!lm || lm.length === 0) return lm;
-  const pts = lm.map((p) => [...p]);
 
-  const normalizeHand = (start: number) => {
-    if (pts.length < start + 1) return;
-    const [wx, wy, wz] = pts[start];
-    let maxd = 0;
-    for (let i = 0; i < 21 && start + i < pts.length; i++) {
-      const [x, y, z] = pts[start + i];
-      const nx = x - wx;
-      const ny = y - wy;
-      const nz = (z ?? 0) - (wz ?? 0);
-      pts[start + i] = [nx, ny, nz];
-      maxd = Math.max(maxd, Math.abs(nx) + Math.abs(ny) + Math.abs(nz));
-    }
-    const s = maxd || 1;
-    for (let i = 0; i < 21 && start + i < pts.length; i++) {
-      const [x, y, z] = pts[start + i];
-      pts[start + i] = [x / s, y / s, z / s];
-    }
-  };
+  const hand1 = normalizeSingleHand(lm.slice(0, 21));
+  if (lm.length <= 21) return hand1;
 
-  normalizeHand(0);
-  if (pts.length >= 42) normalizeHand(21);
-
-  return pts;
+  const hand2 = normalizeSingleHand(lm.slice(21, 42));
+  return hand1.concat(hand2);
 }
 
 export function classifyWithCentroids(

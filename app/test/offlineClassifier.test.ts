@@ -3,20 +3,16 @@ import type { CentroidMap } from '../src/services/dgsModelClient';
 
 describe('offlineClassifier', () => {
   test('classifies landmarks to closest centroid with high confidence', () => {
-    const centroids: CentroidMap = {
-      g1: [
-        [0, 0, 0],
-        [1, 0, 0],
-      ],
-      g2: [
-        [0, 0, 0],
-        [0, 1, 0],
-      ],
+    const makeHand = (tip: [number, number, number]): number[][] => {
+      const pts = Array.from({ length: 21 }, () => [0, 0, 0]);
+      pts[1] = tip;
+      return pts;
     };
-    const landmarks = [
-      [0, 0, 0],
-      [1, 0, 0],
-    ];
+    const centroids: CentroidMap = {
+      g1: makeHand([1, 0, 0]),
+      g2: makeHand([0, 1, 0]),
+    };
+    const landmarks = makeHand([1, 0, 0]);
     const result = classifyWithCentroids(landmarks, centroids);
     expect(result).not.toBeNull();
     expect(result!.label).toBe('g1');
