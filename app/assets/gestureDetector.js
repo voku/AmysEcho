@@ -652,6 +652,33 @@
     return files;
   }
 
+  // ../shared/landmarkNormalizer.ts
+  function normalizeHands(lm) {
+    if (!lm || lm.length === 0) return lm;
+    const pts = lm.map((p) => [...p]);
+    const normalizeHand = (start) => {
+      if (pts.length < start + 1) return;
+      const [wx, wy, wz] = pts[start];
+      let maxd = 0;
+      for (let i = 0; i < 21 && start + i < pts.length; i++) {
+        const [x, y, z] = pts[start + i];
+        const nx = x - wx;
+        const ny = y - wy;
+        const nz = (z ?? 0) - (wz ?? 0);
+        pts[start + i] = [nx, ny, nz];
+        maxd = Math.max(maxd, Math.abs(nx) + Math.abs(ny) + Math.abs(nz));
+      }
+      const s = maxd || 1;
+      for (let i = 0; i < 21 && start + i < pts.length; i++) {
+        const [x, y, z] = pts[start + i];
+        pts[start + i] = [x / s, y / s, z / s];
+      }
+    };
+    normalizeHand(0);
+    if (pts.length >= 42) normalizeHand(21);
+    return pts;
+  }
+
   // src/webview/installMlp.ts
   function installMlp() {
     let mlp = null;
@@ -831,30 +858,20 @@
     }
     const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0]);
     function normalizeLandmarks(all, handednesses) {
-      const flat = new Float32Array(21 * 2 * 3);
-      function normHand(hand) {
-        if (!hand || hand.length < 21) return null;
-        const [wx, wy, wz] = hand[0];
-        const centered = hand.map(
-          (p) => [p[0] - wx, p[1] - wy, p[2] - wz]
-        );
-        const maxd = centered.reduce(
-          (currentMax, [x, y, z]) => Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
-          0
-        );
-        if (maxd === 0) return null;
-        return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd]);
-      }
-      const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === "Left");
-      const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === "Right");
+      const leftHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === "Left"
+      );
+      const rightHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === "Right"
+      );
       const leftHand = leftHandIndex > -1 ? all[leftHandIndex] : null;
       const rightHand = rightHandIndex > -1 ? all[rightHandIndex] : null;
-      const left = normHand(leftHand) ?? EMPTY_HAND;
-      const right = normHand(rightHand);
-      const r = right ?? EMPTY_HAND;
-      const both = left.concat(r);
+      const left = (leftHand ?? EMPTY_HAND).map((p) => [p[0], p[1], p[2]]);
+      const right = (rightHand ?? EMPTY_HAND).map((p) => [p[0], p[1], p[2]]);
+      const norm = normalizeHands(left.concat(right));
+      const flat = new Float32Array(21 * 2 * 3);
       let k = 0;
-      for (const p of both) {
+      for (const p of norm) {
         flat[k++] = p[0];
         flat[k++] = p[1];
         flat[k++] = p[2];

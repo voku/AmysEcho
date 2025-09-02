@@ -1,36 +1,12 @@
 import type { CentroidMap } from './dgsModelClient';
+import { normalizeHands } from '../../../shared/landmarkNormalizer';
 
-export function normalize(lm: number[][]): number[][] {
-  if (!lm || lm.length === 0) return lm;
-  const pts = lm.map((p) => [...p]);
+export const normalize = normalizeHands;
 
-  const normalizeHand = (start: number) => {
-    if (pts.length < start + 1) return;
-    const [wx, wy, wz] = pts[start];
-    let maxd = 0;
-    for (let i = 0; i < 21 && start + i < pts.length; i++) {
-      const [x, y, z] = pts[start + i];
-      const nx = x - wx;
-      const ny = y - wy;
-      const nz = (z ?? 0) - (wz ?? 0);
-      pts[start + i] = [nx, ny, nz];
-      maxd = Math.max(maxd, Math.abs(nx) + Math.abs(ny) + Math.abs(nz));
-    }
-    const s = maxd || 1;
-    for (let i = 0; i < 21 && start + i < pts.length; i++) {
-      const [x, y, z] = pts[start + i];
-      pts[start + i] = [x / s, y / s, z / s];
-    }
-  };
-
-  // Normalize first hand and second hand (if present) separately
-  normalizeHand(0);
-  if (pts.length >= 42) normalizeHand(21);
-
-  return pts;
-}
-
-export function classifyWithCentroids(lm: number[][], centroids: CentroidMap): { label: string; confidence: number } | null {
+export function classifyWithCentroids(
+  lm: number[][],
+  centroids: CentroidMap,
+): { label: string; confidence: number } | null {
   const q = normalize(lm);
   let bestLabel: string | null = null;
   let bestScore = -Infinity;
@@ -54,4 +30,3 @@ export function classifyWithCentroids(lm: number[][], centroids: CentroidMap): {
   const confidence = Math.max(0, Math.min(1, bestScore / sumScores));
   return { label: bestLabel, confidence: Math.round(confidence * 1000) / 1000 };
 }
-

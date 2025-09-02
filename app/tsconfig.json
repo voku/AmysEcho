@@ -6,7 +6,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "module": "ESNext",
-    "rootDir": ".",
+    "rootDir": "..",
     "moduleResolution": "Bundler",
     "types": [
       "node",
@@ -31,7 +31,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/declarations.d.ts",
-    "mock-types.d.ts"
+    "mock-types.d.ts",
+    "../shared/**/*.ts"
   ],
   "extends": "expo/tsconfig.base"
 }

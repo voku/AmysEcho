@@ -1,3 +1,5 @@
+import { normalizeHands } from '../../../shared/landmarkNormalizer';
+
 export function installMlp() {
   type Tensor = { data: Float32Array; shape: number[] };
   type Landmark = readonly [number, number, number];
@@ -191,34 +193,22 @@ export function installMlp() {
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness) {
-    const flat = new Float32Array(21 * 2 * 3);
-    function normHand(hand: Hand | null): Hand | null {
-      if (!hand || hand.length < 21) return null;
-      const [wx, wy, wz] = hand[0];
-      const centered = hand.map(
-        (p) => [p[0] - wx, p[1] - wy, p[2] - wz] as const,
-      );
-      const maxd = centered.reduce(
-        (currentMax, [x, y, z]) =>
-          Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
-        0,
-      );
-      if (maxd === 0) return null;
-      return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd] as const);
-    }
-
-    const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Left');
-    const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Right');
+    const leftHandIndex = handednesses?.findIndex(
+      (h) => h?.[0]?.categoryName === 'Left',
+    );
+    const rightHandIndex = handednesses?.findIndex(
+      (h) => h?.[0]?.categoryName === 'Right',
+    );
 
     const leftHand = leftHandIndex > -1 ? all[leftHandIndex] : null;
     const rightHand = rightHandIndex > -1 ? all[rightHandIndex] : null;
 
-    const left = normHand(leftHand) ?? EMPTY_HAND;
-    const right = normHand(rightHand);
-    const r = right ?? EMPTY_HAND;
-    const both = left.concat(r);
+    const left = (leftHand ?? EMPTY_HAND).map((p) => [p[0], p[1], p[2]]);
+    const right = (rightHand ?? EMPTY_HAND).map((p) => [p[0], p[1], p[2]]);
+    const norm = normalizeHands(left.concat(right));
+    const flat = new Float32Array(21 * 2 * 3);
     let k = 0;
-    for (const p of both) {
+    for (const p of norm) {
       flat[k++] = p[0];
       flat[k++] = p[1];
       flat[k++] = p[2];
