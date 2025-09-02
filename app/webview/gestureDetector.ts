@@ -194,7 +194,7 @@ overlay.addEventListener('contextrestored', () => {
 video.setAttribute('autoplay', '');
 video.setAttribute('playsinline', '');
 video.setAttribute('muted', '');
-document.addEventListener('DOMContentLoaded', () => {
+function initDom() {
   document.body.appendChild(video);
   document.body.appendChild(overlay);
   const tap = document.createElement('div');
@@ -236,24 +236,39 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (err) {
     console.warn("Senden des Telemetrie-Ereignisses 'dom_ready' fehlgeschlagen:", err);
   }
-});
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDom);
+} else {
+  initDom();
+}
 
 async function createGestureRecognizer() {
   try {
     const visionStart = performance.now();
-    const { FilesetResolver, GestureRecognizer, wasmBase } = await loadTasksVision();
-    const vision = await FilesetResolver.forVisionTasks(
-      wasmBase || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm',
-    );
-    gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath:
-          'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
-        delegate: 'GPU',
-      },
-      runningMode,
-      numHands: 2,
-    });
+  const { FilesetResolver, GestureRecognizer, wasmBase } = await loadTasksVision();
+  const vision = await FilesetResolver.forVisionTasks(
+    wasmBase || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm',
+  );
+    const baseOptions = {
+      modelAssetPath:
+        'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
+      delegate: 'GPU' as const,
+    };
+    try {
+      gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
+        baseOptions,
+        runningMode,
+        numHands: 2,
+      });
+    } catch (gpuErr) {
+      console.warn('GPU-Delegate fehlgeschlagen, nutze CPU:', gpuErr);
+      gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
+        baseOptions: { ...baseOptions, delegate: 'CPU' as const },
+        runningMode,
+        numHands: 2,
+      });
+    }
     const initMs = Math.round(performance.now() - visionStart);
     try {
       window.ReactNativeWebView?.postMessage?.(
@@ -437,22 +452,24 @@ function predictWebcam() {
 
         const now = performance.now();
         const confidence = allLandmarks.length ? outScore : 0;
+        const isTick = now - lastSentAt >= 100;
         const changed =
           outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
-        if (changed || now - lastSentAt >= 100) {
+        if (changed || isTick) {
           lastSentGesture = outGesture;
           lastSentScore = confidence;
           lastSentAt = now;
           try {
-            window.ReactNativeWebView?.postMessage?.(
-              JSON.stringify({
-                type: 'gesture',
-                gesture: outGesture || null,
-                confidence,
-                landmarks: allLandmarks,
-                handednesses: handedArr,
-              }),
-            );
+            const payload: any = {
+              type: 'gesture',
+              gesture: outGesture || null,
+              confidence,
+            };
+            if (changed) {
+              payload.landmarks = allLandmarks;
+              payload.handednesses = handedArr;
+            }
+            window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
           } catch (err) {
             console.warn('Gestenergebnis konnte nicht gesendet werden:', err);
           }
@@ -519,9 +536,13 @@ async function startCamera() {
     // createGestureRecognizer will add the loadeddata listener
   } catch (err) {
     const msg = (err && err.name + ': ' + err.message) || String(err);
-    window.ReactNativeWebView?.postMessage?.(
-      JSON.stringify({ type: 'error', message: cameraError + msg }),
-    );
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: 'error', message: cameraError + msg }),
+      );
+    } catch (postErr) {
+      console.warn('Kamerafehler konnte nicht gesendet werden:', postErr);
+    }
   }
 }
 

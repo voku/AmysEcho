@@ -1145,7 +1145,7 @@
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
-  document.addEventListener("DOMContentLoaded", () => {
+  function initDom() {
     document.body.appendChild(video);
     document.body.appendChild(overlay);
     const tap = document.createElement("div");
@@ -1187,7 +1187,12 @@
     } catch (err2) {
       console.warn("Senden des Telemetrie-Ereignisses 'dom_ready' fehlgeschlagen:", err2);
     }
-  });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDom);
+  } else {
+    initDom();
+  }
   async function createGestureRecognizer() {
     try {
       const visionStart = performance.now();
@@ -1195,14 +1200,24 @@
       const vision = await FilesetResolver.forVisionTasks(
         wasmBase || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
       );
-      gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
-          delegate: "GPU"
-        },
-        runningMode,
-        numHands: 2
-      });
+      const baseOptions = {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+        delegate: "GPU"
+      };
+      try {
+        gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
+          baseOptions,
+          runningMode,
+          numHands: 2
+        });
+      } catch (gpuErr) {
+        console.warn("GPU-Delegate fehlgeschlagen, nutze CPU:", gpuErr);
+        gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
+          baseOptions: { ...baseOptions, delegate: "CPU" },
+          runningMode,
+          numHands: 2
+        });
+      }
       const initMs = Math.round(performance.now() - visionStart);
       try {
         window.ReactNativeWebView?.postMessage?.(
@@ -1371,21 +1386,23 @@
           }
           const now = performance.now();
           const confidence = allLandmarks.length ? outScore : 0;
+          const isTick = now - lastSentAt >= 100;
           const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
-          if (changed || now - lastSentAt >= 100) {
+          if (changed || isTick) {
             lastSentGesture = outGesture;
             lastSentScore = confidence;
             lastSentAt = now;
             try {
-              window.ReactNativeWebView?.postMessage?.(
-                JSON.stringify({
-                  type: "gesture",
-                  gesture: outGesture || null,
-                  confidence,
-                  landmarks: allLandmarks,
-                  handednesses: handedArr
-                })
-              );
+              const payload = {
+                type: "gesture",
+                gesture: outGesture || null,
+                confidence
+              };
+              if (changed) {
+                payload.landmarks = allLandmarks;
+                payload.handednesses = handedArr;
+              }
+              window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
             } catch (err2) {
               console.warn("Gestenergebnis konnte nicht gesendet werden:", err2);
             }
@@ -1446,9 +1463,13 @@
       }
     } catch (err2) {
       const msg = err2 && err2.name + ": " + err2.message || String(err2);
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: "error", message: cameraError + msg })
-      );
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "error", message: cameraError + msg })
+        );
+      } catch (postErr) {
+        console.warn("Kamerafehler konnte nicht gesendet werden:", postErr);
+      }
     }
   }
   if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
