@@ -275,18 +275,18 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           onError(LanguageManager.t('mediapipe.gestureProcessingError'));
         }}
         onConsoleMessage={(e: any) => {
-          try {
+          if (e?.nativeEvent?.message) {
             console.log('WV:', e.nativeEvent.message);
-          } catch (err) {
-            console.warn('Fehler beim Protokollieren der WebView-Nachricht:', err);
           }
         }}
         onPermissionRequest={(event: any) => {
           try {
-            const videoOnly = (event.nativeEvent.resources || []).filter((r: string) => r === 'VIDEO_CAPTURE');
-            event.nativeEvent.grant(videoOnly);
+            if (event?.nativeEvent?.resources && event.nativeEvent.grant) {
+              const videoOnly = event.nativeEvent.resources.filter((r: string) => r === 'VIDEO_CAPTURE');
+              event.nativeEvent.grant(videoOnly);
+            }
           } catch (err) {
-            console.warn('Fehler bei der Erteilung von Berechtigungen:', err);
+            console.warn('Error granting permissions:', err);
           }
         }}
       />

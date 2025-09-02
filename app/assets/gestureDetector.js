@@ -984,7 +984,7 @@
         JSON.stringify({ type: "error", message: e.message, file: e.filename, line: e.lineno, col: e.colno })
       );
     } catch (err2) {
-      console.warn("Fehler beim Weiterleiten des Fehlerereignisses:", err2);
+      console.warn("Failed to forward error event:", err2);
     }
   });
   window.fflate = { unzip, unzipSync };
@@ -994,7 +994,7 @@
       JSON.stringify({ type: "telemetry", event: "mlp_ready" })
     );
   } catch (err2) {
-    console.warn("Fehler beim Senden des MLP-Bereit-Ereignisses:", err2);
+    console.warn("Failed to send MLP ready event:", err2);
   }
   var tapToStartText = window.__tapToStart || "";
   var recognizerInitFailed = window.__recognizerInitFailed || "Erkennung konnte nicht gestartet werden: ";
@@ -1022,7 +1022,7 @@
             }
           }
         } catch (err2) {
-          console.warn("Fehler beim Abrufen von", base, err2);
+          console.warn("Failed to fetch", base, err2);
         }
       }
       return null;
@@ -1146,7 +1146,7 @@
             JSON.stringify({ type: "error", message: cameraError + (err2 instanceof Error ? err2.message : String(err2)) })
           );
         } catch (postErr) {
-          console.warn("Kamerafehler konnte nicht gesendet werden:", postErr);
+          console.warn("Failed to send camera error:", postErr);
         }
       }
     });
@@ -1170,7 +1170,7 @@
       try {
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: initMs }));
       } catch (err2) {
-        console.warn("Fehler beim Senden des recognizer_init-Ereignisses:", err2);
+        console.warn("Failed to send recognizer_init event:", err2);
       }
       video.addEventListener("loadeddata", predictWebcam);
     } catch (e) {
@@ -1179,7 +1179,7 @@
           JSON.stringify({ type: "error", message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) })
         );
       } catch (err2) {
-        console.warn("Fehler beim Senden der Initialisierungsfehlermeldung:", err2);
+        console.warn("Failed to send initialization error message:", err2);
       }
     }
   }
@@ -1314,7 +1314,7 @@
               ctx.restore();
             }
           } catch (err2) {
-            console.warn("Fehler beim Zeichnen der \xDCberlagerung:", err2);
+            console.warn("Error drawing overlay:", err2);
           }
           const now = performance.now();
           const confidence = allLandmarks.length ? outScore : 0;
@@ -1334,7 +1334,7 @@
                 })
               );
             } catch (err2) {
-              console.warn("Fehler beim Senden der Gestenerkennung:", err2);
+              console.warn("Failed to send gesture result:", err2);
             }
           }
         }
@@ -1345,7 +1345,7 @@
           JSON.stringify({ type: "warn", message: predictionError + (e instanceof Error ? e.message : String(e)) })
         );
       } catch (err2) {
-        console.warn("Fehler beim Senden der Warnung:", err2);
+        console.warn("Failed to send warning:", err2);
       }
     }
     window.requestAnimationFrame(predictWebcam);
@@ -1359,7 +1359,7 @@
         overlay.height = h;
       }
     } catch (err2) {
-      console.warn("Fehler beim Anpassen der \xDCberlagerung:", err2);
+      console.warn("Failed to resize overlay:", err2);
     }
   }
   async function startCamera() {
@@ -1371,7 +1371,7 @@
         await video.play();
         resizeOverlay();
       } catch (err2) {
-        console.warn("Fehler beim Starten des Videos:", err2);
+        console.warn("Failed to start video:", err2);
       }
       const tracks = stream.getVideoTracks();
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "camera_started", tracks: tracks.map((t) => t.label) }));
@@ -1397,13 +1397,13 @@
       try {
         video.pause();
       } catch (e) {
-        console.warn("Video konnte w\xE4hrend des Aufr\xE4umens nicht pausiert werden:", e);
+        console.warn("Failed to pause video during cleanup:", e);
       }
       try {
         video.removeEventListener("loadeddata", predictWebcam);
       } catch (e) {
         console.warn(
-          'Entfernen des "loadeddata"-Listeners w\xE4hrend des Aufr\xE4umens fehlgeschlagen:',
+          "Removing 'loadeddata' listener during cleanup failed:",
           e
         );
       }
@@ -1414,13 +1414,13 @@
           video.srcObject = null;
         }
       } catch (e) {
-        console.warn("Fehler beim Stoppen des Kamerastreams:", e);
+        console.warn("Failed to stop camera stream:", e);
       }
       try {
         const res = gestureRecognizer?.close?.();
         if (res && typeof res.then === "function") await res;
       } catch (e) {
-        console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
+        console.warn("Failed to close gesture recognizer:", e);
       }
       gestureRecognizer = null;
     })().finally(() => {
@@ -1442,17 +1442,17 @@
     try {
       document.getElementById("tapToStart")?.remove();
     } catch (e) {
-      console.warn('Fehler beim Entfernen des "tapToStart"-Elements:', e);
+      console.warn("Failed to remove 'tapToStart' element:", e);
     }
     try {
       overlay.remove();
     } catch (e) {
-      console.warn('Fehler beim Entfernen des "overlay"-Elements:', e);
+      console.warn("Failed to remove 'overlay' element:", e);
     }
     try {
       video.remove();
     } catch (e) {
-      console.warn('Fehler beim Entfernen des "video"-Elements:', e);
+      console.warn("Failed to remove 'video' element:", e);
     }
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("beforeunload", onBeforeUnload);
@@ -1462,7 +1462,7 @@
         JSON.stringify({ type: "telemetry", event: "cleanup_done" })
       );
     } catch (e) {
-      console.warn('Senden des "cleanup_done" Telemetrie-Ereignisses fehlgeschlagen:', e);
+      console.warn("Failed to send 'cleanup_done' telemetry event:", e);
     }
   }
   window.__cleanupGestureDetector = cleanup;

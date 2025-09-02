@@ -13,7 +13,7 @@ window.addEventListener('error', (e) => {
       JSON.stringify({ type: 'error', message: e.message, file: (e as any).filename, line: (e as any).lineno, col: (e as any).colno }),
     );
   } catch (err) {
-    console.warn('Fehler beim Weiterleiten des Fehlerereignisses:', err);
+    console.warn('Failed to forward error event:', err);
   }
 });
 
@@ -24,7 +24,7 @@ try {
     JSON.stringify({ type: 'telemetry', event: 'mlp_ready' })
   );
 } catch (err) {
-  console.warn('Fehler beim Senden des MLP-Bereit-Ereignisses:', err);
+  console.warn('Failed to send MLP ready event:', err);
 }
 
 const tapToStartText = (window as any).__tapToStart || '';
@@ -56,7 +56,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
               }
             }
           } catch (err) {
-            console.warn('Fehler beim Abrufen von', base, err);
+            console.warn('Failed to fetch', base, err);
           }
         }
         return null;
@@ -181,7 +181,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
               JSON.stringify({ type: 'error', message: cameraError + (err instanceof Error ? err.message : String(err)) }),
             );
           } catch (postErr) {
-            console.warn('Kamerafehler konnte nicht gesendet werden:', postErr);
+            console.warn('Failed to send camera error:', postErr);
           }
         }
       });
@@ -206,7 +206,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         try {
           window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }));
         } catch (err) {
-          console.warn('Fehler beim Senden des recognizer_init-Ereignisses:', err);
+          console.warn('Failed to send recognizer_init event:', err);
         }
         // Start prediction loop after recognizer is created and video is loaded
         video.addEventListener('loadeddata', predictWebcam);
@@ -216,7 +216,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             JSON.stringify({ type: 'error', message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) })
           );
         } catch (err) {
-          console.warn('Fehler beim Senden der Initialisierungsfehlermeldung:', err);
+          console.warn('Failed to send initialization error message:', err);
         }
       }
     }
@@ -357,17 +357,17 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                 ctx.restore();
             }
             } catch (err) {
-              console.warn('Fehler beim Zeichnen der Überlagerung:', err);
+              console.warn('Error drawing overlay:', err);
             }
 
             const now = performance.now();
             const confidence = allLandmarks.length ? outScore : 0;
-              const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
-              if (changed || now - lastSentAt >= 100) {
-                lastSentGesture = outGesture;
-                lastSentScore = confidence;
-                lastSentAt = now;
-                try {
+            const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
+            if (changed || now - lastSentAt >= 100) {
+              lastSentGesture = outGesture;
+              lastSentScore = confidence;
+              lastSentAt = now;
+              try {
                 window.ReactNativeWebView?.postMessage?.(
                   JSON.stringify({
                     type: 'gesture',
@@ -377,10 +377,10 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                     handednesses: handedArr,
                   }),
                 );
-                } catch (err) {
-                  console.warn('Fehler beim Senden der Gestenerkennung:', err);
-                }
+              } catch (err) {
+                console.warn('Failed to send gesture result:', err);
               }
+            }
           }
         }
       } catch (e) {
@@ -389,7 +389,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             JSON.stringify({ type: 'warn', message: predictionError + (e instanceof Error ? e.message : String(e)) })
           );
         } catch (err) {
-          console.warn('Fehler beim Senden der Warnung:', err);
+          console.warn('Failed to send warning:', err);
         }
       }
       window.requestAnimationFrame(predictWebcam);
@@ -403,7 +403,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         const h = video.clientHeight || window.innerHeight;
         if (overlay.width !== w || overlay.height !== h) { overlay.width = w; overlay.height = h; }
       } catch (err) {
-        console.warn('Fehler beim Anpassen der Überlagerung:', err);
+        console.warn('Failed to resize overlay:', err);
       }
     }
 
@@ -412,7 +412,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
         video.srcObject = stream;
         try { video.muted = true; await video.play(); resizeOverlay(); } catch (err) {
-          console.warn('Fehler beim Starten des Videos:', err);
+          console.warn('Failed to start video:', err);
         }
         const tracks = stream.getVideoTracks();
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'camera_started', tracks: tracks.map(t=>t.label) }));
@@ -443,13 +443,13 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         try {
           video.pause();
         } catch (e) {
-          console.warn('Video konnte während des Aufräumens nicht pausiert werden:', e);
+          console.warn('Failed to pause video during cleanup:', e);
         }
         try {
           video.removeEventListener('loadeddata', predictWebcam);
         } catch (e) {
           console.warn(
-            'Entfernen des "loadeddata"-Listeners während des Aufräumens fehlgeschlagen:',
+            "Removing 'loadeddata' listener during cleanup failed:",
             e,
           );
         }
@@ -460,13 +460,13 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             video.srcObject = null;
           }
         } catch (e) {
-          console.warn('Fehler beim Stoppen des Kamerastreams:', e);
+          console.warn('Failed to stop camera stream:', e);
         }
         try {
           const res = gestureRecognizer?.close?.();
           if (res && typeof (res as any).then === 'function') await res;
         } catch (e) {
-          console.warn('Fehler beim Schließen des Gestenerkenners:', e);
+          console.warn('Failed to close gesture recognizer:', e);
         }
         gestureRecognizer = null;
       })().finally(() => {
@@ -490,17 +490,17 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       try {
         document.getElementById('tapToStart')?.remove();
       } catch (e) {
-        console.warn('Fehler beim Entfernen des "tapToStart"-Elements:', e);
+        console.warn("Failed to remove 'tapToStart' element:", e);
       }
       try {
         overlay.remove();
       } catch (e) {
-        console.warn('Fehler beim Entfernen des "overlay"-Elements:', e);
+        console.warn("Failed to remove 'overlay' element:", e);
       }
       try {
         video.remove();
       } catch (e) {
-        console.warn('Fehler beim Entfernen des "video"-Elements:', e);
+        console.warn("Failed to remove 'video' element:", e);
       }
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('beforeunload', onBeforeUnload);
@@ -510,7 +510,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }),
         );
       } catch (e) {
-        console.warn('Senden des "cleanup_done" Telemetrie-Ereignisses fehlgeschlagen:', e);
+        console.warn("Failed to send 'cleanup_done' telemetry event:", e);
       }
     }
     (window as any).__cleanupGestureDetector = cleanup;
