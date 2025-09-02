@@ -21,9 +21,11 @@ function normalize(lm: Point[]): Point[] {
   const [wx, wy, wz] = lm[0];
   const pts = lm.map(([x, y, z]) => [x - wx, y - wy, (z ?? 0) - (wz ?? 0)] as Point);
   let maxd = 0;
-  for (const [x, y] of pts) maxd = Math.max(maxd, Math.abs(x) + Math.abs(y));
+  for (const [x, y, z] of pts) {
+    maxd = Math.max(maxd, Math.abs(x) + Math.abs(y) + Math.abs(z));
+  }
   const s = maxd || 1;
-  return pts.map(([x, y, z]) => [x / s, y / s, z] as Point);
+  return pts.map(([x, y, z]) => [x / s, y / s, z / s] as Point);
 }
 
 export async function getCentroids(profileId?: string): Promise<{ centroids: Record<string, Point[]>; counts: Record<string, number> }> {

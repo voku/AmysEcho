@@ -18,9 +18,11 @@ function normalize(lm: number[][]): number[][] {
   if (pts.length >= 42) normalizeHand(21);
 
   let maxd = 0;
-  for (const [x, y] of pts) maxd = Math.max(maxd, Math.abs(x) + Math.abs(y));
+  for (const [x, y, z] of pts) {
+    maxd = Math.max(maxd, Math.abs(x) + Math.abs(y) + Math.abs(z ?? 0));
+  }
   const s = maxd || 1;
-  return pts.map(([x, y, z]) => [x / s, y / s, z]);
+  return pts.map(([x, y, z]) => [x / s, y / s, (z ?? 0) / s]);
 }
 
 export function classifyWithCentroids(lm: number[][], centroids: CentroidMap): { label: string; confidence: number } | null {

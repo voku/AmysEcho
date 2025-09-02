@@ -199,7 +199,8 @@ export function installMlp() {
         (p) => [p[0] - wx, p[1] - wy, p[2] - wz] as const,
       );
       const maxd = centered.reduce(
-        (currentMax, [x, y]) => Math.max(currentMax, Math.abs(x) + Math.abs(y)),
+        (currentMax, [x, y, z]) =>
+          Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
         0,
       );
       if (maxd === 0) return null;

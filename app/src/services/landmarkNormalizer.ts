@@ -1,5 +1,5 @@
 // Utilities for normalizing hand landmarks before classification
-// Strategy: translate to wrist; scale all axes by max(|x| + |y|) over translated points (matches server/WebView)
+// Strategy: translate to wrist; scale all axes by max(|x| + |y| + |z|) over translated points (matches server/WebView)
 
 const WRIST_INDEX = 0;
 
@@ -16,8 +16,8 @@ export function normalizeLandmarks(
   ]);
 
   let maxd = 0;
-  for (const [x, y] of translated) {
-    const d = Math.abs(x) + Math.abs(y);
+  for (const [x, y, z] of translated) {
+    const d = Math.abs(x) + Math.abs(y) + Math.abs(z);
     if (d > maxd) maxd = d;
   }
   const scale = maxd || 1;
