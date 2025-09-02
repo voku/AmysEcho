@@ -1,15 +1,24 @@
-import type { CentroidMap } from './dgsModelClient';
+import type { CentroidMap, Point } from './dgsModelClient';
 import { normalizeLandmarks as normalizeSingleHand } from './landmarkNormalizer';
 
 // NOTE: keep `normalizeLandmarks` logic in sync with
 // server/src/services/dgsModelService.ts
-export function normalize(lm: number[][]): number[][] {
-  if (!lm || lm.length === 0) return lm;
+const HAND_SIZE = 21;
 
-  const hand1 = normalizeSingleHand(lm.slice(0, 21));
-  if (lm.length <= 21) return hand1;
+function pad(hand: number[][]): number[][] {
+  const out = hand.slice(0, HAND_SIZE);
+  while (out.length < HAND_SIZE) out.push([0, 0, 0]);
+  return out;
+}
 
-  const hand2 = normalizeSingleHand(lm.slice(21, 42));
+export function normalize(lm: number[][] | null | undefined): number[][] {
+  const src = lm ?? [];
+  const hand1 = pad(
+    normalizeSingleHand(src.slice(0, HAND_SIZE) as Point[]),
+  );
+  const hand2 = pad(
+    normalizeSingleHand(src.slice(HAND_SIZE, HAND_SIZE * 2) as Point[]),
+  );
   return hand1.concat(hand2);
 }
 
@@ -27,7 +36,8 @@ export function classifyWithCentroids(
     for (let i = 0; i < m; i++) {
       const dx = q[i][0] - c[i][0];
       const dy = q[i][1] - c[i][1];
-      d += dx * dx + dy * dy;
+      const dz = (q[i][2] ?? 0) - (c[i][2] ?? 0);
+      d += dx * dx + dy * dy + dz * dz;
     }
     const score = 1.0 / (1e-6 + Math.sqrt(d));
     sumScores += score;

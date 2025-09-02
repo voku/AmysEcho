@@ -35,9 +35,9 @@ test('normalizeLandmarksToFlat returns a flattened float array of length 63', ()
   expect(flat[12 * 3 + 2]).toBeCloseTo(0.5, 5);
 });
 
-test('normalizeLandmarks returns empty array for short input', () => {
+test('normalizeLandmarks returns input for short or missing landmarks', () => {
   expect(normalizeLandmarks([])).toEqual([]);
-  expect(normalizeLandmarks([[1, 2, 3]])).toEqual([]);
+  expect(normalizeLandmarks([[1, 2, 3]])).toEqual([[1, 2, 3]]);
 });
 
 test('normalizeLandmarksToFlat returns empty array for short input', () => {
