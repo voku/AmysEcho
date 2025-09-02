@@ -1010,6 +1010,7 @@
   var mirrorOverlay = window.__mirrorOverlay === true;
   var MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.6;
   var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.5;
+  var LOAD_TIMEOUT_MS = 8e3;
   async function loadTasksVision() {
     async function resolvePinnedBase() {
       const pinnedVersion = window.__mediapipeVersion;
@@ -1020,7 +1021,7 @@
       for (const base of cdns) {
         try {
           const ac = new AbortController();
-          const t = setTimeout(() => ac.abort(), 8e3);
+          const t = setTimeout(() => ac.abort(), LOAD_TIMEOUT_MS);
           const pkg = await fetch(base + "/@mediapipe/tasks-vision/package.json", {
             method: "GET",
             signal: ac.signal
@@ -1038,12 +1039,12 @@
       }
       return null;
     }
-    function tryLoadScript(src, timeoutMs = 8e3) {
+    function tryLoadScript(src, integrity, timeoutMs = LOAD_TIMEOUT_MS) {
       return new Promise((resolve, reject) => {
         const s = document.createElement("script");
         s.src = src;
-        if (window.__visionBundleSri) {
-          s.integrity = window.__visionBundleSri;
+        if (integrity) {
+          s.integrity = integrity;
           s.crossOrigin = "anonymous";
         }
         if (window.__visionBundleNonce) {
@@ -1095,7 +1096,8 @@
     for (const c of candidates) {
       try {
         if (!haveUMD()) {
-          await tryLoadScript(c.umd);
+          const sri = pinned && c.umd.includes(`@${pinned.version}/`) ? window.__visionBundleSri : void 0;
+          await tryLoadScript(c.umd, sri);
         }
         if (haveUMD()) {
           return {
@@ -1296,7 +1298,10 @@
             }
           }
           if (window.__mlpPredict) {
-            const mlpResult = window.__mlpPredict(allLandmarks, results.handednesses);
+            const mlpResult = window.__mlpPredict(
+              allLandmarks,
+              results?.handednesses ?? []
+            );
             if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
               outGesture = mlpResult.label;
               outScore = mlpResult.score;

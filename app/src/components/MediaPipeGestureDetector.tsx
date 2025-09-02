@@ -61,7 +61,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const injectModel = (b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
     if (modelTransferLock.current) {
-      console.warn('Modellübertragung läuft, neues Modell wird in die Warteschlange gestellt.');
+      console.warn('Model transfer in progress; queueing new model.');
       pendingModelRef.current = b64;
       queuedModelRef.current = true;
       return;
@@ -85,7 +85,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     );
     if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
     transferWatchdogRef.current = setTimeout(() => {
-      console.warn('Zeitüberschreitung bei der Modellübertragung – Entsperre und versuche ggf. erneut.');
+      console.warn('Model transfer timed out — unlock and retry if needed.');
       modelTransferLock.current = false;
       if (queuedModelRef.current && pendingModelRef.current) {
         injectModel(pendingModelRef.current);
@@ -109,7 +109,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     const loadModel = async () => {
       try {
         const pid = await loadActiveProfileId().catch((err) => {
-          console.warn('Aktive Profil-ID konnte nicht geladen werden – wechsle auf globales Modell.', err);
+          console.warn('Failed to load active profile ID; falling back to global model.', err);
           return null;
         });
 
@@ -125,7 +125,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           injectModel(latest);
         }
       } catch (e) {
-        console.warn('MLP-Modell konnte nicht geladen oder injiziert werden:', e);
+        console.warn('Failed to load or inject MLP model:', e);
       }
     };
     loadModel();
@@ -146,14 +146,14 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
         );
       } catch (e) {
-        console.warn('WebView-Bereinigungsskript konnte nicht injiziert werden:', e);
+        console.warn('Failed to inject WebView cleanup script:', e);
       }
     };
   }, []);
 
   if (!WebViewImpl) {
     // Provide a non-crashing fallback with a clear developer hint
-    console.warn('react-native-webview nicht verfügbar; zeige Fallback-UI');
+    console.warn('react-native-webview unavailable; showing fallback UI');
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>
@@ -211,7 +211,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {}),
           });
         } catch (e) {
-          console.warn('Fehler im onWebViewEvent-Handler:', e);
+          console.warn('Error in onWebViewEvent handler:', e);
         }
         if (eventStr === 'mlp_ready') {
           mlpReadyRef.current = true;
@@ -245,7 +245,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             });
           }
         } catch (e) {
-          console.warn('Fehler beim Senden der Telemetrie:', e);
+          console.warn('Failed to send telemetry:', e);
         }
       }
     } catch (error) {
@@ -287,7 +287,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               const videoOnly = resources.filter((r: string) => r === 'VIDEO_CAPTURE');
               grant(videoOnly);
             } catch (err) {
-              console.warn('Fehler bei der Erteilung von Berechtigungen:', err);
+              console.warn('Failed to grant permissions:', err);
             }
           }
         }}

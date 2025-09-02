@@ -43,6 +43,7 @@ const facingMode = window.__facingMode || 'user';
 const mirrorOverlay = window.__mirrorOverlay === true;
 const MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.6;
 const FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.5;
+const LOAD_TIMEOUT_MS = 8000;
 
 // Dynamically load MediaPipe Tasks Vision from CDN and wait until it's ready
 async function loadTasksVision() {
@@ -56,7 +57,7 @@ async function loadTasksVision() {
     for (const base of cdns) {
       try {
         const ac = new AbortController();
-        const t = setTimeout(() => ac.abort(), 8000);
+        const t = setTimeout(() => ac.abort(), LOAD_TIMEOUT_MS);
         const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', {
           method: 'GET',
           signal: ac.signal,
@@ -75,12 +76,12 @@ async function loadTasksVision() {
     return null;
   }
 
-  function tryLoadScript(src: string, timeoutMs = 8000) {
+  function tryLoadScript(src: string, integrity?: string, timeoutMs = LOAD_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = src;
-      if (window.__visionBundleSri) {
-        s.integrity = window.__visionBundleSri;
+      if (integrity) {
+        s.integrity = integrity;
         s.crossOrigin = 'anonymous';
       }
       if (window.__visionBundleNonce) {
@@ -142,7 +143,9 @@ async function loadTasksVision() {
     try {
       // Try UMD first
       if (!haveUMD()) {
-        await tryLoadScript(c.umd);
+        const sri =
+          pinned && c.umd.includes(`@${pinned.version}/`) ? window.__visionBundleSri : undefined;
+        await tryLoadScript(c.umd, sri);
       }
       if (haveUMD()) {
         return {
@@ -351,7 +354,10 @@ function predictWebcam() {
         }
         // ** MLP Gesture Prediction **
         if (window.__mlpPredict) {
-          const mlpResult = window.__mlpPredict(allLandmarks, results.handednesses);
+          const mlpResult = window.__mlpPredict(
+            allLandmarks,
+            results?.handednesses ?? [],
+          );
           if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
             outGesture = mlpResult.label;
             outScore = mlpResult.score;
