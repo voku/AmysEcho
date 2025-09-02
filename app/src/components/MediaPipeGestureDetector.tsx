@@ -244,8 +244,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               }),
             });
           }
-        } catch {
-          // ignore telemetry failures
+        } catch (e) {
+          console.warn('Fehler beim Senden der Telemetrie:', e);
         }
       }
     } catch (error) {
@@ -277,13 +277,17 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         onConsoleMessage={(e: any) => {
           try {
             console.log('WV:', e.nativeEvent.message);
-          } catch {}
+          } catch (err) {
+            console.warn('Fehler beim Protokollieren der WebView-Nachricht:', err);
+          }
         }}
         onPermissionRequest={(event: any) => {
           try {
             const videoOnly = (event.nativeEvent.resources || []).filter((r: string) => r === 'VIDEO_CAPTURE');
             event.nativeEvent.grant(videoOnly);
-          } catch {}
+          } catch (err) {
+            console.warn('Fehler bei der Erteilung von Berechtigungen:', err);
+          }
         }}
       />
     </View>

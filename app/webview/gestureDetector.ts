@@ -12,7 +12,9 @@ window.addEventListener('error', (e) => {
     (window as any).ReactNativeWebView?.postMessage(
       JSON.stringify({ type: 'error', message: e.message, file: (e as any).filename, line: (e as any).lineno, col: (e as any).colno }),
     );
-  } catch {}
+  } catch (err) {
+    console.warn('Fehler beim Weiterleiten des Fehlerereignisses:', err);
+  }
 });
 
 (window as any).fflate = { unzip, unzipSync };
@@ -21,7 +23,9 @@ try {
   (window as any).ReactNativeWebView?.postMessage?.(
     JSON.stringify({ type: 'telemetry', event: 'mlp_ready' })
   );
-} catch {}
+} catch (err) {
+  console.warn('Fehler beim Senden des MLP-Bereit-Ereignisses:', err);
+}
 
 const tapToStartText = (window as any).__tapToStart || '';
 const recognizerInitFailed = (window as any).__recognizerInitFailed || 'Erkennung konnte nicht gestartet werden: ';
@@ -51,7 +55,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                 return { base, version: v };
               }
             }
-          } catch {}
+          } catch (err) {
+            console.warn('Fehler beim Abrufen von', base, err);
+          }
         }
         return null;
       }
@@ -199,7 +205,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         const initMs = Math.round(performance.now() - visionStart);
         try {
           window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }));
-        } catch {}
+        } catch (err) {
+          console.warn('Fehler beim Senden des recognizer_init-Ereignisses:', err);
+        }
         // Start prediction loop after recognizer is created and video is loaded
         video.addEventListener('loadeddata', predictWebcam);
       } catch (e) {
@@ -207,7 +215,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           window.ReactNativeWebView?.postMessage?.(
             JSON.stringify({ type: 'error', message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) })
           );
-        } catch {}
+        } catch (err) {
+          console.warn('Fehler beim Senden der Initialisierungsfehlermeldung:', err);
+        }
       }
     }
 
@@ -345,27 +355,31 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                   }
                 }
                 ctx.restore();
-              }
-            } catch {}
+            }
+            } catch (err) {
+              console.warn('Fehler beim Zeichnen der Überlagerung:', err);
+            }
 
-              const now = performance.now();
-              const confidence = allLandmarks.length ? outScore : 0;
+            const now = performance.now();
+            const confidence = allLandmarks.length ? outScore : 0;
               const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
               if (changed || now - lastSentAt >= 100) {
                 lastSentGesture = outGesture;
                 lastSentScore = confidence;
                 lastSentAt = now;
                 try {
-                  window.ReactNativeWebView?.postMessage?.(
-                    JSON.stringify({
-                      type: 'gesture',
-                      gesture: outGesture || null,
-                      confidence,
-                      landmarks: allLandmarks,
-                      handednesses: handedArr,
-                    }),
-                  );
-                } catch {}
+                window.ReactNativeWebView?.postMessage?.(
+                  JSON.stringify({
+                    type: 'gesture',
+                    gesture: outGesture || null,
+                    confidence,
+                    landmarks: allLandmarks,
+                    handednesses: handedArr,
+                  }),
+                );
+                } catch (err) {
+                  console.warn('Fehler beim Senden der Gestenerkennung:', err);
+                }
               }
           }
         }
@@ -374,7 +388,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           window.ReactNativeWebView?.postMessage?.(
             JSON.stringify({ type: 'warn', message: predictionError + (e instanceof Error ? e.message : String(e)) })
           );
-        } catch {}
+        } catch (err) {
+          console.warn('Fehler beim Senden der Warnung:', err);
+        }
       }
       window.requestAnimationFrame(predictWebcam);
     }
@@ -386,14 +402,18 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         const w = video.clientWidth || window.innerWidth;
         const h = video.clientHeight || window.innerHeight;
         if (overlay.width !== w || overlay.height !== h) { overlay.width = w; overlay.height = h; }
-      } catch {}
+      } catch (err) {
+        console.warn('Fehler beim Anpassen der Überlagerung:', err);
+      }
     }
 
     async function startCamera() { // Renamed from start() for clarity
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
         video.srcObject = stream;
-        try { video.muted = true; await video.play(); resizeOverlay(); } catch {}
+        try { video.muted = true; await video.play(); resizeOverlay(); } catch (err) {
+          console.warn('Fehler beim Starten des Videos:', err);
+        }
         const tracks = stream.getVideoTracks();
         window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'camera_started', tracks: tracks.map(t=>t.label) }));
         // createGestureRecognizer will add the loadeddata listener
