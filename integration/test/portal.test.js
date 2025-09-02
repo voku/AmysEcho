@@ -19,7 +19,7 @@ async function startServer() {
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
 
-  proc = spawn('node', ['dist/server/src/server.js'], {
+  proc = spawn('node', ['dist/server.js'], {
     cwd: serverDir,
     env: { ...process.env, PORT: PORT.toString(), API_TOKEN: 'testtoken' },
     // Drop all stdio to avoid blocking if the server logs heavily.
