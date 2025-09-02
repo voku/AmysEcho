@@ -10,6 +10,8 @@ declare module 'expo-crypto' {
   ): Promise<string>;
 }
 
+import type { unzip, unzipSync } from 'fflate';
+
 export {};
 
 declare global {
@@ -39,5 +41,6 @@ declare global {
     __pushMlpChunk?: (chunk: string) => void;
     __commitMlpTransfer?: () => void;
     __setMlpModelB64?: (b64: string) => void;
+    fflate?: { unzip: typeof unzip; unzipSync: typeof unzipSync };
   }
 }

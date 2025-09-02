@@ -978,7 +978,7 @@
   ];
 
   // webview/gestureDetector.ts
-  window.addEventListener("error", (e) => {
+  var onError = (e) => {
     try {
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({
@@ -993,8 +993,9 @@
     } catch (err2) {
       console.warn("Failed to forward script error event:", err2);
     }
-  });
-  window.addEventListener("unhandledrejection", (e) => {
+  };
+  window.addEventListener("error", onError);
+  var onUnhandledRejection = (e) => {
     try {
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({
@@ -1006,7 +1007,8 @@
     } catch (err2) {
       console.warn("Failed to forward unhandledrejection:", err2);
     }
-  });
+  };
+  window.addEventListener("unhandledrejection", onUnhandledRejection);
   window.fflate = { unzip, unzipSync };
   installMlp();
   try {
@@ -1054,7 +1056,9 @@
               }
             }
           } catch (err2) {
-            console.warn("Fetch failed:", base, err2);
+            if (err2?.name !== "AbortError") {
+              console.warn("Fetch failed:", base, err2);
+            }
           }
           return null;
         })()
@@ -1254,6 +1258,9 @@
         console.warn('Failed to send "recognizer_init" telemetry event:', err2);
       }
       video.addEventListener("loadeddata", predictWebcam);
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.srcObject) {
+        window.requestAnimationFrame(predictWebcam);
+      }
     } catch (e) {
       try {
         window.ReactNativeWebView?.postMessage?.(
@@ -1552,17 +1559,19 @@
   var onPageHide = () => void cleanup();
   var onBeforeUnload = () => void cleanup();
   var onResize = () => resizeOverlay();
-  window.addEventListener("pagehide", onPageHide);
-  window.addEventListener("beforeunload", onBeforeUnload);
-  window.addEventListener("resize", onResize);
-  document.addEventListener("visibilitychange", () => {
+  var onVisibilityChange = () => {
     if (document.hidden) {
       running = false;
     } else {
       running = true;
+      lastFrameTs = 0;
       window.requestAnimationFrame(predictWebcam);
     }
-  });
+  };
+  window.addEventListener("pagehide", onPageHide);
+  window.addEventListener("beforeunload", onBeforeUnload);
+  window.addEventListener("resize", onResize);
+  document.addEventListener("visibilitychange", onVisibilityChange);
   async function cleanup() {
     if (cleanedUp) return;
     cleanedUp = true;
@@ -1586,6 +1595,9 @@
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("beforeunload", onBeforeUnload);
     window.removeEventListener("resize", onResize);
+    window.removeEventListener("error", onError);
+    window.removeEventListener("unhandledrejection", onUnhandledRejection);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
     try {
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({ type: "telemetry", event: "cleanup_done" })

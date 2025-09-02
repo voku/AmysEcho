@@ -7,7 +7,7 @@ import { installMlp } from '../src/webview/installMlp';
 import { HAND_CONNECTIONS } from '../src/constants/hand';
 
 // Forward script errors to React Native for easier debugging
-window.addEventListener('error', (e: ErrorEvent) => {
+const onError = (e: ErrorEvent) => {
   try {
     window.ReactNativeWebView?.postMessage?.(
       JSON.stringify({
@@ -22,9 +22,10 @@ window.addEventListener('error', (e: ErrorEvent) => {
   } catch (err) {
     console.warn('Failed to forward script error event:', err);
   }
-});
+};
+window.addEventListener('error', onError);
 
-window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
+const onUnhandledRejection = (e: PromiseRejectionEvent) => {
   try {
     window.ReactNativeWebView?.postMessage?.(
       JSON.stringify({
@@ -36,10 +37,11 @@ window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
   } catch (err) {
     console.warn('Failed to forward unhandledrejection:', err);
   }
-});
+};
+window.addEventListener('unhandledrejection', onUnhandledRejection);
 
 // Expose fflate for compatibility with older WebView bundles
-(window as any).fflate = { unzip, unzipSync };
+window.fflate = { unzip, unzipSync };
 installMlp();
 try {
   window.ReactNativeWebView?.postMessage?.(
@@ -93,7 +95,9 @@ async function loadTasksVision() {
             }
           }
         } catch (err) {
-          console.warn('Fetch failed:', base, err);
+          if ((err as any)?.name !== 'AbortError') {
+            console.warn('Fetch failed:', base, err);
+          }
         }
         return null;
       })(),
@@ -316,8 +320,11 @@ async function createGestureRecognizer() {
     } catch (err) {
       console.warn('Failed to send "recognizer_init" telemetry event:', err);
     }
-    // Start prediction loop after recognizer is created and video is loaded
+    // Start prediction loop after recognizer is created
     video.addEventListener('loadeddata', predictWebcam);
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.srcObject) {
+      window.requestAnimationFrame(predictWebcam);
+    }
   } catch (e) {
     try {
       window.ReactNativeWebView?.postMessage?.(
@@ -649,17 +656,19 @@ async function stopCamera() {
 const onPageHide = () => void cleanup();
 const onBeforeUnload = () => void cleanup();
 const onResize = () => resizeOverlay();
-window.addEventListener('pagehide', onPageHide);
-window.addEventListener('beforeunload', onBeforeUnload);
-window.addEventListener('resize', onResize);
-document.addEventListener('visibilitychange', () => {
+const onVisibilityChange = () => {
   if (document.hidden) {
     running = false;
   } else {
     running = true;
+    lastFrameTs = 0;
     window.requestAnimationFrame(predictWebcam);
   }
-});
+};
+window.addEventListener('pagehide', onPageHide);
+window.addEventListener('beforeunload', onBeforeUnload);
+window.addEventListener('resize', onResize);
+document.addEventListener('visibilitychange', onVisibilityChange);
 
 async function cleanup() {
   if (cleanedUp) return;
@@ -684,6 +693,9 @@ async function cleanup() {
   window.removeEventListener('pagehide', onPageHide);
   window.removeEventListener('beforeunload', onBeforeUnload);
   window.removeEventListener('resize', onResize);
+  window.removeEventListener('error', onError);
+  window.removeEventListener('unhandledrejection', onUnhandledRejection);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
   try {
     window.ReactNativeWebView?.postMessage?.(
       JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }),
