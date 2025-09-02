@@ -47,7 +47,12 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
         const cdns = ['https://cdn.jsdelivr.net/npm', 'https://unpkg.com'];
         for (const base of cdns) {
           try {
-            const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', { method: 'GET' });
+            const ac = new AbortController();
+            const t = setTimeout(() => ac.abort(), 8000);
+            const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', {
+              method: 'GET',
+              signal: ac.signal,
+            }).finally(() => clearTimeout(t));
             if (pkg.ok) {
               const json = await pkg.json().catch(() => null);
               const v = json?.version;
@@ -55,9 +60,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
                 return { base, version: v };
               }
             }
-            } catch (err) {
-              console.warn('Abrufen fehlgeschlagen:', base, err);
-            }
+          } catch (err) {
+            console.warn('Abrufen fehlgeschlagen:', base, err);
+          }
         }
         return null;
       }
@@ -170,27 +175,36 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       if ((window as any).__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
         tap.classList.add('hidden');
       }
-        tap.addEventListener('click', async () => {
+      tap.addEventListener('click', async () => {
+        try {
+          await startCamera();
+          tap.classList.add('hidden');
+        } catch (err) {
           try {
-            await startCamera();
-            tap.classList.add('hidden');
             (window as any).ReactNativeWebView?.postMessage?.(
-              JSON.stringify({ type: 'telemetry', event: 'tap_start' }),
+              JSON.stringify({ type: 'error', message: cameraError + (err instanceof Error ? err.message : String(err)) }),
             );
-          } catch (err) {
-            try {
-              (window as any).ReactNativeWebView?.postMessage?.(
-                JSON.stringify({ type: 'error', message: cameraError + (err instanceof Error ? err.message : String(err)) }),
-              );
-            } catch (postErr) {
-              console.warn('Kamerafehler konnte nicht gesendet werden:', postErr);
-            }
+          } catch (postErr) {
+            console.warn('Kamerafehler konnte nicht gesendet werden:', postErr);
           }
-        });
-        document.body.appendChild(tap);
+          return;
+        }
+        try {
+          (window as any).ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: 'telemetry', event: 'tap_start' }),
+          );
+        } catch (postErr) {
+          console.warn("Senden des Telemetrie-Ereignisses 'tap_start' fehlgeschlagen:", postErr);
+        }
+      });
+      document.body.appendChild(tap);
+      try {
         (window as any).ReactNativeWebView?.postMessage?.(
           JSON.stringify({ type: 'telemetry', event: 'dom_ready' }),
         );
+      } catch (err) {
+        console.warn("Senden des Telemetrie-Ereignisses 'dom_ready' fehlgeschlagen:", err);
+      }
     });
 
     async function createGestureRecognizer() {
@@ -254,9 +268,13 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
             const frameLatency = Math.round(performance.now() - start);
             frameCount++;
               if (frameCount % 30 === 0) {
-                (window as any).ReactNativeWebView?.postMessage?.(
-                  JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }),
-                );
+                try {
+                  (window as any).ReactNativeWebView?.postMessage?.(
+                    JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }),
+                  );
+                } catch (err) {
+                  console.warn("Senden des Telemetrie-Ereignisses 'frame_latency' fehlgeschlagen:", err);
+                }
               }
             const allLandmarks = (results?.landmarks || []).map(hand =>
               hand.map(lm => [lm.x, lm.y, lm.z ?? 0])
@@ -425,7 +443,13 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
           console.warn('Video konnte nicht gestartet werden:', err);
         }
         const tracks = stream.getVideoTracks();
-        (window as any).ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'telemetry', event: 'camera_started', tracks: tracks.map(t=>t.label) }));
+        try {
+          (window as any).ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: 'telemetry', event: 'camera_started', tracks: tracks.map(t => t.label) })
+          );
+        } catch (err) {
+          console.warn("Senden des Telemetrie-Ereignisses 'camera_started' fehlgeschlagen:", err);
+        }
         // createGestureRecognizer will add the loadeddata listener
       } catch (err) {
         const msg = (err && (err.name+': '+err.message)) || String(err);
@@ -438,7 +462,13 @@ const FALLBACK_CONFIDENCE_THRESHOLD = (window as any).__fallbackThreshold ?? 0.5
       startCamera()
         .then(() => {
           document.getElementById('tapToStart')?.classList.add('hidden');
-          (window as any).ReactNativeWebView?.postMessage?.(JSON.stringify({ type:'telemetry', event:'tap_start_autostart' }));
+          try {
+            (window as any).ReactNativeWebView?.postMessage?.(
+              JSON.stringify({ type: 'telemetry', event: 'tap_start_autostart' })
+            );
+          } catch (err) {
+            console.warn("Senden des Telemetrie-Ereignisses 'tap_start_autostart' fehlgeschlagen:", err);
+          }
         })
         .catch((err) => {
           console.warn('Autostart der Kamera fehlgeschlagen:', err);

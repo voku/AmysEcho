@@ -896,7 +896,7 @@
               JSON.stringify({ type: "telemetry", event: "mlp_loaded" })
             );
           } catch (e) {
-            console.warn("mlp_loaded postMessage failed", e);
+            console.warn("Senden des Telemetrie-Ereignisses 'mlp_loaded' fehlgeschlagen:", e);
           }
         }
       });
@@ -1013,7 +1013,12 @@
       const cdns = ["https://cdn.jsdelivr.net/npm", "https://unpkg.com"];
       for (const base of cdns) {
         try {
-          const pkg = await fetch(base + "/@mediapipe/tasks-vision/package.json", { method: "GET" });
+          const ac = new AbortController();
+          const t = setTimeout(() => ac.abort(), 8e3);
+          const pkg = await fetch(base + "/@mediapipe/tasks-vision/package.json", {
+            method: "GET",
+            signal: ac.signal
+          }).finally(() => clearTimeout(t));
           if (pkg.ok) {
             const json = await pkg.json().catch(() => null);
             const v = json?.version;
@@ -1139,9 +1144,6 @@
       try {
         await startCamera();
         tap.classList.add("hidden");
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "telemetry", event: "tap_start" })
-        );
       } catch (err2) {
         try {
           window.ReactNativeWebView?.postMessage?.(
@@ -1150,12 +1152,24 @@
         } catch (postErr) {
           console.warn("Kamerafehler konnte nicht gesendet werden:", postErr);
         }
+        return;
+      }
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "tap_start" })
+        );
+      } catch (postErr) {
+        console.warn("Senden des Telemetrie-Ereignisses 'tap_start' fehlgeschlagen:", postErr);
       }
     });
     document.body.appendChild(tap);
-    window.ReactNativeWebView?.postMessage?.(
-      JSON.stringify({ type: "telemetry", event: "dom_ready" })
-    );
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: "telemetry", event: "dom_ready" })
+      );
+    } catch (err2) {
+      console.warn("Senden des Telemetrie-Ereignisses 'dom_ready' fehlgeschlagen:", err2);
+    }
   });
   async function createGestureRecognizer() {
     try {
@@ -1216,9 +1230,13 @@
           const frameLatency = Math.round(performance.now() - start);
           frameCount++;
           if (frameCount % 30 === 0) {
-            window.ReactNativeWebView?.postMessage?.(
-              JSON.stringify({ type: "telemetry", event: "frame_latency", ms: frameLatency })
-            );
+            try {
+              window.ReactNativeWebView?.postMessage?.(
+                JSON.stringify({ type: "telemetry", event: "frame_latency", ms: frameLatency })
+              );
+            } catch (err2) {
+              console.warn("Senden des Telemetrie-Ereignisses 'frame_latency' fehlgeschlagen:", err2);
+            }
           }
           const allLandmarks = (results?.landmarks || []).map(
             (hand) => hand.map((lm) => [lm.x, lm.y, lm.z ?? 0])
@@ -1382,7 +1400,13 @@
         console.warn("Video konnte nicht gestartet werden:", err2);
       }
       const tracks = stream.getVideoTracks();
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "camera_started", tracks: tracks.map((t) => t.label) }));
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "camera_started", tracks: tracks.map((t) => t.label) })
+        );
+      } catch (err2) {
+        console.warn("Senden des Telemetrie-Ereignisses 'camera_started' fehlgeschlagen:", err2);
+      }
     } catch (err2) {
       const msg = err2 && err2.name + ": " + err2.message || String(err2);
       window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: cameraError + msg }));
@@ -1391,7 +1415,13 @@
   if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
     startCamera().then(() => {
       document.getElementById("tapToStart")?.classList.add("hidden");
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "tap_start_autostart" }));
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "tap_start_autostart" })
+        );
+      } catch (err2) {
+        console.warn("Senden des Telemetrie-Ereignisses 'tap_start_autostart' fehlgeschlagen:", err2);
+      }
     }).catch((err2) => {
       console.warn("Autostart der Kamera fehlgeschlagen:", err2);
       document.getElementById("tapToStart")?.classList.remove("hidden");

@@ -198,7 +198,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       if (data.type === 'gesture') {
         onGestureDetected(data.gesture, data.confidence, data.landmarks, data.handednesses || []);
       } else if (data.type === 'error') {
-        console.error('WebView-Fehler:', data.message);
+        console.error('WebView error:', data.message);
         onError(data.message);
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
@@ -271,7 +271,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         androidLayerType={'hardware'}
         mixedContentMode={'always'}
         onError={(e: any) => {
-          console.error('WebView-Laufzeitfehler', e.nativeEvent);
+          console.error('WebView runtime error', e.nativeEvent);
           onError(LanguageManager.t('mediapipe.gestureProcessingError'));
         }}
         onConsoleMessage={(e: any) => {
@@ -280,13 +280,15 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           }
         }}
         onPermissionRequest={(event: any) => {
-          try {
-            if (event?.nativeEvent?.resources && event.nativeEvent.grant) {
-              const videoOnly = event.nativeEvent.resources.filter((r: string) => r === 'VIDEO_CAPTURE');
-              event.nativeEvent.grant(videoOnly);
+          const resources = event?.nativeEvent?.resources;
+          const grant = event?.nativeEvent?.grant;
+          if (resources && typeof grant === 'function') {
+            try {
+              const videoOnly = resources.filter((r: string) => r === 'VIDEO_CAPTURE');
+              grant(videoOnly);
+            } catch (err) {
+              console.warn('Fehler bei der Erteilung von Berechtigungen:', err);
             }
-          } catch (err) {
-            console.warn('Fehler bei der Erteilung von Berechtigungen:', err);
           }
         }}
       />

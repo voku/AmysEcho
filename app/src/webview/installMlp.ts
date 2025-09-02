@@ -259,7 +259,7 @@ export function installMlp() {
             JSON.stringify({ type: 'telemetry', event: 'mlp_loaded' })
           );
         } catch (e) {
-          console.warn('mlp_loaded postMessage failed', e);
+          console.warn("Senden des Telemetrie-Ereignisses 'mlp_loaded' fehlgeschlagen:", e);
         }
       }
     });

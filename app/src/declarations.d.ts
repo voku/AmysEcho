@@ -34,8 +34,9 @@ declare global {
     __visionBundleNonce?: string;
     __mediapipeVersion?: string;
     __cleanupGestureDetector?: () => void;
-    __beginMlpTransfer?: () => void;
+    __beginMlpTransfer?: () => boolean;
     __pushMlpChunk?: (chunk: string) => void;
     __commitMlpTransfer?: () => void;
+    __setMlpModelB64?: (b64: string) => void;
   }
 }
