@@ -16,16 +16,34 @@ interface DatasetFile {
   samples: Sample[];
 }
 
-function normalize(lm: Point[]): Point[] {
-  if (!lm || lm.length < 21) return lm;
-  const [wx, wy, wz] = lm[0];
-  const pts = lm.map(([x, y, z]) => [x - wx, y - wy, (z ?? 0) - (wz ?? 0)] as Point);
-  let maxd = 0;
-  for (const [x, y, z] of pts) {
-    maxd = Math.max(maxd, Math.abs(x) + Math.abs(y) + Math.abs(z));
-  }
-  const s = maxd || 1;
-  return pts.map(([x, y, z]) => [x / s, y / s, z / s] as Point);
+export function normalize(lm: Point[]): Point[] {
+  if (!lm || lm.length === 0) return lm;
+  const pts = lm.map((p) => [...p] as Point);
+
+  const normalizeHand = (start: number) => {
+    if (pts.length < start + 1) return;
+    const [wx, wy, wz] = pts[start];
+    let maxd = 0;
+    for (let i = 0; i < 21 && start + i < pts.length; i++) {
+      const [x, y, z] = pts[start + i];
+      const nx = x - wx;
+      const ny = y - wy;
+      const nz = (z ?? 0) - (wz ?? 0);
+      pts[start + i] = [nx, ny, nz];
+      maxd = Math.max(maxd, Math.abs(nx) + Math.abs(ny) + Math.abs(nz));
+    }
+    const s = maxd || 1;
+    for (let i = 0; i < 21 && start + i < pts.length; i++) {
+      const [x, y, z] = pts[start + i];
+      pts[start + i] = [x / s, y / s, z / s];
+    }
+  };
+
+  // Normalize first hand and second hand (if present) separately
+  normalizeHand(0);
+  if (pts.length >= 42) normalizeHand(21);
+
+  return pts;
 }
 
 export async function getCentroids(profileId?: string): Promise<{ centroids: Record<string, Point[]>; counts: Record<string, number> }> {

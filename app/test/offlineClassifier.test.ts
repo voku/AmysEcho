@@ -1,4 +1,4 @@
-import { classifyWithCentroids } from '../src/services/offlineClassifier';
+import { classifyWithCentroids, normalize } from '../src/services/offlineClassifier';
 import type { CentroidMap } from '../src/services/dgsModelClient';
 
 describe('offlineClassifier', () => {
@@ -26,5 +26,16 @@ describe('offlineClassifier', () => {
   test('returns null when no centroids available', () => {
     const result = classifyWithCentroids([[0, 0, 0]], {});
     expect(result).toBeNull();
+  });
+
+  test('normalize scales each hand independently', () => {
+    const left = Array.from({ length: 21 }, () => [0, 0, 0]);
+    left[1] = [2, 0, 0];
+    const right = Array.from({ length: 21 }, () => [10, 0, 0]);
+    right[1] = [11, 0, 0];
+    const norm = normalize(left.concat(right));
+    expect(norm[1][0]).toBeCloseTo(1, 5); // left hand tip
+    expect(norm[21][0]).toBeCloseTo(0, 5); // right wrist becomes origin
+    expect(norm[22][0]).toBeCloseTo(1, 5); // right hand tip
   });
 });
