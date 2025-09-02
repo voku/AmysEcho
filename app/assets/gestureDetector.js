@@ -1472,6 +1472,7 @@
         resizeOverlay();
       } catch (err2) {
         console.warn("Failed to start video:", err2);
+        throw err2;
       }
       const tracks = stream.getVideoTracks();
       try {
@@ -1494,6 +1495,7 @@
       } catch (postErr) {
         console.warn("Failed to send camera error:", postErr);
       }
+      throw err2;
     }
   }
   if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {

@@ -563,6 +563,7 @@ async function startCamera() {
       resizeOverlay();
     } catch (err) {
       console.warn('Failed to start video:', err);
+      throw err;
     }
     const tracks = stream.getVideoTracks();
     try {
@@ -586,6 +587,7 @@ async function startCamera() {
     } catch (postErr) {
       console.warn('Failed to send camera error:', postErr);
     }
+    throw err;
   }
 }
 
