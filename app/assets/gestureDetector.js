@@ -787,7 +787,7 @@
         };
         return true;
       } catch (e) {
-        console.warn("MLP-Ladevorgang fehlgeschlagen:", e?.message ?? e);
+        console.warn("MLP load failed:", e?.message ?? e);
         try {
           window.ReactNativeWebView?.postMessage?.(
             JSON.stringify({
@@ -797,7 +797,7 @@
             })
           );
         } catch (err2) {
-          console.warn("Senden des 'mlp_load_failed'-Telemetrieereignisses fehlgeschlagen:", err2);
+          console.warn("Failed to send 'mlp_load_failed' telemetry event:", err2);
         }
         mlp = null;
         return false;
@@ -896,7 +896,7 @@
               JSON.stringify({ type: "telemetry", event: "mlp_loaded" })
             );
           } catch (e) {
-            console.warn("mlp_loaded postMessage failed", e);
+            console.warn("Failed to send 'mlp_loaded' telemetry event:", e);
           }
         }
       });
@@ -933,7 +933,7 @@
           );
         }
       } catch (err2) {
-        console.warn("mlp_transfer fehlgeschlagen", err2);
+        console.warn("mlp_transfer failed:", err2);
       } finally {
         transferBuf = "";
         transferStart = 0;
@@ -944,7 +944,7 @@
           );
         } catch (e) {
           console.warn(
-            "Senden des Telemetrie-Ereignisses 'mlp_transfer_complete' fehlgeschlagen:",
+            "Failed to send 'mlp_transfer_complete' telemetry event:",
             e
           );
         }
@@ -978,21 +978,45 @@
   ];
 
   // webview/gestureDetector.ts
-  window.addEventListener("error", (e) => {
+  var onError = (e) => {
     try {
-      window.ReactNativeWebView?.postMessage(
-        JSON.stringify({ type: "error", message: e.message, file: e.filename, line: e.lineno, col: e.colno })
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "error",
+          message: e.message,
+          file: e.filename,
+          line: e.lineno,
+          col: e.colno,
+          stack: e.error?.stack || null
+        })
       );
-    } catch {
+    } catch (err2) {
+      console.warn("Failed to forward script error event:", err2);
     }
-  });
+  };
+  window.addEventListener("error", onError);
+  var onUnhandledRejection = (e) => {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "error",
+          message: String(e?.reason?.message ?? e?.reason ?? "unhandledrejection"),
+          stack: e.reason?.stack || null
+        })
+      );
+    } catch (err2) {
+      console.warn("Failed to forward unhandledrejection:", err2);
+    }
+  };
+  window.addEventListener("unhandledrejection", onUnhandledRejection);
   window.fflate = { unzip, unzipSync };
   installMlp();
   try {
     window.ReactNativeWebView?.postMessage?.(
       JSON.stringify({ type: "telemetry", event: "mlp_ready" })
     );
-  } catch {
+  } catch (err2) {
+    console.warn("Failed to send 'mlp_ready' telemetry event:", err2);
   }
   var tapToStartText = window.__tapToStart || "";
   var recognizerInitFailed = window.__recognizerInitFailed || "Erkennung konnte nicht gestartet werden: ";
@@ -1002,6 +1026,7 @@
   var mirrorOverlay = window.__mirrorOverlay === true;
   var MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.6;
   var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.5;
+  var LOAD_TIMEOUT_MS = 8e3;
   async function loadTasksVision() {
     async function resolvePinnedBase() {
       const pinnedVersion = window.__mediapipeVersion;
@@ -1009,27 +1034,44 @@
         return { base: "https://cdn.jsdelivr.net/npm", version: pinnedVersion };
       }
       const cdns = ["https://cdn.jsdelivr.net/npm", "https://unpkg.com"];
-      for (const base of cdns) {
-        try {
-          const pkg = await fetch(base + "/@mediapipe/tasks-vision/package.json", { method: "GET" });
-          if (pkg.ok) {
-            const json = await pkg.json().catch(() => null);
-            const v = json?.version;
-            if (typeof v === "string" && v.length) {
-              return { base, version: v };
+      const controllers = cdns.map(() => new AbortController());
+      const fetches = cdns.map(
+        (base, i) => (async () => {
+          try {
+            const ac = controllers[i];
+            const t = setTimeout(() => ac.abort(), LOAD_TIMEOUT_MS);
+            const pkg = await fetch(base + "/@mediapipe/tasks-vision/package.json", {
+              method: "GET",
+              signal: ac.signal,
+              cache: "no-store"
+            }).finally(() => clearTimeout(t));
+            if (pkg.ok) {
+              const json = await pkg.json().catch(() => null);
+              const v = json?.version;
+              if (typeof v === "string" && v.length) {
+                controllers.forEach((c, j) => {
+                  if (j !== i) c.abort();
+                });
+                return { base, version: v };
+              }
+            }
+          } catch (err2) {
+            if (err2?.name !== "AbortError") {
+              console.warn("Fetch failed:", base, err2);
             }
           }
-        } catch {
-        }
-      }
-      return null;
+          return null;
+        })()
+      );
+      const results = await Promise.all(fetches);
+      return results.find(Boolean) || null;
     }
-    function tryLoadScript(src, timeoutMs = 8e3) {
+    function tryLoadScript(src, integrity, timeoutMs = LOAD_TIMEOUT_MS) {
       return new Promise((resolve, reject) => {
         const s = document.createElement("script");
         s.src = src;
-        if (window.__visionBundleSri) {
-          s.integrity = window.__visionBundleSri;
+        if (integrity) {
+          s.integrity = integrity;
           s.crossOrigin = "anonymous";
         }
         if (window.__visionBundleNonce) {
@@ -1052,12 +1094,12 @@
         s.onerror = () => {
           clearTimeout(to);
           cleanup2();
-          reject(new Error("Failed to load script: " + src));
+          reject(new Error("Script failed to load: " + src));
         };
         document.head.appendChild(s);
       });
     }
-    const haveUMD = () => window.fileset_resolver && window.fileset_resolver.FilesetResolver && (window.vision && window.vision.GestureRecognizer);
+    const haveUMD = () => window.fileset_resolver && window.fileset_resolver.FilesetResolver && window.vision && window.vision.GestureRecognizer;
     const pinned = await resolvePinnedBase();
     const candidates = [];
     if (pinned) {
@@ -1081,7 +1123,8 @@
     for (const c of candidates) {
       try {
         if (!haveUMD()) {
-          await tryLoadScript(c.umd);
+          const sri = pinned && c.umd.includes(`@${pinned.version}/`) ? window.__visionBundleSri : void 0;
+          await tryLoadScript(c.umd, sri);
         }
         if (haveUMD()) {
           return {
@@ -1090,40 +1133,40 @@
             wasmBase: c.wasm
           };
         }
-        try {
-          const mod = await import(
-            /* @vite-ignore */
-            c.esm
-          );
-          if (mod?.FilesetResolver && mod?.GestureRecognizer) {
-            return { FilesetResolver: mod.FilesetResolver, GestureRecognizer: mod.GestureRecognizer, wasmBase: c.wasm };
+        if (window.__allowCdnEsm === true) {
+          try {
+            const mod = await import(
+              /* @vite-ignore */
+              c.esm
+            );
+            if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+              return {
+                FilesetResolver: mod.FilesetResolver,
+                GestureRecognizer: mod.GestureRecognizer,
+                wasmBase: c.wasm
+              };
+            }
+          } catch (e) {
+            lastError = e;
           }
-        } catch (e) {
-          lastError = e;
         }
       } catch (e) {
         lastError = e;
       }
     }
-    throw new Error("Tasks Vision globals not available" + (lastError ? ": " + (lastError.message || lastError) : ""));
+    throw new Error(
+      "Tasks Vision globals not available" + (lastError ? ": " + (lastError.message || lastError) : "")
+    );
   }
-  var gestureRecognizer;
+  var gestureRecognizer = null;
   var runningMode = "VIDEO";
   var video = document.createElement("video");
   var overlay = document.createElement("canvas");
   overlay.id = "overlay";
-  overlay.addEventListener("contextlost", (e) => {
-    e.preventDefault();
-  });
-  overlay.addEventListener("contextrestored", () => {
-    overlay.getContext("2d");
-    resizeOverlay();
-    if (running) window.requestAnimationFrame(predictWebcam);
-  });
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
-  document.addEventListener("DOMContentLoaded", () => {
+  function initDom() {
     document.body.appendChild(video);
     document.body.appendChild(overlay);
     const tap = document.createElement("div");
@@ -1134,47 +1177,100 @@
     }
     tap.addEventListener("click", async () => {
       try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "tap_start" })
+        );
+      } catch (postErr) {
+        console.warn("Failed to send 'tap_start' telemetry event:", postErr);
+      }
+      try {
         await startCamera();
         tap.classList.add("hidden");
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "tap_start" }));
       } catch (err2) {
         try {
           window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({ type: "error", message: cameraError + (err2 instanceof Error ? err2.message : String(err2)) })
+            JSON.stringify({
+              type: "error",
+              message: cameraError + (err2 instanceof Error ? err2.message : String(err2))
+            })
           );
         } catch (postErr) {
-          console.warn("Kamerafehler konnte nicht gesendet werden:", postErr);
+          console.warn("Failed to send camera error:", postErr);
         }
+        return;
       }
     });
     document.body.appendChild(tap);
-    window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "dom_ready" }));
-  });
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: "telemetry", event: "dom_ready" })
+      );
+    } catch (err2) {
+      console.warn("Failed to send 'dom_ready' telemetry event:", err2);
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDom);
+  } else {
+    initDom();
+  }
   async function createGestureRecognizer() {
     try {
       const visionStart = performance.now();
       const { FilesetResolver, GestureRecognizer, wasmBase } = await loadTasksVision();
-      const vision = await FilesetResolver.forVisionTasks(wasmBase || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm");
-      gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
-          delegate: "GPU"
-        },
-        runningMode,
-        numHands: 2
-      });
+      const vision = await FilesetResolver.forVisionTasks(
+        wasmBase || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+      );
+      const baseOptions = {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+        delegate: "GPU"
+      };
+      try {
+        gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
+          baseOptions,
+          runningMode,
+          numHands: 2
+        });
+      } catch (gpuErr) {
+        console.warn("GPU delegate failed, falling back to CPU:", gpuErr);
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "recognizer_gpu_fallback" })
+          );
+        } catch (err2) {
+          console.warn(
+            "Failed to send 'recognizer_gpu_fallback' telemetry event:",
+            err2
+          );
+        }
+        gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
+          baseOptions: { ...baseOptions, delegate: "CPU" },
+          runningMode,
+          numHands: 2
+        });
+      }
       const initMs = Math.round(performance.now() - visionStart);
       try {
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: initMs }));
-      } catch {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: initMs })
+        );
+      } catch (err2) {
+        console.warn('Failed to send "recognizer_init" telemetry event:', err2);
       }
       video.addEventListener("loadeddata", predictWebcam);
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.srcObject) {
+        window.requestAnimationFrame(predictWebcam);
+      }
     } catch (e) {
       try {
         window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "error", message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) })
+          JSON.stringify({
+            type: "error",
+            message: recognizerInitFailed + (e instanceof Error ? e.message : String(e))
+          })
         );
-      } catch {
+      } catch (err2) {
+        console.warn("Failed to send initialization error message:", err2);
       }
     }
   }
@@ -1187,6 +1283,7 @@
   var cleanedUp = false;
   var TARGET_FPS = 30;
   var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
+  var FRAME_LATENCY_SAMPLE_INTERVAL = 90;
   var lastFrameTs = 0;
   function predictWebcam() {
     if (!running) return;
@@ -1204,8 +1301,14 @@
           const results = gestureRecognizer.recognizeForVideo(video, start);
           const frameLatency = Math.round(performance.now() - start);
           frameCount++;
-          if (frameCount % 30 === 0) {
-            window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "frame_latency", ms: frameLatency }));
+          if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
+            try {
+              window.ReactNativeWebView?.postMessage?.(
+                JSON.stringify({ type: "telemetry", event: "frame_latency", ms: frameLatency })
+              );
+            } catch (err2) {
+              console.warn("Failed to send 'frame_latency' telemetry event:", err2);
+            }
           }
           const allLandmarks = (results?.landmarks || []).map(
             (hand) => hand.map((lm) => [lm.x, lm.y, lm.z ?? 0])
@@ -1214,7 +1317,9 @@
           let outScore = 0;
           const perHand = [];
           let multiHand = (results?.landmarks?.length ?? 0) >= 2;
-          const handedArr = (results?.handednesses || []).map((h) => h?.[0]?.categoryName || "unknown");
+          const handedArr = (results?.handednesses || []).map(
+            (h) => h?.[0]?.categoryName || "unknown"
+          );
           if (results?.gestures?.length) {
             for (let i = 0; i < results.gestures.length; i++) {
               const handGestures = results.gestures[i] || [];
@@ -1243,7 +1348,10 @@
             }
           }
           if (window.__mlpPredict) {
-            const mlpResult = window.__mlpPredict(allLandmarks, results.handednesses);
+            const mlpResult = window.__mlpPredict(
+              allLandmarks,
+              results?.handednesses ?? []
+            );
             if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
               outGesture = mlpResult.label;
               outScore = mlpResult.score;
@@ -1273,12 +1381,7 @@
             }
           }
           try {
-            const w = video.clientWidth || window.innerWidth;
-            const h = video.clientHeight || window.innerHeight;
-            if (overlay.width !== w || overlay.height !== h) {
-              overlay.width = w;
-              overlay.height = h;
-            }
+            resizeOverlay();
             const ctx = overlay.getContext("2d");
             if (ctx) {
               ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -1308,26 +1411,30 @@
               }
               ctx.restore();
             }
-          } catch {
+          } catch (err2) {
+            console.warn("Failed to draw overlay:", err2);
           }
           const now = performance.now();
           const confidence = allLandmarks.length ? outScore : 0;
+          const isTick = now - lastSentAt >= 100;
           const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
-          if (changed || now - lastSentAt >= 100) {
+          if (changed || isTick) {
             lastSentGesture = outGesture;
             lastSentScore = confidence;
             lastSentAt = now;
             try {
-              window.ReactNativeWebView?.postMessage?.(
-                JSON.stringify({
-                  type: "gesture",
-                  gesture: outGesture || null,
-                  confidence,
-                  landmarks: allLandmarks,
-                  handednesses: handedArr
-                })
-              );
-            } catch {
+              const payload = {
+                type: "gesture",
+                gesture: outGesture || null,
+                confidence
+              };
+              if (changed) {
+                payload.landmarks = allLandmarks;
+                payload.handednesses = handedArr;
+              }
+              window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
+            } catch (err2) {
+              console.warn("Failed to send gesture result:", err2);
             }
           }
         }
@@ -1335,47 +1442,81 @@
     } catch (e) {
       try {
         window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "warn", message: predictionError + (e instanceof Error ? e.message : String(e)) })
+          JSON.stringify({
+            type: "warn",
+            message: predictionError + (e instanceof Error ? e.message : String(e))
+          })
         );
-      } catch {
+      } catch (err2) {
+        console.warn("Failed to send warning:", err2);
       }
     }
     window.requestAnimationFrame(predictWebcam);
   }
   function resizeOverlay() {
     try {
-      const w = video.clientWidth || window.innerWidth;
-      const h = video.clientHeight || window.innerHeight;
+      const rect = video.getBoundingClientRect();
+      const w = (rect.width || video.clientWidth || window.innerWidth) | 0;
+      const h = (rect.height || video.clientHeight || window.innerHeight) | 0;
       if (overlay.width !== w || overlay.height !== h) {
         overlay.width = w;
         overlay.height = h;
       }
-    } catch {
+    } catch (err2) {
+      console.warn("Failed to resize overlay:", err2);
     }
   }
   async function startCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
       video.srcObject = stream;
       try {
         video.muted = true;
         await video.play();
         resizeOverlay();
-      } catch {
+      } catch (err2) {
+        console.warn("Failed to start video:", err2);
+        throw err2;
       }
       const tracks = stream.getVideoTracks();
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "camera_started", tracks: tracks.map((t) => t.label) }));
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "telemetry",
+            event: "camera_started",
+            tracks: tracks.map((t) => t.label)
+          })
+        );
+      } catch (err2) {
+        console.warn("Failed to send 'camera_started' telemetry event:", err2);
+      }
     } catch (err2) {
-      const msg = err2 && err2.name + ": " + err2.message || String(err2);
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: cameraError + msg }));
+      const msg = err2 instanceof Error ? `${err2.name}: ${err2.message}` : String(err2);
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "error", message: cameraError + msg })
+        );
+      } catch (postErr) {
+        console.warn("Failed to send camera error:", postErr);
+      }
+      throw err2;
     }
   }
   if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
     startCamera().then(() => {
       document.getElementById("tapToStart")?.classList.add("hidden");
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "telemetry", event: "tap_start_autostart" }));
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "tap_start_autostart" })
+        );
+      } catch (err2) {
+        console.warn("Failed to send 'tap_start_autostart' telemetry event:", err2);
+      }
     }).catch((err2) => {
-      console.warn("Autostart camera failed", err2);
+      console.warn("Camera autostart failed:", err2);
       document.getElementById("tapToStart")?.classList.remove("hidden");
     });
   }
@@ -1387,15 +1528,12 @@
       try {
         video.pause();
       } catch (e) {
-        console.warn("Video konnte w\xE4hrend des Aufr\xE4umens nicht pausiert werden:", e);
+        console.warn("Failed to pause video during cleanup:", e);
       }
       try {
         video.removeEventListener("loadeddata", predictWebcam);
       } catch (e) {
-        console.warn(
-          'Entfernen des "loadeddata"-Listeners w\xE4hrend des Aufr\xE4umens fehlgeschlagen:',
-          e
-        );
+        console.warn("Failed to remove 'loadeddata' listener during cleanup:", e);
       }
       try {
         const s = video.srcObject;
@@ -1404,13 +1542,13 @@
           video.srcObject = null;
         }
       } catch (e) {
-        console.warn("Fehler beim Stoppen des Kamerastreams:", e);
+        console.warn("Failed to stop camera stream:", e);
       }
       try {
         const res = gestureRecognizer?.close?.();
         if (res && typeof res.then === "function") await res;
       } catch (e) {
-        console.warn("Fehler beim Schlie\xDFen des Gestenerkenners:", e);
+        console.warn("Failed to close gesture recognizer:", e);
       }
       gestureRecognizer = null;
     })().finally(() => {
@@ -1421,9 +1559,19 @@
   var onPageHide = () => void cleanup();
   var onBeforeUnload = () => void cleanup();
   var onResize = () => resizeOverlay();
+  var onVisibilityChange = () => {
+    if (document.hidden) {
+      running = false;
+    } else {
+      running = true;
+      lastFrameTs = 0;
+      window.requestAnimationFrame(predictWebcam);
+    }
+  };
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("resize", onResize);
+  document.addEventListener("visibilitychange", onVisibilityChange);
   async function cleanup() {
     if (cleanedUp) return;
     cleanedUp = true;
@@ -1432,27 +1580,30 @@
     try {
       document.getElementById("tapToStart")?.remove();
     } catch (e) {
-      console.warn('Fehler beim Entfernen des "tapToStart"-Elements:', e);
+      console.warn("Failed to remove 'tapToStart' element:", e);
     }
     try {
       overlay.remove();
     } catch (e) {
-      console.warn('Fehler beim Entfernen des "overlay"-Elements:', e);
+      console.warn("Failed to remove 'overlay' element:", e);
     }
     try {
       video.remove();
     } catch (e) {
-      console.warn('Fehler beim Entfernen des "video"-Elements:', e);
+      console.warn("Failed to remove 'video' element:", e);
     }
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("beforeunload", onBeforeUnload);
     window.removeEventListener("resize", onResize);
+    window.removeEventListener("error", onError);
+    window.removeEventListener("unhandledrejection", onUnhandledRejection);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
     try {
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({ type: "telemetry", event: "cleanup_done" })
       );
     } catch (e) {
-      console.warn('Senden des "cleanup_done" Telemetrie-Ereignisses fehlgeschlagen:', e);
+      console.warn("Failed to send 'cleanup_done' telemetry event:", e);
     }
   }
   window.__cleanupGestureDetector = cleanup;

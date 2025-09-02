@@ -8,12 +8,12 @@ describe('installMlp', () => {
 
   it('posts mlp_load_failed when loading fails', async () => {
     const postMessage = jest.fn();
-    (window as any).ReactNativeWebView = { postMessage };
-    (window as any).fflate = { unzipSync: () => ({}) };
+    window.ReactNativeWebView = { postMessage } as any;
+    window.fflate = { unzipSync: () => ({}) } as any;
     installMlp();
     expect(postMessage).not.toHaveBeenCalled();
 
-    await (window as any).__setMlpModelB64('YQ==');
+    await window.__setMlpModelB64!('YQ==');
     await Promise.resolve();
     expect(postMessage).toHaveBeenCalledTimes(1);
     const msg = JSON.parse(postMessage.mock.calls[0][0]);

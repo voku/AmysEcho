@@ -61,7 +61,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const injectModel = (b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
     if (modelTransferLock.current) {
-      console.warn('Modellübertragung läuft, neues Modell wird in die Warteschlange gestellt.');
+      console.warn('Model transfer in progress; queueing new model.');
       pendingModelRef.current = b64;
       queuedModelRef.current = true;
       return;
@@ -85,7 +85,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     );
     if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
     transferWatchdogRef.current = setTimeout(() => {
-      console.warn('Zeitüberschreitung bei der Modellübertragung – Entsperre und versuche ggf. erneut.');
+      console.warn('Model transfer timed out — unlock and retry if needed.');
       modelTransferLock.current = false;
       if (queuedModelRef.current && pendingModelRef.current) {
         injectModel(pendingModelRef.current);
@@ -109,7 +109,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     const loadModel = async () => {
       try {
         const pid = await loadActiveProfileId().catch((err) => {
-          console.warn('Failed to load active profile ID, falling back to global model.', err);
+          console.warn('Failed to load active profile ID; falling back to global model.', err);
           return null;
         });
 
@@ -125,7 +125,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           injectModel(latest);
         }
       } catch (e) {
-        console.warn('Failed to fetch or inject MLP model', e);
+        console.warn('Failed to load or inject MLP model:', e);
       }
     };
     loadModel();
@@ -244,8 +244,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               }),
             });
           }
-        } catch {
-          // ignore telemetry failures
+        } catch (e) {
+          console.warn('Failed to send telemetry:', e);
         }
       }
     } catch (error) {
@@ -275,15 +275,21 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           onError(LanguageManager.t('mediapipe.gestureProcessingError'));
         }}
         onConsoleMessage={(e: any) => {
-          try {
+          if (e?.nativeEvent?.message) {
             console.log('WV:', e.nativeEvent.message);
-          } catch {}
+          }
         }}
         onPermissionRequest={(event: any) => {
-          try {
-            const videoOnly = (event.nativeEvent.resources || []).filter((r: string) => r === 'VIDEO_CAPTURE');
-            event.nativeEvent.grant(videoOnly);
-          } catch {}
+          const resources = event?.nativeEvent?.resources;
+          const grant = event?.nativeEvent?.grant;
+          if (resources && typeof grant === 'function') {
+            try {
+              const videoOnly = resources.filter((r: string) => r === 'VIDEO_CAPTURE');
+              grant(videoOnly);
+            } catch (err) {
+              console.warn('Failed to grant permissions:', err);
+            }
+          }
         }}
       />
     </View>
