@@ -980,14 +980,14 @@
   // webview/gestureDetector.ts
   window.addEventListener("error", (e) => {
     try {
-      window.ReactNativeWebView?.postMessage(
+      window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({
           type: "error",
           message: e.message,
           file: e.filename,
           line: e.lineno,
           col: e.colno,
-          stack: e?.error?.stack || null
+          stack: e.error?.stack || null
         })
       );
     } catch (err2) {
@@ -1000,7 +1000,7 @@
         JSON.stringify({
           type: "error",
           message: String(e?.reason?.message ?? e?.reason ?? "unhandledrejection"),
-          stack: e?.reason?.stack || null
+          stack: e.reason?.stack || null
         })
       );
     } catch (err2) {
@@ -1129,7 +1129,7 @@
             wasmBase: c.wasm
           };
         }
-        if (window.__allowCdnEsm !== false) {
+        if (window.__allowCdnEsm === true) {
           try {
             const mod = await import(
               /* @vite-ignore */
@@ -1154,19 +1154,11 @@
       "Tasks Vision globals not available" + (lastError ? ": " + (lastError.message || lastError) : "")
     );
   }
-  var gestureRecognizer;
+  var gestureRecognizer = null;
   var runningMode = "VIDEO";
   var video = document.createElement("video");
   var overlay = document.createElement("canvas");
   overlay.id = "overlay";
-  overlay.addEventListener("contextlost", (e) => {
-    e.preventDefault();
-  });
-  overlay.addEventListener("contextrestored", () => {
-    overlay.getContext("2d");
-    resizeOverlay();
-    if (running) window.requestAnimationFrame(predictWebcam);
-  });
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
@@ -1284,6 +1276,7 @@
   var cleanedUp = false;
   var TARGET_FPS = 30;
   var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
+  var FRAME_LATENCY_SAMPLE_INTERVAL = 90;
   var lastFrameTs = 0;
   function predictWebcam() {
     if (!running) return;
@@ -1301,7 +1294,7 @@
           const results = gestureRecognizer.recognizeForVideo(video, start);
           const frameLatency = Math.round(performance.now() - start);
           frameCount++;
-          if (frameCount % 30 === 0) {
+          if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
             try {
               window.ReactNativeWebView?.postMessage?.(
                 JSON.stringify({ type: "telemetry", event: "frame_latency", ms: frameLatency })
@@ -1381,12 +1374,7 @@
             }
           }
           try {
-            const w = video.clientWidth || window.innerWidth;
-            const h = video.clientHeight || window.innerHeight;
-            if (overlay.width !== w || overlay.height !== h) {
-              overlay.width = w;
-              overlay.height = h;
-            }
+            resizeOverlay();
             const ctx = overlay.getContext("2d");
             if (ctx) {
               ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -1460,8 +1448,9 @@
   }
   function resizeOverlay() {
     try {
-      const w = video.clientWidth || window.innerWidth;
-      const h = video.clientHeight || window.innerHeight;
+      const rect = video.getBoundingClientRect();
+      const w = (rect.width || video.clientWidth || window.innerWidth) | 0;
+      const h = (rect.height || video.clientHeight || window.innerHeight) | 0;
       if (overlay.width !== w || overlay.height !== h) {
         overlay.width = w;
         overlay.height = h;
@@ -1497,7 +1486,7 @@
         console.warn("Failed to send 'camera_started' telemetry event:", err2);
       }
     } catch (err2) {
-      const msg = err2 && err2.name + ": " + err2.message || String(err2);
+      const msg = err2 instanceof Error ? `${err2.name}: ${err2.message}` : String(err2);
       try {
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({ type: "error", message: cameraError + msg })

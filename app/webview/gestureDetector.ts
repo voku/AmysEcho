@@ -7,16 +7,16 @@ import { installMlp } from '../src/webview/installMlp';
 import { HAND_CONNECTIONS } from '../src/constants/hand';
 
 // Forward script errors to React Native for easier debugging
-window.addEventListener('error', (e) => {
+window.addEventListener('error', (e: ErrorEvent) => {
   try {
-    window.ReactNativeWebView?.postMessage(
+    window.ReactNativeWebView?.postMessage?.(
       JSON.stringify({
         type: 'error',
         message: e.message,
-        file: (e as any).filename,
-        line: (e as any).lineno,
-        col: (e as any).colno,
-        stack: (e as any)?.error?.stack || null,
+        file: e.filename,
+        line: e.lineno,
+        col: e.colno,
+        stack: e.error?.stack || null,
       }),
     );
   } catch (err) {
@@ -24,13 +24,13 @@ window.addEventListener('error', (e) => {
   }
 });
 
-window.addEventListener('unhandledrejection', (e: any) => {
+window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
   try {
     window.ReactNativeWebView?.postMessage?.(
       JSON.stringify({
         type: 'error',
         message: String(e?.reason?.message ?? e?.reason ?? 'unhandledrejection'),
-        stack: e?.reason?.stack || null,
+        stack: e.reason?.stack || null,
       }),
     );
   } catch (err) {
@@ -111,7 +111,7 @@ async function loadTasksVision() {
         s.crossOrigin = 'anonymous';
       }
       if (window.__visionBundleNonce) {
-        (s as any).nonce = window.__visionBundleNonce;
+        s.nonce = window.__visionBundleNonce;
       }
       s.async = true;
       const cleanup = () => {
@@ -181,7 +181,7 @@ async function loadTasksVision() {
         };
       }
       // Try ESM next (optional: gate via host config)
-      if ((window as any).__allowCdnEsm !== false) {
+      if (window.__allowCdnEsm === true) {
         try {
           const mod = await import(/* @vite-ignore */ c.esm);
           if (mod?.FilesetResolver && mod?.GestureRecognizer) {
@@ -204,21 +204,22 @@ async function loadTasksVision() {
       (lastError ? ': ' + (lastError.message || lastError) : ''),
   );
 }
-let gestureRecognizer;
+type GestureRecognizerLike = {
+  recognizeForVideo(
+    video: HTMLVideoElement,
+    timestamp: number,
+  ): {
+    gestures?: Array<Array<{ categoryName: string; score: number }>>;
+    landmarks?: Array<Array<{ x: number; y: number; z?: number }>>;
+    handednesses?: Array<Array<{ categoryName: string }>>;
+  } | undefined;
+  close?: () => Promise<void> | void;
+};
+let gestureRecognizer: GestureRecognizerLike | null = null;
 let runningMode = 'VIDEO';
 const video = document.createElement('video');
 const overlay = document.createElement('canvas');
 overlay.id = 'overlay';
-overlay.addEventListener('contextlost', (e) => {
-  e.preventDefault();
-});
-overlay.addEventListener('contextrestored', () => {
-  // Ensure a fresh context can be obtained after restoration
-  overlay.getContext('2d');
-  resizeOverlay();
-  // Trigger a redraw immediately so the overlay doesn't stay blank
-  if (running) window.requestAnimationFrame(predictWebcam);
-});
 video.setAttribute('autoplay', '');
 video.setAttribute('playsinline', '');
 video.setAttribute('muted', '');
@@ -341,6 +342,7 @@ let cleanedUp = false;
 // Target processing rate to balance accuracy and device load
 const TARGET_FPS = 30;
 const MIN_FRAME_TIME = 1000 / TARGET_FPS;
+const FRAME_LATENCY_SAMPLE_INTERVAL = 90; // ~3s @ 30fps
 let lastFrameTs = 0;
 function predictWebcam() {
   if (!running) return;
@@ -359,7 +361,7 @@ function predictWebcam() {
         const results = gestureRecognizer.recognizeForVideo(video, start);
         const frameLatency = Math.round(performance.now() - start);
         frameCount++;
-        if (frameCount % 30 === 0) {
+        if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
           try {
             window.ReactNativeWebView?.postMessage?.(
               JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }),
@@ -447,12 +449,7 @@ function predictWebcam() {
         }
         // Draw overlay landmarks
         try {
-          const w = video.clientWidth || window.innerWidth;
-          const h = video.clientHeight || window.innerHeight;
-          if (overlay.width !== w || overlay.height !== h) {
-            overlay.width = w;
-            overlay.height = h;
-          }
+          resizeOverlay();
           const ctx = overlay.getContext('2d');
           if (ctx) {
             ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -499,7 +496,13 @@ function predictWebcam() {
           lastSentScore = confidence;
           lastSentAt = now;
           try {
-            const payload: any = {
+            const payload: {
+              type: 'gesture';
+              gesture: string | null;
+              confidence: number;
+              landmarks?: number[][][];
+              handednesses?: string[];
+            } = {
               type: 'gesture',
               gesture: outGesture || null,
               confidence,
@@ -534,8 +537,9 @@ function predictWebcam() {
 
 function resizeOverlay() {
   try {
-    const w = video.clientWidth || window.innerWidth;
-    const h = video.clientHeight || window.innerHeight;
+    const rect = video.getBoundingClientRect();
+    const w = (rect.width || video.clientWidth || window.innerWidth) | 0;
+    const h = (rect.height || video.clientHeight || window.innerHeight) | 0;
     if (overlay.width !== w || overlay.height !== h) {
       overlay.width = w;
       overlay.height = h;
@@ -574,7 +578,7 @@ async function startCamera() {
     }
     // createGestureRecognizer will add the loadeddata listener
   } catch (err) {
-    const msg = (err && err.name + ': ' + err.message) || String(err);
+    const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     try {
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({ type: 'error', message: cameraError + msg }),
@@ -629,7 +633,7 @@ async function stopCamera() {
     }
     try {
       const res = gestureRecognizer?.close?.();
-      if (res && typeof (res as any).then === 'function') await res;
+      if (res && typeof res.then === 'function') await res;
     } catch (e) {
       console.warn('Failed to close gesture recognizer:', e);
     }
