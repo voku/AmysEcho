@@ -16,10 +16,25 @@ window.addEventListener('error', (e) => {
         file: (e as any).filename,
         line: (e as any).lineno,
         col: (e as any).colno,
+        stack: (e as any)?.error?.stack || null,
       }),
     );
   } catch (err) {
     console.warn('Fehler beim Weiterleiten des Fehlerereignisses:', err);
+  }
+});
+
+window.addEventListener('unhandledrejection', (e: any) => {
+  try {
+    window.ReactNativeWebView?.postMessage?.(
+      JSON.stringify({
+        type: 'error',
+        message: String(e?.reason?.message ?? e?.reason ?? 'unhandledrejection'),
+        stack: e?.reason?.stack || null,
+      }),
+    );
+  } catch (err) {
+    console.warn('Fehler beim Weiterleiten von unhandledrejection:', err);
   }
 });
 
@@ -54,26 +69,35 @@ async function loadTasksVision() {
       return { base: 'https://cdn.jsdelivr.net/npm', version: pinnedVersion };
     }
     const cdns = ['https://cdn.jsdelivr.net/npm', 'https://unpkg.com'];
-    for (const base of cdns) {
-      try {
-        const ac = new AbortController();
-        const t = setTimeout(() => ac.abort(), LOAD_TIMEOUT_MS);
-        const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', {
-          method: 'GET',
-          signal: ac.signal,
-        }).finally(() => clearTimeout(t));
-        if (pkg.ok) {
-          const json = await pkg.json().catch(() => null);
-          const v = json?.version;
-          if (typeof v === 'string' && v.length) {
-            return { base, version: v };
+    const controllers = cdns.map(() => new AbortController());
+    const fetches = cdns.map((base, i) =>
+      (async () => {
+        try {
+          const ac = controllers[i];
+          const t = setTimeout(() => ac.abort(), LOAD_TIMEOUT_MS);
+          const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', {
+            method: 'GET',
+            signal: ac.signal,
+            cache: 'no-store',
+          }).finally(() => clearTimeout(t));
+          if (pkg.ok) {
+            const json = await pkg.json().catch(() => null);
+            const v = json?.version;
+            if (typeof v === 'string' && v.length) {
+              controllers.forEach((c, j) => {
+                if (j !== i) c.abort();
+              });
+              return { base, version: v };
+            }
           }
+        } catch (err) {
+          console.warn('Abrufen fehlgeschlagen:', base, err);
         }
-      } catch (err) {
-        console.warn('Abrufen fehlgeschlagen:', base, err);
-      }
-    }
-    return null;
+        return null;
+      })(),
+    );
+    const results = await Promise.all(fetches);
+    return results.find(Boolean) || null;
   }
 
   function tryLoadScript(src: string, integrity?: string, timeoutMs = LOAD_TIMEOUT_MS) {
@@ -154,18 +178,20 @@ async function loadTasksVision() {
           wasmBase: c.wasm,
         };
       }
-      // Try ESM next
-      try {
-        const mod = await import(/* @vite-ignore */ c.esm);
-        if (mod?.FilesetResolver && mod?.GestureRecognizer) {
-          return {
-            FilesetResolver: mod.FilesetResolver,
-            GestureRecognizer: mod.GestureRecognizer,
-            wasmBase: c.wasm,
-          };
+      // Try ESM next (optional: gate via host config)
+      if ((window as any).__allowCdnEsm !== false) {
+        try {
+          const mod = await import(/* @vite-ignore */ c.esm);
+          if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+            return {
+              FilesetResolver: mod.FilesetResolver,
+              GestureRecognizer: mod.GestureRecognizer,
+              wasmBase: c.wasm,
+            };
+          }
+        } catch (e) {
+          lastError = e;
         }
-      } catch (e) {
-        lastError = e;
       }
     } catch (e) {
       lastError = e;
@@ -205,6 +231,13 @@ function initDom() {
   }
   tap.addEventListener('click', async () => {
     try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: 'telemetry', event: 'tap_start' }),
+      );
+    } catch (postErr) {
+      console.warn("Senden des Telemetrie-Ereignisses 'tap_start' fehlgeschlagen:", postErr);
+    }
+    try {
       await startCamera();
       tap.classList.add('hidden');
     } catch (err) {
@@ -219,13 +252,6 @@ function initDom() {
         console.warn('Kamerafehler konnte nicht gesendet werden:', postErr);
       }
       return;
-    }
-    try {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: 'telemetry', event: 'tap_start' }),
-      );
-    } catch (postErr) {
-      console.warn("Senden des Telemetrie-Ereignisses 'tap_start' fehlgeschlagen:", postErr);
     }
   });
   document.body.appendChild(tap);
@@ -263,6 +289,16 @@ async function createGestureRecognizer() {
       });
     } catch (gpuErr) {
       console.warn('GPU-Delegate fehlgeschlagen, nutze CPU:', gpuErr);
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: 'telemetry', event: 'recognizer_gpu_fallback' }),
+        );
+      } catch (err) {
+        console.warn(
+          "Senden des Telemetrie-Ereignisses 'recognizer_gpu_fallback' fehlgeschlagen:",
+          err,
+        );
+      }
       gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
         baseOptions: { ...baseOptions, delegate: 'CPU' as const },
         runningMode,
@@ -613,6 +649,14 @@ const onResize = () => resizeOverlay();
 window.addEventListener('pagehide', onPageHide);
 window.addEventListener('beforeunload', onBeforeUnload);
 window.addEventListener('resize', onResize);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    running = false;
+  } else {
+    running = true;
+    window.requestAnimationFrame(predictWebcam);
+  }
+});
 
 async function cleanup() {
   if (cleanedUp) return;

@@ -33,6 +33,7 @@ declare global {
     __visionBundleSri?: string;
     __visionBundleNonce?: string;
     __mediapipeVersion?: string;
+    __allowCdnEsm?: boolean;
     __cleanupGestureDetector?: () => void;
     __beginMlpTransfer?: () => boolean;
     __pushMlpChunk?: (chunk: string) => void;
