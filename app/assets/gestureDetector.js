@@ -981,7 +981,13 @@
   window.addEventListener("error", (e) => {
     try {
       window.ReactNativeWebView?.postMessage(
-        JSON.stringify({ type: "error", message: e.message, file: e.filename, line: e.lineno, col: e.colno })
+        JSON.stringify({
+          type: "error",
+          message: e.message,
+          file: e.filename,
+          line: e.lineno,
+          col: e.colno
+        })
       );
     } catch (err2) {
       console.warn("Fehler beim Weiterleiten des Fehlerereignisses:", err2);
@@ -1065,7 +1071,7 @@
         document.head.appendChild(s);
       });
     }
-    const haveUMD = () => window.fileset_resolver && window.fileset_resolver.FilesetResolver && (window.vision && window.vision.GestureRecognizer);
+    const haveUMD = () => window.fileset_resolver && window.fileset_resolver.FilesetResolver && window.vision && window.vision.GestureRecognizer;
     const pinned = await resolvePinnedBase();
     const candidates = [];
     if (pinned) {
@@ -1104,7 +1110,11 @@
             c.esm
           );
           if (mod?.FilesetResolver && mod?.GestureRecognizer) {
-            return { FilesetResolver: mod.FilesetResolver, GestureRecognizer: mod.GestureRecognizer, wasmBase: c.wasm };
+            return {
+              FilesetResolver: mod.FilesetResolver,
+              GestureRecognizer: mod.GestureRecognizer,
+              wasmBase: c.wasm
+            };
           }
         } catch (e) {
           lastError = e;
@@ -1113,7 +1123,9 @@
         lastError = e;
       }
     }
-    throw new Error("Tasks Vision globals not available" + (lastError ? ": " + (lastError.message || lastError) : ""));
+    throw new Error(
+      "Tasks Vision globals not available" + (lastError ? ": " + (lastError.message || lastError) : "")
+    );
   }
   var gestureRecognizer;
   var runningMode = "VIDEO";
@@ -1147,7 +1159,10 @@
       } catch (err2) {
         try {
           window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({ type: "error", message: cameraError + (err2 instanceof Error ? err2.message : String(err2)) })
+            JSON.stringify({
+              type: "error",
+              message: cameraError + (err2 instanceof Error ? err2.message : String(err2))
+            })
           );
         } catch (postErr) {
           console.warn("Kamerafehler konnte nicht gesendet werden:", postErr);
@@ -1175,7 +1190,9 @@
     try {
       const visionStart = performance.now();
       const { FilesetResolver, GestureRecognizer, wasmBase } = await loadTasksVision();
-      const vision = await FilesetResolver.forVisionTasks(wasmBase || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm");
+      const vision = await FilesetResolver.forVisionTasks(
+        wasmBase || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+      );
       gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
@@ -1196,7 +1213,10 @@
     } catch (e) {
       try {
         window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "error", message: recognizerInitFailed + (e instanceof Error ? e.message : String(e)) })
+          JSON.stringify({
+            type: "error",
+            message: recognizerInitFailed + (e instanceof Error ? e.message : String(e))
+          })
         );
       } catch (err2) {
         console.warn("Initialisierungsfehlermeldung konnte nicht gesendet werden:", err2);
@@ -1245,7 +1265,9 @@
           let outScore = 0;
           const perHand = [];
           let multiHand = (results?.landmarks?.length ?? 0) >= 2;
-          const handedArr = (results?.handednesses || []).map((h) => h?.[0]?.categoryName || "unknown");
+          const handedArr = (results?.handednesses || []).map(
+            (h) => h?.[0]?.categoryName || "unknown"
+          );
           if (results?.gestures?.length) {
             for (let i = 0; i < results.gestures.length; i++) {
               const handGestures = results.gestures[i] || [];
@@ -1368,7 +1390,10 @@
     } catch (e) {
       try {
         window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "warn", message: predictionError + (e instanceof Error ? e.message : String(e)) })
+          JSON.stringify({
+            type: "warn",
+            message: predictionError + (e instanceof Error ? e.message : String(e))
+          })
         );
       } catch (err2) {
         console.warn("Warnung konnte nicht gesendet werden:", err2);
@@ -1390,7 +1415,10 @@
   }
   async function startCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
       video.srcObject = stream;
       try {
         video.muted = true;
@@ -1402,14 +1430,20 @@
       const tracks = stream.getVideoTracks();
       try {
         window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "telemetry", event: "camera_started", tracks: tracks.map((t) => t.label) })
+          JSON.stringify({
+            type: "telemetry",
+            event: "camera_started",
+            tracks: tracks.map((t) => t.label)
+          })
         );
       } catch (err2) {
         console.warn("Senden des Telemetrie-Ereignisses 'camera_started' fehlgeschlagen:", err2);
       }
     } catch (err2) {
       const msg = err2 && err2.name + ": " + err2.message || String(err2);
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "error", message: cameraError + msg }));
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: "error", message: cameraError + msg })
+      );
     }
   }
   if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
@@ -1420,7 +1454,10 @@
           JSON.stringify({ type: "telemetry", event: "tap_start_autostart" })
         );
       } catch (err2) {
-        console.warn("Senden des Telemetrie-Ereignisses 'tap_start_autostart' fehlgeschlagen:", err2);
+        console.warn(
+          "Senden des Telemetrie-Ereignisses 'tap_start_autostart' fehlgeschlagen:",
+          err2
+        );
       }
     }).catch((err2) => {
       console.warn("Autostart der Kamera fehlgeschlagen:", err2);
