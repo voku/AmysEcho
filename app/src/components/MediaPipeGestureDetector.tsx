@@ -109,7 +109,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     const loadModel = async () => {
       try {
         const pid = await loadActiveProfileId().catch((err) => {
-          console.warn('Failed to load active profile ID, falling back to global model.', err);
+          console.warn('Aktive Profil-ID konnte nicht geladen werden – wechsle auf globales Modell.', err);
           return null;
         });
 
@@ -125,7 +125,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           injectModel(latest);
         }
       } catch (e) {
-        console.warn('Failed to fetch or inject MLP model', e);
+        console.warn('MLP-Modell konnte nicht geladen oder injiziert werden:', e);
       }
     };
     loadModel();
@@ -146,14 +146,14 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
         );
       } catch (e) {
-        console.warn('Failed to inject WebView cleanup script:', e);
+        console.warn('WebView-Bereinigungsskript konnte nicht injiziert werden:', e);
       }
     };
   }, []);
 
   if (!WebViewImpl) {
     // Provide a non-crashing fallback with a clear developer hint
-    console.warn('react-native-webview unavailable; showing fallback UI');
+    console.warn('react-native-webview nicht verfügbar; zeige Fallback-UI');
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>
@@ -198,7 +198,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       if (data.type === 'gesture') {
         onGestureDetected(data.gesture, data.confidence, data.landmarks, data.handednesses || []);
       } else if (data.type === 'error') {
-        console.error('WebView error:', data.message);
+        console.error('WebView-Fehler:', data.message);
         onError(data.message);
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
@@ -211,7 +211,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {}),
           });
         } catch (e) {
-          console.warn('Error in onWebViewEvent handler:', e);
+          console.warn('Fehler im onWebViewEvent-Handler:', e);
         }
         if (eventStr === 'mlp_ready') {
           mlpReadyRef.current = true;
@@ -271,7 +271,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
         androidLayerType={'hardware'}
         mixedContentMode={'always'}
         onError={(e: any) => {
-          console.error('WebView runtime error', e.nativeEvent);
+          console.error('WebView-Laufzeitfehler', e.nativeEvent);
           onError(LanguageManager.t('mediapipe.gestureProcessingError'));
         }}
         onConsoleMessage={(e: any) => {
@@ -286,7 +286,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
               event.nativeEvent.grant(videoOnly);
             }
           } catch (err) {
-            console.warn('Error granting permissions:', err);
+            console.warn('Fehler bei der Erteilung von Berechtigungen:', err);
           }
         }}
       />
