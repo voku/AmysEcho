@@ -1182,6 +1182,10 @@
   function initDom() {
     document.body.appendChild(video);
     document.body.appendChild(overlay);
+    try {
+      resizeOverlay();
+    } catch {
+    }
     if (typeof ResizeObserver === "function") {
       videoResizeObserver = new ResizeObserver(() => resizeOverlay());
       videoResizeObserver.observe(video);
@@ -1406,7 +1410,7 @@
           }
           try {
             const ctx = overlay.getContext("2d");
-            if (ctx) {
+            if (ctx && overlayWidth && overlayHeight) {
               ctx.clearRect(0, 0, overlay.width, overlay.height);
               ctx.save();
               ctx.scale(overlayDpr, overlayDpr);
@@ -1483,9 +1487,10 @@
       const w = (rect.width || video.clientWidth || 0) | 0;
       const h = (rect.height || video.clientHeight || 0) | 0;
       const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const sizeChanged = overlayWidth !== w || overlayHeight !== h;
       const dprChanged = dpr !== overlayDpr;
-      if (overlayWidth !== w || overlayHeight !== h || dprChanged) {
-        if (overlayWidth !== w || overlayHeight !== h) {
+      if (sizeChanged || dprChanged) {
+        if (sizeChanged) {
           overlay.style.width = w + "px";
           overlay.style.height = h + "px";
         }
@@ -1601,6 +1606,10 @@
     } else {
       running = true;
       lastFrameTs = 0;
+      try {
+        resizeOverlay();
+      } catch {
+      }
       window.requestAnimationFrame(predictWebcam);
     }
   };
