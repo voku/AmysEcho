@@ -34,11 +34,11 @@ export function normalize(lm: Point[] | null | undefined): Point[] {
       pts[idx] = [nx, ny, nz];
       maxd = Math.max(maxd, Math.abs(nx) + Math.abs(ny) + Math.abs(nz));
     }
-    const s = maxd || 1;
+    const inv = 1 / (maxd || 1);
     for (let i = 0; i < HAND_SIZE; i++) {
       const idx = start + i;
       const [x, y, z] = pts[idx];
-      pts[idx] = [x / s, y / s, z / s];
+      pts[idx] = [x * inv, y * inv, z * inv];
     }
   };
 

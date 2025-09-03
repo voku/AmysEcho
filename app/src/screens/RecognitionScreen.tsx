@@ -188,7 +188,8 @@ export default function RecognitionScreen({ navigation }: any) {
 
     if (centroidsRef.current && (!g || c < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD)) {
       const flat = flattenHandsWithHandedness(landmarks, handedness);
-      const res = classifyWithCentroids(flat as Point[], centroidsRef.current);
+      const pts: Point[] = flat.map(([x, y, z]) => [x, y, z ?? 0] as Point);
+      const res = classifyWithCentroids(pts, centroidsRef.current);
       if (res && res.confidence > c) {
         g = res.label;
         c = res.confidence;

@@ -15,8 +15,8 @@ export function normalize(lm: Point[] | null | undefined): Point[] {
   const src = (lm ?? []) as Point[];
   const seg1 = src.slice(0, HAND_SIZE);
   const seg2 = src.slice(HAND_SIZE, HAND_SIZE * 2);
-  const hand1 = pad(normalizeSingleHand(seg1));
-  const hand2 = pad(normalizeSingleHand(seg2));
+  const hand1 = seg1.length ? pad(normalizeSingleHand(seg1)) : pad([]);
+  const hand2 = seg2.length ? pad(normalizeSingleHand(seg2)) : pad([]);
   return hand1.concat(hand2);
 }
 
@@ -34,7 +34,7 @@ export function classifyWithCentroids(
     for (let i = 0; i < m; i++) {
       const dx = q[i][0] - c[i][0];
       const dy = q[i][1] - c[i][1];
-      const dz = (q[i][2] ?? 0) - (c[i][2] ?? 0);
+      const dz = q[i][2] - c[i][2];
       d += dx * dx + dy * dy + dz * dz;
     }
     const score = 1.0 / (1e-6 + Math.sqrt(d));
