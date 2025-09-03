@@ -292,12 +292,21 @@ export function installMlp() {
     const start = transferStart;
     try {
       if (active) {
-        const loadPromise = window.__setMlpModelB64?.(transferBuf);
+        if (!window.__setMlpModelB64) {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: 'telemetry',
+              event: 'mlp_transfer_failed',
+              reason: 'setter_missing',
+            }),
+          );
+          return;
+        }
         const ms = Math.round(performance.now() - start);
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({ type: 'telemetry', event: 'mlp_transfer', bytes, ms })
         );
-        if (loadPromise) await loadPromise;
+        await window.__setMlpModelB64(transferBuf);
       } else {
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({ type: 'telemetry', event: 'mlp_transfer_skipped' })

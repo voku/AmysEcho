@@ -97,4 +97,23 @@ describe('installMlp', () => {
       window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]])
     ).toBeNull();
   });
+
+  it('reports transfer failure when loader missing', async () => {
+    expect(window.__beginMlpTransfer!()).toBe(true);
+    window.__pushMlpChunk!(MINIMAL_MLP_ZIP_B64);
+    // Simulate loader removal before commit
+    (window as any).__setMlpModelB64 = undefined;
+    await window.__commitMlpTransfer!();
+
+    const messages = postMessage.mock.calls.map((c) => JSON.parse(c[0]));
+    expect(messages.map((m) => m.event)).toEqual([
+      'mlp_transfer_failed',
+      'mlp_transfer_complete',
+    ]);
+    const msg = messages.find((m) => m.event === 'mlp_transfer_failed')!;
+    expect(msg.reason).toBe('setter_missing');
+    expect(
+      window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]])
+    ).toBeNull();
+  });
 });
