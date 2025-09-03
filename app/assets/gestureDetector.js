@@ -1585,7 +1585,6 @@
   }
   var onPageHide = () => void cleanup();
   var onBeforeUnload = () => void cleanup();
-  var onResize = () => resizeOverlay();
   var onVisibilityChange = () => {
     if (document.hidden) {
       running = false;
@@ -1597,17 +1596,21 @@
   };
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("beforeunload", onBeforeUnload);
-  window.addEventListener("resize", onResize);
   document.addEventListener("visibilitychange", onVisibilityChange);
   async function cleanup() {
     if (cleanedUp) return;
     cleanedUp = true;
     running = false;
     await stopCamera();
-    videoResizeObserver?.disconnect();
+    if (videoResizeObserver) {
+      videoResizeObserver.disconnect();
+    }
     videoResizeObserver = null;
     try {
-      document.getElementById("tapToStart")?.remove();
+      const tapEl = document.getElementById("tapToStart");
+      if (tapEl) {
+        tapEl.remove();
+      }
     } catch (e) {
       console.warn("Failed to remove 'tapToStart' element:", e);
     }
@@ -1623,7 +1626,6 @@
     }
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("beforeunload", onBeforeUnload);
-    window.removeEventListener("resize", onResize);
     window.removeEventListener("error", onError);
     window.removeEventListener("unhandledrejection", onUnhandledRejection);
     document.removeEventListener("visibilitychange", onVisibilityChange);

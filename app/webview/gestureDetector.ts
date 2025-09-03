@@ -683,7 +683,6 @@ async function stopCamera() {
 
 const onPageHide = () => void cleanup();
 const onBeforeUnload = () => void cleanup();
-const onResize = () => resizeOverlay();
 const onVisibilityChange = () => {
   if (document.hidden) {
     running = false;
@@ -695,7 +694,6 @@ const onVisibilityChange = () => {
 };
 window.addEventListener('pagehide', onPageHide);
 window.addEventListener('beforeunload', onBeforeUnload);
-window.addEventListener('resize', onResize);
 document.addEventListener('visibilitychange', onVisibilityChange);
 
 async function cleanup() {
@@ -703,10 +701,15 @@ async function cleanup() {
   cleanedUp = true;
   running = false;
   await stopCamera();
-  videoResizeObserver?.disconnect();
+  if (videoResizeObserver) {
+    videoResizeObserver.disconnect();
+  }
   videoResizeObserver = null;
   try {
-    document.getElementById('tapToStart')?.remove();
+    const tapEl = document.getElementById('tapToStart');
+    if (tapEl) {
+      tapEl.remove();
+    }
   } catch (e) {
     console.warn("Failed to remove 'tapToStart' element:", e);
   }
@@ -722,7 +725,6 @@ async function cleanup() {
   }
   window.removeEventListener('pagehide', onPageHide);
   window.removeEventListener('beforeunload', onBeforeUnload);
-  window.removeEventListener('resize', onResize);
   window.removeEventListener('error', onError);
   window.removeEventListener('unhandledrejection', onUnhandledRejection);
   document.removeEventListener('visibilitychange', onVisibilityChange);
