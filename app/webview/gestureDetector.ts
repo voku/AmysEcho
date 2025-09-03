@@ -702,7 +702,7 @@ const onVisibilityChange = () => {
     running = true;
     lastFrameTs = 0;
     // Ensure overlay matches current layout/DPR after tab visibility changes
-    try { resizeOverlay(); } catch {}
+    try { resizeOverlay(); } catch (e) { console.warn('Resize on visibility change failed:', e); }
     window.requestAnimationFrame(predictWebcam);
   }
 };
