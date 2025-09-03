@@ -1175,14 +1175,21 @@
   var overlayHeight = 0;
   var overlayDpr = 1;
   var videoResizeObserver = null;
+  var removeWindowResize = null;
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
   function initDom() {
     document.body.appendChild(video);
     document.body.appendChild(overlay);
-    videoResizeObserver = new ResizeObserver(() => resizeOverlay());
-    videoResizeObserver.observe(video);
+    if (typeof ResizeObserver === "function") {
+      videoResizeObserver = new ResizeObserver(() => resizeOverlay());
+      videoResizeObserver.observe(video);
+    } else {
+      const onWinResize = () => resizeOverlay();
+      window.addEventListener("resize", onWinResize);
+      removeWindowResize = () => window.removeEventListener("resize", onWinResize);
+    }
     const tap = document.createElement("div");
     tap.id = "tapToStart";
     tap.innerText = tapToStartText;
@@ -1609,6 +1616,10 @@
       videoResizeObserver.disconnect();
     }
     videoResizeObserver = null;
+    if (removeWindowResize) {
+      removeWindowResize();
+      removeWindowResize = null;
+    }
     try {
       const tapEl = document.getElementById("tapToStart");
       if (tapEl) {
