@@ -121,7 +121,7 @@ def test_train_endpoint(tmp_path):
             data = json.loads(mresp.read().decode())
             assert data.get("type") == "centroid_model"
             assert "g1" in data.get("centroids", {})
-            assert len(data["centroids"]["g1"]) == 21
+            assert len(data["centroids"]["g1"]) == 42
             assert data.get("counts", {}).get("g1") == 1
 
         # verify MLP model files created

@@ -34,7 +34,7 @@ def _normalize(lm):
     def _norm_hand(hand: np.ndarray) -> np.ndarray | None:
         wrist = hand[0]
         hand = hand - wrist
-        max_dist = np.max(np.sum(np.abs(hand[:, :2]), axis=1))
+        max_dist = np.max(np.sum(np.abs(hand), axis=1))
         if max_dist == 0:
             return None
         hand /= max_dist

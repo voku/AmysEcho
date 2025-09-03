@@ -13,17 +13,17 @@ function makeHand(): number[][] {
   return pts;
 }
 
-test('normalizeLandmarks translates wrist to origin and scales by max |x|+|y|', () => {
+test('normalizeLandmarks translates wrist to origin and scales by max |x|+|y|+|z|', () => {
   const hand = makeHand();
   const norm = normalizeLandmarks(hand);
   // wrist becomes origin
   expect(norm[0][0]).toBeCloseTo(0, 5);
   expect(norm[0][1]).toBeCloseTo(0, 5);
   expect(norm[0][2]).toBeCloseTo(0, 5);
-  // middle tip becomes unit distance along x
-  expect(norm[12][0]).toBeCloseTo(1, 5);
+  // middle tip becomes half unit along x and z
+  expect(norm[12][0]).toBeCloseTo(0.5, 5);
   expect(norm[12][1]).toBeCloseTo(0, 5);
-  expect(norm[12][2]).toBeCloseTo(1, 5);
+  expect(norm[12][2]).toBeCloseTo(0.5, 5);
 });
 
 test('normalizeLandmarksToFlat returns a flattened float array of length 63', () => {
@@ -31,13 +31,14 @@ test('normalizeLandmarksToFlat returns a flattened float array of length 63', ()
   const flat = normalizeLandmarksToFlat(hand);
   expect(flat).toBeInstanceOf(Float32Array);
   expect(flat.length).toBe(21 * 3);
-  // z of middle tip is scaled to 1
-  expect(flat[12 * 3 + 2]).toBeCloseTo(1, 5);
+  // z of middle tip is scaled to 0.5
+  expect(flat[12 * 3 + 2]).toBeCloseTo(0.5, 5);
 });
 
-test('normalizeLandmarks returns empty array for short input', () => {
+test('normalizeLandmarks handles short or missing landmarks', () => {
   expect(normalizeLandmarks([])).toEqual([]);
-  expect(normalizeLandmarks([[1, 2, 3]])).toEqual([]);
+  // a single point should translate to origin and remain after scaling
+  expect(normalizeLandmarks([[1, 2, 3]])).toEqual([[0, 0, 0]]);
 });
 
 test('normalizeLandmarksToFlat returns empty array for short input', () => {

@@ -1,29 +1,29 @@
-import type { CentroidMap } from './dgsModelClient';
+import type { CentroidMap, Point } from './dgsModelClient';
+import { normalizeLandmarks as normalizeSingleHand } from './landmarkNormalizer';
 
-function normalize(lm: number[][]): number[][] {
-  if (!lm || lm.length === 0) return lm;
-  const pts = lm.map((p) => [...p]);
+// NOTE: keep `normalizeLandmarks` logic in sync with
+// server/src/services/dgsModelService.ts
+const HAND_SIZE = 21;
 
-  const normalizeHand = (start: number) => {
-    if (pts.length < start + 1) return;
-    const [wx, wy, wz] = pts[start];
-    for (let i = 0; i < 21 && start + i < pts.length; i++) {
-      const [x, y, z] = pts[start + i];
-      pts[start + i] = [x - wx, y - wy, (z ?? 0) - (wz ?? 0)];
-    }
-  };
-
-  // Normalize first hand and second hand (if present) separately
-  normalizeHand(0);
-  if (pts.length >= 42) normalizeHand(21);
-
-  let maxd = 0;
-  for (const [x, y] of pts) maxd = Math.max(maxd, Math.abs(x) + Math.abs(y));
-  const s = maxd || 1;
-  return pts.map(([x, y, z]) => [x / s, y / s, z]);
+function pad(hand: Point[]): Point[] {
+  const out = hand.slice(0, HAND_SIZE);
+  while (out.length < HAND_SIZE) out.push([0, 0, 0] as Point);
+  return out;
 }
 
-export function classifyWithCentroids(lm: number[][], centroids: CentroidMap): { label: string; confidence: number } | null {
+export function normalize(lm: Point[] | null | undefined): Point[] {
+  const src = (lm ?? []) as Point[];
+  const seg1 = src.slice(0, HAND_SIZE);
+  const seg2 = src.slice(HAND_SIZE, HAND_SIZE * 2);
+  const hand1 = seg1.length ? pad(normalizeSingleHand(seg1)) : pad([]);
+  const hand2 = seg2.length ? pad(normalizeSingleHand(seg2)) : pad([]);
+  return hand1.concat(hand2);
+}
+
+export function classifyWithCentroids(
+  lm: Point[] | null | undefined,
+  centroids: CentroidMap,
+): { label: string; confidence: number } | null {
   const q = normalize(lm);
   let bestLabel: string | null = null;
   let bestScore = -Infinity;
@@ -34,7 +34,8 @@ export function classifyWithCentroids(lm: number[][], centroids: CentroidMap): {
     for (let i = 0; i < m; i++) {
       const dx = q[i][0] - c[i][0];
       const dy = q[i][1] - c[i][1];
-      d += dx * dx + dy * dy;
+      const dz = q[i][2] - c[i][2];
+      d += dx * dx + dy * dy + dz * dz;
     }
     const score = 1.0 / (1e-6 + Math.sqrt(d));
     sumScores += score;
@@ -47,4 +48,3 @@ export function classifyWithCentroids(lm: number[][], centroids: CentroidMap): {
   const confidence = Math.max(0, Math.min(1, bestScore / sumScores));
   return { label: bestLabel, confidence: Math.round(confidence * 1000) / 1000 };
 }
-

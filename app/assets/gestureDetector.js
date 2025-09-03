@@ -839,14 +839,20 @@
           (p) => [p[0] - wx, p[1] - wy, p[2] - wz]
         );
         const maxd = centered.reduce(
-          (currentMax, [x, y]) => Math.max(currentMax, Math.abs(x) + Math.abs(y)),
+          (currentMax, [x, y, z]) => Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
           0
         );
         if (maxd === 0) return null;
-        return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd]);
+        return centered.map(
+          ([x, y, z]) => [x / maxd, y / maxd, z / maxd]
+        );
       }
-      const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === "Left");
-      const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === "Right");
+      const leftHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === "Left"
+      );
+      const rightHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === "Right"
+      );
       const leftHand = leftHandIndex > -1 ? all[leftHandIndex] : null;
       const rightHand = rightHandIndex > -1 ? all[rightHandIndex] : null;
       const left = normHand(leftHand) ?? EMPTY_HAND;
