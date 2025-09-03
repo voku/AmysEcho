@@ -22,7 +22,7 @@ import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
 import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
-import type { CentroidMap } from '../services/dgsModelClient';
+import type { CentroidMap, Point } from '../services/dgsModelClient';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
 import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
@@ -188,7 +188,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
     if (centroidsRef.current && (!g || c < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD)) {
       const flat = flattenHandsWithHandedness(landmarks, handedness);
-      const res = classifyWithCentroids(flat, centroidsRef.current);
+      const res = classifyWithCentroids(flat as Point[], centroidsRef.current);
       if (res && res.confidence > c) {
         g = res.label;
         c = res.confidence;

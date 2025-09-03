@@ -19,9 +19,7 @@ interface DatasetFile {
 // NOTE: keep this normalize function in sync with
 // app/src/services/offlineClassifier.ts
 export function normalize(lm: Point[] | null | undefined): Point[] {
-  const pts: Point[] = (lm ?? [])
-    .slice(0, HAND_SIZE * 2)
-    .map(([x, y, z]) => [x, y, z]);
+  const pts: Point[] = (lm ?? []).slice(0, HAND_SIZE * 2);
   while (pts.length < HAND_SIZE * 2) pts.push([0, 0, 0]);
 
   const normalizeHand = (start: number) => {

@@ -1,13 +1,14 @@
 import { classifyWithCentroids, normalize } from '../src/services/offlineClassifier';
-import type { CentroidMap } from '../src/services/dgsModelClient';
+import type { CentroidMap, Point } from '../src/services/dgsModelClient';
 
 describe('offlineClassifier', () => {
+  const makeHand = (tip: Point): Point[] => {
+    const pts: Point[] = Array.from({ length: 21 }, () => [0, 0, 0] as Point);
+    pts[1] = tip;
+    return pts;
+  };
+
   test('classifies landmarks to closest centroid with high confidence', () => {
-    const makeHand = (tip: [number, number, number]): number[][] => {
-      const pts = Array.from({ length: 21 }, () => [0, 0, 0]);
-      pts[1] = tip;
-      return pts;
-    };
     const centroids: CentroidMap = {
       g1: makeHand([1, 0, 0]),
       g2: makeHand([0, 1, 0]),
@@ -20,11 +21,6 @@ describe('offlineClassifier', () => {
   });
 
   test('classifyWithCentroids considers z axis', () => {
-    const makeHand = (tip: [number, number, number]): number[][] => {
-      const pts = Array.from({ length: 21 }, () => [0, 0, 0]);
-      pts[1] = tip;
-      return pts;
-    };
     const centroids: CentroidMap = {
       g1: makeHand([0, 0, 1]),
       g2: makeHand([0, 0, 0]),
@@ -36,14 +32,14 @@ describe('offlineClassifier', () => {
   });
 
   test('returns null when no centroids available', () => {
-    const result = classifyWithCentroids([[0, 0, 0]], {});
+    const result = classifyWithCentroids([[0, 0, 0] as Point], {});
     expect(result).toBeNull();
   });
 
   test('normalize scales each hand independently', () => {
-    const left = Array.from({ length: 21 }, () => [0, 0, 0]);
+    const left: Point[] = Array.from({ length: 21 }, () => [0, 0, 0] as Point);
     left[1] = [2, 0, 0];
-    const right = Array.from({ length: 21 }, () => [10, 0, 0]);
+    const right: Point[] = Array.from({ length: 21 }, () => [10, 0, 0] as Point);
     right[1] = [11, 0, 0];
     const norm = normalize(left.concat(right));
     expect(norm[1][0]).toBeCloseTo(1, 5); // left hand tip
@@ -52,13 +48,13 @@ describe('offlineClassifier', () => {
   });
 
   test('normalize pads and truncates to 42 landmarks', () => {
-    const hand = Array.from({ length: 21 }, () => [0, 0, 0]);
+    const hand: Point[] = Array.from({ length: 21 }, () => [0, 0, 0] as Point);
     const norm = normalize(hand);
     expect(norm).toHaveLength(42);
     for (let i = 21; i < 42; i++) {
       expect(norm[i]).toEqual([0, 0, 0]);
     }
-    const long = Array.from({ length: 60 }, () => [0, 0, 0]);
+    const long: Point[] = Array.from({ length: 60 }, () => [0, 0, 0] as Point);
     const normLong = normalize(long);
     expect(normLong).toHaveLength(42);
   });

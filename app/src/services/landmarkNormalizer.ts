@@ -8,7 +8,12 @@ const HAND_SIZE = 21;
 
 // NOTE: expects a single hand (21 landmarks). Callers must slice before passing.
 export function normalizeLandmarks(landmarks: Point[]): Point[] {
-  if (!landmarks || landmarks.length < HAND_SIZE) return landmarks ?? [];
+  if (!landmarks) {
+    return [];
+  }
+  if (landmarks.length < HAND_SIZE) {
+    return landmarks;
+  }
 
   const hand = landmarks.slice(0, HAND_SIZE);
   const [wx, wy, wz] = hand[WRIST_INDEX];

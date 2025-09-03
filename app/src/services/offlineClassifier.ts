@@ -5,25 +5,23 @@ import { normalizeLandmarks as normalizeSingleHand } from './landmarkNormalizer'
 // server/src/services/dgsModelService.ts
 const HAND_SIZE = 21;
 
-function pad(hand: number[][]): number[][] {
+function pad(hand: Point[]): Point[] {
   const out = hand.slice(0, HAND_SIZE);
-  while (out.length < HAND_SIZE) out.push([0, 0, 0]);
+  while (out.length < HAND_SIZE) out.push([0, 0, 0] as Point);
   return out;
 }
 
-export function normalize(lm: number[][] | null | undefined): number[][] {
-  const src = lm ?? [];
-  const hand1 = pad(
-    normalizeSingleHand(src.slice(0, HAND_SIZE) as Point[]),
-  );
-  const hand2 = pad(
-    normalizeSingleHand(src.slice(HAND_SIZE, HAND_SIZE * 2) as Point[]),
-  );
+export function normalize(lm: Point[] | null | undefined): Point[] {
+  const src = (lm ?? []) as Point[];
+  const seg1 = src.slice(0, HAND_SIZE);
+  const seg2 = src.slice(HAND_SIZE, HAND_SIZE * 2);
+  const hand1 = pad(normalizeSingleHand(seg1));
+  const hand2 = pad(normalizeSingleHand(seg2));
   return hand1.concat(hand2);
 }
 
 export function classifyWithCentroids(
-  lm: number[][],
+  lm: Point[] | null | undefined,
   centroids: CentroidMap,
 ): { label: string; confidence: number } | null {
   const q = normalize(lm);
