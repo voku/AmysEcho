@@ -6,13 +6,10 @@ import type { Point } from './dgsModelClient';
 const WRIST_INDEX = 0;
 const HAND_SIZE = 21;
 
-// NOTE: expects a single hand (21 landmarks). Callers must slice before passing.
+// NOTE: expects a single hand. Callers must slice before passing.
 export function normalizeLandmarks(landmarks: Point[]): Point[] {
-  if (!landmarks) {
+  if (!landmarks || landmarks.length === 0) {
     return [];
-  }
-  if (landmarks.length < HAND_SIZE) {
-    return landmarks;
   }
 
   const hand = landmarks.slice(0, HAND_SIZE);
