@@ -237,7 +237,7 @@ video.setAttribute('muted', '');
 function initDom() {
   document.body.appendChild(video);
   document.body.appendChild(overlay);
-  try { resizeOverlay(); } catch {}
+  try { resizeOverlay(); } catch (e) { console.warn('Initial resize failed:', e); }
   if (typeof ResizeObserver === 'function') {
     videoResizeObserver = new ResizeObserver(() => resizeOverlay());
     videoResizeObserver.observe(video);
