@@ -1476,14 +1476,17 @@
       const w = (rect.width || video.clientWidth || 0) | 0;
       const h = (rect.height || video.clientHeight || 0) | 0;
       const dpr = Math.max(1, window.devicePixelRatio || 1);
-      overlayDpr = dpr;
-      if (overlayWidth !== w || overlayHeight !== h) {
-        overlay.style.width = w + "px";
-        overlay.style.height = h + "px";
+      const dprChanged = dpr !== overlayDpr;
+      if (overlayWidth !== w || overlayHeight !== h || dprChanged) {
+        if (overlayWidth !== w || overlayHeight !== h) {
+          overlay.style.width = w + "px";
+          overlay.style.height = h + "px";
+        }
         overlay.width = Math.round(w * dpr);
         overlay.height = Math.round(h * dpr);
         overlayWidth = w;
         overlayHeight = h;
+        overlayDpr = dpr;
       }
       lastVideoWidth = video.videoWidth;
       lastVideoHeight = video.videoHeight;
