@@ -51,7 +51,7 @@
     "jest-expo": "^53.0.10",
     "ts-jest": "29.4.1",
     "typescript": "5.8.3",
-    "esbuild": "^0.21.5",
+    "esbuild": "^0.25.0",
     "fflate": "^0.8.2"
   },
   "lint-staged": {
