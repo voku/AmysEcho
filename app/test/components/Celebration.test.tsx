@@ -1,5 +1,5 @@
 import React from 'react';
-import renderer, { act } from 'react-test-renderer';
+import { render } from '@testing-library/react-native';
 import Celebration from '../../src/components/Celebration';
 
 jest.mock('react-native', () => {
@@ -27,14 +27,10 @@ jest.mock('../../src/services/LanguageManager', () => ({
 
 describe('Celebration', () => {
   it('renders with German accessibility label', () => {
-    let component: renderer.ReactTestRenderer;
-    act(() => {
-      component = renderer.create(<Celebration />);
-    });
-    const view = component.root.findByType('Animated.View');
+    const { toJSON } = render(<Celebration />);
+    const view = toJSON() as any;
     expect(view.props.accessibilityLabel).toBe('Gut gemacht!');
     expect(view.props.accessibilityRole).toBe('alert');
-    const text = component.root.findByType('Text');
-    expect(text.props.children).toBe('🎉');
+    expect(view.children?.[0].children).toContain('🎉');
   });
 });

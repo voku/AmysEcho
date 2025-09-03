@@ -63,7 +63,7 @@ npm run type-check --prefix app
 npm test --prefix app
 (cd app && npx expo install --check)
 # Optional: `expo-doctor` can fail when offline; run when networked
-(cd app && npx expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")
+(cd app && npx --yes expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")
 npm ci --prefix server
 npm run type-check --prefix server
 pip install -r server/requirements.txt

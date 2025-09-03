@@ -1184,7 +1184,8 @@
     document.body.appendChild(overlay);
     try {
       resizeOverlay();
-    } catch {
+    } catch (e) {
+      console.warn("Initial resize failed:", e);
     }
     if (typeof ResizeObserver === "function") {
       videoResizeObserver = new ResizeObserver(() => resizeOverlay());
@@ -1608,7 +1609,8 @@
       lastFrameTs = 0;
       try {
         resizeOverlay();
-      } catch {
+      } catch (e) {
+        console.warn("Resize on visibility change failed:", e);
       }
       window.requestAnimationFrame(predictWebcam);
     }
