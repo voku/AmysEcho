@@ -1,22 +1,28 @@
 import { installMlp } from '../src/webview/installMlp';
 import { unzip, zipSync, strToU8 } from 'fflate';
-
-// Base64 encoded minimal valid MLP model archive with w1, b1, w2, b2 and labels
-const MINIMAL_MLP_ZIP_B64 =
-  'UEsDBBQAAAAIACoyI1squXNbTQAAAHgCAAAGAAAAdzEubnB5m+wX6hsQychQxlCtnpJanFykbqWgbpNmoq6joJ6WX1RSlJgXn1+UkgoSd0vMKU4FihdnJBakAvkahjoKhkZmmjoKtQpkAi6GUTAiAQBQSwMEFAAAAAgAKjIjWyeDsv5HAAAAhAAAAAYAAABiMS5ucHmb7BfqGxDJyFDGUK2eklqcXKRupaBuk2airqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RqGOpo6CrUKFAAuBiAAAFBLAwQUAAAACAAqMiNbisbwbkkAAACEAAAABgAAAHcyLm5weZvsF+obEMnIUMZQrZ6SWpxcpG6loG6TZqKuo6Cell9UUpSYF59flJIKEndLzClOBYoXZyQWpAL5GoY6CoaaOgq1CmQDLgYgAABQSwMEFAAAAAgAKjIjWyeDsv5HAAAAhAAAAAYAAABiMi5ucHmb7BfqGxDJyFDGUK2eklqcXKRupaBuk2airqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RqGOpo6CrUKFAAuBiAAAFBLAwQUAAAACAAqMiNbPYS1+ksAAACIAAAACgAAAGxhYmVscy5ucHmb7BfqGxDJyFDGUK2eklqcXKRupaBuE2qkrqOgnpZfVFKUmBefX5SSChJ3S8wpTgWKF2ckFqQC+RqGOpo6CrUKFACuDAYGhkwgBgBQSwECFAMUAAAACAAqMiNbKrlzW00AAAB4AgAABgAAAAAAAAAAAAAAgAEAAAAAdzEubnB5UEsBAhQDFAAAAAgAKjIjWyeDsv5HAAAAhAAAAAYAAAAAAAAAAAAAAIABcQAAAGIxLm5weVBLAQIUAxQAAAAIACoyI1uKxvBuSQAAAIQAAAAGAAAAAAAAAAAAAACAAdwAAAB3Mi5ucHlQSwECFAMUAAAACAAqMiNbJ4Oy/kcAAACEAAAABgAAAAAAAAAAAAAAgAFJAQAAYjIubnB5UEsBAhQDFAAAAAgAKjIjWz2EtfpLAAAAiAAAAAoAAAAAAAAAAAAAAIABtAEAAGxhYmVscy5ucHlQSwUGAAAAAAUABQAIAQAAJwIAAAAA';
+import { MINIMAL_MLP_ZIP_B64 } from './fixtures/minimalMlpZipB64';
 
 describe('installMlp', () => {
+  let postMessage: jest.Mock;
+  const TEST_HAND = Array.from({ length: 21 }, (_, i) =>
+    i === 0 ? ([1, 0, 0] as const) : ([0, 0, 0] as const),
+  );
+
   beforeEach(() => {
+    postMessage = jest.fn();
     (global as any).window = {} as any;
-    (global as any).atob = (b64: string) => Buffer.from(b64, 'base64').toString('binary');
+    (global as any).atob = (b64: string) =>
+      Buffer.from(b64, 'base64').toString('binary');
     (window as any).fflate = { unzip };
+    window.ReactNativeWebView = { postMessage } as any;
+    installMlp();
   });
 
-  it('posts mlp_load_failed when loading fails', async () => {
-    const postMessage = jest.fn();
-    window.ReactNativeWebView = { postMessage } as any;
-    window.fflate = { unzipSync: () => ({}) } as any;
-    installMlp();
+  it('posts mlp_load_failed when unzip fails', async () => {
+    window.fflate = {
+      unzip: (_buf: Uint8Array, cb: (err: Error) => void) =>
+        cb(new Error('boom')),
+    } as any;
     expect(postMessage).not.toHaveBeenCalled();
 
     await window.__setMlpModelB64!('YQ==');
@@ -24,14 +30,10 @@ describe('installMlp', () => {
     expect(postMessage).toHaveBeenCalledTimes(1);
     const msg = JSON.parse(postMessage.mock.calls[0][0]);
     expect(msg.event).toBe('mlp_load_failed');
+    expect(msg.reason).toBe('boom');
   });
 
   it('loads minimal model and predicts', async () => {
-    const postMessage = jest.fn();
-    window.ReactNativeWebView = { postMessage } as any;
-    window.fflate = { unzip } as any;
-    installMlp();
-
     window.__setMlpModelB64!(MINIMAL_MLP_ZIP_B64);
     await new Promise((r) => setImmediate(r));
 
@@ -39,19 +41,12 @@ describe('installMlp', () => {
     const evt = JSON.parse(postMessage.mock.calls[0][0]);
     expect(evt.event).toBe('mlp_loaded');
 
-    const hand = Array.from({ length: 21 }, (_, i) =>
-      i === 0 ? ([1, 0, 0] as const) : ([0, 0, 0] as const),
-    );
-    const res = window.__mlpPredict!([hand], [[{ categoryName: 'Left' }]]);
-    expect(res).toEqual({ label: 'hi', score: 1 });
+    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    expect(res?.label).toBe('hi');
+    expect(res?.score).toBeCloseTo(1, 6);
   });
 
   it('transfers model in chunks', async () => {
-    const postMessage = jest.fn();
-    window.ReactNativeWebView = { postMessage } as any;
-    window.fflate = { unzip } as any;
-    installMlp();
-
     expect(window.__beginMlpTransfer!()).toBe(true);
     const mid = Math.floor(MINIMAL_MLP_ZIP_B64.length / 2);
     window.__pushMlpChunk!(MINIMAL_MLP_ZIP_B64.slice(0, mid));
@@ -66,19 +61,12 @@ describe('installMlp', () => {
       'mlp_loaded',
     ]);
 
-    const hand = Array.from({ length: 21 }, (_, i) =>
-      i === 0 ? ([1, 0, 0] as const) : ([0, 0, 0] as const),
-    );
-    const res = window.__mlpPredict!([hand], [[{ categoryName: 'Left' }]]);
-    expect(res).toEqual({ label: 'hi', score: 1 });
+    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    expect(res?.label).toBe('hi');
+    expect(res?.score).toBeCloseTo(1, 6);
   });
 
   it('fails oversized chunked transfer', async () => {
-    const postMessage = jest.fn();
-    window.ReactNativeWebView = { postMessage } as any;
-    window.fflate = { unzip } as any;
-    installMlp();
-
     expect(window.__beginMlpTransfer!()).toBe(true);
     const oversizeZip = zipSync(
       Object.fromEntries(
@@ -96,9 +84,20 @@ describe('installMlp', () => {
       'mlp_transfer_complete',
       'mlp_load_failed',
     ]);
-    const hand = Array.from({ length: 21 }, (_, i) =>
-      i === 0 ? ([1, 0, 0] as const) : ([0, 0, 0] as const),
-    );
-    expect(window.__mlpPredict!([hand], [[{ categoryName: 'Left' }]])).toBeNull();
+    const last = postMessage.mock.calls[postMessage.mock.calls.length - 1];
+    const msg = JSON.parse(last[0]);
+    expect(msg.reason).toMatch(/too many entries/);
+    expect(
+      window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]])
+    ).toBeNull();
+  });
+
+  it('skips commit when transfer not begun', () => {
+    window.__commitMlpTransfer!();
+    const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
+    expect(events).toEqual(['mlp_transfer_skipped', 'mlp_transfer_complete']);
+    expect(
+      window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]])
+    ).toBeNull();
   });
 });
