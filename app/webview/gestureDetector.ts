@@ -224,12 +224,28 @@ let runningMode = 'VIDEO';
 const video = document.createElement('video');
 const overlay = document.createElement('canvas');
 overlay.id = 'overlay';
+let lastVideoWidth = 0;
+let lastVideoHeight = 0;
+let overlayWidth = 0;
+let overlayHeight = 0;
+let overlayDpr = 1;
+let videoResizeObserver: ResizeObserver | null = null;
+let removeWindowResize: (() => void) | null = null;
 video.setAttribute('autoplay', '');
 video.setAttribute('playsinline', '');
 video.setAttribute('muted', '');
 function initDom() {
   document.body.appendChild(video);
   document.body.appendChild(overlay);
+  try { resizeOverlay(); } catch (e) { console.warn('Initial resize failed:', e); }
+  if (typeof ResizeObserver === 'function') {
+    videoResizeObserver = new ResizeObserver(() => resizeOverlay());
+    videoResizeObserver.observe(video);
+  } else {
+    const onWinResize = () => resizeOverlay();
+    window.addEventListener('resize', onWinResize);
+    removeWindowResize = () => window.removeEventListener('resize', onWinResize);
+  }
   const tap = document.createElement('div');
   tap.id = 'tapToStart';
   tap.innerText = tapToStartText;
@@ -364,6 +380,12 @@ function predictWebcam() {
       if (lastVideoTime !== video.currentTime) {
         // Only process if video frame has changed
         lastVideoTime = video.currentTime;
+        if (
+          video.videoWidth !== lastVideoWidth ||
+          video.videoHeight !== lastVideoHeight
+        ) {
+          resizeOverlay();
+        }
         const start = performance.now();
         const results = gestureRecognizer.recognizeForVideo(video, start);
         const frameLatency = Math.round(performance.now() - start);
@@ -456,15 +478,16 @@ function predictWebcam() {
         }
         // Draw overlay landmarks
         try {
-          resizeOverlay();
           const ctx = overlay.getContext('2d');
-          if (ctx) {
+          if (ctx && overlayWidth && overlayHeight) {
             ctx.clearRect(0, 0, overlay.width, overlay.height);
             ctx.save();
+            // Draw in CSS pixels while canvas is scaled for HiDPI
+            ctx.scale(overlayDpr, overlayDpr);
             // Mirror horizontally to match video when using the front camera
             if (mirrorOverlay) {
               ctx.scale(-1, 1);
-              ctx.translate(-overlay.width, 0);
+              ctx.translate(-overlayWidth, 0);
             }
             ctx.lineWidth = 3;
             ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
@@ -476,14 +499,14 @@ function predictWebcam() {
                 const pa = hand[a];
                 const pb = hand[b];
                 if (!pa || !pb) continue;
-                ctx.moveTo(pa.x * overlay.width, pa.y * overlay.height);
-                ctx.lineTo(pb.x * overlay.width, pb.y * overlay.height);
+                ctx.moveTo(pa.x * overlayWidth, pa.y * overlayHeight);
+                ctx.lineTo(pb.x * overlayWidth, pb.y * overlayHeight);
               }
               ctx.stroke();
               // points
               for (const lm of hand) {
                 ctx.beginPath();
-                ctx.arc(lm.x * overlay.width, lm.y * overlay.height, 4, 0, Math.PI * 2);
+                ctx.arc(lm.x * overlayWidth, lm.y * overlayHeight, 4, 0, Math.PI * 2);
                 ctx.fill();
               }
             }
@@ -545,12 +568,24 @@ function predictWebcam() {
 function resizeOverlay() {
   try {
     const rect = video.getBoundingClientRect();
-    const w = (rect.width || video.clientWidth || window.innerWidth) | 0;
-    const h = (rect.height || video.clientHeight || window.innerHeight) | 0;
-    if (overlay.width !== w || overlay.height !== h) {
-      overlay.width = w;
-      overlay.height = h;
+    const w = (rect.width || video.clientWidth || 0) | 0;
+    const h = (rect.height || video.clientHeight || 0) | 0;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const sizeChanged = overlayWidth !== w || overlayHeight !== h;
+    const dprChanged = dpr !== overlayDpr;
+    if (sizeChanged || dprChanged) {
+      if (sizeChanged) {
+        overlay.style.width = w + 'px';
+        overlay.style.height = h + 'px';
+      }
+      overlay.width = Math.round(w * dpr);
+      overlay.height = Math.round(h * dpr);
+      overlayWidth = w;
+      overlayHeight = h;
+      overlayDpr = dpr;
     }
+    lastVideoWidth = video.videoWidth;
+    lastVideoHeight = video.videoHeight;
   } catch (err) {
     console.warn('Failed to resize overlay:', err);
   }
@@ -567,7 +602,12 @@ async function startCamera() {
     try {
       video.muted = true;
       await video.play();
-      resizeOverlay();
+      if (
+        video.videoWidth !== lastVideoWidth ||
+        video.videoHeight !== lastVideoHeight
+      ) {
+        resizeOverlay();
+      }
     } catch (err) {
       console.warn('Failed to start video:', err);
       throw err;
@@ -655,19 +695,19 @@ async function stopCamera() {
 
 const onPageHide = () => void cleanup();
 const onBeforeUnload = () => void cleanup();
-const onResize = () => resizeOverlay();
 const onVisibilityChange = () => {
   if (document.hidden) {
     running = false;
   } else {
     running = true;
     lastFrameTs = 0;
+    // Ensure overlay matches current layout/DPR after tab visibility changes
+    try { resizeOverlay(); } catch (e) { console.warn('Resize on visibility change failed:', e); }
     window.requestAnimationFrame(predictWebcam);
   }
 };
 window.addEventListener('pagehide', onPageHide);
 window.addEventListener('beforeunload', onBeforeUnload);
-window.addEventListener('resize', onResize);
 document.addEventListener('visibilitychange', onVisibilityChange);
 
 async function cleanup() {
@@ -675,8 +715,19 @@ async function cleanup() {
   cleanedUp = true;
   running = false;
   await stopCamera();
+  if (videoResizeObserver) {
+    videoResizeObserver.disconnect();
+  }
+  videoResizeObserver = null;
+  if (removeWindowResize) {
+    removeWindowResize();
+    removeWindowResize = null;
+  }
   try {
-    document.getElementById('tapToStart')?.remove();
+    const tapEl = document.getElementById('tapToStart');
+    if (tapEl) {
+      tapEl.remove();
+    }
   } catch (e) {
     console.warn("Failed to remove 'tapToStart' element:", e);
   }
@@ -692,7 +743,6 @@ async function cleanup() {
   }
   window.removeEventListener('pagehide', onPageHide);
   window.removeEventListener('beforeunload', onBeforeUnload);
-  window.removeEventListener('resize', onResize);
   window.removeEventListener('error', onError);
   window.removeEventListener('unhandledrejection', onUnhandledRejection);
   document.removeEventListener('visibilitychange', onVisibilityChange);

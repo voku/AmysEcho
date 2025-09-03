@@ -3,7 +3,7 @@
 (() => {
   // node_modules/fflate/esm/browser.js
   var ch2 = {};
-  var wk = function(c, id, msg, transfer, cb) {
+  var wk = (function(c, id, msg, transfer, cb) {
     var w = new Worker(ch2[id] || (ch2[id] = URL.createObjectURL(new Blob([
       c + ';addEventListener("error",function(e){e=e.error;postMessage({$e$:[e.message,e.code,e.stack]})})'
     ], { type: "text/javascript" }))));
@@ -19,7 +19,7 @@
     };
     w.postMessage(msg, transfer);
     return w;
-  };
+  });
   var u8 = Uint8Array;
   var u16 = Uint16Array;
   var i32 = Int32Array;
@@ -124,7 +124,7 @@
   }
   var x;
   var i;
-  var hMap = function(cd, mb, r) {
+  var hMap = (function(cd, mb, r) {
     var s = cd.length;
     var i = 0;
     var l = new u16(mb);
@@ -159,7 +159,7 @@
       }
     }
     return co;
-  };
+  });
   var flt = new u8(288);
   for (i = 0; i < 144; ++i)
     flt[i] = 8;
@@ -1169,12 +1169,31 @@
   var video = document.createElement("video");
   var overlay = document.createElement("canvas");
   overlay.id = "overlay";
+  var lastVideoWidth = 0;
+  var lastVideoHeight = 0;
+  var overlayWidth = 0;
+  var overlayHeight = 0;
+  var overlayDpr = 1;
+  var videoResizeObserver = null;
+  var removeWindowResize = null;
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
   function initDom() {
     document.body.appendChild(video);
     document.body.appendChild(overlay);
+    try {
+      resizeOverlay();
+    } catch {
+    }
+    if (typeof ResizeObserver === "function") {
+      videoResizeObserver = new ResizeObserver(() => resizeOverlay());
+      videoResizeObserver.observe(video);
+    } else {
+      const onWinResize = () => resizeOverlay();
+      window.addEventListener("resize", onWinResize);
+      removeWindowResize = () => window.removeEventListener("resize", onWinResize);
+    }
     const tap = document.createElement("div");
     tap.id = "tapToStart";
     tap.innerText = tapToStartText;
@@ -1303,6 +1322,9 @@
       if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
         if (lastVideoTime !== video.currentTime) {
           lastVideoTime = video.currentTime;
+          if (video.videoWidth !== lastVideoWidth || video.videoHeight !== lastVideoHeight) {
+            resizeOverlay();
+          }
           const start = performance.now();
           const results = gestureRecognizer.recognizeForVideo(video, start);
           const frameLatency = Math.round(performance.now() - start);
@@ -1387,14 +1409,14 @@
             }
           }
           try {
-            resizeOverlay();
             const ctx = overlay.getContext("2d");
-            if (ctx) {
+            if (ctx && overlayWidth && overlayHeight) {
               ctx.clearRect(0, 0, overlay.width, overlay.height);
               ctx.save();
+              ctx.scale(overlayDpr, overlayDpr);
               if (mirrorOverlay) {
                 ctx.scale(-1, 1);
-                ctx.translate(-overlay.width, 0);
+                ctx.translate(-overlayWidth, 0);
               }
               ctx.lineWidth = 3;
               ctx.strokeStyle = "rgba(0, 255, 180, 0.9)";
@@ -1405,13 +1427,13 @@
                   const pa = hand[a];
                   const pb = hand[b];
                   if (!pa || !pb) continue;
-                  ctx.moveTo(pa.x * overlay.width, pa.y * overlay.height);
-                  ctx.lineTo(pb.x * overlay.width, pb.y * overlay.height);
+                  ctx.moveTo(pa.x * overlayWidth, pa.y * overlayHeight);
+                  ctx.lineTo(pb.x * overlayWidth, pb.y * overlayHeight);
                 }
                 ctx.stroke();
                 for (const lm of hand) {
                   ctx.beginPath();
-                  ctx.arc(lm.x * overlay.width, lm.y * overlay.height, 4, 0, Math.PI * 2);
+                  ctx.arc(lm.x * overlayWidth, lm.y * overlayHeight, 4, 0, Math.PI * 2);
                   ctx.fill();
                 }
               }
@@ -1462,12 +1484,24 @@
   function resizeOverlay() {
     try {
       const rect = video.getBoundingClientRect();
-      const w = (rect.width || video.clientWidth || window.innerWidth) | 0;
-      const h = (rect.height || video.clientHeight || window.innerHeight) | 0;
-      if (overlay.width !== w || overlay.height !== h) {
-        overlay.width = w;
-        overlay.height = h;
+      const w = (rect.width || video.clientWidth || 0) | 0;
+      const h = (rect.height || video.clientHeight || 0) | 0;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const sizeChanged = overlayWidth !== w || overlayHeight !== h;
+      const dprChanged = dpr !== overlayDpr;
+      if (sizeChanged || dprChanged) {
+        if (sizeChanged) {
+          overlay.style.width = w + "px";
+          overlay.style.height = h + "px";
+        }
+        overlay.width = Math.round(w * dpr);
+        overlay.height = Math.round(h * dpr);
+        overlayWidth = w;
+        overlayHeight = h;
+        overlayDpr = dpr;
       }
+      lastVideoWidth = video.videoWidth;
+      lastVideoHeight = video.videoHeight;
     } catch (err2) {
       console.warn("Failed to resize overlay:", err2);
     }
@@ -1482,7 +1516,9 @@
       try {
         video.muted = true;
         await video.play();
-        resizeOverlay();
+        if (video.videoWidth !== lastVideoWidth || video.videoHeight !== lastVideoHeight) {
+          resizeOverlay();
+        }
       } catch (err2) {
         console.warn("Failed to start video:", err2);
         throw err2;
@@ -1564,27 +1600,40 @@
   }
   var onPageHide = () => void cleanup();
   var onBeforeUnload = () => void cleanup();
-  var onResize = () => resizeOverlay();
   var onVisibilityChange = () => {
     if (document.hidden) {
       running = false;
     } else {
       running = true;
       lastFrameTs = 0;
+      try {
+        resizeOverlay();
+      } catch {
+      }
       window.requestAnimationFrame(predictWebcam);
     }
   };
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("beforeunload", onBeforeUnload);
-  window.addEventListener("resize", onResize);
   document.addEventListener("visibilitychange", onVisibilityChange);
   async function cleanup() {
     if (cleanedUp) return;
     cleanedUp = true;
     running = false;
     await stopCamera();
+    if (videoResizeObserver) {
+      videoResizeObserver.disconnect();
+    }
+    videoResizeObserver = null;
+    if (removeWindowResize) {
+      removeWindowResize();
+      removeWindowResize = null;
+    }
     try {
-      document.getElementById("tapToStart")?.remove();
+      const tapEl = document.getElementById("tapToStart");
+      if (tapEl) {
+        tapEl.remove();
+      }
     } catch (e) {
       console.warn("Failed to remove 'tapToStart' element:", e);
     }
@@ -1600,7 +1649,6 @@
     }
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("beforeunload", onBeforeUnload);
-    window.removeEventListener("resize", onResize);
     window.removeEventListener("error", onError);
     window.removeEventListener("unhandledrejection", onUnhandledRejection);
     document.removeEventListener("visibilitychange", onVisibilityChange);
