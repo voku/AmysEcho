@@ -894,18 +894,18 @@
       const label = mlp.labels?.[bestI] ?? String(bestI);
       return { label, score: best };
     }
-    window.__setMlpModelB64 = (b64) => {
-      loadMlpFromB64(b64).then((ok) => {
-        if (ok) {
-          try {
-            window.ReactNativeWebView?.postMessage?.(
-              JSON.stringify({ type: "telemetry", event: "mlp_loaded" })
-            );
-          } catch (e) {
-            console.warn("Failed to send 'mlp_loaded' telemetry event:", e);
-          }
+    window.__setMlpModelB64 = async (b64) => {
+      const ok = await loadMlpFromB64(b64);
+      if (ok) {
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "mlp_loaded" })
+          );
+        } catch (e) {
+          console.warn("Failed to send 'mlp_loaded' telemetry event:", e);
         }
-      });
+      }
+      return ok;
     };
     window.__mlpPredict = mlpPredict;
     let transferBuf = "";
@@ -922,21 +922,58 @@
       if (!transferLock) return;
       transferBuf += chunk;
     };
-    window.__commitMlpTransfer = () => {
+    window.__commitMlpTransfer = async () => {
       const active = transferLock;
       const bytes = transferBuf.length;
       const start = transferStart;
       try {
         if (active) {
-          window.__setMlpModelB64?.(transferBuf);
+          if (typeof window.__setMlpModelB64 !== "function") {
+            try {
+              window.ReactNativeWebView?.postMessage?.(
+                JSON.stringify({
+                  type: "telemetry",
+                  event: "mlp_transfer_failed",
+                  reason: "setter_missing"
+                })
+              );
+            } catch (e) {
+              console.warn(
+                "Failed to send 'mlp_transfer_failed' telemetry event:",
+                e
+              );
+            }
+            return;
+          }
+          const loadPromise = window.__setMlpModelB64(transferBuf);
           const ms = Math.round(performance.now() - start);
-          window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({ type: "telemetry", event: "mlp_transfer", bytes, ms })
-          );
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: "telemetry",
+                event: "mlp_transfer",
+                bytes,
+                ms
+              })
+            );
+          } catch (e) {
+            console.warn("Failed to send 'mlp_transfer' telemetry event:", e);
+          }
+          await loadPromise;
         } else {
-          window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({ type: "telemetry", event: "mlp_transfer_skipped" })
-          );
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: "telemetry",
+                event: "mlp_transfer_skipped"
+              })
+            );
+          } catch (e) {
+            console.warn(
+              "Failed to send 'mlp_transfer_skipped' telemetry event:",
+              e
+            );
+          }
         }
       } catch (err2) {
         console.warn("mlp_transfer failed:", err2);
@@ -946,7 +983,10 @@
         transferLock = false;
         try {
           window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({ type: "telemetry", event: "mlp_transfer_complete" })
+            JSON.stringify({
+              type: "telemetry",
+              event: "mlp_transfer_complete"
+            })
           );
         } catch (e) {
           console.warn(

@@ -81,7 +81,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       );
     }
     webviewRef.current.injectJavaScript(
-      'window.__commitMlpTransfer&&window.__commitMlpTransfer();',
+      '(async()=>{window.__commitMlpTransfer&&await window.__commitMlpTransfer();})();',
     );
     if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
     transferWatchdogRef.current = setTimeout(() => {
