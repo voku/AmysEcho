@@ -39,8 +39,8 @@ declare global {
     __cleanupGestureDetector?: () => void;
     __beginMlpTransfer?: () => boolean;
     __pushMlpChunk?: (chunk: string) => void;
-    __commitMlpTransfer?: () => void;
-    __setMlpModelB64?: (b64: string) => void;
+    __commitMlpTransfer?: () => Promise<void>;
+    __setMlpModelB64?: (b64: string) => Promise<boolean>;
     fflate?: { unzip: typeof unzip; unzipSync: typeof unzipSync };
   }
 }

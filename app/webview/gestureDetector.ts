@@ -42,6 +42,7 @@ window.addEventListener('unhandledrejection', onUnhandledRejection);
 
 // Expose fflate for compatibility with older WebView bundles
 window.fflate = { unzip, unzipSync };
+// Install MLP helpers; model transfer functions now return Promises
 installMlp();
 try {
   window.ReactNativeWebView?.postMessage?.(

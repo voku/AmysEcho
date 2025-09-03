@@ -25,8 +25,8 @@ describe('installMlp', () => {
     } as any;
     expect(postMessage).not.toHaveBeenCalled();
 
-    await window.__setMlpModelB64!('YQ==');
-    await Promise.resolve();
+    const success = await window.__setMlpModelB64!('YQ==');
+    expect(success).toBe(false);
     expect(postMessage).toHaveBeenCalledTimes(1);
     const msg = JSON.parse(postMessage.mock.calls[0][0]);
     expect(msg.event).toBe('mlp_load_failed');
@@ -34,9 +34,9 @@ describe('installMlp', () => {
   });
 
   it('loads minimal model and predicts', async () => {
-    window.__setMlpModelB64!(MINIMAL_MLP_ZIP_B64);
-    await new Promise((r) => setImmediate(r));
+    const success = await window.__setMlpModelB64!(MINIMAL_MLP_ZIP_B64);
 
+    expect(success).toBe(true);
     expect(postMessage).toHaveBeenCalledTimes(1);
     const evt = JSON.parse(postMessage.mock.calls[0][0]);
     expect(evt.event).toBe('mlp_loaded');
@@ -51,14 +51,13 @@ describe('installMlp', () => {
     const mid = Math.floor(MINIMAL_MLP_ZIP_B64.length / 2);
     window.__pushMlpChunk!(MINIMAL_MLP_ZIP_B64.slice(0, mid));
     window.__pushMlpChunk!(MINIMAL_MLP_ZIP_B64.slice(mid));
-    window.__commitMlpTransfer!();
-    await new Promise((r) => setImmediate(r));
+    await window.__commitMlpTransfer!();
 
     const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
     expect(events).toEqual([
       'mlp_transfer',
-      'mlp_transfer_complete',
       'mlp_loaded',
+      'mlp_transfer_complete',
     ]);
 
     const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
@@ -75,25 +74,23 @@ describe('installMlp', () => {
     );
     const oversizeB64 = Buffer.from(oversizeZip).toString('base64');
     window.__pushMlpChunk!(oversizeB64);
-    window.__commitMlpTransfer!();
-    await new Promise((r) => setImmediate(r));
+    await window.__commitMlpTransfer!();
 
-    const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
-    expect(events).toEqual([
+    const messages = postMessage.mock.calls.map((c) => JSON.parse(c[0]));
+    expect(messages.map((m) => m.event)).toEqual([
       'mlp_transfer',
-      'mlp_transfer_complete',
       'mlp_load_failed',
+      'mlp_transfer_complete',
     ]);
-    const last = postMessage.mock.calls[postMessage.mock.calls.length - 1];
-    const msg = JSON.parse(last[0]);
+    const msg = messages.find((m) => m.event === 'mlp_load_failed')!;
     expect(msg.reason).toMatch(/too many entries/);
     expect(
       window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]])
     ).toBeNull();
   });
 
-  it('skips commit when transfer not begun', () => {
-    window.__commitMlpTransfer!();
+  it('skips commit when transfer not begun', async () => {
+    await window.__commitMlpTransfer!();
     const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
     expect(events).toEqual(['mlp_transfer_skipped', 'mlp_transfer_complete']);
     expect(
