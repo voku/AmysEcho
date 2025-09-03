@@ -1173,12 +1173,16 @@
   var lastVideoHeight = 0;
   var overlayWidth = 0;
   var overlayHeight = 0;
+  var overlayDpr = 1;
+  var videoResizeObserver = null;
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
   function initDom() {
     document.body.appendChild(video);
     document.body.appendChild(overlay);
+    videoResizeObserver = new ResizeObserver(() => resizeOverlay());
+    videoResizeObserver.observe(video);
     const tap = document.createElement("div");
     tap.id = "tapToStart";
     tap.innerText = tapToStartText;
@@ -1396,8 +1400,9 @@
           try {
             const ctx = overlay.getContext("2d");
             if (ctx) {
-              ctx.clearRect(0, 0, overlayWidth, overlayHeight);
+              ctx.clearRect(0, 0, overlay.width, overlay.height);
               ctx.save();
+              ctx.scale(overlayDpr, overlayDpr);
               if (mirrorOverlay) {
                 ctx.scale(-1, 1);
                 ctx.translate(-overlayWidth, 0);
@@ -1468,11 +1473,17 @@
   function resizeOverlay() {
     try {
       const rect = video.getBoundingClientRect();
-      const w = (rect.width || video.clientWidth || window.innerWidth) | 0;
-      const h = (rect.height || video.clientHeight || window.innerHeight) | 0;
+      const w = (rect.width || video.clientWidth || 0) | 0;
+      const h = (rect.height || video.clientHeight || 0) | 0;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      overlayDpr = dpr;
       if (overlayWidth !== w || overlayHeight !== h) {
-        overlay.width = overlayWidth = w;
-        overlay.height = overlayHeight = h;
+        overlay.style.width = w + "px";
+        overlay.style.height = h + "px";
+        overlay.width = Math.round(w * dpr);
+        overlay.height = Math.round(h * dpr);
+        overlayWidth = w;
+        overlayHeight = h;
       }
       lastVideoWidth = video.videoWidth;
       lastVideoHeight = video.videoHeight;
@@ -1593,6 +1604,8 @@
     cleanedUp = true;
     running = false;
     await stopCamera();
+    videoResizeObserver?.disconnect();
+    videoResizeObserver = null;
     try {
       document.getElementById("tapToStart")?.remove();
     } catch (e) {
