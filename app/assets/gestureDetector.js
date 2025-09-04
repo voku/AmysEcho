@@ -1343,7 +1343,7 @@
   var lastVideoTime = -1;
   var frameCount = 0;
   var lastSentAt = 0;
-  var lastSentGesture = null;
+  var lastSentGestureSerialized = null;
   var lastSentScore = 0;
   var running = true;
   var cleanedUp = false;
@@ -1411,7 +1411,7 @@
                 if (!right) right = others.shift() || null;
               }
               if (left && right) {
-                outGesture = left.label + "+" + right.label;
+                outGesture = { left: left.label, right: right.label };
                 outScore = Math.sqrt(left.score * right.score);
               }
             }
@@ -1486,15 +1486,16 @@
           const now = performance.now();
           const confidence = allLandmarks.length ? outScore : 0;
           const isTick = now - lastSentAt >= 100;
-          const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
+          const serializedGesture = outGesture === null ? null : typeof outGesture === "string" ? outGesture : JSON.stringify(outGesture);
+          const changed = serializedGesture !== lastSentGestureSerialized || Math.abs(confidence - lastSentScore) >= 0.05;
           if (changed || isTick) {
-            lastSentGesture = outGesture;
+            lastSentGestureSerialized = serializedGesture;
             lastSentScore = confidence;
             lastSentAt = now;
             try {
               const payload = {
                 type: "gesture",
-                gesture: outGesture || null,
+                gesture: outGesture,
                 confidence
               };
               if (changed) {

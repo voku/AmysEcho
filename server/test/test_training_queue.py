@@ -60,7 +60,7 @@ def stop_server(proc):
 
 def post_correction():
     url = f'http://localhost:{PORT}/api/corrections'
-    payload = json.dumps({"gesture": "wave"}).encode('utf-8')
+    payload = json.dumps({"gesture": ["wave", "fist"]}).encode('utf-8')
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer testtoken',

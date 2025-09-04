@@ -358,7 +358,7 @@ async function createGestureRecognizer() {
 let lastVideoTime = -1; // Added for performance optimization
 let frameCount = 0;
 let lastSentAt = 0;
-let lastSentGesture = null;
+let lastSentGestureSerialized: string | null = null;
 let lastSentScore = 0;
 let running = true;
 let cleanedUp = false;
@@ -402,7 +402,7 @@ function predictWebcam() {
         const allLandmarks = (results?.landmarks || []).map((hand) =>
           hand.map((lm) => [lm.x, lm.y, lm.z ?? 0]),
         );
-        let outGesture = null;
+        let outGesture: string | { left: string; right: string } | null = null;
         let outScore = 0;
         const perHand: { hand: string; label: string; score: number }[] = [];
         let multiHand = (results?.landmarks?.length ?? 0) >= 2;
@@ -431,7 +431,7 @@ function predictWebcam() {
               if (!right) right = others.shift() || null;
             }
             if (left && right) {
-              outGesture = left.label + '+' + right.label;
+              outGesture = { left: left.label, right: right.label };
               // Geometric mean keeps confidence conservative without over-penalizing
               outScore = Math.sqrt(left.score * right.score);
             }
@@ -519,22 +519,29 @@ function predictWebcam() {
         const now = performance.now();
         const confidence = allLandmarks.length ? outScore : 0;
         const isTick = now - lastSentAt >= 100;
+        const serializedGesture =
+          outGesture === null
+            ? null
+            : typeof outGesture === 'string'
+            ? outGesture
+            : JSON.stringify(outGesture);
         const changed =
-          outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
+          serializedGesture !== lastSentGestureSerialized ||
+          Math.abs(confidence - lastSentScore) >= 0.05;
         if (changed || isTick) {
-          lastSentGesture = outGesture;
+          lastSentGestureSerialized = serializedGesture;
           lastSentScore = confidence;
           lastSentAt = now;
           try {
             const payload: {
               type: 'gesture';
-              gesture: string | null;
+              gesture: string | { left: string; right: string } | null;
               confidence: number;
               landmarks?: number[][][];
               handednesses?: string[];
             } = {
               type: 'gesture',
-              gesture: outGesture || null,
+              gesture: outGesture,
               confidence,
             };
             if (changed) {

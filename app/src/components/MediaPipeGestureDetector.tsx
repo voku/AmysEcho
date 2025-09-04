@@ -196,7 +196,17 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'gesture') {
-        onGestureDetected(data.gesture, data.confidence, data.landmarks, data.handednesses || []);
+        const g = data.gesture;
+        let gesture: string | null;
+        if (Array.isArray(g)) {
+          gesture = g.join('+');
+        } else if (g && typeof g === 'object') {
+          const { left, right } = g as { left?: string; right?: string };
+          gesture = left && right ? `${left}+${right}` : null;
+        } else {
+          gesture = g;
+        }
+        onGestureDetected(gesture, data.confidence, data.landmarks, data.handednesses || []);
       } else if (data.type === 'error') {
         console.error('WebView error:', data.message);
         onError(data.message);

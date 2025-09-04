@@ -451,17 +451,33 @@ app.post('/api/crash-reports', auth, async (req: Request, res: Response) => {
   }
 });
 
+const gestureToString = (g: unknown): string | null => {
+  if (typeof g === 'string') return g;
+  if (Array.isArray(g) && g.every((p) => typeof p === 'string')) {
+    return g.join('+');
+  }
+  if (g && typeof g === 'object') {
+    const left = (g as any).left;
+    const right = (g as any).right;
+    if (typeof left === 'string' && typeof right === 'string') {
+      return `${left}+${right}`;
+    }
+  }
+  return null;
+};
+
 app.post('/api/corrections', auth, async (req: Request, res: Response) => {
   const { gesture } = req.body || {};
-  if (typeof gesture !== 'string') {
+  const gestureStr = gestureToString(gesture);
+  if (!gestureStr) {
     return res.status(400).json({ error: 'Invalid correction' });
   }
   try {
-    logCorrection(dbInstance, 'unknown', gesture, null);
+    logCorrection(dbInstance, 'unknown', gestureStr, null);
     const record: Correction = {
       id: genId(),
-      predictedGesture: 'unknown', 
-      actualGesture: gesture,
+      predictedGesture: 'unknown',
+      actualGesture: gestureStr,
       confidence: 0,
       timestamp: Date.now(),
       isSynced: false,
@@ -476,23 +492,24 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
 });
 
 app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
-    const { gesture } = req.body || {};
-    if (typeof gesture !== 'string') {
-        return res.status(400).json({ error: 'Invalid negative sample' });
-    }
-    try {
-        const record: NegativeSample = {
-            id: genId(),
-            gesture,
-            timestamp: Date.now(),
-        };
-        addNegativeSample(dbInstance, record);
-        await saveDatabase(dbInstance, DB_FILE_PATH);
-        res.status(202).json({ status: 'queued' });
-    } catch (error) {
-        console.error('Error logging negative sample:', error);
-        res.status(500).json({ error: 'Failed to log negative sample' });
-    }
+  const { gesture } = req.body || {};
+  const gestureStr = gestureToString(gesture);
+  if (!gestureStr) {
+    return res.status(400).json({ error: 'Invalid negative sample' });
+  }
+  try {
+    const record: NegativeSample = {
+      id: genId(),
+      gesture: gestureStr,
+      timestamp: Date.now(),
+    };
+    addNegativeSample(dbInstance, record);
+    await saveDatabase(dbInstance, DB_FILE_PATH);
+    res.status(202).json({ status: 'queued' });
+  } catch (error) {
+    console.error('Error logging negative sample:', error);
+    res.status(500).json({ error: 'Failed to log negative sample' });
+  }
 });
 
 app.post('/dialog', auth, dialogLimiter, async (req: Request, res: Response) => {
