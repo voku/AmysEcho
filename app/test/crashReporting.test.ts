@@ -2,20 +2,26 @@ import * as crash from '../src/services/crashReporting';
 const { enqueueCrashReport, flushCrashReports, initCrashReporting } = crash;
 
 // Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage');
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 
 describe('crashReporting', () => {
   let prevErrorHandler: jest.Mock;
   let setGlobalHandler: jest.Mock;
   let prevUnhandled: jest.Mock;
+  let currentHandler: any;
 
   beforeEach(() => {
     (global as any).fetch = jest.fn(() => Promise.resolve({ ok: true, status: 202 })) as any;
     prevErrorHandler = jest.fn();
-    setGlobalHandler = jest.fn();
+    currentHandler = prevErrorHandler;
+    setGlobalHandler = jest.fn((handler) => {
+      currentHandler = handler;
+    });
     prevUnhandled = jest.fn();
     (global as any).ErrorUtils = {
-      getGlobalHandler: () => prevErrorHandler,
+      getGlobalHandler: () => currentHandler,
       setGlobalHandler,
     };
     (global as any).onunhandledrejection = prevUnhandled;
@@ -41,19 +47,22 @@ describe('crashReporting', () => {
     expect(body[0].extra.screen).toBe('Recognition');
   });
 
-  it('wraps global handlers', () => {
+  it('wraps global handlers only once', () => {
+    initCrashReporting();
+    const newErrorHandler = setGlobalHandler.mock.calls[0][0];
+    const firstRejection = (global as any).onunhandledrejection;
+
     initCrashReporting();
 
-    expect(setGlobalHandler).toHaveBeenCalledWith(expect.any(Function));
-    const newErrorHandler = setGlobalHandler.mock.calls[0][0];
+    expect(setGlobalHandler).toHaveBeenCalledTimes(1);
+    expect((global as any).onunhandledrejection).toBe(firstRejection);
+
     const err = new Error('boom');
     newErrorHandler(err, true);
     expect(prevErrorHandler).toHaveBeenCalledWith(err, true);
 
-    const rejectionHandler = (global as any).onunhandledrejection;
-    expect(typeof rejectionHandler).toBe('function');
     const event = { reason: new Error('oops') };
-    rejectionHandler(event);
+    firstRejection(event);
     expect(prevUnhandled).toHaveBeenCalledWith(event);
   });
 });

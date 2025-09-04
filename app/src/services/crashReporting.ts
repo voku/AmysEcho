@@ -80,22 +80,43 @@ function normalizeError(err: unknown): { name?: string; message?: string; stack?
  * Safe to call multiple times.
  */
 export function initCrashReporting(): void {
-  const g = globalThis as any;
+  try {
+    type GlobalErrorHandler = (error: unknown, isFatal?: boolean) => void;
+    const g = globalThis as any;
+    const WRAP_FLAG = '__amysEchoCrashWrapped__';
 
-  // JS exceptions via React Native's ErrorUtils
-  const prevErrorHandler: (error: any, isFatal?: boolean) => void = g.ErrorUtils.getGlobalHandler();
-  g.ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
-    enqueueCrashReport(error, { isFatal });
-    prevErrorHandler(error, isFatal);
-  });
+    // JS exceptions via React Native's ErrorUtils
+    const errorUtils = g.ErrorUtils;
+    if (errorUtils?.getGlobalHandler && errorUtils?.setGlobalHandler) {
+      const prevErrorHandler: GlobalErrorHandler = errorUtils.getGlobalHandler();
+      if (!(prevErrorHandler as any)?.[WRAP_FLAG]) {
+        const wrapped: GlobalErrorHandler = (error, isFatal) => {
+          void enqueueCrashReport(error, { isFatal });
+          try {
+            prevErrorHandler?.(error, isFatal);
+          } catch {}
+        };
+        (wrapped as any)[WRAP_FLAG] = true;
+        errorUtils.setGlobalHandler(wrapped);
+      }
+    }
 
-  // Unhandled promise rejections
-  const prevRejectionHandler = g.onunhandledrejection as ((event: any) => void) | undefined;
-  g.onunhandledrejection = (event: any) => {
-    const reason = event?.reason ?? event;
-    enqueueCrashReport(reason, { unhandledRejection: true });
-    prevRejectionHandler?.(event);
-  };
+    // Unhandled promise rejections
+    const prevRejectionHandler = g.onunhandledrejection as ((event: any) => void) | undefined;
+    if (!(prevRejectionHandler as any)?.[WRAP_FLAG]) {
+      const wrappedRejection = (event: any) => {
+        const reason = event?.reason ?? event;
+        void enqueueCrashReport(reason, { unhandledRejection: true });
+        try {
+          prevRejectionHandler?.(event);
+        } catch {}
+      };
+      (wrappedRejection as any)[WRAP_FLAG] = true;
+      g.onunhandledrejection = wrappedRejection;
+    }
+  } catch (err) {
+    logger.warn('initCrashReporting failed', err as any);
+  }
 }
 
 // Helper to be called on app start to flush any pending crashes
