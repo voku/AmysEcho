@@ -195,7 +195,9 @@ export default function RecognitionScreen({
         path = 'centroid';
       }
     }
-    setRecognitionPath(path);
+    if (path !== recognitionPath) {
+      setRecognitionPath(path);
+    }
 
     // Helper to apply a classification to UI + logs
     const handleOutcome = async (
@@ -319,7 +321,7 @@ export default function RecognitionScreen({
 
     // On-device classification only: use provided or locally-classified gesture
     await handleOutcome(g || 'unknown', c, path);
-  }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture, screenReaderEnabled]);
+  }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture, screenReaderEnabled, recognitionPath]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
     // Avoid flooding the UI; only surface critical init/camera errors
