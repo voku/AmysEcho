@@ -1351,7 +1351,7 @@
   function serializeGesture(g) {
     if (g == null) return null;
     if (typeof g === "string") return g;
-    return `{"left":"${g.left}","right":"${g.right}"}`;
+    return JSON.stringify({ left: g.left, right: g.right });
   }
   function resetGestureChangeState() {
     lastSentGestureSerialized = null;

@@ -368,7 +368,7 @@ function serializeGesture(g: string | TwoHandGesture | null): string | null {
   if (g == null) return null;
   if (typeof g === 'string') return g;
   // Stable, order-preserving representation for change detection only
-  return `{"left":"${g.left}","right":"${g.right}"}`;
+  return JSON.stringify({ left: g.left, right: g.right });
 }
 function resetGestureChangeState() {
   lastSentGestureSerialized = null;

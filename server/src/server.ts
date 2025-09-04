@@ -475,8 +475,7 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
       .status(400)
       .json({ error: 'Invalid correction', details: parsed.error.flatten() });
   }
-  const gestureStr = gestureToString(parsed.data.gesture);
-  if (!gestureStr) return res.status(400).json({ error: 'Invalid correction' });
+  const gestureStr = gestureToString(parsed.data.gesture)!;
   try {
     logCorrection(dbInstance, 'unknown', gestureStr, null);
     const record: Correction = {
@@ -510,10 +509,7 @@ app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
       details: parsed.error.flatten(),
     });
   }
-  const gestureStr = gestureToString(parsed.data.gesture);
-  if (!gestureStr) {
-    return res.status(400).json({ error: 'Invalid negative sample' });
-  }
+  const gestureStr = gestureToString(parsed.data.gesture)!;
   try {
     const record: NegativeSample = {
       id: genId(),
