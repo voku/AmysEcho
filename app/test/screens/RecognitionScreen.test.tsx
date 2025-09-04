@@ -68,6 +68,7 @@ jest.mock('../../src/services', () => ({
   triggerSpeakAndShow: jest.fn((_: any, __: any, cb: () => void) => cb()),
   correctionService: { logCorrection: jest.fn() },
   dialogEngine: { getSuggestions: jest.fn() },
+  announceGestureRecognition: jest.fn(),
 }));
 jest.mock('../../src/telemetry/recorder', () => ({
   telemetry: { add: jest.fn() },
@@ -84,9 +85,6 @@ jest.mock('../../src/context/MessageContext', () => ({
 }));
 jest.mock('../../src/services/dgsModelClient', () => ({
   onMlpModelUpdated: jest.fn(() => () => {}),
-}));
-jest.mock('../../src/services/HybridRecognizer', () => ({
-  useHybridFrameProcessor: () => undefined,
 }));
 
 describe('RecognitionScreen', () => {

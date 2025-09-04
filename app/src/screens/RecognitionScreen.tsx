@@ -15,7 +15,7 @@ import BottomNav from '../components/BottomNav';
 import CorrectionPanel from '../components/CorrectionPanel';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
-import { audioService, triggerSpeakAndShow, correctionService, dialogEngine } from '../services';
+import { audioService, triggerSpeakAndShow, correctionService, dialogEngine, announceGestureRecognition } from '../services';
 import { telemetry } from '../telemetry/recorder';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
@@ -222,6 +222,7 @@ export default function RecognitionScreen({ navigation }: any) {
 
         if (shouldProvideFeedback) {
           lastSuccessAtRef.current = now;
+          announceGestureRecognition(entry.label, smoothed);
           void triggerSpeakAndShow(entry.label, smoothed, startFeedbackAnimation);
         }
 
