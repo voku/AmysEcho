@@ -462,14 +462,15 @@ const gestureToString = (g: unknown): string | null => {
   return null;
 };
 
+const GesturePayloadSchema = z.object({
+  gesture: z.union([
+    z.string().min(1),
+    z.object({ left: z.string().min(1), right: z.string().min(1) }),
+  ]),
+});
+
 app.post('/api/corrections', auth, async (req: Request, res: Response) => {
-  const Body = z.object({
-    gesture: z.union([
-      z.string().min(1),
-      z.object({ left: z.string().min(1), right: z.string().min(1) }),
-    ]),
-  });
-  const parsed = Body.safeParse(req.body);
+  const parsed = GesturePayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
       .status(400)
@@ -496,13 +497,7 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
 });
 
 app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
-  const Body = z.object({
-    gesture: z.union([
-      z.string().min(1),
-      z.object({ left: z.string().min(1), right: z.string().min(1) }),
-    ]),
-  });
-  const parsed = Body.safeParse(req.body);
+  const parsed = GesturePayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       error: 'Invalid negative sample',
