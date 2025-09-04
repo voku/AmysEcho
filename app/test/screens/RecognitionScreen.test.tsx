@@ -91,6 +91,9 @@ jest.mock('../../src/context/MessageContext', () => ({
 jest.mock('../../src/services/dgsModelClient', () => ({
   onMlpModelUpdated: jest.fn(() => () => {}),
 }));
+jest.mock('../../src/services/localCentroids', () => ({
+  buildLocalCentroids: jest.fn().mockResolvedValue({ foo: [[0, 0, 0]] }),
+}));
 const mockClassifyWithCentroids = jest.fn();
 jest.mock('../../src/services/offlineClassifier', () => ({
   classifyWithCentroids: (...args: any[]) => mockClassifyWithCentroids(...args),
@@ -202,17 +205,17 @@ describe('RecognitionScreen', () => {
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
       );
     });
+    await act(async () => {});
     const detector = component.root.findByType('MediaPipeGestureDetector');
     await act(async () => {
       mockClassifyWithCentroids.mockReturnValue({ label: 'hello', confidence: 0.95 });
       await detector.props.onGestureDetected(null, 0.1, [], []);
     });
-    const pathNode = component.root
-      .findAllByType('Text')
-      .find(
-        (n) => Array.isArray(n.props.children) && n.props.children.join('') === 'via centroid',
-      );
-    expect(pathNode).toBeTruthy();
+    const pathNode = component.root.findByProps({ testID: 'recognition-path' });
+    const txt = Array.isArray(pathNode.props.children)
+      ? pathNode.props.children.join(' ')
+      : String(pathNode.props.children);
+    expect(txt.trim().toLowerCase()).toContain('centroid');
   });
 
   it('shows celebration when gesture recognized with high confidence', async () => {
