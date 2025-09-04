@@ -20,6 +20,10 @@ jest.mock('react-native', () => {
       Text: (p: any) => React.createElement('Animated.Text', p, p.children),
     },
     Easing: { out: (fn: any) => fn, ease: (t: number) => t },
+    AccessibilityInfo: {
+      isScreenReaderEnabled: jest.fn().mockResolvedValue(false),
+      addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+    },
   } as any;
 });
 
@@ -38,7 +42,7 @@ jest.mock('../../src/services/LanguageManager', () => ({
 
 import RecognitionScreen from '../../src/screens/RecognitionScreen';
 import Celebration from '../../src/components/Celebration';
-import { audioService, triggerSpeakAndShow } from '../../src/services';
+import { audioService, triggerSpeakAndShow, announceGestureRecognition } from '../../src/services';
 
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   const React = require('react');
@@ -181,6 +185,7 @@ describe('RecognitionScreen', () => {
     const celebrations = component.root.findAllByType(Celebration);
     expect(celebrations.length).toBe(1);
     expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
+    expect(announceGestureRecognition).toHaveBeenCalledTimes(1);
   });
 
   it('does not spam celebration for repeated gestures', async () => {
@@ -194,5 +199,6 @@ describe('RecognitionScreen', () => {
       detector.props.onGestureDetected('hello', 0.95, [], []);
     });
     expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
+    expect(announceGestureRecognition).toHaveBeenCalledTimes(1);
   });
 });

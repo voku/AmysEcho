@@ -8,6 +8,7 @@ import {
   Easing,
   Button,
   Switch,
+  AccessibilityInfo,
 } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
@@ -16,8 +17,7 @@ import CorrectionPanel from '../components/CorrectionPanel';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { audioService, triggerSpeakAndShow, correctionService, dialogEngine, announceGestureRecognition } from '../services';
-import { telemetry } from '../telemetry/recorder';
-import { loadProfile, Profile, logCorrection } from '../storage';
+import { loadProfile, Profile } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
 import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
@@ -41,12 +41,13 @@ import { onMlpModelUpdated } from '../services/dgsModelClient';
 const FEEDBACK_THROTTLE_MS = 2000;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
 
-export default function RecognitionScreen({ navigation }: any) {
+type Nav = { navigate: (screen: 'Correction' | 'Teaching') => void };
+export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
   const { largeText } = useAccessibility();
   const { setMessage } = useMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState('Ich höre zu…');
-  const [detectedGesture, setDetectedGesture] = useState<string>('listening...');
+  const [detectedGesture, setDetectedGesture] = useState<string>('lausche…');
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
@@ -65,6 +66,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [showDgsVideo, setShowDgsVideo] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationKey, setCelebrationKey] = useState(0);
+  const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -154,6 +156,18 @@ export default function RecognitionScreen({ navigation }: any) {
   }, [fadeAnim, symbolScaleAnim]);
 
   useEffect(() => {
+    // Track screen reader to avoid overlapping TTS and accessibility announcements
+    AccessibilityInfo.isScreenReaderEnabled?.()
+      .then(setScreenReaderEnabled)
+      .catch(() => {});
+    const sub = AccessibilityInfo.addEventListener?.(
+      'screenReaderChanged',
+      setScreenReaderEnabled,
+    );
+    return () => sub?.remove?.();
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (celebrationTimeoutRef.current) {
         clearTimeout(celebrationTimeoutRef.current);
@@ -222,8 +236,11 @@ export default function RecognitionScreen({ navigation }: any) {
 
         if (shouldProvideFeedback) {
           lastSuccessAtRef.current = now;
-          announceGestureRecognition(entry.label, smoothed);
-          void triggerSpeakAndShow(entry.label, smoothed, startFeedbackAnimation);
+          const labelForUser = entry.label; // TODO: replace with localized label if available
+          if (!screenReaderEnabled) {
+            void triggerSpeakAndShow(labelForUser, smoothed, startFeedbackAnimation);
+          }
+          announceGestureRecognition(labelForUser, smoothed);
         }
 
         // Log success
