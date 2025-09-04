@@ -185,7 +185,11 @@ export default function RecognitionScreen({
     let c = confidence;
     let path: RecognitionPath = 'local';
 
-    if (centroidsRef.current && (!g || c < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD)) {
+    if (
+      centroidsRef.current &&
+      Object.keys(centroidsRef.current).length > 0 &&
+      (!g || c < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD)
+    ) {
       const flat = flattenHandsWithHandedness(landmarks, handedness);
       const pts: Point[] = flat.map(([x, y, z]) => [x, y, z ?? 0] as Point);
       const res = classifyWithCentroids(pts, centroidsRef.current);
@@ -195,7 +199,7 @@ export default function RecognitionScreen({
         path = 'centroid';
       }
     }
-    setRecognitionPath(path);
+    setRecognitionPath((prev) => (prev === path ? prev : path));
 
     // Helper to apply a classification to UI + logs
     const handleOutcome = async (
@@ -467,7 +471,9 @@ export default function RecognitionScreen({
             {lastRecognizedGesture.label}
           </Animated.Text>
           <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
-          <Text style={styles.confidenceText}>via {recognitionPath}</Text>
+          <Text style={styles.confidenceText} testID="recognition-path">
+            via {recognitionPath}
+          </Text>
         </Animated.View>
       )}
 

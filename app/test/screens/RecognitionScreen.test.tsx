@@ -91,10 +91,22 @@ jest.mock('../../src/context/MessageContext', () => ({
 jest.mock('../../src/services/dgsModelClient', () => ({
   onMlpModelUpdated: jest.fn(() => () => {}),
 }));
+jest.mock('../../src/services/localCentroids', () => ({
+  buildLocalCentroids: jest.fn().mockResolvedValue({ foo: [[0, 0, 0]] }),
+}));
+const mockClassifyWithCentroids = jest.fn();
+jest.mock('../../src/services/offlineClassifier', () => ({
+  classifyWithCentroids: (...args: any[]) => mockClassifyWithCentroids(...args),
+}));
+jest.mock('../../src/services/handUtils', () => ({
+  flattenHandsWithHandedness: jest.fn(() => [[0, 0, 0]]),
+}));
 
 describe('RecognitionScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockClassifyWithCentroids.mockReset();
+    mockClassifyWithCentroids.mockReturnValue(null);
   });
 
   it('navigates to Correction screen when correction button is pressed', async () => {
@@ -184,6 +196,26 @@ describe('RecognitionScreen', () => {
     });
     const vids = component.root.findAllByType('DgsVideoPlayer');
     expect(vids.length).toBe(1);
+  });
+
+  it('falls back to centroid classification when local detection is uncertain', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
+    });
+    await act(async () => {});
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      mockClassifyWithCentroids.mockReturnValue({ label: 'hello', confidence: 0.95 });
+      await detector.props.onGestureDetected(null, 0.1, [], []);
+    });
+    const pathNode = component.root.findByProps({ testID: 'recognition-path' });
+    const txt = Array.isArray(pathNode.props.children)
+      ? pathNode.props.children.join(' ')
+      : String(pathNode.props.children);
+    expect(txt.trim().toLowerCase()).toContain('centroid');
   });
 
   it('shows celebration when gesture recognized with high confidence', async () => {
