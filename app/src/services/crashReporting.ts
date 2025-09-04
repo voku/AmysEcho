@@ -80,31 +80,22 @@ function normalizeError(err: unknown): { name?: string; message?: string; stack?
  * Safe to call multiple times.
  */
 export function initCrashReporting(): void {
-  try {
-    // JS exceptions via React Native's ErrorUtils if available
-    const g: any = global as any;
-    const ErrorUtilsObj = g.ErrorUtils;
-    if (ErrorUtilsObj && typeof ErrorUtilsObj.getGlobalHandler === 'function') {
-      const prev = ErrorUtilsObj.getGlobalHandler();
-      ErrorUtilsObj.setGlobalHandler((error: any, isFatal?: boolean) => {
-        enqueueCrashReport(error, { isFatal });
-        if (typeof prev === 'function') prev(error, isFatal);
-      });
-    }
+  const g = globalThis as any;
 
-    // Unhandled promise rejections
-    if (typeof g.addEventListener === 'function') {
-      // Not standard in RN; fallback to node-like handler below
-    }
-    if (typeof g.onunhandledrejection === 'undefined') {
-      g.onunhandledrejection = (event: any) => {
-        const reason = event && event.reason ? event.reason : event;
-        enqueueCrashReport(reason, { unhandledRejection: true });
-      };
-    }
-  } catch (err) {
-    logger.warn('initCrashReporting failed', err as any);
-  }
+  // JS exceptions via React Native's ErrorUtils
+  const prevErrorHandler: (error: any, isFatal?: boolean) => void = g.ErrorUtils.getGlobalHandler();
+  g.ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
+    enqueueCrashReport(error, { isFatal });
+    prevErrorHandler(error, isFatal);
+  });
+
+  // Unhandled promise rejections
+  const prevRejectionHandler = g.onunhandledrejection as ((event: any) => void) | undefined;
+  g.onunhandledrejection = (event: any) => {
+    const reason = event?.reason ?? event;
+    enqueueCrashReport(reason, { unhandledRejection: true });
+    prevRejectionHandler?.(event);
+  };
 }
 
 // Helper to be called on app start to flush any pending crashes
