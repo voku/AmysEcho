@@ -37,6 +37,7 @@ jest.mock('../../src/services/LanguageManager', () => ({
         : k === 'celebration.label'
         ? 'Gut gemacht!'
         : k,
+    getGestureLabel: (id: string) => (id === 'hello' ? 'Hallo' : id),
   },
 }));
 
@@ -100,7 +101,9 @@ describe('RecognitionScreen', () => {
     const navigate = jest.fn();
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate }} />);
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate } as any} />,
+      );
     });
     const button = component.root.findByProps({ testID: 'btn-correction' });
     act(() => {
@@ -113,7 +116,9 @@ describe('RecognitionScreen', () => {
     const navigate = jest.fn();
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate }} />);
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate } as any} />,
+      );
     });
     const button = component.root.findByProps({ testID: 'btn-teach' });
     act(() => {
@@ -125,7 +130,9 @@ describe('RecognitionScreen', () => {
   it('shows correction panel when help-me-choose button is pressed', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
     });
     const button = component.root.findByProps({ testID: 'btn-help-me-choose' });
     act(() => {
@@ -138,7 +145,9 @@ describe('RecognitionScreen', () => {
   it('exposes correction button accessibility label', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
     });
     const button = component.root.findByProps({ testID: 'btn-correction' });
     expect(button.props.accessibilityLabel).toBe('Korrekturseite öffnen');
@@ -147,7 +156,9 @@ describe('RecognitionScreen', () => {
   it('provides gentle feedback when gesture is not recognized', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
     });
     const detector = component.root.findByType('MediaPipeGestureDetector');
     await act(async () => {
@@ -159,7 +170,9 @@ describe('RecognitionScreen', () => {
   it('shows DGS video when toggle enabled and gesture recognized', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
     });
     const toggle = component.root.findByProps({ accessibilityLabel: 'DGS-Video umschalten' });
     act(() => {
@@ -176,7 +189,9 @@ describe('RecognitionScreen', () => {
   it('shows celebration when gesture recognized with high confidence', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
     });
     const detector = component.root.findByType('MediaPipeGestureDetector');
     await act(async () => {
@@ -191,7 +206,9 @@ describe('RecognitionScreen', () => {
   it('does not spam celebration for repeated gestures', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(<RecognitionScreen navigation={{ navigate: jest.fn() }} />);
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
     });
     const detector = component.root.findByType('MediaPipeGestureDetector');
     await act(async () => {

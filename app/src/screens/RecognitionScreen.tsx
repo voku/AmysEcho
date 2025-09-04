@@ -10,13 +10,20 @@ import {
   Switch,
   AccessibilityInfo,
 } from 'react-native';
+import type { NavigationProp } from '@react-navigation/native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import BottomNav from '../components/BottomNav';
 import CorrectionPanel from '../components/CorrectionPanel';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
-import { audioService, triggerSpeakAndShow, correctionService, dialogEngine, announceGestureRecognition } from '../services';
+import {
+  audioService,
+  triggerSpeakAndShow,
+  correctionService,
+  dialogEngine,
+  announceGestureRecognition,
+} from '../services';
 import { loadProfile, Profile } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
 import { buildLocalCentroids } from '../services/localCentroids';
@@ -25,10 +32,8 @@ import type { CentroidMap, Point } from '../services/dgsModelClient';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
 import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
-import MaintenanceBanner from '../components/MaintenanceBanner';
 import { logInteractionEvent } from '../services/analytics';
 import { logHIPEvent } from '../services/hipEvents';
-import { shouldPromptPractice } from '../services/healthScore';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
 import { RecognitionPath } from '../utils/recognitionState';
@@ -37,17 +42,20 @@ import { LanguageManager } from '../services/LanguageManager';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
+import type { RootStackParamList } from '../navigation/types';
 
 const FEEDBACK_THROTTLE_MS = 2000;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
 
-type Nav = { navigate: (screen: 'Correction' | 'Teaching') => void };
-export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
+export default function RecognitionScreen({
+  navigation,
+}: {
+  navigation: NavigationProp<RootStackParamList, 'Recognition'>;
+}) {
   const { largeText } = useAccessibility();
   const { setMessage } = useMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState('Ich höre zu…');
-  const [detectedGesture, setDetectedGesture] = useState<string>('lausche…');
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
@@ -57,9 +65,8 @@ export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
   });
   const [dialogContext, setDialogContext] = useState<string[]>([]);
   const [pendingGesture, setPendingGesture] = useState<string | null>(null);
-  const [lastRecognizedGesture, setLastRecognizedGesture] = useState<GestureModelEntry | null>(null);
-  const [showPracticeBanner, setShowPracticeBanner] = useState(false);
-  const [scheduledGesture, setScheduledGesture] = useState<string | null>(null);
+  const [lastRecognizedGesture, setLastRecognizedGesture] =
+    useState<GestureModelEntry | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [webviewKey, setWebviewKey] = useState(0);
   const [recognitionPath, setRecognitionPath] = useState<RecognitionPath>('local');
@@ -110,24 +117,6 @@ export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
     };
   }, [setMessage]);
 
-  // Check practice schedules periodically and show banner when due
-  useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | undefined;
-    (async () => {
-      try {
-        const { getDueGesture } = await import('../services/practiceScheduler');
-        timer = setInterval(async () => {
-          const due = await getDueGesture();
-          if (due) {
-            setScheduledGesture(due);
-            setShowPracticeBanner(true);
-          }
-        }, 60 * 1000);
-      } catch {}
-    })();
-    return () => timer && clearInterval(timer);
-  }, []);
-
   const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startFeedbackAnimation = useCallback(() => {
@@ -157,9 +146,12 @@ export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
 
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
-    AccessibilityInfo.isScreenReaderEnabled?.()
+    AccessibilityInfo.isScreenReaderEnabled
+      ?.()
       .then(setScreenReaderEnabled)
-      .catch(() => {});
+      .catch((error) =>
+        logger.warn('Failed to check if screen reader is enabled:', error),
+      );
     const sub = AccessibilityInfo.addEventListener?.(
       'screenReaderChanged',
       setScreenReaderEnabled,
@@ -218,7 +210,6 @@ export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
       const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
       const stableGesture = top && top[1] >= 3 ? top[0] : finalGesture;
 
-      setDetectedGesture(stableGesture);
       setGestureConfidence(smoothed);
       setError(null);
       uncertainCountRef.current = 0;
@@ -236,7 +227,9 @@ export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
 
         if (shouldProvideFeedback) {
           lastSuccessAtRef.current = now;
-          const labelForUser = entry.label; // TODO: replace with localized label if available
+          const localizedLabel = LanguageManager.getGestureLabel(entry.id);
+          const labelForUser =
+            localizedLabel !== `gestures.${entry.id}` ? localizedLabel : entry.label;
           if (!screenReaderEnabled) {
             void triggerSpeakAndShow(labelForUser, smoothed, startFeedbackAnimation);
           }
@@ -268,11 +261,6 @@ export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
         } catch (error) {
           logger.warn('Failed to get LLM suggestions:', error);
         }
-
-        // Evaluate practice prompt
-        shouldPromptPractice(entry.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
-          .then(setShowPracticeBanner)
-          .catch(() => setShowPracticeBanner(false));
 
         // Sequence recognition (non-blocking): if a sequence matches, provide gentle feedback
         try {
@@ -318,24 +306,20 @@ export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
           timestamp: Date.now(),
           processedBy,
         }).catch(() => {});
-        // Practice prompt check on last recognized if present
-        if (lastRecognizedGesture) {
-          shouldPromptPractice(lastRecognizedGesture.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
-            .then(setShowPracticeBanner)
-            .catch(() => setShowPracticeBanner(false));
-        }
       }
     };
 
     // On-device classification only: use provided or locally-classified gesture
     await handleOutcome(g || 'unknown', c, path);
-  }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
+  }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture, screenReaderEnabled]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
     // Avoid flooding the UI; only surface critical init/camera errors
     logger.warn('Gesture detection warning:', errorMessage);
-    if (/Camera error|Recognizer init failed/i.test(errorMessage)) {
-      setError(errorMessage);
+    if (/Recognizer init failed/i.test(errorMessage)) {
+      setError(LanguageManager.t('mediapipe.recognizerInitFailed'));
+    } else if (/Camera error/i.test(errorMessage)) {
+      setError(LanguageManager.t('mediapipe.cameraError'));
     }
   }, []);
 
@@ -489,23 +473,23 @@ export default function RecognitionScreen({ navigation }: { navigation: Nav }) {
       )}
     </View>
 
-        {showCelebration && <Celebration key={celebrationKey} />}
+    {showCelebration && <Celebration key={celebrationKey} />}
 
     {showCorrection && (
       <CorrectionPanel
         onSelect={handleSelectCorrection}
-          onAddNew={() => {
-            setShowCorrection(false);
-            navigation.navigate('Teaching');
-          }}
-          onCancel={handleCancelCorrection}
-          suggestions={[]}
-        />
-      )}
+        onAddNew={() => {
+          setShowCorrection(false);
+          navigation.navigate('Teaching');
+        }}
+        onCancel={handleCancelCorrection}
+        suggestions={[]}
+      />
+    )}
 
-      {/* Optional controls could be reintroduced as overlays if needed */}
+    {/* Optional controls could be reintroduced as overlays if needed */}
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.md }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.md }}>
       <Button
         testID="btn-correction"
         title="Korrektur"
