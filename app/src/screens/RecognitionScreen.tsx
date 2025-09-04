@@ -45,6 +45,7 @@ import { onMlpModelUpdated } from '../services/dgsModelClient';
 import type { RootStackParamList } from '../navigation/types';
 
 const FEEDBACK_THROTTLE_MS = 2000;
+const FRAME_INTERVAL_MS = 1000 / 8;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
 
 export default function RecognitionScreen({
@@ -88,6 +89,7 @@ export default function RecognitionScreen({
   const lastSuccessAtRef = useRef<number>(0);
   const lastGestureIdRef = useRef<string | null>(null);
   const lastErrorFeedbackAtRef = useRef<number>(0);
+  const lastFrameTimeRef = useRef<number>(0);
   const centroidsRef = useRef<CentroidMap>({});
 
   useEffect(() => {
@@ -173,6 +175,12 @@ export default function RecognitionScreen({
     landmarks: number[][][],
     handedness: string[],
   ) => {
+    // Throttle frame processing to avoid unnecessary work on slower devices
+    const ts = Date.now();
+    if (ts - lastFrameTimeRef.current < FRAME_INTERVAL_MS) {
+      return;
+    }
+    lastFrameTimeRef.current = ts;
     let g = gesture;
     let c = confidence;
     let path: RecognitionPath = 'local';

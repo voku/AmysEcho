@@ -218,4 +218,20 @@ describe('RecognitionScreen', () => {
     expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
     expect(announceGestureRecognition).toHaveBeenCalledTimes(1);
   });
+
+  it('throttles rapid gesture events', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
+    });
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      detector.props.onGestureDetected('hello', 0.9, [], []);
+      detector.props.onGestureDetected(null, 0.1, [], []);
+    });
+    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
+    expect(audioService.playErrorFeedback).not.toHaveBeenCalled();
+  });
 });
