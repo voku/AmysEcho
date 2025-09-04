@@ -341,6 +341,7 @@ async function createGestureRecognizer() {
     if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.srcObject) {
       window.requestAnimationFrame(predictWebcam);
     }
+    resetGestureChangeState();
   } catch (e) {
     try {
       window.ReactNativeWebView?.postMessage?.(
@@ -362,6 +363,18 @@ let lastSentGestureSerialized: string | null = null;
 let lastSentScore = 0;
 let running = true;
 let cleanedUp = false;
+type TwoHandGesture = { left: string; right: string };
+function serializeGesture(g: string | TwoHandGesture | null): string | null {
+  if (g == null) return null;
+  if (typeof g === 'string') return g;
+  // Stable, order-preserving representation for change detection only
+  return `{"left":"${g.left}","right":"${g.right}"}`;
+}
+function resetGestureChangeState() {
+  lastSentGestureSerialized = null;
+  lastSentScore = 0;
+  lastSentAt = 0;
+}
 // Target processing rate to balance accuracy and device load
 const TARGET_FPS = 30;
 const MIN_FRAME_TIME = 1000 / TARGET_FPS;
@@ -519,12 +532,7 @@ function predictWebcam() {
         const now = performance.now();
         const confidence = allLandmarks.length ? outScore : 0;
         const isTick = now - lastSentAt >= 100;
-        const serializedGesture =
-          outGesture === null
-            ? null
-            : typeof outGesture === 'string'
-            ? outGesture
-            : JSON.stringify(outGesture);
+        const serializedGesture = serializeGesture(outGesture);
         const changed =
           serializedGesture !== lastSentGestureSerialized ||
           Math.abs(confidence - lastSentScore) >= 0.05;
@@ -599,6 +607,7 @@ function resizeOverlay() {
 }
 
 async function startCamera() {
+  resetGestureChangeState();
   // Renamed from start() for clarity
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -708,6 +717,7 @@ const onVisibilityChange = () => {
   } else {
     running = true;
     lastFrameTs = 0;
+    resetGestureChangeState();
     // Ensure overlay matches current layout/DPR after tab visibility changes
     try { resizeOverlay(); } catch (e) { console.warn('Resize on visibility change failed:', e); }
     window.requestAnimationFrame(predictWebcam);

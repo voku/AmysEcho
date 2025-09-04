@@ -454,24 +454,36 @@ app.post('/api/crash-reports', auth, async (req: Request, res: Response) => {
 const gestureToString = (g: unknown): string | null => {
   if (typeof g === 'string') return g;
   if (Array.isArray(g) && g.every((p) => typeof p === 'string')) {
-    return g.join('+');
+    const parts = (g as string[]).filter((s) => s.length).slice(0, 2);
+    return parts.length ? parts.join('+') : null;
   }
   if (g && typeof g === 'object') {
-    const left = (g as any).left;
-    const right = (g as any).right;
-    if (typeof left === 'string' && typeof right === 'string') {
-      return `${left}+${right}`;
-    }
+    const { left, right } = g as { left?: unknown; right?: unknown };
+    const l = typeof left === 'string' ? left : null;
+    const r = typeof right === 'string' ? right : null;
+    if (l && r) return `${l}+${r}`;
+    if (l) return l;
+    if (r) return r;
   }
   return null;
 };
 
 app.post('/api/corrections', auth, async (req: Request, res: Response) => {
-  const { gesture } = req.body || {};
-  const gestureStr = gestureToString(gesture);
-  if (!gestureStr) {
-    return res.status(400).json({ error: 'Invalid correction' });
+  const Body = z.object({
+    gesture: z.union([
+      z.string().min(1),
+      z.array(z.string()).min(1).max(2),
+      z.object({ left: z.string().min(1), right: z.string().min(1) }),
+    ]),
+  });
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: 'Invalid correction', details: parsed.error.flatten() });
   }
+  const gestureStr = gestureToString(parsed.data.gesture);
+  if (!gestureStr) return res.status(400).json({ error: 'Invalid correction' });
   try {
     logCorrection(dbInstance, 'unknown', gestureStr, null);
     const record: Correction = {
@@ -483,7 +495,7 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
       isSynced: false,
     };
     dbInstance.corrections.push(record);
-    await saveDatabase(dbInstance, DB_FILE_PATH);
+    await withFileLock(DB_FILE_PATH, async () => saveDatabase(dbInstance, DB_FILE_PATH));
     res.status(202).json({ status: 'queued' });
   } catch (error) {
     console.error('Error logging correction:', error);
@@ -492,8 +504,21 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
 });
 
 app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
-  const { gesture } = req.body || {};
-  const gestureStr = gestureToString(gesture);
+  const Body = z.object({
+    gesture: z.union([
+      z.string().min(1),
+      z.array(z.string()).min(1).max(2),
+      z.object({ left: z.string().min(1), right: z.string().min(1) }),
+    ]),
+  });
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid negative sample',
+      details: parsed.error.flatten(),
+    });
+  }
+  const gestureStr = gestureToString(parsed.data.gesture);
   if (!gestureStr) {
     return res.status(400).json({ error: 'Invalid negative sample' });
   }
@@ -504,7 +529,7 @@ app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
       timestamp: Date.now(),
     };
     addNegativeSample(dbInstance, record);
-    await saveDatabase(dbInstance, DB_FILE_PATH);
+    await withFileLock(DB_FILE_PATH, async () => saveDatabase(dbInstance, DB_FILE_PATH));
     res.status(202).json({ status: 'queued' });
   } catch (error) {
     console.error('Error logging negative sample:', error);

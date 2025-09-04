@@ -1327,6 +1327,7 @@
       if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.srcObject) {
         window.requestAnimationFrame(predictWebcam);
       }
+      resetGestureChangeState();
     } catch (e) {
       try {
         window.ReactNativeWebView?.postMessage?.(
@@ -1347,6 +1348,16 @@
   var lastSentScore = 0;
   var running = true;
   var cleanedUp = false;
+  function serializeGesture(g) {
+    if (g == null) return null;
+    if (typeof g === "string") return g;
+    return `{"left":"${g.left}","right":"${g.right}"}`;
+  }
+  function resetGestureChangeState() {
+    lastSentGestureSerialized = null;
+    lastSentScore = 0;
+    lastSentAt = 0;
+  }
   var TARGET_FPS = 30;
   var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
   var FRAME_LATENCY_SAMPLE_INTERVAL = 90;
@@ -1486,7 +1497,7 @@
           const now = performance.now();
           const confidence = allLandmarks.length ? outScore : 0;
           const isTick = now - lastSentAt >= 100;
-          const serializedGesture = outGesture === null ? null : typeof outGesture === "string" ? outGesture : JSON.stringify(outGesture);
+          const serializedGesture = serializeGesture(outGesture);
           const changed = serializedGesture !== lastSentGestureSerialized || Math.abs(confidence - lastSentScore) >= 0.05;
           if (changed || isTick) {
             lastSentGestureSerialized = serializedGesture;
@@ -1549,6 +1560,7 @@
     }
   }
   async function startCamera() {
+    resetGestureChangeState();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -1648,6 +1660,7 @@
     } else {
       running = true;
       lastFrameTs = 0;
+      resetGestureChangeState();
       try {
         resizeOverlay();
       } catch (e) {
