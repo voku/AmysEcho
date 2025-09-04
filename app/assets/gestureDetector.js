@@ -1327,6 +1327,7 @@
       if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.srcObject) {
         window.requestAnimationFrame(predictWebcam);
       }
+      resetGestureChangeState();
     } catch (e) {
       try {
         window.ReactNativeWebView?.postMessage?.(
@@ -1343,10 +1344,20 @@
   var lastVideoTime = -1;
   var frameCount = 0;
   var lastSentAt = 0;
-  var lastSentGesture = null;
+  var lastSentGestureSerialized = null;
   var lastSentScore = 0;
   var running = true;
   var cleanedUp = false;
+  function serializeGesture(g) {
+    if (g == null) return null;
+    if (typeof g === "string") return g;
+    return JSON.stringify({ left: g.left, right: g.right });
+  }
+  function resetGestureChangeState() {
+    lastSentGestureSerialized = null;
+    lastSentScore = 0;
+    lastSentAt = 0;
+  }
   var TARGET_FPS = 30;
   var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
   var FRAME_LATENCY_SAMPLE_INTERVAL = 90;
@@ -1411,7 +1422,7 @@
                 if (!right) right = others.shift() || null;
               }
               if (left && right) {
-                outGesture = left.label + "+" + right.label;
+                outGesture = { left: left.label, right: right.label };
                 outScore = Math.sqrt(left.score * right.score);
               }
             }
@@ -1486,15 +1497,16 @@
           const now = performance.now();
           const confidence = allLandmarks.length ? outScore : 0;
           const isTick = now - lastSentAt >= 100;
-          const changed = outGesture !== lastSentGesture || Math.abs(confidence - lastSentScore) >= 0.05;
+          const serializedGesture = serializeGesture(outGesture);
+          const changed = serializedGesture !== lastSentGestureSerialized || Math.abs(confidence - lastSentScore) >= 0.05;
           if (changed || isTick) {
-            lastSentGesture = outGesture;
+            lastSentGestureSerialized = serializedGesture;
             lastSentScore = confidence;
             lastSentAt = now;
             try {
               const payload = {
                 type: "gesture",
-                gesture: outGesture || null,
+                gesture: outGesture,
                 confidence
               };
               if (changed) {
@@ -1548,6 +1560,7 @@
     }
   }
   async function startCamera() {
+    resetGestureChangeState();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -1647,6 +1660,7 @@
     } else {
       running = true;
       lastFrameTs = 0;
+      resetGestureChangeState();
       try {
         resizeOverlay();
       } catch (e) {

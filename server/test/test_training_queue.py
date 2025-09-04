@@ -40,7 +40,7 @@ def start_server():
         if proc.poll() is not None:
             raise RuntimeError("server failed to start")
         try:
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=2) as resp:
                 if resp.getcode() == 200:
                     break
         except Exception:
@@ -58,15 +58,15 @@ def stop_server(proc):
         proc.kill()
 
 
-def post_correction():
+def post_correction(payload):
     url = f'http://localhost:{PORT}/api/corrections'
-    payload = json.dumps({"gesture": "wave"}).encode('utf-8')
+    body = json.dumps(payload).encode('utf-8')
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer testtoken',
     }
-    req = urllib.request.Request(url, data=payload, headers=headers)
-    with urllib.request.urlopen(req) as resp:
+    req = urllib.request.Request(url, data=body, headers=headers)
+    with urllib.request.urlopen(req, timeout=5) as resp:
         return resp.getcode()
 
 
@@ -76,15 +76,30 @@ def load_training_count():
     return len(data.get('gestureTrainingData', []))
 
 
-def test_training_queue_increment():
+def test_training_queue_increment_single():
     original = open(DB_PATH).read()
     proc = start_server()
     try:
-        status = post_correction()
+        before = load_training_count()
+        status = post_correction({"gesture": "wave"})
         assert status == 202
-        # Ensure the correction was logged
-        count = load_training_count()
-        assert count >= 1
+        after = load_training_count()
+        assert after == before + 1
+    finally:
+        stop_server(proc)
+        with open(DB_PATH, 'w') as f:
+            f.write(original)
+
+
+def test_training_queue_increment_object():
+    original = open(DB_PATH).read()
+    proc = start_server()
+    try:
+        before = load_training_count()
+        status = post_correction({"gesture": {"left": "wave", "right": "fist"}})
+        assert status == 202
+        after = load_training_count()
+        assert after == before + 1
     finally:
         stop_server(proc)
         with open(DB_PATH, 'w') as f:

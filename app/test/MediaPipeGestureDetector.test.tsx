@@ -84,6 +84,41 @@ describe('MediaPipeGestureDetector', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it('parses structured two-hand gestures', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({
+            type: 'gesture',
+            gesture: { left: 'open_palm', right: 'fist' },
+            confidence: 0.8,
+            landmarks: [[[1, 2, 3]]],
+            handednesses: ['Left', 'Right'],
+          }),
+        },
+      });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith(
+      'open_palm+fist',
+      0.8,
+      [[[1, 2, 3]]],
+      ['Left', 'Right'],
+    );
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it('logs and forwards error messages from the WebView', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
