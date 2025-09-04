@@ -453,17 +453,11 @@ app.post('/api/crash-reports', auth, async (req: Request, res: Response) => {
 
 const gestureToString = (g: unknown): string | null => {
   if (typeof g === 'string') return g;
-  if (Array.isArray(g) && g.every((p) => typeof p === 'string')) {
-    const parts = (g as string[]).filter((s) => s.length).slice(0, 2);
-    return parts.length ? parts.join('+') : null;
-  }
   if (g && typeof g === 'object') {
     const { left, right } = g as { left?: unknown; right?: unknown };
-    const l = typeof left === 'string' ? left : null;
-    const r = typeof right === 'string' ? right : null;
-    if (l && r) return `${l}+${r}`;
-    if (l) return l;
-    if (r) return r;
+    if (typeof left === 'string' && typeof right === 'string') {
+      return `${left}+${right}`;
+    }
   }
   return null;
 };
@@ -472,7 +466,6 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
   const Body = z.object({
     gesture: z.union([
       z.string().min(1),
-      z.array(z.string()).min(1).max(2),
       z.object({ left: z.string().min(1), right: z.string().min(1) }),
     ]),
   });
@@ -507,7 +500,6 @@ app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
   const Body = z.object({
     gesture: z.union([
       z.string().min(1),
-      z.array(z.string()).min(1).max(2),
       z.object({ left: z.string().min(1), right: z.string().min(1) }),
     ]),
   });

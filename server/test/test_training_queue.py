@@ -76,12 +76,12 @@ def load_training_count():
     return len(data.get('gestureTrainingData', []))
 
 
-def test_training_queue_increment():
+def test_training_queue_increment_single():
     original = open(DB_PATH).read()
     proc = start_server()
     try:
         before = load_training_count()
-        status = post_correction({"gesture": ["wave", "fist"]})
+        status = post_correction({"gesture": "wave"})
         assert status == 202
         after = load_training_count()
         assert after == before + 1

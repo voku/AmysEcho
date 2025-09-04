@@ -198,15 +198,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       if (data.type === 'gesture') {
         const g = data.gesture;
         let gesture: string | null;
-        if (Array.isArray(g)) {
-          gesture = g.every((x: unknown) => typeof x === 'string')
-            ? (g as string[]).join('+')
-            : null;
-        } else if (g && typeof g === 'object') {
+        if (g && typeof g === 'object') {
           const { left, right } = g as { left?: unknown; right?: unknown };
-          const l = typeof left === 'string' ? left : null;
-          const r = typeof right === 'string' ? right : null;
-          gesture = l && r ? `${l}+${r}` : (l ?? r ?? null);
+          gesture =
+            typeof left === 'string' && typeof right === 'string'
+              ? `${left}+${right}`
+              : null;
         } else if (typeof g === 'string' || g === null) {
           gesture = g as string | null;
         } else {
