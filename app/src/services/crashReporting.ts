@@ -81,26 +81,38 @@ function normalizeError(err: unknown): { name?: string; message?: string; stack?
  */
 export function initCrashReporting(): void {
   try {
-    // JS exceptions via React Native's ErrorUtils if available
-    const g: any = global as any;
-    const ErrorUtilsObj = g.ErrorUtils;
-    if (ErrorUtilsObj && typeof ErrorUtilsObj.getGlobalHandler === 'function') {
-      const prev = ErrorUtilsObj.getGlobalHandler();
-      ErrorUtilsObj.setGlobalHandler((error: any, isFatal?: boolean) => {
-        enqueueCrashReport(error, { isFatal });
-        if (typeof prev === 'function') prev(error, isFatal);
-      });
+    type GlobalErrorHandler = (error: unknown, isFatal?: boolean) => void;
+    const g = globalThis as any;
+    const WRAP_FLAG = '__amysEchoCrashWrapped__';
+
+    // JS exceptions via React Native's ErrorUtils
+    const errorUtils = g.ErrorUtils;
+    if (errorUtils?.getGlobalHandler && errorUtils?.setGlobalHandler) {
+      const prevErrorHandler: GlobalErrorHandler = errorUtils.getGlobalHandler();
+      if (!(prevErrorHandler as any)?.[WRAP_FLAG]) {
+        const wrapped: GlobalErrorHandler = (error, isFatal) => {
+          void enqueueCrashReport(error, { isFatal });
+          try {
+            prevErrorHandler?.(error, isFatal);
+          } catch {}
+        };
+        (wrapped as any)[WRAP_FLAG] = true;
+        errorUtils.setGlobalHandler(wrapped);
+      }
     }
 
     // Unhandled promise rejections
-    if (typeof g.addEventListener === 'function') {
-      // Not standard in RN; fallback to node-like handler below
-    }
-    if (typeof g.onunhandledrejection === 'undefined') {
-      g.onunhandledrejection = (event: any) => {
-        const reason = event && event.reason ? event.reason : event;
-        enqueueCrashReport(reason, { unhandledRejection: true });
+    const prevRejectionHandler = g.onunhandledrejection as ((event: any) => void) | undefined;
+    if (!(prevRejectionHandler as any)?.[WRAP_FLAG]) {
+      const wrappedRejection = (event: any) => {
+        const reason = event?.reason ?? event;
+        void enqueueCrashReport(reason, { unhandledRejection: true });
+        try {
+          prevRejectionHandler?.(event);
+        } catch {}
       };
+      (wrappedRejection as any)[WRAP_FLAG] = true;
+      g.onunhandledrejection = wrappedRejection;
     }
   } catch (err) {
     logger.warn('initCrashReporting failed', err as any);

@@ -17,7 +17,6 @@ import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { audioService, triggerSpeakAndShow, correctionService, dialogEngine } from '../services';
 import { telemetry } from '../telemetry/recorder';
-import { USE_EXPO_CAMERA } from '../constants';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
 import { buildLocalCentroids } from '../services/localCentroids';
@@ -41,7 +40,6 @@ import { onMlpModelUpdated } from '../services/dgsModelClient';
 
 const FEEDBACK_THROTTLE_MS = 2000;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
-// ExpoCameraDetector removed from default path (server-based); WebView is primary
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
@@ -61,10 +59,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [lastRecognizedGesture, setLastRecognizedGesture] = useState<GestureModelEntry | null>(null);
   const [showPracticeBanner, setShowPracticeBanner] = useState(false);
   const [scheduledGesture, setScheduledGesture] = useState<string | null>(null);
-  const [webviewReady, setWebviewReady] = useState(false);
-  const [useExpoFallback, setUseExpoFallback] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
-  const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
   const [webviewKey, setWebviewKey] = useState(0);
   const [recognitionPath, setRecognitionPath] = useState<RecognitionPath>('local');
   const [showDgsVideo, setShowDgsVideo] = useState(false);
@@ -112,16 +107,6 @@ export default function RecognitionScreen({ navigation }: any) {
       }
     };
   }, [setMessage]);
-
-  // Auto-fallback to Expo camera if WebView doesn't start camera within 5 seconds
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (!webviewReady) {
-        setUseExpoFallback(true);
-      }
-    }, 5000);
-    return () => clearTimeout(t);
-  }, [webviewReady]);
 
   // Check practice schedules periodically and show banner when due
   useEffect(() => {
@@ -455,7 +440,6 @@ export default function RecognitionScreen({ navigation }: any) {
             key={webviewKey}
             onGestureDetected={handleGestureDetected}
             onError={handleGestureError}
-            onWebViewEvent={(ev) => { if (ev.event === 'camera_started') setWebviewReady(true); }}
             facingMode={facingMode}
           />
         }

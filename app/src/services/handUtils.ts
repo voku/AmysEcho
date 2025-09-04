@@ -35,12 +35,6 @@ export function flattenHandsWithHandedness(
   return out;
 }
 
-/** @deprecated Legacy helper assuming hands array is ordered as [left, right].
- * Prefer flattenHandsWithHandedness(hands, []) to make handedness handling explicit. */
-export function flattenHands(hands: number[][][]): number[][] {
-  return flattenHandsWithHandedness(hands, []);
-}
-
 export function frameHasAnyLandmarks(frame: number[][][]): boolean {
   if (!Array.isArray(frame)) return false;
   return frame.some((hand) => Array.isArray(hand) && hand.length > 0);
