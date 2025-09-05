@@ -71,9 +71,16 @@ jest.mock('react-native-svg', () => ({
 import TrainingScreen from '../../src/screens/TrainingScreen';
 
 describe('TrainingScreen', () => {
+  let component: renderer.ReactTestRenderer;
+
+  afterEach(() => {
+    act(() => {
+      component.unmount();
+    });
+  });
+
   it('records landmarks via MediaPipe gesture detector', async () => {
     const { saveTrainingSample } = require('../../src/storage');
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <TrainingScreen navigation={{ goBack: jest.fn() }} route={{ params: { gestureLabel: 'hello' } }} /> as any,
