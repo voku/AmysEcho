@@ -100,7 +100,10 @@ jest.mock('../db', () => {
     find: async (id: string) => {
       const symbol = mockSymbols.find(s => s.id === id);
       if (!symbol) throw new Error('not found');
-      return symbol;
+      return {
+        ...symbol,
+        update: (cb: any) => cb(symbol),
+      };
     },
     create: (cb: any) => {
       const symbol: any = {};

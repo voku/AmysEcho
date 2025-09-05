@@ -1,3 +1,4 @@
+import { Q } from '@nozbe/watermelondb';
 import { database } from '../../db';
 import { GestureTrainingData } from '../../db/models';
 
@@ -37,13 +38,12 @@ export async function addTrainingSample(
 
 export async function getTrainingSamples(gestureId?: string): Promise<TrainingSample[]> {
   const collection = database.get<GestureTrainingData>('gesture_training_data');
-  const samples = await collection.query().fetch();
+  const query = gestureId
+    ? collection.query(Q.where('gesture_definition_id', gestureId))
+    : collection.query();
+  const samples = await query.fetch();
 
-  const filtered = gestureId
-    ? samples.filter(s => s.gestureDefinition.id === gestureId)
-    : samples;
-
-  return filtered.map(sample => ({
+  return samples.map(sample => ({
     id: sample.id,
     gestureDefinitionId: sample.gestureDefinition.id,
     landmarkData: JSON.parse(sample.landmarkData),
@@ -55,13 +55,13 @@ export async function getTrainingSamples(gestureId?: string): Promise<TrainingSa
 export async function clearTrainingSamples(gestureId?: string): Promise<void> {
   await database.write(async () => {
     const collection = database.get<GestureTrainingData>('gesture_training_data');
-    const samples = await collection.query().fetch();
-    const filtered = gestureId
-      ? samples.filter(s => s.gestureDefinition.id === gestureId)
-      : samples;
-
-    for (const sample of [...filtered]) {
-      await sample.destroyPermanently();
+    const query = gestureId
+      ? collection.query(Q.where('gesture_definition_id', gestureId))
+      : collection.query();
+    const samplesToDelete = await query.fetch();
+    if (samplesToDelete.length > 0) {
+      const deletions = samplesToDelete.map(sample => sample.prepareDestroyPermanently());
+      await database.batch(deletions);
     }
   });
 }

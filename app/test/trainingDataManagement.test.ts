@@ -5,7 +5,32 @@ const mockTrainingData: any[] = [];
 
 jest.mock('../db', () => {
   const mockCollection = {
-    query: () => ({ fetch: async () => mockTrainingData }),
+    query: (...clauses: any[]) => {
+      let gestureId = undefined as string | undefined;
+      const clause = clauses[0];
+      if (clause) {
+        if (clause.left === 'gesture_definition_id') {
+          gestureId = clause.comparison?.right?.value;
+        } else if (clause.column === 'gesture_definition_id') {
+          gestureId = clause.value;
+        }
+      }
+      const query = {
+        _gestureId: gestureId,
+        where(field: string, value: string) {
+          if (field === 'gesture_definition_id') {
+            this._gestureId = value;
+          }
+          return this;
+        },
+        async fetch() {
+          return this._gestureId
+            ? mockTrainingData.filter(s => s.gestureDefinition.id === this._gestureId)
+            : mockTrainingData;
+        },
+      } as any;
+      return query;
+    },
     create: (cb: any) => {
       const sample: any = {
         id: String(mockTrainingData.length + 1),
@@ -19,6 +44,9 @@ jest.mock('../db', () => {
           const idx = mockTrainingData.indexOf(sample);
           if (idx >= 0) mockTrainingData.splice(idx, 1);
         },
+        prepareDestroyPermanently: function () {
+          return this;
+        },
       };
       cb(sample);
       mockTrainingData.push(sample);
@@ -27,6 +55,11 @@ jest.mock('../db', () => {
   const mockDatabase = {
     get: () => mockCollection,
     write: async (fn: any) => fn(),
+    batch: async (operations: any[]) => {
+      for (const op of operations) {
+        await op.destroyPermanently?.();
+      }
+    },
   };
   return { database: mockDatabase };
 });

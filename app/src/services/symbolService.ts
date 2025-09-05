@@ -45,8 +45,14 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
   await database.write(async () => {
     const collection = database.get<Symbol>('symbols');
     for (const symbolData of symbols) {
+      let existing: Symbol | null;
       try {
-        const existing = await collection.find(symbolData.id);
+        existing = await collection.find(symbolData.id);
+      } catch {
+        existing = null;
+      }
+
+      if (existing) {
         await existing.update(symbol => {
           symbol.name = symbolData.name;
           symbol.emoji = symbolData.emoji;
@@ -55,7 +61,7 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
           symbol.dgsVideoAssetPath = symbolData.dgsVideoUri;
           symbol.healthScore = symbolData.healthScore;
         });
-      } catch {
+      } else {
         await collection.create(symbol => {
           (symbol as any).id = symbolData.id;
           symbol.name = symbolData.name;
