@@ -1,4 +1,52 @@
-import { createMockDb } from './utils/mockDb';
+jest.mock('@nozbe/watermelondb', () =>
+  jest.requireActual('@nozbe/watermelondb'),
+);
+jest.mock('@nozbe/watermelondb/adapters/lokijs', () =>
+  jest.requireActual('@nozbe/watermelondb/adapters/lokijs'),
+);
+jest.mock('../db', () => {
+  const { Database } = jest.requireActual('@nozbe/watermelondb');
+  const LokiJSAdapter =
+    jest.requireActual('@nozbe/watermelondb/adapters/lokijs').default;
+  const { mySchema } = jest.requireActual('../db/schema');
+  const { migrations } = jest.requireActual('../db/migrations');
+  const {
+    Profile,
+    Symbol,
+    VocabularySet,
+    UsageStat,
+    VocabularySetSymbol,
+    GestureDefinition,
+    GestureTrainingData,
+    InteractionLog,
+    LearningAnalytic,
+    Correction,
+  } = jest.requireActual('../db/models');
+  const adapter = new LokiJSAdapter({
+    schema: mySchema,
+    migrations,
+    useWebWorker: false,
+    useIncrementalIndexedDB: false,
+  });
+  const database = new Database({
+    adapter,
+    modelClasses: [
+      Profile,
+      Symbol,
+      VocabularySet,
+      UsageStat,
+      VocabularySetSymbol,
+      GestureDefinition,
+      GestureTrainingData,
+      InteractionLog,
+      LearningAnalytic,
+      Correction,
+    ],
+  });
+  return { database };
+});
+
+import { database } from '../db';
 
 const mockSymbols: any[] = [
   {
@@ -7,7 +55,7 @@ const mockSymbols: any[] = [
     emoji: '👋',
     color: '#ffcc00',
     audioUri: 'hello.mp3',
-    dgsVideoAssetPath: 'dgs/hello.mp4',
+    dgsVideoUri: 'dgs/hello.mp4',
     healthScore: 1,
   },
   {
@@ -16,7 +64,7 @@ const mockSymbols: any[] = [
     emoji: '🥤',
     color: '#0099ff',
     audioUri: 'drink.mp3',
-    dgsVideoAssetPath: 'dgs/drink.mp4',
+    dgsVideoUri: 'dgs/drink.mp4',
     healthScore: 1,
   },
   {
@@ -25,7 +73,7 @@ const mockSymbols: any[] = [
     emoji: '🔴',
     color: '#ff0000',
     audioUri: 'red.mp3',
-    dgsVideoAssetPath: 'dgs/red.mp4',
+    dgsVideoUri: 'dgs/red.mp4',
     healthScore: 1,
   },
   {
@@ -34,7 +82,7 @@ const mockSymbols: any[] = [
     emoji: '🔵',
     color: '#0000ff',
     audioUri: 'blue.mp3',
-    dgsVideoAssetPath: 'dgs/blue.mp4',
+    dgsVideoUri: 'dgs/blue.mp4',
     healthScore: 1,
   },
   {
@@ -43,7 +91,7 @@ const mockSymbols: any[] = [
     emoji: '🟢',
     color: '#00ff00',
     audioUri: 'green.mp3',
-    dgsVideoAssetPath: 'dgs/green.mp4',
+    dgsVideoUri: 'dgs/green.mp4',
     healthScore: 1,
   },
   {
@@ -52,7 +100,7 @@ const mockSymbols: any[] = [
     emoji: '🟡',
     color: '#ffff00',
     audioUri: 'yellow.mp3',
-    dgsVideoAssetPath: 'dgs/yellow.mp4',
+    dgsVideoUri: 'dgs/yellow.mp4',
     healthScore: 1,
   },
   {
@@ -61,7 +109,7 @@ const mockSymbols: any[] = [
     emoji: '🍎',
     color: '#ff6b35',
     audioUri: 'apple.mp3',
-    dgsVideoAssetPath: 'dgs/apple.mp4',
+    dgsVideoUri: 'dgs/apple.mp4',
     healthScore: 1,
   },
   {
@@ -70,7 +118,7 @@ const mockSymbols: any[] = [
     emoji: '🍌',
     color: '#ffe135',
     audioUri: 'banana.mp3',
-    dgsVideoAssetPath: 'dgs/banana.mp4',
+    dgsVideoUri: 'dgs/banana.mp4',
     healthScore: 1,
   },
   {
@@ -79,7 +127,7 @@ const mockSymbols: any[] = [
     emoji: '🍞',
     color: '#d2691e',
     audioUri: 'bread.mp3',
-    dgsVideoAssetPath: 'dgs/bread.mp4',
+    dgsVideoUri: 'dgs/bread.mp4',
     healthScore: 1,
   },
   {
@@ -88,19 +136,27 @@ const mockSymbols: any[] = [
     emoji: '🥛',
     color: '#ffffff',
     audioUri: 'milk.mp3',
-    dgsVideoAssetPath: 'dgs/milk.mp4',
+    dgsVideoUri: 'dgs/milk.mp4',
     healthScore: 1,
   },
 ];
 
-jest.mock('../db', () => {
-  const { createMockDb } = require('./utils/mockDb');
-  const database = createMockDb({ symbols: mockSymbols });
-  return { database };
-});
-
 import { loadSymbols, saveSymbols, getSymbolById } from '../src/services/symbolService';
+import { Symbol as DBSymbol } from '../db/models';
 describe('Symbol Management - Colors and Food for Amy', () => {
+  beforeEach(async () => {
+    await database.write(async () => {
+      const collection = database.get<DBSymbol>('symbols');
+      const existing = await collection.query().fetch();
+      if (existing.length > 0) {
+        await database.batch(
+          ...existing.map(s => s.prepareDestroyPermanently()),
+        );
+      }
+    });
+    await saveSymbols(mockSymbols);
+  });
+
   describe('Color Symbols', () => {
     it('loads red symbol correctly', async () => {
       const symbols = await loadSymbols();

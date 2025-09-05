@@ -97,6 +97,8 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
   }
 
   if (actions.length > 0) {
-    await database.batch(...actions);
+    await database.write(async () => {
+      await database.batch(...actions);
+    });
   }
 }
