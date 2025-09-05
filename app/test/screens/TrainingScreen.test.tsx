@@ -71,12 +71,13 @@ jest.mock('react-native-svg', () => ({
 import TrainingScreen from '../../src/screens/TrainingScreen';
 
 describe('TrainingScreen', () => {
-  let component: renderer.ReactTestRenderer;
+  let component: renderer.ReactTestRenderer | null = null;
 
   afterEach(() => {
-    act(() => {
-      component.unmount();
-    });
+    if (component) {
+      act(() => component!.unmount());
+      component = null;
+    }
   });
 
   it('records landmarks via MediaPipe gesture detector', async () => {
@@ -87,11 +88,11 @@ describe('TrainingScreen', () => {
       );
       await Promise.resolve();
     });
-    const button = component.root.findByType('Button');
+    const button = component!.root.findByType('Button');
     act(() => {
       button.props.onPress();
     });
-    const detector = component.root.findByType('MediaPipeGestureDetector');
+    const detector = component!.root.findByType('MediaPipeGestureDetector');
     act(() => {
       detector.props.onGestureDetected(null, 0.9, [[[1, 2, 3]]], ['Left']);
     });

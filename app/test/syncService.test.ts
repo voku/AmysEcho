@@ -94,20 +94,23 @@ describe('syncService.uploadPendingTrainingData', () => {
   }, 10000);
 
   it('retries transient failures before succeeding', async () => {
-    const timeoutSpy = jest
-      .spyOn(global, 'setTimeout')
-      .mockImplementation((fn: any) => {
-        fn();
-        return 0 as any;
-      });
+    jest.useFakeTimers();
     (global as any).fetch = jest
       .fn()
       .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'fail' })
       .mockResolvedValueOnce({ ok: true });
-    await syncService.uploadPendingTrainingData();
-    timeoutSpy.mockRestore();
+
+    const uploadPromise = syncService.uploadPendingTrainingData();
+
+    // Allow the first attempt to run and schedule the retry
+    await Promise.resolve();
+    await jest.runOnlyPendingTimersAsync();
+
+    await uploadPromise;
+
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(mockSamples[0].customSyncStatus).toBe('synced');
+    jest.useRealTimers();
   });
 
   it('prevents concurrent uploads', async () => {
