@@ -17,6 +17,78 @@
       "audioUri": "drink.mp3",
       "dgsVideoUri": "dgs/drink.mp4",
       "healthScore": 1
+    },
+    {
+      "id": "red",
+      "name": "Red",
+      "emoji": "🔴",
+      "color": "#ff0000",
+      "audioUri": "red.mp3",
+      "dgsVideoUri": "dgs/red.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "blue",
+      "name": "Blue",
+      "emoji": "🔵",
+      "color": "#0000ff",
+      "audioUri": "blue.mp3",
+      "dgsVideoUri": "dgs/blue.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "green",
+      "name": "Green",
+      "emoji": "🟢",
+      "color": "#00ff00",
+      "audioUri": "green.mp3",
+      "dgsVideoUri": "dgs/green.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "yellow",
+      "name": "Yellow",
+      "emoji": "🟡",
+      "color": "#ffff00",
+      "audioUri": "yellow.mp3",
+      "dgsVideoUri": "dgs/yellow.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "apple",
+      "name": "Apple",
+      "emoji": "🍎",
+      "color": "#ff6b35",
+      "audioUri": "apple.mp3",
+      "dgsVideoUri": "dgs/apple.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "banana",
+      "name": "Banana",
+      "emoji": "🍌",
+      "color": "#ffe135",
+      "audioUri": "banana.mp3",
+      "dgsVideoUri": "dgs/banana.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "bread",
+      "name": "Bread",
+      "emoji": "🍞",
+      "color": "#d2691e",
+      "audioUri": "bread.mp3",
+      "dgsVideoUri": "dgs/bread.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "milk",
+      "name": "Milk",
+      "emoji": "🥛",
+      "color": "#ffffff",
+      "audioUri": "milk.mp3",
+      "dgsVideoUri": "dgs/milk.mp4",
+      "healthScore": 1
     }
   ],
   "gestureDefinitions": [],
@@ -30,6 +102,54 @@
         3
       ],
       "source": "HIP_2",
+      "syncStatus": "pending",
+      "approved": true
+    },
+    {
+      "id": "sample_red_001",
+      "gestureDefinitionId": "red",
+      "landmarkData": [
+        [0.5, 0.5, -0.05], [0.45, 0.55, -0.04], [0.4, 0.6, -0.03], [0.35, 0.65, -0.02], [0.3, 0.7, -0.01],
+        [0.4, 0.4, -0.06], [0.35, 0.45, -0.05], [0.3, 0.5, -0.04], [0.25, 0.55, -0.03],
+        [0.45, 0.35, -0.07], [0.4, 0.4, -0.06], [0.35, 0.45, -0.05], [0.3, 0.5, -0.04],
+        [0.5, 0.3, -0.08], [0.45, 0.35, -0.07], [0.4, 0.4, -0.06], [0.35, 0.45, -0.05],
+        [0.55, 0.3, -0.09], [0.5, 0.35, -0.08], [0.45, 0.4, -0.07], [0.4, 0.45, -0.06],
+        [0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],
+        [0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]
+      ],
+      "source": "manual",
+      "syncStatus": "pending",
+      "approved": true
+    },
+    {
+      "id": "sample_blue_001",
+      "gestureDefinitionId": "blue",
+      "landmarkData": [
+        [0.51, 0.5, -0.05], [0.46, 0.55, -0.04], [0.41, 0.6, -0.03], [0.36, 0.65, -0.02], [0.31, 0.7, -0.01],
+        [0.41, 0.4, -0.06], [0.36, 0.45, -0.05], [0.31, 0.5, -0.04], [0.26, 0.55, -0.03],
+        [0.46, 0.35, -0.07], [0.41, 0.4, -0.06], [0.36, 0.45, -0.05], [0.31, 0.5, -0.04],
+        [0.51, 0.3, -0.08], [0.46, 0.35, -0.07], [0.41, 0.4, -0.06], [0.36, 0.45, -0.05],
+        [0.56, 0.3, -0.09], [0.51, 0.35, -0.08], [0.46, 0.4, -0.07], [0.41, 0.45, -0.06],
+        [0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],
+        [0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]
+      ],
+      "source": "manual",
+      "syncStatus": "pending",
+      "approved": true
+    },
+    {
+      "id": "sample_apple_001",
+      "gestureDefinitionId": "apple",
+      "landmarkData": [
+        [0.52, 0.5, -0.05], [0.47, 0.55, -0.04], [0.42, 0.6, -0.03], [0.37, 0.65, -0.02], [0.32, 0.7, -0.01],
+        [0.42, 0.4, -0.06], [0.37, 0.45, -0.05], [0.32, 0.5, -0.04], [0.27, 0.55, -0.03],
+        [0.47, 0.35, -0.07], [0.42, 0.4, -0.06], [0.37, 0.45, -0.05], [0.32, 0.5, -0.04],
+        [0.52, 0.3, -0.08], [0.47, 0.35, -0.07], [0.42, 0.4, -0.06], [0.37, 0.45, -0.05],
+        [0.57, 0.3, -0.09], [0.52, 0.35, -0.08], [0.47, 0.4, -0.07], [0.42, 0.45, -0.06],
+        [0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],
+        [0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]
+      ],
+      "source": "manual",
       "syncStatus": "pending",
       "approved": true
     }
@@ -64,6 +184,46 @@
       "id": "mf52978m1lgf60sgpww",
       "vocabularySetId": "basic",
       "symbolId": "drink"
+    },
+    {
+      "id": "color_red_001",
+      "vocabularySetId": "basic",
+      "symbolId": "red"
+    },
+    {
+      "id": "color_blue_001",
+      "vocabularySetId": "basic",
+      "symbolId": "blue"
+    },
+    {
+      "id": "color_green_001",
+      "vocabularySetId": "basic",
+      "symbolId": "green"
+    },
+    {
+      "id": "color_yellow_001",
+      "vocabularySetId": "basic",
+      "symbolId": "yellow"
+    },
+    {
+      "id": "food_apple_001",
+      "vocabularySetId": "basic",
+      "symbolId": "apple"
+    },
+    {
+      "id": "food_banana_001",
+      "vocabularySetId": "basic",
+      "symbolId": "banana"
+    },
+    {
+      "id": "food_bread_001",
+      "vocabularySetId": "basic",
+      "symbolId": "bread"
+    },
+    {
+      "id": "food_milk_001",
+      "vocabularySetId": "basic",
+      "symbolId": "milk"
     }
   ],
   "usageStats": [
@@ -76,6 +236,54 @@
     {
       "id": "mf52978mjvcwk0kdv9n",
       "symbolId": "drink",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "usage_red_001",
+      "symbolId": "red",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "usage_blue_001",
+      "symbolId": "blue",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "usage_green_001",
+      "symbolId": "green",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "usage_yellow_001",
+      "symbolId": "yellow",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "usage_apple_001",
+      "symbolId": "apple",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "usage_banana_001",
+      "symbolId": "banana",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "usage_bread_001",
+      "symbolId": "bread",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "usage_milk_001",
+      "symbolId": "milk",
       "profileId": "default",
       "count": 0
     }

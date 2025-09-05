@@ -1067,6 +1067,96 @@
   window.addEventListener("unhandledrejection", onUnhandledRejection);
   window.fflate = { unzip, unzipSync };
   installMlp();
+  var ErrorRecoveryManager = class {
+    constructor() {
+      this.failureCount = 0;
+      this.lastFailureTime = 0;
+      this.circuitBreakerOpen = false;
+      this.fallbackMode = false;
+      this.CIRCUIT_BREAKER_THRESHOLD = 5;
+      this.CIRCUIT_BREAKER_TIMEOUT = 3e4;
+      // 30 seconds
+      this.FAILURE_WINDOW = 6e4;
+    }
+    // 1 minute
+    getErrorInfo(error, context) {
+      const errorMessage = error.message.toLowerCase();
+      if (errorMessage.includes("network") || errorMessage.includes("fetch") || errorMessage.includes("timeout")) {
+        return {
+          message: "Network connectivity issue detected",
+          code: "NETWORK_ERROR",
+          recoverable: true
+        };
+      }
+      if (errorMessage.includes("camera") || errorMessage.includes("media") || errorMessage.includes("permission")) {
+        return {
+          message: "Camera access issue detected",
+          code: "CAMERA_ERROR",
+          recoverable: true
+        };
+      }
+      if (errorMessage.includes("mediapipe") || errorMessage.includes("wasm") || errorMessage.includes("webgl")) {
+        return {
+          message: "Gesture recognition system issue detected",
+          code: "MEDIAPIPE_ERROR",
+          recoverable: true
+        };
+      }
+      return {
+        message: `System issue detected during ${context}`,
+        code: "GENERIC_ERROR",
+        recoverable: false
+      };
+    }
+    recordFailure(error) {
+      const now = Date.now();
+      if (now - this.lastFailureTime > this.FAILURE_WINDOW) {
+        this.failureCount = 0;
+      }
+      this.failureCount++;
+      this.lastFailureTime = now;
+      if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
+        this.circuitBreakerOpen = true;
+        console.warn("Circuit breaker opened due to repeated failures");
+        return false;
+      }
+      return true;
+    }
+    isCircuitBreakerOpen() {
+      if (this.circuitBreakerOpen && Date.now() - this.lastFailureTime > this.CIRCUIT_BREAKER_TIMEOUT) {
+        this.circuitBreakerOpen = false;
+        this.failureCount = 0;
+        console.info("Circuit breaker auto-closed");
+      }
+      return this.circuitBreakerOpen;
+    }
+    activateFallbackMode() {
+      if (!this.fallbackMode) {
+        this.fallbackMode = true;
+        console.warn("Activating fallback gesture detection mode");
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: "telemetry",
+              event: "fallback_mode_activated"
+            })
+          );
+        } catch (err2) {
+          console.warn("Failed to send fallback mode notification:", err2);
+        }
+      }
+    }
+    isInFallbackMode() {
+      return this.fallbackMode;
+    }
+    reset() {
+      this.failureCount = 0;
+      this.lastFailureTime = 0;
+      this.circuitBreakerOpen = false;
+      this.fallbackMode = false;
+    }
+  };
+  var errorRecoveryManager = new ErrorRecoveryManager();
   gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
   try {
     window.ReactNativeWebView?.postMessage?.(
@@ -1081,8 +1171,8 @@
   var cameraError = window.__cameraError || "Kamerafehler: ";
   var facingMode = window.__facingMode || "user";
   var mirrorOverlay = window.__mirrorOverlay === true;
-  var MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.6;
-  var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.5;
+  var MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.4;
+  var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.3;
   var LOAD_TIMEOUT_MS = 8e3;
   var GESTURE_SIZE_TOLERANCE = window.__gestureSizeTolerance ?? 0.3;
   var EMERGENCY_GESTURES = /* @__PURE__ */ new Set(["hilfe", "help", "emergency", "stop", "danger"]);
@@ -1600,120 +1690,6 @@
     }
   };
   var resourceManager = new ResourceManager();
-  var ErrorRecoveryManager = class {
-    constructor() {
-      this.failureCount = 0;
-      this.lastFailureTime = 0;
-      this.MAX_FAILURES = 3;
-      this.RESET_TIME_MS = 3e4;
-      // 30 seconds
-      this.RETRY_DELAY_MS = 2e3;
-      this.circuitBreakerOpen = false;
-      this.retryTimeoutId = null;
-    }
-    /**
-     * Record a failure and determine if we should retry
-     */
-    recordFailure(error) {
-      this.failureCount++;
-      this.lastFailureTime = Date.now();
-      if (this.failureCount >= this.MAX_FAILURES) {
-        this.circuitBreakerOpen = true;
-        console.warn("Circuit breaker opened due to repeated failures");
-        return false;
-      }
-      return true;
-    }
-    /**
-     * Check if circuit breaker is open
-     */
-    isCircuitBreakerOpen() {
-      if (this.circuitBreakerOpen && Date.now() - this.lastFailureTime > this.RESET_TIME_MS) {
-        this.circuitBreakerOpen = false;
-        this.failureCount = 0;
-        console.log("Circuit breaker reset");
-      }
-      return this.circuitBreakerOpen;
-    }
-    /**
-     * Attempt recovery with retry logic
-     */
-    async attemptRecovery(recoveryFn) {
-      if (this.isCircuitBreakerOpen()) {
-        console.warn("Recovery blocked by circuit breaker");
-        return false;
-      }
-      try {
-        await recoveryFn();
-        this.failureCount = 0;
-        this.circuitBreakerOpen = false;
-        return true;
-      } catch (error) {
-        console.warn("Recovery attempt failed:", error);
-        this.recordFailure(error);
-        return false;
-      }
-    }
-    /**
-     * Schedule a retry after delay
-     */
-    scheduleRetry(recoveryFn) {
-      if (this.retryTimeoutId) {
-        clearTimeout(this.retryTimeoutId);
-      }
-      this.retryTimeoutId = window.setTimeout(async () => {
-        this.retryTimeoutId = null;
-        const success = await this.attemptRecovery(recoveryFn);
-        if (!success && !this.isCircuitBreakerOpen()) {
-          this.scheduleRetry(recoveryFn);
-        }
-      }, this.RETRY_DELAY_MS);
-      resourceManager.registerTimeout(this.retryTimeoutId);
-    }
-    /**
-     * Get structured error information
-     */
-    getErrorInfo(error, context) {
-      let code = "UNKNOWN_ERROR";
-      let recoverable = true;
-      if (error.message.includes("MediaPipe") || error.message.includes("gesture")) {
-        code = "GESTURE_RECOGNITION_ERROR";
-      } else if (error.message.includes("camera") || error.message.includes("video")) {
-        code = "CAMERA_ERROR";
-      } else if (error.message.includes("network") || error.message.includes("fetch")) {
-        code = "NETWORK_ERROR";
-      } else if (error.message.includes("memory") || error.message.includes("out of memory")) {
-        code = "MEMORY_ERROR";
-        recoverable = false;
-      }
-      return {
-        code,
-        message: error.message,
-        context,
-        recoverable,
-        timestamp: Date.now()
-      };
-    }
-    /**
-     * Activate fallback mode
-     */
-    activateFallbackMode() {
-      console.log("Activating fallback mode");
-    }
-    /**
-     * Reset error state
-     */
-    reset() {
-      this.failureCount = 0;
-      this.lastFailureTime = 0;
-      this.circuitBreakerOpen = false;
-      if (this.retryTimeoutId) {
-        clearTimeout(this.retryTimeoutId);
-        this.retryTimeoutId = null;
-      }
-    }
-  };
-  var errorRecoveryManager = new ErrorRecoveryManager();
   async function loadTasksVision() {
     async function resolvePinnedBase() {
       const pinnedVersion = window.__mediapipeVersion;
@@ -2023,8 +1999,6 @@
     tremorCompensator.clearHistory();
     lastProcessedLandmarks = [];
   }
-  var TARGET_FPS = 30;
-  var MIN_FRAME_TIME = 1e3 / TARGET_FPS;
   var FRAME_LATENCY_SAMPLE_INTERVAL = 90;
   var lastFrameTs = 0;
   function isEmergencyGesture(gesture) {
@@ -2082,13 +2056,7 @@
       }
     } catch (e) {
     }
-    if (!isEmergencyFrame && nowTime - lastFrameTs < MIN_FRAME_TIME) {
-      window.requestAnimationFrame(predictWebcam);
-      return;
-    }
-    if (!isEmergencyFrame) {
-      lastFrameTs = nowTime;
-    }
+    lastFrameTs = nowTime;
     try {
       if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
         if (lastVideoTime !== video.currentTime) {

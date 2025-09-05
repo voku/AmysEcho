@@ -1,0 +1,57 @@
+import { database } from '../../db';
+import { Symbol } from '../../db/models';
+
+export interface SymbolData {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  audioUri: string;
+  dgsVideoUri: string;
+  healthScore: number;
+}
+
+export async function loadSymbols(): Promise<SymbolData[]> {
+  const symbols = await database.get<Symbol>('symbols').query().fetch();
+  return symbols.map(symbol => ({
+    id: symbol.id,
+    name: symbol.name,
+    emoji: symbol.emoji || '',
+    color: symbol.color || '#000000',
+    audioUri: symbol.audioUri || '',
+    dgsVideoUri: symbol.dgsVideoAssetPath || '',
+    healthScore: symbol.healthScore || 1
+  }));
+}
+
+export async function getSymbolById(id: string): Promise<SymbolData | null> {
+  try {
+    const symbol = await database.get<Symbol>('symbols').find(id);
+    return {
+      id: symbol.id,
+      name: symbol.name,
+      emoji: symbol.emoji || '',
+      color: symbol.color || '#000000',
+      audioUri: symbol.audioUri || '',
+      dgsVideoUri: symbol.dgsVideoAssetPath || '',
+      healthScore: symbol.healthScore || 1
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
+  await database.write(async () => {
+    for (const symbolData of symbols) {
+      await database.get<Symbol>('symbols').create(symbol => {
+        symbol.name = symbolData.name;
+        symbol.emoji = symbolData.emoji;
+        symbol.color = symbolData.color;
+        symbol.audioUri = symbolData.audioUri;
+        symbol.dgsVideoAssetPath = symbolData.dgsVideoUri;
+        symbol.healthScore = symbolData.healthScore;
+      });
+    }
+  });
+}

@@ -67,6 +67,120 @@ window.addEventListener('unhandledrejection', onUnhandledRejection);
 window.fflate = { unzip, unzipSync };
 installMlp();
 
+// Error Recovery Manager for robust error handling
+class ErrorRecoveryManager {
+  private failureCount = 0;
+  private lastFailureTime = 0;
+  private circuitBreakerOpen = false;
+  private fallbackMode = false;
+
+  private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
+  private readonly CIRCUIT_BREAKER_TIMEOUT = 30000; // 30 seconds
+  private readonly FAILURE_WINDOW = 60000; // 1 minute
+
+  getErrorInfo(error: Error, context: string): { message: string; code: string; recoverable: boolean } {
+    const errorMessage = error.message.toLowerCase();
+
+    // Network-related errors
+    if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
+      return {
+        message: 'Network connectivity issue detected',
+        code: 'NETWORK_ERROR',
+        recoverable: true
+      };
+    }
+
+    // Camera-related errors
+    if (errorMessage.includes('camera') || errorMessage.includes('media') || errorMessage.includes('permission')) {
+      return {
+        message: 'Camera access issue detected',
+        code: 'CAMERA_ERROR',
+        recoverable: true
+      };
+    }
+
+    // MediaPipe-related errors
+    if (errorMessage.includes('mediapipe') || errorMessage.includes('wasm') || errorMessage.includes('webgl')) {
+      return {
+        message: 'Gesture recognition system issue detected',
+        code: 'MEDIAPIPE_ERROR',
+        recoverable: true
+      };
+    }
+
+    // Generic error
+    return {
+      message: `System issue detected during ${context}`,
+      code: 'GENERIC_ERROR',
+      recoverable: false
+    };
+  }
+
+  recordFailure(error: Error): boolean {
+    const now = Date.now();
+
+    // Reset failure count if outside the failure window
+    if (now - this.lastFailureTime > this.FAILURE_WINDOW) {
+      this.failureCount = 0;
+    }
+
+    this.failureCount++;
+    this.lastFailureTime = now;
+
+    // Open circuit breaker if threshold exceeded
+    if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
+      this.circuitBreakerOpen = true;
+      console.warn('Circuit breaker opened due to repeated failures');
+      return false;
+    }
+
+    return true; // Should retry
+  }
+
+  isCircuitBreakerOpen(): boolean {
+    // Auto-close circuit breaker after timeout
+    if (this.circuitBreakerOpen && Date.now() - this.lastFailureTime > this.CIRCUIT_BREAKER_TIMEOUT) {
+      this.circuitBreakerOpen = false;
+      this.failureCount = 0;
+      console.info('Circuit breaker auto-closed');
+    }
+
+    return this.circuitBreakerOpen;
+  }
+
+  activateFallbackMode(): void {
+    if (!this.fallbackMode) {
+      this.fallbackMode = true;
+      console.warn('Activating fallback gesture detection mode');
+
+      // Notify React Native about fallback mode
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'telemetry',
+            event: 'fallback_mode_activated'
+          })
+        );
+      } catch (err) {
+        console.warn('Failed to send fallback mode notification:', err);
+      }
+    }
+  }
+
+  isInFallbackMode(): boolean {
+    return this.fallbackMode;
+  }
+
+  reset(): void {
+    this.failureCount = 0;
+    this.lastFailureTime = 0;
+    this.circuitBreakerOpen = false;
+    this.fallbackMode = false;
+  }
+}
+
+const errorRecoveryManager = new ErrorRecoveryManager();
+
 // Configure gesture size tolerance
 gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
 
@@ -85,9 +199,10 @@ const predictionError = window.__predictionError || 'Vorhersagefehler: ';
 const cameraError = window.__cameraError || 'Kamerafehler: ';
 const facingMode = window.__facingMode || 'user';
 const mirrorOverlay = window.__mirrorOverlay === true;
-const MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.6;
+// Amy First: Lower thresholds for imperfect gestures (22q11 syndrome)
+const MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.4;
 // Minimum confidence below which custom gesture fallbacks activate
-const FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.5;
+const FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.3;
 // Timeout for CDN fetches and script loads to avoid hangs
 const LOAD_TIMEOUT_MS = 8000;
 // Gesture size tolerance (0.1 to 1.0, default 0.3 = 30% tolerance)
@@ -98,6 +213,10 @@ const EMERGENCY_GESTURES = new Set(['hilfe', 'help', 'emergency', 'stop', 'dange
 const EMERGENCY_CONFIDENCE_THRESHOLD = 0.3; // Lower threshold for emergency detection
 let lastEmergencyGestureTime = 0;
 const EMERGENCY_COOLDOWN_MS = 1000; // Prevent spam but allow quick repeated calls
+
+// Amy First: Continuous operation mode - no performance degradation at low battery
+const AMY_CONTINUOUS_MODE = true; // Always enabled for Amy's safety
+const LOW_BATTERY_THRESHOLD = 0.05; // 5% battery threshold for optimizations
 
 // Gesture size tolerance and normalization system
 class GestureSizeNormalizer {
@@ -763,146 +882,7 @@ class ResourceManager {
 
 const resourceManager = new ResourceManager();
 
-// Error Recovery Manager for handling failures gracefully
-class ErrorRecoveryManager {
-  private failureCount = 0;
-  private lastFailureTime = 0;
-  private readonly MAX_FAILURES = 3;
-  private readonly RESET_TIME_MS = 30000; // 30 seconds
-  private readonly RETRY_DELAY_MS = 2000;
-  private circuitBreakerOpen = false;
-  private retryTimeoutId: number | null = null;
-
-  /**
-   * Record a failure and determine if we should retry
-   */
-  recordFailure(error: Error): boolean {
-    this.failureCount++;
-    this.lastFailureTime = Date.now();
-
-    if (this.failureCount >= this.MAX_FAILURES) {
-      this.circuitBreakerOpen = true;
-      console.warn('Circuit breaker opened due to repeated failures');
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Check if circuit breaker is open
-   */
-  isCircuitBreakerOpen(): boolean {
-    // Auto-reset circuit breaker after timeout
-    if (this.circuitBreakerOpen && Date.now() - this.lastFailureTime > this.RESET_TIME_MS) {
-      this.circuitBreakerOpen = false;
-      this.failureCount = 0;
-      console.log('Circuit breaker reset');
-    }
-    return this.circuitBreakerOpen;
-  }
-
-  /**
-   * Attempt recovery with retry logic
-   */
-  async attemptRecovery(recoveryFn: () => Promise<void>): Promise<boolean> {
-    if (this.isCircuitBreakerOpen()) {
-      console.warn('Recovery blocked by circuit breaker');
-      return false;
-    }
-
-    try {
-      await recoveryFn();
-      // Success - reset failure count
-      this.failureCount = 0;
-      this.circuitBreakerOpen = false;
-      return true;
-    } catch (error) {
-      console.warn('Recovery attempt failed:', error);
-      this.recordFailure(error as Error);
-      return false;
-    }
-  }
-
-  /**
-   * Schedule a retry after delay
-   */
-  scheduleRetry(recoveryFn: () => Promise<void>): void {
-    if (this.retryTimeoutId) {
-      clearTimeout(this.retryTimeoutId);
-    }
-
-    this.retryTimeoutId = window.setTimeout(async () => {
-      this.retryTimeoutId = null;
-      const success = await this.attemptRecovery(recoveryFn);
-      if (!success && !this.isCircuitBreakerOpen()) {
-        // Schedule another retry if still failing but circuit breaker not open
-        this.scheduleRetry(recoveryFn);
-      }
-    }, this.RETRY_DELAY_MS);
-
-    // Register timeout with resource manager
-    resourceManager.registerTimeout(this.retryTimeoutId);
-  }
-
-  /**
-   * Get structured error information
-   */
-  getErrorInfo(error: Error, context: string): {
-    code: string;
-    message: string;
-    context: string;
-    recoverable: boolean;
-    timestamp: number;
-  } {
-    let code = 'UNKNOWN_ERROR';
-    let recoverable = true;
-
-    if (error.message.includes('MediaPipe') || error.message.includes('gesture')) {
-      code = 'GESTURE_RECOGNITION_ERROR';
-    } else if (error.message.includes('camera') || error.message.includes('video')) {
-      code = 'CAMERA_ERROR';
-    } else if (error.message.includes('network') || error.message.includes('fetch')) {
-      code = 'NETWORK_ERROR';
-    } else if (error.message.includes('memory') || error.message.includes('out of memory')) {
-      code = 'MEMORY_ERROR';
-      recoverable = false;
-    }
-
-    return {
-      code,
-      message: error.message,
-      context,
-      recoverable,
-      timestamp: Date.now()
-    };
-  }
-
-  /**
-   * Activate fallback mode
-   */
-  activateFallbackMode(): void {
-    console.log('Activating fallback mode');
-    // Disable advanced features that might be causing issues
-    // This could include disabling tremor compensation, partial gestures, etc.
-    // For now, just log - specific fallback logic would be implemented based on error type
-  }
-
-  /**
-   * Reset error state
-   */
-  reset(): void {
-    this.failureCount = 0;
-    this.lastFailureTime = 0;
-    this.circuitBreakerOpen = false;
-    if (this.retryTimeoutId) {
-      clearTimeout(this.retryTimeoutId);
-      this.retryTimeoutId = null;
-    }
-  }
-}
-
-const errorRecoveryManager = new ErrorRecoveryManager();
+// Error Recovery Manager already defined above
 
 // Dynamically load MediaPipe Tasks Vision from CDN and wait until it's ready
 async function loadTasksVision() {
@@ -1239,10 +1219,9 @@ function resetGestureChangeState() {
   tremorCompensator.clearHistory();
   lastProcessedLandmarks = [];
 }
-// Target processing rate to balance accuracy and device load
-const TARGET_FPS = 30;
-const MIN_FRAME_TIME = 1000 / TARGET_FPS;
-const FRAME_LATENCY_SAMPLE_INTERVAL = 90; // ~3s @ 30fps
+// Amy First: No throttling for communication - process every frame
+// Removed TARGET_FPS and MIN_FRAME_TIME to ensure Amy's gestures are never delayed
+const FRAME_LATENCY_SAMPLE_INTERVAL = 90; // ~3s @ 30fps (for telemetry only)
 let lastFrameTs = 0;
 
 // Emergency gesture detection and priority processing
@@ -1283,6 +1262,9 @@ function predictWebcam() {
   if (!running) return;
   const nowTime = performance.now();
 
+  // Amy First: Always maintain full performance regardless of battery level
+  // No frame skipping or quality reduction for Amy's communication
+
   // Emergency gestures bypass normal throttling
   let isEmergencyFrame = false;
 
@@ -1314,15 +1296,9 @@ function predictWebcam() {
     // Ignore errors in emergency pre-check
   }
 
-  // Process emergency frames immediately, others respect throttling
-  if (!isEmergencyFrame && nowTime - lastFrameTs < MIN_FRAME_TIME) {
-    window.requestAnimationFrame(predictWebcam);
-    return;
-  }
-
-  if (!isEmergencyFrame) {
-    lastFrameTs = nowTime;
-  }
+  // Amy First: Process every frame for immediate communication
+  // Emergency frames get priority, but all frames are processed without throttling
+  lastFrameTs = nowTime;
   try {
     if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
       if (lastVideoTime !== video.currentTime) {

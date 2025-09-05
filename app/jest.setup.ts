@@ -24,4 +24,17 @@ jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 jest.mock('./src/services/accessibilityService', () => ({ announce: jest.fn() }));
-jest.mock('expo-haptics', () => ({ impactAsync: jest.fn() }));
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(),
+  notificationAsync: jest.fn(),
+  ImpactFeedbackStyle: {
+    Light: 'light',
+    Medium: 'medium',
+    Heavy: 'heavy',
+  },
+  NotificationFeedbackType: {
+    Success: 'success',
+    Warning: 'warning',
+    Error: 'error',
+  },
+}));

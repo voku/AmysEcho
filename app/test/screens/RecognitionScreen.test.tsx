@@ -69,6 +69,7 @@ jest.mock('../../src/services', () => ({
     playEncouragement: jest.fn(),
     playSuccessFeedback: jest.fn(),
     playErrorFeedback: jest.fn(),
+    playSound: jest.fn(),
   },
   triggerSpeakAndShow: jest.fn((_: any, __: any, cb: () => void) => cb()),
   correctionService: { logCorrection: jest.fn() },
@@ -165,7 +166,7 @@ describe('RecognitionScreen', () => {
     expect(button.props.accessibilityLabel).toBe('Korrekturseite öffnen');
   });
 
-  it('provides gentle feedback when gesture is not recognized', async () => {
+  it('provides positive feedback for all gesture attempts (Amy optimization)', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
@@ -174,9 +175,12 @@ describe('RecognitionScreen', () => {
     });
     const detector = component.root.findByType('MediaPipeGestureDetector');
     await act(async () => {
-      await detector.props.onGestureDetected(null, 0.1, [], []);
+      // Use confidence that triggers uncertain path but still gets feedback
+      await detector.props.onGestureDetected(null, 0.3, [], []);
     });
-    expect(audioService.playErrorFeedback).toHaveBeenCalled();
+    // Amy First: All attempts get positive feedback, not error feedback
+    expect(audioService.playErrorFeedback).not.toHaveBeenCalled();
+    expect(audioService.playSound).toHaveBeenCalledWith('confirmation', { volume: 0.5 });
   });
 
   it('shows DGS video when toggle enabled and gesture recognized', async () => {
@@ -231,8 +235,10 @@ describe('RecognitionScreen', () => {
     });
     const celebrations = component.root.findAllByType(Celebration);
     expect(celebrations.length).toBe(1);
-    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
-    expect(announceGestureRecognition).toHaveBeenCalledTimes(1);
+    // Amy optimization: provideInstantFeedback also calls triggerSpeakAndShow
+    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(2);
+    // announceGestureRecognition is called from both successful recognition and provideInstantFeedback
+    expect(announceGestureRecognition).toHaveBeenCalledTimes(2);
   });
 
   it('does not spam celebration for repeated gestures', async () => {
@@ -247,11 +253,28 @@ describe('RecognitionScreen', () => {
       detector.props.onGestureDetected('hello', 0.9, [], []);
       detector.props.onGestureDetected('hello', 0.95, [], []);
     });
-    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
-    expect(announceGestureRecognition).toHaveBeenCalledTimes(1);
+    // First call from successful recognition, second from provideInstantFeedback
+    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(2);
+    // announceGestureRecognition is called from both successful recognition and provideInstantFeedback
+    expect(announceGestureRecognition).toHaveBeenCalledTimes(2);
   });
 
-  it('throttles rapid gesture events', async () => {
+  it('prioritizes emergency gestures immediately', async () => {
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
+      );
+    });
+    const detector = component.root.findByType('MediaPipeGestureDetector');
+    await act(async () => {
+      detector.props.onGestureDetected('hilfe', 0.4, [], [], true); // emergency = true
+    });
+    expect(audioService.speak).toHaveBeenCalledWith('hilfe');
+    expect(audioService.playSound).toHaveBeenCalledWith('success', { volume: 0.8 });
+  });
+
+  it('processes every gesture immediately (Amy optimization - no throttling)', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
@@ -261,9 +284,10 @@ describe('RecognitionScreen', () => {
     const detector = component.root.findByType('MediaPipeGestureDetector');
     await act(async () => {
       detector.props.onGestureDetected('hello', 0.9, [], []);
-      detector.props.onGestureDetected(null, 0.1, [], []);
+      detector.props.onGestureDetected(null, 0.3, [], []);
     });
-    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(1);
-    expect(audioService.playErrorFeedback).not.toHaveBeenCalled();
+    // Amy First: No throttling - every gesture is processed immediately
+    // First call from successful recognition, second from provideInstantFeedback for failed attempt
+    expect(triggerSpeakAndShow).toHaveBeenCalledTimes(2);
   });
 });

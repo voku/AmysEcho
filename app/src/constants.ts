@@ -3,9 +3,10 @@ import * as FileSystem from 'expo-file-system';
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 export const API_TOKEN = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
 export const CONFIDENCE_THRESHOLD = 0.7;
-export const MLP_CONFIDENCE_THRESHOLD = 0.6;
+// Amy First: Lower thresholds for imperfect gestures (22q11 syndrome)
+export const MLP_CONFIDENCE_THRESHOLD = 0.4;
 // Lower bound for rule-based gesture fallback when MLP confidence is low
-export const FALLBACK_CONFIDENCE_THRESHOLD = 0.5;
+export const FALLBACK_CONFIDENCE_THRESHOLD = 0.3;
 export const ANALYTICS_ENDPOINT = `${API_URL}/analytics`;
 export const ANALYTICS_TELEMETRY_ENDPOINT = `${API_URL}/telemetry`;
 

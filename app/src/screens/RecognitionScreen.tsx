@@ -227,7 +227,7 @@ export default function RecognitionScreen({
     confidence: number,
     isSuccessful: boolean,
   ) => {
-    // Always provide some form of feedback for every gesture attempt
+    // Amy First: Always provide immediate, positive feedback for every gesture attempt
     if (isSuccessful) {
       // Successful gesture - full celebration
       const entry = (gestureModel.gestures.find((g) => g.id === gesture) || { id: gesture, label: gesture }) as GestureModelEntry;
@@ -239,22 +239,31 @@ export default function RecognitionScreen({
       }
       announceGestureRecognition(labelForUser, confidence);
     } else {
-      // Unsuccessful attempt - encouraging feedback without full celebration
+      // Amy First: Every attempt deserves positive reinforcement
       if (!screenReaderEnabled) {
-        // Provide gentle haptic feedback for unsuccessful attempts
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        // Play a gentle encouraging sound
-        void audioService.playSound('confirmation', { volume: 0.3 });
+        // Provide gentle but noticeable haptic feedback for all attempts
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        // Play encouraging sound for every attempt
+        void audioService.playSound('confirmation', { volume: 0.5 });
       }
 
-      // Update status with encouraging message
-      setStatus('Gut versucht! Mach weiter so!');
+      // Always show encouraging messages - never discourage Amy
+      const encouragingMessages = [
+        'Gut versucht! Mach weiter so!',
+        'Super Versuch! Du schaffst das!',
+        'Toll probiert! Gleich klappt\'s!',
+        'Prima! Lass uns weitermachen!',
+        'Du bist auf dem richtigen Weg!'
+      ];
+      const randomMessage = encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)];
+      setStatus(randomMessage);
 
-      // Visual feedback - subtle animation
-      fadeAnim.setValue(0.5);
+      // Visual feedback - positive animation for every attempt
+      fadeAnim.setValue(0.7);
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 200,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
         useNativeDriver: true,
       }).start();
     }
@@ -376,7 +385,8 @@ export default function RecognitionScreen({
         uncertainCountRef.current = 0;
         consecutiveFailuresRef.current = 0; // Reset failure counter on successful recognition
 
-      if (smoothed > 0.7 && stableGesture !== 'unknown') {
+      // Amy First: Lower threshold for imperfect gestures (22q11 syndrome)
+      if (smoothed > 0.5 && stableGesture !== 'unknown') {
         const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
         const now = Date.now();
         const shouldProvideFeedback =

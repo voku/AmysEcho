@@ -45,6 +45,7 @@
   "devDependencies": {
     "@babel/core": "7.28.3",
     "@eslint/eslintrc": "^3.3.1",
+    "@react-native-community/cli": "^20.0.1",
     "@react-native-community/eslint-config": "^3.2.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/crypto-js": "4.2.1",
