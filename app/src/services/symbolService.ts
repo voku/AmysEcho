@@ -45,11 +45,15 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
   await database.write(async () => {
     const collection = database.get<Symbol>('symbols');
     for (const symbolData of symbols) {
-      let existing: Symbol | null;
+      let existing: Symbol | null = null;
       try {
         existing = await collection.find(symbolData.id);
-      } catch {
-        existing = null;
+      } catch (err: any) {
+        const isNotFound =
+          err?.name === 'NotFoundError' || /not\s*found/i.test(String(err?.message));
+        if (!isNotFound) {
+          throw err;
+        }
       }
 
       if (existing) {
@@ -63,7 +67,8 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
         });
       } else {
         await collection.create(symbol => {
-          (symbol as any).id = symbolData.id;
+          type RawWithId = Omit<typeof symbol._raw, 'id'> & { id: string };
+          (symbol._raw as RawWithId).id = symbolData.id;
           symbol.name = symbolData.name;
           symbol.emoji = symbolData.emoji;
           symbol.color = symbolData.color;

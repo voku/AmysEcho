@@ -98,21 +98,30 @@ jest.mock('../db', () => {
   const mockCollection = {
     query: () => ({ fetch: async () => mockSymbols }),
     find: async (id: string) => {
-      const symbol = mockSymbols.find(s => s.id === id);
-      if (!symbol) throw new Error('not found');
+      const backing = mockSymbols.find(s => s.id === id);
+      if (!backing) {
+        const err: any = new Error('not found');
+        err.name = 'NotFoundError';
+        throw err;
+      }
       return {
-        ...symbol,
-        update: (cb: any) => cb(symbol),
+        ...backing,
+        update: async (cb: any) => {
+          const draft = { ...backing };
+          cb(draft);
+          Object.assign(backing, draft);
+        },
       };
     },
     create: (cb: any) => {
-      const symbol: any = {};
-      cb(symbol);
-      const index = mockSymbols.findIndex(s => s.id === symbol.id);
+      const record: any = { _raw: {} };
+      cb(record);
+      record.id = record.id || record._raw.id;
+      const index = mockSymbols.findIndex(s => s.id === record.id);
       if (index >= 0) {
-        mockSymbols[index] = symbol;
+        mockSymbols[index] = record;
       } else {
-        mockSymbols.push(symbol);
+        mockSymbols.push(record);
       }
     },
   };

@@ -15,13 +15,16 @@ export async function addTrainingSample(
   landmarkData: number[][],
   source: string = 'manual'
 ): Promise<void> {
-  if (
-    !gestureId ||
-    gestureId.trim() === '' ||
-    !Array.isArray(landmarkData) ||
-    landmarkData.length === 0
-  ) {
-    throw new Error('Invalid training sample data');
+  const isValidTuples =
+    Array.isArray(landmarkData) &&
+    landmarkData.length > 0 &&
+    landmarkData.every(
+      p => Array.isArray(p) && p.length === 3 && p.every(n => typeof n === 'number' && Number.isFinite(n))
+    );
+  if (!gestureId || gestureId.trim() === '' || !isValidTuples) {
+    throw new Error(
+      'Ungültige Trainingsdaten: Bitte gültige Gesten-ID und Landmarken (Tripel aus Zahlen) angeben.'
+    );
   }
 
   await database.write(async () => {
