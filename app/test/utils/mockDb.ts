@@ -33,6 +33,12 @@ function wrap(record: any, list: any[]) {
 
 export function createMockDb(data: Collections) {
   const collections = data;
+  const counters: Record<string, number> = {};
+
+  function nextId(name: string) {
+    counters[name] = (counters[name] ?? 0) + 1;
+    return `${name}-${counters[name]}`;
+  }
 
   function getCollection(name: string) {
     const list = collections[name] || (collections[name] = []);
@@ -81,7 +87,7 @@ export function createMockDb(data: Collections) {
         return wrap(rec, list);
       },
       async create(cb: (rec: any) => void) {
-        const rec: any = { id: `${name}-${list.length + 1}` };
+        const rec: any = { id: nextId(name) };
         if (name === 'gesture_training_data') {
           rec.gestureDefinition = { id: '' };
         }
@@ -93,7 +99,7 @@ export function createMockDb(data: Collections) {
         return model;
       },
       prepareCreate(cb: (rec: any) => void) {
-        const rec: any = { id: `${name}-${list.length + 1}` };
+        const rec: any = { id: nextId(name) };
         if (name === 'gesture_training_data') {
           rec.gestureDefinition = { id: '' };
         }
