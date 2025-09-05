@@ -1,5 +1,6 @@
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
+import { Q } from '@nozbe/watermelondb';
 import type { Model } from '@nozbe/watermelondb';
 
 export interface SymbolData {
@@ -48,7 +49,9 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
   }
 
   const collection = database.get<Symbol>('symbols');
-  const existingList = await collection.query().fetch();
+  const existingList = await collection
+    .query(Q.where('id', Q.oneOf(symbols.map(s => s.id))))
+    .fetch();
   const existingMap = new Map(existingList.map(s => [s.id, s]));
 
   const actions: Model[] = [];

@@ -14,7 +14,14 @@ function wrap(record: any, list: any[]) {
       }
     },
     prepareDestroyPermanently() {
-      return { commit: () => this.destroyPermanently() };
+      return {
+        commit: async () => {
+          const idx = list.indexOf(record);
+          if (idx >= 0) {
+            list.splice(idx, 1);
+          }
+        },
+      };
     },
     prepareUpdate(cb: (draft: any) => void) {
       const draft = { ...record };
@@ -67,7 +74,7 @@ export function createMockDb(data: Collections) {
       async find(id: string) {
         const rec = list.find(r => r.id === id);
         if (!rec) {
-          const err: any = new Error('not found');
+          const err: any = new Error('Nicht gefunden');
           err.name = 'NotFoundError';
           throw err;
         }
@@ -83,6 +90,7 @@ export function createMockDb(data: Collections) {
         cb(model);
         rec.id = model._raw.id;
         list.push(rec);
+        return model;
       },
       prepareCreate(cb: (rec: any) => void) {
         const rec: any = { id: `${name}-${list.length + 1}` };
@@ -104,8 +112,8 @@ export function createMockDb(data: Collections) {
 
   return {
     get: getCollection,
-    async write(fn: any) {
-      await fn();
+    async write<T>(fn: () => Promise<T> | T): Promise<T> {
+      return await fn();
     },
     async batch(...ops: any[]) {
       for (const op of ops) {
