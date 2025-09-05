@@ -14,7 +14,12 @@ function wrap(record: any, list: any[]) {
       }
     },
     prepareDestroyPermanently() {
-      return { destroyPermanently: this.destroyPermanently.bind(this) };
+      return { commit: () => this.destroyPermanently() };
+    },
+    prepareUpdate(cb: (draft: any) => void) {
+      const draft = { ...record };
+      cb(draft);
+      return { commit: () => Object.assign(record, draft) };
     },
   });
 }
@@ -30,7 +35,12 @@ export function createMockDb(data: Collections) {
         const clause = clauses[0];
         if (clause) {
           if (clause.left) {
-            filters[clause.left] = clause.comparison?.right?.value;
+            const right = clause.comparison?.right;
+            if (right?.value !== undefined) {
+              filters[clause.left] = right.value;
+            } else if (right?.values !== undefined) {
+              filters[clause.left] = right.values;
+            }
           } else if (clause.column) {
             filters[clause.column] = clause.value;
           }
@@ -45,9 +55,10 @@ export function createMockDb(data: Collections) {
               .filter(rec =>
                 Object.entries(filters).every(([f, v]) => {
                   if (f === 'gesture_definition_id') {
-                    return rec.gestureDefinition?.id === v || rec[f] === v;
+                    const id = rec.gestureDefinition?.id ?? rec[f];
+                    return Array.isArray(v) ? v.includes(id) : id === v;
                   }
-                  return rec[f] === v;
+                  return Array.isArray(v) ? v.includes(rec[f]) : rec[f] === v;
                 }),
               )
               .map(rec => wrap(rec, list));
@@ -64,12 +75,30 @@ export function createMockDb(data: Collections) {
         return wrap(rec, list);
       },
       async create(cb: (rec: any) => void) {
-        const rec: any = { id: `${name}-${list.length + 1}`, gestureDefinition: { id: '' } };
+        const rec: any = { id: `${name}-${list.length + 1}` };
+        if (name === 'gesture_training_data') {
+          rec.gestureDefinition = { id: '' };
+        }
         const model = wrap(rec, list);
         model._raw = { id: rec.id };
         cb(model);
         rec.id = model._raw.id;
         list.push(rec);
+      },
+      prepareCreate(cb: (rec: any) => void) {
+        const rec: any = { id: `${name}-${list.length + 1}` };
+        if (name === 'gesture_training_data') {
+          rec.gestureDefinition = { id: '' };
+        }
+        const model = wrap(rec, list);
+        model._raw = { id: rec.id };
+        cb(model);
+        return {
+          commit: () => {
+            rec.id = model._raw.id;
+            list.push(rec);
+          },
+        };
       },
     };
   }
@@ -81,7 +110,11 @@ export function createMockDb(data: Collections) {
     },
     async batch(...ops: any[]) {
       for (const op of ops) {
-        await op.destroyPermanently?.();
+        if (typeof op?.commit === 'function') {
+          await op.commit();
+        } else if (typeof op?.destroyPermanently === 'function') {
+          await op.destroyPermanently();
+        }
       }
     },
   };

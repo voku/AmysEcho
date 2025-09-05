@@ -1,4 +1,3 @@
-import { Q } from '@nozbe/watermelondb';
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
 
@@ -43,25 +42,31 @@ export async function getSymbolById(id: string): Promise<SymbolData | null> {
 }
 
 export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
-  await database.write(async () => {
-    const collection = database.get<Symbol>('symbols');
-    for (const symbolData of symbols) {
-      const matches = await collection
-        .query(Q.where('id', symbolData.id))
-        .fetch();
-      const existing = matches[0] ?? null;
+  if (symbols.length === 0) {
+    return;
+  }
 
-      if (existing) {
-        await existing.update(symbol => {
+  const collection = database.get<Symbol>('symbols');
+  const existingList = await collection.query().fetch();
+  const existingMap = new Map(existingList.map(s => [s.id, s]));
+
+  const actions: any[] = [];
+  for (const symbolData of symbols) {
+    const existing = existingMap.get(symbolData.id);
+    if (existing) {
+      actions.push(
+        existing.prepareUpdate(symbol => {
           symbol.name = symbolData.name;
           symbol.emoji = symbolData.emoji;
           symbol.color = symbolData.color;
           symbol.audioUri = symbolData.audioUri;
           symbol.dgsVideoAssetPath = symbolData.dgsVideoUri;
           symbol.healthScore = symbolData.healthScore;
-        });
-      } else {
-        await collection.create(symbol => {
+        })
+      );
+    } else {
+      actions.push(
+        collection.prepareCreate(symbol => {
           type RawWithId = Omit<typeof symbol._raw, 'id'> & { id: string };
           (symbol._raw as RawWithId).id = symbolData.id;
           symbol.name = symbolData.name;
@@ -70,8 +75,12 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
           symbol.audioUri = symbolData.audioUri;
           symbol.dgsVideoAssetPath = symbolData.dgsVideoUri;
           symbol.healthScore = symbolData.healthScore;
-        });
-      }
+        })
+      );
     }
-  });
+  }
+
+  if (actions.length > 0) {
+    await database.batch(...actions);
+  }
 }
