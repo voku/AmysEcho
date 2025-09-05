@@ -1,3 +1,4 @@
+import { Q } from '@nozbe/watermelondb';
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
 
@@ -45,16 +46,10 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
   await database.write(async () => {
     const collection = database.get<Symbol>('symbols');
     for (const symbolData of symbols) {
-      let existing: Symbol | null = null;
-      try {
-        existing = await collection.find(symbolData.id);
-      } catch (err: any) {
-        const isNotFound =
-          err?.name === 'NotFoundError' || /not\s*found/i.test(String(err?.message));
-        if (!isNotFound) {
-          throw err;
-        }
-      }
+      const matches = await collection
+        .query(Q.where('id', symbolData.id))
+        .fetch();
+      const existing = matches[0] ?? null;
 
       if (existing) {
         await existing.update(symbol => {

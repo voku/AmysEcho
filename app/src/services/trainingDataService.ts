@@ -64,7 +64,7 @@ export async function clearTrainingSamples(gestureId?: string): Promise<void> {
     const samplesToDelete = await query.fetch();
     if (samplesToDelete.length > 0) {
       const deletions = samplesToDelete.map(sample => sample.prepareDestroyPermanently());
-      await database.batch(deletions);
+      await database.batch(...deletions);
     }
   });
 }

@@ -1,6 +1,5 @@
-import { loadSymbols, saveSymbols, getSymbolById } from '../src/services/symbolService';
+import { createMockDb } from './utils/mockDb';
 
-// Mock WatermelonDB database with in-memory symbols
 const mockSymbols: any[] = [
   {
     id: 'hello',
@@ -95,43 +94,12 @@ const mockSymbols: any[] = [
 ];
 
 jest.mock('../db', () => {
-  const mockCollection = {
-    query: () => ({ fetch: async () => mockSymbols }),
-    find: async (id: string) => {
-      const backing = mockSymbols.find(s => s.id === id);
-      if (!backing) {
-        const err: any = new Error('not found');
-        err.name = 'NotFoundError';
-        throw err;
-      }
-      return {
-        ...backing,
-        update: async (cb: any) => {
-          const draft = { ...backing };
-          cb(draft);
-          Object.assign(backing, draft);
-        },
-      };
-    },
-    create: (cb: any) => {
-      const record: any = { _raw: {} };
-      cb(record);
-      record.id = record.id || record._raw.id;
-      const index = mockSymbols.findIndex(s => s.id === record.id);
-      if (index >= 0) {
-        mockSymbols[index] = record;
-      } else {
-        mockSymbols.push(record);
-      }
-    },
-  };
-  const mockDatabase = {
-    get: () => mockCollection,
-    write: async (fn: any) => fn(),
-  };
-  return { database: mockDatabase };
+  const { createMockDb } = require('./utils/mockDb');
+  const database = createMockDb({ symbols: mockSymbols });
+  return { database };
 });
 
+import { loadSymbols, saveSymbols, getSymbolById } from '../src/services/symbolService';
 describe('Symbol Management - Colors and Food for Amy', () => {
   describe('Color Symbols', () => {
     it('loads red symbol correctly', async () => {
