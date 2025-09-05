@@ -30,9 +30,8 @@ export function createMockDb(data: Collections) {
   function getCollection(name: string) {
     const list = collections[name] || (collections[name] = []);
     return {
-      query: (...clauses: any[]) => {
+      query: (clause?: any) => {
         const filters: Record<string, any> = {};
-        const clause = clauses[0];
         if (clause) {
           if (clause.left) {
             const right = clause.comparison?.right;

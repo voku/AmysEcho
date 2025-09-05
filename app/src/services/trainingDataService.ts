@@ -23,6 +23,7 @@ export async function addTrainingSample(
     );
   if (!gestureId || gestureId.trim() === '' || !isValidTuples) {
     throw new Error(
+      // TODO: Diese Fehlermeldung für Lokalisierung auslagern.
       'Ungültige Trainingsdaten: Bitte gültige Gesten-ID und Landmarken (Tripel aus Zahlen) angeben.'
     );
   }

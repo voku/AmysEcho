@@ -1,5 +1,6 @@
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
+import type { Model } from '@nozbe/watermelondb';
 
 export interface SymbolData {
   id: string;
@@ -50,7 +51,7 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
   const existingList = await collection.query().fetch();
   const existingMap = new Map(existingList.map(s => [s.id, s]));
 
-  const actions: any[] = [];
+  const actions: Model[] = [];
   for (const symbolData of symbols) {
     const existing = existingMap.get(symbolData.id);
     if (existing) {
@@ -67,6 +68,10 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
     } else {
       actions.push(
         collection.prepareCreate(symbol => {
+          // WatermelonDB does not expose an official API for setting a custom
+          // ID during creation. We modify the internal `_raw` record as an
+          // escape hatch. This relies on internal behavior and may break with
+          // future library updates.
           type RawWithId = Omit<typeof symbol._raw, 'id'> & { id: string };
           (symbol._raw as RawWithId).id = symbolData.id;
           symbol.name = symbolData.name;
