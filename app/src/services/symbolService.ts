@@ -86,6 +86,11 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
           symbol.audioUri = symbolData.audioUri;
           symbol.dgsVideoAssetPath = symbolData.dgsVideoUri;
           symbol.healthScore = symbolData.healthScore;
+          symbol.iconName = '';
+          symbol.category = 'test';
+          symbol.priority = 0;
+          symbol.isActive = true;
+          symbol.createdAt = new Date();
         })
       );
     }

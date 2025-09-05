@@ -36,6 +36,7 @@ export async function addTrainingSample(
       sample.qualityScore = 1.0;
       sample.frameMetadata = JSON.stringify({});
       sample.customSyncStatus = 'pending';
+      sample.createdAt = new Date();
     });
   });
 }
