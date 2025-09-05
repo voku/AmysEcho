@@ -68,6 +68,11 @@ beforeEach(() => {
   (uploadTelemetry as jest.Mock).mockResolvedValue(undefined);
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+  jest.clearAllTimers();
+});
+
 describe('syncService.uploadPendingTrainingData', () => {
   it('uploads samples and marks them synced', async () => {
     await syncService.uploadPendingTrainingData();
@@ -110,7 +115,6 @@ describe('syncService.uploadPendingTrainingData', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(mockSamples[0].customSyncStatus).toBe('synced');
-    jest.useRealTimers();
   });
 
   it('prevents concurrent uploads', async () => {
@@ -147,7 +151,6 @@ describe('consent caching', () => {
       await freshSyncService.uploadPendingTrainingData();
       expect(lp).toHaveBeenCalledTimes(2);
     });
-    jest.useRealTimers();
   });
 });
 

@@ -74,6 +74,7 @@ describe('MediaPipeGestureDetector', () => {
       component = null;
     }
     jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
     jest.useRealTimers();
   });
   it('calls onGestureDetected when a gesture message is received', () => {

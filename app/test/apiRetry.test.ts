@@ -5,6 +5,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  jest.clearAllTimers();
   jest.useRealTimers();
 });
 
