@@ -28,7 +28,7 @@ export default function OnboardingScreen({ navigation }: any) {
   const { update } = useAccessibility();
 
   const handleContinue = async () => {
-    const profile = await createProfile({
+    await createProfile({
       name: name || 'Amy',
       consentDataUpload,
       consentHelpMeGetSmarter,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import {
   API_TOKEN,
@@ -32,22 +32,36 @@ interface Props {
     confidence: number,
     landmarks: number[][][],
     handedness: string[],
+    emergency?: boolean,
   ) => void;
   onError: (error: string) => void;
   onWebViewEvent?: (telemetry: WebViewTelemetry) => void;
+  onModelUpdateStatus?: (status: 'idle' | 'updating' | 'complete' | 'error') => void;
+  onPartialFeedback?: (gesture: string, completion: number, feedback: string) => void;
+  onStabilityFeedback?: (isStable: boolean, stabilityScore: number, feedback: string) => void;
   facingMode?: 'user' | 'environment';
+  gestureSizeTolerance?: number;
 }
 
 // Optional require to avoid crashing when native WebView module is not in the binary
 let WebViewImpl: React.ComponentType<any> | null = null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   WebViewImpl = require('react-native-webview').WebView as unknown as React.ComponentType<any>;
-} catch (e) {
+} catch {
   WebViewImpl = null;
 }
 
-export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode = 'user' }) => {
+export const MediaPipeGestureDetector: React.FC<Props> = ({
+  onGestureDetected,
+  onError,
+  onWebViewEvent,
+  onModelUpdateStatus,
+  onPartialFeedback,
+  onStabilityFeedback,
+  facingMode = 'user',
+  gestureSizeTolerance = 0.3
+}) => {
   // Minimal shape we rely on; keeps optional semantics and strict-mode help.
   type WebViewLike = { injectJavaScript: (src: string) => void } | null;
   const webviewRef = useRef<WebViewLike>(null);
@@ -58,7 +72,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setLangTick] = useState(0);
 
-  const injectModel = (b64: string | null) => {
+  const injectModel = useCallback((b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
     if (modelTransferLock.current) {
       console.warn('Model transfer in progress; queueing new model.');
@@ -68,6 +82,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     }
     modelTransferLock.current = true;
     queuedModelRef.current = false;
+    onModelUpdateStatus?.('updating');
     const CHUNK = 64 * 1024;
     // Remove any non-base64 characters to keep the payload safe for injection
     const normalized = b64.replace(/[^A-Za-z0-9+/=]/g, '');
@@ -87,11 +102,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     transferWatchdogRef.current = setTimeout(() => {
       console.warn('Model transfer timed out — unlock and retry if needed.');
       modelTransferLock.current = false;
+      onModelUpdateStatus?.('error');
       if (queuedModelRef.current && pendingModelRef.current) {
         injectModel(pendingModelRef.current);
       }
     }, 15000);
-  };
+  }, [onModelUpdateStatus]);
 
   useEffect(() => {
     const unsubscribe = LanguageManager.subscribe(() => setLangTick((v) => v + 1));
@@ -133,16 +149,17 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       loadModel();
     });
     return unsubscribe;
-  }, []);
+  }, [injectModel]);
 
   useEffect(() => {
+    const webview = webviewRef.current;
     return () => {
       if (transferWatchdogRef.current) {
         clearTimeout(transferWatchdogRef.current);
         transferWatchdogRef.current = null;
       }
       try {
-        webviewRef.current?.injectJavaScript(
+        webview?.injectJavaScript(
           'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
         );
       } catch (e) {
@@ -150,6 +167,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
       }
     };
   }, []);
+
 
   if (!WebViewImpl) {
     // Provide a non-crashing fallback with a clear developer hint
@@ -186,6 +204,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
     window.__cameraError = '${cameraError}';
     window.__mlpThreshold = ${MLP_CONFIDENCE_THRESHOLD};
     window.__fallbackThreshold = ${FALLBACK_CONFIDENCE_THRESHOLD};
+    window.__gestureSizeTolerance = ${gestureSizeTolerance};
   </script>
   <script src="${gestureDetectorJs}"></script>
 </head>
@@ -214,12 +233,31 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           data.confidence,
           data.landmarks,
           data.handednesses || [],
+          data.emergency === true,
         );
       } else if (data.type === 'error') {
         console.error('WebView error:', data.message);
         onError(data.message);
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
+      } else if (data.type === 'partial_feedback') {
+        const gesture = String(data.gesture || '');
+        const completion = typeof data.completion === 'number' ? data.completion : 0;
+        const feedback = String(data.feedback || '');
+        try {
+          onPartialFeedback?.(gesture, completion, feedback);
+        } catch (e) {
+          console.warn('Error in onPartialFeedback handler:', e);
+        }
+      } else if (data.type === 'stability_feedback') {
+        const isStable = Boolean(data.isStable);
+        const stabilityScore = typeof data.stabilityScore === 'number' ? data.stabilityScore : 0;
+        const feedback = String(data.feedback || '');
+        try {
+          onStabilityFeedback?.(isStable, stabilityScore, feedback);
+        } catch (e) {
+          console.warn('Error in onStabilityFeedback handler:', e);
+        }
       } else if (data.type === 'telemetry') {
         const eventStr = String(data.event || '');
         try {
@@ -240,6 +278,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
             transferWatchdogRef.current = null;
           }
           modelTransferLock.current = false;
+          onModelUpdateStatus?.('complete');
           if (queuedModelRef.current && pendingModelRef.current) {
             injectModel(pendingModelRef.current);
           }
@@ -266,7 +305,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
           console.warn('Failed to send telemetry:', e);
         }
       }
-    } catch (error) {
+    } catch {
       onError(LanguageManager.t('mediapipe.gestureProcessingError'));
     }
   };
@@ -274,7 +313,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, o
   return (
     <View style={styles.container}>
       <WebViewImpl
-        key={LanguageManager.getLanguage()}
+        key={`gesture-detector-${LanguageManager.getLanguage()}`}
         ref={webviewRef}
         source={{ html: htmlContent, baseUrl: 'https://camera.local' }}
         style={styles.webview}

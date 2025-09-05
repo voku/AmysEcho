@@ -10,7 +10,7 @@ import { COLORS, SPACING } from '../constants/ui';
 export default function ProgressScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [stats, setStats] = useState<Record<string, number>>({});
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [, setProfile] = useState<Profile | null>(null);
   const [engagement, setEngagement] = useState<{ totalSessions: number; averageDurationMs: number }>({ totalSessions: 0, averageDurationMs: 0 });
 
   useEffect(() => {

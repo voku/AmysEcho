@@ -31,6 +31,10 @@ const ProgressScreen = lazyScreen(() => import('../screens/ProgressScreen'));
 const ProgressChartScreen = lazyScreen(() => import('../screens/ProgressChartScreen'));
 const PracticeSchedulerScreen = lazyScreen(() => import('../screens/PracticeSchedulerScreen'));
 const CaregiverReportScreen = lazyScreen(() => import('../screens/CaregiverReportScreen'));
+const ScheduleScreen = lazyScreen(() => import('../screens/ScheduleScreen'));
+const DailySuccessScreen = lazyScreen(() => import('../screens/DailySuccessScreen'));
+const CommunicationInsightsScreen = lazyScreen(() => import('../screens/CommunicationInsightsScreen'));
+const PrivacySettingsScreen = lazyScreen(() => import('../screens/PrivacySettingsScreen'));
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -138,12 +142,32 @@ const RootNavigator = () => {
         component={PracticeSchedulerScreen}
         options={{ title: 'Übungsplaner' }}
       />
-      <Stack.Screen
-        name="CaregiverReport"
-        component={CaregiverReportScreen}
-        options={{ title: 'Lernfortschritt' }}
-      />
-      </Stack.Navigator>
+       <Stack.Screen
+         name="CaregiverReport"
+         component={CaregiverReportScreen}
+         options={{ title: 'Lernfortschritt' }}
+       />
+       <Stack.Screen
+         name="Schedule"
+         component={ScheduleScreen}
+         options={{ title: 'Tagesplan' }}
+       />
+       <Stack.Screen
+         name="DailySuccess"
+         component={DailySuccessScreen}
+         options={{ title: 'Tägliche Erfolge' }}
+       />
+       <Stack.Screen
+         name="CommunicationInsights"
+         component={CommunicationInsightsScreen}
+         options={{ title: 'Kommunikationsmuster' }}
+       />
+       <Stack.Screen
+         name="PrivacySettings"
+         component={PrivacySettingsScreen}
+         options={{ title: 'Datenschutz' }}
+       />
+       </Stack.Navigator>
     </Suspense>
   );
 };

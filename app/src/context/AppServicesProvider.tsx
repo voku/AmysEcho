@@ -7,20 +7,11 @@ import { audioService, backupService, checkForModelUpdate, syncService, syncTrai
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { useMessage } from './MessageContext';
-import { loadCustomModelUri, loadActiveProfileId } from '../storage';
-import {
-  CONFIDENCE_THRESHOLD,
-  ENABLE_REMOTE_CLASSIFICATION,
-  REMOTE_RETRY_MS,
-  REMOTE_TIMEOUT_MS,
-  SOFTMAX_TEMPERATURE,
-} from '../constants';
+import { loadActiveProfileId } from '../storage';
 import { logger } from '../utils/logger';
 import { ServicesContext, type Services } from './ServicesContext';
 import { uploadTelemetry } from '../services/analytics';
 import { telemetry } from '../telemetry/recorder';
-
-const gestureLabels = require('../../assets/models/gesture_labels.json');
 
 interface ProviderProps {
   children: ReactNode;
@@ -97,7 +88,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       if (telemetryTimeout) clearTimeout(telemetryTimeout);
       audioService.dispose().catch(() => {});
     };
-  }, []);
+  }, [offline, setMessage]);
 
   if (!areServicesReady) {
     return <LoadingIndicator />;

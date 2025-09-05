@@ -8,6 +8,7 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { logHIPEvent } from '../services/hipEvents';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function CorrectionScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
 

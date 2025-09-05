@@ -15,6 +15,7 @@ const navigate = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate }),
+  useRoute: () => ({ name: 'Recognition' }),
 }));
 
 
@@ -25,6 +26,7 @@ jest.mock('react-native-svg', () => {
     default: (props: any) => React.createElement('Svg', props, props.children),
     Path: (props: any) => React.createElement('Path', props, props.children),
     Circle: (props: any) => React.createElement('Circle', props, props.children),
+    Rect: (props: any) => React.createElement('Rect', props, props.children),
   };
 });
 
@@ -68,11 +70,15 @@ describe('BottomNav', () => {
       component = renderer.create(<BottomNav active="recognition" profileId="123" />);
     });
     const pressables = (component as renderer.ReactTestRenderer).root.findAllByType('Pressable');
-    expect(pressables).toHaveLength(3);
+    expect(pressables).toHaveLength(4);
     const expected = [
       {
         label: 'Zuhören',
-        hint: 'Gestenerkennung starten',
+        hint: 'Zurück zur Gestenerkennung',
+      },
+      {
+        label: 'Tagesplan',
+        hint: 'Tagesplan mit Übungen anzeigen',
       },
       {
         label: 'Lernen',

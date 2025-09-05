@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import Svg, { Path, Circle } from 'react-native-svg';
+import { useNavigation, useRoute, type NavigationProp } from '@react-navigation/native';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import type { RootStackParamList } from '../navigation/types';
 import { COLORS, SPACING } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
@@ -10,29 +10,58 @@ import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 interface Props {
-  active: 'recognition' | 'training' | 'parent';
+  active: 'recognition' | 'training' | 'parent' | 'schedule';
   profileId: string;
 }
 
 export default function BottomNav({ active, profileId }: Props) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const route = useRoute();
   const { highContrast } = useAccessibility();
+
+  // Simple breadcrumb system - show current screen name
+  const getCurrentScreenName = () => {
+    const screenNames: Record<string, string> = {
+      'Recognition': '🏠 Zuhören',
+      'Training': '🎯 Lernen',
+      'Schedule': '📅 Tagesplan',
+      'Practice': '✨ Üben',
+      'Help': '❓ Hilfe',
+      'Dashboard': '📊 Auswertung',
+      'Progress': '📈 Fortschritt',
+      'Correction': '🔧 Korrektur',
+      'Parent': '👨‍👩‍👧 Eltern',
+      'ProfileSelect': '👤 Profile',
+      'ProfileManager': '⚙️ Einstellungen',
+    };
+    return screenNames[route.name] || route.name;
+  };
   return (
     <View style={[styles.container, highContrast && styles.containerHC]}>
-      <Pressable
-        onPress={() => {
-          void childHaptic();
-          navigation.navigate('Recognition', { profileId });
-        }}
-        style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
-          styles.item,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
-        accessibilityLabel="Zuhören"
-        accessibilityRole="button"
-        accessibilityHint="Gestenerkennung starten"
-      >
+      {/* Visual Breadcrumb */}
+      <View style={[styles.breadcrumbContainer, highContrast && styles.breadcrumbContainerHC]}>
+        <Text style={[styles.breadcrumbText, highContrast && styles.breadcrumbTextHC]}>
+          {getCurrentScreenName()}
+        </Text>
+      </View>
+
+      {/* Navigation Buttons */}
+      <View style={styles.navContainer}>
+        <Pressable
+         onPress={() => {
+           void childHaptic();
+           navigation.navigate('Recognition', { profileId });
+         }}
+         style={({ pressed }) => [
+           childFriendlyStyles.minTouchTarget,
+           styles.item,
+           active === 'recognition' && styles.homeButton,
+           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+         ]}
+         accessibilityLabel="Zuhören"
+         accessibilityRole="button"
+         accessibilityHint="Zurück zur Gestenerkennung"
+       >
         <HandIcon
           size={24}
           color={
@@ -46,17 +75,54 @@ export default function BottomNav({ active, profileId }: Props) {
           }
           style={styles.icon}
         />
-        <Text
-          style={[
-            styles.label,
-            highContrast && styles.labelHC,
-            active === 'recognition' && (highContrast ? styles.activeHC : styles.active),
-          ]}
-        >
-          Zuhören
-        </Text>
-      </Pressable>
-      <Pressable
+         <Text
+           style={[
+             styles.label,
+             highContrast && styles.labelHC,
+             active === 'recognition' && (highContrast ? styles.activeHC : styles.active),
+           ]}
+         >
+           Zuhören
+         </Text>
+       </Pressable>
+       <Pressable
+         onPress={() => {
+           void childHaptic();
+           navigation.navigate('Schedule');
+         }}
+         style={({ pressed }) => [
+           childFriendlyStyles.minTouchTarget,
+           styles.item,
+           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+         ]}
+         accessibilityLabel="Tagesplan"
+         accessibilityRole="button"
+         accessibilityHint="Tagesplan mit Übungen anzeigen"
+       >
+         <CalendarIcon
+           size={24}
+           color={
+             highContrast
+               ? active === 'schedule'
+                 ? COLORS.highContrastText
+                 : COLORS.highContrastPressed
+               : active === 'schedule'
+               ? COLORS.primaryAccent
+               : COLORS.secondaryAccent
+           }
+           style={styles.icon}
+         />
+         <Text
+           style={[
+             styles.label,
+             highContrast && styles.labelHC,
+             active === 'schedule' && (highContrast ? styles.activeHC : styles.active),
+           ]}
+         >
+           Plan
+         </Text>
+       </Pressable>
+       <Pressable
         onPress={() => {
           void childHaptic();
           navigation.navigate('Training', { gestureLabel: undefined });
@@ -130,16 +196,13 @@ export default function BottomNav({ active, profileId }: Props) {
           Menü
         </Text>
       </Pressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: SPACING.sm,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderColor: COLORS.border,
@@ -147,6 +210,33 @@ const styles = StyleSheet.create({
   containerHC: {
     backgroundColor: COLORS.highContrastBackground,
     borderColor: COLORS.highContrastText,
+  },
+  breadcrumbContainer: {
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: COLORS.backgroundStart,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: COLORS.border,
+  },
+  breadcrumbContainerHC: {
+    backgroundColor: COLORS.highContrastBackground,
+    borderColor: COLORS.highContrastText,
+  },
+  breadcrumbText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  breadcrumbTextHC: {
+    color: COLORS.highContrastText,
+  },
+  navContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
   },
   item: {
     alignItems: 'center',
@@ -170,6 +260,12 @@ const styles = StyleSheet.create({
   activeHC: {
     color: COLORS.highContrastText,
     fontWeight: 'bold',
+  },
+  homeButton: {
+    backgroundColor: COLORS.primaryAccent,
+    borderRadius: 8,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
   },
 });
 
@@ -234,6 +330,25 @@ function SettingsIcon({ size, color, style }: IconProps) {
     >
       <Path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
       <Circle cx="12" cy="12" r="3" />
+    </Svg>
+  );
+}
+
+function CalendarIcon({ size, color, style }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={style}
+    >
+      <Rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <Path d="M16 2v4M8 2v4M3 10h18" />
     </Svg>
   );
 }

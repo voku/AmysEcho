@@ -17,7 +17,7 @@ jest.mock('react-native-webview', () => {
     WebView: React.forwardRef((props: any, ref) => {
       const injectJavaScript = jest.fn();
       React.useImperativeHandle(ref, () => ({ injectJavaScript }));
-      return <mock-webview {...props} injectJavaScript={injectJavaScript} />;
+      return <mock-webview testID="mock-webview" {...props} injectJavaScript={injectJavaScript} />;
     }),
   };
 });
@@ -48,11 +48,25 @@ jest.mock('../src/storage', () => {
 });
 
 describe('MediaPipeGestureDetector', () => {
+  let consoleErrorSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
     const storage = require('../src/storage');
     storage.__clearProfileListeners();
-    LanguageManager.setLanguage('de');
+    // Suppress react-test-renderer deprecation warnings
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((message) => {
+      if (!message.includes('react-test-renderer is deprecated')) {
+        console.error(message);
+      }
+    });
+    act(() => {
+      LanguageManager.setLanguage('de');
+    });
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
   it('calls onGestureDetected when a gesture message is received', () => {
     const onGestureDetected = jest.fn();
@@ -65,7 +79,7 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const webview = component.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -80,7 +94,7 @@ describe('MediaPipeGestureDetector', () => {
       });
     });
 
-    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[[1, 2, 3]]], ['Left']);
+    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[[1, 2, 3]]], ['Left'], false);
     expect(onError).not.toHaveBeenCalled();
   });
 
@@ -95,7 +109,7 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const webview = component.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -115,6 +129,7 @@ describe('MediaPipeGestureDetector', () => {
       0.8,
       [[[1, 2, 3]]],
       ['Left', 'Right'],
+      false,
     );
     expect(onError).not.toHaveBeenCalled();
   });
@@ -131,7 +146,7 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const webview = component.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -158,7 +173,7 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const webview = component.root.findByType('mock-webview');
     act(() => {
       webview.props.onConsoleMessage({ nativeEvent: { message: 'test log' } });
     });
@@ -178,7 +193,7 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const webview = component.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({ nativeEvent: { data: 'invalid json' } });
     });
@@ -198,7 +213,7 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const webview = component.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -207,7 +222,7 @@ describe('MediaPipeGestureDetector', () => {
       });
     });
 
-    expect(onGestureDetected).toHaveBeenCalledWith(null, 0, [[[1, 2, 3]]], ['Left']);
+    expect(onGestureDetected).toHaveBeenCalledWith(null, 0, [[[1, 2, 3]]], ['Left'], false);
     expect(onError).not.toHaveBeenCalled();
   });
 
@@ -267,7 +282,7 @@ describe('MediaPipeGestureDetector', () => {
       await Promise.resolve();
     });
 
-    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const webview = component.root.findByType('mock-webview');
     const injectJs = webview.props.injectJavaScript as jest.Mock;
     expect(injectJs).not.toHaveBeenCalled();
 
@@ -296,14 +311,14 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    let webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    let webview = component.root.findByType('mock-webview');
     expect(webview.props.source.html).toContain('Tippe, um die Kamera zu starten');
 
     act(() => {
       LanguageManager.setLanguage('en');
     });
 
-    webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    webview = component.root.findByType('mock-webview');
     expect(webview.props.source.html).toContain('Tap to start camera');
   });
 
@@ -323,7 +338,7 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    const webview = (component as renderer.ReactTestRenderer).root.findByType('mock-webview');
+    const webview = component.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -348,7 +363,8 @@ describe('MediaPipeGestureDetector', () => {
         />,
       );
     });
-    return (component as renderer.ReactTestRenderer).root.findByType('mock-webview').props.source.html as string;
+    const webview = component.root.findByType('mock-webview');
+    return webview.props.source.html as string;
   };
 
   it('mirrors video and overlay for the user-facing camera', () => {

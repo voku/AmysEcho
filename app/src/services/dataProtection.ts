@@ -79,6 +79,25 @@ class GestureDataProtector {
     await this.storeWithRetention(encrypted, 30);
   }
 
+  /**
+   * Clean up expired gesture data automatically
+   */
+  async cleanupExpiredData(): Promise<number> {
+    const raw = await AsyncStorage.getItem('protectedGestures');
+    if (!raw) return 0;
+
+    const records = JSON.parse(raw);
+    const now = Date.now();
+    const validRecords = records.filter((record: any) => record.expires > now);
+
+    const expiredCount = records.length - validRecords.length;
+    if (expiredCount > 0) {
+      await AsyncStorage.setItem('protectedGestures', JSON.stringify(validRecords));
+    }
+
+    return expiredCount;
+  }
+
   // Exposed for testing to verify anonymization
   async decryptGesture(cipher: string): Promise<AnonymizedGestureData> {
     return this.decrypt(cipher);

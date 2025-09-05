@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { setupDatabase } from './db';
 import { AppServicesProvider } from './src/context/AppServicesProvider';
 import { MessageProvider } from './src/context/MessageContext';
+import { MoodProvider } from './src/context/MoodContext';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
 import { initGestureModel } from './src/model';
@@ -99,9 +100,17 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const gradientColors = accessibility.highContrast
-    ? [COLORS.highContrastBackground, COLORS.highContrastBackground]
-    : [COLORS.backgroundStart, COLORS.backgroundEnd];
+  // Use mood-based colors if available, fallback to accessibility colors
+  const getGradientColors = () => {
+    if (accessibility.highContrast) {
+      return [COLORS.highContrastBackground, COLORS.highContrastBackground];
+    }
+    // In a real implementation, we'd get mood colors from context here
+    // For now, use default colors
+    return [COLORS.backgroundStart, COLORS.backgroundEnd];
+  };
+
+  const gradientColors = getGradientColors();
 
   if (!isReady) {
     return (
@@ -114,26 +123,28 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <MessageProvider>
-        <PerformanceProvider>
-          <AppServicesProvider offline={isOffline}>
-            <AccessibilityContext.Provider
-              value={{
-                ...accessibility,
-                update: (s: Partial<AccessibilitySettings>) =>
-                  setAccessibility((prev) => ({ ...prev, ...s })),
-              }}
-            >
-              <ChildErrorBoundary>
-                <LinearGradient colors={gradientColors} style={styles.gradient}>
-                  <OfflineBanner visible={isOffline} />
-                  <NavigationContainer>
-                    <RootNavigator />
-                  </NavigationContainer>
-                </LinearGradient>
-              </ChildErrorBoundary>
-            </AccessibilityContext.Provider>
-          </AppServicesProvider>
-        </PerformanceProvider>
+        <MoodProvider>
+          <PerformanceProvider>
+            <AppServicesProvider offline={isOffline}>
+              <AccessibilityContext.Provider
+                value={{
+                  ...accessibility,
+                  update: (s: Partial<AccessibilitySettings>) =>
+                    setAccessibility((prev) => ({ ...prev, ...s })),
+                }}
+              >
+                <ChildErrorBoundary>
+                  <LinearGradient colors={gradientColors} style={styles.gradient}>
+                    <OfflineBanner visible={isOffline} />
+                    <NavigationContainer>
+                      <RootNavigator />
+                    </NavigationContainer>
+                  </LinearGradient>
+                </ChildErrorBoundary>
+              </AccessibilityContext.Provider>
+            </AppServicesProvider>
+          </PerformanceProvider>
+        </MoodProvider>
       </MessageProvider>
     </SafeAreaProvider>
   );

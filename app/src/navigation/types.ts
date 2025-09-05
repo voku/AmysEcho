@@ -15,7 +15,11 @@ export type RootStackParamList = {
   Dashboard: undefined;
   Progress: undefined;
   ProgressChart: { gestureId: string };
-  CaregiverReport: undefined;
-  Help: undefined;
-  PracticeScheduler: undefined;
+   CaregiverReport: undefined;
+   Schedule: undefined;
+   DailySuccess: undefined;
+   CommunicationInsights: undefined;
+   PrivacySettings: undefined;
+   Help: undefined;
+   PracticeScheduler: undefined;
 };

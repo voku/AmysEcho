@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Button, StyleSheet, SafeAreaView } from 'react-native';
+import { Button, StyleSheet, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS } from '../constants/ui';
 
 export default function TeachScreen({ navigation }: any) {
-  const { largeText, highContrast } = useAccessibility();
+  const { highContrast } = useAccessibility();
   const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   });

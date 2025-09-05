@@ -29,6 +29,7 @@ export default function PulsingCircle({ size, color = '#ffffff' }: PulsingCircle
     return () => {
       cancelAnimation(progress);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLowPerformanceMode]);
 
   const animatedStyle = useAnimatedStyle(() => ({

@@ -8,18 +8,22 @@ import {
 import { useAccessibility } from '../components/AccessibilityContext';
 import { API_URL, API_TOKEN } from '../constants';
 import { COLORS, SPACING } from '../constants/ui';
+import { loadProfile, Profile } from '../storage';
+import BottomNav from '../components/BottomNav';
 
 export default function DashboardScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [data, setData] = useState<LearningAnalytics | null>(null);
   const [summary, setSummary] = useState<any | null>(null);
   const [insights, setInsights] = useState<any | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     loadAnalytics().then((d) => {
       setData(d);
       uploadAnalytics(d);
     });
+    loadProfile().then(setProfile);
     // Fetch server analytics summary and insights for caregivers
     (async () => {
       try {
@@ -101,6 +105,7 @@ export default function DashboardScreen({ navigation }: any) {
         onPress={() => navigation.goBack()}
         accessibilityLabel="Zurück"
       />
+      {profile && <BottomNav active="parent" profileId={profile.id} />}
     </View>
   );
 }

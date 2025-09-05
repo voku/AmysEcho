@@ -5,6 +5,7 @@ export * from './analytics';
 export * from './usageTracker';
 export * from './engagementTracker';
 export * from './correctionService';
+export { default as gestureSuggester } from './gestureSuggester';
 
 export * from "./trainingSync";
 export * from "./modelUpdate";

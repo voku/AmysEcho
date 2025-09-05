@@ -1,10 +1,22 @@
 import { Alert } from 'react-native';
 import { gestureModel } from '../model';
 import { getGestureHealth, saveHistoricalHealthData, checkForDecliningAccuracy } from './healthScore';
+import { gestureDataProtector } from './dataProtection';
+import { logger } from '../utils/logger';
 
 export async function runDailyJobs() {
   const gestures = gestureModel.gestures;
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // Clean up expired gesture data for privacy
+  try {
+    const expiredCount = await gestureDataProtector.cleanupExpiredData();
+    if (expiredCount > 0) {
+      logger.info(`Cleaned up ${expiredCount} expired gesture records`);
+    }
+  } catch (error) {
+    logger.warn('Failed to cleanup expired gesture data:', error);
+  }
 
   for (const gesture of gestures) {
     const health = await getGestureHealth(gesture.id, { windowMs: 24 * 60 * 60 * 1000 });

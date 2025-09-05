@@ -91,7 +91,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void
         } else {
           failures += 1;
         }
-      } catch (err) {
+      } catch {
         failures += 1;
       }
       if (failures >= 3) {

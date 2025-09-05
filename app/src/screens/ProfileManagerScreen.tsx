@@ -1,21 +1,121 @@
 import React, { useState } from 'react';
 import { View, Text, Button, FlatList, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../storage';
 import { Profile as DBProfile } from '../../db/models';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { database } from '../../db';
 import { COLORS, SPACING } from '../constants/ui';
+import { logger } from '../utils/logger';
 
 export default function ProfileManagerScreen({ navigation }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isTrustedDevice, setIsTrustedDevice] = useState(false);
+  const [bullyingProtectionEnabled, setBullyingProtectionEnabled] = useState(false);
+  const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const { largeText, highContrast, update } = useAccessibility();
 
   useFocusEffect(
     React.useCallback(() => {
       loadProfiles().then(setProfiles);
+      checkTrustedDevice();
     }, []),
   );
+
+  const checkTrustedDevice = async () => {
+    try {
+      const deviceId = await AsyncStorage.getItem('trustedDeviceId');
+      setIsTrustedDevice(!!deviceId);
+
+      // Check bullying protection status
+      const protectionEnabled = await AsyncStorage.getItem('bullyingProtectionEnabled');
+      setBullyingProtectionEnabled(protectionEnabled === 'true');
+
+      // Check gesture size tolerance
+      const toleranceStr = await AsyncStorage.getItem('gestureSizeTolerance');
+      if (toleranceStr) {
+        setGestureSizeTolerance(parseFloat(toleranceStr));
+      }
+    } catch (error) {
+      logger.warn('Failed to check device settings:', error);
+    }
+  };
+
+  const setupTrustedDevice = async () => {
+    try {
+      // Generate a simple device identifier
+      const deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await AsyncStorage.setItem('trustedDeviceId', deviceId);
+      await AsyncStorage.setItem('trustedDeviceSetup', Date.now().toString());
+      setIsTrustedDevice(true);
+
+      Alert.alert(
+        'Vertrauenswürdiges Gerät eingerichtet',
+        'Dieses Gerät ist jetzt als vertrauenswürdig markiert. Amy kann es ohne zusätzliche Sicherheitseinstellungen verwenden.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      logger.error('Failed to setup trusted device:', error);
+      Alert.alert('Fehler', 'Vertrauenswürdiges Gerät konnte nicht eingerichtet werden.');
+    }
+  };
+
+  const removeTrustedDevice = async () => {
+    Alert.alert(
+      'Vertrauenswürdiges Gerät entfernen',
+      'Möchtest du die Vertrauensstellung dieses Geräts wirklich entfernen?',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Entfernen',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('trustedDeviceId');
+              await AsyncStorage.removeItem('trustedDeviceSetup');
+              setIsTrustedDevice(false);
+              Alert.alert('Erledigt', 'Vertrauenswürdiges Gerät wurde entfernt.');
+            } catch (error) {
+              logger.error('Failed to remove trusted device:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const toggleBullyingProtection = async (enabled: boolean) => {
+    try {
+      await AsyncStorage.setItem('bullyingProtectionEnabled', enabled.toString());
+      setBullyingProtectionEnabled(enabled);
+
+      if (enabled) {
+        Alert.alert(
+          'Mobbing-Schutz aktiviert',
+          'Das Gerät ist jetzt vor unbefugter Nutzung geschützt. Nur vertrauenswürdige Benutzer können Amy\'s App verwenden.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Mobbing-Schutz deaktiviert',
+          'Der Schutz wurde deaktiviert. Stelle sicher, dass das Gerät sicher verwendet wird.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      logger.error('Failed to toggle bullying protection:', error);
+    }
+  };
+
+  const saveGestureSizeTolerance = async (tolerance: number) => {
+    try {
+      await AsyncStorage.setItem('gestureSizeTolerance', tolerance.toString());
+      setGestureSizeTolerance(tolerance);
+      Alert.alert('Gespeichert', `Gestengrößen-Toleranz auf ${Math.round(tolerance * 100)}% gesetzt.`);
+    } catch (error) {
+      logger.error('Failed to save gesture size tolerance:', error);
+    }
+  };
 
   const handleSelect = async (id: string) => {
     await setActiveProfileId(id);
@@ -54,11 +154,129 @@ export default function ProfileManagerScreen({ navigation }: any) {
     title: { fontSize: largeText ? 28 : 24, marginBottom: SPACING.lg, textAlign: 'center', color: highContrast ? COLORS.highContrastText : COLORS.text },
     row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
     name: { fontSize: largeText ? 22 : 18, color: highContrast ? COLORS.highContrastText : COLORS.text },
+    trustedDeviceSection: {
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
+      padding: SPACING.md,
+      borderRadius: 8,
+      marginBottom: SPACING.lg,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+    },
+    sectionTitle: {
+      fontSize: largeText ? 20 : 18,
+      fontWeight: 'bold',
+      marginBottom: SPACING.sm,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
+    trustedDeviceInfo: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    trustedDeviceSetup: {
+      alignItems: 'center',
+    },
+    trustedDeviceText: {
+      fontSize: largeText ? 16 : 14,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      marginBottom: SPACING.sm,
+      textAlign: 'center',
+    },
+    protectionInfo: {
+      alignItems: 'center',
+    },
+    protectionDescription: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      textAlign: 'center',
+      marginBottom: SPACING.md,
+    },
+    buttonRow: {
+      minWidth: 120,
+    },
+    toleranceButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      flexWrap: 'wrap',
+      marginTop: SPACING.sm,
+    },
   });
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Profile</Text>
+
+      {/* Trusted Device Section */}
+      <View style={styles.trustedDeviceSection}>
+        <Text style={styles.sectionTitle}>Vertrauenswürdiges Gerät</Text>
+        {isTrustedDevice ? (
+          <View style={styles.trustedDeviceInfo}>
+            <Text style={styles.trustedDeviceText}>✅ Dieses Gerät ist vertrauenswürdig</Text>
+            <Button
+              title="Entfernen"
+              onPress={removeTrustedDevice}
+              accessibilityLabel="Vertrauenswürdiges Gerät entfernen"
+            />
+          </View>
+        ) : (
+          <View style={styles.trustedDeviceSetup}>
+            <Text style={styles.trustedDeviceText}>
+              Richte dieses Gerät als vertrauenswürdig ein für einfacheren Zugriff
+            </Text>
+            <Button
+              title="Als vertrauenswürdig einrichten"
+              onPress={setupTrustedDevice}
+              accessibilityLabel="Gerät als vertrauenswürdig einrichten"
+            />
+          </View>
+        )}
+      </View>
+
+      {/* Bullying Protection Section */}
+      <View style={styles.trustedDeviceSection}>
+        <Text style={styles.sectionTitle}>Mobbing-Schutz</Text>
+        <View style={styles.protectionInfo}>
+          <Text style={styles.trustedDeviceText}>
+            {bullyingProtectionEnabled
+              ? '🛡️ Mobbing-Schutz ist aktiviert'
+              : '⚠️ Mobbing-Schutz ist deaktiviert'}
+          </Text>
+          <Text style={styles.protectionDescription}>
+            Schützt Amy vor unbefugter Nutzung auf geteilten Geräten
+          </Text>
+          <View style={styles.buttonRow}>
+            <Button
+              title={bullyingProtectionEnabled ? "Deaktivieren" : "Aktivieren"}
+              onPress={() => toggleBullyingProtection(!bullyingProtectionEnabled)}
+              accessibilityLabel={`Mobbing-Schutz ${bullyingProtectionEnabled ? 'deaktivieren' : 'aktivieren'}`}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Gesture Size Tolerance Section */}
+      <View style={styles.trustedDeviceSection}>
+        <Text style={styles.sectionTitle}>Gestengrößen-Toleranz</Text>
+        <View style={styles.protectionInfo}>
+          <Text style={styles.trustedDeviceText}>
+            Aktuell: {Math.round(gestureSizeTolerance * 100)}%
+          </Text>
+          <Text style={styles.protectionDescription}>
+            Wie viel Größenunterschied bei Gesten erlaubt ist
+          </Text>
+          <View style={styles.toleranceButtons}>
+            {[0.1, 0.2, 0.3, 0.4, 0.5].map((tolerance) => (
+              <Button
+                key={tolerance}
+                title={`${Math.round(tolerance * 100)}%`}
+                onPress={() => saveGestureSizeTolerance(tolerance)}
+                accessibilityLabel={`Toleranz auf ${Math.round(tolerance * 100)}% setzen`}
+              />
+            ))}
+          </View>
+        </View>
+      </View>
+
       <FlatList
         data={profiles}
         keyExtractor={(item) => item.id}

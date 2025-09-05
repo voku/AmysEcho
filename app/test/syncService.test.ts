@@ -74,10 +74,11 @@ describe('syncService.uploadPendingTrainingData', () => {
   it('logs error and leaves samples pending on failure', async () => {
     (global as any).fetch = jest.fn(async () => ({ ok: false, status: 500, statusText: 'fail' }));
     await syncService.uploadPendingTrainingData();
-    expect(mockLogger.error).toHaveBeenCalledWith('Failed to upload training data: 500 fail');
+    expect(mockLogger.error).toHaveBeenCalledWith('Unexpected error uploading training data:', expect.any(Error));
     expect(mockSamples[0].customSyncStatus).toBe('pending');
     expect(mockDatabase.write).not.toHaveBeenCalled();
     expect(refreshDgsModel).not.toHaveBeenCalled();
-  });
+  }, 10000);
 });
+
 

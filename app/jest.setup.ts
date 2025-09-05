@@ -3,6 +3,15 @@
 // See https://react.dev/reference/react/act for details.
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
+// Suppress react-test-renderer deprecation warnings
+const originalConsoleError = console.error;
+console.error = (...args: any[]) => {
+  if (args[0] && typeof args[0] === 'string' && args[0].includes('react-test-renderer is deprecated')) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+
 
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),

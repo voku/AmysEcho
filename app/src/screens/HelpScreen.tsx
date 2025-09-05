@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
 import { COLORS, SPACING } from '../constants/ui';
+import { loadProfile, Profile } from '../storage';
+import BottomNav from '../components/BottomNav';
 
 export default function HelpScreen({ navigation }: any) {
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    loadProfile().then(setProfile);
+  }, []);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Wie du Amy helfen kannst</Text>
@@ -22,6 +30,7 @@ export default function HelpScreen({ navigation }: any) {
         • Achte darauf, dass Amy in einem gut beleuchteten Bereich ist und ihre Hände für die Kamera klar sichtbar sind.
       </Text>
       <Button title="Zurück" onPress={() => navigation.goBack()} />
+      {profile && <BottomNav active="parent" profileId={profile.id} />}
     </View>
   );
 }

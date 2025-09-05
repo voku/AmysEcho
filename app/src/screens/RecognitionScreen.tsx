@@ -10,6 +10,7 @@ import {
   Switch,
   AccessibilityInfo,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import type { NavigationProp } from '@react-navigation/native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
@@ -23,6 +24,7 @@ import {
   correctionService,
   dialogEngine,
   announceGestureRecognition,
+  gestureSuggester,
 } from '../services';
 import { loadProfile, Profile } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
@@ -42,6 +44,9 @@ import { LanguageManager } from '../services/LanguageManager';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
+import { emergencyRollback } from '../services/modelUpdate';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import MoodSelector from '../components/MoodSelector';
 import type { RootStackParamList } from '../navigation/types';
 
 const FEEDBACK_THROTTLE_MS = 2000;
@@ -60,10 +65,11 @@ export default function RecognitionScreen({
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
-  const [suggestions, setSuggestions] = useState<LLMSuggestionResponse>({
+  const [, setSuggestions] = useState<LLMSuggestionResponse>({
     nextWords: [],
     caregiverPhrases: [],
   });
+  const [gestureSuggestions, setGestureSuggestions] = useState<Array<{id: string; label: string}>>([]);
   const [dialogContext, setDialogContext] = useState<string[]>([]);
   const [pendingGesture, setPendingGesture] = useState<string | null>(null);
   const [lastRecognizedGesture, setLastRecognizedGesture] =
@@ -75,6 +81,10 @@ export default function RecognitionScreen({
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationKey, setCelebrationKey] = useState(0);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
+  const [modelUpdateStatus, setModelUpdateStatus] = useState<'idle' | 'updating' | 'complete' | 'error'>('idle');
+  const [showMoodSelector, setShowMoodSelector] = useState(false);
+  const [bullyingProtectionActive, setBullyingProtectionActive] = useState(false);
+  const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -88,9 +98,12 @@ export default function RecognitionScreen({
   const lastUncertainAtRef = useRef<number>(0);
   const lastSuccessAtRef = useRef<number>(0);
   const lastGestureIdRef = useRef<string | null>(null);
-  const lastErrorFeedbackAtRef = useRef<number>(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _lastErrorFeedbackAtRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
   const centroidsRef = useRef<CentroidMap>({});
+  const consecutiveFailuresRef = useRef<number>(0);
+  const lastModelUpdateTimeRef = useRef<number>(0);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -146,6 +159,107 @@ export default function RecognitionScreen({
     celebrationTimeoutRef.current = setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
   }, [fadeAnim, symbolScaleAnim]);
 
+  // Gesture shortcut system for quick navigation
+  const getGestureShortcut = useCallback((gestureId: string): string | null => {
+    const shortcuts: Record<string, string> = {
+      'help': 'help_screen',
+      'training': 'training_screen',
+      'practice': 'practice_screen',
+      'parent': 'parent_screen',
+      'correction': 'correction_screen',
+      'profile': 'profile_screen',
+      'dashboard': 'dashboard_screen',
+      'progress': 'progress_screen',
+    };
+    return shortcuts[gestureId] || null;
+  }, []);
+
+  const executeGestureShortcut = useCallback(async (
+    action: string,
+    navigation: any,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    profileId: string
+  ) => {
+    switch (action) {
+      case 'help_screen':
+        navigation.navigate('Help');
+        break;
+      case 'training_screen':
+        navigation.navigate('Training', { gestureLabel: undefined });
+        break;
+      case 'practice_screen':
+        navigation.navigate('Practice');
+        break;
+      case 'parent_screen':
+        navigation.navigate('Parent');
+        break;
+      case 'correction_screen':
+        navigation.navigate('Correction');
+        break;
+      case 'profile_screen':
+        navigation.navigate('ProfileSelect');
+        break;
+      case 'dashboard_screen':
+        navigation.navigate('Dashboard');
+        break;
+      case 'progress_screen':
+        navigation.navigate('Progress');
+        break;
+    }
+  }, []);
+
+  const getShortcutMessage = useCallback((action: string): string => {
+    const messages: Record<string, string> = {
+      'help_screen': 'Öffne Hilfeseite',
+      'training_screen': 'Starte Training',
+      'practice_screen': 'Starte Übung',
+      'parent_screen': 'Öffne Elternbereich',
+      'correction_screen': 'Öffne Korrektur',
+      'profile_screen': 'Öffne Profile',
+      'dashboard_screen': 'Öffne Auswertung',
+      'progress_screen': 'Öffne Fortschritt',
+    };
+    return messages[action] || 'Schnellaktion ausgeführt';
+  }, []);
+
+  const provideInstantFeedback = useCallback(async (
+    gesture: string,
+    confidence: number,
+    isSuccessful: boolean,
+  ) => {
+    // Always provide some form of feedback for every gesture attempt
+    if (isSuccessful) {
+      // Successful gesture - full celebration
+      const entry = (gestureModel.gestures.find((g) => g.id === gesture) || { id: gesture, label: gesture }) as GestureModelEntry;
+      const localizedLabel = LanguageManager.getGestureLabel(entry.id);
+      const labelForUser = localizedLabel !== `gestures.${entry.id}` ? localizedLabel : entry.label;
+
+      if (!screenReaderEnabled) {
+        void triggerSpeakAndShow(labelForUser, confidence, startFeedbackAnimation);
+      }
+      announceGestureRecognition(labelForUser, confidence);
+    } else {
+      // Unsuccessful attempt - encouraging feedback without full celebration
+      if (!screenReaderEnabled) {
+        // Provide gentle haptic feedback for unsuccessful attempts
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        // Play a gentle encouraging sound
+        void audioService.playSound('confirmation', { volume: 0.3 });
+      }
+
+      // Update status with encouraging message
+      setStatus('Gut versucht! Mach weiter so!');
+
+      // Visual feedback - subtle animation
+      fadeAnim.setValue(0.5);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [screenReaderEnabled, startFeedbackAnimation, fadeAnim]);
+
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
     AccessibilityInfo.isScreenReaderEnabled
@@ -162,6 +276,33 @@ export default function RecognitionScreen({
   }, []);
 
   useEffect(() => {
+    // Check bullying protection status
+    const checkBullyingProtection = async () => {
+      try {
+        const protectionEnabled = await AsyncStorage.getItem('bullyingProtectionEnabled');
+        const isTrustedDevice = await AsyncStorage.getItem('trustedDeviceId');
+
+        if (protectionEnabled === 'true' && !isTrustedDevice) {
+          setBullyingProtectionActive(true);
+          setStatus('🔒 Gerät ist nicht vertrauenswürdig. Bitte wende dich an einen Betreuer.');
+        } else {
+          setBullyingProtectionActive(false);
+        }
+
+        // Load gesture size tolerance
+        const toleranceStr = await AsyncStorage.getItem('gestureSizeTolerance');
+        if (toleranceStr) {
+          setGestureSizeTolerance(parseFloat(toleranceStr));
+        }
+      } catch (error) {
+        logger.warn('Failed to check bullying protection:', error);
+      }
+    };
+
+    checkBullyingProtection();
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (celebrationTimeoutRef.current) {
         clearTimeout(celebrationTimeoutRef.current);
@@ -174,10 +315,16 @@ export default function RecognitionScreen({
     confidence: number,
     landmarks: number[][][],
     handedness: string[],
+    emergency?: boolean,
   ) => {
-    // Throttle frame processing to avoid unnecessary work on slower devices
+    // Bullying protection: block gesture processing on untrusted devices
+    if (bullyingProtectionActive && !emergency) {
+      return;
+    }
+
+    // Emergency gestures bypass all throttling and processing delays
     const ts = Date.now();
-    if (ts - lastFrameTimeRef.current < FRAME_INTERVAL_MS) {
+    if (!emergency && ts - lastFrameTimeRef.current < FRAME_INTERVAL_MS) {
       return;
     }
     lastFrameTimeRef.current = ts;
@@ -206,6 +353,8 @@ export default function RecognitionScreen({
       finalGesture: string,
       finalConfidence: number,
       processedBy: RecognitionPath,
+      landmarks: number[][][],
+      handedness: string[],
     ) => {
       // Smooth confidence and label
       const smoothed = confidenceFilterRef.current.filter(
@@ -222,9 +371,10 @@ export default function RecognitionScreen({
       const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
       const stableGesture = top && top[1] >= 3 ? top[0] : finalGesture;
 
-      setGestureConfidence(smoothed);
-      setError(null);
-      uncertainCountRef.current = 0;
+        setGestureConfidence(smoothed);
+        setError(null);
+        uncertainCountRef.current = 0;
+        consecutiveFailuresRef.current = 0; // Reset failure counter on successful recognition
 
       if (smoothed > 0.7 && stableGesture !== 'unknown') {
         const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
@@ -237,6 +387,21 @@ export default function RecognitionScreen({
         setLastRecognizedGesture(entry);
         setStatus(entry.label);
 
+        // Check for gesture shortcuts before providing normal feedback
+        const shortcutAction = getGestureShortcut(entry.id);
+        if (shortcutAction) {
+          // Execute shortcut action
+          void executeGestureShortcut(shortcutAction, navigation, profile?.id || 'default');
+          // Provide special feedback for shortcuts
+          const shortcutMessage = getShortcutMessage(shortcutAction);
+          setStatus(shortcutMessage);
+          if (!screenReaderEnabled) {
+            void audioService.speak(shortcutMessage);
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          return; // Skip normal processing for shortcuts
+        }
+
         if (shouldProvideFeedback) {
           lastSuccessAtRef.current = now;
           const localizedLabel = LanguageManager.getGestureLabel(entry.id);
@@ -247,6 +412,9 @@ export default function RecognitionScreen({
           }
           announceGestureRecognition(labelForUser, smoothed);
         }
+
+        // Provide instant feedback for successful gesture
+        void provideInstantFeedback(stableGesture, smoothed, true);
 
         // Log success
         logInteractionEvent({
@@ -280,7 +448,7 @@ export default function RecognitionScreen({
           if (seqId) {
             void logHIPEvent('HIP_2', 'sequence_detected', { sequence: seqId });
             // Optional extra cue without altering primary status
-            void audioService.playEncouragement(seqId);
+            void audioService.playSound('celebration', { volume: 0.4 });
           }
         } catch {}
       } else {
@@ -293,19 +461,61 @@ export default function RecognitionScreen({
         }
         lastUncertainAtRef.current = now;
         uncertainCountRef.current += 1;
+
+        // Track consecutive recognition failures for emergency rollback
+        consecutiveFailuresRef.current += 1;
+
+        // Trigger emergency rollback if too many consecutive failures after recent model update
+        if (consecutiveFailuresRef.current >= 10 &&
+            now - lastModelUpdateTimeRef.current < 5 * 60 * 1000) { // Within 5 minutes of update
+          logger.warn('Triggering emergency rollback due to consecutive recognition failures');
+          emergencyRollback().then(success => {
+            if (success) {
+              setStatus('Modell zurückgesetzt. Erkennung läuft weiter.');
+              consecutiveFailuresRef.current = 0;
+              setTimeout(() => setStatus('Ich höre zu…'), 3000);
+            }
+          }).catch(err => {
+            logger.error('Emergency rollback failed', err);
+          });
+        }
         if (!showCorrection && uncertainCountRef.current >= 3) {
+          // Generate auto-suggestions before showing correction panel
+          const gestureContext = {
+            recentGestures: labelHistoryRef.current,
+            timeOfDay: new Date().getHours() * 60 + new Date().getMinutes(),
+            confidence: smoothed,
+            landmarks: landmarks,
+            handedness: handedness,
+          };
+
+          const autoSuggestions = gestureSuggester.getSuggestions(
+            stableGesture,
+            gestureContext,
+            3
+          );
+
+          // Convert suggestions to the format expected by CorrectionPanel
+          const formattedSuggestions = autoSuggestions.map((s: any) => ({
+            id: s.id,
+            label: s.label,
+          }));
+
+          setGestureSuggestions(formattedSuggestions);
           setShowCorrection(true);
           uncertainCountRef.current = 0;
+
+          // Log auto-suggestions
+          void logHIPEvent('HIP_3', 'auto_suggestions_generated', {
+            suggestionCount: autoSuggestions.length,
+            failedGesture: stableGesture,
+            suggestions: autoSuggestions.map(s => s.id),
+          });
         }
-        // Gentle feedback when the gesture wasn't recognized
-        if (Date.now() - lastErrorFeedbackAtRef.current > FEEDBACK_THROTTLE_MS) {
-          lastErrorFeedbackAtRef.current = Date.now();
-          try {
-            await audioService.playErrorFeedback();
-          } catch (error) {
-            logger.warn('Failed to play error feedback:', error);
-          }
-        }
+
+        // Provide instant feedback for unsuccessful gesture attempt
+        void provideInstantFeedback(stableGesture, smoothed, false);
+
         // HIP 3: opened correction/uncertainty path
         void logHIPEvent('HIP_3', 'help_me_opened', { suggestionFor: finalGesture });
         // Log failure for the incoming gesture id (could be 'unknown')
@@ -321,18 +531,131 @@ export default function RecognitionScreen({
       }
     };
 
+    // Emergency gestures get immediate priority processing
+    if (emergency && g) {
+      const entry = (gestureModel.gestures.find((ges) => ges.id === g) || { id: g, label: g }) as GestureModelEntry;
+      const localizedLabel = LanguageManager.getGestureLabel(entry.id);
+      const labelForUser = localizedLabel !== `gestures.${entry.id}` ? localizedLabel : entry.label;
+
+      // Immediate audio feedback for emergency gestures
+      void audioService.speak(labelForUser);
+      void audioService.playSound('success', { volume: 0.8 });
+
+      // Log emergency gesture detection
+      logInteractionEvent({
+        gestureDefinitionId: entry.id,
+        gestureName: entry.label,
+        wasSuccessful: true,
+        confidenceScore: c,
+        timestamp: Date.now(),
+        processedBy: 'local',
+      }).catch(() => {});
+
+      // Update UI immediately
+      setLastRecognizedGesture(entry);
+      setStatus(`🚨 ${labelForUser} - Notfall erkannt!`);
+      setGestureConfidence(c);
+      setError(null);
+
+      // Provide instant feedback for emergency gesture
+      void provideInstantFeedback(entry.id, c, true);
+
+      // Trigger emergency response
+      void logHIPEvent('HIP_1', 'emergency_gesture_detected', {
+        gesture: entry.id,
+        confidence: c,
+        timestamp: ts
+      });
+
+      return; // Skip normal processing for emergency gestures
+    }
+
     // On-device classification only: use provided or locally-classified gesture
-    await handleOutcome(g || 'unknown', c, path);
-  }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture, screenReaderEnabled]);
+    await handleOutcome(g || 'unknown', c, path, landmarks, handedness);
+  }, [
+    dialogContext,
+    startFeedbackAnimation,
+    screenReaderEnabled,
+    bullyingProtectionActive,
+    executeGestureShortcut,
+    getGestureShortcut,
+    getShortcutMessage,
+    navigation,
+    profile?.id,
+    provideInstantFeedback,
+    showCorrection,
+  ]);
+
+  const handleModelUpdateStatus = useCallback((status: 'idle' | 'updating' | 'complete' | 'error') => {
+    setModelUpdateStatus(status);
+    if (status === 'updating') {
+      setStatus('Modell wird im Hintergrund aktualisiert...');
+    } else if (status === 'complete') {
+      lastModelUpdateTimeRef.current = Date.now(); // Track when model was updated
+      setStatus('Neues Modell geladen! Erkennung läuft weiter.');
+      // Clear status after a short delay
+      setTimeout(() => {
+        if (modelUpdateStatus === 'complete') {
+          setStatus('Ich höre zu…');
+        }
+      }, 3000);
+    } else if (status === 'error') {
+      setStatus('Modell-Update hatte Probleme, aber Erkennung läuft weiter.');
+      setTimeout(() => {
+        if (modelUpdateStatus === 'error') {
+          setStatus('Ich höre zu…');
+        }
+      }, 3000);
+    }
+  }, [modelUpdateStatus]);
+
+  const handlePartialFeedback = useCallback((gesture: string, completion: number, feedback: string) => {
+    // Show encouraging feedback for partial gestures
+    const completionPercent = Math.round(completion * 100);
+    setStatus(`${feedback} (${completionPercent}% fertig)`);
+
+    // Clear feedback after a short delay
+    setTimeout(() => {
+      setStatus('Ich höre zu…');
+    }, 2500);
+  }, []);
+
+  const handleStabilityFeedback = useCallback((isStable: boolean, stabilityScore: number, feedback: string) => {
+    // Only show stability feedback if hand is detected and not stable
+    if (!isStable && feedback) {
+      setStatus(feedback);
+      // Clear stability feedback after a short delay
+      setTimeout(() => {
+        setStatus('Ich höre zu…');
+      }, 2000);
+    }
+  }, []);
 
   const handleGestureError = useCallback((errorMessage: string) => {
-    // Avoid flooding the UI; only surface critical init/camera errors
-    logger.warn('Gesture detection warning:', errorMessage);
-    if (/Recognizer init failed/i.test(errorMessage)) {
-      setError(LanguageManager.t('mediapipe.recognizerInitFailed'));
+    // Log technical errors for caregivers but never show them to Amy
+    logger.warn('Gesture detection warning (hidden from user):', errorMessage);
+
+    // Always show encouraging messages regardless of error type
+    if (errorMessage === 'gesture_processing_error') {
+      setStatus('Das hat nicht geklappt. Probier\'s einfach nochmal!');
+    } else if (/Recognizer init failed/i.test(errorMessage)) {
+      setStatus('Versuch\'s nochmal! Ich bin gleich bereit.');
     } else if (/Camera error/i.test(errorMessage)) {
-      setError(LanguageManager.t('mediapipe.cameraError'));
+      setStatus('Kamera braucht einen Moment. Lass uns weitermachen!');
+    } else {
+      // For any other error, show a generic encouraging message
+      setStatus('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
     }
+
+    // Always clear error state to ensure Amy never sees technical errors
+    setError(null);
+
+    // Log error for caregiver analytics (but don't show to Amy)
+    void logHIPEvent('HIP_3', 'gesture_error_hidden', {
+      errorType: errorMessage.substring(0, 100), // Truncate for privacy
+      timestamp: Date.now(),
+      userImpact: 'none' // Amy never sees technical errors
+    });
   }, []);
 
   const handleSelectCorrection = async (choiceId: string) => {
@@ -439,25 +762,41 @@ export default function RecognitionScreen({
 
   return (
     <SafeAreaView style={styles.container}>
-      <Button
-        title={facingMode === 'user' ? 'Hintere Kamera verwenden' : 'Vordere Kamera verwenden'}
-        onPress={() => {
-          const m = facingMode === 'user' ? 'environment' : 'user';
-          setFacingMode(m);
-          setWebviewKey((k) => k + 1);
-        }}
-        accessibilityLabel="Kamera wechseln"
-      />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: SPACING.md }}>
+        <Button
+          title={facingMode === 'user' ? 'Hintere Kamera verwenden' : 'Vordere Kamera verwenden'}
+          onPress={() => {
+            const m = facingMode === 'user' ? 'environment' : 'user';
+            setFacingMode(m);
+            setWebviewKey((k) => k + 1);
+          }}
+          accessibilityLabel="Kamera wechseln"
+        />
+        <Button
+          title="Stimmung"
+          onPress={() => setShowMoodSelector(!showMoodSelector)}
+          accessibilityLabel="Stimmungsmodus ändern"
+        />
+      </View>
+
+      {showMoodSelector && <MoodSelector />}
       <View style={styles.cameraContainer}>
         {
           <MediaPipeGestureDetector
             key={webviewKey}
             onGestureDetected={handleGestureDetected}
             onError={handleGestureError}
+            onModelUpdateStatus={handleModelUpdateStatus}
+            onPartialFeedback={handlePartialFeedback}
+            onStabilityFeedback={handleStabilityFeedback}
             facingMode={facingMode}
+            gestureSizeTolerance={gestureSizeTolerance}
           />
         }
-        <Text style={styles.statusText}>{status}</Text>
+        <Text style={styles.statusText}>
+          {status}
+          {modelUpdateStatus === 'updating' && ' 🔄'}
+        </Text>
 
         {error && (
           <View style={styles.errorContainer}>
@@ -497,7 +836,7 @@ export default function RecognitionScreen({
           navigation.navigate('Teaching');
         }}
         onCancel={handleCancelCorrection}
-        suggestions={[]}
+        suggestions={gestureSuggestions}
       />
     )}
 

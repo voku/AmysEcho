@@ -16,6 +16,7 @@ export function installMlp() {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     if (view.getUint8(0) !== 0x93) throw new Error('bad npy');
     const major = view.getUint8(6);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _minor = view.getUint8(7); // unused but kept for completeness
     const headerLen = major === 1 ? view.getUint16(8, true) : view.getUint32(8, true);
     const headerStart = major === 1 ? 10 : 12;

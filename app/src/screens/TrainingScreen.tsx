@@ -47,7 +47,9 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   // No-op: local landmark model removed.
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isFocused = useIsFocused();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [appState, setAppState] = useState(AppState.currentState);
   useEffect(() => {
     const sub = AppState.addEventListener('change', setAppState);
