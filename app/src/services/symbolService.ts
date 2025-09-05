@@ -1,7 +1,6 @@
 import { database } from '../../db';
-import { Symbol } from '../../db/models';
+import { Symbol as SymbolModel } from '../../db/models';
 import { Q } from '@nozbe/watermelondb';
-import type { Model } from '@nozbe/watermelondb';
 
 export interface SymbolData {
   id: string;
@@ -14,7 +13,7 @@ export interface SymbolData {
 }
 
 export async function loadSymbols(): Promise<SymbolData[]> {
-  const symbols = await database.get<Symbol>('symbols').query().fetch();
+  const symbols = await database.get<SymbolModel>('symbols').query().fetch();
   return symbols.map(symbol => ({
     id: symbol.id,
     name: symbol.name,
@@ -28,7 +27,7 @@ export async function loadSymbols(): Promise<SymbolData[]> {
 
 export async function getSymbolById(id: string): Promise<SymbolData | null> {
   try {
-    const symbol = await database.get<Symbol>('symbols').find(id);
+    const symbol = await database.get<SymbolModel>('symbols').find(id);
     return {
       id: symbol.id,
       name: symbol.name,
@@ -48,13 +47,17 @@ export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
     return;
   }
 
-  const collection = database.get<Symbol>('symbols');
+  const collection = database.get<SymbolModel>('symbols');
   const existingList = await collection
     .query(Q.where('id', Q.oneOf(symbols.map(s => s.id))))
     .fetch();
   const existingMap = new Map(existingList.map(s => [s.id, s]));
 
-  const actions: Model[] = [];
+  type PreparedCreateSymbol = ReturnType<typeof collection.prepareCreate>;
+  type PreparedUpdateSymbol = ReturnType<
+    InstanceType<typeof SymbolModel>['prepareUpdate']
+  >;
+  const actions: Array<PreparedCreateSymbol | PreparedUpdateSymbol> = [];
   for (const symbolData of symbols) {
     const existing = existingMap.get(symbolData.id);
     if (existing) {

@@ -4,9 +4,9 @@ export const tableSchema = jest.fn();
 export const column = jest.fn();
 export const Model = jest.fn();
 export const Q = {
-  where: jest.fn((column: string, value: any) =>
-    typeof value === 'object' && value.values !== undefined
-      ? { left: column, comparison: { right: { values: value.values } } }
+  where: jest.fn((column: string, value: unknown) =>
+    value != null && typeof value === 'object' && 'values' in (value as any)
+      ? { left: column, comparison: { right: { values: (value as any).values } } }
       : { left: column, comparison: { right: { value } } }
   ),
   oneOf: jest.fn((values: any[]) => ({ values })),
