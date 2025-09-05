@@ -1,15 +1,67 @@
-import { addTrainingSample, getTrainingSamples, clearTrainingSamples } from '../src/services/trainingDataService';
+jest.mock('@nozbe/watermelondb', () =>
+  jest.requireActual('@nozbe/watermelondb'),
+);
+jest.mock('@nozbe/watermelondb/adapters/lokijs', () =>
+  jest.requireActual('@nozbe/watermelondb/adapters/lokijs'),
+);
+jest.mock('../db', () => {
+  const { Database } = jest.requireActual('@nozbe/watermelondb');
+  const LokiJSAdapter =
+    jest.requireActual('@nozbe/watermelondb/adapters/lokijs').default;
+  const { mySchema } = jest.requireActual('../db/schema');
+  const { migrations } = jest.requireActual('../db/migrations');
+  const {
+    Profile,
+    Symbol,
+    VocabularySet,
+    UsageStat,
+    VocabularySetSymbol,
+    GestureDefinition,
+    GestureTrainingData,
+    InteractionLog,
+    LearningAnalytic,
+    Correction,
+  } = jest.requireActual('../db/models');
+  const adapter = new LokiJSAdapter({
+    schema: mySchema,
+    migrations,
+    useWebWorker: false,
+    useIncrementalIndexedDB: false,
+  });
+  const database = new Database({
+    adapter,
+    modelClasses: [
+      Profile,
+      Symbol,
+      VocabularySet,
+      UsageStat,
+      VocabularySetSymbol,
+      GestureDefinition,
+      GestureTrainingData,
+      InteractionLog,
+      LearningAnalytic,
+      Correction,
+    ],
+  });
+  return { database };
+});
 
-// Mock the database
-const mockTrainingData: any[] = [];
-
-jest.mock('../src/db', () => ({
-  gestureTrainingData: mockTrainingData
-}));
+import { database } from '../db';
+import {
+  addTrainingSample,
+  getTrainingSamples,
+  clearTrainingSamples,
+} from '../src/services/trainingDataService';
 
 describe('Training Data Management - Colors and Food', () => {
-  beforeEach(() => {
-    mockTrainingData.length = 0; // Clear the array
+  beforeEach(async () => {
+    await database.write(async () => {
+      const collection = database.get('gesture_training_data');
+      const all = await collection.query().fetch();
+      if (all.length) {
+        await database.batch(...all.map((s: any) => s.prepareDestroyPermanently()));
+      }
+    });
   });
 
   describe('Adding Training Samples', () => {
@@ -41,8 +93,10 @@ describe('Training Data Management - Colors and Food', () => {
 
       const samples = await getTrainingSamples('blue');
       expect(samples).toHaveLength(2);
-      expect(samples[0].landmarkData).toEqual(landmarks1);
-      expect(samples[1].landmarkData).toEqual(landmarks2);
+      const collected = samples.map(s => s.landmarkData);
+      expect(collected).toEqual(
+        expect.arrayContaining([landmarks1, landmarks2]),
+      );
     });
 
     it('adds food gesture training samples', async () => {
