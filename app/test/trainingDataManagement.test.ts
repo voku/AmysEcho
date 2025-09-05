@@ -1,11 +1,35 @@
 import { addTrainingSample, getTrainingSamples, clearTrainingSamples } from '../src/services/trainingDataService';
 
-// Mock the database
+// Mock WatermelonDB database with in-memory training data
 const mockTrainingData: any[] = [];
 
-jest.mock('../src/db', () => ({
-  gestureTrainingData: mockTrainingData
-}));
+jest.mock('../db', () => {
+  const mockCollection = {
+    query: () => ({ fetch: async () => mockTrainingData }),
+    create: (cb: any) => {
+      const sample: any = {
+        id: String(mockTrainingData.length + 1),
+        gestureDefinition: { id: '' },
+        landmarkData: '',
+        source: 'manual',
+        qualityScore: 1,
+        frameMetadata: '{}',
+        customSyncStatus: 'pending',
+        destroyPermanently: async () => {
+          const idx = mockTrainingData.indexOf(sample);
+          if (idx >= 0) mockTrainingData.splice(idx, 1);
+        },
+      };
+      cb(sample);
+      mockTrainingData.push(sample);
+    },
+  };
+  const mockDatabase = {
+    get: () => mockCollection,
+    write: async (fn: any) => fn(),
+  };
+  return { database: mockDatabase };
+});
 
 describe('Training Data Management - Colors and Food', () => {
   beforeEach(() => {

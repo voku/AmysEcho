@@ -43,15 +43,29 @@ export async function getSymbolById(id: string): Promise<SymbolData | null> {
 
 export async function saveSymbols(symbols: SymbolData[]): Promise<void> {
   await database.write(async () => {
+    const collection = database.get<Symbol>('symbols');
     for (const symbolData of symbols) {
-      await database.get<Symbol>('symbols').create(symbol => {
-        symbol.name = symbolData.name;
-        symbol.emoji = symbolData.emoji;
-        symbol.color = symbolData.color;
-        symbol.audioUri = symbolData.audioUri;
-        symbol.dgsVideoAssetPath = symbolData.dgsVideoUri;
-        symbol.healthScore = symbolData.healthScore;
-      });
+      try {
+        const existing = await collection.find(symbolData.id);
+        await existing.update(symbol => {
+          symbol.name = symbolData.name;
+          symbol.emoji = symbolData.emoji;
+          symbol.color = symbolData.color;
+          symbol.audioUri = symbolData.audioUri;
+          symbol.dgsVideoAssetPath = symbolData.dgsVideoUri;
+          symbol.healthScore = symbolData.healthScore;
+        });
+      } catch {
+        await collection.create(symbol => {
+          (symbol as any).id = symbolData.id;
+          symbol.name = symbolData.name;
+          symbol.emoji = symbolData.emoji;
+          symbol.color = symbolData.color;
+          symbol.audioUri = symbolData.audioUri;
+          symbol.dgsVideoAssetPath = symbolData.dgsVideoUri;
+          symbol.healthScore = symbolData.healthScore;
+        });
+      }
     }
   });
 }

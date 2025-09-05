@@ -1,100 +1,124 @@
 import { loadSymbols, saveSymbols, getSymbolById } from '../src/services/symbolService';
 
-// Mock the database
-jest.mock('../../db', () => ({
-  symbols: [
-    {
-      id: 'hello',
-      name: 'Hello',
-      emoji: '👋',
-      color: '#ffcc00',
-      audioUri: 'hello.mp3',
-      dgsVideoUri: 'dgs/hello.mp4',
-      healthScore: 1
+// Mock WatermelonDB database with in-memory symbols
+const mockSymbols: any[] = [
+  {
+    id: 'hello',
+    name: 'Hello',
+    emoji: '👋',
+    color: '#ffcc00',
+    audioUri: 'hello.mp3',
+    dgsVideoAssetPath: 'dgs/hello.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'drink',
+    name: 'Drink',
+    emoji: '🥤',
+    color: '#0099ff',
+    audioUri: 'drink.mp3',
+    dgsVideoAssetPath: 'dgs/drink.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'red',
+    name: 'Red',
+    emoji: '🔴',
+    color: '#ff0000',
+    audioUri: 'red.mp3',
+    dgsVideoAssetPath: 'dgs/red.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'blue',
+    name: 'Blue',
+    emoji: '🔵',
+    color: '#0000ff',
+    audioUri: 'blue.mp3',
+    dgsVideoAssetPath: 'dgs/blue.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'green',
+    name: 'Green',
+    emoji: '🟢',
+    color: '#00ff00',
+    audioUri: 'green.mp3',
+    dgsVideoAssetPath: 'dgs/green.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'yellow',
+    name: 'Yellow',
+    emoji: '🟡',
+    color: '#ffff00',
+    audioUri: 'yellow.mp3',
+    dgsVideoAssetPath: 'dgs/yellow.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'apple',
+    name: 'Apple',
+    emoji: '🍎',
+    color: '#ff6b35',
+    audioUri: 'apple.mp3',
+    dgsVideoAssetPath: 'dgs/apple.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'banana',
+    name: 'Banana',
+    emoji: '🍌',
+    color: '#ffe135',
+    audioUri: 'banana.mp3',
+    dgsVideoAssetPath: 'dgs/banana.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'bread',
+    name: 'Bread',
+    emoji: '🍞',
+    color: '#d2691e',
+    audioUri: 'bread.mp3',
+    dgsVideoAssetPath: 'dgs/bread.mp4',
+    healthScore: 1,
+  },
+  {
+    id: 'milk',
+    name: 'Milk',
+    emoji: '🥛',
+    color: '#ffffff',
+    audioUri: 'milk.mp3',
+    dgsVideoAssetPath: 'dgs/milk.mp4',
+    healthScore: 1,
+  },
+];
+
+jest.mock('../db', () => {
+  const mockCollection = {
+    query: () => ({ fetch: async () => mockSymbols }),
+    find: async (id: string) => {
+      const symbol = mockSymbols.find(s => s.id === id);
+      if (!symbol) throw new Error('not found');
+      return symbol;
     },
-    {
-      id: 'drink',
-      name: 'Drink',
-      emoji: '🥤',
-      color: '#0099ff',
-      audioUri: 'drink.mp3',
-      dgsVideoUri: 'dgs/drink.mp4',
-      healthScore: 1
+    create: (cb: any) => {
+      const symbol: any = {};
+      cb(symbol);
+      const index = mockSymbols.findIndex(s => s.id === symbol.id);
+      if (index >= 0) {
+        mockSymbols[index] = symbol;
+      } else {
+        mockSymbols.push(symbol);
+      }
     },
-    {
-      id: 'red',
-      name: 'Red',
-      emoji: '🔴',
-      color: '#ff0000',
-      audioUri: 'red.mp3',
-      dgsVideoUri: 'dgs/red.mp4',
-      healthScore: 1
-    },
-    {
-      id: 'blue',
-      name: 'Blue',
-      emoji: '🔵',
-      color: '#0000ff',
-      audioUri: 'blue.mp3',
-      dgsVideoUri: 'dgs/blue.mp4',
-      healthScore: 1
-    },
-    {
-      id: 'green',
-      name: 'Green',
-      emoji: '🟢',
-      color: '#00ff00',
-      audioUri: 'green.mp3',
-      dgsVideoUri: 'dgs/green.mp4',
-      healthScore: 1
-    },
-    {
-      id: 'yellow',
-      name: 'Yellow',
-      emoji: '🟡',
-      color: '#ffff00',
-      audioUri: 'yellow.mp3',
-      dgsVideoUri: 'dgs/yellow.mp4',
-      healthScore: 1
-    },
-    {
-      id: 'apple',
-      name: 'Apple',
-      emoji: '🍎',
-      color: '#ff6b35',
-      audioUri: 'apple.mp3',
-      dgsVideoUri: 'dgs/apple.mp4',
-      healthScore: 1
-    },
-    {
-      id: 'banana',
-      name: 'Banana',
-      emoji: '🍌',
-      color: '#ffe135',
-      audioUri: 'banana.mp3',
-      dgsVideoUri: 'dgs/banana.mp4',
-      healthScore: 1
-    },
-    {
-      id: 'bread',
-      name: 'Bread',
-      emoji: '🍞',
-      color: '#d2691e',
-      audioUri: 'bread.mp3',
-      dgsVideoUri: 'dgs/bread.mp4',
-      healthScore: 1
-    },
-    {
-      id: 'milk',
-      name: 'Milk',
-      emoji: '🥛',
-      color: '#ffffff',
-      audioUri: 'milk.mp3',
-      dgsVideoUri: 'dgs/milk.mp4',
-      healthScore: 1
-    }
-  ]
-}));
+  };
+  const mockDatabase = {
+    get: () => mockCollection,
+    write: async (fn: any) => fn(),
+  };
+  return { database: mockDatabase };
+});
 
 describe('Symbol Management - Colors and Food for Amy', () => {
   describe('Color Symbols', () => {
