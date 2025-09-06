@@ -8,20 +8,64 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { database } from '../../db';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
+import SoundSelector from '../components/SoundSelector';
+import BottomNav from '../components/BottomNav';
+import ThemeSelector from '../components/ThemeSelector';
 
-export default function ProfileManagerScreen({ navigation }: any) {
+export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isTrustedDevice, setIsTrustedDevice] = useState(false);
   const [bullyingProtectionEnabled, setBullyingProtectionEnabled] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
+  const [selectedSuccessSound, setSelectedSuccessSound] = useState('success');
   const { largeText, highContrast, update } = useAccessibility();
+  const profileId = route?.params?.profileId;
 
   useFocusEffect(
     React.useCallback(() => {
       loadProfiles().then(setProfiles);
       checkTrustedDevice();
+      loadSuccessSoundPreference();
     }, []),
   );
+
+  const loadSuccessSoundPreference = async () => {
+    try {
+      const sound = await AsyncStorage.getItem('selectedSuccessSound');
+      if (sound) {
+        setSelectedSuccessSound(sound);
+      }
+    } catch (error) {
+      logger.warn('Failed to load success sound preference:', error);
+    }
+  };
+
+  const handleSoundSelect = async (soundId: string) => {
+    try {
+      setSelectedSuccessSound(soundId);
+      await AsyncStorage.setItem('selectedSuccessSound', soundId);
+
+      // Update the active profile with the selected sound
+      const activeProfileId = await AsyncStorage.getItem('activeProfileId');
+      if (activeProfileId) {
+        const profile = await loadProfile(activeProfileId);
+        if (profile) {
+          // Update profile in database
+          await database.write(async () => {
+            const dbProfile = await database.get<DBProfile>('profiles').find(activeProfileId);
+            await dbProfile.update(p => {
+              (p as any).successSound = soundId;
+            });
+          });
+        }
+      }
+
+      Alert.alert('Ton gespeichert', 'Dein neuer Erfolgston wurde gespeichert!');
+    } catch (error) {
+      logger.error('Failed to save success sound:', error);
+      Alert.alert('Fehler', 'Ton konnte nicht gespeichert werden.');
+    }
+  };
 
   const checkTrustedDevice = async () => {
     try {
@@ -275,9 +319,18 @@ export default function ProfileManagerScreen({ navigation }: any) {
             ))}
           </View>
         </View>
-      </View>
+       </View>
 
-      <FlatList
+        {/* Success Sound Selection Section */}
+        <SoundSelector
+          selectedSound={selectedSuccessSound}
+          onSoundSelect={handleSoundSelect}
+        />
+
+        {/* Theme Selection Section */}
+        <ThemeSelector />
+
+        <FlatList
         data={profiles}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -301,6 +354,7 @@ export default function ProfileManagerScreen({ navigation }: any) {
         onPress={() => navigation.navigate('Onboarding')}
         accessibilityLabel="Neues Profil anlegen"
       />
+      {profileId && <BottomNav active="parent" profileId={profileId} />}
     </View>
   );
 }

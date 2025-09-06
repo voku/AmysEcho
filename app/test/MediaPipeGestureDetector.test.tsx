@@ -162,7 +162,7 @@ describe('MediaPipeGestureDetector', () => {
     });
 
     expect(consoleSpy).toHaveBeenCalledWith('WebView error:', 'Camera access denied');
-    expect(onError).toHaveBeenCalledWith('Camera access denied');
+    expect(onError).toHaveBeenCalledWith('gesture_processing_error');
     expect(onGestureDetected).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });

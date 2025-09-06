@@ -26,3 +26,18 @@ This document records the major architectural choices made for Amy's Echo.
 - **Decision**: Prioritize graceful degradation and user trust over raw accuracy.
 - **Rationale**: The system must remain supportive even when recognition fails, especially for a young child.
 - **Consequences**: Every failure state requires a recovery path (e.g., "Help Me" flow) rather than exposing technical errors.
+
+## German Sign Language Integration
+- **Decision**: Implement DGS gesture recognition using MLP models served via REST API with WebView integration.
+- **Rationale**: Provides essential communication capabilities for non-verbal children while maintaining offline functionality and real-time performance.
+- **Consequences**: System supports 12 core DGS gestures with multi-layer fallback (MLP → Centroid → Rule-based) ensuring continuous operation.
+
+## Model Serving Architecture
+- **Decision**: Serve ML models via HTTP with strong ETags, range request support, and profile-based authorization.
+- **Rationale**: Enables efficient model distribution with caching, partial downloads, and secure per-user model management.
+- **Consequences**: Clients can validate model integrity, resume interrupted downloads, and access user-specific gesture models.
+
+## WebView ML Integration
+- **Decision**: Perform gesture recognition in WebView using MediaPipe for hand tracking and custom MLP inference.
+- **Rationale**: Provides native performance for computer vision tasks while maintaining React Native compatibility and enabling offline operation.
+- **Consequences**: Real-time gesture recognition at 30+ FPS with automatic fallback to rule-based detection when ML models are unavailable.

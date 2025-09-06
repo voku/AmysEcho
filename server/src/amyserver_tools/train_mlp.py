@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 
 import numpy as np
 
@@ -25,10 +26,18 @@ def _normalize(lm):
     if not lm or len(lm) < 21:
         return None
 
-    pts = np.array(lm[:42], dtype=float)
-    two_hands = len(lm) >= 42
-    if len(lm) < 42:
-        pad = np.zeros((42 - len(lm), 3))
+    # Handle both structured ([x,y,z] points) and flat formats
+    if isinstance(lm[0], list) and len(lm[0]) == 3:
+        # Structured format: list of [x,y,z] points
+        pts = np.array(lm[:42])  # Take first 42 points
+    else:
+        # Flat format: assume 126 values (42 points * 3 coords)
+        flat_lm = lm[:126] if len(lm) >= 126 else lm + [0.0] * (126 - len(lm))
+        pts = np.array(flat_lm).reshape(42, 3)  # Reshape to 42 points with 3 coords each
+
+    two_hands = len(pts) >= 42
+    if len(pts) < 42:
+        pad = np.zeros((42 - len(pts), 3))
         pts = np.vstack([pts, pad])
 
     def _norm_hand(hand: np.ndarray) -> np.ndarray | None:
@@ -43,10 +52,10 @@ def _normalize(lm):
     left = _norm_hand(pts[:21])
     right = _norm_hand(pts[21:])
     if left is None:
+        print(f"DEBUG: Left hand normalization failed", file=sys.stderr)
         return None
     if right is None:
-        if two_hands:
-            return None
+        # Allow single-hand data - just use zeros for the missing hand
         right = np.zeros_like(pts[:21])
 
     return np.concatenate([left, right]).flatten()
@@ -155,11 +164,22 @@ def main():
 
         # Use middle frame of a sequence
         frame_to_process = landmarks
-        if isinstance(landmarks[0][0], list):
-            frame_to_process = landmarks[len(landmarks) // 2]
+        if isinstance(landmarks[0], list):
+            if len(landmarks[0]) == 3:
+                # Structured format: list of [x,y,z] points - flatten it
+                frame_to_process = [coord for point in landmarks for coord in point]
+            elif isinstance(landmarks[0][0], list):
+                # Sequence format: list of frames, each frame is list of [x,y,z] points
+                frame_to_process = landmarks[len(landmarks) // 2]
+                if isinstance(frame_to_process[0], list) and len(frame_to_process[0]) == 3:
+                    frame_to_process = [coord for point in frame_to_process for coord in point]
+            if isinstance(frame_to_process[0], list) and len(frame_to_process[0]) == 3:
+                frame_to_process = [coord for point in frame_to_process for coord in point]
 
         normalized_lm = _normalize(frame_to_process)
         if normalized_lm is None:
+            # Debug: print why normalization failed
+            print(f"DEBUG: Normalization failed for {label}, frame_to_process type: {type(frame_to_process)}, len: {len(frame_to_process) if hasattr(frame_to_process, '__len__') else 'N/A'}", file=sys.stderr)
             continue
 
         if label not in label_to_idx:

@@ -46,7 +46,11 @@ import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
 import { emergencyRollback } from '../services/modelUpdate';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useThemeMessages } from '../utils/themeMessages';
 import MoodSelector from '../components/MoodSelector';
+import VisualRipple from '../components/VisualRipple';
+import ScreenFlash from '../components/ScreenFlash';
+import GestureComparison from '../components/GestureComparison';
 import type { RootStackParamList } from '../navigation/types';
 
 const FEEDBACK_THROTTLE_MS = 2000;
@@ -60,6 +64,7 @@ export default function RecognitionScreen({
 }) {
   const { largeText } = useAccessibility();
   const { setMessage } = useMessage();
+  const { getSuccessMessage } = useThemeMessages();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState('Ich höre zu…');
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
@@ -76,6 +81,7 @@ export default function RecognitionScreen({
     useState<GestureModelEntry | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [webviewKey, setWebviewKey] = useState(0);
+  const [webviewRetries, setWebviewRetries] = useState(0);
   const [recognitionPath, setRecognitionPath] = useState<RecognitionPath>('local');
   const [showDgsVideo, setShowDgsVideo] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -85,6 +91,12 @@ export default function RecognitionScreen({
   const [showMoodSelector, setShowMoodSelector] = useState(false);
   const [bullyingProtectionActive, setBullyingProtectionActive] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
+  const [showVisualRipple, setShowVisualRipple] = useState(false);
+  const [successSound, setSuccessSound] = useState('success');
+  const [showScreenFlash, setShowScreenFlash] = useState(false);
+  const [screenFlashPattern, setScreenFlashPattern] = useState<'single' | 'double' | 'triple' | 'pulse'>('single');
+  const [showGestureComparison, setShowGestureComparison] = useState(false);
+  const [comparisonAttempt, setComparisonAttempt] = useState<{id: string; label: string; confidence: number; timestamp: number} | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -107,6 +119,21 @@ export default function RecognitionScreen({
 
   useEffect(() => {
     loadProfile().then(setProfile);
+  }, []);
+
+  useEffect(() => {
+    // Load Amy's selected success sound
+    const loadSuccessSound = async () => {
+      try {
+        const sound = await AsyncStorage.getItem('selectedSuccessSound');
+        if (sound) {
+          setSuccessSound(sound);
+        }
+      } catch (error) {
+        logger.debug('No custom success sound set, using default');
+      }
+    };
+    loadSuccessSound();
   }, []);
 
   useEffect(() => {
@@ -159,9 +186,10 @@ export default function RecognitionScreen({
     celebrationTimeoutRef.current = setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
   }, [fadeAnim, symbolScaleAnim]);
 
-  // Gesture shortcut system for quick navigation
+  // Enhanced gesture shortcut system for quick navigation - Amy First
   const getGestureShortcut = useCallback((gestureId: string): string | null => {
     const shortcuts: Record<string, string> = {
+      // Core navigation shortcuts
       'help': 'help_screen',
       'training': 'training_screen',
       'practice': 'practice_screen',
@@ -170,6 +198,16 @@ export default function RecognitionScreen({
       'profile': 'profile_screen',
       'dashboard': 'dashboard_screen',
       'progress': 'progress_screen',
+
+      // Enhanced shortcuts for Amy's needs
+      'finished': 'home_screen', // Return to main recognition
+      'fertig': 'home_screen',   // German version
+      'yes': 'confirm_action',   // Confirm current action
+      'no': 'cancel_action',     // Cancel current action
+      'more': 'repeat_last',     // Repeat last successful gesture
+      'nochmal': 'repeat_last',  // German version
+      'play': 'play_mode',       // Switch to play/learning mode
+      'spielen': 'play_mode',    // German version
     };
     return shortcuts[gestureId] || null;
   }, []);
@@ -181,6 +219,7 @@ export default function RecognitionScreen({
     profileId: string
   ) => {
     switch (action) {
+      // Core navigation shortcuts
       case 'help_screen':
         navigation.navigate('Help');
         break;
@@ -205,21 +244,68 @@ export default function RecognitionScreen({
       case 'progress_screen':
         navigation.navigate('Progress');
         break;
+
+      // Enhanced shortcuts for Amy's needs
+      case 'home_screen':
+        // Already on recognition screen, just provide feedback
+        setStatus('🏠 Du bist bereits auf der Hauptseite!');
+        break;
+      case 'confirm_action':
+        // Confirm current pending action
+        if (pendingGesture) {
+          setStatus('✅ Aktion bestätigt!');
+          setPendingGesture(null);
+        } else {
+          setStatus('ℹ️ Keine Aktion zum Bestätigen');
+        }
+        break;
+      case 'cancel_action':
+        // Cancel current pending action
+        if (pendingGesture) {
+          setStatus('❌ Aktion abgebrochen');
+          setPendingGesture(null);
+        } else {
+          setStatus('ℹ️ Keine Aktion zum Abbrechen');
+        }
+        break;
+      case 'repeat_last':
+        // Repeat last successful gesture
+        if (lastRecognizedGesture) {
+          setStatus(`🔄 Wiederhole: ${lastRecognizedGesture.label}`);
+          // Trigger feedback for the repeated gesture
+          void provideInstantFeedback(lastRecognizedGesture.id, 1.0, true);
+        } else {
+          setStatus('ℹ️ Keine vorherige Geste zum Wiederholen');
+        }
+        break;
+      case 'play_mode':
+        // Switch to playful learning mode
+        navigation.navigate('Practice');
+        setStatus('🎮 Spielmodus aktiviert!');
+        break;
     }
-  }, []);
+  }, [pendingGesture, lastRecognizedGesture, provideInstantFeedback]);
 
   const getShortcutMessage = useCallback((action: string): string => {
     const messages: Record<string, string> = {
-      'help_screen': 'Öffne Hilfeseite',
-      'training_screen': 'Starte Training',
-      'practice_screen': 'Starte Übung',
-      'parent_screen': 'Öffne Elternbereich',
-      'correction_screen': 'Öffne Korrektur',
-      'profile_screen': 'Öffne Profile',
-      'dashboard_screen': 'Öffne Auswertung',
-      'progress_screen': 'Öffne Fortschritt',
+      // Core navigation shortcuts
+      'help_screen': '🆘 Öffne Hilfeseite',
+      'training_screen': '🎯 Starte Training',
+      'practice_screen': '✨ Starte Übung',
+      'parent_screen': '👨‍👩‍👧 Öffne Elternbereich',
+      'correction_screen': '🔧 Öffne Korrektur',
+      'profile_screen': '👤 Öffne Profile',
+      'dashboard_screen': '📊 Öffne Auswertung',
+      'progress_screen': '📈 Öffne Fortschritt',
+
+      // Enhanced shortcuts for Amy's needs
+      'home_screen': '🏠 Du bist bereits zu Hause!',
+      'confirm_action': '✅ Aktion bestätigt!',
+      'cancel_action': '❌ Aktion abgebrochen',
+      'repeat_last': '🔄 Letzte Geste wiederholt',
+      'play_mode': '🎮 Spielmodus aktiviert!',
     };
-    return messages[action] || 'Schnellaktion ausgeführt';
+    return messages[action] || '⚡ Schnellaktion ausgeführt';
   }, []);
 
   const provideInstantFeedback = useCallback(async (
@@ -236,6 +322,10 @@ export default function RecognitionScreen({
 
       if (!screenReaderEnabled) {
         void triggerSpeakAndShow(labelForUser, confidence, startFeedbackAnimation);
+
+        // Use Amy's selected success sound (from profile or global setting)
+        const selectedSound = profile?.successSound || successSound || 'success';
+        void audioService.playSound(selectedSound, { volume: 0.8 });
       }
       announceGestureRecognition(labelForUser, confidence);
     } else {
@@ -248,15 +338,8 @@ export default function RecognitionScreen({
       }
 
       // Always show encouraging messages - never discourage Amy
-      const encouragingMessages = [
-        'Gut versucht! Mach weiter so!',
-        'Super Versuch! Du schaffst das!',
-        'Toll probiert! Gleich klappt\'s!',
-        'Prima! Lass uns weitermachen!',
-        'Du bist auf dem richtigen Weg!'
-      ];
-      const randomMessage = encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)];
-      setStatus(randomMessage);
+      const encouragingMessage = getSuccessMessage();
+      setStatus(encouragingMessage);
 
       // Visual feedback - positive animation for every attempt
       fadeAnim.setValue(0.7);
@@ -267,7 +350,7 @@ export default function RecognitionScreen({
         useNativeDriver: true,
       }).start();
     }
-  }, [screenReaderEnabled, startFeedbackAnimation, fadeAnim]);
+  }, [screenReaderEnabled, startFeedbackAnimation, fadeAnim, profile?.successSound, successSound]);
 
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
@@ -320,12 +403,40 @@ export default function RecognitionScreen({
   }, []);
 
   const handleGestureDetected = useCallback(async (
-    gesture: string | null,
-    confidence: number,
+    g: string | null,
+    c: number,
+    path: RecognitionPath,
     landmarks: number[][][],
     handedness: string[],
-    emergency?: boolean,
+    emergency = false,
   ) => {
+    // Amy First: Provide haptic feedback for EVERY detected hand movement
+    // This gives Amy immediate sensory confirmation that her gesture was detected
+    if (!screenReaderEnabled) {
+      try {
+        // Use light haptic for regular gestures, medium for successful recognition
+        const hapticStyle = g && c > 0.5
+          ? Haptics.ImpactFeedbackStyle.Medium
+          : Haptics.ImpactFeedbackStyle.Light;
+        void Haptics.impactAsync(hapticStyle);
+      } catch (error) {
+        // Silently fail haptic feedback - don't interrupt gesture processing
+        logger.debug('Haptic feedback failed:', error);
+      }
+    }
+
+    // Amy First: Show visual ripple effect for EVERY detected hand movement
+    // This provides clear visual feedback that gesture processing is happening
+    setShowVisualRipple(true);
+    setTimeout(() => setShowVisualRipple(false), 800); // Match ripple duration
+
+    // Amy First: Trigger screen flash for successful gestures in quiet environments
+    // This provides LED-like visual feedback without audio
+    if (g && c > 0.7) {
+      setShowScreenFlash(true);
+      setScreenFlashPattern('double'); // Double flash for successful gestures
+      setTimeout(() => setShowScreenFlash(false), 600);
+    }
     // Bullying protection: block gesture processing on untrusted devices
     if (bullyingProtectionActive && !emergency) {
       return;
@@ -642,29 +753,54 @@ export default function RecognitionScreen({
   }, []);
 
   const handleGestureError = useCallback((errorMessage: string) => {
-    // Log technical errors for caregivers but never show them to Amy
+    // Amy First: Log technical errors for caregivers but NEVER show them to Amy
     logger.warn('Gesture detection warning (hidden from user):', errorMessage);
 
-    // Always show encouraging messages regardless of error type
-    if (errorMessage === 'gesture_processing_error') {
-      setStatus('Das hat nicht geklappt. Probier\'s einfach nochmal!');
-    } else if (/Recognizer init failed/i.test(errorMessage)) {
-      setStatus('Versuch\'s nochmal! Ich bin gleich bereit.');
-    } else if (/Camera error/i.test(errorMessage)) {
-      setStatus('Kamera braucht einen Moment. Lass uns weitermachen!');
-    } else {
-      // For any other error, show a generic encouraging message
-      setStatus('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
-    }
+    // Always show encouraging, child-friendly messages regardless of error type
+    // Use different messages to keep it engaging and avoid repetition
+    const encouragingMessages = [
+      'Das hat nicht geklappt. Probier\'s einfach nochmal!',
+      'Versuch\'s nochmal! Du schaffst das!',
+      'Das war knapp! Lass es uns nochmal versuchen!',
+      'Ich bin gleich bereit. Probier\'s einfach nochmal!',
+      'Das hat nicht funktioniert. Aber beim nächsten Mal klappt\'s!',
+      'Lass uns das nochmal zusammen machen!',
+    ];
 
-    // Always clear error state to ensure Amy never sees technical errors
+    const randomMessage = encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)];
+    setStatus(randomMessage);
+
+    // Clear any lingering error state
     setError(null);
+
+    // Provide haptic feedback for errors (gentle, not alarming)
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Amy First: Auto-recover from common errors by resetting WebView
+    if (/Recognizer init failed|Camera error|gesture_processing_error/i.test(errorMessage)) {
+      const newRetries = webviewRetries + 1;
+      setWebviewRetries(newRetries);
+
+      if (newRetries <= 3) { // Limit retries to prevent infinite loops
+        setTimeout(() => {
+          setWebviewKey(prev => prev + 1); // Force WebView reload
+          setStatus('Ich starte neu…'); // Show recovery message
+          setTimeout(() => setStatus('Ich höre zu…'), 1000); // Reset to listening state
+        }, 2000); // Give user time to see encouraging message
+      } else {
+        // After 3 retries, show a different message and don't auto-retry
+        setStatus('Lass uns eine Pause machen und später weitermachen!');
+        setWebviewRetries(0); // Reset retry counter for next session
+      }
+    }
 
     // Log error for caregiver analytics (but don't show to Amy)
     void logHIPEvent('HIP_3', 'gesture_error_hidden', {
       errorType: errorMessage.substring(0, 100), // Truncate for privacy
       timestamp: Date.now(),
-      userImpact: 'none' // Amy never sees technical errors
+      userImpact: 'none', // Amy never sees technical errors
+      recoveryMessage: randomMessage,
+      autoRecovery: /Recognizer init failed|Camera error|gesture_processing_error/i.test(errorMessage)
     });
   }, []);
 
@@ -673,6 +809,18 @@ export default function RecognitionScreen({
       await correctionService.logCorrection(choiceId);
       // HIP 3: correction submitted
       void logHIPEvent('HIP_3', 'correction_submitted', { actual: choiceId, predicted: pendingGesture });
+
+      // Amy First: Show encouraging gesture comparison instead of just correction
+      const correctGesture = gestureModel.gestures.find(g => g.id === choiceId);
+      if (correctGesture) {
+        setComparisonAttempt({
+          id: pendingGesture,
+          label: gestureModel.gestures.find(g => g.id === pendingGesture)?.label || pendingGesture,
+          confidence: gestureConfidence,
+          timestamp: Date.now()
+        });
+        setShowGestureComparison(true);
+      }
     }
     setShowCorrection(false);
     setPendingGesture(null);
@@ -683,6 +831,18 @@ export default function RecognitionScreen({
     setShowCorrection(false);
     setPendingGesture(null);
     setStatus('Ich höre zu…');
+  };
+
+  const handleCloseComparison = () => {
+    setShowGestureComparison(false);
+    setComparisonAttempt(null);
+    setStatus('Ich höre zu…');
+  };
+
+  const handleTryAgainFromComparison = () => {
+    setShowGestureComparison(false);
+    setComparisonAttempt(null);
+    setStatus('Versuch\'s nochmal! Du schaffst das!');
   };
 
   const styles = StyleSheet.create({
@@ -790,29 +950,41 @@ export default function RecognitionScreen({
       </View>
 
       {showMoodSelector && <MoodSelector />}
-      <View style={styles.cameraContainer}>
-        {
-          <MediaPipeGestureDetector
-            key={webviewKey}
-            onGestureDetected={handleGestureDetected}
-            onError={handleGestureError}
-            onModelUpdateStatus={handleModelUpdateStatus}
-            onPartialFeedback={handlePartialFeedback}
-            onStabilityFeedback={handleStabilityFeedback}
-            facingMode={facingMode}
-            gestureSizeTolerance={gestureSizeTolerance}
-          />
-        }
+       <View style={styles.cameraContainer}>
+         {
+           <MediaPipeGestureDetector
+             key={webviewKey}
+             onGestureDetected={handleGestureDetected}
+             onError={handleGestureError}
+             onModelUpdateStatus={handleModelUpdateStatus}
+             onPartialFeedback={handlePartialFeedback}
+             onStabilityFeedback={handleStabilityFeedback}
+             facingMode={facingMode}
+             gestureSizeTolerance={gestureSizeTolerance}
+           />
+         }
+
+         {/* Visual ripple effect for gesture processing feedback */}
+         <VisualRipple
+           isActive={showVisualRipple}
+           duration={800}
+           color={COLORS.primaryAccent}
+           size={300}
+         />
+
+         {/* Screen flash for LED-like visual feedback in quiet environments */}
+         <ScreenFlash
+           isActive={showScreenFlash}
+           pattern={screenFlashPattern}
+           color={COLORS.success}
+           duration={300}
+         />
         <Text style={styles.statusText}>
           {status}
           {modelUpdateStatus === 'updating' && ' 🔄'}
         </Text>
 
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+        {/* Amy First: Never show technical errors to Amy - all errors are handled via status messages */}
 
       {!error && !showCorrection && lastRecognizedGesture && (
         <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}> 
@@ -883,6 +1055,20 @@ export default function RecognitionScreen({
     </View>
 
     <BottomNav active="recognition" profileId={profile?.id || 'default'} />
+
+    {/* Gesture Comparison Overlay - Amy First: Encouraging, non-judgmental learning */}
+    {showGestureComparison && comparisonAttempt && (
+      <GestureComparison
+        userAttempt={comparisonAttempt}
+        correctGesture={{
+          id: pendingGesture || '',
+          label: gestureModel.gestures.find(g => g.id === pendingGesture)?.label || 'Unbekannte Geste',
+          dgsVideoUri: gestureModel.gestures.find(g => g.id === pendingGesture)?.dgsVideoUri
+        }}
+        onClose={handleCloseComparison}
+        onTryAgain={handleTryAgainFromComparison}
+      />
+    )}
   </SafeAreaView>
 );
 }

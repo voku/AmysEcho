@@ -1,0 +1,104 @@
+{
+  "testSuites": {
+    "dgs_basic": {
+      "description": "Basic DGS model functionality tests",
+      "files": ["dgs_video_processing.spec.ts"],
+      "timeout": 300000,
+      "required": true
+    },
+    "dgs_performance": {
+      "description": "DGS model performance and scalability tests",
+      "files": ["dgs_performance.spec.ts"],
+      "timeout": 60000,
+      "required": false
+    },
+    "dgs_security": {
+      "description": "DGS model security and validation tests",
+      "files": ["dgs_security.spec.ts"],
+      "timeout": 30000,
+      "required": true
+    },
+    "dgs_accessibility": {
+      "description": "DGS model accessibility compliance tests",
+      "files": ["dgs_accessibility.spec.ts"],
+      "timeout": 10000,
+      "required": true
+    },
+    "dgs_integration": {
+      "description": "DGS model integration and consistency tests",
+      "files": ["dgs_integration.spec.ts"],
+      "timeout": 120000,
+      "required": true
+    },
+    "dgs_e2e": {
+      "description": "DGS model end-to-end pipeline tests",
+      "files": ["dgs_e2e.spec.ts"],
+      "timeout": 300000,
+      "required": true
+    }
+  },
+  "environments": {
+    "development": {
+      "description": "Development environment tests",
+      "suites": ["dgs_basic", "dgs_integration"],
+      "parallel": false
+    },
+    "ci": {
+      "description": "CI/CD environment tests",
+      "suites": ["dgs_basic", "dgs_security", "dgs_accessibility", "dgs_integration"],
+      "parallel": true,
+      "maxWorkers": 4
+    },
+    "staging": {
+      "description": "Staging environment tests",
+      "suites": ["dgs_basic", "dgs_performance", "dgs_integration", "dgs_e2e"],
+      "parallel": true,
+      "maxWorkers": 2
+    },
+    "production": {
+      "description": "Production environment tests",
+      "suites": ["dgs_basic", "dgs_security", "dgs_performance", "dgs_e2e"],
+      "parallel": true,
+      "maxWorkers": 6
+    }
+  },
+  "thresholds": {
+    "performance": {
+      "maxInferenceTime": 0.01,
+      "minFPS": 50,
+      "maxMemoryUsage": 50
+    },
+    "accuracy": {
+      "minTestAccuracy": 0.5,
+      "maxAccuracyDrop": 0.1
+    },
+    "security": {
+      "maxVulnerabilities": 0,
+      "requireInputValidation": true
+    },
+    "accessibility": {
+      "minContrastRatio": 4.5,
+      "maxResponseTime": 500
+    }
+  },
+  "reporting": {
+    "formats": ["json", "html", "junit"],
+    "artifacts": {
+      "performance": "performance-report.json",
+      "security": "security-audit.json",
+      "accessibility": "accessibility-report.json",
+      "coverage": "coverage-report.html"
+    },
+    "notifications": {
+      "slack": true,
+      "email": false,
+      "webhook": true
+    }
+  },
+  "dependencies": {
+    "python": ">=3.8",
+    "numpy": ">=1.21",
+    "node": ">=18",
+    "jest": ">=29"
+  }
+}

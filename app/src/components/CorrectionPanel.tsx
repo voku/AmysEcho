@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -185,26 +186,37 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
           <Text style={styles.title}>Welche Gebärde hat Amy gezeigt?</Text>
 
             <View style={styles.optionsGrid}>
-             {suggestions.map((s) => (
-               <Pressable
-                 key={s.id}
-                 style={({ pressed }) => [styles.optionButton, pressed && styles.optionButtonPressed]}
-                 onPress={() => onSelect(s.id)}
-                 accessibilityRole="button"
-                 accessibilityLabel={`Wähle ${s.label}`}
-               >
-                 <View style={styles.iconContainer}>
-                   {getGestureIcon(s.id)}
-                 </View>
-                 <Text style={styles.optionLabel}>{s.label}</Text>
-               </Pressable>
-             ))}
+             {suggestions.length > 0 ? suggestions.map((s) => (
+                <Pressable
+                  key={s.id}
+                  style={({ pressed }) => [styles.optionButton, pressed && styles.optionButtonPressed]}
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onSelect(s.id);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Wähle ${s.label}`}
+                >
+                  <View style={styles.iconContainer}>
+                    {getGestureIcon(s.id)}
+                  </View>
+                  <Text style={styles.optionLabel}>{s.label}</Text>
+                </Pressable>
+              )) : (
+                <View style={styles.optionButton}>
+                  <Text style={styles.optionLabel}>Keine Vorschläge verfügbar</Text>
+                  <Text style={styles.optionDescription}>Drücke "Neu hinzufügen" um eine neue Geste zu erstellen</Text>
+                </View>
+              )}
           </View>
 
           <View style={styles.actionButtons}>
             <Pressable
               style={({ pressed }) => [styles.actionButton, styles.actionButtonSecondary, pressed && styles.optionButtonPressed]}
-              onPress={onCancel}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onCancel();
+              }}
               accessibilityRole="button"
               accessibilityLabel="Korrektur abbrechen"
             >
@@ -213,7 +225,10 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
 
             <Pressable
               style={({ pressed }) => [styles.actionButton, pressed && styles.optionButtonPressed]}
-              onPress={onAddNew}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onAddNew();
+              }}
               accessibilityRole="button"
               accessibilityLabel="Neue Geste hinzufügen"
             >

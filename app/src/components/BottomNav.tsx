@@ -6,6 +6,7 @@ import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import type { RootStackParamList } from '../navigation/types';
 import { COLORS, SPACING } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
+import { useTheme } from '../context/ThemeContext';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
@@ -18,6 +19,7 @@ export default function BottomNav({ active, profileId }: Props) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute();
   const { highContrast } = useAccessibility();
+  const { theme } = useTheme();
 
   // Simple breadcrumb system - show current screen name
   const getCurrentScreenName = () => {
@@ -37,10 +39,32 @@ export default function BottomNav({ active, profileId }: Props) {
     return screenNames[route.name] || route.name;
   };
   return (
-    <View style={[styles.container, highContrast && styles.containerHC]}>
+    <View style={[styles.container, highContrast && styles.containerHC, { backgroundColor: highContrast ? COLORS.highContrastBackground : theme.colors.surface }]}>
+      {/* Single Button Navigation - Amy First: Always provide clear way back to recognition */}
+      <View style={[styles.homeButtonContainer, highContrast && styles.homeButtonContainerHC, { backgroundColor: highContrast ? COLORS.highContrastText : theme.colors.primary }]}>
+        <Pressable
+          onPress={() => {
+            void childHaptic();
+            navigation.navigate('Recognition', { profileId });
+          }}
+          style={({ pressed }) => [
+            childFriendlyStyles.minTouchTarget,
+            styles.homeButton,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          accessibilityLabel="Zurück zur Gestenerkennung"
+          accessibilityRole="button"
+          accessibilityHint="Einfacher Weg zurück zur Hauptseite"
+        >
+          <Text style={[styles.homeButtonText, highContrast && styles.homeButtonTextHC, { color: highContrast ? COLORS.highContrastBackground : theme.colors.surface }]}>
+            🏠 Zuhören
+          </Text>
+        </Pressable>
+      </View>
+
       {/* Visual Breadcrumb */}
-      <View style={[styles.breadcrumbContainer, highContrast && styles.breadcrumbContainerHC]}>
-        <Text style={[styles.breadcrumbText, highContrast && styles.breadcrumbTextHC]}>
+      <View style={[styles.breadcrumbContainer, highContrast && styles.breadcrumbContainerHC, { backgroundColor: highContrast ? COLORS.highContrastBackground : theme.colors.background }]}>
+        <Text style={[styles.breadcrumbText, highContrast && styles.breadcrumbTextHC, { color: highContrast ? COLORS.highContrastText : theme.colors.text }]}>
           {getCurrentScreenName()}
         </Text>
       </View>
@@ -62,28 +86,28 @@ export default function BottomNav({ active, profileId }: Props) {
          accessibilityRole="button"
          accessibilityHint="Zurück zur Gestenerkennung"
        >
-        <HandIcon
-          size={24}
-          color={
-            highContrast
-              ? active === 'recognition'
-                ? COLORS.highContrastText
-                : COLORS.highContrastPressed
-              : active === 'recognition'
-              ? COLORS.primaryAccent
-              : COLORS.secondaryAccent
-          }
-          style={styles.icon}
-        />
-         <Text
-           style={[
-             styles.label,
-             highContrast && styles.labelHC,
-             active === 'recognition' && (highContrast ? styles.activeHC : styles.active),
-           ]}
-         >
-           Zuhören
-         </Text>
+         <HandIcon
+           size={24}
+           color={
+             highContrast
+               ? active === 'recognition'
+                 ? COLORS.highContrastText
+                 : COLORS.highContrastPressed
+               : active === 'recognition'
+               ? theme.colors.primary
+               : theme.colors.secondary
+           }
+           style={styles.icon}
+         />
+          <Text
+            style={[
+              styles.label,
+              highContrast && styles.labelHC,
+              active === 'recognition' && (highContrast ? styles.activeHC : styles.active),
+            ]}
+          >
+            Zuhören
+          </Text>
        </Pressable>
        <Pressable
          onPress={() => {
@@ -99,28 +123,28 @@ export default function BottomNav({ active, profileId }: Props) {
          accessibilityRole="button"
          accessibilityHint="Tagesplan mit Übungen anzeigen"
        >
-         <CalendarIcon
-           size={24}
-           color={
-             highContrast
-               ? active === 'schedule'
-                 ? COLORS.highContrastText
-                 : COLORS.highContrastPressed
-               : active === 'schedule'
-               ? COLORS.primaryAccent
-               : COLORS.secondaryAccent
-           }
-           style={styles.icon}
-         />
-         <Text
-           style={[
-             styles.label,
-             highContrast && styles.labelHC,
-             active === 'schedule' && (highContrast ? styles.activeHC : styles.active),
-           ]}
-         >
-           Plan
-         </Text>
+          <CalendarIcon
+            size={24}
+            color={
+              highContrast
+                ? active === 'schedule'
+                  ? COLORS.highContrastText
+                  : COLORS.highContrastPressed
+                : active === 'schedule'
+                ? theme.colors.primary
+                : theme.colors.secondary
+            }
+            style={styles.icon}
+          />
+          <Text
+            style={[
+              styles.label,
+              highContrast && styles.labelHC,
+              active === 'schedule' && (highContrast ? styles.activeHC : styles.active),
+            ]}
+          >
+            Plan
+          </Text>
        </Pressable>
        <Pressable
         onPress={() => {
@@ -136,28 +160,28 @@ export default function BottomNav({ active, profileId }: Props) {
         accessibilityRole="button"
         accessibilityHint="Gesten aufnehmen oder üben"
       >
-        <BookIcon
-          size={24}
-          color={
-            highContrast
-              ? active === 'training'
-                ? COLORS.highContrastText
-                : COLORS.highContrastPressed
-              : active === 'training'
-              ? COLORS.primaryAccent
-              : COLORS.secondaryAccent
-          }
-          style={styles.icon}
-        />
-        <Text
-          style={[
-            styles.label,
-            highContrast && styles.labelHC,
-            active === 'training' && (highContrast ? styles.activeHC : styles.active),
-          ]}
-        >
-          Lernen
-        </Text>
+         <BookIcon
+           size={24}
+           color={
+             highContrast
+               ? active === 'training'
+                 ? COLORS.highContrastText
+                 : COLORS.highContrastPressed
+               : active === 'training'
+               ? theme.colors.primary
+               : theme.colors.secondary
+           }
+           style={styles.icon}
+         />
+         <Text
+           style={[
+             styles.label,
+             highContrast && styles.labelHC,
+             active === 'training' && (highContrast ? styles.activeHC : styles.active),
+           ]}
+         >
+           Lernen
+         </Text>
       </Pressable>
       <Pressable
         onPress={() => {
@@ -173,101 +197,119 @@ export default function BottomNav({ active, profileId }: Props) {
         accessibilityRole="button"
         accessibilityHint="Profil- und Einstellungsmenü öffnen"
       >
-        <SettingsIcon
-          size={24}
-          color={
-            highContrast
-              ? active === 'parent'
-                ? COLORS.highContrastText
-                : COLORS.highContrastPressed
-              : active === 'parent'
-              ? COLORS.primaryAccent
-              : COLORS.secondaryAccent
-          }
-          style={styles.icon}
-        />
-        <Text
-          style={[
-            styles.label,
-            highContrast && styles.labelHC,
-            active === 'parent' && (highContrast ? styles.activeHC : styles.active),
-          ]}
-        >
-          Menü
-        </Text>
+         <SettingsIcon
+           size={24}
+           color={
+             highContrast
+               ? active === 'parent'
+                 ? COLORS.highContrastText
+                 : COLORS.highContrastPressed
+               : active === 'parent'
+               ? theme.colors.primary
+               : theme.colors.secondary
+           }
+           style={styles.icon}
+         />
+         <Text
+           style={[
+             styles.label,
+             highContrast && styles.labelHC,
+             active === 'parent' && (highContrast ? styles.activeHC : styles.active),
+           ]}
+         >
+           Menü
+         </Text>
       </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderColor: COLORS.border,
-  },
-  containerHC: {
-    backgroundColor: COLORS.highContrastBackground,
-    borderColor: COLORS.highContrastText,
-  },
-  breadcrumbContainer: {
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    backgroundColor: COLORS.backgroundStart,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderColor: COLORS.border,
-  },
-  breadcrumbContainerHC: {
-    backgroundColor: COLORS.highContrastBackground,
-    borderColor: COLORS.highContrastText,
-  },
-  breadcrumbText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    textAlign: 'center',
-  },
-  breadcrumbTextHC: {
-    color: COLORS.highContrastText,
-  },
-  navContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: SPACING.sm,
-  },
-  item: {
-    alignItems: 'center',
-  },
-  buttonPressed: { backgroundColor: COLORS.pressed },
-  buttonPressedHC: { backgroundColor: COLORS.highContrastPressed },
-  icon: {
-    marginBottom: SPACING.xs,
-  },
-  label: {
-    fontSize: 12,
-    color: COLORS.secondaryAccent,
-  },
-  labelHC: {
-    color: COLORS.highContrastPressed,
-  },
-  active: {
-    color: COLORS.primaryAccent,
-    fontWeight: 'bold',
-  },
-  activeHC: {
-    color: COLORS.highContrastText,
-    fontWeight: 'bold',
-  },
-  homeButton: {
-    backgroundColor: COLORS.primaryAccent,
-    borderRadius: 8,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-  },
-});
+  const styles = StyleSheet.create({
+    container: {
+      borderTopWidth: 1,
+    },
+    containerHC: {
+      backgroundColor: COLORS.highContrastBackground,
+      borderColor: COLORS.highContrastText,
+    },
+    homeButtonContainer: {
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      marginHorizontal: SPACING.md,
+      marginTop: SPACING.sm,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    homeButtonContainerHC: {
+      backgroundColor: COLORS.highContrastText,
+      shadowColor: COLORS.highContrastText,
+    },
+    homeButton: {
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: SPACING.sm,
+    },
+    homeButtonText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+    homeButtonTextHC: {
+      color: COLORS.highContrastBackground,
+    },
+    breadcrumbContainer: {
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.md,
+      alignItems: 'center',
+      borderBottomWidth: 1,
+    },
+    breadcrumbContainerHC: {
+      backgroundColor: COLORS.highContrastBackground,
+      borderColor: COLORS.highContrastText,
+    },
+    breadcrumbText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+    breadcrumbTextHC: {
+      color: COLORS.highContrastText,
+    },
+    navContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      paddingVertical: SPACING.sm,
+    },
+    item: {
+      alignItems: 'center',
+    },
+    buttonPressed: { backgroundColor: COLORS.pressed },
+    buttonPressedHC: { backgroundColor: COLORS.highContrastPressed },
+    icon: {
+      marginBottom: SPACING.xs,
+    },
+    label: {
+      fontSize: 12,
+    },
+    labelHC: {
+      color: COLORS.highContrastPressed,
+    },
+    active: {
+      fontWeight: 'bold',
+    },
+    activeHC: {
+      color: COLORS.highContrastText,
+      fontWeight: 'bold',
+    },
+  });
 
 interface IconProps {
   size: number;

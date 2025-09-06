@@ -170,12 +170,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
 
   if (!WebViewImpl) {
-    // Provide a non-crashing fallback with a clear developer hint
+    // Amy First: Provide encouraging fallback UI instead of technical error
     console.warn('react-native-webview unavailable; showing fallback UI');
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>
-          {LanguageManager.t('mediapipe.webviewUnavailable')}
+        <Text accessibilityRole="alert" style={{ textAlign: 'center', fontSize: 18, color: '#666' }}>
+          Ich brauche einen Moment. Lass uns gleich weitermachen! 🌟
         </Text>
       </View>
     );
@@ -236,8 +236,9 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           data.emergency === true,
         );
       } else if (data.type === 'error') {
+        // Amy First: Log technical errors but pass generic message to UI
         console.error('WebView error:', data.message);
-        onError(data.message);
+        onError('gesture_processing_error'); // Generic identifier for child-friendly handling
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
       } else if (data.type === 'partial_feedback') {

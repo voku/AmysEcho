@@ -1668,6 +1668,12 @@
       this.healthMonitor = new HealthMonitor();
     }
     /**
+     * Set callback for gesture results
+     */
+    setResultCallback(callback) {
+      this.resultCallback = callback;
+    }
+    /**
      * Initialize the gesture detector
      */
     async initialize() {
@@ -1729,6 +1735,9 @@
           const recognitionStart = performance.now();
           const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
           const recognitionTime = performance.now() - recognitionStart;
+          if (this.resultCallback && results) {
+            this.resultCallback(results, frameStart);
+          }
           if (results?.landmarks) {
             const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
             if (shouldRedraw) {
@@ -2540,6 +2549,9 @@
     try {
       mainGestureDetector = new GestureDetector(video, overlay);
       await mainGestureDetector.initialize();
+      mainGestureDetector.setResultCallback((results, timestamp) => {
+        processGestureResults(results, timestamp);
+      });
       try {
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: 0 })
@@ -2565,7 +2577,6 @@
       errorRecoveryManager.activateFallbackMode();
     }
   }
-  var lastVideoTime = -1;
   var frameCount = 0;
   var lastSentAt = 0;
   var lastSentGestureSerialized = null;
@@ -2621,292 +2632,249 @@
       console.warn("Failed to send emergency gesture:", err2);
     }
   }
-  function predictWebcam() {
-    if (!running) return;
-    const nowTime = performance.now();
-    try {
-      if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
-        if (lastVideoTime !== video.currentTime) {
-          lastVideoTime = video.currentTime;
-          if (video.videoWidth !== lastVideoWidth || video.videoHeight !== lastVideoHeight) {
-            resizeOverlay();
-          }
-          const emergencyResults = gestureRecognizer.recognizeForVideo(video, nowTime);
-          if (emergencyResults?.gestures?.length) {
-            for (const handGestures of emergencyResults.gestures) {
-              const top = handGestures?.[0];
-              if (top && isEmergencyGesture(top.categoryName)) {
-                break;
-              }
-            }
+  function processGestureResults(results, timestamp) {
+    const frameLatency = Math.round(performance.now() - timestamp);
+    frameCount++;
+    if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "frame_latency", ms: frameLatency })
+        );
+      } catch (err2) {
+        console.warn("Failed to send 'frame_latency' telemetry event:", err2);
+      }
+    }
+    let allLandmarks = (results?.landmarks || []).map(
+      (hand) => hand.map((lm) => [lm.x, lm.y, lm.z ?? 0])
+    );
+    if (allLandmarks.length > 0) {
+      const isIntentional = tremorCompensator.isIntentionalMovement(allLandmarks, lastProcessedLandmarks);
+      if (isIntentional) {
+        allLandmarks = tremorCompensator.smoothLandmarks(allLandmarks);
+        lastProcessedLandmarks = JSON.parse(JSON.stringify(allLandmarks));
+      } else {
+        allLandmarks = lastProcessedLandmarks.length > 0 ? lastProcessedLandmarks : allLandmarks;
+      }
+    }
+    if (allLandmarks.length > 0) {
+      allLandmarks = gestureSizeNormalizer.normalizeHandSize(allLandmarks);
+    }
+    if (allLandmarks.length > 0) {
+      const stabilityAnalysis = handStabilityAssistant.analyzeStability(allLandmarks);
+      if (frameCount % 15 === 0) {
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: "stability_feedback",
+              isStable: stabilityAnalysis.isStable,
+              stabilityScore: stabilityAnalysis.stabilityScore,
+              feedback: stabilityAnalysis.feedback,
+              guidePosition: stabilityAnalysis.guidePosition
+            })
+          );
+        } catch (err2) {
+          console.warn("Failed to send stability feedback:", err2);
+        }
+      }
+    }
+    let outGesture = null;
+    let outScore = 0;
+    const perHand = [];
+    let multiHand = (results?.landmarks?.length ?? 0) >= 2;
+    const handedArr = (results?.handednesses || []).map(
+      (h) => h?.[0]?.categoryName || "unknown"
+    );
+    if (results?.gestures?.length) {
+      for (let i = 0; i < results.gestures.length; i++) {
+        const handGestures = results.gestures[i] || [];
+        const top = handGestures?.[0];
+        const handed = handedArr[i] || "unknown";
+        if (top) {
+          perHand.push({ hand: handed, label: top.categoryName, score: top.score });
+          if (top.score > outScore) {
+            outGesture = top.categoryName;
+            outScore = top.score;
           }
         }
       }
-    } catch {
+      if (perHand.length >= 2) {
+        let left = perHand.find((h) => /left/i.test(h.hand)) || null;
+        let right = perHand.find((h) => /right/i.test(h.hand)) || null;
+        if (!left || !right) {
+          const others = perHand.filter((h) => h !== left && h !== right);
+          if (!left) left = others.shift() || null;
+          if (!right) right = others.shift() || null;
+        }
+        if (left && right) {
+          outGesture = { left: left.label, right: right.label };
+          outScore = Math.sqrt(left.score * right.score);
+        }
+      }
     }
-    try {
-      if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
-        if (lastVideoTime !== video.currentTime) {
-          lastVideoTime = video.currentTime;
-          if (video.videoWidth !== lastVideoWidth || video.videoHeight !== lastVideoHeight) {
-            resizeOverlay();
-          }
-          const start = performance.now();
-          const results = gestureRecognizer.recognizeForVideo(video, start);
-          const frameLatency = Math.round(performance.now() - start);
-          frameCount++;
-          if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
-            try {
-              window.ReactNativeWebView?.postMessage?.(
-                JSON.stringify({ type: "telemetry", event: "frame_latency", ms: frameLatency })
-              );
-            } catch (err2) {
-              console.warn("Failed to send 'frame_latency' telemetry event:", err2);
-            }
-          }
-          let allLandmarks = (results?.landmarks || []).map(
-            (hand) => hand.map((lm) => [lm.x, lm.y, lm.z ?? 0])
-          );
-          if (allLandmarks.length > 0) {
-            const isIntentional = tremorCompensator.isIntentionalMovement(allLandmarks, lastProcessedLandmarks);
-            if (isIntentional) {
-              allLandmarks = tremorCompensator.smoothLandmarks(allLandmarks);
-              lastProcessedLandmarks = JSON.parse(JSON.stringify(allLandmarks));
-            } else {
-              allLandmarks = lastProcessedLandmarks.length > 0 ? lastProcessedLandmarks : allLandmarks;
-            }
-          }
-          if (allLandmarks.length > 0) {
-            allLandmarks = gestureSizeNormalizer.normalizeHandSize(allLandmarks);
-          }
-          if (allLandmarks.length > 0) {
-            const stabilityAnalysis = handStabilityAssistant.analyzeStability(allLandmarks);
-            if (frameCount % 15 === 0) {
+    if (window.__mlpPredict) {
+      const mlpResult = window.__mlpPredict(
+        allLandmarks,
+        results?.handednesses ?? []
+      );
+      if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
+        outGesture = mlpResult.label;
+        outScore = mlpResult.score;
+      }
+    }
+    if ((!outGesture || outScore < 0.5) && allLandmarks.length > 0) {
+      const commonGestures = ["thumbs_up", "open_palm", "fist", "point"];
+      for (const gestureId of commonGestures) {
+        const partialAnalysis = partialGestureDetector.analyzePartialCompletion(allLandmarks, gestureId);
+        if (partialAnalysis.isPartial && partialGestureDetector.shouldRecognizePartial(
+          partialAnalysis.completion,
+          partialAnalysis.confidence
+        )) {
+          if (partialAnalysis.confidence > outScore) {
+            outGesture = gestureId;
+            outScore = partialAnalysis.confidence;
+            if (partialAnalysis.feedback) {
               try {
                 window.ReactNativeWebView?.postMessage?.(
                   JSON.stringify({
-                    type: "stability_feedback",
-                    isStable: stabilityAnalysis.isStable,
-                    stabilityScore: stabilityAnalysis.stabilityScore,
-                    feedback: stabilityAnalysis.feedback,
-                    guidePosition: stabilityAnalysis.guidePosition
+                    type: "partial_feedback",
+                    gesture: gestureId,
+                    completion: partialAnalysis.completion,
+                    feedback: partialAnalysis.feedback
                   })
                 );
               } catch (err2) {
-                console.warn("Failed to send stability feedback:", err2);
+                console.warn("Failed to send partial feedback:", err2);
               }
             }
-          }
-          let outGesture = null;
-          let outScore = 0;
-          const perHand = [];
-          let multiHand = (results?.landmarks?.length ?? 0) >= 2;
-          const handedArr = (results?.handednesses || []).map(
-            (h) => h?.[0]?.categoryName || "unknown"
-          );
-          if (results?.gestures?.length) {
-            for (let i = 0; i < results.gestures.length; i++) {
-              const handGestures = results.gestures[i] || [];
-              const top = handGestures?.[0];
-              const handed = handedArr[i] || "unknown";
-              if (top) {
-                perHand.push({ hand: handed, label: top.categoryName, score: top.score });
-                if (top.score > outScore) {
-                  outGesture = top.categoryName;
-                  outScore = top.score;
-                }
-              }
-            }
-            if (perHand.length >= 2) {
-              let left = perHand.find((h) => /left/i.test(h.hand)) || null;
-              let right = perHand.find((h) => /right/i.test(h.hand)) || null;
-              if (!left || !right) {
-                const others = perHand.filter((h) => h !== left && h !== right);
-                if (!left) left = others.shift() || null;
-                if (!right) right = others.shift() || null;
-              }
-              if (left && right) {
-                outGesture = { left: left.label, right: right.label };
-                outScore = Math.sqrt(left.score * right.score);
-              }
-            }
-          }
-          if (window.__mlpPredict) {
-            const mlpResult = window.__mlpPredict(
-              allLandmarks,
-              results?.handednesses ?? []
-            );
-            if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
-              outGesture = mlpResult.label;
-              outScore = mlpResult.score;
-            }
-          }
-          if ((!outGesture || outScore < 0.5) && allLandmarks.length > 0) {
-            const commonGestures = ["thumbs_up", "open_palm", "fist", "point"];
-            for (const gestureId of commonGestures) {
-              const partialAnalysis = partialGestureDetector.analyzePartialCompletion(allLandmarks, gestureId);
-              if (partialAnalysis.isPartial && partialGestureDetector.shouldRecognizePartial(
-                partialAnalysis.completion,
-                partialAnalysis.confidence
-              )) {
-                if (partialAnalysis.confidence > outScore) {
-                  outGesture = gestureId;
-                  outScore = partialAnalysis.confidence;
-                  if (partialAnalysis.feedback) {
-                    try {
-                      window.ReactNativeWebView?.postMessage?.(
-                        JSON.stringify({
-                          type: "partial_feedback",
-                          gesture: gestureId,
-                          completion: partialAnalysis.completion,
-                          feedback: partialAnalysis.feedback
-                        })
-                      );
-                    } catch (err2) {
-                      console.warn("Failed to send partial feedback:", err2);
-                    }
-                  }
-                  break;
-                }
-              }
-            }
-          }
-          if (frameCount % 30 === 0) {
-            partialGestureDetector.cleanup();
-          }
-          if (shouldProcessEmergencyGesture(outGesture, outScore)) {
-            sendEmergencyGesture(outGesture, outScore, allLandmarks, handedArr);
-          }
-          const firstHand = allLandmarks[0] || [];
-          if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21 && !multiHand) {
-            const thumbUp = firstHand[4][1] < firstHand[2][1];
-            const indexUp = firstHand[8][1] < firstHand[6][1];
-            const middleUp = firstHand[12][1] < firstHand[10][1];
-            const ringUp = firstHand[16][1] < firstHand[14][1];
-            const pinkyUp = firstHand[20][1] < firstHand[18][1];
-            const allUp = indexUp && middleUp && ringUp && pinkyUp;
-            const noneUp = !indexUp && !middleUp && !ringUp && !pinkyUp;
-            if (thumbUp && !indexUp && !middleUp) {
-              outGesture = "thumbs_up";
-              outScore = 0.8;
-            } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-              outGesture = "point";
-              outScore = 0.7;
-            } else if (allUp) {
-              outGesture = "open_palm";
-              outScore = 0.6;
-            } else if (noneUp) {
-              outGesture = "fist";
-              outScore = 0.6;
-            }
-          }
-          try {
-            const ctx = overlay.getContext("2d");
-            if (ctx && overlayWidth && overlayHeight) {
-              ctx.clearRect(0, 0, overlay.width, overlay.height);
-              ctx.save();
-              ctx.scale(overlayDpr, overlayDpr);
-              if (mirrorOverlay) {
-                ctx.scale(-1, 1);
-                ctx.translate(-overlayWidth, 0);
-              }
-              const stabilityStatus = handStabilityAssistant.getStabilityStatus();
-              if (!stabilityStatus.isStable && stabilityStatus.score < 0.7) {
-                const centerX = overlayWidth / 2;
-                const centerY = overlayHeight / 2;
-                const radius = Math.min(overlayWidth, overlayHeight) * 0.15;
-                ctx.strokeStyle = stabilityStatus.score > 0.3 ? "rgba(255, 165, 0, 0.8)" : "rgba(255, 0, 0, 0.8)";
-                ctx.lineWidth = 3;
-                ctx.setLineDash([10, 5]);
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.beginPath();
-                ctx.moveTo(centerX - radius * 0.7, centerY);
-                ctx.lineTo(centerX + radius * 0.7, centerY);
-                ctx.moveTo(centerX, centerY - radius * 0.7);
-                ctx.lineTo(centerX, centerY + radius * 0.7);
-                ctx.stroke();
-              }
-              ctx.lineWidth = 3;
-              ctx.strokeStyle = "rgba(0, 255, 180, 0.9)";
-              ctx.fillStyle = "rgba(0, 255, 180, 0.9)";
-              for (const hand of results?.landmarks || []) {
-                ctx.beginPath();
-                for (const [a, b] of HAND_CONNECTIONS) {
-                  const pa = hand[a];
-                  const pb = hand[b];
-                  if (!pa || !pb) continue;
-                  ctx.moveTo(pa.x * overlayWidth, pa.y * overlayHeight);
-                  ctx.lineTo(pb.x * overlayWidth, pb.y * overlayHeight);
-                }
-                ctx.stroke();
-                for (const lm of hand) {
-                  ctx.beginPath();
-                  ctx.arc(lm.x * overlayWidth, lm.y * overlayHeight, 4, 0, Math.PI * 2);
-                  ctx.fill();
-                }
-              }
-              ctx.restore();
-            }
-          } catch (err2) {
-            console.warn("Failed to draw overlay:", err2);
-          }
-          const now = performance.now();
-          const confidence = allLandmarks.length ? outScore : 0;
-          const serializedGesture = serializeGesture(outGesture);
-          const changed = serializedGesture !== lastSentGestureSerialized || Math.abs(confidence - lastSentScore) >= 0.05;
-          const isEmergency = isEmergencyGesture(typeof outGesture === "string" ? outGesture : null);
-          const isTick = !isEmergency && now - lastSentAt >= 100;
-          if (changed || isTick || isEmergency) {
-            lastSentGestureSerialized = serializedGesture;
-            lastSentScore = confidence;
-            if (!isEmergency) {
-              lastSentAt = now;
-            }
-            try {
-              const payload = {
-                type: "gesture",
-                gesture: outGesture,
-                confidence
-              };
-              if (changed || isEmergency) {
-                payload.landmarks = allLandmarks;
-                payload.handednesses = handedArr;
-              }
-              if (isEmergency) {
-                payload.emergency = true;
-                payload.timestamp = now;
-              }
-              window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
-            } catch (err2) {
-              console.warn("Failed to send gesture result:", err2);
-            }
+            break;
           }
         }
       }
-    } catch (e) {
-      const error = e;
-      const errorInfo = errorRecoveryManager.getErrorInfo(error, "gesture_prediction");
-      errorRecoveryManager.recordFailure();
+    }
+    if (frameCount % 30 === 0) {
+      partialGestureDetector.cleanup();
+    }
+    if (shouldProcessEmergencyGesture(outGesture, outScore)) {
+      sendEmergencyGesture(outGesture, outScore, allLandmarks, handedArr);
+    }
+    const firstHand = allLandmarks[0] || [];
+    if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21 && !multiHand) {
+      const thumbUp = firstHand[4][1] < firstHand[2][1];
+      const indexUp = firstHand[8][1] < firstHand[6][1];
+      const middleUp = firstHand[12][1] < firstHand[10][1];
+      const ringUp = firstHand[16][1] < firstHand[14][1];
+      const pinkyUp = firstHand[20][1] < firstHand[18][1];
+      const allUp = indexUp && middleUp && ringUp && pinkyUp;
+      const noneUp = !indexUp && !middleUp && !ringUp && !pinkyUp;
+      if (thumbUp && !indexUp && !middleUp) {
+        outGesture = "thumbs_up";
+        outScore = 0.8;
+      } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+        outGesture = "point";
+        outScore = 0.7;
+      } else if (allUp) {
+        outGesture = "open_palm";
+        outScore = 0.6;
+      } else if (noneUp) {
+        outGesture = "fist";
+        outScore = 0.6;
+      }
+    }
+    const serialized = serializeGesture(outGesture);
+    const scoreChanged = Math.abs(outScore - lastSentScore) >= 0.05;
+    const gestureChanged = serialized !== lastSentGestureSerialized;
+    const shouldSend = (gestureChanged || scoreChanged) && (outScore >= 0.3 || outGesture);
+    if (shouldSend) {
+      lastSentGestureSerialized = serialized;
+      lastSentScore = outScore;
+      lastSentAt = performance.now();
       try {
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({
-            type: "warn",
-            message: predictionError + errorInfo.message,
-            code: errorInfo.code,
-            recoverable: errorInfo.recoverable
+            type: "gesture",
+            gesture: outGesture,
+            confidence: outScore,
+            landmarks: allLandmarks,
+            handednesses: handedArr,
+            timestamp
           })
         );
       } catch (err2) {
-        console.warn("Failed to send warning:", err2);
-      }
-      if (errorRecoveryManager.isCircuitBreakerOpen()) {
-        errorRecoveryManager.activateFallbackMode();
+        console.warn("Failed to send gesture message:", err2);
       }
     }
-    window.requestAnimationFrame(predictWebcam);
+    try {
+      const ctx = overlay.getContext("2d");
+      if (ctx && overlayWidth && overlayHeight) {
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        ctx.save();
+        ctx.scale(overlayDpr, overlayDpr);
+        if (mirrorOverlay) {
+          ctx.scale(-1, 1);
+          ctx.translate(-overlayWidth, 0);
+        }
+        const stabilityStatus = handStabilityAssistant.getStabilityStatus();
+        if (!stabilityStatus.isStable && stabilityStatus.score < 0.7) {
+          const centerX = overlayWidth / 2;
+          const centerY = overlayHeight / 2;
+          const radius = Math.min(overlayWidth, overlayHeight) * 0.15;
+          ctx.strokeStyle = stabilityStatus.score > 0.3 ? "rgba(255, 165, 0, 0.8)" : "rgba(255, 0, 0, 0.8)";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([10, 5]);
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(centerX - radius * 0.7, centerY);
+          ctx.lineTo(centerX + radius * 0.7, centerY);
+          ctx.moveTo(centerX, centerY - radius * 0.7);
+          ctx.lineTo(centerX, centerY + radius * 0.7);
+          ctx.stroke();
+        }
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(0, 255, 180, 0.9)";
+        ctx.fillStyle = "rgba(0, 255, 180, 0.9)";
+        for (const hand of allLandmarks) {
+          if (!hand || hand.length === 0) continue;
+          ctx.beginPath();
+          let hasMoves = false;
+          for (const [a, b] of HAND_CONNECTIONS) {
+            const pa = hand[a];
+            const pb = hand[b];
+            if (!pa || !pb) continue;
+            const x1 = pa[0] * overlayWidth;
+            const y1 = pa[1] * overlayHeight;
+            const x2 = pb[0] * overlayWidth;
+            const y2 = pb[1] * overlayHeight;
+            if (!hasMoves) {
+              ctx.moveTo(x1, y1);
+              hasMoves = true;
+            } else {
+              ctx.moveTo(x1, y1);
+            }
+            ctx.lineTo(x2, y2);
+          }
+          if (hasMoves) {
+            ctx.stroke();
+          }
+          for (const lm of hand) {
+            if (!lm || lm.length < 2) continue;
+            ctx.beginPath();
+            ctx.arc(
+              lm[0] * overlayWidth,
+              lm[1] * overlayHeight,
+              4,
+              0,
+              Math.PI * 2
+            );
+            ctx.fill();
+          }
+        }
+      }
+    } catch (err2) {
+      console.warn("Failed to draw overlay:", err2);
+    }
   }
   function resizeOverlay() {
     try {
@@ -3009,7 +2977,6 @@
       } catch (e) {
         console.warn("Resize on visibility change failed:", e);
       }
-      window.requestAnimationFrame(predictWebcam);
     }
   };
   resourceManager.registerEventListener(window, "pagehide", onPageHide);

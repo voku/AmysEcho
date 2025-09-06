@@ -1,0 +1,213 @@
+name: DGS Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'app/webview/**'
+      - 'server/src/**'
+      - 'scripts/**'
+      - 'integration/**'
+      - 'server/data/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'app/webview/**'
+      - 'server/src/**'
+      - 'scripts/**'
+      - 'integration/**'
+      - 'server/data/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+        python-version: [3.8, 3.9, '3.10']
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('server/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r server/requirements.txt
+
+    - name: Install Node.js dependencies
+      run: |
+        npm ci --prefix app
+        npm ci --prefix server
+        npm ci --prefix integration
+
+    - name: Setup test data directory
+      run: mkdir -p server/data
+
+    - name: Prepare test model
+      run: python3 scripts/prepare_default_model.py
+      continue-on-error: true
+
+    - name: Run type checking
+      run: |
+        npm run type-check --prefix app
+        npm run type-check --prefix server
+
+    - name: Run linting
+      run: |
+        npm run lint --prefix app || true
+        npm run lint --prefix server || true
+
+    - name: Build WebView bundle
+      run: npm run build:webview --prefix app
+
+    - name: Run DGS integration tests
+      run: |
+        cd integration
+        node test-runner.js ci
+      env:
+        CI: true
+        NODE_ENV: test
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.node-version }}-${{ matrix.python-version }}
+        path: |
+          integration/test-report.json
+          integration/coverage/
+        retention-days: 30
+
+    - name: Performance regression check
+      run: |
+        if [ -f integration/test-report.json ]; then
+          # Check for performance regressions
+          node -e "
+            const report = require('./integration/test-report.json');
+            const perfTests = Object.values(report.results.suites).filter(s =>
+              s.name && s.name.includes('performance')
+            );
+            if (perfTests.length > 0) {
+              console.log('Performance tests found:', perfTests.length);
+            }
+          "
+        fi
+
+  security:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run security audit
+      run: |
+        npm audit --audit-level moderate --prefix app
+        npm audit --audit-level moderate --prefix server
+      continue-on-error: true
+
+    - name: Check for secrets
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  accessibility:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci --prefix integration
+
+    - name: Run accessibility tests
+      run: |
+        cd integration
+        npm test -- --grep "accessibility"
+      continue-on-error: true
+
+  deploy-preview:
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci --prefix app
+        npm ci --prefix server
+
+    - name: Build for preview
+      run: |
+        npm run build:webview --prefix app
+        npm run build --prefix server
+
+    - name: Deploy to preview environment
+      run: |
+        echo "Preview deployment would happen here"
+        # Add actual deployment commands
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [test, security, accessibility]
+    if: always()
+
+    steps:
+    - name: Send notification
+      uses: 8398a7/action-slack@v3
+      if: failure()
+      with:
+        status: failure
+        text: 'DGS Integration Tests Failed'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

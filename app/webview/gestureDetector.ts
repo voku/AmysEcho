@@ -1129,6 +1129,11 @@ async function createGestureRecognizer() {
     mainGestureDetector = new GestureDetector(video, overlay);
     await mainGestureDetector.initialize();
 
+    // Set up result callback for processing gesture results
+    mainGestureDetector.setResultCallback((results, timestamp) => {
+      processGestureResults(results, timestamp);
+    });
+
     // Send telemetry
     try {
       window.ReactNativeWebView?.postMessage?.(
@@ -1158,6 +1163,7 @@ async function createGestureRecognizer() {
     errorRecoveryManager.activateFallbackMode();
   }
 }
+
 
 let lastVideoTime = -1; // Added for performance optimization
 let frameCount = 0;
@@ -1226,379 +1232,306 @@ function sendEmergencyGesture(gesture: string, confidence: number, landmarks: nu
     console.warn('Failed to send emergency gesture:', err);
   }
 }
-function predictWebcam() {
-  if (!running) return;
-  const nowTime = performance.now();
+function processGestureResults(results: any, timestamp: number) {
+  const frameLatency = Math.round(performance.now() - timestamp);
+  frameCount++;
+  if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }),
+      );
+    } catch (err) {
+      console.warn("Failed to send 'frame_latency' telemetry event:", err);
+    }
+  }
+  let allLandmarks = (results?.landmarks || []).map((hand: any) =>
+    hand.map((lm: any) => [lm.x, lm.y, lm.z ?? 0]),
+  );
 
-  // Amy First: Always maintain full performance regardless of battery level
-  // No frame skipping or quality reduction for Amy's communication
+  // Apply tremor compensation
+  if (allLandmarks.length > 0) {
+    // Check if movement is intentional before smoothing
+    const isIntentional = tremorCompensator.isIntentionalMovement(allLandmarks, lastProcessedLandmarks);
+    if (isIntentional) {
+      allLandmarks = tremorCompensator.smoothLandmarks(allLandmarks);
+      lastProcessedLandmarks = JSON.parse(JSON.stringify(allLandmarks));
+    } else {
+      // Use previous smoothed landmarks to maintain stability
+      allLandmarks = lastProcessedLandmarks.length > 0 ? lastProcessedLandmarks : allLandmarks;
+    }
+  }
 
-  // Emergency gestures bypass normal throttling
+  // Apply gesture size normalization
+  if (allLandmarks.length > 0) {
+    allLandmarks = gestureSizeNormalizer.normalizeHandSize(allLandmarks);
+  }
 
-  try {
-    if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
-      if (lastVideoTime !== video.currentTime) {
-        lastVideoTime = video.currentTime;
-        if (
-          video.videoWidth !== lastVideoWidth ||
-          video.videoHeight !== lastVideoHeight
-        ) {
-          resizeOverlay();
-        }
+  // Analyze hand stability and provide feedback
+  if (allLandmarks.length > 0) {
+    const stabilityAnalysis = handStabilityAssistant.analyzeStability(allLandmarks);
 
-        // Quick emergency gesture check before full processing
-        const emergencyResults = gestureRecognizer.recognizeForVideo(video, nowTime);
-        if (emergencyResults?.gestures?.length) {
-          for (const handGestures of emergencyResults.gestures) {
-            const top = handGestures?.[0];
-            if (top && isEmergencyGesture(top.categoryName)) {
-              // Emergency gesture detected
-              break;
-            }
-          }
+    // Send stability feedback periodically (not every frame)
+    if (frameCount % 15 === 0) { // Every ~0.5 second at 30fps
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'stability_feedback',
+            isStable: stabilityAnalysis.isStable,
+            stabilityScore: stabilityAnalysis.stabilityScore,
+            feedback: stabilityAnalysis.feedback,
+            guidePosition: stabilityAnalysis.guidePosition,
+          }),
+        );
+      } catch (err) {
+        console.warn('Failed to send stability feedback:', err);
+      }
+    }
+  }
+
+  let outGesture: string | TwoHandGesture | null = null;
+  let outScore = 0;
+  const perHand: { hand: string; label: string; score: number }[] = [];
+  let multiHand = (results?.landmarks?.length ?? 0) >= 2;
+  const handedArr = (results?.handednesses || []).map(
+    (h) => h?.[0]?.categoryName || 'unknown',
+  );
+
+  if (results?.gestures?.length) {
+    for (let i = 0; i < results.gestures.length; i++) {
+      const handGestures = results.gestures[i] || [];
+      const top = handGestures?.[0];
+      const handed = handedArr[i] || 'unknown';
+      if (top) {
+        perHand.push({ hand: handed, label: top.categoryName, score: top.score });
+        if (top.score > outScore) {
+          outGesture = top.categoryName;
+          outScore = top.score;
         }
       }
     }
-  } catch {
-    // Ignore errors in emergency pre-check
+    if (perHand.length >= 2) {
+      let left = perHand.find((h) => /left/i.test(h.hand)) || null;
+      let right = perHand.find((h) => /right/i.test(h.hand)) || null;
+      if (!left || !right) {
+        const others = perHand.filter((h) => h !== left && h !== right);
+        if (!left) left = others.shift() || null;
+        if (!right) right = others.shift() || null;
+      }
+      if (left && right) {
+        outGesture = { left: left.label, right: right.label };
+        // Geometric mean keeps confidence conservative without over-penalizing
+        outScore = Math.sqrt(left.score * right.score);
+      }
+    }
   }
 
-  // Amy First: Process every frame for immediate communication
-  // Emergency frames get priority, but all frames are processed without throttling
-  try {
-    if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
-      if (lastVideoTime !== video.currentTime) {
-        // Only process if video frame has changed
-        lastVideoTime = video.currentTime;
-        if (
-          video.videoWidth !== lastVideoWidth ||
-          video.videoHeight !== lastVideoHeight
-        ) {
-          resizeOverlay();
-        }
-        const start = performance.now();
-        const results = gestureRecognizer.recognizeForVideo(video, start);
-        const frameLatency = Math.round(performance.now() - start);
-        frameCount++;
-        if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
-          try {
-            window.ReactNativeWebView?.postMessage?.(
-              JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }),
-            );
-          } catch (err) {
-            console.warn("Failed to send 'frame_latency' telemetry event:", err);
-          }
-        }
-        let allLandmarks = (results?.landmarks || []).map((hand) =>
-          hand.map((lm) => [lm.x, lm.y, lm.z ?? 0]),
-        );
+  // ** MLP Gesture Prediction **
+  if (window.__mlpPredict) {
+    const mlpResult = window.__mlpPredict(
+      allLandmarks,
+      results?.handednesses ?? [],
+    );
+    if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
+      outGesture = mlpResult.label;
+      outScore = mlpResult.score;
+    }
+  }
 
-        // Apply tremor compensation
-        if (allLandmarks.length > 0) {
-          // Check if movement is intentional before smoothing
-          const isIntentional = tremorCompensator.isIntentionalMovement(allLandmarks, lastProcessedLandmarks);
+  // ** Partial Gesture Completion Analysis **
+  // Check for partial completion of common gestures if no full gesture detected
+  if ((!outGesture || outScore < 0.5) && allLandmarks.length > 0) {
+    const commonGestures = ['thumbs_up', 'open_palm', 'fist', 'point'];
 
-          if (isIntentional) {
-            allLandmarks = tremorCompensator.smoothLandmarks(allLandmarks);
-            lastProcessedLandmarks = JSON.parse(JSON.stringify(allLandmarks));
-          } else {
-            // Use previous smoothed landmarks to maintain stability
-            allLandmarks = lastProcessedLandmarks.length > 0 ? lastProcessedLandmarks : allLandmarks;
-          }
-        }
+    for (const gestureId of commonGestures) {
+      const partialAnalysis = partialGestureDetector.analyzePartialCompletion(allLandmarks, gestureId);
 
-        // Apply gesture size normalization
-        if (allLandmarks.length > 0) {
-          allLandmarks = gestureSizeNormalizer.normalizeHandSize(allLandmarks);
-        }
+      if (partialAnalysis.isPartial && partialGestureDetector.shouldRecognizePartial(
+        partialAnalysis.completion,
+        partialAnalysis.confidence
+      )) {
+        // Use partial gesture if it's better than current result
+        if (partialAnalysis.confidence > outScore) {
+          outGesture = gestureId;
+          outScore = partialAnalysis.confidence;
 
-        // Analyze hand stability and provide feedback
-        if (allLandmarks.length > 0) {
-          const stabilityAnalysis = handStabilityAssistant.analyzeStability(allLandmarks);
-
-          // Send stability feedback periodically (not every frame)
-          if (frameCount % 15 === 0) { // Every ~0.5 second at 30fps
+          // Send partial completion feedback
+          if (partialAnalysis.feedback) {
             try {
               window.ReactNativeWebView?.postMessage?.(
                 JSON.stringify({
-                  type: 'stability_feedback',
-                  isStable: stabilityAnalysis.isStable,
-                  stabilityScore: stabilityAnalysis.stabilityScore,
-                  feedback: stabilityAnalysis.feedback,
-                  guidePosition: stabilityAnalysis.guidePosition,
+                  type: 'partial_feedback',
+                  gesture: gestureId,
+                  completion: partialAnalysis.completion,
+                  feedback: partialAnalysis.feedback,
                 }),
               );
             } catch (err) {
-              console.warn('Failed to send stability feedback:', err);
+              console.warn('Failed to send partial feedback:', err);
             }
           }
-        }
-        let outGesture: string | TwoHandGesture | null = null;
-        let outScore = 0;
-        const perHand: { hand: string; label: string; score: number }[] = [];
-        let multiHand = (results?.landmarks?.length ?? 0) >= 2;
-        const handedArr = (results?.handednesses || []).map(
-          (h) => h?.[0]?.categoryName || 'unknown',
-        );
-        if (results?.gestures?.length) {
-          for (let i = 0; i < results.gestures.length; i++) {
-            const handGestures = results.gestures[i] || [];
-            const top = handGestures?.[0];
-            const handed = handedArr[i] || 'unknown';
-            if (top) {
-              perHand.push({ hand: handed, label: top.categoryName, score: top.score });
-              if (top.score > outScore) {
-                outGesture = top.categoryName;
-                outScore = top.score;
-              }
-            }
-          }
-          if (perHand.length >= 2) {
-            let left = perHand.find((h) => /left/i.test(h.hand)) || null;
-            let right = perHand.find((h) => /right/i.test(h.hand)) || null;
-            if (!left || !right) {
-              const others = perHand.filter((h) => h !== left && h !== right);
-              if (!left) left = others.shift() || null;
-              if (!right) right = others.shift() || null;
-            }
-            if (left && right) {
-              outGesture = { left: left.label, right: right.label };
-              // Geometric mean keeps confidence conservative without over-penalizing
-              outScore = Math.sqrt(left.score * right.score);
-            }
-          }
-        }
-        // ** MLP Gesture Prediction **
-        if (window.__mlpPredict) {
-          const mlpResult = window.__mlpPredict(
-            allLandmarks,
-            results?.handednesses ?? [],
-          );
-          if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
-            outGesture = mlpResult.label;
-            outScore = mlpResult.score;
-          }
-        }
-
-        // ** Partial Gesture Completion Analysis **
-        // Check for partial completion of common gestures if no full gesture detected
-        if ((!outGesture || outScore < 0.5) && allLandmarks.length > 0) {
-          const commonGestures = ['thumbs_up', 'open_palm', 'fist', 'point'];
-
-          for (const gestureId of commonGestures) {
-            const partialAnalysis = partialGestureDetector.analyzePartialCompletion(allLandmarks, gestureId);
-
-            if (partialAnalysis.isPartial && partialGestureDetector.shouldRecognizePartial(
-              partialAnalysis.completion,
-              partialAnalysis.confidence
-            )) {
-              // Use partial gesture if it's better than current result
-              if (partialAnalysis.confidence > outScore) {
-                outGesture = gestureId;
-                outScore = partialAnalysis.confidence;
-
-                // Send partial completion feedback
-                if (partialAnalysis.feedback) {
-                  try {
-                    window.ReactNativeWebView?.postMessage?.(
-                      JSON.stringify({
-                        type: 'partial_feedback',
-                        gesture: gestureId,
-                        completion: partialAnalysis.completion,
-                        feedback: partialAnalysis.feedback,
-                      }),
-                    );
-                  } catch (err) {
-                    console.warn('Failed to send partial feedback:', err);
-                  }
-                }
-                break; // Use the first good partial match
-              }
-            }
-          }
-        }
-
-        // Clean up old partial gesture data periodically
-        if (frameCount % 30 === 0) { // Every ~1 second at 30fps
-          partialGestureDetector.cleanup();
-        }
-
-        // ** Emergency Gesture Priority Processing **
-        // Check if this is an emergency gesture that should be processed immediately
-        if (shouldProcessEmergencyGesture(outGesture, outScore)) {
-          sendEmergencyGesture(outGesture!, outScore, allLandmarks, handedArr);
-          // Continue with normal processing
-        }
-        // Custom gesture logic (preserved for single-hand fallback)
-        const firstHand = allLandmarks[0] || [];
-        if (
-          (!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) &&
-          firstHand.length === 21 &&
-          !multiHand
-        ) {
-          const thumbUp = firstHand[4][1] < firstHand[2][1];
-          const indexUp = firstHand[8][1] < firstHand[6][1];
-          const middleUp = firstHand[12][1] < firstHand[10][1];
-          const ringUp = firstHand[16][1] < firstHand[14][1];
-          const pinkyUp = firstHand[20][1] < firstHand[18][1];
-          const allUp = indexUp && middleUp && ringUp && pinkyUp;
-          const noneUp = !indexUp && !middleUp && !ringUp && !pinkyUp;
-          if (thumbUp && !indexUp && !middleUp) {
-            outGesture = 'thumbs_up';
-            outScore = 0.8;
-          } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-            outGesture = 'point';
-            outScore = 0.7;
-          } else if (allUp) {
-            outGesture = 'open_palm';
-            outScore = 0.6;
-          } else if (noneUp) {
-            outGesture = 'fist';
-            outScore = 0.6;
-          }
-        }
-        // Draw overlay landmarks and stability guides
-        try {
-          const ctx = overlay.getContext('2d');
-          if (ctx && overlayWidth && overlayHeight) {
-            ctx.clearRect(0, 0, overlay.width, overlay.height);
-            ctx.save();
-            // Draw in CSS pixels while canvas is scaled for HiDPI
-            ctx.scale(overlayDpr, overlayDpr);
-            // Mirror horizontally to match video when using the front camera
-            if (mirrorOverlay) {
-              ctx.scale(-1, 1);
-              ctx.translate(-overlayWidth, 0);
-            }
-
-            // Draw stability guide if needed
-            const stabilityStatus = handStabilityAssistant.getStabilityStatus();
-            if (!stabilityStatus.isStable && stabilityStatus.score < 0.7) {
-              // Draw target circle for hand positioning
-              const centerX = overlayWidth / 2;
-              const centerY = overlayHeight / 2;
-              const radius = Math.min(overlayWidth, overlayHeight) * 0.15;
-
-              ctx.strokeStyle = stabilityStatus.score > 0.3 ? 'rgba(255, 165, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
-              ctx.lineWidth = 3;
-              ctx.setLineDash([10, 5]);
-              ctx.beginPath();
-              ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-              ctx.stroke();
-              ctx.setLineDash([]);
-
-              // Draw crosshairs
-              ctx.beginPath();
-              ctx.moveTo(centerX - radius * 0.7, centerY);
-              ctx.lineTo(centerX + radius * 0.7, centerY);
-              ctx.moveTo(centerX, centerY - radius * 0.7);
-              ctx.lineTo(centerX, centerY + radius * 0.7);
-              ctx.stroke();
-            }
-
-            // Draw hand landmarks
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
-            ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
-            for (const hand of results?.landmarks || []) {
-              // connectors
-              ctx.beginPath();
-              for (const [a, b] of HAND_CONNECTIONS) {
-                const pa = hand[a];
-                const pb = hand[b];
-                if (!pa || !pb) continue;
-                ctx.moveTo(pa.x * overlayWidth, pa.y * overlayHeight);
-                ctx.lineTo(pb.x * overlayWidth, pb.y * overlayHeight);
-              }
-              ctx.stroke();
-              // points
-              for (const lm of hand) {
-                ctx.beginPath();
-                ctx.arc(lm.x * overlayWidth, lm.y * overlayHeight, 4, 0, Math.PI * 2);
-                ctx.fill();
-              }
-            }
-            ctx.restore();
-          }
-        } catch (err) {
-          console.warn('Failed to draw overlay:', err);
-        }
-
-        const now = performance.now();
-        const confidence = allLandmarks.length ? outScore : 0;
-        const serializedGesture = serializeGesture(outGesture);
-        const changed =
-          serializedGesture !== lastSentGestureSerialized ||
-          Math.abs(confidence - lastSentScore) >= 0.05;
-
-        // Emergency gestures bypass normal throttling rules
-        const isEmergency = isEmergencyGesture(typeof outGesture === 'string' ? outGesture : null);
-        const isTick = !isEmergency && now - lastSentAt >= 100;
-
-        if (changed || isTick || isEmergency) {
-          lastSentGestureSerialized = serializedGesture;
-          lastSentScore = confidence;
-          if (!isEmergency) {
-            lastSentAt = now;
-          }
-          try {
-            const payload: {
-              type: 'gesture';
-              gesture: string | { left: string; right: string } | null;
-              confidence: number;
-              landmarks?: number[][][];
-              handednesses?: string[];
-              emergency?: boolean;
-              timestamp?: number;
-            } = {
-              type: 'gesture',
-              gesture: outGesture,
-              confidence,
-            };
-            if (changed || isEmergency) {
-              payload.landmarks = allLandmarks;
-              payload.handednesses = handedArr;
-            }
-            if (isEmergency) {
-              payload.emergency = true;
-              payload.timestamp = now;
-            }
-            window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
-          } catch (err) {
-          console.warn('Failed to send gesture result:', err);
-          }
+          break; // Use the first good partial match
         }
       }
     }
-  } catch (e) {
-    const error = e as Error;
-    const errorInfo = errorRecoveryManager.getErrorInfo(error, 'gesture_prediction');
+  }
 
-    // Record failure for circuit breaker
-    errorRecoveryManager.recordFailure();
+  // Clean up old partial gesture data periodically
+  if (frameCount % 30 === 0) { // Every ~1 second at 30fps
+    partialGestureDetector.cleanup();
+  }
+
+  // ** Emergency Gesture Priority Processing **
+  // Check if this is an emergency gesture that should be processed immediately
+  if (shouldProcessEmergencyGesture(outGesture, outScore)) {
+    sendEmergencyGesture(outGesture!, outScore, allLandmarks, handedArr);
+    // Continue with normal processing
+  }
+
+  // Custom gesture logic (preserved for single-hand fallback)
+  const firstHand = allLandmarks[0] || [];
+  if (
+    (!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) &&
+    firstHand.length === 21 &&
+    !multiHand
+  ) {
+    const thumbUp = firstHand[4][1] < firstHand[2][1];
+    const indexUp = firstHand[8][1] < firstHand[6][1];
+    const middleUp = firstHand[12][1] < firstHand[10][1];
+    const ringUp = firstHand[16][1] < firstHand[14][1];
+    const pinkyUp = firstHand[20][1] < firstHand[18][1];
+    const allUp = indexUp && middleUp && ringUp && pinkyUp;
+    const noneUp = !indexUp && !middleUp && !ringUp && !pinkyUp;
+    if (thumbUp && !indexUp && !middleUp) {
+      outGesture = 'thumbs_up';
+      outScore = 0.8;
+    } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+      outGesture = 'point';
+      outScore = 0.7;
+    } else if (allUp) {
+      outGesture = 'open_palm';
+      outScore = 0.6;
+    } else if (noneUp) {
+      outGesture = 'fist';
+      outScore = 0.6;
+    }
+  }
+
+  // Send gesture result if it changed or meets threshold
+  const serialized = serializeGesture(outGesture);
+  const scoreChanged = Math.abs(outScore - lastSentScore) >= 0.05;
+  const gestureChanged = serialized !== lastSentGestureSerialized;
+  const shouldSend = (gestureChanged || scoreChanged) && (outScore >= 0.3 || outGesture);
+
+  if (shouldSend) {
+    lastSentGestureSerialized = serialized;
+    lastSentScore = outScore;
+    lastSentAt = performance.now();
 
     try {
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({
-          type: 'warn',
-          message: predictionError + errorInfo.message,
-          code: errorInfo.code,
-          recoverable: errorInfo.recoverable,
+          type: 'gesture',
+          gesture: outGesture,
+          confidence: outScore,
+          landmarks: allLandmarks,
+          handednesses: handedArr,
+          timestamp: timestamp,
         }),
       );
     } catch (err) {
-      console.warn('Failed to send warning:', err);
-    }
-
-    // If circuit breaker is open, activate fallback mode
-    if (errorRecoveryManager.isCircuitBreakerOpen()) {
-      errorRecoveryManager.activateFallbackMode();
+      console.warn('Failed to send gesture message:', err);
     }
   }
-  window.requestAnimationFrame(predictWebcam);
-}
 
-// Note: server-based fallback removed; on-device recognition only
+  // Draw overlay landmarks and stability guides
+  try {
+    const ctx = overlay.getContext('2d');
+    if (ctx && overlayWidth && overlayHeight) {
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      ctx.save();
+      // Draw in CSS pixels while canvas is scaled for HiDPI
+      ctx.scale(overlayDpr, overlayDpr);
+      // Mirror horizontally to match video when using the front camera
+      if (mirrorOverlay) {
+        ctx.scale(-1, 1);
+        ctx.translate(-overlayWidth, 0);
+      }
+
+      // Draw stability guide if needed
+      const stabilityStatus = handStabilityAssistant.getStabilityStatus();
+      if (!stabilityStatus.isStable && stabilityStatus.score < 0.7) {
+        // Draw target circle for hand positioning
+        const centerX = overlayWidth / 2;
+        const centerY = overlayHeight / 2;
+        const radius = Math.min(overlayWidth, overlayHeight) * 0.15;
+
+        ctx.strokeStyle = stabilityStatus.score > 0.3 ? 'rgba(255, 165, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 5]);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw crosshairs
+        ctx.beginPath();
+        ctx.moveTo(centerX - radius * 0.7, centerY);
+        ctx.lineTo(centerX + radius * 0.7, centerY);
+        ctx.moveTo(centerX, centerY - radius * 0.7);
+        ctx.lineTo(centerX, centerY + radius * 0.7);
+        ctx.stroke();
+      }
+
+      // Draw hand landmarks
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
+      ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
+
+      for (const hand of allLandmarks) {
+        if (!hand || hand.length === 0) continue;
+
+        // Draw connections
+        ctx.beginPath();
+        let hasMoves = false;
+        for (const [a, b] of HAND_CONNECTIONS) {
+          const pa = hand[a];
+          const pb = hand[b];
+          if (!pa || !pb) continue;
+          const x1 = pa[0] * overlayWidth;
+          const y1 = pa[1] * overlayHeight;
+          const x2 = pb[0] * overlayWidth;
+          const y2 = pb[1] * overlayHeight;
+          if (!hasMoves) {
+            ctx.moveTo(x1, y1);
+            hasMoves = true;
+          } else {
+            ctx.moveTo(x1, y1);
+          }
+          ctx.lineTo(x2, y2);
+        }
+        if (hasMoves) {
+          ctx.stroke();
+        }
+
+        // Draw points
+        for (const lm of hand) {
+          if (!lm || lm.length < 2) continue;
+          ctx.beginPath();
+          ctx.arc(
+            lm[0] * overlayWidth,
+            lm[1] * overlayHeight,
+            4,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+}
+    }
+  } catch (err) {
+    console.warn('Failed to draw overlay:', err);
+  }
+}
 
 function resizeOverlay() {
   try {
@@ -1709,7 +1642,6 @@ const onVisibilityChange = () => {
     resetGestureChangeState();
     // Ensure overlay matches current layout/DPR after tab visibility changes
     try { resizeOverlay(); } catch (e) { console.warn('Resize on visibility change failed:', e); }
-    window.requestAnimationFrame(predictWebcam);
   }
 };
 // Register event listeners with resource manager

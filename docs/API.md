@@ -176,6 +176,47 @@ Example error response
 Optional fields
 - `profileId` may be included per sample to support profile-aware training. Currently optional and ignored by validators.
 
+### GET /train-status
+Check the status of a model training job.
+
+**Query Parameters**
+- `jobId` (required): The job ID returned from `/train-model`
+
+**Response**
+```json
+{
+  "jobId": "abc123",
+  "status": "running|completed|failed",
+  "progress": 0.75,
+  "message": "Training epoch 15/20",
+  "modelPath": "/path/to/model.npz",
+  "error": "Optional error message"
+}
+```
+
+### POST /prepare-dgs-model
+Trigger preparation of a German Sign Language model from video datasets.
+
+**Body**
+```json
+{
+  "datasetPath": "/path/to/dgs/videos",
+  "gestures": ["alle", "blau", "rot", "gelb", "gruen"],
+  "outputPath": "/path/to/output/model"
+}
+```
+
+**Response**
+```json
+{
+  "status": "queued",
+  "jobId": "dgs-prep-123",
+  "estimatedDuration": "30m"
+}
+```
+
+This endpoint processes DGS video datasets, extracts hand landmarks using MediaPipe, and trains an MLP model for gesture recognition.
+
 ### POST /dialog
 Return LLM-powered word and phrase suggestions.
 
@@ -206,6 +247,44 @@ Query parameter `profileId` returns a profile-specific model if available.
 Note: As of the centroid-based pipeline, this returns a JSON payload representing the
 centroid model `{ type: "centroid_model", centroids, counts, updatedAt }`. Clients may
 continue to treat this as an opaque file and verify via `/model-metadata`.
+
+### GET /latest-mlp-model
+Download the latest trained MLP weights file (NPZ format) for German Sign Language gesture recognition.
+
+Query parameter `profileId` returns a profile-specific model if available.
+`profileId` may contain only letters, numbers, underscores, and dashes.
+
+**Supported Gestures**: alle, blau, rot, gelb, gruen, essen, trinken, satt, spielen, schwester, nochmal, fertig
+
+**Response Headers**:
+- `ETag`: Strong hash in the form `"sha256-<hex>"` for cache validation
+- `X-Model-Version`: Monotonic version derived from file mtime (ms since epoch)
+- `X-Checksum-SHA256`: Hex digest of the file for integrity verification
+- `Cache-Control`: `private, max-age=0, must-revalidate`
+- `Content-Disposition`: `attachment; filename="dgs_model[_<profileId>].npz"`
+- `Accept-Ranges`: `bytes` with support for HTTP range requests
+
+**Range Requests**: Clients may include `Range: bytes=start-end`. The server replies with `206 Partial Content` and `Content-Range`.
+
+**Per-profile Authorization**: When requesting a profile-specific model (`?profileId=...`), clients must include header `X-Profile-Id: <profileId>`. If the header is missing or does not match, the server returns `403 Forbidden` without revealing whether the profile exists.
+
+### GET /model-metadata
+Return metadata about the current model file.
+
+Query parameter `profileId` mirrors `/latest-model` and `/latest-mlp-model` for profile-specific metadata.
+`profileId` may contain only letters, numbers, underscores, and dashes.
+
+**Response**
+```json
+{
+  "version": "1.0.0",
+  "size": 1234,
+  "sha256": "<hash>",
+  "type": "mlp|centroid",
+  "gestures": ["alle", "blau", "rot", ...],
+  "lastModified": 1700000000000
+}
+```
 
 ### GET /model-metadata
 Return metadata about the current model file.

@@ -6,12 +6,14 @@ import { loadProfile, Profile } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING } from '../constants/ui';
+import BottomNav from '../components/BottomNav';
 
-export default function ProgressScreen({ navigation }: any) {
+export default function ProgressScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [stats, setStats] = useState<Record<string, number>>({});
-  const [, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [engagement, setEngagement] = useState<{ totalSessions: number; averageDurationMs: number }>({ totalSessions: 0, averageDurationMs: 0 });
+  const profileId = route?.params?.profileId;
 
   useEffect(() => {
     loadProfile().then((p) => {
@@ -78,6 +80,7 @@ export default function ProgressScreen({ navigation }: any) {
         ListEmptyComponent={<Text style={styles.label}>Noch keine Nutzung</Text>}
       />
       <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      {profile && <BottomNav active="parent" profileId={profile.id} />}
     </View>
   );
 }

@@ -12,6 +12,7 @@ export interface Profile {
   vocabularySetId: string;
   largeText?: boolean;
   highContrast?: boolean;
+  successSound?: string; // Customizable success sound preference
 }
 
 const ACTIVE_PROFILE_KEY = 'activeProfileId';
@@ -45,6 +46,7 @@ function mapDbProfile(p: DBProfile): Profile {
     vocabularySetId: (p as any).activeVocabularySet.id,
     largeText: p.largeText,
     highContrast: p.highContrast,
+    successSound: (p as any).successSound || 'success', // Default to 'success'
   };
 }
 

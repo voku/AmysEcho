@@ -21,7 +21,7 @@ export const availableVocabularySets: VocabularySet[] = [
   {
     id: 'basic',
     label: 'Basic Needs',
-    gestures: ['hello', 'thank_you', 'please', 'more', 'finished', 'water', 'eat', 'help']
+    gestures: ['hello', 'thank_you', 'please', 'more', 'finished', 'water', 'eat', 'help', 'essen', 'trinken', 'satt', 'fertig']
   },
   {
     id: 'emotions',
@@ -31,7 +31,17 @@ export const availableVocabularySets: VocabularySet[] = [
   {
     id: 'activities',
     label: 'Activities',
-    gestures: ['play', 'read', 'music', 'outside', 'sleep', 'bath']
+    gestures: ['play', 'read', 'music', 'outside', 'sleep', 'bath', 'spielen', 'nochmal']
+  },
+  {
+    id: 'colors',
+    label: 'Colors',
+    gestures: ['rot', 'blau', 'gelb', 'gruen']
+  },
+  {
+    id: 'family',
+    label: 'Family',
+    gestures: ['schwester', 'alle']
   }
 ];
 
@@ -49,7 +59,20 @@ export const gestureModel = {
     { id: 'yes', label: '✅ Ja', emoji: '✅', category: 'response' },
     { id: 'no', label: '❌ Nein', emoji: '❌', category: 'response' },
     { id: 'happy', label: '😊 Glücklich', emoji: '😊', category: 'emotion' },
-    { id: 'sad', label: '😢 Traurig', emoji: '😢', category: 'emotion' }
+    { id: 'sad', label: '😢 Traurig', emoji: '😢', category: 'emotion' },
+    // New DGS gestures with video support
+    { id: 'alle', label: '👥 Alle', emoji: '👥', category: 'quantity', dgsVideoUri: 'alle.mp4' },
+    { id: 'blau', label: '💙 Blau', emoji: '💙', category: 'color', dgsVideoUri: 'blau.mp4' },
+    { id: 'rot', label: '❤️ Rot', emoji: '❤️', category: 'color', dgsVideoUri: 'rot.mp4' },
+    { id: 'gelb', label: '💛 Gelb', emoji: '💛', category: 'color', dgsVideoUri: 'gelb.mp4' },
+    { id: 'gruen', label: '💚 Grün', emoji: '💚', category: 'color', dgsVideoUri: 'gruen.mp4' },
+    { id: 'essen', label: '🍽️ Essen', emoji: '🍽️', category: 'food', dgsVideoUri: 'essen.mp4' },
+    { id: 'trinken', label: '🥤 Trinken', emoji: '🥤', category: 'drink', dgsVideoUri: 'trinken.mp4' },
+    { id: 'satt', label: '😋 Satt', emoji: '😋', category: 'status', dgsVideoUri: 'satt.mp4' },
+    { id: 'spielen', label: '🎮 Spielen', emoji: '🎮', category: 'activity', dgsVideoUri: 'spielen.mp4' },
+    { id: 'schwester', label: '👩 Schwester', emoji: '👩', category: 'family', dgsVideoUri: 'schwester.mp4' },
+    { id: 'nochmal', label: '🔄 Nochmal', emoji: '🔄', category: 'action', dgsVideoUri: 'nochmal.mp4' },
+    { id: 'fertig', label: '✅ Fertig', emoji: '✅', category: 'status', dgsVideoUri: 'fertig.mp4' }
   ] as GestureModelEntry[]
 };
 

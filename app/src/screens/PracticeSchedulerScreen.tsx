@@ -4,14 +4,18 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING } from '../constants/ui';
 import { addSchedule, listSchedules, removeSchedule, setScheduleEnabled, PracticeSchedule } from '../services/practiceScheduler';
 import { gestureModel } from '../model';
+import BottomNav from '../components/BottomNav';
+import { loadProfile, Profile } from '../storage';
 
-export default function PracticeSchedulerScreen({ navigation }: any) {
+export default function PracticeSchedulerScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [schedules, setSchedules] = useState<PracticeSchedule[]>([]);
   const [gestureId, setGestureId] = useState(gestureModel.gestures[0]?.id || 'hello');
   const [hour, setHour] = useState('17');
   const [minute, setMinute] = useState('0');
   const [days, setDays] = useState<number[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const profileId = route?.params?.profileId;
 
   const dayLabels = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
@@ -21,6 +25,7 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
 
   useEffect(() => {
     load();
+    loadProfile().then(setProfile);
   }, []);
 
   const styles = StyleSheet.create({
@@ -116,6 +121,7 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
       />
 
       <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      {profile && <BottomNav active="schedule" profileId={profile.id} />}
     </View>
   );
 }

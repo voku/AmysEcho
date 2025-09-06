@@ -21,6 +21,7 @@ export class GestureDetector {
   private overlay: HTMLCanvasElement;
   private gestureRecognizer: GestureRecognizerLike | null = null;
   private running = false;
+  private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
 
   constructor(video: HTMLVideoElement, overlay: HTMLCanvasElement) {
     this.video = video;
@@ -30,6 +31,13 @@ export class GestureDetector {
     this.cameraManager = new CameraManager(video, this.resourceManager);
     this.overlayRenderer = new OverlayRenderer(overlay);
     this.healthMonitor = new HealthMonitor();
+  }
+
+  /**
+   * Set callback for gesture results
+   */
+  setResultCallback(callback: (results: MediaPipeGestureResult, timestamp: number) => void): void {
+    this.resultCallback = callback;
   }
 
   /**
@@ -109,6 +117,11 @@ export class GestureDetector {
         const recognitionStart = performance.now();
         const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
         const recognitionTime = performance.now() - recognitionStart;
+
+        // Call result callback if set
+        if (this.resultCallback && results) {
+          this.resultCallback(results, frameStart);
+        }
 
         if (results?.landmarks) {
           // Optimize overlay updates - only redraw when necessary

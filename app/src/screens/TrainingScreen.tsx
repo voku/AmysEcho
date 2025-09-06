@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Button, StyleSheet, AppState, SafeAreaView } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useIsFocused } from '@react-navigation/native';
 // Camera preview replaced by MediaPipe WebView detector
 import Svg, { Circle } from 'react-native-svg';
@@ -126,7 +127,15 @@ export default function TrainingScreen({ navigation, route }: any) {
       }
     } catch (e) {
       logger.error('Failed to save training sample', e);
-      setError('Failed to save training sample');
+      // Amy First: Show encouraging message instead of technical error
+      setError(null); // Don't show technical errors
+      setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+      // Log for caregiver analytics
+      void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'training_save_failed', {
+        error: String(e).substring(0, 100),
+        gestureId,
+        framesCaptured
+      });
     }
   };
 
@@ -202,11 +211,14 @@ export default function TrainingScreen({ navigation, route }: any) {
             : `Training ${gestureId ? `for ${gestureId}` : 'Mode'}`}
         </Text>
         {!gestureId ? (
-          gestureModel.gestures.map((g) => (
+           gestureModel.gestures.map((g) => (
             <Button
               key={g.id}
               title={g.label}
-              onPress={() => setGestureId(g.id)}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setGestureId(g.id);
+              }}
               accessibilityLabel={`Trainiere Geste ${g.label}`}
             />
           ))
@@ -232,7 +244,11 @@ export default function TrainingScreen({ navigation, route }: any) {
                   setFramesCaptured((c) => c + 1);
                 }
               }}
-              onError={(m) => logger.warn('TrainingScreen detector error:', m)}
+               onError={(m) => {
+                 logger.warn('TrainingScreen detector error:', m);
+                 // Amy First: Show encouraging message instead of technical error
+                 setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+               }}
             />
               {landmarks.length > 0 && (
                 <Svg
@@ -280,7 +296,14 @@ export default function TrainingScreen({ navigation, route }: any) {
             </View>
             <Button
               title={isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / ${TARGET_SAMPLES}`}
-              onPress={isRecording ? stopRecording : startRecording}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                if (isRecording) {
+                  stopRecording();
+                } else {
+                  startRecording();
+                }
+              }}
               accessibilityLabel="Gestenaufnahme starten"
               disabled={!gestureId}
             />

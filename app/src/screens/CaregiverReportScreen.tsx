@@ -1,11 +1,20 @@
 import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Button, StyleSheet } from 'react-native';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING } from '../constants/ui';
+import BottomNav from '../components/BottomNav';
+import { loadProfile, Profile } from '../storage';
 
-export default function CaregiverReportScreen({ navigation }: any) {
+export default function CaregiverReportScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const profileId = route?.params?.profileId;
+
+  useEffect(() => {
+    loadProfile().then(setProfile);
+  }, []);
 
   const styles = StyleSheet.create({
     container: {
@@ -44,6 +53,7 @@ export default function CaregiverReportScreen({ navigation }: any) {
         ListEmptyComponent={<Text style={styles.label}>Keine Gesten verfügbar</Text>}
       />
       <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      {profile && <BottomNav active="parent" profileId={profile.id} />}
     </View>
   );
 }
