@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Pressable, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Pressable, Text, StyleSheet, FlatList } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { useNavigation, useRoute, type NavigationProp } from '@react-navigation/native';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
@@ -20,8 +20,30 @@ export default function BottomNav({ active, profileId }: Props) {
   const route = useRoute();
   const { highContrast } = useAccessibility();
   const { theme } = useTheme();
+  const [navHistory, setNavHistory] = useState<Array<{name: string; title: string; canGoBack: boolean}>>([]);
 
-  // Simple breadcrumb system - show current screen name
+  useEffect(() => {
+    // Update navigation history
+    const currentScreen = getCurrentScreenName();
+    const canGoBack = navigation.canGoBack();
+    setNavHistory(prev => {
+      const newHistory = [...prev];
+      // Keep only last 3 screens for breadcrumb
+      if (newHistory.length === 0 || newHistory[newHistory.length - 1].name !== route.name) {
+        newHistory.push({
+          name: route.name,
+          title: currentScreen,
+          canGoBack
+        });
+        if (newHistory.length > 3) {
+          newHistory.shift();
+        }
+      }
+      return newHistory;
+    });
+  }, [route.name, navigation]);
+
+  // Enhanced breadcrumb system - show navigation path
   const getCurrentScreenName = () => {
     const screenNames: Record<string, string> = {
       'Recognition': '🏠 Zuhören',
@@ -62,11 +84,57 @@ export default function BottomNav({ active, profileId }: Props) {
         </Pressable>
       </View>
 
-      {/* Visual Breadcrumb */}
+      {/* Enhanced Visual Breadcrumb Trail */}
       <View style={[styles.breadcrumbContainer, highContrast && styles.breadcrumbContainerHC, { backgroundColor: highContrast ? COLORS.highContrastBackground : theme.colors.background }]}>
-        <Text style={[styles.breadcrumbText, highContrast && styles.breadcrumbTextHC, { color: highContrast ? COLORS.highContrastText : theme.colors.text }]}>
-          {getCurrentScreenName()}
-        </Text>
+        <FlatList
+          horizontal
+          data={navHistory}
+          keyExtractor={(item) => item.name}
+          renderItem={({ item, index }) => (
+            <View style={styles.breadcrumbItem}>
+              {index > 0 && <Text style={[styles.breadcrumbSeparator, highContrast && styles.breadcrumbSeparatorHC]}> › </Text>}
+              {index < navHistory.length - 1 ? (
+                <Pressable
+                  onPress={() => {
+                    void childHaptic();
+                    // Navigate back to this screen
+                    const stepsBack = navHistory.length - 1 - index;
+                    for (let i = 0; i < stepsBack; i++) {
+                      if (navigation.canGoBack()) {
+                        navigation.goBack();
+                      }
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.breadcrumbPressable,
+                    pressed && styles.breadcrumbPressed,
+                  ]}
+                  accessibilityLabel={`Zurück zu ${item.title}`}
+                  accessibilityRole="button"
+                >
+                  <Text style={[
+                    styles.breadcrumbText,
+                    styles.breadcrumbClickable,
+                    highContrast && styles.breadcrumbTextHC,
+                    { color: highContrast ? COLORS.highContrastText : theme.colors.primary }
+                  ]}>
+                    {item.title}
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text style={[
+                  styles.breadcrumbText,
+                  highContrast && styles.breadcrumbTextHC,
+                  { color: highContrast ? COLORS.highContrastText : theme.colors.text }
+                ]}>
+                  {item.title}
+                </Text>
+              )}
+            </View>
+          )}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.breadcrumbList}
+        />
       </View>
 
       {/* Navigation Buttons */}
@@ -281,6 +349,33 @@ export default function BottomNav({ active, profileId }: Props) {
     },
     breadcrumbTextHC: {
       color: COLORS.highContrastText,
+    },
+    breadcrumbList: {
+      paddingHorizontal: SPACING.sm,
+      alignItems: 'center',
+    },
+    breadcrumbItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    breadcrumbSeparator: {
+      color: COLORS.textMuted,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    breadcrumbSeparatorHC: {
+      color: COLORS.highContrastText,
+    },
+    breadcrumbPressable: {
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.xs,
+      borderRadius: 6,
+    },
+    breadcrumbPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    breadcrumbClickable: {
+      textDecorationLine: 'underline',
     },
     navContainer: {
       flexDirection: 'row',
