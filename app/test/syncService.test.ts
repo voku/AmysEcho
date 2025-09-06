@@ -118,19 +118,19 @@ describe('syncService.uploadPendingTrainingData', () => {
   });
 
   it('prevents concurrent uploads', async () => {
-    const spy = jest.spyOn(syncService as any, '_performUpload');
     const p1 = syncService.uploadPendingTrainingData();
     const p2 = syncService.uploadPendingTrainingData();
     await Promise.all([p1, p2]);
-    expect(spy).toHaveBeenCalledTimes(1);
+    expect((global as any).fetch).toHaveBeenCalledTimes(1);
     expect(mockLogger.info).toHaveBeenCalledWith('Upload already in progress, skipping...');
-    spy.mockRestore();
   });
 });
 
 describe('consent caching', () => {
   it('caches consent status with TTL', async () => {
     jest.useFakeTimers();
+    const t0 = new Date('2025-01-01T00:00:00Z');
+    jest.setSystemTime(t0);
     mockSamples = [];
     mockDatabase.get.mockReturnValue({
       query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue([]) })),
@@ -144,10 +144,12 @@ describe('consent caching', () => {
       expect(lp).toHaveBeenCalledTimes(1);
 
       jest.advanceTimersByTime(60 * 1000); // within TTL
+      jest.setSystemTime(new Date(t0.getTime() + 60 * 1000));
       await freshSyncService.uploadPendingTrainingData();
       expect(lp).toHaveBeenCalledTimes(1);
 
       jest.advanceTimersByTime(5 * 60 * 1000 + 1);
+      jest.setSystemTime(new Date(t0.getTime() + 6 * 60 * 1000 + 1));
       await freshSyncService.uploadPendingTrainingData();
       expect(lp).toHaveBeenCalledTimes(2);
     });
@@ -165,6 +167,18 @@ describe('telemetry sync', () => {
     await syncService.uploadPendingTrainingData();
     expect(telemetry.dump).toHaveBeenCalled();
     expect(uploadTelemetry).toHaveBeenCalledWith([{ e: 1 }]);
+  });
+
+  it('does not upload telemetry when there are no events', async () => {
+    mockSamples = [];
+    mockDatabase.get.mockReturnValue({
+      query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue([]) })),
+    });
+    (telemetry.dump as jest.Mock).mockResolvedValue([]);
+
+    await syncService.uploadPendingTrainingData();
+    expect(telemetry.dump).toHaveBeenCalled();
+    expect(uploadTelemetry).not.toHaveBeenCalled();
   });
 });
 

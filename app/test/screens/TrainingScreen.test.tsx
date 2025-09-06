@@ -88,6 +88,7 @@ describe('TrainingScreen', () => {
       );
       await Promise.resolve();
     });
+    expect(component).not.toBeNull();
     const button = component!.root.findByType('Button');
     act(() => {
       button.props.onPress();
