@@ -1,16 +1,212 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1757137836341" clover="3.2.0">
-  <project timestamp="1757137836341" name="All files">
-    <metrics statements="7" coveredstatements="7" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1" elements="9" coveredelements="9" complexity="0" loc="7" ncloc="7" packages="1" files="1" classes="1"/>
-    <file name="ServicesContext.tsx" path="/home/lars/PhpstormProjects/AmysEcho/app/src/context/ServicesContext.tsx">
-      <metrics statements="7" coveredstatements="7" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
-      <line num="1" count="1" type="stmt"/>
-      <line num="13" count="1" type="stmt"/>
-      <line num="15" count="1" type="stmt"/>
-      <line num="16" count="4" type="stmt"/>
-      <line num="17" count="3" type="cond" truecount="1" falsecount="0"/>
-      <line num="18" count="2" type="stmt"/>
-      <line num="20" count="1" type="stmt"/>
-    </file>
+<coverage generated="1757141641509" clover="3.2.0">
+  <project timestamp="1757141641509" name="All files">
+    <metrics statements="188" coveredstatements="159" conditionals="173" coveredconditionals="122" methods="31" coveredmethods="26" elements="392" coveredelements="307" complexity="0" loc="188" ncloc="188" packages="3" files="3" classes="3"/>
+    <package name="src">
+      <metrics statements="19" coveredstatements="18" conditionals="19" coveredconditionals="16" methods="0" coveredmethods="0"/>
+      <file name="constants.ts" path="/home/lars/PhpstormProjects/AmysEcho/app/src/constants.ts">
+        <metrics statements="19" coveredstatements="18" conditionals="19" coveredconditionals="16" methods="0" coveredmethods="0"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="3" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="4" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="5" count="1" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="9" count="1" type="stmt"/>
+        <line num="10" count="1" type="stmt"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="15" count="1" type="stmt"/>
+        <line num="18" count="1" type="stmt"/>
+        <line num="22" count="1" type="stmt"/>
+        <line num="27" count="1" type="stmt"/>
+        <line num="30" count="1" type="stmt"/>
+        <line num="33" count="1" type="stmt"/>
+        <line num="40" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="41" count="1" type="cond" truecount="0" falsecount="1"/>
+        <line num="43" count="0" type="stmt"/>
+        <line num="45" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.components">
+      <metrics statements="149" coveredstatements="125" conditionals="144" coveredconditionals="100" methods="20" coveredmethods="18"/>
+      <file name="MediaPipeGestureDetector.tsx" path="/home/lars/PhpstormProjects/AmysEcho/app/src/components/MediaPipeGestureDetector.tsx">
+        <metrics statements="149" coveredstatements="125" conditionals="144" coveredconditionals="100" methods="20" coveredmethods="18"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="2" count="1" type="stmt"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="9" count="1" type="stmt"/>
+        <line num="10" count="1" type="stmt"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="47" count="1" type="stmt"/>
+        <line num="48" count="1" type="stmt"/>
+        <line num="50" count="1" type="stmt"/>
+        <line num="52" count="0" type="stmt"/>
+        <line num="55" count="1" type="stmt"/>
+        <line num="67" count="22" type="stmt"/>
+        <line num="68" count="22" type="stmt"/>
+        <line num="69" count="22" type="stmt"/>
+        <line num="70" count="22" type="stmt"/>
+        <line num="71" count="22" type="stmt"/>
+        <line num="72" count="22" type="stmt"/>
+        <line num="73" count="22" type="stmt"/>
+        <line num="75" count="22" type="stmt"/>
+        <line num="76" count="28" type="cond" truecount="4" falsecount="0"/>
+        <line num="77" count="2" type="cond" truecount="0" falsecount="1"/>
+        <line num="78" count="0" type="stmt"/>
+        <line num="79" count="0" type="stmt"/>
+        <line num="80" count="0" type="stmt"/>
+        <line num="81" count="0" type="stmt"/>
+        <line num="83" count="2" type="stmt"/>
+        <line num="84" count="2" type="stmt"/>
+        <line num="85" count="2" type="cond" truecount="4" falsecount="0"/>
+        <line num="86" count="2" type="stmt"/>
+        <line num="88" count="2" type="stmt"/>
+        <line num="89" count="2" type="stmt"/>
+        <line num="92" count="2" type="stmt"/>
+        <line num="93" count="2" type="stmt"/>
+        <line num="94" count="2" type="stmt"/>
+        <line num="98" count="2" type="stmt"/>
+        <line num="101" count="2" type="cond" truecount="0" falsecount="1"/>
+        <line num="102" count="2" type="stmt"/>
+        <line num="103" count="0" type="stmt"/>
+        <line num="104" count="0" type="stmt"/>
+        <line num="105" count="0" type="cond" truecount="0" falsecount="4"/>
+        <line num="106" count="0" type="cond" truecount="0" falsecount="3"/>
+        <line num="107" count="0" type="stmt"/>
+        <line num="112" count="22" type="stmt"/>
+        <line num="113" count="21" type="stmt"/>
+        <line num="114" count="21" type="stmt"/>
+        <line num="117" count="22" type="stmt"/>
+        <line num="118" count="88" type="stmt"/>
+        <line num="119" count="22" type="stmt"/>
+        <line num="120" count="22" type="stmt"/>
+        <line num="121" count="22" type="stmt"/>
+        <line num="122" count="22" type="stmt"/>
+        <line num="124" count="22" type="stmt"/>
+        <line num="125" count="22" type="stmt"/>
+        <line num="126" count="22" type="stmt"/>
+        <line num="127" count="22" type="stmt"/>
+        <line num="128" count="1" type="stmt"/>
+        <line num="129" count="1" type="stmt"/>
+        <line num="132" count="22" type="cond" truecount="2" falsecount="2"/>
+        <line num="133" count="22" type="cond" truecount="1" falsecount="0"/>
+        <line num="134" count="13" type="stmt"/>
+        <line num="135" count="13" type="stmt"/>
+        <line num="138" count="22" type="cond" truecount="2" falsecount="2"/>
+        <line num="139" count="22" type="cond" truecount="3" falsecount="0"/>
+        <line num="140" count="13" type="stmt"/>
+        <line num="141" count="13" type="stmt"/>
+        <line num="144" count="0" type="stmt"/>
+        <line num="147" count="21" type="stmt"/>
+        <line num="148" count="21" type="stmt"/>
+        <line num="149" count="1" type="stmt"/>
+        <line num="151" count="21" type="stmt"/>
+        <line num="154" count="22" type="stmt"/>
+        <line num="155" count="21" type="stmt"/>
+        <line num="156" count="21" type="stmt"/>
+        <line num="157" count="21" type="cond" truecount="1" falsecount="0"/>
+        <line num="158" count="1" type="stmt"/>
+        <line num="159" count="1" type="stmt"/>
+        <line num="161" count="21" type="stmt"/>
+        <line num="162" count="21" type="cond" truecount="3" falsecount="1"/>
+        <line num="166" count="0" type="stmt"/>
+        <line num="172" count="22" type="cond" truecount="0" falsecount="1"/>
+        <line num="174" count="0" type="stmt"/>
+        <line num="175" count="0" type="stmt"/>
+        <line num="184" count="22" type="stmt"/>
+        <line num="185" count="22" type="cond" truecount="2" falsecount="0"/>
+        <line num="186" count="22" type="stmt"/>
+        <line num="213" count="22" type="stmt"/>
+        <line num="214" count="13" type="stmt"/>
+        <line num="215" count="13" type="stmt"/>
+        <line num="217" count="12" type="cond" truecount="2" falsecount="0"/>
+        <line num="218" count="5" type="stmt"/>
+        <line num="220" count="5" type="cond" truecount="4" falsecount="0"/>
+        <line num="221" count="2" type="stmt"/>
+        <line num="222" count="2" type="stmt"/>
+        <line num="226" count="3" type="cond" truecount="3" falsecount="1"/>
+        <line num="227" count="3" type="stmt"/>
+        <line num="229" count="0" type="stmt"/>
+        <line num="231" count="5" type="stmt"/>
+        <line num="238" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="239" count="1" type="stmt"/>
+        <line num="240" count="1" type="stmt"/>
+        <line num="241" count="6" type="cond" truecount="1" falsecount="1"/>
+        <line num="243" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="244" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="245" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="246" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="247" count="1" type="stmt"/>
+        <line num="248" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="250" count="0" type="stmt"/>
+        <line num="252" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="253" count="1" type="stmt"/>
+        <line num="254" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="255" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="256" count="1" type="stmt"/>
+        <line num="257" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="259" count="0" type="stmt"/>
+        <line num="261" count="4" type="cond" truecount="1" falsecount="0"/>
+        <line num="262" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="263" count="4" type="stmt"/>
+        <line num="264" count="4" type="cond" truecount="4" falsecount="0"/>
+        <line num="270" count="0" type="stmt"/>
+        <line num="272" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="273" count="2" type="stmt"/>
+        <line num="274" count="2" type="stmt"/>
+        <line num="275" count="2" type="cond" truecount="3" falsecount="0"/>
+        <line num="276" count="1" type="cond" truecount="1" falsecount="0"/>
+        <line num="277" count="1" type="stmt"/>
+        <line num="278" count="1" type="stmt"/>
+        <line num="280" count="1" type="stmt"/>
+        <line num="281" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="282" count="1" type="cond" truecount="1" falsecount="2"/>
+        <line num="283" count="0" type="stmt"/>
+        <line num="286" count="4" type="stmt"/>
+        <line num="288" count="4" type="cond" truecount="2" falsecount="1"/>
+        <line num="289" count="0" type="stmt"/>
+        <line num="305" count="0" type="stmt"/>
+        <line num="309" count="1" type="stmt"/>
+        <line num="313" count="22" type="stmt"/>
+        <line num="331" count="0" type="stmt"/>
+        <line num="332" count="0" type="stmt"/>
+        <line num="335" count="1" type="cond" truecount="7" falsecount="2"/>
+        <line num="336" count="1" type="stmt"/>
+        <line num="340" count="1" type="cond" truecount="6" falsecount="2"/>
+        <line num="341" count="1" type="cond" truecount="6" falsecount="2"/>
+        <line num="342" count="1" type="cond" truecount="3" falsecount="0"/>
+        <line num="343" count="1" type="stmt"/>
+        <line num="344" count="2" type="stmt"/>
+        <line num="345" count="1" type="stmt"/>
+        <line num="347" count="0" type="stmt"/>
+        <line num="356" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.services">
+      <metrics statements="20" coveredstatements="16" conditionals="10" coveredconditionals="6" methods="11" coveredmethods="8"/>
+      <file name="LanguageManager.ts" path="/home/lars/PhpstormProjects/AmysEcho/app/src/services/LanguageManager.ts">
+        <metrics statements="20" coveredstatements="16" conditionals="10" coveredconditionals="6" methods="11" coveredmethods="8"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="2" count="1" type="stmt"/>
+        <line num="6" count="1" type="stmt"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="12" count="1" type="stmt"/>
+        <line num="15" count="180" type="cond" truecount="3" falsecount="1"/>
+        <line num="18" count="1" type="stmt"/>
+        <line num="20" count="22" type="stmt"/>
+        <line num="23" count="22" type="cond" truecount="1" falsecount="0"/>
+        <line num="24" count="2" type="stmt"/>
+        <line num="25" count="2" type="stmt"/>
+        <line num="29" count="90" type="cond" truecount="1" falsecount="1"/>
+        <line num="30" count="90" type="cond" truecount="1" falsecount="1"/>
+        <line num="33" count="0" type="stmt"/>
+        <line num="36" count="0" type="stmt"/>
+        <line num="37" count="0" type="cond" truecount="0" falsecount="1"/>
+        <line num="38" count="0" type="stmt"/>
+        <line num="42" count="21" type="stmt"/>
+        <line num="43" count="21" type="stmt"/>
+        <line num="44" count="21" type="stmt"/>
+      </file>
+    </package>
   </project>
 </coverage>
