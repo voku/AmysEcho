@@ -49,8 +49,10 @@ jest.mock('../src/storage', () => {
 
 describe('MediaPipeGestureDetector', () => {
   let consoleErrorSpy: jest.SpyInstance;
+  let component: renderer.ReactTestRenderer | null = null;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     const storage = require('../src/storage');
     storage.__clearProfileListeners();
@@ -66,20 +68,25 @@ describe('MediaPipeGestureDetector', () => {
   });
 
   afterEach(() => {
+    if (component) {
+      act(() => component!.unmount());
+      component = null;
+    }
+    jest.runOnlyPendingTimers();
     consoleErrorSpy.mockRestore();
+    jest.useRealTimers();
   });
   it('calls onGestureDetected when a gesture message is received', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
 
-    let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
     });
 
-    const webview = component.root.findByType('mock-webview');
+    const webview = component!.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -102,14 +109,13 @@ describe('MediaPipeGestureDetector', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
 
-    let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
       );
     });
 
-    const webview = component.root.findByType('mock-webview');
+    const webview = component!.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -139,14 +145,13 @@ describe('MediaPipeGestureDetector', () => {
     const onError = jest.fn();
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
     });
 
-    const webview = component.root.findByType('mock-webview');
+    const webview = component!.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -166,14 +171,13 @@ describe('MediaPipeGestureDetector', () => {
     const onError = jest.fn();
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
     });
 
-    const webview = component.root.findByType('mock-webview');
+    const webview = component!.root.findByType('mock-webview');
     act(() => {
       webview.props.onConsoleMessage({ nativeEvent: { message: 'test log' } });
     });
@@ -186,14 +190,13 @@ describe('MediaPipeGestureDetector', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
 
-    let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
     });
 
-    const webview = component.root.findByType('mock-webview');
+    const webview = component!.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({ nativeEvent: { data: 'invalid json' } });
     });
@@ -206,14 +209,13 @@ describe('MediaPipeGestureDetector', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
 
-    let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
     });
 
-    const webview = component.root.findByType('mock-webview');
+    const webview = component!.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -232,7 +234,7 @@ describe('MediaPipeGestureDetector', () => {
     const onError = jest.fn();
 
     await act(async () => {
-      renderer.create(
+      component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
       await Promise.resolve();
@@ -249,7 +251,7 @@ describe('MediaPipeGestureDetector', () => {
     const onError = jest.fn();
 
     await act(async () => {
-      renderer.create(
+      component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
       await Promise.resolve();
@@ -274,7 +276,6 @@ describe('MediaPipeGestureDetector', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
 
-    let component: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
@@ -282,7 +283,7 @@ describe('MediaPipeGestureDetector', () => {
       await Promise.resolve();
     });
 
-    const webview = component.root.findByType('mock-webview');
+    const webview = component!.root.findByType('mock-webview');
     const injectJs = webview.props.injectJavaScript as jest.Mock;
     expect(injectJs).not.toHaveBeenCalled();
 
@@ -304,14 +305,13 @@ describe('MediaPipeGestureDetector', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
 
-    let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
       );
     });
 
-    let webview = component.root.findByType('mock-webview');
+    let webview = component!.root.findByType('mock-webview');
     expect(webview.props.source.html).toContain('Tippe, um die Kamera zu starten');
 
     act(() => {
@@ -327,7 +327,6 @@ describe('MediaPipeGestureDetector', () => {
     const onError = jest.fn();
     const onWebViewEvent = jest.fn();
 
-    let component: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MediaPipeGestureDetector
@@ -338,7 +337,7 @@ describe('MediaPipeGestureDetector', () => {
       );
     });
 
-    const webview = component.root.findByType('mock-webview');
+    const webview = component!.root.findByType('mock-webview');
     act(() => {
       webview.props.onMessage({
         nativeEvent: {
@@ -353,9 +352,9 @@ describe('MediaPipeGestureDetector', () => {
   const renderHtml = (facingMode: 'user' | 'environment') => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
-    let component: renderer.ReactTestRenderer;
+    let local: renderer.ReactTestRenderer;
     act(() => {
-      component = renderer.create(
+      local = renderer.create(
         <MediaPipeGestureDetector
           onGestureDetected={onGestureDetected}
           onError={onError}
@@ -363,8 +362,10 @@ describe('MediaPipeGestureDetector', () => {
         />,
       );
     });
-    const webview = component.root.findByType('mock-webview');
-    return webview.props.source.html as string;
+    const webview = local.root.findByType('mock-webview');
+    const html = webview.props.source.html as string;
+    act(() => local.unmount());
+    return html;
   };
 
   it('mirrors video and overlay for the user-facing camera', () => {

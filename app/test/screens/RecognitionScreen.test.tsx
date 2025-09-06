@@ -104,15 +104,24 @@ jest.mock('../../src/services/handUtils', () => ({
 }));
 
 describe('RecognitionScreen', () => {
+  let component: renderer.ReactTestRenderer | null;
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockClassifyWithCentroids.mockReset();
     mockClassifyWithCentroids.mockReturnValue(null);
+    component = null;
+  });
+
+  afterEach(() => {
+    if (component) {
+      act(() => component!.unmount());
+      component = null;
+    }
   });
 
   it('navigates to Correction screen when correction button is pressed', async () => {
     const navigate = jest.fn();
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate } as any} />,
@@ -127,7 +136,6 @@ describe('RecognitionScreen', () => {
 
   it('navigates to Teaching screen when teach button is pressed', async () => {
     const navigate = jest.fn();
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate } as any} />,
@@ -141,7 +149,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('shows correction panel when help-me-choose button is pressed', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
@@ -156,7 +163,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('exposes correction button accessibility label', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
@@ -167,7 +173,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('provides positive feedback for all gesture attempts (Amy optimization)', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
@@ -184,7 +189,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('shows DGS video when toggle enabled and gesture recognized', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
@@ -203,7 +207,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('falls back to centroid classification when local detection is uncertain', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
@@ -223,7 +226,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('shows celebration when gesture recognized with high confidence', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
@@ -242,7 +244,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('does not spam celebration for repeated gestures', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
@@ -260,7 +261,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('prioritizes emergency gestures immediately', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
@@ -275,7 +275,6 @@ describe('RecognitionScreen', () => {
   });
 
   it('processes every gesture immediately (Amy optimization - no throttling)', async () => {
-    let component!: renderer.ReactTestRenderer;
     await act(async () => {
       component = renderer.create(
         <RecognitionScreen navigation={{ navigate: jest.fn() } as any} />,
