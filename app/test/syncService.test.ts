@@ -115,6 +115,8 @@ describe('syncService.uploadPendingTrainingData', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(mockSamples[0].customSyncStatus).toBe('synced');
+    jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   it('prevents concurrent uploads', async () => {
@@ -153,6 +155,8 @@ describe('consent caching', () => {
       await freshSyncService.uploadPendingTrainingData();
       expect(lp).toHaveBeenCalledTimes(2);
     });
+    jest.clearAllTimers();
+    jest.useRealTimers();
   });
 });
 

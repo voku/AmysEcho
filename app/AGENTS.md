@@ -17,11 +17,12 @@ Scope: All files under `app/`. Paths are relative to this directory.
 - Keep mocks minimal; mock only external modules or native APIs (no app internals).
 - When snapshots are intended, update them deliberately: `npm test -- --updateSnapshot`.
 - Run these commands from the **repository root** to ensure a consistent workflow:
+ - Review Jest coverage results to identify untested paths.
 
 ```bash
 npm ci --prefix app
 npm run type-check --prefix app
-npm test --prefix app
+npm test --prefix app   # generates coverage report
 (cd app && npx expo install --check)
 (cd app && npx --yes expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")
 ```
