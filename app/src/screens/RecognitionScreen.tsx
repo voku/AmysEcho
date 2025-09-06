@@ -97,6 +97,7 @@ export default function RecognitionScreen({
   const [screenFlashPattern, setScreenFlashPattern] = useState<'single' | 'double' | 'triple' | 'pulse'>('single');
   const [showGestureComparison, setShowGestureComparison] = useState(false);
   const [comparisonAttempt, setComparisonAttempt] = useState<{id: string; label: string; confidence: number; timestamp: number} | null>(null);
+  const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -199,15 +200,38 @@ export default function RecognitionScreen({
       'dashboard': 'dashboard_screen',
       'progress': 'progress_screen',
 
+      // Schedule and planning shortcuts
+      'schedule': 'schedule_screen',
+      'plan': 'schedule_screen',
+      'tagesplan': 'schedule_screen',
+
+      // Success and celebration shortcuts
+      'success': 'celebration_mode',
+      'good': 'celebration_mode',
+      'gut': 'celebration_mode',
+
       // Enhanced shortcuts for Amy's needs
       'finished': 'home_screen', // Return to main recognition
       'fertig': 'home_screen',   // German version
+      'done': 'home_screen',     // English version
+      'home': 'home_screen',     // Direct home
       'yes': 'confirm_action',   // Confirm current action
       'no': 'cancel_action',     // Cancel current action
+      'ja': 'confirm_action',    // German yes
+      'nein': 'cancel_action',   // German no
       'more': 'repeat_last',     // Repeat last successful gesture
       'nochmal': 'repeat_last',  // German version
+      'again': 'repeat_last',    // English version
       'play': 'play_mode',       // Switch to play/learning mode
       'spielen': 'play_mode',    // German version
+      'game': 'play_mode',       // English version
+
+      // Quick action shortcuts
+      'stop': 'stop_current',
+      'pause': 'pause_current',
+      'start': 'start_current',
+      'next': 'next_item',
+      'back': 'previous_item',
     };
     return shortcuts[gestureId] || null;
   }, []);
@@ -215,34 +239,42 @@ export default function RecognitionScreen({
   const executeGestureShortcut = useCallback(async (
     action: string,
     navigation: any,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     profileId: string
   ) => {
     switch (action) {
       // Core navigation shortcuts
       case 'help_screen':
-        navigation.navigate('Help');
+        navigation.navigate('Help', { profileId });
         break;
       case 'training_screen':
-        navigation.navigate('Training', { gestureLabel: undefined });
+        navigation.navigate('Training', { gestureLabel: undefined, profileId });
         break;
       case 'practice_screen':
-        navigation.navigate('Practice');
+        navigation.navigate('Practice', { profileId });
         break;
       case 'parent_screen':
         navigation.navigate('Parent');
         break;
       case 'correction_screen':
-        navigation.navigate('Correction');
+        navigation.navigate('Correction', { profileId });
         break;
       case 'profile_screen':
         navigation.navigate('ProfileSelect');
         break;
       case 'dashboard_screen':
-        navigation.navigate('Dashboard');
+        navigation.navigate('Dashboard', { profileId });
         break;
       case 'progress_screen':
-        navigation.navigate('Progress');
+        navigation.navigate('Progress', { profileId });
+        break;
+      case 'schedule_screen':
+        navigation.navigate('Schedule', { profileId });
+        break;
+      case 'celebration_mode':
+        // Trigger celebration for positive reinforcement
+        setShowCelebration(true);
+        setCelebrationKey(prev => prev + 1);
+        setStatus('🎉 Super gemacht! Du bist toll!');
         break;
 
       // Enhanced shortcuts for Amy's needs
@@ -280,8 +312,28 @@ export default function RecognitionScreen({
         break;
       case 'play_mode':
         // Switch to playful learning mode
-        navigation.navigate('Practice');
+        navigation.navigate('Practice', { profileId });
         setStatus('🎮 Spielmodus aktiviert!');
+        break;
+      case 'stop_current':
+        // Stop current activity
+        setStatus('⏹️ Aktivität gestoppt');
+        break;
+      case 'pause_current':
+        // Pause current activity
+        setStatus('⏸️ Aktivität pausiert');
+        break;
+      case 'start_current':
+        // Start/resume activity
+        setStatus('▶️ Aktivität gestartet');
+        break;
+      case 'next_item':
+        // Go to next item
+        setStatus('⏭️ Nächstes Element');
+        break;
+      case 'previous_item':
+        // Go to previous item
+        setStatus('⏮️ Vorheriges Element');
         break;
     }
   }, [pendingGesture, lastRecognizedGesture, provideInstantFeedback]);
@@ -297,6 +349,10 @@ export default function RecognitionScreen({
       'profile_screen': '👤 Öffne Profile',
       'dashboard_screen': '📊 Öffne Auswertung',
       'progress_screen': '📈 Öffne Fortschritt',
+      'schedule_screen': '📅 Öffne Tagesplan',
+
+      // Celebration and success shortcuts
+      'celebration_mode': '🎉 Super gemacht! Du bist toll!',
 
       // Enhanced shortcuts for Amy's needs
       'home_screen': '🏠 Du bist bereits zu Hause!',
@@ -304,6 +360,13 @@ export default function RecognitionScreen({
       'cancel_action': '❌ Aktion abgebrochen',
       'repeat_last': '🔄 Letzte Geste wiederholt',
       'play_mode': '🎮 Spielmodus aktiviert!',
+
+      // Quick action shortcuts
+      'stop_current': '⏹️ Aktivität gestoppt',
+      'pause_current': '⏸️ Aktivität pausiert',
+      'start_current': '▶️ Aktivität gestartet',
+      'next_item': '⏭️ Nächstes Element',
+      'previous_item': '⏮️ Vorheriges Element',
     };
     return messages[action] || '⚡ Schnellaktion ausgeführt';
   }, []);
@@ -516,9 +579,13 @@ export default function RecognitionScreen({
           // Provide special feedback for shortcuts
           const shortcutMessage = getShortcutMessage(shortcutAction);
           setStatus(shortcutMessage);
+          setShortcutActivated(shortcutAction);
+
+          // Clear shortcut activation after 2 seconds
+          setTimeout(() => setShortcutActivated(null), 2000);
+
           if (!screenReaderEnabled) {
             void audioService.speak(shortcutMessage);
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
           return; // Skip normal processing for shortcuts
         }
@@ -928,6 +995,28 @@ export default function RecognitionScreen({
       color: COLORS.text,
       fontSize: largeText ? 18 : 16,
     },
+    shortcutIndicator: {
+      position: 'absolute',
+      top: SPACING.xl,
+      left: SPACING.md,
+      right: SPACING.md,
+      backgroundColor: 'rgba(59, 130, 246, 0.9)',
+      borderRadius: 12,
+      padding: SPACING.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    shortcutText: {
+      color: '#FFFFFF',
+      fontSize: largeText ? 20 : 18,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
   });
 
   return (
@@ -983,6 +1072,15 @@ export default function RecognitionScreen({
           {status}
           {modelUpdateStatus === 'updating' && ' 🔄'}
         </Text>
+
+        {/* Shortcut activation indicator */}
+        {shortcutActivated && (
+          <View style={styles.shortcutIndicator}>
+            <Text style={styles.shortcutText}>
+              ⚡ {getShortcutMessage(shortcutActivated)}
+            </Text>
+          </View>
+        )}
 
         {/* Amy First: Never show technical errors to Amy - all errors are handled via status messages */}
 
