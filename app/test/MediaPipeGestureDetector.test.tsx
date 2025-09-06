@@ -1,3 +1,4 @@
+import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDetector';
 import { LanguageManager } from '../src/services/LanguageManager';
