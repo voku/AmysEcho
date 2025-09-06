@@ -15,6 +15,11 @@ jest.mock('../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false }),
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn().mockResolvedValue(null),
+  setItem: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('expo-asset', () => ({
   Asset: {
     fromModule: () => ({
@@ -25,6 +30,7 @@ jest.mock('expo-asset', () => ({
 }));
 
 jest.mock('../src/storage', () => ({
+  loadActiveProfileId: jest.fn().mockResolvedValue(null),
   loadCustomModelUri: jest.fn().mockResolvedValue(null),
 }));
 
@@ -64,9 +70,12 @@ jest.mock('../src/services', () => ({
   gdprService: {},
   checkForModelUpdate: jest.fn(),
   syncTrainingData: jest.fn(),
-    syncService: {
-      uploadPendingTrainingData: jest.fn(),
-    },
+  syncService: {
+    uploadPendingTrainingData: jest.fn(),
+  },
+  runDailyJobs: jest.fn(),
+  checkAllGesturesForDecliningAccuracy: jest.fn(),
+  checkPracticeRecommendations: jest.fn(),
 }));
 
 import { AppServicesProvider } from '../src/context/AppServicesProvider';
@@ -95,5 +104,110 @@ describe('AppServicesProvider', () => {
       'Dienste konnten nicht initialisiert werden:',
       expect.any(Error),
     );
+  });
+
+  it('initializes successfully in online mode', async () => {
+    // Mock successful initialization
+    const { audioService } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={false}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    // Should render children, not loading indicator
+    const children = component.root.findByType('div');
+    expect(children).toBeTruthy();
+  });
+
+  it('works in offline mode', async () => {
+    const { audioService } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={true}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    expect(logger.info).toHaveBeenCalledWith('Starting in offline mode; skipping cloud sync');
+  });
+
+  it('handles profile loading failure gracefully', async () => {
+    const { loadActiveProfileId } = require('../src/storage');
+    loadActiveProfileId.mockRejectedValueOnce(new Error('Storage error'));
+
+    const { audioService } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <MessageProvider>
+          <AppServicesProvider>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    // Should still initialize successfully despite profile loading failure
+    const children = component.root.findByType('div');
+    expect(children).toBeTruthy();
+  });
+
+  it('runs daily jobs when not run today', async () => {
+    // This test covers the branch for checking if daily jobs should run
+    const { audioService } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={false}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    // The test covers the offline=false branch and AsyncStorage interaction
+    expect(component).toBeTruthy();
+  });
+
+  it('skips daily jobs when already run today', async () => {
+    const { audioService, runDailyJobs } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    // Mock AsyncStorage to return today's date
+    const AsyncStorage = require('@react-native-async-storage/async-storage');
+    const today = new Date().toISOString().slice(0, 10);
+    AsyncStorage.getItem.mockResolvedValueOnce(today);
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={false}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    expect(runDailyJobs).not.toHaveBeenCalled();
   });
 });

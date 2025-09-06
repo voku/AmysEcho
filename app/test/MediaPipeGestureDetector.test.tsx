@@ -390,4 +390,209 @@ describe('MediaPipeGestureDetector', () => {
       expect(() => new Function(script)).not.toThrow();
     }
   });
+
+
+
+  it('handles partial feedback messages', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onPartialFeedback = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onPartialFeedback={onPartialFeedback}
+        />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({
+            type: 'partial_feedback',
+            gesture: 'thumbs_up',
+            completion: 0.7,
+            feedback: 'Good progress!',
+          }),
+        },
+      });
+    });
+
+    expect(onPartialFeedback).toHaveBeenCalledWith('thumbs_up', 0.7, 'Good progress!');
+  });
+
+  it('handles stability feedback messages', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onStabilityFeedback = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onStabilityFeedback={onStabilityFeedback}
+        />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({
+            type: 'stability_feedback',
+            isStable: true,
+            stabilityScore: 0.85,
+            feedback: 'Hand is stable',
+          }),
+        },
+      });
+    });
+
+    expect(onStabilityFeedback).toHaveBeenCalledWith(true, 0.85, 'Hand is stable');
+  });
+
+  it('handles emergency gestures', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({
+            type: 'gesture',
+            gesture: 'help',
+            confidence: 0.95,
+            landmarks: [[[1, 2, 3]]],
+            handednesses: ['Left'],
+            emergency: true,
+          }),
+        },
+      });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith('help', 0.95, [[[1, 2, 3]]], ['Left'], true);
+  });
+
+  it('handles model update status callbacks', async () => {
+    const onModelUpdateStatus = jest.fn();
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    await act(async () => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onModelUpdateStatus={onModelUpdateStatus}
+        />
+      );
+      await Promise.resolve();
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+
+    // Simulate mlp_ready
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(onModelUpdateStatus).toHaveBeenCalledWith('updating');
+
+    // Simulate transfer complete
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_transfer_complete' }) },
+      });
+    });
+
+    expect(onModelUpdateStatus).toHaveBeenCalledWith('complete');
+  });
+
+  it('handles permission requests', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const grant = jest.fn();
+
+    act(() => {
+      webview.props.onPermissionRequest({
+        nativeEvent: {
+          resources: ['VIDEO_CAPTURE', 'AUDIO_CAPTURE'],
+          grant,
+        },
+      });
+    });
+
+    expect(grant).toHaveBeenCalledWith(['VIDEO_CAPTURE']);
+  });
+
+  it('handles invalid gesture objects gracefully', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+
+    // Test invalid gesture object
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({
+            type: 'gesture',
+            gesture: { left: 'thumbs_up' }, // Missing right
+            confidence: 0.8,
+            landmarks: [[[1, 2, 3]]],
+            handednesses: ['Left'],
+          }),
+        },
+      });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith(null, 0.8, [[[1, 2, 3]]], ['Left'], false);
+  });
+
+  it('handles profile loading errors gracefully', async () => {
+    const { loadActiveProfileId } = require('../src/storage');
+    (loadActiveProfileId as jest.Mock).mockRejectedValue(new Error('Storage error'));
+
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    await act(async () => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+      await Promise.resolve();
+    });
+
+    // Should not crash, should continue with null profile
+    expect(onError).not.toHaveBeenCalled();
+  });
 });
