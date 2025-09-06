@@ -446,9 +446,9 @@ interface GestureDetectorConfig {
 - [ ] Add performance regression tests
 - [ ] Create visual regression tests for overlay rendering
 - [ ] Implement automated accessibility testing
-- [ ] Improve coverage for `src/components/BottomNav.tsx` (36% branch)
-- [ ] Raise branch coverage for `src/storage.ts` (59%)
-- [ ] Expand tests for `src/webview/installMlp.ts` (64% branch)
+- [ ] Improve coverage for `src/components/BottomNav.tsx` (36.48% branch)
+- [ ] Raise branch coverage for `src/storage.ts` (58.82% branch)
+- [ ] Expand tests for `src/webview/installMlp.ts` (63.79% branch)
 
 ### 10. Developer Experience
 **Task**: Improve debugging and development workflow
