@@ -28,10 +28,22 @@ jest.mock('../src/services/modelUpdate', () => ({
   refreshDgsModel: jest.fn(async () => 'centroid'),
 }));
 
+jest.mock('../src/telemetry/recorder', () => ({
+  telemetry: { dump: jest.fn(async () => []) },
+}));
+
+jest.mock('../src/services/analytics', () => ({
+  uploadTelemetry: jest.fn(async () => {})
+}));
+
 import { syncService } from '../src/services/syncService';
 import { refreshDgsModel } from '../src/services/modelUpdate';
+import { loadProfile } from '../src/storage';
+import { telemetry } from '../src/telemetry/recorder';
+import { uploadTelemetry } from '../src/services/analytics';
 
 beforeEach(() => {
+  jest.clearAllMocks();
   const sample: {
     landmarkData: string;
     gestureDefinition: { id: string };
@@ -52,7 +64,13 @@ beforeEach(() => {
   });
   mockDatabase.write.mockImplementation(async (fn: any) => { await fn(); });
   (global as any).fetch = jest.fn(async () => ({ ok: true }));
-  jest.clearAllMocks();
+  (telemetry.dump as jest.Mock).mockResolvedValue([]);
+  (uploadTelemetry as jest.Mock).mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+  jest.clearAllTimers();
 });
 
 describe('syncService.uploadPendingTrainingData', () => {
@@ -79,6 +97,88 @@ describe('syncService.uploadPendingTrainingData', () => {
     expect(mockDatabase.write).not.toHaveBeenCalled();
     expect(refreshDgsModel).not.toHaveBeenCalled();
   }, 10000);
+
+  it('retries transient failures before succeeding', async () => {
+    jest.useFakeTimers();
+    (global as any).fetch = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'fail' })
+      .mockResolvedValueOnce({ ok: true });
+
+    const uploadPromise = syncService.uploadPendingTrainingData();
+
+    // Allow the first attempt to run and schedule the retry
+    await Promise.resolve();
+    await jest.runOnlyPendingTimersAsync();
+
+    await uploadPromise;
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(mockSamples[0].customSyncStatus).toBe('synced');
+  });
+
+  it('prevents concurrent uploads', async () => {
+    const p1 = syncService.uploadPendingTrainingData();
+    const p2 = syncService.uploadPendingTrainingData();
+    await Promise.all([p1, p2]);
+    expect((global as any).fetch).toHaveBeenCalledTimes(1);
+    expect(mockLogger.info).toHaveBeenCalledWith('Upload already in progress, skipping...');
+  });
 });
 
+describe('consent caching', () => {
+  it('caches consent status with TTL', async () => {
+    jest.useFakeTimers();
+    const t0 = new Date('2025-01-01T00:00:00Z');
+    jest.setSystemTime(t0);
+    mockSamples = [];
+    mockDatabase.get.mockReturnValue({
+      query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue([]) })),
+    });
+
+    await jest.isolateModulesAsync(async () => {
+      const { syncService: freshSyncService } = require('../src/services/syncService');
+      const { loadProfile: lp } = require('../src/storage');
+
+      await freshSyncService.uploadPendingTrainingData();
+      expect(lp).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(60 * 1000); // within TTL
+      jest.setSystemTime(new Date(t0.getTime() + 60 * 1000));
+      await freshSyncService.uploadPendingTrainingData();
+      expect(lp).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(5 * 60 * 1000 + 1);
+      jest.setSystemTime(new Date(t0.getTime() + 6 * 60 * 1000 + 1));
+      await freshSyncService.uploadPendingTrainingData();
+      expect(lp).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+describe('telemetry sync', () => {
+  it('uploads telemetry events even when no training data', async () => {
+    mockSamples = [];
+    mockDatabase.get.mockReturnValue({
+      query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue([]) })),
+    });
+    (telemetry.dump as jest.Mock).mockResolvedValue([{ e: 1 }]);
+
+    await syncService.uploadPendingTrainingData();
+    expect(telemetry.dump).toHaveBeenCalled();
+    expect(uploadTelemetry).toHaveBeenCalledWith([{ e: 1 }]);
+  });
+
+  it('does not upload telemetry when there are no events', async () => {
+    mockSamples = [];
+    mockDatabase.get.mockReturnValue({
+      query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue([]) })),
+    });
+    (telemetry.dump as jest.Mock).mockResolvedValue([]);
+
+    await syncService.uploadPendingTrainingData();
+    expect(telemetry.dump).toHaveBeenCalled();
+    expect(uploadTelemetry).not.toHaveBeenCalled();
+  });
+});
 

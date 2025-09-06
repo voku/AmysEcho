@@ -54,13 +54,14 @@ For guidelines specific to the application or server, see the `AGENTS.md` files 
 - Use mocks sparingly; only mock network or other system boundaries.
 - Write tests for new functionality before or alongside implementation.
 - Ensure all tests pass before considering work complete.
+- Review the generated Jest coverage report to spot untested paths.
 
 ## Commands to Run from Repository Root
 
 ```bash
 npm ci --prefix app
 npm run type-check --prefix app
-npm test --prefix app
+npm test --prefix app   # produces coverage report
 (cd app && npx expo install --check)
 # Optional: `expo-doctor` can fail when offline; run when networked
 (cd app && npx --yes expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")

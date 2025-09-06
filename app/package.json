@@ -9,7 +9,7 @@
     "android": "expo run:android",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "test": "jest",
+    "test": "jest --runInBand --detectOpenHandles --coverage",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "build:android-dev": "eas build --platform android --profile development --non-interactive",
     "build:android": "eas build --platform android --profile production --non-interactive",

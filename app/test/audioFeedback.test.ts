@@ -70,6 +70,10 @@ describe('audioService feedback', () => {
     (audioService as any).lastSpokenAt = 0;
   };
 
+  afterEach(() => {
+    jest.clearAllTimers();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     resetService();

@@ -1,6 +1,13 @@
 import { APIRetryManager } from '../src/services/APIRetryManager';
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
 
 describe('APIRetryManager', () => {
   it('retries failed operations with exponential backoff', async () => {

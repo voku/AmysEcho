@@ -32,33 +32,40 @@ jest.mock('../../src/components/BottomNav', () => {
 });
 
 describe('ScheduleScreen', () => {
+  let component: renderer.ReactTestRenderer | null = null;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    if (component) {
+      act(() => component!.unmount());
+      component = null;
+    }
+  });
+
   it('renders VisualSchedule and BottomNav', () => {
     const navigate = jest.fn();
-    let component!: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(<ScheduleScreen navigation={{ navigate } as any} />);
     });
 
-    const visualSchedule = component.root.findByProps({ testID: 'visual-schedule' });
+    const visualSchedule = component!.root.findByProps({ testID: 'visual-schedule' });
     expect(visualSchedule).toBeTruthy();
 
-    const bottomNav = component.root.findByProps({ testID: 'bottom-nav' });
+    const bottomNav = component!.root.findByProps({ testID: 'bottom-nav' });
     expect(bottomNav.props.active).toBe('training');
     expect(bottomNav.props.profileId).toBe('default');
   });
 
   it('navigates to Practice screen when activity is pressed', () => {
     const navigate = jest.fn();
-    let component!: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(<ScheduleScreen navigation={{ navigate } as any} />);
     });
 
-    const visualSchedule = component.root.findByProps({ testID: 'visual-schedule' });
+    const visualSchedule = component!.root.findByProps({ testID: 'visual-schedule' });
     act(() => {
       visualSchedule.props.onActivityPress({ id: '1', activity: 'test' });
     });
@@ -68,12 +75,11 @@ describe('ScheduleScreen', () => {
 
   it('handles schedule complete', () => {
     const navigate = jest.fn();
-    let component!: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(<ScheduleScreen navigation={{ navigate } as any} />);
     });
 
-    const visualSchedule = component.root.findByProps({ testID: 'visual-schedule' });
+    const visualSchedule = component!.root.findByProps({ testID: 'visual-schedule' });
 
     // Mock console.log to avoid console output in tests
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
