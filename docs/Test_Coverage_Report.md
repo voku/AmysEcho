@@ -13,7 +13,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 
 *   `app/src/screens/TeachScreen.tsx`
 *   `app/src/screens/ScheduleScreen.tsx`
-*   `app/src/screens/ProgressScreen.tsx`
 *   `app/src/screens/ProfileManagerScreen.tsx`
 *   `app/src/screens/PrivacySettingsScreen.tsx`
 *   `app/src/screens/OnboardingScreen.tsx`
@@ -25,36 +24,16 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/components/PrivacySettings.tsx`
 *   `app/src/components/CorrectionPanel.tsx`
 *   `app/src/components/PulsingCircle.tsx`
-*   `app/src/services/dailyJobs.ts`
-*   `app/src/services/dataProtection.ts`
-*   `app/src/services/modelUpdate.ts`
-*   `app/src/components/BottomNav.tsx`
 *   `app/src/navigation/types.ts`
 *   `app/src/navigation/RootNavigator.tsx`
-*   `app/src/components/MoodSelector.tsx`
-*   `app/src/context/MoodContext.tsx`
 *   `app/src/services/gestureSuggester.ts`
 *   `app/src/services/index.ts`
 *   `app/src/screens/DashboardScreen.tsx`
 *   `app/src/screens/HelpScreen.tsx`
-*   `app/src/webview/installMlp.ts`
-*   `app/src/services/trainingSync.ts`
-*   `app/src/services/syncService.ts`
-*   `app/src/services/offlineClassifier.ts`
-*   `app/src/services/landmarkNormalizer.ts`
-*   `app/src/services/handUtils.ts`
-*   `app/src/services/dgsModelClient.ts`
-*   `app/src/services/crashReporting.ts`
 *   `app/src/declarations.d.ts`
 *   `app/src/constants.ts`
 *   `app/src/components/AccessibilityContext.tsx`
-*   `app/src/components/Celebration.tsx`
-*   `app/src/components/ChildErrorBoundary.tsx`
-*   `app/src/components/DgsVideoPlayer.tsx`
 *   `app/src/components/ErrorMessage.tsx`
-*   `app/src/components/LoadingIndicator.tsx`
-*   `app/src/components/OfflineBanner.tsx`
-*   `app/src/components/SymbolButton.tsx`
 *   `app/src/config/recognition.ts`
 *   `app/src/constants/audioPaths.ts`
 *   `app/src/constants/gesture.ts`
@@ -62,8 +41,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/constants/ui.ts`
 *   `app/src/context/MessageContext.tsx`
 *   `app/src/context/PerformanceContext.tsx`
-*   `app/src/context/ServicesContext.tsx`
-*   `app/src/model.ts`
 *   `app/src/screens/AdminScreen.tsx`
 *   `app/src/screens/CaregiverReportScreen.tsx`
 *   `app/src/screens/GestureTutorialScreen.tsx`
@@ -98,15 +75,11 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/services/sequenceRecognizer.ts`
 *   `app/src/services/TrainingDataValidator.ts`
 *   `app/src/services/usageTracker.ts`
-*   `app/src/storage.ts`
 *   `app/src/styles/touchTargets.ts`
-*   `app/src/telemetry/recorder.ts`
 *   `app/src/types/audio.ts`
 *   `app/src/types/frames.ts`
 *   `app/src/types/ml.ts`
 *   `app/src/utils/landmarkMapping.ts`
-*   `app/src/utils/logger.ts`
-*   `app/src/utils/recognitionState.ts`
 
 **Recommendation:**
 

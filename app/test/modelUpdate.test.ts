@@ -1,7 +1,6 @@
-import { checkForModelUpdate, validateModelUpdate } from '../src/services/modelUpdate';
+import { checkForModelUpdate } from '../src/services/modelUpdate';
 import NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
-import { CUSTOM_GESTURE_MODEL_PATH } from '../src/constants';
 import { logger } from '../src/utils/logger';
 
 jest.mock('@react-native-community/netinfo', () => ({

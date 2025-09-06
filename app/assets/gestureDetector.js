@@ -1,4 +1,5 @@
 // Generated from app/webview/gestureDetector.ts; run npm run build:webview --prefix app
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use strict";
 (() => {
   // node_modules/fflate/esm/browser.js
@@ -1108,7 +1109,7 @@
         recoverable: false
       };
     }
-    recordFailure(error) {
+    recordFailure() {
       const now = Date.now();
       if (now - this.lastFailureTime > this.FAILURE_WINDOW) {
         this.failureCount = 0;
@@ -2000,7 +2001,6 @@
     lastProcessedLandmarks = [];
   }
   var FRAME_LATENCY_SAMPLE_INTERVAL = 90;
-  var lastFrameTs = 0;
   function isEmergencyGesture(gesture) {
     if (!gesture) return false;
     const lowerGesture = gesture.toLowerCase();
@@ -2034,7 +2034,6 @@
   function predictWebcam() {
     if (!running) return;
     const nowTime = performance.now();
-    let isEmergencyFrame = false;
     try {
       if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
         if (lastVideoTime !== video.currentTime) {
@@ -2047,16 +2046,14 @@
             for (const handGestures of emergencyResults.gestures) {
               const top = handGestures?.[0];
               if (top && isEmergencyGesture(top.categoryName)) {
-                isEmergencyFrame = true;
                 break;
               }
             }
           }
         }
       }
-    } catch (e) {
+    } catch {
     }
-    lastFrameTs = nowTime;
     try {
       if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
         if (lastVideoTime !== video.currentTime) {
@@ -2189,7 +2186,6 @@
           }
           if (shouldProcessEmergencyGesture(outGesture, outScore)) {
             sendEmergencyGesture(outGesture, outScore, allLandmarks, handedArr);
-            isEmergencyFrame = true;
           }
           const firstHand = allLandmarks[0] || [];
           if ((!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) && firstHand.length === 21 && !multiHand) {
@@ -2303,7 +2299,7 @@
     } catch (e) {
       const error = e;
       const errorInfo = errorRecoveryManager.getErrorInfo(error, "gesture_prediction");
-      const shouldRetry = errorRecoveryManager.recordFailure(error);
+      errorRecoveryManager.recordFailure();
       try {
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({

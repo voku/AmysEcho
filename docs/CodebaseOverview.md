@@ -25,7 +25,7 @@ This document summarizes the repository in seven key areas with concrete file re
 - Server logic in `server/src/services/dialogEngine.ts` with endpoints in `server/src/server.ts`
 
 ## 5. Adaptive Learning & Corrections
-- Corrections stored via `app/src/model.ts` and synced in `app/src/services/syncService.ts`
+- Corrections stored via `app/db/models.ts` and synced in `app/src/services/syncService.ts`
 - Adaptive logic in `server/src/services/adaptiveLearningService.ts`
 
 ## 6. Caregiver Portal & Analytics

@@ -6,17 +6,8 @@ import { unzipSync, unzip } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
 import { HAND_CONNECTIONS } from '../src/constants/hand';
 import type {
-  MediaPipeGestureResult,
-  MLPPrediction,
-  GestureResult,
-  WebViewMessagePayload,
   GestureRecognizerLike,
-  FilesetResolver,
-  VisionTasks,
-  TwoHandGesture,
-  HandLandmark,
-  GestureCategory,
-  HandednessCategory
+  TwoHandGesture
 } from './types/MediaPipeTypes';
 
 // Forward script errors to React Native for easier debugging
@@ -116,7 +107,7 @@ class ErrorRecoveryManager {
     };
   }
 
-  recordFailure(error: Error): boolean {
+  recordFailure(): boolean {
     const now = Date.now();
 
     // Reset failure count if outside the failure window
@@ -215,8 +206,7 @@ let lastEmergencyGestureTime = 0;
 const EMERGENCY_COOLDOWN_MS = 1000; // Prevent spam but allow quick repeated calls
 
 // Amy First: Continuous operation mode - no performance degradation at low battery
-const AMY_CONTINUOUS_MODE = true; // Always enabled for Amy's safety
-const LOW_BATTERY_THRESHOLD = 0.05; // 5% battery threshold for optimizations
+// Note: Always enabled for Amy's safety, no battery threshold optimizations
 
 // Gesture size tolerance and normalization system
 class GestureSizeNormalizer {
@@ -1222,7 +1212,6 @@ function resetGestureChangeState() {
 // Amy First: No throttling for communication - process every frame
 // Removed TARGET_FPS and MIN_FRAME_TIME to ensure Amy's gestures are never delayed
 const FRAME_LATENCY_SAMPLE_INTERVAL = 90; // ~3s @ 30fps (for telemetry only)
-let lastFrameTs = 0;
 
 // Emergency gesture detection and priority processing
 function isEmergencyGesture(gesture: string | null): boolean {
@@ -1266,7 +1255,6 @@ function predictWebcam() {
   // No frame skipping or quality reduction for Amy's communication
 
   // Emergency gestures bypass normal throttling
-  let isEmergencyFrame = false;
 
   try {
     if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
@@ -1285,20 +1273,19 @@ function predictWebcam() {
           for (const handGestures of emergencyResults.gestures) {
             const top = handGestures?.[0];
             if (top && isEmergencyGesture(top.categoryName)) {
-              isEmergencyFrame = true;
+              // Emergency gesture detected
               break;
             }
           }
         }
       }
     }
-  } catch (e) {
+  } catch {
     // Ignore errors in emergency pre-check
   }
 
   // Amy First: Process every frame for immediate communication
   // Emergency frames get priority, but all frames are processed without throttling
-  lastFrameTs = nowTime;
   try {
     if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
       if (lastVideoTime !== video.currentTime) {
@@ -1461,8 +1448,7 @@ function predictWebcam() {
         // Check if this is an emergency gesture that should be processed immediately
         if (shouldProcessEmergencyGesture(outGesture, outScore)) {
           sendEmergencyGesture(outGesture!, outScore, allLandmarks, handedArr);
-          // Continue with normal processing but mark as emergency
-          isEmergencyFrame = true;
+          // Continue with normal processing
         }
         // Custom gesture logic (preserved for single-hand fallback)
         const firstHand = allLandmarks[0] || [];
@@ -1610,7 +1596,7 @@ function predictWebcam() {
     const errorInfo = errorRecoveryManager.getErrorInfo(error, 'gesture_prediction');
 
     // Record failure for circuit breaker
-    const shouldRetry = errorRecoveryManager.recordFailure(error);
+    errorRecoveryManager.recordFailure();
 
     try {
       window.ReactNativeWebView?.postMessage?.(

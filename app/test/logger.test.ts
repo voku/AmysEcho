@@ -4,7 +4,7 @@ describe('Logger', () => {
   it('should only log messages at or above the current log level', () => {
     let captured = '';
     const orig = console.log;
-    console.log = (msg?: any, ...args: any[]) => {
+    console.log = (msg?: any) => {
       captured += String(msg);
     };
 

@@ -13,7 +13,7 @@ import { MoodProvider, useMood, useMoodColors } from '../src/context/MoodContext
 
 describe('MoodContext', () => {
   const TestComponent = () => {
-    const { currentMood, setMood, getMoodEmoji, getMoodDescription, moodColors } = useMood();
+    const { currentMood, getMoodEmoji, getMoodDescription, moodColors } = useMood();
     return React.createElement('View', {
       'data-current-mood': currentMood,
       'data-emoji': getMoodEmoji(),

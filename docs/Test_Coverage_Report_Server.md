@@ -20,7 +20,7 @@ This analysis highlights areas where dedicated test files are missing. While som
 *   `server/src/middleware/auth.ts` (Authentication middleware)
 *   `server/src/mockTrain.py` (Mock training script)
 *   `server/src/portal/index.ts` (Portal routes)
-*   `server/src/recognizer.ts` (Recognizer logic - *Note: `recognizer.test.ts` exists, but `recognizer.ts` is also listed as a source file, indicating a potential naming mismatch or a separate module*)
+
 *   `server/src/services/adaptiveLearningService.ts`
 *   `server/src/services/analyticsService.ts`
 *   `server/src/services/audioService.ts`

@@ -14,8 +14,6 @@ jest.mock('../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));
 
-const childHaptic = jest.fn();
-
 jest.mock('../src/services/feedbackService', () => ({
   childHaptic: jest.fn(),
 }));

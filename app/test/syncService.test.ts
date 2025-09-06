@@ -38,7 +38,6 @@ jest.mock('../src/services/analytics', () => ({
 
 import { syncService } from '../src/services/syncService';
 import { refreshDgsModel } from '../src/services/modelUpdate';
-import { loadProfile } from '../src/storage';
 import { telemetry } from '../src/telemetry/recorder';
 import { uploadTelemetry } from '../src/services/analytics';
 

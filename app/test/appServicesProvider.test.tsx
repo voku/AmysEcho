@@ -131,9 +131,8 @@ describe('AppServicesProvider', () => {
     const { audioService } = require('../src/services');
     audioService.initialize.mockResolvedValueOnce();
 
-    let component: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(
+      renderer.create(
         <MessageProvider>
           <AppServicesProvider offline={true}>
             <div>Test Child</div>
@@ -197,9 +196,8 @@ describe('AppServicesProvider', () => {
     const today = new Date().toISOString().slice(0, 10);
     AsyncStorage.getItem.mockResolvedValueOnce(today);
 
-    let component: renderer.ReactTestRenderer;
     await act(async () => {
-      component = renderer.create(
+      renderer.create(
         <MessageProvider>
           <AppServicesProvider offline={false}>
             <div>Test Child</div>

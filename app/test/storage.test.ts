@@ -21,7 +21,6 @@ import {
   saveCustomGesture,
   loadCustomGestures,
   TrainingFrame,
-  Profile,
 } from '../src/storage';
 
 // Mock dependencies
@@ -87,7 +86,6 @@ describe('Storage', () => {
 
   describe('createProfile', () => {
     it('creates a new profile and sets it as active', async () => {
-      const mockRecord = { id: 'new-id' };
       const mockCollection = {
         create: jest.fn().mockImplementation((callback) => {
           const record = {
