@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDetector';

@@ -1,4 +1,5 @@
 // Generated from app/webview/gestureDetector.ts; run npm run build:webview --prefix app
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use strict";
 (() => {
   // node_modules/fflate/esm/browser.js
