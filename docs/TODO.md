@@ -347,7 +347,7 @@ interface MediaPipeGestureResult {
 **Files to modify**: `app/webview/gestureDetector.ts`
 **Deliverables**:
 - [ ] Create `ErrorRecoveryManager` class
-- [ ] Implement automatic retry logic for transient failures
+- [x] Implement automatic retry logic for transient failures
 - [ ] Add circuit breaker pattern for repeated MediaPipe failures
 - [ ] Create fallback modes when primary systems fail
 - [ ] Add structured error reporting with error codes
@@ -446,6 +446,9 @@ interface GestureDetectorConfig {
 - [ ] Add performance regression tests
 - [ ] Create visual regression tests for overlay rendering
 - [ ] Implement automated accessibility testing
+- [ ] Improve coverage for `src/components/BottomNav.tsx` (36% branch)
+- [ ] Raise branch coverage for `src/storage.ts` (59%)
+- [ ] Expand tests for `src/webview/installMlp.ts` (64% branch)
 
 ### 10. Developer Experience
 **Task**: Improve debugging and development workflow
