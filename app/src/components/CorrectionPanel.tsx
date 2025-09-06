@@ -12,7 +12,7 @@ interface CorrectionPanelProps {
   suggestions: { id: string; label: string; confidence?: number }[];
 }
 
-// Gesture icon mapping - simple visual representations
+// Enhanced gesture icon mapping - visual representations for common gestures
 const getGestureIcon = (gestureId: string) => {
   const iconSize = 48;
 
@@ -20,17 +20,14 @@ const getGestureIcon = (gestureId: string) => {
     case 'hello':
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#4CAF50" strokeWidth={2} />
-          <Path d="M14 2v6h6" stroke="#4CAF50" strokeWidth={2} />
-          <Path d="M16 13H8" stroke="#4CAF50" strokeWidth={2} />
-          <Path d="M16 17H8" stroke="#4CAF50" strokeWidth={2} />
-          <Path d="M10 9H8" stroke="#4CAF50" strokeWidth={2} />
+          <Path d="M7 4v16l13-8L7 4z" stroke="#4CAF50" strokeWidth={2} fill="#4CAF50" fillOpacity={0.2} />
+          <Path d="M7 4v16" stroke="#4CAF50" strokeWidth={2} />
         </Svg>
       );
     case 'thank_you':
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="#FF5722" strokeWidth={2} />
+          <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="#FF5722" strokeWidth={2} fill="#FF5722" fillOpacity={0.2} />
         </Svg>
       );
     case 'please':
@@ -62,27 +59,67 @@ const getGestureIcon = (gestureId: string) => {
           <Path d="M8 8l8 8M16 8l-8 8" stroke="#F44336" strokeWidth={2} />
         </Svg>
       );
-    case 'good':
+    default:
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={10} stroke="#FF9800" strokeWidth={2} />
-          <Path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="#FF9800" strokeWidth={2} />
-          <Circle cx={9} cy={9} r={1} fill="#FF9800" />
-          <Circle cx={15} cy={9} r={1} fill="#FF9800" />
+          <Circle cx={12} cy={12} r={10} stroke="#9E9E9E" strokeWidth={2} />
+          <Path d="M8 12l2 2 4-4" stroke="#9E9E9E" strokeWidth={2} />
         </Svg>
       );
-    case 'more':
+  }
+};
+
+const getGestureIcon = (gestureId: string) => {
+  const iconSize = 48;
+
+  switch (gestureId) {
+    case 'hello':
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={10} stroke="#9C27B0" strokeWidth={2} />
-          <Path d="M8 12h8M12 8v8" stroke="#9C27B0" strokeWidth={2} />
+          <Path d="M7 4v16l13-8L7 4z" stroke="#4CAF50" strokeWidth={2} fill="#4CAF50" fillOpacity={0.2} />
+          <Path d="M7 4v16" stroke="#4CAF50" strokeWidth={2} />
+        </Svg>
+      );
+    case 'thank_you':
+      return (
+        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+          <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="#FF5722" strokeWidth={2} fill="#FF5722" fillOpacity={0.2} />
+        </Svg>
+      );
+    case 'please':
+      return (
+        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+          <Circle cx={12} cy={12} r={10} stroke="#2196F3" strokeWidth={2} />
+          <Path d="M8 12l2 2 4-4" stroke="#2196F3" strokeWidth={2} />
+        </Svg>
+      );
+    case 'help':
+      return (
+        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+          <Circle cx={12} cy={12} r={10} stroke="#F44336" strokeWidth={2} />
+          <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#F44336" strokeWidth={2} />
+          <Path d="M12 17h.01" stroke="#F44336" strokeWidth={2} />
+        </Svg>
+      );
+    case 'yes':
+      return (
+        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+          <Circle cx={12} cy={12} r={10} stroke="#4CAF50" strokeWidth={2} />
+          <Path d="M8 12l2 2 4-4" stroke="#4CAF50" strokeWidth={2} />
+        </Svg>
+      );
+    case 'no':
+      return (
+        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+          <Circle cx={12} cy={12} r={10} stroke="#F44336" strokeWidth={2} />
+          <Path d="M8 8l8 8M16 8l-8 8" stroke="#F44336" strokeWidth={2} />
         </Svg>
       );
     default:
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={10} stroke="#607D8B" strokeWidth={2} />
-          <Path d="M9 12l2 2 4-4" stroke="#607D8B" strokeWidth={2} />
+          <Circle cx={12} cy={12} r={10} stroke="#9E9E9E" strokeWidth={2} />
+          <Path d="M8 12l2 2 4-4" stroke="#9E9E9E" strokeWidth={2} />
         </Svg>
       );
   }

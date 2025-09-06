@@ -9,6 +9,7 @@ import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { logHIPEvent } from '../services/hipEvents';
 import { gestureModel } from '../model';
 import { childHaptic } from '../services/feedbackService';
+import { getGestureIcon } from '../components/CorrectionPanel';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function CorrectionScreen({ navigation, route }: any) {
@@ -179,11 +180,26 @@ export default function CorrectionScreen({ navigation, route }: any) {
     suggestionTextHC: {
       color: COLORS.highContrastText,
     },
-    confidenceIndicator: {
+    suggestionIconContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACING.sm,
+      position: 'relative',
+    },
+    confidenceBadge: {
       position: 'absolute',
-      top: -5,
-      right: -5,
-      fontSize: 16,
+      top: -8,
+      right: -8,
+      backgroundColor: COLORS.success,
+      borderRadius: 12,
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    confidenceText: {
+      fontSize: 14,
+      color: COLORS.highContrastText,
     },
   });
 
@@ -213,12 +229,17 @@ export default function CorrectionScreen({ navigation, route }: any) {
                   accessibilityLabel={`Korrigiere zu ${item.label}`}
                   accessibilityRole="button"
                 >
+                  <View style={styles.suggestionIconContainer}>
+                    {getGestureIcon(item.id)}
+                    {item.confidence > 0.7 && (
+                      <View style={styles.confidenceBadge}>
+                        <Text style={styles.confidenceText}>⭐</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={[styles.suggestionText, highContrast && styles.suggestionTextHC]}>
                     {item.label}
                   </Text>
-                  {item.confidence > 0.7 && (
-                    <Text style={styles.confidenceIndicator}>⭐</Text>
-                  )}
                 </Pressable>
               )}
               contentContainerStyle={styles.suggestionsList}
