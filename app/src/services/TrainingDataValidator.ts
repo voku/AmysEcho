@@ -8,6 +8,8 @@ export interface ValidationResult {
   ok: boolean;
   issues: ValidationIssue[];
   suggestions: string[];
+  qualityScore: number; // 0-100 quality score
+  confidence: number; // 0-1 confidence in the validation
 }
 
 // Basic quality checks for recorded gesture samples used in training.
@@ -79,9 +81,33 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
     suggestions.push('Move fingers and hand clearly to capture the gesture.');
   }
 
+  // Calculate quality score based on various factors
+  let qualityScore = 100;
+
+  // Penalize for each issue
+  qualityScore -= issues.length * 15;
+
+  // Bonus for good motion
+  if (avgMotion > 0.005) {
+    qualityScore += 10;
+  }
+
+  // Bonus for sufficient frames
+  if (frameCount >= 20) {
+    qualityScore += 5;
+  }
+
+  // Ensure score is within bounds
+  qualityScore = Math.max(0, Math.min(100, qualityScore));
+
+  // Calculate confidence based on data completeness
+  const confidence = Math.min(1.0, frameCount / 30); // Higher confidence with more frames
+
   return {
     ok: issues.length === 0,
     issues,
     suggestions,
+    qualityScore,
+    confidence,
   };
 }

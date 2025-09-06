@@ -10,6 +10,11 @@ import type {
   TwoHandGesture
 } from './types/MediaPipeTypes';
 
+// Import new modular components
+import { GestureDetector } from './core/GestureDetector';
+import { ResourceManager } from './utils/ResourceManager';
+import { loadConfig } from './config/GestureConfig';
+
 // Forward script errors to React Native for easier debugging
 const onError = (e: ErrorEvent) => {
   try {
@@ -69,7 +74,7 @@ class ErrorRecoveryManager {
   private readonly CIRCUIT_BREAKER_TIMEOUT = 30000; // 30 seconds
   private readonly FAILURE_WINDOW = 60000; // 1 minute
 
-  getErrorInfo(error: Error, context: string): { message: string; code: string; recoverable: boolean } {
+  getErrorInfo(error: Error, context: string): { message: string; code: string; recoverable: boolean; severity: 'low' | 'medium' | 'high' } {
     const errorMessage = error.message.toLowerCase();
 
     // Network-related errors
@@ -77,7 +82,8 @@ class ErrorRecoveryManager {
       return {
         message: 'Network connectivity issue detected',
         code: 'NETWORK_ERROR',
-        recoverable: true
+        recoverable: true,
+        severity: 'medium'
       };
     }
 
@@ -86,7 +92,8 @@ class ErrorRecoveryManager {
       return {
         message: 'Camera access issue detected',
         code: 'CAMERA_ERROR',
-        recoverable: true
+        recoverable: true,
+        severity: 'high'
       };
     }
 
@@ -95,7 +102,28 @@ class ErrorRecoveryManager {
       return {
         message: 'Gesture recognition system issue detected',
         code: 'MEDIAPIPE_ERROR',
-        recoverable: true
+        recoverable: true,
+        severity: 'medium'
+      };
+    }
+
+    // Memory-related errors
+    if (errorMessage.includes('memory') || errorMessage.includes('out of memory')) {
+      return {
+        message: 'Memory issue detected',
+        code: 'MEMORY_ERROR',
+        recoverable: true,
+        severity: 'high'
+      };
+    }
+
+    // Performance-related errors
+    if (errorMessage.includes('performance') || errorMessage.includes('slow') || errorMessage.includes('timeout')) {
+      return {
+        message: 'Performance issue detected',
+        code: 'PERFORMANCE_ERROR',
+        recoverable: true,
+        severity: 'low'
       };
     }
 
@@ -103,7 +131,8 @@ class ErrorRecoveryManager {
     return {
       message: `System issue detected during ${context}`,
       code: 'GENERIC_ERROR',
-      recoverable: false
+      recoverable: false,
+      severity: 'medium'
     };
   }
 
@@ -1018,22 +1047,16 @@ async function loadTasksVision() {
       (lastError ? ': ' + (lastError.message || lastError) : ''),
   );
 }
-// Using imported GestureRecognizerLike from types
-let gestureRecognizer: GestureRecognizerLike | null = null;
-let runningMode = 'VIDEO';
+// Initialize new modular gesture detector
 const video = document.createElement('video');
 const overlay = document.createElement('canvas');
 overlay.id = 'overlay';
-let lastVideoWidth = 0;
-let lastVideoHeight = 0;
-let overlayWidth = 0;
-let overlayHeight = 0;
-let overlayDpr = 1;
-let videoResizeObserver: ResizeObserver | null = null;
-let removeWindowResize: (() => void) | null = null;
 video.setAttribute('autoplay', '');
 video.setAttribute('playsinline', '');
 video.setAttribute('muted', '');
+
+// Create main gesture detector instance
+let mainGestureDetector: GestureDetector | null = null;
 function initDom() {
   document.body.appendChild(video);
   document.body.appendChild(overlay);
@@ -1101,63 +1124,21 @@ if (document.readyState === 'loading') {
 }
 
 async function createGestureRecognizer() {
-  const recoveryFn = async () => {
-    const visionStart = performance.now();
-    const { FilesetResolver, GestureRecognizer, wasmBase } = await loadTasksVision();
-    const vision = await FilesetResolver.forVisionTasks(
-      wasmBase || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm',
-    );
-    const baseOptions = {
-      modelAssetPath:
-        'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
-      delegate: 'GPU' as const,
-    };
-    try {
-      gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-        baseOptions,
-        runningMode,
-        numHands: 2,
-      });
-    } catch (gpuErr) {
-      console.warn('GPU delegate failed, falling back to CPU:', gpuErr);
-      try {
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: 'telemetry', event: 'recognizer_gpu_fallback' }),
-        );
-      } catch (err) {
-        console.warn(
-          "Failed to send 'recognizer_gpu_fallback' telemetry event:",
-          err,
-        );
-      }
-      gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-        baseOptions: { ...baseOptions, delegate: 'CPU' as const },
-        runningMode,
-        numHands: 2,
-      });
-    }
-    const initMs = Math.round(performance.now() - visionStart);
+  try {
+    // Create and initialize the new modular gesture detector
+    mainGestureDetector = new GestureDetector(video, overlay);
+    await mainGestureDetector.initialize();
+
+    // Send telemetry
     try {
       window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: initMs }),
+        JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: 0 }),
       );
     } catch (err) {
       console.warn('Failed to send "recognizer_init" telemetry event:', err);
     }
-    // Start prediction loop after recognizer is created
-    video.addEventListener('loadeddata', predictWebcam);
-    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.srcObject) {
-      window.requestAnimationFrame(predictWebcam);
-    }
-    resetGestureChangeState();
-  };
 
-  try {
-    const success = await errorRecoveryManager.attemptRecovery(recoveryFn);
-    if (!success) {
-      // Activate fallback mode
-      errorRecoveryManager.activateFallbackMode();
-    }
+    resetGestureChangeState();
   } catch (e) {
     const errorInfo = errorRecoveryManager.getErrorInfo(e as Error, 'gesture_recognizer_initialization');
     try {
@@ -1173,10 +1154,8 @@ async function createGestureRecognizer() {
       console.warn('Failed to send initialization error message:', err);
     }
 
-    // Schedule retry if recoverable
-    if (errorInfo.recoverable) {
-      errorRecoveryManager.scheduleRetry(recoveryFn);
-    }
+    // Activate fallback mode on failure
+    errorRecoveryManager.activateFallbackMode();
   }
 }
 
@@ -1652,43 +1631,13 @@ async function startCamera() {
   // Additional reset for tremor compensation
   tremorCompensator.clearHistory();
   lastProcessedLandmarks = [];
-  // Renamed from start() for clarity
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
-    video.srcObject = stream;
-    // Register media stream with resource manager
-    resourceManager.registerMediaStream(stream);
-    try {
-      video.muted = true;
-      await video.play();
-      if (
-        video.videoWidth !== lastVideoWidth ||
-        video.videoHeight !== lastVideoHeight
-      ) {
-        resizeOverlay();
-      }
-    } catch (err) {
-      console.warn('Failed to start video:', err);
-      throw err;
+    if (mainGestureDetector) {
+      await mainGestureDetector.start();
+    } else {
+      throw new Error('Gesture detector not initialized');
     }
-    const tracks = stream.getVideoTracks();
-    try {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
-          type: 'telemetry',
-          event: 'camera_started',
-          tracks: tracks.map((t) => t.label),
-        }),
-      );
-    } catch (err) {
-      console.warn("Failed to send 'camera_started' telemetry event:", err);
-    }
-    // createGestureRecognizer will add the loadeddata listener
-    // Register video event listener with resource manager
-    resourceManager.registerEventListener(video, 'loadeddata', predictWebcam);
   } catch (err) {
     const error = err as Error;
     const errorInfo = errorRecoveryManager.getErrorInfo(error, 'camera_initialization');
@@ -1737,44 +1686,12 @@ async function stopCamera() {
   if (stopPromise) return stopPromise;
   stopPromise = (async () => {
     try {
-      video.pause();
-    } catch (e) {
-      console.warn('Failed to pause video during cleanup:', e);
-    }
-    try {
-      video.removeEventListener('loadeddata', predictWebcam);
-    } catch (e) {
-      console.warn("Failed to remove 'loadeddata' listener during cleanup:", e);
-    }
-    try {
-      const s = video.srcObject as MediaStream | null;
-      if (s) {
-        s.getTracks().forEach((t) => t.stop());
-        video.srcObject = null;
+      if (mainGestureDetector) {
+        await mainGestureDetector.stop();
       }
     } catch (e) {
-      console.warn('Failed to stop camera stream:', e);
+      console.warn('Failed to stop gesture detector:', e);
     }
-    try {
-      const res = gestureRecognizer?.close?.();
-      if (res && typeof res.then === 'function') await res;
-    } catch (e) {
-      console.warn('Failed to close gesture recognizer:', e);
-    }
-    gestureRecognizer = null;
-
-    // Register gesture recognizer cleanup with resource manager
-    resourceManager.registerCleanup(async () => {
-      if (gestureRecognizer) {
-        try {
-          const res = gestureRecognizer.close?.();
-          if (res && typeof res.then === 'function') await res;
-        } catch (e) {
-          console.warn('Failed to close gesture recognizer during cleanup:', e);
-        }
-        gestureRecognizer = null;
-      }
-    });
   })().finally(() => {
     stopPromise = null;
   });
@@ -1810,18 +1727,7 @@ async function cleanup() {
   running = false;
   await stopCamera();
 
-  // Use resource manager for comprehensive cleanup
-  await resourceManager.dispose();
-
-  // Additional cleanup for DOM elements and observers
-  if (videoResizeObserver) {
-    videoResizeObserver.disconnect();
-  }
-  videoResizeObserver = null;
-  if (removeWindowResize) {
-    removeWindowResize();
-    removeWindowResize = null;
-  }
+  // Additional cleanup for DOM elements
   try {
     const tapEl = document.getElementById('tapToStart');
     if (tapEl) {

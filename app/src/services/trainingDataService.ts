@@ -1,6 +1,7 @@
 import { Q } from '@nozbe/watermelondb';
 import { database } from '../../db';
 import { GestureTrainingData } from '../../db/models';
+import { trainingSessionManager, TrainingFeedback } from './TrainingSessionManager';
 
 export interface TrainingSample {
   id?: string;
@@ -69,4 +70,56 @@ export async function clearTrainingSamples(gestureId?: string): Promise<void> {
       await database.batch(...deletions);
     }
   });
+}
+
+/**
+ * Add training sample with session management and real-time feedback
+ */
+export async function addTrainingSampleWithFeedback(
+  gestureId: string,
+  landmarkData: number[][],
+  source: string = 'manual'
+): Promise<{ success: boolean; feedback: TrainingFeedback | null }> {
+  try {
+    // Add to session manager for feedback
+    const feedback = trainingSessionManager.addSample([landmarkData]);
+
+    // Save to database
+    await addTrainingSample(gestureId, landmarkData, source);
+
+    return {
+      success: true,
+      feedback
+    };
+  } catch (error) {
+    console.error('Failed to add training sample with feedback:', error);
+    return {
+      success: false,
+      feedback: {
+        message: 'Failed to save training sample',
+        type: 'error'
+      }
+    };
+  }
+}
+
+/**
+ * Start a training session
+ */
+export function startTrainingSession(gestureId: string, targetSamples = 10) {
+  return trainingSessionManager.startSession(gestureId, targetSamples);
+}
+
+/**
+ * Get current training session progress
+ */
+export function getTrainingProgress() {
+  return trainingSessionManager.getProgress();
+}
+
+/**
+ * Subscribe to training session updates
+ */
+export function onTrainingUpdate(callback: (session: any) => void) {
+  return trainingSessionManager.onSessionUpdate(callback);
 }

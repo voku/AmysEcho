@@ -1023,6 +1023,761 @@
     [0, 17]
   ];
 
+  // webview/core/MediaPipeLoader.ts
+  async function loadTasksVision() {
+    async function resolvePinnedBase() {
+      const pinnedVersion = window.__mediapipeVersion;
+      if (typeof pinnedVersion === "string" && pinnedVersion.length) {
+        return { base: "https://cdn.jsdelivr.net/npm", version: pinnedVersion };
+      }
+      const cdns = ["https://cdn.jsdelivr.net/npm", "https://unpkg.com"];
+      const controllers = cdns.map(() => new AbortController());
+      const fetches = cdns.map(
+        (base, i) => (async () => {
+          try {
+            const ac = controllers[i];
+            const t = setTimeout(() => ac.abort(), 8e3);
+            const pkg = await fetch(base + "/@mediapipe/tasks-vision/package.json", {
+              method: "GET",
+              signal: ac.signal,
+              cache: "no-store"
+            }).finally(() => clearTimeout(t));
+            if (pkg.ok) {
+              const json = await pkg.json().catch(() => null);
+              const v = json?.version;
+              if (typeof v === "string" && v.length) {
+                controllers.forEach((c, j) => {
+                  if (j !== i) c.abort();
+                });
+                return { base, version: v };
+              }
+            }
+          } catch (err2) {
+            if (err2?.name !== "AbortError") {
+              console.warn("Fetch failed:", base, err2);
+            }
+          }
+          return null;
+        })()
+      );
+      const results = await Promise.all(fetches);
+      return results.find(Boolean) || null;
+    }
+    function tryLoadScript(src, integrity, timeoutMs = 8e3) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        if (integrity) {
+          s.integrity = integrity;
+          s.crossOrigin = "anonymous";
+        }
+        if (window.__visionBundleNonce) {
+          s.nonce = window.__visionBundleNonce;
+        }
+        s.async = true;
+        const cleanup2 = () => {
+          s.onload = s.onerror = null;
+          if (s.parentNode) s.parentNode.removeChild(s);
+        };
+        const to = setTimeout(() => {
+          cleanup2();
+          reject(new Error("Script load timeout: " + src));
+        }, timeoutMs);
+        s.onload = () => {
+          clearTimeout(to);
+          cleanup2();
+          resolve(null);
+        };
+        s.onerror = () => {
+          clearTimeout(to);
+          cleanup2();
+          reject(new Error("Script failed to load: " + src));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    const haveUMD = () => window.fileset_resolver && window.fileset_resolver.FilesetResolver && window.vision && window.vision.GestureRecognizer;
+    const pinned = await resolvePinnedBase();
+    const candidates = [];
+    if (pinned) {
+      candidates.push({
+        umd: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.js",
+        esm: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.mjs",
+        wasm: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/wasm"
+      });
+    }
+    candidates.push({
+      umd: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js",
+      esm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs",
+      wasm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+    });
+    candidates.push({
+      umd: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.js",
+      esm: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.mjs",
+      wasm: "https://unpkg.com/@mediapipe/tasks-vision/wasm"
+    });
+    let lastError = null;
+    for (const c of candidates) {
+      try {
+        if (!haveUMD()) {
+          const sri = pinned && c.umd.includes(`@${pinned.version}/`) ? window.__visionBundleSri : void 0;
+          await tryLoadScript(c.umd, sri);
+        }
+        if (haveUMD()) {
+          return {
+            FilesetResolver: window.fileset_resolver.FilesetResolver,
+            GestureRecognizer: window.vision.GestureRecognizer,
+            wasmBase: c.wasm
+          };
+        }
+        if (window.__allowCdnEsm === true) {
+          try {
+            const mod = await import(
+              /* @vite-ignore */
+              c.esm
+            );
+            if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+              return {
+                FilesetResolver: mod.FilesetResolver,
+                GestureRecognizer: mod.GestureRecognizer,
+                wasmBase: c.wasm
+              };
+            }
+          } catch (e) {
+            lastError = e;
+          }
+        }
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw new Error(
+      "Tasks Vision globals not available" + (lastError ? ": " + (lastError.message || lastError) : "")
+    );
+  }
+
+  // webview/core/CameraManager.ts
+  var CameraManager = class {
+    constructor(video2, resourceManager2) {
+      this.lastVideoWidth = 0;
+      this.lastVideoHeight = 0;
+      this.video = video2;
+      this.resourceManager = resourceManager2;
+    }
+    /**
+     * Start camera stream
+     */
+    async startCamera() {
+      const facingMode2 = window.__facingMode || "user";
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingMode2, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+      this.video.srcObject = stream;
+      this.resourceManager.registerMediaStream(stream);
+      this.video.muted = true;
+      this.video.setAttribute("autoplay", "");
+      this.video.setAttribute("playsinline", "");
+      this.video.setAttribute("muted", "");
+      await this.video.play();
+      this.updateVideoDimensions();
+      const tracks = stream.getVideoTracks();
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "telemetry",
+            event: "camera_started",
+            tracks: tracks.map((t) => t.label)
+          })
+        );
+      } catch (err2) {
+        console.warn("Failed to send 'camera_started' telemetry event:", err2);
+      }
+    }
+    /**
+     * Stop camera stream
+     */
+    async stopCamera() {
+      try {
+        this.video.pause();
+      } catch (e) {
+        console.warn("Failed to pause video during cleanup:", e);
+      }
+      try {
+        const s = this.video.srcObject;
+        if (s) {
+          s.getTracks().forEach((t) => t.stop());
+          this.video.srcObject = null;
+        }
+      } catch (e) {
+        console.warn("Failed to stop camera stream:", e);
+      }
+    }
+    /**
+     * Update video dimensions tracking
+     */
+    updateVideoDimensions() {
+      this.lastVideoWidth = this.video.videoWidth;
+      this.lastVideoHeight = this.video.videoHeight;
+    }
+    /**
+     * Check if video dimensions have changed
+     */
+    hasDimensionsChanged() {
+      return this.video.videoWidth !== this.lastVideoWidth || this.video.videoHeight !== this.lastVideoHeight;
+    }
+    /**
+     * Get current video dimensions
+     */
+    getVideoDimensions() {
+      return {
+        width: this.video.videoWidth,
+        height: this.video.videoHeight
+      };
+    }
+    /**
+     * Check if video is ready for processing
+     */
+    isVideoReady() {
+      return this.video.currentTime > 0 && !this.video.paused && !this.video.ended && this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+    }
+  };
+
+  // webview/core/OverlayRenderer.ts
+  var OverlayRenderer = class {
+    constructor(overlay2) {
+      this.overlayWidth = 0;
+      this.overlayHeight = 0;
+      this.overlayDpr = 1;
+      this.overlay = overlay2;
+      this.ctx = overlay2.getContext("2d");
+    }
+    /**
+     * Resize overlay to match video dimensions
+     */
+    resizeOverlay(videoRect) {
+      const w = (videoRect.width || 0) | 0;
+      const h = (videoRect.height || 0) | 0;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const sizeChanged = this.overlayWidth !== w || this.overlayHeight !== h;
+      const dprChanged = dpr !== this.overlayDpr;
+      if (sizeChanged || dprChanged) {
+        if (sizeChanged) {
+          this.overlay.style.width = w + "px";
+          this.overlay.style.height = h + "px";
+        }
+        this.overlay.width = Math.round(w * dpr);
+        this.overlay.height = Math.round(h * dpr);
+        this.overlayWidth = w;
+        this.overlayHeight = h;
+        this.overlayDpr = dpr;
+      }
+    }
+    /**
+     * Clear the overlay
+     */
+    clear() {
+      if (this.ctx && this.overlayWidth && this.overlayHeight) {
+        this.ctx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+      }
+    }
+    /**
+     * Draw hand landmarks and connections with performance optimizations
+     */
+    drawHandLandmarks(landmarks, mirrorOverlay2) {
+      if (!this.ctx || !this.overlayWidth || !this.overlayHeight) return;
+      this.ctx.save();
+      if (mirrorOverlay2) {
+        this.ctx.scale(-1, 1);
+        this.ctx.translate(-this.overlayWidth, 0);
+      }
+      this.ctx.scale(this.overlayDpr, this.overlayDpr);
+      this.ctx.lineWidth = 3;
+      this.ctx.strokeStyle = "rgba(0, 255, 180, 0.9)";
+      this.ctx.fillStyle = "rgba(0, 255, 180, 0.9)";
+      for (const hand of landmarks) {
+        if (!hand || hand.length === 0) continue;
+        this.drawConnections(hand);
+        this.drawPoints(hand);
+      }
+      this.ctx.restore();
+    }
+    /**
+     * Draw hand connections efficiently
+     */
+    drawConnections(hand) {
+      if (!this.ctx) return;
+      this.ctx.beginPath();
+      let hasMoves = false;
+      for (const [a, b] of HAND_CONNECTIONS) {
+        const pa = hand[a];
+        const pb = hand[b];
+        if (!pa || !pb) continue;
+        const x1 = pa[0] * this.overlayWidth;
+        const y1 = pa[1] * this.overlayHeight;
+        const x2 = pb[0] * this.overlayWidth;
+        const y2 = pb[1] * this.overlayHeight;
+        if (!hasMoves) {
+          this.ctx.moveTo(x1, y1);
+          hasMoves = true;
+        } else {
+          this.ctx.moveTo(x1, y1);
+        }
+        this.ctx.lineTo(x2, y2);
+      }
+      if (hasMoves) {
+        this.ctx.stroke();
+      }
+    }
+    /**
+     * Draw landmark points efficiently
+     */
+    drawPoints(hand) {
+      if (!this.ctx) return;
+      for (const lm of hand) {
+        if (!lm || lm.length < 2) continue;
+        this.ctx.beginPath();
+        this.ctx.arc(
+          lm[0] * this.overlayWidth,
+          lm[1] * this.overlayHeight,
+          4,
+          0,
+          Math.PI * 2
+        );
+        this.ctx.fill();
+      }
+    }
+    /**
+     * Draw stability guide circle
+     */
+    drawStabilityGuide(isStable, stabilityScore) {
+      if (!this.ctx || !this.overlayWidth || !this.overlayHeight) return;
+      this.ctx.save();
+      this.ctx.scale(this.overlayDpr, this.overlayDpr);
+      const centerX = this.overlayWidth / 2;
+      const centerY = this.overlayHeight / 2;
+      const radius = Math.min(this.overlayWidth, this.overlayHeight) * 0.15;
+      this.ctx.strokeStyle = stabilityScore > 0.3 ? "rgba(255, 165, 0, 0.8)" : "rgba(255, 0, 0, 0.8)";
+      this.ctx.lineWidth = 3;
+      this.ctx.setLineDash([10, 5]);
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      this.ctx.stroke();
+      this.ctx.setLineDash([]);
+      this.ctx.beginPath();
+      this.ctx.moveTo(centerX - radius * 0.7, centerY);
+      this.ctx.lineTo(centerX + radius * 0.7, centerY);
+      this.ctx.moveTo(centerX, centerY - radius * 0.7);
+      this.ctx.lineTo(centerX, centerY + radius * 0.7);
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
+    /**
+     * Get overlay dimensions
+     */
+    getDimensions() {
+      return {
+        width: this.overlayWidth,
+        height: this.overlayHeight,
+        dpr: this.overlayDpr
+      };
+    }
+  };
+
+  // webview/utils/ResourceManager.ts
+  var ResourceManager = class {
+    constructor() {
+      this.resources = /* @__PURE__ */ new Set();
+      this.eventListeners = [];
+      this.mediaStreams = [];
+      this.timeouts = [];
+      this.observers = [];
+    }
+    /**
+     * Register a cleanup function
+     */
+    registerCleanup(cleanupFn) {
+      this.resources.add(cleanupFn);
+    }
+    /**
+     * Register an event listener for cleanup
+     */
+    registerEventListener(element, type, listener) {
+      this.eventListeners.push({ element, type, listener });
+    }
+    /**
+     * Register a media stream for cleanup
+     */
+    registerMediaStream(stream) {
+      this.mediaStreams.push(stream);
+    }
+    /**
+     * Register a timeout for cleanup
+     */
+    registerTimeout(timeoutId) {
+      this.timeouts.push(timeoutId);
+    }
+    /**
+     * Register an observer for cleanup
+     */
+    registerObserver(observer) {
+      this.observers.push(observer);
+    }
+    /**
+     * Dispose all registered resources
+     */
+    async dispose() {
+      const errors = [];
+      for (const cleanupFn of this.resources) {
+        try {
+          const result = cleanupFn();
+          if (result && typeof result.then === "function") {
+            await result;
+          }
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.resources.clear();
+      for (const { element, type, listener } of this.eventListeners) {
+        try {
+          element.removeEventListener(type, listener);
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.eventListeners = [];
+      for (const stream of this.mediaStreams) {
+        try {
+          stream.getTracks().forEach((track) => track.stop());
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.mediaStreams = [];
+      for (const timeoutId of this.timeouts) {
+        try {
+          clearTimeout(timeoutId);
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.timeouts = [];
+      for (const observer of this.observers) {
+        try {
+          observer.disconnect();
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.observers = [];
+      if (errors.length > 0) {
+        console.warn("Resource cleanup errors:", errors);
+      }
+    }
+    /**
+     * Check if resources are properly cleaned up
+     */
+    isClean() {
+      return this.resources.size === 0 && this.eventListeners.length === 0 && this.mediaStreams.length === 0 && this.timeouts.length === 0 && this.observers.length === 0;
+    }
+  };
+
+  // webview/utils/HealthMonitor.ts
+  var HealthMonitor = class {
+    constructor() {
+      this.metrics = {
+        frameRate: 0,
+        memoryUsage: 0,
+        errorRate: 0,
+        lastFrameTime: 0,
+        consecutiveFailures: 0
+      };
+      this.frameTimes = [];
+      this.MAX_FRAME_HISTORY = 60;
+      // Last 60 frames (~2 seconds at 30fps)
+      this.errorCount = 0;
+      this.totalFrames = 0;
+    }
+    /**
+     * Record a successful frame processing
+     */
+    recordFrame(timestamp) {
+      this.frameTimes.push(timestamp);
+      if (this.frameTimes.length > this.MAX_FRAME_HISTORY) {
+        this.frameTimes.shift();
+      }
+      this.metrics.lastFrameTime = timestamp;
+      this.totalFrames++;
+      this.metrics.consecutiveFailures = 0;
+    }
+    /**
+     * Record an error
+     */
+    recordError() {
+      this.errorCount++;
+      this.metrics.consecutiveFailures++;
+    }
+    /**
+     * Update memory usage estimate
+     */
+    updateMemoryUsage() {
+      this.metrics.memoryUsage = this.frameTimes.length * 1e3 + this.errorCount * 500;
+    }
+    /**
+     * Calculate current frame rate
+     */
+    calculateFrameRate() {
+      if (this.frameTimes.length < 2) return 0;
+      const recentFrames = this.frameTimes.slice(-10);
+      if (recentFrames.length < 2) return 0;
+      const timeSpan = recentFrames[recentFrames.length - 1] - recentFrames[0];
+      const frameCount2 = recentFrames.length - 1;
+      return frameCount2 / timeSpan * 1e3;
+    }
+    /**
+     * Calculate error rate
+     */
+    calculateErrorRate() {
+      if (this.totalFrames === 0) return 0;
+      return this.errorCount / this.totalFrames;
+    }
+    /**
+     * Get current health status
+     */
+    getHealthStatus() {
+      this.metrics.frameRate = this.calculateFrameRate();
+      this.metrics.errorRate = this.calculateErrorRate();
+      this.updateMemoryUsage();
+      const issues = [];
+      const recommendations = [];
+      if (this.metrics.frameRate < 15) {
+        issues.push("Low frame rate detected");
+        recommendations.push("Check camera performance and lighting conditions");
+      }
+      if (this.metrics.errorRate > 0.1) {
+        issues.push("High error rate detected");
+        recommendations.push("Verify camera permissions and system resources");
+      }
+      if (this.metrics.memoryUsage > 5e4) {
+        issues.push("High memory usage detected");
+        recommendations.push("Consider restarting the gesture detection system");
+      }
+      if (this.metrics.consecutiveFailures > 5) {
+        issues.push("Multiple consecutive failures detected");
+        recommendations.push("System may need recovery or fallback mode");
+      }
+      let overall = "healthy";
+      if (issues.length >= 3 || this.metrics.consecutiveFailures > 10) {
+        overall = "critical";
+      } else if (issues.length >= 1 || this.metrics.errorRate > 0.05) {
+        overall = "degraded";
+      }
+      return {
+        overall,
+        issues,
+        recommendations
+      };
+    }
+    /**
+     * Get current metrics
+     */
+    getMetrics() {
+      return { ...this.metrics };
+    }
+    /**
+     * Reset health monitoring
+     */
+    reset() {
+      this.frameTimes = [];
+      this.errorCount = 0;
+      this.totalFrames = 0;
+      this.metrics = {
+        frameRate: 0,
+        memoryUsage: 0,
+        errorRate: 0,
+        lastFrameTime: 0,
+        consecutiveFailures: 0
+      };
+    }
+    /**
+     * Check if system needs recovery
+     */
+    needsRecovery() {
+      const status = this.getHealthStatus();
+      return status.overall === "critical" || this.metrics.consecutiveFailures > 3;
+    }
+  };
+
+  // webview/config/GestureConfig.ts
+  var defaultConfig = {
+    performance: {
+      telemetrySampleRate: 30,
+      // Sample every 30 frames
+      messageThrottleMs: 100,
+      // Throttle messages to 100ms
+      confidenceChangeThreshold: 0.05
+      // 5% confidence change threshold
+    },
+    thresholds: {
+      mlpConfidence: 0.4,
+      fallbackConfidence: 0.3,
+      emergencyConfidence: 0.3
+    },
+    camera: {
+      facingMode: "user",
+      mirrorOverlay: true,
+      idealWidth: 1280,
+      idealHeight: 720
+    },
+    gestures: {
+      sizeTolerance: 0.3,
+      partialThreshold: 0.6,
+      completionTimeout: 2e3
+    },
+    timing: {
+      loadTimeoutMs: 8e3,
+      emergencyCooldownMs: 1e3,
+      frameLatencySampleInterval: 90
+    }
+  };
+  function loadConfig() {
+    const config = { ...defaultConfig };
+    const windowConfig = window;
+    if (windowConfig) {
+      config.thresholds.mlpConfidence = windowConfig.__mlpThreshold ?? config.thresholds.mlpConfidence;
+      config.thresholds.fallbackConfidence = windowConfig.__fallbackThreshold ?? config.thresholds.fallbackConfidence;
+      config.camera.facingMode = windowConfig.__facingMode ?? config.camera.facingMode;
+      config.camera.mirrorOverlay = windowConfig.__mirrorOverlay ?? config.camera.mirrorOverlay;
+      config.gestures.sizeTolerance = windowConfig.__gestureSizeTolerance ?? config.gestures.sizeTolerance;
+    }
+    return config;
+  }
+
+  // webview/core/GestureDetector.ts
+  var GestureDetector = class {
+    constructor(video2, overlay2) {
+      this.gestureRecognizer = null;
+      this.running = false;
+      this.video = video2;
+      this.overlay = overlay2;
+      this.config = loadConfig();
+      this.resourceManager = new ResourceManager();
+      this.cameraManager = new CameraManager(video2, this.resourceManager);
+      this.overlayRenderer = new OverlayRenderer(overlay2);
+      this.healthMonitor = new HealthMonitor();
+    }
+    /**
+     * Initialize the gesture detector
+     */
+    async initialize() {
+      try {
+        const components = await loadTasksVision();
+        const vision = await components.FilesetResolver.forVisionTasks(components.wasmBase);
+        const baseOptions = {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+          delegate: "GPU"
+        };
+        try {
+          this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
+            baseOptions,
+            runningMode: "VIDEO",
+            numHands: 2
+          });
+        } catch (gpuErr) {
+          console.warn("GPU delegate failed, falling back to CPU:", gpuErr);
+          this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
+            baseOptions: { ...baseOptions, delegate: "CPU" },
+            runningMode: "VIDEO",
+            numHands: 2
+          });
+        }
+        this.video.addEventListener("loadeddata", () => this.startDetection());
+        this.resourceManager.registerEventListener(this.video, "loadeddata", () => this.startDetection());
+      } catch (error) {
+        console.error("Failed to initialize gesture detector:", error);
+        throw error;
+      }
+    }
+    /**
+     * Start camera and detection
+     */
+    async start() {
+      await this.cameraManager.startCamera();
+    }
+    /**
+     * Start gesture detection loop
+     */
+    startDetection() {
+      if (this.running) return;
+      this.running = true;
+      this.detectFrame();
+    }
+    /**
+     * Main detection loop with performance optimizations
+     */
+    detectFrame() {
+      if (!this.running || !this.gestureRecognizer) return;
+      const frameStart = performance.now();
+      try {
+        if (this.cameraManager.isVideoReady()) {
+          if (this.cameraManager.hasDimensionsChanged()) {
+            this.cameraManager.updateVideoDimensions();
+            const rect = this.video.getBoundingClientRect();
+            this.overlayRenderer.resizeOverlay(rect);
+          }
+          const recognitionStart = performance.now();
+          const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
+          const recognitionTime = performance.now() - recognitionStart;
+          if (results?.landmarks) {
+            const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
+            if (shouldRedraw) {
+              this.overlayRenderer.clear();
+              this.overlayRenderer.drawHandLandmarks(results.landmarks, this.config.camera.mirrorOverlay);
+            }
+          }
+          this.healthMonitor.recordFrame(frameStart);
+          if (recognitionTime > 50) {
+            console.warn(`Slow frame detected: ${recognitionTime.toFixed(2)}ms`);
+          }
+        }
+      } catch (error) {
+        console.error("Gesture detection error:", error);
+        this.healthMonitor.recordError();
+        if (this.healthMonitor.needsRecovery()) {
+          console.warn("Health monitor indicates recovery needed");
+        }
+      }
+      requestAnimationFrame(() => this.detectFrame());
+    }
+    /**
+     * Determine if overlay should be redrawn to optimize performance
+     */
+    shouldRedrawOverlay(results, recognitionTime) {
+      if (results?.landmarks && results.landmarks.length > 0) {
+        return true;
+      }
+      return recognitionTime < 30;
+    }
+    /**
+     * Stop detection and cleanup
+     */
+    async stop() {
+      this.running = false;
+      if (this.gestureRecognizer?.close) {
+        await this.gestureRecognizer.close();
+      }
+      await this.cameraManager.stopCamera();
+      await this.resourceManager.dispose();
+    }
+    /**
+     * Get current configuration
+     */
+    getConfig() {
+      return this.config;
+    }
+  };
+
   // webview/gestureDetector.ts
   var onError = (e) => {
     try {
@@ -1085,27 +1840,47 @@
         return {
           message: "Network connectivity issue detected",
           code: "NETWORK_ERROR",
-          recoverable: true
+          recoverable: true,
+          severity: "medium"
         };
       }
       if (errorMessage.includes("camera") || errorMessage.includes("media") || errorMessage.includes("permission")) {
         return {
           message: "Camera access issue detected",
           code: "CAMERA_ERROR",
-          recoverable: true
+          recoverable: true,
+          severity: "high"
         };
       }
       if (errorMessage.includes("mediapipe") || errorMessage.includes("wasm") || errorMessage.includes("webgl")) {
         return {
           message: "Gesture recognition system issue detected",
           code: "MEDIAPIPE_ERROR",
-          recoverable: true
+          recoverable: true,
+          severity: "medium"
+        };
+      }
+      if (errorMessage.includes("memory") || errorMessage.includes("out of memory")) {
+        return {
+          message: "Memory issue detected",
+          code: "MEMORY_ERROR",
+          recoverable: true,
+          severity: "high"
+        };
+      }
+      if (errorMessage.includes("performance") || errorMessage.includes("slow") || errorMessage.includes("timeout")) {
+        return {
+          message: "Performance issue detected",
+          code: "PERFORMANCE_ERROR",
+          recoverable: true,
+          severity: "low"
         };
       }
       return {
         message: `System issue detected during ${context}`,
         code: "GENERIC_ERROR",
-        recoverable: false
+        recoverable: false,
+        severity: "medium"
       };
     }
     recordFailure() {
@@ -1173,7 +1948,6 @@
   var mirrorOverlay = window.__mirrorOverlay === true;
   var MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.4;
   var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.3;
-  var LOAD_TIMEOUT_MS = 8e3;
   var GESTURE_SIZE_TOLERANCE = window.__gestureSizeTolerance ?? 0.3;
   var EMERGENCY_GESTURES = /* @__PURE__ */ new Set(["hilfe", "help", "emergency", "stop", "danger"]);
   var EMERGENCY_CONFIDENCE_THRESHOLD = 0.3;
@@ -1592,7 +2366,7 @@
   };
   var tremorCompensator = new TremorCompensator();
   var lastProcessedLandmarks = [];
-  var ResourceManager = class {
+  var ResourceManager2 = class {
     constructor() {
       this.resources = /* @__PURE__ */ new Set();
       this.eventListeners = [];
@@ -1689,153 +2463,14 @@
       return this.resources.size === 0 && this.eventListeners.length === 0 && this.mediaStreams.length === 0 && this.timeouts.length === 0 && this.observers.length === 0;
     }
   };
-  var resourceManager = new ResourceManager();
-  async function loadTasksVision() {
-    async function resolvePinnedBase() {
-      const pinnedVersion = window.__mediapipeVersion;
-      if (typeof pinnedVersion === "string" && pinnedVersion.length) {
-        return { base: "https://cdn.jsdelivr.net/npm", version: pinnedVersion };
-      }
-      const cdns = ["https://cdn.jsdelivr.net/npm", "https://unpkg.com"];
-      const controllers = cdns.map(() => new AbortController());
-      const fetches = cdns.map(
-        (base, i) => (async () => {
-          try {
-            const ac = controllers[i];
-            const t = setTimeout(() => ac.abort(), LOAD_TIMEOUT_MS);
-            const pkg = await fetch(base + "/@mediapipe/tasks-vision/package.json", {
-              method: "GET",
-              signal: ac.signal,
-              cache: "no-store"
-            }).finally(() => clearTimeout(t));
-            if (pkg.ok) {
-              const json = await pkg.json().catch(() => null);
-              const v = json?.version;
-              if (typeof v === "string" && v.length) {
-                controllers.forEach((c, j) => {
-                  if (j !== i) c.abort();
-                });
-                return { base, version: v };
-              }
-            }
-          } catch (err2) {
-            if (err2?.name !== "AbortError") {
-              console.warn("Fetch failed:", base, err2);
-            }
-          }
-          return null;
-        })()
-      );
-      const results = await Promise.all(fetches);
-      return results.find(Boolean) || null;
-    }
-    function tryLoadScript(src, integrity, timeoutMs = LOAD_TIMEOUT_MS) {
-      return new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = src;
-        if (integrity) {
-          s.integrity = integrity;
-          s.crossOrigin = "anonymous";
-        }
-        if (window.__visionBundleNonce) {
-          s.nonce = window.__visionBundleNonce;
-        }
-        s.async = true;
-        const cleanup2 = () => {
-          s.onload = s.onerror = null;
-          if (s.parentNode) s.parentNode.removeChild(s);
-        };
-        const to = setTimeout(() => {
-          cleanup2();
-          reject(new Error("Script load timeout: " + src));
-        }, timeoutMs);
-        s.onload = () => {
-          clearTimeout(to);
-          cleanup2();
-          resolve(null);
-        };
-        s.onerror = () => {
-          clearTimeout(to);
-          cleanup2();
-          reject(new Error("Script failed to load: " + src));
-        };
-        document.head.appendChild(s);
-      });
-    }
-    const haveUMD = () => window.fileset_resolver && window.fileset_resolver.FilesetResolver && window.vision && window.vision.GestureRecognizer;
-    const pinned = await resolvePinnedBase();
-    const candidates = [];
-    if (pinned) {
-      candidates.push({
-        umd: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.js",
-        esm: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.mjs",
-        wasm: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/wasm"
-      });
-    }
-    candidates.push({
-      umd: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js",
-      esm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs",
-      wasm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
-    });
-    candidates.push({
-      umd: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.js",
-      esm: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.mjs",
-      wasm: "https://unpkg.com/@mediapipe/tasks-vision/wasm"
-    });
-    let lastError = null;
-    for (const c of candidates) {
-      try {
-        if (!haveUMD()) {
-          const sri = pinned && c.umd.includes(`@${pinned.version}/`) ? window.__visionBundleSri : void 0;
-          await tryLoadScript(c.umd, sri);
-        }
-        if (haveUMD()) {
-          return {
-            FilesetResolver: window.fileset_resolver.FilesetResolver,
-            GestureRecognizer: window.vision.GestureRecognizer,
-            wasmBase: c.wasm
-          };
-        }
-        if (window.__allowCdnEsm === true) {
-          try {
-            const mod = await import(
-              /* @vite-ignore */
-              c.esm
-            );
-            if (mod?.FilesetResolver && mod?.GestureRecognizer) {
-              return {
-                FilesetResolver: mod.FilesetResolver,
-                GestureRecognizer: mod.GestureRecognizer,
-                wasmBase: c.wasm
-              };
-            }
-          } catch (e) {
-            lastError = e;
-          }
-        }
-      } catch (e) {
-        lastError = e;
-      }
-    }
-    throw new Error(
-      "Tasks Vision globals not available" + (lastError ? ": " + (lastError.message || lastError) : "")
-    );
-  }
-  var gestureRecognizer = null;
-  var runningMode = "VIDEO";
+  var resourceManager = new ResourceManager2();
   var video = document.createElement("video");
   var overlay = document.createElement("canvas");
   overlay.id = "overlay";
-  var lastVideoWidth = 0;
-  var lastVideoHeight = 0;
-  var overlayWidth = 0;
-  var overlayHeight = 0;
-  var overlayDpr = 1;
-  var videoResizeObserver = null;
-  var removeWindowResize = null;
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "");
+  var mainGestureDetector = null;
   function initDom() {
     document.body.appendChild(video);
     document.body.appendChild(overlay);
@@ -1902,59 +2537,17 @@
     initDom();
   }
   async function createGestureRecognizer() {
-    const recoveryFn = async () => {
-      const visionStart = performance.now();
-      const { FilesetResolver, GestureRecognizer, wasmBase } = await loadTasksVision();
-      const vision = await FilesetResolver.forVisionTasks(
-        wasmBase || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
-      );
-      const baseOptions = {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
-        delegate: "GPU"
-      };
-      try {
-        gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-          baseOptions,
-          runningMode,
-          numHands: 2
-        });
-      } catch (gpuErr) {
-        console.warn("GPU delegate failed, falling back to CPU:", gpuErr);
-        try {
-          window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({ type: "telemetry", event: "recognizer_gpu_fallback" })
-          );
-        } catch (err2) {
-          console.warn(
-            "Failed to send 'recognizer_gpu_fallback' telemetry event:",
-            err2
-          );
-        }
-        gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-          baseOptions: { ...baseOptions, delegate: "CPU" },
-          runningMode,
-          numHands: 2
-        });
-      }
-      const initMs = Math.round(performance.now() - visionStart);
+    try {
+      mainGestureDetector = new GestureDetector(video, overlay);
+      await mainGestureDetector.initialize();
       try {
         window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: initMs })
+          JSON.stringify({ type: "telemetry", event: "recognizer_init", ms: 0 })
         );
       } catch (err2) {
         console.warn('Failed to send "recognizer_init" telemetry event:', err2);
       }
-      video.addEventListener("loadeddata", predictWebcam);
-      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.srcObject) {
-        window.requestAnimationFrame(predictWebcam);
-      }
       resetGestureChangeState();
-    };
-    try {
-      const success = await errorRecoveryManager.attemptRecovery(recoveryFn);
-      if (!success) {
-        errorRecoveryManager.activateFallbackMode();
-      }
     } catch (e) {
       const errorInfo = errorRecoveryManager.getErrorInfo(e, "gesture_recognizer_initialization");
       try {
@@ -1969,9 +2562,7 @@
       } catch (err2) {
         console.warn("Failed to send initialization error message:", err2);
       }
-      if (errorInfo.recoverable) {
-        errorRecoveryManager.scheduleRetry(recoveryFn);
-      }
+      errorRecoveryManager.activateFallbackMode();
     }
   }
   var lastVideoTime = -1;
@@ -2347,35 +2938,11 @@
     tremorCompensator.clearHistory();
     lastProcessedLandmarks = [];
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      });
-      video.srcObject = stream;
-      resourceManager.registerMediaStream(stream);
-      try {
-        video.muted = true;
-        await video.play();
-        if (video.videoWidth !== lastVideoWidth || video.videoHeight !== lastVideoHeight) {
-          resizeOverlay();
-        }
-      } catch (err2) {
-        console.warn("Failed to start video:", err2);
-        throw err2;
+      if (mainGestureDetector) {
+        await mainGestureDetector.start();
+      } else {
+        throw new Error("Gesture detector not initialized");
       }
-      const tracks = stream.getVideoTracks();
-      try {
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({
-            type: "telemetry",
-            event: "camera_started",
-            tracks: tracks.map((t) => t.label)
-          })
-        );
-      } catch (err2) {
-        console.warn("Failed to send 'camera_started' telemetry event:", err2);
-      }
-      resourceManager.registerEventListener(video, "loadeddata", predictWebcam);
     } catch (err2) {
       const error = err2;
       const errorInfo = errorRecoveryManager.getErrorInfo(error, "camera_initialization");
@@ -2417,42 +2984,12 @@
     if (stopPromise) return stopPromise;
     stopPromise = (async () => {
       try {
-        video.pause();
-      } catch (e) {
-        console.warn("Failed to pause video during cleanup:", e);
-      }
-      try {
-        video.removeEventListener("loadeddata", predictWebcam);
-      } catch (e) {
-        console.warn("Failed to remove 'loadeddata' listener during cleanup:", e);
-      }
-      try {
-        const s = video.srcObject;
-        if (s) {
-          s.getTracks().forEach((t) => t.stop());
-          video.srcObject = null;
+        if (mainGestureDetector) {
+          await mainGestureDetector.stop();
         }
       } catch (e) {
-        console.warn("Failed to stop camera stream:", e);
+        console.warn("Failed to stop gesture detector:", e);
       }
-      try {
-        const res = gestureRecognizer?.close?.();
-        if (res && typeof res.then === "function") await res;
-      } catch (e) {
-        console.warn("Failed to close gesture recognizer:", e);
-      }
-      gestureRecognizer = null;
-      resourceManager.registerCleanup(async () => {
-        if (gestureRecognizer) {
-          try {
-            const res = gestureRecognizer.close?.();
-            if (res && typeof res.then === "function") await res;
-          } catch (e) {
-            console.warn("Failed to close gesture recognizer during cleanup:", e);
-          }
-          gestureRecognizer = null;
-        }
-      });
     })().finally(() => {
       stopPromise = null;
     });
@@ -2486,15 +3023,6 @@
     cleanedUp = true;
     running = false;
     await stopCamera();
-    await resourceManager.dispose();
-    if (videoResizeObserver) {
-      videoResizeObserver.disconnect();
-    }
-    videoResizeObserver = null;
-    if (removeWindowResize) {
-      removeWindowResize();
-      removeWindowResize = null;
-    }
     try {
       const tapEl = document.getElementById("tapToStart");
       if (tapEl) {
