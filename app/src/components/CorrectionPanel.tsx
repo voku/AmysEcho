@@ -9,7 +9,7 @@ interface CorrectionPanelProps {
   onSelect: (choiceId: string) => void;
   onAddNew: () => void;
   onCancel: () => void;
-  suggestions: { id: string; label: string }[];
+  suggestions: { id: string; label: string; confidence?: number }[];
 }
 
 // Gesture icon mapping - simple visual representations
@@ -172,6 +172,43 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
       fontWeight: 'bold',
       textAlign: 'center',
     },
+    suggestionsContainer: {
+      marginBottom: SPACING.sm,
+    },
+    subtitle: {
+      fontSize: largeText ? 20 : 18,
+      fontWeight: 'bold',
+      color: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      textAlign: 'center',
+      marginBottom: SPACING.sm,
+    },
+    subtitleHC: {
+      color: COLORS.highContrastText,
+    },
+    confidenceBadge: {
+      position: 'absolute',
+      top: -8,
+      right: -8,
+      backgroundColor: COLORS.success,
+      borderRadius: 12,
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    confidenceText: {
+      fontSize: 14,
+      color: COLORS.highContrastText,
+    },
+    recommendedText: {
+      fontSize: largeText ? 12 : 10,
+      color: COLORS.success,
+      fontWeight: 'bold',
+      marginTop: SPACING.xs,
+    },
+    recommendedTextHC: {
+      color: COLORS.highContrastText,
+    },
   });
 
   return (
@@ -185,8 +222,16 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
         <View style={styles.container}>
           <Text style={styles.title}>Welche Gebärde hat Amy gezeigt?</Text>
 
+          {suggestions.length > 0 && (
+            <View style={styles.suggestionsContainer}>
+              <Text style={[styles.subtitle, highContrast && styles.subtitleHC]}>
+                Vorschläge:
+              </Text>
+            </View>
+          )}
+
             <View style={styles.optionsGrid}>
-             {suggestions.length > 0 ? suggestions.map((s) => (
+             {suggestions.length > 0 ? suggestions.map((s, index) => (
                 <Pressable
                   key={s.id}
                   style={({ pressed }) => [styles.optionButton, pressed && styles.optionButtonPressed]}
@@ -199,8 +244,18 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
                 >
                   <View style={styles.iconContainer}>
                     {getGestureIcon(s.id)}
+                    {s.confidence && s.confidence > 0.7 && (
+                      <View style={styles.confidenceBadge}>
+                        <Text style={styles.confidenceText}>⭐</Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={styles.optionLabel}>{s.label}</Text>
+                  {index === 0 && suggestions.length > 1 && (
+                    <Text style={[styles.recommendedText, highContrast && styles.recommendedTextHC]}>
+                      Empfohlen
+                    </Text>
+                  )}
                 </Pressable>
               )) : (
                 <View style={styles.optionButton}>

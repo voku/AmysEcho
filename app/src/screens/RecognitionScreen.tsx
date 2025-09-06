@@ -1127,7 +1127,7 @@ export default function RecognitionScreen({
         testID="btn-correction"
         title="Korrektur"
         accessibilityLabel="Korrekturseite öffnen"
-        onPress={() => navigation.navigate('Correction')}
+        onPress={() => navigation.navigate('Correction', { attemptedGesture: lastRecognizedGesture?.id })}
       />
       <Button
         testID="btn-help-me-choose"
