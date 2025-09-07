@@ -12,7 +12,7 @@ export default function ErrorMessage({ message }: ErrorMessageProps) {
   if (!message) return null;
   return (
     <View style={styles.overlay} pointerEvents="none">
-      <Text style={[styles.text, { fontSize: largeText ? 16 : 14 }]}>{message}</Text>
+      <Text style={[styles.text, { fontSize: largeText ? 16 : 14 }]}>⚠️ {message}</Text>
     </View>
   );
 }

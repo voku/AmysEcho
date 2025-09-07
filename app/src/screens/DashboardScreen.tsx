@@ -1,5 +1,13 @@
+// React imports
 import React, { useEffect, useState } from 'react';
+
+// React Native imports
 import { View, Text, Button, StyleSheet } from 'react-native';
+
+// Third-party imports
+// (none)
+
+// Local imports
 import {
   loadAnalytics,
   uploadAnalytics,

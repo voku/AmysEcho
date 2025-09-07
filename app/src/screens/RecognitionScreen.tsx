@@ -29,6 +29,7 @@ import {
   detectionHapticFeedback,
   partialGestureHapticFeedback,
   personalizedConfidenceService,
+  gestureCombinationService,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
@@ -50,6 +51,7 @@ import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceReco
 import { RecognitionPath } from '../utils/recognitionState';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
+import SlowMotionReplay from '../components/SlowMotionReplay';
 import { LanguageManager } from '../services/LanguageManager';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
@@ -110,6 +112,8 @@ export default function RecognitionScreen({
   const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
   const [showPipGuidance, setShowPipGuidance] = useState(false);
   const [pipGuidanceGesture, setPipGuidanceGesture] = useState<GestureModelEntry | null>(null);
+  const [showSlowMotionReplay, setShowSlowMotionReplay] = useState(false);
+  const [slowMotionGesture, setSlowMotionGesture] = useState<GestureModelEntry | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -244,6 +248,13 @@ export default function RecognitionScreen({
       'start': 'start_current',
       'next': 'next_item',
       'back': 'previous_item',
+      'undo': 'undo_last',
+      'zurück': 'undo_last',
+      'rückgängig': 'undo_last',
+      'review': 'slow_motion_replay',
+      'slow': 'slow_motion_replay',
+      'learn': 'slow_motion_replay',
+      'zeigen': 'slow_motion_replay',
     };
     return shortcuts[gestureId] || null;
   }, []);
@@ -536,6 +547,47 @@ export default function RecognitionScreen({
         // Go to previous item
         setStatus('⏮️ Vorheriges Element');
         break;
+      case 'undo_last':
+        // Undo last gesture recognition
+        const gestureToUndo = gestureHistoryService.getLastGesture();
+        if (gestureToUndo) {
+          // Remove the last gesture from history
+          gestureHistoryService.removeLastGesture();
+
+          // Reset the UI state to before the last recognition
+          setLastRecognizedGesture(null);
+          setGestureConfidence(0);
+          setStatus(`↶ "${gestureToUndo.label}" rückgängig gemacht`);
+
+          // Provide haptic feedback for undo
+          void detectionHapticFeedback();
+
+          // Log the undo action
+          void logHIPEvent('HIP_1', 'gesture_undo', {
+            undoneGestureId: gestureToUndo.id,
+            timestamp: Date.now()
+          });
+        } else {
+          setStatus('ℹ️ Keine Geste zum Rückgängigmachen');
+        }
+        break;
+      case 'slow_motion_replay':
+        // Show slow-motion replay of last successful gesture
+        const lastSuccessfulGesture = gestureHistoryService.getLastGesture();
+        if (lastSuccessfulGesture) {
+          // Find the gesture model entry for video URI
+          const gestureEntry = gestureModel.gestures.find(g => g.id === lastSuccessfulGesture.id);
+          if (gestureEntry?.dgsVideoUri) {
+            setSlowMotionGesture(gestureEntry);
+            setShowSlowMotionReplay(true);
+            setStatus('🎥 Zeige Geste in Zeitlupe zum Lernen');
+          } else {
+            setStatus('ℹ️ Kein Video für diese Geste verfügbar');
+          }
+        } else {
+          setStatus('ℹ️ Keine vorherige Geste zum Anzeigen');
+        }
+        break;
     }
   }, [pendingGesture, lastRecognizedGesture, provideInstantFeedback]);
 
@@ -814,8 +866,48 @@ export default function RecognitionScreen({
           setPipGuidanceGesture(null);
         }
 
+        // Amy First: Offer slow-motion replay for learning new gestures
+        // Show option for gestures with moderate confidence that Amy might want to review
+        if (smoothed >= 0.4 && smoothed <= 0.8 && entry.dgsVideoUri) {
+          // Add a subtle indicator that slow-motion replay is available
+          setTimeout(() => {
+            if (!showSlowMotionReplay) {
+              setStatus(`${entry.label} ✓ | Sage "zeigen" für Zeitlupe`);
+            }
+          }, 2000);
+        }
+
         // Record gesture attempt for threshold adaptation
         personalizedConfidenceService.recordGestureAttempt(entry.id, smoothed, true);
+
+        // Check for gesture combinations
+        const combinationMatch = gestureCombinationService.processGesture(entry.id, smoothed);
+        if (combinationMatch && combinationMatch.remainingGestures.length === 0) {
+          // Combination completed - show combined meaning
+          setStatus(`🔗 ${combinationMatch.sequence.combinedMeaning}`);
+          void triggerSpeakAndShow(combinationMatch.sequence.combinedMeaning, combinationMatch.matchConfidence, () => {});
+
+          // Log combination usage
+          void logHIPEvent('HIP_1', 'gesture_combination_completed', {
+            sequenceId: combinationMatch.sequenceId,
+            sequenceName: combinationMatch.sequence.name,
+            gestures: combinationMatch.completedGestures,
+            confidence: combinationMatch.matchConfidence,
+            timeElapsed: combinationMatch.timeElapsed
+          });
+        } else if (combinationMatch && combinationMatch.remainingGestures.length > 0) {
+          // Partial combination - show progress
+          const remaining = combinationMatch.remainingGestures.length;
+          setStatus(`🔗 ${combinationMatch.sequence.name}: noch ${remaining} Geste${remaining > 1 ? 'n' : ''}`);
+
+          // Log partial combination
+          void logHIPEvent('HIP_1', 'gesture_combination_partial', {
+            sequenceId: combinationMatch.sequenceId,
+            progress: combinationMatch.completedGestures.length,
+            total: combinationMatch.sequence.gestures.length,
+            confidence: combinationMatch.matchConfidence
+          });
+        }
 
         // Log success
         logInteractionEvent({
@@ -1398,6 +1490,20 @@ export default function RecognitionScreen({
           // Could add logic for when video completes
         }}
       />
+
+      {/* Amy First: Slow-motion replay for detailed gesture learning */}
+      <SlowMotionReplay
+        gestureId={slowMotionGesture?.id || ''}
+        videoUri={slowMotionGesture?.dgsVideoUri || ''}
+        isVisible={showSlowMotionReplay}
+        onClose={() => setShowSlowMotionReplay(false)}
+        onReplayComplete={() => {
+          setStatus('🎥 Wiederholung beendet. Versuche es selbst!');
+        }}
+        autoPlay={true}
+        initialSpeed={0.5}
+        showControls={true}
+      />
     </View>
 
     {showCelebration && <Celebration key={celebrationKey} />}
@@ -1409,8 +1515,10 @@ export default function RecognitionScreen({
           setShowCorrection(false);
           navigation.navigate('Teaching');
         }}
-        onCancel={handleCancelCorrection}
+        onCancel={() => setShowCorrection(false)}
         suggestions={gestureSuggestions}
+        gestureModel={gestureModel}
+        showPictures={true}
       />
     )}
 

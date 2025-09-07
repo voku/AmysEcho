@@ -1,26 +1,57 @@
-import React, { useState, useEffect } from 'react';
+// React imports
+import React, { useState, useEffect, memo, useCallback } from 'react';
+
+// React Native imports
 import { View, Pressable, Text, StyleSheet, FlatList } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
-import { useNavigation, useRoute, type NavigationProp } from '@react-navigation/native';
+
+// Third-party imports
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
-import type { RootStackParamList } from '../navigation/types';
+
+// Local imports
 import { COLORS, SPACING } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import { useTheme } from '../context/ThemeContext';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
-interface Props {
+// Type imports
+import type { StyleProp, ViewStyle } from 'react-native';
+import type { NavigationProp } from '@react-navigation/native';
+import type { RootStackParamList } from '../navigation/types';
+
+interface BottomNavProps {
   active: 'recognition' | 'training' | 'parent' | 'schedule';
   profileId: string;
 }
 
-export default function BottomNav({ active, profileId }: Props) {
+const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute();
   const { highContrast } = useAccessibility();
   const { theme } = useTheme();
   const [navHistory, setNavHistory] = useState<Array<{name: string; title: string; canGoBack: boolean}>>([]);
+
+  // Memoize navigation functions to prevent unnecessary re-renders
+  const navigateToRecognition = useCallback(() => {
+    void childHaptic();
+    navigation.navigate('Recognition', { profileId });
+  }, [navigation, profileId]);
+
+  const navigateToSchedule = useCallback(() => {
+    void childHaptic();
+    navigation.navigate('Schedule');
+  }, [navigation]);
+
+  const navigateToTraining = useCallback(() => {
+    void childHaptic();
+    navigation.navigate('Training', { gestureLabel: undefined });
+  }, [navigation]);
+
+  const navigateToProfileSelect = useCallback(() => {
+    void childHaptic();
+    navigation.navigate('ProfileSelect');
+  }, [navigation]);
 
   useEffect(() => {
     // Update navigation history
@@ -65,10 +96,7 @@ export default function BottomNav({ active, profileId }: Props) {
       {/* Single Button Navigation - Amy First: Always provide clear way back to recognition */}
       <View style={[styles.homeButtonContainer, highContrast && styles.homeButtonContainerHC, { backgroundColor: highContrast ? COLORS.highContrastText : theme.colors.primary }]}>
         <Pressable
-          onPress={() => {
-            void childHaptic();
-            navigation.navigate('Recognition', { profileId });
-          }}
+          onPress={navigateToRecognition}
           style={({ pressed }) => [
             childFriendlyStyles.minTouchTarget,
             styles.homeButton,
@@ -140,10 +168,7 @@ export default function BottomNav({ active, profileId }: Props) {
       {/* Navigation Buttons */}
       <View style={styles.navContainer}>
         <Pressable
-         onPress={() => {
-           void childHaptic();
-           navigation.navigate('Recognition', { profileId });
-         }}
+          onPress={navigateToRecognition}
          style={({ pressed }) => [
            childFriendlyStyles.minTouchTarget,
            styles.item,
@@ -177,11 +202,8 @@ export default function BottomNav({ active, profileId }: Props) {
             Zuhören
           </Text>
        </Pressable>
-       <Pressable
-         onPress={() => {
-           void childHaptic();
-           navigation.navigate('Schedule');
-         }}
+        <Pressable
+         onPress={navigateToSchedule}
          style={({ pressed }) => [
            childFriendlyStyles.minTouchTarget,
            styles.item,
@@ -215,10 +237,7 @@ export default function BottomNav({ active, profileId }: Props) {
           </Text>
        </Pressable>
        <Pressable
-        onPress={() => {
-          void childHaptic();
-          navigation.navigate('Training', { gestureLabel: undefined });
-        }}
+         onPress={navigateToTraining}
         style={({ pressed }) => [
           childFriendlyStyles.minTouchTarget,
           styles.item,
@@ -251,11 +270,8 @@ export default function BottomNav({ active, profileId }: Props) {
            Lernen
          </Text>
       </Pressable>
-      <Pressable
-        onPress={() => {
-          void childHaptic();
-          navigation.navigate('ProfileSelect');
-        }}
+       <Pressable
+         onPress={navigateToProfileSelect}
         style={({ pressed }) => [
           childFriendlyStyles.minTouchTarget,
           styles.item,
@@ -291,9 +307,19 @@ export default function BottomNav({ active, profileId }: Props) {
       </View>
     </View>
   );
-}
+};
 
-  const styles = StyleSheet.create({
+// Custom comparison function for React.memo
+const arePropsEqual = (prevProps: BottomNavProps, nextProps: BottomNavProps): boolean => {
+  return (
+    prevProps.active === nextProps.active &&
+    prevProps.profileId === nextProps.profileId
+  );
+};
+
+export default memo(BottomNavComponent, arePropsEqual);
+
+const styles = StyleSheet.create({
     container: {
       borderTopWidth: 1,
     },

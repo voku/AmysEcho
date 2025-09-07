@@ -16,3 +16,4 @@ export * from './backupService';
 export * from './dataProtection';
 export * from './gdprService';
 export * from './personalizedConfidenceService';
+export * from './gestureCombinationService';

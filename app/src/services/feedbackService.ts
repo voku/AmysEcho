@@ -1,4 +1,7 @@
+// Third-party imports
 import * as Haptics from 'expo-haptics';
+
+// Local imports
 import { audioService } from './audioService';
 import { logger } from '../utils/logger';
 

@@ -1,5 +1,13 @@
+// React imports
 import React from 'react';
+
+// React Native imports
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+
+// Third-party imports
+// (none)
+
+// Local imports
 import { useTheme } from '../context/ThemeContext';
 import { Theme, THEMES } from '../constants/themes';
 import { SPACING } from '../constants/ui';

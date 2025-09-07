@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, Button, FlatList, StyleSheet, Alert, Switch } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../storage';
@@ -19,6 +19,8 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const [selectedSuccessSound, setSelectedSuccessSound] = useState('success');
   const { largeText, highContrast, update } = useAccessibility();
+  const [localLargeText, setLocalLargeText] = useState(largeText);
+  const [localHighContrast, setLocalHighContrast] = useState(highContrast);
   const profileId = route?.params?.profileId;
 
   useFocusEffect(
@@ -169,8 +171,40 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
         largeText: !!profile.largeText,
         highContrast: !!profile.highContrast,
       });
+      setLocalLargeText(!!profile.largeText);
+      setLocalHighContrast(!!profile.highContrast);
     }
     navigation.navigate('Recognition', { profileId: id });
+  };
+
+  const toggleLargeText = async (enabled: boolean) => {
+    setLocalLargeText(enabled);
+    update({ largeText: enabled });
+    // Update active profile
+    const activeProfileId = await AsyncStorage.getItem('activeProfileId');
+    if (activeProfileId) {
+      await database.write(async () => {
+        const dbProfile = await database.get<DBProfile>('profiles').find(activeProfileId);
+        await dbProfile.update(p => {
+          (p as any).largeText = enabled;
+        });
+      });
+    }
+  };
+
+  const toggleHighContrast = async (enabled: boolean) => {
+    setLocalHighContrast(enabled);
+    update({ highContrast: enabled });
+    // Update active profile
+    const activeProfileId = await AsyncStorage.getItem('activeProfileId');
+    if (activeProfileId) {
+      await database.write(async () => {
+        const dbProfile = await database.get<DBProfile>('profiles').find(activeProfileId);
+        await dbProfile.update(p => {
+          (p as any).highContrast = enabled;
+        });
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -243,6 +277,16 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       justifyContent: 'space-around',
       flexWrap: 'wrap',
       marginTop: SPACING.sm,
+    },
+    accessibilityRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
+    },
+    accessibilityLabel: {
+      fontSize: largeText ? 18 : 16,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
   });
 
@@ -326,6 +370,29 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
           selectedSound={selectedSuccessSound}
           onSoundSelect={handleSoundSelect}
         />
+
+        {/* Accessibility Settings Section */}
+        <View style={styles.trustedDeviceSection}>
+          <Text style={styles.sectionTitle}>Barrierefreiheit</Text>
+          <View style={styles.accessibilityRow}>
+            <Text style={styles.accessibilityLabel}>Großer Text</Text>
+            <Switch
+              value={localLargeText}
+              onValueChange={toggleLargeText}
+              accessibilityLabel="Großen Text ein-/ausschalten"
+              accessibilityHint="Macht Text und Symbole größer für bessere Lesbarkeit"
+            />
+          </View>
+          <View style={styles.accessibilityRow}>
+            <Text style={styles.accessibilityLabel}>Hoher Kontrast</Text>
+            <Switch
+              value={localHighContrast}
+              onValueChange={toggleHighContrast}
+              accessibilityLabel="Hohen Kontrast ein-/ausschalten"
+              accessibilityHint="Erhöht den Kontrast für bessere Sichtbarkeit"
+            />
+          </View>
+        </View>
 
         {/* Theme Selection Section */}
         <ThemeSelector />

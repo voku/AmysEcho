@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
@@ -10,6 +10,8 @@ interface CorrectionPanelProps {
   onAddNew: () => void;
   onCancel: () => void;
   suggestions: { id: string; label: string; confidence?: number }[];
+  gestureModel?: any; // For accessing gesture symbols and videos
+  showPictures?: boolean; // Enable picture-based selection
 }
 
 // Enhanced gesture icon mapping - visual representations for common gestures
@@ -69,7 +71,7 @@ export const getGestureIcon = (gestureId: string) => {
   }
 };
 
-export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions }: CorrectionPanelProps) {
+function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions, gestureModel, showPictures = true }: CorrectionPanelProps) {
   const { largeText, highContrast } = useAccessibility();
 
   const styles = StyleSheet.create({
@@ -275,4 +277,19 @@ export default function CorrectionPanel({ onSelect, onAddNew, onCancel, suggesti
       </View>
     </Modal>
   );
-}
+};
+
+// Custom comparison function for React.memo
+const arePropsEqual = (prevProps: CorrectionPanelProps, nextProps: CorrectionPanelProps): boolean => {
+  return (
+    prevProps.onSelect === nextProps.onSelect &&
+    prevProps.onAddNew === nextProps.onAddNew &&
+    prevProps.onCancel === nextProps.onCancel &&
+    prevProps.showPictures === nextProps.showPictures &&
+    prevProps.gestureModel === nextProps.gestureModel &&
+    JSON.stringify(prevProps.suggestions) === JSON.stringify(nextProps.suggestions)
+  );
+};
+
+export { CorrectionPanel as CorrectionPanelComponent };
+export default memo(CorrectionPanel, arePropsEqual);

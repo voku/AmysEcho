@@ -1,19 +1,20 @@
+// Third-party imports
 import {
   setAudioModeAsync,
   requestRecordingPermissionsAsync,
   createAudioPlayer,
   AudioRecorder,
-
   RecordingPresets,
 } from 'expo-audio';
-
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
-import {logger} from '../utils/logger';
-import {AudioConfig, SpeechOptions, SpeakRequestOptions} from '../types/audio';
+import * as FileSystem from 'expo-file-system';
+
+// Local imports
+import { logger } from '../utils/logger';
+import { AudioConfig, SpeechOptions, SpeakRequestOptions } from '../types/audio';
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
-import * as FileSystem from 'expo-file-system';
 
 
 export class AudioService {

@@ -132,6 +132,18 @@ class GestureHistoryService {
   }
 
   /**
+   * Remove the last gesture from history
+   */
+  removeLastGesture(): GestureHistoryEntry | null {
+    const removed = this.history.shift();
+    if (removed) {
+      this.saveHistory();
+      logger.debug('Last gesture removed from history:', removed.label);
+    }
+    return removed || null;
+  }
+
+  /**
    * Clear all history
    */
   clearHistory(): void {
