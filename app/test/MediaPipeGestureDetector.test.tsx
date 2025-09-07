@@ -638,6 +638,119 @@ describe('MediaPipeGestureDetector', () => {
     expect(onError).toHaveBeenCalledWith('webview_http_error');
   });
 
+  it('forwards frame latency telemetry with tracks', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onWebViewEvent = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} onWebViewEvent={onWebViewEvent} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: 16, tracks: ['front-camera'] }),
+        },
+      });
+    });
+
+    expect(onWebViewEvent).toHaveBeenCalledWith({ event: 'frame_latency', ms: 16, tracks: ['front-camera'] });
+  });
+
+  it('continues emitting gestures across MLP transfer lifecycle', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onModelUpdateStatus = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onModelUpdateStatus={onModelUpdateStatus}
+        />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+
+    // Signal mlp_ready and ensure we can still process gestures before transfer completes
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) } });
+    });
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: 'gesture', gesture: 'hello', confidence: 0.9, landmarks: [[[1,2,3]]], handednesses: ['Left'] }),
+        },
+      });
+    });
+    expect(onGestureDetected).toHaveBeenCalledTimes(1);
+
+    // Now signal transfer complete and ensure gestures still flow
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_transfer_complete' }) } });
+    });
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: 'gesture', gesture: 'danke', confidence: 0.8, landmarks: [[[4,5,6]]], handednesses: ['Right'] }),
+        },
+      });
+    });
+    expect(onGestureDetected).toHaveBeenCalledTimes(2);
+  });
+
+  it('marks update complete on mlp_transfer_skipped', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onModelUpdateStatus = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onModelUpdateStatus={onModelUpdateStatus}
+        />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_transfer_skipped' }) } });
+    });
+    expect(onModelUpdateStatus).toHaveBeenCalledWith('complete');
+  });
+
+  it('handles burst of gesture events without blocking', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    for (let i = 0; i < 10; i++) {
+      act(() => {
+        webview.props.onMessage({
+          nativeEvent: {
+            data: JSON.stringify({ type: 'gesture', gesture: `g${i}`, confidence: 0.5, landmarks: [[[i, i, i]]], handednesses: ['Left'] }),
+          },
+        });
+      });
+    }
+    expect(onGestureDetected).toHaveBeenCalledTimes(10);
+  });
+
   it('handles malformed gesture objects with null values', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();

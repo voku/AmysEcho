@@ -49,7 +49,7 @@ export default function GestureComparison({
   };
 
   return (
-    <View style={[styles.overlay, highContrast && styles.overlayHC]}>
+    <View style={[styles.overlay, highContrast && styles.overlayHC]} testID="gesture-comparison-overlay">
       <View style={[styles.container, highContrast && styles.containerHC]}>
         <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
           🤝 Geste vergleichen

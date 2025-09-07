@@ -16,6 +16,8 @@ import { logger } from '../utils/logger';
 import { syncTrainingData } from '../services';
 import { childHaptic } from '../services/feedbackService';
 import { childFriendlyStyles } from '../styles/touchTargets';
+import TwoHandGestureSelector from '../components/TwoHandGestureSelector';
+import { TwoHandGestureDefinition } from '../constants/twoHandGestures';
 
 const PREVIEW_SIZE = 240;
 
@@ -28,6 +30,9 @@ export default function TeachingScreen({ navigation }: any) {
   const [isRecording, setIsRecording] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isTwoHandMode, setIsTwoHandMode] = useState(false);
+  const [showTwoHandSelector, setShowTwoHandSelector] = useState(false);
+  const [selectedTwoHandGesture, setSelectedTwoHandGesture] = useState<TwoHandGestureDefinition | null>(null);
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
   const landmarksRef = useRef<number[][][]>([]);
@@ -155,6 +160,26 @@ export default function TeachingScreen({ navigation }: any) {
     audioService.speak(`Versuchen wir "${gestureLabel}" noch einmal.`);
   };
 
+  const handleTwoHandGestureSelected = (gesture: TwoHandGestureDefinition) => {
+    setSelectedTwoHandGesture(gesture);
+    setGestureLabel(gesture.name);
+    setShowTwoHandSelector(false);
+    audioService.speak(`Okay, lass uns die zweihändige Geste "${gesture.name}" lernen.`);
+  };
+
+  const handleTwoHandModeToggle = () => {
+    if (isTwoHandMode) {
+      // Switching from two-hand to single-hand mode
+      setIsTwoHandMode(false);
+      setSelectedTwoHandGesture(null);
+      setGestureLabel('');
+    } else {
+      // Switching to two-hand mode
+      setIsTwoHandMode(true);
+      setShowTwoHandSelector(true);
+    }
+  };
+
   const styles = createStyles(largeText, highContrast);
 
   if (false) {
@@ -198,37 +223,123 @@ export default function TeachingScreen({ navigation }: any) {
       <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Neue Geste beibringen</Text>
       {!isSessionActive ? (
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Name der neuen Geste"
-            value={gestureLabel}
-            onChangeText={setGestureLabel}
-            accessibilityLabel="Name der neuen Geste"
-          />
-          <Pressable
-            style={({ pressed }) => [
-              childFriendlyStyles.minTouchTarget,
-              styles.button,
-              highContrast && styles.buttonHC,
-              pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-            ]}
-            onPress={() => {
-              void childHaptic();
-              startSession();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Training starten"
-          >
-            <Text style={[
-              styles.buttonText,
-              largeText && styles.buttonTextLarge,
-              highContrast && styles.buttonTextHC,
-            ]}>
-              Training starten
-            </Text>
-          </Pressable>
-        </View>
+       <View style={styles.inputContainer}>
+           {/* Two-hand mode toggle */}
+           <View style={styles.modeToggleContainer}>
+             <Text style={styles.modeToggleLabel}>
+               {isTwoHandMode ? '🤲 Zweihändige Geste' : '✋ Einzelhändige Geste'}
+             </Text>
+             <Pressable
+               style={({ pressed }) => [
+                 styles.modeToggle,
+                 isTwoHandMode && styles.modeToggleActive,
+                 pressed && styles.modeTogglePressed,
+               ]}
+               onPress={handleTwoHandModeToggle}
+               accessibilityRole="button"
+               accessibilityLabel={isTwoHandMode ? 'Zu einzelhändigen Gesten wechseln' : 'Zu zweihändigen Gesten wechseln'}
+             >
+               <Text style={styles.modeToggleText}>
+                 {isTwoHandMode ? '🤲' : '✋'}
+               </Text>
+             </Pressable>
+           </View>
+
+           {isTwoHandMode ? (
+             selectedTwoHandGesture ? (
+               <View style={styles.selectedGestureContainer}>
+                 <Text style={styles.selectedGestureTitle}>
+                   Ausgewählte Geste:
+                 </Text>
+                 <Text style={styles.selectedGestureName}>
+                   {selectedTwoHandGesture.name}
+                 </Text>
+                 <Text style={styles.selectedGestureDescription}>
+                   {selectedTwoHandGesture.description}
+                 </Text>
+                 <View style={styles.gestureHandsContainer}>
+                   <Text style={styles.handEmoji}>🤲</Text>
+                   <Text style={styles.plusSign}>+</Text>
+                   <Text style={styles.handEmoji}>🤲</Text>
+                 </View>
+                 <Pressable
+                   style={({ pressed }) => [
+                     childFriendlyStyles.minTouchTarget,
+                     styles.button,
+                     highContrast && styles.buttonHC,
+                     pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                   ]}
+                   onPress={() => {
+                     void childHaptic();
+                     startSession();
+                   }}
+                   accessibilityRole="button"
+                   accessibilityLabel="Training für zweihändige Geste starten"
+                 >
+                   <Text style={[
+                     styles.buttonText,
+                     largeText && styles.buttonTextLarge,
+                     highContrast && styles.buttonTextHC,
+                   ]}>
+                     Training starten
+                   </Text>
+                 </Pressable>
+               </View>
+             ) : (
+               <Pressable
+                 style={({ pressed }) => [
+                   childFriendlyStyles.minTouchTarget,
+                   styles.button,
+                   highContrast && styles.buttonHC,
+                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                 ]}
+                 onPress={() => setShowTwoHandSelector(true)}
+                 accessibilityRole="button"
+                 accessibilityLabel="Zweihändige Geste auswählen"
+               >
+                 <Text style={[
+                   styles.buttonText,
+                   largeText && styles.buttonTextLarge,
+                   highContrast && styles.buttonTextHC,
+                 ]}>
+                   🤲 Geste auswählen
+                 </Text>
+               </Pressable>
+             )
+           ) : (
+             <>
+               <TextInput
+                 style={styles.input}
+                 placeholder="Name der neuen Geste"
+                 value={gestureLabel}
+                 onChangeText={setGestureLabel}
+                 accessibilityLabel="Name der neuen Geste"
+               />
+               <Pressable
+                 style={({ pressed }) => [
+                   childFriendlyStyles.minTouchTarget,
+                   styles.button,
+                   highContrast && styles.buttonHC,
+                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                 ]}
+                 onPress={() => {
+                   void childHaptic();
+                   startSession();
+                 }}
+                 accessibilityRole="button"
+                 accessibilityLabel="Training starten"
+               >
+                 <Text style={[
+                   styles.buttonText,
+                   largeText && styles.buttonTextLarge,
+                   highContrast && styles.buttonTextHC,
+                 ]}>
+                   Training starten
+                 </Text>
+               </Pressable>
+             </>
+           )}
+         </View>
       ) : (
         <View style={styles.recordingContainer}>
           <View style={styles.camera}>
@@ -331,11 +442,21 @@ export default function TeachingScreen({ navigation }: any) {
         onPress={() => navigation.goBack()}
         accessibilityLabel="Zurück"
       />
-      {profile && <BottomNav active="training" profileId={profile.id} />}
-    </SafeAreaView>
-    </LinearGradient>
-  );
-}
+       {profile && <BottomNav active="training" profileId={profile.id} />}
+
+       {/* Two-Hand Gesture Selector Overlay */}
+       {showTwoHandSelector && (
+         <View style={styles.overlay}>
+           <TwoHandGestureSelector
+             onGestureSelected={handleTwoHandGestureSelected}
+             onCancel={() => setShowTwoHandSelector(false)}
+           />
+         </View>
+       )}
+     </SafeAreaView>
+     </LinearGradient>
+   );
+ }
 
 const createStyles = (largeText: boolean, highContrast: boolean) =>
   StyleSheet.create({
@@ -413,5 +534,93 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
     },
     buttonTextHC: {
       color: COLORS.highContrastBackground,
+    },
+    // Two-hand gesture mode styles
+    modeToggleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: SPACING.md,
+      padding: SPACING.sm,
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
+      borderRadius: RADIUS,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+    },
+    modeToggleLabel: {
+      fontSize: largeText ? 16 : 14,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      flex: 1,
+    },
+    modeToggle: {
+      width: 50,
+      height: 50,
+      borderRadius: RADIUS,
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
+      borderWidth: 2,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modeToggleActive: {
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+    },
+    modeTogglePressed: {
+      opacity: 0.7,
+    },
+    modeToggleText: {
+      fontSize: 24,
+    },
+    selectedGestureContainer: {
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
+      borderRadius: RADIUS,
+      padding: SPACING.md,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+    },
+    selectedGestureTitle: {
+      fontSize: largeText ? 16 : 14,
+      fontWeight: 'bold',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      marginBottom: SPACING.xs,
+    },
+    selectedGestureName: {
+      fontSize: largeText ? 18 : 16,
+      fontWeight: 'bold',
+      color: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      marginBottom: SPACING.xs,
+    },
+    selectedGestureDescription: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      marginBottom: SPACING.sm,
+      lineHeight: largeText ? 18 : 16,
+    },
+    gestureHandsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACING.md,
+    },
+    handEmoji: {
+      fontSize: largeText ? 32 : 28,
+      marginHorizontal: SPACING.xs,
+    },
+    plusSign: {
+      fontSize: largeText ? 20 : 18,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      fontWeight: 'bold',
+    },
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.md,
+      zIndex: 1000,
     },
   });

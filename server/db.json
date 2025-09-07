@@ -1,1 +1,86 @@
-{"symbols": [{"id": "hello", "name": "Hello", "emoji": "\ud83d\udc4b", "color": "#ffcc00", "audioUri": "hello.mp3", "dgsVideoUri": "dgs/hello.mp4", "healthScore": 1}, {"id": "drink", "name": "Drink", "emoji": "\ud83e\udd64", "color": "#0099ff", "audioUri": "drink.mp3", "dgsVideoUri": "dgs/drink.mp4", "healthScore": 1}], "gestureDefinitions": [], "gestureTrainingData": [{"id": "mf9n762i2npmfxqgy6c", "gestureDefinitionId": "hello", "landmarkData": [1, 2, 3], "source": "HIP_2", "syncStatus": "pending", "approved": true}], "interactionLogs": [], "profiles": [{"id": "default", "name": "Default Profile", "consentDataUpload": false, "consentHelpMeGetSmarter": false, "vocabularySetId": "basic"}, {"id": "gdpr", "name": "GDPR Test", "consentDataUpload": false, "consentHelpMeGetSmarter": false, "vocabularySetId": "basic"}], "vocabularySets": [{"id": "basic", "name": "Basic"}, {"id": "animals", "name": "Animals"}], "vocabularySetSymbols": [{"id": "mf9n74iqk171pcpi58", "vocabularySetId": "basic", "symbolId": "hello"}, {"id": "mf9n74iqardc7o8xbl8", "vocabularySetId": "basic", "symbolId": "drink"}], "usageStats": [{"id": "mf9n74iqo1b2bq26jd", "symbolId": "hello", "profileId": "default", "count": 0}, {"id": "mf9n74iqkw11jv7xa1r", "symbolId": "drink", "profileId": "default", "count": 0}, {"id": "gdprstat", "symbolId": "hello", "profileId": "gdpr", "count": 0}], "learningAnalytics": [], "corrections": [{"id": "gdprcorr", "predictedGesture": "hello", "actualGesture": "hello", "confidence": 1.0, "timestamp": 0, "isSynced": false, "profileId": "gdpr"}], "negativeSamples": []}
+{
+  "symbols": [
+    {
+      "id": "hello",
+      "name": "Hello",
+      "emoji": "👋",
+      "color": "#ffcc00",
+      "audioUri": "hello.mp3",
+      "dgsVideoUri": "dgs/hello.mp4",
+      "healthScore": 1
+    },
+    {
+      "id": "drink",
+      "name": "Drink",
+      "emoji": "🥤",
+      "color": "#0099ff",
+      "audioUri": "drink.mp3",
+      "dgsVideoUri": "dgs/drink.mp4",
+      "healthScore": 1
+    }
+  ],
+  "gestureDefinitions": [],
+  "gestureTrainingData": [
+    {
+      "id": "mfa5zaz8oil2d9bewe",
+      "gestureDefinitionId": "hello",
+      "landmarkData": [
+        1,
+        2,
+        3
+      ],
+      "source": "HIP_2",
+      "syncStatus": "pending",
+      "approved": true
+    }
+  ],
+  "interactionLogs": [],
+  "profiles": [
+    {
+      "id": "default",
+      "name": "Default Profile",
+      "consentDataUpload": false,
+      "consentHelpMeGetSmarter": false,
+      "vocabularySetId": "basic"
+    }
+  ],
+  "vocabularySets": [
+    {
+      "id": "basic",
+      "name": "Basic"
+    },
+    {
+      "id": "animals",
+      "name": "Animals"
+    }
+  ],
+  "vocabularySetSymbols": [
+    {
+      "id": "mfa5z8pgukoj11z616t",
+      "vocabularySetId": "basic",
+      "symbolId": "hello"
+    },
+    {
+      "id": "mfa5z8pgrbww8m3qg2i",
+      "vocabularySetId": "basic",
+      "symbolId": "drink"
+    }
+  ],
+  "usageStats": [
+    {
+      "id": "mfa5z8pg3pzonr47gck",
+      "symbolId": "hello",
+      "profileId": "default",
+      "count": 0
+    },
+    {
+      "id": "mfa5z8pgrm0seuc9al",
+      "symbolId": "drink",
+      "profileId": "default",
+      "count": 0
+    }
+  ],
+  "learningAnalytics": [],
+  "corrections": [],
+  "negativeSamples": []
+}

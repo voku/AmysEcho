@@ -349,7 +349,7 @@ export default function ScreenFlash({
   if (!isActive) return null;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="screen-flash-container">
       <Animated.View
         style={[
           styles.flash,
@@ -359,6 +359,7 @@ export default function ScreenFlash({
             transform: [{ scale: scaleAnim }],
           },
         ]}
+        testID="screen-flash-overlay"
       />
     </View>
   );

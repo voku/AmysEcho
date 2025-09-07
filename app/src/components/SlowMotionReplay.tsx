@@ -13,8 +13,6 @@ import { logger } from '../utils/logger';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { LanguageManager } from '../services/LanguageManager';
 
-const { width: screenWidth } = Dimensions.get('window');
-
 interface SlowMotionReplayProps {
   gestureId: string;
   videoUri: string;
@@ -42,7 +40,14 @@ export default function SlowMotionReplay({
   const [currentSpeed, setCurrentSpeed] = useState(initialSpeed);
   const [showSpeedControls, setShowSpeedControls] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [screenWidth, setScreenWidth] = useState(375);
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Get screen dimensions dynamically
+  useEffect(() => {
+    const { width } = Dimensions.get('window');
+    setScreenWidth(width);
+  }, []);
 
   const player = useVideoPlayer(videoUri ? { uri: videoUri } : null);
 
@@ -154,20 +159,21 @@ export default function SlowMotionReplay({
         { opacity: fadeAnim },
       ]}
       pointerEvents="box-none"
+      testID="slow-motion-replay-container"
     >
-      <View style={styles.overlay} pointerEvents="auto">
+      <View style={[styles.overlay, { width: screenWidth * 0.9 }]} pointerEvents="auto" testID="slow-motion-replay-overlay">
         {/* Header with gesture info */}
-        <View style={styles.header}>
-          <Text style={styles.gestureTitle}>
+        <View style={styles.header} testID="slow-motion-header">
+          <Text style={styles.gestureTitle} testID="slow-motion-gesture-title">
             {LanguageManager.t('slowMotionReplay.title')} {gestureId}
           </Text>
-          <Text style={styles.speedIndicator}>
+          <Text style={styles.speedIndicator} testID="slow-motion-speed-indicator">
             {currentSpeed}x {LanguageManager.t('slowMotionReplay.speedLabel')}
           </Text>
         </View>
 
         {/* Video Player */}
-        <View style={styles.videoContainer}>
+        <View style={styles.videoContainer} testID="slow-motion-video-container">
           {player ? (
             <VideoView
               player={player}
@@ -176,9 +182,10 @@ export default function SlowMotionReplay({
               allowsFullscreen={false}
               allowsPictureInPicture={false}
               accessibilityLabel={`${LanguageManager.t('slowMotionReplay.video')} ${gestureId}`}
+              testID="slow-motion-video"
             />
           ) : (
-            <View style={styles.placeholder}>
+            <View style={styles.placeholder} testID="slow-motion-placeholder">
               <Text style={styles.placeholderText}>
                 {LanguageManager.t('slowMotionReplay.loading')}
               </Text>
@@ -187,7 +194,7 @@ export default function SlowMotionReplay({
 
           {/* Speed Control Overlay */}
           {showControls && showSpeedControls && (
-            <View style={styles.speedControls}>
+            <View style={styles.speedControls} testID="slow-motion-speed-controls">
               {REPLAY_SPEEDS.map((speed) => (
                 <Pressable
                   key={speed}
@@ -197,6 +204,7 @@ export default function SlowMotionReplay({
                   ]}
                   onPress={() => changeSpeed(speed)}
                   accessibilityLabel={`${speed}x ${LanguageManager.t('slowMotionReplay.speed')}`}
+                  testID={`slow-motion-speed-${speed}`}
                 >
                   <Text style={[
                     styles.speedButtonText,
@@ -212,11 +220,12 @@ export default function SlowMotionReplay({
 
         {/* Control Bar */}
         {showControls && (
-          <View style={styles.controlBar}>
+          <View style={styles.controlBar} testID="slow-motion-control-bar">
             <Pressable
               style={styles.controlButton}
               onPress={restartPlayback}
               accessibilityLabel={LanguageManager.t('slowMotionReplay.restart')}
+              testID="slow-motion-restart-button"
             >
               <Text style={styles.controlButtonText}>🔄</Text>
             </Pressable>
@@ -229,6 +238,7 @@ export default function SlowMotionReplay({
                   ? LanguageManager.t('slowMotionReplay.pause')
                   : LanguageManager.t('slowMotionReplay.play')
               }
+              testID="slow-motion-play-pause-button"
             >
               <Text style={styles.controlButtonText}>
                 {isPlaying ? '⏸️' : '▶️'}
@@ -239,6 +249,7 @@ export default function SlowMotionReplay({
               style={styles.controlButton}
               onPress={() => setShowSpeedControls(!showSpeedControls)}
               accessibilityLabel={LanguageManager.t('slowMotionReplay.changeSpeed')}
+              testID="slow-motion-speed-button"
             >
               <Text style={styles.controlButtonText}>
                 {currentSpeed}x ⚙️
@@ -249,6 +260,7 @@ export default function SlowMotionReplay({
               style={styles.controlButton}
               onPress={handleClose}
               accessibilityLabel={LanguageManager.t('slowMotionReplay.close')}
+              testID="slow-motion-close-button"
             >
               <Text style={styles.controlButtonText}>✕</Text>
             </Pressable>
@@ -256,11 +268,11 @@ export default function SlowMotionReplay({
         )}
 
         {/* Learning Tips */}
-        <View style={styles.tipsContainer}>
-          <Text style={styles.tipsTitle}>
+        <View style={styles.tipsContainer} testID="slow-motion-tips-container">
+          <Text style={styles.tipsTitle} testID="slow-motion-tips-title">
             {LanguageManager.t('slowMotionReplay.tipsTitle')}
           </Text>
-          <Text style={styles.tipsText}>
+          <Text style={styles.tipsText} testID="slow-motion-tips-text">
             {LanguageManager.t('slowMotionReplay.tipsText')}
           </Text>
         </View>
@@ -282,7 +294,6 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   overlay: {
-    width: screenWidth * 0.9,
     maxWidth: 400,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS * 3,

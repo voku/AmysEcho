@@ -16,7 +16,7 @@ export default function CommunicationInsightsScreen({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="communication-insights-screen">
       <CommunicationInsights onClose={handleClose} />
       <BottomNav active="parent" profileId="default" />
     </View>

@@ -635,6 +635,58 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
   }
 });
 
+// OpenAI Vision gesture validation endpoint
+app.post('/api/gesture/validate-vision', legacyAuth, async (req: Request, res: Response) => {
+  try {
+    const Body = z.object({
+      imageBase64: z.string().min(1),
+      expectedGesture: z.string().optional(),
+      mediapipeConfidence: z.number().optional(),
+      context: z.object({
+        user_id: z.string().optional(),
+        session_id: z.string().optional(),
+        previous_gestures: z.array(z.string()).optional(),
+        environment: z.enum(['home', 'school', 'therapy']).optional(),
+      }).optional(),
+      options: z.object({
+        detailed_feedback: z.boolean().optional(),
+        include_alternatives: z.boolean().optional(),
+        confidence_threshold: z.number().optional(),
+      }).optional(),
+    });
+
+    const parsed = Body.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Invalid request format',
+        details: parsed.error.flatten()
+      });
+    }
+
+    const { imageBase64, expectedGesture, context, options } = parsed.data;
+
+    // Import the OpenAI vision service
+    const { validateGestureWithVision } = await import('./services/openaiVisionService.js');
+
+    // Validate the gesture using OpenAI Vision
+    const result = await validateGestureWithVision({
+      imageBase64,
+      expectedGesture,
+      context,
+      options,
+    });
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('OpenAI validation endpoint error:', error);
+    res.status(500).json({
+      error: 'Gesture validation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Crash report ingestion
 app.post('/api/crash-reports', legacyAuth, async (req: Request, res: Response) => {
   try {

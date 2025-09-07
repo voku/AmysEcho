@@ -15,6 +15,7 @@
     "express": "5.1.0",
     "express-rate-limit": "6.7.0",
     "jsonwebtoken": "9.0.2",
+    "openai": "^4.28.0",
     "zod": "4.1.0"
   },
   "devDependencies": {

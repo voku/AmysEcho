@@ -70,6 +70,8 @@ import MoodSelector from '../components/MoodSelector';
 import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
 import GestureComparison from '../components/GestureComparison';
+import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
+import { isTwoHandGestureString } from '../constants/twoHandGestures';
 import type { RootStackParamList } from '../navigation/types';
 
 const FEEDBACK_THROTTLE_MS = 2000;
@@ -1755,17 +1757,28 @@ export default function RecognitionScreen({
 
         {/* Amy First: Never show technical errors to Amy - all errors are handled via status messages */}
 
-      {!error && !showCorrection && lastRecognizedGesture && (
-        <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}> 
-          <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}> 
-            {lastRecognizedGesture.label}
-          </Animated.Text>
-          <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
-          <Text style={styles.confidenceText} testID="recognition-path">
-            via {recognitionPath}
-          </Text>
-        </Animated.View>
-      )}
+       {!error && !showCorrection && lastRecognizedGesture && (
+         <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}>
+           {isTwoHandGestureString(lastRecognizedGesture.label) ? (
+             <TwoHandGestureDisplay
+               gestureString={lastRecognizedGesture.label}
+               confidence={gestureConfidence}
+               showDetails={true}
+               size="medium"
+             />
+           ) : (
+             <>
+               <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>
+                 {lastRecognizedGesture.label}
+               </Animated.Text>
+               <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
+               <Text style={styles.confidenceText} testID="recognition-path">
+                 via {recognitionPath}
+               </Text>
+             </>
+           )}
+         </Animated.View>
+       )}
 
       {showDgsVideo && lastRecognizedGesture?.dgsVideoUri && (
         <View style={styles.videoOverlay}>

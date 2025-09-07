@@ -12,6 +12,8 @@ import { LanguageManager } from '../services/LanguageManager';
 import { contextAwareRecognitionService } from '../services/contextAwareRecognitionService';
 import { adaptivePracticeTimingService } from '../services/adaptivePracticeTimingService';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
+import { validateGestureWithFallback, shouldTriggerOpenAIValidation } from '../services/openaiGestureValidationService';
+import OpenAIGestureFeedback from './OpenAIGestureFeedback';
 // Avoid pulling the module at import time. Use dynamic require below.
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 
@@ -75,6 +77,86 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setLangTick] = useState(0);
   const lastDetectedGestureRef = useRef<string | null>(null);
+
+  // OpenAI validation state
+  const [openaiValidationResult, setOpenaiValidationResult] = useState<{
+    gesture: string;
+    confidence: number;
+    feedback: string;
+    quality_score: number;
+    suggestions?: string[];
+    validation_source: 'mediapipe' | 'openai' | 'combined';
+  } | null>(null);
+  const [showOpenaiFeedback, setShowOpenaiFeedback] = useState(false);
+
+  // Enhanced gesture detection with OpenAI validation
+  const handleGestureDetection = useCallback(async (
+    gesture: string | null,
+    confidence: number,
+    landmarks: number[][][],
+    handednesses: string[],
+    emergency?: boolean
+  ) => {
+    if (!gesture) {
+      onGestureDetected(null, confidence, landmarks, handednesses, emergency);
+      return;
+    }
+
+    // Check if we should trigger OpenAI validation
+    const shouldValidate = shouldTriggerOpenAIValidation(confidence, gesture);
+
+    if (shouldValidate) {
+      try {
+        // Capture current frame for OpenAI validation
+        // Note: This is a placeholder - actual image capture would need camera access
+        const imageCapture = null; // TODO: Implement actual image capture
+
+        if (imageCapture) {
+          const validationResult = await validateGestureWithFallback(
+            { gesture, confidence, landmarks },
+            imageCapture,
+            {
+              session_id: 'current-session', // TODO: Get from context
+              environment: 'home', // TODO: Get from context
+            }
+          );
+
+          // Update OpenAI validation state
+          setOpenaiValidationResult({
+            gesture: validationResult.finalGesture,
+            confidence: validationResult.finalConfidence,
+            feedback: validationResult.feedback || 'Gesture validated',
+            quality_score: 7.5, // TODO: Get from OpenAI response
+            suggestions: validationResult.suggestions,
+            validation_source: validationResult.validationSource,
+          });
+
+          // Show feedback if validation source changed
+          if (validationResult.validationSource !== 'mediapipe') {
+            setShowOpenaiFeedback(true);
+          }
+
+          // Use validated result
+          onGestureDetected(
+            validationResult.finalGesture,
+            validationResult.finalConfidence,
+            landmarks,
+            handednesses,
+            emergency
+          );
+        } else {
+          // Fallback to original detection
+          onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+        }
+      } catch (error) {
+        console.warn('OpenAI validation failed, using MediaPipe result:', error);
+        onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+      }
+    } else {
+      // Use original MediaPipe detection
+      onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+    }
+  }, [onGestureDetected]);
 
   const injectModel = useCallback((b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
@@ -246,7 +328,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         let confidence = typeof data.confidence === 'number' ? data.confidence : 0;
         const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][]) : [];
         const handednesses = Array.isArray(data.handednesses) ? (data.handednesses as string[]) : [];
-        onGestureDetected(gesture, confidence, landmarks, handednesses, data.emergency === true);
+        // Enhanced gesture detection with OpenAI validation
+        handleGestureDetection(gesture, confidence, landmarks, handednesses, data.emergency === true);
       } else if (data.type === 'error') {
         // Amy First: Log technical errors but pass generic message to UI
         console.error('WebView error:', data.message);
@@ -366,6 +449,19 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           }
         }}
       />
+
+      {/* OpenAI Gesture Validation Feedback */}
+      <OpenAIGestureFeedback
+        isVisible={showOpenaiFeedback}
+        validationResult={openaiValidationResult}
+        onDismiss={() => setShowOpenaiFeedback(false)}
+        onApplySuggestion={(suggestion) => {
+          console.log('Applying suggestion:', suggestion);
+          // TODO: Implement suggestion application logic
+          setShowOpenaiFeedback(false);
+        }}
+      />
+
     </View>
   );
 };
