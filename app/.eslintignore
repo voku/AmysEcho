@@ -1,0 +1,14 @@
+# Temporary files
+temp_*.ts
+temp_no_imports.ts
+temp_test.ts
+
+# Generated files
+assets/gestureDetector.js
+coverage/
+
+# Mocks
+__mocks__/
+
+# Dependencies
+node_modules/

@@ -19,7 +19,7 @@ import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import { childHaptic } from '../services/feedbackService';
-import { gestureModel as gestures } from '../model';
+import { childFriendlyStyles } from '../styles/touchTargets';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -240,7 +240,7 @@ export default function TrainingScreen({ navigation, route }: any) {
             : `Training ${gestureId ? `for ${gestureId}` : 'Mode'}`}
         </Text>
         {!gestureId ? (
-            gestureModel.gestures.map((g) => (
+            gestureModel.gestures.map((g: { id: string; label: string }) => (
              <Pressable
                key={g.id}
                style={({ pressed }) => [
@@ -275,7 +275,7 @@ export default function TrainingScreen({ navigation, route }: any) {
           <>
           {/* Optional DGS demo video if available */}
           {gestureId && (() => {
-            const entry = gestures.gestures.find(g => g.id === gestureId);
+            const entry = gestureModel.gestures.find(g => g.id === gestureId);
             const videoSource = entry?.dgsVideoUri ? { uri: entry.dgsVideoUri } : undefined;
             return videoSource ? (
               <View style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, marginBottom: SPACING.sm }}>

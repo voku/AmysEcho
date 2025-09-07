@@ -14,6 +14,7 @@ jest.mock('react-native', () => {
   return {
     View: (p: any) => React.createElement('View', p, p.children),
     Text: (p: any) => React.createElement('Text', p, p.children),
+    Pressable: (p: any) => React.createElement('Pressable', p, p.children),
     Button: (p: any) => React.createElement('Button', p, p.children),
     TextInput: (p: any) => React.createElement('TextInput', p, p.children),
     SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),

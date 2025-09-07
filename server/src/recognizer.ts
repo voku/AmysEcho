@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import config from './config';
+import config from './config/index.js';
 
 export type ClassificationResult = {
   label: string;

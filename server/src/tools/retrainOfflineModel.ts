@@ -1,4 +1,4 @@
-import { loadDatabase } from '../db';
+import { loadDatabase } from '../db.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 

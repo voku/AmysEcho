@@ -2,8 +2,8 @@
   "name": "integration-tests",
   "dependencies": {
     "tsx": {
-      "version": "4.20.3",
-      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.20.3.tgz",
+      "version": "4.20.5",
+      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.20.5.tgz",
       "overridden": false,
       "dependencies": {
         "esbuild": {

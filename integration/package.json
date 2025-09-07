@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "pretest": "npm ci --include=dev && npm run build --prefix ../server",
-    "test": "tsx --test \"**/*.{spec.ts,test.js}\""
+    "test": "tsx --test"
   },
   "devDependencies": {
-    "tsx": "^4.20.3"
+    "tsx": "^4.20.5"
   }
 }

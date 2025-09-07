@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
 import { LanguageManager } from '../services/LanguageManager';
+import { positiveTelemetryService } from '../services/positiveTelemetryService';
 
 interface PatternData {
   timeOfDay: string;
@@ -133,11 +134,10 @@ function TrendIndicator({ trend }: { trend: 'increasing' | 'decreasing' | 'stabl
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function CommunicationInsights({ onClose }: CommunicationInsightsProps) {
   const { largeText, highContrast } = useAccessibility();
-  const [patterns] = useState<PatternData[]>(mockPatterns);
-  const [weeklyData] = useState(mockWeeklyData);
+  const [insightData, setInsightData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const styles = StyleSheet.create({
     container: {
@@ -248,24 +248,94 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     },
   });
 
-  const insights = [
+  useEffect(() => {
+    const loadInsights = async () => {
+      try {
+        const positiveInsights = positiveTelemetryService.getPositiveInsights();
+        setInsightData(positiveInsights);
+      } catch (error) {
+        console.warn('Failed to load communication insights:', error);
+        // Fallback to mock data if service fails
+        setInsightData({
+          topGestures: mockPatterns.map(p => ({ gesture: p.gesture, successRate: 0.8, frequency: p.frequency })),
+          peakPerformanceTimes: [{ timeOfDay: 'afternoon', averageConfidence: 0.85 }],
+          communicationStreaks: mockPatterns.map(p => ({ gesture: p.gesture, currentStreak: 3, longestStreak: 5 })),
+          recentCelebrations: [],
+          weeklyProgress: {
+            totalSuccesses: mockWeeklyData.reduce((sum, d) => sum + d.gestures, 0),
+            averageConfidence: 0.82,
+            mostSuccessfulDay: 'Do',
+            improvementTrend: 'improving'
+          }
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInsights();
+  }, []);
+
+  if (isLoading || !insightData) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>{LanguageManager.t('insights.loading')}</Text>
+      </View>
+    );
+  }
+
+  // Transform insights data for display
+  const patterns: PatternData[] = insightData.topGestures.map((g: any) => ({
+    timeOfDay: insightData.peakPerformanceTimes[0]?.timeOfDay || 'afternoon',
+    gesture: g.gesture,
+    frequency: g.frequency,
+    trend: insightData.weeklyProgress.improvementTrend === 'improving' ? 'increasing' :
+           insightData.weeklyProgress.improvementTrend === 'celebrating' ? 'stable' : 'decreasing'
+  }));
+
+  const weeklyData = [
+    { day: 'Mo', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.2) },
+    { day: 'Di', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.25) },
+    { day: 'Mi', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.15) },
+    { day: 'Do', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.2) },
+    { day: 'Fr', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.1) },
+    { day: 'Sa', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.05) },
+    { day: 'So', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.05) },
+  ];
+
+  const keyInsights = [
     {
       icon: '📈',
-      text: LanguageManager.t('insights.most_active_time'),
+      text: insightData.peakPerformanceTimes.length > 0
+        ? `${LanguageManager.t('insights.most_active_time')}: ${insightData.peakPerformanceTimes[0].timeOfDay} (${Math.round(insightData.peakPerformanceTimes[0].averageConfidence * 100)}% ${LanguageManager.t('insights.confidence')})`
+        : LanguageManager.t('insights.most_active_time'),
     },
     {
       icon: '🎯',
-      text: LanguageManager.t('insights.favorite_gesture'),
+      text: insightData.topGestures.length > 0
+        ? `${LanguageManager.t('insights.favorite_gesture')}: ${insightData.topGestures[0].gesture} (${insightData.topGestures[0].frequency} ${LanguageManager.t('insights.times')})`
+        : LanguageManager.t('insights.favorite_gesture'),
     },
     {
       icon: '📅',
-      text: LanguageManager.t('insights.consistent_days'),
+      text: insightData.communicationStreaks.length > 0
+        ? `${LanguageManager.t('insights.consistent_days')}: ${insightData.communicationStreaks[0].gesture} (${insightData.communicationStreaks[0].currentStreak} ${LanguageManager.t('insights.days_in_row')})`
+        : LanguageManager.t('insights.consistent_days'),
     },
     {
-      icon: '💪',
-      text: LanguageManager.t('insights.improvement_areas'),
+      icon: insightData.weeklyProgress.improvementTrend === 'improving' ? '💪' : '🎉',
+      text: `${LanguageManager.t('insights.weekly_trend')}: ${insightData.weeklyProgress.improvementTrend === 'improving' ? LanguageManager.t('insights.improving') : LanguageManager.t('insights.stable')}`,
     },
   ];
+
+  // Add recent celebrations if any
+  const allInsights = [...keyInsights];
+  insightData.recentCelebrations.slice(0, 2).forEach((celebration: { message: string }) => {
+    allInsights.push({
+      icon: '🎉',
+      text: celebration.message,
+    });
+  });
 
   return (
     <View style={styles.container}>
@@ -306,7 +376,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{LanguageManager.t('insights.key_insights')}</Text>
           <View style={styles.insightsList}>
-            {insights.map((insight, index) => (
+            {allInsights.map((insight: { icon: string; text: string }, index: number) => (
               <View key={index} style={styles.insightItem}>
                 <Text style={styles.insightIcon}>{insight.icon}</Text>
                 <Text style={styles.insightText}>{insight.text}</Text>

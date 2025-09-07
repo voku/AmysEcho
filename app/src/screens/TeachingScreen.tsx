@@ -15,6 +15,7 @@ import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { syncTrainingData } from '../services';
 import { childHaptic } from '../services/feedbackService';
+import { childFriendlyStyles } from '../styles/touchTargets';
 
 const PREVIEW_SIZE = 240;
 
@@ -256,13 +257,7 @@ export default function TeachingScreen({ navigation }: any) {
           <Text style={styles.progress}>{sampleCount} / {SAMPLES_NEEDED} Beispiele</Text>
           <Pressable
             style={({ pressed }) => [
-              {
-                minWidth: 60,
-                minHeight: 60,
-                padding: SPACING.md,
-                alignItems: 'center',
-                justifyContent: 'center',
-              },
+              childFriendlyStyles.minTouchTarget,
               styles.button,
               highContrast && styles.buttonHC,
               (isRecording || sampleCount >= SAMPLES_NEEDED) && styles.buttonDisabled,

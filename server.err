@@ -1,0 +1,18 @@
+node:internal/modules/esm/resolve:262
+    throw new ERR_UNSUPPORTED_DIR_IMPORT(path, basePath, String(resolved));
+          ^
+
+Error [ERR_UNSUPPORTED_DIR_IMPORT]: Directory import '/home/lars/PhpstormProjects/AmysEcho/server/dist/config' is not supported resolving ES modules imported from /home/lars/PhpstormProjects/AmysEcho/server/dist/services/dialogEngine.js
+    at finalizeResolution (node:internal/modules/esm/resolve:262:11)
+    at moduleResolve (node:internal/modules/esm/resolve:859:10)
+    at defaultResolve (node:internal/modules/esm/resolve:983:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:801:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:725:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:309:38)
+    at #link (node:internal/modules/esm/module_job:208:49) {
+  code: 'ERR_UNSUPPORTED_DIR_IMPORT',
+  url: 'file:///home/lars/PhpstormProjects/AmysEcho/server/dist/config'
+}
+
+Node.js v24.4.1

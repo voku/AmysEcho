@@ -5,7 +5,7 @@ import {
   DATA_DIR,
   getMlpModelPath,
   TRAINED_MLP_MODEL_PATH,
-} from './modelPaths';
+} from './modelPaths.js';
 
 describe('getTrainedModelPath', () => {
   it('returns global path when no profileId provided', () => {

@@ -6,6 +6,7 @@ jest.mock('react-native', () => {
   return {
     View: (props: any) => React.createElement('View', props, props.children),
     Text: (props: any) => React.createElement('Text', props, props.children),
+    Pressable: (props: any) => React.createElement('Pressable', props, props.children),
     Button: (props: any) => React.createElement('Button', props, props.children),
     FlatList: ({ data, renderItem, ListEmptyComponent, keyExtractor }: any) =>
       React.createElement(
@@ -78,6 +79,7 @@ jest.mock('expo-speech', () => ({
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(),
   impactAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
 }));
 jest.mock('expo-file-system', () => ({
   bundleDirectory: 'bundle/',

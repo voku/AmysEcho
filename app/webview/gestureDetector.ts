@@ -17,8 +17,38 @@ import { loadConfig } from './config/GestureConfig';
 import { GestureSizeNormalizer, PartialGestureDetector, TremorCompensator } from './gestureProcessing';
 
 // Import celebration and feedback systems
-import { CelebrationSystem } from './utils/CelebrationSystem';
-import { FeedbackSystem } from './utils/FeedbackSystem';
+import { CelebrationSystem, AttemptResult } from './utils/CelebrationSystem';
+import { FeedbackSystem, FeedbackAttempt } from './utils/FeedbackSystem';
+
+// Import personalized threshold manager
+import { PersonalizedThresholdManager } from './utils/PersonalizedThresholdManager';
+
+// Import gesture combination manager
+import { GestureCombinationManager } from './utils/GestureCombinationManager';
+
+// Import haptic feedback manager
+import { HapticFeedbackManager } from './utils/HapticFeedbackManager';
+
+// Import gesture replay manager
+import { GestureReplayManager } from './utils/GestureReplayManager';
+
+// Import navigation gesture manager
+import { NavigationGestureManager } from './utils/NavigationGestureManager';
+
+// Import visual correction manager
+import { VisualCorrectionManager } from './utils/VisualCorrectionManager';
+
+// Import gesture undo manager
+import { GestureUndoManager } from './utils/GestureUndoManager';
+
+// Import enhanced context-aware recognizer
+import { EnhancedContextAwareRecognizer } from './utils/EnhancedContextAwareRecognizer';
+
+// Import adaptive practice manager
+import { AdaptivePracticeManager } from './utils/AdaptivePracticeManager';
+
+// Import positive telemetry manager
+import { PositiveTelemetryManager } from './utils/PositiveTelemetryManager';
 
 // Forward script errors to React Native for easier debugging
 const onError = (e: ErrorEvent) => {
@@ -68,272 +98,8 @@ window.addEventListener('unhandledrejection', onUnhandledRejection);
 window.fflate = { unzip, unzipSync };
 installMlp();
 
-// Enhanced Error Recovery Manager for robust error handling
-class ErrorRecoveryManager {
-  private failureCount = 0;
-  private lastFailureTime = 0;
-  private circuitBreakerOpen = false;
-  private fallbackMode = false;
-  private recoveryAttempts = new Map<string, number>();
-  private lastRecoveryTime = 0;
-  private emergencyMode = false;
-
-  private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
-  private readonly CIRCUIT_BREAKER_TIMEOUT = 30000; // 30 seconds
-  private readonly FAILURE_WINDOW = 60000; // 1 minute
-  private readonly MAX_RECOVERY_ATTEMPTS = 3;
-  private readonly RECOVERY_COOLDOWN = 5000; // 5 seconds between recovery attempts
-
-  getErrorInfo(error: Error, context: string): {
-    message: string;
-    code: string;
-    recoverable: boolean;
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    suggestedAction: string;
-    userMessage: string;
-  } {
-    const errorMessage = error.message.toLowerCase();
-
-    // Emergency gesture errors - highest priority
-    if (context.includes('emergency') || errorMessage.includes('emergency')) {
-      return {
-        message: 'Emergency gesture detection failed',
-        code: 'EMERGENCY_ERROR',
-        recoverable: true,
-        severity: 'critical',
-        suggestedAction: 'immediate_retry',
-        userMessage: 'Notfall-Erkennung wird wiederhergestellt...'
-      };
-    }
-
-    // Network-related errors
-    if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
-      return {
-        message: 'Network connectivity issue detected',
-        code: 'NETWORK_ERROR',
-        recoverable: true,
-        severity: 'medium',
-        suggestedAction: 'retry_with_backoff',
-        userMessage: 'Verbindungsproblem erkannt, versuche Wiederherstellung...'
-      };
-    }
-
-    // Camera-related errors
-    if (errorMessage.includes('camera') || errorMessage.includes('media') || errorMessage.includes('permission')) {
-      return {
-        message: 'Camera access issue detected',
-        code: 'CAMERA_ERROR',
-        recoverable: true,
-        severity: 'high',
-        suggestedAction: 'request_permission',
-        userMessage: 'Kamera-Zugriff wird überprüft...'
-      };
-    }
-
-    // MediaPipe-related errors
-    if (errorMessage.includes('mediapipe') || errorMessage.includes('wasm') || errorMessage.includes('webgl')) {
-      return {
-        message: 'Gesture recognition system issue detected',
-        code: 'MEDIAPIPE_ERROR',
-        recoverable: true,
-        severity: 'medium',
-        suggestedAction: 'fallback_mode',
-        userMessage: 'Gestenerkennung wird neu gestartet...'
-      };
-    }
-
-    // Memory-related errors
-    if (errorMessage.includes('memory') || errorMessage.includes('out of memory')) {
-      return {
-        message: 'Memory issue detected',
-        code: 'MEMORY_ERROR',
-        recoverable: true,
-        severity: 'high',
-        suggestedAction: 'cleanup_resources',
-        userMessage: 'Speicher wird optimiert...'
-      };
-    }
-
-    // Performance-related errors
-    if (errorMessage.includes('performance') || errorMessage.includes('slow') || errorMessage.includes('timeout')) {
-      return {
-        message: 'Performance issue detected',
-        code: 'PERFORMANCE_ERROR',
-        recoverable: true,
-        severity: 'low',
-        suggestedAction: 'reduce_quality',
-        userMessage: 'Leistung wird angepasst...'
-      };
-    }
-
-    // Generic error
-    return {
-      message: `System issue detected during ${context}`,
-      code: 'GENERIC_ERROR',
-      recoverable: false,
-      severity: 'medium',
-      suggestedAction: 'log_and_continue',
-      userMessage: 'System wird überprüft...'
-    };
-  }
-
-  recordFailure(error: Error, context: string): boolean {
-    const now = Date.now();
-    const errorInfo = this.getErrorInfo(error, context);
-
-    // Track recovery attempts for this error type
-    const recoveryKey = `${errorInfo.code}_${context}`;
-    const attempts = this.recoveryAttempts.get(recoveryKey) || 0;
-
-    if (attempts >= this.MAX_RECOVERY_ATTEMPTS) {
-      console.warn(`Max recovery attempts reached for ${recoveryKey}`);
-      return false;
-    }
-
-    // Reset failure count if outside the failure window
-    if (now - this.lastFailureTime > this.FAILURE_WINDOW) {
-      this.failureCount = 0;
-      this.recoveryAttempts.clear();
-    }
-
-    this.failureCount++;
-    this.lastFailureTime = now;
-    this.recoveryAttempts.set(recoveryKey, attempts + 1);
-
-    // Open circuit breaker if threshold exceeded
-    if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
-      this.circuitBreakerOpen = true;
-      console.warn('Circuit breaker opened due to repeated failures');
-      this.activateEmergencyMode();
-      return false;
-    }
-
-    return true; // Should retry
-  }
-
-  isCircuitBreakerOpen(): boolean {
-    // Auto-close circuit breaker after timeout
-    if (this.circuitBreakerOpen && Date.now() - this.lastFailureTime > this.CIRCUIT_BREAKER_TIMEOUT) {
-      this.circuitBreakerOpen = false;
-      this.failureCount = 0;
-      this.recoveryAttempts.clear();
-      console.info('Circuit breaker auto-closed');
-      this.deactivateEmergencyMode();
-    }
-
-    return this.circuitBreakerOpen;
-  }
-
-  activateFallbackMode(): void {
-    if (!this.fallbackMode) {
-      this.fallbackMode = true;
-      console.warn('Activating fallback gesture detection mode');
-
-      // Notify React Native about fallback mode
-      this.sendTelemetryEvent('fallback_mode_activated', {
-        timestamp: Date.now(),
-        reason: 'error_recovery'
-      });
-    }
-  }
-
-  activateEmergencyMode(): void {
-    if (!this.emergencyMode) {
-      this.emergencyMode = true;
-      console.warn('🚨 EMERGENCY MODE ACTIVATED - Critical gesture detection only');
-
-      this.sendTelemetryEvent('emergency_mode_activated', {
-        timestamp: Date.now(),
-        reason: 'circuit_breaker_opened'
-      });
-    }
-  }
-
-  deactivateEmergencyMode(): void {
-    if (this.emergencyMode) {
-      this.emergencyMode = false;
-      console.info('✅ Emergency mode deactivated - Full functionality restored');
-
-      this.sendTelemetryEvent('emergency_mode_deactivated', {
-        timestamp: Date.now()
-      });
-    }
-  }
-
-  isInFallbackMode(): boolean {
-    return this.fallbackMode;
-  }
-
-  isInEmergencyMode(): boolean {
-    return this.emergencyMode;
-  }
-
-  canAttemptRecovery(context: string): boolean {
-    const now = Date.now();
-    if (now - this.lastRecoveryTime < this.RECOVERY_COOLDOWN) {
-      return false; // Too soon since last recovery attempt
-    }
-
-    if (this.isCircuitBreakerOpen()) {
-      return false; // Circuit breaker is open
-    }
-
-    return true;
-  }
-
-  recordSuccessfulRecovery(context: string): void {
-    this.lastRecoveryTime = Date.now();
-    const recoveryKey = `recovery_${context}`;
-    this.recoveryAttempts.delete(recoveryKey);
-
-    this.sendTelemetryEvent('recovery_successful', {
-      context,
-      timestamp: Date.now()
-    });
-  }
-
-  private sendTelemetryEvent(event: string, data: any = {}): void {
-    try {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
-          type: 'telemetry',
-          event,
-          data
-        })
-      );
-    } catch (err) {
-      console.warn(`Failed to send telemetry event ${event}:`, err);
-    }
-  }
-
-  reset(): void {
-    this.failureCount = 0;
-    this.lastFailureTime = 0;
-    this.circuitBreakerOpen = false;
-    this.fallbackMode = false;
-    this.emergencyMode = false;
-    this.recoveryAttempts.clear();
-    this.lastRecoveryTime = 0;
-  }
-
-  getHealthStatus(): {
-    healthy: boolean;
-    fallbackActive: boolean;
-    emergencyActive: boolean;
-    failureCount: number;
-    lastFailure: number;
-    circuitBreakerOpen: boolean;
-  } {
-    return {
-      healthy: !this.circuitBreakerOpen && !this.emergencyMode,
-      fallbackActive: this.fallbackMode,
-      emergencyActive: this.emergencyMode,
-      failureCount: this.failureCount,
-      lastFailure: this.lastFailureTime,
-      circuitBreakerOpen: this.circuitBreakerOpen
-    };
-  }
-}
+// Import modular error recovery system
+import { ErrorRecoveryManager } from './utils/ErrorRecoveryManager';
 
 const errorRecoveryManager = new ErrorRecoveryManager();
 
@@ -725,6 +491,40 @@ class EmergencyGestureSystem {
 
 const emergencyGestureSystem = new EmergencyGestureSystem();
 
+// Enhanced celebration and feedback systems for 22q11 accessibility
+const celebrationSystem = new CelebrationSystem();
+const feedbackSystem = new FeedbackSystem();
+
+// Personalized threshold manager for Amy's individual gesture patterns
+const personalizedThresholdManager = new PersonalizedThresholdManager();
+
+// Gesture combination manager for complex communication sequences
+const gestureCombinationManager = new GestureCombinationManager();
+
+// Enhanced haptic feedback manager for immediate response
+const hapticFeedbackManager = new HapticFeedbackManager();
+
+// Gesture replay manager for slow-motion learning
+const gestureReplayManager = new GestureReplayManager();
+
+// Navigation gesture manager for simple navigation commands
+const navigationGestureManager = new NavigationGestureManager();
+
+// Visual correction manager for picture-based corrections
+const visualCorrectionManager = new VisualCorrectionManager();
+
+// Gesture undo manager for simple undo functionality
+const gestureUndoManager = new GestureUndoManager();
+
+// Enhanced context-aware recognizer for comprehensive pattern analysis
+const enhancedContextRecognizer = new EnhancedContextAwareRecognizer();
+
+// Adaptive practice manager for optimal timing
+const adaptivePracticeManager = new AdaptivePracticeManager();
+
+// Positive telemetry manager for success-focused insights
+const positiveTelemetryManager = new PositiveTelemetryManager();
+
 // Battery monitoring will be initialized after class declaration
 
 // Amy First: Battery monitoring and emergency mode activation
@@ -874,12 +674,15 @@ gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
 (window as any).emergencyGestureSystem = emergencyGestureSystem;
 (window as any).errorRecoveryManager = errorRecoveryManager;
 (window as any).batteryMonitor = batteryMonitor;
-(window as any).handStabilityAssistant = new HandStabilityAssistant();
+(window as any).handStabilityAssistant = handStabilityAssistant;
 (window as any).partialGestureDetector = partialGestureDetector;
-(window as any).tremorCompensator = new TremorCompensator();
+(window as any).tremorCompensator = tremorCompensator;
 (window as any).gestureSizeNormalizer = gestureSizeNormalizer;
-(window as any).celebrationSystem = new CelebrationSystem();
-(window as any).feedbackSystem = new FeedbackSystem();
+(window as any).celebrationSystem = celebrationSystem;
+(window as any).feedbackSystem = feedbackSystem;
+(window as any).enhancedContextRecognizer = enhancedContextRecognizer;
+(window as any).adaptivePracticeManager = adaptivePracticeManager;
+(window as any).positiveTelemetryManager = positiveTelemetryManager;
 
 // Add missing window properties for tests
 (window as any).__mlpPredict = undefined;
@@ -1015,6 +818,9 @@ const handStabilityAssistant = new HandStabilityAssistant();
 
 const tremorCompensator = new TremorCompensator();
 let lastProcessedLandmarks: number[][][] = [];
+let feedbackHistory: any[] = [];
+
+
 
 
 
@@ -1313,9 +1119,9 @@ function resetGestureChangeState() {
   tremorCompensator.clearHistory();
   lastProcessedLandmarks = [];
 }
-// Amy First: No throttling for communication - process every frame
-// Removed TARGET_FPS and MIN_FRAME_TIME to ensure Amy's gestures are never delayed
-const FRAME_LATENCY_SAMPLE_INTERVAL = 90; // ~3s @ 30fps (for telemetry only)
+// Amy First: Adaptive configuration based on context
+let currentConfig = loadConfig();
+const FRAME_LATENCY_SAMPLE_INTERVAL = currentConfig.timing.frameLatencySampleInterval;
 
 // Emergency gesture detection and priority processing
 function isEmergencyGesture(gesture: string | null): boolean {
@@ -1364,9 +1170,23 @@ function processGestureResults(results: any, timestamp: number) {
         console.warn("Failed to send 'frame_latency' telemetry event:", err);
       }
     }
+
+    // Amy First: Update adaptive configuration based on current context
+    // Note: Context will be updated after analysis with actual activity level
   let allLandmarks = (results?.landmarks || []).map((hand: any) =>
     hand.map((lm: any) => [lm.x, lm.y, lm.z ?? 0]),
   );
+
+  // Trigger haptic feedback for hand detection
+  if (allLandmarks.length > 0) {
+    const stability = handStabilityAssistant.getStabilityStatus().score;
+    hapticFeedbackManager.onHandDetected(allLandmarks.length, stability);
+
+    // Start gesture recording if not already recording
+    if (!gestureReplayManager['currentRecording']) {
+      // We'll start recording when we have a potential gesture
+    }
+  }
 
   // Apply tremor compensation
   if (allLandmarks.length > 0) {
@@ -1384,6 +1204,12 @@ function processGestureResults(results: any, timestamp: number) {
   // Apply gesture size normalization
   if (allLandmarks.length > 0) {
     allLandmarks = gestureSizeNormalizer.normalizeHandSize(allLandmarks);
+  }
+
+  // Add frame to gesture replay recording
+  if (allLandmarks.length > 0) {
+    const handedness = results?.handednesses?.map((h: any) => h.categoryName) || [];
+    gestureReplayManager.addFrame(allLandmarks, handedness, 0); // Confidence will be updated when gesture is recognized
   }
 
   // Analyze hand stability and provide feedback
@@ -1445,15 +1271,88 @@ function processGestureResults(results: any, timestamp: number) {
     }
   }
 
-  // ** MLP Gesture Prediction **
+  // ** MLP Gesture Prediction with Personalized Thresholds **
   if (window.__mlpPredict) {
     const mlpResult = window.__mlpPredict(
       allLandmarks,
       results?.handednesses ?? [],
     );
-    if (mlpResult && mlpResult.score > MLP_CONFIDENCE_THRESHOLD) {
-      outGesture = mlpResult.label;
-      outScore = mlpResult.score;
+    if (mlpResult) {
+      // Start recording if this is the first detection of a gesture
+      if (!gestureReplayManager['currentRecording']) {
+        gestureReplayManager.startRecording(mlpResult.label, mlpResult.score);
+      }
+
+      // Get personalized threshold for this gesture
+      const thresholdAdjustment = personalizedThresholdManager.getPersonalizedThreshold(
+        mlpResult.label,
+        currentConfig.thresholds.mlpConfidence
+      );
+
+      // Use personalized threshold if it improves recognition
+      const effectiveThreshold = thresholdAdjustment.adjustedThreshold;
+
+      if (mlpResult.score > effectiveThreshold) {
+        outGesture = mlpResult.label;
+        outScore = mlpResult.score;
+
+        // Stop recording and save successful gesture
+        gestureReplayManager.stopRecording(true, mlpResult.score);
+
+        // Check for navigation gesture
+        const navigationTrigger = navigationGestureManager.checkNavigationTrigger(
+          mlpResult.label,
+          mlpResult.score,
+          allLandmarks,
+          { source: 'mlp_prediction' }
+        );
+
+        if (navigationTrigger) {
+          // Process navigation trigger
+          navigationGestureManager.processNavigationTrigger(navigationTrigger);
+        }
+
+        // Check for undo gesture
+        const undoSession = gestureUndoManager.checkUndoTrigger(
+          mlpResult.label,
+          mlpResult.score,
+          { source: 'mlp_prediction' }
+        );
+
+        if (undoSession) {
+          // Send undo session to React Native for confirmation
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: 'undo_session',
+                sessionId: undoSession.sessionId,
+                undoGesture: undoSession.undoGesture.gesture,
+                targetGesture: undoSession.targetGesture.gesture,
+                feedback: undoSession.undoGesture.feedback,
+                timestamp: undoSession.timestamp
+              })
+            );
+          } catch (error) {
+            console.warn('Failed to send undo session:', error);
+          }
+        }
+
+        // Record gesture attempt for correction learning
+        visualCorrectionManager.recordGestureAttempt(mlpResult.label, mlpResult.score, mlpResult.score > 0.7);
+
+        // Record gesture for undo functionality
+        gestureUndoManager.recordGestureForUndo(
+          mlpResult.label,
+          mlpResult.score,
+          allLandmarks,
+          results?.handednesses?.map((h: any) => h.categoryName) || [],
+          `gesture_${Date.now()}`
+        );
+
+        // Trigger haptic feedback for gesture recognition
+        const isHighConfidence = mlpResult.score > 0.8;
+        hapticFeedbackManager.onGestureRecognized(mlpResult.label, mlpResult.score, isHighConfidence);
+      }
     }
   }
 
@@ -1474,8 +1373,20 @@ function processGestureResults(results: any, timestamp: number) {
           outGesture = gestureId;
           outScore = partialAnalysis.confidence;
 
-          // Send partial completion feedback
+          // Send enhanced partial completion feedback
           if (partialAnalysis.feedback) {
+            // Generate enhanced feedback for partial attempts
+            const partialAttempt: FeedbackAttempt = {
+              gesture: gestureId,
+              effort: partialAnalysis.confidence,
+              success: false,
+              attemptCount: frameCount,
+              timeSinceLastAttempt: lastSentAt > 0 ? timestamp - lastSentAt : 0,
+              gestureType: 'basic'
+            };
+
+            const detailedFeedback = feedbackSystem.generateFeedback(partialAttempt);
+
             try {
               window.ReactNativeWebView?.postMessage?.(
                 JSON.stringify({
@@ -1483,6 +1394,12 @@ function processGestureResults(results: any, timestamp: number) {
                   gesture: gestureId,
                   completion: partialAnalysis.completion,
                   feedback: partialAnalysis.feedback,
+                  // Enhanced feedback
+                  primaryMessage: detailedFeedback.primaryMessage,
+                  secondaryMessage: detailedFeedback.secondaryMessage,
+                  encouragement: detailedFeedback.encouragement,
+                  tip: detailedFeedback.tip,
+                  showBreakSuggestion: detailedFeedback.showBreakSuggestion
                 }),
               );
             } catch (err) {
@@ -1527,7 +1444,7 @@ function processGestureResults(results: any, timestamp: number) {
   // Custom gesture logic (preserved for single-hand fallback)
   const firstHand = allLandmarks[0] || [];
   if (
-    (!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD) &&
+    (!outGesture || outScore < currentConfig.thresholds.fallbackConfidence) &&
     firstHand.length === 21 &&
     !multiHand
   ) {
@@ -1560,7 +1477,7 @@ function processGestureResults(results: any, timestamp: number) {
   let isUsingFallback = false;
 
   if (errorRecoveryManager.isInFallbackMode() ||
-      (!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD)) {
+      (!outGesture || outScore < currentConfig.thresholds.fallbackConfidence)) {
 
     try {
       const fallbackResult = fallbackGestureDetector.detectGesture(allLandmarks);
@@ -1573,8 +1490,20 @@ function processGestureResults(results: any, timestamp: number) {
         finalScore = fallbackResult.confidence;
         isUsingFallback = true;
 
-        // Send fallback feedback if available
+        // Send enhanced fallback feedback if available
         if (fallbackResult.feedback) {
+          // Generate enhanced feedback for fallback attempts
+          const fallbackAttempt: FeedbackAttempt = {
+            gesture: finalGesture as string,
+            effort: finalScore,
+            success: finalScore >= 0.6, // Lower threshold for fallback
+            attemptCount: frameCount,
+            timeSinceLastAttempt: lastSentAt > 0 ? timestamp - lastSentAt : 0,
+            gestureType: 'basic'
+          };
+
+          const detailedFeedback = feedbackSystem.generateFeedback(fallbackAttempt);
+
           try {
             window.ReactNativeWebView?.postMessage?.(
               JSON.stringify({
@@ -1583,6 +1512,12 @@ function processGestureResults(results: any, timestamp: number) {
                 confidence: finalScore,
                 feedback: fallbackResult.feedback,
                 timestamp: timestamp,
+                // Enhanced feedback
+                primaryMessage: detailedFeedback.primaryMessage,
+                secondaryMessage: detailedFeedback.secondaryMessage,
+                encouragement: detailedFeedback.encouragement,
+                tip: detailedFeedback.tip,
+                showBreakSuggestion: detailedFeedback.showBreakSuggestion
               })
             );
           } catch (err) {
@@ -1606,6 +1541,9 @@ function processGestureResults(results: any, timestamp: number) {
     );
 
     if (emergencyResult.shouldProcess) {
+      // Trigger haptic feedback for emergency gesture
+      hapticFeedbackManager.onEmergencyGesture(finalGesture);
+
       // Emergency gestures get immediate processing with high priority
       try {
         window.ReactNativeWebView?.postMessage?.(
@@ -1635,6 +1573,127 @@ function processGestureResults(results: any, timestamp: number) {
     }
   }
 
+  // Apply enhanced context-aware recognition analysis
+  let contextInsights: any = null;
+  if (finalGesture && typeof finalGesture === 'string') {
+    // Calculate gesture duration if available (placeholder for future enhancement)
+    const gestureDuration = undefined; // Will be calculated based on gesture start/end times
+
+    contextInsights = enhancedContextRecognizer.analyzeContext(finalGesture, finalScore, gestureDuration);
+
+    // Adjust confidence based on enhanced context
+    finalScore = contextInsights.adjustedConfidence;
+
+    // Update adaptive configuration with actual context data
+    const adaptiveContext = {
+      timeOfDay: contextInsights.timeOfDay,
+      activity: contextInsights.activityLevel,
+      gesture: finalGesture,
+      confidence: finalScore
+    };
+    currentConfig = getAdaptiveConfig(currentConfig, adaptiveContext);
+  }
+
+  // Record failed attempts for learning (when no gesture detected or very low confidence)
+  if (!finalGesture || finalScore < 0.3) {
+    // Record as failed attempt for the most likely gesture if we have landmarks
+    if (allLandmarks.length > 0) {
+      // Try to identify what gesture was attempted based on basic heuristics
+      const attemptedGesture = fallbackGestureDetector.detectGesture(allLandmarks);
+      if (attemptedGesture.gesture) {
+        personalizedThresholdManager.recordAttempt(attemptedGesture.gesture, attemptedGesture.confidence, false);
+      }
+    }
+  }
+
+  // Generate enhanced feedback for 22q11 accessibility
+  let enhancedFeedback: any = null;
+  if (finalGesture && typeof finalGesture === 'string') {
+    // Use context-aware time of day
+    const timeOfDay = contextInsights?.timeOfDay || 'afternoon';
+
+    // Calculate recent success rate for progress tracking
+    const recentAttempts = feedbackHistory.slice(-10);
+    const recentSuccessRate = recentAttempts.length > 0
+      ? recentAttempts.filter((r: any) => r.success).length / recentAttempts.length
+      : 0.5;
+
+    // Create attempt result for celebration system
+    const attemptResult: AttemptResult = {
+      success: finalScore >= 0.7, // Consider it a success if confidence is good
+      gesture: finalGesture,
+      effort: finalScore,
+      attemptCount: frameCount,
+      timeOfDay,
+      recentSuccessRate,
+      isEmergency: emergencyGestureSystem.isEmergencyGesture(finalGesture, finalScore),
+      partialSuccess: finalScore >= 0.4 && finalScore < 0.7,
+      // Add context awareness
+      contextBonus: contextInsights?.contextBonus || 0,
+      patternMatch: contextInsights?.patternMatch || false
+    };
+
+    // Generate celebration feedback
+    const celebration = celebrationSystem.generateCelebration(attemptResult);
+
+    // Create feedback attempt for feedback system
+    const feedbackAttempt: FeedbackAttempt = {
+      gesture: finalGesture,
+      effort: finalScore,
+      success: finalScore >= 0.7,
+      attemptCount: frameCount,
+      timeSinceLastAttempt: lastSentAt > 0 ? timestamp - lastSentAt : 0,
+      gestureType: attemptResult.isEmergency ? 'emergency' : 'basic'
+    };
+
+    // Generate detailed feedback
+    const detailedFeedback = feedbackSystem.generateFeedback(feedbackAttempt);
+
+    enhancedFeedback = {
+      celebration,
+      detailedFeedback,
+      attemptResult
+    };
+  }
+
+  // Check for gesture combinations
+  let combinationResult = null;
+  if (finalGesture && typeof finalGesture === 'string' && finalScore >= 0.6) {
+    // Record gesture for combination detection
+    gestureCombinationManager.recordGesture(finalGesture, finalScore);
+
+    // Check if this completes a combination
+    combinationResult = gestureCombinationManager.checkForCombinations();
+
+    // Trigger haptic feedback for combination completion
+    if (combinationResult) {
+      hapticFeedbackManager.onCombinationEvent('complete', combinationResult.combination);
+    }
+  }
+
+  // Generate visual correction options if confidence is low
+  let correctionSession = null;
+  if (finalGesture && typeof finalGesture === 'string' && finalScore < 0.7 && finalScore > 0.3) {
+    // Create alternative options based on common gestures and history
+    const alternatives = [
+      { gesture: 'thumbs_up', confidence: 0.6 },
+      { gesture: 'open_palm', confidence: 0.5 },
+      { gesture: 'fist', confidence: 0.5 },
+      { gesture: 'point', confidence: 0.4 }
+    ];
+
+    correctionSession = visualCorrectionManager.generateCorrectionOptions(
+      finalGesture,
+      finalScore,
+      alternatives
+    );
+
+    // Send correction options to React Native if available
+    if (correctionSession) {
+      visualCorrectionManager.sendCorrectionOptionsToReactNative(correctionSession);
+    }
+  }
+
   // Send gesture result if it changed or meets threshold
   const serialized = serializeGesture(finalGesture);
   const scoreChanged = Math.abs(finalScore - lastSentScore) >= 0.05;
@@ -1644,11 +1703,49 @@ function processGestureResults(results: any, timestamp: number) {
                      !errorRecoveryManager.isCircuitBreakerOpen();
 
   if (shouldSend) {
+    // Record gesture for adaptive practice timing
+    if (finalGesture && typeof finalGesture === 'string' && finalScore >= 0.5) {
+      adaptivePracticeManager.recordGestureInSession();
+    }
+
+    // Record successful communication moments for positive telemetry
+    if (finalGesture && typeof finalGesture === 'string' && finalScore >= 0.7 && contextInsights) {
+      positiveTelemetryManager.recordCommunicationMoment(
+        finalGesture,
+        finalScore,
+        {
+          timeOfDay: contextInsights.timeOfDay,
+          activityLevel: contextInsights.activityLevel,
+          dayOfWeek: new Date().getDay()
+        }
+      );
+    }
+
     lastSentGestureSerialized = serialized;
     lastSentScore = finalScore;
     lastSentAt = performance.now();
 
     try {
+      // Record attempt for personalized threshold learning
+      if (finalGesture && typeof finalGesture === 'string') {
+        const success = finalScore >= 0.7; // Consider it successful if confidence is good
+        personalizedThresholdManager.recordAttempt(finalGesture, finalScore, success);
+      }
+
+      // Track this attempt in feedback history
+      if (enhancedFeedback) {
+        feedbackHistory.push({
+          gesture: finalGesture,
+          confidence: finalScore,
+          success: finalScore >= 0.7,
+          timestamp,
+          effort: finalScore
+        });
+        if (feedbackHistory.length > 20) {
+          feedbackHistory.shift();
+        }
+      }
+
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({
           type: 'gesture',
@@ -1658,7 +1755,51 @@ function processGestureResults(results: any, timestamp: number) {
           handednesses: handedArr,
           timestamp: timestamp,
           isFallback: isUsingFallback,
-          systemHealth: errorRecoveryManager.getHealthStatus()
+          systemHealth: errorRecoveryManager.getHealthStatus(),
+          // Enhanced context-aware recognition data
+          contextAwareness: contextInsights ? {
+            timeOfDay: contextInsights.timeOfDay,
+            activityLevel: contextInsights.activityLevel,
+            contextBonus: contextInsights.contextBonus,
+            patternMatch: contextInsights.patternMatch,
+            recentFrequency: contextInsights.recentFrequency,
+            habitStrength: contextInsights.habitStrength,
+            adjustedConfidence: contextInsights.adjustedConfidence,
+            stressIndicators: contextInsights.stressIndicators,
+            recommendations: contextInsights.recommendations
+          } : null,
+          // Enhanced feedback for 22q11 accessibility
+          enhancedFeedback: enhancedFeedback ? {
+            message: enhancedFeedback.celebration.message,
+            emoji: enhancedFeedback.celebration.emoji,
+            encouragement: enhancedFeedback.celebration.encouragement,
+            showProgress: enhancedFeedback.celebration.showProgress,
+            primaryFeedback: enhancedFeedback.detailedFeedback.primaryMessage,
+            secondaryFeedback: enhancedFeedback.detailedFeedback.secondaryFeedback,
+            tip: enhancedFeedback.detailedFeedback.tip,
+            showBreakSuggestion: enhancedFeedback.detailedFeedback.showBreakSuggestion
+          } : null,
+          // Personalized threshold data for Amy's learning insights
+          personalizedThresholds: finalGesture && typeof finalGesture === 'string' ? {
+            currentAdjustment: personalizedThresholdManager.getPersonalizedThreshold(
+              finalGesture,
+              currentConfig.thresholds.mlpConfidence
+            ),
+            performanceInsights: personalizedThresholdManager.getPerformanceInsights()
+          } : null,
+          // Gesture combination results for complex communication
+          gestureCombination: combinationResult,
+          // Adaptive practice timing data
+          practiceTiming: {
+            isCommunicationActive: adaptivePracticeManager.isCommunicationActive(),
+            practiceSuggestion: contextInsights ? adaptivePracticeManager.shouldSuggestPractice(
+              contextInsights.timeOfDay,
+              contextInsights.activityLevel,
+              0 // Will be calculated based on actual timing
+            ) : null
+          },
+          // Positive telemetry insights
+          positiveInsights: finalGesture && finalScore >= 0.7 ? positiveTelemetryManager.getPositiveInsights() : null
         }),
       );
     } catch (err) {
@@ -1666,6 +1807,34 @@ function processGestureResults(results: any, timestamp: number) {
 
       // If sending fails, record it as a failure
       errorRecoveryManager.recordFailure(err, 'gesture_message_send');
+    }
+  }
+
+  // Reset navigation and undo hold timers if no gesture was detected
+  if (!finalGesture || finalScore < 0.5) {
+    navigationGestureManager.resetHoldTimers();
+    gestureUndoManager.resetHoldTimers();
+  }
+
+  // Send gesture combination result if detected
+  if (combinationResult) {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'gesture_combination',
+          combination: combinationResult.combination,
+          confidence: combinationResult.confidence,
+          sequence: combinationResult.sequence,
+          description: combinationResult.description,
+          timeSpan: combinationResult.timeSpan,
+          feedback: combinationResult.feedback,
+          timestamp: timestamp,
+          systemHealth: errorRecoveryManager.getHealthStatus()
+        })
+      );
+    } catch (err) {
+      console.warn('Failed to send gesture combination message:', err);
+      errorRecoveryManager.recordFailure(err, 'combination_message_send');
     }
   }
 
@@ -1983,4 +2152,314 @@ async function cleanup() {
     console.warn("Failed to send 'cleanup_done' telemetry event:", e);
   }
 }
+// Expose personalized threshold insights for Amy's learning dashboard
+window.__getPersonalizedThresholdInsights = () => {
+  try {
+    const insights = personalizedThresholdManager.getPerformanceInsights();
+    const allThresholds = personalizedThresholdManager.getAllPersonalizedThresholds(0.4); // Base threshold
+
+    return {
+      performanceInsights: insights,
+      personalizedThresholds: allThresholds,
+      exportData: personalizedThresholdManager.exportPerformanceData()
+    };
+  } catch (error) {
+    console.warn('Failed to get personalized threshold insights:', error);
+    return null;
+  }
+};
+
+// Expose gesture combination management functions
+window.__getGestureCombinations = () => {
+  try {
+    return gestureCombinationManager.getAllCombinations();
+  } catch (error) {
+    console.warn('Failed to get gesture combinations:', error);
+    return [];
+  }
+};
+
+window.__addCustomGestureCombination = (combination: any) => {
+  try {
+    gestureCombinationManager.addCustomCombination(combination);
+    return true;
+  } catch (error) {
+    console.warn('Failed to add custom gesture combination:', error);
+    return false;
+  }
+};
+
+window.__removeGestureCombination = (combinationName: string) => {
+  try {
+    gestureCombinationManager.removeCustomCombination(combinationName);
+    return true;
+  } catch (error) {
+    console.warn('Failed to remove gesture combination:', error);
+    return false;
+  }
+};
+
+window.__getCombinationProgress = () => {
+  try {
+    return gestureCombinationManager.getCombinationProgress();
+  } catch (error) {
+    console.warn('Failed to get combination progress:', error);
+    return null;
+  }
+};
+
+// Expose haptic feedback management functions
+window.__updateHapticPreferences = (preferences: any) => {
+  try {
+    hapticFeedbackManager.updatePreferences(preferences);
+    return true;
+  } catch (error) {
+    console.warn('Failed to update haptic preferences:', error);
+    return false;
+  }
+};
+
+window.__getHapticPreferences = () => {
+  try {
+    return hapticFeedbackManager.getPreferences();
+  } catch (error) {
+    console.warn('Failed to get haptic preferences:', error);
+    return null;
+  }
+};
+
+window.__getHapticStats = () => {
+  try {
+    return hapticFeedbackManager.getHapticStats();
+  } catch (error) {
+    console.warn('Failed to get haptic stats:', error);
+    return null;
+  }
+};
+
+// Expose gesture replay management functions
+window.__startGestureReplay = (recordingId: string, options?: any) => {
+  try {
+    return gestureReplayManager.startReplay(recordingId, options);
+  } catch (error) {
+    console.warn('Failed to start gesture replay:', error);
+    return false;
+  }
+};
+
+window.__stopGestureReplay = () => {
+  try {
+    gestureReplayManager.stopReplay();
+    return true;
+  } catch (error) {
+    console.warn('Failed to stop gesture replay:', error);
+    return false;
+  }
+};
+
+window.__pauseGestureReplay = () => {
+  try {
+    gestureReplayManager.pauseReplay();
+    return true;
+  } catch (error) {
+    console.warn('Failed to pause gesture replay:', error);
+    return false;
+  }
+};
+
+window.__getAvailableReplays = () => {
+  try {
+    return gestureReplayManager.getAvailableRecordings();
+  } catch (error) {
+    console.warn('Failed to get available replays:', error);
+    return [];
+  }
+};
+
+window.__getReplayStats = () => {
+  try {
+    return gestureReplayManager.getReplayStats();
+  } catch (error) {
+    console.warn('Failed to get replay stats:', error);
+    return null;
+  }
+};
+
+window.__deleteGestureReplay = (recordingId: string) => {
+  try {
+    return gestureReplayManager.deleteRecording(recordingId);
+  } catch (error) {
+    console.warn('Failed to delete gesture replay:', error);
+    return false;
+  }
+};
+
+// Expose navigation gesture management functions
+window.__getNavigationGestures = () => {
+  try {
+    return navigationGestureManager.getAvailableNavigationGestures();
+  } catch (error) {
+    console.warn('Failed to get navigation gestures:', error);
+    return [];
+  }
+};
+
+window.__addNavigationGesture = (gesture: any) => {
+  try {
+    navigationGestureManager.addCustomNavigationGesture(gesture);
+    return true;
+  } catch (error) {
+    console.warn('Failed to add navigation gesture:', error);
+    return false;
+  }
+};
+
+window.__removeNavigationGesture = (gestureName: string) => {
+  try {
+    return navigationGestureManager.removeNavigationGesture(gestureName);
+  } catch (error) {
+    console.warn('Failed to remove navigation gesture:', error);
+    return false;
+  }
+};
+
+window.__updateNavigationGesture = (gestureName: string, updates: any) => {
+  try {
+    return navigationGestureManager.updateNavigationGesture(gestureName, updates);
+  } catch (error) {
+    console.warn('Failed to update navigation gesture:', error);
+    return false;
+  }
+};
+
+window.__getNavigationStats = () => {
+  try {
+    return navigationGestureManager.getNavigationStats();
+  } catch (error) {
+    console.warn('Failed to get navigation stats:', error);
+    return null;
+  }
+};
+
+window.__getNavigationHoldProgress = (gestureName: string) => {
+  try {
+    return navigationGestureManager.getHoldProgress(gestureName);
+  } catch (error) {
+    console.warn('Failed to get navigation hold progress:', error);
+    return 0;
+  }
+};
+
+// Expose visual correction management functions
+window.__selectVisualCorrection = (sessionId: string, selectedGesture: string) => {
+  try {
+    return visualCorrectionManager.selectCorrection(sessionId, selectedGesture);
+  } catch (error) {
+    console.warn('Failed to select visual correction:', error);
+    return false;
+  }
+};
+
+window.__cancelVisualCorrection = (sessionId: string) => {
+  try {
+    return visualCorrectionManager.cancelCorrection(sessionId);
+  } catch (error) {
+    console.warn('Failed to cancel visual correction:', error);
+    return false;
+  }
+};
+
+window.__getCurrentCorrectionSession = () => {
+  try {
+    return visualCorrectionManager.getCurrentCorrectionSession();
+  } catch (error) {
+    console.warn('Failed to get current correction session:', error);
+    return null;
+  }
+};
+
+window.__addCustomVisual = (gesture: string, emoji: string, description: string) => {
+  try {
+    visualCorrectionManager.addCustomVisual(gesture, emoji, description);
+    return true;
+  } catch (error) {
+    console.warn('Failed to add custom visual:', error);
+    return false;
+  }
+};
+
+window.__getCorrectionStats = () => {
+  try {
+    return visualCorrectionManager.getCorrectionStats();
+  } catch (error) {
+    console.warn('Failed to get correction stats:', error);
+    return null;
+  }
+};
+
+// Expose gesture undo management functions
+window.__confirmGestureUndo = (sessionId: string) => {
+  try {
+    return gestureUndoManager.confirmUndo(sessionId);
+  } catch (error) {
+    console.warn('Failed to confirm gesture undo:', error);
+    return false;
+  }
+};
+
+window.__cancelGestureUndo = (sessionId: string) => {
+  try {
+    return gestureUndoManager.cancelUndo(sessionId);
+  } catch (error) {
+    console.warn('Failed to cancel gesture undo:', error);
+    return false;
+  }
+};
+
+window.__getCurrentUndoSession = () => {
+  try {
+    return gestureUndoManager.getCurrentUndoSession();
+  } catch (error) {
+    console.warn('Failed to get current undo session:', error);
+    return null;
+  }
+};
+
+window.__getUndoableGestures = () => {
+  try {
+    return gestureUndoManager.getUndoableGestures();
+  } catch (error) {
+    console.warn('Failed to get undoable gestures:', error);
+    return [];
+  }
+};
+
+window.__addCustomUndoGesture = (gesture: any) => {
+  try {
+    gestureUndoManager.addCustomUndoGesture(gesture);
+    return true;
+  } catch (error) {
+    console.warn('Failed to add custom undo gesture:', error);
+    return false;
+  }
+};
+
+window.__getUndoStats = () => {
+  try {
+    return gestureUndoManager.getUndoStats();
+  } catch (error) {
+    console.warn('Failed to get undo stats:', error);
+    return null;
+  }
+};
+
+window.__getUndoHoldProgress = (gestureName: string) => {
+  try {
+    return gestureUndoManager.getUndoHoldProgress(gestureName);
+  } catch (error) {
+    console.warn('Failed to get undo hold progress:', error);
+    return 0;
+  }
+};
+
 window.__cleanupGestureDetector = cleanup;

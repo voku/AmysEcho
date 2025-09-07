@@ -1,0 +1,168 @@
+
+> amys-echo-app@1.0.0 test
+> jest --runInBand --detectOpenHandles --coverage --runInBand --detectOpenHandles --coverage
+
+------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------
+File                                | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                                    
+------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------
+All files                           |   37.52 |    25.75 |   38.28 |   37.64 |                                                                                                      
+ src                                |   94.35 |    82.97 |    92.5 |   96.49 |                                                                                                      
+  constants.ts                      |   94.44 |    83.33 |     100 |   94.44 | 43                                                                                                   
+  model.ts                          |   72.72 |     37.5 |   72.72 |      80 | 99-100,111                                                                                           
+  storage.ts                        |     100 |      100 |     100 |     100 |                                                                                                      
+ src/components                     |    38.1 |    23.69 |   33.87 |   38.29 |                                                                                                      
+  AccessibilityContext.tsx          |     100 |      100 |      50 |     100 |                                                                                                      
+  BottomNav.tsx                     |   73.58 |    63.15 |   63.63 |      75 | 70,120,127-275,314                                                                                   
+  Celebration.tsx                   |     100 |       50 |     100 |     100 | 49-50                                                                                                
+  ChildErrorBoundary.tsx            |     100 |    58.33 |     100 |     100 | 38-45                                                                                                
+  CommunicationInsights.tsx         |       0 |        0 |       0 |       0 | 21-380                                                                                               
+  CorrectionPanel.tsx               |       0 |        0 |       0 |       0 | 18-284                                                                                               
+  DailySuccessSummary.tsx           |       0 |        0 |       0 |       0 | 20-242                                                                                               
+  DgsVideoPlayer.tsx                |   78.37 |    76.92 |   72.72 |   90.32 | 26-27,51                                                                                             
+  ErrorMessage.tsx                  |     100 |       75 |     100 |     100 | 15                                                                                                   
+  GestureComparison.tsx             |       0 |        0 |       0 |       0 | 34-144                                                                                               
+  LoadingIndicator.tsx              |     100 |      100 |     100 |     100 |                                                                                                      
+  MediaPipeGestureDetector.tsx      |   85.53 |    72.89 |   90.47 |   85.62 | 55,82-85,107-111,134,179,187-188,242,261,270,281,294,300-316,362                                     
+  MoodSelector.tsx                  |     100 |      100 |     100 |     100 |                                                                                                      
+  OfflineBanner.tsx                 |     100 |      100 |     100 |     100 |                                                                                                      
+  PictureInPictureGuidance.tsx      |       0 |        0 |       0 |       0 | 30-219                                                                                               
+  PrivacySettings.tsx               |       0 |        0 |       0 |       0 | 13-289                                                                                               
+  PulsingCircle.tsx                 |       0 |        0 |       0 |       0 | 19-56                                                                                                
+  ScreenFlash.tsx                   |       0 |        0 |       0 |       0 | 5-367                                                                                                
+  SlowMotionReplay.tsx              |       0 |        0 |       0 |       0 | 16-272                                                                                               
+  SoundSelector.tsx                 |       0 |        0 |       0 |       0 | 21-141                                                                                               
+  SymbolButton.tsx                  |   72.72 |    33.33 |      75 |   68.42 | 23-34,95                                                                                             
+  ThemeSelector.tsx                 |       0 |        0 |       0 |       0 | 23-102                                                                                               
+  VisualRipple.tsx                  |       0 |        0 |       0 |       0 | 18-81                                                                                                
+  VisualSchedule.tsx                |       0 |        0 |       0 |       0 | 28-281                                                                                               
+ src/config                         |       0 |      100 |     100 |       0 |                                                                                                      
+  recognition.ts                    |       0 |      100 |     100 |       0 | 1                                                                                                    
+ src/constants                      |   33.33 |      100 |       0 |   33.33 |                                                                                                      
+  audioPaths.ts                     |       0 |      100 |       0 |       0 | 3-6                                                                                                  
+  gesture.ts                        |       0 |      100 |     100 |       0 | 2                                                                                                    
+  hand.ts                           |     100 |      100 |     100 |     100 |                                                                                                      
+  pawPatrolAssets.ts                |     100 |      100 |     100 |     100 |                                                                                                      
+  themes.ts                         |       0 |      100 |     100 |       0 | 47-256                                                                                               
+  ui.ts                             |     100 |      100 |     100 |     100 |                                                                                                      
+ src/context                        |   63.85 |     65.3 |   52.08 |   64.55 |                                                                                                      
+  AppServicesProvider.tsx           |   66.66 |     64.7 |   38.09 |   68.96 | 31-35,76-78,82-100                                                                                   
+  MessageContext.tsx                |   96.42 |       75 |     100 |   96.15 | 55                                                                                                   
+  MoodContext.tsx                   |   93.93 |    88.88 |     100 |   93.93 | 101,114                                                                                              
+  PerformanceContext.tsx            |       0 |        0 |       0 |       0 | 8-29                                                                                                 
+  ServicesContext.tsx               |     100 |      100 |     100 |     100 |                                                                                                      
+  ThemeContext.tsx                  |       0 |        0 |       0 |       0 | 12-69                                                                                                
+ src/navigation                     |       0 |        0 |       0 |       0 |                                                                                                      
+  RootNavigator.tsx                 |       0 |        0 |       0 |       0 | 8-53                                                                                                 
+  types.ts                          |       0 |        0 |       0 |       0 |                                                                                                      
+ src/screens                        |    7.39 |     5.03 |     7.3 |    7.72 |                                                                                                      
+  AdminScreen.tsx                   |       0 |        0 |       0 |       0 | 33-515                                                                                               
+  CaregiverReportScreen.tsx         |       0 |        0 |       0 |       0 | 12-128                                                                                               
+  CommunicationInsightsScreen.tsx   |       0 |      100 |       0 |       0 | 14-26                                                                                                
+  CorrectionScreen.tsx              |       0 |        0 |       0 |       0 | 16-228                                                                                               
+  DailySuccessScreen.tsx            |       0 |      100 |       0 |       0 | 14-26                                                                                                
+  DashboardScreen.tsx               |       0 |        0 |       0 |       0 | 24-155                                                                                               
+  GesturePracticeScreen.tsx         |   68.75 |    43.33 |      50 |   72.41 | 26-27,48-51,56-57                                                                                    
+  GestureTutorialScreen.tsx         |       0 |        0 |       0 |       0 | 9-87                                                                                                 
+  HelpScreen.tsx                    |       0 |        0 |       0 |       0 | 10-66                                                                                                
+  OnboardingScreen.tsx              |   94.73 |    54.54 |      80 |   94.73 | 149                                                                                                  
+  ParentScreen.tsx                  |       0 |        0 |       0 |       0 | 9-203                                                                                                
+  ParentalGateScreen.tsx            |       0 |        0 |       0 |       0 | 8-144                                                                                                
+  PracticeSchedulerScreen.tsx       |       0 |        0 |       0 |       0 | 13-253                                                                                               
+  PracticeScreen.tsx                |   78.26 |    55.55 |   54.54 |   81.81 | 64-72                                                                                                
+  PrivacySettingsScreen.tsx         |       0 |      100 |       0 |       0 | 14-26                                                                                                
+  ProfileManagerScreen.tsx          |       0 |        0 |       0 |       0 | 18-563                                                                                               
+  ProfileSelectScreen.tsx           |       0 |        0 |       0 |       0 | 9-156                                                                                                
+  ProgressChartScreen.tsx           |       0 |        0 |       0 |       0 | 9-80                                                                                                 
+  ProgressScreen.tsx                |      75 |    38.88 |   63.63 |      75 | 109-156                                                                                              
+  RecognitionScreen.tsx             |       0 |        0 |       0 |       0 | 71-1778                                                                                              
+  ScheduleScreen.tsx                |     100 |      100 |     100 |     100 |                                                                                                      
+  TeachScreen.tsx                   |       0 |        0 |       0 |       0 | 9-61                                                                                                 
+  TeachingScreen.tsx                |   30.18 |     17.1 |   19.04 |   31.37 | 50-51,57-58,64-65,82-99,104-120,125-148,153-155,161-164,210-331                                      
+  TrainingScreen.tsx                |       0 |        0 |       0 |       0 | 25-394                                                                                               
+ src/services                       |   60.05 |    49.83 |   66.55 |   60.38 |                                                                                                      
+  APIRetryManager.ts                |     100 |      100 |     100 |     100 |                                                                                                      
+  LanguageManager.ts                |     100 |    91.66 |     100 |     100 | 29                                                                                                   
+  OneEuroFilter.ts                  |       0 |        0 |       0 |       0 | 2-62                                                                                                 
+  TrainingDataValidator.ts          |   84.61 |    82.35 |     100 |      84 | 35-36,42-43,70-71,92,97                                                                              
+  TrainingSessionManager.ts         |   76.36 |    48.14 |   93.33 |   78.84 | 56,104-106,165-172,196                                                                               
+  accessibilityService.ts           |       0 |        0 |       0 |       0 | 9-34                                                                                                 
+  adaptiveLearningService.ts        |       0 |        0 |       0 |       0 | 7-73                                                                                                 
+  adaptivePracticeTimingService.ts  |   81.88 |    61.64 |      96 |   81.88 | 105,152,162,243,284-293,304-313,369-375,388                                                          
+  analytics.ts                      |    82.5 |       75 |   81.81 |   79.41 | 88-116                                                                                               
+  audioService.ts                   |   48.57 |    52.17 |    62.5 |   48.55 | 38-104,114-115,135-139,148-149,210-213,219-222,232-244,258,281,313,344,354-426,463                   
+  automaticRecoveryService.ts       |   60.68 |    53.03 |   54.54 |   60.52 | 54-55,60,64-65,86,97-100,109,117,138-154,161-170,177-193,200-212,219-235,255,274,300-312,326,338-343 
+  backupService.ts                  |   71.42 |    61.53 |     100 |   71.42 | 35-36,39-40,51-52,74-75,86-87,93-94,99-100,108-109,116-117,120-121,134-135,147-148                   
+  contextAwareRecognitionService.ts |   84.57 |       75 |    82.5 |   85.56 | 87,135-138,147-148,169,187,225,259-267,296,305,321,339,374,390-394,406-412,493-497,506               
+  correctionService.ts              |   66.66 |      100 |      50 |   66.66 | 16                                                                                                   
+  crashReporting.ts                 |   81.81 |    71.42 |    87.5 |    84.9 | 40,61-62,118-127                                                                                     
+  dailyJobs.ts                      |   33.75 |    33.33 |   33.33 |   34.21 | 16-19,49,87-222                                                                                      
+  dataProtection.ts                 |   76.92 |       50 |   91.66 |   78.37 | 40,89-98                                                                                             
+  dgsModelClient.ts                 |    58.9 |    58.69 |   76.92 |      65 | 36,39,57-76,112-119                                                                                  
+  dgsTrainingService.ts             |   95.23 |    75.86 |      50 |      95 | 21                                                                                                   
+  dialogEngine.ts                   |    8.16 |        0 |       0 |    8.69 | 24-165                                                                                               
+  emergencyPriorityService.ts       |    69.6 |    37.77 |   95.83 |   69.69 | 62,91,138-142,173-192,209-218,236,241-243,276-281,336-339                                            
+  engagementTracker.ts              |   94.44 |    58.33 |     100 |     100 | 22-26,36-41                                                                                          
+  feedbackService.ts                |    7.05 |      2.1 |   11.76 |    7.74 | 68-247,276-522                                                                                       
+  gdprService.ts                    |   72.22 |    85.71 |     100 |   76.47 | 26-27,38-39                                                                                          
+  gestureCombinationService.ts      |   24.75 |     8.33 |   43.75 |   24.74 | 61-202,224-269,331-334,343-347,356                                                                   
+  gestureHistoryService.ts          |   42.42 |    36.11 |   47.36 |   45.16 | 77-143,167-173,187,199-207                                                                           
+  gestureRecorder.ts                |     100 |       75 |     100 |     100 | 6-7                                                                                                  
+  gestureSuggester.ts               |    2.32 |        0 |       0 |    2.59 | 34-255                                                                                               
+  handUtils.ts                      |   94.33 |    88.67 |     100 |   97.67 | 79                                                                                                   
+  healthScore.ts                    |   90.62 |    62.16 |    92.3 |   89.83 | 36,48-50,91,141                                                                                      
+  hipEvents.ts                      |      80 |       25 |   66.66 |      80 | 35-36                                                                                                
+  index.ts                          |       0 |        0 |       0 |       0 |                                                                                                      
+  landmarkNormalizer.ts             |     100 |    85.71 |     100 |     100 | 20                                                                                                   
+  localCentroids.ts                 |      92 |    71.87 |     100 |     100 | 10,18,23-24,32-50                                                                                    
+  modelUpdate.ts                    |   43.83 |    46.34 |      40 |   44.44 | 31-32,36,50-67,78-95,106-107,120,129-148                                                             
+  offlineClassifier.ts              |     100 |    83.33 |     100 |     100 | 15-18                                                                                                
+  personalizedConfidenceService.ts  |      11 |     3.12 |      20 |   11.53 | 50-249,256-269                                                                                       
+  positiveTelemetryService.ts       |   85.25 |    61.76 |    90.9 |   86.38 | 118,215-216,240,244,280,291,301,328,415-416,437,473,483-489,543,564-566,571-574,587                  
+  practiceRecommender.ts            |     100 |      100 |     100 |     100 |                                                                                                      
+  practiceScheduler.ts              |   68.29 |    68.18 |      50 |   77.14 | 33-44                                                                                                
+  preCachedResponseService.ts       |   49.12 |    36.36 |    61.9 |   48.64 | 99,104,122-123,150-164,180,196,248-277,288-347                                                       
+  secureConfig.ts                   |   81.25 |       50 |   71.42 |   80.64 | 34,52-60                                                                                             
+  sequenceRecognizer.ts             |   96.55 |    86.66 |     100 |     100 | 17,50                                                                                                
+  symbolService.ts                  |   97.56 |    53.84 |     100 |   97.43 | 47                                                                                                   
+  syncService.ts                    |   75.67 |    77.41 |   85.71 |      75 | 80-83,95,118-119,124-125,141,155-157,164-175,180-181,215-221,226,239                                 
+  trainingDataService.ts            |    77.5 |    86.36 |   73.33 |   75.67 | 95-136                                                                                               
+  trainingSync.ts                   |   84.72 |    63.26 |      80 |   91.93 | 89-92,98,106                                                                                         
+  usageTracker.ts                   |     100 |     87.5 |     100 |     100 | 16                                                                                                   
+  zeroDowntimeModelService.ts       |   36.47 |    24.24 |    42.3 |   37.01 | 47-48,73-94,115-171,186-192,202-214,240,247,258-270,280-281,302-349,357-377,389-429                  
+ src/stores                         |   55.55 |        0 |      75 |      50 |                                                                                                      
+  servicesStore.ts                  |   55.55 |        0 |      75 |      50 | 33-39                                                                                                
+ src/styles                         |     100 |      100 |     100 |     100 |                                                                                                      
+  touchTargets.ts                   |     100 |      100 |     100 |     100 |                                                                                                      
+ src/telemetry                      |    93.1 |    94.11 |   92.85 |   94.44 |                                                                                                      
+  recorder.ts                       |    93.1 |    94.11 |   92.85 |   94.44 | 68,82-86                                                                                             
+ src/types                          |       0 |        0 |       0 |       0 |                                                                                                      
+  audio.ts                          |       0 |        0 |       0 |       0 |                                                                                                      
+  frames.ts                         |       0 |        0 |       0 |       0 |                                                                                                      
+  ml.ts                             |       0 |        0 |       0 |       0 |                                                                                                      
+ src/utils                          |   89.28 |    78.12 |   78.57 |      90 |                                                                                                      
+  landmarkMapping.ts                |   95.83 |    91.66 |     100 |     100 | 44                                                                                                   
+  logger.ts                         |     100 |    64.28 |     100 |     100 | 11-24,35-47                                                                                          
+  recognitionState.ts               |     100 |      100 |     100 |     100 |                                                                                                      
+  themeMessages.ts                  |   61.53 |       50 |      50 |   61.53 | 154-155,167-168,170                                                                                  
+ src/webview                        |   81.27 |    66.97 |   96.29 |   84.37 |                                                                                                      
+  installMlp.ts                     |   81.27 |    66.97 |   96.29 |   84.37 | 32,47,53-56,59,62,65,83-102,255-257,263-264,275,311,330,342-349,362                                  
+ webview                            |    9.97 |     7.99 |    7.75 |     9.6 |                                                                                                      
+  gestureDetector.ts                |       0 |        0 |       0 |       0 | 24-2049                                                                                              
+  gestureProcessing.ts              |   62.34 |    45.53 |   69.23 |    61.9 | 126-132,145-281,303                                                                                  
+ webview/config                     |    1.72 |        0 |       0 |    1.72 |                                                                                                      
+  GestureConfig.ts                  |    1.72 |        0 |       0 |    1.72 | 124-272                                                                                              
+ webview/core                       |    8.71 |        0 |    8.88 |    9.34 |                                                                                                      
+  CameraManager.ts                  |       0 |        0 |       0 |       0 | 11-111                                                                                               
+  GestureDetector.ts                |   34.84 |        0 |   33.33 |    37.7 | 94-190                                                                                               
+  MediaPipeLoader.ts                |       0 |        0 |       0 |       0 | 27-162                                                                                               
+  OverlayRenderer.ts                |       0 |        0 |       0 |       0 | 11-176                                                                                               
+ webview/types                      |       0 |        0 |       0 |       0 |                                                                                                      
+  MediaPipeTypes.ts                 |       0 |        0 |       0 |       0 | 177-189                                                                                              
+ webview/utils                      |       0 |        0 |       0 |       0 |                                                                                                      
+  CelebrationSystem.ts              |       0 |        0 |       0 |       0 | 13-242                                                                                               
+  ErrorRecoveryManager.ts           |       0 |        0 |       0 |       0 | 7-261                                                                                                
+  FeedbackSystem.ts                 |       0 |        0 |       0 |       0 | 12-239                                                                                               
+  HealthMonitor.ts                  |       0 |        0 |       0 |       0 | 21-165                                                                                               
+  ObjectPool.ts                     |       0 |        0 |       0 |       0 | 7-99                                                                                                 
+  ResourceManager.ts                |       0 |        0 |       0 |       0 | 7-116                                                                                                
+------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------

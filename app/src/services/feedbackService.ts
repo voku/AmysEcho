@@ -4,19 +4,294 @@ import * as Haptics from 'expo-haptics';
 // Local imports
 import { audioService } from './audioService';
 import { logger } from '../utils/logger';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Enhanced Haptic Feedback Service - Amy First
  *
  * Provides multi-sensory confirmation for gesture recognition with different
  * patterns based on confidence levels and gesture types.
+ * Includes context-awareness and Amy's personal preferences.
  */
+
+class AmyFirstHapticService {
+  private static instance: AmyFirstHapticService;
+  private preferences: AmyHapticPreferences;
+  private readonly PREFERENCES_KEY = 'amy_haptic_preferences';
+
+  private constructor() {
+    this.preferences = this.getDefaultPreferences();
+    this.loadPreferences();
+  }
+
+  static getInstance(): AmyFirstHapticService {
+    if (!AmyFirstHapticService.instance) {
+      AmyFirstHapticService.instance = new AmyFirstHapticService();
+    }
+    return AmyFirstHapticService.instance;
+  }
+
+  private getDefaultPreferences(): AmyHapticPreferences {
+    return {
+      intensity: 'normal',
+      patterns: {
+        emergency: {
+          style: Haptics.ImpactFeedbackStyle.Heavy,
+          intensity: 'heavy',
+          repeat: 3
+        },
+        success: {
+          style: Haptics.ImpactFeedbackStyle.Medium,
+          intensity: 'medium',
+          repeat: 1
+        },
+        encouragement: {
+          style: Haptics.ImpactFeedbackStyle.Light,
+          intensity: 'light',
+          repeat: 1
+        },
+        learning: {
+          style: Haptics.ImpactFeedbackStyle.Light,
+          intensity: 'light',
+          repeat: 2
+        }
+      },
+      timeBasedAdjustments: true,
+      contextAwareness: true
+    };
+  }
+
+  private async loadPreferences(): Promise<void> {
+    try {
+      const stored = await AsyncStorage.getItem(this.PREFERENCES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        this.preferences = { ...this.getDefaultPreferences(), ...parsed };
+      }
+    } catch (error) {
+      logger.warn('Failed to load Amy haptic preferences:', error);
+    }
+  }
+
+  async savePreferences(preferences: Partial<AmyHapticPreferences>): Promise<void> {
+    try {
+      this.preferences = { ...this.preferences, ...preferences };
+      await AsyncStorage.setItem(this.PREFERENCES_KEY, JSON.stringify(this.preferences));
+    } catch (error) {
+      logger.warn('Failed to save Amy haptic preferences:', error);
+    }
+  }
+
+  getPreferences(): AmyHapticPreferences {
+    return { ...this.preferences };
+  }
+
+  /**
+   * Context-aware haptic feedback that considers time of day and Amy's recent activity
+   */
+  async provideContextAwareFeedback(
+    gestureId: string,
+    confidence: number,
+    context?: {
+      timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+      recentActivity?: number; // number of recent gestures
+      isEmergency?: boolean;
+      patternMatch?: boolean; // from context-aware recognition
+    }
+  ): Promise<void> {
+    try {
+      // Determine a simple base intensity from confidence (Amy First: predictable & gentle)
+      const stepUp = (i: 'light' | 'medium' | 'heavy'): 'medium' | 'heavy' => (i === 'light' ? 'medium' : 'heavy');
+      const stepDown = (i: 'light' | 'medium' | 'heavy'): 'light' | 'medium' => (i === 'heavy' ? 'medium' : 'light');
+
+      let intensity: 'light' | 'medium' | 'heavy' = confidence >= 0.8 ? 'medium' : confidence >= 0.4 ? 'light' : 'light';
+      let repeat = 1;
+
+      // Emergency gestures always get priority
+      if (context?.isEmergency || gestureId === 'hilfe' || gestureId === 'help') {
+        intensity = 'heavy';
+        repeat = 3;
+      }
+
+      // Positive gestures: celebratory double pulse
+      const positive = ['danke', 'ja', 'gut', 'fertig', 'super', 'toll'];
+      if (positive.includes(gestureId)) {
+        repeat = 2;
+      }
+
+      // Apply context adjustments
+      if (this.preferences.contextAwareness && context) {
+        if (context.patternMatch) intensity = stepUp(intensity);
+        if (context.recentActivity && context.recentActivity > 10) intensity = stepDown(intensity);
+      }
+
+      if (this.preferences.timeBasedAdjustments && context?.timeOfDay === 'morning') {
+        intensity = stepDown(intensity);
+      }
+
+      // Map intensity to platform style
+      const toStyle = (i: 'light' | 'medium' | 'heavy') =>
+        i === 'light' ? Haptics.ImpactFeedbackStyle.Light : i === 'medium' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Heavy;
+
+      const pattern: HapticPattern = { style: toStyle(intensity), intensity, repeat } as HapticPattern;
+      (pattern as any)._allowRepeat = context?.isEmergency || ['hilfe', 'help'].includes(gestureId) || positive.includes(gestureId);
+      const adjusted = this.adjustForPreferences(pattern);
+      const allowRepeat = (pattern as any)._allowRepeat === true;
+      if (!allowRepeat) {
+        await Haptics.impactAsync(adjusted.style);
+        return;
+      }
+      await this.executeHapticPattern(adjusted);
+    } catch (error) {
+      logger.debug('Context-aware haptic feedback failed:', error);
+      // Fallback to basic feedback
+      await detectionHapticFeedback();
+    }
+  }
+
+  private adjustForPreferences(pattern: HapticPattern): HapticPattern {
+    const adjusted = { ...pattern };
+
+    // Adjust intensity based on Amy's preference
+    switch (this.preferences.intensity) {
+      case 'gentle':
+        if (adjusted.intensity === 'heavy') adjusted.intensity = 'medium';
+        if (adjusted.intensity === 'medium') adjusted.intensity = 'light';
+        break;
+      case 'strong':
+        if (adjusted.intensity === 'light') adjusted.intensity = 'medium';
+        if (adjusted.intensity === 'medium') adjusted.intensity = 'heavy';
+        break;
+    }
+
+    // Update style based on adjusted intensity
+    switch (adjusted.intensity) {
+      case 'light':
+        adjusted.style = Haptics.ImpactFeedbackStyle.Light;
+        break;
+      case 'medium':
+        adjusted.style = Haptics.ImpactFeedbackStyle.Medium;
+        break;
+      case 'heavy':
+        adjusted.style = Haptics.ImpactFeedbackStyle.Heavy;
+        break;
+    }
+
+    return adjusted;
+  }
+
+  private applyContextAdjustments(pattern: HapticPattern, context: any): HapticPattern {
+    const adjusted = { ...pattern };
+
+    // Pattern match bonus (from context-aware recognition)
+    if (context.patternMatch) {
+      adjusted.repeat = Math.min((adjusted.repeat || 1) + 1, 4);
+    }
+
+    // Recent activity consideration
+    if (context.recentActivity && context.recentActivity > 10) {
+      // Amy has been very active - use gentler feedback to avoid overwhelming
+      if (adjusted.intensity === 'heavy') adjusted.intensity = 'medium';
+    }
+
+    return adjusted;
+  }
+
+  private applyTimeAdjustments(pattern: HapticPattern, timeOfDay: string): HapticPattern {
+    const adjusted = { ...pattern };
+
+    // Morning: More gentle to not startle
+    if (timeOfDay === 'morning') {
+      if (adjusted.intensity === 'heavy') adjusted.intensity = 'medium';
+      adjusted.repeat = Math.max((adjusted.repeat || 1) - 1, 1);
+    }
+
+    // Evening: Slightly more pronounced for better awareness
+    if (timeOfDay === 'evening') {
+      if (adjusted.intensity === 'light') adjusted.intensity = 'medium';
+    }
+
+    return adjusted;
+  }
+
+  private async executeHapticPattern(pattern: HapticPattern): Promise<void> {
+    // Only repeat for emergency (heavy) or celebratory (medium x2) patterns.
+    const intended = pattern.repeat || 1;
+    const allowRepeat = (pattern as any)._allowRepeat === true;
+    const reps = allowRepeat
+      ? pattern.intensity === 'heavy'
+        ? intended
+        : pattern.intensity === 'medium'
+          ? Math.min(intended, 2)
+          : 1
+      : 1;
+    for (let i = 0; i < reps; i++) {
+      await Haptics.impactAsync(pattern.style);
+
+      // Add delay between repetitions
+      if (i < reps - 1) {
+        await new Promise(resolve => setTimeout(resolve, 120));
+      }
+    }
+  }
+
+  /**
+   * Multi-sensory feedback combining haptic with other senses
+   */
+  async provideMultiSensoryFeedback(
+    gestureId: string,
+    confidence: number,
+    context?: any,
+    options?: {
+      includeAudio?: boolean;
+      includeVisual?: boolean;
+      visualCallback?: () => void;
+    }
+  ): Promise<void> {
+    const tasks: Promise<void>[] = [];
+
+    // Haptic feedback
+    tasks.push(this.provideContextAwareFeedback(gestureId, confidence, context));
+
+    // Audio feedback (if enabled)
+    if (options?.includeAudio !== false) {
+      tasks.push(
+        audioService.playSuccessFeedback(gestureId, confidence)
+          .catch(error => logger.debug('Audio feedback failed:', error))
+      );
+    }
+
+    // Visual feedback (if enabled and callback provided)
+    if (options?.includeVisual !== false && options?.visualCallback) {
+      tasks.push(
+        Promise.resolve(options.visualCallback())
+          .catch(error => logger.debug('Visual feedback failed:', error))
+      );
+    }
+
+    await Promise.allSettled(tasks);
+  }
+}
+
+export const amyFirstHapticService = AmyFirstHapticService.getInstance();
 
 export interface HapticPattern {
   style: Haptics.ImpactFeedbackStyle;
   intensity: 'light' | 'medium' | 'heavy';
   duration?: number; // for custom patterns
   repeat?: number; // number of repetitions
+}
+
+export interface AmyHapticPreferences {
+  intensity: 'gentle' | 'normal' | 'strong';
+  patterns: {
+    emergency: HapticPattern;
+    success: HapticPattern;
+    encouragement: HapticPattern;
+    learning: HapticPattern;
+  };
+  timeBasedAdjustments: boolean;
+  contextAwareness: boolean;
 }
 
 /**
@@ -99,50 +374,49 @@ export function getHapticPatternForGesture(gestureId: string): HapticPattern {
 }
 
 /**
- * Enhanced haptic feedback for gesture recognition
+ * Enhanced haptic feedback for gesture recognition - Amy First
  */
 export async function gestureHapticFeedback(
   gestureId: string,
   confidence: number,
-  isEmergency: boolean = false
+  isEmergency: boolean = false,
+  context?: any
 ): Promise<void> {
-  try {
-    let pattern: HapticPattern;
+  // Use the new Amy First haptic service for enhanced feedback
+  await amyFirstHapticService.provideContextAwareFeedback(gestureId, confidence, {
+    ...context,
+    isEmergency
+  });
+}
 
-    if (isEmergency) {
-      // Emergency gestures always get maximum feedback
-      pattern = {
-        style: Haptics.ImpactFeedbackStyle.Heavy,
-        intensity: 'heavy',
-        repeat: 3
-      };
-    } else {
-      // Choose the stronger pattern between confidence and gesture type
-      const confidencePattern = getHapticPatternForConfidence(confidence);
-      const gesturePattern = getHapticPatternForGesture(gestureId);
-
-      // Use the stronger intensity
-      pattern = confidencePattern.intensity === 'heavy' || gesturePattern.intensity === 'heavy'
-        ? { ...confidencePattern, ...gesturePattern, intensity: 'heavy' as const }
-        : confidencePattern.intensity === 'medium' || gesturePattern.intensity === 'medium'
-        ? { ...confidencePattern, ...gesturePattern, intensity: 'medium' as const }
-        : confidencePattern;
-    }
-
-    // Execute haptic pattern
-    for (let i = 0; i < (pattern.repeat || 1); i++) {
-      await Haptics.impactAsync(pattern.style);
-
-      // Add small delay between repetitions
-      if (i < (pattern.repeat || 1) - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
-
-  } catch (error) {
-    // Silently fail - don't interrupt gesture processing
-    logger.debug('Enhanced haptic feedback failed:', error);
+/**
+ * Multi-sensory feedback combining haptic with audio and visual
+ */
+export async function multiSensoryFeedback(
+  gestureId: string,
+  confidence: number,
+  context?: any,
+  options?: {
+    includeAudio?: boolean;
+    includeVisual?: boolean;
+    visualCallback?: () => void;
   }
+): Promise<void> {
+  await amyFirstHapticService.provideMultiSensoryFeedback(gestureId, confidence, context, options);
+}
+
+/**
+ * Get Amy's haptic preferences
+ */
+export function getAmyHapticPreferences(): AmyHapticPreferences {
+  return amyFirstHapticService.getPreferences();
+}
+
+/**
+ * Update Amy's haptic preferences
+ */
+export async function updateAmyHapticPreferences(preferences: Partial<AmyHapticPreferences>): Promise<void> {
+  await amyFirstHapticService.savePreferences(preferences);
 }
 
 /**

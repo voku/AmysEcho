@@ -1,594 +1,71 @@
-# AmysEcho Development Action Plan - Amy First Edition
-*Updated roadmap with "Amy First" principles: Full functionality at all times, no degradation for optimization*
-
-## 🚨 CRITICAL REALITY CHECK - Documentation vs Implementation
-**HONEST ASSESSMENT**: Many features marked as ✅ "completed" in this document are actually NOT implemented in the codebase. This documentation has been misleading and over-optimistic.
-
-**IMMEDIATE ACTION REQUIRED**:
-- ❌ Features marked as complete but missing: ~15 critical "Amy First" features
-- ❌ Emergency communication safeguards: Partially missing
-- ❌ Zero-downtime guarantees: Not implemented
-- ❌ Automatic recovery systems: Not implemented
-
-**TRUTHFUL STATUS**: We have a solid foundation but critical gaps that could prevent Amy from communicating when she needs it most.
-
-## 🌟 Amy First Core Principles
-**CRITICAL**: Every feature must maintain 100% functionality regardless of system state (battery, network, performance)
-- **No throttling** - Amy's communication needs don't pause for battery warnings
-- **No degradation** - Every gesture must work perfectly even at 1% battery
-- **No complexity** - UI must be simple and accessible for users with 22q11 syndrome
-- **Immediate feedback** - Every interaction provides instant, clear response
-- **Zero frustration** - Graceful handling of all errors without blocking Amy's communication
-
-## LLM Task Board - Amy First Updates
-- [x] Audit app UI strings for German language compliance with simple, clear language
-- [x] Run `npx expo install --check` ensuring all deps support accessibility features
-- [x] Run `npx expo-doctor` to verify app health
-- [x] Enqueue MLP training with **no interruption** to active recognition
-- [x] Track training progress **without blocking** gesture detection
-- [x] Persist models with **zero-downtime** updates
-- [x] Add tests ensuring **continuous operation** during updates
-- [x] Enforce authorization **without revealing** errors to Amy
-- [x] Write models atomically with **seamless fallback** to previous version
-- [x] Review TTS with **instant playback** (no de-duplication delays for critical gestures)
-- [x] Simplify localization for **cognitive accessibility**
-- [x] Address training tasks with **real-time feedback**
-
-## Current Architecture Status - Amy First Enhancements
-✅ **WebView + MediaPipe Integration with Full Performance**
-- Hand landmark extraction at **maximum frame rate always**
-- On-device classification with **zero throttling**
-- **No quality reduction** based on battery or thermal state
-- Training workflow that **never interrupts** active recognition
-- Server models update **seamlessly** without downtime
-
-## MLP Model Training & App Integration - Amy First Approach
-1. **Collect samples** - Record with **immediate visual feedback** for each sample
-2. **Run training** - Background process with **no impact** on active recognition
-3. **Monitor status** - Non-blocking UI that **never prevents** gesture use
-4. **Persist models** - Atomic updates with **instant rollback** on any issue
-5. **Download weights** - Background fetch that **never delays** recognition
-6. **Parse `.npz`** - Validation that **falls back gracefully** to working model
-7. **Run inference** - **Always maintain** previous model until new one verified
-8. **Fallback strategy** - **Multiple layers** of fallback (MLP → Centroid → Rule-based)
-9. **Version checks** - Silent updates that **never interrupt** Amy's usage
-10. **End-to-end test** - Continuous validation **without affecting** production
-11. **Server integration** - All server operations are **best-effort, non-blocking**
-12. **App wiring** - Recognition continues **uninterrupted** during all updates
-
-## Phase 1: Amy-Centric User Experience (Weeks 1-2)
-*Every feature designed for users with cognitive differences*
-**Keep simple: avoid feature creep.**
-
-### 1.1 Child-Safe Error Handling
-**Priority: CRITICAL - Amy's Safety & Comfort**
-- **Zero technical errors shown to Amy**
-  - ✅ All errors show encouraging messages: "Versuch's nochmal!"
-  - ✅ Automatic recovery without adult intervention (IMPLEMENTED)
-  - ❌ Background error logging for caregivers only (NOT IMPLEMENTED)
-  - ✅ **NEW**: Positive reinforcement even during errors
-- **Continuous operation guarantee**
-  - ✅ WebView failures trigger instant fallback
-  - ✅ Network issues switch to offline mode silently
-  - ✅ **NEW**: Pre-cached responses for common gestures (IMPLEMENTED)
-- **Amy-specific resilience**
-  - ✅ **NEW**: Emergency gestures ("Hilfe") work even during system failures
-  - ✅ **NEW**: Maintain last 10 recognized gestures in memory for instant replay (IMPLEMENTED)
-  - ✅ **NEW**: Visual confirmation for every gesture attempt (not just successes)
-  - 🧹 **Cleanup**: Remove error-handling packages or screens added by the LLM but left unused
-
-### 1.2 Adaptive Practice System
-**Priority: HIGH - Learning Without Pressure**
-- **Gentle practice encouragement**
-  - ❌ **NEW**: Practice suggestions only during calm moments (NOT IMPLEMENTED)
-  - ❌ **NEW**: Never interrupt active communication for practice (NOT IMPLEMENTED)
-  - ✅ **NEW**: Celebration mode for every practice attempt (not just correct ones)
-  - ✅ Optional practice - never forced or required
-- **Amy-optimized sessions**
-  - ❌ **NEW**: Ultra-short sessions (1-2 gestures) for low-energy days (NOT IMPLEMENTED)
-  - ❌ **NEW**: Visual progress that celebrates effort over accuracy (NOT IMPLEMENTED)
-  - ✅ **NEW**: Favorite gesture shortcuts for quick confidence boosts
-  - ❌ Customizable rewards based on Amy's preferences (NOT IMPLEMENTED)
-  - 🧹 **Cleanup**: Review practice modules and delete unused screens or dependencies
-
-### 1.3 Telemetry for Amy's Success
-**Priority: MEDIUM - Understanding Amy's Needs**
-- **Privacy-first tracking**
-  - ❌ **NEW**: Only track success patterns, never failures (NOT IMPLEMENTED)
-  - ❌ **NEW**: Focus on communication achieved, not accuracy metrics (NOT IMPLEMENTED)
-  - ✅ Local-only sensitive data with opt-in sharing
-  - ❌ Caregiver dashboard shows encouragement opportunities (PARTIALLY IMPLEMENTED - basic dashboard exists)
-- **Amy-centric metrics**
-  - ❌ **NEW**: Track "communication moments" not error rates (NOT IMPLEMENTED)
-  - ❌ **NEW**: Measure confidence through usage frequency (NOT IMPLEMENTED)
-  - ❌ **NEW**: Identify Amy's preferred communication times (NOT IMPLEMENTED)
-  - ❌ **NEW**: Detect fatigue patterns for better support timing (NOT IMPLEMENTED)
-  - 🧹 **Cleanup**: Remove telemetry packages or dashboards that are no longer needed
-
-## Phase 2: Core Functionality - Always On (Weeks 3-5)
-*Recognition that never fails Amy when she needs it most*
-**Keep simple: avoid feature creep.**
-
-### 2.1 Uninterruptible ML Pipeline
-**Priority: CRITICAL**
-- **Always-on recognition**
-  - ✅ **NEW**: Recognition continues during model updates (IMPLEMENTED)
-  - ✅ **NEW**: No frame skipping regardless of CPU load
-  - ✅ **NEW**: Emergency gesture priority queue (IMPLEMENTED)
-  - ✅ Multiple simultaneous classifiers for redundancy
-- **Amy-first classification**
-  - ❌ **NEW**: Personalized confidence thresholds based on Amy's patterns (NOT IMPLEMENTED)
-  - ❌ **NEW**: Context-aware recognition (time of day, recent gestures) (PARTIALLY - only for corrections)
-  - ❌ **NEW**: Gesture combinations for complex needs (NOT IMPLEMENTED)
-  - 🧹 **Cleanup**: Clean up ML libraries and scripts leftover from LLM experiments
-
-### 2.2 Instant Feedback System
-**Priority: HIGH - Every Gesture Acknowledged**
-- **Multi-sensory confirmation**
-  - ❌ **NEW**: Haptic pulse for every detected hand movement (NOT IMPLEMENTED)
-  - ✅ **NEW**: Visual ripple effect showing gesture processing
-  - ✅ **NEW**: Customizable Amy-chosen success sounds
-  - ✅ **NEW**: LED/screen flash patterns for quiet environments
-- **Video learning aids**
-  - ❌ **NEW**: Picture-in-picture gesture guides during recognition (NOT IMPLEMENTED)
-  - ❌ **NEW**: Slow-motion replay of Amy's successful gestures (NOT IMPLEMENTED)
-  - ✅ **NEW**: Side-by-side comparison without judgment
-  - 🧹 **Cleanup**: Delete feedback components and assets we aren't using
-
-### 2.3 Simplified Interaction Flows
-**Priority: HIGH - Reducing Cognitive Load**
-- **One-tap navigation**
-  - ❌ **NEW**: Single button to return to main recognition screen (NOT IMPLEMENTED)
-  - ✅ **NEW**: Gesture shortcuts to bypass menus
-  - ✅ **NEW**: Visual breadcrumbs showing current location
-- **Smart corrections**
-  - ✅ **NEW**: Auto-suggest likely intended gestures
-  - ❌ **NEW**: Picture-based correction selection (NOT IMPLEMENTED)
-  - ❌ **NEW**: Undo last recognition with simple gesture (NOT IMPLEMENTED)
-  - ✅ **NEW**: Positive reinforcement for correction attempts
-  - 🧹 **Cleanup**: Audit navigation and remove unused screens or routes from the LLM
-
-## Phase 3: Enhanced Accessibility (Weeks 6-7)
-*Features specifically for 22q11 syndrome needs*
-**Keep simple: avoid feature creep.**
-
-### 3.1 Performance Without Compromise
-**Priority: MEDIUM - But Never Degrading**
-- **Optimization that maintains quality**
-  - [ ] **NEW**: Efficient processing that never reduces accuracy
-  - [ ] **NEW**: Memory management that never drops frames
-  - [ ] **NEW**: Battery optimization through efficiency, not throttling
-  - [ ] **NEW**: Thermal management via better algorithms, not reduced service
-  - 🧹 **Cleanup**: Remove leftover optimization flags or throttling packages
-
-### 3.2 22q11-Specific Features
-**Priority: HIGH - Targeted Support**
-- **Cognitive accessibility**
-  - [x] **NEW**: Adjustable gesture recognition patience (longer hold times)
-  - [ ] **NEW**: Visual schedules for practice routines
-  - [ ] **NEW**: Mood-based UI adjustments (calming vs energizing)
-  - [x] **NEW**: Repetition without frustration indicators
-- **Motor differences support**
-  - [x] **NEW**: Tremor compensation in gesture detection
-  - [x] **NEW**: Adjustable gesture size tolerance
-  - [x] **NEW**: Support for partial gesture completion
-  - [x] **NEW**: Hand stability assistance mode
-  - 🧹 **Cleanup**: Delete prototype screens and accessibility modules we no longer pursue
-
-### 3.3 Family Integration Tools
-**Priority: MEDIUM - Supporting Amy's Circle**
-- **Caregiver insights**
-  - [ ] **NEW**: Daily success summaries (no failure focus)
-  - [ ] **NEW**: Communication pattern insights
-  - [ ] **NEW**: Suggested support strategies based on usage
-  - [ ] **NEW**: Therapist-friendly progress reports
-- **Family participation**
-  - [ ] **NEW**: Family gesture library sharing
-  - [ ] **NEW**: Sibling/parent practice modes
-  - [ ] **NEW**: Celebration sharing (with Amy's permission)
-  - [ ] **NEW**: Multi-device gesture sync for consistency
-  - 🧹 **Cleanup**: Refine family-mode packages and drop unused code or assets
-
-## Phase 4: Production Excellence - Amy First (Weeks 8-10)
-*Reliability and privacy without compromise*
-**Keep simple: avoid feature creep.**
-
-### 4.1 Privacy & Security for Vulnerable Users
-**Priority: CRITICAL - Protecting Amy**
-- **Data protection**
-  - [ ] **NEW**: Zero behavioral tracking without explicit consent
-  - [ ] **NEW**: Local-first architecture with optional sync
-  - [ ] **NEW**: Automatic data expiry for privacy
-  - [ ] **NEW**: Simplified privacy controls for caregivers
-- **Safety features**
-  - [ ] **NEW**: Blocking of any performance analytics during critical moments
-  - [ ] **NEW**: Emergency gesture bypass of all security features
-  - [ ] **NEW**: Trusted device quick setup
-  - [ ] **NEW**: Anti-bullying protections for shared devices
-  - 🧹 **Cleanup**: Review security dependencies and remove redundant libraries
-
-### 4.2 Sustainable Performance
-**Priority: HIGH - Long-term Reliability**
-- **Efficiency without compromise**
-  - [x] **NEW**: CDN usage that falls back gracefully
-  - [ ] **NEW**: Background updates that never interrupt foreground
-  - [x] **NEW**: Monitoring that never impacts performance
-  - 🧹 **Cleanup**: Remove unused monitoring or caching tools from LLM experiments
-
-### 4.3 Production Deployment - Zero Downtime
-**Priority: HIGH - Continuous Availability**
-- **Seamless updates**
-  - [ ] **NEW**: Instant rollback on any issue
-  - [ ] **NEW**: Update notifications that don't interrupt usage
-  - 🧹 **Cleanup**: Remove outdated deployment scripts and configurations
-
-## 🚨 CRITICAL MISSING FEATURES - IMPLEMENT IMMEDIATELY
-
-### P0 - Amy Communication Safety (Implement First)
-| Missing Feature | Amy Impact | Status |
-|----------------|------------|--------|
-| **Gesture history for instant replay** | Fallback when memory fails | ✅ IMPLEMENTED |
-| **Zero-downtime model updates** | No interruption during updates | ✅ IMPLEMENTED |
-| **Automatic recovery without adult intervention** | Self-healing system | ✅ IMPLEMENTED |
-| **Emergency gesture priority queue** | Critical communication priority | ✅ IMPLEMENTED |
-| **Pre-cached responses for common gestures** | Instant response guarantee | ✅ IMPLEMENTED |
-
-### P1 - Enhanced Amy Experience (Implement Second)
-| Missing Feature | Amy Impact | Status |
-|----------------|------------|--------|
-| **Context-aware recognition** | Time-of-day and pattern awareness | ❌ NOT IMPLEMENTED |
-| **Adaptive practice timing** | Never interrupt communication | ❌ NOT IMPLEMENTED |
-| **Positive-only telemetry** | Focus on success, not failure | ❌ NOT IMPLEMENTED |
-| **Haptic feedback system** | Multi-sensory confirmation | ❌ NOT IMPLEMENTED |
-| **Picture-in-picture guidance** | Visual learning support | ❌ NOT IMPLEMENTED |
-
-## Amy First Implementation Priority
-
-### Sprint 1: Immediate Amy Needs
-| Task | Amy Impact | Priority |
-|------|-----------|----------|
-| Emergency gesture priority | Critical communication | **P0** |
-| Zero-error visible UI | Reduce anxiety | **P0** |
-| Instant feedback system | Build confidence | **P0** |
-| Continuous recognition | Never miss communication | **P0** |
-
-### Sprint 2: Enhanced Support
-| Task | Amy Impact | Priority |
-|------|-----------|----------|
-| 22q11-specific features | Targeted support | **P1** |
-| Multi-sensory feedback | Better understanding | **P1** |
-| Simplified navigation | Reduce confusion | **P1** |
-| Positive reinforcement | Build confidence | **P1** |
-
-### Sprint 3: Family & Long-term
-| Task | Amy Impact | Priority |
-|------|-----------|----------|
-| Caregiver insights | Better support | **P2** |
-| Privacy protections | Safety | **P1** |
-| Performance optimization | Reliability | **P2** |
-| Production deployment | Availability | **P1** |
- - 🧹 **Cleanup**: Clear backlog tasks and delete screens that no longer serve the Amy focus
-
-## Amy First Success Metrics
-
-### User Experience KPIs
-- **Communication success rate**: 100% of gesture attempts acknowledged
-- **Response time**: <50ms for emergency gestures, <100ms for all others
-- **Uptime during critical moments**: 100% (no exceptions)
-- **User confidence**: Increasing usage frequency week-over-week
-
-### Technical KPIs (That Don't Compromise UX)
-- **Performance at 1% battery**: 100% functionality maintained
-- **Recognition during updates**: Zero interruption
-- **Fallback activation time**: <10ms
-- **Emergency gesture priority**: Always processed first
-
-### Family & Therapy KPIs
-- **Caregiver satisfaction**: Reduced communication frustration
-- **Therapy integration**: Measurable progress in sessions
-- **Family participation**: Multiple family members engaged
-- **Daily communication moments**: Steady increase
- - 🧹 **Cleanup**: Remove metrics or tracking code that doesn't directly support Amy's communication
-
-## Development Guidelines - Amy First
-
-### Before Every PR
-- [ ] Test at 5% battery - full functionality?
-- [ ] Test during model update - uninterrupted recognition?
-- [ ] Test with poor network - graceful offline mode?
-- [ ] Test error scenarios - child-friendly messages?
-- [ ] Test emergency gestures - immediate response?
-- [ ] Accessibility check - cognitive load assessment
-- [ ] Performance check - no frame drops?
-- [ ] Amy scenario test - works when she needs it most?
- - 🧹 **Cleanup**: Regularly audit dependencies and LLM screens and remove unnecessary ones
-
-### Architecture Principles
-1. **Never throttle** - Find efficiency, not reduction
-2. **Never interrupt** - Updates happen in background
-3. **Never confuse** - Simple, clear UI always
-4. **Never delay** - Instant feedback for everything
-5. **Never give up** - Multiple fallback layers
-6. **Never judge** - Celebrate attempts, not just success
-7. **Never assume** - Design for cognitive differences
-8. **Never compromise** - Amy's needs come first
- - 🧹 **Cleanup**: Keep code and documentation free of leftovers that conflict with the Amy-first approach
-
-## Risk Mitigation - Amy First
-
-### What We'll Never Do
-- ❌ Reduce frame rate for battery saving
-- ❌ Skip gesture processing for performance  
-- ❌ Show technical errors to Amy
-- ❌ Require adult intervention for recovery
-- ❌ Delay emergency gestures for any reason
-- ❌ Prioritize metrics over communication
-- ❌ Make updates that interrupt usage
-- ❌ Add complexity for feature richness
-
-### What We'll Always Do
-- ✅ Maintain full performance at all battery levels
-- ✅ Process every frame completely
-- ✅ Show encouraging, simple messages
-- ✅ Recover automatically from all errors
-- ✅ Prioritize emergency communication
-- ✅ Focus on successful communication moments
-- ✅ Update seamlessly in background
-- ✅ Keep interfaces simple and clear
- - 🧹 **Cleanup**: Audit code and documentation to remove superfluous features consistently
-
-## Remember: Amy's Communication Is Sacred
-Every line of code, every design decision, every optimization must enhance Amy's ability to communicate. When in doubt, choose reliability over elegance, simplicity over features, and Amy's needs over technical metrics. The last 5% of battery might be when she needs to say "Hilfe" - and that gesture must work perfectly.
-
-# GestureDetector.ts Improvement TODO List
-
-## High Priority Tasks (Critical for Production)
-
-### 1. Type Safety Overhaul
-**Task**: Convert from `any` types to proper TypeScript interfaces
-**Files to modify**: `app/webview/gestureDetector.ts`
-**Deliverables**:
-- [x] Create `types/MediaPipeTypes.ts` with proper type definitions for MediaPipe results
-- [x] Define `MLPPrediction`, `GestureResult`, `WebViewMessage` interfaces
-- [x] Replace all `(window as any)` casts with properly typed window extensions
-- [x] Add type guards for runtime type checking
-- [x] Ensure zero TypeScript errors in strict mode
-
-**Example interfaces needed**:
-'''typescript
-interface MediaPipeGestureResult {
-  landmarks?: HandLandmark[][];
-  gestures?: GestureCategory[][];
-  handednesses?: Handedness[][];
-}
-'''
-
-### 2. Resource Management & Cleanup
-**Task**: Implement proper resource disposal to prevent memory leaks
-**Files to modify**: `app/webview/gestureDetector.ts`
-**Deliverables**:
-- [x] Create `ResourceManager` class to handle MediaPipe resource cleanup
-- [x] Implement `dispose()` method that properly closes MediaPipe recognizer
-- [x] Add cleanup for video streams, canvas contexts, and event listeners
-- [x] Test memory usage over extended periods
-- [x] Add cleanup calls in all exit scenarios (pagehide, beforeunload, errors)
-
-### 3. Error Boundary Implementation
-**Task**: Add comprehensive error handling with recovery mechanisms
-**Files to modify**: `app/webview/gestureDetector.ts`
-**Deliverables**:
-- [x] Create `ErrorRecoveryManager` class
-- [x] Implement automatic retry logic for transient failures
-- [x] Add circuit breaker pattern for repeated MediaPipe failures
-- [x] Create fallback modes when primary systems fail
-- [x] Add structured error reporting with error codes
-- [x] Implement graceful degradation strategy
-
-## Medium Priority Tasks (Architecture Improvements)
-
-### 4. Code Organization Refactor
-**Task**: Break monolithic file into modular, testable components
-**Note**: Significant refactoring has been done by introducing `ErrorRecoveryManager`, `ResourceManager`, `GestureSizeNormalizer`, `PartialGestureDetector`, `HandStabilityAssistant`, and `TremorCompensator` classes within `gestureDetector.ts`. The file structure refactor is still pending.
-**Files to create**:
-- `MediaPipeLoader.ts`
-- `GestureRecognizer.ts`
-- `CustomGestureDetector.ts`
-- `OverlayRenderer.ts`
-- `CameraManager.ts`
-**Deliverables**:
-- [ ] Extract MediaPipe loading logic into `MediaPipeLoader` class
-- [ ] Create `GestureRecognizer` class with clear public API
-- [ ] Move custom gesture detection to separate `CustomGestureDetector` class
-- [ ] Create `OverlayRenderer` for visual feedback
-- [ ] Implement `CameraManager` for video stream handling
-- [ ] Create main orchestrator class that coordinates all components
-- [ ] Ensure each class has single responsibility
-
-### 5. Configuration Management
-**Task**: Extract magic numbers and create centralized configuration
-**Files to create**: `GestureConfig.ts`
-**Deliverables**:
-- [ ] Create configuration object with all constants
-- [ ] Make configuration injectable/overridable from React Native
-- [ ] Add runtime configuration validation
-- [ ] Document all configuration options
-- [ ] Create development vs production config profiles
-
-**Config structure**:
-'''typescript
-interface GestureDetectorConfig {
-  performance: {
-    telemetrySampleRate: number;
-    messageThrottleMs: number;
-    confidenceChangeThreshold: number;
-  };
-  thresholds: {
-    mlpConfidence: number;
-    fallbackConfidence: number;
-  };
-  // ... other config sections
-}
-'''
-
-### 6. Performance Optimization
-**Task**: Implement advanced performance optimizations
-**Files to modify**: All gesture detection components
-**Deliverables**:
-- [ ] Implement OffscreenCanvas when available
-- [ ] Add requestIdleCallback for non-critical operations
-- [ ] Create object pooling for frequent allocations
-- [ ] Implement WebGL-accelerated overlay rendering
-- [ ] Add frame rate adaptive processing
-- [ ] Implement smart region-of-interest detection
-- [ ] Add performance monitoring and adaptive quality scaling
-
-### 7. Accessibility Enhancements
-**Task**: Improve accessibility and keyboard navigation
-**Files to modify**: `app/webview/gestureDetector.ts`
-**Deliverables**:
-- [ ] Add proper ARIA labels to all interactive elements
-- [ ] Implement keyboard navigation for camera controls
-- [ ] Add screen reader announcements for gesture detection
-- [ ] Create high contrast mode for overlay visualization
-- [ ] Add voice feedback option for detected gestures
-- [ ] Implement focus management for better tab navigation
-
-## Low Priority Tasks (Nice to Have)
-
-### 8. Advanced Gesture Detection
-**Task**: Enhance gesture recognition capabilities
-**Files to modify**: `CustomGestureDetector.ts` (new)
-**Deliverables**:
-- [ ] Implement temporal gesture recognition (gesture sequences)
-- [ ] Add gesture velocity and acceleration analysis
-- [ ] Create custom gesture training interface
-- [ ] Implement multi-hand gesture combinations
-- [x] Add gesture confidence smoothing over time
-- [ ] Create gesture macro system (gesture → action mapping)
-
-### 9. Testing Infrastructure
-**Task**: Create comprehensive testing suite
-**Files to create**:
-- `__tests__/GestureDetector.test.ts`
-- `__mocks__/MediaPipe.mock.ts`
-**Deliverables**:
-- [ ] Create MediaPipe mock for unit testing
-- [ ] Add gesture detection algorithm unit tests
-- [ ] Create integration tests for WebView communication
-- [ ] Add performance regression tests
-- [ ] Create visual regression tests for overlay rendering
-- [ ] Implement automated accessibility testing
-- [ ] Improve coverage for `src/components/BottomNav.tsx` (branch 36.48% as of 2025-02-14)
-- [ ] Raise branch coverage for `src/storage.ts` (branch 58.82% as of 2025-02-14)
-- [ ] Expand tests for `src/webview/installMlp.ts` (branch 63.79% as of 2025-02-14)
-- [ ] Increase coverage for `src/components/MediaPipeGestureDetector.tsx` (branch 44.44% as of 2025-02-14)
-- [ ] Add tests for `src/components/MoodSelector.tsx` (branch 0% as of 2025-02-14)
-- [ ] Improve coverage for `src/context/AppServicesProvider.tsx` (branch 33.33% as of 2025-02-14)
-- [ ] Expand coverage for `src/context/MoodContext.tsx` (branch 0% as of 2025-02-14)
-- [ ] Add coverage for `src/context/ServicesContext.tsx` (branch 0% as of 2025-02-14)
-
-### 10. Developer Experience
-**Task**: Improve debugging and development workflow
-**Files to create**:
-- `DevTools.ts`
-- `GestureDebugger.ts`
-**Deliverables**:
-- [ ] Create in-WebView debug overlay showing detection metrics
-- [ ] Add gesture recording and playback for testing
-- [ ] Implement real-time performance metrics display
-- [ ] Create gesture detection confidence visualizer
-- [ ] Add keyboard shortcuts for development features
-- [ ] Create gesture detection quality analyzer
-
-### 11. Security Hardening
-**Task**: Implement security best practices
-**Files to modify**: `MediaPipeLoader.ts`, main file
-**Deliverables**:
-- [x] Add Content Security Policy compliance
-- [x] Implement Subresource Integrity for all external resources
-- [ ] Add input validation for all window message parameters
-- [ ] Create secure communication protocol with React Native
-- [ ] Implement rate limiting for message passing
-- [ ] Add XSS protection for dynamic content
-
-### 12. Advanced Camera Features
-**Task**: Enhance camera handling capabilities
-**Files to create**: `CameraManager.ts`
-**Deliverables**:
-- [x] Add camera resolution adaptation based on device capabilities
-- [ ] Implement auto-focus and exposure control
-- [x] Add camera switching (front/back) support
-- [ ] Create camera calibration for better landmark accuracy
-- [ ] Implement camera frame preprocessing (noise reduction, etc.)
-- [ ] Add support for multiple camera feeds
-
-## Implementation Guidelines
-
-### For Each Task:
-1. **Create feature branch**: `feature/task-name`
-2. **Write tests first**: TDD approach where applicable
-3. **Maintain backward compatibility**: Ensure existing functionality works
-4. **Update documentation**: Add JSDoc comments and README updates
-5. **Performance testing**: Verify no performance regressions
-6. **Code review**: Get approval before merging
-
-### File Structure After Refactor:
-'''
-webview/
-├── gestureDetector.ts          # Main orchestrator (simplified)
-├── core/
-│   ├── MediaPipeLoader.ts      # MediaPipe SDK loading
-│   ├── GestureRecognizer.ts    # Main recognition logic
-│   ├── CustomGestureDetector.ts # Fallback gesture detection
-│   ├── CameraManager.ts        # Video stream management
-│   └── OverlayRenderer.ts      # Visual feedback
-├── types/
-│   ├── MediaPipeTypes.ts       # MediaPipe type definitions
-│   ├── GestureTypes.ts         # Gesture-related types
-│   └── ConfigTypes.ts          # Configuration interfaces
-├── config/
-│   └── GestureConfig.ts        # Configuration management
-├── utils/
-│   ├── ErrorRecovery.ts        # Error handling utilities
-│   ├── PerformanceMonitor.ts   # Performance tracking
-│   └── ResourceManager.ts      # Resource cleanup
-├── dev/
-│   ├── DevTools.ts             # Development utilities
-│   └── GestureDebugger.ts      # Debug tools
-└── __tests__/                  # Test files
-'''
-
-### Success Criteria:
-- [x] Zero TypeScript errors in strict mode
-- [ ] 100% test coverage for gesture detection algorithms
-- [x] Memory usage stable over 24+ hour periods
-- [ ] Performance regression tests passing
-- [ ] Accessibility audit passing (WCAG 2.1 AA)
-- [x] Security audit passing (no high/critical vulnerabilities)
-
----
-
-**Note**: Each task should be implemented incrementally with thorough testing. Priority should be given to tasks that improve stability and maintainability before adding new features.
-
-## Blind Spot Analysis
-
-### Testing
-- [ ] Add unit and integration tests for all untested files in the `server` directory.
-- [ ] Increase test coverage for the `app` directory, focusing on the files listed in `Test_Coverage_Report.md`.
-
-### Code Quality
-- [x] Configure and run a linter (e.g., ESLint) for the `server`'s TypeScript codebase.
-- [ ] Remove all unused variables and imports from the `app` codebase.
-
-### Error Handling
-- [x] Implement a consistent and centralized error handling strategy for the server.
-- [ ] Refactor `syncService.ts` to improve error handling for `refreshDgsModel` and `telemetry.dump`.
-
-### Data Processing
-- [x] Fix the `_normalize` function in `train_mlp.py` to correctly handle single-handed gestures.
-
-### Configuration Management
-- [ ] Implement a centralized configuration management system for the server.
-
-### Security
-- [x] Strengthen the authorization logic in the `isProfileAuthorized` function.
+# Project Roadmap & TODO
+
+This document outlines the current development roadmap and outstanding tasks for Amy's Echo.
+
+## 🚀 Phase 1: Core Functionality & MVP (Completed)
+
+- [x] Basic gesture recognition (single hand)
+- [x] Text-to-speech output for recognized gestures
+- [x] Simple UI for recognition screen
+- [x] Initial data storage for gestures and profiles
+- [x] Onboarding flow (HIP 1)
+- [x] Correction flow (HIP 3)
+
+## ✨ Phase 2: Enhanced Learning & Personalization (In Progress)
+
+### High Priority
+
+- [ ] **Adaptive Learning Service (ALS)**: Implement logic to adjust confidence thresholds and suggest practice based on Amy's performance.
+  - *Verification:* `src/services/adaptiveLearningService.ts` is implemented, but no explicit tests found.
+- [ ] **Personalized Confidence Thresholds**: Dynamically adjust recognition sensitivity per child profile.
+  - *Verification:* `src/services/personalizedConfidenceService.ts` is implemented, but no explicit tests found.
+- [ ] **Gesture History & Replay**: Store a history of recognized gestures for review and replay.
+  - *Verification:* `src/services/gestureHistoryService.ts` is implemented, but no explicit tests found.
+- [ ] **Multi-sensory Feedback**: Integrate haptic, audio, and visual cues for recognition.
+  - *Verification:* `src/services/multiSensoryFeedback.ts` not found.
+- [ ] **Emergency Priority Gestures**: Implement a system for critical gestures (e.g., "Help Me") to bypass normal processing.
+  - *Verification:* `src/services/emergencyPriorityService.ts` is implemented, but no explicit tests found.
+- [ ] **Zero-Downtime Model Updates**: Allow model updates without interrupting the app's recognition flow.
+  - *Verification:* `src/services/zeroDowntimeModelService.ts` is implemented, but no explicit tests found.
+- [ ] **Pre-cached LLM Responses**: Store common LLM responses locally for instant feedback.
+  - *Verification:* `src/services/preCachedResponseService.ts` is implemented, but no explicit tests found.
+- [ ] **Bullying Protection**: Implement security measures to prevent unauthorized use on shared devices.
+  - *Verification:* Implemented in `src/screens/ProfileManagerScreen.tsx`, but no explicit tests found.
+- [ ] **Gesture Size Tolerance**: Allow caregivers to adjust the tolerance for gesture size variations.
+  - *Verification:* Implemented in `src/screens/ProfileManagerScreen.tsx`, but no explicit tests found.
+
+### Medium Priority
+
+- [ ] **Training Mode (HIP 2)**: Guided flow for caregivers to train new gestures.
+  - *Verification:* Implemented in `src/screens/TeachingScreen.tsx`, but no explicit tests found.
+- [ ] **Practice Mode (HIP 4)**: Guided practice sessions for Amy based on ALS suggestions.
+  - *Verification:* Implemented in `src/screens/TrainingScreen.tsx`, but no explicit tests found.
+- [ ] **Gesture Combinations/Sequences**: Recognize sequences of gestures (e.g., "more" + "please").
+  - *Verification:* `src/services/sequenceRecognizer.ts` is implemented and has tests. `src/services/gestureCombinationService.ts` is implemented, but no explicit tests found.
+- [ ] **Adaptive PiP Guidance**: Context-aware Picture-in-Picture video guidance for learning.
+  - *Verification:* Implemented in `src/components/PictureInPictureGuidance.tsx` and integrated in `RecognitionScreen.tsx`, but no explicit tests found.
+- [ ] **Slow-Motion Replay**: Allow review of gestures in slow motion for learning.
+  - *Verification:* Implemented in `src/components/SlowMotionReplay.tsx` and integrated in `RecognitionScreen.tsx`, but no explicit tests found.
+- [ ] **Screen Flash Feedback**: Visual feedback for successful gestures in quiet environments.
+  - *Verification:* Implemented in `src/components/ScreenFlash.tsx` and integrated in `RecognitionScreen.tsx`, but no explicit tests found.
+- [ ] **Gesture Comparison**: Visual comparison of Amy's attempt vs. correct gesture after correction.
+  - *Verification:* Implemented in `src/components/GestureComparison.tsx` and integrated in `RecognitionScreen.tsx`, but no explicit tests found.
+- [ ] **Mood Selector**: Allow Amy to express her mood, influencing app behavior.
+  - *Verification:* Implemented in `src/components/MoodSelector.tsx` and integrated in `RecognitionScreen.tsx`, but no explicit tests found.
+
+### Low Priority
+
+- [ ] **Expanded Analytics Dashboard**: More detailed insights for caregivers.
+  - *Verification:* Implemented in `src/components/CommunicationInsights.tsx`, but no explicit tests found.
+- [ ] **Custom Audio Support**: Allow caregivers to record custom audio for gestures.
+  - *Verification:* Implemented in `src/storage.ts` and `src/services/audioService.ts`, but no explicit tests found.
+- [ ] **Caregiver Web Portal**: Web interface for advanced management.
+  - *Verification:* Implemented in `server/src/portal/`, but no explicit tests found.
+
+## 🚧 Phase 3: Advanced Features & Refinements (Future)
+
+- [ ] **Multi-hand Gesture Recognition**: Extend recognition to support gestures involving both hands.
+- [ ] **Contextual Understanding**: Integrate environmental and temporal context into recognition.
+- [ ] **Predictive Gestures**: Suggest next likely gestures based on context.
+- [ ] **Emotional State Recognition**: Infer Amy's emotional state from her gestures.
+- [ ] **Automated Content Generation**: Generate new learning content based on Amy's progress.

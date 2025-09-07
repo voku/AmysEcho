@@ -24,7 +24,7 @@ export default function LoadingIndicator({
         accessibilityRole="progressbar"
         accessibilityLabel={accessibilityLabel}
       />
-      <Text style={[styles.text, highContrast && styles.textHC, { fontSize }]}>{`⏳ ${label}`}</Text>
+      <Text style={[styles.text, highContrast && styles.textHC, { fontSize }]}>{label}</Text>
     </View>
   );
 }

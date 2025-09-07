@@ -7,6 +7,7 @@ import { gestureModel } from '../model';
 import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
 import { childHaptic } from '../services/feedbackService';
+import { childFriendlyStyles } from '../styles/touchTargets';
 
 export default function PracticeSchedulerScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -266,4 +267,3 @@ export default function PracticeSchedulerScreen({ navigation, route }: any) {
     </View>
   );
 }
-

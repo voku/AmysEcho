@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "es2022",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
     "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts"],

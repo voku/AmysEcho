@@ -208,17 +208,19 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     #tapToStart { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(0,0,0,0.4); font-family: sans-serif; }
     #tapToStart.hidden { display: none; }
   </style>
-  <script>
-    window.__facingMode = '${facingMode}';
-    window.__mirrorOverlay = ${facingMode === 'user' ? 'true' : 'false'};
-    window.__tapToStart = '${tapToStartText}';
-    window.__recognizerInitFailed = '${recognizerInitFailed}';
-    window.__predictionError = '${predictionError}';
-    window.__cameraError = '${cameraError}';
-    window.__mlpThreshold = ${MLP_CONFIDENCE_THRESHOLD};
-    window.__fallbackThreshold = ${FALLBACK_CONFIDENCE_THRESHOLD};
-    window.__gestureSizeTolerance = ${gestureSizeTolerance};
-  </script>
+   <script>
+     window.__facingMode = '${facingMode}';
+     window.__mirrorOverlay = ${facingMode === 'user' ? 'true' : 'false'};
+     window.__tapToStart = '${tapToStartText}';
+     window.__recognizerInitFailed = '${recognizerInitFailed}';
+     window.__predictionError = '${predictionError}';
+     window.__cameraError = '${cameraError}';
+     window.__mlpThreshold = ${MLP_CONFIDENCE_THRESHOLD};
+     window.__fallbackThreshold = ${FALLBACK_CONFIDENCE_THRESHOLD};
+     window.__gestureSizeTolerance = ${gestureSizeTolerance};
+     // Disable enhanced haptic system during testing to avoid interference
+     window.__disableHapticSystem = ${process.env.NODE_ENV === 'test' ? 'true' : 'false'};
+   </script>
   <script src="${gestureDetectorJs}"></script>
 </head>
 <body></body>

@@ -215,7 +215,9 @@ async function main() {
   await runner.generateReport(results);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Only run the standalone runner when explicitly requested.
+// Prevents accidental execution under `tsx --test` or node:test discovery.
+if (import.meta.url === `file://${process.argv[1]}` && process.env.DGS_RUNNER === '1') {
   main().catch(error => {
     console.error('Test runner failed:', error);
     process.exit(1);

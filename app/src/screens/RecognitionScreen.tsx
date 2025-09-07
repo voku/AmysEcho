@@ -16,6 +16,8 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import BottomNav from '../components/BottomNav';
 import CorrectionPanel from '../components/CorrectionPanel';
+import PracticeSuggestion from '../components/PracticeSuggestion';
+import AdaptiveLearningPanel from '../components/AdaptiveLearningPanel';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
 import {
@@ -28,7 +30,10 @@ import {
   gestureHapticFeedback,
   detectionHapticFeedback,
   partialGestureHapticFeedback,
-  personalizedConfidenceService,
+  multiSensoryFeedback,
+   activeLearningService,
+   adaptiveLearningService,
+   personalizedConfidenceService,
   gestureCombinationService,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
@@ -49,6 +54,8 @@ import { logHIPEvent } from '../services/hipEvents';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
 import { RecognitionPath } from '../utils/recognitionState';
+import { recordAmyActivity } from '../services/dailyJobs';
+import { positiveTelemetryService } from '../services/positiveTelemetryService';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
 import SlowMotionReplay from '../components/SlowMotionReplay';
@@ -113,7 +120,11 @@ export default function RecognitionScreen({
   const [showPipGuidance, setShowPipGuidance] = useState(false);
   const [pipGuidanceGesture, setPipGuidanceGesture] = useState<GestureModelEntry | null>(null);
   const [showSlowMotionReplay, setShowSlowMotionReplay] = useState(false);
+  const [showPracticeSuggestion, setShowPracticeSuggestion] = useState(false);
+  const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
   const [slowMotionGesture, setSlowMotionGesture] = useState<GestureModelEntry | null>(null);
+  const [contextInsights, setContextInsights] = useState<any>(null);
+  const [feedbackHistory, setFeedbackHistory] = useState<any[]>([]);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -293,6 +304,164 @@ export default function RecognitionScreen({
     };
     return messages[action] || '⚡ Schnellaktion ausgeführt';
   }, []);
+
+  // Amy First: Adaptive PiP guidance functions
+  const getAdaptivePipPosition = useCallback((): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' => {
+    // Position PiP based on context and Amy's activity patterns
+    const timeOfDay = contextInsights?.timeOfDay || 'afternoon';
+
+    // Morning: Top positions to not interfere with breakfast activities
+    if (timeOfDay === 'morning') return 'top-right';
+
+    // Afternoon: Bottom positions for better visibility during learning
+    if (timeOfDay === 'afternoon') return 'bottom-left';
+
+    // Evening: Top-left to avoid interfering with relaxation
+    return 'top-left';
+  }, [contextInsights]);
+
+  const getAdaptivePipSize = useCallback((): 'small' | 'medium' | 'large' => {
+    // Adjust size based on confidence and context
+    if (gestureConfidence < 0.4) {
+      // Low confidence - larger size for better learning
+      return 'large';
+    } else if (gestureConfidence < 0.7) {
+      // Medium confidence - medium size
+      return 'medium';
+    } else {
+      // High confidence - smaller size, less intrusive
+      return 'small';
+    }
+  }, [gestureConfidence]);
+
+  const getAdaptivePlaybackMode = useCallback((): 'loop' | 'once' | 'guided' => {
+    // Choose playback mode based on Amy's learning needs
+    if (gestureConfidence < 0.5) {
+      // Very low confidence - loop for repeated learning
+      return 'loop';
+    } else if (gestureConfidence < 0.8) {
+      // Moderate confidence - guided mode for focused learning
+      return 'guided';
+    } else {
+      // Good confidence - play once as reminder
+      return 'once';
+    }
+  }, [gestureConfidence]);
+
+  const getContextualGestureSuggestion = useCallback((): GestureModelEntry | null => {
+    // Get available gestures with videos
+    const availableGestures = gestureModel.gestures.filter(gesture => gesture.dgsVideoUri);
+    if (availableGestures.length === 0) return null;
+
+    // Context-aware gesture selection
+    const timeOfDay = contextInsights?.timeOfDay || 'afternoon';
+
+    // Morning: Focus on basic communication gestures
+    if (timeOfDay === 'morning') {
+      const morningGestures = availableGestures.filter(g =>
+        ['hallo', 'danke', 'bitte', 'ja', 'nein'].includes(g.id)
+      );
+      if (morningGestures.length > 0) {
+        return morningGestures[Math.floor(Math.random() * morningGestures.length)];
+      }
+    }
+
+    // Afternoon: Learning time - show gestures Amy struggles with
+    if (timeOfDay === 'afternoon') {
+      // Prioritize gestures with lower recent success rates
+      const strugglingGestures = availableGestures.filter(g => {
+        const stats = positiveTelemetryService.getGestureSuccessStats(g.id);
+        return stats && stats.averageConfidence < 0.7;
+      });
+      if (strugglingGestures.length > 0) {
+        return strugglingGestures[Math.floor(Math.random() * strugglingGestures.length)];
+      }
+    }
+
+    // Evening: Relaxation time - show positive/fun gestures
+    if (timeOfDay === 'evening') {
+      const eveningGestures = availableGestures.filter(g =>
+        ['super', 'gut', 'toll', 'fertig'].includes(g.id)
+      );
+      if (eveningGestures.length > 0) {
+        return eveningGestures[Math.floor(Math.random() * eveningGestures.length)];
+      }
+    }
+
+    // Default: Random gesture from available ones
+    return availableGestures[Math.floor(Math.random() * availableGestures.length)];
+  }, [contextInsights, positiveTelemetryService]);
+
+  const getAdaptiveGuidanceDuration = useCallback((): number => {
+    // Adaptive duration based on context and Amy's attention span
+    const baseDuration = 8000; // 8 seconds
+    const timeOfDay = contextInsights?.timeOfDay || 'afternoon';
+
+    // Morning: Shorter duration to not interfere with routine
+    if (timeOfDay === 'morning') return baseDuration * 0.7;
+
+    // Afternoon: Longer duration for focused learning
+    if (timeOfDay === 'afternoon') return baseDuration * 1.2;
+
+    // Evening: Medium duration for gentle learning
+    return baseDuration;
+  }, [contextInsights]);
+
+  const shouldShowGuidance = (gestureId: string, confidence: number): boolean => {
+    // Don't overwhelm Amy with too much guidance
+    if (!contextInsights) return true;
+
+    // Check recent guidance frequency
+    const recentGuidance = feedbackHistory.filter(f =>
+      f.timestamp > Date.now() - 60000 && // Last minute
+      f.type === 'guidance_shown'
+    );
+
+    if (recentGuidance.length >= 3) {
+      // Too much guidance recently - give Amy a break
+      return false;
+    }
+
+    // Check if Amy has been struggling with this gesture recently
+    const gestureAttempts = feedbackHistory.filter(f =>
+      f.gesture === gestureId &&
+      f.timestamp > Date.now() - 300000 && // Last 5 minutes
+      f.success
+    );
+
+    const recentSuccessRate = gestureAttempts.length > 0
+      ? gestureAttempts.filter(f => f.success).length / gestureAttempts.length
+      : 0;
+
+    // Show guidance if success rate is low or confidence is moderate
+    return recentSuccessRate < 0.6 || (confidence >= 0.3 && confidence <= 0.7);
+  };
+
+  const getGestureSpecificGuidanceDuration = useCallback((gestureId: string, confidence: number): number => {
+    // Base duration
+    let duration = 10000; // 10 seconds
+
+    // Adjust based on gesture complexity
+    const complexGestures = ['super', 'danke', 'bitte'];
+    if (complexGestures.includes(gestureId)) {
+      duration *= 1.3; // Longer for complex gestures
+    }
+
+    // Adjust based on confidence
+    if (confidence < 0.5) {
+      duration *= 1.2; // Longer for lower confidence
+    }
+
+    // Adjust based on time of day
+    const timeOfDay = contextInsights?.timeOfDay;
+    if (timeOfDay === 'morning') {
+      duration *= 0.8; // Shorter in morning
+    } else if (timeOfDay === 'afternoon') {
+      duration *= 1.1; // Longer in afternoon for learning
+    }
+
+    return Math.min(duration, 15000); // Cap at 15 seconds
+  }, [contextInsights]);
 
   const provideInstantFeedback = useCallback(async (
     gesture: string,
@@ -679,37 +848,50 @@ export default function RecognitionScreen({
     let c = confidence;
     let path: RecognitionPath = 'local';
 
-    // Amy First: Provide enhanced haptic feedback for gesture recognition
-    // Different patterns based on confidence and gesture type
+    // Amy First: Multi-sensory feedback for gesture recognition
+    // Combines haptic, audio, and visual feedback based on context
     if (!screenReaderEnabled) {
       try {
         if (g && c > 0.3) {
-          // Recognized gesture - use enhanced feedback
+          // Recognized gesture - use multi-sensory feedback
           const isEmergency = g === 'hilfe' || g === 'help';
-          void gestureHapticFeedback(g, c, isEmergency);
+          const context = contextInsights ? {
+            timeOfDay: contextInsights.timeOfDay,
+            patternMatch: contextInsights.patternMatch,
+            isEmergency
+          } : { isEmergency };
+
+          void multiSensoryFeedback(g, c, context, {
+            includeAudio: true,
+            includeVisual: true,
+            visualCallback: () => {
+              // Visual feedback is handled by ripple effect and other UI elements
+              setShowVisualRipple(true);
+              setTimeout(() => setShowVisualRipple(false), 800);
+            }
+          });
         } else {
           // Just hand detection - use simple feedback
           void detectionHapticFeedback();
         }
       } catch (error) {
-        // Silently fail haptic feedback - don't interrupt gesture processing
-        logger.debug('Enhanced haptic feedback failed:', error);
+        // Silently fail multi-sensory feedback - don't interrupt gesture processing
+        logger.debug('Multi-sensory feedback failed:', error);
       }
     }
 
-    // Amy First: Show PiP guidance when hands are detected but no gesture recognized
-    // This helps Amy see available gestures when she's trying to communicate
+    // Amy First: Smart PiP guidance when hands are detected but no gesture recognized
+    // Context-aware selection of gestures to show based on Amy's patterns and time
     const handsDetected = landmarks && landmarks.length > 0 && landmarks[0].length > 0;
     if (showPipGuidance && !g && handsDetected) {
-      // Show a random gesture from the model to inspire Amy
-      const availableGestures = gestureModel.gestures.filter(gesture => gesture.dgsVideoUri);
-      if (availableGestures.length > 0) {
-        const randomGesture = availableGestures[Math.floor(Math.random() * availableGestures.length)];
-        setPipGuidanceGesture(randomGesture);
-        // Hide after 8 seconds to not overwhelm
+      const suggestedGesture = getContextualGestureSuggestion();
+      if (suggestedGesture) {
+        setPipGuidanceGesture(suggestedGesture);
+        // Adaptive duration based on context
+        const duration = getAdaptiveGuidanceDuration();
         setTimeout(() => {
           setPipGuidanceGesture(null);
-        }, 8000);
+        }, duration);
       }
     }
 
@@ -853,14 +1035,55 @@ export default function RecognitionScreen({
            audioResponse: entry.label,
         });
 
-        // Amy First: Show PiP guidance for learning if confidence is moderate
-        // This helps Amy learn gestures she's still working on
+        // Record Amy's communication activity for adaptive practice scheduling
+        void recordAmyActivity(entry.id, now);
+
+        // Record successful communication moment for positive telemetry
+        positiveTelemetryService.recordSuccess(
+          entry.id,
+          smoothed,
+          undefined, // context - could be enhanced later
+          undefined, // emotionalState - could be enhanced later
+          undefined  // duration - could be enhanced later
+        );
+
+        // Record practice attempt for adaptive learning
+        adaptiveLearningService.recordPracticeAttempt(
+          entry.id,
+          true, // success
+          smoothed
+        );
+
+        // Check for practice suggestions after successful communication
+        // Only suggest practice occasionally to avoid overwhelming Amy
+        if (Math.random() < 0.3) { // 30% chance to check for suggestions
+          const suggestion = activeLearningService.getPracticeSuggestion(
+            new Date().getHours() * 60 + new Date().getMinutes(),
+            'normal', // Could be enhanced with actual activity detection
+            labelHistoryRef.current.slice(-5) // Recent gesture history
+          );
+
+          if (suggestion.shouldSuggest && suggestion.urgency !== 'when_convenient') {
+            // Delay suggestion slightly to not interrupt the celebration
+            setTimeout(() => {
+              setShowPracticeSuggestion(true);
+            }, 2000);
+          }
+        }
+
+        // Amy First: Smart PiP guidance for learning based on confidence and context
+        // Adaptive timing and selection for optimal learning support
         if (showPipGuidance && smoothed < 0.7 && smoothed > 0.3) {
-          setPipGuidanceGesture(entry);
-          // Hide guidance after 10 seconds to not be distracting
-          setTimeout(() => {
-            setPipGuidanceGesture(null);
-          }, 10000);
+          // Only show guidance if it would be helpful (not overwhelming Amy)
+          // For now, show guidance for gestures with moderate confidence
+          if (smoothed > 0.3 && smoothed < 0.6) {
+            setPipGuidanceGesture(entry);
+            // Adaptive duration based on gesture difficulty and context
+            const guidanceDuration = smoothed < 0.5 ? 3000 : 2000; // Longer for harder gestures
+            setTimeout(() => {
+              setPipGuidanceGesture(null);
+            }, guidanceDuration);
+          }
         } else if (showPipGuidance && smoothed >= 0.8) {
           // Hide guidance for very confident gestures - Amy has mastered this
           setPipGuidanceGesture(null);
@@ -957,6 +1180,18 @@ export default function RecognitionScreen({
 
         // Track consecutive recognition failures for emergency rollback
         consecutiveFailuresRef.current += 1;
+
+        // Record uncertain sample for active learning
+        activeLearningService.recordUncertainSample(
+          stableGesture,
+          smoothed,
+          landmarks,
+          {
+            timeOfDay: new Date().getHours() * 60 + new Date().getMinutes(),
+            activityLevel: 'normal', // Could be enhanced with actual activity detection
+            consecutiveFailures: consecutiveFailuresRef.current
+          }
+        );
 
         // Trigger emergency rollback if too many consecutive failures after recent model update
         if (consecutiveFailuresRef.current >= 10 &&
@@ -1246,6 +1481,26 @@ export default function RecognitionScreen({
       // HIP 3: correction submitted
       void logHIPEvent('HIP_3', 'correction_submitted', { actual: choiceId, predicted: pendingGesture });
 
+      // Record misclassification for active learning
+      activeLearningService.recordMisclassification(
+        choiceId, // intended gesture
+        pendingGesture, // recognized gesture
+        gestureConfidence,
+        'user',
+        {
+          timeOfDay: new Date().getHours() * 60 + new Date().getMinutes(),
+          activityLevel: 'normal', // Could be enhanced with actual activity detection
+          consecutiveFailures: consecutiveFailuresRef.current
+        }
+      );
+
+      // Record correction as failed attempt for adaptive learning
+      adaptiveLearningService.recordPracticeAttempt(
+        pendingGesture, // the gesture that was misrecognized
+        false, // failed
+        gestureConfidence
+      );
+
       // Amy First: Show encouraging gesture comparison instead of just correction
       const correctGesture = gestureModel.gestures.find(g => g.id === choiceId);
       if (correctGesture) {
@@ -1272,7 +1527,33 @@ export default function RecognitionScreen({
   const handleCloseComparison = () => {
     setShowGestureComparison(false);
     setComparisonAttempt(null);
-    setStatus('Ich höre zu…');
+  };
+
+  const handleAcceptPractice = (gesture: string) => {
+    setShowPracticeSuggestion(false);
+    // Navigate to practice mode with the suggested gesture
+    navigation.navigate('Teaching');
+  };
+
+  const handleDeclinePractice = () => {
+    setShowPracticeSuggestion(false);
+  };
+
+  const handleLaterPractice = () => {
+    setShowPracticeSuggestion(false);
+    // Could schedule for later, but for now just hide
+  };
+
+  const handleStartAdaptiveRecommendation = (recommendation: any) => {
+    setShowAdaptiveLearning(false);
+    // Navigate based on recommendation type
+    if (recommendation.gesture) {
+      navigation.navigate('Teaching');
+    } else if (recommendation.type === 'break') {
+      // Could show a break activity or just close
+      setStatus('Nimm dir eine kurze Pause! ☕');
+      setTimeout(() => setStatus('Ich höre zu…'), 5000);
+    }
   };
 
   const handleTryAgainFromComparison = () => {
@@ -1474,20 +1755,30 @@ export default function RecognitionScreen({
         </View>
       )}
 
-      {/* Amy First: Picture-in-Picture guidance for learning during recognition */}
+      {/* Amy First: Enhanced Picture-in-Picture guidance for learning during recognition */}
       <PictureInPictureGuidance
         gestureId={pipGuidanceGesture?.id}
         videoUri={pipGuidanceGesture?.dgsVideoUri}
         isVisible={showPipGuidance}
         onClose={() => setShowPipGuidance(false)}
-        position="top-left"
-        size="medium"
+        position={getAdaptivePipPosition()}
+        size={getAdaptivePipSize()}
         autoPlay={true}
         showControls={false}
-        playbackMode="loop"
+        playbackMode={getAdaptivePlaybackMode()}
         confidence={gestureConfidence}
         onPlaybackComplete={() => {
-          // Could add logic for when video completes
+          // Track completion for learning analytics
+          if (pipGuidanceGesture?.id) {
+            void logHIPEvent('HIP_1', 'pip_guidance_completed', {
+              gestureId: pipGuidanceGesture.id,
+              confidence: gestureConfidence,
+              context: contextInsights ? {
+                timeOfDay: contextInsights.timeOfDay,
+                patternMatch: contextInsights.patternMatch
+              } : undefined
+            });
+          }
         }}
       />
 
@@ -1532,10 +1823,10 @@ export default function RecognitionScreen({
         onPress={() => navigation.navigate('Correction')}
       />
       <Button
-        testID="btn-help-me-choose"
-        title="Hilf mir wählen"
-        accessibilityLabel="Hilf mir wählen öffnen"
-        onPress={() => setShowCorrection(true)}
+        testID="btn-adaptive-learning"
+        title="Lernfortschritt"
+        accessibilityLabel="Persönliches Lernen öffnen"
+        onPress={() => setShowAdaptiveLearning(true)}
       />
       <Button
         testID="btn-teach"
@@ -1578,6 +1869,25 @@ export default function RecognitionScreen({
         onTryAgain={handleTryAgainFromComparison}
       />
     )}
+
+    {/* Practice Suggestion Overlay - Amy First: Targeted learning support */}
+    <PracticeSuggestion
+      visible={showPracticeSuggestion}
+      onAccept={handleAcceptPractice}
+      onDecline={handleDeclinePractice}
+      onLater={handleLaterPractice}
+      currentTimeOfDay={new Date().getHours() * 60 + new Date().getMinutes()}
+      currentActivity={'normal'}
+      recentGestures={labelHistoryRef.current.slice(-5)}
+    />
+
+    {/* Adaptive Learning Panel - Amy First: Personalized learning paths */}
+    <AdaptiveLearningPanel
+      visible={showAdaptiveLearning}
+      onClose={() => setShowAdaptiveLearning(false)}
+      onStartRecommendation={handleStartAdaptiveRecommendation}
+      availableTime={10}
+    />
   </SafeAreaView>
 );
 }
