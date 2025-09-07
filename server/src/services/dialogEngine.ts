@@ -40,6 +40,29 @@ function getApiKey(): string | undefined {
   }
 }
 
+async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit, retries = 2): Promise<Response> {
+  let lastErr: any;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(input, { ...init, signal: controller.signal });
+      clearTimeout(timeout);
+      // Retry on 429/5xx
+      if (!res.ok && (res.status === 429 || res.status >= 500)) {
+        lastErr = new Error(`API call failed with status: ${res.status}`);
+      } else {
+        return res;
+      }
+    } catch (e) {
+      lastErr = e;
+    }
+    // backoff (lightweight)
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw lastErr || new Error('Request failed');
+}
+
 export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionResponse> {
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -51,7 +74,7 @@ export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionR
   const prompt = `A ${req.age}-year-old child who speaks ${req.language} just selected the word "${req.input}". The current context is [${req.context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver. Return a JSON object with two keys: "nextWords" and "caregiverPhrases".`;
   console.log('LLM Prompt:', prompt);
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

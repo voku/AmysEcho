@@ -76,18 +76,44 @@ describe('getLLMSuggestions', () => {
     });
 
     it('returns empty arrays when API response is not ok', async () => {
-      mockFetch({
-        ok: false,
-        status: 500,
-      });
+      // First two attempts: 500, final attempt: still 500
+      (global as any).fetch = jest
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 });
       const res = await getLLMSuggestions(req);
       expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
+      expect((global as any).fetch).toHaveBeenCalledTimes(3);
     });
 
     it('returns empty arrays when fetch throws an error', async () => {
-      (global as any).fetch = jest.fn().mockRejectedValue(new Error('network'));
+      // Two retries then give up
+      (global as any).fetch = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('network'))
+        .mockRejectedValueOnce(new Error('network'))
+        .mockRejectedValueOnce(new Error('network'));
       const res = await getLLMSuggestions(req);
       expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
+      expect((global as any).fetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('retries on 500 and succeeds on next attempt', async () => {
+      (global as any).fetch = jest
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            choices: [
+              { message: { content: JSON.stringify({ nextWords: ['ja'], caregiverPhrases: ['gut gemacht'] }) } },
+            ],
+          }),
+        });
+      const res = await getLLMSuggestions(req);
+      expect(res.nextWords).toContain('ja');
+      expect((global as any).fetch).toHaveBeenCalledTimes(2);
     });
   });
 });

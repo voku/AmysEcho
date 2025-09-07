@@ -18,7 +18,7 @@
     "build:webview": "esbuild webview/gestureDetector.ts --bundle --format=iife --outfile=assets/gestureDetector.js --banner:js='// Generated from app/webview/gestureDetector.ts; run npm run build:webview --prefix app'"
   },
   "dependencies": {
-    "@nozbe/watermelondb": "0.25.5",
+    "@nozbe/watermelondb": "0.28.0",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/netinfo": "11.4.1",
     "@react-navigation/native": "6.1.18",
