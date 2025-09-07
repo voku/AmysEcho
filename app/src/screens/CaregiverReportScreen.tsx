@@ -6,7 +6,6 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 export default function CaregiverReportScreen({ navigation, route }: any) {
@@ -80,12 +79,18 @@ export default function CaregiverReportScreen({ navigation, route }: any) {
           <View style={styles.item}>
             <Text style={styles.label}>{item.label}</Text>
             <Pressable
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.button,
-                highContrast && styles.buttonHC,
-                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-              ]}
+        style={({ pressed }) => [
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
               onPress={() => {
                 void childHaptic();
                 navigation.navigate('ProgressChart', { gestureId: item.id });
@@ -107,7 +112,13 @@ export default function CaregiverReportScreen({ navigation, route }: any) {
       />
       <Pressable
         style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
           styles.button,
           highContrast && styles.buttonHC,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),

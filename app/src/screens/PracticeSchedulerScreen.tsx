@@ -6,7 +6,6 @@ import { addSchedule, listSchedules, removeSchedule, setScheduleEnabled, Practic
 import { gestureModel } from '../model';
 import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 export default function PracticeSchedulerScreen({ navigation, route }: any) {
@@ -208,7 +207,13 @@ export default function PracticeSchedulerScreen({ navigation, route }: any) {
               <Switch value={item.enabled} onValueChange={async (v) => { await setScheduleEnabled(item.id, v); await load(); }} />
                <Pressable
                  style={({ pressed }) => [
-                   childFriendlyStyles.minTouchTarget,
+             {
+              minWidth: 60,
+              minHeight: 60,
+              padding: SPACING.sm,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
                    styles.button,
                    highContrast && styles.buttonHC,
                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),

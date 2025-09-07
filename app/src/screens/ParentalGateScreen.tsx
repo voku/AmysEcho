@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 export default function ParentalGateScreen({ route, navigation }: any) {
@@ -101,7 +100,13 @@ export default function ParentalGateScreen({ route, navigation }: any) {
       />
       <Pressable
         style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
           styles.button,
           highContrast && styles.buttonHC,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
@@ -123,7 +128,13 @@ export default function ParentalGateScreen({ route, navigation }: any) {
       </Pressable>
       <Pressable
         style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
           styles.button,
           highContrast && styles.buttonHC,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),

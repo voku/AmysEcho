@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, Alert, Switch } from 'react-native';
+import { View, Text, Pressable, FlatList, StyleSheet, Alert, Switch } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../storage';
 import { Profile as DBProfile } from '../../db/models';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { database } from '../../db';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 import SoundSelector from '../components/SoundSelector';
 import BottomNav from '../components/BottomNav';
 import ThemeSelector from '../components/ThemeSelector';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -269,15 +271,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       textAlign: 'center',
       marginBottom: SPACING.md,
     },
-    buttonRow: {
-      minWidth: 120,
-    },
-    toleranceButtons: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      flexWrap: 'wrap',
-      marginTop: SPACING.sm,
-    },
+    
     accessibilityRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -287,6 +281,45 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
     accessibilityLabel: {
       fontSize: largeText ? 18 : 16,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+      minWidth: 80,
+      alignItems: 'center',
+      marginHorizontal: SPACING.xs,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 16,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: SPACING.sm,
+    },
+    toleranceButtons: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      marginTop: SPACING.sm,
     },
   });
 
@@ -300,22 +333,56 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
         {isTrustedDevice ? (
           <View style={styles.trustedDeviceInfo}>
             <Text style={styles.trustedDeviceText}>✅ Dieses Gerät ist vertrauenswürdig</Text>
-            <Button
-              title="Entfernen"
-              onPress={removeTrustedDevice}
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                removeTrustedDevice();
+              }}
+              accessibilityRole="button"
               accessibilityLabel="Vertrauenswürdiges Gerät entfernen"
-            />
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                Entfernen
+              </Text>
+            </Pressable>
           </View>
         ) : (
           <View style={styles.trustedDeviceSetup}>
             <Text style={styles.trustedDeviceText}>
               Richte dieses Gerät als vertrauenswürdig ein für einfacheren Zugriff
             </Text>
-            <Button
-              title="Als vertrauenswürdig einrichten"
-              onPress={setupTrustedDevice}
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                setupTrustedDevice();
+              }}
+              accessibilityRole="button"
               accessibilityLabel="Gerät als vertrauenswürdig einrichten"
-            />
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                Als vertrauenswürdig einrichten
+              </Text>
+            </Pressable>
           </View>
         )}
       </View>
@@ -333,11 +400,28 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
             Schützt Amy vor unbefugter Nutzung auf geteilten Geräten
           </Text>
           <View style={styles.buttonRow}>
-            <Button
-              title={bullyingProtectionEnabled ? "Deaktivieren" : "Aktivieren"}
-              onPress={() => toggleBullyingProtection(!bullyingProtectionEnabled)}
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                toggleBullyingProtection(!bullyingProtectionEnabled);
+              }}
+              accessibilityRole="button"
               accessibilityLabel={`Mobbing-Schutz ${bullyingProtectionEnabled ? 'deaktivieren' : 'aktivieren'}`}
-            />
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                {bullyingProtectionEnabled ? "Deaktivieren" : "Aktivieren"}
+              </Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -354,12 +438,29 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
           </Text>
           <View style={styles.toleranceButtons}>
             {[0.1, 0.2, 0.3, 0.4, 0.5].map((tolerance) => (
-              <Button
+              <Pressable
                 key={tolerance}
-                title={`${Math.round(tolerance * 100)}%`}
-                onPress={() => saveGestureSizeTolerance(tolerance)}
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void childHaptic();
+                  saveGestureSizeTolerance(tolerance);
+                }}
+                accessibilityRole="button"
                 accessibilityLabel={`Toleranz auf ${Math.round(tolerance * 100)}% setzen`}
-              />
+              >
+                <Text style={[
+                  styles.buttonText,
+                  largeText && styles.buttonTextLarge,
+                  highContrast && styles.buttonTextHC,
+                ]}>
+                  {`${Math.round(tolerance * 100)}%`}
+                </Text>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -403,24 +504,75 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
         renderItem={({ item }) => (
           <View style={styles.row}>
             <Text style={styles.name}>{item.name}</Text>
-            <Button
-              title="Auswählen"
-              onPress={() => handleSelect(item.id)}
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                handleSelect(item.id);
+              }}
+              accessibilityRole="button"
               accessibilityLabel={`Profil ${item.name} auswählen`}
-            />
-            <Button
-              title="Löschen"
-              onPress={() => handleDelete(item.id)}
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                Auswählen
+              </Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                handleDelete(item.id);
+              }}
+              accessibilityRole="button"
               accessibilityLabel={`Profil ${item.name} löschen`}
-            />
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                Löschen
+              </Text>
+            </Pressable>
           </View>
         )}
       />
-      <Button
-        title="Neues Profil"
-        onPress={() => navigation.navigate('Onboarding')}
+      <Pressable
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          void childHaptic();
+          navigation.navigate('Onboarding');
+        }}
+        accessibilityRole="button"
         accessibilityLabel="Neues Profil anlegen"
-      />
+      >
+        <Text style={[
+          styles.buttonText,
+          largeText && styles.buttonTextLarge,
+          highContrast && styles.buttonTextHC,
+        ]}>
+          Neues Profil
+        </Text>
+      </Pressable>
       {profileId && <BottomNav active="parent" profileId={profileId} />}
     </View>
   );

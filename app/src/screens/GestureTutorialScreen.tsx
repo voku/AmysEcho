@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Button, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { childHaptic } from '../services/feedbackService';
 
 export default function GestureTutorialScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -28,7 +29,32 @@ export default function GestureTutorialScreen({ navigation }: any) {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
     button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.md,
+      borderRadius: RADIUS,
+      minWidth: 120,
+      alignItems: 'center',
       marginTop: SPACING.lg,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 20,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
     },
   });
 
@@ -43,14 +69,34 @@ export default function GestureTutorialScreen({ navigation }: any) {
         <Text style={styles.text}>1. Stelle sicher, dass deine Hand für die Kamera sichtbar ist.</Text>
         <Text style={styles.text}>2. Halte deine Hand ruhig, während du die Gebärde machst.</Text>
         <Text style={styles.text}>3. Warte auf den Ton, der die Erkennung bestätigt.</Text>
-        <View style={styles.button}>
-          <Button
-            title="Starten"
-            onPress={() => navigation.replace('ProfileSelect')}
-            accessibilityLabel="Tutorial beenden"
-            color={COLORS.primaryAccent}
-          />
-        </View>
+        <Pressable
+          style={({ pressed }) => [
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+            styles.button,
+            highContrast && styles.buttonHC,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          onPress={() => {
+            void childHaptic();
+            navigation.replace('ProfileSelect');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Tutorial beenden"
+        >
+          <Text style={[
+            styles.buttonText,
+            largeText && styles.buttonTextLarge,
+            highContrast && styles.buttonTextHC,
+          ]}>
+            Starten
+          </Text>
+        </Pressable>
       </SafeAreaView>
     </LinearGradient>
   );

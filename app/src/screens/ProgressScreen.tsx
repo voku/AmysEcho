@@ -7,7 +7,6 @@ import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 export default function ProgressScreen({ navigation, route }: any) {
@@ -108,7 +107,13 @@ export default function ProgressScreen({ navigation, route }: any) {
             <Text style={styles.label}>{item.label}</Text>
             <Pressable
               style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
                 styles.button,
                 highContrast && styles.buttonHC,
                 pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
@@ -135,7 +140,13 @@ export default function ProgressScreen({ navigation, route }: any) {
       />
       <Pressable
         style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
           styles.button,
           highContrast && styles.buttonHC,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),

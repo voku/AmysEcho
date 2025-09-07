@@ -4,7 +4,6 @@ import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 export default function HelpScreen({ navigation }: any) {
@@ -37,7 +36,13 @@ export default function HelpScreen({ navigation }: any) {
       </Text>
       <Pressable
         style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
           styles.button,
           highContrast && styles.buttonHC,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),

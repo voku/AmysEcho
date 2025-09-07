@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, Button, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView, Button } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 // Camera handled inside WebView detector
 // mlService teaching sessions removed during WebView migration
@@ -14,6 +14,7 @@ import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { syncTrainingData } from '../services';
+import { childHaptic } from '../services/feedbackService';
 
 const PREVIEW_SIZE = 240;
 
@@ -204,11 +205,28 @@ export default function TeachingScreen({ navigation }: any) {
             onChangeText={setGestureLabel}
             accessibilityLabel="Name der neuen Geste"
           />
-          <Button
-            title="Training starten"
-            onPress={startSession}
+          <Pressable
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.button,
+              highContrast && styles.buttonHC,
+              pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+            ]}
+            onPress={() => {
+              void childHaptic();
+              startSession();
+            }}
+            accessibilityRole="button"
             accessibilityLabel="Training starten"
-          />
+          >
+            <Text style={[
+              styles.buttonText,
+              largeText && styles.buttonTextLarge,
+              highContrast && styles.buttonTextHC,
+            ]}>
+              Training starten
+            </Text>
+          </Pressable>
         </View>
       ) : (
         <View style={styles.recordingContainer}>
@@ -236,18 +254,65 @@ export default function TeachingScreen({ navigation }: any) {
           </Animated.View>
           <Text style={styles.prompt}>Zeige die Geste "{gestureLabel}"</Text>
           <Text style={styles.progress}>{sampleCount} / {SAMPLES_NEEDED} Beispiele</Text>
-          <Button
-            title={isRecording ? 'Aufnahme...' : 'Beispiel aufnehmen'}
-            onPress={recordSample}
+          <Pressable
+            style={({ pressed }) => [
+              {
+                minWidth: 60,
+                minHeight: 60,
+                padding: SPACING.md,
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+              styles.button,
+              highContrast && styles.buttonHC,
+              (isRecording || sampleCount >= SAMPLES_NEEDED) && styles.buttonDisabled,
+              pressed && !isRecording && sampleCount < SAMPLES_NEEDED && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+            ]}
+            onPress={() => {
+              void childHaptic();
+              recordSample();
+            }}
             disabled={isRecording || sampleCount >= SAMPLES_NEEDED}
+            accessibilityRole="button"
             accessibilityLabel="Beispiel aufzeichnen"
-          />
+          >
+            <Text style={[
+              styles.buttonText,
+              largeText && styles.buttonTextLarge,
+              highContrast && styles.buttonTextHC,
+            ]}>
+              {isRecording ? 'Aufnahme...' : 'Beispiel aufnehmen'}
+            </Text>
+          </Pressable>
           {sampleCount > 0 && sampleCount < SAMPLES_NEEDED && (
-            <Button
-              title="Alle Beispiele erneut aufnehmen"
-              onPress={handleRetry}
+            <Pressable
+              style={({ pressed }) => [
+            {
+              minWidth: 60,
+              minHeight: 60,
+              padding: SPACING.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                handleRetry();
+              }}
+              accessibilityRole="button"
               accessibilityLabel="Alle Beispiele wiederholen"
-            />
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                Alle Beispiele erneut aufnehmen
+              </Text>
+            </Pressable>
           )}
           {sampleCount >= SAMPLES_NEEDED && (
             <Button
@@ -321,5 +386,37 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
     sampleIndicatorText: {
       color: COLORS.highContrastText,
       fontWeight: 'bold',
+    },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.md,
+      borderRadius: RADIUS,
+      minWidth: 120,
+      alignItems: 'center',
+      marginVertical: SPACING.sm,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonDisabled: {
+      backgroundColor: COLORS.secondaryAccent,
+      opacity: 0.6,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 20,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
     },
   });

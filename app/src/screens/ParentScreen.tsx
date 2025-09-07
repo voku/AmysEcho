@@ -3,7 +3,6 @@ import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 export default function ParentScreen({ navigation }: any) {
@@ -94,7 +93,13 @@ export default function ParentScreen({ navigation }: any) {
     <View style={styles.buttonContainer}>
       <Pressable
         style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
+          {
+            minWidth: 60,
+            minHeight: 60,
+            padding: SPACING.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
           styles.button,
           highContrast && styles.buttonHC,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),

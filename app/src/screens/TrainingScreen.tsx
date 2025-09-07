@@ -18,7 +18,6 @@ import { logger } from '../utils/logger';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 import { gestureModel as gestures } from '../model';
 
@@ -245,7 +244,13 @@ export default function TrainingScreen({ navigation, route }: any) {
              <Pressable
                key={g.id}
                style={({ pressed }) => [
-                 childFriendlyStyles.minTouchTarget,
+            {
+              minWidth: 60,
+              minHeight: 60,
+              padding: SPACING.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
                  styles.button,
                  highContrast && styles.buttonHC,
                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
