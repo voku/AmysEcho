@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>15/15</span>
+                <span class='fraction'>0/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">58.33% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>7/12</span>
+                <span class='fraction'>0/12</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>15/15</span>
+                <span class='fraction'>0/15</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -154,44 +154,44 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -229,44 +229,44 @@ interface State {
 }
 &nbsp;
 export class ChildErrorBoundary extends Component&lt;Props, State&gt; {
-  static contextType = AccessibilityContext;
+  static contextType = <span class="cstat-no" title="statement not covered" >AccessibilityContext;</span>
   context!: React.ContextType&lt;typeof AccessibilityContext&gt;;
 &nbsp;
-  state: State = { hasError: false };
+  state: State = <span class="cstat-no" title="statement not covered" >{ hasError: false };</span>
 &nbsp;
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+<span class="fstat-no" title="function not covered" >  st</span>atic getDerivedStateFromError(): State {
+<span class="cstat-no" title="statement not covered" >    return { hasError: true };</span>
   }
 &nbsp;
-  componentDidCatch(error: unknown) {
-    logger.error('Uncaught error:', error);
-    enqueueCrashReport(error, { boundary: 'ChildErrorBoundary' });
+<span class="fstat-no" title="function not covered" >  co</span>mponentDidCatch(error: unknown) {
+<span class="cstat-no" title="statement not covered" >    logger.error('Uncaught error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    enqueueCrashReport(error, { boundary: 'ChildErrorBoundary' });</span>
   }
 &nbsp;
-  private handleRetry = () =&gt; {
-    this.setState({ hasError: false });
+  private handleRetry = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    this.setState({ hasError: false });</span>
   };
 &nbsp;
-  render() {
-    if (this.state.hasError) {
-      const { largeText, highContrast } = this.context;
-      const fontSize = largeText ? <span class="branch-0 cbranch-no" title="branch not covered" >20 </span>: 16;
-      const backgroundColor = highContrast ? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.highContrastBackground </span>: `${COLORS.warning}B3`;
-      const textColor = highContrast ? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.highContrastText </span>: COLORS.text;
-      return (
+<span class="fstat-no" title="function not covered" >  re</span>nder() {
+<span class="cstat-no" title="statement not covered" >    if (this.state.hasError) {</span>
+      const { largeText, highContrast } = <span class="cstat-no" title="statement not covered" >this.context;</span>
+      const fontSize = <span class="cstat-no" title="statement not covered" >largeText ? 20 : 16;</span>
+      const backgroundColor = <span class="cstat-no" title="statement not covered" >highContrast ? COLORS.highContrastBackground : `${COLORS.warning}B3`;</span>
+      const textColor = <span class="cstat-no" title="statement not covered" >highContrast ? COLORS.highContrastText : COLORS.text;</span>
+<span class="cstat-no" title="statement not covered" >      return (</span>
         &lt;View style={[styles.overlay, { backgroundColor }]}&gt; 
           &lt;Text testID="error-text" style={[styles.text, { color: textColor, fontSize }]}&gt;Ups, lass es uns noch einmal versuchen!&lt;/Text&gt;
-          &lt;Pressable testID="retry-button" accessibilityLabel="Nochmal versuchen" onPress={this.handleRetry} style={[styles.button, { backgroundColor: highContrast ? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.highContrastPressed </span>: COLORS.surface }]}&gt;
-            &lt;Text style={[styles.buttonText, { color: highContrast ? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.highContrastText </span>: COLORS.text, fontSize }]}&gt;Nochmal versuchen&lt;/Text&gt;
+          &lt;Pressable testID="retry-button" accessibilityLabel="Nochmal versuchen" onPress={this.handleRetry} style={[styles.button, { backgroundColor: highContrast ? COLORS.highContrastPressed : COLORS.surface }]}&gt;
+            &lt;Text style={[styles.buttonText, { color: highContrast ? COLORS.highContrastText : COLORS.text, fontSize }]}&gt;Nochmal versuchen&lt;/Text&gt;
           &lt;/Pressable&gt;
         &lt;/View&gt;
       );
     }
-    return this.props.children as React.ReactNode;
+<span class="cstat-no" title="statement not covered" >    return this.props.children as React.ReactNode;</span>
   }
 }
 &nbsp;
-const styles = StyleSheet.create({
+const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.create({</span>
   overlay: {
     flex: 1,
     justifyContent: 'center',
@@ -295,7 +295,7 @@ export default ChildErrorBoundary;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T01:14:43.604Z
+                at 2025-09-07T08:31:43.968Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

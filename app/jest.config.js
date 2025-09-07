@@ -9,6 +9,7 @@ module.exports = {
     "\\.task$": "<rootDir>/test/__mocks__/fileMock.js",
     "^react-native-webview$": "<rootDir>/test/__mocks__/react-native-webview.js",
     "gestureDetector\\.js$": "<rootDir>/test/__mocks__/fileMock.js",
+    "^\.\./services$": "<rootDir>/src/services/index.ts",
   },
   testTimeout: 10000,
   collectCoverageFrom: [

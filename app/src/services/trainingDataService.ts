@@ -29,17 +29,29 @@ export async function addTrainingSample(
     );
   }
 
-  await database.write(async () => {
-    await database.get<GestureTrainingData>('gesture_training_data').create(sample => {
-      sample.gestureDefinition.id = gestureId;
-      sample.landmarkData = JSON.stringify(landmarkData);
-      sample.source = source;
-      sample.qualityScore = 1.0;
-      sample.frameMetadata = JSON.stringify({});
-      sample.customSyncStatus = 'pending';
-      sample.createdAt = new Date();
+  const createRecord = async () => {
+    await database
+      .get<GestureTrainingData>('gesture_training_data')
+      .create(sample => {
+        sample.gestureDefinition.id = gestureId;
+        sample.landmarkData = JSON.stringify(landmarkData);
+        sample.source = source;
+        sample.qualityScore = 1.0;
+        sample.frameMetadata = JSON.stringify({});
+        sample.customSyncStatus = 'pending';
+        sample.createdAt = new Date();
+      });
+  };
+
+  // Try creating directly (works if caller already runs inside a writer),
+  // and fall back to wrapping in a writer when necessary.
+  try {
+    await createRecord();
+  } catch (_e) {
+    await database.write(async () => {
+      await createRecord();
     });
-  });
+  }
 }
 
 export async function getTrainingSamples(gestureId?: string): Promise<TrainingSample[]> {

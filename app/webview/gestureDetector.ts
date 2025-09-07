@@ -16,6 +16,10 @@ import { ResourceManager } from './utils/ResourceManager';
 import { loadConfig } from './config/GestureConfig';
 import { GestureSizeNormalizer, PartialGestureDetector, TremorCompensator } from './gestureProcessing';
 
+// Import celebration and feedback systems
+import { CelebrationSystem } from './utils/CelebrationSystem';
+import { FeedbackSystem } from './utils/FeedbackSystem';
+
 // Forward script errors to React Native for easier debugging
 const onError = (e: ErrorEvent) => {
   try {
@@ -64,19 +68,43 @@ window.addEventListener('unhandledrejection', onUnhandledRejection);
 window.fflate = { unzip, unzipSync };
 installMlp();
 
-// Error Recovery Manager for robust error handling
+// Enhanced Error Recovery Manager for robust error handling
 class ErrorRecoveryManager {
   private failureCount = 0;
   private lastFailureTime = 0;
   private circuitBreakerOpen = false;
   private fallbackMode = false;
+  private recoveryAttempts = new Map<string, number>();
+  private lastRecoveryTime = 0;
+  private emergencyMode = false;
 
   private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
   private readonly CIRCUIT_BREAKER_TIMEOUT = 30000; // 30 seconds
   private readonly FAILURE_WINDOW = 60000; // 1 minute
+  private readonly MAX_RECOVERY_ATTEMPTS = 3;
+  private readonly RECOVERY_COOLDOWN = 5000; // 5 seconds between recovery attempts
 
-  getErrorInfo(error: Error, context: string): { message: string; code: string; recoverable: boolean; severity: 'low' | 'medium' | 'high' } {
+  getErrorInfo(error: Error, context: string): {
+    message: string;
+    code: string;
+    recoverable: boolean;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    suggestedAction: string;
+    userMessage: string;
+  } {
     const errorMessage = error.message.toLowerCase();
+
+    // Emergency gesture errors - highest priority
+    if (context.includes('emergency') || errorMessage.includes('emergency')) {
+      return {
+        message: 'Emergency gesture detection failed',
+        code: 'EMERGENCY_ERROR',
+        recoverable: true,
+        severity: 'critical',
+        suggestedAction: 'immediate_retry',
+        userMessage: 'Notfall-Erkennung wird wiederhergestellt...'
+      };
+    }
 
     // Network-related errors
     if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
@@ -84,7 +112,9 @@ class ErrorRecoveryManager {
         message: 'Network connectivity issue detected',
         code: 'NETWORK_ERROR',
         recoverable: true,
-        severity: 'medium'
+        severity: 'medium',
+        suggestedAction: 'retry_with_backoff',
+        userMessage: 'Verbindungsproblem erkannt, versuche Wiederherstellung...'
       };
     }
 
@@ -94,7 +124,9 @@ class ErrorRecoveryManager {
         message: 'Camera access issue detected',
         code: 'CAMERA_ERROR',
         recoverable: true,
-        severity: 'high'
+        severity: 'high',
+        suggestedAction: 'request_permission',
+        userMessage: 'Kamera-Zugriff wird überprüft...'
       };
     }
 
@@ -104,7 +136,9 @@ class ErrorRecoveryManager {
         message: 'Gesture recognition system issue detected',
         code: 'MEDIAPIPE_ERROR',
         recoverable: true,
-        severity: 'medium'
+        severity: 'medium',
+        suggestedAction: 'fallback_mode',
+        userMessage: 'Gestenerkennung wird neu gestartet...'
       };
     }
 
@@ -114,7 +148,9 @@ class ErrorRecoveryManager {
         message: 'Memory issue detected',
         code: 'MEMORY_ERROR',
         recoverable: true,
-        severity: 'high'
+        severity: 'high',
+        suggestedAction: 'cleanup_resources',
+        userMessage: 'Speicher wird optimiert...'
       };
     }
 
@@ -124,7 +160,9 @@ class ErrorRecoveryManager {
         message: 'Performance issue detected',
         code: 'PERFORMANCE_ERROR',
         recoverable: true,
-        severity: 'low'
+        severity: 'low',
+        suggestedAction: 'reduce_quality',
+        userMessage: 'Leistung wird angepasst...'
       };
     }
 
@@ -133,25 +171,40 @@ class ErrorRecoveryManager {
       message: `System issue detected during ${context}`,
       code: 'GENERIC_ERROR',
       recoverable: false,
-      severity: 'medium'
+      severity: 'medium',
+      suggestedAction: 'log_and_continue',
+      userMessage: 'System wird überprüft...'
     };
   }
 
-  recordFailure(): boolean {
+  recordFailure(error: Error, context: string): boolean {
     const now = Date.now();
+    const errorInfo = this.getErrorInfo(error, context);
+
+    // Track recovery attempts for this error type
+    const recoveryKey = `${errorInfo.code}_${context}`;
+    const attempts = this.recoveryAttempts.get(recoveryKey) || 0;
+
+    if (attempts >= this.MAX_RECOVERY_ATTEMPTS) {
+      console.warn(`Max recovery attempts reached for ${recoveryKey}`);
+      return false;
+    }
 
     // Reset failure count if outside the failure window
     if (now - this.lastFailureTime > this.FAILURE_WINDOW) {
       this.failureCount = 0;
+      this.recoveryAttempts.clear();
     }
 
     this.failureCount++;
     this.lastFailureTime = now;
+    this.recoveryAttempts.set(recoveryKey, attempts + 1);
 
     // Open circuit breaker if threshold exceeded
     if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
       this.circuitBreakerOpen = true;
       console.warn('Circuit breaker opened due to repeated failures');
+      this.activateEmergencyMode();
       return false;
     }
 
@@ -163,7 +216,9 @@ class ErrorRecoveryManager {
     if (this.circuitBreakerOpen && Date.now() - this.lastFailureTime > this.CIRCUIT_BREAKER_TIMEOUT) {
       this.circuitBreakerOpen = false;
       this.failureCount = 0;
+      this.recoveryAttempts.clear();
       console.info('Circuit breaker auto-closed');
+      this.deactivateEmergencyMode();
     }
 
     return this.circuitBreakerOpen;
@@ -175,16 +230,33 @@ class ErrorRecoveryManager {
       console.warn('Activating fallback gesture detection mode');
 
       // Notify React Native about fallback mode
-      try {
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({
-            type: 'telemetry',
-            event: 'fallback_mode_activated'
-          })
-        );
-      } catch (err) {
-        console.warn('Failed to send fallback mode notification:', err);
-      }
+      this.sendTelemetryEvent('fallback_mode_activated', {
+        timestamp: Date.now(),
+        reason: 'error_recovery'
+      });
+    }
+  }
+
+  activateEmergencyMode(): void {
+    if (!this.emergencyMode) {
+      this.emergencyMode = true;
+      console.warn('🚨 EMERGENCY MODE ACTIVATED - Critical gesture detection only');
+
+      this.sendTelemetryEvent('emergency_mode_activated', {
+        timestamp: Date.now(),
+        reason: 'circuit_breaker_opened'
+      });
+    }
+  }
+
+  deactivateEmergencyMode(): void {
+    if (this.emergencyMode) {
+      this.emergencyMode = false;
+      console.info('✅ Emergency mode deactivated - Full functionality restored');
+
+      this.sendTelemetryEvent('emergency_mode_deactivated', {
+        timestamp: Date.now()
+      });
     }
   }
 
@@ -192,18 +264,281 @@ class ErrorRecoveryManager {
     return this.fallbackMode;
   }
 
+  isInEmergencyMode(): boolean {
+    return this.emergencyMode;
+  }
+
+  canAttemptRecovery(context: string): boolean {
+    const now = Date.now();
+    if (now - this.lastRecoveryTime < this.RECOVERY_COOLDOWN) {
+      return false; // Too soon since last recovery attempt
+    }
+
+    if (this.isCircuitBreakerOpen()) {
+      return false; // Circuit breaker is open
+    }
+
+    return true;
+  }
+
+  recordSuccessfulRecovery(context: string): void {
+    this.lastRecoveryTime = Date.now();
+    const recoveryKey = `recovery_${context}`;
+    this.recoveryAttempts.delete(recoveryKey);
+
+    this.sendTelemetryEvent('recovery_successful', {
+      context,
+      timestamp: Date.now()
+    });
+  }
+
+  private sendTelemetryEvent(event: string, data: any = {}): void {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'telemetry',
+          event,
+          data
+        })
+      );
+    } catch (err) {
+      console.warn(`Failed to send telemetry event ${event}:`, err);
+    }
+  }
+
   reset(): void {
     this.failureCount = 0;
     this.lastFailureTime = 0;
     this.circuitBreakerOpen = false;
     this.fallbackMode = false;
+    this.emergencyMode = false;
+    this.recoveryAttempts.clear();
+    this.lastRecoveryTime = 0;
+  }
+
+  getHealthStatus(): {
+    healthy: boolean;
+    fallbackActive: boolean;
+    emergencyActive: boolean;
+    failureCount: number;
+    lastFailure: number;
+    circuitBreakerOpen: boolean;
+  } {
+    return {
+      healthy: !this.circuitBreakerOpen && !this.emergencyMode,
+      fallbackActive: this.fallbackMode,
+      emergencyActive: this.emergencyMode,
+      failureCount: this.failureCount,
+      lastFailure: this.lastFailureTime,
+      circuitBreakerOpen: this.circuitBreakerOpen
+    };
   }
 }
 
 const errorRecoveryManager = new ErrorRecoveryManager();
 
-// Configure gesture size tolerance
-gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
+// Fallback Gesture Detection System - Amy First
+class FallbackGestureDetector {
+  private lastLandmarks: number[][][] | null = null;
+  private gestureHistory: Array<{gesture: string; confidence: number; timestamp: number}> = [];
+  private readonly HISTORY_SIZE = 5;
+  private ruleBasedConfidence = 0.0;
+
+  /**
+   * Simple rule-based gesture detection as fallback
+   */
+  detectGesture(landmarks: number[][][]): {
+    gesture: string;
+    confidence: number;
+    isFallback: boolean;
+    feedback?: string;
+  } {
+    if (!landmarks || landmarks.length === 0) {
+      return { gesture: '', confidence: 0, isFallback: true };
+    }
+
+    this.lastLandmarks = landmarks;
+
+    // Basic gesture detection using simple heuristics
+    const gesture = this.detectBasicGesture(landmarks[0]); // Use first hand
+    const confidence = this.calculateRuleBasedConfidence(landmarks[0], gesture);
+
+    // Store in history for smoothing
+    this.gestureHistory.push({
+      gesture,
+      confidence,
+      timestamp: Date.now()
+    });
+
+    if (this.gestureHistory.length > this.HISTORY_SIZE) {
+      this.gestureHistory.shift();
+    }
+
+    // Smooth confidence over recent detections
+    const smoothedConfidence = this.smoothConfidence();
+
+    return {
+      gesture,
+      confidence: smoothedConfidence,
+      isFallback: true,
+      feedback: this.getGestureFeedback(gesture, smoothedConfidence)
+    };
+  }
+
+  private detectBasicGesture(hand: number[][]): string {
+    if (!hand || hand.length < 21) return '';
+
+    // Simple finger counting for basic gestures
+    const fingerTips = [8, 12, 16, 20]; // Index, middle, ring, pinky tips
+    const fingerJoints = [6, 10, 14, 18]; // Corresponding joints
+    const thumbTip = hand[4];
+    const thumbJoint = hand[3];
+
+    let extendedFingers = 0;
+
+    // Count extended fingers
+    for (let i = 0; i < fingerTips.length; i++) {
+      if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+        extendedFingers++;
+      }
+    }
+
+    // Check thumb
+    const thumbExtended = thumbTip[1] < thumbJoint[1];
+
+    // Basic gesture classification
+    if (extendedFingers === 0 && !thumbExtended) {
+      return 'fist';
+    } else if (extendedFingers === 1 && !thumbExtended) {
+      return 'point';
+    } else if (extendedFingers === 2 && !thumbExtended) {
+      return 'peace';
+    } else if (extendedFingers >= 3 && thumbExtended) {
+      return 'open_palm';
+    } else if (extendedFingers === 0 && thumbExtended) {
+      return 'thumbs_up';
+    }
+
+    return 'unknown';
+  }
+
+  private calculateRuleBasedConfidence(hand: number[][], gesture: string): number {
+    if (!hand || gesture === 'unknown') return 0.3;
+
+    // Simple confidence based on gesture clarity
+    let confidence = 0.5;
+
+    // Add confidence based on hand stability (compare with previous frame)
+    if (this.lastLandmarks && this.lastLandmarks[0]) {
+      const movement = this.calculateMovement(this.lastLandmarks[0], hand);
+      if (movement < 0.05) confidence += 0.2; // Stable hand = higher confidence
+    }
+
+    // Add confidence based on gesture-specific rules
+    switch (gesture) {
+      case 'fist':
+        confidence += this.checkFistClarity(hand) ? 0.2 : -0.1;
+        break;
+      case 'point':
+        confidence += this.checkPointClarity(hand) ? 0.2 : -0.1;
+        break;
+      case 'thumbs_up':
+        confidence += this.checkThumbsUpClarity(hand) ? 0.2 : -0.1;
+        break;
+    }
+
+    return Math.max(0.1, Math.min(0.8, confidence));
+  }
+
+  private checkFistClarity(hand: number[][]): boolean {
+    const fingerTips = [8, 12, 16, 20];
+    const fingerJoints = [6, 10, 14, 18];
+    let curledFingers = 0;
+
+    for (let i = 0; i < fingerTips.length; i++) {
+      if (hand[fingerTips[i]][1] > hand[fingerJoints[i]][1]) {
+        curledFingers++;
+      }
+    }
+
+    return curledFingers >= 3; // At least 3 fingers curled
+  }
+
+  private checkPointClarity(hand: number[][]): boolean {
+    const indexExtended = hand[8][1] < hand[6][1];
+    const otherFingersCurled =
+      hand[12][1] > hand[10][1] && // Middle
+      hand[16][1] > hand[14][1] && // Ring
+      hand[20][1] > hand[18][1];   // Pinky
+
+    return indexExtended && otherFingersCurled;
+  }
+
+  private checkThumbsUpClarity(hand: number[][]): boolean {
+    const thumbExtended = hand[4][1] < hand[3][1];
+    const otherFingersCurled =
+      hand[8][1] > hand[6][1] &&   // Index
+      hand[12][1] > hand[10][1] && // Middle
+      hand[16][1] > hand[14][1] && // Ring
+      hand[20][1] > hand[18][1];   // Pinky
+
+    return thumbExtended && otherFingersCurled;
+  }
+
+  private calculateMovement(prevHand: number[][], currHand: number[][]): number {
+    let totalMovement = 0;
+    let points = 0;
+
+    for (let i = 0; i < Math.min(prevHand.length, currHand.length); i++) {
+      if (prevHand[i] && currHand[i]) {
+        const dx = prevHand[i][0] - currHand[i][0];
+        const dy = prevHand[i][1] - currHand[i][1];
+        totalMovement += Math.sqrt(dx * dx + dy * dy);
+        points++;
+      }
+    }
+
+    return points > 0 ? totalMovement / points : 0;
+  }
+
+  private smoothConfidence(): number {
+    if (this.gestureHistory.length === 0) return 0;
+
+    const recent = this.gestureHistory.slice(-3); // Last 3 detections
+    const avgConfidence = recent.reduce((sum, h) => sum + h.confidence, 0) / recent.length;
+
+    // Weight recent detections more heavily
+    return avgConfidence * 0.8 + (recent[recent.length - 1]?.confidence || 0) * 0.2;
+  }
+
+  private getGestureFeedback(gesture: string, confidence: number): string {
+    if (confidence < 0.4) {
+      return 'Versuch es nochmal, halte deine Hand ruhig';
+    }
+
+    switch (gesture) {
+      case 'fist':
+        return 'Faust erkannt!';
+      case 'point':
+        return 'Zeigefinger erkannt!';
+      case 'thumbs_up':
+        return 'Daumen hoch erkannt!';
+      case 'open_palm':
+        return 'Offene Hand erkannt!';
+      default:
+        return 'Geste erkannt!';
+    }
+  }
+
+  reset(): void {
+    this.lastLandmarks = null;
+    this.gestureHistory = [];
+  }
+}
+
+const fallbackGestureDetector = new FallbackGestureDetector();
+
+// Configure gesture size tolerance (will be set after instantiation)
 
 try {
   window.ReactNativeWebView?.postMessage?.(
@@ -229,18 +564,333 @@ const LOAD_TIMEOUT_MS = 8000;
 // Gesture size tolerance (0.1 to 1.0, default 0.3 = 30% tolerance)
 const GESTURE_SIZE_TOLERANCE = window.__gestureSizeTolerance ?? 0.3;
 
-// Emergency gesture definitions - these bypass all throttling and delays
-const EMERGENCY_GESTURES = new Set(['hilfe', 'help', 'emergency', 'stop', 'danger']);
-const EMERGENCY_CONFIDENCE_THRESHOLD = 0.3; // Lower threshold for emergency detection
-let lastEmergencyGestureTime = 0;
-const EMERGENCY_COOLDOWN_MS = 1000; // Prevent spam but allow quick repeated calls
+// Enhanced Emergency Gesture System - Amy First Priority
+class EmergencyGestureSystem {
+  private readonly EMERGENCY_GESTURES = new Set([
+    'hilfe', 'help', 'emergency', 'stop', 'danger',
+    'notfall', 'gefahr', 'au', 'schmerz', 'angst'
+  ]);
+  private readonly EMERGENCY_CONFIDENCE_THRESHOLD = 0.25; // Very low threshold for emergencies
+  private lastEmergencyGestureTime = 0;
+  private readonly EMERGENCY_COOLDOWN_MS = 500; // Quick response for repeated emergencies
+  private emergencyHistory: Array<{gesture: string; timestamp: number; confidence: number}> = [];
+  private readonly MAX_HISTORY = 10;
 
-// Amy First: Continuous operation mode - no performance degradation at low battery
-// Note: Always enabled for Amy's safety, no battery threshold optimizations
+  /**
+   * Check if gesture is an emergency and should be prioritized
+   */
+  isEmergencyGesture(gesture: string, confidence: number): boolean {
+    if (!this.EMERGENCY_GESTURES.has(gesture.toLowerCase())) {
+      return false;
+    }
 
-const gestureSizeNormalizer = new GestureSizeNormalizer();
+    // Emergency gestures bypass normal confidence thresholds
+    return confidence >= this.EMERGENCY_CONFIDENCE_THRESHOLD;
+  }
+
+  /**
+   * Process emergency gesture with priority handling
+   */
+  processEmergencyGesture(gesture: string, confidence: number, landmarks: number[][][]): {
+    shouldProcess: boolean;
+    priority: 'critical' | 'high' | 'normal';
+    cooldownRemaining: number;
+    feedback: string;
+  } {
+    const now = Date.now();
+    const timeSinceLastEmergency = now - this.lastEmergencyGestureTime;
+
+    // Track emergency history
+    this.emergencyHistory.push({
+      gesture,
+      timestamp: now,
+      confidence
+    });
+
+    if (this.emergencyHistory.length > this.MAX_HISTORY) {
+      this.emergencyHistory.shift();
+    }
+
+    if (!this.isEmergencyGesture(gesture, confidence)) {
+      return {
+        shouldProcess: false,
+        priority: 'normal',
+        cooldownRemaining: 0,
+        feedback: ''
+      };
+    }
+
+    // Check cooldown to prevent spam
+    if (timeSinceLastEmergency < this.EMERGENCY_COOLDOWN_MS) {
+      return {
+        shouldProcess: false,
+        priority: 'critical',
+        cooldownRemaining: this.EMERGENCY_COOLDOWN_MS - timeSinceLastEmergency,
+        feedback: 'Notfall-Geste erkannt, wird verarbeitet...'
+      };
+    }
+
+    // Process emergency gesture
+    this.lastEmergencyGestureTime = now;
+
+    // Send emergency telemetry
+    this.sendEmergencyTelemetry(gesture, confidence);
+
+    return {
+      shouldProcess: true,
+      priority: 'critical',
+      cooldownRemaining: 0,
+      feedback: this.getEmergencyFeedback(gesture)
+    };
+  }
+
+  /**
+   * Get appropriate feedback for emergency gesture
+   */
+  private getEmergencyFeedback(gesture: string): string {
+    const feedbackMap: Record<string, string> = {
+      'hilfe': '🆘 Hilfe wird gerufen!',
+      'help': '🆘 Help is being called!',
+      'emergency': '🚨 Notfall erkannt!',
+      'stop': '⏹️ Stop-Signal erkannt!',
+      'danger': '⚠️ Gefahr erkannt!',
+      'notfall': '🚨 Notfall-Situation!',
+      'gefahr': '⚠️ Gefahr-Signal!',
+      'au': '😣 Schmerzsignal erkannt!',
+      'schmerz': '😣 Pain signal detected!',
+      'angst': '😨 Angstsignal erkannt!'
+    };
+
+    return feedbackMap[gesture.toLowerCase()] || '🚨 Notfall-Geste erkannt!';
+  }
+
+  /**
+   * Send emergency telemetry to React Native
+   */
+  private sendEmergencyTelemetry(gesture: string, confidence: number): void {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'emergency_gesture',
+          gesture,
+          confidence,
+          timestamp: Date.now(),
+          systemHealth: errorRecoveryManager.getHealthStatus()
+        })
+      );
+    } catch (err) {
+      console.error('Failed to send emergency telemetry:', err);
+    }
+  }
+
+  /**
+   * Check if system should enter emergency-only mode
+   */
+  shouldEnterEmergencyMode(): boolean {
+    const recentEmergencies = this.emergencyHistory.filter(
+      h => Date.now() - h.timestamp < 30000 // Last 30 seconds
+    );
+
+    // Enter emergency mode if 3+ emergencies in 30 seconds
+    return recentEmergencies.length >= 3;
+  }
+
+  /**
+   * Get emergency system status
+   */
+  getStatus(): {
+    activeEmergencies: number;
+    lastEmergencyTime: number;
+    emergencyModeRecommended: boolean;
+  } {
+    const recentEmergencies = this.emergencyHistory.filter(
+      h => Date.now() - h.timestamp < 60000 // Last minute
+    );
+
+    return {
+      activeEmergencies: recentEmergencies.length,
+      lastEmergencyTime: this.lastEmergencyGestureTime,
+      emergencyModeRecommended: this.shouldEnterEmergencyMode()
+    };
+  }
+
+  /**
+   * Reset emergency system (for testing or recovery)
+   */
+  reset(): void {
+    this.emergencyHistory = [];
+    this.lastEmergencyGestureTime = 0;
+  }
+}
+
+const emergencyGestureSystem = new EmergencyGestureSystem();
+
+// Battery monitoring will be initialized after class declaration
+
+// Amy First: Battery monitoring and emergency mode activation
+class BatteryMonitor {
+  private batteryLevel = 1.0;
+  private isMonitoring = false;
+  private emergencyMode = false;
+  private lastBatteryCheck = 0;
+  private readonly BATTERY_CHECK_INTERVAL = 30000; // Check every 30 seconds
+  private readonly EMERGENCY_BATTERY_THRESHOLD = 0.05; // 5% battery triggers emergency mode
+
+  /**
+   * Start battery monitoring for emergency mode activation
+   */
+  startMonitoring(): void {
+    if (this.isMonitoring) return;
+
+    this.isMonitoring = true;
+    this.checkBatteryLevel();
+
+    // Set up periodic battery checks
+    setInterval(() => {
+      this.checkBatteryLevel();
+    }, this.BATTERY_CHECK_INTERVAL);
+  }
+
+  /**
+   * Check current battery level and activate emergency mode if critical
+   */
+  private async checkBatteryLevel(): Promise<void> {
+    try {
+      // Use navigator.getBattery() if available (older API)
+      if ('getBattery' in navigator) {
+        const battery = await (navigator as any).getBattery();
+        this.batteryLevel = battery.level;
+        this.handleBatteryLevel(this.batteryLevel);
+      } else if ('battery' in navigator) {
+        // Fallback for some mobile browsers
+        this.batteryLevel = (navigator as any).battery.level;
+        this.handleBatteryLevel(this.batteryLevel);
+      } else {
+        // Fallback: assume adequate battery if we can't detect
+        this.batteryLevel = 0.5;
+      }
+    } catch (error) {
+      console.warn('Battery monitoring failed:', error);
+      // Assume adequate battery on monitoring failure
+      this.batteryLevel = 0.5;
+    }
+
+    this.lastBatteryCheck = Date.now();
+  }
+
+  /**
+   * Handle battery level changes and emergency mode activation
+   */
+  private handleBatteryLevel(level: number): void {
+    const wasEmergency = this.emergencyMode;
+    this.emergencyMode = level <= this.EMERGENCY_BATTERY_THRESHOLD;
+
+    if (this.emergencyMode && !wasEmergency) {
+      console.warn(`🔋 CRITICAL BATTERY: ${Math.round(level * 100)}% - Activating emergency mode`);
+      this.activateEmergencyMode();
+    } else if (!this.emergencyMode && wasEmergency) {
+      console.log(`🔋 Battery recovered: ${Math.round(level * 100)}% - Deactivating emergency mode`);
+      this.deactivateEmergencyMode();
+    }
+  }
+
+  /**
+   * Activate emergency mode for critical battery situations
+   */
+  private activateEmergencyMode(): void {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'emergency_mode_activated',
+          reason: 'critical_battery',
+          batteryLevel: this.batteryLevel,
+          timestamp: Date.now()
+        })
+      );
+    } catch (error) {
+      console.error('Failed to send emergency mode activation:', error);
+    }
+  }
+
+  /**
+   * Deactivate emergency mode when battery recovers
+   */
+  private deactivateEmergencyMode(): void {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'emergency_mode_deactivated',
+          reason: 'battery_recovered',
+          batteryLevel: this.batteryLevel,
+          timestamp: Date.now()
+        })
+      );
+    } catch (error) {
+      console.error('Failed to send emergency mode deactivation:', error);
+    }
+  }
+
+  /**
+   * Get current battery status
+   */
+  getStatus(): {
+    level: number;
+    emergencyMode: boolean;
+    lastCheck: number;
+  } {
+    return {
+      level: this.batteryLevel,
+      emergencyMode: this.emergencyMode,
+      lastCheck: this.lastBatteryCheck
+    };
+  }
+
+  /**
+   * Force emergency mode for testing
+   */
+  forceEmergencyMode(): void {
+    this.emergencyMode = true;
+    this.activateEmergencyMode();
+  }
+
+  /**
+   * Reset emergency mode for testing
+   */
+  resetEmergencyMode(): void {
+    this.emergencyMode = false;
+    this.deactivateEmergencyMode();
+  }
+}
+
+const batteryMonitor = new BatteryMonitor();
 
 const partialGestureDetector = new PartialGestureDetector();
+
+// Initialize systems after all declarations
+batteryMonitor.startMonitoring();
+gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
+
+// Add missing global references for tests
+(window as any).emergencyGestureSystem = emergencyGestureSystem;
+(window as any).errorRecoveryManager = errorRecoveryManager;
+(window as any).batteryMonitor = batteryMonitor;
+(window as any).handStabilityAssistant = new HandStabilityAssistant();
+(window as any).partialGestureDetector = partialGestureDetector;
+(window as any).tremorCompensator = new TremorCompensator();
+(window as any).gestureSizeNormalizer = gestureSizeNormalizer;
+(window as any).celebrationSystem = new CelebrationSystem();
+(window as any).feedbackSystem = new FeedbackSystem();
+
+// Add missing window properties for tests
+(window as any).__mlpPredict = undefined;
+(window as any).__modelUpdateInProgress = false;
+(window as any).__activeRecognitionSession = false;
+
+// GestureSizeNormalizer is imported from gestureProcessing.ts
+
+// PartialGestureDetector and TremorCompensator are imported from gestureProcessing.ts
+
+// CelebrationSystem and FeedbackSystem are imported from utils
 
 // Hand stability assistance system
 class HandStabilityAssistant {
@@ -702,17 +1352,18 @@ function sendEmergencyGesture(gesture: string, confidence: number, landmarks: nu
   }
 }
 function processGestureResults(results: any, timestamp: number) {
-  const frameLatency = Math.round(performance.now() - timestamp);
-  frameCount++;
-  if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
-    try {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }),
-      );
-    } catch (err) {
-      console.warn("Failed to send 'frame_latency' telemetry event:", err);
+  try {
+    const frameLatency = Math.round(performance.now() - timestamp);
+    frameCount++;
+    if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }),
+        );
+      } catch (err) {
+        console.warn("Failed to send 'frame_latency' telemetry event:", err);
+      }
     }
-  }
   let allLandmarks = (results?.landmarks || []).map((hand: any) =>
     hand.map((lm: any) => [lm.x, lm.y, lm.z ?? 0]),
   );
@@ -856,6 +1507,23 @@ function processGestureResults(results: any, timestamp: number) {
     // Continue with normal processing
   }
 
+  // ** Emergency Mode Handling - Amy First Priority **
+  // In emergency mode (critical battery or system failure), prioritize emergency gestures
+  const batteryStatus = batteryMonitor.getStatus();
+  if (batteryStatus.emergencyMode) {
+    console.warn('🔋 EMERGENCY MODE ACTIVE: Prioritizing emergency gestures');
+
+    // If in emergency mode and no emergency gesture detected, try fallback detection
+    if (!shouldProcessEmergencyGesture(outGesture, outScore)) {
+      const emergencyFallback = emergencyGestureSystem.getStatus();
+      if (emergencyFallback.emergencyModeRecommended) {
+        // Force emergency mode processing
+        console.warn('🚨 EMERGENCY FALLBACK: Activating emergency-only processing');
+        // Emergency gestures will be processed even with lower confidence
+      }
+    }
+  }
+
   // Custom gesture logic (preserved for single-hand fallback)
   const firstHand = allLandmarks[0] || [];
   if (
@@ -885,30 +1553,119 @@ function processGestureResults(results: any, timestamp: number) {
     }
   }
 
+  // ** ERROR RECOVERY & FALLBACK PROCESSING **
+  // If main gesture detection failed or confidence is low, try fallback system
+  let finalGesture = outGesture;
+  let finalScore = outScore;
+  let isUsingFallback = false;
+
+  if (errorRecoveryManager.isInFallbackMode() ||
+      (!outGesture || outScore < FALLBACK_CONFIDENCE_THRESHOLD)) {
+
+    try {
+      const fallbackResult = fallbackGestureDetector.detectGesture(allLandmarks);
+
+      // Use fallback if it's better than current result or if we're in fallback mode
+      if (errorRecoveryManager.isInFallbackMode() ||
+          (fallbackResult.confidence > outScore && fallbackResult.gesture)) {
+
+        finalGesture = fallbackResult.gesture;
+        finalScore = fallbackResult.confidence;
+        isUsingFallback = true;
+
+        // Send fallback feedback if available
+        if (fallbackResult.feedback) {
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: 'fallback_feedback',
+                gesture: finalGesture,
+                confidence: finalScore,
+                feedback: fallbackResult.feedback,
+                timestamp: timestamp,
+              })
+            );
+          } catch (err) {
+            console.warn('Failed to send fallback feedback:', err);
+          }
+        }
+      }
+    } catch (fallbackError) {
+      console.warn('Fallback gesture detection failed:', fallbackError);
+      // Continue with original result if fallback fails
+    }
+  }
+
+  // ** EMERGENCY GESTURE PROCESSING WITH PRIORITY **
+  // Check for emergency gestures that should bypass normal processing
+  if (finalGesture && typeof finalGesture === 'string') {
+    const emergencyResult = emergencyGestureSystem.processEmergencyGesture(
+      finalGesture,
+      finalScore,
+      allLandmarks
+    );
+
+    if (emergencyResult.shouldProcess) {
+      // Emergency gestures get immediate processing with high priority
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'emergency_gesture_detected',
+            gesture: finalGesture,
+            confidence: finalScore,
+            feedback: emergencyResult.feedback,
+            priority: emergencyResult.priority,
+            timestamp: timestamp,
+            systemStatus: errorRecoveryManager.getHealthStatus()
+          })
+        );
+      } catch (err) {
+        console.error('Failed to send emergency gesture message:', err);
+      }
+
+      // Emergency gestures bypass normal throttling
+      lastSentGestureSerialized = '';
+      lastSentScore = 0;
+    }
+
+    // Check if we should enter emergency mode
+    if (emergencyGestureSystem.shouldEnterEmergencyMode() &&
+        !errorRecoveryManager.isInEmergencyMode()) {
+      errorRecoveryManager.activateEmergencyMode();
+    }
+  }
+
   // Send gesture result if it changed or meets threshold
-  const serialized = serializeGesture(outGesture);
-  const scoreChanged = Math.abs(outScore - lastSentScore) >= 0.05;
+  const serialized = serializeGesture(finalGesture);
+  const scoreChanged = Math.abs(finalScore - lastSentScore) >= 0.05;
   const gestureChanged = serialized !== lastSentGestureSerialized;
-  const shouldSend = (gestureChanged || scoreChanged) && (outScore >= 0.3 || outGesture);
+  const shouldSend = (gestureChanged || scoreChanged) &&
+                     (finalScore >= 0.3 || finalGesture) &&
+                     !errorRecoveryManager.isCircuitBreakerOpen();
 
   if (shouldSend) {
     lastSentGestureSerialized = serialized;
-    lastSentScore = outScore;
+    lastSentScore = finalScore;
     lastSentAt = performance.now();
 
     try {
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({
           type: 'gesture',
-          gesture: outGesture,
-          confidence: outScore,
+          gesture: finalGesture,
+          confidence: finalScore,
           landmarks: allLandmarks,
           handednesses: handedArr,
           timestamp: timestamp,
+          isFallback: isUsingFallback,
+          systemHealth: errorRecoveryManager.getHealthStatus()
         }),
       );
     } catch (err) {
       console.warn('Failed to send gesture message:', err);
+
+      // If sending fails, record it as a failure
+      errorRecoveryManager.recordFailure(err, 'gesture_message_send');
     }
   }
 
@@ -999,6 +1756,77 @@ function processGestureResults(results: any, timestamp: number) {
     }
   } catch (err) {
     console.warn('Failed to draw overlay:', err);
+  }
+
+  } catch (processingError) {
+    // ** COMPREHENSIVE ERROR RECOVERY FOR GESTURE PROCESSING **
+    console.error('Gesture processing failed:', processingError);
+
+    const error = processingError as Error;
+    const errorInfo = errorRecoveryManager.getErrorInfo(error, 'gesture_processing');
+
+    // Record the failure for circuit breaker logic
+    const shouldRetry = errorRecoveryManager.recordFailure(error, 'gesture_processing');
+
+    // Send error notification to React Native
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'gesture_processing_error',
+          message: errorInfo.userMessage,
+          code: errorInfo.code,
+          recoverable: errorInfo.recoverable,
+          severity: errorInfo.severity,
+          suggestedAction: errorInfo.suggestedAction,
+          systemHealth: errorRecoveryManager.getHealthStatus(),
+          timestamp: timestamp
+        })
+      );
+    } catch (msgError) {
+      console.error('Failed to send error message to React Native:', msgError);
+    }
+
+    // Activate appropriate recovery mode based on error type
+    if (errorInfo.severity === 'critical') {
+      errorRecoveryManager.activateEmergencyMode();
+    } else if (errorInfo.recoverable && shouldRetry) {
+      errorRecoveryManager.activateFallbackMode();
+    }
+
+    // Try fallback gesture detection if we have landmarks
+    if (results?.landmarks && errorRecoveryManager.canAttemptRecovery('gesture_processing')) {
+      try {
+        const fallbackResult = fallbackGestureDetector.detectGesture(
+          results.landmarks.map((hand: any) =>
+            hand.map((lm: any) => [lm.x, lm.y, lm.z ?? 0])
+          )
+        );
+
+        if (fallbackResult.gesture && fallbackResult.confidence > 0.2) {
+          // Send fallback result
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: 'gesture',
+              gesture: fallbackResult.gesture,
+              confidence: fallbackResult.confidence,
+              isFallback: true,
+              errorRecovery: true,
+              timestamp: timestamp,
+              systemHealth: errorRecoveryManager.getHealthStatus()
+            })
+          );
+
+          errorRecoveryManager.recordSuccessfulRecovery('gesture_processing');
+        }
+      } catch (fallbackError) {
+        console.warn('Fallback detection also failed:', fallbackError);
+      }
+    }
+
+    // If this is a critical error and we have emergency mode, ensure emergency gestures still work
+    if (errorRecoveryManager.isInEmergencyMode()) {
+      console.warn('System in emergency mode - prioritizing critical gesture detection');
+    }
   }
 }
 

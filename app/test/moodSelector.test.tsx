@@ -14,21 +14,32 @@ jest.mock('react-native', () => {
 let mockCurrentMood = 'neutral';
 let mockLargeText = false;
 let mockHighContrast = false;
+let mockMoodError = false;
+let mockAccessibilityError = false;
+let mockSetMoodError = false;
+let mockGetMoodEmoji = () => '😐';
+let mockGetMoodDescription = () => 'Neutral';
 
 jest.mock('../src/context/MoodContext', () => ({
-  useMood: () => ({
-    currentMood: mockCurrentMood,
-    setMood: jest.fn(),
-    getMoodEmoji: () => '😐',
-    getMoodDescription: () => 'Neutral',
-  }),
+  useMood: () => {
+    if (mockMoodError) throw new Error('Mood context error');
+    return {
+      currentMood: mockCurrentMood,
+      setMood: mockSetMoodError ? () => { throw new Error('Set mood error'); } : jest.fn(),
+      getMoodEmoji: mockGetMoodEmoji,
+      getMoodDescription: mockGetMoodDescription,
+    };
+  },
 }));
 
 jest.mock('../src/components/AccessibilityContext', () => ({
-  useAccessibility: () => ({
-    largeText: mockLargeText,
-    highContrast: mockHighContrast,
-  }),
+  useAccessibility: () => {
+    if (mockAccessibilityError) throw new Error('Accessibility context error');
+    return {
+      largeText: mockLargeText,
+      highContrast: mockHighContrast,
+    };
+  },
 }));
 
 jest.mock('../src/services/LanguageManager', () => ({
@@ -204,12 +215,7 @@ describe('MoodSelector', () => {
   });
 
   it('handles mood context errors gracefully', () => {
-    // Mock useMood to throw an error
-    jest.mock('../src/context/MoodContext', () => ({
-      useMood: () => {
-        throw new Error('Mood context error');
-      },
-    }));
+    mockMoodError = true;
 
     // This should not crash the component
     expect(() => {
@@ -217,15 +223,12 @@ describe('MoodSelector', () => {
         renderer.create(<MoodSelector />);
       });
     }).toThrow('Mood context error');
+
+    mockMoodError = false;
   });
 
   it('handles accessibility context errors gracefully', () => {
-    // Mock useAccessibility to throw an error
-    jest.mock('../src/components/AccessibilityContext', () => ({
-      useAccessibility: () => {
-        throw new Error('Accessibility context error');
-      },
-    }));
+    mockAccessibilityError = true;
 
     // This should not crash the component
     expect(() => {
@@ -233,18 +236,13 @@ describe('MoodSelector', () => {
         renderer.create(<MoodSelector />);
       });
     }).toThrow('Accessibility context error');
+
+    mockAccessibilityError = false;
   });
 
   it('handles missing mood emoji gracefully', () => {
-    // Mock getMoodEmoji to return undefined
-    jest.mock('../src/context/MoodContext', () => ({
-      useMood: () => ({
-        currentMood: mockCurrentMood,
-        setMood: jest.fn(),
-        getMoodEmoji: () => undefined,
-        getMoodDescription: () => 'Test mood',
-      }),
-    }));
+    mockGetMoodEmoji = () => undefined;
+    mockGetMoodDescription = () => 'Test mood';
 
     let component: renderer.ReactTestRenderer;
     act(() => {
@@ -256,18 +254,13 @@ describe('MoodSelector', () => {
       text.props.children?.includes && text.props.children.includes('Test mood')
     );
     expect(currentMoodText).toBeTruthy();
+
+    mockGetMoodEmoji = () => '😐';
+    mockGetMoodDescription = () => 'Neutral';
   });
 
   it('handles missing mood description gracefully', () => {
-    // Mock getMoodDescription to return undefined
-    jest.mock('../src/context/MoodContext', () => ({
-      useMood: () => ({
-        currentMood: mockCurrentMood,
-        setMood: jest.fn(),
-        getMoodEmoji: () => '😐',
-        getMoodDescription: () => undefined,
-      }),
-    }));
+    mockGetMoodDescription = () => undefined;
 
     let component: renderer.ReactTestRenderer;
     act(() => {
@@ -279,22 +272,12 @@ describe('MoodSelector', () => {
       text.props.children?.includes && text.props.children.includes('😐')
     );
     expect(currentMoodText).toBeTruthy();
+
+    mockGetMoodDescription = () => 'Neutral';
   });
 
   it('handles setMood errors gracefully', () => {
-    // Mock setMood to throw an error
-    const mockSetMood = jest.fn().mockImplementation(() => {
-      throw new Error('Set mood error');
-    });
-
-    jest.mock('../src/context/MoodContext', () => ({
-      useMood: () => ({
-        currentMood: mockCurrentMood,
-        setMood: mockSetMood,
-        getMoodEmoji: () => '😐',
-        getMoodDescription: () => 'Neutral',
-      }),
-    }));
+    mockSetMoodError = true;
 
     let component: renderer.ReactTestRenderer;
     act(() => {
@@ -310,5 +293,7 @@ describe('MoodSelector', () => {
         calmButton.props.onPress();
       });
     }).toThrow('Set mood error');
+
+    mockSetMoodError = false;
   });
 });

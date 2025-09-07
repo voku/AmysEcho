@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">95.83% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>23/24</span>
+                <span class='fraction'>0/24</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.66% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/12</span>
+                <span class='fraction'>0/12</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>20/20</span>
+                <span class='fraction'>0/20</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -123,37 +123,37 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export type PreviewRect = { width: number; height: number };
 &nbsp;
@@ -162,44 +162,44 @@
  * to the preview rectangle coordinates considering aspect-fit letterboxing
  * and optional mirroring for front camera.
  */
-export function mapToPreview(
+export function <span class="fstat-no" title="function not covered" >mapToPreview(</span>
   lm: readonly [number, number, number],
   videoWidth: number,
   videoHeight: number,
   preview: PreviewRect,
   mirror: boolean,
 ): { x: number; y: number } {
-  const formatRatio = videoWidth / videoHeight;
-  const screenRatio = preview.width / preview.height;
+  const formatRatio = <span class="cstat-no" title="statement not covered" >videoWidth / videoHeight;</span>
+  const screenRatio = <span class="cstat-no" title="statement not covered" >preview.width / preview.height;</span>
 &nbsp;
-  let contentWidth = preview.width;
-  let contentHeight = preview.height;
-  let offsetX = 0;
-  let offsetY = 0;
+  let contentWidth = <span class="cstat-no" title="statement not covered" >preview.width;</span>
+  let contentHeight = <span class="cstat-no" title="statement not covered" >preview.height;</span>
+  let offsetX = <span class="cstat-no" title="statement not covered" >0;</span>
+  let offsetY = <span class="cstat-no" title="statement not covered" >0;</span>
 &nbsp;
-  if (screenRatio &gt; formatRatio) {
+<span class="cstat-no" title="statement not covered" >  if (screenRatio &gt; formatRatio) {</span>
     // Preview is wider than content, height is letterboxed
-    contentHeight = preview.width / formatRatio;
-    offsetY = (preview.height - contentHeight) / 2;
+<span class="cstat-no" title="statement not covered" >    contentHeight = preview.width / formatRatio;</span>
+<span class="cstat-no" title="statement not covered" >    offsetY = (preview.height - contentHeight) / 2;</span>
   } else {
     // Preview is taller than content, width is letterboxed
-    contentWidth = preview.height * formatRatio;
-    offsetX = (preview.width - contentWidth) / 2;
+<span class="cstat-no" title="statement not covered" >    contentWidth = preview.height * formatRatio;</span>
+<span class="cstat-no" title="statement not covered" >    offsetX = (preview.width - contentWidth) / 2;</span>
   }
 &nbsp;
-  const xNorm = mirror ? 1 - lm[0] : lm[0];
-  const yNorm = lm[1];
+  const xNorm = <span class="cstat-no" title="statement not covered" >mirror ? 1 - lm[0] : lm[0];</span>
+  const yNorm = <span class="cstat-no" title="statement not covered" >lm[1];</span>
 &nbsp;
   // Map normalized coords into content box, then clamp to preview bounds
-  let x = offsetX + xNorm * contentWidth;
-  let y = offsetY + yNorm * contentHeight;
+  let x = <span class="cstat-no" title="statement not covered" >offsetX + xNorm * contentWidth;</span>
+  let y = <span class="cstat-no" title="statement not covered" >offsetY + yNorm * contentHeight;</span>
 &nbsp;
   // Guard against tiny floating error escaping the preview rect
-  if (x &lt; 0) x = 0;
-  if (y &lt; 0) y = 0;
-  if (x &gt; preview.width) x = preview.width;
-  <span class="missing-if-branch" title="if path not taken" >I</span>if (y &gt; preview.height) <span class="cstat-no" title="statement not covered" >y = preview.height;</span>
-  return { x, y };
+<span class="cstat-no" title="statement not covered" >  if (x &lt; 0) <span class="cstat-no" title="statement not covered" >x = 0;</span></span>
+<span class="cstat-no" title="statement not covered" >  if (y &lt; 0) <span class="cstat-no" title="statement not covered" >y = 0;</span></span>
+<span class="cstat-no" title="statement not covered" >  if (x &gt; preview.width) <span class="cstat-no" title="statement not covered" >x = preview.width;</span></span>
+<span class="cstat-no" title="statement not covered" >  if (y &gt; preview.height) <span class="cstat-no" title="statement not covered" >y = preview.height;</span></span>
+<span class="cstat-no" title="statement not covered" >  return { x, y };</span>
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -208,7 +208,7 @@ export function mapToPreview(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T01:14:43.604Z
+                at 2025-09-07T08:31:43.968Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

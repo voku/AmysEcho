@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>23/23</span>
+                <span class='fraction'>0/23</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">85.71% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>12/14</span>
+                <span class='fraction'>0/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>20/20</span>
+                <span class='fraction'>0/20</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -111,86 +111,86 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">12x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">191x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">191x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">191x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">21x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// Utilities for normalizing hand landmarks before classification
 // Strategy: translate to wrist; scale all axes by max(|x| + |y| + |z|)
 &nbsp;
 import type { Point } from './dgsModelClient';
 &nbsp;
-const WRIST_INDEX = 0;
-const HAND_SIZE = 21;
+const WRIST_INDEX = <span class="cstat-no" title="statement not covered" >0;</span>
+const HAND_SIZE = <span class="cstat-no" title="statement not covered" >21;</span>
 &nbsp;
 // NOTE: expects a single hand. Callers must slice before passing.
-export function normalizeLandmarks(landmarks: Point[]): Point[] {
-  if (!landmarks || landmarks.length === 0) {
-    return [];
+export function <span class="fstat-no" title="function not covered" >normalizeLandmarks(</span>landmarks: Point[]): Point[] {
+<span class="cstat-no" title="statement not covered" >  if (!landmarks || landmarks.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return [];</span>
   }
 &nbsp;
-  const hand = landmarks.slice(0, HAND_SIZE);
-  const [wx, wy, wz] = hand[WRIST_INDEX];
-  const translated = hand.map(([x, y, z]) =&gt; [
+  const hand = <span class="cstat-no" title="statement not covered" >landmarks.slice(0, HAND_SIZE);</span>
+  const [wx, wy, wz] = <span class="cstat-no" title="statement not covered" >hand[WRIST_INDEX];</span>
+  const translated = <span class="cstat-no" title="statement not covered" >hand.map(<span class="fstat-no" title="function not covered" >([</span>x, y, z]) =&gt; <span class="cstat-no" title="statement not covered" >[</span></span>
     x - wx,
     y - wy,
-    (z ?? <span class="branch-1 cbranch-no" title="branch not covered" >0)</span> - (wz ?? <span class="branch-1 cbranch-no" title="branch not covered" >0)</span>,
+    (z ?? 0) - (wz ?? 0),
   ] as Point);
 &nbsp;
-  const maxd = translated.reduce(
-    (currentMax, [x, y, z]) =&gt;
-      Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
+  const maxd = <span class="cstat-no" title="statement not covered" >translated.reduce(</span>
+<span class="fstat-no" title="function not covered" >    (c</span>urrentMax, [x, y, z]) =&gt;
+<span class="cstat-no" title="statement not covered" >      Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),</span>
     0,
   );
-  const scale = maxd || 1;
-  return translated.map(([x, y, z]) =&gt; [x / scale, y / scale, z / scale] as Point);
+  const scale = <span class="cstat-no" title="statement not covered" >maxd || 1;</span>
+<span class="cstat-no" title="statement not covered" >  return translated.map(<span class="fstat-no" title="function not covered" >([</span>x, y, z]) =&gt; <span class="cstat-no" title="statement not covered" >[x / scale, y / scale, z / scale] as Point)</span>;</span>
 }
 &nbsp;
-export function normalizeLandmarksToFlat(landmarks: Point[]): Float32Array {
-  if (!landmarks || landmarks.length &lt; HAND_SIZE) return new Float32Array(0);
-  const norm = normalizeLandmarks(landmarks.slice(0, HAND_SIZE));
-  const out = new Float32Array(norm.length * 3);
-  let k = 0;
-  for (const [x, y, z] of norm) {
-    out[k++] = x;
-    out[k++] = y;
-    out[k++] = z;
+export function <span class="fstat-no" title="function not covered" >normalizeLandmarksToFlat(</span>landmarks: Point[]): Float32Array {
+<span class="cstat-no" title="statement not covered" >  if (!landmarks || landmarks.length &lt; HAND_SIZE) <span class="cstat-no" title="statement not covered" >return new Float32Array(0);</span></span>
+  const norm = <span class="cstat-no" title="statement not covered" >normalizeLandmarks(landmarks.slice(0, HAND_SIZE));</span>
+  const out = <span class="cstat-no" title="statement not covered" >new Float32Array(norm.length * 3);</span>
+  let k = <span class="cstat-no" title="statement not covered" >0;</span>
+<span class="cstat-no" title="statement not covered" >  for (const [x, y, z] of norm) {</span>
+<span class="cstat-no" title="statement not covered" >    out[k++] = x;</span>
+<span class="cstat-no" title="statement not covered" >    out[k++] = y;</span>
+<span class="cstat-no" title="statement not covered" >    out[k++] = z;</span>
   }
-  return out;
+<span class="cstat-no" title="statement not covered" >  return out;</span>
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -199,7 +199,7 @@ export function normalizeLandmarksToFlat(landmarks: Point[]): Float32Array {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T01:14:43.604Z
+                at 2025-09-07T08:31:43.968Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

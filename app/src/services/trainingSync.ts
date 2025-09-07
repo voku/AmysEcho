@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
+import * as NetInfoModule from '@react-native-community/netinfo';
 import { loadProfile, TrainingSample, loadBackendApiToken } from '../storage';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
@@ -15,7 +15,8 @@ export interface SyncProgressOptions {
 export async function syncTrainingData(opts?: SyncProgressOptions): Promise<void> {
   const profile = await loadProfile();
   if (!profile?.consentHelpMeGetSmarter) return;
-  const net = await NetInfo.fetch();
+  const fetchNet: any = (NetInfoModule as any).fetch || (NetInfoModule as any).default?.fetch;
+  const net = await (typeof fetchNet === 'function' ? fetchNet() : Promise.resolve({ isConnected: false }));
   if (
     !net.isConnected ||
     net.isInternetReachable !== true ||

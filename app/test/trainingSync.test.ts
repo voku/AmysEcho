@@ -4,8 +4,6 @@ const mockNetInfoFetch = jest.fn(async () => ({
   type: 'wifi',
 }));
 jest.mock('@react-native-community/netinfo', () => ({
-  __esModule: true,
-  default: { fetch: mockNetInfoFetch },
   fetch: mockNetInfoFetch,
 }));
 

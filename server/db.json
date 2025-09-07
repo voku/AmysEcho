@@ -43,25 +43,25 @@
   ],
   "vocabularySetSymbols": [
     {
-      "id": "mf8zwndiowkx3z6rcrj",
+      "id": "mf9cvcujeor9kqpxl2d",
       "vocabularySetId": "basic",
       "symbolId": "hello"
     },
     {
-      "id": "mf8zwndi4e4u6wbqkoc",
+      "id": "mf9cvcujuenijcft0xg",
       "vocabularySetId": "basic",
       "symbolId": "drink"
     }
   ],
   "usageStats": [
     {
-      "id": "mf8zwndi3b15qk6egmi",
+      "id": "mf9cvcuj1e3tdwtlewu",
       "symbolId": "hello",
       "profileId": "default",
       "count": 0
     },
     {
-      "id": "mf8zwndik72ga52d5da",
+      "id": "mf9cvcujg3agoyrlzq",
       "symbolId": "drink",
       "profileId": "default",
       "count": 0

@@ -7,18 +7,32 @@ jest.mock('react-native', () => {
     View: (props: any) => React.createElement('View', props, props.children),
     Text: (props: any) => React.createElement('Text', props, props.children),
     Button: (props: any) => React.createElement('Button', props, props.children),
-    FlatList: ({ data, renderItem, ListEmptyComponent }: any) =>
+    FlatList: ({ data, renderItem, ListEmptyComponent, keyExtractor }: any) =>
       React.createElement(
         'FlatList',
         null,
         data && data.length
-          ? data.map((item: any, index: number) => renderItem({ item, index }))
+          ? data.map((item: any, index: number) => {
+              const element = renderItem({ item, index });
+              const key = keyExtractor ? keyExtractor(item) : index;
+              return React.cloneElement(element, { key });
+            })
           : ListEmptyComponent || null,
       ),
     StyleSheet: { create: () => ({}) },
     Touchable: {
       Mixin: {},
     },
+  };
+});
+
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  return {
+    Svg: (props: any) => React.createElement('Svg', props, props.children),
+    Path: (props: any) => React.createElement('Path', props),
+    Circle: (props: any) => React.createElement('Circle', props),
+    Rect: (props: any) => React.createElement('Rect', props),
   };
 });
 
@@ -44,9 +58,38 @@ jest.mock('../src/storage', () => ({
   ),
 }));
 
+jest.mock('expo-audio', () => ({
+  setAudioModeAsync: jest.fn(),
+  requestRecordingPermissionsAsync: jest.fn(() => ({ granted: true })),
+  createAudioPlayer: jest.fn(() => ({
+    volume: 1,
+    loop: false,
+    seekTo: jest.fn(),
+    play: jest.fn(),
+    remove: jest.fn(),
+  })),
+  AudioRecorder: jest.fn(),
+  RecordingPresets: { HIGH_QUALITY: {} },
+}));
+jest.mock('expo-speech', () => ({
+  speak: jest.fn(),
+  stop: jest.fn(),
+}));
+jest.mock('expo-haptics', () => ({
+  notificationAsync: jest.fn(),
+  impactAsync: jest.fn(),
+}));
+jest.mock('expo-file-system', () => ({
+  bundleDirectory: 'bundle/',
+  documentDirectory: 'docs/',
+  getInfoAsync: jest.fn(() => ({ exists: true })),
+}));
 jest.mock('../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));
+
+// Mock BottomNav to avoid requiring a NavigationContainer context in unit test
+jest.mock('../src/components/BottomNav', () => () => null);
 
 import ProgressScreen from '../src/screens/ProgressScreen';
 
@@ -64,4 +107,3 @@ describe('ProgressScreen', () => {
     expect(contents).toContain(5);
   });
 });
-

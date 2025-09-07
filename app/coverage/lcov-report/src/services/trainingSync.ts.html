@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">5.71% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>4/70</span>
+                <span class='fraction'>0/71</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">2.22% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>1/45</span>
+                <span class='fraction'>0/49</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">20% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/5</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">6.66% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>4/60</span>
+                <span class='fraction'>0/61</span>
             </div>
         
             
@@ -174,7 +174,8 @@
 <a name='L109'></a><a href='#L109'>109</a>
 <a name='L110'></a><a href='#L110'>110</a>
 <a name='L111'></a><a href='#L111'>111</a>
-<a name='L112'></a><a href='#L112'>112</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -182,16 +183,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -286,23 +288,24 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
+import * as NetInfoModule from '@react-native-community/netinfo';
 import { loadProfile, TrainingSample, loadBackendApiToken } from '../storage';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
 import { refreshDgsModel } from './modelUpdate';
 import { processFramesForUpload } from './handUtils';
 &nbsp;
-const TRAINING_KEY = 'gestureTrainingData';
+const TRAINING_KEY = <span class="cstat-no" title="statement not covered" >'gestureTrainingData';</span>
 &nbsp;
 export interface SyncProgressOptions {
   onProgress?: (progress: number) =&gt; void;
 }
 &nbsp;
-export async function syncTrainingData(opts?: SyncProgressOptions): Promise&lt;void&gt; {
-  const profile = await loadProfile();
-  <span class="missing-if-branch" title="if path not taken" >I</span>if (!profile?.consentHelpMeGetSmarter) <span class="cstat-no" title="statement not covered" >return;</span>
-  const net = await NetInfo.fetch();
+export async function <span class="fstat-no" title="function not covered" >syncTrainingData(</span>opts?: SyncProgressOptions): Promise&lt;void&gt; {
+  const profile = <span class="cstat-no" title="statement not covered" >await loadProfile();</span>
+<span class="cstat-no" title="statement not covered" >  if (!profile?.consentHelpMeGetSmarter) <span class="cstat-no" title="statement not covered" >return;</span></span>
+  const fetchNet: any = <span class="cstat-no" title="statement not covered" >(NetInfoModule as any).fetch || (NetInfoModule as any).default?.fetch;</span>
+  const net = <span class="cstat-no" title="statement not covered" >await (typeof fetchNet === 'function' ? fetchNet() : Promise.resolve({ isConnected: false }));</span>
 <span class="cstat-no" title="statement not covered" >  if (</span>
     !net.isConnected ||
     net.isInternetReachable !== true ||
@@ -403,7 +406,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise&lt;v
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T01:14:43.604Z
+                at 2025-09-07T08:31:43.968Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

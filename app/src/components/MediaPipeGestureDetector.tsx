@@ -228,13 +228,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         } else {
           gesture = null;
         }
-        onGestureDetected(
-          gesture,
-          data.confidence,
-          data.landmarks,
-          data.handednesses || [],
-          data.emergency === true,
-        );
+        const confidence = typeof data.confidence === 'number' ? data.confidence : 0;
+        const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][]) : [];
+        const handednesses = Array.isArray(data.handednesses) ? (data.handednesses as string[]) : [];
+        onGestureDetected(gesture, confidence, landmarks, handednesses, data.emergency === true);
       } else if (data.type === 'error') {
         // Amy First: Log technical errors but pass generic message to UI
         console.error('WebView error:', data.message);
@@ -329,8 +326,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         androidLayerType={'hardware'}
         mixedContentMode={'always'}
         onError={(e: any) => {
-          console.error('WebView runtime error', e.nativeEvent);
-          onError(LanguageManager.t('mediapipe.gestureProcessingError'));
+          console.warn('WebView runtime error', e?.nativeEvent);
+          onError('webview_load_error');
+        }}
+        onHttpError={(e: any) => {
+          console.warn('WebView HTTP error', e?.nativeEvent);
+          onError('webview_http_error');
         }}
         onConsoleMessage={(e: any) => {
           if (e?.nativeEvent?.message) {

@@ -26,6 +26,11 @@ import {
   announceGestureRecognition,
   gestureSuggester,
 } from '../services';
+import { gestureHistoryService } from '../services/gestureHistoryService';
+import { automaticRecoveryService } from '../services/automaticRecoveryService';
+import { zeroDowntimeModelService } from '../services/zeroDowntimeModelService';
+import { emergencyPriorityService } from '../services/emergencyPriorityService';
+import { preCachedResponseService } from '../services/preCachedResponseService';
 import { loadProfile, Profile } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
 import { buildLocalCentroids } from '../services/localCentroids';
@@ -473,11 +478,22 @@ export default function RecognitionScreen({
         }
         break;
       case 'repeat_last':
-        // Repeat last successful gesture
-        if (lastRecognizedGesture) {
-          setStatus(`🔄 Wiederhole: ${lastRecognizedGesture.label}`);
-          // Trigger feedback for the repeated gesture
-          void provideInstantFeedback(lastRecognizedGesture.id, 1.0, true);
+        // Repeat last successful gesture from history
+        const lastGesture = gestureHistoryService.getLastGesture();
+        if (lastGesture) {
+          setStatus(`🔄 Wiederhole: ${lastGesture.label}`);
+          // Trigger audio response for the repeated gesture
+          if (lastGesture.audioResponse) {
+            void audioService.speak(lastGesture.audioResponse);
+          }
+          // Trigger visual feedback
+          setShowCelebration(true);
+          setCelebrationKey(prev => prev + 1);
+          // Log the replay
+          void logHIPEvent('HIP_1', 'gesture_replayed', {
+            gestureId: lastGesture.id,
+            originalTimestamp: lastGesture.timestamp
+          });
         } else {
           setStatus('ℹ️ Keine vorherige Geste zum Wiederholen');
         }
@@ -567,6 +583,32 @@ export default function RecognitionScreen({
     handedness: string[],
     emergency = false,
   ) => {
+    // Amy First: Handle emergency gestures with priority queue
+    if (emergency && gesture) {
+      const added = emergencyPriorityService.addEmergencyGesture(gesture, confidence);
+      if (added) {
+        // Emergency gesture added to priority queue - process immediately
+        const emergencyResponse = emergencyPriorityService.getEmergencyResponse(gesture);
+        setStatus(emergencyResponse.message);
+
+        // Trigger emergency visual feedback
+        setShowCelebration(true);
+        setCelebrationKey(prev => prev + 1);
+        setShowScreenFlash(true);
+        setScreenFlashPattern('triple'); // Triple flash for emergencies
+
+        // Log emergency gesture
+        void logHIPEvent('HIP_1', 'emergency_gesture_detected', {
+          gesture,
+          confidence,
+          priority: emergencyResponse.priority,
+          timestamp: Date.now()
+        });
+
+        return; // Don't process as regular gesture
+      }
+    }
+
     // Initialize variables from parameters
     let g = gesture;
     let c = confidence;
@@ -691,14 +733,35 @@ export default function RecognitionScreen({
           const localizedLabel = LanguageManager.getGestureLabel(entry.id);
           const labelForUser =
             localizedLabel !== `gestures.${entry.id}` ? localizedLabel : entry.label;
+
+          // Amy First: Check for pre-cached response for instant feedback
+          const cachedResponse = preCachedResponseService.getCachedResponse(entry.id);
+          const responseToUse = cachedResponse ? cachedResponse.response : labelForUser;
+
           if (!screenReaderEnabled) {
-            void triggerSpeakAndShow(labelForUser, smoothed, startFeedbackAnimation);
+            void triggerSpeakAndShow(responseToUse, smoothed, startFeedbackAnimation);
           }
-          announceGestureRecognition(labelForUser, smoothed);
+          announceGestureRecognition(responseToUse, smoothed);
+
+          // Cache this response for future use if not already cached
+          if (!cachedResponse) {
+            void preCachedResponseService.cacheResponse(entry.id, responseToUse);
+          }
         }
 
         // Provide instant feedback for successful gesture
         void provideInstantFeedback(stableGesture, smoothed, true);
+
+        // Record gesture in history for instant replay capability
+        gestureHistoryService.addGesture({
+          id: entry.id,
+          label: entry.label,
+          emoji: entry.emoji || '✋',
+          confidence: smoothed,
+          landmarks: landmarks,
+          category: entry.category,
+          audioResponse: labelForUser,
+        });
 
         // Log success
         logInteractionEvent({
@@ -893,6 +956,35 @@ export default function RecognitionScreen({
     }
   }, [modelUpdateStatus]);
 
+  // Subscribe to zero-downtime model service updates
+  useEffect(() => {
+    const unsubscribe = zeroDowntimeModelService.onUpdateStatus((status) => {
+      if (status.status === 'ready') {
+        // New model is ready - activate it without interrupting recognition
+        zeroDowntimeModelService.activatePendingModel().then(success => {
+          if (success) {
+            setStatus('Neues Modell aktiviert! Erkennung verbessert sich.');
+            setTimeout(() => setStatus('Ich höre zu…'), 2000);
+            void logHIPEvent('HIP_1', 'zero_downtime_model_activated', {
+              timestamp: Date.now(),
+              seamless: true
+            });
+          }
+        }).catch(error => {
+          logger.error('Failed to activate pending model:', error);
+        });
+      } else if (status.status === 'failed') {
+        // Model update failed - log but don't interrupt
+        void logHIPEvent('HIP_3', 'model_update_failed_background', {
+          error: status.message,
+          timestamp: Date.now()
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   const handlePartialFeedback = useCallback((gesture: string, completion: number, feedback: string) => {
     // Show encouraging feedback for partial gestures
     const completionPercent = Math.round(completion * 100);
@@ -915,7 +1007,7 @@ export default function RecognitionScreen({
     }
   }, []);
 
-  const handleGestureError = useCallback((errorMessage: string) => {
+  const handleGestureError = useCallback(async (errorMessage: string) => {
     // Amy First: Log technical errors for caregivers but NEVER show them to Amy
     logger.warn('Gesture detection warning (hidden from user):', errorMessage);
 
@@ -939,21 +1031,40 @@ export default function RecognitionScreen({
     // Provide haptic feedback for errors (gentle, not alarming)
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Amy First: Auto-recover from common errors by resetting WebView
-    if (/Recognizer init failed|Camera error|gesture_processing_error/i.test(errorMessage)) {
-      const newRetries = webviewRetries + 1;
-      setWebviewRetries(newRetries);
+    // Amy First: Attempt automatic recovery using the recovery service
+    const recoverySuccess = await automaticRecoveryService.attemptRecovery(
+      errorMessage,
+      'gesture_recognition'
+    );
 
-      if (newRetries <= 3) { // Limit retries to prevent infinite loops
-        setTimeout(() => {
-          setWebviewKey(prev => prev + 1); // Force WebView reload
-          setStatus('Ich starte neu…'); // Show recovery message
-          setTimeout(() => setStatus('Ich höre zu…'), 1000); // Reset to listening state
-        }, 2000); // Give user time to see encouraging message
-      } else {
-        // After 3 retries, show a different message and don't auto-retry
-        setStatus('Lass uns eine Pause machen und später weitermachen!');
-        setWebviewRetries(0); // Reset retry counter for next session
+    if (recoverySuccess) {
+      // Recovery was successful - show success message
+      setStatus('Alles ist wieder in Ordnung! Lass uns weitermachen.');
+      setTimeout(() => setStatus('Ich höre zu…'), 2000);
+
+      // Log successful recovery
+      void logHIPEvent('HIP_1', 'automatic_recovery_success', {
+        errorType: errorMessage.substring(0, 100),
+        timestamp: Date.now(),
+        recoveryMethod: 'automatic'
+      });
+    } else {
+      // Recovery failed or not attempted - fall back to manual recovery
+      if (/Recognizer init failed|Camera error|gesture_processing_error/i.test(errorMessage)) {
+        const newRetries = webviewRetries + 1;
+        setWebviewRetries(newRetries);
+
+        if (newRetries <= 3) { // Limit retries to prevent infinite loops
+          setTimeout(() => {
+            setWebviewKey(prev => prev + 1); // Force WebView reload
+            setStatus('Ich starte neu…'); // Show recovery message
+            setTimeout(() => setStatus('Ich höre zu…'), 1000); // Reset to listening state
+          }, 2000); // Give user time to see encouraging message
+        } else {
+          // After 3 retries, show a different message and don't auto-retry
+          setStatus('Lass uns eine Pause machen und später weitermachen!');
+          setWebviewRetries(0); // Reset retry counter for next session
+        }
       }
     }
 
@@ -963,9 +1074,10 @@ export default function RecognitionScreen({
       timestamp: Date.now(),
       userImpact: 'none', // Amy never sees technical errors
       recoveryMessage: randomMessage,
-      autoRecovery: /Recognizer init failed|Camera error|gesture_processing_error/i.test(errorMessage)
+      autoRecovery: recoverySuccess,
+      recoveryServiceUsed: true
     });
-  }, []);
+  }, [webviewRetries]);
 
   const handleSelectCorrection = async (choiceId: string) => {
     if (pendingGesture) {

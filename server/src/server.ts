@@ -1094,42 +1094,29 @@ app.get('/latest-mlp-model', legacyAuth, async (req: Request, res: Response) => 
   if (profileId && !isProfileAuthorized(req, profileId)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  // Prefer profiled file, fallback to global model; if neither exists or a race occurs, serve inline placeholder
+
+  // Prefer profiled file, fallback to global file, otherwise 404
   const profiledPath = getMlpModelPath(profileId);
   const globalPath = getMlpModelPath();
-  let chosen = profiledPath;
+  let chosen: string | undefined;
   try {
     await fs.stat(profiledPath);
+    chosen = profiledPath;
   } catch {
     try {
       await fs.stat(globalPath);
       chosen = globalPath;
     } catch {
-      // Neither exists — serve a small inline placeholder to ensure availability
-      const buf = Buffer.from('mlp-model');
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Length', String(buf.length));
-      res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-      res.setHeader('X-Resolved-Path', 'inline');
-      return res.end(buf);
+      // Neither exists — respond with 404 to match tests
+      return res.status(404).json({ error: 'Model not found' });
     }
   }
-  // Direct, simplified send with inline fallback to avoid 404 during races
-  try {
-    const buf = await fs.readFile(chosen);
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Length', String(buf.length));
-    res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-    res.setHeader('X-Resolved-Path', chosen);
-    return res.end(buf);
-  } catch {
-    const buf = Buffer.from('mlp-model');
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Length', String(buf.length));
-    res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-    res.setHeader('X-Resolved-Path', 'inline');
-    return res.end(buf);
-  }
+
+  await sendBinaryModel(
+    res,
+    chosen,
+    profileId ? `dgs_model_${profileId}.npz` : 'dgs_model.npz',
+  );
 });
 
 // Model metadata: version, size, sha256

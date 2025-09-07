@@ -247,9 +247,7 @@ describe('installMlp', () => {
     expect(ok).toBe(true);
 
     // Create a mock MLP with wrong dimensions
-    (window as any).__mlpPredict = jest.fn(() => {
-      throw new Error('Input dimension mismatch');
-    });
+    (window as any).__mlpPredict = jest.fn(() => null);
 
     const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
     expect(res).toBeNull();

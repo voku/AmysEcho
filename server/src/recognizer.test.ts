@@ -1,5 +1,5 @@
 import path from 'path';
-import { classifyGesture } from './recognizer.js';
+import { classifyGesture } from './recognizer';
 
 describe('classifyGesture', () => {
   it('falls back to offline model when cloud fails', async () => {

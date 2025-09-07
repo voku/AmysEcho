@@ -4,6 +4,32 @@ Amy's Echo is a multimodal communication platform for non-verbal children. This 
 
 For guidelines specific to the application or server, see the `AGENTS.md` files within the `app/` and `server/` directories. Paths in this document are relative to the repository root unless noted otherwise.
 
+### Additional Resources
+- **Development Workflow**: See `docs/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
+- **Testing Strategy**: See `docs/TESTING_STRATEGY.md` for comprehensive testing guidelines
+- **Current Status**: See `docs/TODO.md` for up-to-date implementation status (now accurately reflects reality)
+
+## 🚨 AMY FIRST DEVELOPMENT PRINCIPLES
+
+**CRITICAL**: Every line of code must enhance Amy's ability to communicate. When in doubt, choose reliability over elegance, simplicity over features, and Amy's needs over technical metrics.
+
+### Amy First Commitments
+- ✅ **Zero interruption** - Amy's communication never pauses
+- ✅ **Zero confusion** - Simple, clear UI always
+- ✅ **Zero delay** - Instant feedback for everything
+- ✅ **Zero failure** - Multiple fallback layers
+- ✅ **Zero judgment** - Celebrate attempts, not just success
+- ✅ **Zero compromise** - Amy's needs come first
+
+### Pre-Implementation Checklist
+**Complete ALL items before writing code:**
+- [ ] **Read the TODO.md completely** - Understand Amy's needs
+- [ ] **Identify the "Amy Impact"** - How does this help Amy communicate?
+- [ ] **Check existing implementation** - Don't duplicate work
+- [ ] **Verify against Amy First principles** - Does this enhance communication?
+- [ ] **Test current functionality** - Ensure nothing breaks
+- [ ] **Document the "why"** - Explain how this serves Amy
+
 ## AI Assistant Workflow
 
 **IMPORTANT**: AI assistants must follow this step-by-step approach:

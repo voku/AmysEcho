@@ -233,31 +233,36 @@ export function installMlp() {
     return flat;
   }
   function mlpPredict(all: Hand[], handednesses: Handedness) {
-    if (!mlp) return null;
-    const x = normalizeLandmarks(all, handednesses);
-    if (!x) return null;
-    const cols1 = x.length;
-    if (mlp.w1.shape[1] !== cols1) throw new Error('Input dimension mismatch');
-    const rows1 = mlp.w1.shape[0];
-    if (mlp.b1.shape[0] !== rows1) throw new Error('b1 dimension mismatch');
-    const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);
-    const a1 = relu(z1);
-    const rows2 = mlp.w2.shape[0];
-    const cols2 = mlp.w2.shape[1];
-    if (cols2 !== a1.length) throw new Error('Hidden layer size mismatch');
-    if (mlp.b2.shape[0] !== rows2) throw new Error('b2 dimension mismatch');
-    const z2 = affineMV(mlp.w2.data, rows2, cols2, a1, mlp.b2.data);
-    const probs = softmax(z2);
-    let bestI = 0;
-    let best = probs[0];
-    for (let i = 1; i < probs.length; i++) {
-      if (probs[i] > best) {
-        best = probs[i];
-        bestI = i;
+    try {
+      if (!mlp) return null;
+      const x = normalizeLandmarks(all, handednesses);
+      if (!x) return null;
+      const cols1 = x.length;
+      if (mlp.w1.shape[1] !== cols1) throw new Error('Input dimension mismatch');
+      const rows1 = mlp.w1.shape[0];
+      if (mlp.b1.shape[0] !== rows1) throw new Error('b1 dimension mismatch');
+      const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);
+      const a1 = relu(z1);
+      const rows2 = mlp.w2.shape[0];
+      const cols2 = mlp.w2.shape[1];
+      if (cols2 !== a1.length) throw new Error('Hidden layer size mismatch');
+      if (mlp.b2.shape[0] !== rows2) throw new Error('b2 dimension mismatch');
+      const z2 = affineMV(mlp.w2.data, rows2, cols2, a1, mlp.b2.data);
+      const probs = softmax(z2);
+      let bestI = 0;
+      let best = probs[0];
+      for (let i = 1; i < probs.length; i++) {
+        if (probs[i] > best) {
+          best = probs[i];
+          bestI = i;
+        }
       }
+      const label = mlp.labels?.[bestI] ?? String(bestI);
+      return { label, score: best };
+    } catch (e) {
+      console.warn('MLP prediction failed:', e);
+      return null;
     }
-    const label = mlp.labels?.[bestI] ?? String(bestI);
-    return { label, score: best };
   }
   window.__setMlpModelB64 = async (b64: string) => {
     const ok = await loadMlpFromB64(b64);

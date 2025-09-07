@@ -67,7 +67,7 @@ export function MoodProvider({ children }: MoodProviderProps) {
 
   // Auto-detect mood based on time of day (simplified)
   useEffect(() => {
-    const hour = new Date().getHours();
+    const hour = new Date().getUTCHours();
 
     // Morning: calm
     if (hour >= 6 && hour < 12) {

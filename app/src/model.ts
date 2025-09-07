@@ -101,9 +101,13 @@ export function addGesture(entry: GestureModelEntry): void {
   }
 }
 
-export async function initGestureModel(): Promise<void> {
-  const { loadCustomGestures } = await import('./storage');
-  const custom = await loadCustomGestures();
-  custom.forEach((g) => addGesture(g));
-}
+import { loadCustomGestures } from './storage';
 
+export async function initGestureModel(): Promise<void> {
+  try {
+    const custom = await loadCustomGestures();
+    custom.forEach((g) => addGesture(g));
+  } catch (e) {
+    console.warn('Custom gesture load failed:', e);
+  }
+}

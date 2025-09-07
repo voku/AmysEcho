@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>14/14</span>
+                <span class='fraction'>0/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.5% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>7/8</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/2</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>14/14</span>
+                <span class='fraction'>0/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -91,52 +91,52 @@
 <a name='L26'></a><a href='#L26'>26</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GestureModelEntry } from '../model';
 &nbsp;
-const KEY = 'usageStats';
+const KEY = <span class="cstat-no" title="statement not covered" >'usageStats';</span>
 &nbsp;
-export async function incrementUsage(entry: GestureModelEntry, profileId: string): Promise&lt;void&gt; {
-  const raw = await AsyncStorage.getItem(KEY);
-  const data: Record&lt;string, number&gt; = raw ? JSON.parse(raw) : {};
-  const key = `${profileId}:${entry.id}`;
-  data[key] = (data[key] || 0) + 1;
-  await AsyncStorage.setItem(KEY, JSON.stringify(data));
+export async function <span class="fstat-no" title="function not covered" >incrementUsage(</span>entry: GestureModelEntry, profileId: string): Promise&lt;void&gt; {
+  const raw = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem(KEY);</span>
+  const data: Record&lt;string, number&gt; = <span class="cstat-no" title="statement not covered" >raw ? JSON.parse(raw) : {};</span>
+  const key = <span class="cstat-no" title="statement not covered" >`${profileId}:${entry.id}`;</span>
+<span class="cstat-no" title="statement not covered" >  data[key] = (data[key] || 0) + 1;</span>
+<span class="cstat-no" title="statement not covered" >  await AsyncStorage.setItem(KEY, JSON.stringify(data));</span>
 }
 &nbsp;
-export async function loadUsageStats(profileId: string): Promise&lt;Record&lt;string, number&gt;&gt; {
-  const raw = await AsyncStorage.getItem(KEY);
-  const data: Record&lt;string, number&gt; = raw ? JSON.parse(raw) : <span class="branch-1 cbranch-no" title="branch not covered" >{};</span>
-  const out: Record&lt;string, number&gt; = {};
-  const prefix = `${profileId}:`;
-  for (const [key, value] of Object.entries(data)) {
-    if (key.startsWith(prefix)) {
-      out[key.slice(prefix.length)] = value;
+export async function <span class="fstat-no" title="function not covered" >loadUsageStats(</span>profileId: string): Promise&lt;Record&lt;string, number&gt;&gt; {
+  const raw = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem(KEY);</span>
+  const data: Record&lt;string, number&gt; = <span class="cstat-no" title="statement not covered" >raw ? JSON.parse(raw) : {};</span>
+  const out: Record&lt;string, number&gt; = <span class="cstat-no" title="statement not covered" >{};</span>
+  const prefix = <span class="cstat-no" title="statement not covered" >`${profileId}:`;</span>
+<span class="cstat-no" title="statement not covered" >  for (const [key, value] of Object.entries(data)) {</span>
+<span class="cstat-no" title="statement not covered" >    if (key.startsWith(prefix)) {</span>
+<span class="cstat-no" title="statement not covered" >      out[key.slice(prefix.length)] = value;</span>
     }
   }
-  return out;
+<span class="cstat-no" title="statement not covered" >  return out;</span>
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -145,7 +145,7 @@ export async function loadUsageStats(profileId: string): Promise&lt;Record&lt;st
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T01:14:43.604Z
+                at 2025-09-07T08:31:43.968Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

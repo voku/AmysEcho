@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>14/14</span>
+                <span class='fraction'>0/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>12/12</span>
+                <span class='fraction'>0/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -103,28 +103,28 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -135,29 +135,29 @@ export class APIRetryManager {
   private readonly maxRetries: number;
   private readonly baseDelay: number;
 &nbsp;
-  constructor(maxRetries = 3, baseDelay = 1000) {
-    this.maxRetries = maxRetries;
-    this.baseDelay = baseDelay;
+<span class="fstat-no" title="function not covered" >  co</span>nstructor(maxRetries = <span class="branch-0 cbranch-no" title="branch not covered" >3,</span> baseDelay = <span class="branch-0 cbranch-no" title="branch not covered" >1000)</span> {
+<span class="cstat-no" title="statement not covered" >    this.maxRetries = maxRetries;</span>
+<span class="cstat-no" title="statement not covered" >    this.baseDelay = baseDelay;</span>
   }
 &nbsp;
-  async executeWithRetry&lt;T&gt;(operation: () =&gt; Promise&lt;T&gt;, context: string): Promise&lt;T&gt; {
+<span class="fstat-no" title="function not covered" >  as</span>ync executeWithRetry&lt;T&gt;(operation: () =&gt; Promise&lt;T&gt;, context: string): Promise&lt;T&gt; {
     let lastError: Error | undefined;
-    for (let attempt = 0; attempt &lt;= this.maxRetries; attempt++) {
-      try {
-        return await operation();
+<span class="cstat-no" title="statement not covered" >    for (let attempt = <span class="cstat-no" title="statement not covered" >0;</span> attempt &lt;= this.maxRetries; attempt++) {</span>
+<span class="cstat-no" title="statement not covered" >      try {</span>
+<span class="cstat-no" title="statement not covered" >        return await operation();</span>
       } catch (error: any) {
-        lastError = error;
-        if (attempt &lt; this.maxRetries) {
-          const delay = this.baseDelay * Math.pow(2, attempt);
-          logger.warn(
+<span class="cstat-no" title="statement not covered" >        lastError = error;</span>
+<span class="cstat-no" title="statement not covered" >        if (attempt &lt; this.maxRetries) {</span>
+          const delay = <span class="cstat-no" title="statement not covered" >this.baseDelay * Math.pow(2, attempt);</span>
+<span class="cstat-no" title="statement not covered" >          logger.warn(</span>
             `${context} failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${delay}ms`,
           );
-          await new Promise((resolve) =&gt; setTimeout(resolve, delay));
+<span class="cstat-no" title="statement not covered" >          await new Promise(<span class="fstat-no" title="function not covered" >(r</span>esolve) =&gt; <span class="cstat-no" title="statement not covered" >setTimeout(resolve, delay))</span>;</span>
         }
       }
     }
-    logger.error(`API failure in ${context}:`, lastError);
-    throw lastError;
+<span class="cstat-no" title="statement not covered" >    logger.error(`API failure in ${context}:`, lastError);</span>
+<span class="cstat-no" title="statement not covered" >    throw lastError;</span>
   }
 }
 &nbsp;
@@ -169,7 +169,7 @@ export default APIRetryManager;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T01:14:43.604Z
+                at 2025-09-07T08:31:43.968Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

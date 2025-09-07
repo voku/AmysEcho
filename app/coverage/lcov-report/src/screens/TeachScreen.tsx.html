@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>1/2</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/2</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -97,21 +97,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -123,22 +123,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS } from '../constants/ui';
 &nbsp;
-export default function TeachScreen({ navigation }: any) {
-  const { highContrast } = useAccessibility();
-  const styles = StyleSheet.create({
+export default function <span class="fstat-no" title="function not covered" >TeachScreen(</span>{ navigation }: any) {
+  const { highContrast } = <span class="cstat-no" title="statement not covered" >useAccessibility();</span>
+  const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.create({</span>
     container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   });
-  const gradientColors = highContrast
-    ? (<span class="branch-0 cbranch-no" title="branch not covered" >[COLORS.highContrastBackground, COLORS.highContrastBackground] as const)</span>
+  const gradientColors = <span class="cstat-no" title="statement not covered" >highContrast</span>
+    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
     : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
-  return (
+<span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;LinearGradient colors={gradientColors} style={{ flex: 1 }}&gt;
       &lt;SafeAreaView style={styles.container}&gt;
         &lt;Button
           title="Neue Gebärde hinzufügen"
           testID="btn-add-sign"
           accessibilityLabel="Neue Gebärde hinzufügen"
-          onPress={() =&gt; navigation.navigate('Teaching')}
+          onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.navigate('Teaching')}</span>
         /&gt;
       &lt;/SafeAreaView&gt;
     &lt;/LinearGradient&gt;
@@ -151,7 +151,7 @@ export default function TeachScreen({ navigation }: any) {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T01:14:43.604Z
+                at 2025-09-07T08:31:43.968Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -23,7 +23,7 @@ import { saveTrainingSample, loadTrainingSampleCount, TrainingFrame } from '../s
 describe('training sample persistence', () => {
   beforeEach(() => {
     for (const k of Object.keys(store)) delete store[k];
-    createMock.mockClear();
+    mockCreate.mockClear();
   });
 
   it('saves samples and counts them', async () => {
@@ -32,6 +32,6 @@ describe('training sample persistence', () => {
     await saveTrainingSample('g1', [frame]);
     const count = await loadTrainingSampleCount('g1');
     expect(count).toBe(2);
-    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
   });
 });

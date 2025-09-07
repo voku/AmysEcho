@@ -8,16 +8,11 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: async () => {},
 }));
 
-const mockCreate = jest.fn(async (fn: any) => {
-  await fn({ gestureDefinition: { id: '' } });
-});
-const mockGet = jest.fn(() => ({ create: mockCreate }));
-const mockWrite = jest.fn(async (fn: any) => { await fn(); });
-
+const mockCreate = jest.fn(async (cb: any) => cb({ gestureDefinition: {} }));
 jest.mock('../db', () => ({
   database: {
-    get: mockGet,
-    write: mockWrite,
+    get: jest.fn(() => ({ create: mockCreate })),
+    write: jest.fn(async (fn: any) => fn()),
   },
 }));
 

@@ -23,6 +23,40 @@ import CorrectionScreen from '../../src/screens/CorrectionScreen';
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: any) => children,
 }));
+jest.mock('expo-audio', () => ({
+  setAudioModeAsync: jest.fn(),
+  requestRecordingPermissionsAsync: jest.fn(() => ({ granted: true })),
+  createAudioPlayer: jest.fn(() => ({
+    volume: 1,
+    loop: false,
+    seekTo: jest.fn(),
+    play: jest.fn(),
+    remove: jest.fn(),
+  })),
+  AudioRecorder: jest.fn(),
+  RecordingPresets: { HIGH_QUALITY: {} },
+}));
+jest.mock('expo-speech', () => ({
+  speak: jest.fn(),
+  stop: jest.fn(),
+}));
+jest.mock('expo-haptics', () => ({
+  notificationAsync: jest.fn(),
+  impactAsync: jest.fn(),
+}));
+jest.mock('expo-file-system', () => ({
+  bundleDirectory: 'bundle/',
+  documentDirectory: 'docs/',
+  getInfoAsync: jest.fn(() => ({ exists: true })),
+}));
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  return {
+    Svg: (props: any) => React.createElement('Svg', props, props.children),
+    Path: (props: any) => React.createElement('Path', props),
+    Circle: (props: any) => React.createElement('Circle', props),
+  };
+});
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));

@@ -12,6 +12,8 @@ console.error = (...args: any[]) => {
   originalConsoleError(...args);
 };
 
+// Global fetch is defined within tests that need it to avoid cross-test interference
+
 
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
@@ -19,10 +21,7 @@ jest.mock('expo-secure-store', () => ({
 }));
 jest.mock('./db', () => ({ database: { get: jest.fn(), write: jest.fn() } }));
 jest.mock('./db/models', () => ({}));
-jest.mock('@react-native-community/netinfo', () => ({
-  fetch: jest.fn(async () => ({ isConnected: true })),
-  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
-}));
+// Note: NetInfo is mocked per-test where needed to avoid shape conflicts
 jest.mock('./src/services/accessibilityService', () => ({ announce: jest.fn() }));
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),

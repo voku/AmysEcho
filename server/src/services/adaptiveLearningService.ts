@@ -1,5 +1,5 @@
-import { Database, getGestureDefinitionById, updateGestureDefinition } from '../db.js';
-import { InteractionLog } from '../types.js';
+import { Database, getGestureDefinitionById, updateGestureDefinition } from '../db';
+import { InteractionLog } from '../types';
 
 /**
  * Adjust gesture definition metrics after an interaction.

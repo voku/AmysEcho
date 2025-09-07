@@ -70,6 +70,7 @@ jest.mock('../src/services', () => ({
   gdprService: {},
   checkForModelUpdate: jest.fn(),
   syncTrainingData: jest.fn(),
+  uploadTelemetry: jest.fn(),
   syncService: {
     uploadPendingTrainingData: jest.fn(),
   },
@@ -77,6 +78,9 @@ jest.mock('../src/services', () => ({
   checkAllGesturesForDecliningAccuracy: jest.fn(),
   checkPracticeRecommendations: jest.fn(),
 }));
+
+// Ensure modules imported via '../services' path in source resolve to the same mocked module
+jest.mock('../services', () => require('../src/services'));
 
 import { AppServicesProvider } from '../src/context/AppServicesProvider';
 import ErrorMessage from '../src/components/ErrorMessage';

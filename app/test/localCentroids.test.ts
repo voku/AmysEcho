@@ -9,7 +9,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 import { buildLocalCentroids, getLocalCentroidSummary } from '../src/services/localCentroids';
 
 beforeEach(async () => {
-  await asyncStub.clear();
+  for (const k of Object.keys(store)) delete store[k];
 });
 
 describe('local centroids', () => {
@@ -21,7 +21,7 @@ describe('local centroids', () => {
       { gestureDefinitionId: 'g1', frames: [frameNew, null as any, { landmarks: [], handedness: [] }] },
       { gestureDefinitionId: 'g1', landmarkData: [frameOld] },
     ];
-    await asyncStub.setItem('gestureTrainingData', JSON.stringify(data));
+    store['gestureTrainingData'] = JSON.stringify(data);
     const centroids = await buildLocalCentroids();
     expect(Object.keys(centroids)).toEqual(['g1']);
     expect(centroids.g1.length).toBe(42);
@@ -36,7 +36,7 @@ describe('local centroids', () => {
       { gestureDefinitionId: 'g1' },
       { gestureDefinitionId: 'g2' },
     ];
-    await asyncStub.setItem('gestureTrainingData', JSON.stringify(samples));
+    store['gestureTrainingData'] = JSON.stringify(samples);
     const summary = await getLocalCentroidSummary();
     expect(summary).toEqual({ g1: 2, g2: 1 });
   });
@@ -47,10 +47,7 @@ describe('local centroids', () => {
       landmarks: [makeHand(100), makeHand(1)],
       handedness: ['RIGHT', 'left'],
     };
-    await asyncStub.setItem(
-      'gestureTrainingData',
-      JSON.stringify([{ gestureDefinitionId: 'g1', frames: [frame] }]),
-    );
+    store['gestureTrainingData'] = JSON.stringify([{ gestureDefinitionId: 'g1', frames: [frame] }]);
     const centroids = await buildLocalCentroids();
     expect(centroids.g1[0]).toEqual([1, 1, 1]);
     expect(centroids.g1[21]).toEqual([100, 100, 100]);
