@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Button, StyleSheet, AppState, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, AppState, SafeAreaView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useIsFocused } from '@react-navigation/native';
 // Camera preview replaced by MediaPipe WebView detector
@@ -18,6 +18,8 @@ import { logger } from '../utils/logger';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 import { gestureModel as gestures } from '../model';
 
 export default function TrainingScreen({ navigation, route }: any) {
@@ -192,6 +194,38 @@ export default function TrainingScreen({ navigation, route }: any) {
       height: '100%',
       backgroundColor: COLORS.success,
     },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.md,
+      borderRadius: RADIUS,
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
+      minWidth: 120,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonDisabled: {
+      backgroundColor: COLORS.secondaryAccent,
+      opacity: 0.6,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 20,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
+    },
   });
 
   // Camera permission handled by WebView context.
@@ -207,17 +241,31 @@ export default function TrainingScreen({ navigation, route }: any) {
             : `Training ${gestureId ? `for ${gestureId}` : 'Mode'}`}
         </Text>
         {!gestureId ? (
-           gestureModel.gestures.map((g) => (
-            <Button
-              key={g.id}
-              title={g.label}
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setGestureId(g.id);
-              }}
-              accessibilityLabel={`Trainiere Geste ${g.label}`}
-            />
-          ))
+            gestureModel.gestures.map((g) => (
+             <Pressable
+               key={g.id}
+               style={({ pressed }) => [
+                 childFriendlyStyles.minTouchTarget,
+                 styles.button,
+                 highContrast && styles.buttonHC,
+                 pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+               ]}
+               onPress={() => {
+                 void childHaptic();
+                 setGestureId(g.id);
+               }}
+               accessibilityRole="button"
+               accessibilityLabel={`Trainiere Geste ${g.label}`}
+             >
+               <Text style={[
+                 styles.buttonText,
+                 largeText && styles.buttonTextLarge,
+                 highContrast && styles.buttonTextHC,
+               ]}>
+                 {g.label}
+               </Text>
+             </Pressable>
+           ))
         ) : count < TARGET_SAMPLES ? (
           <>
           {/* Optional DGS demo video if available */}
@@ -290,19 +338,34 @@ export default function TrainingScreen({ navigation, route }: any) {
                 ]}
               />
             </View>
-            <Button
-              title={isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / ${TARGET_SAMPLES}`}
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                !gestureId && styles.buttonDisabled,
+                pressed && gestureId && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
               onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                void childHaptic();
                 if (isRecording) {
                   stopRecording();
                 } else {
                   startRecording();
                 }
               }}
+              accessibilityRole="button"
               accessibilityLabel="Gestenaufnahme starten"
               disabled={!gestureId}
-            />
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                {isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / ${TARGET_SAMPLES}`}
+              </Text>
+            </Pressable>
             {!isRecording && framesCaptured > 0 && (
               <Text style={styles.detectionText}>
                 Last recording length: {framesCaptured} frames
@@ -310,17 +373,32 @@ export default function TrainingScreen({ navigation, route }: any) {
             )}
           </>
         ) : (
-          <Button
-                            title={isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
+          <Pressable
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.button,
+              highContrast && styles.buttonHC,
+              pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+            ]}
             onPress={async () => {
+              void childHaptic();
               if (isPractice && gestureId) {
                 try { await audioService.playCelebrationFeedback(); } catch {}
                 try { await logHIPEvent('HIP_4', 'practice_completed', { gestureId, samples: TARGET_SAMPLES }); } catch {}
               }
               handleFinish();
             }}
+            accessibilityRole="button"
             accessibilityLabel={isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
-          />
+          >
+            <Text style={[
+              styles.buttonText,
+              largeText && styles.buttonTextLarge,
+              highContrast && styles.buttonTextHC,
+            ]}>
+              {isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
+            </Text>
+          </Pressable>
         )}
       </View>
       {profile && <BottomNav active="training" profileId={profile.id} />}

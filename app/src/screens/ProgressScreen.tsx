@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Button, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { loadUsageStats } from '../services/usageTracker';
 import { loadEngagementStats } from '../services/engagementTracker';
 import { loadProfile, Profile } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 export default function ProgressScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -44,15 +46,46 @@ export default function ProgressScreen({ navigation, route }: any) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginBottom: SPACING.sm,
+      paddingVertical: SPACING.sm,
     },
     item: {
       flexDirection: 'row',
       justifyContent: 'space-between',
+      alignItems: 'center',
       marginBottom: SPACING.sm,
+      paddingVertical: SPACING.sm,
     },
     label: {
       fontSize: largeText ? 20 : 16,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+      minWidth: 80,
+      alignItems: 'center',
+      marginHorizontal: SPACING.sm,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 16,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
     },
   });
 
@@ -73,13 +106,55 @@ export default function ProgressScreen({ navigation, route }: any) {
         renderItem={({ item }) => (
           <View style={styles.item}>
             <Text style={styles.label}>{item.label}</Text>
-            <Button title="Details" onPress={() => navigation.navigate('ProgressChart', { gestureId: item.id })} />
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                navigation.navigate('ProgressChart', { gestureId: item.id });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Details für ${item.label} anzeigen`}
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                Details
+              </Text>
+            </Pressable>
             <Text style={styles.label}>{item.count}</Text>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.label}>Noch keine Nutzung</Text>}
       />
-      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Pressable
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          void childHaptic();
+          navigation.goBack();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Zurück"
+      >
+        <Text style={[
+          styles.buttonText,
+          largeText && styles.buttonTextLarge,
+          highContrast && styles.buttonTextHC,
+        ]}>
+          Zurück
+        </Text>
+      </Pressable>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
     </View>
   );

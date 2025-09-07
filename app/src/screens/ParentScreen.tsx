@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, Switch } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 export default function ParentScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -11,24 +13,115 @@ export default function ParentScreen({ navigation }: any) {
   const [useDgs, setUseDgs] = useState(false);
 
   const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    title: { fontSize: 24, marginBottom: SPACING.lg },
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.lg,
+      backgroundColor: COLORS.surface,
+    },
+    containerHC: {
+      backgroundColor: COLORS.highContrastBackground,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: SPACING.lg,
+      color: COLORS.text,
+      textAlign: 'center',
+    },
+    titleLarge: {
+      fontSize: 28,
+    },
+    titleHC: {
+      color: COLORS.highContrastText,
+    },
     toggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       marginBottom: SPACING.sm,
-      width: '80%',
+      width: '90%',
+      paddingHorizontal: SPACING.md,
     },
     toggleLabel: {
       fontSize: largeText ? 18 : 16,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
+      flex: 1,
+    },
+    buttonContainer: {
+      width: '90%',
+      marginBottom: SPACING.sm,
+    },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.md,
+      borderRadius: RADIUS,
+      alignItems: 'center',
+      minHeight: 48,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 20,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
     },
   });
 
+  const ButtonComponent = ({
+    title,
+    onPress,
+    accessibilityLabel
+  }: {
+    title: string;
+    onPress: () => void;
+    accessibilityLabel: string;
+  }) => (
+    <View style={styles.buttonContainer}>
+      <Pressable
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          void childHaptic();
+          onPress();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+      >
+        <Text style={[
+          styles.buttonText,
+          largeText && styles.buttonTextLarge,
+          highContrast && styles.buttonTextHC,
+        ]}>
+          {title}
+        </Text>
+      </Pressable>
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Elternbereich</Text>
+    <View style={[styles.container, highContrast && styles.containerHC]}>
+      <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
+        Elternbereich
+      </Text>
       <View style={styles.toggleRow}>
         <Text style={styles.toggleLabel}>Kamera aktiv</Text>
         <Switch
@@ -45,62 +138,66 @@ export default function ParentScreen({ navigation }: any) {
           accessibilityLabel="DGS-Video zeigen"
         />
       </View>
-      <Button
+      <ButtonComponent
         title="Profilverwaltung"
         onPress={() => navigation.navigate('ProfileManager')}
         accessibilityLabel="Profilverwaltung"
       />
-      <Button
+      <ButtonComponent
         title="Zugangsprüfung"
         onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
         accessibilityLabel="Zugangsprüfung"
       />
-      <Button
+      <ButtonComponent
         title="Verwaltung"
         onPress={() => navigation.navigate('Admin')}
         accessibilityLabel="Verwaltung"
       />
-      <Button
+      <ButtonComponent
         title="Analysen"
         onPress={() => navigation.navigate('Dashboard')}
         accessibilityLabel="Analysen ansehen"
       />
-      <Button
+      <ButtonComponent
         title="Übungsplaner"
         onPress={() => navigation.navigate('PracticeScheduler')}
         accessibilityLabel="Übungsplaner"
       />
-      <Button
+      <ButtonComponent
         title="Lernfortschritt"
         onPress={() => navigation.navigate('CaregiverReport')}
         accessibilityLabel="Lernfortschritt ansehen"
       />
-      <Button
+      <ButtonComponent
         title="Fortschritt"
         onPress={() => navigation.navigate('Progress')}
         accessibilityLabel="Fortschritt ansehen"
       />
-      <Button
+      <ButtonComponent
         title="Hilfe"
         onPress={() => navigation.navigate('Help')}
         accessibilityLabel="Hilfe erhalten"
       />
-      <Button
+      <ButtonComponent
         title="Geringe Sicherheit simulieren"
         onPress={() => navigation.navigate('Recognition', { simulateLowConfidence: true })}
         accessibilityLabel="Geringe Sicherheit simulieren"
       />
-      <Button
+      <ButtonComponent
         title="Menü"
         onPress={() => navigation.navigate('Parent')}
         accessibilityLabel="Menü öffnen"
       />
-      <Button
+      <ButtonComponent
         title="Erkennen"
         onPress={() => navigation.navigate('Recognition')}
         accessibilityLabel="Zum Erkennungsmodus"
       />
-      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <ButtonComponent
+        title="Zurück"
+        onPress={() => navigation.goBack()}
+        accessibilityLabel="Zurück"
+      />
     </View>
   );
 }

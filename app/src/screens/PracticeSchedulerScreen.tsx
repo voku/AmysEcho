@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, FlatList, TextInput, Switch, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, Switch, Pressable } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { addSchedule, listSchedules, removeSchedule, setScheduleEnabled, PracticeSchedule } from '../services/practiceScheduler';
 import { gestureModel } from '../model';
 import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 export default function PracticeSchedulerScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -45,6 +47,54 @@ export default function PracticeSchedulerScreen({ navigation, route }: any) {
     },
     dayButtonSelected: { backgroundColor: COLORS.primaryAccent },
     dayButtonText: { color: highContrast ? COLORS.highContrastText : COLORS.text },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+      minWidth: 80,
+      alignItems: 'center',
+      marginHorizontal: SPACING.xs,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 16,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
+    },
+    gestureButton: {
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.primaryAccent,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+      minWidth: 80,
+      alignItems: 'center',
+      marginHorizontal: SPACING.xs,
+    },
+    gestureButtonSelected: {
+      backgroundColor: COLORS.primaryAccent,
+    },
+    gestureButtonHC: {
+      borderColor: COLORS.highContrastText,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+    },
+    gestureButtonSelectedHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
   });
 
   return (
@@ -57,8 +107,32 @@ export default function PracticeSchedulerScreen({ navigation, route }: any) {
           horizontal
           keyExtractor={(g) => g.id}
           renderItem={({ item }) => (
-            <Button title={item.label} color={gestureId === item.id ? COLORS.primaryAccent : undefined} onPress={() => setGestureId(item.id)} />
-          )}
+             <Pressable
+               style={({ pressed }) => [
+                 childFriendlyStyles.minTouchTarget,
+                 styles.gestureButton,
+                 highContrast && styles.gestureButtonHC,
+                 gestureId === item.id && (highContrast ? styles.gestureButtonSelectedHC : styles.gestureButtonSelected),
+                 pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+               ]}
+               onPress={() => {
+                 void childHaptic();
+                 setGestureId(item.id);
+               }}
+               accessibilityRole="button"
+               accessibilityLabel={`Geste ${item.label} auswählen`}
+               accessibilityState={{ selected: gestureId === item.id }}
+             >
+               <Text style={[
+                 styles.buttonText,
+                 largeText && styles.buttonTextLarge,
+                 highContrast && styles.buttonTextHC,
+                 gestureId === item.id && highContrast && { color: COLORS.highContrastBackground },
+               ]}>
+                 {item.label}
+               </Text>
+             </Pressable>
+           )}
           style={{ maxHeight: 44 }}
         />
       </View>
@@ -67,13 +141,32 @@ export default function PracticeSchedulerScreen({ navigation, route }: any) {
         <TextInput style={styles.input} keyboardType="number-pad" value={hour} onChangeText={setHour} accessibilityLabel="Stunde" />
         <Text style={styles.label}>:</Text>
         <TextInput style={styles.input} keyboardType="number-pad" value={minute} onChangeText={setMinute} accessibilityLabel="Minute" />
-        <Button title="Hinzufügen" onPress={async () => {
-          const h = Math.max(0, Math.min(23, parseInt(hour || '0', 10)));
-          const m = Math.max(0, Math.min(59, parseInt(minute || '0', 10)));
-          await addSchedule({ gestureId, hour: h, minute: m, daysOfWeek: days, enabled: true } as any);
-          setDays([]);
-          await load();
-        }} accessibilityLabel="Plan hinzufügen" />
+        <Pressable
+          style={({ pressed }) => [
+            childFriendlyStyles.minTouchTarget,
+            styles.button,
+            highContrast && styles.buttonHC,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          onPress={async () => {
+            void childHaptic();
+            const h = Math.max(0, Math.min(23, parseInt(hour || '0', 10)));
+            const m = Math.max(0, Math.min(59, parseInt(minute || '0', 10)));
+            await addSchedule({ gestureId, hour: h, minute: m, daysOfWeek: days, enabled: true } as any);
+            setDays([]);
+            await load();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Plan hinzufügen"
+        >
+          <Text style={[
+            styles.buttonText,
+            largeText && styles.buttonTextLarge,
+            highContrast && styles.buttonTextHC,
+          ]}>
+            Hinzufügen
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.row}>
@@ -113,14 +206,57 @@ export default function PracticeSchedulerScreen({ navigation, route }: any) {
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Switch value={item.enabled} onValueChange={async (v) => { await setScheduleEnabled(item.id, v); await load(); }} />
-              <Button title="Löschen" onPress={async () => { await removeSchedule(item.id); await load(); }} accessibilityLabel="Plan löschen" />
+               <Pressable
+                 style={({ pressed }) => [
+                   childFriendlyStyles.minTouchTarget,
+                   styles.button,
+                   highContrast && styles.buttonHC,
+                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                 ]}
+                 onPress={async () => {
+                   void childHaptic();
+                   await removeSchedule(item.id);
+                   await load();
+                 }}
+                 accessibilityRole="button"
+                 accessibilityLabel="Plan löschen"
+               >
+                 <Text style={[
+                   styles.buttonText,
+                   largeText && styles.buttonTextLarge,
+                   highContrast && styles.buttonTextHC,
+                 ]}>
+                   Löschen
+                 </Text>
+               </Pressable>
             </View>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.label}>Keine Pläne</Text>}
       />
 
-      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Pressable
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          void childHaptic();
+          navigation.goBack();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Zurück"
+      >
+        <Text style={[
+          styles.buttonText,
+          largeText && styles.buttonTextLarge,
+          highContrast && styles.buttonTextHC,
+        ]}>
+          Zurück
+        </Text>
+      </Pressable>
       {profile && <BottomNav active="schedule" profileId={profile.id} />}
     </View>
   );

@@ -1,11 +1,13 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Button } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable } from 'react-native';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 export default function CaregiverReportScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -30,11 +32,41 @@ export default function CaregiverReportScreen({ navigation, route }: any) {
     item: {
       flexDirection: 'row',
       justifyContent: 'space-between',
+      alignItems: 'center',
       marginBottom: SPACING.sm,
+      paddingVertical: SPACING.sm,
     },
     label: {
       fontSize: largeText ? 20 : 16,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
+      flex: 1,
+    },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+      minWidth: 80,
+      alignItems: 'center',
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 16,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
     },
   });
 
@@ -47,12 +79,54 @@ export default function CaregiverReportScreen({ navigation, route }: any) {
         renderItem={({ item }) => (
           <View style={styles.item}>
             <Text style={styles.label}>{item.label}</Text>
-            <Button title="Details" onPress={() => navigation.navigate('ProgressChart', { gestureId: item.id })} />
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                navigation.navigate('ProgressChart', { gestureId: item.id });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Details für ${item.label} anzeigen`}
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                Details
+              </Text>
+            </Pressable>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.label}>Keine Gesten verfügbar</Text>}
       />
-      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Pressable
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          void childHaptic();
+          navigation.goBack();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Zurück"
+      >
+        <Text style={[
+          styles.buttonText,
+          largeText && styles.buttonTextLarge,
+          highContrast && styles.buttonTextHC,
+        ]}>
+          Zurück
+        </Text>
+      </Pressable>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
     </View>
   );

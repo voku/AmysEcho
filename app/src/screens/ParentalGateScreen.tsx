@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import { SPACING, RADIUS } from '../constants/ui';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { useAccessibility } from '../components/AccessibilityContext';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 export default function ParentalGateScreen({ route, navigation }: any) {
+  const { largeText, highContrast } = useAccessibility();
   const { target } = route.params as { target: string };
   const [problem, setProblem] = useState('');
   const [answer, setAnswer] = useState('');
@@ -28,9 +32,59 @@ export default function ParentalGateScreen({ route, navigation }: any) {
   };
 
   const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg },
-    title: { fontSize: 24, marginBottom: SPACING.lg },
-    input: { borderWidth: 1, width: 120, padding: SPACING.sm, textAlign: 'center', marginBottom: SPACING.lg, borderRadius: RADIUS },
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.lg,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+    },
+    title: {
+      fontSize: largeText ? 28 : 24,
+      marginBottom: SPACING.lg,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      textAlign: 'center',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      width: largeText ? 140 : 120,
+      padding: SPACING.sm,
+      textAlign: 'center',
+      marginBottom: SPACING.lg,
+      borderRadius: RADIUS,
+      fontSize: largeText ? 20 : 16,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+    },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.md,
+      borderRadius: RADIUS,
+      minWidth: 100,
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 20,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
+    },
   });
 
   return (
@@ -42,9 +96,53 @@ export default function ParentalGateScreen({ route, navigation }: any) {
         value={answer}
         onChangeText={setAnswer}
         accessibilityLabel="Antwort auf Elternprüfung"
+        placeholder="Antwort eingeben"
+        placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
       />
-      <Button title="OK" onPress={handleCheck} accessibilityLabel="Antwort bestätigen" />
-      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
+      <Pressable
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          void childHaptic();
+          handleCheck();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Antwort bestätigen"
+      >
+        <Text style={[
+          styles.buttonText,
+          largeText && styles.buttonTextLarge,
+          highContrast && styles.buttonTextHC,
+        ]}>
+          OK
+        </Text>
+      </Pressable>
+      <Pressable
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          void childHaptic();
+          navigation.goBack();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Zurück"
+      >
+        <Text style={[
+          styles.buttonText,
+          largeText && styles.buttonTextLarge,
+          highContrast && styles.buttonTextHC,
+        ]}>
+          Zurück
+        </Text>
+      </Pressable>
     </View>
   );
 }

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 
 // React Native imports
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 
 // Third-party imports
 // (none)
@@ -15,9 +15,11 @@ import {
 } from '../services/analytics';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { API_URL, API_TOKEN } from '../constants';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import BottomNav from '../components/BottomNav';
+import { childFriendlyStyles } from '../styles/touchTargets';
+import { childHaptic } from '../services/feedbackService';
 
 export default function DashboardScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -68,6 +70,34 @@ export default function DashboardScreen({ navigation }: any) {
       height: '100%',
       backgroundColor: COLORS.success,
     },
+    button: {
+      backgroundColor: COLORS.primaryAccent,
+      padding: SPACING.md,
+      borderRadius: RADIUS,
+      alignItems: 'center',
+      marginTop: SPACING.lg,
+      minWidth: 120,
+    },
+    buttonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    buttonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    buttonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    buttonText: {
+      color: COLORS.highContrastText,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    buttonTextLarge: {
+      fontSize: 20,
+    },
+    buttonTextHC: {
+      color: COLORS.highContrastBackground,
+    },
   });
 
   return (
@@ -108,11 +138,28 @@ export default function DashboardScreen({ navigation }: any) {
       ) : (
         <Text style={styles.label}>Keine Daten</Text>
       )}
-      <Button
-        title="Zurück"
-        onPress={() => navigation.goBack()}
+      <Pressable
+        style={({ pressed }) => [
+          childFriendlyStyles.minTouchTarget,
+          styles.button,
+          highContrast && styles.buttonHC,
+          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          void childHaptic();
+          navigation.goBack();
+        }}
+        accessibilityRole="button"
         accessibilityLabel="Zurück"
-      />
+      >
+        <Text style={[
+          styles.buttonText,
+          largeText && styles.buttonTextLarge,
+          highContrast && styles.buttonTextHC,
+        ]}>
+          Zurück
+        </Text>
+      </Pressable>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
     </View>
   );
