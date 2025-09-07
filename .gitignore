@@ -11,3 +11,6 @@ app/watermelon.db
 **/jest-results.json
 server/analytics.json
 server/telemetry.json
+app/coverage/
+coverage/
+server/coverage/

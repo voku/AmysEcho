@@ -143,8 +143,8 @@ class AutomaticRecoveryService {
         estimatedDuration: 2000,
         execute: async () => {
           // This would trigger a camera restart in the WebView
-          if (typeof window !== 'undefined' && window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
+          if (typeof window !== 'undefined') {
+            window.ReactNativeWebView?.postMessage?.(JSON.stringify({
               type: 'camera_restart'
             }));
           } else {
@@ -182,8 +182,8 @@ class AutomaticRecoveryService {
         estimatedDuration: 500,
         execute: async () => {
           // This would activate fallback mode in the WebView
-          if (typeof window !== 'undefined' && window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
+          if (typeof window !== 'undefined') {
+            window.ReactNativeWebView?.postMessage?.(JSON.stringify({
               type: 'activate_fallback'
             }));
           } else {
@@ -224,8 +224,8 @@ class AutomaticRecoveryService {
         estimatedDuration: 3000,
         execute: async () => {
           // This would trigger model rollback in the app
-          if (typeof window !== 'undefined' && window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
+          if (typeof window !== 'undefined') {
+            window.ReactNativeWebView?.postMessage?.(JSON.stringify({
               type: 'model_rollback'
             }));
           } else {
@@ -246,8 +246,8 @@ class AutomaticRecoveryService {
       estimatedDuration: 2000,
       execute: async () => {
         // This would trigger a system restart
-        if (typeof window !== 'undefined' && window.ReactNativeWebView) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({
+        if (typeof window !== 'undefined') {
+          window.ReactNativeWebView?.postMessage?.(JSON.stringify({
             type: 'system_restart'
           }));
         } else {

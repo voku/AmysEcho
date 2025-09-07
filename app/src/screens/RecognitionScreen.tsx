@@ -28,6 +28,7 @@ import {
   gestureHapticFeedback,
   detectionHapticFeedback,
   partialGestureHapticFeedback,
+  personalizedConfidenceService,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
@@ -103,7 +104,7 @@ export default function RecognitionScreen({
   const [showVisualRipple, setShowVisualRipple] = useState(false);
   const [successSound, setSuccessSound] = useState('success');
   const [showScreenFlash, setShowScreenFlash] = useState(false);
-  const [screenFlashPattern, setScreenFlashPattern] = useState<'single' | 'double' | 'triple' | 'pulse'>('single');
+  const [screenFlashPattern, setScreenFlashPattern] = useState<'single' | 'double' | 'triple' | 'pulse' | 'ripple' | 'wave' | 'heartbeat' | 'success' | 'warning' | 'error'>('single');
   const [showGestureComparison, setShowGestureComparison] = useState(false);
   const [comparisonAttempt, setComparisonAttempt] = useState<{id: string; label: string; confidence: number; timestamp: number} | null>(null);
   const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
@@ -457,6 +458,9 @@ export default function RecognitionScreen({
         // Trigger celebration for positive reinforcement
         setShowCelebration(true);
         setCelebrationKey(prev => prev + 1);
+        setShowScreenFlash(true);
+        setScreenFlashPattern('heartbeat'); // Heartbeat pattern for celebration
+        setTimeout(() => setShowScreenFlash(false), 1200);
         setStatus('🎉 Super gemacht! Du bist toll!');
         break;
 
@@ -492,9 +496,12 @@ export default function RecognitionScreen({
           if (lastGesture.audioResponse) {
             void audioService.speak(lastGesture.audioResponse);
           }
-          // Trigger visual feedback
+          // Trigger multi-sensory feedback
           setShowCelebration(true);
           setCelebrationKey(prev => prev + 1);
+          setShowScreenFlash(true);
+          setScreenFlashPattern('ripple'); // Ripple pattern for repetition
+          setTimeout(() => setShowScreenFlash(false), 800);
           // Log the replay
           void logHIPEvent('HIP_1', 'gesture_replayed', {
             gestureId: lastGesture.id,
@@ -601,7 +608,7 @@ export default function RecognitionScreen({
         setShowCelebration(true);
         setCelebrationKey(prev => prev + 1);
         setShowScreenFlash(true);
-        setScreenFlashPattern('triple'); // Triple flash for emergencies
+        setScreenFlashPattern('error'); // Error pattern for emergencies
 
         // Log emergency gesture
         void logHIPEvent('HIP_1', 'emergency_gesture_detected', {
@@ -670,6 +677,11 @@ export default function RecognitionScreen({
         // Execute the shortcut action
         void executeGestureShortcut(shortcutAction, navigation, profile?.id || 'default');
 
+        // Provide multi-sensory feedback for shortcuts
+        setShowScreenFlash(true);
+        setScreenFlashPattern('wave'); // Wave pattern for navigation
+        setTimeout(() => setShowScreenFlash(false), 600);
+
         // Provide immediate feedback
         setStatus(`🔄 Gehe zu ${getShortcutDisplayName(shortcutAction)}`);
         return; // Don't process as regular gesture
@@ -680,8 +692,8 @@ export default function RecognitionScreen({
     // This provides LED-like visual feedback without audio
     if (g && c > 0.7) {
       setShowScreenFlash(true);
-      setScreenFlashPattern('double'); // Double flash for successful gestures
-      setTimeout(() => setShowScreenFlash(false), 600);
+      setScreenFlashPattern('success'); // Success pattern for successful gestures
+      setTimeout(() => setShowScreenFlash(false), 800);
     }
     // Bullying protection: block gesture processing on untrusted devices
     if (bullyingProtectionActive && !emergency) {
@@ -739,9 +751,10 @@ export default function RecognitionScreen({
         uncertainCountRef.current = 0;
         consecutiveFailuresRef.current = 0; // Reset failure counter on successful recognition
 
-      // Amy First: Lower threshold for imperfect gestures (22q11 syndrome)
-      if (smoothed > 0.5 && stableGesture !== 'unknown') {
-        const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
+        // Amy First: Use personalized confidence threshold based on Amy's patterns
+        const personalizedThreshold = personalizedConfidenceService.getPersonalizedThreshold(stableGesture, smoothed);
+        if (smoothed > personalizedThreshold.threshold && stableGesture !== 'unknown') {
+          const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
         const now = Date.now();
         const shouldProvideFeedback =
           lastGestureIdRef.current !== entry.id ||
@@ -800,6 +813,9 @@ export default function RecognitionScreen({
           // Hide guidance for very confident gestures - Amy has mastered this
           setPipGuidanceGesture(null);
         }
+
+        // Record gesture attempt for threshold adaptation
+        personalizedConfidenceService.recordGestureAttempt(entry.id, smoothed, true);
 
         // Log success
         logInteractionEvent({
@@ -890,6 +906,11 @@ export default function RecognitionScreen({
           setShowCorrection(true);
           uncertainCountRef.current = 0;
 
+          // Provide warning flash for correction mode
+          setShowScreenFlash(true);
+          setScreenFlashPattern('warning');
+          setTimeout(() => setShowScreenFlash(false), 600);
+
           // Log auto-suggestions
           void logHIPEvent('HIP_3', 'auto_suggestions_generated', {
             suggestionCount: autoSuggestions.length,
@@ -903,6 +924,11 @@ export default function RecognitionScreen({
 
         // HIP 3: opened correction/uncertainty path
         void logHIPEvent('HIP_3', 'help_me_opened', { suggestionFor: finalGesture });
+        // Record unsuccessful gesture attempt for threshold adaptation
+        if (stableGesture !== 'unknown') {
+          personalizedConfidenceService.recordGestureAttempt(stableGesture, smoothed, false);
+        }
+
         // Log failure for the incoming gesture id (could be 'unknown')
         const id = (gestureModel.gestures.find((g) => g.id === stableGesture)?.id) || stableGesture || 'unknown';
         logInteractionEvent({

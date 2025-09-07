@@ -3,13 +3,24 @@
 // See https://react.dev/reference/react/act for details.
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
-// Suppress react-test-renderer deprecation warnings
+// Suppress noisy test-only console output while preserving real failures
 const originalConsoleError = console.error;
 console.error = (...args: any[]) => {
-  if (args[0] && typeof args[0] === 'string' && args[0].includes('react-test-renderer is deprecated')) {
-    return;
+  const msg = args[0];
+  if (typeof msg === 'string') {
+    if (msg.includes('react-test-renderer is deprecated')) return;
+    if (msg.startsWith('[ERROR]')) return; // logger error in tests
   }
   originalConsoleError(...args);
+};
+
+const originalConsoleWarn = console.warn;
+console.warn = (...args: any[]) => {
+  const msg = args[0];
+  if (typeof msg === 'string') {
+    if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+  }
+  originalConsoleWarn(...args);
 };
 
 // Provide a default global fetch so tests can spy/mock it reliably

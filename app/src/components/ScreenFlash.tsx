@@ -6,29 +6,34 @@ const { width, height } = Dimensions.get('window');
 
 interface ScreenFlashProps {
   isActive: boolean;
-  pattern?: 'single' | 'double' | 'triple' | 'pulse';
+  pattern?: 'single' | 'double' | 'triple' | 'pulse' | 'ripple' | 'wave' | 'heartbeat' | 'success' | 'warning' | 'error';
   color?: string;
   duration?: number;
+  intensity?: 'subtle' | 'normal' | 'intense';
 }
 
 export default function ScreenFlash({
   isActive,
   pattern = 'single',
   color = COLORS.primaryAccent,
-  duration = 300
+  duration = 300,
+  intensity = 'normal'
 }: ScreenFlashProps) {
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (isActive) {
+      // Adjust opacity based on intensity
+      const maxOpacity = intensity === 'subtle' ? 0.4 : intensity === 'intense' ? 1.0 : 0.8;
+
       const runPattern = () => {
         switch (pattern) {
           case 'single':
             // Single flash
             Animated.sequence([
               Animated.timing(opacityAnim, {
-                toValue: 0.8,
+                toValue: maxOpacity,
                 duration: duration * 0.3,
                 useNativeDriver: true,
               }),
@@ -45,7 +50,7 @@ export default function ScreenFlash({
             Animated.sequence([
               // First flash
               Animated.timing(opacityAnim, {
-                toValue: 0.8,
+                toValue: maxOpacity,
                 duration: duration * 0.2,
                 useNativeDriver: true,
               }),
@@ -58,7 +63,7 @@ export default function ScreenFlash({
               Animated.delay(duration * 0.2),
               // Second flash
               Animated.timing(opacityAnim, {
-                toValue: 0.8,
+                toValue: maxOpacity,
                 duration: duration * 0.2,
                 useNativeDriver: true,
               }),
@@ -75,7 +80,7 @@ export default function ScreenFlash({
             Animated.sequence([
               // First flash
               Animated.timing(opacityAnim, {
-                toValue: 0.8,
+                toValue: maxOpacity,
                 duration: duration * 0.15,
                 useNativeDriver: true,
               }),
@@ -86,7 +91,7 @@ export default function ScreenFlash({
               }),
               // Second flash
               Animated.timing(opacityAnim, {
-                toValue: 0.8,
+                toValue: maxOpacity,
                 duration: duration * 0.15,
                 useNativeDriver: true,
               }),
@@ -97,7 +102,7 @@ export default function ScreenFlash({
               }),
               // Third flash
               Animated.timing(opacityAnim, {
-                toValue: 0.8,
+                toValue: maxOpacity,
                 duration: duration * 0.15,
                 useNativeDriver: true,
               }),
@@ -115,7 +120,7 @@ export default function ScreenFlash({
               Animated.sequence([
                 Animated.parallel([
                   Animated.timing(opacityAnim, {
-                    toValue: 0.6,
+                    toValue: maxOpacity * 0.75,
                     duration: duration * 0.5,
                     useNativeDriver: true,
                   }),
@@ -144,6 +149,191 @@ export default function ScreenFlash({
               opacityAnim.setValue(0);
               scaleAnim.setValue(1);
             });
+            break;
+
+          case 'ripple':
+            // Ripple effect expanding outward
+            Animated.sequence([
+              Animated.parallel([
+                Animated.timing(opacityAnim, {
+                  toValue: maxOpacity,
+                  duration: duration * 0.3,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(scaleAnim, {
+                  toValue: 1.5,
+                  duration: duration,
+                  useNativeDriver: true,
+                }),
+              ]),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.7,
+                useNativeDriver: true,
+              }),
+            ]).start(() => {
+              scaleAnim.setValue(1);
+            });
+            break;
+
+          case 'wave':
+            // Wave-like pulsing
+            Animated.sequence([
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity * 0.3,
+                duration: duration * 0.2,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity * 0.8,
+                duration: duration * 0.3,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity * 0.5,
+                duration: duration * 0.2,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.3,
+                useNativeDriver: true,
+              }),
+            ]).start();
+            break;
+
+          case 'heartbeat':
+            // Heartbeat-like double pulse
+            Animated.sequence([
+              // First beat
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity,
+                duration: duration * 0.15,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.1,
+                useNativeDriver: true,
+              }),
+              // Quick second beat
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity * 0.7,
+                duration: duration * 0.1,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.4,
+                useNativeDriver: true,
+              }),
+              // Pause
+              Animated.delay(duration * 0.25),
+              // Repeat
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity,
+                duration: duration * 0.15,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.1,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity * 0.7,
+                duration: duration * 0.1,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.4,
+                useNativeDriver: true,
+              }),
+            ]).start();
+            break;
+
+          case 'success':
+            // Success pattern - green celebratory flash
+            Animated.sequence([
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity,
+                duration: duration * 0.2,
+                useNativeDriver: true,
+              }),
+              Animated.parallel([
+                Animated.timing(opacityAnim, {
+                  toValue: maxOpacity * 0.8,
+                  duration: duration * 0.3,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(scaleAnim, {
+                  toValue: 1.2,
+                  duration: duration * 0.3,
+                  useNativeDriver: true,
+                }),
+              ]),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.5,
+                useNativeDriver: true,
+              }),
+            ]).start(() => {
+              scaleAnim.setValue(1);
+            });
+            break;
+
+          case 'warning':
+            // Warning pattern - amber caution flash
+            Animated.sequence([
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity * 0.6,
+                duration: duration * 0.4,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.3,
+                useNativeDriver: true,
+              }),
+              Animated.delay(duration * 0.2),
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity * 0.6,
+                duration: duration * 0.4,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.3,
+                useNativeDriver: true,
+              }),
+            ]).start();
+            break;
+
+          case 'error':
+            // Error pattern - red urgent flash
+            Animated.sequence([
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity,
+                duration: duration * 0.1,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.1,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: maxOpacity,
+                duration: duration * 0.1,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: duration * 0.7,
+                useNativeDriver: true,
+              }),
+            ]).start();
             break;
         }
       };
