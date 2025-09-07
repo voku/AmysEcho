@@ -79,8 +79,6 @@ jest.mock('../src/services', () => ({
   checkPracticeRecommendations: jest.fn(),
 }));
 
-// Ensure modules imported via '../services' path in source resolve to the same mocked module
-jest.mock('../services', () => require('../src/services'));
 
 import { AppServicesProvider } from '../src/context/AppServicesProvider';
 import ErrorMessage from '../src/components/ErrorMessage';

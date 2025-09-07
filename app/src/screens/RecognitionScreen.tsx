@@ -25,6 +25,9 @@ import {
   dialogEngine,
   announceGestureRecognition,
   gestureSuggester,
+  gestureHapticFeedback,
+  detectionHapticFeedback,
+  partialGestureHapticFeedback,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
@@ -45,6 +48,7 @@ import { OneEuroFilter } from '../services/OneEuroFilter';
 import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
 import { RecognitionPath } from '../utils/recognitionState';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
+import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
 import { LanguageManager } from '../services/LanguageManager';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
@@ -103,6 +107,8 @@ export default function RecognitionScreen({
   const [showGestureComparison, setShowGestureComparison] = useState(false);
   const [comparisonAttempt, setComparisonAttempt] = useState<{id: string; label: string; confidence: number; timestamp: number} | null>(null);
   const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
+  const [showPipGuidance, setShowPipGuidance] = useState(false);
+  const [pipGuidanceGesture, setPipGuidanceGesture] = useState<GestureModelEntry | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -614,18 +620,37 @@ export default function RecognitionScreen({
     let c = confidence;
     let path: RecognitionPath = 'local';
 
-    // Amy First: Provide haptic feedback for EVERY detected hand movement
-    // This gives Amy immediate sensory confirmation that her gesture was detected
+    // Amy First: Provide enhanced haptic feedback for gesture recognition
+    // Different patterns based on confidence and gesture type
     if (!screenReaderEnabled) {
       try {
-        // Use light haptic for regular gestures, medium for successful recognition
-        const hapticStyle = g && c > 0.5
-          ? Haptics.ImpactFeedbackStyle.Medium
-          : Haptics.ImpactFeedbackStyle.Light;
-        void Haptics.impactAsync(hapticStyle);
+        if (g && c > 0.3) {
+          // Recognized gesture - use enhanced feedback
+          const isEmergency = g === 'hilfe' || g === 'help';
+          void gestureHapticFeedback(g, c, isEmergency);
+        } else {
+          // Just hand detection - use simple feedback
+          void detectionHapticFeedback();
+        }
       } catch (error) {
         // Silently fail haptic feedback - don't interrupt gesture processing
-        logger.debug('Haptic feedback failed:', error);
+        logger.debug('Enhanced haptic feedback failed:', error);
+      }
+    }
+
+    // Amy First: Show PiP guidance when hands are detected but no gesture recognized
+    // This helps Amy see available gestures when she's trying to communicate
+    const handsDetected = landmarks && landmarks.length > 0 && landmarks[0].length > 0;
+    if (showPipGuidance && !g && handsDetected) {
+      // Show a random gesture from the model to inspire Amy
+      const availableGestures = gestureModel.gestures.filter(gesture => gesture.dgsVideoUri);
+      if (availableGestures.length > 0) {
+        const randomGesture = availableGestures[Math.floor(Math.random() * availableGestures.length)];
+        setPipGuidanceGesture(randomGesture);
+        // Hide after 8 seconds to not overwhelm
+        setTimeout(() => {
+          setPipGuidanceGesture(null);
+        }, 8000);
       }
     }
 
@@ -760,8 +785,21 @@ export default function RecognitionScreen({
           confidence: smoothed,
           landmarks: landmarks,
           category: entry.category,
-          audioResponse: labelForUser,
+           audioResponse: entry.label,
         });
+
+        // Amy First: Show PiP guidance for learning if confidence is moderate
+        // This helps Amy learn gestures she's still working on
+        if (showPipGuidance && smoothed < 0.7 && smoothed > 0.3) {
+          setPipGuidanceGesture(entry);
+          // Hide guidance after 10 seconds to not be distracting
+          setTimeout(() => {
+            setPipGuidanceGesture(null);
+          }, 10000);
+        } else if (showPipGuidance && smoothed >= 0.8) {
+          // Hide guidance for very confident gestures - Amy has mastered this
+          setPipGuidanceGesture(null);
+        }
 
         // Log success
         logInteractionEvent({
@@ -990,11 +1028,16 @@ export default function RecognitionScreen({
     const completionPercent = Math.round(completion * 100);
     setStatus(`${feedback} (${completionPercent}% fertig)`);
 
+    // Amy First: Provide haptic feedback for partial gesture progress
+    if (!screenReaderEnabled && completion > 0.3) {
+      void partialGestureHapticFeedback(completion);
+    }
+
     // Clear feedback after a short delay
     setTimeout(() => {
       setStatus('Ich höre zu…');
     }, 2500);
-  }, []);
+  }, [screenReaderEnabled]);
 
   const handleStabilityFeedback = useCallback((isStable: boolean, stabilityScore: number, feedback: string) => {
     // Only show stability feedback if hand is detected and not stable
@@ -1312,6 +1355,23 @@ export default function RecognitionScreen({
           />
         </View>
       )}
+
+      {/* Amy First: Picture-in-Picture guidance for learning during recognition */}
+      <PictureInPictureGuidance
+        gestureId={pipGuidanceGesture?.id}
+        videoUri={pipGuidanceGesture?.dgsVideoUri}
+        isVisible={showPipGuidance}
+        onClose={() => setShowPipGuidance(false)}
+        position="top-left"
+        size="medium"
+        autoPlay={true}
+        showControls={false}
+        playbackMode="loop"
+        confidence={gestureConfidence}
+        onPlaybackComplete={() => {
+          // Could add logic for when video completes
+        }}
+      />
     </View>
 
     {showCelebration && <Celebration key={celebrationKey} />}
@@ -1357,6 +1417,15 @@ export default function RecognitionScreen({
         value={showDgsVideo}
         onValueChange={setShowDgsVideo}
         accessibilityLabel={LanguageManager.t('recognition.toggleDgsVideo')}
+      />
+    </View>
+
+    <View style={styles.toggleRow}>
+      <Text style={styles.toggleLabel}>{LanguageManager.t('recognition.showPipGuidance')}</Text>
+      <Switch
+        value={showPipGuidance}
+        onValueChange={setShowPipGuidance}
+        accessibilityLabel={LanguageManager.t('recognition.togglePipGuidance')}
       />
     </View>
 

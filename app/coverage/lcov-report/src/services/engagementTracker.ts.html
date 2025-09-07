@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">94.44% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>17/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">58.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>7/12</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/17</span>
+                <span class='fraction'>17/17</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -108,8 +108,8 @@
 <a name='L43'></a><a href='#L43'>43</a>
 <a name='L44'></a><a href='#L44'>44</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -123,27 +123,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -151,8 +151,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import AsyncStorage from '@react-native-async-storage/async-storage';
 &nbsp;
-const KEY = <span class="cstat-no" title="statement not covered" >'engagementStats';</span>
-let sessionStart: number | null = <span class="cstat-no" title="statement not covered" >null;</span>
+const KEY = 'engagementStats';
+let sessionStart: number | null = null;
 &nbsp;
 interface StoredStats {
   sessions: number;
@@ -165,31 +165,31 @@ interface EngagementStats {
   averageDurationMs: number;
 }
 &nbsp;
-export async function <span class="fstat-no" title="function not covered" >startSession(</span>): Promise&lt;void&gt; {
-<span class="cstat-no" title="statement not covered" >  sessionStart = Date.now();</span>
+export async function startSession(): Promise&lt;void&gt; {
+  sessionStart = Date.now();
 }
 &nbsp;
-export async function <span class="fstat-no" title="function not covered" >endSession(</span>profileId: string): Promise&lt;void&gt; {
-<span class="cstat-no" title="statement not covered" >  if (sessionStart === null) <span class="cstat-no" title="statement not covered" >return;</span></span>
-  const duration = <span class="cstat-no" title="statement not covered" >Date.now() - sessionStart;</span>
-<span class="cstat-no" title="statement not covered" >  sessionStart = null;</span>
-  const raw = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem(KEY);</span>
-  const data: Record&lt;string, StoredStats&gt; = <span class="cstat-no" title="statement not covered" >raw ? JSON.parse(raw) : {};</span>
-  const stats = <span class="cstat-no" title="statement not covered" >data[profileId] || { sessions: 0, totalMs: 0 };</span>
-<span class="cstat-no" title="statement not covered" >  stats.sessions += 1;</span>
-<span class="cstat-no" title="statement not covered" >  stats.totalMs += duration;</span>
-<span class="cstat-no" title="statement not covered" >  data[profileId] = stats;</span>
-<span class="cstat-no" title="statement not covered" >  await AsyncStorage.setItem(KEY, JSON.stringify(data));</span>
+export async function endSession(profileId: string): Promise&lt;void&gt; {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (sessionStart === null) <span class="cstat-no" title="statement not covered" >return;</span>
+  const duration = Date.now() - sessionStart;
+  sessionStart = null;
+  const raw = await AsyncStorage.getItem(KEY);
+  const data: Record&lt;string, StoredStats&gt; = raw ? <span class="branch-0 cbranch-no" title="branch not covered" >JSON.parse(raw) </span>: {};
+  const stats = data[profileId] || { sessions: 0, totalMs: 0 };
+  stats.sessions += 1;
+  stats.totalMs += duration;
+  data[profileId] = stats;
+  await AsyncStorage.setItem(KEY, JSON.stringify(data));
 }
 &nbsp;
-export async function <span class="fstat-no" title="function not covered" >loadEngagementStats(</span>profileId: string): Promise&lt;EngagementStats&gt; {
-  const raw = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem(KEY);</span>
-  const data: Record&lt;string, StoredStats&gt; = <span class="cstat-no" title="statement not covered" >raw ? JSON.parse(raw) : {};</span>
-  const stats = <span class="cstat-no" title="statement not covered" >data[profileId] || { sessions: 0, totalMs: 0 };</span>
-<span class="cstat-no" title="statement not covered" >  return {</span>
+export async function loadEngagementStats(profileId: string): Promise&lt;EngagementStats&gt; {
+  const raw = await AsyncStorage.getItem(KEY);
+  const data: Record&lt;string, StoredStats&gt; = raw ? JSON.parse(raw) : <span class="branch-1 cbranch-no" title="branch not covered" >{};</span>
+  const stats = data[profileId] || <span class="branch-1 cbranch-no" title="branch not covered" >{ sessions: 0, totalMs: 0 };</span>
+  return {
     totalSessions: stats.sessions,
     totalDurationMs: stats.totalMs,
-    averageDurationMs: stats.sessions ? stats.totalMs / stats.sessions : 0,
+    averageDurationMs: stats.sessions ? stats.totalMs / stats.sessions : <span class="branch-1 cbranch-no" title="branch not covered" >0,</span>
   };
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -199,7 +199,7 @@ export async function <span class="fstat-no" title="function not covered" >loadE
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T08:31:43.968Z
+                at 2025-09-07T08:53:28.479Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

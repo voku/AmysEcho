@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">72.22% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>13/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">85.71% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>6/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">76.47% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/17</span>
+                <span class='fraction'>13/17</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -120,8 +120,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -129,32 +129,32 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { API_URL, API_TOKEN } from '../constants';
@@ -166,9 +166,9 @@ export interface ExportedProfileData {
   corrections: any[];
 }
 &nbsp;
-async function <span class="fstat-no" title="function not covered" >request(</span>url: string, options: RequestInit = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span>: Promise&lt;Response | null&gt; {
-<span class="cstat-no" title="statement not covered" >  try {</span>
-    const resp = <span class="cstat-no" title="statement not covered" >await fetch(url, {</span>
+async function request(url: string, options: RequestInit = {}): Promise&lt;Response | null&gt; {
+  try {
+    const resp = await fetch(url, {
       ...options,
       headers: {
         Authorization: `Bearer ${API_TOKEN}`,
@@ -176,32 +176,32 @@ async function <span class="fstat-no" title="function not covered" >request(</sp
         ...(options.headers || {}),
       },
     });
-<span class="cstat-no" title="statement not covered" >    if (!resp.ok) {</span>
-<span class="cstat-no" title="statement not covered" >      logger.error(`[gdprService] Request failed: ${resp.status}`);</span>
-<span class="cstat-no" title="statement not covered" >      return null;</span>
+    if (!resp.ok) {
+      logger.error(`[gdprService] Request failed: ${resp.status}`);
+      return null;
     }
-<span class="cstat-no" title="statement not covered" >    return resp;</span>
+    return resp;
   } catch (e) {
 <span class="cstat-no" title="statement not covered" >    logger.error('[gdprService] Network error', e);</span>
 <span class="cstat-no" title="statement not covered" >    return null;</span>
   }
 }
 &nbsp;
-export const gdprService = <span class="cstat-no" title="statement not covered" >{</span>
-<span class="fstat-no" title="function not covered" >  as</span>ync exportProfile(profileId: string): Promise&lt;ExportedProfileData | null&gt; {
-    const resp = <span class="cstat-no" title="statement not covered" >await request(`${API_URL}/api/profiles/${profileId}/export`);</span>
-<span class="cstat-no" title="statement not covered" >    if (!resp) <span class="cstat-no" title="statement not covered" >return null;</span></span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      return (await resp.json()) as ExportedProfileData;</span>
+export const gdprService = {
+  async exportProfile(profileId: string): Promise&lt;ExportedProfileData | null&gt; {
+    const resp = await request(`${API_URL}/api/profiles/${profileId}/export`);
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!resp) <span class="cstat-no" title="statement not covered" >return null;</span>
+    try {
+      return (await resp.json()) as ExportedProfileData;
     } catch (e) {
 <span class="cstat-no" title="statement not covered" >      logger.error('[gdprService] Failed to parse export', e);</span>
 <span class="cstat-no" title="statement not covered" >      return null;</span>
     }
   },
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync deleteProfile(profileId: string): Promise&lt;boolean&gt; {
-    const resp = <span class="cstat-no" title="statement not covered" >await request(`${API_URL}/api/profiles/${profileId}`, { method: 'DELETE' });</span>
-<span class="cstat-no" title="statement not covered" >    return !!resp;</span>
+  async deleteProfile(profileId: string): Promise&lt;boolean&gt; {
+    const resp = await request(`${API_URL}/api/profiles/${profileId}`, { method: 'DELETE' });
+    return !!resp;
   },
 };
 &nbsp;</pre></td></tr></table></pre>
@@ -211,7 +211,7 @@ export const gdprService = <span class="cstat-no" title="statement not covered" 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T08:31:43.968Z
+                at 2025-09-07T08:53:28.479Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

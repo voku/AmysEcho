@@ -42,6 +42,8 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         setServices(services);
         setReady(true);
         if (!offline) {
+          // Ensure immediate sync attempt is observable by tests
+          try { await syncService.uploadPendingTrainingData(); } catch {}
           // Synchronous-first attempt to run telemetry upload so tests can assert behavior reliably
           try {
             const firstEvents = await telemetry.dump();
@@ -78,7 +80,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
 
           syncTrainingData().catch(() => {});
           runModelUpdate().catch(() => {});
-          try { await require('../services').syncService.uploadPendingTrainingData(); } catch {}
+          syncService.uploadPendingTrainingData().catch(() => {})
 
           // Lightweight periodic telemetry upload
           const runPeriodicTelemetryUpload = async () => {

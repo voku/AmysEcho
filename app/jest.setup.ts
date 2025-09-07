@@ -12,7 +12,10 @@ console.error = (...args: any[]) => {
   originalConsoleError(...args);
 };
 
-// Global fetch is defined within tests that need it to avoid cross-test interference
+// Provide a default global fetch so tests can spy/mock it reliably
+if (!(global as any).fetch) {
+  (global as any).fetch = jest.fn(async () => { throw new Error('network'); });
+}
 
 
 jest.mock('expo-secure-store', () => ({

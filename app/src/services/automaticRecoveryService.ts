@@ -147,6 +147,9 @@ class AutomaticRecoveryService {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'camera_restart'
             }));
+          } else {
+            // Fallback for when WebView is not available
+            console.warn('ReactNativeWebView not available for camera restart');
           }
           return true;
         }
@@ -183,6 +186,9 @@ class AutomaticRecoveryService {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'activate_fallback'
             }));
+          } else {
+            // Fallback for when WebView is not available
+            console.warn('ReactNativeWebView not available for fallback activation');
           }
           return true;
         }
@@ -222,6 +228,9 @@ class AutomaticRecoveryService {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'model_rollback'
             }));
+          } else {
+            // Fallback for when WebView is not available
+            console.warn('ReactNativeWebView not available for model rollback');
           }
           return true;
         }
@@ -241,6 +250,9 @@ class AutomaticRecoveryService {
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'system_restart'
           }));
+        } else {
+          // Fallback for when WebView is not available
+          console.warn('ReactNativeWebView not available for system restart');
         }
         return true;
       }

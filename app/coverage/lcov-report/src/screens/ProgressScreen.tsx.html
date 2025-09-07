@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">90% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/20</span>
+                <span class='fraction'>18/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">62.5% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>10/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">77.77% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>7/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">90% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/20</span>
+                <span class='fraction'>18/20</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -160,29 +160,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">50x</span>
+<span class="cline-any cline-yes">50x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -207,7 +205,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -220,9 +220,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -245,37 +245,37 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 &nbsp;
-export default function <span class="fstat-no" title="function not covered" >ProgressScreen(</span>{ navigation, route }: any) {
-  const { largeText, highContrast } = <span class="cstat-no" title="statement not covered" >useAccessibility();</span>
-  const [stats, setStats] = <span class="cstat-no" title="statement not covered" >useState&lt;Record&lt;string, number&gt;&gt;({});</span>
-  const [profile, setProfile] = <span class="cstat-no" title="statement not covered" >useState&lt;Profile | null&gt;(null);</span>
-  const [engagement, setEngagement] = <span class="cstat-no" title="statement not covered" >useState&lt;{ totalSessions: number; averageDurationMs: number }&gt;({ totalSessions: 0, averageDurationMs: 0 });</span>
-  const profileId = <span class="cstat-no" title="statement not covered" >route?.params?.profileId;</span>
+export default function ProgressScreen({ navigation, route }: any) {
+  const { largeText, highContrast } = useAccessibility();
+  const [stats, setStats] = useState&lt;Record&lt;string, number&gt;&gt;({});
+  const [profile, setProfile] = useState&lt;Profile | null&gt;(null);
+  const [engagement, setEngagement] = useState&lt;{ totalSessions: number; averageDurationMs: number }&gt;({ totalSessions: 0, averageDurationMs: 0 });
+  const profileId = route?.params?.profileId;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    loadProfile().then(<span class="fstat-no" title="function not covered" >(p</span>) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      setProfile(p);</span>
-<span class="cstat-no" title="statement not covered" >      if (p) {</span>
-<span class="cstat-no" title="statement not covered" >        loadUsageStats(p.id).then(setStats);</span>
-<span class="cstat-no" title="statement not covered" >        loadEngagementStats(p.id).then(setEngagement);</span>
+  useEffect(() =&gt; {
+    loadProfile().then((p) =&gt; {
+      setProfile(p);
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (p) {
+        loadUsageStats(p.id).then(setStats);
+        loadEngagementStats(p.id).then(setEngagement);
       }
     });
   }, []);
 &nbsp;
-  const entries = <span class="cstat-no" title="statement not covered" >gestureModel.gestures</span>
-    .map(<span class="fstat-no" title="function not covered" >(g</span>) =&gt; (<span class="cstat-no" title="statement not covered" >{ ...g, count: stats[g.id] || 0 })</span>)
-    .filter(<span class="fstat-no" title="function not covered" >(e</span>) =&gt; <span class="cstat-no" title="statement not covered" >e.count &gt; 0)</span>;
+  const entries = gestureModel.gestures
+    .map((g) =&gt; ({ ...g, count: stats[g.id] || 0 }))
+    .filter((e) =&gt; e.count &gt; 0);
 &nbsp;
-  const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.create({</span>
+  const styles = StyleSheet.create({
     container: {
       flex: 1,
       padding: SPACING.lg,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      backgroundColor: highContrast ? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.highContrastBackground </span>: COLORS.surface,
     },
     title: {
-      fontSize: largeText ? 24 : 20,
+      fontSize: largeText ? <span class="branch-0 cbranch-no" title="branch not covered" >24 </span>: 20,
       marginBottom: SPACING.md,
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      color: highContrast ? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.highContrastText </span>: COLORS.text,
     },
     summaryItem: {
       flexDirection: 'row',
@@ -288,12 +288,12 @@ export default function <span class="fstat-no" title="function not covered" >Pro
       marginBottom: SPACING.sm,
     },
     label: {
-      fontSize: largeText ? 20 : 16,
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontSize: largeText ? <span class="branch-0 cbranch-no" title="branch not covered" >20 </span>: 16,
+      color: highContrast ? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.highContrastText </span>: COLORS.text,
     },
   });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return (</span>
+  return (
     &lt;View style={styles.container}&gt;
       &lt;Text style={styles.title}&gt;Fortschritt&lt;/Text&gt;
       &lt;View style={styles.summaryItem}&gt;
@@ -306,9 +306,9 @@ export default function <span class="fstat-no" title="function not covered" >Pro
       &lt;/View&gt;
       &lt;FlatList
         data={entries}
-        keyExtractor={<span class="fstat-no" title="function not covered" >(i</span>tem) =&gt; <span class="cstat-no" title="statement not covered" >item.id}</span>
-        renderItem={<span class="fstat-no" title="function not covered" >({</span> item }) =&gt; (
-<span class="cstat-no" title="statement not covered" >          &lt;View style={styles.item}&gt;</span>
+        keyExtractor={(item) =&gt; item.id}
+        renderItem={({ item }) =&gt; (
+          &lt;View style={styles.item}&gt;
             &lt;Text style={styles.label}&gt;{item.label}&lt;/Text&gt;
             &lt;Button title="Details" onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.navigate('ProgressChart', { gestureId: item.id })}</span> /&gt;
             &lt;Text style={styles.label}&gt;{item.count}&lt;/Text&gt;
@@ -328,7 +328,7 @@ export default function <span class="fstat-no" title="function not covered" >Pro
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T08:31:43.968Z
+                at 2025-09-07T08:53:28.479Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

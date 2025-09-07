@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">61.53% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>8/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>1/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>3/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">61.53% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>8/13</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -238,7 +238,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -384,32 +384,32 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useTheme } from '../context/ThemeContext';
 import { PAW_PATROL_ASSETS } from '../constants/pawPatrolAssets';
 &nbsp;
 // Theme-based encouragement messages
-const THEME_MESSAGES = <span class="cstat-no" title="statement not covered" >{</span>
+const THEME_MESSAGES = {
   pawPatrol: {
     success: [
       `${PAW_PATROL_ASSETS.characters.chase} Großartig! Du bist ein Super-Pup!`,
@@ -554,26 +554,26 @@ const THEME_MESSAGES = <span class="cstat-no" title="statement not covered" >{</
 &nbsp;
 export type MessageType = 'success' | 'tryAgain' | 'celebration';
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >getThemeMessage(</span>themeName: string, type: MessageType): string {
-  const themeMessages = <span class="cstat-no" title="statement not covered" >THEME_MESSAGES[themeName as keyof typeof THEME_MESSAGES];</span>
-<span class="cstat-no" title="statement not covered" >  if (!themeMessages) {</span>
+export function getThemeMessage(themeName: string, type: MessageType): string {
+  const themeMessages = THEME_MESSAGES[themeName as keyof typeof THEME_MESSAGES];
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!themeMessages) {
     // Fallback to classic theme
     const classicMessages = <span class="cstat-no" title="statement not covered" >THEME_MESSAGES.classic[type];</span>
 <span class="cstat-no" title="statement not covered" >    return classicMessages[Math.floor(Math.random() * classicMessages.length)];</span>
   }
 &nbsp;
-  const messages = <span class="cstat-no" title="statement not covered" >themeMessages[type];</span>
-<span class="cstat-no" title="statement not covered" >  return messages[Math.floor(Math.random() * messages.length)];</span>
+  const messages = themeMessages[type];
+  return messages[Math.floor(Math.random() * messages.length)];
 }
 &nbsp;
 // Hook for components to get theme-based messages
-export function <span class="fstat-no" title="function not covered" >useThemeMessages(</span>) {
-  const { themeName } = <span class="cstat-no" title="statement not covered" >useTheme();</span>
+export function useThemeMessages() {
+  const { themeName } = useTheme();
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return {</span>
+  return {
     getSuccessMessage: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >getThemeMessage(themeName, 'success'),</span>
     getTryAgainMessage: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >getThemeMessage(themeName, 'tryAgain'),</span>
-    getCelebrationMessage: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >getThemeMessage(themeName, 'celebration'),</span>
+    getCelebrationMessage: () =&gt; getThemeMessage(themeName, 'celebration'),
     getMessage: <span class="fstat-no" title="function not covered" >(t</span>ype: MessageType) =&gt; <span class="cstat-no" title="statement not covered" >getThemeMessage(themeName, type),</span>
   };
 }</pre></td></tr></table></pre>
@@ -583,7 +583,7 @@ export function <span class="fstat-no" title="function not covered" >useThemeMes
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T08:31:43.968Z
+                at 2025-09-07T08:53:28.479Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

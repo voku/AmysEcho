@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">80% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>8/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">25% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>1/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">66.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>2/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">80% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>8/10</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -104,7 +104,7 @@
 <a name='L39'></a><a href='#L39'>39</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -117,7 +117,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -125,13 +125,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -142,7 +142,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import AsyncStorage from '@react-native-async-storage/async-storage';
 import { telemetry } from '../telemetry/recorder';
 &nbsp;
-const KEY = <span class="cstat-no" title="statement not covered" >'hipEvents';</span>
+const KEY = 'hipEvents';
 &nbsp;
 export type HIPEndpoint = 'HIP_1' | 'HIP_2' | 'HIP_3' | 'HIP_4';
 &nbsp;
@@ -154,22 +154,22 @@ export interface HIPEvent {
   details?: Record&lt;string, any&gt;;
 }
 &nbsp;
-function <span class="fstat-no" title="function not covered" >genId(</span>): string {
-<span class="cstat-no" title="statement not covered" >  return Date.now().toString(36) + Math.random().toString(36).slice(2);</span>
+function genId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 &nbsp;
-export async function <span class="fstat-no" title="function not covered" >logHIPEvent(</span>
+export async function logHIPEvent(
   hip: HIPEndpoint,
   type: string,
   details?: Record&lt;string, any&gt;,
 ): Promise&lt;void&gt; {
-  const raw = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem(KEY);</span>
-  const current: HIPEvent[] = <span class="cstat-no" title="statement not covered" >raw ? JSON.parse(raw) : [];</span>
-  const evt: HIPEvent = <span class="cstat-no" title="statement not covered" >{ id: genId(), hip, type, timestamp: Date.now(), details };</span>
-<span class="cstat-no" title="statement not covered" >  current.push(evt);</span>
-<span class="cstat-no" title="statement not covered" >  await AsyncStorage.setItem(KEY, JSON.stringify(current));</span>
+  const raw = await AsyncStorage.getItem(KEY);
+  const current: HIPEvent[] = raw ? <span class="branch-0 cbranch-no" title="branch not covered" >JSON.parse(raw) </span>: [];
+  const evt: HIPEvent = { id: genId(), hip, type, timestamp: Date.now(), details };
+  current.push(evt);
+  await AsyncStorage.setItem(KEY, JSON.stringify(current));
   // Also push a lightweight telemetry marker
-<span class="cstat-no" title="statement not covered" >  telemetry.add(`${hip}:${type}`, 0, 'hip-event');</span>
+  telemetry.add(`${hip}:${type}`, 0, 'hip-event');
 }
 &nbsp;
 export async function <span class="fstat-no" title="function not covered" >loadHIPEvents(</span>): Promise&lt;HIPEvent[]&gt; {
@@ -184,7 +184,7 @@ export async function <span class="fstat-no" title="function not covered" >loadH
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T08:31:43.968Z
+                at 2025-09-07T08:53:28.479Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

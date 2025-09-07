@@ -9,6 +9,9 @@ import {
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
 import { LanguageManager } from '../services/LanguageManager';
+import { contextAwareRecognitionService } from '../services/contextAwareRecognitionService';
+import { adaptivePracticeTimingService } from '../services/adaptivePracticeTimingService';
+import { positiveTelemetryService } from '../services/positiveTelemetryService';
 // Avoid pulling the module at import time. Use dynamic require below.
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 
@@ -71,6 +74,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   const queuedModelRef = useRef(false);
   const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setLangTick] = useState(0);
+  const lastDetectedGestureRef = useRef<string | null>(null);
 
   const injectModel = useCallback((b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
@@ -114,12 +118,21 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     return unsubscribe;
   }, []);
 
+  // Initialize context-aware recognition session
+  useEffect(() => {
+    contextAwareRecognitionService.resetSession();
+  }, []);
+
   const escapeJs = (s: string) =>
     s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\n/g, '\\n');
   const tapToStartText = escapeJs(LanguageManager.t('mediapipe.tapToStart'));
   const recognizerInitFailed = escapeJs(LanguageManager.t('mediapipe.recognizerInitFailed'));
   const predictionError = escapeJs(LanguageManager.t('mediapipe.predictionError'));
   const cameraError = escapeJs(LanguageManager.t('mediapipe.cameraError'));
+
+  const getLastDetectedGesture = useCallback(() => {
+    return lastDetectedGestureRef.current;
+  }, []);
 
   useEffect(() => {
     const loadModel = async () => {
@@ -228,7 +241,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         } else {
           gesture = null;
         }
-        const confidence = typeof data.confidence === 'number' ? data.confidence : 0;
+        let confidence = typeof data.confidence === 'number' ? data.confidence : 0;
         const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][]) : [];
         const handednesses = Array.isArray(data.handednesses) ? (data.handednesses as string[]) : [];
         onGestureDetected(gesture, confidence, landmarks, handednesses, data.emergency === true);

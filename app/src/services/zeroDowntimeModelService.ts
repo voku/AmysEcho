@@ -73,7 +73,7 @@ class ZeroDowntimeModelService {
       const newModel: ModelVersion = {
         id: `model_${Date.now()}`,
         timestamp: Date.now(),
-        size: modelData.size,
+        size: expectedSize || 0, // Use expected size or 0 if not available
         hash: await this.calculateHash(modelData),
         performanceMetrics: validationResult.metrics
       };
