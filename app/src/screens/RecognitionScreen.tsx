@@ -143,6 +143,7 @@ export default function RecognitionScreen({
   const lastFrameTimeRef = useRef<number>(0);
   const centroidsRef = useRef<CentroidMap>({});
   const consecutiveFailuresRef = useRef<number>(0);
+  const consecutiveSuccessesRef = useRef<number>(0);
   const lastModelUpdateTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -861,15 +862,24 @@ export default function RecognitionScreen({
             isEmergency
           } : { isEmergency };
 
-          void multiSensoryFeedback(g, c, context, {
-            includeAudio: true,
-            includeVisual: true,
-            visualCallback: () => {
-              // Visual feedback is handled by ripple effect and other UI elements
-              setShowVisualRipple(true);
-              setTimeout(() => setShowVisualRipple(false), 800);
-            }
-          });
+           void multiSensoryFeedback(g, c, context, {
+             includeAudio: true,
+             includeVisual: true,
+             visualCallback: () => {
+               // Visual feedback is handled by ripple effect and other UI elements
+               setShowVisualRipple(true);
+               setTimeout(() => setShowVisualRipple(false), 800);
+
+               // Amy First: Celebration for very high confidence gestures
+               if (c > 0.9 && !isEmergency) {
+                 setTimeout(() => {
+                   setShowCelebration(true);
+                   setCelebrationKey(prev => prev + 1); // Force re-render
+                   setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
+                 }, 200); // Small delay after ripple
+               }
+             }
+           });
         } else {
           // Just hand detection - use simple feedback
           void detectionHapticFeedback();
@@ -984,6 +994,7 @@ export default function RecognitionScreen({
         setError(null);
         uncertainCountRef.current = 0;
         consecutiveFailuresRef.current = 0; // Reset failure counter on successful recognition
+        consecutiveSuccessesRef.current += 1; // Increment success streak
 
         // Amy First: Use personalized confidence threshold based on Amy's patterns
         const personalizedThreshold = personalizedConfidenceService.getPersonalizedThreshold(stableGesture, smoothed);
@@ -1023,6 +1034,15 @@ export default function RecognitionScreen({
 
         // Provide instant feedback for successful gesture
         void provideInstantFeedback(stableGesture, smoothed, true);
+
+        // Amy First: Celebrate gesture streaks
+        if (consecutiveSuccessesRef.current >= 5 && consecutiveSuccessesRef.current % 5 === 0) {
+          setTimeout(() => {
+            setShowCelebration(true);
+            setCelebrationKey(prev => prev + 1);
+            setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
+          }, 500); // Delay to not interfere with primary feedback
+        }
 
         // Record gesture in history for instant replay capability
         gestureHistoryService.addGesture({
@@ -1180,6 +1200,7 @@ export default function RecognitionScreen({
 
         // Track consecutive recognition failures for emergency rollback
         consecutiveFailuresRef.current += 1;
+        consecutiveSuccessesRef.current = 0; // Reset success streak on failure
 
         // Record uncertain sample for active learning
         activeLearningService.recordUncertainSample(
