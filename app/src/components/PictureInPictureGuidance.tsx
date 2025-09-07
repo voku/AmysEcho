@@ -149,6 +149,7 @@ export default function PictureInPictureGuidance({
         { opacity: fadeAnim },
       ]}
       pointerEvents="box-none"
+      testID="pip-guidance-container"
     >
       <View style={styles.videoContainer} pointerEvents="auto">
         {player ? (
@@ -159,6 +160,7 @@ export default function PictureInPictureGuidance({
             allowsFullscreen={false}
             allowsPictureInPicture={false}
             accessibilityLabel={`${LanguageManager.t('pipGuidance.gestureVideo')} ${gestureId || 'unknown'}`}
+            testID="pip-guidance-video"
           />
         ) : (
           <View style={styles.placeholder}>
@@ -173,6 +175,7 @@ export default function PictureInPictureGuidance({
           style={styles.closeButton}
           onPress={handleClose}
           accessibilityLabel={LanguageManager.t('pipGuidance.close')}
+          testID="pip-close-button"
         >
           <Text style={styles.closeText}>×</Text>
         </Pressable>
@@ -187,6 +190,7 @@ export default function PictureInPictureGuidance({
                 ? LanguageManager.t('pipGuidance.pause')
                 : LanguageManager.t('pipGuidance.play')
             }
+            testID="pip-control-button"
           >
             <Text style={styles.controlText}>
               {isPlaying ? '⏸️' : '▶️'}
