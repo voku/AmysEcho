@@ -9,6 +9,19 @@ jest.mock('react-native', () => {
     Pressable: (p: any) => React.createElement('Pressable', p, p.children),
     StyleSheet: { create: (s: any) => s },
     Alert: { alert: jest.fn() },
+    Switch: (p: any) => React.createElement('Switch', p),
+    FlatList: ({ data, renderItem, ListEmptyComponent, keyExtractor }: any) =>
+      React.createElement(
+        'FlatList',
+        null,
+        data && data.length
+          ? data.map((item: any, index: number) => {
+              const element = renderItem({ item, index });
+              const key = keyExtractor ? keyExtractor(item) : index;
+              return React.cloneElement(element, { key });
+            })
+          : ListEmptyComponent || null,
+      ),
   } as any;
 });
 
@@ -46,9 +59,8 @@ jest.mock('../../db', () => ({
 }));
 
 jest.mock('@react-navigation/native', () => ({
-  useFocusEffect: (cb: any) => {
-    // Immediately invoke the effect for test purposes
-    cb();
+  useFocusEffect: (_cb: any) => {
+    // No-op in unit test to avoid executing internal effects during render
     return () => {};
   },
 }));
