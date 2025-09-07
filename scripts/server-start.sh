@@ -13,5 +13,8 @@ echo "PORT=$PORT  API_TOKEN set (${#API_TOKEN} chars)"
 if [ ! -f trained_model.json ]; then
   echo "Warning: server/trained_model.json missing; /latest-model will 404 until a model is trained or placed at server/trained_model.json"
 fi
+echo "Building TypeScript..."
+npm run build
+
 echo "Starting server..."
 node dist/server.js

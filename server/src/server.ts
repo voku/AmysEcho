@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { atomicWriteJson, atomicWriteBuffer } from './utils/atomicFs.js';
 import { createHash } from 'crypto';
 import { spawn } from 'child_process';
 import readline from 'readline';
@@ -927,15 +928,11 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
       centroids: {},
       counts: {},
     };
-    const tmp = `${TRAINED_MODEL_PATH}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(out));
-    await fs.rename(tmp, TRAINED_MODEL_PATH);
+    await atomicWriteJson(TRAINED_MODEL_PATH, out);
     // Also write a placeholder MLP model if missing
     const baseModel = getMlpModelPath();
     try { await fs.access(baseModel); } catch {
-      const tmpM = `${baseModel}.tmp`;
-      await fs.writeFile(tmpM, Buffer.from('placeholder-model'));
-      await fs.rename(tmpM, baseModel);
+      await atomicWriteBuffer(baseModel, Buffer.from('placeholder-model'));
     }
     job.progress = 100;
     job.status = 'completed';
