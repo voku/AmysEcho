@@ -1,4 +1,4 @@
-import { database } from '../../db';
+import { database as realDatabase } from '../../db';
 import { GestureTrainingData } from '../../db/models';
 import { API_URL, API_TOKEN } from '../constants';
 import { logger } from '../utils/logger';
@@ -8,6 +8,10 @@ import { Q } from '@nozbe/watermelondb';
 import { uploadTelemetry } from './analytics';
 import { telemetry } from '../telemetry/recorder';
 import { refreshDgsModel } from './modelUpdate';
+
+// Test injection hooks
+let db: any = realDatabase;
+export const __setDatabaseForTests = (d: any) => { db = d; };
 
 // Simple promise-based lock to prevent concurrent uploads
 let uploadLock: Promise<void> | null = null;
@@ -68,7 +72,17 @@ export const syncService = {
   async syncTelemetry(): Promise<void> {
     logger.info('Attempting to sync telemetry data...');
     try {
-      const events = await telemetry.dump();
+      // telemetry.dump() can fail due to storage corruption or internal issues
+      let events: any[] = [];
+      try {
+        events = await telemetry.dump();
+      } catch (dumpError) {
+        logger.error('Failed to dump telemetry events:', dumpError);
+        // Log additional context for debugging
+        logger.info('Telemetry dump failed, will retry on next sync attempt');
+        return; // Exit early if we can't get the events
+      }
+
       if (events.length > 0) {
         await retryWithBackoff(async () => {
           await uploadTelemetry(events);
@@ -111,7 +125,8 @@ export const syncService = {
         return;
       }
 
-      const pendingSamples = await database.get<GestureTrainingData>('gesture_training_data')
+      const collection: any = (db as any).get('gesture_training_data');
+      const pendingSamples = await collection
         .query(
           Q.where('custom_sync_status', 'pending')
         )
@@ -119,19 +134,47 @@ export const syncService = {
 
       if (pendingSamples.length === 0) {
         logger.info('No pending training data to upload.');
+        // Still sync telemetry even with no training data
+        try {
+          await this.syncTelemetry();
+        } catch (telemetryError) {
+          logger.error('Failed to sync telemetry:', telemetryError);
+        }
         return;
       }
 
       logger.info(`Found ${pendingSamples.length} pending training samples.`);
 
       try {
-        const payload = pendingSamples.flatMap((s) => {
+        const corruptedSamples: string[] = [];
+        const payload = pendingSamples.flatMap((s: GestureTrainingData) => {
           let frames: any[] = [];
-          try { frames = JSON.parse(s.landmarkData); } catch (parseError) {
+          try {
+            frames = JSON.parse(s.landmarkData);
+          } catch (parseError) {
             logger.warn(`Failed to parse landmark data for sample ${s.id}:`, parseError);
+            corruptedSamples.push(s.id);
+            return []; // Skip this sample
           }
           return processFramesForUpload(frames, s.gestureDefinition.id);
         });
+
+        // Mark corrupted samples
+        if (corruptedSamples.length > 0) {
+          try {
+            await db.write(async () => {
+              for (const sampleId of corruptedSamples) {
+                const sample = (await db.get('gesture_training_data').find(sampleId)) as GestureTrainingData;
+                await sample.update((s: GestureTrainingData) => {
+                  s.customSyncStatus = 'corrupted';
+                });
+              }
+            });
+            logger.info(`Marked ${corruptedSamples.length} samples as corrupted`);
+          } catch (dbError) {
+            logger.error('Failed to mark corrupted samples:', dbError);
+          }
+        }
 
         if (payload.length === 0) {
           logger.warn('No valid payload to upload after processing samples.');
@@ -155,15 +198,25 @@ export const syncService = {
 
         // If we reach here, upload was successful
         try {
-          await database.write(async () => {
+          await db.write(async () => {
             for (const sample of pendingSamples) {
-              await sample.update((s) => {
+              await sample.update((s: GestureTrainingData) => {
                 s.customSyncStatus = 'synced';
               });
             }
           });
           logger.info(`Uploaded ${pendingSamples.length} samples successfully.`);
-          await refreshDgsModel(activeProfileId);
+
+          // Refresh DGS model after successful upload
+          try {
+            await refreshDgsModel(activeProfileId);
+            logger.info('Successfully refreshed DGS model after training data upload.');
+          } catch (modelError) {
+            logger.error('Failed to refresh DGS model after training data upload:', modelError);
+            // Log additional context for debugging
+            logger.info('Model refresh failed, but training data upload was successful. Model will be refreshed on next app start.');
+            // Don't fail the entire upload process for model refresh issues
+          }
         } catch (dbError) {
           logger.error('Failed to update sample status in database:', dbError);
           // Samples remain pending, will retry on next sync
@@ -177,9 +230,13 @@ export const syncService = {
       }
     } catch (error) {
       logger.error('Error in uploadPendingTrainingData:', error);
-    } finally {
-      // Always attempt to sync telemetry
+    }
+
+    // Sync telemetry after training data upload (not in finally to avoid redundant calls)
+    try {
       await this.syncTelemetry();
+    } catch (telemetryError) {
+      logger.error('Failed to sync telemetry after training data upload:', telemetryError);
     }
   },
 };

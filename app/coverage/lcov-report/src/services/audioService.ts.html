@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">51.61% </span>
+                <span class="strong">48.57% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>96/186</span>
+                <span class='fraction'>85/175</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">63.93% </span>
+                <span class="strong">52.17% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>39/61</span>
+                <span class='fraction'>36/69</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">64% </span>
+                <span class="strong">62.5% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>16/25</span>
+                <span class='fraction'>15/24</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50.82% </span>
+                <span class="strong">48.55% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>92/181</span>
+                <span class='fraction'>84/173</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -526,7 +526,7 @@
 <a name='L461'></a><a href='#L461'>461</a>
 <a name='L462'></a><a href='#L462'>462</a>
 <a name='L463'></a><a href='#L463'>463</a>
-<a name='L464'></a><a href='#L464'>464</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L464'></a><a href='#L464'>464</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -535,16 +535,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -970,7 +970,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -1024,7 +1024,7 @@ export class AudioService {
   /**
    * Initialize audio system
    */
-  async <span class="fstat-no" title="function not covered" >initialize(</span>): Promise&lt;void&gt; {
+<span class="fstat-no" title="function not covered" >  as</span>ync initialize(): Promise&lt;void&gt; {
 <span class="cstat-no" title="statement not covered" >    try {</span>
 <span class="cstat-no" title="statement not covered" >      logger.info('Initializing audio service...');</span>
 &nbsp;
@@ -1053,7 +1053,7 @@ export class AudioService {
   /**
    * Preload common sound effects
    */
-  private async <span class="fstat-no" title="function not covered" >preloadSounds(</span>): Promise&lt;void&gt; {
+<span class="fstat-no" title="function not covered" >  pr</span>ivate async preloadSounds(): Promise&lt;void&gt; {
     const names = <span class="cstat-no" title="statement not covered" >[</span>
       'success',
       'error',
@@ -1076,7 +1076,7 @@ export class AudioService {
 <span class="cstat-no" title="statement not covered" >      for (const filePath of candidates) {</span>
 <span class="cstat-no" title="statement not covered" >        try {</span>
           const info = <span class="cstat-no" title="statement not covered" >await FileSystem.getInfoAsync(filePath);</span>
-<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (info.exists) {</span>
+<span class="cstat-no" title="statement not covered" >          if (info.exists) {</span>
             const sound = <span class="cstat-no" title="statement not covered" >createAudioPlayer({ uri: filePath });</span>
 <span class="cstat-no" title="statement not covered" >            sound.volume = this.config.volume;</span>
 <span class="cstat-no" title="statement not covered" >            sound.loop = false;</span>
@@ -1090,7 +1090,7 @@ export class AudioService {
         }
       }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!loaded) {</span>
+<span class="cstat-no" title="statement not covered" >      if (!loaded) {</span>
 <span class="cstat-no" title="statement not covered" >        logger.debug(`No sound asset found for ${name}`);</span>
       }
     }
@@ -1113,8 +1113,8 @@ export class AudioService {
     }
 &nbsp;
     try {
-      sound.volume = <span class="branch-1 cbranch-no" title="branch not covered" >options?.volume </span>|| this.config.volume;
-      sound.loop = <span class="branch-1 cbranch-no" title="branch not covered" >options?.loop </span>|| false;
+      sound.volume = options?.volume || this.config.volume;
+      sound.loop = options?.loop || false;
       sound.seekTo(0);
       sound.play();
       logger.debug(`Played sound: ${soundName}`);
@@ -1162,7 +1162,7 @@ export class AudioService {
     // Add to queue if already speaking
     if (this.isSpeaking) {
       const lastQueued = this.speechQueue[this.speechQueue.length - 1];
-      if (!lastQueued || <span class="branch-1 cbranch-no" title="branch not covered" >lastQueued.text.trim().toLowerCase() !== this.lastSpokenText)</span> {
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (!lastQueued || <span class="branch-1 cbranch-no" title="branch not covered" >lastQueued.text.trim().toLowerCase() !== this.lastSpokenText)</span> {
         this.speechQueue.push({ text, options: speechOptions });
       }
       return;
@@ -1227,8 +1227,8 @@ export class AudioService {
   /**
    * Stop current speech
    */
-  async <span class="fstat-no" title="function not covered" >stopSpeech(</span>): Promise&lt;void&gt; {
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.isSpeaking) {</span>
+<span class="fstat-no" title="function not covered" >  as</span>ync stopSpeech(): Promise&lt;void&gt; {
+<span class="cstat-no" title="statement not covered" >    if (this.isSpeaking) {</span>
 <span class="cstat-no" title="statement not covered" >      await Speech.stop();</span>
 <span class="cstat-no" title="statement not covered" >      this.isSpeaking = false;</span>
 <span class="cstat-no" title="statement not covered" >      this.speechQueue.length = 0; </span>// Clear queue
@@ -1241,7 +1241,7 @@ export class AudioService {
   async playSuccessFeedback(gesture: string, confidence: number): Promise&lt;void&gt; {
     // Play success sound
     await this.playSound('success');
-    if (this.config.enableHaptics) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.config.enableHaptics) {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (error) {
@@ -1264,7 +1264,7 @@ export class AudioService {
    */
   async playErrorFeedback(): Promise&lt;void&gt; {
     await this.playSound('error');
-    if (this.config.enableHaptics) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.config.enableHaptics) {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch (error) {
@@ -1296,7 +1296,7 @@ export class AudioService {
    */
   async playCelebrationFeedback(): Promise&lt;void&gt; {
     await this.playSound('celebration');
-    if (this.config.enableHaptics) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.config.enableHaptics) {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (error) {
@@ -1327,7 +1327,7 @@ export class AudioService {
         ];
 &nbsp;
     const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-    if (this.config.enableHaptics) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.config.enableHaptics) {
       try {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch (error) {
@@ -1340,9 +1340,9 @@ export class AudioService {
   /**
    * Start audio recording for custom cues
    */
-  async <span class="fstat-no" title="function not covered" >startRecording(</span>): Promise&lt;void&gt; {
+<span class="fstat-no" title="function not covered" >  as</span>ync startRecording(): Promise&lt;void&gt; {
     const permission = <span class="cstat-no" title="statement not covered" >await requestRecordingPermissionsAsync();</span>
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!permission.granted) {</span>
+<span class="cstat-no" title="statement not covered" >    if (!permission.granted) {</span>
 <span class="cstat-no" title="statement not covered" >      throw new Error('Audio permission not granted');</span>
     }
 <span class="cstat-no" title="statement not covered" >    this.recording = new AudioRecorder(RecordingPresets.HIGH_QUALITY);</span>
@@ -1353,8 +1353,8 @@ export class AudioService {
   /**
    * Stop recording and return file URI
    */
-  async <span class="fstat-no" title="function not covered" >stopRecording(</span>): Promise&lt;string | null&gt; {
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!this.recording) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+<span class="fstat-no" title="function not covered" >  as</span>ync stopRecording(): Promise&lt;string | null&gt; {
+<span class="cstat-no" title="statement not covered" >    if (!this.recording) <span class="cstat-no" title="statement not covered" >return null;</span></span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
 <span class="cstat-no" title="statement not covered" >      await this.recording.stop();</span>
       const uri = <span class="cstat-no" title="statement not covered" >this.recording.uri;</span>
@@ -1369,14 +1369,14 @@ export class AudioService {
   /**
    * Play custom audio from a file URI
    */
-  async <span class="fstat-no" title="function not covered" >playCustomAudio(</span>uri: string): Promise&lt;void&gt; {
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!this.isInitialized) {</span>
+<span class="fstat-no" title="function not covered" >  as</span>ync playCustomAudio(uri: string): Promise&lt;void&gt; {
+<span class="cstat-no" title="statement not covered" >    if (!this.isInitialized) {</span>
 <span class="cstat-no" title="statement not covered" >      logger.warn('Audio service not initialized');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const info = <span class="cstat-no" title="statement not covered" >await FileSystem.getInfoAsync(uri);</span>
-<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!info.exists) {</span>
+<span class="cstat-no" title="statement not covered" >      if (!info.exists) {</span>
 <span class="cstat-no" title="statement not covered" >        logger.warn(`Custom audio missing: ${uri}`);</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
       }
@@ -1392,7 +1392,7 @@ export class AudioService {
   /**
    * Update audio configuration
    */
-<span class="fstat-no" title="function not covered" >  updateConfig(</span>newConfig: Partial&lt;AudioConfig&gt;): void {
+<span class="fstat-no" title="function not covered" >  up</span>dateConfig(newConfig: Partial&lt;AudioConfig&gt;): void {
 <span class="cstat-no" title="statement not covered" >    this.config = { ...this.config, ...newConfig };</span>
 <span class="cstat-no" title="statement not covered" >    logger.info('Audio config updated');</span>
   }
@@ -1400,7 +1400,7 @@ export class AudioService {
   /**
    * Clean up audio resources
    */
-  async <span class="fstat-no" title="function not covered" >dispose(</span>): Promise&lt;void&gt; {
+<span class="fstat-no" title="function not covered" >  as</span>ync dispose(): Promise&lt;void&gt; {
 <span class="cstat-no" title="statement not covered" >    await this.stopSpeech();</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    for (const [name, sound] of this.sounds) {</span>
@@ -1435,16 +1435,16 @@ export const audioService = new AudioService({
 &nbsp;
 export async function playSymbolAudio(entry: { id: string; label: string; audioUri?: string }): Promise&lt;void&gt; {
   let uri = entry.audioUri;
-  if (!uri) {
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (!uri) {
     try {
       const symbol = await database.get&lt;Symbol&gt;('symbols').find(entry.id);
       uri = (symbol as any).audioUri || <span class="branch-1 cbranch-no" title="branch not covered" >undefined;</span>
     } catch {}
   }
 &nbsp;
-  if (uri) {
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (uri) {
     const info = await FileSystem.getInfoAsync(uri);
-    if (info.exists) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (info.exists) {
       await audioService.playCustomAudio(uri);
       return;
     }
@@ -1459,7 +1459,7 @@ export async function playSymbolAudio(entry: { id: string; label: string; audioU
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, StyleSheet, SafeAreaView } from 'react-native';
+import { StyleSheet, SafeAreaView, Button } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS } from '../constants/ui';

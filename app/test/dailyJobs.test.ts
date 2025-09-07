@@ -1,14 +1,8 @@
 const store: Record<string, string> = {};
-const stubAsync = {
-  async getItem(key: string) {
-    return store[key] ?? null;
-  },
-  async setItem(key: string, value: string) {
-    store[key] = value;
-  },
-};
-
-jest.mock('@react-native-async-storage/async-storage', () => stubAsync);
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: async (key: string) => store[key] ?? null,
+  setItem: async (key: string, value: string) => { store[key] = value; },
+}));
 
 jest.mock('../src/model', () => ({
   gestureModel: { gestures: [{ id: 'g1', label: 'Hallo' }] },

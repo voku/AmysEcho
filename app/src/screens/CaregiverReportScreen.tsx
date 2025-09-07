@@ -1,6 +1,6 @@
 import React from 'react';
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Button, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, Button } from 'react-native';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING } from '../constants/ui';

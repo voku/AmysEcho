@@ -7,18 +7,25 @@ jest.mock('react-native', () => {
     View: (props: any) => React.createElement('View', props, props.children),
     Pressable: (props: any) => React.createElement('Pressable', props, props.children),
     Text: (props: any) => React.createElement('Text', props, props.children),
+    FlatList: ({ data, renderItem, ListEmptyComponent }: any) =>
+      React.createElement(
+        'FlatList',
+        null,
+        data && data.length
+          ? data.map((item: any, index: number) => renderItem({ item, index }))
+          : ListEmptyComponent || null,
+      ),
     StyleSheet: { create: (styles: any) => styles },
   };
 });
 
-const navigate = jest.fn();
-
-let mockRouteName = 'Recognition';
 let mockHighContrast = false;
 
+const mockNavigate = jest.fn();
+
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate }),
-  useRoute: () => ({ name: mockRouteName }),
+  useNavigation: () => ({ navigate: mockNavigate, canGoBack: jest.fn(() => true) }),
+  useRoute: () => ({ name: 'Recognition' }),
 }));
 
 
@@ -41,12 +48,32 @@ jest.mock('../src/services/feedbackService', () => ({
   childHaptic: jest.fn(),
 }));
 
+jest.mock('../src/context/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: {
+      colors: {
+        primary: '#007AFF',
+        secondary: '#5856D6',
+        background: '#FFFFFF',
+        surface: '#F2F2F7',
+        text: '#000000',
+        textSecondary: '#8E8E93',
+        border: '#C6C6C8',
+        error: '#FF3B30',
+        success: '#34C759',
+        warning: '#FF9500',
+      },
+      isDark: false,
+    },
+  }),
+}));
+
 import BottomNav from '../src/components/BottomNav';
 import { COLORS } from '../src/constants/ui';
 
 describe('BottomNav', () => {
   beforeEach(() => {
-    navigate.mockClear();
+    mockNavigate.mockClear();
   });
 
   it('uses large touch targets with haptic feedback', () => {
@@ -68,7 +95,7 @@ describe('BottomNav', () => {
       pressable.props.onPress();
     });
     expect(childHaptic).toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith('Recognition', { profileId: '123' });
+    expect(mockNavigate).toHaveBeenCalledWith('Recognition', { profileId: '123' });
   });
 
   it('exposes accessibility roles, labels, and hints', () => {
@@ -77,8 +104,20 @@ describe('BottomNav', () => {
       component = renderer.create(<BottomNav active="recognition" profileId="123" />);
     });
     const pressables = (component as renderer.ReactTestRenderer).root.findAllByType('Pressable');
-    expect(pressables).toHaveLength(4);
+    // Find the main navigation pressables (skip breadcrumb pressables)
+    const navPressables = pressables.filter(p =>
+      p.props.accessibilityLabel === 'Zurück zur Gestenerkennung' ||
+      p.props.accessibilityLabel === 'Zuhören' ||
+      p.props.accessibilityLabel === 'Tagesplan' ||
+      p.props.accessibilityLabel === 'Lernen' ||
+      p.props.accessibilityLabel === 'Menü'
+    );
+    expect(navPressables).toHaveLength(5); // Home button + 4 nav buttons
     const expected = [
+      {
+        label: 'Zurück zur Gestenerkennung',
+        hint: 'Einfacher Weg zurück zur Hauptseite',
+      },
       {
         label: 'Zuhören',
         hint: 'Zurück zur Gestenerkennung',
@@ -96,7 +135,7 @@ describe('BottomNav', () => {
         hint: 'Profil- und Einstellungsmenü öffnen',
       },
     ];
-    pressables.forEach((p, idx) => {
+    navPressables.forEach((p, idx) => {
       expect(p.props.accessibilityRole).toBe('button');
       expect(p.props.accessibilityLabel).toBe(expected[idx].label);
       expect(p.props.accessibilityHint).toBe(expected[idx].hint);
@@ -137,7 +176,9 @@ describe('BottomNav', () => {
   });
 
   it('handles unknown route names', () => {
-    mockRouteName = 'UnknownScreen';
+    // Mock the useRoute hook to return an unknown screen name
+    const originalUseRoute = require('@react-navigation/native').useRoute;
+    require('@react-navigation/native').useRoute = jest.fn(() => ({ name: 'UnknownScreen' }));
 
     let component: renderer.ReactTestRenderer;
     act(() => {
@@ -148,7 +189,8 @@ describe('BottomNav', () => {
     const breadcrumbText = texts.find(text => text.props.children === 'UnknownScreen');
     expect(breadcrumbText).toBeTruthy();
 
-    mockRouteName = 'Recognition'; // Reset
+    // Restore original mock
+    require('@react-navigation/native').useRoute = originalUseRoute;
   });
 
   it('navigates to different screens', () => {
@@ -158,23 +200,31 @@ describe('BottomNav', () => {
     });
 
     const pressables = (component as renderer.ReactTestRenderer).root.findAllByType('Pressable');
+    // Find the main navigation pressables (skip breadcrumb pressables)
+    const navPressables = pressables.filter(p =>
+      p.props.accessibilityLabel === 'Zurück zur Gestenerkennung' ||
+      p.props.accessibilityLabel === 'Zuhören' ||
+      p.props.accessibilityLabel === 'Tagesplan' ||
+      p.props.accessibilityLabel === 'Lernen' ||
+      p.props.accessibilityLabel === 'Menü'
+    );
 
-    // Test Schedule navigation
+    // Test Schedule navigation (index 2 in filtered array)
     act(() => {
-      pressables[1].props.onPress();
+      navPressables[2].props.onPress();
     });
-    expect(navigate).toHaveBeenCalledWith('Schedule');
+    expect(mockNavigate).toHaveBeenCalledWith('Schedule');
 
-    // Test Training navigation
+    // Test Training navigation (index 3 in filtered array)
     act(() => {
-      pressables[2].props.onPress();
+      navPressables[3].props.onPress();
     });
-    expect(navigate).toHaveBeenCalledWith('Training', { gestureLabel: undefined });
+    expect(mockNavigate).toHaveBeenCalledWith('Training', { gestureLabel: undefined });
 
-    // Test ProfileSelect navigation
+    // Test ProfileSelect navigation (index 4 in filtered array)
     act(() => {
-      pressables[3].props.onPress();
+      navPressables[4].props.onPress();
     });
-    expect(navigate).toHaveBeenCalledWith('ProfileSelect');
+    expect(mockNavigate).toHaveBeenCalledWith('ProfileSelect');
   });
 });

@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.19% </span>
+                <span class="strong">76.36% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>44/57</span>
+                <span class='fraction'>42/55</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">48.14% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>9/18</span>
+                <span class='fraction'>13/27</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">93.75% </span>
+                <span class="strong">93.33% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>15/16</span>
+                <span class='fraction'>14/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">79.62% </span>
+                <span class="strong">78.84% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>43/54</span>
+                <span class='fraction'>41/52</span>
             </div>
         
             
@@ -266,7 +266,7 @@
 <a name='L201'></a><a href='#L201'>201</a>
 <a name='L202'></a><a href='#L202'>202</a>
 <a name='L203'></a><a href='#L203'>203</a>
-<a name='L204'></a><a href='#L204'>204</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
+<a name='L204'></a><a href='#L204'>204</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -294,7 +294,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -562,7 +562,7 @@ export class TrainingSessionManager {
    * Complete the current session
    */
   completeSession(): void {
-    if (this.currentSession) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.currentSession) {
       this.currentSession.status = 'completed';
       this.notifyCallbacks();
     }
@@ -571,8 +571,8 @@ export class TrainingSessionManager {
   /**
    * Cancel the current session
    */
-<span class="fstat-no" title="function not covered" >  cancelSession(</span>): void {
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.currentSession) {</span>
+<span class="fstat-no" title="function not covered" >  ca</span>ncelSession(): void {
+<span class="cstat-no" title="statement not covered" >    if (this.currentSession) {</span>
 <span class="cstat-no" title="statement not covered" >      this.currentSession.status = 'cancelled';</span>
 <span class="cstat-no" title="statement not covered" >      this.notifyCallbacks();</span>
     }
@@ -607,7 +607,7 @@ export class TrainingSessionManager {
     // Return unsubscribe function
     return () =&gt; {
       const index = this.sessionCallbacks.indexOf(callback);
-      if (index &gt; -1) {
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (index &gt; -1) {
         this.sessionCallbacks.splice(index, 1);
       }
     };
@@ -636,7 +636,7 @@ export class TrainingSessionManager {
       let message = <span class="cstat-no" title="statement not covered" >'Great sample!';</span>
 <span class="cstat-no" title="statement not covered" >      if (validationResult.qualityScore &gt;= 90) {</span>
 <span class="cstat-no" title="statement not covered" >        message = 'Excellent sample! Perfect quality.';</span>
-      } else <span class="cstat-no" title="statement not covered" ><span class="missing-if-branch" title="if path not taken" >I</span>if (validationResult.qualityScore &gt;= 75) {</span>
+      } else <span class="cstat-no" title="statement not covered" >if (validationResult.qualityScore &gt;= 75) {</span>
 <span class="cstat-no" title="statement not covered" >        message = 'Good sample! Well done.';</span>
       }
 &nbsp;
@@ -659,7 +659,7 @@ export class TrainingSessionManager {
    * Notify all callbacks of session updates
    */
   private notifyCallbacks(): void {
-    if (this.currentSession) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.currentSession) {
       this.sessionCallbacks.forEach(callback =&gt; {
         try {
           callback(this.currentSession!);
@@ -679,7 +679,7 @@ export const trainingSessionManager = new TrainingSessionManager();</pre></td></
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

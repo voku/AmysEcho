@@ -1,17 +1,9 @@
 const store: Record<string, string> = {};
-const stubAsync = {
-  async getItem(key: string) {
-    return store[key] ?? null;
-  },
-  async setItem(key: string, value: string) {
-    store[key] = value;
-  },
-  async removeItem(key: string) {
-    delete store[key];
-  },
-};
-
-jest.mock('@react-native-async-storage/async-storage', () => stubAsync);
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: async (key: string) => store[key] ?? null,
+  setItem: async (key: string, value: string) => { store[key] = value; },
+  removeItem: async (key: string) => { delete store[key]; },
+}));
 
 import { saveHistoricalHealthData } from '../src/services/healthScore';
 import { getPracticeRecommendation } from '../src/services/practiceRecommender';

@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">40.86% </span>
+                <span class="strong">32.98% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>47/115</span>
+                <span class='fraction'>32/97</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">27.77% </span>
+                <span class="strong">26.82% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>10/36</span>
+                <span class='fraction'>11/41</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">22.22% </span>
+                <span class="strong">26.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/18</span>
+                <span class='fraction'>4/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">43.51% </span>
+                <span class="strong">34.4% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>47/108</span>
+                <span class='fraction'>32/93</span>
             </div>
         
             
@@ -388,26 +388,26 @@
 <a name='L323'></a><a href='#L323'>323</a>
 <a name='L324'></a><a href='#L324'>324</a>
 <a name='L325'></a><a href='#L325'>325</a>
-<a name='L326'></a><a href='#L326'>326</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L326'></a><a href='#L326'>326</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
@@ -773,7 +773,7 @@ export default function TeachingScreen({ navigation }: any) {
     []
   );
 &nbsp;
-  const startSampleCaptureAnimation = useCallback(<span class="fstat-no" title="function not covered" >() =</span>&gt; {
+  const startSampleCaptureAnimation = useCallback(<span class="fstat-no" title="function not covered" >()</span> =&gt; {
 <span class="cstat-no" title="statement not covered" >    sampleCaptureAnim.setValue(0);</span>
 <span class="cstat-no" title="statement not covered" >    Animated.sequence([</span>
       Animated.timing(sampleCaptureAnim, {
@@ -791,14 +791,14 @@ export default function TeachingScreen({ navigation }: any) {
     ]).start();
   }, [sampleCaptureAnim]);
 &nbsp;
-  const startSession = <span class="fstat-no" title="function not covered" >async () =</span>&gt;<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" > {</span></span>
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!gestureLabel.trim()) {</span>
+  const startSession = <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {
+<span class="cstat-no" title="statement not covered" >    if (!gestureLabel.trim()) {</span>
 <span class="cstat-no" title="statement not covered" >      setError('Bitte gib einen Namen für die Geste ein.');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const existingCount = <span class="cstat-no" title="statement not covered" >await loadTrainingSampleCount(gestureLabel);</span>
-<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (existingCount &gt;= SAMPLES_NEEDED) {</span>
+<span class="cstat-no" title="statement not covered" >      if (existingCount &gt;= SAMPLES_NEEDED) {</span>
 <span class="cstat-no" title="statement not covered" >        Alert.alert('Training abgeschlossen', `Die Geste "${gestureLabel}" hat bereits genug Beispiele.`);</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
       }
@@ -813,17 +813,17 @@ export default function TeachingScreen({ navigation }: any) {
     }
   };
 &nbsp;
-  const recordSample = <span class="fstat-no" title="function not covered" >async () =</span>&gt;<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" > {</span></span>
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!sessionId.current || isRecording) <span class="cstat-no" title="statement not covered" >return;</span></span>
+  const recordSample = <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {
+<span class="cstat-no" title="statement not covered" >    if (!sessionId.current || isRecording) <span class="cstat-no" title="statement not covered" >return;</span></span>
 <span class="cstat-no" title="statement not covered" >    setIsRecording(true);</span>
 <span class="cstat-no" title="statement not covered" >    setError(null);</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
-      const frames = <span class="cstat-no" title="statement not covered" >await captureSamples(<span class="fstat-no" title="function not covered" >() =</span>&gt; (<span class="cstat-no" title="statement not covered" >{ landmarks: landmarksRef.current, handedness: handednessRef.current })</span>);</span>
+      const frames = <span class="cstat-no" title="statement not covered" >await captureSamples(<span class="fstat-no" title="function not covered" >()</span> =&gt; (<span class="cstat-no" title="statement not covered" >{ landmarks: landmarksRef.current, handedness: handednessRef.current })</span>);</span>
 <span class="cstat-no" title="statement not covered" >      await saveTrainingSample(gestureLabel, frames);</span>
 <span class="cstat-no" title="statement not covered" >      setSampleCount(<span class="fstat-no" title="function not covered" >(c</span>) =&gt; <span class="cstat-no" title="statement not covered" >c + 1)</span>;</span>
 <span class="cstat-no" title="statement not covered" >      startSampleCaptureAnimation();</span>
 <span class="cstat-no" title="statement not covered" >      audioService.playSound('confirmation');</span>
-<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (sampleCount + 1 &gt;= SAMPLES_NEEDED) {</span>
+<span class="cstat-no" title="statement not covered" >      if (sampleCount + 1 &gt;= SAMPLES_NEEDED) {</span>
 <span class="cstat-no" title="statement not covered" >        endSession();</span>
       }
     } catch (e) {
@@ -834,7 +834,7 @@ export default function TeachingScreen({ navigation }: any) {
     }
   };
 &nbsp;
-  const endSession = <span class="fstat-no" title="function not covered" >async () =</span>&gt;<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" > {</span></span>
+  const endSession = <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {
 <span class="cstat-no" title="statement not covered" >    setIsSessionActive(false);</span>
 <span class="cstat-no" title="statement not covered" >    audioService.speak(`Super! Ich habe "${gestureLabel}" gelernt.`);</span>
 <span class="cstat-no" title="statement not covered" >    Alert.alert('Erfolg', `Die neue Geste "${gestureLabel}" wurde mit ${SAMPLES_NEEDED} Beispielen trainiert.`);</span>
@@ -862,7 +862,7 @@ export default function TeachingScreen({ navigation }: any) {
     }
   };
 &nbsp;
-  const handleRetry = <span class="fstat-no" title="function not covered" >() =</span>&gt; {
+  const handleRetry = <span class="fstat-no" title="function not covered" >()</span> =&gt; {
 <span class="cstat-no" title="statement not covered" >    setSampleCount(0);</span>
 <span class="cstat-no" title="statement not covered" >    setIsSessionActive(true);</span>
 <span class="cstat-no" title="statement not covered" >    audioService.speak(`Versuchen wir "${gestureLabel}" noch einmal.`);</span>
@@ -983,7 +983,7 @@ export default function TeachingScreen({ navigation }: any) {
       )}
       &lt;Button
         title="Zurück"
-        onPress={<span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack()}</span>
+        onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack()}</span>
         accessibilityLabel="Zurück"
       /&gt;
       {profile &amp;&amp; &lt;BottomNav active="training" profileId={profile.id} /&gt;}
@@ -1045,7 +1045,7 @@ const createStyles = (largeText: boolean, highContrast: boolean) =&gt;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

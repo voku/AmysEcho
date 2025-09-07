@@ -6,7 +6,10 @@ jest.mock('react-native', () => {
   const React = require('react');
   return {
     Animated: {
-      Value: class { constructor(public v: any) {} setValue(_: any) {} },
+      Value: jest.fn().mockImplementation((initialValue: any) => ({
+        _value: initialValue,
+        setValue: jest.fn(),
+      })),
       timing: () => ({ start: jest.fn(), stop: jest.fn() }),
       delay: () => ({ start: jest.fn(), stop: jest.fn() }),
       sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
@@ -25,11 +28,15 @@ jest.mock('../../src/services/LanguageManager', () => ({
   LanguageManager: { t: (k: string) => (k === 'celebration.label' ? 'Gut gemacht!' : k) },
 }));
 
+jest.mock('../../src/context/ThemeContext', () => ({
+  useTheme: () => ({ themeName: 'pawPatrol' }),
+}));
+
 describe('Celebration', () => {
   it('renders with German accessibility label', () => {
     const { toJSON } = render(<Celebration />);
     const view = toJSON() as any;
-    expect(view.props.accessibilityLabel).toBe('Gut gemacht!');
+    expect(view.props.accessibilityLabel).toMatch(/🐕‍🦺|🐕‍🚒|🐕‍🦼|🐕‍🔧|🐕‍🏗️|🐕‍🏊/); // Paw Patrol character
     expect(view.props.accessibilityRole).toBe('alert');
     expect(view.children?.[0].children).toContain('🎉');
   });

@@ -1,9 +1,9 @@
 import path from 'path';
 import { promises as fs } from 'fs';
+import { fileURLToPath } from 'url';
 
-// Resolve paths relative to the compiled server directory to avoid CWD issues
-// __dirname is .../dist/constants after build, so go two levels up to reach repo's server dir
-export const SERVER_DIR = path.join(__dirname, '..', '..');
+// Resolve paths based on working directory. Integration and runtime start from server/.
+export const SERVER_DIR = path.resolve(process.cwd());
 export const DATA_DIR = path.join(SERVER_DIR, 'data');
 
 // Centroid-based model path (JSON)
@@ -31,8 +31,8 @@ export function getMlpModelPath(profileId?: string): string {
   return getProfiledPath(TRAINED_MLP_MODEL_PATH, profileId);
 }
 export const GESTURE_LABELS_PATH = path.join(
-  __dirname,
-  '../../../app/assets/models/gesture_labels.json',
+  SERVER_DIR,
+  '../app/assets/models/gesture_labels.json',
 );
 
 // Ensure DATA_DIR exists before any read/write

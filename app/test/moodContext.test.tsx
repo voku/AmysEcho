@@ -189,4 +189,110 @@ describe('MoodContext', () => {
     }).toThrow('useMood must be used within a MoodProvider');
     consoleSpy.mockRestore();
   });
+
+  it('handles manual mood override after auto-detection', () => {
+    jest.setSystemTime(new Date('2023-01-01T08:00:00Z')); // Morning - should auto-detect calm
+
+    const ManualMoodComponent = () => {
+      const { currentMood, setMood } = useMood();
+      React.useEffect(() => {
+        setMood('energetic'); // Override to energetic
+      }, [setMood]);
+      return React.createElement('View', { 'data-current-mood': currentMood });
+    };
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        React.createElement(MoodProvider, {}, React.createElement(ManualMoodComponent))
+      );
+    });
+
+    const view = component.root.findByType('View');
+    expect(view.props['data-current-mood']).toBe('energetic');
+  });
+
+  it('handles invalid mood types gracefully', () => {
+    const InvalidMoodComponent = () => {
+      const { getMoodEmoji, getMoodDescription } = useMood();
+      // Test default cases
+      return React.createElement('View', {
+        'data-emoji': getMoodEmoji(),
+        'data-description': getMoodDescription(),
+      });
+    };
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        React.createElement(MoodProvider, {}, React.createElement(InvalidMoodComponent))
+      );
+    });
+
+    const view = component.root.findByType('View');
+    expect(view.props['data-emoji']).toBeDefined();
+    expect(view.props['data-description']).toBeDefined();
+  });
+
+  it('handles edge case hours correctly', () => {
+    // Test exact boundary times
+    const testCases = [
+      { time: '2023-01-01T05:59:59Z', expected: 'calm' }, // Just before 6 AM
+      { time: '2023-01-01T06:00:00Z', expected: 'calm' }, // Exactly 6 AM
+      { time: '2023-01-01T11:59:59Z', expected: 'calm' }, // Just before noon
+      { time: '2023-01-01T12:00:00Z', expected: 'energetic' }, // Exactly noon
+      { time: '2023-01-01T17:59:59Z', expected: 'energetic' }, // Just before 6 PM
+      { time: '2023-01-01T18:00:00Z', expected: 'calm' }, // Exactly 6 PM
+      { time: '2023-01-01T23:59:59Z', expected: 'calm' }, // Just before midnight
+      { time: '2023-01-01T00:00:00Z', expected: 'calm' }, // Midnight
+    ];
+
+    testCases.forEach(({ time, expected }) => {
+      jest.setSystemTime(new Date(time));
+
+      let component: renderer.ReactTestRenderer;
+      act(() => {
+        component = renderer.create(
+          React.createElement(MoodProvider, {}, React.createElement(TestComponent))
+        );
+      });
+
+      const view = component.root.findByType('View');
+      expect(view.props['data-current-mood']).toBe(expected);
+    });
+  });
+
+  it('provides consistent color schemes for all moods', () => {
+    const moods: ('calm' | 'energetic' | 'neutral')[] = ['calm', 'energetic', 'neutral'];
+
+    moods.forEach(mood => {
+      const MoodTestComponent = () => {
+        const { setMood, moodColors } = useMood();
+        React.useEffect(() => {
+          setMood(mood);
+        }, [setMood]);
+        return React.createElement('View', {
+          'data-colors': JSON.stringify(moodColors),
+        });
+      };
+
+      let component: renderer.ReactTestRenderer;
+      act(() => {
+        component = renderer.create(
+          React.createElement(MoodProvider, {}, React.createElement(MoodTestComponent))
+        );
+      });
+
+      const view = component.root.findByType('View');
+      const colors = JSON.parse(view.props['data-colors']);
+      expect(colors).toHaveProperty('primary');
+      expect(colors).toHaveProperty('secondary');
+      expect(colors).toHaveProperty('accent');
+      expect(colors).toHaveProperty('background');
+      expect(colors).toHaveProperty('surface');
+      expect(colors).toHaveProperty('text');
+      expect(colors).toHaveProperty('textMuted');
+      expect(colors).toHaveProperty('border');
+    });
+  });
 });

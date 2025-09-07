@@ -200,4 +200,101 @@ describe('installMlp', () => {
     }
     consoleWarnSpy.mockRestore();
   });
+
+  it('handles NPY parsing errors', async () => {
+    // Create invalid NPY data
+    const invalidNpy = new Uint8Array([0x00]); // Invalid magic number
+    const zipData = zipSync({
+      'w1.npy': invalidNpy,
+      'b1.npy': new Uint8Array([0x93, 0x4e, 0x55, 0x4d, 0x50, 0x59, 0x01, 0x00]),
+      'w2.npy': new Uint8Array([0x93, 0x4e, 0x55, 0x4d, 0x50, 0x59, 0x01, 0x00]),
+      'b2.npy': new Uint8Array([0x93, 0x4e, 0x55, 0x4d, 0x50, 0x59, 0x01, 0x00]),
+    });
+    const invalidB64 = Buffer.from(zipData).toString('base64');
+
+    const result = await window.__setMlpModelB64!(invalidB64);
+    expect(result).toBe(false);
+    expect(postMessage).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: 'telemetry',
+        event: 'mlp_load_failed',
+        reason: 'bad npy',
+      })
+    );
+  });
+
+  it('handles missing model weights', async () => {
+    // Create zip with missing weights
+    const zipData = zipSync({
+      'w1.npy': new Uint8Array([0x93, 0x4e, 0x55, 0x4d, 0x50, 0x59, 0x01, 0x00]),
+      // Missing b1.npy, w2.npy, b2.npy
+    });
+    const invalidB64 = Buffer.from(zipData).toString('base64');
+
+    const result = await window.__setMlpModelB64!(invalidB64);
+    expect(result).toBe(false);
+    expect(postMessage).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: 'telemetry',
+        event: 'mlp_load_failed',
+        reason: 'missing weights',
+      })
+    );
+  });
+
+  it('handles dimension mismatches in prediction', async () => {
+    const ok = await window.__setMlpModelB64!(MINIMAL_MLP_ZIP_B64);
+    expect(ok).toBe(true);
+
+    // Create a mock MLP with wrong dimensions
+    (window as any).__mlpPredict = jest.fn(() => {
+      throw new Error('Input dimension mismatch');
+    });
+
+    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    expect(res).toBeNull();
+  });
+
+  it('handles empty handedness array', async () => {
+    const ok = await window.__setMlpModelB64!(MINIMAL_MLP_ZIP_B64);
+    expect(ok).toBe(true);
+
+    const res = window.__mlpPredict!([TEST_HAND], []);
+    expect(res?.label).toBe('hi');
+    expect(res?.score).toBeCloseTo(1, 6);
+  });
+
+  it('handles null handedness', async () => {
+    const ok = await window.__setMlpModelB64!(MINIMAL_MLP_ZIP_B64);
+    expect(ok).toBe(true);
+
+    const res = window.__mlpPredict!([TEST_HAND], null as any);
+    expect(res?.label).toBe('hi');
+    expect(res?.score).toBeCloseTo(1, 6);
+  });
+
+  it('handles chunked transfer with empty chunks', async () => {
+    expect(window.__beginMlpTransfer!()).toBe(true);
+    window.__pushMlpChunk!('');
+    window.__pushMlpChunk!(MINIMAL_MLP_ZIP_B64);
+    window.__pushMlpChunk!('');
+    await window.__commitMlpTransfer!();
+
+    const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
+    expect(events).toEqual(['mlp_transfer', 'mlp_loaded', 'mlp_transfer_complete']);
+  });
+
+  it('handles transfer commit without begin', async () => {
+    await window.__commitMlpTransfer!();
+    const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
+    expect(events).toEqual(['mlp_transfer_skipped', 'mlp_transfer_complete']);
+  });
+
+  it('handles prediction with no model loaded', () => {
+    // Reset MLP model
+    (window as any).__mlpPredict = () => null;
+
+    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    expect(res).toBeNull();
+  });
 });

@@ -1,5 +1,5 @@
-import { Database } from '../db';
-import { LearningAnalytics } from '../types';
+import { Database } from '../db.js';
+import { LearningAnalytics } from '../types.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 

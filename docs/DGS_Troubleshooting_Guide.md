@@ -4,7 +4,8 @@ This guide provides solutions for common issues encountered with the German Sign
 
 ## Quick Diagnosis Checklist
 
-Before diving into specific issues, run this checklist:
+Before diving into specific issues, run this checklist.
+**Note:** Some commands assume the server is running.
 
 ```bash
 # 1. Check system status
@@ -13,13 +14,13 @@ npm test --prefix integration -- dgs_integration
 # 2. Verify model file exists
 ls -la server/data/dgs_model.npz
 
-# 3. Check server logs
+# 3. Check server logs (if server is running)
 tail -f server/logs/dgs-integration.log
 
 # 4. Validate WebView bundle
 ls -la app/assets/gestureDetector.js
 
-# 5. Test API endpoints
+# 5. Test API endpoints (if server is running)
 curl -H "Authorization: Bearer demo-token" http://localhost:5000/model-metadata
 ```
 
@@ -34,13 +35,10 @@ MemoryError: Unable to allocate array with shape (100000, 126)
 
 **Solutions**:
 
-1. **Reduce Batch Size**:
-```python
-# In train_mlp.py
-batch_size = 32  # Reduce from 64
-```
+1. **Use Data Generator**:
 
-2. **Use Data Generator**:
+If you have a large dataset, the `train_mlp.py` script may fail with memory errors. In this case, you can modify the script to use a data generator that loads data in batches.
+
 ```python
 def data_generator(X, y, batch_size=32):
     while True:
@@ -48,7 +46,7 @@ def data_generator(X, y, batch_size=32):
             yield X[i:i+batch_size], y[i:i+batch_size]
 ```
 
-3. **Enable Memory Optimization**:
+2. **Enable Memory Optimization**:
 ```bash
 # Set environment variables
 export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
@@ -87,6 +85,9 @@ for gesture, count in zip(unique, counts):
 **Solutions**:
 
 1. **Balance Training Data**:
+
+**Note:** This solution requires the `imblearn` library. You can install it using `pip install imblearn`.
+
 ```python
 from imblearn.over_sampling import SMOTE
 smote = SMOTE(random_state=42)

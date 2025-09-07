@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
-import { DATA_DIR } from './constants/modelPaths';
+import { DATA_DIR } from './constants/modelPaths.js';
 
 const router = express.Router();
 

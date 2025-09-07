@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">84.37% </span>
+                <span class="strong">78.26% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>27/32</span>
+                <span class='fraction'>18/23</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">52.94% </span>
+                <span class="strong">55.55% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>9/17</span>
+                <span class='fraction'>10/18</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.09% </span>
+                <span class="strong">81.81% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>27/31</span>
+                <span class='fraction'>18/22</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -162,8 +162,7 @@
 <a name='L97'></a><a href='#L97'>97</a>
 <a name='L98'></a><a href='#L98'>98</a>
 <a name='L99'></a><a href='#L99'>99</a>
-<a name='L100'></a><a href='#L100'>100</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L100'></a><a href='#L100'>100</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -172,14 +171,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
@@ -287,7 +287,7 @@ export default function PracticeScreen({ navigation }: any) {
   useEffect(() =&gt; {
     loadProfile()
       .then(setProfile)
-      .catch(<span class="fstat-no" title="function not covered" >() =</span>&gt; {});
+      .catch(<span class="fstat-no" title="function not covered" >()</span> =&gt; {});
   }, []);
 &nbsp;
   useEffect(() =&gt; {
@@ -324,11 +324,11 @@ export default function PracticeScreen({ navigation }: any) {
         &lt;SafeAreaView style={styles.container}&gt;
           &lt;Text style={styles.title}&gt;Gesten üben&lt;/Text&gt;
           &lt;View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: SPACING.md }}&gt;
-            &lt;Button title="3" onPress={<span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >setTargetSamples(3)}</span> accessibilityLabel="3 Beispiele" color={targetSamples===3? COLORS.primaryAccent : <span class="branch-1 cbranch-no" title="branch not covered" >undefined}</span> /&gt;
+            &lt;Button title="3" onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setTargetSamples(3)}</span> accessibilityLabel="3 Beispiele" color={targetSamples===3? COLORS.primaryAccent : <span class="branch-1 cbranch-no" title="branch not covered" >undefined}</span> /&gt;
             &lt;View style={{ width: SPACING.sm }} /&gt;
-            &lt;Button title="5" onPress={<span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >setTargetSamples(5)}</span> accessibilityLabel="5 Beispiele" color={targetSamples===5? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.primaryAccent </span>: undefined} /&gt;
+            &lt;Button title="5" onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setTargetSamples(5)}</span> accessibilityLabel="5 Beispiele" color={targetSamples===5? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.primaryAccent </span>: undefined} /&gt;
             &lt;View style={{ width: SPACING.sm }} /&gt;
-            &lt;Button title="8" onPress={<span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >setTargetSamples(8)}</span> accessibilityLabel="8 Beispiele" color={targetSamples===8? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.primaryAccent </span>: undefined} /&gt;
+            &lt;Button title="8" onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setTargetSamples(8)}</span> accessibilityLabel="8 Beispiele" color={targetSamples===8? <span class="branch-0 cbranch-no" title="branch not covered" >COLORS.primaryAccent </span>: undefined} /&gt;
           &lt;/View&gt;
           &lt;FlatList
             data={gestureModel.gestures}
@@ -367,7 +367,7 @@ const createStyles = (largeText: boolean, highContrast: boolean) =&gt;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

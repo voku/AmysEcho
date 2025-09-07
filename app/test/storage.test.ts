@@ -80,6 +80,7 @@ describe('Storage', () => {
         vocabularySetId: 'vocab1',
         largeText: true,
         highContrast: false,
+        successSound: 'success',
       });
     });
   });
@@ -153,6 +154,7 @@ describe('Storage', () => {
         vocabularySetId: 'vocab1',
         largeText: false,
         highContrast: true,
+        successSound: 'success',
       });
     });
 
@@ -442,6 +444,113 @@ describe('Storage', () => {
       const result = await loadActiveProfileId();
 
       expect(result).toBe('profile-1');
+    });
+
+    it('handles listener errors gracefully', async () => {
+      const mockListener = jest.fn().mockImplementation(() => {
+        throw new Error('Listener error');
+      });
+      const { onActiveProfileChange } = require('../src/storage');
+      onActiveProfileChange(mockListener);
+
+      // Mock console.warn to avoid console output during test
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      mockAsyncStorage.setItem.mockResolvedValue();
+
+      await setActiveProfileId('profile-1');
+
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('activeProfileId', 'profile-1');
+      expect(mockListener).toHaveBeenCalledWith('profile-1');
+      expect(consoleWarnSpy).toHaveBeenCalledWith('onActiveProfileChange listener failed:', expect.any(Error));
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('removes listener when unsubscribe is called', async () => {
+      const mockListener = jest.fn();
+      const { onActiveProfileChange } = require('../src/storage');
+      const unsubscribe = onActiveProfileChange(mockListener);
+
+      mockAsyncStorage.setItem.mockResolvedValue();
+
+      // Unsubscribe and then try to notify
+      unsubscribe();
+      await setActiveProfileId('profile-1');
+
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('activeProfileId', 'profile-1');
+      expect(mockListener).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Profile mapping edge cases', () => {
+    it('handles missing successSound in profile mapping', async () => {
+      const mockRecords = [
+        {
+          id: '1',
+          name: 'Test Profile',
+          consentHelpMeLearnOverTime: true,
+          consentHelpMeGetSmarter: false,
+          activeVocabularySet: { id: 'vocab1' },
+          largeText: true,
+          highContrast: false,
+          // successSound is missing
+        },
+      ];
+
+      const mockCollection = {
+        query: jest.fn().mockReturnThis(),
+        fetch: jest.fn().mockResolvedValue(mockRecords),
+      };
+
+      mockDatabase.get.mockReturnValue(mockCollection as any);
+
+      const result = await loadProfiles();
+
+      expect(result[0].successSound).toBe('success'); // Should default to 'success'
+    });
+
+    it('handles database errors in loadProfiles', async () => {
+      const mockCollection = {
+        query: jest.fn().mockReturnThis(),
+        fetch: jest.fn().mockRejectedValue(new Error('Database error')),
+      };
+
+      mockDatabase.get.mockReturnValue(mockCollection as any);
+
+      await expect(loadProfiles()).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('Training sample database operations', () => {
+    it('handles database write errors in saveTrainingSample', async () => {
+      const frames: TrainingFrame[] = [
+        {
+          landmarks: [[[1, 2, 3]]],
+          handedness: ['Left'],
+        },
+      ];
+
+      mockAsyncStorage.getItem.mockResolvedValue(null);
+      mockAsyncStorage.setItem.mockResolvedValue();
+
+      mockDatabase.write.mockRejectedValue(new Error('Database write error'));
+
+      await expect(saveTrainingSample('gesture-1', frames)).rejects.toThrow('Database write error');
+    });
+  });
+
+  describe('AsyncStorage error handling', () => {
+    it('handles AsyncStorage errors in loadActiveProfileId', async () => {
+      mockAsyncStorage.getItem.mockRejectedValue(new Error('Storage error'));
+
+      await expect(loadActiveProfileId()).rejects.toThrow('Storage error');
+    });
+
+    it('handles AsyncStorage errors in setActiveProfileId', async () => {
+      mockAsyncStorage.setItem.mockRejectedValue(new Error('Storage error'));
+
+      await expect(setActiveProfileId('profile-1')).rejects.toThrow('Storage error');
     });
   });
 });

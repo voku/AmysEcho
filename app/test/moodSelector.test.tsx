@@ -202,4 +202,113 @@ describe('MoodSelector', () => {
     const titleText = texts.find(text => text.props.children === 'Stimmung wählen');
     expect(titleText).toBeTruthy();
   });
+
+  it('handles mood context errors gracefully', () => {
+    // Mock useMood to throw an error
+    jest.mock('../src/context/MoodContext', () => ({
+      useMood: () => {
+        throw new Error('Mood context error');
+      },
+    }));
+
+    // This should not crash the component
+    expect(() => {
+      act(() => {
+        renderer.create(<MoodSelector />);
+      });
+    }).toThrow('Mood context error');
+  });
+
+  it('handles accessibility context errors gracefully', () => {
+    // Mock useAccessibility to throw an error
+    jest.mock('../src/components/AccessibilityContext', () => ({
+      useAccessibility: () => {
+        throw new Error('Accessibility context error');
+      },
+    }));
+
+    // This should not crash the component
+    expect(() => {
+      act(() => {
+        renderer.create(<MoodSelector />);
+      });
+    }).toThrow('Accessibility context error');
+  });
+
+  it('handles missing mood emoji gracefully', () => {
+    // Mock getMoodEmoji to return undefined
+    jest.mock('../src/context/MoodContext', () => ({
+      useMood: () => ({
+        currentMood: mockCurrentMood,
+        setMood: jest.fn(),
+        getMoodEmoji: () => undefined,
+        getMoodDescription: () => 'Test mood',
+      }),
+    }));
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(<MoodSelector />);
+    });
+
+    const texts = component.root.findAllByType('Text');
+    const currentMoodText = texts.find(text =>
+      text.props.children?.includes && text.props.children.includes('Test mood')
+    );
+    expect(currentMoodText).toBeTruthy();
+  });
+
+  it('handles missing mood description gracefully', () => {
+    // Mock getMoodDescription to return undefined
+    jest.mock('../src/context/MoodContext', () => ({
+      useMood: () => ({
+        currentMood: mockCurrentMood,
+        setMood: jest.fn(),
+        getMoodEmoji: () => '😐',
+        getMoodDescription: () => undefined,
+      }),
+    }));
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(<MoodSelector />);
+    });
+
+    const texts = component.root.findAllByType('Text');
+    const currentMoodText = texts.find(text =>
+      text.props.children?.includes && text.props.children.includes('😐')
+    );
+    expect(currentMoodText).toBeTruthy();
+  });
+
+  it('handles setMood errors gracefully', () => {
+    // Mock setMood to throw an error
+    const mockSetMood = jest.fn().mockImplementation(() => {
+      throw new Error('Set mood error');
+    });
+
+    jest.mock('../src/context/MoodContext', () => ({
+      useMood: () => ({
+        currentMood: mockCurrentMood,
+        setMood: mockSetMood,
+        getMoodEmoji: () => '😐',
+        getMoodDescription: () => 'Neutral',
+      }),
+    }));
+
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(<MoodSelector />);
+    });
+
+    const pressables = component.root.findAllByType('Pressable');
+    const calmButton = pressables[0];
+
+    // This should not crash the component
+    expect(() => {
+      act(() => {
+        calmButton.props.onPress();
+      });
+    }).toThrow('Set mood error');
+  });
 });

@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.81% </span>
+                <span class="strong">78.37% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>36/44</span>
+                <span class='fraction'>29/37</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.5% </span>
+                <span class="strong">76.92% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>31/40</span>
+                <span class='fraction'>30/39</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">92.1% </span>
+                <span class="strong">90.32% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>35/38</span>
+                <span class='fraction'>28/31</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -207,13 +207,7 @@
 <a name='L142'></a><a href='#L142'>142</a>
 <a name='L143'></a><a href='#L143'>143</a>
 <a name='L144'></a><a href='#L144'>144</a>
-<a name='L145'></a><a href='#L145'>145</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L145'></a><a href='#L145'>145</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -221,7 +215,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -376,12 +376,12 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
   React.useEffect(() =&gt; {
     <span class="missing-if-branch" title="if path not taken" >I</span>if (!player) <span class="cstat-no" title="statement not covered" >return;</span>
     const subscription = player.addListener('statusChange', <span class="fstat-no" title="function not covered" >(p</span>ayload) =&gt; {
-<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (payload.error) {</span>
+<span class="cstat-no" title="statement not covered" >      if (payload.error) {</span>
 <span class="cstat-no" title="statement not covered" >        logger.error('DgsVideoPlayer error', payload.error);</span>
       }
       // Status change can be used to update UI if needed
     });
-    return <span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >subscription.remove();</span>
+    return <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >subscription.remove();</span>
   }, [player]);
 &nbsp;
   React.useEffect(() =&gt; {
@@ -389,13 +389,13 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
     const sub = player.addListener('playToEnd', () =&gt; {
       setIsPlaying(false);
     });
-    return <span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >sub.remove();</span>
+    return <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >sub.remove();</span>
   }, [player]);
 &nbsp;
-  const isBuffering = player<span class="branch-0 cbranch-no" title="branch not covered" >?.s</span>tatus === 'loading';
+  const isBuffering = player?.status === 'loading';
 &nbsp;
   React.useEffect(() =&gt; {
-    if (player) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (player) {
       const isLoaded = player.status !== 'loading' &amp;&amp; player.status !== 'error' &amp;&amp; player.duration &gt; 0;
       if (isPlaying &amp;&amp; !player.playing) {
         if (isLoaded &amp;&amp; player.currentTime &lt; player.duration) {
@@ -407,7 +407,7 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
         player.pause();
       }
     }
-  }, [player, isPlaying, player<span class="branch-0 cbranch-no" title="branch not covered" >?.s</span>tatus]);
+  }, [player, isPlaying, player?.status]);
 &nbsp;
   const togglePlayback = React.useCallback(() =&gt; {
     <span class="missing-if-branch" title="if path not taken" >I</span>if (!player) <span class="cstat-no" title="statement not covered" >return;</span>
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

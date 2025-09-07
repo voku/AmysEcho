@@ -9,7 +9,7 @@ import numpy as np
 # --- Config ---
 DATASET_PATH = os.environ.get(
     "MLP_DATASET_PATH",
-    os.path.join(os.path.dirname(__file__), "../../data/dgs_samples.json"),
+    os.path.join(os.path.dirname(__file__), "../../../data/dgs_samples.json"),
 )
 MODEL_PATH = os.environ.get(
     "MLP_MODEL_PATH",
@@ -45,7 +45,8 @@ def _normalize(lm):
         hand = hand - wrist
         max_dist = np.max(np.sum(np.abs(hand), axis=1))
         if max_dist == 0:
-            return None
+            # Allow zero-distance hands (single-hand gestures with zero padding)
+            return hand  # Return the wrist-centered hand without scaling
         hand /= max_dist
         return hand
 
@@ -220,7 +221,7 @@ def main():
     )
 
     # Save model with labels array for WebView compatibility
-    labels = sorted(label_to_idx, key=label_to_idx.get)
+    labels = sorted(label_to_idx.keys())
 
     # Atomic write to avoid partial reads
     tmp_path = MODEL_PATH + ".tmp"

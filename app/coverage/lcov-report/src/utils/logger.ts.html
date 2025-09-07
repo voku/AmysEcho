@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>20/20</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">78.57% </span>
+                <span class="strong">64.28% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/14</span>
+                <span class='fraction'>9/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>20/20</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -121,19 +121,8 @@
 <a name='L56'></a><a href='#L56'>56</a>
 <a name='L57'></a><a href='#L57'>57</a>
 <a name='L58'></a><a href='#L58'>58</a>
-<a name='L59'></a><a href='#L59'>59</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">21x</span>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -143,9 +132,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">23x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">21x</span>
+<span class="cline-any cline-yes">23x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">23x</span>
+<span class="cline-any cline-yes">23x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -155,8 +156,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -167,8 +168,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -177,7 +178,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">21x</span>
+<span class="cline-any cline-yes">23x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { LOG_LEVEL } from '../constants';
 &nbsp;
@@ -189,7 +191,7 @@ enum LogLevel {
 }
 &nbsp;
 declare const __DEV__: boolean | undefined;
-const isDev: boolean = typeof __DEV__ !== 'undefined' ? <span class="branch-0 cbranch-no" title="branch not covered" >__DEV__ </span>: false;
+const isDev: boolean = typeof __DEV__ !== 'undefined' ? __DEV__ : <span class="branch-1 cbranch-no" title="branch not covered" >false;</span>
 &nbsp;
 const levelMap: Record&lt;string, LogLevel&gt; = {
   debug: LogLevel.DEBUG,
@@ -202,8 +204,8 @@ class Logger {
   private level: LogLevel;
 &nbsp;
   constructor() {
-    const defaultLevel = isDev ? <span class="branch-0 cbranch-no" title="branch not covered" >LogLevel.DEBUG </span>: LogLevel.INFO;
-    this.level = levelMap[LOG_LEVEL] ?? <span class="branch-1 cbranch-no" title="branch not covered" >defaultLevel;</span>
+    const defaultLevel = isDev ? LogLevel.DEBUG : <span class="branch-1 cbranch-no" title="branch not covered" >LogLevel.INFO;</span>
+    this.level = levelMap[LOG_LEVEL] ?? defaultLevel;
   }
 &nbsp;
   debug(message: string, ...args: any[]): void {
@@ -213,19 +215,19 @@ class Logger {
   }
 &nbsp;
   info(message: string, ...args: any[]): void {
-    if (this.level &lt;= LogLevel.INFO) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.level &lt;= LogLevel.INFO) {
       console.log(`[INFO] ${message}`, ...args);
     }
   }
 &nbsp;
   warn(message: string, ...args: any[]): void {
-    if (this.level &lt;= LogLevel.WARN) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.level &lt;= LogLevel.WARN) {
       console.warn(`[WARN] ${message}`, ...args);
     }
   }
 &nbsp;
   error(message: string, ...args: any[]): void {
-    if (this.level &lt;= LogLevel.ERROR) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.level &lt;= LogLevel.ERROR) {
       console.error(`[ERROR] ${message}`, ...args);
     }
   }
@@ -236,6 +238,7 @@ class Logger {
 }
 &nbsp;
 export const logger = new Logger();
+export default logger;
 export { LogLevel };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -244,7 +247,7 @@ export { LogLevel };
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

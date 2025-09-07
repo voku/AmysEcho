@@ -6,11 +6,13 @@ This document describes the backend server endpoints used by Amy's Echo. All end
 
 Two rate limiters are applied:
 - **/dialog**: Limited by `DIALOG_LIMIT` (default `60` requests per minute).
-- **/api/* and other endpoints**: Limited by `API_LIMIT` (default `120` requests per minute).
+- **/api/** and other endpoints**: Limited by `API_LIMIT` (default `120` requests per minute).
 
 ## Endpoints
 
-### GET /api/analytics/profiles
+### Analytics
+
+#### GET /api/analytics/profiles
 Return the list of gesture profiles available.
 
 **Response**
@@ -20,7 +22,7 @@ Return the list of gesture profiles available.
 ]
 ```
 
-### GET /api/analytics/corrections
+#### GET /api/analytics/corrections
 Retrieve correction events. Optional query parameter `profileId` filters by profile.
 
 **Response**
@@ -35,7 +37,7 @@ Retrieve correction events. Optional query parameter `profileId` filters by prof
 ]
 ```
 
-### GET /api/analytics/usage-rates
+#### GET /api/analytics/usage-rates
 Retrieve symbol usage counts. Optional query parameter `profileId` filters by profile.
 
 **Response**
@@ -45,7 +47,7 @@ Retrieve symbol usage counts. Optional query parameter `profileId` filters by pr
 ]
 ```
 
-### GET /api/analytics/training-trends
+#### GET /api/analytics/training-trends
 Return learning analytics for gesture training progress.
 
 **Response**
@@ -62,10 +64,10 @@ Return learning analytics for gesture training progress.
 ]
 ```
 
-### GET /api/analytics/export
+#### GET /api/analytics/export
 Export analytics data as CSV. Query parameter `type` selects `corrections`, `usage`, or `training`. Optional `profileId` filters by profile.
 
-### GET /api/analytics/summary
+#### GET /api/analytics/summary
 Return aggregated metrics such as correction rate, uncertainty ratio, median latency, and top misclassifications. `medianLatencyMs` is `null` when no telemetry data is available, and `topMisclassifications` is an array of objects describing the most common errors.
 
 **Response**
@@ -80,7 +82,7 @@ Return aggregated metrics such as correction rate, uncertainty ratio, median lat
 }
 ```
 
-### POST /api/telemetry
+#### POST /api/telemetry
 Submit telemetry events recording gesture processing metrics and fallback usage. Accepts a single event object or an array of events. Returns `202 Accepted`.
 
 Each event includes:
@@ -101,7 +103,9 @@ Each event includes:
 { "status": "ok" }
 ```
 
-### POST /api/corrections
+### Corrections & Samples
+
+#### POST /api/corrections
 Log a caregiver correction when the system misclassifies a gesture. Returns `202 Accepted`.
 
 **Body**
@@ -114,8 +118,8 @@ Log a caregiver correction when the system misclassifies a gesture. Returns `202
 { "status": "queued" }
 ```
 
-### POST /api/negative-samples
-Record a negative sample for future model training. Returns `202 Accepted`.
+#### POST /api/negative-samples
+Record a negative sample for future model training. Returns `202İ Accepted`.
 
 **Body**
 ```json
@@ -127,7 +131,9 @@ Record a negative sample for future model training. Returns `202 Accepted`.
 { "status": "queued" }
 ```
 
-### POST /dialog
+### Dialog
+
+#### POST /dialog
 Ask the dialog engine for caregiver suggestions.
 
 **Body**
@@ -146,7 +152,9 @@ Ask the dialog engine for caregiver suggestions.
 }
 ```
 
-### POST /train-model
+### Model Training & Serving
+
+#### POST /train-model
 Upload labeled hand landmark samples and trigger model training.
 
 **Body**
@@ -176,11 +184,11 @@ Example error response
 Optional fields
 - `profileId` may be included per sample to support profile-aware training. Currently optional and ignored by validators.
 
-### GET /train-status
+#### GET /train-status/:id
 Check the status of a model training job.
 
-**Query Parameters**
-- `jobId` (required): The job ID returned from `/train-model`
+**URL Params**
+- `id` (required): The job ID returned from `/train-model`
 
 **Response**
 ```json
@@ -194,43 +202,7 @@ Check the status of a model training job.
 }
 ```
 
-### POST /prepare-dgs-model
-Trigger preparation of a German Sign Language model from video datasets.
-
-**Body**
-```json
-{
-  "datasetPath": "/path/to/dgs/videos",
-  "gestures": ["alle", "blau", "rot", "gelb", "gruen"],
-  "outputPath": "/path/to/output/model"
-}
-```
-
-**Response**
-```json
-{
-  "status": "queued",
-  "jobId": "dgs-prep-123",
-  "estimatedDuration": "30m"
-}
-```
-
-This endpoint processes DGS video datasets, extracts hand landmarks using MediaPipe, and trains an MLP model for gesture recognition.
-
-### POST /dialog
-Return LLM-powered word and phrase suggestions.
-
-Body
-```json
-{ "input": "hi", "context": ["play"], "language": "de", "age": 4 }
-```
-
-Response
-```json
-{ "nextWords": ["friend"], "caregiverPhrases": ["Good job!"] }
-```
-
-### GET /model-version
+#### GET /model-version
 Fetch the current model version and path information.
 
 **Response**
@@ -238,7 +210,7 @@ Fetch the current model version and path information.
 { "version": "1.0.0", "modelPath": "latest-model" }
 ```
 
-### GET /latest-model
+#### GET /latest-model
 Download the latest trained gesture model file.
 
 Query parameter `profileId` returns a profile-specific model if available.
@@ -248,7 +220,7 @@ Note: As of the centroid-based pipeline, this returns a JSON payload representin
 centroid model `{ type: "centroid_model", centroids, counts, updatedAt }`. Clients may
 continue to treat this as an opaque file and verify via `/model-metadata`.
 
-### GET /latest-mlp-model
+#### GET /latest-mlp-model
 Download the latest trained MLP weights file (NPZ format) for German Sign Language gesture recognition.
 
 Query parameter `profileId` returns a profile-specific model if available.
@@ -268,7 +240,7 @@ Query parameter `profileId` returns a profile-specific model if available.
 
 **Per-profile Authorization**: When requesting a profile-specific model (`?profileId=...`), clients must include header `X-Profile-Id: <profileId>`. If the header is missing or does not match, the server returns `403 Forbidden` without revealing whether the profile exists.
 
-### GET /model-metadata
+#### GET /model-metadata
 Return metadata about the current model file.
 
 Query parameter `profileId` mirrors `/latest-model` and `/latest-mlp-model` for profile-specific metadata.
@@ -286,66 +258,38 @@ Query parameter `profileId` mirrors `/latest-model` and `/latest-mlp-model` for 
 }
 ```
 
-### GET /model-metadata
-Return metadata about the current model file.
+### Crash Reports
 
-Query parameter `profileId` mirrors `/latest-model` for profile-specific metadata.
-`profileId` may contain only letters, numbers, underscores, and dashes.
+#### POST /api/crash-reports
+Submit crash reports. Accepts a single report object or an array of reports. Returns `202 Accepted`.
 
-**Response**
-```json
-{ "version": "1.0.0", "size": 1234, "sha256": "<hash>" }
-```
-
-### GET /latest-mlp-model
-Download the latest trained MLP weights file (NPZ).
-
-Query parameter `profileId` returns a profile-specific model if available.
-`profileId` may contain only letters, numbers, underscores, and dashes.
-
-Per-profile authorization: when requesting a profile-specific model (`?profileId=...`), clients must include header `X-Profile-Id: <profileId>`. If the header is missing or does not match, the server returns `403 Forbidden` without revealing whether the profile exists.
-
-Response headers:
-- `ETag`: Strong hash in the form `"sha256-<hex>"` for cache validation.
-- `X-Model-Version`: Monotonic version derived from file mtime (ms since epoch).
-- `X-Checksum-SHA256`: Hex digest of the file for integrity verification.
-- `Cache-Control`: `private, max-age=0, must-revalidate`.
-- `Content-Disposition`: `attachment; filename="dgs_model[_<profileId>].npz"`.
-- `Accept-Ranges`: `bytes` with support for HTTP range requests.
-
-Range requests: clients may include `Range: bytes=start-end`. The server replies with `206 Partial Content` and `Content-Range`.
-
-### POST /analytics
-Store high level analytics.
+Each report includes:
+- `id` (string)
+- `name` (string)
+- `message` (string)
+- `stack` (string, optional)
+- `timestamp` (number)
+- `extra` (object, optional)
 
 **Body**
 ```json
-{ "successRate7d": 0.9, "improvementTrend": 0.2 }
+[
+  { "id": "...", "name": "Error", "message": "...", "timestamp": 1700000000000 }
+]
 ```
 
 **Response**
 ```json
-{ "status": "ok" }
+{ "status": "ok", "saved": 1 }
 ```
 
-### GET /analytics
-Retrieve stored analytics summary.
+### Portal
 
-**Response**
-```json
-{
-  "id": "default",
-  "gestureDefinitionId": "default",
-  "successRate24h": 0,
-  "successRate7d": 0.9,
-  "avgConfidenceScore": 0,
-  "improvementTrend": 0.2,
-  "lastCalculated": 1700000000000
-}
-```
+#### GET /portal
+Serves the main portal HTML file.
 
-### POST /api/classify-landmarks (optional)
-This endpoint is deprecated for the mobile app, which performs on-device classification via MediaPipe Tasks JS. It remains available for experiments and server-side analytics.
+#### GET /caregiver-portal
+Serves the caregiver portal HTML file.
 
-### POST /classify (legacy)
-Legacy endpoint for historical reference. Not used by the current mobile client.
+#### GET /api/caregiver-portal/*
+API routes for the caregiver portal.

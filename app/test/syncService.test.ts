@@ -1,11 +1,10 @@
-const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+// Mock all dependencies before importing the module
 const mockDatabase = {
   get: jest.fn(),
   write: jest.fn(async (fn: any) => { await fn(); }),
 };
-let mockSamples: any[] = [];
 
-jest.mock('../db', () => ({
+jest.mock('../../db', () => ({
   database: mockDatabase,
   GestureTrainingData: class {},
 }));
@@ -20,9 +19,8 @@ jest.mock('../src/constants', () => ({
   API_TOKEN: 'token',
 }));
 
-jest.mock('../src/utils/logger', () => ({
-  logger: mockLogger,
-}));
+import { logger as appLogger } from '../src/utils/logger';
+const mockLogger = appLogger as unknown as { info: jest.Mock; warn: jest.Mock; error: jest.Mock };
 
 jest.mock('../src/services/modelUpdate', () => ({
   refreshDgsModel: jest.fn(async () => 'centroid'),
@@ -36,13 +34,18 @@ jest.mock('../src/services/analytics', () => ({
   uploadTelemetry: jest.fn(async () => {})
 }));
 
-import { syncService } from '../src/services/syncService';
+// Import after mocks are set up
+import { syncService, __setDatabaseForTests } from '../src/services/syncService';
 import { refreshDgsModel } from '../src/services/modelUpdate';
 import { telemetry } from '../src/telemetry/recorder';
 import { uploadTelemetry } from '../src/services/analytics';
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Reset logger spies
+  mockLogger.info = jest.fn();
+  mockLogger.warn = jest.fn();
+  mockLogger.error = jest.fn();
   const sample: {
     landmarkData: string;
     gestureDefinition: { id: string };
@@ -65,6 +68,7 @@ beforeEach(() => {
   (global as any).fetch = jest.fn(async () => ({ ok: true }));
   (telemetry.dump as jest.Mock).mockResolvedValue([]);
   (uploadTelemetry as jest.Mock).mockResolvedValue(undefined);
+  __setDatabaseForTests(mockDatabase);
 });
 
 afterEach(() => {
@@ -130,9 +134,9 @@ describe('consent caching', () => {
     jest.useFakeTimers();
     const t0 = new Date('2025-01-01T00:00:00Z');
     jest.setSystemTime(t0);
-    mockSamples = [];
+    const mockSamples = [];
     mockDatabase.get.mockReturnValue({
-      query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue([]) })),
+      query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue(mockSamples) })),
     });
 
     await jest.isolateModulesAsync(async () => {
@@ -180,4 +184,3 @@ describe('telemetry sync', () => {
     expect(uploadTelemetry).not.toHaveBeenCalled();
   });
 });
-

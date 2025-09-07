@@ -13,63 +13,7 @@ interface CorrectionPanelProps {
 }
 
 // Enhanced gesture icon mapping - visual representations for common gestures
-const getGestureIcon = (gestureId: string) => {
-  const iconSize = 48;
-
-  switch (gestureId) {
-    case 'hello':
-      return (
-        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Path d="M7 4v16l13-8L7 4z" stroke="#4CAF50" strokeWidth={2} fill="#4CAF50" fillOpacity={0.2} />
-          <Path d="M7 4v16" stroke="#4CAF50" strokeWidth={2} />
-        </Svg>
-      );
-    case 'thank_you':
-      return (
-        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="#FF5722" strokeWidth={2} fill="#FF5722" fillOpacity={0.2} />
-        </Svg>
-      );
-    case 'please':
-      return (
-        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={10} stroke="#2196F3" strokeWidth={2} />
-          <Path d="M8 12l2 2 4-4" stroke="#2196F3" strokeWidth={2} />
-        </Svg>
-      );
-    case 'help':
-      return (
-        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={10} stroke="#F44336" strokeWidth={2} />
-          <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#F44336" strokeWidth={2} />
-          <Path d="M12 17h.01" stroke="#F44336" strokeWidth={2} />
-        </Svg>
-      );
-    case 'yes':
-      return (
-        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={10} stroke="#4CAF50" strokeWidth={2} />
-          <Path d="M8 12l2 2 4-4" stroke="#4CAF50" strokeWidth={2} />
-        </Svg>
-      );
-    case 'no':
-      return (
-        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={10} stroke="#F44336" strokeWidth={2} />
-          <Path d="M8 8l8 8M16 8l-8 8" stroke="#F44336" strokeWidth={2} />
-        </Svg>
-      );
-    default:
-      return (
-        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={10} stroke="#9E9E9E" strokeWidth={2} />
-          <Path d="M8 12l2 2 4-4" stroke="#9E9E9E" strokeWidth={2} />
-        </Svg>
-      );
-  }
-};
-
-const getGestureIcon = (gestureId: string) => {
+export const getGestureIcon = (gestureId: string) => {
   const iconSize = 48;
 
   switch (gestureId) {

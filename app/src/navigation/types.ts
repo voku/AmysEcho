@@ -6,6 +6,7 @@ export type RootStackParamList = {
   Correction: undefined;
   Training: { gestureLabel?: string; isPractice?: boolean };
   Practice: undefined;
+  GesturePractice: undefined;
   Teach: undefined;
   Teaching: undefined;
   Parent: undefined;

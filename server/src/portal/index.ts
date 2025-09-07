@@ -1,8 +1,8 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { loadAnalyticsFromFile } from '../services/analyticsService';
-import { TRAINED_MODEL_PATH } from '../constants/modelPaths';
-import { DB_FILE_PATH } from '../constants/dbPaths';
+import { loadAnalyticsFromFile } from '../services/analyticsService.js';
+import { TRAINED_MODEL_PATH } from '../constants/modelPaths.js';
+import { DB_FILE_PATH } from '../constants/dbPaths.js';
 import {
   loadDatabase,
   saveDatabase,
@@ -10,7 +10,7 @@ import {
   removeGestureTrainingData,
   getGestureTrainingDataById,
   updateGestureTrainingData,
-} from '../db';
+} from '../db.js';
 import { promises as fs } from 'fs';
 
 const router = express.Router();

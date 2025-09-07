@@ -12,6 +12,7 @@ jest.mock('react-native', () => {
 import ScheduleScreen from '../../src/screens/ScheduleScreen';
 
 jest.mock('../../src/components/VisualSchedule', () => {
+  const React = require('react');
   return ({ onActivityPress, onScheduleComplete }: any) => {
     return React.createElement('VisualSchedule', {
       onActivityPress,
@@ -22,6 +23,7 @@ jest.mock('../../src/components/VisualSchedule', () => {
 });
 
 jest.mock('../../src/components/BottomNav', () => {
+  const React = require('react');
   return ({ active, profileId }: any) => {
     return React.createElement('BottomNav', {
       active,

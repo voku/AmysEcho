@@ -15,7 +15,7 @@ jest.mock('react-native', () => {
       ),
     SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
     Animated: {
-      Value: class { constructor(public v: any) {} },
+      Value: jest.fn().mockImplementation((initialValue: any) => ({ _value: initialValue })),
       timing: () => ({ start: jest.fn() }),
       spring: () => ({ start: jest.fn() }),
       View: (p: any) => React.createElement('Animated.View', p, p.children),

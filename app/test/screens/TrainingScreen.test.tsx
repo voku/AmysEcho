@@ -62,11 +62,14 @@ jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   };
 });
 
-jest.mock('react-native-svg', () => ({
-  __esModule: true,
-  default: (p: any) => React.createElement('Svg', p, p.children),
-  Circle: (p: any) => React.createElement('Circle', p),
-}));
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: (p: any) => React.createElement('Svg', p, p.children),
+    Circle: (p: any) => React.createElement('Circle', p),
+  };
+});
 
 import TrainingScreen from '../../src/screens/TrainingScreen';
 

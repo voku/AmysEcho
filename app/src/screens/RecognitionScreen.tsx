@@ -236,6 +236,178 @@ export default function RecognitionScreen({
     return shortcuts[gestureId] || null;
   }, []);
 
+
+
+  const getShortcutMessage = useCallback((action: string): string => {
+    const messages: Record<string, string> = {
+      // Core navigation shortcuts
+      'help_screen': '🆘 Öffne Hilfeseite',
+      'training_screen': '🎯 Starte Training',
+      'practice_screen': '✨ Starte Übung',
+      'parent_screen': '👨‍👩‍👧 Öffne Elternbereich',
+      'correction_screen': '🔧 Öffne Korrektur',
+      'profile_screen': '👤 Öffne Profile',
+      'dashboard_screen': '📊 Öffne Auswertung',
+      'progress_screen': '📈 Öffne Fortschritt',
+      'schedule_screen': '📅 Öffne Tagesplan',
+
+      // Celebration and success shortcuts
+      'celebration_mode': '🎉 Super gemacht! Du bist toll!',
+
+      // Enhanced shortcuts for Amy's needs
+      'home_screen': '🏠 Du bist bereits zu Hause!',
+      'confirm_action': '✅ Aktion bestätigt!',
+      'cancel_action': '❌ Aktion abgebrochen',
+      'repeat_last': '🔄 Letzte Geste wiederholt',
+      'play_mode': '🎮 Spielmodus aktiviert!',
+
+      // Quick action shortcuts
+      'stop_current': '⏹️ Aktivität gestoppt',
+      'pause_current': '⏸️ Aktivität pausiert',
+      'start_current': '▶️ Aktivität gestartet',
+      'next_item': '⏭️ Nächstes Element',
+      'previous_item': '⏮️ Vorheriges Element',
+    };
+    return messages[action] || '⚡ Schnellaktion ausgeführt';
+  }, []);
+
+  const provideInstantFeedback = useCallback(async (
+    gesture: string,
+    confidence: number,
+    isSuccessful: boolean,
+  ) => {
+    // Amy First: Always provide immediate, positive feedback for every gesture attempt
+    if (isSuccessful) {
+      // Successful gesture - full celebration
+      const entry = (gestureModel.gestures.find((g) => g.id === gesture) || { id: gesture, label: gesture }) as GestureModelEntry;
+      const localizedLabel = LanguageManager.getGestureLabel(entry.id);
+      const labelForUser = localizedLabel !== `gestures.${entry.id}` ? localizedLabel : entry.label;
+
+      if (!screenReaderEnabled) {
+        void triggerSpeakAndShow(labelForUser, confidence, startFeedbackAnimation);
+
+        // Use Amy's selected success sound (from profile or global setting)
+        const selectedSound = profile?.successSound || successSound || 'success';
+        void audioService.playSound(selectedSound, { volume: 0.8 });
+      }
+      announceGestureRecognition(labelForUser, confidence);
+    } else {
+      // Amy First: Every attempt deserves positive reinforcement
+      if (!screenReaderEnabled) {
+        // Provide gentle but noticeable haptic feedback for all attempts
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        // Play encouraging sound for every attempt
+        void audioService.playSound('confirmation', { volume: 0.5 });
+      }
+
+      // Always show encouraging messages - never discourage Amy
+      const encouragingMessage = getSuccessMessage();
+      setStatus(encouragingMessage);
+
+      // Visual feedback - positive animation for every attempt
+      fadeAnim.setValue(0.7);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [screenReaderEnabled, startFeedbackAnimation, fadeAnim, profile?.successSound, successSound]);
+
+  // Helper function to map gestures to shortcut actions
+  const getShortcutAction = useCallback((gesture: string): string | null => {
+    const shortcutMap: Record<string, string> = {
+      // Navigation shortcuts
+      'help': 'help_screen',
+      'hilfe': 'help_screen',
+      'learn': 'training_screen',
+      'lernen': 'training_screen',
+      'practice': 'practice_screen',
+      'üben': 'practice_screen',
+      'übung': 'practice_screen',
+      'parent': 'parent_screen',
+      'eltern': 'parent_screen',
+      'mama': 'parent_screen',
+      'papa': 'parent_screen',
+      'correct': 'correction_screen',
+      'korrigieren': 'correction_screen',
+      'richtig': 'correction_screen',
+      'profile': 'profile_screen',
+      'profil': 'profile_screen',
+      'settings': 'profile_screen',
+      'einstellungen': 'profile_screen',
+      'dashboard': 'dashboard_screen',
+      'stats': 'dashboard_screen',
+      'statistik': 'dashboard_screen',
+      'progress': 'progress_screen',
+      'fortschritt': 'progress_screen',
+      'schedule': 'schedule_screen',
+      'plan': 'schedule_screen',
+      'tagesplan': 'schedule_screen',
+
+      // Action shortcuts
+      'celebration': 'celebration_mode',
+      'feiern': 'celebration_mode',
+      'home': 'home_screen',
+      'haus': 'home_screen',
+      'confirm': 'confirm_action',
+      'bestätigen': 'confirm_action',
+      'ja': 'confirm_action',
+      'cancel': 'cancel_action',
+      'abbrechen': 'cancel_action',
+      'nein': 'cancel_action',
+      'repeat': 'repeat_last',
+      'wiederholen': 'repeat_last',
+      'nochmal': 'repeat_last',
+      'play': 'play_mode',
+      'spielen': 'play_mode',
+      'spiel': 'play_mode',
+      'stop': 'stop_current',
+      'anhalten': 'stop_current',
+      'pause': 'pause_current',
+      'pausieren': 'pause_current',
+      'start': 'start_current',
+      'beginnen': 'start_current',
+      'next': 'next_item',
+      'nächste': 'next_item',
+      'weiter': 'next_item',
+      'previous': 'previous_item',
+      'vorherige': 'previous_item',
+      'zurück': 'previous_item',
+    };
+
+    return shortcutMap[gesture] || null;
+  }, []);
+
+  // Helper function to get user-friendly display name for shortcuts
+  const getShortcutDisplayName = useCallback((action: string): string => {
+    const displayNames: Record<string, string> = {
+      'help_screen': 'Hilfe',
+      'training_screen': 'Lernen',
+      'practice_screen': 'Üben',
+      'parent_screen': 'Elternbereich',
+      'correction_screen': 'Korrektur',
+      'profile_screen': 'Profile',
+      'dashboard_screen': 'Auswertung',
+      'progress_screen': 'Fortschritt',
+      'schedule_screen': 'Tagesplan',
+      'celebration_mode': 'Feiermodus',
+      'home_screen': 'Startseite',
+      'confirm_action': 'Bestätigung',
+      'cancel_action': 'Abbruch',
+      'repeat_last': 'Wiederholung',
+      'play_mode': 'Spielmodus',
+      'stop_current': 'Stopp',
+      'pause_current': 'Pause',
+      'start_current': 'Start',
+      'next_item': 'Nächstes',
+      'previous_item': 'Vorheriges',
+    };
+
+    return displayNames[action] || action;
+  }, []);
+
   const executeGestureShortcut = useCallback(async (
     action: string,
     navigation: any,
@@ -338,83 +510,6 @@ export default function RecognitionScreen({
     }
   }, [pendingGesture, lastRecognizedGesture, provideInstantFeedback]);
 
-  const getShortcutMessage = useCallback((action: string): string => {
-    const messages: Record<string, string> = {
-      // Core navigation shortcuts
-      'help_screen': '🆘 Öffne Hilfeseite',
-      'training_screen': '🎯 Starte Training',
-      'practice_screen': '✨ Starte Übung',
-      'parent_screen': '👨‍👩‍👧 Öffne Elternbereich',
-      'correction_screen': '🔧 Öffne Korrektur',
-      'profile_screen': '👤 Öffne Profile',
-      'dashboard_screen': '📊 Öffne Auswertung',
-      'progress_screen': '📈 Öffne Fortschritt',
-      'schedule_screen': '📅 Öffne Tagesplan',
-
-      // Celebration and success shortcuts
-      'celebration_mode': '🎉 Super gemacht! Du bist toll!',
-
-      // Enhanced shortcuts for Amy's needs
-      'home_screen': '🏠 Du bist bereits zu Hause!',
-      'confirm_action': '✅ Aktion bestätigt!',
-      'cancel_action': '❌ Aktion abgebrochen',
-      'repeat_last': '🔄 Letzte Geste wiederholt',
-      'play_mode': '🎮 Spielmodus aktiviert!',
-
-      // Quick action shortcuts
-      'stop_current': '⏹️ Aktivität gestoppt',
-      'pause_current': '⏸️ Aktivität pausiert',
-      'start_current': '▶️ Aktivität gestartet',
-      'next_item': '⏭️ Nächstes Element',
-      'previous_item': '⏮️ Vorheriges Element',
-    };
-    return messages[action] || '⚡ Schnellaktion ausgeführt';
-  }, []);
-
-  const provideInstantFeedback = useCallback(async (
-    gesture: string,
-    confidence: number,
-    isSuccessful: boolean,
-  ) => {
-    // Amy First: Always provide immediate, positive feedback for every gesture attempt
-    if (isSuccessful) {
-      // Successful gesture - full celebration
-      const entry = (gestureModel.gestures.find((g) => g.id === gesture) || { id: gesture, label: gesture }) as GestureModelEntry;
-      const localizedLabel = LanguageManager.getGestureLabel(entry.id);
-      const labelForUser = localizedLabel !== `gestures.${entry.id}` ? localizedLabel : entry.label;
-
-      if (!screenReaderEnabled) {
-        void triggerSpeakAndShow(labelForUser, confidence, startFeedbackAnimation);
-
-        // Use Amy's selected success sound (from profile or global setting)
-        const selectedSound = profile?.successSound || successSound || 'success';
-        void audioService.playSound(selectedSound, { volume: 0.8 });
-      }
-      announceGestureRecognition(labelForUser, confidence);
-    } else {
-      // Amy First: Every attempt deserves positive reinforcement
-      if (!screenReaderEnabled) {
-        // Provide gentle but noticeable haptic feedback for all attempts
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        // Play encouraging sound for every attempt
-        void audioService.playSound('confirmation', { volume: 0.5 });
-      }
-
-      // Always show encouraging messages - never discourage Amy
-      const encouragingMessage = getSuccessMessage();
-      setStatus(encouragingMessage);
-
-      // Visual feedback - positive animation for every attempt
-      fadeAnim.setValue(0.7);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [screenReaderEnabled, startFeedbackAnimation, fadeAnim, profile?.successSound, successSound]);
-
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
     AccessibilityInfo.isScreenReaderEnabled
@@ -466,13 +561,17 @@ export default function RecognitionScreen({
   }, []);
 
   const handleGestureDetected = useCallback(async (
-    g: string | null,
-    c: number,
-    path: RecognitionPath,
+    gesture: string | null,
+    confidence: number,
     landmarks: number[][][],
     handedness: string[],
     emergency = false,
   ) => {
+    // Initialize variables from parameters
+    let g = gesture;
+    let c = confidence;
+    let path: RecognitionPath = 'local';
+
     // Amy First: Provide haptic feedback for EVERY detected hand movement
     // This gives Amy immediate sensory confirmation that her gesture was detected
     if (!screenReaderEnabled) {
@@ -493,6 +592,23 @@ export default function RecognitionScreen({
     setShowVisualRipple(true);
     setTimeout(() => setShowVisualRipple(false), 800); // Match ripple duration
 
+    // Amy First: Check for navigation shortcut gestures
+    // These allow Amy to navigate quickly without using menus
+    if (g && c > 0.7) { // Only trigger shortcuts for confident detections
+      const shortcutAction = getShortcutAction(g);
+      if (shortcutAction) {
+        logger.info(`Gesture shortcut triggered: ${g} -> ${shortcutAction}`);
+        setShortcutActivated(shortcutAction);
+
+        // Execute the shortcut action
+        void executeGestureShortcut(shortcutAction, navigation, profile?.id || 'default');
+
+        // Provide immediate feedback
+        setStatus(`🔄 Gehe zu ${getShortcutDisplayName(shortcutAction)}`);
+        return; // Don't process as regular gesture
+      }
+    }
+
     // Amy First: Trigger screen flash for successful gestures in quiet environments
     // This provides LED-like visual feedback without audio
     if (g && c > 0.7) {
@@ -511,9 +627,6 @@ export default function RecognitionScreen({
       return;
     }
     lastFrameTimeRef.current = ts;
-    let g = gesture;
-    let c = confidence;
-    let path: RecognitionPath = 'local';
 
     if (
       centroidsRef.current &&
@@ -571,24 +684,7 @@ export default function RecognitionScreen({
         setLastRecognizedGesture(entry);
         setStatus(entry.label);
 
-        // Check for gesture shortcuts before providing normal feedback
-        const shortcutAction = getGestureShortcut(entry.id);
-        if (shortcutAction) {
-          // Execute shortcut action
-          void executeGestureShortcut(shortcutAction, navigation, profile?.id || 'default');
-          // Provide special feedback for shortcuts
-          const shortcutMessage = getShortcutMessage(shortcutAction);
-          setStatus(shortcutMessage);
-          setShortcutActivated(shortcutAction);
 
-          // Clear shortcut activation after 2 seconds
-          setTimeout(() => setShortcutActivated(null), 2000);
-
-          if (!screenReaderEnabled) {
-            void audioService.speak(shortcutMessage);
-          }
-          return; // Skip normal processing for shortcuts
-        }
 
         if (shouldProvideFeedback) {
           lastSuccessAtRef.current = now;
@@ -1127,7 +1223,7 @@ export default function RecognitionScreen({
         testID="btn-correction"
         title="Korrektur"
         accessibilityLabel="Korrekturseite öffnen"
-        onPress={() => navigation.navigate('Correction', { attemptedGesture: lastRecognizedGesture?.id })}
+        onPress={() => navigation.navigate('Correction')}
       />
       <Button
         testID="btn-help-me-choose"

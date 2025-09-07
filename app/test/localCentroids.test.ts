@@ -1,20 +1,10 @@
 const store: Record<string, string> = {};
-const asyncStub = {
-  async getItem(key: string) {
-    return store[key] ?? null;
-  },
-  async setItem(key: string, value: string) {
-    store[key] = value;
-  },
-  async removeItem(key: string) {
-    delete store[key];
-  },
-  async clear() {
-    for (const k of Object.keys(store)) delete store[k];
-  },
-};
-
-jest.mock('@react-native-async-storage/async-storage', () => asyncStub);
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: async (key: string) => store[key] ?? null,
+  setItem: async (key: string, value: string) => { store[key] = value; },
+  removeItem: async (key: string) => { delete store[key]; },
+  clear: async () => { for (const k of Object.keys(store)) delete store[k]; },
+}));
 
 import { buildLocalCentroids, getLocalCentroidSummary } from '../src/services/localCentroids';
 

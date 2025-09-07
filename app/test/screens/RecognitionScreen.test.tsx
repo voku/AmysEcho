@@ -10,12 +10,18 @@ jest.mock('react-native', () => {
     Switch: (props: any) => React.createElement('Switch', props, props.children),
     SafeAreaView: (props: any) => React.createElement('SafeAreaView', props, props.children),
     StyleSheet: { create: (s: any) => s },
+    Dimensions: { get: jest.fn(() => ({ width: 375, height: 667 })) },
     Animated: {
-      Value: class { constructor(public v: any) {} setValue(_: any) {} },
+      Value: jest.fn().mockImplementation((initialValue: any) => ({
+        _value: initialValue,
+        setValue: jest.fn(),
+        interpolate: jest.fn(() => ({ __isAnimatedInterpolation: true }))
+      })),
       timing: () => ({ start: jest.fn() }),
       spring: () => ({ start: jest.fn() }),
       delay: () => ({ start: jest.fn(), stop: jest.fn() }),
       sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
+      parallel: () => ({ start: jest.fn(), stop: jest.fn() }),
       View: (p: any) => React.createElement('Animated.View', p, p.children),
       Text: (p: any) => React.createElement('Animated.Text', p, p.children),
     },
@@ -39,6 +45,14 @@ jest.mock('../../src/services/LanguageManager', () => ({
         : k,
     getGestureLabel: (id: string) => (id === 'hello' ? 'Hallo' : id),
   },
+}));
+
+jest.mock('../../src/context/ThemeContext', () => ({
+  ThemeProvider: ({ children }: any) => children,
+  useTheme: () => ({
+    theme: 'light',
+    toggleTheme: jest.fn(),
+  }),
 }));
 
 import RecognitionScreen from '../../src/screens/RecognitionScreen';

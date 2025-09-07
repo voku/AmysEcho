@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import path from 'path';
+import config from './config/index.js';
 
 export type ClassificationResult = {
   label: string;
@@ -7,8 +8,7 @@ export type ClassificationResult = {
   processedBy: 'cloud' | 'local';
 };
 
-const CLOUD_API_URL =
-  process.env.CLOUD_API_URL || 'http://localhost:4000/classify';
+const CLOUD_API_URL = config.cloudApiUrl;
 
 const CLOUD_TIMEOUT_MS = 400;
 
@@ -34,12 +34,11 @@ async function classifyOnline(landmarks: unknown): Promise<ClassificationResult>
 
 let offlineModel: Record<string, number[]> | null = null;
 
-function loadOfflineModel(): void {
-  if (offlineModel) return;
-  const modelPath =
-    process.env.OFFLINE_MODEL_PATH || path.join(__dirname, 'offlineModel.json');
+function loadOfflineModel(modelPath?: string, forceReload = false): void {
+  if (offlineModel && !forceReload) return;
+  const pathToUse = modelPath || config.offlineModelPath;
   try {
-    const raw = readFileSync(modelPath, 'utf8');
+    const raw = readFileSync(pathToUse, 'utf8');
     const parsed = JSON.parse(raw) as
       | Record<string, number[]>
       | { model: Record<string, number[]> };
@@ -56,8 +55,8 @@ function flattenLandmarks(data: unknown): number[] {
   return (data as any[]).flat(Infinity).map((v) => Number(v ?? 0));
 }
 
-function classifyOffline(landmarks: unknown): ClassificationResult {
-  loadOfflineModel();
+function classifyOffline(landmarks: unknown, modelPath?: string, forceReload = false): ClassificationResult {
+  loadOfflineModel(modelPath, forceReload);
   const input = flattenLandmarks(landmarks);
   if (!offlineModel || input.length === 0) {
     return { label: 'unknown', confidence: 0.5, processedBy: 'local' };
@@ -85,10 +84,12 @@ function classifyOffline(landmarks: unknown): ClassificationResult {
 
 export async function classifyGesture(
   landmarks: unknown,
+  modelPath?: string,
+  forceReload = false,
 ): Promise<ClassificationResult> {
   try {
     return await classifyOnline(landmarks);
   } catch {
-    return classifyOffline(landmarks);
+    return classifyOffline(landmarks, modelPath, forceReload);
   }
 }

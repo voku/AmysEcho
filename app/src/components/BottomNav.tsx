@@ -41,7 +41,7 @@ export default function BottomNav({ active, profileId }: Props) {
       }
       return newHistory;
     });
-  }, [route.name, navigation]);
+  }, [route.name]);
 
   // Enhanced breadcrumb system - show navigation path
   const getCurrentScreenName = () => {

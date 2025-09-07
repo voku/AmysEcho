@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "test": "jest --runInBand --detectOpenHandles --coverage",
-    "type-check": "tsc --noEmit --project tsconfig.json",
+    "type-check": "npx tsc --noEmit --project tsconfig.json",
     "build:android-dev": "eas build --platform android --profile development --non-interactive",
     "build:android": "eas build --platform android --profile production --non-interactive",
     "build:android-apk": "eas build --platform android --profile apk --non-interactive",
@@ -18,7 +18,7 @@
     "build:webview": "esbuild webview/gestureDetector.ts --bundle --format=iife --outfile=assets/gestureDetector.js --banner:js='// Generated from app/webview/gestureDetector.ts; run npm run build:webview --prefix app'"
   },
   "dependencies": {
-    "@nozbe/watermelondb": "0.28.0",
+    "@nozbe/watermelondb": "^0.25.5",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/netinfo": "11.4.1",
     "@react-navigation/native": "6.1.18",
@@ -40,7 +40,8 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "13.13.5",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@babel/core": "7.28.3",
@@ -62,7 +63,7 @@
     "jest": "29.7.0",
     "jest-expo": "^53.0.10",
     "ts-jest": "29.4.1",
-    "typescript": "5.8.3",
+    "typescript": "^5.8.3",
     "typescript-eslint": "^8.42.0"
   },
   "lint-staged": {

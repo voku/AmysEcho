@@ -1,10 +1,12 @@
 import { promises as fs } from 'fs';
 import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
-import { DB_FILE_PATH } from '../constants/dbPaths';
+import { DB_FILE_PATH } from '../constants/dbPaths.js';
 
 const iv = randomBytes(16);
-const password = process.env.BACKUP_SECRET || 'default-secret-password';
+import config from '../config/index.js';
+
+const password = config.backupSecret;
 
 async function createBackup(): Promise<Buffer> {
   const dbContent = await fs.readFile(DB_FILE_PATH);

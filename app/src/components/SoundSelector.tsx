@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: SPACING.md,
     margin: SPACING.md,
-    shadowColor: COLORS.shadow,
+    shadowColor: COLORS.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     textAlign: 'center',
     marginBottom: SPACING.lg,
   },
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     maxHeight: 300,
   },
   soundOption: {
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
     borderRadius: 8,
     marginBottom: SPACING.sm,
     padding: SPACING.md,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   },
   soundDescription: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     textAlign: 'center',
     marginBottom: SPACING.xs,
   },

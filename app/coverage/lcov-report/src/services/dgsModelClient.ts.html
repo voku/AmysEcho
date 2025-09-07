@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">62.02% </span>
+                <span class="strong">58.9% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>49/79</span>
+                <span class='fraction'>43/73</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">58.13% </span>
+                <span class="strong">58.69% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>25/43</span>
+                <span class='fraction'>27/46</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">71.42% </span>
+                <span class="strong">76.92% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>10/14</span>
+                <span class='fraction'>10/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.18% </span>
+                <span class="strong">65% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>45/66</span>
+                <span class='fraction'>39/60</span>
             </div>
         
             
@@ -183,7 +183,7 @@
 <a name='L118'></a><a href='#L118'>118</a>
 <a name='L119'></a><a href='#L119'>119</a>
 <a name='L120'></a><a href='#L120'>120</a>
-<a name='L121'></a><a href='#L121'>121</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
+<a name='L121'></a><a href='#L121'>121</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
@@ -195,7 +195,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -218,9 +218,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
@@ -238,7 +238,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -254,7 +254,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -263,7 +263,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -299,7 +299,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -337,10 +337,10 @@ type StorageLike = {
 &nbsp;
 async function getStorage(): Promise&lt;StorageLike&gt; {
   try {
-    if (typeof (globalThis as any).window === 'undefined') {
-      throw new Error('no window');
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof (globalThis as any).window === 'undefined') {
+<span class="cstat-no" title="statement not covered" >      throw new Error('no window');</span>
     }
-    const mod = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >await import('</span>@react-native-async-storage/async-storage');</span>
+    const mod = await import('@react-native-async-storage/async-storage');
 <span class="cstat-no" title="statement not covered" >    return mod.default as StorageLike;</span>
   } catch {
     const mem = new Map&lt;string, string&gt;();
@@ -349,7 +349,7 @@ async function getStorage(): Promise&lt;StorageLike&gt; {
         mem.set(key, value);
       },
       async getItem(key: string) {
-        return mem.get(key)<span class="branch-0 cbranch-no" title="branch not covered" > ?? n</span>ull;
+        return mem.get(key) ?? null;
       },
     };
   }
@@ -361,9 +361,9 @@ export type CentroidMap = Record&lt;string, Point[]&gt;;
 export async function <span class="fstat-no" title="function not covered" >fetchCentroids(</span>profileId?: string): Promise&lt;{ centroids: CentroidMap; counts: Record&lt;string, number&gt; } | null&gt; {
 <span class="cstat-no" title="statement not covered" >  try {</span>
     const url = <span class="cstat-no" title="statement not covered" >new URL('/api/v1/dgs/model', getApiUrl());</span>
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (profileId) <span class="cstat-no" title="statement not covered" >url.searchParams.set('profileId', profileId);</span></span>
+<span class="cstat-no" title="statement not covered" >    if (profileId) <span class="cstat-no" title="statement not covered" >url.searchParams.set('profileId', profileId);</span></span>
     const resp = <span class="cstat-no" title="statement not covered" >await fetch(url.toString(), { headers: { Authorization: `Bearer ${getApiToken()}` } });</span>
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!resp.ok) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+<span class="cstat-no" title="statement not covered" >    if (!resp.ok) <span class="cstat-no" title="statement not covered" >return null;</span></span>
     const data = <span class="cstat-no" title="statement not covered" >await resp.json();</span>
     const storage = <span class="cstat-no" title="statement not covered" >await getStorage();</span>
 <span class="cstat-no" title="statement not covered" >    await storage.setItem(`${KEY}:${profileId || 'global'}`, JSON.stringify(data));</span>
@@ -377,7 +377,7 @@ export async function <span class="fstat-no" title="function not covered" >fetch
 export async function <span class="fstat-no" title="function not covered" >getCachedCentroids(</span>profileId?: string): Promise&lt;{ centroids: CentroidMap; counts: Record&lt;string, number&gt; } | null&gt; {
   const storage = <span class="cstat-no" title="statement not covered" >await getStorage();</span>
   const raw = <span class="cstat-no" title="statement not covered" >await storage.getItem(`${KEY}:${profileId || 'global'}`);</span>
-<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (!raw) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+<span class="cstat-no" title="statement not covered" >  if (!raw) <span class="cstat-no" title="statement not covered" >return null;</span></span>
 <span class="cstat-no" title="statement not covered" >  try { <span class="cstat-no" title="statement not covered" >return JSON.parse(raw); </span>} catch { <span class="cstat-no" title="statement not covered" >return null; </span>}</span>
 }
 &nbsp;
@@ -394,7 +394,7 @@ export async function fetchMlpModel(profileId?: string): Promise&lt;string | nul
     const prevMetaRaw = await storage.getItem(`${MLP_META_KEY}:${profileId || 'global'}`);
     let prevMeta: MlpMeta | null = null;
     try { prevMeta = prevMetaRaw ? <span class="branch-0 cbranch-no" title="branch not covered" >JSON.parse(prevMetaRaw) </span>: null; } catch {}
-    <span class="missing-if-branch" title="if path not taken" >I</span>if (<span class="branch-1 cbranch-no" title="branch not covered" ><span class="branch-1 cbranch-no" title="branch not covered" >prevMeta?.e</span>tag)</span> <span class="cstat-no" title="statement not covered" >headers['If-None-Match'] = prevMeta.etag;</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (prevMeta?.etag) <span class="cstat-no" title="statement not covered" >headers['If-None-Match'] = prevMeta.etag;</span>
 &nbsp;
     const resp = await fetch(url.toString(), { headers });
     if (resp.status === 304) {
@@ -430,7 +430,7 @@ export async function <span class="fstat-no" title="function not covered" >getCa
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -33,6 +33,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
+  const [appState, setAppState] = useState(AppState.currentState);
   const [landmarks, setLandmarks] = useState<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,11 +48,6 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, [isRecording]);
 
   // No-op: local landmark model removed.
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isFocused = useIsFocused();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [appState, setAppState] = useState(AppState.currentState);
   useEffect(() => {
     const sub = AppState.addEventListener('change', setAppState);
     return () => sub.remove();

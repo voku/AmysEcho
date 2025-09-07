@@ -2,6 +2,7 @@
 // LLM Hint: Define a clear type for the expected JSON response from the LLM.
 // This helps with type safety and makes it clear what structure the prompt should request.
 import { z } from 'zod';
+import config from '../config/index.js';
 
 export type LLMSuggestionResponse = {
   nextWords: string[];
@@ -27,7 +28,9 @@ export interface LLMSuggestions {
 }
 
 function getApiKey(): string | undefined {
+  // Prefer live env var to avoid stale cached config in tests/runtime
   if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
+  if (config.openaiApiKey) return config.openaiApiKey;
   try {
     // LLM Hint: The .openai-key file is documented in README.md. Replace with
     // secure storage when integrating into the mobile app.

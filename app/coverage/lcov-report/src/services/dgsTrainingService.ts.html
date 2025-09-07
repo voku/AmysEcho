@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96% </span>
+                <span class="strong">95.23% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>24/25</span>
+                <span class='fraction'>20/21</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75.67% </span>
+                <span class="strong">75.86% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>28/37</span>
+                <span class='fraction'>22/29</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/3</span>
+                <span class='fraction'>1/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">95.83% </span>
+                <span class="strong">95% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>23/24</span>
+                <span class='fraction'>19/20</span>
             </div>
         
             
@@ -118,12 +118,12 @@
 <a name='L53'></a><a href='#L53'>53</a>
 <a name='L54'></a><a href='#L54'>54</a>
 <a name='L55'></a><a href='#L55'>55</a>
-<a name='L56'></a><a href='#L56'>56</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L56'></a><a href='#L56'>56</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -183,7 +183,7 @@ export async function sendDgsSample(
   profileId?: string,
   opts: { signal?: AbortSignal; timeoutMs?: number } = {},
 ): Promise&lt;void&gt; {
-  if (!frame || !frame.landmarks<span class="branch-0 cbranch-no" title="branch not covered" >?.l</span>ength) {
+  if (!frame || !frame.landmarks?.length) {
     throw new Error('Ungültiger DGS-Frame: landmarks fehlen oder sind leer');
   }
   const landmarks = flattenHandsWithHandedness(
@@ -193,7 +193,7 @@ export async function sendDgsSample(
 &nbsp;
   const controller = opts.signal ? <span class="branch-0 cbranch-no" title="branch not covered" >undefined </span>: new AbortController();
   const timeoutId = controller
-    ? setTimeout(<span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >controller.abort(),</span> opts.timeoutMs<span class="branch-0 cbranch-no" title="branch not covered" > ?? 1</span>0_000)
+    ? setTimeout(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >controller.abort(),</span> opts.timeoutMs ?? 10_000)
     : <span class="branch-1 cbranch-no" title="branch not covered" >undefined;</span>
 &nbsp;
   try {
@@ -205,7 +205,7 @@ export async function sendDgsSample(
         Authorization: `Bearer ${API_TOKEN}`,
       },
       body: JSON.stringify(body),
-      signal: opts.signal<span class="branch-0 cbranch-no" title="branch not covered" > ?? c</span>ontroller<span class="branch-0 cbranch-no" title="branch not covered" >?.s</span>ignal,
+      signal: opts.signal ?? controller?.signal,
     });
     if (!resp.ok) {
       const text = await resp.text();
@@ -214,7 +214,7 @@ export async function sendDgsSample(
       );
     }
   } catch (e: unknown) {
-    if (e instanceof Error) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (e instanceof Error) {
       if (e.name === 'AbortError') {
         throw new Error('Zeitüberschreitung beim Senden der DGS-Probe');
       }
@@ -225,7 +225,7 @@ export async function sendDgsSample(
     const msg = e instanceof Error ? e.message : <span class="branch-1 cbranch-no" title="branch not covered" >String(e);</span>
     throw new Error(`Netzwerkfehler beim Senden der DGS-Probe: ${msg}`);
   } finally {
-    if (timeoutId) clearTimeout(timeoutId);
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (timeoutId) clearTimeout(timeoutId);
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -235,7 +235,7 @@ export async function sendDgsSample(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

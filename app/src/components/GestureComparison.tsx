@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     margin: SPACING.md,
     maxWidth: 400,
     width: '90%',
-    shadowColor: COLORS.shadow,
+    shadowColor: COLORS.text,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     textAlign: 'center',
     marginBottom: SPACING.lg,
     lineHeight: 22,
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   gestureCard: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: SPACING.md,
     alignItems: 'center',
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.highContrastText,
   },
   correctCard: {
-    backgroundColor: COLORS.successBackground,
+    backgroundColor: COLORS.warningBackground,
     borderColor: COLORS.success,
   },
   cardTitle: {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   encouragement: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     textAlign: 'center',
     fontWeight: 'bold',
   },

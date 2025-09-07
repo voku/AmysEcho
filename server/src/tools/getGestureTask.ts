@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
+import config from '../config/index.js';
 
 const DEST_DIR = path.join(__dirname, '../../models');
 const DEST_FILE = path.join(DEST_DIR, 'gesture_recognizer.task');
-const URL = process.env.GESTURE_TASK_URL ||
-  'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task';
+const URL = config.gestureTaskUrl;
 
 async function download(url: string, dest: string): Promise<void> {
   await fs.promises.mkdir(path.dirname(dest), { recursive: true });

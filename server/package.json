@@ -6,10 +6,15 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
-    "express": "5.0.0",
+    "@babel/runtime": "^7.28.4",
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcrypt": "^6.0.0",
+    "express": "^5.1.0",
     "express-rate-limit": "6.7.0",
+    "jsonwebtoken": "^9.0.2",
     "zod": "^4.1.0"
   },
   "devDependencies": {
@@ -24,10 +29,10 @@
   "scripts": {
     "test": "npm run test:ts && npm run test:py",
     "test:ts": "jest",
-    "test:py": "pytest -q",
+    "test:py": "PYTHONPATH=./src:./ pytest -q",
     "train:mlp": "python3 src/amyserver_tools/train_mlp.py",
     "type-check": "tsc --noEmit --project tsconfig.json",
-    "build": "tsc",
+    "build": "sh -c 'rm -rf dist && tsc'",
     "start": "node dist/server.js",
     "download-gesture-task": "ts-node src/tools/getGestureTask.ts"
   },

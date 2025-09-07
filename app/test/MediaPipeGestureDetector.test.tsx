@@ -4,6 +4,11 @@ import renderer, { act } from 'react-test-renderer';
 import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDetector';
 import { LanguageManager } from '../src/services/LanguageManager';
 
+jest.mock('expo-file-system', () => ({
+  documentDirectory: '/mock/documents/',
+  cacheDirectory: '/mock/cache/',
+}));
+
 jest.mock('react-native', () => {
   const React = require('react');
   return {
@@ -594,6 +599,180 @@ describe('MediaPipeGestureDetector', () => {
     });
 
     // Should not crash, should continue with null profile
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('handles WebView load errors', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onError({ nativeEvent: { description: 'Network error' } });
+    });
+
+    expect(onError).toHaveBeenCalledWith('webview_load_error');
+  });
+
+  it('handles WebView http errors', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onHttpError({ nativeEvent: { statusCode: 404, url: 'test.html' } });
+    });
+
+    expect(onError).toHaveBeenCalledWith('webview_http_error');
+  });
+
+  it('handles malformed gesture objects with null values', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({
+            type: 'gesture',
+            gesture: null,
+            confidence: null,
+            landmarks: null,
+            handednesses: null,
+          }),
+        },
+      });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith(null, 0, [], [], false);
+  });
+
+  it('handles model loading failures', async () => {
+    const { getCachedMlpModel, fetchMlpModel } = require('../src/services/dgsModelClient');
+    (getCachedMlpModel as jest.Mock).mockRejectedValue(new Error('Model load failed'));
+    (fetchMlpModel as jest.Mock).mockRejectedValue(new Error('Fetch failed'));
+
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    await act(async () => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+      await Promise.resolve();
+    });
+
+    // Should not crash, should continue without model
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('handles telemetry events without onWebViewEvent callback', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: 'telemetry', event: 'test_event' }),
+        },
+      });
+    });
+
+    // Should not crash when onWebViewEvent is not provided
+    expect(onGestureDetected).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('handles unknown message types gracefully', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: 'unknown_type', data: 'test' }),
+        },
+      });
+    });
+
+    // Should not crash on unknown message types
+    expect(onGestureDetected).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('handles gesture size tolerance parameter', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          gestureSizeTolerance={0.8}
+        />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const html = webview.props.source.html as string;
+    expect(html).toContain('window.__gestureSizeTolerance = 0.8');
+  });
+
+  it('handles model update status without callback', async () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    await act(async () => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+      await Promise.resolve();
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+
+    // Should not crash when onModelUpdateStatus is not provided
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(onGestureDetected).not.toHaveBeenCalled();
     expect(onError).not.toHaveBeenCalled();
   });
 });

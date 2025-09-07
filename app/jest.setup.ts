@@ -38,3 +38,12 @@ jest.mock('expo-haptics', () => ({
     Error: 'error',
   },
 }));
+
+jest.mock('expo-file-system', () => ({
+  documentDirectory: '/tmp/test-documents/',
+  cacheDirectory: '/tmp/test-cache/',
+  writeAsStringAsync: jest.fn(),
+  readAsStringAsync: jest.fn(),
+  deleteAsync: jest.fn(),
+  getInfoAsync: jest.fn(),
+}));

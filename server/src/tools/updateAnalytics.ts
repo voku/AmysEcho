@@ -1,5 +1,5 @@
-import { loadDatabase, saveDatabase } from '../db';
-import { refreshLearningAnalytics } from '../services/analyticsService';
+import { loadDatabase, saveDatabase } from '../db.js';
+import { refreshLearningAnalytics } from '../services/analyticsService.js';
 
 (async () => {
   const [dbPath] = process.argv.slice(2);

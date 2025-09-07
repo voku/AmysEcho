@@ -1,6 +1,5 @@
 import numpy as np
-
-from amyserver_tools.train_mlp import _normalize
+from src.amyserver_tools.train_mlp import _normalize
 
 
 def test_normalize_one_hand() -> None:

@@ -49,15 +49,15 @@ jest.mock('../src/utils/logger', () => ({
 
 import { logger } from '../src/utils/logger';
 
-const loadModels = jest.fn().mockRejectedValue(new Error('init fail'));
-
 jest.mock('../src/services/adaptiveLearningService', () => ({
   adaptiveLearningService: {},
 }));
 
+const mockLoadModels = jest.fn().mockRejectedValue(new Error('init fail'));
+
 jest.mock('../src/services', () => ({
   mlService: {
-    loadModels,
+    loadModels: mockLoadModels,
     isServiceReady: () => false,
   },
   audioService: {
@@ -207,5 +207,116 @@ describe('AppServicesProvider', () => {
     });
 
     expect(runDailyJobs).not.toHaveBeenCalled();
+  });
+
+  it('handles telemetry dump failures gracefully', async () => {
+    const { audioService } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    // Mock telemetry.dump to throw
+    const { telemetry } = require('../src/telemetry/recorder');
+    telemetry.dump = jest.fn().mockRejectedValue(new Error('Telemetry dump failed'));
+
+    await act(async () => {
+      renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={false}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    // Should not crash despite telemetry failure
+    expect(logger.warn).toHaveBeenCalledWith('Failed to run model update check', expect.any(Error));
+  });
+
+  it('handles telemetry upload failures gracefully', async () => {
+    const { audioService, uploadTelemetry } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    // Mock telemetry.dump to return events and uploadTelemetry to fail
+    const { telemetry } = require('../src/telemetry/recorder');
+    telemetry.dump = jest.fn().mockResolvedValue(['event1', 'event2']);
+    uploadTelemetry.mockRejectedValue(new Error('Upload failed'));
+
+    await act(async () => {
+      renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={false}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    // Should not crash despite upload failure
+    expect(uploadTelemetry).toHaveBeenCalledWith(['event1', 'event2']);
+  });
+
+  it('handles sync service failures gracefully', async () => {
+    const { audioService, syncService } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    syncService.uploadPendingTrainingData.mockRejectedValue(new Error('Sync failed'));
+
+    await act(async () => {
+      renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={false}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    // Should not crash despite sync failure
+    expect(syncService.uploadPendingTrainingData).toHaveBeenCalled();
+  });
+
+  it('handles AsyncStorage failures gracefully', async () => {
+    const { audioService } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    // Mock AsyncStorage to fail
+    const AsyncStorage = require('@react-native-async-storage/async-storage');
+    AsyncStorage.getItem.mockRejectedValue(new Error('Storage failed'));
+    AsyncStorage.setItem.mockRejectedValue(new Error('Storage failed'));
+
+    await act(async () => {
+      renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={false}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    // Should not crash despite storage failures
+    expect(AsyncStorage.getItem).toHaveBeenCalled();
+  });
+
+  it('cleans up intervals and timeouts on unmount', async () => {
+    const { audioService } = require('../src/services');
+    audioService.initialize.mockResolvedValueOnce();
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(
+        <MessageProvider>
+          <AppServicesProvider offline={false}>
+            <div>Test Child</div>
+          </AppServicesProvider>
+        </MessageProvider>,
+      );
+    });
+
+    // Unmount the component
+    act(() => {
+      component.unmount();
+    });
+
+    expect(audioService.dispose).toHaveBeenCalled();
   });
 });

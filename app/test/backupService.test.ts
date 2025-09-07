@@ -10,6 +10,25 @@ describe('backupService', () => {
 
   beforeEach(() => {
     jest.resetModules();
+
+    // Mock FileSystem with simple in-memory store before importing constants
+    jest.doMock('expo-file-system', () => {
+      const store: Record<string, string> = {};
+      return {
+        documentDirectory: '/test/documents/',
+        EncodingType: {
+          UTF8: 'utf8',
+        },
+        writeAsStringAsync: jest.fn(async (path: string, content: string) => {
+          store[path] = content;
+        }),
+        readAsStringAsync: jest.fn(async (path: string) => store[path] ?? ''),
+        getInfoAsync: jest.fn(async (path: string) => ({ exists: Object.prototype.hasOwnProperty.call(store, path) })),
+        deleteAsync: jest.fn(async (path: string) => { delete store[path]; }),
+        __resetMock: jest.fn(() => { Object.keys(store).forEach(k => delete store[k]); }),
+      };
+    });
+
     jest.doMock('expo-secure-store', () => {
       const store: Record<string, string> = {};
       return {
@@ -22,15 +41,25 @@ describe('backupService', () => {
 
     AsyncStorage = require('@react-native-async-storage/async-storage').default;
     FileSystem = require('expo-file-system');
-    (FileSystem.__resetMock as any)();
+
     const memory: Record<string, string> = {};
     (AsyncStorage.setItem as jest.Mock).mockImplementation(async (k: string, v: string) => {
       memory[k] = v;
     });
     (AsyncStorage.getItem as jest.Mock).mockImplementation(async (k: string) => memory[k] ?? null);
-    (AsyncStorage.clear as jest.Mock).mockImplementation(async () => {
-      Object.keys(memory).forEach((key) => delete memory[key]);
-    });
+    if (typeof AsyncStorage.clear === 'function') {
+      (AsyncStorage.clear as jest.Mock).mockImplementation(async () => {
+        Object.keys(memory).forEach((k) => delete memory[k]);
+      });
+    }
+
+    // Mock constants that depend on FileSystem
+    jest.doMock('../src/constants', () => ({
+      BASE_DIR: '/test/documents/',
+      CUSTOM_GESTURE_MODEL_PATH: '/test/documents/custom_model.json',
+      BACKUP_FILE_PATH: '/test/documents/backup.json',
+      EXPORT_FILE_PATH: '/test/documents/export.json',
+    }));
 
     backupService = require('../src/services/backupService').backupService;
     const paths = require('../src/services/backupService');

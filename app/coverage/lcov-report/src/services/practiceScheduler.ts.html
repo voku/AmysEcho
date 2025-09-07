@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">72.91% </span>
+                <span class="strong">68.29% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>35/48</span>
+                <span class='fraction'>28/41</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.75% </span>
+                <span class="strong">68.18% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/16</span>
+                <span class='fraction'>15/22</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">55.55% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>5/9</span>
+                <span class='fraction'>4/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80.48% </span>
+                <span class="strong">77.14% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>33/41</span>
+                <span class='fraction'>27/35</span>
             </div>
         
             
@@ -131,7 +131,7 @@
 <a name='L66'></a><a href='#L66'>66</a>
 <a name='L67'></a><a href='#L67'>67</a>
 <a name='L68'></a><a href='#L68'>68</a>
-<a name='L69'></a><a href='#L69'>69</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
+<a name='L69'></a><a href='#L69'>69</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -149,12 +149,12 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -162,7 +162,7 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -171,13 +171,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -233,7 +233,7 @@ export async function addSchedule(partial: Omit&lt;PracticeSchedule, 'id' | 'ena
 export async function <span class="fstat-no" title="function not covered" >setScheduleEnabled(</span>id: string, enabled: boolean): Promise&lt;void&gt; {
   const all = <span class="cstat-no" title="statement not covered" >await listSchedules();</span>
   const idx = <span class="cstat-no" title="statement not covered" >all.findIndex(<span class="fstat-no" title="function not covered" >(s</span>) =&gt; <span class="cstat-no" title="statement not covered" >s.id === id)</span>;</span>
-<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (idx &gt;= 0) {</span>
+<span class="cstat-no" title="statement not covered" >  if (idx &gt;= 0) {</span>
 <span class="cstat-no" title="statement not covered" >    all[idx].enabled = enabled;</span>
 <span class="cstat-no" title="statement not covered" >    await AsyncStorage.setItem(KEY, JSON.stringify(all));</span>
   }
@@ -257,7 +257,7 @@ export async function getDueGesture(now: Date = <span class="branch-0 cbranch-no
   for (const s of all) {
     <span class="missing-if-branch" title="if path not taken" >I</span>if (!s.enabled) <span class="cstat-no" title="statement not covered" >continue;</span>
     if (s.daysOfWeek &amp;&amp; s.daysOfWeek.length &amp;&amp; !s.daysOfWeek.includes(day)) continue;
-    if (s.hour === hour &amp;&amp; s.minute === minute) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (s.hour === hour &amp;&amp; s.minute === minute) {
       const key = `${now.toDateString()}:${s.id}`;
       <span class="missing-if-branch" title="if path not taken" >I</span>if (lastShown[key]) <span class="cstat-no" title="statement not covered" >continue; </span>// already shown this minute/day
       lastShown[key] = '1';
@@ -274,7 +274,7 @@ export async function getDueGesture(now: Date = <span class="branch-0 cbranch-no
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T12:21:40.188Z
+                at 2025-09-07T01:14:43.604Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

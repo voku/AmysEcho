@@ -1,8 +1,9 @@
-import { loadDatabase } from '../db';
+import { loadDatabase } from '../db.js';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
 import os from 'os';
+import config from '../config/index.js';
 
 async function autoRetrain(dbPath: string) {
   const db = await loadDatabase(dbPath);
@@ -22,12 +23,7 @@ async function autoRetrain(dbPath: string) {
   );
   await fs.writeFile(tmp, JSON.stringify(trainingData));
 
-  const scriptEnv = process.env.TRAIN_SCRIPT;
-  const script = scriptEnv
-    ? path.isAbsolute(scriptEnv)
-      ? scriptEnv
-      : path.resolve(__dirname, scriptEnv)
-    : path.join(__dirname, '../train.py');
+  const script = config.trainScript;
 
   return new Promise<void>((resolve, reject) => {
     const child = spawn('python3', [script, tmp], {
@@ -69,8 +65,7 @@ async function autoRetrain(dbPath: string) {
 // determine where our database JSON lives
 const dbPath =
   process.argv[2] ??
-  process.env.DB_PATH ??
-  path.resolve(process.cwd(), 'db.json');
+  config.dbPath;
 
 // run retraining asynchronously, but avoid unhandled rejections
 // fire-and-forget with error handling

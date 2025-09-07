@@ -101,6 +101,8 @@ def test_train_endpoint(tmp_path):
             if time.time() - start > 30:
                 raise RuntimeError("training did not complete")
             time.sleep(0.2)
+        # Wait a bit for training to complete
+        time.sleep(5)
 
         # metrics should be present after completion
         status_req = urllib.request.Request(

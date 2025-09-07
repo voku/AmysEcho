@@ -1,5 +1,5 @@
 import path from 'path';
-import { DATA_DIR } from '../constants/modelPaths';
+import { DATA_DIR } from '../constants/modelPaths.js';
 import { promises as fs } from 'fs';
 type Point = [number, number, number];
 const HAND_SIZE = 21;

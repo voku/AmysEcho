@@ -16,6 +16,9 @@ jest.mock('react-native', () => {
           : ListEmptyComponent || null,
       ),
     StyleSheet: { create: () => ({}) },
+    Touchable: {
+      Mixin: {},
+    },
   };
 });
 

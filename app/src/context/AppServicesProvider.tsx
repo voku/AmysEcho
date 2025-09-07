@@ -2,16 +2,16 @@ import { runDailyJobs, checkAllGesturesForDecliningAccuracy, checkPracticeRecomm
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { audioService, backupService, checkForModelUpdate, syncService, syncTrainingData, gestureDataProtector, gdprService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { useMessage } from './MessageContext';
 import { loadActiveProfileId } from '../storage';
 import { logger } from '../utils/logger';
-import { ServicesContext, type Services } from './ServicesContext';
 import { uploadTelemetry } from '../services/analytics';
 import { telemetry } from '../telemetry/recorder';
+import { useServicesStore, type Services } from '../stores/servicesStore';
 
 interface ProviderProps {
   children: ReactNode;
@@ -21,8 +21,8 @@ interface ProviderProps {
 const services: Services = { audioService, adaptiveLearningService, backupService, gestureDataProtector, gdprService };
 
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
-  const [areServicesReady, setAreServicesReady] = useState(false);
   const { setMessage } = useMessage();
+  const { setServices, setReady, isReady } = useServicesStore();
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -39,7 +39,8 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       try {
         // WebView + server path: no native TensorFlow model loading here.
         await audioService.initialize();
-        setAreServicesReady(true);
+        setServices(services);
+        setReady(true);
         if (!offline) {
           const now = new Date().toISOString().slice(0, 10);
           AsyncStorage.getItem(LAST_DAILY_JOB_KEY).then(lastRun => {
@@ -78,7 +79,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       } catch (e) {
         logger.error('Dienste konnten nicht initialisiert werden:', e);
         setMessage('Dienste konnten nicht gestartet werden. Bitte Internetverbindung prüfen und erneut versuchen.');
-        setAreServicesReady(true);
+        setReady(true);
       }
     }
 
@@ -90,11 +91,9 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     };
   }, [offline, setMessage]);
 
-  if (!areServicesReady) {
+  if (!isReady) {
     return <LoadingIndicator />;
   }
 
-  return (
-    <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>
-  );
+  return <>{children}</>;
 };
