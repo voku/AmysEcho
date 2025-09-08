@@ -79,9 +79,10 @@ describe('MediaPipeGestureDetector', () => {
     const storage = require('../src/storage');
     storage.__clearProfileListeners();
     // Suppress react-test-renderer deprecation warnings
+    const orig = console.error;
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((message) => {
-      if (!message.includes('react-test-renderer is deprecated')) {
-        console.error(message);
+      if (!String(message).includes('react-test-renderer is deprecated')) {
+        orig(message);
       }
     });
     act(() => {
