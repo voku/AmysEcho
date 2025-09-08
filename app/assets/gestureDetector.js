@@ -1255,7 +1255,15 @@
       this.overlayHeight = 0;
       this.overlayDpr = 1;
       this.overlay = overlay2;
-      this.ctx = overlay2.getContext("2d");
+      try {
+        this.ctx = overlay2.getContext("2d");
+      } catch (e) {
+        this.ctx = null;
+        try {
+          console.error(e);
+        } catch {
+        }
+      }
     }
     /**
      * Resize overlay to match video dimensions
@@ -2103,7 +2111,7 @@
   };
   var partialGestureDetector = new PartialGestureDetector();
   var tremorCompensator = new TremorCompensator();
-  var gestureSizeNormalizer2 = new GestureSizeNormalizer();
+  var gestureSizeNormalizer = new GestureSizeNormalizer();
 
   // webview/utils/CelebrationSystem.ts
   var CelebrationSystem = class {
@@ -5407,6 +5415,10 @@
     recordFailure(error, context) {
       const now = Date.now();
       const errorInfo = this.getErrorInfo(error, context);
+      const ctxLower = context.toLowerCase();
+      if (errorInfo.code === "MEDIAPIPE_ERROR" || ctxLower.includes("mediapipe")) {
+        this.activateFallbackMode();
+      }
       const recoveryKey = `${errorInfo.code}_${context}`;
       const attempts = this.recoveryAttempts.get(recoveryKey) || 0;
       if (attempts >= this.MAX_RECOVERY_ATTEMPTS) {
@@ -6094,15 +6106,16 @@
   };
   var batteryMonitor = new BatteryMonitor();
   var partialGestureDetector2 = new PartialGestureDetector();
+  var gestureSizeNormalizer2 = new GestureSizeNormalizer();
   batteryMonitor.startMonitoring();
-  gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
+  gestureSizeNormalizer2.setTolerance(GESTURE_SIZE_TOLERANCE);
   window.emergencyGestureSystem = emergencyGestureSystem;
   window.errorRecoveryManager = errorRecoveryManager;
   window.batteryMonitor = batteryMonitor;
   window.handStabilityAssistant = handStabilityAssistant;
   window.partialGestureDetector = partialGestureDetector2;
   window.tremorCompensator = tremorCompensator2;
-  window.gestureSizeNormalizer = gestureSizeNormalizer;
+  window.gestureSizeNormalizer = gestureSizeNormalizer2;
   window.celebrationSystem = celebrationSystem;
   window.feedbackSystem = feedbackSystem;
   window.enhancedContextRecognizer = enhancedContextRecognizer;
@@ -6111,9 +6124,6 @@
   window.__mlpPredict = void 0;
   window.__modelUpdateInProgress = false;
   window.__activeRecognitionSession = false;
-  window.captureFrameForOpenAI = captureFrameForOpenAI;
-  window.getLastCapturedFrame = getLastCapturedFrame;
-  window.setFrameCaptureEnabled = setFrameCaptureEnabled;
   var HandStabilityAssistant = class {
     constructor() {
       this.stabilityHistory = [];
@@ -6212,6 +6222,9 @@
   var resourceManager = new ResourceManager();
   var video = document.createElement("video");
   var overlay = document.createElement("canvas");
+  var overlayWidth = 0;
+  var overlayHeight = 0;
+  var overlayDpr = 1;
   overlay.id = "overlay";
   video.setAttribute("autoplay", "");
   video.setAttribute("playsinline", "");
@@ -6346,9 +6359,9 @@
           }
           return null;
         }
-      }, getLastCapturedFrame3 = function() {
+      }, getLastCapturedFrame2 = function() {
         return lastCapturedFrame;
-      }, setFrameCaptureEnabled3 = function(enabled) {
+      }, setFrameCaptureEnabled2 = function(enabled) {
         frameCaptureEnabled = enabled;
         if (!enabled) {
           lastCapturedFrame = null;
@@ -6356,7 +6369,7 @@
         }
         console.log(`\u{1F3A5} Frame capture ${enabled ? "enabled" : "disabled"}`);
       };
-      var initializeFrameCapture = initializeFrameCapture2, captureFrameForOpenAI2 = captureFrameForOpenAI3, getLastCapturedFrame2 = getLastCapturedFrame3, setFrameCaptureEnabled2 = setFrameCaptureEnabled3;
+      var initializeFrameCapture = initializeFrameCapture2, captureFrameForOpenAI2 = captureFrameForOpenAI3, getLastCapturedFrame = getLastCapturedFrame2, setFrameCaptureEnabled = setFrameCaptureEnabled2;
       mainGestureDetector = new GestureDetector(video, overlay);
       await mainGestureDetector.initialize();
       mainGestureDetector.setResultCallback((results, timestamp) => {
@@ -6371,6 +6384,12 @@
       }
       initializeFrameCapture2();
       resetGestureChangeState();
+      ;
+      window.captureFrameForOpenAI = captureFrameForOpenAI3;
+      ;
+      window.getLastCapturedFrame = getLastCapturedFrame2;
+      ;
+      window.setFrameCaptureEnabled = setFrameCaptureEnabled2;
       resetGestureChangeState();
     } catch (e) {
       const errorInfo = errorRecoveryManager.getErrorInfo(e, "gesture_recognizer_initialization");
@@ -6547,7 +6566,7 @@
         }
       }
       if (allLandmarks.length > 0) {
-        allLandmarks = gestureSizeNormalizer.normalizeHandSize(allLandmarks);
+        allLandmarks = gestureSizeNormalizer2.normalizeHandSize(allLandmarks);
       }
       if (allLandmarks.length > 0) {
         const handedness = results?.handednesses?.map((h) => h.categoryName) || [];
@@ -7125,7 +7144,7 @@
       }
       if (errorInfo.severity === "critical") {
         errorRecoveryManager.activateEmergencyMode();
-      } else if (errorInfo.recoverable && shouldRetry) {
+      } else {
         errorRecoveryManager.activateFallbackMode();
       }
       if (results?.landmarks && errorRecoveryManager.canAttemptRecovery("gesture_processing")) {

@@ -15,6 +15,7 @@
 
 import { validateGestureWithOpenAI, shouldTriggerOpenAIValidation } from './openaiGestureValidationService';
 import { computeHandRoi, processDataUrl } from '../utils/imageUtils';
+import type { TwoHandGesture } from '../../webview/types/MediaPipeTypes';
 
 // Define proper types for captured frame
 type CapturedFrame =
@@ -112,12 +113,12 @@ class ParallelGestureProcessor {
      });
 
      // Input validation
-     const validationRules: ValidationRule<{
-       gesture: string | null;
-       confidence: number;
-       landmarks: number[][][];
-       handedness: string[];
-     }>[] = [
+      const validationRules: ValidationRule<{
+        gesture: string | null;
+        confidence: number;
+        landmarks: number[][][];
+        handedness: string[];
+      }>[] = [
        {
          name: 'confidence_valid',
          validate: (input) => typeof input.confidence === 'number' && input.confidence >= 0 && input.confidence <= 1,

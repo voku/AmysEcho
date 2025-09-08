@@ -17,5 +17,6 @@ export * from './dataProtection';
 export * from './gdprService';
 export * from './personalizedConfidenceService';
 export * from './gestureCombinationService';
+export * from './twoHandGestureService';
 export * from './adaptiveLearningService';
 export * from './activeLearningService';

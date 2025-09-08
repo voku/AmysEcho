@@ -33,6 +33,22 @@ jest.mock('../src/services/dgsModelClient', () => ({
   fetchMlpModel: jest.fn(() => Promise.resolve(null)),
 }));
 
+jest.mock('../src/services/twoHandGestureService', () => ({
+  twoHandGestureService: {
+    processTwoHandGesture: jest.fn(),
+    getCachedGesture: jest.fn(),
+    clearCache: jest.fn(),
+    getPerformanceMetrics: jest.fn(),
+  },
+}));
+
+jest.mock('../src/services/performanceMonitor', () => ({
+  performanceMonitor: {
+    recordMetric: jest.fn(),
+    recordProcessingTime: jest.fn(),
+  },
+}));
+
 jest.mock('../src/storage', () => {
   const listeners: Array<(id: string | null) => void> = [];
   return {

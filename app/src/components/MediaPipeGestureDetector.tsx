@@ -14,6 +14,9 @@ import { adaptivePracticeTimingService } from '../services/adaptivePracticeTimin
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 import { validateGestureWithFallback, shouldTriggerOpenAIValidation } from '../services/openaiGestureValidationService';
 import { parallelGestureProcessor, GestureResult } from '../services/parallelGestureProcessor';
+import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
+import type { TwoHandGesture } from '../../webview/types/MediaPipeTypes';
+import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
 import OpenAIGestureFeedback from './OpenAIGestureFeedback';
 import { logger } from '../utils/logger';
 // Avoid pulling the module at import time. Use dynamic require below.
@@ -149,7 +152,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
   // Enhanced gesture detection with parallel processing
   const handleGestureDetectionEnhanced = useCallback(async (
-    gesture: string | null,
+    gesture: string | TwoHandGesture | null,
     confidence: number,
     landmarks: number[][][],
     handednesses: string[],
@@ -173,10 +176,61 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         handednesses = [];
       }
 
+      // Check if this is a two-hand gesture and process accordingly
+      const hasTwoHands = handednesses.length >= 2 && landmarks.length >= 2;
+      const isTwoHandGestureObj = gesture && isTwoHandGesture(gesture);
+
+      // Convert TwoHandGesture to string for compatibility
+      const gestureString = isTwoHandGestureObj
+        ? `${gesture.left}+${gesture.right}`
+        : gesture;
+
+      if (hasTwoHands && isTwoHandGestureObj) {
+        // Process as two-hand gesture
+        const twoHandResult = await twoHandGestureService.processTwoHandGesture(
+          gesture.left,
+          gesture.right,
+          confidence,
+          confidence, // Use same confidence for both hands initially
+          handednesses,
+          landmarks
+        );
+
+        if (twoHandResult) {
+          // Two-hand gesture successfully processed
+          logger.info('Two-hand gesture processed successfully', {
+            gestureId: twoHandResult.gesture.id,
+            confidence: twoHandResult.confidence,
+            processingTime: twoHandResult.processingTime
+          });
+
+          // Emit the processed two-hand gesture result
+          onGestureDetected(
+            `${twoHandResult.leftHandGesture}+${twoHandResult.rightHandGesture}`,
+            twoHandResult.confidence,
+            twoHandResult.landmarks,
+            twoHandResult.handedness,
+            emergency
+          );
+
+          // Provide accessibility feedback for two-hand gestures
+          if (twoHandResult.accessibilityHints.length > 0) {
+            // Could integrate with screen reader or haptic feedback here
+            logger.debug('Two-hand gesture accessibility hints', {
+              hints: twoHandResult.accessibilityHints
+            });
+          }
+
+          return; // Exit early for two-hand gestures
+        } else {
+          logger.warn('Two-hand gesture processing failed, falling back to parallel processing');
+        }
+      }
+
       if (enableParallelProcessing) {
         // Use parallel processor for enhanced gesture detection
         const result = await parallelGestureProcessor.processMediaPipeResult(
-          gesture,
+          gestureString,
           confidence,
           landmarks,
           handednesses,
@@ -215,7 +269,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
       } else {
         // Fallback to original sequential processing
-        await handleGestureDetection(gesture, confidence, landmarks, handednesses, emergency);
+        await handleGestureDetection(gestureString, confidence, landmarks, handednesses, emergency);
       }
     } catch (error) {
       logger.error('Enhanced gesture detection failed, using MediaPipe result', error, {
@@ -238,7 +292,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       }
 
       // Fallback to original MediaPipe result
-      onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+      const fallbackGesture = gesture && isTwoHandGesture(gesture)
+        ? `${gesture.left}+${gesture.right}`
+        : gesture;
+      onGestureDetected(fallbackGesture, confidence, landmarks, handednesses, emergency);
     }
   }, [onGestureDetected, onMergedResult, onWebViewEvent, enableParallelProcessing]);
 
