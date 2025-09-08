@@ -1,6 +1,6 @@
 
-// LLM Hint: Define a clear type for the expected JSON response from the LLM.
-// This helps with type safety and makes it clear what structure the prompt should request.
+// LLM: Strict schema and Responses API for dialog suggestions
+import OpenAI from 'openai';
 import { z } from 'zod';
 import config from '../config/index.js';
 
@@ -10,8 +10,8 @@ export type LLMSuggestionResponse = {
 };
 
 const suggestionSchema = z.object({
-  nextWords: z.array(z.string()),
-  caregiverPhrases: z.array(z.string()),
+  nextWords: z.array(z.string()).default([]),
+  caregiverPhrases: z.array(z.string()).default([]),
 });
 
 export interface LLMRequest {
@@ -40,27 +40,37 @@ function getApiKey(): string | undefined {
   }
 }
 
-async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit, retries = 2): Promise<Response> {
-  let lastErr: any;
-  for (let attempt = 0; attempt <= retries; attempt++) {
+const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini';
+const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_DIALOG_TIMEOUT_MS || 4000);
+const OPENAI_MAX_TOKENS = Number(process.env.OPENAI_DIALOG_MAX_TOKENS || 256);
+const OPENAI_TEMPERATURE = Number(process.env.OPENAI_DIALOG_TEMPERATURE || 0.3);
+
+async function withTimeoutRetry<T>(fn: () => Promise<T>, timeoutMs: number, retries: number): Promise<T> {
+  const attempt = async (i: number): Promise<T> => {
+    let timer: any;
+    const to = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('OpenAI request timed out')), timeoutMs);
+    });
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(input, { ...init, signal: controller.signal });
-      clearTimeout(timeout);
-      // Retry on 429/5xx
-      if (!res.ok && (res.status === 429 || res.status >= 500)) {
-        lastErr = new Error(`API call failed with status: ${res.status}`);
-      } else {
-        return res;
-      }
-    } catch (e) {
-      lastErr = e;
+      const result = (await Promise.race([fn(), to])) as T;
+      clearTimeout(timer);
+      return result;
+    } catch (err: any) {
+      clearTimeout(timer);
+      const msg = String(err?.message || err);
+      const isRetryable =
+        msg.includes('timed out') ||
+        msg.includes('network') ||
+        msg.includes('rate') ||
+        msg.includes('500') ||
+        msg.includes('503');
+      if (i >= retries || !isRetryable) throw err;
+      const delay = 150 * Math.pow(2, i);
+      await new Promise((r) => setTimeout(r, delay));
+      return attempt(i + 1);
     }
-    // backoff (lightweight)
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw lastErr || new Error('Request failed');
+  };
+  return attempt(0);
 }
 
 export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionResponse> {
@@ -68,29 +78,49 @@ export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionR
   if (!apiKey) {
     return { nextWords: [], caregiverPhrases: [] };
   }
-  // LLM Hint: The prompt is the most critical part. It should clearly state the
-  // role, the context, the desired output format (JSON), and the exact keys for
-  // the JSON object. The formatting here mirrors the guidelines in docs/TODO.md.
-  const prompt = `A ${req.age}-year-old child who speaks ${req.language} just selected the word "${req.input}". The current context is [${req.context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver. Return a JSON object with two keys: "nextWords" and "caregiverPhrases".`;
+  const prompt = `A ${req.age}-year-old child who speaks ${req.language} just selected the word "${req.input}". The current context is [${req.context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver.`;
   console.log('LLM Prompt:', prompt);
   try {
-    const response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
-      }),
-    });
-    if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
-    const data = (await response.json()) as any;
-    const content = JSON.parse(data.choices[0].message.content as string);
-    const parsed = suggestionSchema.parse(content);
-    return parsed as LLMSuggestionResponse;
+    const openai = new OpenAI({ apiKey });
+    const response = await withTimeoutRetry(
+      () => openai.responses.create({
+        model: TEXT_MODEL,
+        input: [
+          {
+            role: 'user',
+            content: [
+              { type: 'input_text', text: `${prompt} Return a JSON object with two keys: "nextWords" and "caregiverPhrases".` },
+            ],
+          },
+        ],
+        temperature: OPENAI_TEMPERATURE,
+        max_output_tokens: OPENAI_MAX_TOKENS,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'llm_suggestions',
+            schema: {
+              type: 'object',
+              properties: {
+                nextWords: { type: 'array', items: { type: 'string' } },
+                caregiverPhrases: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['nextWords', 'caregiverPhrases'],
+              additionalProperties: false,
+            },
+            strict: true,
+          },
+        },
+      } as any),
+      OPENAI_TIMEOUT_MS,
+      2
+    );
+    const output = (response as any)?.output_text || '';
+    const m = output.match(/\{[\s\S]*\}/);
+    const toParse = m ? m[0] : output || '{}';
+    const parsed = suggestionSchema.safeParse(JSON.parse(toParse));
+    if (!parsed.success) throw parsed.error;
+    return parsed.data as LLMSuggestionResponse;
   } catch (error) {
     console.error('LLM suggestion error:', error);
     return { nextWords: [], caregiverPhrases: [] };

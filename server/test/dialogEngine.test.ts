@@ -1,5 +1,11 @@
 import { getLLMSuggestions, LLMRequest } from '../src/services/dialogEngine';
 
+// Mock OpenAI SDK
+jest.mock('openai', () => {
+  const responses = { create: jest.fn() };
+  return jest.fn().mockImplementation(() => ({ responses }));
+});
+
 describe('getLLMSuggestions', () => {
   const req: LLMRequest = {
     input: 'Hallo',
@@ -8,12 +14,7 @@ describe('getLLMSuggestions', () => {
     age: 5,
   };
 
-  const mockFetch = (value: unknown) => {
-    (global as any).fetch = jest.fn().mockResolvedValue(value);
-  };
-
   afterEach(() => {
-    delete (global as any).fetch;
     delete process.env.OPENAI_API_KEY;
   });
 
@@ -25,23 +26,19 @@ describe('getLLMSuggestions', () => {
   describe('with API key', () => {
     beforeEach(() => {
       process.env.OPENAI_API_KEY = 'test';
+      const OpenAIMock = require('openai');
+      const shared = new OpenAIMock();
+      // Reset the shared responses mock between tests
+      if (shared && shared.responses && shared.responses.create) {
+        shared.responses.create.mockReset();
+      }
     });
 
     it('parses and returns suggestions from the API', async () => {
-      mockFetch({
-        ok: true,
-        json: async () => ({
-          choices: [
-            {
-              message: {
-                content: JSON.stringify({
-                  nextWords: ['tschüss'],
-                  caregiverPhrases: ['Wie geht es dir?'],
-                }),
-              },
-            },
-          ],
-        }),
+      const OpenAIMock = require('openai');
+      const mockOpenAI = new OpenAIMock();
+      mockOpenAI.responses.create.mockResolvedValue({
+        output_text: JSON.stringify({ nextWords: ['tschüss'], caregiverPhrases: ['Wie geht es dir?'] }),
       });
       const res = await getLLMSuggestions(req);
       expect(res.nextWords).toContain('tschüss');
@@ -49,26 +46,18 @@ describe('getLLMSuggestions', () => {
     });
 
     it('returns empty arrays on invalid API response', async () => {
-      mockFetch({
-        ok: true,
-        json: async () => ({
-          choices: [
-            { message: { content: '{"foo": "bar"}' } },
-          ],
-        }),
-      });
+      const OpenAIMock = require('openai');
+      const mockOpenAI = new OpenAIMock();
+      mockOpenAI.responses.create.mockResolvedValue({ output_text: '{"foo": "bar"}' });
       const res = await getLLMSuggestions(req);
       expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
     });
 
     it('returns empty arrays when response JSON parsing fails', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      mockFetch({
-        ok: true,
-        json: async () => {
-          throw new Error('invalid json');
-        },
-      });
+      const OpenAIMock = require('openai');
+      const mockOpenAI = new OpenAIMock();
+      mockOpenAI.responses.create.mockResolvedValue({ output_text: 'Invalid JSON [[[ ' });
       const res = await getLLMSuggestions(req);
       expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
       expect(consoleErrorSpy).toHaveBeenCalled();
@@ -76,44 +65,38 @@ describe('getLLMSuggestions', () => {
     });
 
     it('returns empty arrays when API response is not ok', async () => {
-      // First two attempts: 500, final attempt: still 500
-      (global as any).fetch = jest
-        .fn()
-        .mockResolvedValueOnce({ ok: false, status: 500 })
-        .mockResolvedValueOnce({ ok: false, status: 500 })
-        .mockResolvedValueOnce({ ok: false, status: 500 });
+      const OpenAIMock = require('openai');
+      const mockOpenAI = new OpenAIMock();
+      mockOpenAI.responses.create
+        .mockRejectedValueOnce(new Error('500'))
+        .mockRejectedValueOnce(new Error('500'))
+        .mockRejectedValueOnce(new Error('500'));
       const res = await getLLMSuggestions(req);
       expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
-      expect((global as any).fetch).toHaveBeenCalledTimes(3);
+      expect(mockOpenAI.responses.create).toHaveBeenCalledTimes(3);
     });
 
     it('returns empty arrays when fetch throws an error', async () => {
-      // Two retries then give up
-      (global as any).fetch = jest
-        .fn()
+      const OpenAIMock = require('openai');
+      const mockOpenAI = new OpenAIMock();
+      mockOpenAI.responses.create
         .mockRejectedValueOnce(new Error('network'))
         .mockRejectedValueOnce(new Error('network'))
         .mockRejectedValueOnce(new Error('network'));
       const res = await getLLMSuggestions(req);
       expect(res).toEqual({ nextWords: [], caregiverPhrases: [] });
-      expect((global as any).fetch).toHaveBeenCalledTimes(3);
+      expect(mockOpenAI.responses.create).toHaveBeenCalledTimes(3);
     });
 
     it('retries on 500 and succeeds on next attempt', async () => {
-      (global as any).fetch = jest
-        .fn()
-        .mockResolvedValueOnce({ ok: false, status: 500 })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            choices: [
-              { message: { content: JSON.stringify({ nextWords: ['ja'], caregiverPhrases: ['gut gemacht'] }) } },
-            ],
-          }),
-        });
+      const OpenAIMock = require('openai');
+      const mockOpenAI = new OpenAIMock();
+      mockOpenAI.responses.create
+        .mockRejectedValueOnce(new Error('500'))
+        .mockResolvedValueOnce({ output_text: JSON.stringify({ nextWords: ['ja'], caregiverPhrases: ['gut gemacht'] }) });
       const res = await getLLMSuggestions(req);
       expect(res.nextWords).toContain('ja');
-      expect((global as any).fetch).toHaveBeenCalledTimes(2);
+      expect(mockOpenAI.responses.create).toHaveBeenCalledTimes(2);
     });
   });
 });
