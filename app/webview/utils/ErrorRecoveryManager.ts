@@ -115,6 +115,12 @@ export class ErrorRecoveryManager {
     const now = Date.now();
     const errorInfo = this.getErrorInfo(error, context);
 
+    // Pragmatic: for MediaPipe-related issues, enable fallback early
+    const ctxLower = context.toLowerCase();
+    if (errorInfo.code === 'MEDIAPIPE_ERROR' || ctxLower.includes('mediapipe')) {
+      this.activateFallbackMode();
+    }
+
     // Track recovery attempts for this error type
     const recoveryKey = `${errorInfo.code}_${context}`;
     const attempts = this.recoveryAttempts.get(recoveryKey) || 0;

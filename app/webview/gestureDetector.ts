@@ -780,6 +780,8 @@ class BatteryMonitor {
 const batteryMonitor = new BatteryMonitor();
 
 const partialGestureDetector = new PartialGestureDetector();
+// Create a local instance for size normalization used in this module
+const gestureSizeNormalizer = new GestureSizeNormalizer();
 
 // Initialize systems after all declarations
 batteryMonitor.startMonitoring();
@@ -805,9 +807,7 @@ gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
 (window as any).__activeRecognitionSession = false;
 
 // Expose frame capture functions for testing and debugging
-(window as any).captureFrameForOpenAI = captureFrameForOpenAI;
-(window as any).getLastCapturedFrame = getLastCapturedFrame;
-(window as any).setFrameCaptureEnabled = setFrameCaptureEnabled;
+// (moved below after function declarations to avoid temporal dead zone)
 
 // GestureSizeNormalizer is imported from gestureProcessing.ts
 
@@ -1095,6 +1095,10 @@ async function loadTasksVision() {
 // Initialize new modular gesture detector
 const video = document.createElement('video');
 const overlay = document.createElement('canvas');
+// Local overlay sizing state for legacy drawing paths
+let overlayWidth = 0;
+let overlayHeight = 0;
+let overlayDpr = 1;
 overlay.id = 'overlay';
 video.setAttribute('autoplay', '');
 video.setAttribute('playsinline', '');
@@ -1303,6 +1307,11 @@ function setFrameCaptureEnabled(enabled: boolean): void {
   }
   console.log(`🎥 Frame capture ${enabled ? 'enabled' : 'disabled'}`);
 }
+
+// Expose frame capture functions for testing and debugging (after declarations)
+;(window as any).captureFrameForOpenAI = captureFrameForOpenAI;
+;(window as any).getLastCapturedFrame = getLastCapturedFrame;
+;(window as any).setFrameCaptureEnabled = setFrameCaptureEnabled;
 
     resetGestureChangeState();
   } catch (e) {
@@ -2278,7 +2287,8 @@ function processGestureResults(results: any, timestamp: number) {
     // Activate appropriate recovery mode based on error type
     if (errorInfo.severity === 'critical') {
       errorRecoveryManager.activateEmergencyMode();
-    } else if (errorInfo.recoverable && shouldRetry) {
+    } else {
+      // Prefer enabling fallback when not critical to maintain functionality
       errorRecoveryManager.activateFallbackMode();
     }
 

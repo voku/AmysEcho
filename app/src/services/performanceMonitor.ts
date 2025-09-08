@@ -58,6 +58,15 @@ class PerformanceMonitor {
     setInterval(() => this.cleanupOldSamples(), 30000);
   }
 
+  // Simple metric recorder for ad-hoc counters/timings
+  recordMetric(name: string, value: number, details?: any): void {
+    try {
+      logger.performanceMetric(name, value, details);
+    } catch {
+      // no-op in environments without logger
+    }
+  }
+
   static getInstance(): PerformanceMonitor {
     if (!PerformanceMonitor.instance) {
       PerformanceMonitor.instance = new PerformanceMonitor();

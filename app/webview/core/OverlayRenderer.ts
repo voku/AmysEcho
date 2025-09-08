@@ -14,7 +14,15 @@ export class OverlayRenderer {
 
   constructor(overlay: HTMLCanvasElement) {
     this.overlay = overlay;
-    this.ctx = overlay.getContext('2d');
+    try {
+      this.ctx = overlay.getContext('2d');
+    } catch (e) {
+      // In test environments (jsdom), canvas context may be unavailable
+      this.ctx = null;
+      try {
+        console.error(e);
+      } catch {}
+    }
   }
 
   /**
