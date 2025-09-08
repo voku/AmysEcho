@@ -1,17 +1,21 @@
 export const COLORS = {
   backgroundStart: '#EFF6FF',
   backgroundEnd: '#F3F4F6',
+  background: '#F8FAFC',
   surface: '#FFFFFF',
   text: '#333333',
   textMuted: '#666666',
+  textSecondary: '#6B7280',
+  primary: '#3B82F6',
+  secondary: '#6B7280',
   primaryAccent: '#3B82F6',
   secondaryAccent: '#6B7280',
   vocabDrink: '#AEDFF7',
   vocabEat: '#F7C5A8',
   vocabPlay: '#A8F7A8',
-   success: '#4CAF50',
-   warning: '#FFD700',
-   error: '#EF4444',
+  success: '#4CAF50',
+  warning: '#FFD700',
+  error: '#EF4444',
   warningBackground: '#FDE68A',
   border: '#E5E7EB',
   borderDark: '#888888',
@@ -29,4 +33,19 @@ export const SPACING = {
   xl: 32,
 } as const;
 
-export const RADIUS = 8;
+// Default radius (md) with size shortcuts attached.
+export const RADIUS = Object.assign(8, {
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+}) as number & { sm: number; md: number; lg: number; xl: number };
+
+export const FONT_SIZES = {
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+  xl: 20,
+  xxl: 24,
+} as const;

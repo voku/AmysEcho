@@ -1850,239 +1850,260 @@
   // webview/gestureProcessing.ts
   var PartialGestureDetector = class {
     constructor() {
-      this.gesturePatterns = /* @__PURE__ */ new Map();
-      this.partialThreshold = 0.6;
-      // Minimum completion percentage to consider
-      this.completionTimeout = 2e3;
-      // Time window to complete gesture (ms)
-      this.activePartialGestures = /* @__PURE__ */ new Map();
+      this.gestureHistory = /* @__PURE__ */ new Map();
+      this.MAX_HISTORY = 5;
+      this.COMPLETION_THRESHOLDS = {
+        fist: 0.7,
+        point: 0.8,
+        thumbs_up: 0.75,
+        open_palm: 0.6,
+        peace: 0.7
+      };
     }
     /**
-     * Set the partial completion threshold
-     */
-    setThreshold(threshold) {
-      this.partialThreshold = Math.max(0.3, Math.min(0.9, threshold));
-    }
-    /**
-     * Analyze hand pose for partial gesture completion
+     * Optimized partial gesture analysis with reduced memory allocation
      */
     analyzePartialCompletion(landmarks, gestureId) {
-      if (landmarks.length === 0) {
+      if (!landmarks?.[0] || landmarks[0].length < 21) {
         return { isPartial: false, completion: 0, confidence: 0, feedback: "" };
       }
       const hand = landmarks[0];
-      if (!hand || hand.length < 21) {
-        return { isPartial: false, completion: 0, confidence: 0, feedback: "" };
-      }
+      const completion = this.calculateCompletion(hand, gestureId);
+      const confidence = this.calculatePartialConfidence(hand, gestureId, completion);
+      this.updateGestureHistory(gestureId, confidence);
+      const isPartial = completion >= 0.3 && completion < 0.9;
+      const feedback = isPartial ? this.generatePartialFeedback(gestureId, completion) : "";
+      return { isPartial, completion, confidence, feedback };
+    }
+    calculateCompletion(hand, gestureId) {
       switch (gestureId) {
-        case "thumbs_up":
-          return this.analyzeThumbsUpPartial(hand);
-        case "open_palm":
-          return this.analyzeOpenPalmPartial(hand);
         case "fist":
-          return this.analyzeFistPartial(hand);
+          return this.calculateFistCompletion(hand);
         case "point":
-          return this.analyzePointPartial(hand);
+          return this.calculatePointCompletion(hand);
+        case "thumbs_up":
+          return this.calculateThumbsUpCompletion(hand);
+        case "open_palm":
+          return this.calculateOpenPalmCompletion(hand);
         default:
-          return { isPartial: false, completion: 0, confidence: 0, feedback: "" };
+          return 0;
       }
     }
-    analyzeThumbsUpPartial(hand) {
-      const thumbExtended = hand[4][1] < hand[3][1];
-      const indexCurled = hand[8][1] > hand[6][1];
-      const middleCurled = hand[12][1] > hand[10][1];
-      const ringCurled = hand[16][1] > hand[14][1];
-      const pinkyCurled = hand[20][1] > hand[18][1];
-      const completion = (thumbExtended ? 1 : 0) + (indexCurled ? 1 : 0) + (middleCurled ? 1 : 0) + (ringCurled ? 1 : 0) + (pinkyCurled ? 1 : 0);
-      const normalizedCompletion = completion / 5;
-      const isPartial = normalizedCompletion >= 0.4 && normalizedCompletion < 1;
-      let feedback = "";
-      if (isPartial) {
-        if (!thumbExtended) {
-          feedback = "Streck deinen Daumen nach oben";
-        } else if (!indexCurled) {
-          feedback = "Mach eine Faust mit den Fingern";
+    calculateFistCompletion(hand) {
+      let curledFingers = 0;
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] > hand[fingerJoints[i]][1]) {
+          curledFingers++;
         }
       }
-      return {
-        isPartial,
-        completion: normalizedCompletion,
-        confidence: normalizedCompletion * 0.8,
-        feedback
-      };
+      return Math.min(curledFingers / 4, 1);
     }
-    analyzeOpenPalmPartial(hand) {
-      const fingers = [
-        { tip: 8, joint: 6 },
-        // Index
-        { tip: 12, joint: 10 },
-        // Middle
-        { tip: 16, joint: 14 },
-        // Ring
-        { tip: 20, joint: 18 },
-        // Pinky
-        { tip: 4, joint: 3 }
-        // Thumb
-      ];
-      let extendedCount = 0;
-      for (const finger of fingers) {
-        if (hand[finger.tip][1] < hand[finger.joint][1]) {
-          extendedCount++;
-        }
-      }
-      const normalizedCompletion = extendedCount / fingers.length;
-      const isPartial = normalizedCompletion >= 0.4 && normalizedCompletion < 1;
-      let feedback = "";
-      if (isPartial) {
-        feedback = "Streck alle Finger aus f\xFCr eine offene Hand";
-      }
-      return {
-        isPartial,
-        completion: normalizedCompletion,
-        confidence: normalizedCompletion * 0.8,
-        feedback
-      };
-    }
-    analyzeFistPartial(hand) {
-      const fingers = [
-        { tip: 8, joint: 6 },
-        // Index
-        { tip: 12, joint: 10 },
-        // Middle
-        { tip: 16, joint: 14 },
-        // Ring
-        { tip: 20, joint: 18 }
-        // Pinky
-      ];
-      let curledCount = 0;
-      for (const finger of fingers) {
-        if (hand[finger.tip][1] > hand[finger.joint][1]) {
-          curledCount++;
-        }
-      }
-      const normalizedCompletion = curledCount / fingers.length;
-      const isPartial = normalizedCompletion >= 0.4 && normalizedCompletion < 1;
-      let feedback = "";
-      if (isPartial) {
-        feedback = "Schlie\xDFe deine Hand zur Faust";
-      }
-      return {
-        isPartial,
-        completion: normalizedCompletion,
-        confidence: normalizedCompletion * 0.8,
-        feedback
-      };
-    }
-    analyzePointPartial(hand) {
+    calculatePointCompletion(hand) {
       const indexExtended = hand[8][1] < hand[6][1];
-      const middleCurled = hand[12][1] > hand[10][1];
-      const ringCurled = hand[16][1] > hand[14][1];
-      const pinkyCurled = hand[20][1] > hand[18][1];
-      const completion = (indexExtended ? 1 : 0) + (middleCurled ? 1 : 0) + (ringCurled ? 1 : 0) + (pinkyCurled ? 1 : 0);
-      const normalizedCompletion = completion / 4;
-      const isPartial = normalizedCompletion >= 0.4 && normalizedCompletion < 1;
-      let feedback = "";
-      if (isPartial) {
-        if (!indexExtended) {
-          feedback = "Streck deinen Zeigefinger aus";
-        } else if (!middleCurled || !ringCurled || !pinkyCurled) {
-          feedback = "Mach eine Faust mit den anderen Fingern";
+      const otherFingersCurled = hand[12][1] > hand[10][1] && // Middle
+      hand[16][1] > hand[14][1] && // Ring
+      hand[20][1] > hand[18][1];
+      if (indexExtended && otherFingersCurled) return 1;
+      if (indexExtended) return 0.7;
+      return 0;
+    }
+    calculateThumbsUpCompletion(hand) {
+      const thumbExtended = hand[4][1] < hand[3][1];
+      if (thumbExtended) return 1;
+      return 0;
+    }
+    calculateOpenPalmCompletion(hand) {
+      let extendedFingers = 0;
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+          extendedFingers++;
         }
       }
-      return {
-        isPartial,
-        completion: normalizedCompletion,
-        confidence: normalizedCompletion * 0.8,
-        feedback
-      };
+      return Math.min(extendedFingers / 4, 1);
+    }
+    calculatePartialConfidence(hand, gestureId, completion) {
+      const baseConfidence = completion * 0.8;
+      const stability = this.calculateHandStability(hand);
+      const stabilityBonus = stability * 0.2;
+      return Math.min(baseConfidence + stabilityBonus, 0.9);
+    }
+    calculateHandStability(hand) {
+      if (hand.length < 21) return 0;
+      const wrist = hand[0];
+      const middleTip = hand[12];
+      const distance = Math.sqrt(
+        Math.pow(middleTip[0] - wrist[0], 2) + Math.pow(middleTip[1] - wrist[1], 2)
+      );
+      return Math.min(Math.max(distance, 0.1), 0.5) / 0.5;
+    }
+    updateGestureHistory(gestureId, confidence) {
+      if (!this.gestureHistory.has(gestureId)) {
+        this.gestureHistory.set(gestureId, []);
+      }
+      const history = this.gestureHistory.get(gestureId);
+      history.push({ confidence, timestamp: Date.now() });
+      if (history.length > this.MAX_HISTORY) {
+        history.shift();
+      }
+    }
+    generatePartialFeedback(gestureId, completion) {
+      const completionPercent = Math.round(completion * 100);
+      switch (gestureId) {
+        case "fist":
+          return completionPercent < 50 ? "Fast eine Faust! Schlie\xDFe deine Finger mehr." : "Gute Faust! Schlie\xDFe die Finger ganz.";
+        case "point":
+          return completionPercent < 70 ? "Zeigefinger ausstrecken, andere Finger einrollen." : "Fast perfekt! Halte den Zeigefinger gerade.";
+        case "thumbs_up":
+          return "Daumen nach oben! Strecke ihn weiter aus.";
+        case "open_palm":
+          return completionPercent < 50 ? "Hand \xF6ffnen und Finger ausstrecken." : "Fast offen! Strecke alle Finger aus.";
+        default:
+          return `Geste zu ${completionPercent}% fertig.`;
+      }
+    }
+    shouldRecognizePartial(completion, confidence) {
+      return completion >= 0.4 && confidence >= 0.5;
+    }
+    cleanup() {
+      const cutoffTime = Date.now() - 3e4;
+      for (const [gestureId, history] of this.gestureHistory) {
+        const filtered = history.filter((entry) => entry.timestamp > cutoffTime);
+        if (filtered.length === 0) {
+          this.gestureHistory.delete(gestureId);
+        } else {
+          this.gestureHistory.set(gestureId, filtered);
+        }
+      }
     }
   };
   var TremorCompensator = class {
     constructor() {
-      this.landmarkHistory = [];
-      this.MAX_HISTORY = 5;
-      // Keep last 5 frames for smoothing
+      this.movementHistory = [];
+      this.MAX_HISTORY = 3;
       this.SMOOTHING_FACTOR = 0.7;
+      this.MOVEMENT_THRESHOLD = 0.02;
     }
-    // How much to smooth (0-1)
     /**
-     * Add new landmarks to history and return smoothed version
+     * Optimized tremor compensation with reduced memory usage
      */
     smoothLandmarks(landmarks) {
-      this.landmarkHistory.push(JSON.parse(JSON.stringify(landmarks)));
-      if (this.landmarkHistory.length > this.MAX_HISTORY) {
-        this.landmarkHistory.shift();
-      }
-      if (this.landmarkHistory.length < 2) {
+      if (!landmarks?.[0] || landmarks[0].length < 21) {
         return landmarks;
       }
-      const smoothed = JSON.parse(JSON.stringify(landmarks));
-      for (let handIdx = 0; handIdx < landmarks.length; handIdx++) {
-        const hand = landmarks[handIdx];
-        if (!hand) continue;
-        for (let pointIdx = 0; pointIdx < hand.length; pointIdx++) {
-          const currentPoint = hand[pointIdx];
-          if (!currentPoint) continue;
-          let smoothedX = currentPoint[0];
-          let smoothedY = currentPoint[1];
-          let smoothedZ = currentPoint[2] || 0;
-          let totalWeight = 1;
-          for (let historyIdx = 0; historyIdx < this.landmarkHistory.length - 1; historyIdx++) {
-            const weight = Math.pow(1 - this.SMOOTHING_FACTOR, historyIdx + 1);
-            const historyHand = this.landmarkHistory[historyIdx][handIdx];
-            if (historyHand && historyHand[pointIdx]) {
-              const historyPoint = historyHand[pointIdx];
-              smoothedX += historyPoint[0] * weight;
-              smoothedY += historyPoint[1] * weight;
-              smoothedZ += (historyPoint[2] || 0) * weight;
-              totalWeight += weight;
-            }
-          }
-          smoothed[handIdx][pointIdx] = [
-            smoothedX / totalWeight,
-            smoothedY / totalWeight,
-            smoothedZ / totalWeight
-          ];
-        }
+      const currentLandmarks = landmarks[0];
+      const now = Date.now();
+      this.movementHistory.push({ landmarks: currentLandmarks, timestamp: now });
+      if (this.movementHistory.length > this.MAX_HISTORY) {
+        this.movementHistory.shift();
+      }
+      if (this.movementHistory.length < 2) {
+        return landmarks;
+      }
+      if (!this.isIntentionalMovement(landmarks, [this.movementHistory[this.movementHistory.length - 2].landmarks])) {
+        return [this.movementHistory[this.movementHistory.length - 2].landmarks];
+      }
+      const smoothed = this.applySmoothing(currentLandmarks);
+      return [smoothed];
+    }
+    applySmoothing(current) {
+      if (this.movementHistory.length < 2) return current;
+      const previous = this.movementHistory[this.movementHistory.length - 2].landmarks;
+      const smoothed = [];
+      for (let i = 0; i < Math.min(current.length, previous.length); i++) {
+        const currentPoint = current[i];
+        const previousPoint = previous[i];
+        const smoothedPoint = [
+          previousPoint[0] * this.SMOOTHING_FACTOR + currentPoint[0] * (1 - this.SMOOTHING_FACTOR),
+          previousPoint[1] * this.SMOOTHING_FACTOR + currentPoint[1] * (1 - this.SMOOTHING_FACTOR),
+          previousPoint[2] * this.SMOOTHING_FACTOR + currentPoint[2] * (1 - this.SMOOTHING_FACTOR)
+        ];
+        smoothed.push(smoothedPoint);
       }
       return smoothed;
     }
-    /**
-     * Detect if movement is likely intentional vs tremor
-     */
     isIntentionalMovement(currentLandmarks, previousLandmarks) {
-      if (!previousLandmarks || previousLandmarks.length === 0) {
-        return true;
-      }
+      if (!currentLandmarks?.[0] || !previousLandmarks?.[0]) return true;
+      const current = currentLandmarks[0];
+      const previous = previousLandmarks[0];
+      if (current.length !== previous.length) return true;
       let totalMovement = 0;
-      let pointCount = 0;
-      for (let handIdx = 0; handIdx < Math.min(currentLandmarks.length, previousLandmarks.length); handIdx++) {
-        const currentHand = currentLandmarks[handIdx];
-        const previousHand = previousLandmarks[handIdx];
-        if (!currentHand || !previousHand) continue;
-        for (let pointIdx = 0; pointIdx < Math.min(currentHand.length, previousHand.length); pointIdx++) {
-          const currentPoint = currentHand[pointIdx];
-          const previousPoint = previousHand[pointIdx];
-          if (!currentPoint || !previousPoint) continue;
-          const distance = Math.sqrt(
-            Math.pow(currentPoint[0] - previousPoint[0], 2) + Math.pow(currentPoint[1] - previousPoint[1], 2) + Math.pow((currentPoint[2] || 0) - (previousPoint[2] || 0), 2)
-          );
-          totalMovement += distance;
-          pointCount++;
-        }
+      let points = 0;
+      for (let i = 0; i < Math.min(current.length, previous.length, 21); i++) {
+        const currentPoint = current[i];
+        const previousPoint = previous[i];
+        const movement = Math.sqrt(
+          Math.pow(currentPoint[0] - previousPoint[0], 2) + Math.pow(currentPoint[1] - previousPoint[1], 2) + Math.pow(currentPoint[2] - previousPoint[2], 2)
+        );
+        totalMovement += movement;
+        points++;
       }
-      if (pointCount === 0) return true;
-      const averageMovement = totalMovement / pointCount;
-      const INTENTIONAL_MOVEMENT_THRESHOLD = 0.02;
-      return averageMovement > INTENTIONAL_MOVEMENT_THRESHOLD;
+      const averageMovement = points > 0 ? totalMovement / points : 0;
+      return averageMovement > this.MOVEMENT_THRESHOLD;
     }
-    /**
-     * Clear history (useful when switching gestures or starting new session)
-     */
     clearHistory() {
-      this.landmarkHistory = [];
+      this.movementHistory = [];
     }
   };
+  var GestureSizeNormalizer = class {
+    constructor() {
+      this.tolerance = 0.3;
+      this.referenceHandSize = null;
+    }
+    /**
+     * Optimized gesture size normalization
+     */
+    normalizeHandSize(landmarks) {
+      if (!landmarks?.[0] || landmarks[0].length < 21) {
+        return landmarks;
+      }
+      const hand = landmarks[0];
+      const handSize = this.calculateHandSize(hand);
+      if (this.referenceHandSize === null) {
+        this.referenceHandSize = handSize;
+        return landmarks;
+      }
+      const sizeRatio = handSize / this.referenceHandSize;
+      if (Math.abs(sizeRatio - 1) <= this.tolerance) {
+        return landmarks;
+      }
+      const normalizedHand = this.applySizeNormalization(hand, sizeRatio);
+      return [normalizedHand];
+    }
+    calculateHandSize(hand) {
+      if (hand.length < 21) return 1;
+      const wrist = hand[0];
+      const middleTip = hand[12];
+      return Math.sqrt(
+        Math.pow(middleTip[0] - wrist[0], 2) + Math.pow(middleTip[1] - wrist[1], 2) + Math.pow(middleTip[2] - wrist[2], 2)
+      );
+    }
+    applySizeNormalization(hand, sizeRatio) {
+      const wrist = hand[0];
+      const normalized = [];
+      for (const point of hand) {
+        const normalizedPoint = [
+          wrist[0] + (point[0] - wrist[0]) / sizeRatio,
+          wrist[1] + (point[1] - wrist[1]) / sizeRatio,
+          wrist[2] + (point[2] - wrist[2]) / sizeRatio
+        ];
+        normalized.push(normalizedPoint);
+      }
+      return normalized;
+    }
+    setTolerance(tolerance) {
+      this.tolerance = Math.max(0, Math.min(1, tolerance));
+    }
+    reset() {
+      this.referenceHandSize = null;
+    }
+  };
+  var partialGestureDetector = new PartialGestureDetector();
+  var tremorCompensator = new TremorCompensator();
+  var gestureSizeNormalizer2 = new GestureSizeNormalizer();
 
   // webview/utils/CelebrationSystem.ts
   var CelebrationSystem = class {
@@ -5506,6 +5527,10 @@
   };
 
   // webview/gestureDetector.ts
+  var frameCaptureEnabled = false;
+  var frameCaptureInterval = 5;
+  var frameCounter = 0;
+  var lastCapturedFrame = null;
   var onError = (e) => {
     try {
       window.ReactNativeWebView?.postMessage?.(
@@ -5590,44 +5615,88 @@
       const thumbTip = hand[4];
       const thumbJoint = hand[3];
       let extendedFingers = 0;
+      let fingerStates = [];
       for (let i = 0; i < fingerTips.length; i++) {
-        if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+        const tip = hand[fingerTips[i]];
+        const joint = hand[fingerJoints[i]];
+        const distance = Math.abs(tip[1] - joint[1]);
+        const isExtended = tip[1] < joint[1] && distance > 0.15;
+        fingerStates.push(isExtended);
+        if (isExtended) {
           extendedFingers++;
         }
       }
-      const thumbExtended = thumbTip[1] < thumbJoint[1];
+      const thumbExtended = thumbTip[1] < thumbJoint[1] && Math.abs(thumbTip[0] - thumbJoint[0]) > 0.1;
       if (extendedFingers === 0 && !thumbExtended) {
         return "fist";
-      } else if (extendedFingers === 1 && !thumbExtended) {
+      } else if (extendedFingers === 1 && fingerStates[0] && !thumbExtended) {
         return "point";
-      } else if (extendedFingers === 2 && !thumbExtended) {
+      } else if (extendedFingers === 2 && fingerStates[0] && fingerStates[1] && !thumbExtended) {
         return "peace";
       } else if (extendedFingers >= 3 && thumbExtended) {
         return "open_palm";
       } else if (extendedFingers === 0 && thumbExtended) {
         return "thumbs_up";
+      } else if (extendedFingers === 4 && !thumbExtended) {
+        return "four_fingers";
+      } else if (extendedFingers === 1 && fingerStates[1] && !thumbExtended) {
+        return "middle_finger";
+      } else if (extendedFingers === 3 && !thumbExtended) {
+        return "three_fingers";
+      } else if (thumbExtended && extendedFingers === 1 && fingerStates[0]) {
+        return "circle_gesture";
       }
       return "unknown";
     }
     calculateRuleBasedConfidence(hand, gesture) {
-      if (!hand || gesture === "unknown") return 0.3;
-      let confidence = 0.5;
+      if (!hand || gesture === "unknown") return 0.2;
+      let confidence = 0.4;
       if (this.lastLandmarks && this.lastLandmarks[0]) {
         const movement = this.calculateMovement(this.lastLandmarks[0], hand);
-        if (movement < 0.05) confidence += 0.2;
+        if (movement < 0.025) confidence += 0.28;
+        else if (movement < 0.07) confidence += 0.18;
+        else if (movement < 0.12) confidence += 0.08;
+        else if (movement < 0.2) confidence += 0.02;
       }
       switch (gesture) {
         case "fist":
-          confidence += this.checkFistClarity(hand) ? 0.2 : -0.1;
+          confidence += this.checkFistClarity(hand) ? 0.25 : -0.05;
           break;
         case "point":
-          confidence += this.checkPointClarity(hand) ? 0.2 : -0.1;
+          confidence += this.checkPointClarity(hand) ? 0.25 : -0.05;
           break;
         case "thumbs_up":
-          confidence += this.checkThumbsUpClarity(hand) ? 0.2 : -0.1;
+          confidence += this.checkThumbsUpClarity(hand) ? 0.25 : -0.05;
+          break;
+        case "open_palm":
+          confidence += this.checkOpenPalmClarity(hand) ? 0.2 : -0.05;
           break;
       }
-      return Math.max(0.1, Math.min(0.8, confidence));
+      const handSize = this.calculateHandSize(hand);
+      if (handSize > 0.3) confidence += 0.1;
+      else if (handSize < 0.15) confidence -= 0.1;
+      return Math.max(0.15, Math.min(0.85, confidence));
+    }
+    calculateHandSize(hand) {
+      if (!hand || hand.length < 21) return 0;
+      const wrist = hand[0];
+      const middleTip = hand[12];
+      const distance = Math.sqrt(
+        Math.pow(middleTip[0] - wrist[0], 2) + Math.pow(middleTip[1] - wrist[1], 2)
+      );
+      return distance;
+    }
+    checkOpenPalmClarity(hand) {
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      let extendedFingers = 0;
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+          extendedFingers++;
+        }
+      }
+      const thumbExtended = hand[4][1] < hand[3][1];
+      return extendedFingers >= 3 && thumbExtended;
     }
     checkFistClarity(hand) {
       const fingerTips = [8, 12, 16, 20];
@@ -5675,20 +5744,34 @@
       return avgConfidence * 0.8 + (recent[recent.length - 1]?.confidence || 0) * 0.2;
     }
     getGestureFeedback(gesture, confidence) {
-      if (confidence < 0.4) {
-        return "Versuch es nochmal, halte deine Hand ruhig";
+      if (confidence < 0.35) {
+        return "Versuch es nochmal, halte deine Hand etwas ruhiger in der Mitte";
+      } else if (confidence < 0.5) {
+        return "Fast geschafft! Halte deine Hand noch etwas stabiler";
+      } else if (confidence < 0.65) {
+        return "Gut! Jetzt versuche es mit etwas mehr Selbstvertrauen";
       }
       switch (gesture) {
         case "fist":
-          return "Faust erkannt!";
+          return "Super! Faust perfekt erkannt! \u{1F44A}";
         case "point":
-          return "Zeigefinger erkannt!";
+          return "Toll! Zeigefinger genau richtig! \u{1F446}";
         case "thumbs_up":
-          return "Daumen hoch erkannt!";
+          return "Fantastisch! Daumen hoch geschafft! \u{1F44D}";
         case "open_palm":
-          return "Offene Hand erkannt!";
+          return "Wunderbar! Offene Hand erkannt! \u{1F590}\uFE0F";
+        case "peace":
+          return "Prima! Peace-Zeichen gemacht! \u270C\uFE0F";
+        case "four_fingers":
+          return "Ausgezeichnet! Vier Finger gezeigt! \u270B";
+        case "middle_finger":
+          return "Super! Mittelfinger erkannt! \u{1F595}";
+        case "three_fingers":
+          return "Toll! Drei Finger gezeigt! \u{1F44C}";
+        case "circle_gesture":
+          return "Prima! Kreis-Geste gemacht! \u2B55";
         default:
-          return "Geste erkannt!";
+          return "Gro\xDFartig! Geste erkannt! \u{1F389}";
       }
     }
     reset() {
@@ -5710,8 +5793,9 @@
   var cameraError = window.__cameraError || "Kamerafehler: ";
   var facingMode = window.__facingMode || "user";
   var mirrorOverlay = window.__mirrorOverlay === true;
-  var MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.4;
-  var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.3;
+  var MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.32;
+  var FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.22;
+  var EMERGENCY_CONFIDENCE_THRESHOLD = 0.12;
   var GESTURE_SIZE_TOLERANCE = window.__gestureSizeTolerance ?? 0.3;
   var EmergencyGestureSystem = class {
     constructor() {
@@ -5725,15 +5809,22 @@
         "gefahr",
         "au",
         "schmerz",
-        "angst"
+        "angst",
+        "hilf",
+        "rettung",
+        "gefahr",
+        "auwehr",
+        "schmerzen"
       ]);
-      this.EMERGENCY_CONFIDENCE_THRESHOLD = 0.25;
-      // Very low threshold for emergencies
+      this.EMERGENCY_CONFIDENCE_THRESHOLD = 0.15;
+      // Even lower threshold for emergencies
       this.lastEmergencyGestureTime = 0;
-      this.EMERGENCY_COOLDOWN_MS = 500;
-      // Quick response for repeated emergencies
+      this.EMERGENCY_COOLDOWN_MS = 300;
+      // Faster response for repeated emergencies
       this.emergencyHistory = [];
-      this.MAX_HISTORY = 10;
+      this.MAX_HISTORY = 15;
+      // Keep more history for pattern analysis
+      this.emergencyModeActive = false;
     }
     /**
      * Check if gesture is an emergency and should be prioritized
@@ -5840,8 +5931,29 @@
       return {
         activeEmergencies: recentEmergencies.length,
         lastEmergencyTime: this.lastEmergencyGestureTime,
-        emergencyModeRecommended: this.shouldEnterEmergencyMode()
+        emergencyModeRecommended: this.shouldEnterEmergencyMode(),
+        emergencyModeActive: this.emergencyModeActive
       };
+    }
+    /**
+     * Activate emergency mode for priority processing
+     */
+    activateEmergencyMode() {
+      this.emergencyModeActive = true;
+      console.warn("\u{1F6A8} EMERGENCY MODE ACTIVATED: All gestures treated as potential emergencies");
+    }
+    /**
+     * Deactivate emergency mode
+     */
+    deactivateEmergencyMode() {
+      this.emergencyModeActive = false;
+      console.log("\u2705 Emergency mode deactivated");
+    }
+    /**
+     * Check if emergency mode is currently active
+     */
+    isEmergencyModeActive() {
+      return this.emergencyModeActive;
     }
     /**
      * Reset emergency system (for testing or recovery)
@@ -5981,15 +6093,15 @@
     }
   };
   var batteryMonitor = new BatteryMonitor();
-  var partialGestureDetector = new PartialGestureDetector();
+  var partialGestureDetector2 = new PartialGestureDetector();
   batteryMonitor.startMonitoring();
   gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
   window.emergencyGestureSystem = emergencyGestureSystem;
   window.errorRecoveryManager = errorRecoveryManager;
   window.batteryMonitor = batteryMonitor;
   window.handStabilityAssistant = handStabilityAssistant;
-  window.partialGestureDetector = partialGestureDetector;
-  window.tremorCompensator = tremorCompensator;
+  window.partialGestureDetector = partialGestureDetector2;
+  window.tremorCompensator = tremorCompensator2;
   window.gestureSizeNormalizer = gestureSizeNormalizer;
   window.celebrationSystem = celebrationSystem;
   window.feedbackSystem = feedbackSystem;
@@ -5999,6 +6111,9 @@
   window.__mlpPredict = void 0;
   window.__modelUpdateInProgress = false;
   window.__activeRecognitionSession = false;
+  window.captureFrameForOpenAI = captureFrameForOpenAI;
+  window.getLastCapturedFrame = getLastCapturedFrame;
+  window.setFrameCaptureEnabled = setFrameCaptureEnabled;
   var HandStabilityAssistant = class {
     constructor() {
       this.stabilityHistory = [];
@@ -6091,7 +6206,7 @@
     }
   };
   var handStabilityAssistant = new HandStabilityAssistant();
-  var tremorCompensator = new TremorCompensator();
+  var tremorCompensator2 = new TremorCompensator();
   var lastProcessedLandmarks = [];
   var feedbackHistory = [];
   var resourceManager = new ResourceManager();
@@ -6169,6 +6284,79 @@
   }
   async function createGestureRecognizer() {
     try {
+      let initializeFrameCapture2 = function() {
+        frameCaptureEnabled = true;
+        frameCounter = 0;
+        lastCapturedFrame = null;
+        console.log("\u{1F3A5} Frame capture initialized for parallel processing");
+      }, captureFrameForOpenAI3 = function() {
+        if (!overlay || !video || !frameCaptureEnabled) {
+          console.debug("Frame capture skipped: overlay/video unavailable or disabled");
+          return null;
+        }
+        try {
+          const canvas = overlay;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            console.warn("Failed to get canvas context for frame capture");
+            return null;
+          }
+          if (canvas.width === 0 || canvas.height === 0) {
+            console.warn("Invalid canvas dimensions for frame capture");
+            return null;
+          }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+          if (!dataUrl || !dataUrl.startsWith("data:image/jpeg;base64,")) {
+            console.warn("Failed to generate valid base64 data URL");
+            return null;
+          }
+          const base64Data = dataUrl.split(",")[1];
+          if (!base64Data || base64Data.length === 0) {
+            console.warn("Generated empty base64 data");
+            return null;
+          }
+          lastCapturedFrame = base64Data;
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: "telemetry",
+                event: "frame_captured",
+                frameSize: base64Data.length,
+                timestamp: Date.now()
+              })
+            );
+          } catch (telemetryError) {
+            console.warn("Failed to send frame capture telemetry:", telemetryError);
+          }
+          return { uri: dataUrl, base64: base64Data, width: canvas.width, height: canvas.height };
+        } catch (error) {
+          console.error("Failed to capture frame for OpenAI:", error);
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: "telemetry",
+                event: "frame_capture_error",
+                error: error instanceof Error ? error.message : String(error),
+                timestamp: Date.now()
+              })
+            );
+          } catch (telemetryError) {
+            console.warn("Failed to send frame capture error telemetry:", telemetryError);
+          }
+          return null;
+        }
+      }, getLastCapturedFrame3 = function() {
+        return lastCapturedFrame;
+      }, setFrameCaptureEnabled3 = function(enabled) {
+        frameCaptureEnabled = enabled;
+        if (!enabled) {
+          lastCapturedFrame = null;
+          frameCounter = 0;
+        }
+        console.log(`\u{1F3A5} Frame capture ${enabled ? "enabled" : "disabled"}`);
+      };
+      var initializeFrameCapture = initializeFrameCapture2, captureFrameForOpenAI2 = captureFrameForOpenAI3, getLastCapturedFrame2 = getLastCapturedFrame3, setFrameCaptureEnabled2 = setFrameCaptureEnabled3;
       mainGestureDetector = new GestureDetector(video, overlay);
       await mainGestureDetector.initialize();
       mainGestureDetector.setResultCallback((results, timestamp) => {
@@ -6181,6 +6369,8 @@
       } catch (err2) {
         console.warn('Failed to send "recognizer_init" telemetry event:', err2);
       }
+      initializeFrameCapture2();
+      resetGestureChangeState();
       resetGestureChangeState();
     } catch (e) {
       const errorInfo = errorRecoveryManager.getErrorInfo(e, "gesture_recognizer_initialization");
@@ -6205,6 +6395,71 @@
   var lastSentScore = 0;
   var running = true;
   var cleanedUp = false;
+  var MessageBatcher = class {
+    constructor() {
+      this.messageQueue = [];
+      this.batchTimer = null;
+      this.BATCH_INTERVAL_MS = 50;
+      // Batch messages every 50ms
+      this.MAX_BATCH_SIZE = 5;
+    }
+    // Maximum messages per batch
+    /**
+     * Queue a message for batched sending
+     */
+    queueMessage(type, data) {
+      this.messageQueue.push({
+        type,
+        data,
+        timestamp: performance.now()
+      });
+      if (type.includes("emergency") || this.messageQueue.length >= this.MAX_BATCH_SIZE) {
+        this.flushBatch();
+      } else if (!this.batchTimer) {
+        this.batchTimer = window.setTimeout(() => this.flushBatch(), this.BATCH_INTERVAL_MS);
+      }
+    }
+    /**
+     * Flush all queued messages as a batch
+     */
+    flushBatch() {
+      if (this.messageQueue.length === 0) return;
+      if (this.batchTimer) {
+        clearTimeout(this.batchTimer);
+        this.batchTimer = null;
+      }
+      const batchData = {
+        type: "batch",
+        messages: this.messageQueue,
+        batchSize: this.messageQueue.length,
+        timestamp: performance.now()
+      };
+      try {
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify(batchData));
+      } catch (err2) {
+        console.warn("Failed to send batched messages:", err2);
+      }
+      this.messageQueue = [];
+    }
+    /**
+     * Force immediate flush of all messages
+     */
+    forceFlush() {
+      this.flushBatch();
+    }
+    /**
+     * Get current queue status
+     */
+    getQueueStatus() {
+      const now = performance.now();
+      const oldestMessage = this.messageQueue.length > 0 ? this.messageQueue[0] : null;
+      return {
+        queued: this.messageQueue.length,
+        oldestMessageAge: oldestMessage ? now - oldestMessage.timestamp : 0
+      };
+    }
+  };
+  var messageBatcher = new MessageBatcher();
   function isTwoHandGesture(gesture) {
     return gesture && typeof gesture === "object" && "left" in gesture && "right" in gesture;
   }
@@ -6220,7 +6475,7 @@
     lastSentGestureSerialized = null;
     lastSentScore = 0;
     lastSentAt = 0;
-    tremorCompensator.clearHistory();
+    tremorCompensator2.clearHistory();
     lastProcessedLandmarks = [];
   }
   var currentConfig = loadConfig();
@@ -6259,6 +6514,11 @@
     try {
       const frameLatency = Math.round(performance.now() - timestamp);
       frameCount++;
+      let capturedFrame = null;
+      if (frameCaptureEnabled && frameCounter % frameCaptureInterval === 0) {
+        capturedFrame = captureFrameForOpenAI();
+        frameCounter = 0;
+      }
       if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
         try {
           window.ReactNativeWebView?.postMessage?.(
@@ -6278,9 +6538,9 @@
         }
       }
       if (allLandmarks.length > 0) {
-        const isIntentional = tremorCompensator.isIntentionalMovement(allLandmarks, lastProcessedLandmarks);
+        const isIntentional = tremorCompensator2.isIntentionalMovement(allLandmarks, lastProcessedLandmarks);
         if (isIntentional) {
-          allLandmarks = tremorCompensator.smoothLandmarks(allLandmarks);
+          allLandmarks = tremorCompensator2.smoothLandmarks(allLandmarks);
           lastProcessedLandmarks = JSON.parse(JSON.stringify(allLandmarks));
         } else {
           allLandmarks = lastProcessedLandmarks.length > 0 ? lastProcessedLandmarks : allLandmarks;
@@ -6409,8 +6669,8 @@
       if ((!outGesture || outScore < 0.5) && allLandmarks.length > 0) {
         const commonGestures = ["thumbs_up", "open_palm", "fist", "point"];
         for (const gestureId of commonGestures) {
-          const partialAnalysis = partialGestureDetector.analyzePartialCompletion(allLandmarks, gestureId);
-          if (partialAnalysis.isPartial && partialGestureDetector.shouldRecognizePartial(
+          const partialAnalysis = partialGestureDetector2.analyzePartialCompletion(allLandmarks, gestureId);
+          if (partialAnalysis.isPartial && partialGestureDetector2.shouldRecognizePartial(
             partialAnalysis.completion,
             partialAnalysis.confidence
           )) {
@@ -6452,7 +6712,7 @@
         }
       }
       if (frameCount % 30 === 0) {
-        partialGestureDetector.cleanup();
+        partialGestureDetector2.cleanup();
       }
       if (shouldProcessEmergencyGesture(outGesture, outScore)) {
         sendEmergencyGesture(outGesture, outScore, allLandmarks, handedArr);
@@ -6686,63 +6946,61 @@
               feedbackHistory.shift();
             }
           }
-          window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({
-              type: "gesture",
-              gesture: finalGesture,
-              confidence: finalScore,
-              landmarks: allLandmarks,
-              handednesses: handedArr,
-              timestamp,
-              isFallback: isUsingFallback,
-              systemHealth: errorRecoveryManager.getHealthStatus(),
-              // Enhanced context-aware recognition data
-              contextAwareness: contextInsights ? {
-                timeOfDay: contextInsights.timeOfDay,
-                activityLevel: contextInsights.activityLevel,
-                contextBonus: contextInsights.contextBonus,
-                patternMatch: contextInsights.patternMatch,
-                recentFrequency: contextInsights.recentFrequency,
-                habitStrength: contextInsights.habitStrength,
-                adjustedConfidence: contextInsights.adjustedConfidence,
-                stressIndicators: contextInsights.stressIndicators,
-                recommendations: contextInsights.recommendations
-              } : null,
-              // Enhanced feedback for 22q11 accessibility
-              enhancedFeedback: enhancedFeedback ? {
-                message: enhancedFeedback.celebration.message,
-                emoji: enhancedFeedback.celebration.emoji,
-                encouragement: enhancedFeedback.celebration.encouragement,
-                showProgress: enhancedFeedback.celebration.showProgress,
-                primaryFeedback: enhancedFeedback.detailedFeedback.primaryMessage,
-                secondaryFeedback: enhancedFeedback.detailedFeedback.secondaryFeedback,
-                tip: enhancedFeedback.detailedFeedback.tip,
-                showBreakSuggestion: enhancedFeedback.detailedFeedback.showBreakSuggestion
-              } : null,
-              // Personalized threshold data for Amy's learning insights
-              personalizedThresholds: finalGesture && typeof finalGesture === "string" ? {
-                currentAdjustment: personalizedThresholdManager.getPersonalizedThreshold(
-                  finalGesture,
-                  currentConfig.thresholds.mlpConfidence
-                ),
-                performanceInsights: personalizedThresholdManager.getPerformanceInsights()
-              } : null,
-              // Gesture combination results for complex communication
-              gestureCombination: combinationResult,
-              // Adaptive practice timing data
-              practiceTiming: {
-                isCommunicationActive: adaptivePracticeManager.isCommunicationActive(),
-                practiceSuggestion: contextInsights ? adaptivePracticeManager.shouldSuggestPractice(
-                  contextInsights.timeOfDay,
-                  contextInsights.activityLevel,
-                  0
-                  // Will be calculated based on actual timing
-                ) : null
-              },
-              // Positive telemetry insights
-              positiveInsights: finalGesture && finalScore >= 0.7 ? positiveTelemetryManager.getPositiveInsights() : null
-            })
-          );
+          messageBatcher.queueMessage("gesture", {
+            gesture: finalGesture,
+            confidence: finalScore,
+            landmarks: allLandmarks,
+            handednesses: handedArr,
+            timestamp,
+            isFallback: isUsingFallback,
+            systemHealth: errorRecoveryManager.getHealthStatus(),
+            capturedFrame,
+            // Enhanced context-aware recognition data
+            contextAwareness: contextInsights ? {
+              timeOfDay: contextInsights.timeOfDay,
+              activityLevel: contextInsights.activityLevel,
+              contextBonus: contextInsights.contextBonus,
+              patternMatch: contextInsights.patternMatch,
+              recentFrequency: contextInsights.recentFrequency,
+              habitStrength: contextInsights.habitStrength,
+              adjustedConfidence: contextInsights.adjustedConfidence,
+              stressIndicators: contextInsights.stressIndicators,
+              recommendations: contextInsights.recommendations
+            } : null,
+            // Enhanced feedback for 22q11 accessibility
+            enhancedFeedback: enhancedFeedback ? {
+              message: enhancedFeedback.celebration.message,
+              emoji: enhancedFeedback.celebration.emoji,
+              encouragement: enhancedFeedback.celebration.encouragement,
+              showProgress: enhancedFeedback.celebration.showProgress,
+              primaryFeedback: enhancedFeedback.detailedFeedback.primaryMessage,
+              secondaryFeedback: enhancedFeedback.detailedFeedback.secondaryFeedback,
+              tip: enhancedFeedback.detailedFeedback.tip,
+              showBreakSuggestion: enhancedFeedback.detailedFeedback.showBreakSuggestion
+            } : null,
+            // Personalized threshold data for Amy's learning insights
+            personalizedThresholds: finalGesture && typeof finalGesture === "string" ? {
+              currentAdjustment: personalizedThresholdManager.getPersonalizedThreshold(
+                finalGesture,
+                currentConfig.thresholds.mlpConfidence
+              ),
+              performanceInsights: personalizedThresholdManager.getPerformanceInsights()
+            } : null,
+            // Gesture combination results for complex communication
+            gestureCombination: combinationResult,
+            // Adaptive practice timing data
+            practiceTiming: {
+              isCommunicationActive: adaptivePracticeManager.isCommunicationActive(),
+              practiceSuggestion: contextInsights ? adaptivePracticeManager.shouldSuggestPractice(
+                contextInsights.timeOfDay,
+                contextInsights.activityLevel,
+                0
+                // Will be calculated based on actual timing
+              ) : null
+            },
+            // Positive telemetry insights
+            positiveInsights: finalGesture && finalScore >= 0.7 ? positiveTelemetryManager.getPositiveInsights() : null
+          });
         } catch (err2) {
           console.warn("Failed to send gesture message:", err2);
           errorRecoveryManager.recordFailure(err2, "gesture_message_send");
@@ -6927,7 +7185,7 @@
   }
   async function startCamera() {
     resetGestureChangeState();
-    tremorCompensator.clearHistory();
+    tremorCompensator2.clearHistory();
     lastProcessedLandmarks = [];
     try {
       if (mainGestureDetector) {

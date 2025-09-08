@@ -29,8 +29,8 @@ describe('classifyGesture', () => {
     try {
       global.fetch = jest.fn().mockRejectedValue(new Error('network')) as any;
       const modelPath = path.join(process.cwd(), 'src/offlineModel.json');
-      const shallow = await classifyGesture([[0, 0], [0, 0]], modelPath, true);
-      const deep = await classifyGesture([[[0, 0, 0], [0, 0, 0]]], modelPath, true);
+      const shallow = await classifyGesture([0, 0, 0, 0], modelPath, true);
+      const deep = await classifyGesture([[0, 0, 0], [0, 0, 0]], modelPath, true);
       expect(shallow.label).toBe('g1');
       expect(deep.label).toBe('g1');
     } finally {

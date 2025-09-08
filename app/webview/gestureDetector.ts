@@ -50,6 +50,12 @@ import { AdaptivePracticeManager } from './utils/AdaptivePracticeManager';
 // Import positive telemetry manager
 import { PositiveTelemetryManager } from './utils/PositiveTelemetryManager';
 
+// Frame capture configuration
+let frameCaptureEnabled = false;
+let frameCaptureInterval = 5; // Capture every 5th frame
+let frameCounter = 0;
+let lastCapturedFrame: string | null = null;
+
 // Forward script errors to React Native for easier debugging
 const onError = (e: ErrorEvent) => {
   try {
@@ -154,66 +160,127 @@ class FallbackGestureDetector {
   private detectBasicGesture(hand: number[][]): string {
     if (!hand || hand.length < 21) return '';
 
-    // Simple finger counting for basic gestures
+    // Enhanced finger detection with better accuracy for Amy's gestures
     const fingerTips = [8, 12, 16, 20]; // Index, middle, ring, pinky tips
     const fingerJoints = [6, 10, 14, 18]; // Corresponding joints
     const thumbTip = hand[4];
     const thumbJoint = hand[3];
 
     let extendedFingers = 0;
+    let fingerStates = [];
 
-    // Count extended fingers
+    // Enhanced finger detection with distance thresholds
     for (let i = 0; i < fingerTips.length; i++) {
-      if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+      const tip = hand[fingerTips[i]];
+      const joint = hand[fingerJoints[i]];
+      const distance = Math.abs(tip[1] - joint[1]);
+      const isExtended = tip[1] < joint[1] && distance > 0.15; // Minimum distance threshold
+      fingerStates.push(isExtended);
+      if (isExtended) {
         extendedFingers++;
       }
     }
 
-    // Check thumb
-    const thumbExtended = thumbTip[1] < thumbJoint[1];
+    // Enhanced thumb detection with better angle consideration
+    const thumbExtended = thumbTip[1] < thumbJoint[1] &&
+                         Math.abs(thumbTip[0] - thumbJoint[0]) > 0.1; // Thumb must move sideways too
 
-    // Basic gesture classification
+    // More sophisticated gesture classification for Amy's needs
     if (extendedFingers === 0 && !thumbExtended) {
       return 'fist';
-    } else if (extendedFingers === 1 && !thumbExtended) {
+    } else if (extendedFingers === 1 && fingerStates[0] && !thumbExtended) {
+      // Specifically index finger extended
       return 'point';
-    } else if (extendedFingers === 2 && !thumbExtended) {
+    } else if (extendedFingers === 2 && fingerStates[0] && fingerStates[1] && !thumbExtended) {
+      // Index and middle fingers
       return 'peace';
     } else if (extendedFingers >= 3 && thumbExtended) {
       return 'open_palm';
     } else if (extendedFingers === 0 && thumbExtended) {
       return 'thumbs_up';
+    } else if (extendedFingers === 4 && !thumbExtended) {
+      // All fingers extended but thumb not
+      return 'four_fingers';
+    } else if (extendedFingers === 1 && fingerStates[1] && !thumbExtended) {
+      // Middle finger extended (alternative point)
+      return 'middle_finger';
+    } else if (extendedFingers === 3 && !thumbExtended) {
+      // Three fingers extended
+      return 'three_fingers';
+    } else if (thumbExtended && extendedFingers === 1 && fingerStates[0]) {
+      // Thumb and index finger (like making a circle)
+      return 'circle_gesture';
     }
 
     return 'unknown';
   }
 
   private calculateRuleBasedConfidence(hand: number[][], gesture: string): number {
-    if (!hand || gesture === 'unknown') return 0.3;
+    if (!hand || gesture === 'unknown') return 0.2;
 
-    // Simple confidence based on gesture clarity
-    let confidence = 0.5;
+    // Adaptive confidence calculation for Amy's gesture patterns
+    let confidence = 0.4; // Start lower for more sensitivity
 
-    // Add confidence based on hand stability (compare with previous frame)
+    // Enhanced stability analysis for Amy's gesture patterns
     if (this.lastLandmarks && this.lastLandmarks[0]) {
       const movement = this.calculateMovement(this.lastLandmarks[0], hand);
-      if (movement < 0.05) confidence += 0.2; // Stable hand = higher confidence
+      if (movement < 0.025) confidence += 0.28; // Very stable = higher confidence boost
+      else if (movement < 0.07) confidence += 0.18; // Moderately stable
+      else if (movement < 0.12) confidence += 0.08; // Some movement but acceptable for Amy
+      else if (movement < 0.20) confidence += 0.02; // More tolerant of movement
     }
 
-    // Add confidence based on gesture-specific rules
+    // Enhanced gesture-specific confidence analysis
     switch (gesture) {
       case 'fist':
-        confidence += this.checkFistClarity(hand) ? 0.2 : -0.1;
+        confidence += this.checkFistClarity(hand) ? 0.25 : -0.05;
         break;
       case 'point':
-        confidence += this.checkPointClarity(hand) ? 0.2 : -0.1;
+        confidence += this.checkPointClarity(hand) ? 0.25 : -0.05;
         break;
       case 'thumbs_up':
-        confidence += this.checkThumbsUpClarity(hand) ? 0.2 : -0.1;
+        confidence += this.checkThumbsUpClarity(hand) ? 0.25 : -0.05;
+        break;
+      case 'open_palm':
+        confidence += this.checkOpenPalmClarity(hand) ? 0.2 : -0.05;
         break;
     }
 
-    return Math.max(0.1, Math.min(0.8, confidence));
+    // Add confidence based on hand size (larger hands = more reliable detection)
+    const handSize = this.calculateHandSize(hand);
+    if (handSize > 0.3) confidence += 0.1; // Good hand size
+    else if (handSize < 0.15) confidence -= 0.1; // Too small, less reliable
+
+    return Math.max(0.15, Math.min(0.85, confidence));
+  }
+
+  private calculateHandSize(hand: number[][]): number {
+    if (!hand || hand.length < 21) return 0;
+
+    // Calculate hand size based on distance between wrist and middle finger tip
+    const wrist = hand[0];
+    const middleTip = hand[12];
+    const distance = Math.sqrt(
+      Math.pow(middleTip[0] - wrist[0], 2) +
+      Math.pow(middleTip[1] - wrist[1], 2)
+    );
+
+    return distance;
+  }
+
+  private checkOpenPalmClarity(hand: number[][]): boolean {
+    const fingerTips = [8, 12, 16, 20];
+    const fingerJoints = [6, 10, 14, 18];
+    let extendedFingers = 0;
+
+    for (let i = 0; i < fingerTips.length; i++) {
+      if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+        extendedFingers++;
+      }
+    }
+
+    const thumbExtended = hand[4][1] < hand[3][1];
+    return extendedFingers >= 3 && thumbExtended;
   }
 
   private checkFistClarity(hand: number[][]): boolean {
@@ -278,21 +345,37 @@ class FallbackGestureDetector {
   }
 
   private getGestureFeedback(gesture: string, confidence: number): string {
-    if (confidence < 0.4) {
-      return 'Versuch es nochmal, halte deine Hand ruhig';
+    // More adaptive feedback based on confidence levels for Amy's learning
+    if (confidence < 0.35) {
+      return 'Versuch es nochmal, halte deine Hand etwas ruhiger in der Mitte';
+    } else if (confidence < 0.5) {
+      return 'Fast geschafft! Halte deine Hand noch etwas stabiler';
+    } else if (confidence < 0.65) {
+      return 'Gut! Jetzt versuche es mit etwas mehr Selbstvertrauen';
     }
 
+    // Positive reinforcement for successful gestures
     switch (gesture) {
       case 'fist':
-        return 'Faust erkannt!';
+        return 'Super! Faust perfekt erkannt! 👊';
       case 'point':
-        return 'Zeigefinger erkannt!';
+        return 'Toll! Zeigefinger genau richtig! 👆';
       case 'thumbs_up':
-        return 'Daumen hoch erkannt!';
+        return 'Fantastisch! Daumen hoch geschafft! 👍';
       case 'open_palm':
-        return 'Offene Hand erkannt!';
+        return 'Wunderbar! Offene Hand erkannt! 🖐️';
+      case 'peace':
+        return 'Prima! Peace-Zeichen gemacht! ✌️';
+      case 'four_fingers':
+        return 'Ausgezeichnet! Vier Finger gezeigt! ✋';
+      case 'middle_finger':
+        return 'Super! Mittelfinger erkannt! 🖕';
+      case 'three_fingers':
+        return 'Toll! Drei Finger gezeigt! 👌';
+      case 'circle_gesture':
+        return 'Prima! Kreis-Geste gemacht! ⭕';
       default:
-        return 'Geste erkannt!';
+        return 'Großartig! Geste erkannt! 🎉';
     }
   }
 
@@ -303,6 +386,8 @@ class FallbackGestureDetector {
 }
 
 const fallbackGestureDetector = new FallbackGestureDetector();
+
+
 
 // Configure gesture size tolerance (will be set after instantiation)
 
@@ -321,10 +406,13 @@ const predictionError = window.__predictionError || 'Vorhersagefehler: ';
 const cameraError = window.__cameraError || 'Kamerafehler: ';
 const facingMode = window.__facingMode || 'user';
 const mirrorOverlay = window.__mirrorOverlay === true;
-// Amy First: Lower thresholds for imperfect gestures (22q11 syndrome)
-const MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.4;
+// Amy First: Adaptive thresholds for imperfect gestures (22q11 syndrome)
+// Lower base thresholds but allow dynamic adjustment based on context
+const MLP_CONFIDENCE_THRESHOLD = window.__mlpThreshold ?? 0.32; // Slightly lower for better responsiveness
 // Minimum confidence below which custom gesture fallbacks activate
-const FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.3;
+const FALLBACK_CONFIDENCE_THRESHOLD = window.__fallbackThreshold ?? 0.22; // Slightly lower for earlier fallback
+// Emergency gesture threshold - much lower for critical communications
+const EMERGENCY_CONFIDENCE_THRESHOLD = 0.12; // Slightly lower for faster emergency detection
 // Timeout for CDN fetches and script loads to avoid hangs
 const LOAD_TIMEOUT_MS = 8000;
 // Gesture size tolerance (0.1 to 1.0, default 0.3 = 30% tolerance)
@@ -334,13 +422,15 @@ const GESTURE_SIZE_TOLERANCE = window.__gestureSizeTolerance ?? 0.3;
 class EmergencyGestureSystem {
   private readonly EMERGENCY_GESTURES = new Set([
     'hilfe', 'help', 'emergency', 'stop', 'danger',
-    'notfall', 'gefahr', 'au', 'schmerz', 'angst'
+    'notfall', 'gefahr', 'au', 'schmerz', 'angst',
+    'hilf', 'rettung', 'gefahr', 'auwehr', 'schmerzen'
   ]);
-  private readonly EMERGENCY_CONFIDENCE_THRESHOLD = 0.25; // Very low threshold for emergencies
+  private readonly EMERGENCY_CONFIDENCE_THRESHOLD = 0.15; // Even lower threshold for emergencies
   private lastEmergencyGestureTime = 0;
-  private readonly EMERGENCY_COOLDOWN_MS = 500; // Quick response for repeated emergencies
+  private readonly EMERGENCY_COOLDOWN_MS = 300; // Faster response for repeated emergencies
   private emergencyHistory: Array<{gesture: string; timestamp: number; confidence: number}> = [];
-  private readonly MAX_HISTORY = 10;
+  private readonly MAX_HISTORY = 15; // Keep more history for pattern analysis
+  private emergencyModeActive = false;
 
   /**
    * Check if gesture is an emergency and should be prioritized
@@ -468,6 +558,7 @@ class EmergencyGestureSystem {
     activeEmergencies: number;
     lastEmergencyTime: number;
     emergencyModeRecommended: boolean;
+    emergencyModeActive: boolean;
   } {
     const recentEmergencies = this.emergencyHistory.filter(
       h => Date.now() - h.timestamp < 60000 // Last minute
@@ -476,8 +567,32 @@ class EmergencyGestureSystem {
     return {
       activeEmergencies: recentEmergencies.length,
       lastEmergencyTime: this.lastEmergencyGestureTime,
-      emergencyModeRecommended: this.shouldEnterEmergencyMode()
+      emergencyModeRecommended: this.shouldEnterEmergencyMode(),
+      emergencyModeActive: this.emergencyModeActive
     };
+  }
+
+  /**
+   * Activate emergency mode for priority processing
+   */
+  activateEmergencyMode(): void {
+    this.emergencyModeActive = true;
+    console.warn('🚨 EMERGENCY MODE ACTIVATED: All gestures treated as potential emergencies');
+  }
+
+  /**
+   * Deactivate emergency mode
+   */
+  deactivateEmergencyMode(): void {
+    this.emergencyModeActive = false;
+    console.log('✅ Emergency mode deactivated');
+  }
+
+  /**
+   * Check if emergency mode is currently active
+   */
+  isEmergencyModeActive(): boolean {
+    return this.emergencyModeActive;
   }
 
   /**
@@ -688,6 +803,11 @@ gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
 (window as any).__mlpPredict = undefined;
 (window as any).__modelUpdateInProgress = false;
 (window as any).__activeRecognitionSession = false;
+
+// Expose frame capture functions for testing and debugging
+(window as any).captureFrameForOpenAI = captureFrameForOpenAI;
+(window as any).getLastCapturedFrame = getLastCapturedFrame;
+(window as any).setFrameCaptureEnabled = setFrameCaptureEnabled;
 
 // GestureSizeNormalizer is imported from gestureProcessing.ts
 
@@ -1068,6 +1188,122 @@ async function createGestureRecognizer() {
       console.warn('Failed to send "recognizer_init" telemetry event:', err);
     }
 
+    // Initialize frame capture for parallel processing
+    initializeFrameCapture();
+
+    resetGestureChangeState();
+
+/**
+ * Initialize frame capture system for parallel OpenAI processing
+ */
+function initializeFrameCapture(): void {
+  frameCaptureEnabled = true;
+  frameCounter = 0;
+  lastCapturedFrame = null;
+
+  console.log('🎥 Frame capture initialized for parallel processing');
+}
+
+/**
+ * Capture current frame from video canvas for OpenAI processing
+ */
+function captureFrameForOpenAI(): { uri: string; base64: string; width: number; height: number } | null {
+  if (!overlay || !video || !frameCaptureEnabled) {
+    console.debug('Frame capture skipped: overlay/video unavailable or disabled');
+    return null;
+  }
+
+  try {
+    const canvas = overlay;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.warn('Failed to get canvas context for frame capture');
+      return null;
+    }
+
+    // Validate canvas dimensions
+    if (canvas.width === 0 || canvas.height === 0) {
+      console.warn('Invalid canvas dimensions for frame capture');
+      return null;
+    }
+
+    // Draw current video frame to canvas
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert to base64 for OpenAI API (JPEG format for better compression)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+    if (!dataUrl || !dataUrl.startsWith('data:image/jpeg;base64,')) {
+      console.warn('Failed to generate valid base64 data URL');
+      return null;
+    }
+
+    const base64Data = dataUrl.split(',')[1];
+
+    // Validate base64 data
+    if (!base64Data || base64Data.length === 0) {
+      console.warn('Generated empty base64 data');
+      return null;
+    }
+
+    // Cache the captured frame
+    lastCapturedFrame = base64Data;
+
+    // Send telemetry about frame capture
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'telemetry',
+          event: 'frame_captured',
+          frameSize: base64Data.length,
+          timestamp: Date.now(),
+        })
+      );
+    } catch (telemetryError) {
+      console.warn('Failed to send frame capture telemetry:', telemetryError);
+    }
+
+    return { uri: dataUrl, base64: base64Data, width: canvas.width, height: canvas.height };
+  } catch (error) {
+    console.error('Failed to capture frame for OpenAI:', error);
+
+    // Send error telemetry
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'telemetry',
+          event: 'frame_capture_error',
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: Date.now(),
+        })
+      );
+    } catch (telemetryError) {
+      console.warn('Failed to send frame capture error telemetry:', telemetryError);
+    }
+
+    return null;
+  }
+}
+
+/**
+ * Get the last captured frame for processing
+ */
+function getLastCapturedFrame(): string | null {
+  return lastCapturedFrame;
+}
+
+/**
+ * Enable or disable frame capture
+ */
+function setFrameCaptureEnabled(enabled: boolean): void {
+  frameCaptureEnabled = enabled;
+  if (!enabled) {
+    lastCapturedFrame = null;
+    frameCounter = 0;
+  }
+  console.log(`🎥 Frame capture ${enabled ? 'enabled' : 'disabled'}`);
+}
+
     resetGestureChangeState();
   } catch (e) {
     const errorInfo = errorRecoveryManager.getErrorInfo(e as Error, 'gesture_recognizer_initialization');
@@ -1097,6 +1333,83 @@ let lastSentGestureSerialized: string | null = null;
 let lastSentScore = 0;
 let running = true;
 let cleanedUp = false;
+
+// WebView Message Batching System - Amy First Performance Optimization
+class MessageBatcher {
+  private messageQueue: Array<{type: string; data: any; timestamp: number}> = [];
+  private batchTimer: number | null = null;
+  private readonly BATCH_INTERVAL_MS = 50; // Batch messages every 50ms
+  private readonly MAX_BATCH_SIZE = 5; // Maximum messages per batch
+
+  /**
+   * Queue a message for batched sending
+   */
+  queueMessage(type: string, data: any): void {
+    this.messageQueue.push({
+      type,
+      data,
+      timestamp: performance.now()
+    });
+
+    // Send immediately if it's an emergency or if batch is full
+    if (type.includes('emergency') || this.messageQueue.length >= this.MAX_BATCH_SIZE) {
+      this.flushBatch();
+    } else if (!this.batchTimer) {
+      // Start batch timer
+      this.batchTimer = window.setTimeout(() => this.flushBatch(), this.BATCH_INTERVAL_MS);
+    }
+  }
+
+  /**
+   * Flush all queued messages as a batch
+   */
+  private flushBatch(): void {
+    if (this.messageQueue.length === 0) return;
+
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer);
+      this.batchTimer = null;
+    }
+
+    // Send single message with all batched data
+    const batchData = {
+      type: 'batch',
+      messages: this.messageQueue,
+      batchSize: this.messageQueue.length,
+      timestamp: performance.now()
+    };
+
+    try {
+      window.ReactNativeWebView?.postMessage?.(JSON.stringify(batchData));
+    } catch (err) {
+      console.warn('Failed to send batched messages:', err);
+    }
+
+    this.messageQueue = [];
+  }
+
+  /**
+   * Force immediate flush of all messages
+   */
+  forceFlush(): void {
+    this.flushBatch();
+  }
+
+  /**
+   * Get current queue status
+   */
+  getQueueStatus(): { queued: number; oldestMessageAge: number } {
+    const now = performance.now();
+    const oldestMessage = this.messageQueue.length > 0 ? this.messageQueue[0] : null;
+
+    return {
+      queued: this.messageQueue.length,
+      oldestMessageAge: oldestMessage ? now - oldestMessage.timestamp : 0
+    };
+  }
+}
+
+const messageBatcher = new MessageBatcher();
 type TwoHandGesture = { left: string; right: string };
 function isTwoHandGesture(gesture: any): gesture is TwoHandGesture {
   return gesture && typeof gesture === 'object' && 'left' in gesture && 'right' in gesture;
@@ -1161,6 +1474,14 @@ function processGestureResults(results: any, timestamp: number) {
   try {
     const frameLatency = Math.round(performance.now() - timestamp);
     frameCount++;
+
+    // Capture frame for parallel OpenAI processing
+    let capturedFrame: string | null = null;
+    if (frameCaptureEnabled && frameCounter % frameCaptureInterval === 0) {
+      capturedFrame = captureFrameForOpenAI();
+      frameCounter = 0; // Reset counter after capture
+    }
+
     if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
       try {
         window.ReactNativeWebView?.postMessage?.(
@@ -1544,7 +1865,7 @@ function processGestureResults(results: any, timestamp: number) {
       // Trigger haptic feedback for emergency gesture
       hapticFeedbackManager.onEmergencyGesture(finalGesture);
 
-      // Emergency gestures get immediate processing with high priority
+      // Emergency gestures bypass batching for immediate processing - Amy First priority
       try {
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({
@@ -1746,62 +2067,61 @@ function processGestureResults(results: any, timestamp: number) {
         }
       }
 
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
-          type: 'gesture',
-          gesture: finalGesture,
-          confidence: finalScore,
-          landmarks: allLandmarks,
-          handednesses: handedArr,
-          timestamp: timestamp,
-          isFallback: isUsingFallback,
-          systemHealth: errorRecoveryManager.getHealthStatus(),
-          // Enhanced context-aware recognition data
-          contextAwareness: contextInsights ? {
-            timeOfDay: contextInsights.timeOfDay,
-            activityLevel: contextInsights.activityLevel,
-            contextBonus: contextInsights.contextBonus,
-            patternMatch: contextInsights.patternMatch,
-            recentFrequency: contextInsights.recentFrequency,
-            habitStrength: contextInsights.habitStrength,
-            adjustedConfidence: contextInsights.adjustedConfidence,
-            stressIndicators: contextInsights.stressIndicators,
-            recommendations: contextInsights.recommendations
-          } : null,
-          // Enhanced feedback for 22q11 accessibility
-          enhancedFeedback: enhancedFeedback ? {
-            message: enhancedFeedback.celebration.message,
-            emoji: enhancedFeedback.celebration.emoji,
-            encouragement: enhancedFeedback.celebration.encouragement,
-            showProgress: enhancedFeedback.celebration.showProgress,
-            primaryFeedback: enhancedFeedback.detailedFeedback.primaryMessage,
-            secondaryFeedback: enhancedFeedback.detailedFeedback.secondaryFeedback,
-            tip: enhancedFeedback.detailedFeedback.tip,
-            showBreakSuggestion: enhancedFeedback.detailedFeedback.showBreakSuggestion
-          } : null,
-          // Personalized threshold data for Amy's learning insights
-          personalizedThresholds: finalGesture && typeof finalGesture === 'string' ? {
-            currentAdjustment: personalizedThresholdManager.getPersonalizedThreshold(
-              finalGesture,
-              currentConfig.thresholds.mlpConfidence
-            ),
-            performanceInsights: personalizedThresholdManager.getPerformanceInsights()
-          } : null,
-          // Gesture combination results for complex communication
-          gestureCombination: combinationResult,
-          // Adaptive practice timing data
-          practiceTiming: {
-            isCommunicationActive: adaptivePracticeManager.isCommunicationActive(),
-            practiceSuggestion: contextInsights ? adaptivePracticeManager.shouldSuggestPractice(
-              contextInsights.timeOfDay,
-              contextInsights.activityLevel,
-              0 // Will be calculated based on actual timing
-            ) : null
-          },
-          // Positive telemetry insights
-          positiveInsights: finalGesture && finalScore >= 0.7 ? positiveTelemetryManager.getPositiveInsights() : null
-        }),
-      );
+      // Use message batching for better performance - Amy First optimization
+      messageBatcher.queueMessage('gesture', {
+        gesture: finalGesture,
+        confidence: finalScore,
+        landmarks: allLandmarks,
+        handednesses: handedArr,
+        timestamp: timestamp,
+        isFallback: isUsingFallback,
+        systemHealth: errorRecoveryManager.getHealthStatus(),
+        capturedFrame: capturedFrame,
+        // Enhanced context-aware recognition data
+        contextAwareness: contextInsights ? {
+          timeOfDay: contextInsights.timeOfDay,
+          activityLevel: contextInsights.activityLevel,
+          contextBonus: contextInsights.contextBonus,
+          patternMatch: contextInsights.patternMatch,
+          recentFrequency: contextInsights.recentFrequency,
+          habitStrength: contextInsights.habitStrength,
+          adjustedConfidence: contextInsights.adjustedConfidence,
+          stressIndicators: contextInsights.stressIndicators,
+          recommendations: contextInsights.recommendations
+        } : null,
+        // Enhanced feedback for 22q11 accessibility
+        enhancedFeedback: enhancedFeedback ? {
+          message: enhancedFeedback.celebration.message,
+          emoji: enhancedFeedback.celebration.emoji,
+          encouragement: enhancedFeedback.celebration.encouragement,
+          showProgress: enhancedFeedback.celebration.showProgress,
+          primaryFeedback: enhancedFeedback.detailedFeedback.primaryMessage,
+          secondaryFeedback: enhancedFeedback.detailedFeedback.secondaryFeedback,
+          tip: enhancedFeedback.detailedFeedback.tip,
+          showBreakSuggestion: enhancedFeedback.detailedFeedback.showBreakSuggestion
+        } : null,
+        // Personalized threshold data for Amy's learning insights
+        personalizedThresholds: finalGesture && typeof finalGesture === 'string' ? {
+          currentAdjustment: personalizedThresholdManager.getPersonalizedThreshold(
+            finalGesture,
+            currentConfig.thresholds.mlpConfidence
+          ),
+          performanceInsights: personalizedThresholdManager.getPerformanceInsights()
+        } : null,
+        // Gesture combination results for complex communication
+        gestureCombination: combinationResult,
+        // Adaptive practice timing data
+        practiceTiming: {
+          isCommunicationActive: adaptivePracticeManager.isCommunicationActive(),
+          practiceSuggestion: contextInsights ? adaptivePracticeManager.shouldSuggestPractice(
+            contextInsights.timeOfDay,
+            contextInsights.activityLevel,
+            0 // Will be calculated based on actual timing
+          ) : null
+        },
+        // Positive telemetry insights
+        positiveInsights: finalGesture && finalScore >= 0.7 ? positiveTelemetryManager.getPositiveInsights() : null
+      });
     } catch (err) {
       console.warn('Failed to send gesture message:', err);
 

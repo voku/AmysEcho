@@ -15,15 +15,38 @@ interface LogEntry {
   data?: any;
   userId?: string;
   requestId?: string;
+  duration?: number;
+  endpoint?: string;
+  method?: string;
+  statusCode?: number;
+}
+
+interface LogContext {
+  userId?: string;
+  requestId?: string;
+  sessionId?: string;
+  endpoint?: string;
+  method?: string;
+  duration?: number;
+  statusCode?: number;
 }
 
 class Logger {
   private serviceName: string;
   private logLevel: LogLevel;
+  private context: LogContext = {};
 
   constructor(serviceName: string = 'amys-echo-server') {
     this.serviceName = serviceName;
     this.logLevel = config.nodeEnv === 'development' ? LogLevel.DEBUG : LogLevel.INFO;
+  }
+
+  setContext(context: Partial<LogContext>): void {
+    this.context = { ...this.context, ...context };
+  }
+
+  clearContext(): void {
+    this.context = {};
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -31,24 +54,22 @@ class Logger {
   }
 
   private formatLogEntry(level: LogLevel, message: string, data?: any, userId?: string): LogEntry {
+    const ctx = { ...this.context };
+    if (userId) ctx.userId = userId;
+
     return {
       timestamp: new Date().toISOString(),
       level: LogLevel[level],
       message,
       service: this.serviceName,
       data,
-      userId,
-      requestId: this.generateRequestId(),
+      ...ctx,
     };
-  }
-
-  private generateRequestId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
   private writeLog(entry: LogEntry): void {
     const output = config.nodeEnv === 'development'
-      ? `${entry.timestamp} [${entry.level}] ${entry.service}: ${entry.message}`
+      ? `${entry.timestamp} [${entry.level}] ${entry.service}: ${entry.message}${entry.duration ? ` (${entry.duration}ms)` : ''}`
       : JSON.stringify(entry);
 
     if (entry.level === 'ERROR') {
@@ -87,7 +108,80 @@ class Logger {
       this.writeLog(entry);
     }
   }
+
+  // Convenience methods for common patterns
+  apiRequest(method: string, endpoint: string, statusCode?: number, duration?: number, userId?: string): void {
+    const message = `${method} ${endpoint}`;
+    const data = statusCode ? { statusCode, duration } : { duration };
+
+    if (statusCode && statusCode >= 400) {
+      this.warn(message, data, userId);
+    } else {
+      this.info(message, data, userId);
+    }
+  }
+
+  databaseOperation(operation: string, table: string, duration?: number, userId?: string): void {
+    const message = `DB ${operation} on ${table}`;
+    this.debug(message, { duration }, userId);
+  }
+
+  gestureProcessing(gesture: string, confidence: number, duration?: number, userId?: string): void {
+    const message = `Processed gesture: ${gesture}`;
+    this.info(message, { confidence, duration }, userId);
+  }
+
+  trainingOperation(operation: string, modelId: string, duration?: number, userId?: string): void {
+    const message = `Training ${operation} for model ${modelId}`;
+    this.info(message, { duration }, userId);
+  }
+
+  modelOperation(operation: string, modelId: string, details?: any, userId?: string): void {
+    const message = `Model ${operation}: ${modelId}`;
+    this.info(message, details, userId);
+  }
+
+  recognitionResult(gesture: string, confidence: number, source: 'cloud' | 'local', duration?: number, userId?: string): void {
+    const message = `Recognition result: ${gesture} (${source})`;
+    this.info(message, { confidence, source, duration }, userId);
+  }
+
+  performanceMetric(name: string, value: number, unit: string = 'ms', userId?: string): void {
+    this.debug(`Performance: ${name} = ${value}${unit}`, { name, value, unit }, userId);
+  }
+
+  // Enhanced error logging with context
+  logErrorWithContext(
+    message: string,
+    error: Error | unknown,
+    context?: Record<string, any>,
+    userId?: string
+  ): void {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const fullMessage = `${message}: ${errorMessage}`;
+
+    this.error(fullMessage, {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    }, userId);
+  }
+
+  // Request lifecycle logging
+  requestStart(method: string, url: string, userId?: string, requestId?: string): void {
+    this.setContext({ method, endpoint: url, requestId });
+    this.info(`${method} ${url} - Request started`, { method, url }, userId);
+  }
+
+  requestEnd(method: string, url: string, statusCode: number, duration: number, userId?: string): void {
+    const level = statusCode >= 400 ? 'warn' : 'info';
+    const message = `${method} ${url} - Request completed`;
+
+    this[level](message, { method, url, statusCode, duration }, userId);
+    this.clearContext();
+  }
 }
 
 export const logger = new Logger();
 export default logger;
+export type { LogContext };

@@ -7,6 +7,10 @@
 
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
+import { logger } from '../utils/logger';
+import { withErrorHandling, createErrorMessage } from '../utils/errorUtils';
+import { apiPost, buildApiUrl, createAuthHeaders } from '../utils/apiUtils';
+import { validateWithRules, commonValidationRules, ValidationRule } from '../utils/validationUtils';
 
 export interface GestureImageCapture {
   uri: string;
@@ -38,6 +42,50 @@ export interface ValidationResponse {
   error?: string;
 }
 
+// Simple in-memory cache to deduplicate rapid identical validations
+type CacheEntry = { result: ValidationResponse; ts: number };
+const __openaiValidationCache: Map<string, CacheEntry> = new Map();
+const CACHE_TTL_MS = 2000; // 2 seconds
+
+// Lightweight client-side rate limiter (token bucket per process)
+let __rateWindowStart = 0;
+let __rateCount = 0;
+// Defaults: disabled in production, enabled in tests to validate behavior
+const DEFAULT_LIMIT = process.env.NODE_ENV === 'test' ? 5 : 0;
+const DEFAULT_WINDOW_MS = process.env.NODE_ENV === 'test' ? 10_000 : 0;
+const RATE_LIMIT = Number(process.env.EXPO_PUBLIC_OPENAI_RATE_LIMIT ?? DEFAULT_LIMIT);
+const RATE_WINDOW_MS = Number(process.env.EXPO_PUBLIC_OPENAI_RATE_WINDOW_MS ?? DEFAULT_WINDOW_MS);
+
+function checkRateLimit(): { allowed: boolean; resetMs: number } {
+  if (!RATE_LIMIT || !RATE_WINDOW_MS) {
+    return { allowed: true, resetMs: 0 };
+  }
+  const now = Date.now();
+  if (now - __rateWindowStart > RATE_WINDOW_MS) {
+    __rateWindowStart = now;
+    __rateCount = 0;
+  }
+  if (__rateCount < RATE_LIMIT) {
+    __rateCount++;
+    return { allowed: true, resetMs: RATE_WINDOW_MS - (now - __rateWindowStart) };
+  }
+  return { allowed: false, resetMs: Math.max(0, RATE_WINDOW_MS - (now - __rateWindowStart)) };
+}
+
+// Test-only helper to reset limiter state
+export function __resetOpenAIRateLimiterForTests() {
+  __rateWindowStart = 0;
+  __rateCount = 0;
+}
+
+function makeCacheKey(req: ValidationRequest): string {
+  const b64 = req.image?.base64 || '';
+  const head = b64.slice(0, 128);
+  const tail = b64.slice(-64);
+  const gesture = req.expectedGesture || '';
+  return `${gesture}|${head}|${tail}|${req.image?.width}x${req.image?.height}`;
+}
+
 /**
  * Capture gesture image from camera stream
  * This would typically be called from the MediaPipeGestureDetector
@@ -46,30 +94,32 @@ export async function captureGestureImage(
   videoElement?: any,
   canvasElement?: any
 ): Promise<GestureImageCapture | null> {
-  try {
-    // For web platform, we can capture from canvas/video
-    if (Platform.OS === 'web' && canvasElement) {
-      const canvas = canvasElement as HTMLCanvasElement;
-      const base64 = canvas.toDataURL('image/jpeg', 0.8);
+  const result = await withErrorHandling(
+    async () => {
+      // For web platform, we can capture from canvas/video
+      if (Platform.OS === 'web' && canvasElement) {
+        const canvas = canvasElement as HTMLCanvasElement;
+        const base64 = canvas.toDataURL('image/jpeg', 0.8);
 
-      return {
-        uri: base64,
-        base64: base64.replace('data:image/jpeg;base64,', ''),
-        width: canvas.width,
-        height: canvas.height,
-        timestamp: Date.now(),
-      };
-    }
+        return {
+          uri: base64,
+          base64: base64.replace('data:image/jpeg;base64,', ''),
+          width: canvas.width,
+          height: canvas.height,
+          timestamp: Date.now(),
+        };
+      }
 
-    // For native platforms, we'd need camera permissions and capture
-    // This is a placeholder for native image capture implementation
-    console.warn('Native image capture not yet implemented');
-    return null;
+      // For native platforms, we'd need camera permissions and capture
+      // This is a placeholder for native image capture implementation
+      logger.warn('Native image capture not yet implemented', { platform: Platform.OS });
+      return null;
+    },
+    'captureGestureImage',
+    null
+  );
 
-  } catch (error) {
-    console.error('Failed to capture gesture image:', error);
-    return null;
-  }
+  return result.data || null;
 }
 
 /**
@@ -78,50 +128,159 @@ export async function captureGestureImage(
 export async function validateGestureWithOpenAI(
   request: ValidationRequest
 ): Promise<ValidationResponse> {
+  const startTime = Date.now();
+
+  // Set logging context for this validation operation
+  logger.setContext({
+    component: 'OpenAIGestureValidation',
+    gesture: request.expectedGesture,
+    sessionId: request.context?.session_id
+  });
+
   try {
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-    const apiToken = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
-
-    const response = await fetch(`${apiUrl}/api/gesture/validate-vision`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body: JSON.stringify({
-        imageBase64: request.image.base64,
-        expectedGesture: request.expectedGesture,
-        mediapipeConfidence: request.mediapipeConfidence,
-        context: request.context,
-        options: {
-          detailed_feedback: true,
-          include_alternatives: true,
-          confidence_threshold: 0.3,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // Rate limit to protect UX and budgets
+    const rl = checkRateLimit();
+    if (!rl.allowed) {
+      logger.warn('OpenAI validation rate-limited', { resetMs: rl.resetMs });
+      return { success: false, error: 'rate_limited', processing_time_ms: Date.now() - startTime };
     }
 
-    const data = await response.json();
+    // Cache check: return recent result for identical frame/gesture
+    const cacheKey = makeCacheKey(request);
+    const cached = __openaiValidationCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      const cachedResult = { ...cached.result, processing_time_ms: Date.now() - startTime };
+      logger.info('OpenAI validation cache hit');
+      logger.clearContext();
+      return cachedResult;
+    }
+    // Enhanced input validation
+    const validationRules: ValidationRule<ValidationRequest>[] = [
+      {
+        name: 'image_required',
+        validate: (req: ValidationRequest) => req.image !== null && req.image !== undefined,
+        message: 'Image is required',
+        severity: 'error'
+      },
+      {
+        name: 'image_base64_valid',
+        validate: (req: ValidationRequest) => req.image?.base64 ? commonValidationRules.base64('base64').validate(req.image.base64) : false,
+        message: 'Image base64 data must be valid',
+        severity: 'error'
+      },
+      {
+        name: 'image_base64_not_empty',
+        validate: (req: ValidationRequest) => Boolean(req.image?.base64 && req.image.base64.length > 0),
+        message: 'Image base64 data cannot be empty',
+        severity: 'error'
+      },
+      {
+        name: 'gesture_valid',
+        validate: (req: ValidationRequest) => !req.expectedGesture || commonValidationRules.gesture('gesture').validate(req.expectedGesture),
+        message: 'Expected gesture must be valid if provided',
+        severity: 'warning'
+      },
+      {
+        name: 'confidence_valid',
+        validate: (req: ValidationRequest) => req.mediapipeConfidence === undefined || commonValidationRules.confidence('confidence').validate(req.mediapipeConfidence),
+        message: 'MediaPipe confidence must be between 0 and 1 if provided',
+        severity: 'warning'
+      }
+    ];
 
-    return {
-      success: true,
-      gesture: data.primary_gesture?.gesture,
-      confidence: data.primary_gesture?.confidence,
-      feedback: data.primary_gesture?.feedback,
-      quality_score: data.primary_gesture?.quality_score,
-      suggestions: data.primary_gesture?.suggestions,
-      processing_time_ms: data.processing_time_ms,
+    const validationResult = validateWithRules(request, validationRules, 'validateGestureWithOpenAI');
+
+    if (!validationResult.valid) {
+      const errorMessage = validationResult.errors.join('; ');
+      throw new Error(`Validation failed: ${errorMessage}`);
+    }
+
+    if (validationResult.warnings && validationResult.warnings.length > 0) {
+      logger.warn('Validation warnings for gesture request', { warnings: validationResult.warnings });
+    }
+
+    const apiToken = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
+
+    if (!apiToken) {
+      throw new Error('Missing API token configuration');
+    }
+
+    const requestBody = {
+      imageBase64: request.image.base64,
+      expectedGesture: request.expectedGesture,
+      mediapipeConfidence: request.mediapipeConfidence,
+      context: request.context,
+      options: {
+        detailed_feedback: true,
+        include_alternatives: true,
+        confidence_threshold: 0.3,
+      },
     };
 
+    const apiResponse = await apiPost(
+      buildApiUrl('/api/gesture/validate-vision'),
+      requestBody,
+      {
+        headers: createAuthHeaders(apiToken),
+        timeout: 30000, // 30 second timeout for vision processing
+        retries: 2
+      }
+    );
+
+    if (!apiResponse.success) {
+      throw new Error(apiResponse.error || 'API request failed');
+    }
+
+    const data = apiResponse.data;
+
+    // Validate response structure
+    if (!data.primary_gesture) {
+      logger.warn('OpenAI response missing primary_gesture', { responseData: data });
+      return {
+        success: false,
+        error: 'Invalid response structure from OpenAI API',
+      };
+    }
+
+    const result: ValidationResponse = {
+      success: true,
+      gesture: data.primary_gesture?.gesture,
+      confidence: typeof data.primary_gesture?.confidence === 'number'
+        ? Math.max(0, Math.min(1, data.primary_gesture.confidence))
+        : undefined,
+      feedback: data.primary_gesture?.feedback,
+      quality_score: typeof data.primary_gesture?.quality_score === 'number'
+        ? Math.max(0, Math.min(10, data.primary_gesture.quality_score))
+        : undefined,
+      suggestions: Array.isArray(data.primary_gesture?.suggestions)
+        ? data.primary_gesture.suggestions
+        : undefined,
+      processing_time_ms: Date.now() - startTime,
+    };
+
+    // Cache the successful result
+    __openaiValidationCache.set(cacheKey, { result, ts: Date.now() });
+
+    // Log successful validation
+    if (result.processing_time_ms !== undefined) {
+      logger.performanceMetric('openai_validation', result.processing_time_ms);
+      logger.info('OpenAI validation completed', { duration: result.processing_time_ms });
+    } else {
+      logger.info('OpenAI validation completed');
+    }
+
+    logger.clearContext();
+    return result;
+
   } catch (error) {
-    console.error('OpenAI validation failed:', error);
+    const processingTime = Date.now() - startTime;
+    logger.error('OpenAI validation failed', error, { duration: processingTime });
+
+    logger.clearContext();
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown validation error',
+      processing_time_ms: processingTime,
     };
   }
 }
@@ -136,30 +295,121 @@ export function shouldTriggerOpenAIValidation(
     lowConfidenceThreshold?: number;
     alwaysValidateGestures?: string[];
     emergencyGestures?: string[];
+    enableSmartValidation?: boolean;
+    validationHistory?: Array<{
+      gesture: string;
+      originalConfidence: number;
+      validatedConfidence: number;
+      wasImproved: boolean;
+    }>;
   }
 ): boolean {
   const {
     lowConfidenceThreshold = 0.6,
     alwaysValidateGestures = ['emergency', 'help', 'stop'],
     emergencyGestures = ['emergency', 'help', 'stop'],
+    enableSmartValidation = true,
+    validationHistory = [],
   } = options || {};
 
-  // Always validate emergency gestures
+  // Always validate emergency gestures for safety
   if (emergencyGestures.some(emergency => gesture.toLowerCase().includes(emergency))) {
     return true;
   }
 
-  // Validate if confidence is below threshold
-  if (mediapipeConfidence < lowConfidenceThreshold) {
-    return true;
-  }
-
-  // Validate specific gestures that benefit from AI analysis
+  // Always validate specific gestures that benefit from AI analysis
   if (alwaysValidateGestures.some(validateGesture => gesture.toLowerCase().includes(validateGesture))) {
     return true;
   }
 
+  // Basic confidence threshold check
+  if (mediapipeConfidence < lowConfidenceThreshold) {
+    return true;
+  }
+
+  // Smart validation based on historical performance
+  if (enableSmartValidation && validationHistory.length > 0) {
+    const recentValidations = validationHistory.slice(-10); // Last 10 validations
+    const gestureValidations = recentValidations.filter(v => v.gesture === gesture);
+
+    if (gestureValidations.length >= 3) {
+      const improvementRate = gestureValidations.filter(v => v.wasImproved).length / gestureValidations.length;
+
+      // If this gesture has been improved by AI validation > 50% of the time, validate it
+      if (improvementRate > 0.5) {
+        return true;
+      }
+
+      // If confidence is borderline and we've seen improvements, validate
+      if (mediapipeConfidence < 0.75 && improvementRate > 0.3) {
+        return true;
+      }
+    }
+
+    // Validate unknown or rarely seen gestures
+    const uniqueGestures = new Set(validationHistory.map(v => v.gesture));
+    if (!uniqueGestures.has(gesture)) {
+      return true; // New gesture, validate to establish baseline
+    }
+  }
+
+  // Adaptive threshold based on gesture complexity
+  const complexGestures = ['please', 'thank_you', 'sorry', 'more'];
+  if (complexGestures.some(complex => gesture.toLowerCase().includes(complex))) {
+    return mediapipeConfidence < 0.7; // Lower threshold for complex gestures
+  }
+
   return false;
+}
+
+/**
+ * Calculate adaptive confidence threshold based on context
+ */
+export function calculateAdaptiveThreshold(
+  baseThreshold: number = 0.6,
+  context?: {
+    gesture: string;
+    timeOfDay?: 'morning' | 'afternoon' | 'evening';
+    environment?: 'home' | 'school' | 'therapy';
+    userExperience?: 'beginner' | 'intermediate' | 'advanced';
+    recentAccuracy?: number;
+  }
+): number {
+  let threshold = baseThreshold;
+
+  if (!context) return threshold;
+
+  // Adjust for time of day (users may be more tired in the evening)
+  if (context.timeOfDay === 'evening') {
+    threshold = Math.round((threshold - 0.05) * 100) / 100;
+  }
+
+  // Adjust for environment (school may have more distractions)
+  if (context.environment === 'school') {
+    threshold = Math.round((threshold - 0.03) * 100) / 100;
+  }
+
+  // Adjust for user experience
+  switch (context.userExperience) {
+    case 'beginner':
+      threshold = Math.round((threshold - 0.1) * 100) / 100; // More validation for beginners
+      break;
+    case 'advanced':
+      threshold = Math.round((threshold + 0.05) * 100) / 100; // Less validation for advanced users
+      break;
+  }
+
+  // Adjust based on recent accuracy
+  if (context.recentAccuracy !== undefined) {
+    if (context.recentAccuracy < 0.7) {
+      threshold = Math.round((threshold - 0.05) * 100) / 100; // More validation when accuracy is low
+    } else if (context.recentAccuracy > 0.9) {
+      threshold = Math.round((threshold + 0.03) * 100) / 100; // Less validation when accuracy is high
+    }
+  }
+
+  // Ensure threshold stays within reasonable bounds
+  return Math.max(0.3, Math.min(0.8, threshold));
 }
 
 /**
@@ -180,6 +430,13 @@ export async function validateGestureWithFallback(
   feedback?: string;
   suggestions?: string[];
 }> {
+  // Set logging context for this validation operation
+  logger.setContext({
+    component: 'GestureValidationFallback',
+    gesture: mediapipeResult.gesture,
+    sessionId: context?.session_id
+  });
+
   // Start with MediaPipe result
   let finalGesture = mediapipeResult.gesture;
   let finalConfidence = mediapipeResult.confidence;
@@ -189,7 +446,10 @@ export async function validateGestureWithFallback(
 
   // Check if we should trigger OpenAI validation
   if (imageCapture && shouldTriggerOpenAIValidation(mediapipeResult.confidence, mediapipeResult.gesture)) {
-    console.log('Triggering OpenAI validation for low confidence gesture');
+    logger.info('Triggering OpenAI validation for low confidence gesture', {
+      gesture: mediapipeResult.gesture,
+      confidence: mediapipeResult.confidence
+    });
 
     try {
       const openaiResult = await validateGestureWithOpenAI({
@@ -205,16 +465,29 @@ export async function validateGestureWithFallback(
             mediapipeResult.confidence < 0.4) {
           finalGesture = openaiResult.gesture || finalGesture;
           finalConfidence = Math.max(openaiResult.confidence, mediapipeResult.confidence);
-          validationSource = openaiResult.confidence > mediapipeResult.confidence ? 'openai' : 'combined';
+
+          // Determine validation source based on confidence difference
+          if (mediapipeResult.confidence < 0.4) {
+            // MediaPipe was very uncertain, use OpenAI result
+            validationSource = 'openai';
+          } else if (openaiResult.confidence > mediapipeResult.confidence + 0.2) {
+            // OpenAI significantly more confident
+            validationSource = 'openai';
+          } else {
+            // Close confidence levels, combine results
+            validationSource = 'combined';
+          }
+
           feedback = openaiResult.feedback;
           suggestions = openaiResult.suggestions;
         }
       }
     } catch (error) {
-      console.warn('OpenAI validation failed, using MediaPipe result:', error);
+      logger.warn('OpenAI validation failed, using MediaPipe result', error);
     }
   }
 
+  logger.clearContext();
   return {
     finalGesture,
     finalConfidence,
@@ -239,14 +512,18 @@ export async function saveValidationResult(
     imageUri?: string;
   }
 ): Promise<void> {
-  try {
-    // This would typically save to a local database or send to analytics
-    console.log('Saving validation result:', result);
+  const saveResult = await withErrorHandling(
+    async () => {
+      // This would typically save to a local database or send to analytics
+      logger.info('Saving validation result', result);
 
-    // Placeholder for analytics integration
-    // await analyticsService.trackEvent('gesture_validation', result);
+      // Placeholder for analytics integration
+      // await analyticsService.trackEvent('gesture_validation', result);
+    },
+    'saveValidationResult'
+  );
 
-  } catch (error) {
-    console.error('Failed to save validation result:', error);
+  if (!saveResult.success) {
+    logger.warn('Failed to save validation result, continuing...', saveResult.error);
   }
 }

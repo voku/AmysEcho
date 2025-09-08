@@ -12,9 +12,13 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Configurable model and safety limits
+const VISION_MODEL = process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini';
+const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 1500);
+const OPENAI_MAX_TOKENS = Number(process.env.OPENAI_MAX_TOKENS || 1000);
+const OPENAI_TEMPERATURE = Number(process.env.OPENAI_TEMPERATURE || 0.1);
 
 // Validation schemas
 const GestureValidationSchema = z.object({
@@ -31,7 +35,7 @@ const ValidationResultSchema = z.object({
   primary_gesture: GestureValidationSchema,
   alternative_gestures: z.array(GestureValidationSchema).optional(),
   overall_confidence: z.number().min(0).max(1),
-  processing_time_ms: z.number(),
+  processing_time_ms: z.number().optional(),
 });
 
 export type GestureValidation = z.infer<typeof GestureValidationSchema>;
@@ -65,29 +69,60 @@ export async function validateGestureWithVision(
     // Prepare the vision prompt
     const prompt = buildVisionPrompt(request);
 
-    // Call OpenAI Vision API
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${request.imageBase64}`,
-                detail: "high"
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 1000,
-      temperature: 0.1, // Low temperature for consistent analysis
-    });
+    const imgBytes = request.imageBase64?.length || 0;
+    const imageDetail = imgBytes > 1_500_000 ? 'low' : 'high';
 
-    const content = response.choices[0]?.message?.content;
+    // Responses API with JSON-only schema
+    const response = await withTimeoutRetry(
+      () => openai.responses.create({
+        model: VISION_MODEL,
+        input: [
+          {
+            role: 'user',
+            content: [
+              { type: 'input_text', text: prompt },
+              // Responses API expects image_url as a string (data URL or remote URL) and detail at top level
+              { type: 'input_image', image_url: `data:image/jpeg;base64,${request.imageBase64}`, detail: imageDetail as 'low' | 'high' },
+            ],
+          },
+        ],
+        temperature: OPENAI_TEMPERATURE,
+        max_output_tokens: OPENAI_MAX_TOKENS,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'gesture_validation',
+            schema: {
+              type: 'object',
+              properties: {
+                primary_gesture: {
+                  type: 'object',
+                  properties: {
+                    gesture: { type: 'string' },
+                    confidence: { type: 'number' },
+                    feedback: { type: 'string' },
+                    quality_score: { type: 'number' },
+                    suggestions: { type: 'array', items: { type: 'string' } },
+                    landmarks_detected: { type: 'boolean' },
+                    hand_count: { type: 'number' },
+                  },
+                  required: ['gesture', 'confidence', 'feedback', 'quality_score', 'landmarks_detected', 'hand_count']
+                },
+                alternative_gestures: { type: 'array', items: { type: 'object' } },
+                overall_confidence: { type: 'number' },
+              },
+              required: ['primary_gesture', 'overall_confidence'],
+              additionalProperties: true,
+            },
+            strict: true,
+          },
+        },
+      } as any),
+      OPENAI_TIMEOUT_MS,
+      0
+    );
+
+    const content = (response as any)?.output_text ?? (response as any)?.content ?? '';
     if (!content) {
       throw new Error('No response from OpenAI Vision API');
     }
@@ -97,7 +132,7 @@ export async function validateGestureWithVision(
     const validationResult = ValidationResultSchema.parse(parsedResult);
 
     // Add processing time
-    validationResult.processing_time_ms = Date.now() - startTime;
+    validationResult.processing_time_ms = Math.max(1, Date.now() - startTime);
 
     return validationResult;
 
@@ -115,7 +150,7 @@ export async function validateGestureWithVision(
         hand_count: 0,
       },
       overall_confidence: 0,
-      processing_time_ms: Date.now() - startTime,
+      processing_time_ms: Math.max(1, Date.now() - startTime),
     };
   }
 }
@@ -137,6 +172,7 @@ Please identify:
 
 ${request.expectedGesture ? `Expected gesture: ${request.expectedGesture}` : ''}
 ${request.context?.environment ? `Environment: ${request.context.environment}` : ''}
+${Array.isArray(request.context?.previous_gestures) ? `previous_gestures: ${JSON.stringify(request.context.previous_gestures)}` : ''}
 
 Focus on:
 - Hand positioning and orientation
@@ -145,7 +181,7 @@ Focus on:
 - Clarity of gesture execution
 - Potential communication intent
 
-Return your analysis in this exact JSON format:
+Return your analysis in this exact JSON format only. Do not include prose, code fences, or extra text. If unsure, make your best effort and keep fields consistent.
 {
   "primary_gesture": {
     "gesture": "gesture_name",
@@ -238,6 +274,7 @@ export async function getVisionServiceHealth(): Promise<{
     return {
       available,
       latency_ms: Date.now() - startTime,
+      error: available ? undefined : 'Missing API key',
     };
   } catch (error) {
     return {
@@ -246,4 +283,28 @@ export async function getVisionServiceHealth(): Promise<{
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
+}
+
+// Simple timeout + retry helper with exponential backoff
+async function withTimeoutRetry<T>(fn: () => Promise<T>, timeoutMs: number, retries: number): Promise<T> {
+  const attempt = async (i: number): Promise<T> => {
+    let timer: any;
+    const to = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('OpenAI request timed out')), timeoutMs);
+    });
+    try {
+      const result = (await Promise.race([fn(), to])) as T;
+      clearTimeout(timer);
+      return result;
+    } catch (err: any) {
+      clearTimeout(timer);
+      const msg = String(err?.message || err);
+      const isRetryable = msg.includes('timed out') || msg.includes('rate') || msg.includes('500') || msg.includes('503');
+      if (i >= retries || !isRetryable) throw err;
+      const delay = 250 * Math.pow(2, i);
+      await new Promise((r) => setTimeout(r, delay));
+      return attempt(i + 1);
+    }
+  };
+  return attempt(0);
 }

@@ -20,6 +20,8 @@ All app UI text and error messages are written in German to match Amy's language
 - [Caregiver guide](docs/CaregiverGuide.md)
 - [Build & test instructions](docs/BUILD_AND_TEST.md)
 - [Android in WSL2 guide](docs/AndroidWSL2.md)
+- [Gesture recognition best practices](docs/GESTURE_RECOGNITION_BEST_PRACTICES.md)
+- [Real-world validation guide](docs/REAL_WORLD_VALIDATION_GUIDE.md)
 - [Project roadmap](docs/TODO.md)
 - [Project milestones](docs/ProjectMilestones.md) – Stabilization, Accuracy, UX improvements
 
@@ -49,6 +51,38 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 | Audio         | `expo-audio`, `expo-speech`   | Speech output + sound effects          |
 | Video         | `expo-video`                  | Video output                           |
 | Database      | WatermelonDB (SQLite)         | Encrypted local storage (sync-enabled) |
+
+---
+
+## 🤖 Enhanced Gesture Detection System
+
+Amy's Echo features a comprehensive gesture recognition system optimized for 22q11 syndrome accessibility:
+
+### Core Features
+- **Multi-layered Detection**: MediaPipe primary + OpenAI Vision fallback
+- **Emergency Priority**: <50ms response for critical gestures
+- **Adaptive Thresholds**: Personalized confidence levels (0.12-0.32 range)
+- **German Localization**: All feedback in Amy's native language
+- **Performance Monitoring**: Real-time latency and accuracy tracking
+- **Fallback System**: Rule-based detection when ML fails
+
+### Supported Gestures
+- 👊 **Faust** (Fist) - Basic closed hand
+- 👆 **Zeigefinger** (Point) - Index finger extended
+- 👍 **Daumen hoch** (Thumbs up) - Thumb raised
+- 🖐️ **Offene Hand** (Open palm) - All fingers extended
+- ✌️ **Peace** - Two fingers extended
+- ✋ **Vier Finger** - Four fingers extended
+- 🖕 **Mittelfinger** - Middle finger (alternative point)
+- 👌 **Drei Finger** - Three fingers extended
+- ⭕ **Kreis-Geste** - Thumb and index finger circle
+
+### Amy First Principles
+✅ **Zero interruption** - Communication never pauses
+✅ **Zero confusion** - Clear German feedback always
+✅ **Zero delay** - Instant response for all gestures
+✅ **Zero failure** - Multiple fallback layers
+✅ **Zero judgment** - Celebrates all attempts
 
 ---
 

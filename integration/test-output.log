@@ -1,0 +1,426 @@
+
+> pretest
+> npm ci --include=dev && npm run build --prefix ../server
+
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+
+added 297 packages, and audited 298 packages in 5s
+
+34 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+> amysecho_backend@1.0.0 build
+> sh -c 'rm -rf dist && tsc'
+
+
+> test
+> tsx --test
+
+✔ test-runner.js (599.884961ms)
+✔ POST /train-model invalid payload (9669.890271ms)
+✔ POST /train-model invalid sample items (29.3352ms)
+Skipping latest-mlp-model check - status: 401
+Skipping app MLP b64 length check - model not available
+✔ POST /train-model processes samples and returns model (5175.904837ms)
+✔ GET /model-version returns version and path (5.575247ms)
+✔ GET /latest-model serves model file when present (17.267826ms)
+✔ POST /analytics then GET returns same data (111.37691ms)
+Skipping MLP file caching test - model not available
+✔ GET /api/v1/dgs/mlp-model serves file and client caches it (618.852911ms)
+✓ Screen reader compatibility validated
+✓ Feedback timing validated for accessibility
+✓ High contrast support validated
+✓ Reduced motion support validated
+✓ Keyboard navigation support validated
+✓ Error message clarity validated
+▶ DGS Model Accessibility Tests
+  ✔ should support screen reader compatibility (3.055246ms)
+  ✔ should provide adequate feedback timing (0.496587ms)
+  ✔ should support high contrast mode (0.473441ms)
+  ✔ should handle reduced motion preferences (0.393324ms)
+  ✔ should support keyboard navigation (0.544038ms)
+  ✔ should provide clear error messages (1.945912ms)
+✔ DGS Model Accessibility Tests (9.407695ms)
+✓ Model file exists
+✓ Model can be loaded
+✓ Model inference works
+✓ Full pipeline test completed successfully
+▶ DGS End-to-End Tests
+  ✔ should complete full pipeline from data to deployment (1345.213836ms)
+✓ Model backup created
+✓ Backup integrity verified
+✓ Backup cleanup completed
+  ✔ should handle model backup and recovery (26.794727ms)
+Accuracy test skipped - test data or model not available
+  ✔ should validate model against test dataset (1.590845ms)
+✔ DGS End-to-End Tests (1376.321122ms)
+Skipping consistency test - files not available
+▶ DGS Model Integration Tests
+  ✔ should maintain data consistency across pipeline (27.846868ms)
+✓ Model update handling validated
+  ✔ should handle model updates gracefully (10.526394ms)
+Training data quality test skipped - data not available
+  ✔ should validate training data quality (6.51219ms)
+Skipping versioning test - config not available
+  ✔ should support model versioning (9.947872ms)
+✓ Concurrent model access validated
+  ✔ should handle concurrent model access (527.832712ms)
+✔ DGS Model Integration Tests (587.294797ms)
+Performance test skipped - model not available
+▶ DGS Model Performance Tests
+  ✔ should meet inference latency requirements (493.913095ms)
+Memory test skipped - model not available or psutil not installed
+  ✔ should handle memory efficiently (600.140717ms)
+Robustness test skipped - model not available
+  ✔ should maintain accuracy across different input scales (485.435841ms)
+✔ DGS Model Performance Tests (1581.918931ms)
+✓ Model file integrity validated
+▶ DGS Model Security Tests
+  ✔ should validate model file integrity (31.036085ms)
+✓ Path traversal protection validated
+✓ Input validation test structure validated
+  ✔ should prevent path traversal attacks (5.955016ms)
+  ✔ should validate input data format (1.561442ms)
+✓ Corrupted file handling validated
+✓ Authentication test structure validated
+  ✔ should handle corrupted model files gracefully (15.15696ms)
+  ✔ should validate API authentication (1.092331ms)
+✔ DGS Model Security Tests (59.42386ms)
+python3: can't open file '/home/lars/PhpstormProjects/AmysEcho/integration/scripts/process_dgs_videos.py': [Errno 2] No such file or directory
+Video processing failed: Command failed: python3 scripts/process_dgs_videos.py --videos-dir /home/lars/PhpstormProjects/AmysEcho/integration/app/assets/videos --output /home/lars/PhpstormProjects/AmysEcho/integration/server/data/test_dgs_video_samples.json --max-frames 50
+Skipping video processing test - videos may not be available in test environment
+✔ should process DGS videos and extract landmark data (77.279765ms)
+Landmark data validation skipped: ENOENT: no such file or directory, open '/home/lars/PhpstormProjects/AmysEcho/integration/server/data/dgs_samples.json'
+✔ should validate processed landmark data format (16.84838ms)
+python3: can't open file '/home/lars/PhpstormProjects/AmysEcho/integration/scripts/prepare_default_model.py': [Errno 2] No such file or directory
+Model preparation test failed: Command failed: python3 /home/lars/PhpstormProjects/AmysEcho/integration/scripts/prepare_default_model.py
+Skipping model preparation test - dependencies may not be available
+✔ should integrate with MLP training pipeline (20.252469ms)
+✔ should prepare default model using preparation script (66.504797ms)
+Model validation test failed: Command failed: python3 /home/lars/PhpstormProjects/AmysEcho/integration/temp_model_test.py /home/lars/PhpstormProjects/AmysEcho/integration/server/data/dgs_model.npz
+Skipping model validation test - model may not be available
+✔ should validate model loading and inference (572.933417ms)
+Label validation test failed: ENOENT: no such file or directory, open '/home/lars/PhpstormProjects/AmysEcho/integration/server/data/dgs_samples.json'
+Skipping label validation test - files may not be available
+✔ should validate gesture labels are consistent (14.111636ms)
+▶ Camera Recording → Landmarks Pipeline
+  ▶ Camera Permission and Initialization
+    ✖ should handle camera permission request successfully (3.088446ms)
+    ✖ should handle camera permission denial gracefully (0.706378ms)
+    ✖ should initialize camera with correct configuration (0.801677ms)
+  ✖ Camera Permission and Initialization (5.896862ms)
+  ▶ Frame Capture and Processing
+    ✖ should capture camera frame with correct parameters (13.375952ms)
+    ✖ should process frame through MediaPipe detector (1.305025ms)
+    ✖ should validate landmark data quality (1.031389ms)
+  ✖ Frame Capture and Processing (16.334766ms)
+  ▶ WebView Integration
+    ✖ should inject JavaScript into WebView for MediaPipe processing (4.087211ms)
+    ✖ should handle WebView messages from MediaPipe detector (0.913606ms)
+    ✖ should handle WebView errors gracefully (0.778664ms)
+  ✖ WebView Integration (12.736041ms)
+  ▶ Real-time Processing Pipeline
+    ✖ should maintain consistent frame rate during processing (379.997986ms)
+    ✖ should handle frame processing errors without crashing (0.830085ms)
+  ✖ Real-time Processing Pipeline (381.1108ms)
+  ▶ Error Handling and Fallbacks
+    ✖ should handle camera not available scenario (0.448855ms)
+    ✖ should handle MediaPipe model loading failures (0.352961ms)
+    ✖ should handle WebView communication timeouts (0.322387ms)
+    ✖ should provide fallback when landmark detection fails (0.405175ms)
+  ✖ Error Handling and Fallbacks (1.814339ms)
+  ▶ Performance and Resource Management
+    ✖ should clean up resources after processing (4.893909ms)
+    ✖ should handle memory constraints during continuous processing (14.190395ms)
+    ✖ should maintain processing quality under load (0.582429ms)
+  ✖ Performance and Resource Management (19.904332ms)
+✖ Camera Recording → Landmarks Pipeline (439.471518ms)
+file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-data-recording.test.js:14
+const { promises as fs } = require('fs');
+                 ^^
+
+SyntaxError: Unexpected identifier 'as'
+    at compileSourceTextModule (node:internal/modules/esm/utils:351:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
+    at #translate (node:internal/modules/esm/loader:546:12)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:593:27)
+    at async #link (node:internal/modules/esm/module_job:180:19)
+
+Node.js v24.4.1
+✖ test/gesture-workflow-data-recording.test.js (491.274967ms)
+file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-full-cycle.test.js:15
+const { promises as fs } = require('fs');
+                 ^^
+
+SyntaxError: Unexpected identifier 'as'
+    at compileSourceTextModule (node:internal/modules/esm/utils:351:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
+    at #translate (node:internal/modules/esm/loader:546:12)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:593:27)
+    at async #link (node:internal/modules/esm/module_job:180:19)
+
+Node.js v24.4.1
+✖ test/gesture-workflow-full-cycle.test.js (746.494357ms)
+file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-training.test.js:14
+const { promises as fs } = require('fs');
+                 ^^
+
+SyntaxError: Unexpected identifier 'as'
+    at compileSourceTextModule (node:internal/modules/esm/utils:351:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
+    at #translate (node:internal/modules/esm/loader:546:12)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:593:27)
+    at async #link (node:internal/modules/esm/module_job:180:19)
+
+Node.js v24.4.1
+✖ test/gesture-workflow-training.test.js (615.062861ms)
+file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-upload.test.js:14
+const { promises as fs } = require('fs');
+                 ^^
+
+SyntaxError: Unexpected identifier 'as'
+    at compileSourceTextModule (node:internal/modules/esm/utils:351:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
+    at #translate (node:internal/modules/esm/loader:546:12)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:593:27)
+    at async #link (node:internal/modules/esm/module_job:180:19)
+
+Node.js v24.4.1
+✖ test/gesture-workflow-upload.test.js (606.593089ms)
+✔ test/jest.config.js (672.354275ms)
+▶ Model endpoints authorization and headers
+  ✔ GET /api/v1/dgs/mlp-model requires matching X-Profile-Id when profileId is set (198.830997ms)
+  ✔ GET /latest-model returns cache headers and never serves .tmp files (36.160492ms)
+✔ Model endpoints authorization and headers (246.446161ms)
+file:///home/lars/PhpstormProjects/AmysEcho/integration/test/openai-validation-e2e.test.js:12
+const request = require('supertest');
+                ^
+
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and '/home/lars/PhpstormProjects/AmysEcho/integration/package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+    at file:///home/lars/PhpstormProjects/AmysEcho/integration/test/openai-validation-e2e.test.js:12:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:370:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:99:5)
+
+Node.js v24.4.1
+✖ test/openai-validation-e2e.test.js (638.417856ms)
+✔ approve and export training data (7414.482191ms)
+file:///home/lars/PhpstormProjects/AmysEcho/integration/test/setup.js:15
+beforeAll(() => {
+^
+
+ReferenceError: beforeAll is not defined
+    at file:///home/lars/PhpstormProjects/AmysEcho/integration/test/setup.js:15:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:370:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:99:5)
+
+Node.js v24.4.1
+✖ test/setup.js (679.70979ms)
+ℹ tests 64
+ℹ suites 13
+ℹ pass 40
+ℹ fail 24
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16438.738166
+
+✖ failing tests:
+
+test at test/gesture-workflow-camera-landmarks.test.js:63:5
+✖ should handle camera permission request successfully (3.088446ms)
+  ReferenceError [Error]: jest is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:59:5)
+      at TestHook.runInAsyncScope (node:async_hooks:214:14)
+      at TestHook.run (node:internal/test_runner/test:1062:25)
+      at TestHook.run (node:internal/test_runner/test:1377:18)
+      at Suite.runHook (node:internal/test_runner/test:980:20)
+      at node:internal/test_runner/test:1025:27
+      at node:internal/util:580:20
+      at Test.run (node:internal/test_runner/test:1087:13)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1466:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:70:5
+✖ should handle camera permission denial gracefully (0.706378ms)
+  ReferenceError [Error]: jest is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:59:5)
+      at TestHook.runInAsyncScope (node:async_hooks:214:14)
+      at TestHook.run (node:internal/test_runner/test:1062:25)
+      at TestHook.run (node:internal/test_runner/test:1377:18)
+      at Suite.runHook (node:internal/test_runner/test:980:20)
+      at node:internal/test_runner/test:1025:27
+      at node:internal/util:580:20
+      at Test.run (node:internal/test_runner/test:1087:13)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:77:5
+✖ should initialize camera with correct configuration (0.801677ms)
+  ReferenceError [Error]: expect is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:88:7)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:95:5
+✖ should capture camera frame with correct parameters (13.375952ms)
+  ReferenceError [Error]: jest is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:59:5)
+      at TestHook.runInAsyncScope (node:async_hooks:214:14)
+      at TestHook.run (node:internal/test_runner/test:1062:25)
+      at TestHook.run (node:internal/test_runner/test:1377:18)
+      at Suite.runHook (node:internal/test_runner/test:980:20)
+      at node:internal/test_runner/test:1025:27
+      at node:internal/util:580:20
+      at Test.run (node:internal/test_runner/test:1087:13)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1466:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:111:5
+✖ should process frame through MediaPipe detector (1.305025ms)
+  ReferenceError [Error]: expect is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:121:7)
+      at async Test.run (node:internal/test_runner/test:1069:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:129:5
+✖ should validate landmark data quality (1.031389ms)
+  ReferenceError [Error]: expect is not defined
+      at file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:142:9
+      at Array.forEach (<anonymous>)
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:141:17)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:168:5
+✖ should inject JavaScript into WebView for MediaPipe processing (4.087211ms)
+  ReferenceError [Error]: expect is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:174:7)
+      at async Test.run (node:internal/test_runner/test:1069:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1466:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:177:5
+✖ should handle WebView messages from MediaPipe detector (0.913606ms)
+  ReferenceError [Error]: expect is not defined
+      at onMessageHandler (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:192:9)
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:198:7)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:201:5
+✖ should handle WebView errors gracefully (0.778664ms)
+  ReferenceError [Error]: expect is not defined
+      at onMessageHandler (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:213:9)
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:217:7)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:222:5
+✖ should maintain consistent frame rate during processing (379.997986ms)
+  ReferenceError [Error]: expect is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:247:7)
+      at async Test.run (node:internal/test_runner/test:1069:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1466:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:251:5
+✖ should handle frame processing errors without crashing (0.830085ms)
+  TypeError [Error]: mockMediaPipeDetector.processFrame.mockRejectedValueOnce is not a function
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:253:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:273:5
+✖ should handle camera not available scenario (0.448855ms)
+  TypeError [Error]: mockCamera.takePictureAsync.mockRejectedValue is not a function
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:274:35)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1466:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:282:5
+✖ should handle MediaPipe model loading failures (0.352961ms)
+  TypeError [Error]: mockMediaPipeDetector.processFrame.mockRejectedValue is not a function
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:283:42)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:291:5
+✖ should handle WebView communication timeouts (0.322387ms)
+  TypeError [Error]: mockWebView.injectJavaScript.mockImplementation is not a function
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:292:36)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:306:5
+✖ should provide fallback when landmark detection fails (0.405175ms)
+  TypeError [Error]: mockMediaPipeDetector.processFrame.mockResolvedValue is not a function
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:307:42)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1062:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:325:5
+✖ should clean up resources after processing (4.893909ms)
+  ReferenceError [Error]: expect is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:327:7)
+      at async Test.run (node:internal/test_runner/test:1069:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1466:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:330:5
+✖ should handle memory constraints during continuous processing (14.190395ms)
+  ReferenceError [Error]: expect is not defined
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:350:7)
+      at async Test.run (node:internal/test_runner/test:1069:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-camera-landmarks.test.js:357:5
+✖ should maintain processing quality under load (0.582429ms)
+  ReferenceError [Error]: expect is not defined
+      at file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:374:9
+      at Array.forEach (<anonymous>)
+      at TestContext.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/test/gesture-workflow-camera-landmarks.test.js:373:15)
+      at async Test.run (node:internal/test_runner/test:1069:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:752:7)
+
+test at test/gesture-workflow-data-recording.test.js:1:1
+✖ test/gesture-workflow-data-recording.test.js (491.274967ms)
+  'test failed'
+
+test at test/gesture-workflow-full-cycle.test.js:1:1
+✖ test/gesture-workflow-full-cycle.test.js (746.494357ms)
+  'test failed'
+
+test at test/gesture-workflow-training.test.js:1:1
+✖ test/gesture-workflow-training.test.js (615.062861ms)
+  'test failed'
+
+test at test/gesture-workflow-upload.test.js:1:1
+✖ test/gesture-workflow-upload.test.js (606.593089ms)
+  'test failed'
+
+test at test/openai-validation-e2e.test.js:1:1
+✖ test/openai-validation-e2e.test.js (638.417856ms)
+  'test failed'
+
+test at test/setup.js:1:1
+✖ test/setup.js (679.70979ms)
+  'test failed'

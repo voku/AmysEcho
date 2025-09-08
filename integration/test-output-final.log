@@ -1,0 +1,260 @@
+
+> pretest
+> npm ci --include=dev && npm run build --prefix ../server
+
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+
+added 297 packages, and audited 298 packages in 4s
+
+34 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+> amysecho_backend@1.0.0 build
+> sh -c 'rm -rf dist && tsc'
+
+
+> test
+> tsx --test
+
+✔ test-runner.js (468.916003ms)
+✔ POST /train-model invalid payload (9842.826016ms)
+✔ POST /train-model invalid sample items (13.124413ms)
+Skipping latest-mlp-model check - status: 401
+Skipping app MLP b64 length check - model not available
+✔ POST /train-model processes samples and returns model (5131.718121ms)
+✔ GET /model-version returns version and path (12.230267ms)
+✔ GET /latest-model serves model file when present (31.461165ms)
+✔ POST /analytics then GET returns same data (124.532981ms)
+Skipping MLP file caching test - model not available
+✔ GET /api/v1/dgs/mlp-model serves file and client caches it (622.472627ms)
+✓ Screen reader compatibility validated
+✓ Feedback timing validated for accessibility
+✓ High contrast support validated
+✓ Reduced motion support validated
+✓ Keyboard navigation support validated
+✓ Error message clarity validated
+▶ DGS Model Accessibility Tests
+  ✔ should support screen reader compatibility (3.252203ms)
+  ✔ should provide adequate feedback timing (0.446937ms)
+  ✔ should support high contrast mode (0.44016ms)
+  ✔ should handle reduced motion preferences (1.911109ms)
+  ✔ should support keyboard navigation (1.227981ms)
+  ✔ should provide clear error messages (1.474663ms)
+✔ DGS Model Accessibility Tests (10.831374ms)
+✓ Model file exists
+✓ Model can be loaded
+✓ Model inference works
+✓ Full pipeline test completed successfully
+▶ DGS End-to-End Tests
+  ✔ should complete full pipeline from data to deployment (1062.976727ms)
+✓ Model backup created
+✓ Backup integrity verified
+✓ Backup cleanup completed
+  ✔ should handle model backup and recovery (16.495865ms)
+Accuracy test skipped - test data or model not available
+  ✔ should validate model against test dataset (9.326775ms)
+✔ DGS End-to-End Tests (1091.256907ms)
+Skipping consistency test - files not available
+▶ DGS Model Integration Tests
+  ✔ should maintain data consistency across pipeline (35.29419ms)
+✓ Model update handling validated
+✖ test/dgs_integration.spec.ts (719.30563ms)
+Performance test skipped - model not available
+▶ DGS Model Performance Tests
+  ✔ should meet inference latency requirements (539.432869ms)
+Memory test skipped - model not available or psutil not installed
+  ✔ should handle memory efficiently (646.241098ms)
+Robustness test skipped - model not available
+  ✔ should maintain accuracy across different input scales (523.692742ms)
+✔ DGS Model Performance Tests (1714.149192ms)
+✓ Model file integrity validated
+▶ DGS Model Security Tests
+  ✔ should validate model file integrity (16.343596ms)
+✓ Path traversal protection validated
+✓ Input validation test structure validated
+  ✔ should prevent path traversal attacks (3.410809ms)
+  ✔ should validate input data format (0.696138ms)
+✓ Corrupted file handling validated
+✓ Authentication test structure validated
+  ✔ should handle corrupted model files gracefully (30.970972ms)
+  ✔ should validate API authentication (0.767931ms)
+✔ DGS Model Security Tests (59.660907ms)
+python3: can't open file '/home/lars/PhpstormProjects/AmysEcho/integration/scripts/process_dgs_videos.py': [Errno 2] No such file or directory
+Video processing failed: Command failed: python3 scripts/process_dgs_videos.py --videos-dir /home/lars/PhpstormProjects/AmysEcho/integration/app/assets/videos --output /home/lars/PhpstormProjects/AmysEcho/integration/server/data/test_dgs_video_samples.json --max-frames 50
+Skipping video processing test - videos may not be available in test environment
+✔ should process DGS videos and extract landmark data (107.859242ms)
+Landmark data validation skipped: ENOENT: no such file or directory, open '/home/lars/PhpstormProjects/AmysEcho/integration/server/data/dgs_samples.json'
+✔ should validate processed landmark data format (14.72323ms)
+python3: can't open file '/home/lars/PhpstormProjects/AmysEcho/integration/scripts/prepare_default_model.py': [Errno 2] No such file or directory
+Model preparation test failed: Command failed: python3 /home/lars/PhpstormProjects/AmysEcho/integration/scripts/prepare_default_model.py
+Skipping model preparation test - dependencies may not be available
+✔ should integrate with MLP training pipeline (9.189126ms)
+✔ should prepare default model using preparation script (44.629021ms)
+Model validation test failed: Command failed: python3 /home/lars/PhpstormProjects/AmysEcho/integration/temp_model_test.py /home/lars/PhpstormProjects/AmysEcho/integration/server/data/dgs_model.npz
+Skipping model validation test - model may not be available
+✔ should validate model loading and inference (527.357619ms)
+Label validation test failed: ENOENT: no such file or directory, open '/home/lars/PhpstormProjects/AmysEcho/integration/server/data/dgs_samples.json'
+Skipping label validation test - files may not be available
+✔ should validate gesture labels are consistent (21.668225ms)
+▶ Camera Recording → Landmarks Pipeline
+  ▶ Camera Permission and Initialization
+    ✔ should handle camera permission request successfully (3.254925ms)
+    ✔ should handle camera permission denial gracefully (2.275226ms)
+    ✔ should initialize camera with correct configuration (1.97961ms)
+  ✔ Camera Permission and Initialization (9.424265ms)
+  ▶ Frame Capture and Processing
+    ✔ should capture camera frame with correct parameters (0.966799ms)
+    ✔ should process frame through MediaPipe detector (2.402237ms)
+  ✔ Frame Capture and Processing (3.88082ms)
+✔ Camera Recording → Landmarks Pipeline (18.307525ms)
+▶ Data Recording and Storage Workflow
+  ▶ Gesture Data Collection
+    ✔ should validate gesture data structure before storage (7.643014ms)
+    ✔ should reject invalid gesture data (0.962425ms)
+  ✔ Gesture Data Collection (15.671136ms)
+  ▶ Local Storage Management
+    ✔ should store gesture data in database (2.080154ms)
+    ✔ should store gesture data as JSON files (5.78974ms)
+    ✔ should retrieve stored gesture data (0.810184ms)
+  ✔ Local Storage Management (9.313398ms)
+  ▶ Data Quality Assurance
+    ✔ should deduplicate similar gesture samples (2.511271ms)
+    ✔ should filter out low-confidence samples (6.683792ms)
+  ✔ Data Quality Assurance (10.896809ms)
+✔ Data Recording and Storage Workflow (37.273479ms)
+▶ Complete Camera-to-Training Cycle
+  ▶ Phase 1: Camera Capture and Real-time Processing
+    ✔ should complete camera initialization and permission flow (17.939794ms)
+    ✔ should capture and process gesture frames in real-time (9.773968ms)
+    ✔ should extract landmarks from camera frames via WebView (1.474555ms)
+  ✔ Phase 1: Camera Capture and Real-time Processing (31.787461ms)
+  ▶ Phase 2: Data Recording and Local Storage
+    ✔ should record gesture data with session management (2.88492ms)
+    ✔ should maintain data quality during recording (3.179323ms)
+  ✔ Phase 2: Data Recording and Local Storage (7.482013ms)
+  ▶ Phase 3: Secure Upload to Server
+    ✔ should prepare and encrypt data for upload (1.174202ms)
+    ✔ should upload data with authentication and progress tracking (75.908484ms)
+  ✔ Phase 3: Secure Upload to Server (78.449828ms)
+  ▶ Phase 4: Server-side Processing and Training
+    ✔ should process uploaded data on server (1.063991ms)
+    ✔ should execute training pipeline with monitoring (5.856907ms)
+  ✔ Phase 4: Server-side Processing and Training (7.323925ms)
+  ▶ Full Cycle Performance and Reliability
+    ✔ should maintain performance throughout the cycle (1.117959ms)
+    ✔ should handle errors gracefully at each phase (0.755ms)
+    ✔ should maintain data integrity across the cycle (0.966357ms)
+  ✔ Full Cycle Performance and Reliability (7.269964ms)
+✔ Complete Camera-to-Training Cycle (144.637723ms)
+▶ Model Training with Uploaded Data
+  ▶ Data Ingestion and Preprocessing
+    ✔ should validate uploaded training data format (3.987432ms)
+    ✔ should preprocess landmarks for model input (3.477696ms)
+    ✔ should split data into training and validation sets (1.093407ms)
+  ✔ Data Ingestion and Preprocessing (11.491912ms)
+  ▶ Model Training Pipeline
+    ✔ should initialize model with correct architecture (1.561553ms)
+    ✔ should execute training script with correct parameters (1.078901ms)
+    ✔ should monitor training progress and metrics (1.06965ms)
+  ✔ Model Training Pipeline (6.420194ms)
+  ▶ Model Validation and Quality Assessment
+    ✔ should evaluate model performance on validation set (1.430213ms)
+    ✔ should analyze confusion matrix for model insights (1.405843ms)
+    ✔ should assess model generalization capability (1.008871ms)
+  ✔ Model Validation and Quality Assessment (4.691487ms)
+  ▶ Model Deployment and Rollback
+    ✔ should deploy new model with rollback capability (0.676058ms)
+    ✔ should maintain model version history (0.858143ms)
+  ✔ Model Deployment and Rollback (1.856391ms)
+✔ Model Training with Uploaded Data (27.009055ms)
+▶ Secure Data Upload to Server
+  ▶ Authentication and Authorization
+    ✔ should include valid authentication token in upload request (5.900658ms)
+    ✔ should handle missing authentication token (1.183979ms)
+  ✔ Authentication and Authorization (8.939075ms)
+  ▶ Data Encryption and Security
+    ✔ should encrypt sensitive data before transmission (2.896213ms)
+    ✔ should validate data integrity with checksums (2.009652ms)
+    ✔ should use secure random keys for encryption (1.861667ms)
+  ✔ Data Encryption and Security (8.182306ms)
+  ▶ Upload Progress Tracking
+    ✔ should track upload progress accurately (1.058038ms)
+  ✔ Upload Progress Tracking (1.597909ms)
+  ▶ Server Response Handling
+    ✔ should handle successful upload response (1.054075ms)
+    ✔ should handle partial upload success (0.871753ms)
+  ✔ Server Response Handling (3.021501ms)
+  ▶ Error Recovery and Retry
+    ✔ should implement exponential backoff for retries (3.963705ms)
+    ✔ should handle network connectivity issues (1.045629ms)
+  ✔ Error Recovery and Retry (5.27637ms)
+✔ Secure Data Upload to Server (28.958034ms)
+✔ test/jest.config.js (704.697189ms)
+▶ Model endpoints authorization and headers
+  ✔ GET /api/v1/dgs/mlp-model requires matching X-Profile-Id when profileId is set (203.642139ms)
+  ✔ GET /latest-model returns cache headers and never serves .tmp files (26.968617ms)
+✔ Model endpoints authorization and headers (232.630537ms)
+file:///home/lars/PhpstormProjects/AmysEcho/integration/test/openai-validation-e2e.test.js:12
+const request = require('supertest');
+                ^
+
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and '/home/lars/PhpstormProjects/AmysEcho/integration/package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+    at file:///home/lars/PhpstormProjects/AmysEcho/integration/test/openai-validation-e2e.test.js:12:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:370:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:99:5)
+
+Node.js v24.4.1
+✖ test/openai-validation-e2e.test.js (616.611611ms)
+✔ approve and export training data (7975.752939ms)
+file:///home/lars/PhpstormProjects/AmysEcho/integration/test/setup.js:15
+beforeAll(() => {
+^
+
+ReferenceError: beforeAll is not defined
+    at file:///home/lars/PhpstormProjects/AmysEcho/integration/test/setup.js:15:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:370:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:99:5)
+
+Node.js v24.4.1
+✖ test/setup.js (712.127763ms)
+▶ Simple Workflow Test
+  ✔ should pass basic assertions (1.438044ms)
+  ✔ should handle async operations (0.279381ms)
+  ✔ should validate object structure (0.207079ms)
+✔ Simple Workflow Test (4.128802ms)
+ℹ tests 87
+ℹ suites 30
+ℹ pass 84
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16602.239773
+
+✖ failing tests:
+
+test at test/dgs_integration.spec.ts:1:1
+✖ test/dgs_integration.spec.ts (719.30563ms)
+  Error: Unable to deserialize cloned data due to invalid or unsupported version.
+      at #processRawBuffer (node:internal/test_runner/runner:370:20)
+      at FileTest.parseMessage (node:internal/test_runner/runner:306:27)
+      at Socket.<anonymous> (node:internal/test_runner/runner:416:15)
+      at Socket.emit (node:events:507:28)
+      at addChunk (node:internal/streams/readable:559:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+      at Readable.push (node:internal/streams/readable:390:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+
+test at test/openai-validation-e2e.test.js:1:1
+✖ test/openai-validation-e2e.test.js (616.611611ms)
+  'test failed'
+
+test at test/setup.js:1:1
+✖ test/setup.js (712.127763ms)
+  'test failed'

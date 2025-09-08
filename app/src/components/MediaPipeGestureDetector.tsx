@@ -13,7 +13,9 @@ import { contextAwareRecognitionService } from '../services/contextAwareRecognit
 import { adaptivePracticeTimingService } from '../services/adaptivePracticeTimingService';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 import { validateGestureWithFallback, shouldTriggerOpenAIValidation } from '../services/openaiGestureValidationService';
+import { parallelGestureProcessor, GestureResult } from '../services/parallelGestureProcessor';
 import OpenAIGestureFeedback from './OpenAIGestureFeedback';
+import { logger } from '../utils/logger';
 // Avoid pulling the module at import time. Use dynamic require below.
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 
@@ -44,17 +46,39 @@ interface Props {
   onModelUpdateStatus?: (status: 'idle' | 'updating' | 'complete' | 'error') => void;
   onPartialFeedback?: (gesture: string, completion: number, feedback: string) => void;
   onStabilityFeedback?: (isStable: boolean, stabilityScore: number, feedback: string) => void;
+  onMergedResult?: (result: GestureResult) => void; // New callback for merged results
   facingMode?: 'user' | 'environment';
   gestureSizeTolerance?: number;
+  enableParallelProcessing?: boolean; // Enable/disable parallel OpenAI processing
+}
+
+// Define proper WebView props interface
+interface WebViewProps {
+  ref?: React.RefObject<any>;
+  source: { html: string; baseUrl?: string };
+  style?: any;
+  onMessage?: (event: WebViewMessageEvent) => void;
+  onError?: (event: any) => void;
+  onHttpError?: (event: any) => void;
+  onConsoleMessage?: (event: any) => void;
+  onPermissionRequest?: (event: any) => void;
+  mediaPlaybackRequiresUserAction?: boolean;
+  domStorageEnabled?: boolean;
+  javaScriptEnabled?: boolean;
+  allowsInlineMediaPlayback?: boolean;
+  originWhitelist?: string[];
+  mediaCapturePermissionGrantType?: string;
+  androidLayerType?: string;
+  mixedContentMode?: string;
+  key?: string | number;
 }
 
 // Optional require to avoid crashing when native WebView module is not in the binary
-let WebViewImpl: React.ComponentType<any> | null = null;
+let WebViewImpl: React.ComponentType<WebViewProps> | null = null;
 try {
-   
-  WebViewImpl = require('react-native-webview').WebView as unknown as React.ComponentType<any>;
+   WebViewImpl = require('react-native-webview').WebView as React.ComponentType<WebViewProps>;
 } catch {
-  WebViewImpl = null;
+   WebViewImpl = null;
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({
@@ -64,12 +88,43 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   onModelUpdateStatus,
   onPartialFeedback,
   onStabilityFeedback,
+  onMergedResult,
   facingMode = 'user',
-  gestureSizeTolerance = 0.3
+  gestureSizeTolerance = 0.3,
+  enableParallelProcessing = true
 }) => {
   // Minimal shape we rely on; keeps optional semantics and strict-mode help.
   type WebViewLike = { injectJavaScript: (src: string) => void } | null;
   const webviewRef = useRef<WebViewLike>(null);
+
+  // Define proper types for WebView events
+  interface WebViewErrorEvent {
+    nativeEvent: {
+      description?: string;
+      code?: number;
+    };
+  }
+
+  interface WebViewHttpErrorEvent {
+    nativeEvent: {
+      statusCode: number;
+      description?: string;
+    };
+  }
+
+  interface WebViewConsoleMessageEvent {
+    nativeEvent: {
+      message: string;
+      messageLevel?: string;
+    };
+  }
+
+  interface WebViewPermissionRequestEvent {
+    nativeEvent: {
+      resources: string[];
+      grant: (resources: string[]) => void;
+    };
+  }
   const pendingModelRef = useRef<string | null>(null);
   const mlpReadyRef = useRef(false);
   const modelTransferLock = useRef(false);
@@ -89,7 +144,105 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   } | null>(null);
   const [showOpenaiFeedback, setShowOpenaiFeedback] = useState(false);
 
-  // Enhanced gesture detection with OpenAI validation
+  // Define proper types for captured frame
+  type CapturedFrame = string | { base64?: string } | null;
+
+  // Enhanced gesture detection with parallel processing
+  const handleGestureDetectionEnhanced = useCallback(async (
+    gesture: string | null,
+    confidence: number,
+    landmarks: number[][][],
+    handednesses: string[],
+    emergency?: boolean,
+    capturedFrame?: CapturedFrame
+  ) => {
+    try {
+      // Input validation
+      if (typeof confidence !== 'number' || confidence < 0 || confidence > 1) {
+        logger.warn('Invalid confidence value, resetting to 0', { confidence, originalConfidence: confidence });
+        confidence = 0;
+      }
+
+      if (!Array.isArray(landmarks)) {
+        logger.warn('Invalid landmarks format, using empty array', { landmarksType: typeof landmarks });
+        landmarks = [];
+      }
+
+      if (!Array.isArray(handednesses)) {
+        logger.warn('Invalid handednesses format, using empty array', { handednessesType: typeof handednesses });
+        handednesses = [];
+      }
+
+      if (enableParallelProcessing) {
+        // Use parallel processor for enhanced gesture detection
+        const result = await parallelGestureProcessor.processMediaPipeResult(
+          gesture,
+          confidence,
+          landmarks,
+          handednesses,
+          emergency,
+          capturedFrame
+        );
+
+        // Update UI state based on result source
+        if (result.source === 'openai' || result.source === 'combined') {
+          setOpenaiValidationResult({
+            gesture: result.gesture || '',
+            confidence: result.confidence,
+            feedback: result.feedback || 'Gesture processed',
+            quality_score: result.quality_score || 7.0,
+            suggestions: [], // Could be populated from OpenAI response
+            validation_source: result.source,
+          });
+
+          // Show feedback for AI-enhanced results
+          setShowOpenaiFeedback(true);
+        }
+
+        // Emit merged result if callback provided
+        if (onMergedResult && result.source === 'combined') {
+          onMergedResult(result);
+        }
+
+        // Always emit the primary result for backward compatibility
+        onGestureDetected(
+          result.gesture || '',
+          result.confidence,
+          result.landmarks || landmarks,
+          result.handedness || handednesses,
+          result.emergency || emergency
+        );
+
+      } else {
+        // Fallback to original sequential processing
+        await handleGestureDetection(gesture, confidence, landmarks, handednesses, emergency);
+      }
+    } catch (error) {
+      logger.error('Enhanced gesture detection failed, using MediaPipe result', error, {
+        gesture,
+        confidence,
+        emergency,
+        enableParallelProcessing
+      });
+
+      // Emit error telemetry if available
+      try {
+        if (onWebViewEvent) {
+          onWebViewEvent({
+            event: 'gesture_processing_error',
+            ms: 0,
+          });
+        }
+      } catch (telemetryError) {
+        logger.warn('Failed to send error telemetry', telemetryError);
+      }
+
+      // Fallback to original MediaPipe result
+      onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+    }
+  }, [onGestureDetected, onMergedResult, onWebViewEvent, enableParallelProcessing]);
+
+  // Original sequential gesture detection (kept for fallback)
   const handleGestureDetection = useCallback(async (
     gesture: string | null,
     confidence: number,
@@ -149,7 +302,11 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
         }
       } catch (error) {
-        console.warn('OpenAI validation failed, using MediaPipe result:', error);
+        logger.warn('OpenAI validation failed, using MediaPipe result', error, {
+          gesture,
+          confidence,
+          emergency
+        });
         onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
       }
     } else {
@@ -161,7 +318,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   const injectModel = useCallback((b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
     if (modelTransferLock.current) {
-      console.warn('Model transfer in progress; queueing new model.');
+      logger.warn('Model transfer in progress, queueing new model', { hasPendingModel: !!pendingModelRef.current });
       pendingModelRef.current = b64;
       queuedModelRef.current = true;
       return;
@@ -186,7 +343,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     );
     if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
     transferWatchdogRef.current = setTimeout(() => {
-      console.warn('Model transfer timed out — unlock and retry if needed.');
+      logger.warn('Model transfer timed out, unlocking and retrying if needed', {
+        hasQueuedModel: queuedModelRef.current,
+        hasPendingModel: !!pendingModelRef.current
+      });
       modelTransferLock.current = false;
       onModelUpdateStatus?.('error');
       if (queuedModelRef.current && pendingModelRef.current) {
@@ -220,7 +380,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     const loadModel = async () => {
       try {
         const pid = await loadActiveProfileId().catch((err) => {
-          console.warn('Failed to load active profile ID; falling back to global model.', err);
+          logger.warn('Failed to load active profile ID, falling back to global model', err);
           return null;
         });
 
@@ -236,7 +396,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           injectModel(latest);
         }
       } catch (e) {
-        console.warn('Failed to load or inject MLP model:', e);
+        logger.warn('Failed to load or inject MLP model', e);
       }
     };
     loadModel();
@@ -253,20 +413,20 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         clearTimeout(transferWatchdogRef.current);
         transferWatchdogRef.current = null;
       }
-      try {
-        webview?.injectJavaScript(
-          'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
-        );
-      } catch (e) {
-        console.warn('Failed to inject WebView cleanup script:', e);
-      }
+        try {
+          webview?.injectJavaScript(
+            'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
+          );
+        } catch (e) {
+          logger.warn('Failed to inject WebView cleanup script', e);
+        }
     };
   }, []);
 
 
   if (!WebViewImpl) {
     // Amy First: Provide encouraging fallback UI instead of technical error
-    console.warn('react-native-webview unavailable; showing fallback UI');
+    logger.warn('react-native-webview unavailable, showing fallback UI');
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text accessibilityRole="alert" style={{ textAlign: 'center', fontSize: 18, color: '#666' }}>
@@ -328,14 +488,16 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         let confidence = typeof data.confidence === 'number' ? data.confidence : 0;
         const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][]) : [];
         const handednesses = Array.isArray(data.handednesses) ? (data.handednesses as string[]) : [];
-        // Enhanced gesture detection with OpenAI validation
-        handleGestureDetection(gesture, confidence, landmarks, handednesses, data.emergency === true);
+        const capturedFrame = data.capturedFrame || null;
+        // Enhanced gesture detection with parallel processing
+        handleGestureDetectionEnhanced(gesture, confidence, landmarks, handednesses, data.emergency === true, capturedFrame);
       } else if (data.type === 'error') {
         // Amy First: Log technical errors but pass generic message to UI
-        console.error('WebView error:', data.message);
+        logger.error('WebView error', { message: data.message });
         onError('gesture_processing_error'); // Generic identifier for child-friendly handling
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
+        logger.warn('WebView warning', { message: data.message });
       } else if (data.type === 'partial_feedback') {
         const gesture = String(data.gesture || '');
         const completion = typeof data.completion === 'number' ? data.completion : 0;
@@ -343,7 +505,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         try {
           onPartialFeedback?.(gesture, completion, feedback);
         } catch (e) {
-          console.warn('Error in onPartialFeedback handler:', e);
+          logger.warn('Error in onPartialFeedback handler', e);
         }
       } else if (data.type === 'stability_feedback') {
         const isStable = Boolean(data.isStable);
@@ -352,7 +514,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         try {
           onStabilityFeedback?.(isStable, stabilityScore, feedback);
         } catch (e) {
-          console.warn('Error in onStabilityFeedback handler:', e);
+          logger.warn('Error in onStabilityFeedback handler', e);
         }
       } else if (data.type === 'telemetry') {
         const eventStr = String(data.event || '');
@@ -363,7 +525,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
             ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {}),
           });
         } catch (e) {
-          console.warn('Error in onWebViewEvent handler:', e);
+          logger.warn('Error in onWebViewEvent handler', e);
         }
         if (eventStr === 'mlp_ready') {
           mlpReadyRef.current = true;
@@ -398,7 +560,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
             });
           }
         } catch (e) {
-          console.warn('Failed to send telemetry:', e);
+          logger.warn('Failed to send telemetry', e);
         }
       }
     } catch {
@@ -423,43 +585,43 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         mediaCapturePermissionGrantType={'grant'}
         androidLayerType={'hardware'}
         mixedContentMode={'always'}
-        onError={(e: any) => {
-          console.warn('WebView runtime error', e?.nativeEvent);
-          onError('webview_load_error');
-        }}
-        onHttpError={(e: any) => {
-          console.warn('WebView HTTP error', e?.nativeEvent);
-          onError('webview_http_error');
-        }}
-        onConsoleMessage={(e: any) => {
-          if (e?.nativeEvent?.message) {
-            console.log('WV:', e.nativeEvent.message);
-          }
-        }}
-        onPermissionRequest={(event: any) => {
-          const resources = event?.nativeEvent?.resources;
-          const grant = event?.nativeEvent?.grant;
-          if (resources && typeof grant === 'function') {
-            try {
-              const videoOnly = resources.filter((r: string) => r === 'VIDEO_CAPTURE');
-              grant(videoOnly);
+        onError={(e: WebViewErrorEvent) => {
+           logger.warn('WebView runtime error', e?.nativeEvent);
+           onError('webview_load_error');
+         }}
+         onHttpError={(e: WebViewHttpErrorEvent) => {
+           logger.warn('WebView HTTP error', e?.nativeEvent);
+           onError('webview_http_error');
+         }}
+         onConsoleMessage={(e: WebViewConsoleMessageEvent) => {
+           if (e?.nativeEvent?.message) {
+             logger.debug('WebView console', { message: e.nativeEvent.message });
+           }
+         }}
+         onPermissionRequest={(event: WebViewPermissionRequestEvent) => {
+           const resources = event?.nativeEvent?.resources;
+           const grant = event?.nativeEvent?.grant;
+           if (resources && typeof grant === 'function') {
+             try {
+               const videoOnly = resources.filter((r: string) => r === 'VIDEO_CAPTURE');
+               grant(videoOnly);
             } catch (err) {
-              console.warn('Failed to grant permissions:', err);
+              logger.warn('Failed to grant permissions', err);
             }
-          }
-        }}
+           }
+         }}
       />
 
       {/* OpenAI Gesture Validation Feedback */}
       <OpenAIGestureFeedback
         isVisible={showOpenaiFeedback}
-        validationResult={openaiValidationResult}
+        validationResult={openaiValidationResult || undefined}
         onDismiss={() => setShowOpenaiFeedback(false)}
         onApplySuggestion={(suggestion) => {
-          console.log('Applying suggestion:', suggestion);
-          // TODO: Implement suggestion application logic
-          setShowOpenaiFeedback(false);
-        }}
+           logger.info('Applying OpenAI suggestion', { suggestion });
+           // TODO: Implement suggestion application logic
+           setShowOpenaiFeedback(false);
+         }}
       />
 
     </View>

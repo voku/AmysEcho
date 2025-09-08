@@ -15,6 +15,29 @@ import type { unzip, unzipSync } from 'fflate';
 export {};
 
 declare global {
+  // Allow responsive style objects in React Native style props without TS noise
+  // This keeps UI code concise while we progressively migrate to a typed responsive system.
+  // It affects only type checking; runtime behavior is unchanged.
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace ReactNativeStyleAugment {
+    type ResponsiveValue = { sm?: any; md?: any; lg?: any; xl?: any };
+  }
+}
+
+declare module 'react-native' {
+  // Broadly relax style prop value types to accept responsive objects
+  interface ViewStyle {
+    [key: string]: any | ReactNativeStyleAugment.ResponsiveValue;
+  }
+  interface TextStyle {
+    [key: string]: any | ReactNativeStyleAugment.ResponsiveValue;
+  }
+  interface ImageStyle {
+    [key: string]: any | ReactNativeStyleAugment.ResponsiveValue;
+  }
+}
+
+declare global {
   interface Window {
     ReactNativeWebView?: { postMessage?: (msg: string) => void };
     fileset_resolver?: any;

@@ -164,6 +164,18 @@ class GestureCombinationService {
           this.activeSequences.delete(sequenceId);
 
           return completedMatch;
+        } else {
+          // For multi-gesture sequences, return partial match
+          const partialMatch: SequenceMatch = {
+            sequenceId,
+            sequence,
+            matchConfidence: confidence,
+            completedGestures: [gestureId],
+            remainingGestures: sequence.gestures.slice(1),
+            timeElapsed: 0
+          };
+
+          return partialMatch;
         }
       }
     }

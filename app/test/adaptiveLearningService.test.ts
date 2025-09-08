@@ -357,7 +357,12 @@ describe('AdaptiveLearningService', () => {
           id: 'test_gesture',
           healthScore: 50,
           minConfidenceThreshold: 0.5,
-          update: jest.fn(),
+          update: jest.fn().mockImplementation(async (updater) => {
+            // Simulate WatermelonDB update pattern
+            const updates: any = {};
+            updater(updates);
+            Object.assign(mockGesture, updates);
+          }),
         };
 
         const mockCollection = {
@@ -365,7 +370,7 @@ describe('AdaptiveLearningService', () => {
         };
 
         (database.get as jest.Mock).mockReturnValue(mockCollection);
-        (database.write as jest.Mock).mockImplementation((callback) => callback());
+        (database.write as jest.Mock).mockImplementation(async (callback) => await callback());
 
         const result = await recordInteraction('test_gesture', true);
 
@@ -379,7 +384,12 @@ describe('AdaptiveLearningService', () => {
           id: 'test_gesture',
           healthScore: 50,
           minConfidenceThreshold: 0.5,
-          update: jest.fn(),
+          update: jest.fn().mockImplementation(async (updater) => {
+            // Simulate WatermelonDB update pattern
+            const updates: any = {};
+            updater(updates);
+            Object.assign(mockGesture, updates);
+          }),
         };
 
         const mockCollection = {
@@ -387,7 +397,7 @@ describe('AdaptiveLearningService', () => {
         };
 
         (database.get as jest.Mock).mockReturnValue(mockCollection);
-        (database.write as jest.Mock).mockImplementation((callback) => callback());
+        (database.write as jest.Mock).mockImplementation(async (callback) => await callback());
 
         const result = await recordInteraction('test_gesture', false);
 

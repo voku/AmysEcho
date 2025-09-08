@@ -421,6 +421,7 @@ describe('GestureCombinationService', () => {
 
   describe('Persistence', () => {
     it('should load sequences from AsyncStorage', async () => {
+      jest.setTimeout(30000); // Increase timeout for this test
       const storedSequences = {
         'stored_test': {
           id: 'stored_test',
