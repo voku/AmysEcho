@@ -55,6 +55,23 @@ try {
   }
 } catch {}
 
+// Provide a default Dimensions mock for React Native components in tests
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const rn: any = require('react-native');
+  if (!rn.Dimensions) {
+    rn.Dimensions = {
+      get: jest.fn(() => ({ width: 375, height: 812, scale: 2 })),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+  } else if (!rn.Dimensions.get || typeof rn.Dimensions.get !== 'function') {
+    rn.Dimensions.get = jest.fn(() => ({ width: 375, height: 812, scale: 2 }));
+    rn.Dimensions.addEventListener = jest.fn();
+    rn.Dimensions.removeEventListener = jest.fn();
+  }
+} catch {}
+
 
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
@@ -107,6 +124,27 @@ jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
   compose: jest.fn((style1, style2) => ({ ...style1, ...style2 })),
 }));
 
+// Also mock the main StyleSheet import
+jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
+  create: jest.fn((styles) => styles),
+  absoluteFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  absoluteFillObject: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  flatten: jest.fn((style) => style),
+  compose: jest.fn((style1, style2) => ({ ...style1, ...style2 })),
+}), { virtual: true });
+
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/tmp/test-documents/',
   cacheDirectory: '/tmp/test-cache/',
@@ -115,5 +153,4 @@ jest.mock('expo-file-system', () => ({
   deleteAsync: jest.fn(),
   getInfoAsync: jest.fn(),
 }));
-
 

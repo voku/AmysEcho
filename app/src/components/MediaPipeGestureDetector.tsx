@@ -19,6 +19,9 @@ import type { TwoHandGesture } from '../../webview/types/MediaPipeTypes';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
 import OpenAIGestureFeedback from './OpenAIGestureFeedback';
 import { logger } from '../utils/logger';
+import { performanceOptimizationService } from '../services/performanceOptimizationService';
+import { batteryOptimizationService } from '../services/batteryOptimizationService';
+import { frameRateOptimizationService } from '../services/frameRateOptimizationService';
 // Avoid pulling the module at import time. Use dynamic require below.
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 
@@ -150,7 +153,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   // Define proper types for captured frame
   type CapturedFrame = string | { base64?: string } | null;
 
-  // Enhanced gesture detection with parallel processing
+  // Enhanced gesture detection with parallel processing and frame rate optimization
   const handleGestureDetectionEnhanced = useCallback(async (
     gesture: string | TwoHandGesture | null,
     confidence: number,
@@ -159,6 +162,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     emergency?: boolean,
     capturedFrame?: CapturedFrame
   ) => {
+    const frameStartTime = Date.now();
+
     try {
       // Input validation
       if (typeof confidence !== 'number' || confidence < 0 || confidence > 1) {
@@ -297,6 +302,11 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         : gesture;
       onGestureDetected(fallbackGesture, confidence, landmarks, handednesses, emergency);
     }
+
+    // Record frame processing for optimization
+    const gestureComplexity = frameRateOptimizationService.calculateGestureComplexity(landmarks, handednesses);
+    frameRateOptimizationService.recordFrameProcessing(frameStartTime, gestureComplexity);
+
   }, [onGestureDetected, onMergedResult, onWebViewEvent, enableParallelProcessing]);
 
   // Original sequential gesture detection (kept for fallback)
@@ -465,18 +475,30 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
   useEffect(() => {
     const webview = webviewRef.current;
+
+    // Register WebView with performance service
+    if (webview) {
+      performanceOptimizationService.registerWebView(webview);
+    }
+
     return () => {
       if (transferWatchdogRef.current) {
         clearTimeout(transferWatchdogRef.current);
         transferWatchdogRef.current = null;
       }
-        try {
-          webview?.injectJavaScript(
-            'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
-          );
-        } catch (e) {
-          logger.warn('Failed to inject WebView cleanup script', e);
-        }
+
+      // Unregister WebView from performance service
+      if (webview) {
+        performanceOptimizationService.unregisterWebView(webview);
+      }
+
+      try {
+        webview?.injectJavaScript(
+          'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
+        );
+      } catch (e) {
+        logger.warn('Failed to inject WebView cleanup script', e);
+      }
     };
   }, []);
 
@@ -516,9 +538,14 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
      window.__cameraError = '${cameraError}';
      window.__mlpThreshold = ${MLP_CONFIDENCE_THRESHOLD};
      window.__fallbackThreshold = ${FALLBACK_CONFIDENCE_THRESHOLD};
-     window.__gestureSizeTolerance = ${gestureSizeTolerance};
-     // Disable enhanced haptic system during testing to avoid interference
-     window.__disableHapticSystem = ${process.env.NODE_ENV === 'test' ? 'true' : 'false'};
+      window.__gestureSizeTolerance = ${gestureSizeTolerance};
+      // Performance-aware processing parameters
+      window.__processingParams = ${JSON.stringify(performanceOptimizationService.getOptimizedProcessingParams())};
+      window.__batteryParams = ${JSON.stringify(batteryOptimizationService.getBatteryOptimizedParams())};
+      window.__frameRateParams = ${JSON.stringify(frameRateOptimizationService.getFrameRateStats())};
+      window.__isLowPowerMode = ${performanceOptimizationService.isInLowPowerMode()};
+      // Disable enhanced haptic system during testing to avoid interference
+      window.__disableHapticSystem = ${process.env.NODE_ENV === 'test' ? 'true' : 'false'};
    </script>
   <script src="${gestureDetectorJs}"></script>
 </head>
@@ -527,7 +554,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   const handleMessage = async (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      
+
+      // Use performance service for message processing
       if (data.type === 'gesture') {
         const g = data.gesture;
         let gesture: string | null;
@@ -546,6 +574,14 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][]) : [];
         const handednesses = Array.isArray(data.handednesses) ? (data.handednesses as string[]) : [];
         const capturedFrame = data.capturedFrame || null;
+
+        // Get optimized processing parameters
+        const processingParams = performanceOptimizationService.getOptimizedProcessingParams();
+
+        // Compress landmarks for better performance (only if enabled)
+        const compressedLandmarks = processingParams.compressionEnabled
+          ? performanceOptimizationService.compressLandmarks(landmarks)
+          : landmarks;
         // For tests, emit synchronously to satisfy expectations
         if (process.env.NODE_ENV === 'test') {
           onGestureDetected(gesture, confidence, landmarks, handednesses, data.emergency === true);
@@ -607,25 +643,24 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           }
         }
         try {
-          // Fire-and-forget telemetry to avoid backpressure in onMessage (skip in dev)
+          // Use performance service for batched telemetry to reduce network overhead
           if (API_TOKEN && API_TOKEN !== 'demo-token') {
-            void fetch(ANALYTICS_TELEMETRY_ENDPOINT, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${API_TOKEN}`,
-              },
-              body: JSON.stringify({
-                latencyMs: typeof data.ms === 'number' ? data.ms : 0,
-                timestamp: Date.now(),
-                event: eventStr || 'unknown',
-                source: 'webview-gesture-detector',
-                ...(Array.isArray(data.tracks) ? { tracks: data.tracks } : {}),
-              }),
-            });
+            const telemetryData = {
+              latencyMs: typeof data.ms === 'number' ? data.ms : 0,
+              timestamp: Date.now(),
+              event: eventStr || 'unknown',
+              source: 'webview-gesture-detector',
+              ...(Array.isArray(data.tracks) ? { tracks: data.tracks } : {}),
+            };
+
+            // Batch telemetry messages for better performance
+            performanceOptimizationService.addWebViewMessage({
+              type: 'telemetry',
+              data: telemetryData
+            }, eventStr === 'gesture_processing_error' ? 'high' : 'low');
           }
         } catch (e) {
-          logger.warn('Failed to send telemetry', e);
+          logger.warn('Failed to queue telemetry', e);
         }
       }
     } catch {

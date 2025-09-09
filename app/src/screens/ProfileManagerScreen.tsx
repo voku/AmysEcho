@@ -13,6 +13,10 @@ import BottomNav from '../components/BottomNav';
 import ThemeSelector from '../components/ThemeSelector';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
+import GestureHistoryViewer from '../components/GestureHistoryViewer';
+import ProfileAnalytics from '../components/ProfileAnalytics';
+import { gestureHistoryService } from '../services/gestureHistoryService';
+import { positiveTelemetryService } from '../services/positiveTelemetryService';
 
 export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -23,6 +27,10 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
   const { largeText, highContrast, update } = useAccessibility();
   const [localLargeText, setLocalLargeText] = useState(largeText);
   const [localHighContrast, setLocalHighContrast] = useState(highContrast);
+  const [showGestureHistory, setShowGestureHistory] = useState(false);
+  const [showProfileAnalytics, setShowProfileAnalytics] = useState(false);
+  const [gestureHistory, setGestureHistory] = useState<any[]>([]);
+  const [profileStats, setProfileStats] = useState<any>(null);
   const profileId = route?.params?.profileId;
 
   useFocusEffect(
@@ -30,6 +38,8 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       loadProfiles().then(setProfiles);
       checkTrustedDevice();
       loadSuccessSoundPreference();
+      loadGestureHistory();
+      loadProfileAnalytics();
     }, []),
   );
 
@@ -41,6 +51,39 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       }
     } catch (error) {
       logger.warn('Failed to load success sound preference:', error);
+    }
+  };
+
+  const loadGestureHistory = async () => {
+    try {
+      // Load recent gesture history for the active profile
+      const activeProfileId = await AsyncStorage.getItem('activeProfileId');
+      if (activeProfileId) {
+        const history = gestureHistoryService.getRecentGestures(20); // Last 20 gestures
+        setGestureHistory(history);
+      }
+    } catch (error) {
+      logger.warn('Failed to load gesture history:', error);
+    }
+  };
+
+  const loadProfileAnalytics = async () => {
+    try {
+      const activeProfileId = await AsyncStorage.getItem('activeProfileId');
+      if (activeProfileId) {
+        // Get overall statistics
+        const historyStats = gestureHistoryService.getStats();
+        const stats = {
+          totalGestures: historyStats.totalGestures,
+          uniqueGestures: new Set(gestureHistoryService.getRecentHistory().map(h => h.label)).size,
+          averageConfidence: historyStats.successRate,
+          mostUsedGesture: historyStats.mostUsedGesture,
+          recentActivity: historyStats.recentActivity,
+        };
+        setProfileStats(stats);
+      }
+    } catch (error) {
+      logger.warn('Failed to load profile analytics:', error);
     }
   };
 
@@ -321,6 +364,29 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       justifyContent: 'center',
       marginTop: SPACING.sm,
     },
+    statsSummary: {
+      marginTop: SPACING.sm,
+      padding: SPACING.sm,
+      backgroundColor: highContrast ? COLORS.surface : 'rgba(0, 0, 0, 0.05)',
+      borderRadius: RADIUS,
+    },
+    statsText: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      marginBottom: SPACING.xs,
+    },
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.md,
+      zIndex: 1000,
+    },
   });
 
   return (
@@ -498,6 +564,70 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
         {/* Theme Selection Section */}
         <ThemeSelector />
 
+        {/* Gesture History Section */}
+        <View style={styles.trustedDeviceSection}>
+          <Text style={styles.sectionTitle}>Gestenverlauf</Text>
+          <View style={styles.buttonRow}>
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                setShowGestureHistory(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Gestenverlauf anzeigen"
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                📚 Verlauf anzeigen
+              </Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.button,
+                highContrast && styles.buttonHC,
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+              ]}
+              onPress={() => {
+                void childHaptic();
+                setShowProfileAnalytics(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Leistungsanalyse anzeigen"
+            >
+              <Text style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}>
+                📊 Analyse
+              </Text>
+            </Pressable>
+          </View>
+          {profileStats && (
+            <View style={styles.statsSummary}>
+              <Text style={styles.statsText}>
+                Gesamt: {profileStats.totalGestures} Gesten
+              </Text>
+              <Text style={styles.statsText}>
+                Einzigartig: {profileStats.uniqueGestures} Gesten
+              </Text>
+              <Text style={styles.statsText}>
+                Ø Sicherheit: {Math.round(profileStats.averageConfidence * 100)}%
+              </Text>
+            </View>
+          )}
+        </View>
+
         <FlatList
         data={profiles}
         keyExtractor={(item) => item.id}
@@ -573,8 +703,37 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
           Neues Profil
         </Text>
       </Pressable>
-      {profileId && <BottomNav active="parent" profileId={profileId} />}
-    </View>
-  );
-}
+       {/* Gesture History Overlay */}
+       {showGestureHistory && (
+         <View style={styles.overlay}>
+           <GestureHistoryViewer
+             gestureHistory={gestureHistory}
+             onClose={() => setShowGestureHistory(false)}
+             onGestureSelect={(gesture) => {
+               // Could navigate to practice this specific gesture
+               setShowGestureHistory(false);
+               navigation.navigate('Training', { gestureLabel: gesture.id });
+             }}
+           />
+         </View>
+       )}
+
+       {/* Profile Analytics Overlay */}
+       {showProfileAnalytics && profileStats && (
+         <View style={styles.overlay}>
+           <ProfileAnalytics
+             stats={profileStats}
+             onClose={() => setShowProfileAnalytics(false)}
+             onViewDetails={() => {
+               // Could show more detailed analytics
+               setShowProfileAnalytics(false);
+             }}
+           />
+         </View>
+       )}
+
+       {profileId && <BottomNav active="parent" profileId={profileId} />}
+     </View>
+   );
+ }
 

@@ -56,6 +56,13 @@ import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceReco
 import { RecognitionPath } from '../utils/recognitionState';
 import { recordAmyActivity } from '../services/dailyJobs';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
+import { performanceOptimizationService } from '../services/performanceOptimizationService';
+import { batteryOptimizationService } from '../services/batteryOptimizationService';
+import { frameRateOptimizationService } from '../services/frameRateOptimizationService';
+import { optimizedGestureService } from '../services/optimizedGestureService';
+import { lazyLoadingService } from '../services/lazyLoadingService';
+import { backgroundPrefetchService } from '../services/backgroundPrefetchService';
+import { usePreloadComponents } from '../components/LazyComponent';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
 import SlowMotionReplay from '../components/SlowMotionReplay';
@@ -71,7 +78,8 @@ import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
 import GestureComparison from '../components/GestureComparison';
 import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
-import { isTwoHandGestureString } from '../constants/twoHandGestures';
+import { isTwoHandGestureString, parseTwoHandGestureString, getTwoHandGestureById } from '../constants/twoHandGestures';
+import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
 import type { RootStackParamList } from '../navigation/types';
 
 const FEEDBACK_THROTTLE_MS = 2000;
@@ -127,6 +135,7 @@ export default function RecognitionScreen({
   const [slowMotionGesture, setSlowMotionGesture] = useState<GestureModelEntry | null>(null);
   const [contextInsights, setContextInsights] = useState<any>(null);
   const [feedbackHistory, setFeedbackHistory] = useState<any[]>([]);
+  const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -351,9 +360,9 @@ export default function RecognitionScreen({
     }
   }, [gestureConfidence]);
 
-  const getContextualGestureSuggestion = useCallback((): GestureModelEntry | null => {
-    // Get available gestures with videos
-    const availableGestures = gestureModel.gestures.filter(gesture => gesture.dgsVideoUri);
+  const getContextualGestureSuggestion = useCallback(async (): Promise<GestureModelEntry | null> => {
+    // Get available gestures with videos (optimized)
+    const availableGestures = await optimizedGestureService.getGesturesWithVideo();
     if (availableGestures.length === 0) return null;
 
     // Context-aware gesture selection
@@ -474,7 +483,7 @@ export default function RecognitionScreen({
     // Amy First: Always provide immediate, positive feedback for every gesture attempt
     if (isSuccessful) {
       // Successful gesture - full celebration
-      const entry = (gestureModel.gestures.find((g) => g.id === gesture) || { id: gesture, label: gesture }) as GestureModelEntry;
+      const entry = (optimizedGestureService.getGestureById(gesture) || { id: gesture, label: gesture }) as GestureModelEntry;
       const localizedLabel = LanguageManager.getGestureLabel(entry.id);
       const labelForUser = localizedLabel !== `gestures.${entry.id}` ? localizedLabel : entry.label;
 
@@ -747,8 +756,8 @@ export default function RecognitionScreen({
         // Show slow-motion replay of last successful gesture
         const lastSuccessfulGesture = gestureHistoryService.getLastGesture();
         if (lastSuccessfulGesture) {
-          // Find the gesture model entry for video URI
-          const gestureEntry = gestureModel.gestures.find(g => g.id === lastSuccessfulGesture.id);
+          // Find the gesture model entry for video URI (optimized)
+          const gestureEntry = optimizedGestureService.getGestureById(lastSuccessfulGesture.id);
           if (gestureEntry?.dgsVideoUri) {
             setSlowMotionGesture(gestureEntry);
             setShowSlowMotionReplay(true);
@@ -813,6 +822,54 @@ export default function RecognitionScreen({
     };
   }, []);
 
+  // Preload components that might be needed during recognition
+  usePreloadComponents([
+    'CorrectionPanel',
+    'GestureComparison',
+    'PracticeSuggestion',
+    'AdaptiveLearningPanel',
+    'PictureInPictureGuidance',
+    'SlowMotionReplay',
+    'TwoHandGestureDisplay'
+  ]);
+
+  // Performance and battery monitoring
+  useEffect(() => {
+    // Update performance metrics when gesture is detected
+    const updatePerformanceMetrics = () => {
+      performanceOptimizationService.updateMetrics({
+        gestureProcessingTime: Date.now() - lastFrameTimeRef.current,
+        lastUpdated: Date.now()
+      });
+    };
+
+    // Monitor performance every 5 seconds
+    const performanceInterval = setInterval(updatePerformanceMetrics, 5000);
+
+    // Monitor battery status and show warnings when needed
+    const handlePowerModeChange = (isLowPower: boolean) => {
+      if (isLowPower) {
+        setStatus('🔋 Akku ist schwach. Ich passe mich an, um Energie zu sparen.');
+        setTimeout(() => setStatus('Ich höre zu…'), 5000);
+      } else {
+        setStatus('🔋 Akku ist wieder gut geladen!');
+        setTimeout(() => setStatus('Ich höre zu…'), 3000);
+      }
+    };
+
+    // Register battery monitoring callback
+    batteryOptimizationService.onPowerModeChange(handlePowerModeChange);
+
+    return () => {
+      clearInterval(performanceInterval);
+      batteryOptimizationService.removePowerModeChangeCallback(handlePowerModeChange);
+      // Cleanup services on unmount
+      performanceOptimizationService.cleanup();
+      batteryOptimizationService.cleanup();
+      backgroundPrefetchService.cleanup();
+    };
+  }, []);
+
   const handleGestureDetected = useCallback(async (
     gesture: string | null,
     confidence: number,
@@ -843,6 +900,48 @@ export default function RecognitionScreen({
         });
 
         return; // Don't process as regular gesture
+      }
+    }
+
+    // Enhanced two-hand gesture processing with service integration
+    if (gesture && isTwoHandGestureString(gesture) && handedness.length >= 2 && landmarks.length >= 2) {
+      const parsed = parseTwoHandGestureString(gesture);
+      if (parsed) {
+        // Use TwoHandGestureService for enhanced processing
+        const twoHandResult = await twoHandGestureService.processTwoHandGesture(
+          parsed.left,
+          parsed.right,
+          confidence,
+          confidence, // Use same confidence for both hands initially
+          handedness,
+          landmarks
+        );
+
+        if (twoHandResult) {
+          // Store the enhanced two-hand gesture data
+          setDetectedTwoHandGesture(twoHandResult);
+
+          // Use the processed confidence and landmarks
+          confidence = twoHandResult.confidence;
+          landmarks = twoHandResult.landmarks;
+          handedness = twoHandResult.handedness;
+
+          // Provide accessibility feedback for two-hand gestures
+          if (twoHandResult.accessibilityHints.length > 0) {
+            logger.info('Two-hand gesture accessibility hints', {
+              hints: twoHandResult.accessibilityHints
+            });
+          }
+
+          // Log enhanced two-hand gesture processing
+          void logHIPEvent('HIP_1', 'two_hand_gesture_enhanced', {
+            gestureId: twoHandResult.gesture.id,
+            confidence: twoHandResult.confidence,
+            processingTime: twoHandResult.processingTime,
+            validationScore: twoHandResult.validationScore,
+            timestamp: Date.now()
+          });
+        }
       }
     }
 
@@ -896,15 +995,18 @@ export default function RecognitionScreen({
     // Context-aware selection of gestures to show based on Amy's patterns and time
     const handsDetected = landmarks && landmarks.length > 0 && landmarks[0].length > 0;
     if (showPipGuidance && !g && handsDetected) {
-      const suggestedGesture = getContextualGestureSuggestion();
-      if (suggestedGesture) {
-        setPipGuidanceGesture(suggestedGesture);
-        // Adaptive duration based on context
-        const duration = getAdaptiveGuidanceDuration();
-        setTimeout(() => {
-          setPipGuidanceGesture(null);
-        }, duration);
-      }
+      getContextualGestureSuggestion().then(suggestedGesture => {
+        if (suggestedGesture) {
+          setPipGuidanceGesture(suggestedGesture);
+          // Adaptive duration based on context
+          const duration = getAdaptiveGuidanceDuration();
+          setTimeout(() => {
+            setPipGuidanceGesture(null);
+          }, duration);
+        }
+      }).catch(error => {
+        logger.warn('Failed to get contextual gesture suggestion:', error);
+      });
     }
 
     // Amy First: Show visual ripple effect for EVERY detected hand movement
@@ -946,9 +1048,11 @@ export default function RecognitionScreen({
       return;
     }
 
-    // Emergency gestures bypass all throttling and processing delays
+    // Performance-aware frame rate throttling using optimization service
     const ts = Date.now();
-    if (!emergency && ts - lastFrameTimeRef.current < FRAME_INTERVAL_MS) {
+    const adaptiveFrameInterval = 1000 / frameRateOptimizationService.getTargetFrameRate();
+
+    if (!emergency && ts - lastFrameTimeRef.current < adaptiveFrameInterval) {
       return;
     }
     lastFrameTimeRef.current = ts;
@@ -1001,7 +1105,7 @@ export default function RecognitionScreen({
         // Amy First: Use personalized confidence threshold based on Amy's patterns
         const personalizedThreshold = personalizedConfidenceService.getPersonalizedThreshold(stableGesture, smoothed);
         if (smoothed > personalizedThreshold.threshold && stableGesture !== 'unknown') {
-          const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
+          const entry = (optimizedGestureService.getGestureById(stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
         const now = Date.now();
         const shouldProvideFeedback =
           lastGestureIdRef.current !== entry.id ||
@@ -1280,7 +1384,7 @@ export default function RecognitionScreen({
         }
 
         // Log failure for the incoming gesture id (could be 'unknown')
-        const id = (gestureModel.gestures.find((g) => g.id === stableGesture)?.id) || stableGesture || 'unknown';
+        const id = (optimizedGestureService.getGestureById(stableGesture)?.id) || stableGesture || 'unknown';
         logInteractionEvent({
           gestureDefinitionId: id,
           gestureName: stableGesture,
@@ -1294,7 +1398,7 @@ export default function RecognitionScreen({
 
     // Emergency gestures get immediate priority processing
     if (emergency && g) {
-      const entry = (gestureModel.gestures.find((ges) => ges.id === g) || { id: g, label: g }) as GestureModelEntry;
+      const entry = (optimizedGestureService.getGestureById(g) || { id: g, label: g }) as GestureModelEntry;
       const localizedLabel = LanguageManager.getGestureLabel(entry.id);
       const labelForUser = localizedLabel !== `gestures.${entry.id}` ? localizedLabel : entry.label;
 
@@ -1525,11 +1629,11 @@ export default function RecognitionScreen({
       );
 
       // Amy First: Show encouraging gesture comparison instead of just correction
-      const correctGesture = gestureModel.gestures.find(g => g.id === choiceId);
+      const correctGesture = optimizedGestureService.getGestureById(choiceId);
       if (correctGesture) {
         setComparisonAttempt({
           id: pendingGesture,
-          label: gestureModel.gestures.find(g => g.id === pendingGesture)?.label || pendingGesture,
+          label: optimizedGestureService.getGestureById(pendingGesture)?.label || pendingGesture,
           confidence: gestureConfidence,
           timestamp: Date.now()
         });
@@ -1757,28 +1861,35 @@ export default function RecognitionScreen({
 
         {/* Amy First: Never show technical errors to Amy - all errors are handled via status messages */}
 
-       {!error && !showCorrection && lastRecognizedGesture && (
-         <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}>
-           {isTwoHandGestureString(lastRecognizedGesture.label) ? (
-             <TwoHandGestureDisplay
-               gestureString={lastRecognizedGesture.label}
-               confidence={gestureConfidence}
-               showDetails={true}
-               size="medium"
-             />
-           ) : (
-             <>
-               <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>
-                 {lastRecognizedGesture.label}
-               </Animated.Text>
-               <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
-               <Text style={styles.confidenceText} testID="recognition-path">
-                 via {recognitionPath}
-               </Text>
-             </>
-           )}
-         </Animated.View>
-       )}
+        {!error && !showCorrection && lastRecognizedGesture && (
+          <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}>
+            {isTwoHandGestureString(lastRecognizedGesture.label) && detectedTwoHandGesture ? (
+              <TwoHandGestureDisplay
+                gestureString={detectedTwoHandGesture.gesture.id}
+                confidence={detectedTwoHandGesture.confidence}
+                showDetails={true}
+                size="medium"
+              />
+            ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
+              <TwoHandGestureDisplay
+                gestureString={lastRecognizedGesture.label}
+                confidence={gestureConfidence}
+                showDetails={true}
+                size="medium"
+              />
+            ) : (
+              <>
+                <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>
+                  {lastRecognizedGesture.label}
+                </Animated.Text>
+                <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
+                <Text style={styles.confidenceText} testID="recognition-path">
+                  via {recognitionPath}
+                </Text>
+              </>
+            )}
+          </Animated.View>
+        )}
 
       {showDgsVideo && lastRecognizedGesture?.dgsVideoUri && (
         <View style={styles.videoOverlay}>
@@ -1842,7 +1953,7 @@ export default function RecognitionScreen({
         }}
         onCancel={() => setShowCorrection(false)}
         suggestions={gestureSuggestions}
-        gestureModel={gestureModel}
+        gestureModel={optimizedGestureService}
         showPictures={true}
       />
     )}
@@ -1894,11 +2005,11 @@ export default function RecognitionScreen({
     {showGestureComparison && comparisonAttempt && (
       <GestureComparison
         userAttempt={comparisonAttempt}
-        correctGesture={{
-          id: pendingGesture || '',
-          label: gestureModel.gestures.find(g => g.id === pendingGesture)?.label || 'Unbekannte Geste',
-          dgsVideoUri: gestureModel.gestures.find(g => g.id === pendingGesture)?.dgsVideoUri
-        }}
+          correctGesture={{
+            id: pendingGesture || '',
+            label: optimizedGestureService.getGestureById(pendingGesture || '')?.label || 'Unbekannte Geste',
+            dgsVideoUri: optimizedGestureService.getGestureById(pendingGesture || '')?.dgsVideoUri
+          }}
         onClose={handleCloseComparison}
         onTryAgain={handleTryAgainFromComparison}
       />

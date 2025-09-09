@@ -20,6 +20,10 @@ import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import { childHaptic } from '../services/feedbackService';
 import { childFriendlyStyles } from '../styles/touchTargets';
+import SlowMotionReplay from '../components/SlowMotionReplay';
+import PerformanceAnalytics from '../components/PerformanceAnalytics';
+import PracticeSessionManager from '../components/PracticeSessionManager';
+import { positiveTelemetryService } from '../services/positiveTelemetryService';
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -39,6 +43,16 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
+  const [showSlowMotionReplay, setShowSlowMotionReplay] = useState(false);
+  const [showPerformanceAnalytics, setShowPerformanceAnalytics] = useState(false);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [performanceMetrics, setPerformanceMetrics] = useState<{
+    averageConfidence: number;
+    totalFrames: number;
+    successfulFrames: number;
+    sessionDuration: number;
+  } | null>(null);
+  const [practiceMode, setPracticeMode] = useState(false);
 
   useEffect(() => {
     setMessage(error);
@@ -85,25 +99,58 @@ export default function TrainingScreen({ navigation, route }: any) {
     setFramesCaptured(0);
     setLastDetection(0);
     setIsRecording(true);
+    setSessionStartTime(Date.now());
+
+    // Initialize performance tracking
+    setPerformanceMetrics({
+      averageConfidence: 0,
+      totalFrames: 0,
+      successfulFrames: 0,
+      sessionDuration: 0
+    });
+
     // HIP 2 or 4: sample start
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
   };
 
   const stopRecording = async () => {
+    const endTime = Date.now();
+    const sessionDuration = sessionStartTime ? endTime - sessionStartTime : 0;
+
     setIsRecording(false);
     if (!gestureId) return;
+
     const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
     if (!validation.ok) {
       const msg = `Sample needs improvement: ${validation.suggestions.join(' ')}`;
       setError(msg);
       return;
     }
+
     try {
       await saveTrainingSample(gestureId, recordedFrames, isPractice ? 'HIP_4' : 'HIP_2');
       setCount((c) => c + 1);
       setError(null);
+
+      // Calculate performance metrics
+      const totalFrames = recordedFrames.length;
+      const successfulFrames = recordedFrames.filter(f => f.landmarks && f.landmarks.length > 0).length;
+      const averageConfidence = totalFrames > 0 ? successfulFrames / totalFrames : 0;
+
+      setPerformanceMetrics({
+        averageConfidence,
+        totalFrames,
+        successfulFrames,
+        sessionDuration
+      });
+
       // HIP 2 or 4: sample saved
-      void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', { gestureId, frames: framesCaptured });
+      void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', {
+        gestureId,
+        frames: framesCaptured,
+        performance: { averageConfidence, totalFrames, successfulFrames, sessionDuration }
+      });
+
       // Send each frame of the sample sequence to the server dataset for DGS
       if (recordedFrames.length > 0) {
         const sendAllFrames = async () => {
@@ -119,8 +166,14 @@ export default function TrainingScreen({ navigation, route }: any) {
         };
         void sendAllFrames();
       }
+
       if (isPractice) {
         await audioService.playEncouragement(gestureId);
+      }
+
+      // Show performance analytics after successful recording
+      if (practiceMode) {
+        setTimeout(() => setShowPerformanceAnalytics(true), 1000);
       }
     } catch (e) {
       logger.error('Failed to save training sample', e);
@@ -225,6 +278,82 @@ export default function TrainingScreen({ navigation, route }: any) {
     buttonTextHC: {
       color: COLORS.highContrastBackground,
     },
+    // Enhanced training styles
+    practiceModeContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: SPACING.sm,
+      padding: SPACING.sm,
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
+      borderRadius: RADIUS,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+    },
+    practiceModeLabel: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      flex: 1,
+    },
+    practiceModeToggle: {
+      width: 40,
+      height: 40,
+      borderRadius: RADIUS,
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
+      borderWidth: 2,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    practiceModeToggleActive: {
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+    },
+    practiceModeTogglePressed: {
+      opacity: 0.7,
+    },
+    practiceModeToggleText: {
+      fontSize: 18,
+    },
+    secondaryButton: {
+      backgroundColor: COLORS.secondaryAccent,
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+      alignItems: 'center',
+      marginTop: SPACING.sm,
+      minWidth: 100,
+    },
+    secondaryButtonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    secondaryButtonPressed: {
+      backgroundColor: COLORS.pressed,
+    },
+    secondaryButtonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    secondaryButtonText: {
+      color: COLORS.highContrastText,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    secondaryButtonTextLarge: {
+      fontSize: 18,
+    },
+    secondaryButtonTextHC: {
+      color: COLORS.highContrastBackground,
+    },
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.md,
+      zIndex: 1000,
+    },
   });
 
   // Camera permission handled by WebView context.
@@ -283,22 +412,44 @@ export default function TrainingScreen({ navigation, route }: any) {
               </View>
             ) : null;
           })()}
-          <View style={styles.cameraContainer}>
-            <MediaPipeGestureDetector
-              onGestureDetected={(_g, _c, lm, hands) => {
-                setLandmarks(lm);
-                setLastDetection(Date.now());
-                if (isRecordingRef.current) {
-                  setRecordedFrames((prev) => [...prev, { landmarks: lm, handedness: hands }]);
-                  setFramesCaptured((c) => c + 1);
-                }
-              }}
-               onError={(m) => {
-                 logger.warn('TrainingScreen detector error:', m);
-                 // Amy First: Show encouraging message instead of technical error
-                 setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+           <View style={styles.cameraContainer}>
+             <MediaPipeGestureDetector
+               onGestureDetected={(gesture, confidence, lm, hands) => {
+                 setLandmarks(lm);
+                 setLastDetection(Date.now());
+
+                 if (isRecordingRef.current) {
+                   setRecordedFrames((prev) => [...prev, { landmarks: lm, handedness: hands }]);
+                   setFramesCaptured((c) => c + 1);
+
+                   // Track performance metrics
+                   if (gestureId) {
+                     positiveTelemetryService.recordSuccess(
+                       gestureId,
+                       confidence,
+                       undefined, // context
+                       undefined, // emotionalState
+                       Date.now() - (sessionStartTime || Date.now()) // duration
+                     );
+                   }
+                 }
+
+                 // Enhanced feedback for practice mode
+                 if (practiceMode && gesture && confidence > 0.5) {
+                   // Provide real-time feedback during practice
+                   if (confidence > 0.8) {
+                     setMessage('🎉 Perfekt! Das sieht sehr gut aus!');
+                   } else if (confidence > 0.6) {
+                     setMessage('👍 Gut gemacht! Fast richtig.');
+                   }
+                 }
                }}
-            />
+                onError={(m) => {
+                  logger.warn('TrainingScreen detector error:', m);
+                  // Amy First: Show encouraging message instead of technical error
+                  setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+                }}
+             />
               {landmarks.length > 0 && (
                 <Svg
                   style={StyleSheet.absoluteFill}
@@ -371,13 +522,57 @@ export default function TrainingScreen({ navigation, route }: any) {
                 {isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / ${TARGET_SAMPLES}`}
               </Text>
             </Pressable>
-            {!isRecording && framesCaptured > 0 && (
-              <Text style={styles.detectionText}>
-                Last recording length: {framesCaptured} frames
-              </Text>
-            )}
-          </>
-        ) : (
+             {!isRecording && framesCaptured > 0 && (
+               <Text style={styles.detectionText}>
+                 Last recording length: {framesCaptured} frames
+               </Text>
+             )}
+
+             {/* Practice mode toggle */}
+             <View style={styles.practiceModeContainer}>
+               <Text style={styles.practiceModeLabel}>
+                 Übungsmodus: {practiceMode ? 'Aktiviert' : 'Deaktiviert'}
+               </Text>
+               <Pressable
+                 style={({ pressed }) => [
+                   styles.practiceModeToggle,
+                   practiceMode && styles.practiceModeToggleActive,
+                   pressed && styles.practiceModeTogglePressed,
+                 ]}
+                 onPress={() => setPracticeMode(!practiceMode)}
+                 accessibilityRole="button"
+                 accessibilityLabel="Übungsmodus umschalten"
+               >
+                 <Text style={styles.practiceModeToggleText}>
+                   {practiceMode ? '🎯' : '📝'}
+                 </Text>
+               </Pressable>
+             </View>
+
+             {/* Slow motion replay button */}
+             {gestureId && recordedFrames.length > 0 && (
+               <Pressable
+                 style={({ pressed }) => [
+                   childFriendlyStyles.minTouchTarget,
+                   styles.secondaryButton,
+                   highContrast && styles.secondaryButtonHC,
+                   pressed && (highContrast ? styles.secondaryButtonPressedHC : styles.secondaryButtonPressed),
+                 ]}
+                 onPress={() => setShowSlowMotionReplay(true)}
+                 accessibilityRole="button"
+                 accessibilityLabel="Zeitlupe-Wiederholung anzeigen"
+               >
+                 <Text style={[
+                   styles.secondaryButtonText,
+                   largeText && styles.secondaryButtonTextLarge,
+                   highContrast && styles.secondaryButtonTextHC,
+                 ]}>
+                   🎥 Zeitlupe anzeigen
+                 </Text>
+               </Pressable>
+             )}
+           </>
+         ) : (
           <Pressable
             style={({ pressed }) => [
               childFriendlyStyles.minTouchTarget,
@@ -405,8 +600,57 @@ export default function TrainingScreen({ navigation, route }: any) {
             </Text>
           </Pressable>
         )}
-      </View>
-      {profile && <BottomNav active="training" profileId={profile.id} />}
-    </SafeAreaView>
-  );
-}
+       </View>
+
+       {/* Slow Motion Replay Overlay */}
+       {showSlowMotionReplay && gestureId && (
+         <View style={styles.overlay}>
+           <SlowMotionReplay
+             gestureId={gestureId}
+             videoUri={gestureModel.gestures.find(g => g.id === gestureId)?.dgsVideoUri || ''}
+             isVisible={showSlowMotionReplay}
+             onClose={() => setShowSlowMotionReplay(false)}
+             onReplayComplete={() => {
+               setMessage('🎥 Wiederholung beendet. Versuche es selbst!');
+             }}
+             autoPlay={true}
+             initialSpeed={0.5}
+             showControls={true}
+           />
+         </View>
+       )}
+
+       {/* Performance Analytics Overlay */}
+       {showPerformanceAnalytics && performanceMetrics && gestureId && (
+         <View style={styles.overlay}>
+           <PerformanceAnalytics
+             gestureId={gestureId}
+             metrics={performanceMetrics}
+             onClose={() => setShowPerformanceAnalytics(false)}
+             onRetry={() => {
+               setShowPerformanceAnalytics(false);
+               setCount(0);
+               setIsRecording(false);
+               setRecordedFrames([]);
+               setFramesCaptured(0);
+             }}
+           />
+         </View>
+       )}
+
+       {/* Practice Session Manager */}
+       {practiceMode && gestureId && (
+         <PracticeSessionManager
+           gestureId={gestureId}
+           currentProgress={count}
+           targetSamples={TARGET_SAMPLES}
+           onSessionComplete={() => {
+             setMessage('🎉 Übungssession abgeschlossen! Gut gemacht!');
+           }}
+         />
+       )}
+
+       {profile && <BottomNav active="training" profileId={profile.id} />}
+     </SafeAreaView>
+   );
+ }

@@ -40,6 +40,137 @@ export default function SlowMotionReplay({
   const [currentSpeed, setCurrentSpeed] = useState(initialSpeed);
   const [showSpeedControls, setShowSpeedControls] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
+
+  const styles = React.useMemo(() => ({
+    container: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      zIndex: 1000,
+    },
+    overlay: {
+      maxWidth: 400,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS * 3,
+      padding: SPACING.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 10,
+    },
+    header: {
+      alignItems: 'center' as const,
+      marginBottom: SPACING.md,
+    },
+    gestureTitle: {
+      fontSize: 20,
+      fontWeight: 'bold' as const,
+      color: COLORS.text,
+      textAlign: 'center' as const,
+      marginBottom: SPACING.xs,
+    },
+    speedIndicator: {
+      fontSize: 14,
+      color: COLORS.textMuted,
+      textAlign: 'center' as const,
+    },
+    videoContainer: {
+      aspectRatio: 1,
+      backgroundColor: COLORS.backgroundEnd,
+      borderRadius: RADIUS * 2,
+      overflow: 'hidden' as const,
+      marginBottom: SPACING.md,
+      position: 'relative' as const,
+    },
+    video: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: RADIUS * 2,
+    },
+    placeholder: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    placeholderText: {
+      color: COLORS.textMuted,
+      fontSize: 16,
+    },
+    speedControls: {
+      position: 'absolute' as const,
+      bottom: SPACING.md,
+      left: SPACING.md,
+      right: SPACING.md,
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      justifyContent: 'center' as const,
+      gap: SPACING.xs,
+    },
+    speedButton: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      borderRadius: RADIUS,
+      minWidth: 50,
+      alignItems: 'center' as const,
+    },
+    speedButtonActive: {
+      backgroundColor: COLORS.primaryAccent,
+    },
+    speedButtonText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: 'bold' as const,
+    },
+    speedButtonTextActive: {
+      color: COLORS.surface,
+    },
+    controlBar: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-around' as const,
+      alignItems: 'center' as const,
+      marginBottom: SPACING.md,
+    },
+    controlButton: {
+      padding: SPACING.sm,
+      borderRadius: RADIUS,
+      backgroundColor: COLORS.backgroundEnd,
+      minWidth: 60,
+      alignItems: 'center' as const,
+    },
+    controlButtonText: {
+      fontSize: 18,
+    },
+    tipsContainer: {
+      backgroundColor: COLORS.backgroundEnd,
+      borderRadius: RADIUS * 2,
+      padding: SPACING.md,
+    },
+    tipsTitle: {
+      fontSize: 16,
+      fontWeight: 'bold' as const,
+      color: COLORS.text,
+      marginBottom: SPACING.xs,
+    },
+    tipsText: {
+      fontSize: 14,
+      color: COLORS.textMuted,
+      lineHeight: 20,
+    },
+  }), []);
   const [screenWidth, setScreenWidth] = useState(375);
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -281,125 +412,3 @@ export default function SlowMotionReplay({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  overlay: {
-    maxWidth: 400,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS * 3,
-    padding: SPACING.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  gestureTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    textAlign: 'center',
-    marginBottom: SPACING.xs,
-  },
-  speedIndicator: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-  },
-  videoContainer: {
-    aspectRatio: 1,
-    backgroundColor: COLORS.backgroundEnd,
-    borderRadius: RADIUS * 2,
-    overflow: 'hidden',
-    marginBottom: SPACING.md,
-    position: 'relative',
-  },
-  video: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: RADIUS * 2,
-  },
-  placeholder: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    color: COLORS.textMuted,
-    fontSize: 16,
-  },
-  speedControls: {
-    position: 'absolute',
-    bottom: SPACING.md,
-    left: SPACING.md,
-    right: SPACING.md,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: SPACING.xs,
-  },
-  speedButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS,
-    minWidth: 50,
-    alignItems: 'center',
-  },
-  speedButtonActive: {
-    backgroundColor: COLORS.primaryAccent,
-  },
-  speedButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  speedButtonTextActive: {
-    color: COLORS.surface,
-  },
-  controlBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  controlButton: {
-    padding: SPACING.sm,
-    borderRadius: RADIUS,
-    backgroundColor: COLORS.backgroundEnd,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  controlButtonText: {
-    fontSize: 18,
-  },
-  tipsContainer: {
-    backgroundColor: COLORS.backgroundEnd,
-    borderRadius: RADIUS * 2,
-    padding: SPACING.md,
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-  tipsText: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    lineHeight: 20,
-  },
-});

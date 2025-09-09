@@ -17,7 +17,11 @@ import { syncTrainingData } from '../services';
 import { childHaptic } from '../services/feedbackService';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import TwoHandGestureSelector from '../components/TwoHandGestureSelector';
-import { TwoHandGestureDefinition } from '../constants/twoHandGestures';
+import { TwoHandGestureDefinition, parseTwoHandGestureString } from '../constants/twoHandGestures';
+import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
+import VisualFeedback from '../components/VisualFeedback';
+import ProgressTracker from '../components/ProgressTracker';
+import GestureValidationFeedback from '../components/GestureValidationFeedback';
 
 const PREVIEW_SIZE = 240;
 
@@ -33,6 +37,18 @@ export default function TeachingScreen({ navigation }: any) {
   const [isTwoHandMode, setIsTwoHandMode] = useState(false);
   const [showTwoHandSelector, setShowTwoHandSelector] = useState(false);
   const [selectedTwoHandGesture, setSelectedTwoHandGesture] = useState<TwoHandGestureDefinition | null>(null);
+  const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
+  const [showVisualFeedback, setShowVisualFeedback] = useState(false);
+  const [validationFeedback, setValidationFeedback] = useState<{
+    isValid: boolean;
+    message: string;
+    suggestions: string[];
+  } | null>(null);
+  const [currentGestureQuality, setCurrentGestureQuality] = useState<{
+    confidence: number;
+    stability: number;
+    clarity: number;
+  } | null>(null);
   const sessionId = useRef<string | null>(null);
   const SAMPLES_NEEDED = 5;
   const landmarksRef = useRef<number[][][]>([]);
@@ -58,11 +74,79 @@ export default function TeachingScreen({ navigation }: any) {
   }, []);
 
   const handleGestureDetected = useCallback(
-    (_gesture: string | null, _confidence: number, lms: number[][][], hands: string[]) => {
+    async (gesture: string | null, confidence: number, lms: number[][][], hands: string[]) => {
       landmarksRef.current = lms;
       handednessRef.current = hands;
+
+      // Enhanced feedback for teaching mode
+      if (gesture && confidence > 0.3) {
+        // Show visual feedback for detected gestures
+        setShowVisualFeedback(true);
+        setTimeout(() => setShowVisualFeedback(false), 1000);
+
+        // Update gesture quality metrics
+        setCurrentGestureQuality({
+          confidence,
+          stability: Math.min(1, lms.length / 2), // Rough stability based on landmark count
+          clarity: confidence > 0.7 ? 1 : confidence > 0.5 ? 0.7 : 0.4
+        });
+
+        // Enhanced two-hand gesture validation and feedback
+        if (isTwoHandMode && selectedTwoHandGesture && hands.length >= 2 && lms.length >= 2) {
+          const parsed = parseTwoHandGestureString(gesture);
+          if (parsed) {
+            const twoHandResult = await twoHandGestureService.processTwoHandGesture(
+              parsed.left,
+              parsed.right,
+              confidence,
+              confidence,
+              hands,
+              lms
+            );
+
+            if (twoHandResult) {
+              setDetectedTwoHandGesture(twoHandResult);
+
+              // Provide validation feedback
+              const validationMessage = twoHandResult.confidence > 0.8
+                ? 'Perfekt! Das sieht sehr gut aus!'
+                : twoHandResult.confidence > 0.6
+                ? 'Gut gemacht! Fast perfekt.'
+                : 'Das ist ein guter Anfang. Versuche es nochmal.';
+
+              setValidationFeedback({
+                isValid: twoHandResult.confidence > 0.6,
+                message: validationMessage,
+                suggestions: twoHandResult.accessibilityHints.slice(0, 2)
+              });
+
+              // Clear validation feedback after a delay
+              setTimeout(() => setValidationFeedback(null), 3000);
+            }
+          }
+        } else if (!isTwoHandMode) {
+          // Single-hand gesture feedback
+          const feedbackMessage = confidence > 0.8
+            ? 'Ausgezeichnet! Das sieht perfekt aus!'
+            : confidence > 0.6
+            ? 'Sehr gut! Das wird funktionieren.'
+            : 'Das ist ein guter Versuch. Übe weiter.';
+
+          setValidationFeedback({
+            isValid: confidence > 0.5,
+            message: feedbackMessage,
+            suggestions: confidence < 0.7 ? ['Halte die Geste etwas stabiler', 'Achte auf die Handposition'] : []
+          });
+
+          setTimeout(() => setValidationFeedback(null), 2500);
+        }
+      } else {
+        // Clear feedback when no gesture detected
+        setCurrentGestureQuality(null);
+        setValidationFeedback(null);
+      }
     },
-    []
+    [isTwoHandMode, selectedTwoHandGesture]
   );
 
   const startSampleCaptureAnimation = useCallback(() => {
@@ -341,31 +425,103 @@ export default function TeachingScreen({ navigation }: any) {
            )}
          </View>
       ) : (
-        <View style={styles.recordingContainer}>
-          <View style={styles.camera}>
-            <MediaPipeGestureDetector onGestureDetected={handleGestureDetected} onError={setError} />
-          </View>
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.sampleIndicator,
-              {
-                opacity: sampleCaptureAnim,
-                transform: [
-                  {
-                    scale: sampleCaptureAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.8, 1.2],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.sampleIndicatorText}>Beispiel erfasst!</Text>
-          </Animated.View>
-          <Text style={styles.prompt}>Zeige die Geste "{gestureLabel}"</Text>
-          <Text style={styles.progress}>{sampleCount} / {SAMPLES_NEEDED} Beispiele</Text>
+         <View style={styles.recordingContainer}>
+           <View style={styles.camera}>
+             <MediaPipeGestureDetector onGestureDetected={handleGestureDetected} onError={setError} />
+
+             {/* Visual feedback overlay */}
+             <VisualFeedback
+               isActive={showVisualFeedback}
+               type="success"
+               message="Geste erkannt!"
+             />
+           </View>
+
+           <Animated.View
+             pointerEvents="none"
+             style={[
+               styles.sampleIndicator,
+               {
+                 opacity: sampleCaptureAnim,
+                 transform: [
+                   {
+                     scale: sampleCaptureAnim.interpolate({
+                       inputRange: [0, 1],
+                       outputRange: [0.8, 1.2],
+                     }),
+                   },
+                 ],
+               },
+             ]}
+           >
+             <Text style={styles.sampleIndicatorText}>Beispiel erfasst!</Text>
+           </Animated.View>
+
+           {/* Enhanced progress tracker */}
+           <ProgressTracker
+             current={sampleCount}
+             total={SAMPLES_NEEDED}
+             label="Trainingsbeispiele"
+             showPercentage={true}
+           />
+
+           <Text style={styles.prompt}>
+             {isTwoHandMode && selectedTwoHandGesture
+               ? `Zeige: ${selectedTwoHandGesture.name}`
+               : `Zeige die Geste "${gestureLabel}"`
+             }
+           </Text>
+
+           {/* Gesture quality indicators */}
+           {currentGestureQuality && (
+             <View style={styles.qualityContainer}>
+               <Text style={styles.qualityLabel}>Qualität:</Text>
+               <View style={styles.qualityBars}>
+                 <View style={styles.qualityBar}>
+                   <Text style={styles.qualityBarLabel}>Sicherheit</Text>
+                   <View style={styles.qualityBarBackground}>
+                     <View
+                       style={[
+                         styles.qualityBarFill,
+                         { width: `${currentGestureQuality.confidence * 100}%` }
+                       ]}
+                     />
+                   </View>
+                 </View>
+                 <View style={styles.qualityBar}>
+                   <Text style={styles.qualityBarLabel}>Stabilität</Text>
+                   <View style={styles.qualityBarBackground}>
+                     <View
+                       style={[
+                         styles.qualityBarFill,
+                         { width: `${currentGestureQuality.stability * 100}%` }
+                       ]}
+                     />
+                   </View>
+                 </View>
+                 <View style={styles.qualityBar}>
+                   <Text style={styles.qualityBarLabel}>Klarheit</Text>
+                   <View style={styles.qualityBarBackground}>
+                     <View
+                       style={[
+                         styles.qualityBarFill,
+                         { width: `${currentGestureQuality.clarity * 100}%` }
+                       ]}
+                     />
+                   </View>
+                 </View>
+               </View>
+             </View>
+           )}
+
+           {/* Validation feedback */}
+           {validationFeedback && (
+             <GestureValidationFeedback
+               isValid={validationFeedback.isValid}
+               message={validationFeedback.message}
+               suggestions={validationFeedback.suggestions}
+             />
+           )}
           <Pressable
             style={({ pressed }) => [
               childFriendlyStyles.minTouchTarget,
@@ -622,5 +778,44 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       alignItems: 'center',
       padding: SPACING.md,
       zIndex: 1000,
+    },
+    // Enhanced feedback styles
+    qualityContainer: {
+      backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.9)',
+      borderRadius: RADIUS,
+      padding: SPACING.sm,
+      marginVertical: SPACING.sm,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      minWidth: 250,
+    },
+    qualityLabel: {
+      fontSize: largeText ? 16 : 14,
+      fontWeight: 'bold',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      marginBottom: SPACING.xs,
+      textAlign: 'center',
+    },
+    qualityBars: {
+      gap: SPACING.xs,
+    },
+    qualityBar: {
+      marginBottom: SPACING.xs,
+    },
+    qualityBarLabel: {
+      fontSize: largeText ? 12 : 10,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      marginBottom: 2,
+    },
+    qualityBarBackground: {
+      height: 8,
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    qualityBarFill: {
+      height: '100%',
+      backgroundColor: COLORS.success,
+      borderRadius: 4,
     },
   });

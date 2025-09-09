@@ -2,8 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Dimensions } from 'react-native';
 import { COLORS } from '../constants/ui';
 
-const { width, height } = Dimensions.get('window');
-
 interface ScreenFlashProps {
   isActive: boolean;
   pattern?: 'single' | 'double' | 'triple' | 'pulse' | 'ripple' | 'wave' | 'heartbeat' | 'success' | 'warning' | 'error';
@@ -19,6 +17,28 @@ export default function ScreenFlash({
   duration = 300,
   intensity = 'normal'
 }: ScreenFlashProps) {
+  const { width, height } = Dimensions.get('window');
+
+  const styles = React.useMemo(() => ({
+    container: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      pointerEvents: 'none' as const,
+      zIndex: 1000,
+    },
+    flash: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      width: width,
+      height: height,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+  }), [width, height]);
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -365,23 +385,3 @@ export default function ScreenFlash({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    pointerEvents: 'none',
-    zIndex: 1000,
-  },
-  flash: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: width,
-    height: height,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
