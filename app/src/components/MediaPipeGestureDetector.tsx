@@ -550,6 +550,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   const handleMessage = async (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
+      console.log('WebView message:', data);
 
       // Use performance service for message processing
       if (data.type === 'gesture') {
@@ -681,6 +682,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         mediaCapturePermissionGrantType={'grant'}
         androidLayerType={'hardware'}
         mixedContentMode={'always'}
+        cacheEnabled={true}
+        cacheMode={'LOAD_CACHE_ELSE_NETWORK'}
         onError={(e: WebViewErrorEvent) => {
            logger.warn('WebView runtime error', e?.nativeEvent);
            onError('webview_load_error');

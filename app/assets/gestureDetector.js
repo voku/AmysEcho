@@ -1830,7 +1830,7 @@ function processGestureResults(results, timestamp) {
                 messageBatcher.queueMessage('gesture', {
                     gesture: finalGesture,
                     confidence: finalScore,
-                    landmarks: allLandmarks,
+                    landmarks: finalScore > 0.7 ? allLandmarks : [],
                     handednesses: handedArr,
                     timestamp: timestamp,
                     isFallback: isUsingFallback,
@@ -1942,7 +1942,8 @@ function processGestureResults(results, timestamp) {
                     ctx.lineTo(centerX, centerY + radius * 0.7);
                     ctx.stroke();
                 }
-                // Draw hand landmarks
+                if (finalGesture !== 'unknown') {
+                    // Draw hand landmarks
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
                 ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
