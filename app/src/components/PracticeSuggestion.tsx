@@ -20,7 +20,7 @@ import activeLearningService, { PracticeSuggestion as PracticeSuggestionType } f
 
 interface PracticeSuggestionProps {
   visible: boolean;
-  onAccept: () => void;
+  onAccept: (gesture?: string) => void;
   onDecline: () => void;
   onLater: () => void;
 }
@@ -66,13 +66,13 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
 
   const handleAccept = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    (activeLearningService as any).markSuggestionShown(suggestion.gesture);
+    activeLearningService.markSuggestionShown(suggestion.gesture);
     onAccept(suggestion.gesture);
   };
 
   const handleDecline = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    (activeLearningService as any).markSuggestionShown(suggestion.gesture);
+    activeLearningService.markSuggestionShown(suggestion.gesture);
     onDecline();
   };
 
