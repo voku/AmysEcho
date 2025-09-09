@@ -1,6 +1,5 @@
 import { adaptiveLearningService, enhancedAdaptiveLearningService, recordInteraction } from '../src/services/adaptiveLearningService';
 import { database } from '../../db';
-import { GestureDefinition } from '../../db/models';
 
 // Mock the database and logger
 jest.mock('../../db', () => ({

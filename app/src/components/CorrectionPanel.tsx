@@ -10,8 +10,8 @@ interface CorrectionPanelProps {
   onAddNew: () => void;
   onCancel: () => void;
   suggestions: { id: string; label: string; confidence?: number }[];
-  gestureModel?: any; // For accessing gesture symbols and videos
-  showPictures?: boolean; // Enable picture-based selection
+  gestureModel?: any; // TODO: Add proper type
+  showPictures?: boolean;
 }
 
 // Enhanced gesture icon mapping - visual representations for common gestures
@@ -71,7 +71,7 @@ export const getGestureIcon = (gestureId: string) => {
   }
 };
 
-function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions, gestureModel, showPictures = true }: CorrectionPanelProps) {
+function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions, gestureModel, showPictures }: CorrectionPanelProps) {
   const { largeText, highContrast } = useAccessibility();
 
   const styles = StyleSheet.create({

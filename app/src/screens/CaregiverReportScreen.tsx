@@ -8,10 +8,9 @@ import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
 import { childHaptic } from '../services/feedbackService';
 
-export default function CaregiverReportScreen({ navigation, route }: any) {
+export default function CaregiverReportScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const profileId = route?.params?.profileId;
 
   useEffect(() => {
     loadProfile().then(setProfile);

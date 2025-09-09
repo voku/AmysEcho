@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { database } from '../db';
-import { GestureTrainingData, Profile as DBProfile } from '../db/models';
+import { Profile as DBProfile } from '../db/models';
 import { secureConfigManager } from './services/secureConfig';
 
 export interface Profile {
@@ -16,8 +16,6 @@ export interface Profile {
 }
 
 const ACTIVE_PROFILE_KEY = 'activeProfileId';
-const TRAINING_KEY = 'gestureTrainingData';
-const LOG_KEY = 'interactionLogs';
 
 export interface TrainingFrame {
   landmarks: number[][][];
@@ -110,8 +108,12 @@ function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
-export async function logCorrection(correctId: string): Promise<void> {
-  const trainingRaw = await AsyncStorage.getItem(TRAINING_KEY);
+export async function logCorrection(correctId: string, profileId?: string): Promise<void> {
+  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const trainingKey = `gestureTrainingData_${activeProfileId}`;
+  const logKey = `interactionLogs_${activeProfileId}`;
+
+  const trainingRaw = await AsyncStorage.getItem(trainingKey);
   const training = trainingRaw ? JSON.parse(trainingRaw) : [];
   training.push({
     id: genId(),
@@ -120,9 +122,9 @@ export async function logCorrection(correctId: string): Promise<void> {
     source: 'HIP_3',
     syncStatus: 'pending',
   });
-  await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(training));
+  await AsyncStorage.setItem(trainingKey, JSON.stringify(training));
 
-  const logsRaw = await AsyncStorage.getItem(LOG_KEY);
+  const logsRaw = await AsyncStorage.getItem(logKey);
   const logs = logsRaw ? JSON.parse(logsRaw) : [];
   logs.push({
     id: genId(),
@@ -132,15 +134,19 @@ export async function logCorrection(correctId: string): Promise<void> {
     timestamp: Date.now(),
     processedBy: 'local',
   });
-  await AsyncStorage.setItem(LOG_KEY, JSON.stringify(logs));
+  await AsyncStorage.setItem(logKey, JSON.stringify(logs));
 }
 
 export async function saveTrainingSample(
   gestureDefinitionId: string,
   frames: TrainingFrame[],
   source: 'HIP_2' | 'HIP_4' = 'HIP_2',
+  profileId?: string,
 ): Promise<void> {
-  const raw = await AsyncStorage.getItem(TRAINING_KEY);
+  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const trainingKey = `gestureTrainingData_${activeProfileId}`;
+
+  const raw = await AsyncStorage.getItem(trainingKey);
   const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
   data.push({
     id: genId(),
@@ -148,30 +154,44 @@ export async function saveTrainingSample(
     frames,
     source,
     syncStatus: 'pending',
-  });
-  await AsyncStorage.setItem(TRAINING_KEY, JSON.stringify(data));
 
-  const collection = database.get<GestureTrainingData>('gesture_training_data');
-  await database.write(async () => {
-    await collection.create((record) => {
-      record.gestureDefinition.id = gestureDefinitionId;
-      // Stores stringified TrainingFrame[]; legacy field name maintained for compatibility
-      record.landmarkData = JSON.stringify(frames);
-      record.source = source;
-      record.qualityScore = 1;
-      record.frameMetadata = '';
-      record.createdAt = new Date();
-      record.customSyncStatus = 'pending';
-    });
   });
+  await AsyncStorage.setItem(trainingKey, JSON.stringify(data));
 }
 
 export async function loadTrainingSampleCount(
   gestureDefinitionId: string,
+  profileId?: string,
 ): Promise<number> {
-  const raw = await AsyncStorage.getItem(TRAINING_KEY);
+  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const trainingKey = `gestureTrainingData_${activeProfileId}`;
+
+  const raw = await AsyncStorage.getItem(trainingKey);
   const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
   return data.filter((s) => s.gestureDefinitionId === gestureDefinitionId).length;
+}
+
+export async function loadTrainingSamples(profileId?: string): Promise<TrainingSample[]> {
+  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const trainingKey = `gestureTrainingData_${activeProfileId}`;
+
+  const raw = await AsyncStorage.getItem(trainingKey);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function loadInteractionLogs(profileId?: string): Promise<any[]> {
+  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const logKey = `interactionLogs_${activeProfileId}`;
+
+  const raw = await AsyncStorage.getItem(logKey);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function clearProfileData(profileId: string): Promise<void> {
+  const trainingKey = `gestureTrainingData_${profileId}`;
+  const logKey = `interactionLogs_${profileId}`;
+
+  await AsyncStorage.multiRemove([trainingKey, logKey]);
 }
 
 export async function saveOpenAIApiKey(key: string): Promise<void> {

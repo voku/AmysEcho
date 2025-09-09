@@ -27,7 +27,6 @@ import {
   dialogEngine,
   announceGestureRecognition,
   gestureSuggester,
-  gestureHapticFeedback,
   detectionHapticFeedback,
   partialGestureHapticFeedback,
   multiSensoryFeedback,
@@ -42,7 +41,7 @@ import { zeroDowntimeModelService } from '../services/zeroDowntimeModelService';
 import { emergencyPriorityService } from '../services/emergencyPriorityService';
 import { preCachedResponseService } from '../services/preCachedResponseService';
 import { loadProfile, Profile } from '../storage';
-import { gestureModel, GestureModelEntry } from '../model';
+import { GestureModelEntry } from '../model';
 import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap, Point } from '../services/dgsModelClient';
@@ -60,7 +59,7 @@ import { performanceOptimizationService } from '../services/performanceOptimizat
 import { batteryOptimizationService } from '../services/batteryOptimizationService';
 import { frameRateOptimizationService } from '../services/frameRateOptimizationService';
 import { optimizedGestureService } from '../services/optimizedGestureService';
-import { lazyLoadingService } from '../services/lazyLoadingService';
+
 import { backgroundPrefetchService } from '../services/backgroundPrefetchService';
 import { usePreloadComponents } from '../components/LazyComponent';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
@@ -78,12 +77,11 @@ import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
 import GestureComparison from '../components/GestureComparison';
 import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
-import { isTwoHandGestureString, parseTwoHandGestureString, getTwoHandGestureById } from '../constants/twoHandGestures';
+import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
 import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
 import type { RootStackParamList } from '../navigation/types';
 
 const FEEDBACK_THROTTLE_MS = 2000;
-const FRAME_INTERVAL_MS = 1000 / 8;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
 
 export default function RecognitionScreen({
@@ -118,6 +116,7 @@ export default function RecognitionScreen({
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
   const [modelUpdateStatus, setModelUpdateStatus] = useState<'idle' | 'updating' | 'complete' | 'error'>('idle');
   const [showMoodSelector, setShowMoodSelector] = useState(false);
+  const [kindergartenMode, setKindergartenMode] = useState(true); // Default to kindergarten mode
   const [bullyingProtectionActive, setBullyingProtectionActive] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const [showVisualRipple, setShowVisualRipple] = useState(false);
@@ -133,8 +132,7 @@ export default function RecognitionScreen({
   const [showPracticeSuggestion, setShowPracticeSuggestion] = useState(false);
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
   const [slowMotionGesture, setSlowMotionGesture] = useState<GestureModelEntry | null>(null);
-  const [contextInsights, setContextInsights] = useState<any>(null);
-  const [feedbackHistory, setFeedbackHistory] = useState<any[]>([]);
+  const [contextInsights] = useState<any>(null);
   const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -149,8 +147,6 @@ export default function RecognitionScreen({
   const lastUncertainAtRef = useRef<number>(0);
   const lastSuccessAtRef = useRef<number>(0);
   const lastGestureIdRef = useRef<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _lastErrorFeedbackAtRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
   const centroidsRef = useRef<CentroidMap>({});
   const consecutiveFailuresRef = useRef<number>(0);
@@ -169,7 +165,7 @@ export default function RecognitionScreen({
         if (sound) {
           setSuccessSound(sound);
         }
-      } catch (error) {
+      } catch {
         logger.debug('No custom success sound set, using default');
       }
     };
@@ -226,61 +222,7 @@ export default function RecognitionScreen({
     celebrationTimeoutRef.current = setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
   }, [fadeAnim, symbolScaleAnim]);
 
-  // Enhanced gesture shortcut system for quick navigation - Amy First
-  const getGestureShortcut = useCallback((gestureId: string): string | null => {
-    const shortcuts: Record<string, string> = {
-      // Core navigation shortcuts
-      'help': 'help_screen',
-      'training': 'training_screen',
-      'practice': 'practice_screen',
-      'parent': 'parent_screen',
-      'correction': 'correction_screen',
-      'profile': 'profile_screen',
-      'dashboard': 'dashboard_screen',
-      'progress': 'progress_screen',
 
-      // Schedule and planning shortcuts
-      'schedule': 'schedule_screen',
-      'plan': 'schedule_screen',
-      'tagesplan': 'schedule_screen',
-
-      // Success and celebration shortcuts
-      'success': 'celebration_mode',
-      'good': 'celebration_mode',
-      'gut': 'celebration_mode',
-
-      // Enhanced shortcuts for Amy's needs
-      'finished': 'home_screen', // Return to main recognition
-      'fertig': 'home_screen',   // German version
-      'done': 'home_screen',     // English version
-      'home': 'home_screen',     // Direct home
-      'yes': 'confirm_action',   // Confirm current action
-      'no': 'cancel_action',     // Cancel current action
-      'ja': 'confirm_action',    // German yes
-      'nein': 'cancel_action',   // German no
-      'more': 'repeat_last',     // Repeat last successful gesture
-      'nochmal': 'repeat_last',  // German version
-      'again': 'repeat_last',    // English version
-      'play': 'play_mode',       // Switch to play/learning mode
-      'spielen': 'play_mode',    // German version
-      'game': 'play_mode',       // English version
-
-      // Quick action shortcuts
-      'stop': 'stop_current',
-      'pause': 'pause_current',
-      'start': 'start_current',
-      'next': 'next_item',
-      'back': 'previous_item',
-      'undo': 'undo_last',
-      'zurück': 'undo_last',
-      'rückgängig': 'undo_last',
-      'review': 'slow_motion_replay',
-      'slow': 'slow_motion_replay',
-      'learn': 'slow_motion_replay',
-      'zeigen': 'slow_motion_replay',
-    };
-    return shortcuts[gestureId] || null;
-  }, []);
 
 
 
@@ -402,7 +344,7 @@ export default function RecognitionScreen({
 
     // Default: Random gesture from available ones
     return availableGestures[Math.floor(Math.random() * availableGestures.length)];
-  }, [contextInsights, positiveTelemetryService]);
+  }, [contextInsights]);
 
   const getAdaptiveGuidanceDuration = useCallback((): number => {
     // Adaptive duration based on context and Amy's attention span
@@ -419,61 +361,9 @@ export default function RecognitionScreen({
     return baseDuration;
   }, [contextInsights]);
 
-  const shouldShowGuidance = (gestureId: string, confidence: number): boolean => {
-    // Don't overwhelm Amy with too much guidance
-    if (!contextInsights) return true;
 
-    // Check recent guidance frequency
-    const recentGuidance = feedbackHistory.filter(f =>
-      f.timestamp > Date.now() - 60000 && // Last minute
-      f.type === 'guidance_shown'
-    );
 
-    if (recentGuidance.length >= 3) {
-      // Too much guidance recently - give Amy a break
-      return false;
-    }
 
-    // Check if Amy has been struggling with this gesture recently
-    const gestureAttempts = feedbackHistory.filter(f =>
-      f.gesture === gestureId &&
-      f.timestamp > Date.now() - 300000 && // Last 5 minutes
-      f.success
-    );
-
-    const recentSuccessRate = gestureAttempts.length > 0
-      ? gestureAttempts.filter(f => f.success).length / gestureAttempts.length
-      : 0;
-
-    // Show guidance if success rate is low or confidence is moderate
-    return recentSuccessRate < 0.6 || (confidence >= 0.3 && confidence <= 0.7);
-  };
-
-  const getGestureSpecificGuidanceDuration = useCallback((gestureId: string, confidence: number): number => {
-    // Base duration
-    let duration = 10000; // 10 seconds
-
-    // Adjust based on gesture complexity
-    const complexGestures = ['super', 'danke', 'bitte'];
-    if (complexGestures.includes(gestureId)) {
-      duration *= 1.3; // Longer for complex gestures
-    }
-
-    // Adjust based on confidence
-    if (confidence < 0.5) {
-      duration *= 1.2; // Longer for lower confidence
-    }
-
-    // Adjust based on time of day
-    const timeOfDay = contextInsights?.timeOfDay;
-    if (timeOfDay === 'morning') {
-      duration *= 0.8; // Shorter in morning
-    } else if (timeOfDay === 'afternoon') {
-      duration *= 1.1; // Longer in afternoon for learning
-    }
-
-    return Math.min(duration, 15000); // Cap at 15 seconds
-  }, [contextInsights]);
 
   const provideInstantFeedback = useCallback(async (
     gesture: string,
@@ -517,7 +407,7 @@ export default function RecognitionScreen({
         useNativeDriver: true,
       }).start();
     }
-  }, [screenReaderEnabled, startFeedbackAnimation, fadeAnim, profile?.successSound, successSound]);
+  }, [screenReaderEnabled, startFeedbackAnimation, fadeAnim, profile?.successSound, successSound, getSuccessMessage]);
 
   // Helper function to map gestures to shortcut actions
   const getShortcutAction = useCallback((gesture: string): string | null => {
@@ -770,7 +660,7 @@ export default function RecognitionScreen({
         }
         break;
     }
-  }, [pendingGesture, lastRecognizedGesture, provideInstantFeedback]);
+  }, [pendingGesture]);
 
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
@@ -1184,9 +1074,7 @@ export default function RecognitionScreen({
         // Only suggest practice occasionally to avoid overwhelming Amy
         if (Math.random() < 0.3) { // 30% chance to check for suggestions
           const suggestion = activeLearningService.getPracticeSuggestion(
-            new Date().getHours() * 60 + new Date().getMinutes(),
-            'normal', // Could be enhanced with actual activity detection
-            labelHistoryRef.current.slice(-5) // Recent gesture history
+            'normal' // Could be enhanced with actual activity detection
           );
 
           if (suggestion.shouldSuggest && suggestion.urgency !== 'when_convenient') {
@@ -1443,10 +1331,15 @@ export default function RecognitionScreen({
     screenReaderEnabled,
     bullyingProtectionActive,
     executeGestureShortcut,
-    getGestureShortcut,
-    getShortcutMessage,
     navigation,
     profile?.id,
+    contextInsights,
+    getAdaptiveGuidanceDuration,
+    getContextualGestureSuggestion,
+    getShortcutAction,
+    getShortcutDisplayName,
+    showPipGuidance,
+    showSlowMotionReplay,
     provideInstantFeedback,
     showCorrection,
   ]);
@@ -1645,18 +1538,14 @@ export default function RecognitionScreen({
     setStatus('Danke, dass du es mir beigebracht hast!');
   };
 
-  const handleCancelCorrection = () => {
-    setShowCorrection(false);
-    setPendingGesture(null);
-    setStatus('Ich höre zu…');
-  };
+
 
   const handleCloseComparison = () => {
     setShowGestureComparison(false);
     setComparisonAttempt(null);
   };
 
-  const handleAcceptPractice = (gesture: string) => {
+  const handleAcceptPractice = () => {
     setShowPracticeSuggestion(false);
     // Navigate to practice mode with the suggested gesture
     navigation.navigate('Teaching');
@@ -1788,32 +1677,51 @@ export default function RecognitionScreen({
       shadowRadius: 8,
       elevation: 8,
     },
-    shortcutText: {
-      color: '#FFFFFF',
-      fontSize: largeText ? 20 : 18,
-      fontWeight: 'bold',
-      textAlign: 'center',
-    },
-  });
+  shortcutText: {
+    fontSize: 12,
+    color: COLORS.highContrastText,
+  },
+  encouragementText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.success,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
+  },
+});
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: SPACING.md }}>
-        <Button
-          title={facingMode === 'user' ? 'Hintere Kamera verwenden' : 'Vordere Kamera verwenden'}
-          onPress={() => {
-            const m = facingMode === 'user' ? 'environment' : 'user';
-            setFacingMode(m);
-            setWebviewKey((k) => k + 1);
-          }}
-          accessibilityLabel="Kamera wechseln"
-        />
-        <Button
-          title="Stimmung"
-          onPress={() => setShowMoodSelector(!showMoodSelector)}
-          accessibilityLabel="Stimmungsmodus ändern"
-        />
-      </View>
+      {/* Kindergarten mode: Hide complex controls, show only essential ones */}
+      {!kindergartenMode && (
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: SPACING.md }}>
+          <Button
+            title={facingMode === 'user' ? 'Hintere Kamera verwenden' : 'Vordere Kamera verwenden'}
+            onPress={() => {
+              const m = facingMode === 'user' ? 'environment' : 'user';
+              setFacingMode(m);
+              setWebviewKey((k) => k + 1);
+            }}
+            accessibilityLabel="Kamera wechseln"
+          />
+          <Button
+            title="Stimmung"
+            onPress={() => setShowMoodSelector(!showMoodSelector)}
+            accessibilityLabel="Stimmungsmodus ändern"
+          />
+        </View>
+      )}
+
+      {/* Kindergarten mode: Simple mood button */}
+      {kindergartenMode && (
+        <View style={{ padding: SPACING.md, alignItems: 'center' }}>
+          <Button
+            title="😊 Wie geht's Amy?"
+            onPress={() => setShowMoodSelector(!showMoodSelector)}
+            accessibilityLabel="Amy's Stimmung auswählen"
+          />
+        </View>
+      )}
 
       {showMoodSelector && <MoodSelector />}
        <View style={styles.cameraContainer}>
@@ -1845,9 +1753,20 @@ export default function RecognitionScreen({
            color={COLORS.success}
            duration={300}
          />
+        {/* Kindergarten mode: Simplify status messages */}
         <Text style={styles.statusText}>
-          {status}
-          {modelUpdateStatus === 'updating' && ' 🔄'}
+          {kindergartenMode ? (
+            status === 'Bereit zur Gestenerkennung' ? '👋 Bereit!' :
+            status === 'Geste erkannt!' ? '✨ Geste erkannt!' :
+            status.includes('Hilfe') ? '🆘 Hilfe wird gerufen!' :
+            status.includes('Fehler') ? '😊 Lass es uns nochmal versuchen!' :
+            status
+          ) : (
+            <>
+              {status}
+              {modelUpdateStatus === 'updating' && ' 🔄'}
+            </>
+          )}
         </Text>
 
         {/* Shortcut activation indicator */}
@@ -1867,25 +1786,34 @@ export default function RecognitionScreen({
               <TwoHandGestureDisplay
                 gestureString={detectedTwoHandGesture.gesture.id}
                 confidence={detectedTwoHandGesture.confidence}
-                showDetails={true}
-                size="medium"
+                showDetails={!kindergartenMode} // Hide technical details in kindergarten mode
+                size="large" // Larger for kindergarten visibility
               />
             ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
               <TwoHandGestureDisplay
                 gestureString={lastRecognizedGesture.label}
                 confidence={gestureConfidence}
-                showDetails={true}
-                size="medium"
+                showDetails={!kindergartenMode}
+                size="large"
               />
             ) : (
               <>
                 <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>
                   {lastRecognizedGesture.label}
                 </Animated.Text>
-                <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
-                <Text style={styles.confidenceText} testID="recognition-path">
-                  via {recognitionPath}
-                </Text>
+                {/* Kindergarten mode: Hide technical details */}
+                {!kindergartenMode && (
+                  <>
+                    <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
+                    <Text style={styles.confidenceText} testID="recognition-path">
+                      via {recognitionPath}
+                    </Text>
+                  </>
+                )}
+                {/* Kindergarten mode: Show simple encouragement */}
+                {kindergartenMode && gestureConfidence > 0.6 && (
+                  <Text style={styles.encouragementText}>🎉 Super!</Text>
+                )}
               </>
             )}
           </Animated.View>
@@ -1999,6 +1927,15 @@ export default function RecognitionScreen({
       />
     </View>
 
+    {/* Kindergarten mode toggle (hidden feature for testing) */}
+    <View style={{ position: 'absolute', bottom: 100, right: 10 }}>
+      <Button
+        title={kindergartenMode ? "👨‍🏫" : "👶"}
+        onPress={() => setKindergartenMode(!kindergartenMode)}
+        accessibilityLabel="Modus wechseln"
+      />
+    </View>
+
     <BottomNav active="recognition" profileId={profile?.id || 'default'} />
 
     {/* Gesture Comparison Overlay - Amy First: Encouraging, non-judgmental learning */}
@@ -2021,9 +1958,6 @@ export default function RecognitionScreen({
       onAccept={handleAcceptPractice}
       onDecline={handleDeclinePractice}
       onLater={handleLaterPractice}
-      currentTimeOfDay={new Date().getHours() * 60 + new Date().getMinutes()}
-      currentActivity={'normal'}
-      recentGestures={labelHistoryRef.current.slice(-5)}
     />
 
     {/* Adaptive Learning Panel - Amy First: Personalized learning paths */}
@@ -2036,3 +1970,5 @@ export default function RecognitionScreen({
   </SafeAreaView>
 );
 }
+
+

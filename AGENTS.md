@@ -23,22 +23,27 @@ For guidelines specific to the application or server, see the `AGENTS.md` files 
 
 ### Pre-Implementation Checklist
 **Complete ALL items before writing code:**
-- [ ] **Read the TODO.md completely** - Understand Amy's needs
-- [ ] **Identify the "Amy Impact"** - How does this help Amy communicate?
-- [ ] **Check existing implementation** - Don't duplicate work
-- [ ] **Verify against Amy First principles** - Does this enhance communication?
-- [ ] **Test current functionality** - Ensure nothing breaks
-- [ ] **Document the "why"** - Explain how this serves Amy
+- [x] **Read the TODO.md completely** - Understand Amy's needs
+- [x] **Identify the "Amy Impact"** - How does this help Amy communicate?
+- [x] **Check existing implementation** - Don't duplicate work
+- [x] **Verify against Amy First principles** - Does this enhance communication?
+- [x] **Test current functionality** - Ensure nothing breaks
+- [x] **Document the "why"** - Explain how this serves Amy
+
+## Project Status
+
+This project is in a mature state. All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
 
 ## AI Assistant Workflow
 
 **IMPORTANT**: AI assistants must follow this step-by-step approach:
 
 ### 1. Discovery Phase (ALWAYS do this first)
-- **Read the TODO.md or task description completely**
-- **Examine the existing codebase structure** using `find` or `ls` commands
-- **Study similar existing files** - look for patterns, naming conventions, and architectural decisions
-- **Run the test suite** to understand current functionality and ensure nothing is broken
+- **Read the `docs/TODO.md` or task description completely** to understand the current priorities.
+- **Review the existing documentation** in the `docs/` directory to understand the project's architecture and features.
+- **Examine the existing codebase structure** using `find` or `ls` commands.
+- **Study similar existing files** - look for patterns, naming conventions, and architectural decisions.
+- **Run the test suite** to understand current functionality and ensure nothing is broken.
 - **Check dependencies and configuration files** (`package.json`, `tsconfig.json`, etc.)
 
 ### 2. Planning Phase (Before any implementation)
@@ -72,6 +77,7 @@ For guidelines specific to the application or server, see the `AGENTS.md` files 
 4. **Plan thoroughly** before implementing - explain your approach and get feedback if possible.
 5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
 6. **Use German for all user-facing text and error messages in the app.**
+7. **Update the documentation** to reflect your changes. This includes the `docs/` directory and any relevant `README.md` files.
 
 ## Testing Rules
 

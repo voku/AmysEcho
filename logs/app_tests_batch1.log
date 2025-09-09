@@ -1,0 +1,1820 @@
+FAIL test/components/SlowMotionReplay.test.tsx (23.121 s)
+  ● SlowMotionReplay › Rendering › should render with video URI and visible
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      102 |       );
+      103 |
+    > 104 |       expect(getByTestId('slow-motion-replay-container')).toBeTruthy();
+          |              ^
+      105 |       expect(getByTestId('slow-motion-replay-overlay')).toBeTruthy();
+      106 |       expect(getByTestId('slow-motion-video-container')).toBeTruthy();
+      107 |     });
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:104:14)
+
+  ● SlowMotionReplay › Rendering › should show placeholder when no player available
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      118 |       );
+      119 |
+    > 120 |       expect(getByTestId('slow-motion-placeholder')).toBeTruthy();
+          |              ^
+      121 |     });
+      122 |
+      123 |     it('should display gesture ID in title', () => {
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:120:14)
+
+  ● SlowMotionReplay › Rendering › should display gesture ID in title
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      130 |       );
+      131 |
+    > 132 |       const title = getByTestId('slow-motion-gesture-title');
+          |                     ^
+      133 |       expect(title.children).toContain('hello');
+      134 |     });
+      135 |
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:132:21)
+
+  ● SlowMotionReplay › Rendering › should display current speed in indicator
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      144 |       );
+      145 |
+    > 146 |       const speedIndicator = getByTestId('slow-motion-speed-indicator');
+          |                              ^
+      147 |       expect(speedIndicator.children).toContain('0.75x');
+      148 |     });
+      149 |   });
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:146:30)
+
+  ● SlowMotionReplay › Video Playback › should pause video when not visible
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+      192 |
+      193 |       // Video should be playing initially
+    > 194 |       expect(mockPlayer.play).toHaveBeenCalled();
+          |                               ^
+      195 |
+      196 |       // Hide component
+      197 |       rerender(
+
+      at Object.toHaveBeenCalled (test/components/SlowMotionReplay.test.tsx:194:31)
+
+  ● SlowMotionReplay › User Interactions › should call onClose when close button is pressed
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      261 |       );
+      262 |
+    > 263 |       const closeButton = getByTestId('slow-motion-close-button');
+          |                           ^
+      264 |       fireEvent.press(closeButton);
+      265 |
+      266 |       expect(onClose).toHaveBeenCalled();
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:263:27)
+
+  ● SlowMotionReplay › User Interactions › should toggle playback when play/pause button is pressed
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      277 |       );
+      278 |
+    > 279 |       const playPauseButton = getByTestId('slow-motion-play-pause-button');
+          |                               ^
+      280 |
+      281 |       // Initially should be paused (not playing)
+      282 |       fireEvent.press(playPauseButton);
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:279:31)
+
+  ● SlowMotionReplay › User Interactions › should restart playback when restart button is pressed
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      299 |       );
+      300 |
+    > 301 |       const restartButton = getByTestId('slow-motion-restart-button');
+          |                             ^
+      302 |       fireEvent.press(restartButton);
+      303 |
+      304 |       expect(mockPlayer.replay).toHaveBeenCalled();
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:301:29)
+
+  ● SlowMotionReplay › User Interactions › should show speed controls when speed button is pressed
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      318 |       expect(queryByTestId('slow-motion-speed-controls')).toBeNull();
+      319 |
+    > 320 |       const speedButton = getByTestId('slow-motion-speed-button');
+          |                           ^
+      321 |       fireEvent.press(speedButton);
+      322 |
+      323 |       expect(getByTestId('slow-motion-speed-controls')).toBeTruthy();
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:320:27)
+
+  ● SlowMotionReplay › User Interactions › should change speed when speed button is pressed
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      335 |
+      336 |       // Show speed controls
+    > 337 |       const speedButton = getByTestId('slow-motion-speed-button');
+          |                           ^
+      338 |       fireEvent.press(speedButton);
+      339 |
+      340 |       // Press 0.5x speed button
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:337:27)
+
+  ● SlowMotionReplay › User Interactions › should hide speed controls after selecting speed
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      356 |
+      357 |       // Show speed controls
+    > 358 |       const speedButton = getByTestId('slow-motion-speed-button');
+          |                           ^
+      359 |       fireEvent.press(speedButton);
+      360 |
+      361 |       // Press a speed button
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:358:27)
+
+  ● SlowMotionReplay › Speed Controls › should render all speed options
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      380 |
+      381 |       // Show speed controls
+    > 382 |       const speedButton = getByTestId('slow-motion-speed-button');
+          |                           ^
+      383 |       fireEvent.press(speedButton);
+      384 |
+      385 |       // Check all speed buttons exist
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:382:27)
+
+  ● SlowMotionReplay › Speed Controls › should highlight active speed
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      405 |
+      406 |       // Show speed controls
+    > 407 |       const speedButton = getByTestId('slow-motion-speed-button');
+          |                           ^
+      408 |       fireEvent.press(speedButton);
+      409 |
+      410 |       const speed05Button = getByTestId('slow-motion-speed-0.5');
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:407:27)
+
+  ● SlowMotionReplay › Controls Visibility › should show controls when showControls is true
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      430 |       );
+      431 |
+    > 432 |       expect(getByTestId('slow-motion-control-bar')).toBeTruthy();
+          |              ^
+      433 |     });
+      434 |
+      435 |     it('should not show controls when showControls is false', () => {
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:432:14)
+
+  ● SlowMotionReplay › Learning Tips › should display learning tips section
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      457 |       );
+      458 |
+    > 459 |       expect(getByTestId('slow-motion-tips-container')).toBeTruthy();
+          |              ^
+      460 |       expect(getByTestId('slow-motion-tips-title')).toBeTruthy();
+      461 |       expect(getByTestId('slow-motion-tips-text')).toBeTruthy();
+      462 |     });
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:459:14)
+
+  ● SlowMotionReplay › Animations › should animate opacity when visibility changes
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      486 |       );
+      487 |
+    > 488 |       const container = getByTestId('slow-motion-replay-container');
+          |                         ^
+      489 |       const styleArray = container.props.style;
+      490 |
+      491 |       // Check that opacity is part of the animated style
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:488:25)
+
+  ● SlowMotionReplay › Accessibility › should have correct accessibility labels
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      521 |       );
+      522 |
+    > 523 |       const video = getByTestId('slow-motion-video');
+          |                     ^
+      524 |       expect(video.props.accessibilityLabel).toBe('slowMotionReplay.video test-gesture');
+      525 |
+      526 |       const closeButton = getByTestId('slow-motion-close-button');
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:523:21)
+
+  ● SlowMotionReplay › Accessibility › should update play/pause button accessibility label based on playing state
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      547 |       );
+      548 |
+    > 549 |       const playPauseButton = getByTestId('slow-motion-play-pause-button');
+          |                               ^
+      550 |       expect(playPauseButton.props.accessibilityLabel).toBe('slowMotionReplay.pause');
+      551 |     });
+      552 |
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:549:31)
+
+  ● SlowMotionReplay › Accessibility › should have accessibility labels for speed buttons
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      562 |
+      563 |       // Show speed controls
+    > 564 |       const speedButton = getByTestId('slow-motion-speed-button');
+          |                           ^
+      565 |       fireEvent.press(speedButton);
+      566 |
+      567 |       const speed05Button = getByTestId('slow-motion-speed-0.5');
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:564:27)
+
+  ● SlowMotionReplay › Language Support › should use LanguageManager for all text
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "slowMotionReplay.loading"
+    Received
+           1: "slowMotionReplay.title"
+           2: "slowMotionReplay.speedLabel"
+           3: "slowMotionReplay.video"
+
+    Number of calls: 9
+
+      626 |       expect(mockLanguageManager.t).toHaveBeenCalledWith('slowMotionReplay.speedLabel');
+      627 |       expect(mockLanguageManager.t).toHaveBeenCalledWith('slowMotionReplay.video');
+    > 628 |       expect(mockLanguageManager.t).toHaveBeenCalledWith('slowMotionReplay.loading');
+          |                                     ^
+      629 |       expect(mockLanguageManager.t).toHaveBeenCalledWith('slowMotionReplay.restart');
+      630 |       expect(mockLanguageManager.t).toHaveBeenCalledWith('slowMotionReplay.play');
+      631 |       expect(mockLanguageManager.t).toHaveBeenCalledWith('slowMotionReplay.changeSpeed');
+
+      at Object.toHaveBeenCalledWith (test/components/SlowMotionReplay.test.tsx:628:37)
+
+  ● SlowMotionReplay › Auto-hide Controls › should auto-hide speed controls after timeout
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      650 |
+      651 |       // Show speed controls
+    > 652 |       const speedButton = getByTestId('slow-motion-speed-button');
+          |                           ^
+      653 |       fireEvent.press(speedButton);
+      654 |
+      655 |       expect(getByTestId('slow-motion-speed-controls')).toBeTruthy();
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:652:27)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● SlowMotionReplay › Auto-hide Controls › should auto-hide speed controls after timeout
+
+    Changed from using real timers to fake timers while using waitFor. This is not allowed and will result in very strange behavior. Please ensure you're awaiting all async things your test is doing before changing to fake timers. For more info, please go to https://github.com/testing-library/dom-testing-library/issues/830
+
+      589 |       );
+      590 |
+    > 591 |       waitFor(() => {
+          |              ^
+      592 |         expect(mockLogger.error).toHaveBeenCalledWith(
+      593 |           'SlowMotionReplay video error',
+      594 |           { error: 'Video load failed' }
+
+      at Object.<anonymous> (test/components/SlowMotionReplay.test.tsx:591:14)
+
+  ● SlowMotionReplay › Auto-hide Controls › should auto-hide speed controls after timeout
+
+    Changed from using real timers to fake timers while using waitFor. This is not allowed and will result in very strange behavior. Please ensure you're awaiting all async things your test is doing before changing to fake timers. For more info, please go to https://github.com/testing-library/dom-testing-library/issues/830
+
+      243 |
+      244 |       // Wait for the video end event
+    > 245 |       waitFor(() => {
+          |              ^
+      246 |         expect(onReplayComplete).toHaveBeenCalled();
+      247 |       });
+      248 |     });
+
+      at Object.<anonymous> (test/components/SlowMotionReplay.test.tsx:245:14)
+
+  ● SlowMotionReplay › Auto-hide Controls › should auto-hide speed controls after timeout
+
+    thrown: "Exceeded timeout of 10000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      20 |
+      21 | import React from 'react';
+    > 22 | import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+         | ^
+      23 | import { Animated } from 'react-native';
+      24 | import SlowMotionReplay from '../../src/components/SlowMotionReplay';
+      25 |
+
+      at Object.afterEach (node_modules/@testing-library/react-native/src/index.ts:15:5)
+      at Object.require (test/components/SlowMotionReplay.test.tsx:22:1)
+
+  ● SlowMotionReplay › Auto-hide Controls › should reset auto-hide timer when interacting with controls
+
+    TypeError: Cannot read properties of undefined (reading 'flatten')
+
+      679 |
+      680 |       // Show speed controls
+    > 681 |       const speedButton = getByTestId('slow-motion-speed-button');
+          |                           ^
+      682 |       fireEvent.press(speedButton);
+      683 |
+      684 |       // Wait 2 seconds
+
+      at flatten (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:79:32)
+      at isSubtreeInaccessible (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:38:38)
+      at node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:64
+          at Array.filter (<anonymous>)
+      at filter (node_modules/@testing-library/react-native/src/helpers/find-all.ts:34:18)
+      at queryAllByTestIdFn (node_modules/@testing-library/react-native/src/queries/test-id.ts:32:19)
+      at getFn (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByTestId (test/components/SlowMotionReplay.test.tsx:681:27)
+
+  ● SlowMotionReplay › Auto-hide Controls › should reset auto-hide timer when interacting with controls
+
+    thrown: "Exceeded timeout of 10000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      20 |
+      21 | import React from 'react';
+    > 22 | import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+         | ^
+      23 | import { Animated } from 'react-native';
+      24 | import SlowMotionReplay from '../../src/components/SlowMotionReplay';
+      25 |
+
+      at Object.afterEach (node_modules/@testing-library/react-native/src/index.ts:15:5)
+      at Object.require (test/components/SlowMotionReplay.test.tsx:22:1)
+
+FAIL test/services/gestureCombinationService.test.ts (15.326 s)
+  ● GestureCombinationService › Persistence › should load sequences from AsyncStorage
+
+    thrown: "Exceeded timeout of 15000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      421 |
+      422 |   describe('Persistence', () => {
+    > 423 |     it('should load sequences from AsyncStorage', async () => {
+          |     ^
+      424 |       jest.setTimeout(30000); // Increase timeout for this test
+      425 |       const storedSequences = {
+      426 |         'stored_test': {
+
+      at it (test/services/gestureCombinationService.test.ts:423:5)
+      at describe (test/services/gestureCombinationService.test.ts:422:3)
+      at Object.describe (test/services/gestureCombinationService.test.ts:29:1)
+
+  ● GestureCombinationService › Edge Cases › should handle concurrent sequence starts
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 1
+
+      604 |       // Both should be active
+      605 |       const active = gestureCombinationService.getActiveSequences();
+    > 606 |       expect(active.length).toBe(2);
+          |                             ^
+      607 |
+      608 |       // Complete first sequence
+      609 |       gestureCombinationService.processGesture('unique1', 0.8);
+
+      at Object.toBe (test/services/gestureCombinationService.test.ts:606:29)
+
+FAIL test/components/PictureInPictureGuidance.test.tsx
+  ● Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'create')
+
+      221 | }
+      222 |
+    > 223 | const styles = StyleSheet.create({
+          |                           ^
+      224 |   container: {
+      225 |     position: 'absolute',
+      226 |     zIndex: 1000,
+
+      at Object.create (src/components/PictureInPictureGuidance.tsx:223:27)
+      at Object.require (test/components/PictureInPictureGuidance.test.tsx:11:1)
+
+FAIL webview/__tests__/PerformanceOptimizations.test.ts
+  ● Console
+
+    console.warn
+      Processing step failing_step failed: Error: Step failed
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/webview/__tests__/PerformanceOptimizations.test.ts:289:46)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:444:34)
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ProcessingPipeline.warn (webview/utils/ProcessingPipeline.ts:94:17)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  ● PerformanceOptimizer › frame processing › should enable adaptive frame skipping when processing is slow
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      31 |
+      32 |       // Should start skipping frames
+    > 33 |       expect(optimizer.shouldProcessFrame()).toBe(false);
+         |                                              ^
+      34 |     });
+      35 |
+      36 |     it('should record processing times correctly', () => {
+
+      at Object.toBe (webview/__tests__/PerformanceOptimizations.test.ts:33:46)
+
+  ● PerformanceOptimizer › overlay optimization › should redraw overlay when landmarks change significantly
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      50 |       const landmarks2 = [[[0.2, 0.2, 0.0], [0.3, 0.3, 0.0]]]; // Significant change
+      51 |
+    > 52 |       expect(optimizer.shouldRedrawOverlay(landmarks1, 20)).toBe(true);
+         |                                                             ^
+      53 |       expect(optimizer.shouldRedrawOverlay(landmarks2, 20)).toBe(true);
+      54 |     });
+      55 |
+
+      at Object.toBe (webview/__tests__/PerformanceOptimizations.test.ts:52:61)
+
+  ● CircularBuffer › basic operations › should resize buffer
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Array [
+        5,
+        4,
+    -   3,
+    -   2,
+        1,
+    +   2,
+    +   3,
+      ]
+
+      218 |
+      219 |       expect(buffer.getSize()).toBe(5);
+    > 220 |       expect(buffer.toArray()).toEqual([5, 4, 3, 2, 1]);
+          |                                ^
+      221 |     });
+      222 |   });
+      223 | });
+
+      at Object.toEqual (webview/__tests__/PerformanceOptimizations.test.ts:220:32)
+
+  ● ProcessingPipeline › pipeline execution › should skip expensive steps when requested
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "expensive_step"
+    Received array: []
+
+      280 |       const result = await pipeline.executePipeline(context);
+      281 |
+    > 282 |       expect(result.skippedSteps).toContain('expensive_step');
+          |                                   ^
+      283 |     });
+      284 |
+      285 |     it('should handle step execution errors gracefully', async () => {
+
+      at Object.toContain (webview/__tests__/PerformanceOptimizations.test.ts:282:35)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL test/components/ScreenFlash.test.tsx
+  ● Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'create')
+
+      20 | jest.mock('react-native', () => {
+      21 |   const RN = jest.requireActual('react-native');
+    > 22 |   return {
+         |   ^
+      23 |     ...RN,
+      24 |     Dimensions: mockDimensions,
+      25 |   };
+
+      at Object.create (node_modules/react-native/Libraries/Modal/Modal.js:342:27)
+      at requireActual (node_modules/react-native/jest/mockComponent.js:14:12)
+      at mockComponent (node_modules/react-native/jest/setup.js:153:27)
+      at Object.require [as Modal] (node_modules/react-native/index.js:75:12)
+          at Object.assign (<anonymous>)
+      at assign (test/components/ScreenFlash.test.tsx:22:3)
+      at Object.require (node_modules/@react-native/virtualized-lists/Lists/VirtualizedListCellRenderer.js:21:1)
+      at Object.require (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:35:1)
+      at Object.require [as VirtualizedList] (node_modules/@react-native/virtualized-lists/index.js:44:12)
+      at Object.VirtualizedList (node_modules/react-native/Libraries/Lists/FlatList.js:32:42)
+      at Object.require [as FlatList] (node_modules/react-native/index.js:54:12)
+          at Object.assign (<anonymous>)
+      at assign (test/components/ScreenFlash.test.tsx:22:3)
+      at Object.require (node_modules/@testing-library/react-native/src/helpers/accessibility.ts:2:1)
+      at Object.require (node_modules/@testing-library/react-native/src/matchers/to-be-busy.ts:5:1)
+      at Object.require (node_modules/@testing-library/react-native/src/matchers/extend-expect.ts:1:1)
+      at Object.require (node_modules/@testing-library/react-native/src/index.ts:2:1)
+      at Object.require (test/components/ScreenFlash.test.tsx:9:1)
+
+FAIL test/components/GestureComparison.test.tsx
+  ● Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'create')
+
+      142 | }
+      143 |
+    > 144 | const styles = StyleSheet.create({
+          |                           ^
+      145 |   overlay: {
+      146 |     position: 'absolute',
+      147 |     top: 0,
+
+      at Object.create (src/components/GestureComparison.tsx:144:27)
+      at Object.require (test/components/GestureComparison.test.tsx:11:1)
+
+PASS test/fallbackSystem.test.ts
+  ● Console
+
+    console.warn
+      Fetch failed: https://cdn.jsdelivr.net/npm Error: network
+          at /home/lars/PhpstormProjects/AmysEcho/app/jest.setup.ts:28:55
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:397:39
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:404:13
+          at mockConstructor (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:148:19)
+          at fetch (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:38:29)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at /home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:59:8
+          at Array.map (<anonymous>)
+          at map (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:33:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:63:4)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:26:35)
+          at resolvePinnedBase (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:106:24)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:166:2)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:24:38)
+          at GestureDetector.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/GestureDetector.ts:49:68)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at GestureDetector.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+          at GestureDetector.apply [as initialize] (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/GestureDetector.ts:46:19)
+          at initialize (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1202:31)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1358:2)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1198:39)
+          at Object.createGestureRecognizer (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:2435:1)
+          at Runtime._execModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1439:24)
+          at Runtime._loadModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1022:12)
+          at Runtime.requireModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:882:12)
+          at Runtime.requireModuleOrMock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1048:21)
+          at Object.require (/home/lars/PhpstormProjects/AmysEcho/app/test/fallbackSystem.test.ts:15:1)
+          at Runtime._execModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1439:24)
+          at Runtime._loadModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1022:12)
+          at Runtime.requireModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:882:12)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:77:13)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:444:34)
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at warn (webview/core/MediaPipeLoader.ts:55:21)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Fetch failed: https://unpkg.com Error: network
+          at /home/lars/PhpstormProjects/AmysEcho/app/jest.setup.ts:28:55
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:397:39
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:404:13
+          at mockConstructor (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:148:19)
+          at fetch (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:38:29)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at /home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:59:8
+          at Array.map (<anonymous>)
+          at map (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:33:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:63:4)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:26:35)
+          at resolvePinnedBase (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:106:24)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:166:2)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:24:38)
+          at GestureDetector.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/GestureDetector.ts:49:68)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at GestureDetector.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+          at GestureDetector.apply [as initialize] (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/GestureDetector.ts:46:19)
+          at initialize (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1202:31)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1358:2)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1198:39)
+          at Object.createGestureRecognizer (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:2435:1)
+          at Runtime._execModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1439:24)
+          at Runtime._loadModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1022:12)
+          at Runtime.requireModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:882:12)
+          at Runtime.requireModuleOrMock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1048:21)
+          at Object.require (/home/lars/PhpstormProjects/AmysEcho/app/test/fallbackSystem.test.ts:15:1)
+          at Runtime._execModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1439:24)
+          at Runtime._loadModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1022:12)
+          at Runtime.requireModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:882:12)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:77:13)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:444:34)
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at warn (webview/core/MediaPipeLoader.ts:55:21)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at Object.activateFallbackMode (test/fallbackSystem.test.ts:75:36)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+      at Object.recordFailure (test/fallbackSystem.test.ts:95:38)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:95:38)
+
+    console.warn
+      🚨 EMERGENCY MODE ACTIVATED - Critical gesture detection only
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateEmergencyMode] (webview/utils/ErrorRecoveryManager.ts:194:15)
+      at ErrorRecoveryManager.activateEmergencyMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:155:12)
+      at Object.recordFailure (test/fallbackSystem.test.ts:95:38)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:95:38)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:95:38)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe processing
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:95:38)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe processing
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:95:38)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe processing
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:95:38)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+      at Object.recordFailure (test/fallbackSystem.test.ts:107:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:107:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      🚨 EMERGENCY MODE ACTIVATED - Critical gesture detection only
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateEmergencyMode] (webview/utils/ErrorRecoveryManager.ts:194:15)
+      at ErrorRecoveryManager.activateEmergencyMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:155:12)
+      at Object.recordFailure (test/fallbackSystem.test.ts:107:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:107:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:107:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe processing
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:107:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe processing
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:107:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe processing
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/fallbackSystem.test.ts:107:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.info
+      Circuit breaker auto-closed
+
+      at ErrorRecoveryManager.info [as isCircuitBreakerOpen] (webview/utils/ErrorRecoveryManager.ts:171:15)
+
+    console.info
+      ✅ Emergency mode deactivated - Full functionality restored
+
+      at ErrorRecoveryManager.info [as deactivateEmergencyMode] (webview/utils/ErrorRecoveryManager.ts:206:15)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+      at Object.recordFailure (test/fallbackSystem.test.ts:156:36)
+
+    console.warn
+      🔋 CRITICAL BATTERY: 1% - Activating emergency mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at BatteryMonitor.warn [as handleBatteryLevel] (webview/gestureDetector.ts:704:15)
+      at BatteryMonitor.handleBatteryLevel (webview/gestureDetector.ts:678:14)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+      at Object.recordFailure (test/fallbackSystem.test.ts:212:36)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at Object.activateFallbackMode (test/fallbackSystem.test.ts:224:36)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+      at Object.recordFailure (test/fallbackSystem.test.ts:242:36)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+      at Object.recordFailure (test/fallbackSystem.test.ts:258:36)
+
+FAIL test/emergencySystem.test.ts
+  ● Console
+
+    console.warn
+      Fetch failed: https://cdn.jsdelivr.net/npm Error: network
+          at /home/lars/PhpstormProjects/AmysEcho/app/jest.setup.ts:28:55
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:397:39
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:404:13
+          at mockConstructor (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:148:19)
+          at fetch (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:38:29)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at /home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:59:8
+          at Array.map (<anonymous>)
+          at map (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:33:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:63:4)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:26:35)
+          at resolvePinnedBase (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:106:24)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:166:2)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:24:38)
+          at GestureDetector.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/GestureDetector.ts:49:68)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at GestureDetector.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+          at GestureDetector.apply [as initialize] (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/GestureDetector.ts:46:19)
+          at initialize (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1202:31)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1358:2)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1198:39)
+          at Object.createGestureRecognizer (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:2435:1)
+          at Runtime._execModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1439:24)
+          at Runtime._loadModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1022:12)
+          at Runtime.requireModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:882:12)
+          at Runtime.requireModuleOrMock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1048:21)
+          at Object.require (/home/lars/PhpstormProjects/AmysEcho/app/test/emergencySystem.test.ts:22:1)
+          at Runtime._execModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1439:24)
+          at Runtime._loadModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1022:12)
+          at Runtime.requireModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:882:12)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:77:13)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:444:34)
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at warn (webview/core/MediaPipeLoader.ts:55:21)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Fetch failed: https://unpkg.com Error: network
+          at /home/lars/PhpstormProjects/AmysEcho/app/jest.setup.ts:28:55
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:397:39
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:404:13
+          at mockConstructor (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-environment-jsdom/node_modules/jest-mock/build/index.js:148:19)
+          at fetch (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:38:29)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at /home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:59:8
+          at Array.map (<anonymous>)
+          at map (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:33:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:63:4)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:26:35)
+          at resolvePinnedBase (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:106:24)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:166:2)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/MediaPipeLoader.ts:24:38)
+          at GestureDetector.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/GestureDetector.ts:49:68)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at GestureDetector.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+          at GestureDetector.apply [as initialize] (/home/lars/PhpstormProjects/AmysEcho/app/webview/core/GestureDetector.ts:46:19)
+          at initialize (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1202:31)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1358:2)
+          at apply (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:1198:39)
+          at Object.createGestureRecognizer (/home/lars/PhpstormProjects/AmysEcho/app/webview/gestureDetector.ts:2435:1)
+          at Runtime._execModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1439:24)
+          at Runtime._loadModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1022:12)
+          at Runtime.requireModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:882:12)
+          at Runtime.requireModuleOrMock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1048:21)
+          at Object.require (/home/lars/PhpstormProjects/AmysEcho/app/test/emergencySystem.test.ts:22:1)
+          at Runtime._execModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1439:24)
+          at Runtime._loadModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:1022:12)
+          at Runtime.requireModule (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runtime/build/index.js:882:12)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:77:13)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:444:34)
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at warn (webview/core/MediaPipeLoader.ts:55:21)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      🔋 CRITICAL BATTERY: 3% - Activating emergency mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at BatteryMonitor.warn [as handleBatteryLevel] (webview/gestureDetector.ts:704:15)
+      at BatteryMonitor.handleBatteryLevel (webview/gestureDetector.ts:678:14)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.log
+      🔋 Battery recovered: 10% - Deactivating emergency mode
+
+      at BatteryMonitor.log [as handleBatteryLevel] (webview/gestureDetector.ts:707:15)
+
+    console.warn
+      Battery monitoring failed: Error: Battery API not available
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/test/emergencySystem.test.ts:110:40)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+          at /home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/app/node_modules/jest-runner/build/runTest.js:444:34)
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at BatteryMonitor.warn (webview/gestureDetector.ts:688:15)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Activating fallback gesture detection mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+      at Object.recordFailure (test/emergencySystem.test.ts:127:36)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/emergencySystem.test.ts:127:36)
+
+    console.warn
+      🚨 EMERGENCY MODE ACTIVATED - Critical gesture detection only
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as activateEmergencyMode] (webview/utils/ErrorRecoveryManager.ts:194:15)
+      at ErrorRecoveryManager.activateEmergencyMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:155:12)
+      at Object.recordFailure (test/emergencySystem.test.ts:127:36)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/emergencySystem.test.ts:131:38)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/emergencySystem.test.ts:131:38)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe initialization
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/emergencySystem.test.ts:131:38)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe initialization
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/emergencySystem.test.ts:131:38)
+
+    console.warn
+      Max recovery attempts reached for CAMERA_ERROR_MediaPipe initialization
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+      at Object.recordFailure (test/emergencySystem.test.ts:131:38)
+
+    console.warn
+      🔋 CRITICAL BATTERY: 1% - Activating emergency mode
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at BatteryMonitor.warn [as handleBatteryLevel] (webview/gestureDetector.ts:704:15)
+      at BatteryMonitor.handleBatteryLevel (webview/gestureDetector.ts:678:14)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/emergencySystem.test.ts:182:36)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      Circuit breaker opened due to repeated failures
+
+      21 |     if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+      22 |   }
+    > 23 |   originalConsoleWarn(...args);
+         |                      ^
+      24 | };
+      25 |
+      26 | // Provide a default global fetch so tests can spy/mock it reliably
+
+      at console.apply [as warn] (jest.setup.ts:23:22)
+      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+      at Object.recordFailure (test/emergencySystem.test.ts:215:36)
+
+  ● Emergency System - Amy First Critical Tests › Emergency Gesture Detection › should handle emergency gesture cooldown
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      67 |       // Immediate second emergency gesture should be blocked by cooldown
+      68 |       const result = window.emergencyGestureSystem?.processEmergencyGesture('hilfe', 0.3, landmarks);
+    > 69 |       expect(result?.shouldProcess).toBe(false);
+         |                                     ^
+      70 |       expect(result?.cooldownRemaining).toBeGreaterThan(0);
+      71 |     });
+      72 |   });
+
+      at Object.toBe (test/emergencySystem.test.ts:69:37)
+
+FAIL test/adaptiveLearningService.test.ts
+  ● AdaptiveLearningService › Legacy Methods › getWeakGesture › should return gesture with health score below threshold
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: {"healthScore": 50, "id": "weak_gesture", "minConfidenceThreshold": 0.5}
+    Received: null
+
+      321 |         const result = await adaptiveLearningService.getWeakGesture(70);
+      322 |
+    > 323 |         expect(result).toEqual(mockGesture);
+          |                        ^
+      324 |         expect(database.get).toHaveBeenCalledWith('gesture_definitions');
+      325 |         expect(mockQuery).toHaveBeenCalled();
+      326 |         expect(mockFetch).toHaveBeenCalled();
+
+      at Object.toEqual (test/adaptiveLearningService.test.ts:323:24)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● AdaptiveLearningService › Legacy Methods › recordInteraction › should update gesture health score on success
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+      376 |
+      377 |         expect(result).toBe(true);
+    > 378 |         expect(mockGesture.update).toHaveBeenCalled();
+          |                                    ^
+      379 |         expect(database.write).toHaveBeenCalled();
+      380 |       });
+      381 |
+
+      at Object.toHaveBeenCalled (test/adaptiveLearningService.test.ts:378:36)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● AdaptiveLearningService › Legacy Methods › recordInteraction › should update gesture health score on failure
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+      403 |
+      404 |         expect(result).toBe(true);
+    > 405 |         expect(mockGesture.update).toHaveBeenCalled();
+          |                                    ^
+      406 |         expect(database.write).toHaveBeenCalled();
+      407 |       });
+      408 |
+
+      at Object.toHaveBeenCalled (test/adaptiveLearningService.test.ts:405:36)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● AdaptiveLearningService › Legacy Methods › recordInteraction › should handle database errors gracefully
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      414 |         const result = await recordInteraction('test_gesture', true);
+      415 |
+    > 416 |         expect(result).toBe(false);
+          |                        ^
+      417 |       });
+      418 |     });
+      419 |   });
+
+      at Object.toBe (test/adaptiveLearningService.test.ts:416:24)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+
+<--- Last few GCs --->
+
+[66782:0x2ecf4000]    93771 ms: Scavenge (interleaved) 2044.4 (2049.6) -> 2043.4 (2050.1) MB, pooled: 0 MB, 9.22 / 0.89 ms  (average mu = 0.302, current mu = 0.255) allocation failure; 
+[66782:0x2ecf4000]    94831 ms: Mark-Compact (reduce) 2045.0 (2050.3) -> 2043.2 (2047.6) MB, pooled: 0 MB, 691.54 / 1.76 ms  (+ 155.1 ms in 25 steps since start of marking, biggest step 11.4 ms, walltime since start of marking 898 ms) (average mu = 0.273,
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 0xf1f241 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [node]
+ 2: 0x13563a0 v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [node]
+ 3: 0x135648f v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [node]
+ 4: 0x15eef55  [node]
+ 5: 0x15eef82  [node]
+ 6: 0x15ef27a v8::internal::Heap::RecomputeLimits(v8::internal::GarbageCollector, v8::base::TimeTicks) [node]
+ 7: 0x15ff79a  [node]
+ 8: 0x1603b40  [node]
+ 9: 0x2096b71  [node]
+Aborted (core dumped)

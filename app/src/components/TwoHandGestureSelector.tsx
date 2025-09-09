@@ -8,7 +8,6 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
-import { LanguageManager } from '../services/LanguageManager';
 import { TWO_HAND_GESTURES, TwoHandGestureDefinition } from '../constants/twoHandGestures';
 
 interface TwoHandGestureSelectorProps {

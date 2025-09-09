@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, AppState, SafeAreaView } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { useIsFocused } from '@react-navigation/native';
+import { View, Text, Pressable, StyleSheet, SafeAreaView } from 'react-native';
 // Camera preview replaced by MediaPipe WebView detector
 import Svg, { Circle } from 'react-native-svg';
 import { saveTrainingSample, loadProfile, Profile, TrainingFrame } from '../storage';
@@ -18,7 +16,9 @@ import { logger } from '../utils/logger';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
-import { childHaptic } from '../services/feedbackService';
+
+import { createButtonStyles } from '../styles/buttonStyles';
+import { hapticFeedback } from '../utils/hapticUtils';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import SlowMotionReplay from '../components/SlowMotionReplay';
 import PerformanceAnalytics from '../components/PerformanceAnalytics';
@@ -38,7 +38,6 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
-  const [appState, setAppState] = useState(AppState.currentState);
   const [landmarks, setLandmarks] = useState<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,10 +62,6 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, [isRecording]);
 
   // No-op: local landmark model removed.
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', setAppState);
-    return () => sub.remove();
-  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 500);
@@ -193,6 +188,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     navigation.goBack();
   };
 
+  const buttonStyles = createButtonStyles();
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -246,38 +242,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       height: '100%',
       backgroundColor: COLORS.success,
     },
-    button: {
-      backgroundColor: COLORS.primaryAccent,
-      padding: SPACING.md,
-      borderRadius: RADIUS,
-      alignItems: 'center',
-      marginBottom: SPACING.sm,
-      minWidth: 120,
-    },
-    buttonHC: {
-      backgroundColor: COLORS.highContrastText,
-    },
-    buttonPressed: {
-      backgroundColor: COLORS.pressed,
-    },
-    buttonPressedHC: {
-      backgroundColor: COLORS.highContrastPressed,
-    },
-    buttonDisabled: {
-      backgroundColor: COLORS.secondaryAccent,
-      opacity: 0.6,
-    },
-    buttonText: {
-      color: COLORS.highContrastText,
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    buttonTextLarge: {
-      fontSize: 20,
-    },
-    buttonTextHC: {
-      color: COLORS.highContrastBackground,
-    },
+    ...buttonStyles,
     // Enhanced training styles
     practiceModeContainer: {
       flexDirection: 'row',
@@ -384,10 +349,10 @@ export default function TrainingScreen({ navigation, route }: any) {
                  highContrast && styles.buttonHC,
                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                ]}
-               onPress={() => {
-                 void childHaptic();
-                 setGestureId(g.id);
-               }}
+                onPress={() => {
+                  void hapticFeedback.light();
+                  setGestureId(g.id);
+                }}
                accessibilityRole="button"
                accessibilityLabel={`Trainiere Geste ${g.label}`}
              >
@@ -502,14 +467,14 @@ export default function TrainingScreen({ navigation, route }: any) {
                 !gestureId && styles.buttonDisabled,
                 pressed && gestureId && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
               ]}
-              onPress={() => {
-                void childHaptic();
-                if (isRecording) {
-                  stopRecording();
-                } else {
-                  startRecording();
-                }
-              }}
+               onPress={() => {
+                 void hapticFeedback.light();
+                 if (isRecording) {
+                   stopRecording();
+                 } else {
+                   startRecording();
+                 }
+               }}
               accessibilityRole="button"
               accessibilityLabel="Gestenaufnahme starten"
               disabled={!gestureId}
@@ -558,7 +523,10 @@ export default function TrainingScreen({ navigation, route }: any) {
                    highContrast && styles.secondaryButtonHC,
                    pressed && (highContrast ? styles.secondaryButtonPressedHC : styles.secondaryButtonPressed),
                  ]}
-                 onPress={() => setShowSlowMotionReplay(true)}
+                  onPress={() => {
+                    void hapticFeedback.light();
+                    setShowSlowMotionReplay(true);
+                  }}
                  accessibilityRole="button"
                  accessibilityLabel="Zeitlupe-Wiederholung anzeigen"
                >
@@ -580,14 +548,14 @@ export default function TrainingScreen({ navigation, route }: any) {
               highContrast && styles.buttonHC,
               pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
             ]}
-            onPress={async () => {
-              void childHaptic();
-              if (isPractice && gestureId) {
-                try { await audioService.playCelebrationFeedback(); } catch {}
-                try { await logHIPEvent('HIP_4', 'practice_completed', { gestureId, samples: TARGET_SAMPLES }); } catch {}
-              }
-              handleFinish();
-            }}
+             onPress={async () => {
+               void hapticFeedback.light();
+               if (isPractice && gestureId) {
+                 try { await audioService.playCelebrationFeedback(); } catch {}
+                 try { await logHIPEvent('HIP_4', 'practice_completed', { gestureId, samples: TARGET_SAMPLES }); } catch {}
+               }
+               handleFinish();
+             }}
             accessibilityRole="button"
             accessibilityLabel={isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
           >

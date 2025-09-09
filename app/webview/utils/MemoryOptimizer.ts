@@ -290,9 +290,10 @@ export class CircularBuffer<T> {
     this.readIndex = 0;
     this.size = 0;
 
-    // Re-add items up to new max size, keeping most recent first
+    // Re-add items up to new max size, preserving chronological order
+    // toArray() returns most recent first, so we need to reverse for chronological order
     const itemsToAdd = Math.min(currentItems.length, newMaxSize);
-    for (let i = 0; i < itemsToAdd; i++) {
+    for (let i = itemsToAdd - 1; i >= 0; i--) {
       this.push(currentItems[i]);
     }
   }

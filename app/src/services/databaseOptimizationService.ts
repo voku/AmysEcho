@@ -1,6 +1,5 @@
 import { database } from '../../db';
 import { logger } from '../utils/logger';
-import { performanceOptimizationService } from './performanceOptimizationService';
 
 // Database optimization service
 export class DatabaseOptimizationService {

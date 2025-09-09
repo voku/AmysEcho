@@ -16,16 +16,13 @@ import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
-import { activeLearningService, PracticeSuggestion as PracticeSuggestionType } from '../services/activeLearningService';
+import activeLearningService, { PracticeSuggestion as PracticeSuggestionType } from '../services/activeLearningService';
 
 interface PracticeSuggestionProps {
   visible: boolean;
-  onAccept: (gesture: string) => void;
+  onAccept: () => void;
   onDecline: () => void;
   onLater: () => void;
-  currentTimeOfDay: number;
-  currentActivity: 'high' | 'low' | 'normal';
-  recentGestures: string[];
 }
 
 const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
@@ -33,9 +30,6 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
   onAccept,
   onDecline,
   onLater,
-  currentTimeOfDay,
-  currentActivity,
-  recentGestures,
 }) => {
   const { largeText, highContrast } = useAccessibility();
   const { theme } = useTheme();
@@ -46,9 +40,7 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
     if (visible) {
       // Get practice suggestion
       const practiceSuggestion = activeLearningService.getPracticeSuggestion(
-        currentTimeOfDay,
-        currentActivity,
-        recentGestures
+        'normal'
       );
       setSuggestion(practiceSuggestion);
 
@@ -66,7 +58,7 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [visible, currentTimeOfDay, currentActivity, recentGestures, fadeAnim]);
+  }, [visible, fadeAnim]);
 
   if (!visible || !suggestion || !suggestion.shouldSuggest) {
     return null;
@@ -74,13 +66,13 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
 
   const handleAccept = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    activeLearningService.markSuggestionShown(suggestion.gesture);
+    (activeLearningService as any).markSuggestionShown(suggestion.gesture);
     onAccept(suggestion.gesture);
   };
 
   const handleDecline = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    activeLearningService.markSuggestionShown(suggestion.gesture);
+    (activeLearningService as any).markSuggestionShown(suggestion.gesture);
     onDecline();
   };
 
@@ -103,18 +95,7 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
     }
   };
 
-  const getUrgencyText = () => {
-    switch (suggestion.urgency) {
-      case 'immediate':
-        return 'Jetzt üben!';
-      case 'soon':
-        return 'Bald üben';
-      case 'when_convenient':
-        return 'Wenn es passt';
-      default:
-        return 'Übungsvorschlag';
-    }
-  };
+
 
   const styles = StyleSheet.create({
     modal: {

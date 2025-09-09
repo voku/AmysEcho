@@ -179,7 +179,7 @@ export class LazyLoadingService {
   }
 
   // Clear unused components to free memory
-  public clearUnusedComponents(maxAge: number = 10 * 60 * 1000): void {
+  public clearUnusedComponents(): void {
     // This is a simplified implementation
     // In a real scenario, you'd track when components were last used
     const componentsToClear: string[] = [];

@@ -48,7 +48,7 @@ const OPENAI_TEMPERATURE = Number(process.env.OPENAI_DIALOG_TEMPERATURE || 0.3);
 // In-memory TTL cache for repeated suggestions
 type CacheEntry = { value: LLMSuggestionResponse; ts: number };
 const suggestionCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = Number(process.env.OPENAI_DIALOG_CACHE_TTL_MS || 30_000);
+const getCacheTtlMs = () => Number(process.env.OPENAI_DIALOG_CACHE_TTL_MS || 30_000);
 function makeKey(req: LLMRequest): string {
   const ctx = Array.isArray(req.context) ? req.context.join(',') : '';
   return `${req.language}|${req.age}|${req.input}|${ctx}`;
@@ -92,23 +92,21 @@ export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionR
   try {
     const key = makeKey(req);
     const cached = suggestionCache.get(key);
-    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    if (cached && Date.now() - cached.ts < getCacheTtlMs()) {
       return cached.value;
     }
     const openai = new OpenAI({ apiKey });
     const response = await withTimeoutRetry(
-      () => openai.responses.create({
+      () => openai.chat.completions.create({
         model: TEXT_MODEL,
-        input: [
+        messages: [
           {
             role: 'user',
-            content: [
-              { type: 'input_text', text: `${prompt} Return a JSON object with two keys: "nextWords" and "caregiverPhrases".` },
-            ],
+            content: `${prompt} Return a JSON object with two keys: "nextWords" and "caregiverPhrases".`,
           },
         ],
         temperature: OPENAI_TEMPERATURE,
-        max_output_tokens: OPENAI_MAX_TOKENS,
+        max_tokens: OPENAI_MAX_TOKENS,
         response_format: {
           type: 'json_schema',
           json_schema: {
@@ -129,7 +127,7 @@ export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionR
       OPENAI_TIMEOUT_MS,
       2
     );
-    const output = (response as any)?.output_text || '';
+    const output = response.choices[0]?.message?.content || '';
     const m = output.match(/\{[\s\S]*\}/);
     const toParse = m ? m[0] : output || '{}';
     const parsed = suggestionSchema.safeParse(JSON.parse(toParse));

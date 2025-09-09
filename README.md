@@ -45,6 +45,8 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 |---------------|-------------------------------|----------------------------------------|
 | App Framework | React Native (CLI)            | Cross-platform + native module access  |
 | Language      | TypeScript (strict mode)      | Predictable, type-safe code            |
+| ML Engine     | MediaPipe + OpenAI Vision     | Real-time gesture recognition & AI validation |
+| LLM Engine    | OpenAI GPT-4 Vision           | Intelligent feedback & conversation    |
 | Camera        | `react-native-webview`        | In-app camera feed & landmark detection |
 | Backend API   | Node/Express server           | Training sync & dialog suggestions     |
 | UI/UX         | RN Animated API + Skia (opt.) | Gentle, trust-based feedback           |
@@ -59,12 +61,13 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 Amy's Echo features a comprehensive gesture recognition system optimized for 22q11 syndrome accessibility:
 
 ### Core Features
-- **Multi-layered Detection**: MediaPipe primary + OpenAI Vision fallback
+- **ML-Powered Recognition**: MediaPipe hand tracking + OpenAI Vision AI analysis
+- **LLM-Enhanced Feedback**: OpenAI GPT models provide intelligent gesture feedback
 - **Emergency Priority**: <50ms response for critical gestures
 - **Adaptive Thresholds**: Personalized confidence levels (0.12-0.32 range)
 - **German Localization**: All feedback in Amy's native language
 - **Performance Monitoring**: Real-time latency and accuracy tracking
-- **Fallback System**: Rule-based detection when ML fails
+- **Intelligent Fallback**: OpenAI Vision validates uncertain gestures
 
 ### Supported Gestures
 - 👊 **Faust** (Fist) - Basic closed hand
@@ -180,17 +183,11 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 ---
 
-## 🚧 Current Status
-
-- [x] Spec ([markdown](./spec/AmysEcho.md))
-- [x] React Native baseline setup
-- [x] Camera + ML integration (initial hybrid recognizer)
-- [x] HIP 1 + HIP 3 MVP implementation
-- [x] HIP 2 training flow stub
-
 ## Project Status
 
-Development tasks are tracked in [`docs/TODO.md`](docs/TODO.md). The repository includes a complete gesture recognition pipeline, training flow, adaptive learning service, multi-profile management, an expanded analytics dashboard, custom audio support, and a caregiver web portal under `server/src/portal/`. When the backend server is running, visit `http://localhost:5000/portal` to manage training data, view analytics, and download the latest personalized model.
+All major features for Phase 1, 2 and 3 have been implemented. The project is now in the optimization and production readiness phase. Development tasks are tracked in [`docs/TODO.md`](docs/TODO.md), which now serves as a living document for ongoing improvements and bug fixes.
+
+The repository includes a complete gesture recognition pipeline, training flow, adaptive learning service, multi-profile management, an expanded analytics dashboard, custom audio support, and a caregiver web portal under `server/src/portal/`. When the backend server is running, visit `http://localhost:5000/portal` to manage training data, view analytics, and download the latest personalized model.
 
 ## ▶️ Running the mobile app
 

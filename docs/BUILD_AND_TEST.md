@@ -60,6 +60,23 @@ npm test --prefix integration
 
 The tests will build the server and exercise key endpoints. They are also executed by `./scripts/full-check.sh`.
 
+### Dialog Endpoint (Responses API)
+
+The server provides a dialog suggestion endpoint that uses the OpenAI Responses API with a strict JSON schema. Configuration is controlled via environment variables:
+
+- `OPENAI_TEXT_MODEL` (default: `gpt-4o-mini`)
+- `OPENAI_DIALOG_TIMEOUT_MS` (default: `4000`)
+- `OPENAI_DIALOG_MAX_TOKENS` (default: `256`)
+- `OPENAI_DIALOG_TEMPERATURE` (default: `0.3`)
+- `OPENAI_DIALOG_CACHE_TTL_MS` (default: `30000`)
+
+To run the end-to-end dialog test in the integration suite:
+
+```bash
+npm test --prefix integration -- -- test/dialog-endpoint-e2e.test.js --verbose
+```
+
+
 ## Expo dependency checks
 
 Before attempting a native build, verify that your Expo packages match the installed SDK. The `./scripts/full-check.sh` helper now runs these checks automatically, but you can also execute them manually:

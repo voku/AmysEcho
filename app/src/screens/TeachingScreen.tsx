@@ -14,11 +14,13 @@ import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { syncTrainingData } from '../services';
-import { childHaptic } from '../services/feedbackService';
+
 import { childFriendlyStyles } from '../styles/touchTargets';
+import { createButtonStyles } from '../styles/buttonStyles';
+import { hapticFeedback } from '../utils/hapticUtils';
 import TwoHandGestureSelector from '../components/TwoHandGestureSelector';
 import { TwoHandGestureDefinition, parseTwoHandGestureString } from '../constants/twoHandGestures';
-import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
+import { twoHandGestureService } from '../services/twoHandGestureService';
 import VisualFeedback from '../components/VisualFeedback';
 import ProgressTracker from '../components/ProgressTracker';
 import GestureValidationFeedback from '../components/GestureValidationFeedback';
@@ -37,7 +39,7 @@ export default function TeachingScreen({ navigation }: any) {
   const [isTwoHandMode, setIsTwoHandMode] = useState(false);
   const [showTwoHandSelector, setShowTwoHandSelector] = useState(false);
   const [selectedTwoHandGesture, setSelectedTwoHandGesture] = useState<TwoHandGestureDefinition | null>(null);
-  const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
+
   const [showVisualFeedback, setShowVisualFeedback] = useState(false);
   const [validationFeedback, setValidationFeedback] = useState<{
     isValid: boolean;
@@ -105,7 +107,7 @@ export default function TeachingScreen({ navigation }: any) {
             );
 
             if (twoHandResult) {
-              setDetectedTwoHandGesture(twoHandResult);
+              setSelectedTwoHandGesture(twoHandResult.gesture);
 
               // Provide validation feedback
               const validationMessage = twoHandResult.confidence > 0.8
@@ -264,7 +266,8 @@ export default function TeachingScreen({ navigation }: any) {
     }
   };
 
-  const styles = createStyles(largeText, highContrast);
+  const buttonStyles = createButtonStyles();
+  const styles = createStyles(largeText, highContrast, buttonStyles);
 
   if (false) {
     const gradientColors = highContrast
@@ -353,10 +356,10 @@ export default function TeachingScreen({ navigation }: any) {
                      highContrast && styles.buttonHC,
                      pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                    ]}
-                   onPress={() => {
-                     void childHaptic();
-                     startSession();
-                   }}
+                    onPress={() => {
+                      void hapticFeedback.light();
+                      startSession();
+                    }}
                    accessibilityRole="button"
                    accessibilityLabel="Training für zweihändige Geste starten"
                  >
@@ -406,10 +409,10 @@ export default function TeachingScreen({ navigation }: any) {
                    highContrast && styles.buttonHC,
                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                  ]}
-                 onPress={() => {
-                   void childHaptic();
-                   startSession();
-                 }}
+                  onPress={() => {
+                    void hapticFeedback.light();
+                    startSession();
+                  }}
                  accessibilityRole="button"
                  accessibilityLabel="Training starten"
                >
@@ -530,10 +533,10 @@ export default function TeachingScreen({ navigation }: any) {
               (isRecording || sampleCount >= SAMPLES_NEEDED) && styles.buttonDisabled,
               pressed && !isRecording && sampleCount < SAMPLES_NEEDED && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
             ]}
-            onPress={() => {
-              void childHaptic();
-              recordSample();
-            }}
+             onPress={() => {
+               void hapticFeedback.light();
+               recordSample();
+             }}
             disabled={isRecording || sampleCount >= SAMPLES_NEEDED}
             accessibilityRole="button"
             accessibilityLabel="Beispiel aufzeichnen"
@@ -560,10 +563,10 @@ export default function TeachingScreen({ navigation }: any) {
                 highContrast && styles.buttonHC,
                 pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
               ]}
-              onPress={() => {
-                void childHaptic();
-                handleRetry();
-              }}
+               onPress={() => {
+                 void hapticFeedback.light();
+                 handleRetry();
+               }}
               accessibilityRole="button"
               accessibilityLabel="Alle Beispiele wiederholen"
             >
@@ -614,7 +617,7 @@ export default function TeachingScreen({ navigation }: any) {
    );
  }
 
-const createStyles = (largeText: boolean, highContrast: boolean) =>
+const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: any) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -659,38 +662,7 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       color: COLORS.highContrastText,
       fontWeight: 'bold',
     },
-    button: {
-      backgroundColor: COLORS.primaryAccent,
-      padding: SPACING.md,
-      borderRadius: RADIUS,
-      minWidth: 120,
-      alignItems: 'center',
-      marginVertical: SPACING.sm,
-    },
-    buttonHC: {
-      backgroundColor: COLORS.highContrastText,
-    },
-    buttonPressed: {
-      backgroundColor: COLORS.pressed,
-    },
-    buttonPressedHC: {
-      backgroundColor: COLORS.highContrastPressed,
-    },
-    buttonDisabled: {
-      backgroundColor: COLORS.secondaryAccent,
-      opacity: 0.6,
-    },
-    buttonText: {
-      color: COLORS.highContrastText,
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    buttonTextLarge: {
-      fontSize: 20,
-    },
-    buttonTextHC: {
-      color: COLORS.highContrastBackground,
-    },
+    ...buttonStyles,
     // Two-hand gesture mode styles
     modeToggleContainer: {
       flexDirection: 'row',

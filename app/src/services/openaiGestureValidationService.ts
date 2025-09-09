@@ -5,10 +5,9 @@
  * Provides fallback validation when MediaPipe confidence is low
  */
 
-import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { logger } from '../utils/logger';
-import { withErrorHandling, createErrorMessage } from '../utils/errorUtils';
+import { withErrorHandling } from '../utils/errorUtils';
 import { apiPost, buildApiUrl, createAuthHeaders } from '../utils/apiUtils';
 import { validateWithRules, commonValidationRules, ValidationRule } from '../utils/validationUtils';
 

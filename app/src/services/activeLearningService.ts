@@ -77,7 +77,7 @@ export class ActiveLearningService {
     }
 
     // Update learning priorities
-    this.updateLearningPriority(gesture, 'uncertain_sample', confidence);
+    this.updateLearningPriority(gesture, 'uncertain_sample');
   }
 
   /**
@@ -102,8 +102,8 @@ export class ActiveLearningService {
     this.misclassifications.push(misclassification);
 
     // Update learning priorities for both gestures
-    this.updateLearningPriority(intendedGesture, 'misclassified_intended', confidence);
-    this.updateLearningPriority(recognizedGesture, 'misclassified_recognized', confidence);
+    this.updateLearningPriority(intendedGesture, 'misclassified_intended');
+    this.updateLearningPriority(recognizedGesture, 'misclassified_recognized');
 
     // Clean old data
     this.cleanOldData();
@@ -114,8 +114,7 @@ export class ActiveLearningService {
    */
   private updateLearningPriority(
     gesture: string,
-    reason: string,
-    confidence: number
+    reason: string
   ): void {
     const existing = this.learningPriorities.get(gesture);
     const now = Date.now();
@@ -213,9 +212,7 @@ export class ActiveLearningService {
    * Get practice suggestion for current context
    */
   getPracticeSuggestion(
-    currentTimeOfDay: number,
-    currentActivity: 'high' | 'low' | 'normal',
-    recentGestureHistory: string[] = []
+    currentActivity: 'high' | 'low' | 'normal'
   ): PracticeSuggestion {
     const now = Date.now();
 
@@ -238,7 +235,7 @@ export class ActiveLearningService {
     const topPriority = eligiblePriorities[0];
 
     // Check if this is a good time for the suggested gesture
-    const timeCompatibility = this.checkTimeCompatibility(topPriority.gesture, currentTimeOfDay);
+    const timeCompatibility = this.checkTimeCompatibility();
     const activityCompatibility = this.checkActivityCompatibility(topPriority.gesture, currentActivity);
 
     // Calculate expected improvement
@@ -275,7 +272,7 @@ export class ActiveLearningService {
   /**
    * Check if current time is compatible with gesture practice
    */
-  private checkTimeCompatibility(gesture: string, currentTimeOfDay: number): boolean {
+  private checkTimeCompatibility(): boolean {
     // For now, assume all times are compatible
     // Could be enhanced with gesture-specific time preferences
     return true;
@@ -332,8 +329,7 @@ export class ActiveLearningService {
    */
   recordPracticeResults(
     gesture: string,
-    successRate: number,
-    durationMinutes: number
+    successRate: number
   ): void {
     const priority = this.learningPriorities.get(gesture);
     if (priority) {
@@ -444,5 +440,5 @@ export class ActiveLearningService {
 }
 
 // Export singleton instance
-export const activeLearningService = new ActiveLearningService();
+export const activeLearningService: ActiveLearningService = new ActiveLearningService();
 export default activeLearningService;

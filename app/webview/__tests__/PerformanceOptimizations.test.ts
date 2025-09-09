@@ -24,12 +24,18 @@ describe('PerformanceOptimizer', () => {
     });
 
     it('should enable adaptive frame skipping when processing is slow', () => {
-      // Simulate slow processing
-      for (let i = 0; i < 10; i++) {
+      // Process initial frames to establish baseline
+      for (let i = 0; i < 5; i++) {
+        optimizer.recordProcessingTime(60); // 60ms - over threshold
+        expect(optimizer.shouldProcessFrame()).toBe(true); // Should process initial frames
+      }
+
+      // Continue recording slow processing times
+      for (let i = 0; i < 5; i++) {
         optimizer.recordProcessingTime(60); // 60ms - over threshold
       }
 
-      // Should start skipping frames
+      // Should start skipping frames after baseline established
       expect(optimizer.shouldProcessFrame()).toBe(false);
     });
 
@@ -262,19 +268,32 @@ describe('ProcessingPipeline', () => {
         name: 'expensive_step',
         isExpensive: true,
         execute: jest.fn().mockResolvedValue({
-          gesture: 'point',
-          confidence: 0.6,
-          landmarks: [[[0.2, 0.2, 0.0]]]
+          gesture: 'thumbs_up',
+          confidence: 0.9,
+          landmarks: [[[0.1, 0.1, 0.0]]]
         })
       };
 
       pipeline.addStep(expensiveStep);
 
-      const context: ProcessingContext = {
+      // Set up conditions to guarantee skipping
+      // First, create a high-confidence previous result
+      const previousContext: ProcessingContext = {
         landmarks: [[[0.1, 0.1, 0.0]]],
+        timestamp: Date.now() - 1000,
+        processingStep: 'previous',
+        skipExpensiveSteps: false
+      };
+
+      // Execute once to create a previous result
+      await pipeline.executePipeline(previousContext);
+
+      const context: ProcessingContext = {
+        landmarks: [[[0.1, 0.1, 0.0]]], // Same landmarks to trigger unchanged check
         timestamp: Date.now(),
         processingStep: 'test',
-        skipExpensiveSteps: true
+        skipExpensiveSteps: true,
+        previousLandmarks: [[[0.1, 0.1, 0.0]]] // Same as current to ensure unchanged
       };
 
       const result = await pipeline.executePipeline(context);

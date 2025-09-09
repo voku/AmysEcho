@@ -53,9 +53,10 @@ async function runTests(category) {
       command = 'npx';
       args = ['jest', '--testPathPattern', 'openaiGestureValidationIntegration.test.tsx', '--verbose'];
       cwd = path.join(ROOT_DIR, 'app');
-    } else if (category.name === 'End-to-End Tests') {
+  } else if (category.name === 'End-to-End Tests') {
       command = 'npx';
-      args = ['jest', '--testPathPattern', 'openai-validation-e2e.test.js', '--verbose'];
+      // Run both vision and dialog e2e tests
+      args = ['jest', '--testPathPattern', 'openai-validation-e2e.test.js|dialog-endpoint-e2e.test.js', '--verbose'];
       cwd = path.join(ROOT_DIR, 'integration');
     }
 

@@ -53,6 +53,24 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
     navigation.navigate('ProfileSelect');
   }, [navigation]);
 
+  // Enhanced breadcrumb system - show navigation path
+  const getCurrentScreenName = () => {
+    const screenNames: Record<string, string> = {
+      'Recognition': '🏠 Zuhören',
+      'Training': '🎯 Lernen',
+      'Schedule': '📅 Tagesplan',
+      'Practice': '✨ Üben',
+      'Help': '❓ Hilfe',
+      'Dashboard': '📊 Auswertung',
+      'Progress': '📈 Fortschritt',
+      'Correction': '🔧 Korrektur',
+      'Parent': '👨‍👩‍👧 Eltern',
+      'ProfileSelect': '👤 Profile',
+      'ProfileManager': '⚙️ Einstellungen',
+    };
+    return screenNames[route.name] || route.name;
+  };
+
   useEffect(() => {
     // Update navigation history
     const currentScreen = getCurrentScreenName();
@@ -72,25 +90,7 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
       }
       return newHistory;
     });
-  }, [route.name]);
-
-  // Enhanced breadcrumb system - show navigation path
-  const getCurrentScreenName = () => {
-    const screenNames: Record<string, string> = {
-      'Recognition': '🏠 Zuhören',
-      'Training': '🎯 Lernen',
-      'Schedule': '📅 Tagesplan',
-      'Practice': '✨ Üben',
-      'Help': '❓ Hilfe',
-      'Dashboard': '📊 Auswertung',
-      'Progress': '📈 Fortschritt',
-      'Correction': '🔧 Korrektur',
-      'Parent': '👨‍👩‍👧 Eltern',
-      'ProfileSelect': '👤 Profile',
-      'ProfileManager': '⚙️ Einstellungen',
-    };
-    return screenNames[route.name] || route.name;
-  };
+  }, [route.name, getCurrentScreenName, navigation]);
   return (
     <View style={[styles.container, highContrast && styles.containerHC, { backgroundColor: highContrast ? COLORS.highContrastBackground : theme.colors.surface }]}>
       {/* Single Button Navigation - Amy First: Always provide clear way back to recognition */}

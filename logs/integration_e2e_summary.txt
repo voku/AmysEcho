@@ -1,0 +1,9 @@
+7:FAIL test/dialog-endpoint-e2e.test.js
+8:  ● Test suite failed to run
+20:      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+23:FAIL test/openai-validation-e2e.test.js
+24:  ● Test suite failed to run
+36:      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+39:Test Suites: 2 failed, 2 total
+44:❌ End-to-End Tests failed
+46:Error: End-to-End Tests failed with code 1

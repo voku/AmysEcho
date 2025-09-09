@@ -8,7 +8,6 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 interface ProfileStats {

@@ -74,7 +74,6 @@ export async function checkPracticeRecommendations() {
 
 // Adaptive Practice System - Amy First
 const COMMUNICATION_ACTIVITY_KEY = 'amy_communication_activity';
-const QUIET_PERIODS_KEY = 'amy_quiet_periods';
 
 /**
  * Check if Amy is currently actively communicating

@@ -15,7 +15,7 @@
 
 import { validateGestureWithOpenAI, shouldTriggerOpenAIValidation } from './openaiGestureValidationService';
 import { computeHandRoi, processDataUrl } from '../utils/imageUtils';
-import type { TwoHandGesture } from '../../webview/types/MediaPipeTypes';
+
 
 // Define proper types for captured frame
 type CapturedFrame =

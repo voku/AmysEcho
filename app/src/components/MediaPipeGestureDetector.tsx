@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import {
   API_TOKEN,
-  ANALYTICS_TELEMETRY_ENDPOINT,
   MLP_CONFIDENCE_THRESHOLD,
   FALLBACK_CONFIDENCE_THRESHOLD,
 } from '../constants';
@@ -10,11 +9,11 @@ import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
 import { LanguageManager } from '../services/LanguageManager';
 import { contextAwareRecognitionService } from '../services/contextAwareRecognitionService';
-import { adaptivePracticeTimingService } from '../services/adaptivePracticeTimingService';
-import { positiveTelemetryService } from '../services/positiveTelemetryService';
+
+
 import { validateGestureWithFallback, shouldTriggerOpenAIValidation } from '../services/openaiGestureValidationService';
 import { parallelGestureProcessor, GestureResult } from '../services/parallelGestureProcessor';
-import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
+import { twoHandGestureService } from '../services/twoHandGestureService';
 import type { TwoHandGesture } from '../../webview/types/MediaPipeTypes';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
 import OpenAIGestureFeedback from './OpenAIGestureFeedback';
@@ -137,7 +136,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   const queuedModelRef = useRef(false);
   const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setLangTick] = useState(0);
-  const lastDetectedGestureRef = useRef<string | null>(null);
 
   // OpenAI validation state
   const [openaiValidationResult, setOpenaiValidationResult] = useState<{
@@ -152,6 +150,79 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
   // Define proper types for captured frame
   type CapturedFrame = string | { base64?: string } | null;
+
+  // Original sequential gesture detection (kept for fallback)
+  const handleGestureDetection = useCallback(async (
+    gesture: string | null,
+    confidence: number,
+    landmarks: number[][][],
+    handednesses: string[],
+    emergency?: boolean
+  ) => {
+    if (!gesture) {
+      onGestureDetected(null, confidence, landmarks, handednesses, emergency);
+      return;
+    }
+
+    // Check if we should trigger OpenAI validation
+    const shouldValidate = shouldTriggerOpenAIValidation(confidence, gesture);
+
+    if (shouldValidate) {
+      try {
+        // Capture current frame for OpenAI validation
+        // Note: This is a placeholder - actual image capture would need camera access
+        const imageCapture = null; // TODO: Implement actual image capture
+
+        if (imageCapture) {
+          const validationResult = await validateGestureWithFallback(
+            { gesture, confidence, landmarks },
+            imageCapture,
+            {
+              session_id: 'current-session', // TODO: Get from context
+              environment: 'home', // TODO: Get from context
+            }
+          );
+
+          // Update OpenAI validation state
+          setOpenaiValidationResult({
+            gesture: validationResult.finalGesture,
+            confidence: validationResult.finalConfidence,
+            feedback: validationResult.feedback || 'Gesture validated',
+            quality_score: 7.5, // TODO: Get from OpenAI response
+            suggestions: validationResult.suggestions,
+            validation_source: validationResult.validationSource,
+          });
+
+          // Show feedback if validation source changed
+          if (validationResult.validationSource !== 'mediapipe') {
+            setShowOpenaiFeedback(true);
+          }
+
+          // Use validated result
+          onGestureDetected(
+            validationResult.finalGesture,
+            validationResult.finalConfidence,
+            landmarks,
+            handednesses,
+            emergency
+          );
+        } else {
+          // Fallback to original detection
+          onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+        }
+      } catch (error) {
+        logger.warn('OpenAI validation failed, using MediaPipe result', error, {
+          gesture,
+          confidence,
+          emergency
+        });
+        onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+      }
+    } else {
+      // Use original MediaPipe detection
+      onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+    }
+  }, [onGestureDetected]);
 
   // Enhanced gesture detection with parallel processing and frame rate optimization
   const handleGestureDetectionEnhanced = useCallback(async (
@@ -307,80 +378,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     const gestureComplexity = frameRateOptimizationService.calculateGestureComplexity(landmarks, handednesses);
     frameRateOptimizationService.recordFrameProcessing(frameStartTime, gestureComplexity);
 
-  }, [onGestureDetected, onMergedResult, onWebViewEvent, enableParallelProcessing]);
-
-  // Original sequential gesture detection (kept for fallback)
-  const handleGestureDetection = useCallback(async (
-    gesture: string | null,
-    confidence: number,
-    landmarks: number[][][],
-    handednesses: string[],
-    emergency?: boolean
-  ) => {
-    if (!gesture) {
-      onGestureDetected(null, confidence, landmarks, handednesses, emergency);
-      return;
-    }
-
-    // Check if we should trigger OpenAI validation
-    const shouldValidate = shouldTriggerOpenAIValidation(confidence, gesture);
-
-    if (shouldValidate) {
-      try {
-        // Capture current frame for OpenAI validation
-        // Note: This is a placeholder - actual image capture would need camera access
-        const imageCapture = null; // TODO: Implement actual image capture
-
-        if (imageCapture) {
-          const validationResult = await validateGestureWithFallback(
-            { gesture, confidence, landmarks },
-            imageCapture,
-            {
-              session_id: 'current-session', // TODO: Get from context
-              environment: 'home', // TODO: Get from context
-            }
-          );
-
-          // Update OpenAI validation state
-          setOpenaiValidationResult({
-            gesture: validationResult.finalGesture,
-            confidence: validationResult.finalConfidence,
-            feedback: validationResult.feedback || 'Gesture validated',
-            quality_score: 7.5, // TODO: Get from OpenAI response
-            suggestions: validationResult.suggestions,
-            validation_source: validationResult.validationSource,
-          });
-
-          // Show feedback if validation source changed
-          if (validationResult.validationSource !== 'mediapipe') {
-            setShowOpenaiFeedback(true);
-          }
-
-          // Use validated result
-          onGestureDetected(
-            validationResult.finalGesture,
-            validationResult.finalConfidence,
-            landmarks,
-            handednesses,
-            emergency
-          );
-        } else {
-          // Fallback to original detection
-          onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
-        }
-      } catch (error) {
-        logger.warn('OpenAI validation failed, using MediaPipe result', error, {
-          gesture,
-          confidence,
-          emergency
-        });
-        onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
-      }
-    } else {
-      // Use original MediaPipe detection
-      onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
-    }
-  }, [onGestureDetected]);
+  }, [onGestureDetected, onMergedResult, onWebViewEvent, enableParallelProcessing, handleGestureDetection]);
 
   const injectModel = useCallback((b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
@@ -439,9 +437,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   const predictionError = escapeJs(LanguageManager.t('mediapipe.predictionError'));
   const cameraError = escapeJs(LanguageManager.t('mediapipe.cameraError'));
 
-  const getLastDetectedGesture = useCallback(() => {
-    return lastDetectedGestureRef.current;
-  }, []);
+
 
   useEffect(() => {
     const loadModel = async () => {
@@ -579,9 +575,9 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         const processingParams = performanceOptimizationService.getOptimizedProcessingParams();
 
         // Compress landmarks for better performance (only if enabled)
-        const compressedLandmarks = processingParams.compressionEnabled
-          ? performanceOptimizationService.compressLandmarks(landmarks)
-          : landmarks;
+        if (processingParams.compressionEnabled) {
+          performanceOptimizationService.compressLandmarks(landmarks);
+        }
         // For tests, emit synchronously to satisfy expectations
         if (process.env.NODE_ENV === 'test') {
           onGestureDetected(gesture, confidence, landmarks, handednesses, data.emergency === true);

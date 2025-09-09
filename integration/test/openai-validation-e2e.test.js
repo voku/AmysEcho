@@ -9,8 +9,8 @@
  * 5. App receives and displays results
  */
 
-const request = require('supertest');
-const express = require('express');
+import request from 'supertest';
+import express from 'express';
 
 // Mock React Native components and services
 jest.mock('react-native', () => ({

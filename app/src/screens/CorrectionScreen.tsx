@@ -11,7 +11,6 @@ import { gestureModel } from '../model';
 import { childHaptic } from '../services/feedbackService';
 import { getGestureIcon } from '../components/CorrectionPanel';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function CorrectionScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [suggestions, setSuggestions] = useState<Array<{id: string; label: string; confidence: number}>>([]);

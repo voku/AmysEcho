@@ -9,12 +9,11 @@ import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { childHaptic } from '../services/feedbackService';
 
-export default function ProgressScreen({ navigation, route }: any) {
+export default function ProgressScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [stats, setStats] = useState<Record<string, number>>({});
   const [profile, setProfile] = useState<Profile | null>(null);
   const [engagement, setEngagement] = useState<{ totalSessions: number; averageDurationMs: number }>({ totalSessions: 0, averageDurationMs: 0 });
-  const profileId = route?.params?.profileId;
 
   useEffect(() => {
     loadProfile().then((p) => {

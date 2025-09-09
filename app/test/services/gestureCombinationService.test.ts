@@ -11,8 +11,8 @@ import { gestureCombinationService, GestureSequence, SequenceMatch } from '../..
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
+  setItem: jest.fn().mockResolvedValue(undefined),
+  removeItem: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Mock logger
@@ -421,7 +421,6 @@ describe('GestureCombinationService', () => {
 
   describe('Persistence', () => {
     it('should load sequences from AsyncStorage', async () => {
-      jest.setTimeout(30000); // Increase timeout for this test
       const storedSequences = {
         'stored_test': {
           id: 'stored_test',
@@ -439,18 +438,19 @@ describe('GestureCombinationService', () => {
 
       mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(storedSequences));
 
-      // Create new instance to trigger load
-      // @ts-ignore - accessing private constructor for testing
-      const newService = new (gestureCombinationService.constructor as any)();
+      // Clear current sequences to test loading
+      // @ts-ignore - accessing private property for testing
+      gestureCombinationService.sequences.clear();
 
-      // Wait for async load to complete
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Manually trigger load (since we can't recreate singleton)
+      // @ts-ignore - accessing private method for testing
+      await gestureCombinationService.loadSequences();
 
       // @ts-ignore - accessing private property for testing
-      expect(newService.sequences.size).toBe(1);
+      expect(gestureCombinationService.sequences.size).toBe(1);
       // @ts-ignore
-      expect(newService.sequences.get('stored_test').usageCount).toBe(5);
-    }, 15000);
+      expect(gestureCombinationService.sequences.get('stored_test').usageCount).toBe(5);
+    });
 
     it('should save sequences to AsyncStorage', () => {
       const saveSequence: Omit<GestureSequence, 'usageCount' | 'lastUsed'> = {
@@ -472,11 +472,10 @@ describe('GestureCombinationService', () => {
       );
     });
 
-    it('should handle AsyncStorage errors gracefully', async () => {
-      mockAsyncStorage.getItem.mockRejectedValue(new Error('Storage error'));
+    it('should handle AsyncStorage errors gracefully', () => {
       mockAsyncStorage.setItem.mockRejectedValue(new Error('Storage error'));
 
-      // Should not throw errors
+      // Should not throw errors even when storage fails
       expect(() => {
         gestureCombinationService.addSequence({
           id: 'error_test',
@@ -598,12 +597,29 @@ describe('GestureCombinationService', () => {
       gestureCombinationService.addSequence(sequence1);
       gestureCombinationService.addSequence(sequence2);
 
+      // Verify sequences were added
+      const allSequences = gestureCombinationService.getAllSequences();
+      expect(allSequences.length).toBe(2);
+
       // Start both sequences with same gesture
-      gestureCombinationService.processGesture('shared', 0.8);
+      const result = gestureCombinationService.processGesture('shared', 0.8);
+
+      // Should return a result for one of the sequences
+      expect(result).not.toBeNull();
+
+      // Debug: Check what sequences are actually stored
+      const storedSequences = gestureCombinationService.getAllSequences();
+      console.log('All sequences:', storedSequences.map(s => ({ id: s.id, gestures: s.gestures })));
 
       // Both should be active
       const active = gestureCombinationService.getActiveSequences();
+      console.log('Active sequences:', active.map(a => ({ id: a.sequence.id, progress: a.progress })));
       expect(active.length).toBe(2);
+
+      // Verify both sequences are in active list
+      const activeIds = active.map(a => a.sequence.id);
+      expect(activeIds).toContain('concurrent1');
+      expect(activeIds).toContain('concurrent2');
 
       // Complete first sequence
       gestureCombinationService.processGesture('unique1', 0.8);

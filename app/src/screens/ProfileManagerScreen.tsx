@@ -16,7 +16,7 @@ import { childHaptic } from '../services/feedbackService';
 import GestureHistoryViewer from '../components/GestureHistoryViewer';
 import ProfileAnalytics from '../components/ProfileAnalytics';
 import { gestureHistoryService } from '../services/gestureHistoryService';
-import { positiveTelemetryService } from '../services/positiveTelemetryService';
+
 
 export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);

@@ -252,8 +252,6 @@ class EmergencyPriorityService {
     const startTime = Date.now();
 
     try {
-      const response = this.getEmergencyResponse(gesture.gesture);
-
       // Log emergency processing
       logger.info(`Processing emergency gesture: ${gesture.gesture} (${gesture.priority})`);
 

@@ -2,6 +2,8 @@
 
 Thanks for your interest in improving Amy's Echo! This project supports one child, so every contribution must be made with care.
 
+**Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
+
 ## Getting Started
 - Read `AGENTS.md` for workflow and `spec/AmysEcho.md` for the project requirements.
 - Run `npm install` in the repo root to install shared tools.

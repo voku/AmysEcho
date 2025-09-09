@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS } from '../constants/ui';
-import { LanguageManager } from '../services/LanguageManager';
 import { useThemeMessages } from '../utils/themeMessages';
 
 export const CELEBRATION_DURATION_MS = 200 + 700 + 300;

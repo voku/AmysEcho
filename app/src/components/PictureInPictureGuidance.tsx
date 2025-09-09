@@ -98,7 +98,7 @@ export default function PictureInPictureGuidance({
       statusSubscription.remove();
       endSubscription.remove();
     };
-  }, [player]);
+  }, [player, onPlaybackComplete, playbackMode]);
 
   // Control playback based on props
   useEffect(() => {

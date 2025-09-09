@@ -4,7 +4,7 @@
  */
 
 import { logger } from './logger';
-import { withErrorHandling, withRetry, handleApiError, isRetryableError } from './errorUtils';
+import { withRetry, handleApiError, isRetryableError } from './errorUtils';
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';

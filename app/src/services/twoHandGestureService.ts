@@ -9,7 +9,7 @@
  * - Emergency gesture priority handling
  */
 
-import { TWO_HAND_GESTURES, TwoHandGestureDefinition, formatTwoHandGesture, isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
+import { TWO_HAND_GESTURES, TwoHandGestureDefinition } from '../constants/twoHandGestures';
 import { logger } from '../utils/logger';
 import { performanceMonitor } from './performanceMonitor';
 
@@ -61,8 +61,7 @@ export class TwoHandGestureService {
     leftConfidence: number,
     rightConfidence: number,
     handedness: string[],
-    landmarks: number[][][],
-    timestamp: number = Date.now()
+    landmarks: number[][][]
   ): Promise<DetectedTwoHandGesture | null> {
     const startTime = performance.now();
 

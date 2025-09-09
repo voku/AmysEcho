@@ -16,7 +16,7 @@ export async function processDataUrl(
     return dataUrl; // Non-web environments: no-op
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       try {
@@ -39,7 +39,7 @@ export async function processDataUrl(
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, tw, th);
         const out = canvas.toDataURL('image/jpeg', Math.min(1, Math.max(0.1, quality)));
         resolve(out);
-      } catch (e) {
+      } catch (_e) {
         resolve(dataUrl);
       }
     };

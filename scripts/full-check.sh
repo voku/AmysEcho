@@ -9,9 +9,9 @@ unset npm_config_https_proxy
 install_node_modules() {
   local pkg_dir="$1"
   if [ "${CI:-}" = "true" ]; then
-    npm ci --prefix "$pkg_dir" || npm install --prefix "$pkg_dir"
+    npm ci --prefix "$pkg_dir" --legacy-peer-deps || npm install --prefix "$pkg_dir" --legacy-peer-deps
   else
-    npm install --prefix "$pkg_dir"
+    npm install --prefix "$pkg_dir" --legacy-peer-deps
   fi
 }
 

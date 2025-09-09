@@ -56,7 +56,7 @@ function ThemeOption({ theme, isSelected, onSelect }: ThemeOptionProps) {
 }
 
 export default function ThemeSelector() {
-  const { theme: currentTheme, themeName, setTheme, availableThemes } = useTheme();
+  const { themeName, setTheme, availableThemes } = useTheme();
   const { largeText, highContrast } = useAccessibility();
 
   const handleThemeSelect = async (themeName: keyof typeof THEMES) => {

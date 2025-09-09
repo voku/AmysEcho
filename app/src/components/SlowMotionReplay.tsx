@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Pressable, Animated, Dimensions } from 'react-native';
+import { View, Text, Pressable, Animated, Dimensions } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { logger } from '../utils/logger';
@@ -176,8 +176,13 @@ export default function SlowMotionReplay({
 
   // Get screen dimensions dynamically
   useEffect(() => {
-    const { width } = Dimensions.get('window');
-    setScreenWidth(width);
+    try {
+      const { width } = Dimensions.get('window');
+      setScreenWidth(width);
+    } catch (error) {
+      // Fallback for test environments
+      setScreenWidth(375);
+    }
   }, []);
 
   const player = useVideoPlayer(videoUri ? { uri: videoUri } : null);

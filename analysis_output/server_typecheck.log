@@ -1,0 +1,4 @@
+
+> amysecho_backend@1.0.0 type-check
+> tsc --noEmit --project tsconfig.json
+

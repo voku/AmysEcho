@@ -401,7 +401,6 @@ class PositiveTelemetryService {
 
     if (gestureMoments.length === 0) return { current: 0, longest: 0 };
 
-    let currentStreak = 1;
     let longestStreak = 1;
     let tempStreak = 1;
 
@@ -420,8 +419,6 @@ class PositiveTelemetryService {
     longestStreak = Math.max(longestStreak, tempStreak);
 
     // Calculate current streak (consecutive days ending with today or yesterday)
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
 
     const recentMoments = gestureMoments.slice(-longestStreak);
     const recentDates = recentMoments.map(m => new Date(m.timestamp).toDateString());

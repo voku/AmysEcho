@@ -1,18 +1,21 @@
 # Codebase Overview
 
-This document summarizes the repository in seven key areas with concrete file references. See `spec/AmysEcho.md` for the full project specification and `docs/TODO.md` for the implementation checklist. For build and test instructions, see `docs/BUILD_AND_TEST.md`.
+This document summarizes the repository in key areas with concrete file references. See `spec/AmysEcho.md` for the full project specification and `docs/TODO.md` for the implementation checklist. For build and test instructions, see `docs/BUILD_AND_TEST.md`.
+
+**Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
 
 ## 1. Mobile App Structure
 - React Native code lives in `app/`
 - Navigation and screens are in `app/src/screens/`
 - Services and hooks are in `app/src/services/` and `app/src/hooks/`
+- Global state management is handled by React Contexts in `app/src/context/`
 
 ## 2. Gesture Recognition Pipeline
 - `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.
 - `app/webview/gestureDetector.ts` compiles to `app/assets/gestureDetector.js`; a Jest test (`app/test/gestureDetectorBuild.test.ts`) keeps the bundle synced with its TypeScript source.
 - `app/src/screens/RecognitionScreen.tsx` hosts the detector, fuses results with cached centroids, and logs outcomes.
 - `app/src/services/offlineClassifier.ts` performs centroid-based fallback classification when confidence is low.
-- Runtime classification uses cached centroid JSON models; no TFLite artifacts remain.
+- The pipeline is enhanced with contextual awareness (`app/src/services/contextAwareRecognitionService.ts`), predictive gestures (`app/src/services/gestureSuggester.ts`), and emotional state recognition (integrated in `app/src/services/positiveTelemetryService.ts`).
 
 ## 3. Training and Personalization
 - Sample collection UI in `app/src/screens/TeachingScreen.tsx`
@@ -27,6 +30,7 @@ This document summarizes the repository in seven key areas with concrete file re
 ## 5. Adaptive Learning & Corrections
 - Corrections stored via `app/db/models.ts` and synced in `app/src/services/syncService.ts`
 - Adaptive logic in `server/src/services/adaptiveLearningService.ts`
+- The app features automated content generation and smart practice sessions (integrated in `app/src/services/adaptiveLearningService.ts`).
 
 ## 6. Caregiver Portal & Analytics
 - Web portal at `server/src/portal/index.ts` lists analytics, manages training data, and serves model downloads via `/portal`

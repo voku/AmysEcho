@@ -130,7 +130,7 @@ export class PerformanceOptimizationService {
               await AsyncStorage.removeItem(key);
             }
           }
-        } catch (error) {
+        } catch (_error) {
           // Remove corrupted entries
           await AsyncStorage.removeItem(key);
         }
@@ -218,8 +218,8 @@ export class PerformanceOptimizationService {
 
   // Enable low power mode optimizations
   private enableLowPowerMode(): void {
-    // Get battery-optimized parameters
-    const batteryParams = batteryOptimizationService.getBatteryOptimizedParams();
+    // Get battery-optimized parameters (no emergency bypass for general optimizations)
+    const batteryParams = batteryOptimizationService.getBatteryOptimizedParams(false);
 
     // Apply battery optimizations
     this.metrics.frameRate = batteryParams.frameRate;
@@ -254,16 +254,22 @@ export class PerformanceOptimizationService {
 
   // WebView message batching
   public addWebViewMessage(message: any, priority: 'low' | 'medium' | 'high' | 'critical' = 'medium'): void {
+    // Check if this is an emergency gesture that should bypass battery optimizations
+    const isEmergencyGesture = this.isEmergencyGestureMessage(message);
+
     this.messageBatch.messages.push({
       ...message,
       priority,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isEmergencyGesture
     });
 
     this.metrics.webviewMessageCount++;
 
-    // Process high priority messages immediately
-    if (priority === 'critical' || priority === 'high') {
+    // Process critical messages immediately, or emergency gestures in low power mode
+    if (priority === 'critical' || (isEmergencyGesture && this.isLowPowerMode)) {
+      this.processMessageBatch();
+    } else if (priority === 'high') {
       this.processMessageBatch();
     }
   }
@@ -272,10 +278,20 @@ export class PerformanceOptimizationService {
   private processMessageBatch(): void {
     if (this.messageBatch.messages.length === 0) return;
 
-    // Group messages by priority
-    const highPriority = this.messageBatch.messages.filter(m => m.priority === 'high' || m.priority === 'critical');
-    const mediumPriority = this.messageBatch.messages.filter(m => m.priority === 'medium');
-    const lowPriority = this.messageBatch.messages.filter(m => m.priority === 'low');
+    // Separate emergency gestures from regular messages
+    const emergencyMessages = this.messageBatch.messages.filter(m => m.isEmergencyGesture);
+    const regularMessages = this.messageBatch.messages.filter(m => !m.isEmergencyGesture);
+
+    // Process emergency messages immediately with full performance
+    if (emergencyMessages.length > 0) {
+      logger.info(`Processing ${emergencyMessages.length} emergency messages with full performance`);
+      this.sendMessagesToWebViews(emergencyMessages, true); // true = emergency mode
+    }
+
+    // Group regular messages by priority
+    const highPriority = regularMessages.filter(m => m.priority === 'high' || m.priority === 'critical');
+    const mediumPriority = regularMessages.filter(m => m.priority === 'medium');
+    const lowPriority = regularMessages.filter(m => m.priority === 'low');
 
     // Process high priority messages first
     if (highPriority.length > 0) {
@@ -297,8 +313,37 @@ export class PerformanceOptimizationService {
     this.messageBatch.timestamp = Date.now();
   }
 
+  // Check if message contains emergency gesture
+  private isEmergencyGestureMessage(message: any): boolean {
+    if (!message || typeof message !== 'object') return false;
+
+    // Check various message formats for emergency gestures
+    const emergencyKeywords = ['hilfe', 'help', 'emergency', 'stop', 'danger', 'notfall', 'gefahr'];
+
+    // Check gesture field
+    if (message.gesture && typeof message.gesture === 'string') {
+      if (emergencyKeywords.some(keyword => message.gesture.toLowerCase().includes(keyword))) {
+        return true;
+      }
+    }
+
+    // Check message content
+    if (message.message && typeof message.message === 'string') {
+      if (emergencyKeywords.some(keyword => message.message.toLowerCase().includes(keyword))) {
+        return true;
+      }
+    }
+
+    // Check for emergency flag
+    if (message.isEmergency === true || message.emergency === true) {
+      return true;
+    }
+
+    return false;
+  }
+
   // Send messages to WebViews with optimization
-  private sendMessagesToWebViews(messages: any[]): void {
+  private sendMessagesToWebViews(messages: any[], isEmergencyMode: boolean = false): void {
     if (messages.length === 0) return;
 
     // Group messages by type for better processing
@@ -308,7 +353,7 @@ export class PerformanceOptimizationService {
       try {
         if (webview && webview.injectJavaScript) {
           // Create optimized batch script
-          const batchScript = this.createOptimizedBatchScript(groupedMessages);
+          const batchScript = this.createOptimizedBatchScript(groupedMessages, isEmergencyMode);
           webview.injectJavaScript(batchScript);
         }
       } catch (error) {
@@ -330,9 +375,31 @@ export class PerformanceOptimizationService {
   }
 
   // Create optimized batch script
-  private createOptimizedBatchScript(groupedMessages: Record<string, any[]>): string {
+  private createOptimizedBatchScript(groupedMessages: Record<string, any[]>, isEmergencyMode: boolean = false): string {
     const scripts: string[] = [];
 
+    // In emergency mode, prioritize gesture messages and disable batching optimizations
+    if (isEmergencyMode) {
+      // Handle gesture messages first and individually for immediate processing
+      if (groupedMessages.gesture) {
+        groupedMessages.gesture.forEach(msg => {
+          scripts.push(`window.__handleGesture && window.__handleGesture(${JSON.stringify(msg)});`);
+        });
+      }
+
+      // Handle other emergency messages
+      Object.keys(groupedMessages).forEach(type => {
+        if (type !== 'gesture') {
+          groupedMessages[type].forEach(msg => {
+            scripts.push(`window.__handleMessage && window.__handleMessage(${JSON.stringify(msg)});`);
+          });
+        }
+      });
+
+      return scripts.join('\n');
+    }
+
+    // Normal batching for non-emergency messages
     // Handle telemetry messages specially (most common)
     if (groupedMessages.telemetry) {
       const telemetryBatch = groupedMessages.telemetry.map(msg =>

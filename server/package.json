@@ -19,13 +19,16 @@
     "zod": "4.1.0"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.25.4",
+    "@babel/preset-typescript": "^7.24.7",
     "@types/express": "5.0.3",
     "@types/jest": "^29.5.14",
     "@types/node": "24.1.0",
     "@types/supertest": "^6.0.2",
-    "@babel/preset-env": "^7.25.4",
-    "@babel/preset-typescript": "^7.24.7",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
     "babel-jest": "^29.7.0",
+    "eslint": "^9.35.0",
     "jest": "^29.7.0",
     "supertest": "^7.0.0",
     "ts-node": "10.9.2",
@@ -37,6 +40,8 @@
     "test:py": "PYTHONPATH=./src:./ pytest -q",
     "train:mlp": "python3 src/amyserver_tools/train_mlp.py",
     "type-check": "tsc --noEmit --project tsconfig.json",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix",
     "build": "sh -c 'rm -rf dist && tsc'",
     "start": "node dist/server.js",
     "download-gesture-task": "ts-node src/tools/getGestureTask.ts"

@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { Text, StyleSheet, Animated } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 

@@ -17,22 +17,7 @@ interface CommunicationInsightsProps {
   onClose?: () => void;
 }
 
-// Mock data - in real app this would come from analytics
-const mockPatterns: PatternData[] = [
-  { timeOfDay: 'Morgens (6-12)', gesture: 'Hallo', frequency: 8, trend: 'increasing' },
-  { timeOfDay: 'Mittags (12-18)', gesture: 'Bitte', frequency: 12, trend: 'stable' },
-  { timeOfDay: 'Abends (18-22)', gesture: 'Danke', frequency: 6, trend: 'decreasing' },
-];
 
-const mockWeeklyData = [
-  { day: 'Mo', gestures: 15 },
-  { day: 'Di', gestures: 22 },
-  { day: 'Mi', gestures: 18 },
-  { day: 'Do', gestures: 25 },
-  { day: 'Fr', gestures: 20 },
-  { day: 'Sa', gestures: 12 },
-  { day: 'So', gestures: 8 },
-];
 
 // Simple bar chart component
 function SimpleBarChart({ data }: { data: Array<{ day: string; gestures: number }> }) {
@@ -139,6 +124,32 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
   const [insightData, setInsightData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load real data on component mount
+  useEffect(() => {
+    const loadInsights = async () => {
+      try {
+        const insights = positiveTelemetryService.getPositiveInsights();
+        setInsightData(insights);
+      } catch (error) {
+        console.error('Failed to load communication insights:', error);
+        // Fallback to mock data if real data fails
+        setInsightData({
+          weeklyProgress: { totalSuccesses: 100, averageConfidence: 0.8, mostSuccessfulDay: 'Mo', improvementTrend: 'improving' },
+          peakPerformanceTimes: [{ timeOfDay: 'morning', averageConfidence: 0.8 }],
+          topGestures: [{ gesture: 'hello', successRate: 0.9, frequency: 15 }],
+          communicationStreaks: [{ gesture: 'hello', currentStreak: 3, longestStreak: 5 }],
+          recentCelebrations: []
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInsights();
+  }, []);
+
+
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -224,6 +235,12 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     trendContainer: {
       marginLeft: SPACING.sm,
     },
+    loadingText: {
+      fontSize: largeText ? 16 : 14,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      textAlign: 'center',
+      marginTop: SPACING.lg,
+    },
     insightsList: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.surface,
       borderRadius: RADIUS,
@@ -248,33 +265,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     },
   });
 
-  useEffect(() => {
-    const loadInsights = async () => {
-      try {
-        const positiveInsights = positiveTelemetryService.getPositiveInsights();
-        setInsightData(positiveInsights);
-      } catch (error) {
-        console.warn('Failed to load communication insights:', error);
-        // Fallback to mock data if service fails
-        setInsightData({
-          topGestures: mockPatterns.map(p => ({ gesture: p.gesture, successRate: 0.8, frequency: p.frequency })),
-          peakPerformanceTimes: [{ timeOfDay: 'afternoon', averageConfidence: 0.85 }],
-          communicationStreaks: mockPatterns.map(p => ({ gesture: p.gesture, currentStreak: 3, longestStreak: 5 })),
-          recentCelebrations: [],
-          weeklyProgress: {
-            totalSuccesses: mockWeeklyData.reduce((sum, d) => sum + d.gestures, 0),
-            averageConfidence: 0.82,
-            mostSuccessfulDay: 'Do',
-            improvementTrend: 'improving'
-          }
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
-    loadInsights();
-  }, []);
 
   if (isLoading || !insightData) {
     return (
@@ -284,24 +275,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     );
   }
 
-  // Transform insights data for display
-  const patterns: PatternData[] = insightData.topGestures.map((g: any) => ({
-    timeOfDay: insightData.peakPerformanceTimes[0]?.timeOfDay || 'afternoon',
-    gesture: g.gesture,
-    frequency: g.frequency,
-    trend: insightData.weeklyProgress.improvementTrend === 'improving' ? 'increasing' :
-           insightData.weeklyProgress.improvementTrend === 'celebrating' ? 'stable' : 'decreasing'
-  }));
 
-  const weeklyData = [
-    { day: 'Mo', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.2) },
-    { day: 'Di', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.25) },
-    { day: 'Mi', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.15) },
-    { day: 'Do', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.2) },
-    { day: 'Fr', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.1) },
-    { day: 'Sa', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.05) },
-    { day: 'So', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.05) },
-  ];
 
   const keyInsights = [
     {
@@ -336,6 +310,50 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
       text: celebration.message,
     });
   });
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{LanguageManager.t('insights.title')}</Text>
+          <Text style={styles.subtitle}>Lade Daten...</Text>
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.loadingText}>Analysiere Amy's Kommunikationsmuster...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!insightData) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{LanguageManager.t('insights.title')}</Text>
+          <Text style={styles.subtitle}>Keine Daten verfügbar</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Transform insights data for display
+  const patterns: PatternData[] = insightData.topGestures.map((g: any) => ({
+    timeOfDay: 'Allgemein',
+    gesture: g.gesture,
+    frequency: g.frequency,
+    trend: insightData.weeklyProgress.improvementTrend === 'improving' ? 'increasing' :
+           insightData.weeklyProgress.improvementTrend === 'celebrating' ? 'stable' : 'decreasing'
+  }));
+
+  const weeklyData = [
+    { day: 'Mo', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.2) },
+    { day: 'Di', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.25) },
+    { day: 'Mi', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.15) },
+    { day: 'Do', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.2) },
+    { day: 'Fr', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.1) },
+    { day: 'Sa', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.05) },
+    { day: 'So', gestures: Math.floor(insightData.weeklyProgress.totalSuccesses * 0.05) },
+  ];
 
   return (
     <View style={styles.container}>

@@ -91,6 +91,9 @@ npx jest app/test/integration/openaiGestureValidationIntegration.test.tsx --verb
 
 # End-to-end tests
 npx jest integration/test/openai-validation-e2e.test.js --verbose
+
+# Dialog endpoint (Responses API) test
+npx jest integration/test/dialog-endpoint-e2e.test.js --verbose
 ```
 
 ## 📋 Test Files Structure

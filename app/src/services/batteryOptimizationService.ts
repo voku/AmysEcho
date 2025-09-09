@@ -174,13 +174,24 @@ export class BatteryOptimizationService {
   }
 
   // Get battery-optimized processing parameters
-  public getBatteryOptimizedParams(): {
+  public getBatteryOptimizedParams(isEmergencyGesture: boolean = false): {
     frameRate: number;
     telemetryInterval: number;
     hapticFeedbackEnabled: boolean;
     backgroundProcessingEnabled: boolean;
     compressionLevel: 'high' | 'medium' | 'low';
   } {
+    // Emergency gestures always get full performance regardless of battery
+    if (isEmergencyGesture) {
+      return {
+        frameRate: 30, // Full frame rate for emergencies
+        telemetryInterval: 10000, // 10 seconds for emergency monitoring
+        hapticFeedbackEnabled: true, // Always enable for emergency feedback
+        backgroundProcessingEnabled: true, // Keep emergency processing active
+        compressionLevel: 'low' // Best quality for emergency gestures
+      };
+    }
+
     if (this.isLowPowerMode) {
       return {
         frameRate: 15,
@@ -230,6 +241,14 @@ export class BatteryOptimizationService {
         logger.warn('Error in power mode change callback', error);
       }
     });
+  }
+
+  // Check if emergency gestures should bypass battery optimizations
+  public shouldBypassBatteryOptimizations(gestureType: string): boolean {
+    const emergencyGestures = ['hilfe', 'help', 'emergency', 'stop', 'danger', 'notfall', 'gefahr'];
+    return emergencyGestures.some(emergency =>
+      gestureType.toLowerCase().includes(emergency)
+    );
   }
 
   // Get battery status summary

@@ -9,7 +9,7 @@ import { loadProfile, Profile } from '../storage';
 import { childHaptic } from '../services/feedbackService';
 import { childFriendlyStyles } from '../styles/touchTargets';
 
-export default function PracticeSchedulerScreen({ navigation, route }: any) {
+export default function PracticeSchedulerScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [schedules, setSchedules] = useState<PracticeSchedule[]>([]);
   const [gestureId, setGestureId] = useState(gestureModel.gestures[0]?.id || 'hello');
@@ -17,7 +17,6 @@ export default function PracticeSchedulerScreen({ navigation, route }: any) {
   const [minute, setMinute] = useState('0');
   const [days, setDays] = useState<number[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const profileId = route?.params?.profileId;
 
   const dayLabels = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 

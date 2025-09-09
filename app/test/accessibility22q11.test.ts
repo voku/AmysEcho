@@ -218,12 +218,6 @@ describe('22q11 Syndrome Accessibility Features', () => {
   describe('Integration with Amy First Principles', () => {
     test('should never reduce functionality for accessibility', () => {
       // Even with accessibility features enabled, should maintain full functionality
-      const accessibilityConfig = {
-        tremorCompensation: true,
-        extendedPatience: true,
-        partialRecognition: true,
-        positiveReinforcement: true
-      };
 
       // Should not impact core gesture recognition
       const emergencyResult = window.emergencyGestureSystem?.processEmergencyGesture(

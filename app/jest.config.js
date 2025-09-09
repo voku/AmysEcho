@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'jest-expo',
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts', '<rootDir>/test/setupMemory.js'],
   transformIgnorePatterns: [
     "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|expo-secure-store|expo-haptics|expo-asset|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))"
   ],
@@ -18,4 +18,10 @@ module.exports = {
     '!src/**/*.d.ts',
     '!webview/**/*.d.ts',
   ],
+  // Memory optimization settings
+  maxWorkers: 2, // Limit concurrent workers
+  cache: true, // Enable caching
+  clearMocks: true, // Clear mocks between tests
+  resetMocks: true, // Reset mocks between tests
+   // Increase Node.js memory limit for large test suites
 };

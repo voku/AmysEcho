@@ -6,14 +6,24 @@
  */
 
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import { Animated } from 'react-native';
 import ScreenFlash from '../../src/components/ScreenFlash';
 
 // Mock Dimensions specifically
-jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
+const mockDimensions = {
   get: jest.fn(() => ({ width: 375, height: 812 })),
-}));
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+};
+
+jest.mock('react-native', () => {
+  const RN = jest.requireActual('react-native');
+  return {
+    ...RN,
+    Dimensions: mockDimensions,
+  };
+});
 
 describe('ScreenFlash', () => {
   beforeEach(() => {

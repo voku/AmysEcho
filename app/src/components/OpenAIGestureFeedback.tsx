@@ -9,7 +9,6 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
-import { LanguageManager } from '../services/LanguageManager';
 
 interface OpenAIGestureFeedbackProps {
   isVisible: boolean;

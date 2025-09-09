@@ -119,7 +119,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         Promise.resolve((audioService as any).dispose?.()).catch(() => {});
       } catch {}
     };
-  }, [offline, setMessage]);
+  }, [offline, setMessage, setReady, setServices]);
 
   if (!isReady) {
     return <LoadingIndicator />;

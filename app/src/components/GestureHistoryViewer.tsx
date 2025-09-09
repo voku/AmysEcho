@@ -8,7 +8,6 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, FlatList, StyleSheet, TextInput } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
-import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
 interface GestureHistoryItem {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, Dimensions } from 'react-native';
+import { View, Animated, Dimensions } from 'react-native';
 import { COLORS } from '../constants/ui';
 
 interface ScreenFlashProps {
@@ -364,7 +364,7 @@ export default function ScreenFlash({
       opacityAnim.setValue(0);
       scaleAnim.setValue(1);
     }
-  }, [isActive, pattern, duration, opacityAnim, scaleAnim]);
+  }, [isActive, pattern, duration, opacityAnim, scaleAnim, intensity]);
 
   if (!isActive) return null;
 

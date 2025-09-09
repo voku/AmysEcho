@@ -1,0 +1,50 @@
+🚀 Starting OpenAI Gesture Validation Integration Tests
+
+📋 Running End-to-End Tests
+   Tests complete flow from app to server and back
+   Path: /home/lars/PhpstormProjects/AmysEcho/integration/test
+
+FAIL test/openai-validation-e2e.test.js
+  ● Test suite failed to run
+
+    Cannot find module 'react-native' from 'test/openai-validation-e2e.test.js'
+
+      14 |
+      15 | // Mock React Native components and services
+    > 16 | jest.mock('react-native', () => ({
+         |      ^
+      17 |   Platform: {
+      18 |     OS: 'ios',
+      19 |   },
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.mock (test/openai-validation-e2e.test.js:16:6)
+
+FAIL test/dialog-endpoint-e2e.test.js
+  ● Test suite failed to run
+
+    Cannot find module 'openai' from 'test/dialog-endpoint-e2e.test.js'
+
+       8 |
+       9 | // Mock OpenAI SDK
+    > 10 | jest.mock('openai', () => {
+         |      ^
+      11 |   const responses = { create: jest.fn() };
+      12 |   return jest.fn().mockImplementation(() => ({ responses }));
+      13 | });
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.mock (test/dialog-endpoint-e2e.test.js:10:6)
+
+Test Suites: 2 failed, 2 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        1.604 s
+Ran all test suites matching /openai-validation-e2e.test.js|dialog-endpoint-e2e.test.js/i.
+❌ End-to-End Tests failed
+
+Error: End-to-End Tests failed with code 1
+    at ChildProcess.<anonymous> (file:///home/lars/PhpstormProjects/AmysEcho/integration/openai-test-runner.js:74:16)
+    at ChildProcess.emit (node:events:507:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:305:5)

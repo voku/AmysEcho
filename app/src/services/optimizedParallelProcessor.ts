@@ -8,7 +8,7 @@
  * - Memory-efficient processing
  */
 
-import { validateGestureWithOpenAI, shouldTriggerOpenAIValidation } from './openaiGestureValidationService';
+import { validateGestureWithOpenAI } from './openaiGestureValidationService';
 import { logger } from '../utils/logger';
 
 export interface OptimizedGestureResult {

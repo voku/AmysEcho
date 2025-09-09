@@ -116,8 +116,7 @@ class EnhancedAdaptiveLearningService {
   recordPracticeAttempt(
     gesture: string,
     success: boolean,
-    confidence: number,
-    duration?: number
+    confidence: number
   ): void {
     const metrics = this.getOrCreateMetrics(gesture);
 
@@ -262,7 +261,7 @@ class EnhancedAdaptiveLearningService {
     }
 
     // 4. Suggest break if overworked
-    if (this.shouldSuggestBreak(recentActivity)) {
+    if (this.shouldSuggestBreak()) {
       recommendations.push({
         type: 'break',
         reason: 'Kurze Pause für bessere Konzentration',
@@ -274,7 +273,7 @@ class EnhancedAdaptiveLearningService {
     }
 
     return recommendations
-      .sort((a, b) => this.getPriorityWeight(b) - this.getPriorityWeight(a))
+      .sort((a: AdaptiveRecommendation, b: AdaptiveRecommendation) => this.getPriorityWeight(b) - this.getPriorityWeight(a))
       .filter(rec => rec.estimatedTime <= availableTime)
       .slice(0, 3);
   }
@@ -328,7 +327,7 @@ class EnhancedAdaptiveLearningService {
   /**
    * Check if Amy should take a break
    */
-  private shouldSuggestBreak(recentActivity: string[]): boolean {
+  private shouldSuggestBreak(): boolean {
     const now = Date.now();
     const recentSessions = this.practiceSessions.filter(session =>
       session.startTime > (now - (60 * 60 * 1000))

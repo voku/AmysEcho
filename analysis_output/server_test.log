@@ -1,0 +1,653 @@
+
+> amysecho_backend@1.0.0 test
+> npm run test:ts && npm run test:py
+
+
+> amysecho_backend@1.0.0 test:ts
+> jest
+
+PASS test/dialogEngine.test.ts
+  ● Console
+
+    console.log
+      LLM Prompt: A 5-year-old child who speaks de just selected the word "Hallo". The current context is []. Provide likely next words and helpful phrases for a caregiver.
+
+      at log (src/services/dialogEngine.ts:91:11)
+
+    console.log
+      LLM Prompt: A 5-year-old child who speaks de just selected the word "Hallo". The current context is []. Provide likely next words and helpful phrases for a caregiver.
+
+      at log (src/services/dialogEngine.ts:91:11)
+
+    console.log
+      LLM Prompt: A 5-year-old child who speaks de just selected the word "Hallo". The current context is []. Provide likely next words and helpful phrases for a caregiver.
+
+      at log (src/services/dialogEngine.ts:91:11)
+
+    console.log
+      LLM Prompt: A 5-year-old child who speaks de just selected the word "Hallo". The current context is []. Provide likely next words and helpful phrases for a caregiver.
+
+      at log (src/services/dialogEngine.ts:91:11)
+
+    console.error
+      LLM suggestion error: Error: 500
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/dialogEngine.test.ts:71:54)
+          at /home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:397:39
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:404:13)
+          at Object.mockConstructor [as create] (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:148:19)
+          at create (/home/lars/PhpstormProjects/AmysEcho/server/src/services/dialogEngine.ts:100:37)
+          at fn (/home/lars/PhpstormProjects/AmysEcho/server/src/services/dialogEngine.ts:64:43)
+          at attempt (/home/lars/PhpstormProjects/AmysEcho/server/src/services/dialogEngine.ts:79:14)
+          at getLLMSuggestions (/home/lars/PhpstormProjects/AmysEcho/server/src/services/dialogEngine.ts:99:22)
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/dialogEngine.test.ts:72:19)
+
+      137 |     return out;
+      138 |   } catch (error) {
+    > 139 |     console.error('LLM suggestion error:', error);
+          |             ^
+      140 |     return { nextWords: [], caregiverPhrases: [] };
+      141 |   }
+      142 | }
+
+      at error (src/services/dialogEngine.ts:139:13)
+      at Object.<anonymous> (test/dialogEngine.test.ts:72:19)
+
+    console.log
+      LLM Prompt: A 5-year-old child who speaks de just selected the word "Hallo". The current context is []. Provide likely next words and helpful phrases for a caregiver.
+
+      at log (src/services/dialogEngine.ts:91:11)
+
+    console.error
+      LLM suggestion error: Error: network
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/dialogEngine.test.ts:81:54)
+          at /home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:397:39
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:404:13)
+          at Object.mockConstructor [as create] (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:148:19)
+          at create (/home/lars/PhpstormProjects/AmysEcho/server/src/services/dialogEngine.ts:100:37)
+          at fn (/home/lars/PhpstormProjects/AmysEcho/server/src/services/dialogEngine.ts:64:43)
+          at attempt (/home/lars/PhpstormProjects/AmysEcho/server/src/services/dialogEngine.ts:79:14)
+          at getLLMSuggestions (/home/lars/PhpstormProjects/AmysEcho/server/src/services/dialogEngine.ts:99:22)
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/dialogEngine.test.ts:82:19)
+
+      137 |     return out;
+      138 |   } catch (error) {
+    > 139 |     console.error('LLM suggestion error:', error);
+          |             ^
+      140 |     return { nextWords: [], caregiverPhrases: [] };
+      141 |   }
+      142 | }
+
+      at error (src/services/dialogEngine.ts:139:13)
+      at Object.<anonymous> (test/dialogEngine.test.ts:82:19)
+
+    console.log
+      LLM Prompt: A 5-year-old child who speaks de just selected the word "Hallo". The current context is []. Provide likely next words and helpful phrases for a caregiver.
+
+      at log (src/services/dialogEngine.ts:91:11)
+
+PASS test/atomicFs.test.ts
+PASS test/openaiVisionService.test.ts
+  ● Console
+
+    console.error
+      OpenAI Vision validation error: Error: API Error
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/openaiVisionService.test.ts:93:53)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at Object.<anonymous> (test/openaiVisionService.test.ts:95:22)
+
+    console.error
+      Failed to parse vision response: Error: No JSON found in response
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:219:13)
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:131:26)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/openaiVisionService.test.ts:111:22)
+
+      238 |
+      239 |   } catch (error) {
+    > 240 |     console.error('Failed to parse vision response:', error);
+          |             ^
+      241 |     throw new Error('Invalid response format from OpenAI Vision');
+      242 |   }
+      243 | }
+
+      at error (src/services/openaiVisionService.ts:240:13)
+      at parseVisionResponse (src/services/openaiVisionService.ts:131:26)
+      at Object.<anonymous> (test/openaiVisionService.test.ts:111:22)
+
+    console.error
+      OpenAI Vision validation error: Error: Invalid response format from OpenAI Vision
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:241:11)
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:131:26)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/openaiVisionService.test.ts:111:22)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at Object.<anonymous> (test/openaiVisionService.test.ts:111:22)
+
+    console.error
+      OpenAI Vision validation error: Error: No response from OpenAI Vision API
+          at validateGestureWithVision (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:127:13)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/openaiVisionService.test.ts:172:22)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at Object.<anonymous> (test/openaiVisionService.test.ts:172:22)
+
+PASS test/auth.test.ts
+PASS src/recognizer.test.ts
+  ● Console
+
+    console.warn
+      Cloud classification failed, falling back to offline: Error: network
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/src/recognizer.test.ts:8:50)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      184 |     return await classifyOnline(landmarks);
+      185 |   } catch (error) {
+    > 186 |     console.warn('Cloud classification failed, falling back to offline:', error);
+          |             ^
+      187 |     return classifyOffline(landmarks, modelPath, forceReload);
+      188 |   }
+      189 | }
+
+      at warn (src/recognizer.ts:186:13)
+      at Object.<anonymous> (src/recognizer.test.ts:10:22)
+
+    console.warn
+      Cloud classification failed, falling back to offline: Error: network
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/src/recognizer.test.ts:30:50)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      184 |     return await classifyOnline(landmarks);
+      185 |   } catch (error) {
+    > 186 |     console.warn('Cloud classification failed, falling back to offline:', error);
+          |             ^
+      187 |     return classifyOffline(landmarks, modelPath, forceReload);
+      188 |   }
+      189 | }
+
+      at warn (src/recognizer.ts:186:13)
+      at Object.<anonymous> (src/recognizer.test.ts:32:23)
+
+    console.warn
+      Cloud classification failed, falling back to offline: Error: network
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/src/recognizer.test.ts:30:50)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      184 |     return await classifyOnline(landmarks);
+      185 |   } catch (error) {
+    > 186 |     console.warn('Cloud classification failed, falling back to offline:', error);
+          |             ^
+      187 |     return classifyOffline(landmarks, modelPath, forceReload);
+      188 |   }
+      189 | }
+
+      at warn (src/recognizer.ts:186:13)
+      at Object.<anonymous> (src/recognizer.test.ts:33:20)
+
+PASS test/analyticsService.test.ts
+PASS test/model-version.test.ts
+PASS src/constants/modelPaths.test.ts
+PASS test/integration/openaiVisionIntegration.test.ts
+  ● Console
+
+    console.error
+      OpenAI Vision validation error: Error: OpenAI API Error
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/integration/openaiVisionIntegration.test.ts:137:53)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/openaiVisionIntegration.test.ts:78:24
+
+    console.error
+      OpenAI Vision validation error: Error: OpenAI API Error
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/integration/openaiVisionIntegration.test.ts:137:53)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at Object.<anonymous> (test/integration/openaiVisionIntegration.test.ts:258:22)
+
+    console.error
+      Failed to parse vision response: Error: No JSON found in response
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:219:13)
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:131:26)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at /home/lars/PhpstormProjects/AmysEcho/server/test/integration/openaiVisionIntegration.test.ts:78:24
+
+      238 |
+      239 |   } catch (error) {
+    > 240 |     console.error('Failed to parse vision response:', error);
+          |             ^
+      241 |     throw new Error('Invalid response format from OpenAI Vision');
+      242 |   }
+      243 | }
+
+      at error (src/services/openaiVisionService.ts:240:13)
+      at parseVisionResponse (src/services/openaiVisionService.ts:131:26)
+      at test/integration/openaiVisionIntegration.test.ts:78:24
+
+    console.error
+      OpenAI Vision validation error: Error: Invalid response format from OpenAI Vision
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:241:11)
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:131:26)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at /home/lars/PhpstormProjects/AmysEcho/server/test/integration/openaiVisionIntegration.test.ts:78:24
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/openaiVisionIntegration.test.ts:78:24
+
+    console.error
+      OpenAI Vision validation error: Error: No response from OpenAI Vision API
+          at validateGestureWithVision (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:127:13)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at /home/lars/PhpstormProjects/AmysEcho/server/test/integration/openaiVisionIntegration.test.ts:78:24
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/openaiVisionIntegration.test.ts:78:24
+
+    console.error
+      OpenAI Vision validation error: Error: OpenAI request timed out
+          at Timeout.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:293:39)
+          at listOnTimeout (node:internal/timers:608:17)
+          at processTimers (node:internal/timers:543:7)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/openaiVisionIntegration.test.ts:78:24
+
+PASS test/dgsModelService.test.ts
+FAIL test/integration/apiIntegration.test.ts
+  ● Console
+
+    console.error
+      OpenAI Vision validation error: Error: OpenAI API Error
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/integration/apiIntegration.test.ts:283:53)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/apiIntegration.test.ts:86:24
+
+    console.error
+      OpenAI Vision validation error: Error: OpenAI API Error
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/integration/apiIntegration.test.ts:283:53)
+          at Promise.then.completed (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/apiIntegration.test.ts:86:24
+
+    console.error
+      Failed to parse vision response: Error: No JSON found in response
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:219:13)
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:131:26)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at /home/lars/PhpstormProjects/AmysEcho/server/test/integration/apiIntegration.test.ts:86:24
+
+      238 |
+      239 |   } catch (error) {
+    > 240 |     console.error('Failed to parse vision response:', error);
+          |             ^
+      241 |     throw new Error('Invalid response format from OpenAI Vision');
+      242 |   }
+      243 | }
+
+      at error (src/services/openaiVisionService.ts:240:13)
+      at parseVisionResponse (src/services/openaiVisionService.ts:131:26)
+      at test/integration/apiIntegration.test.ts:86:24
+
+    console.error
+      OpenAI Vision validation error: Error: Invalid response format from OpenAI Vision
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:241:11)
+          at parseVisionResponse (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:131:26)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at /home/lars/PhpstormProjects/AmysEcho/server/test/integration/apiIntegration.test.ts:86:24
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/apiIntegration.test.ts:86:24
+
+    console.error
+      OpenAI Vision validation error: Error: No response from OpenAI Vision API
+          at validateGestureWithVision (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:127:13)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at /home/lars/PhpstormProjects/AmysEcho/server/test/integration/apiIntegration.test.ts:86:24
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/apiIntegration.test.ts:86:24
+
+    console.error
+      OpenAI Vision validation error: Error: OpenAI request timed out
+          at Timeout.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:293:39)
+          at listOnTimeout (node:internal/timers:608:17)
+          at processTimers (node:internal/timers:543:7)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/apiIntegration.test.ts:86:24
+
+    console.error
+      OpenAI Vision validation error: Error: Internal server error
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/test/integration/apiIntegration.test.ts:359:15)
+          at /home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:397:39
+          at Object.<anonymous> (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:404:13)
+          at Object.mockConstructor [as create] (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:148:19)
+          at create (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:77:30)
+          at fn (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:296:43)
+          at attempt (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:309:10)
+          at withTimeoutRetry (/home/lars/PhpstormProjects/AmysEcho/server/src/services/openaiVisionService.ts:76:28)
+          at /home/lars/PhpstormProjects/AmysEcho/server/test/integration/apiIntegration.test.ts:86:55
+          at Layer.handleRequest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/lib/layer.js:152:17)
+          at next (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/lib/route.js:157:13)
+          at next (/home/lars/PhpstormProjects/AmysEcho/server/test/integration/apiIntegration.test.ts:53:70)
+          at /home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:397:39
+          at /home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:404:13
+          at mockConstructor (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/jest-mock/build/index.js:113:19)
+          at Layer.handleRequest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/lib/layer.js:152:17)
+          at next (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/lib/route.js:157:13)
+          at Route.dispatch (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/lib/route.js:117:3)
+          at handle (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/index.js:435:11)
+          at Layer.handleRequest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/lib/layer.js:152:17)
+          at /home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/index.js:295:15
+          at processParams (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/index.js:582:12)
+          at next (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/index.js:291:5)
+          at urlencodedParser (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/body-parser/lib/types/urlencoded.js:57:7)
+          at Layer.handleRequest (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/lib/layer.js:152:17)
+          at trimPrefix (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/index.js:342:13)
+          at /home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/index.js:297:9
+          at processParams (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/index.js:582:12)
+          at next (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/router/index.js:291:5)
+          at /home/lars/PhpstormProjects/AmysEcho/server/node_modules/body-parser/lib/read.js:132:5
+          at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+          at invokeCallback (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/raw-body/index.js:238:16)
+          at done (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/raw-body/index.js:227:7)
+          at IncomingMessage.onEnd (/home/lars/PhpstormProjects/AmysEcho/server/node_modules/raw-body/index.js:287:7)
+          at IncomingMessage.emit (node:events:507:28)
+          at endReadableNT (node:internal/streams/readable:1701:12)
+          at processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+      138 |
+      139 |   } catch (error) {
+    > 140 |     console.error('OpenAI Vision validation error:', error);
+          |             ^
+      141 |
+      142 |     // Return fallback result
+      143 |     return {
+
+      at error (src/services/openaiVisionService.ts:140:13)
+      at test/integration/apiIntegration.test.ts:86:24
+
+  ● API Integration Tests › OpenAI Validation Endpoint Integration › should integrate successfully with OpenAI Vision service
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"input": ArrayContaining [ObjectContaining {"content": ArrayContaining [ObjectContaining {"type": "input_text"}, ObjectContaining {"image_url": ObjectContaining {"url": StringContaining "test-image-data"}, "type": "input_image"}], "role": "user"}], "model": Any<String>}
+    Received: {"input": [{"content": [{"text": "Analyze this gesture image for Amy's Echo communication system.·
+    Please identify:
+    1. The primary gesture being performed
+    2. Your confidence level (0-1)
+    3. Quality assessment (0-10 scale)
+    4. Number of hands involved
+    5. Whether hand landmarks are clearly visible
+    6. Specific feedback on gesture execution
+    7. Suggestions for improvement·
+    Expected gesture: hello
+    Environment: home··
+    Focus on:
+    - Hand positioning and orientation
+    - Finger configurations
+    - Movement patterns (if visible)
+    - Clarity of gesture execution
+    - Potential communication intent·
+    Return your analysis in this exact JSON format only. Do not include prose, code fences, or extra text. If unsure, make your best effort and keep fields consistent.
+    {
+      \"primary_gesture\": {
+        \"gesture\": \"gesture_name\",
+        \"confidence\": 0.85,
+        \"feedback\": \"Clear gesture execution with good hand positioning\",
+        \"quality_score\": 8.5,
+        \"suggestions\": [\"Keep hands steady\", \"Ensure full finger extension\"],
+        \"landmarks_detected\": true,
+        \"hand_count\": 1
+      },
+      \"alternative_gestures\": [
+        {
+          \"gesture\": \"alternative_gesture\",
+          \"confidence\": 0.3,
+          \"feedback\": \"Similar but different finger positioning\",
+          \"quality_score\": 6.0,
+          \"landmarks_detected\": true,
+          \"hand_count\": 1
+        }
+      ],
+      \"overall_confidence\": 0.85
+    }", "type": "input_text"}, {"detail": "high", "image_url": "data:image/jpeg;base64,test-image-data", "type": "input_image"}], "role": "user"}], "max_output_tokens": 1000, "model": "gpt-4o-mini", "response_format": {"json_schema": {"name": "gesture_validation", "schema": {"additionalProperties": true, "properties": {"alternative_gestures": {"items": {"type": "object"}, "type": "array"}, "overall_confidence": {"type": "number"}, "primary_gesture": {"properties": {"confidence": {"type": "number"}, "feedback": {"type": "string"}, "gesture": {"type": "string"}, "hand_count": {"type": "number"}, "landmarks_detected": {"type": "boolean"}, "quality_score": {"type": "number"}, "suggestions": {"items": {"type": "string"}, "type": "array"}}, "required": ["gesture", "confidence", "feedback", "quality_score", "landmarks_detected", "hand_count"], "type": "object"}}, "required": ["primary_gesture", "overall_confidence"], "type": "object"}, "strict": true}, "type": "json_schema"}, "temperature": 0.1}
+
+    Number of calls: 1
+
+      164 |
+      165 |       // Verify OpenAI Responses API called with image and model
+    > 166 |       expect(mockOpenAI.responses.create).toHaveBeenCalledWith(
+          |                                           ^
+      167 |         expect.objectContaining({
+      168 |           model: expect.any(String),
+      169 |           input: expect.arrayContaining([
+
+      at Object.toHaveBeenCalledWith (test/integration/apiIntegration.test.ts:166:43)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Test Suites: 1 failed, 10 passed, 11 total
+Tests:       1 failed, 1 skipped, 69 passed, 71 total
+Snapshots:   0 total
+Time:        5.796 s
+Ran all test suites.

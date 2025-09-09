@@ -130,6 +130,8 @@ class GestureCombinationService {
     }
 
     // Check if this gesture starts any new sequences
+    let firstMatch: SequenceMatch | null = null;
+
     for (const [sequenceId, sequence] of this.sequences) {
       if (sequence.enabled &&
           sequence.gestures[0] === gestureId &&
@@ -163,21 +165,27 @@ class GestureCombinationService {
           // Remove from active sequences
           this.activeSequences.delete(sequenceId);
 
+          // Return immediately for single-gesture sequences (only one can match at a time)
           return completedMatch;
         } else {
-          // For multi-gesture sequences, return partial match
-          const partialMatch: SequenceMatch = {
-            sequenceId,
-            sequence,
-            matchConfidence: confidence,
-            completedGestures: [gestureId],
-            remainingGestures: sequence.gestures.slice(1),
-            timeElapsed: 0
-          };
-
-          return partialMatch;
+          // For multi-gesture sequences, track the first match but continue checking for others
+          if (!firstMatch) {
+            firstMatch = {
+              sequenceId,
+              sequence,
+              matchConfidence: confidence,
+              completedGestures: [gestureId],
+              remainingGestures: sequence.gestures.slice(1),
+              timeElapsed: 0
+            };
+          }
         }
       }
+    }
+
+    // Return the first multi-gesture sequence match found
+    if (firstMatch) {
+      return firstMatch;
     }
 
     // Clean up expired sequences

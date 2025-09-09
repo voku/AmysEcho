@@ -24,7 +24,6 @@ export default function PracticeSessionManager({
   onSessionComplete
 }: PracticeSessionManagerProps) {
   const { largeText, highContrast } = useAccessibility();
-  const [sessionStartTime] = useState(Date.now());
   const [encouragementMessage, setEncouragementMessage] = useState('');
 
   useEffect(() => {

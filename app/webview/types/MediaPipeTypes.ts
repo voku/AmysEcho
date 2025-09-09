@@ -130,12 +130,8 @@ export type WebViewMessagePayload =
 declare global {
   interface Window {
     // MediaPipe and related
-    fileset_resolver?: {
-      FilesetResolver: new (config: any) => any;
-    };
-    vision?: {
-      GestureRecognizer: new (config: any) => any;
-    };
+    fileset_resolver?: any;
+    vision?: any;
 
     // Custom gesture detector properties
     __tapToStart?: string;
@@ -154,21 +150,17 @@ declare global {
     __gestureSizeTolerance?: number;
 
     // MLP prediction function
-    __mlpPredict?: (landmarks: number[][][], handednesses: any[]) => MLPPrediction | null;
+    __mlpPredict?: ((landmarks: number[][][], handednesses: unknown) => { label: string; score: number; } | null) | undefined;
 
     // React Native WebView
     ReactNativeWebView?: {
       postMessage?: (message: string) => void;
     };
 
-    // FFlate for compatibility
-    fflate?: {
-      unzip: (data: Uint8Array, options?: any) => any;
-      unzipSync: (data: Uint8Array, options?: any) => any;
-    };
+
 
     // Cleanup function
-    __cleanupGestureDetector?: () => Promise<void>;
+    __cleanupGestureDetector?: (() => void) | undefined;
   }
 }
 

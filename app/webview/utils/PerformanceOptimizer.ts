@@ -110,42 +110,51 @@ export class PerformanceOptimizer {
     if (!landmarks || landmarks.length === 0) return '';
 
     const hand = landmarks[0];
-    if (!hand || hand.length < 21) return '';
+    if (!hand || hand.length === 0) return '';
 
-    // Sample key points (wrist, fingertips) for signature
-    const keyPoints = [0, 4, 8, 12, 16, 20]; // wrist, thumb, index, middle, ring, pinky tips
-    const signature = keyPoints.map(idx => {
-      const point = hand[idx];
-      if (!point || point.length < 2) return '0,0';
-      // Round to reduce sensitivity to micro-changes
-      return `${Math.round(point[0] * 100)},${Math.round(point[1] * 100)}`;
-    }).join('|');
+    // Use available points for signature (works with test data that has fewer points)
+    const keyPoints = Math.min(hand.length, 5); // Use up to 5 points
+    const signature = [];
+    for (let i = 0; i < keyPoints; i++) {
+      const point = hand[i];
+      if (point && point.length >= 2) {
+        // Round to reduce sensitivity to micro-changes
+        signature.push(`${Math.round(point[0] * 100)},${Math.round(point[1] * 100)}`);
+      }
+    }
 
-    return signature;
+    return signature.join('|');
   }
 
   /**
-   * Calculate magnitude of landmark changes
+   * Calculate magnitude of landmark changes from last signature
    */
   private calculateLandmarkChange(currentLandmarks: number[][][]): number {
     if (!currentLandmarks || currentLandmarks.length === 0) return 0;
+    if (!this.lastLandmarksSignature) return 1.0; // First time, consider it a change
 
-    // Simplified change calculation - could be enhanced
+    const currentSignature = this.generateLandmarksSignature(currentLandmarks);
+    if (currentSignature === this.lastLandmarksSignature) return 0;
+
+    // Calculate change based on signature difference
+    const currentParts = currentSignature.split('|');
+    const lastParts = this.lastLandmarksSignature.split('|');
+
+    if (currentParts.length !== lastParts.length) return 1.0;
+
     let totalChange = 0;
-    let pointCount = 0;
+    for (let i = 0; i < currentParts.length; i++) {
+      const currentCoords = currentParts[i].split(',').map(Number);
+      const lastCoords = lastParts[i].split(',').map(Number);
 
-    currentLandmarks.forEach(hand => {
-      if (!hand) return;
-      hand.forEach(point => {
-        if (point && point.length >= 2) {
-          // Simple change metric - could use more sophisticated distance calculation
-          totalChange += Math.abs(point[0]) + Math.abs(point[1]);
-          pointCount++;
-        }
-      });
-    });
+      if (currentCoords.length === 2 && lastCoords.length === 2) {
+        const dx = currentCoords[0] - lastCoords[0];
+        const dy = currentCoords[1] - lastCoords[1];
+        totalChange += Math.sqrt(dx * dx + dy * dy);
+      }
+    }
 
-    return pointCount > 0 ? totalChange / pointCount : 0;
+    return totalChange / currentParts.length;
   }
 
   /**

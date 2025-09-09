@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import { MediaPipeGestureDetector } from '../../src/components/MediaPipeGestureDetector';
 
 // Mock WebView

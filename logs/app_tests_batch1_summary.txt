@@ -1,0 +1,88 @@
+1:FAIL test/components/SlowMotionReplay.test.tsx (23.121 s)
+4:    TypeError: Cannot read properties of undefined (reading 'flatten')
+25:    TypeError: Cannot read properties of undefined (reading 'flatten')
+46:    TypeError: Cannot read properties of undefined (reading 'flatten')
+67:    TypeError: Cannot read properties of undefined (reading 'flatten')
+105:    TypeError: Cannot read properties of undefined (reading 'flatten')
+126:    TypeError: Cannot read properties of undefined (reading 'flatten')
+147:    TypeError: Cannot read properties of undefined (reading 'flatten')
+168:    TypeError: Cannot read properties of undefined (reading 'flatten')
+189:    TypeError: Cannot read properties of undefined (reading 'flatten')
+210:    TypeError: Cannot read properties of undefined (reading 'flatten')
+231:    TypeError: Cannot read properties of undefined (reading 'flatten')
+252:    TypeError: Cannot read properties of undefined (reading 'flatten')
+273:    TypeError: Cannot read properties of undefined (reading 'flatten')
+294:    TypeError: Cannot read properties of undefined (reading 'flatten')
+315:    TypeError: Cannot read properties of undefined (reading 'flatten')
+336:    TypeError: Cannot read properties of undefined (reading 'flatten')
+357:    TypeError: Cannot read properties of undefined (reading 'flatten')
+378:    TypeError: Cannot read properties of undefined (reading 'flatten')
+421:    TypeError: Cannot read properties of undefined (reading 'flatten')
+454:      594 |           { error: 'Video load failed' }
+490:    TypeError: Cannot read properties of undefined (reading 'flatten')
+525:FAIL test/services/gestureCombinationService.test.ts (15.326 s)
+560:FAIL test/components/PictureInPictureGuidance.test.tsx
+561:  ● Test suite failed to run
+563:    TypeError: Cannot read properties of undefined (reading 'create')
+576:FAIL webview/__tests__/PerformanceOptimizations.test.ts
+580:      Processing step failing_step failed: Error: Step failed
+696:FAIL test/components/ScreenFlash.test.tsx
+697:  ● Test suite failed to run
+699:    TypeError: Cannot read properties of undefined (reading 'create')
+728:FAIL test/components/GestureComparison.test.tsx
+729:  ● Test suite failed to run
+731:    TypeError: Cannot read properties of undefined (reading 'create')
+744:PASS test/fallbackSystem.test.ts
+748:      Fetch failed: https://cdn.jsdelivr.net/npm Error: network
+831:      Fetch failed: https://unpkg.com Error: network
+925:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+940:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+941:      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+956:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+971:      at ErrorRecoveryManager.warn [as activateEmergencyMode] (webview/utils/ErrorRecoveryManager.ts:194:15)
+972:      at ErrorRecoveryManager.activateEmergencyMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:155:12)
+987:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1002:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1017:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1032:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1047:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1062:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+1063:      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+1082:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1101:      at ErrorRecoveryManager.warn [as activateEmergencyMode] (webview/utils/ErrorRecoveryManager.ts:194:15)
+1102:      at ErrorRecoveryManager.activateEmergencyMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:155:12)
+1121:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1140:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1159:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1178:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1197:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1207:      at ErrorRecoveryManager.info [as isCircuitBreakerOpen] (webview/utils/ErrorRecoveryManager.ts:171:15)
+1212:      at ErrorRecoveryManager.info [as deactivateEmergencyMode] (webview/utils/ErrorRecoveryManager.ts:206:15)
+1226:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+1227:      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+1259:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+1260:      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+1275:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+1290:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+1291:      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+1306:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+1307:      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+1310:FAIL test/emergencySystem.test.ts
+1314:      Fetch failed: https://cdn.jsdelivr.net/npm Error: network
+1397:      Fetch failed: https://unpkg.com Error: network
+1502:      Battery monitoring failed: Error: Battery API not available
+1550:      at ErrorRecoveryManager.warn [as activateFallbackMode] (webview/utils/ErrorRecoveryManager.ts:181:15)
+1551:      at ErrorRecoveryManager.activateFallbackMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:129:12)
+1566:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1581:      at ErrorRecoveryManager.warn [as activateEmergencyMode] (webview/utils/ErrorRecoveryManager.ts:194:15)
+1582:      at ErrorRecoveryManager.activateEmergencyMode [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:155:12)
+1597:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1612:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1627:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1642:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1657:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:137:15)
+1689:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1706:      at ErrorRecoveryManager.warn [as recordFailure] (webview/utils/ErrorRecoveryManager.ts:154:15)
+1726:FAIL test/adaptiveLearningService.test.ts
+1808:FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+1811: 1: 0xf1f241 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [node]

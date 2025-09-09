@@ -45,7 +45,7 @@ export default function SoundSelector({ selectedSound, onSoundSelect }: SoundSel
         setPlayingSound(null);
       }, 500);
 
-    } catch (error) {
+    } catch {
       Alert.alert(
         'Ton nicht verfügbar',
         'Dieser Ton konnte nicht abgespielt werden. Versuche einen anderen Ton.',
