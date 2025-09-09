@@ -98,5 +98,19 @@ describe('getLLMSuggestions', () => {
       expect(res.nextWords).toContain('ja');
       expect(mockOpenAI.responses.create).toHaveBeenCalledTimes(2);
     });
+
+    it('caches identical requests within TTL', async () => {
+      const OpenAIMock = require('openai');
+      const mockOpenAI = new OpenAIMock();
+      mockOpenAI.responses.create.mockResolvedValue({
+        output_text: JSON.stringify({ nextWords: ['ok'], caregiverPhrases: ['super'] }),
+      });
+
+      const a = await getLLMSuggestions(req);
+      const b = await getLLMSuggestions(req);
+      expect(a.nextWords).toContain('ok');
+      expect(b.nextWords).toContain('ok');
+      expect(mockOpenAI.responses.create).toHaveBeenCalledTimes(1);
+    });
   });
 });

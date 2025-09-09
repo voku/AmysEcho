@@ -58,7 +58,7 @@ import { appendCrashReports, CrashReport } from './services/crashService.js';
 import { AuthService } from './services/authService.js';
 import logger from './services/logger.js';
 
-const app = express();
+export const app = express();
 // Increase JSON body size limit to accommodate base64 images from the app
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true, limit: '8mb' }));
@@ -93,6 +93,7 @@ const dialogLimiter = rateLimit({
   legacyHeaders: false,
   skipFailedRequests: true,
 });
+
 
 // Generic API rate limiter for server endpoints
 const apiLimiter = rateLimit({
@@ -1224,16 +1225,16 @@ app.get('/analytics', legacyAuth, async (_req: Request, res: Response) => {
 app.use(errorHandler);
 
 const port = config.port;
-// Start HTTP server
-const server = app.listen(port);
-
-(async () => {
-  try {
-    await ensureDataDir();
-    logger.info('Server started successfully', { port });
-  } catch (error) {
-    const msg = (error as Error)?.message ?? String(error);
-    logger.error('Server startup failed', { error: msg });
-    process.exit(1);
-  }
-})();
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port);
+  (async () => {
+    try {
+      await ensureDataDir();
+      logger.info('Server started successfully', { port });
+    } catch (error) {
+      const msg = (error as Error)?.message ?? String(error);
+      logger.error('Server startup failed', { error: msg });
+      process.exit(1);
+    }
+  })();
+}

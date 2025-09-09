@@ -45,6 +45,15 @@ const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_DIALOG_TIMEOUT_MS || 4000);
 const OPENAI_MAX_TOKENS = Number(process.env.OPENAI_DIALOG_MAX_TOKENS || 256);
 const OPENAI_TEMPERATURE = Number(process.env.OPENAI_DIALOG_TEMPERATURE || 0.3);
 
+// In-memory TTL cache for repeated suggestions
+type CacheEntry = { value: LLMSuggestionResponse; ts: number };
+const suggestionCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = Number(process.env.OPENAI_DIALOG_CACHE_TTL_MS || 30_000);
+function makeKey(req: LLMRequest): string {
+  const ctx = Array.isArray(req.context) ? req.context.join(',') : '';
+  return `${req.language}|${req.age}|${req.input}|${ctx}`;
+}
+
 async function withTimeoutRetry<T>(fn: () => Promise<T>, timeoutMs: number, retries: number): Promise<T> {
   const attempt = async (i: number): Promise<T> => {
     let timer: any;
@@ -81,6 +90,11 @@ export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionR
   const prompt = `A ${req.age}-year-old child who speaks ${req.language} just selected the word "${req.input}". The current context is [${req.context.join(', ')}]. Provide likely next words and helpful phrases for a caregiver.`;
   console.log('LLM Prompt:', prompt);
   try {
+    const key = makeKey(req);
+    const cached = suggestionCache.get(key);
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      return cached.value;
+    }
     const openai = new OpenAI({ apiKey });
     const response = await withTimeoutRetry(
       () => openai.responses.create({
@@ -120,7 +134,9 @@ export async function getLLMSuggestions(req: LLMRequest): Promise<LLMSuggestionR
     const toParse = m ? m[0] : output || '{}';
     const parsed = suggestionSchema.safeParse(JSON.parse(toParse));
     if (!parsed.success) throw parsed.error;
-    return parsed.data as LLMSuggestionResponse;
+    const out = parsed.data as LLMSuggestionResponse;
+    suggestionCache.set(key, { value: out, ts: Date.now() });
+    return out;
   } catch (error) {
     console.error('LLM suggestion error:', error);
     return { nextWords: [], caregiverPhrases: [] };
