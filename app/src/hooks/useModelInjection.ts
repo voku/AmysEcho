@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { logger } from '../utils/logger';
 
-export const useModelInjection = (webviewRef, onModelUpdateStatus) => {
+export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => {
   const pendingModelRef = useRef<string | null>(null);
   const mlpReadyRef = useRef(false);
   const modelTransferLock = useRef(false);

@@ -98,46 +98,45 @@ export default function RecognitionScreen({
   const { getSuccessMessage } = useThemeMessages();
 
   const state = useRecognitionState();
-  const callbacks = useRecognitionCallbacks(state, setState, navigation);
-
+  const callbacks = useRecognitionCallbacks(state, () => {}, navigation);
   const {
-    profile,
-    status,
-    gestureConfidence,
-    error,
-    showCorrection,
-    gestureSuggestions,
-    dialogContext,
-    pendingGesture,
-    lastRecognizedGesture,
-    facingMode,
-    webviewKey,
-    webviewRetries,
-    recognitionPath,
-    showDgsVideo,
-    showCelebration,
-    celebrationKey,
-    screenReaderEnabled,
-    modelUpdateStatus,
-    showMoodSelector,
-    kindergartenMode,
-    bullyingProtectionActive,
-    gestureSizeTolerance,
-    showVisualRipple,
-    successSound,
-    showScreenFlash,
-    screenFlashPattern,
-    showGestureComparison,
-    comparisonAttempt,
-    shortcutActivated,
-    showPipGuidance,
-    pipGuidanceGesture,
-    showSlowMotionReplay,
-    showPracticeSuggestion,
-    showAdaptiveLearning,
-    slowMotionGesture,
+    profile, setProfile,
+    status, setStatus,
+    gestureConfidence, setGestureConfidence,
+    error, setError,
+    showCorrection, setShowCorrection,
+    gestureSuggestions, setGestureSuggestions,
+    dialogContext, setDialogContext,
+    pendingGesture, setPendingGesture,
+    lastRecognizedGesture, setLastRecognizedGesture,
+    facingMode, setFacingMode,
+    webviewKey, setWebviewKey,
+    webviewRetries, setWebviewRetries,
+    recognitionPath, setRecognitionPath,
+    showDgsVideo, setShowDgsVideo,
+    showCelebration, setShowCelebration,
+    celebrationKey, setCelebrationKey,
+    screenReaderEnabled, setScreenReaderEnabled,
+    modelUpdateStatus, setModelUpdateStatus,
+    showMoodSelector, setShowMoodSelector,
+    kindergartenMode, setKindergartenMode,
+    bullyingProtectionActive, setBullyingProtectionActive,
+    gestureSizeTolerance, setGestureSizeTolerance,
+    showVisualRipple, setShowVisualRipple,
+    successSound, setSuccessSound,
+    showScreenFlash, setShowScreenFlash,
+    screenFlashPattern, setScreenFlashPattern,
+    showGestureComparison, setShowGestureComparison,
+    comparisonAttempt, setComparisonAttempt,
+    shortcutActivated, setShortcutActivated,
+    showPipGuidance, setShowPipGuidance,
+    pipGuidanceGesture, setPipGuidanceGesture,
+    showSlowMotionReplay, setShowSlowMotionReplay,
+    showPracticeSuggestion, setShowPracticeSuggestion,
+    showAdaptiveLearning, setShowAdaptiveLearning,
+    slowMotionGesture, setSlowMotionGesture,
     contextInsights,
-    detectedTwoHandGesture,
+    detectedTwoHandGesture, setDetectedTwoHandGesture,
   } = state;
 
   const {
@@ -154,6 +153,11 @@ export default function RecognitionScreen({
     handleStartAdaptiveRecommendation,
     handleTryAgainFromComparison,
   } = callbacks;
+
+  // Simple stub functions for adaptive PiP positioning
+  const getAdaptivePipPosition = (): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' => 'top-right';
+  const getAdaptivePipSize = (): 'small' | 'medium' | 'large' => 'medium';
+  const getAdaptivePlaybackMode = () => 'once' as const;
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;

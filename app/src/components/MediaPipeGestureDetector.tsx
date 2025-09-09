@@ -1,7 +1,6 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { 
+import {
   API_TOKEN,
   MLP_CONFIDENCE_THRESHOLD,
   FALLBACK_CONFIDENCE_THRESHOLD,
@@ -23,6 +22,7 @@ import { useModelInjection } from '../hooks/useModelInjection';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
 import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
+import { WebView } from 'react-native-webview';
 
 export type WebViewTelemetryEvent =
   | 'dom_ready'
@@ -69,12 +69,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   gestureSizeTolerance = 0.3,
   enableParallelProcessing = true
 }) => {
-  // Minimal shape we rely on; keeps optional semantics and strict-mode help.
-  type WebViewLike = { injectJavaScript: (src: string) => void } | null;
-  const webviewRef = useRef<WebViewLike>(null);
+  const webviewRef = useRef<WebView>(null);
 
   const { injectModel, mlpReadyRef, pendingModelRef } = useModelInjection(webviewRef, onModelUpdateStatus);
-  const { openaiValidationResult, showOpenaiFeedback, setShowOpenaiFeedback, handleOpenAIValidation } = useOpenAIValidation(onGestureDetected);
+  const { openaiValidationResult, setOpenaiValidationResult, showOpenaiFeedback, setShowOpenaiFeedback, handleOpenAIValidation } = useOpenAIValidation(onGestureDetected);
   const { handleParallelProcessing } = useParallelProcessing(onGestureDetected, onMergedResult, setOpenaiValidationResult, setShowOpenaiFeedback, handleOpenAIValidation);
 
   const [, setLangTick] = useState(0);
@@ -90,7 +88,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   }, []);
 
   const escapeJs = (s: string) =>
-    s.replace(/\/g, '\\').replace(/'/g, "\'`).replace(/`/g, '\`').replace(/\n/g, '\\n');
+    s.replace(/\//g, '\\/').replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\n/g, '\\n');
   const tapToStartText = escapeJs(LanguageManager.t('mediapipe.tapToStart'));
   const recognizerInitFailed = escapeJs(LanguageManager.t('mediapipe.recognizerInitFailed'));
   const predictionError = escapeJs(LanguageManager.t('mediapipe.predictionError'));
@@ -199,7 +197,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         let gesture: string | null;
         if (g && typeof g === 'object') {
           const { left, right } = g as { left?: unknown; right?: unknown };
-          gesture = 
+          gesture =
             typeof left === 'string' && typeof right === 'string'
               ? `${left}+${right}`
               : null;
@@ -266,8 +264,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
             {
               event: eventStr,
               ms: typeof data.ms === 'number' ? data.ms : undefined,
-              ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {}),
-            },
+              ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {})
+            }
           );
         } catch (e) {
           logger.warn('Error in onWebViewEvent handler', e);
@@ -276,13 +274,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           mlpReadyRef.current = true;
           injectModel(pendingModelRef.current);
         } else if (eventStr === 'mlp_transfer_complete' || eventStr === 'mlp_transfer_skipped') {
-          if (transferWatchdogRef.current) {
-            clearTimeout(transferWatchdogRef.current);
-            transferWatchdogRef.current = null;
+          if (pendingModelRef.current) {
+            clearTimeout(pendingModelRef.current);
+            pendingModelRef.current = null;
           }
-          modelTransferLock.current = false;
           onModelUpdateStatus?.('complete');
-          if (queuedModelRef.current && pendingModelRef.current) {
+          if (mlpReadyRef.current && pendingModelRef.current) {
             injectModel(pendingModelRef.current);
           }
         }
@@ -324,27 +321,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       onHttpError={(e: any) => {
         logger.warn('WebView HTTP error', e?.nativeEvent);
         onError('webview_http_error');
-      }}
-      onConsoleMessage={(e: any) => {
-        if (e?.nativeEvent?.message) {
-          if (process.env.NODE_ENV === 'test') {
-            try { console.log('WV:', e.nativeEvent.message); } catch {}
-          } else {
-            logger.debug('WebView console', { message: e.nativeEvent.message });
-          }
-        }
-      }}
-      onPermissionRequest={(event: any) => {
-        const resources = event?.nativeEvent?.resources;
-        const grant = event?.nativeEvent?.grant;
-        if (resources && typeof grant === 'function') {
-          try {
-            const videoOnly = resources.filter((r: string) => r === 'VIDEO_CAPTURE');
-            grant(videoOnly);
-          } catch (err) {
-            logger.warn('Failed to grant permissions', err);
-          }
-        }
       }}
     />
   );

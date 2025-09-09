@@ -25,7 +25,7 @@ import { emergencyRollback } from '../services/modelUpdate';
 import { LanguageManager } from '../services/LanguageManager';
 import * as Haptics from 'expo-haptics';
 
-export const useRecognitionCallbacks = (state, setState, navigation) => {
+export const useRecognitionCallbacks = (state: any, setState: any, navigation: any) => {
   const { 
     pendingGesture,
     gestureConfidence,
@@ -79,7 +79,7 @@ export const useRecognitionCallbacks = (state, setState, navigation) => {
 
   const handleModelUpdateStatus = useCallback((status: 'idle' | 'updating' | 'complete' | 'error') => {
     // ... (handleModelUpdateStatus logic)
-  }, [modelUpdateStatus]);
+  }, []);
 
   const handlePartialFeedback = useCallback((gesture: string, completion: number, feedback: string) => {
     // ... (handlePartialFeedback logic)

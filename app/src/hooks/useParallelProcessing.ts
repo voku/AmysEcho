@@ -4,7 +4,7 @@ import { parallelGestureProcessor } from '../services/parallelGestureProcessor';
 import { twoHandGestureService } from '../services/twoHandGestureService';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
 
-export const useParallelProcessing = (onGestureDetected, onMergedResult, setOpenaiValidationResult, setShowOpenaiFeedback, handleOpenAIValidation) => {
+export const useParallelProcessing = (onGestureDetected: any, onMergedResult: any, setOpenaiValidationResult: any, setShowOpenaiFeedback: any, handleOpenAIValidation: any) => {
   const handleParallelProcessing = useCallback(async (
     gesture: string | null,
     confidence: number,

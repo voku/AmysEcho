@@ -3,6 +3,7 @@ import type { GestureModelEntry } from '../model';
 import type { LLMSuggestionResponse } from '../services/dialogEngine';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { DetectedTwoHandGesture } from '../services/twoHandGestureService';
+import type { Profile } from '../storage';
 
 export const useRecognitionState = () => {
   const [profile, setProfile] = useState<Profile | null>(null);

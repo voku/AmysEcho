@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import { validateGestureWithFallback, shouldTriggerOpenAIValidation } from '../services/openaiGestureValidationService';
 
-export const useOpenAIValidation = (onGestureDetected) => {
+export const useOpenAIValidation = (onGestureDetected: any) => {
   const [openaiValidationResult, setOpenaiValidationResult] = useState<{
     gesture: string;
     confidence: number;
@@ -79,6 +79,7 @@ export const useOpenAIValidation = (onGestureDetected) => {
 
   return {
     openaiValidationResult,
+    setOpenaiValidationResult,
     showOpenaiFeedback,
     setShowOpenaiFeedback,
     handleOpenAIValidation,
