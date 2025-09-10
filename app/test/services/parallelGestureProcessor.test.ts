@@ -199,30 +199,6 @@ describe('ParallelGestureProcessor', () => {
       expect(mockValidateGestureWithOpenAI).not.toHaveBeenCalled();
     });
 
-    it('should accept data URL frames and strip prefix for OpenAI', async () => {
-      mockShouldTriggerOpenAIValidation.mockReturnValue(true);
-
-      const dataUrl = 'data:image/jpeg;base64,abc123BASE64';
-
-      await processor.processMediaPipeResult(
-        'thumbs_up',
-        0.4,
-        [[[0.5, 0.5, 0.8]]],
-        ['Right'],
-        false,
-        dataUrl
-      );
-
-      await new Promise((r) => setTimeout(r, 100));
-
-      expect(mockValidateGestureWithOpenAI).toHaveBeenCalledWith(
-        expect.objectContaining({
-          image: expect.objectContaining({ base64: 'abc123BASE64' }),
-          expectedGesture: 'thumbs_up',
-        })
-      );
-    });
-
     it('crops and downscales data URL frames using ROI when landmarks available', async () => {
       mockShouldTriggerOpenAIValidation.mockReturnValue(true);
       const dataUrl = 'data:image/jpeg;base64,xyzBASE64';

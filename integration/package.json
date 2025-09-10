@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "pretest": "npm ci --include=dev && npm run build --prefix ../server",
+    "pretest": "npm ci --include=dev && npm ci --prefix ../server && npm run build --prefix ../server",
     "test": "tsx --test"
   },
   "devDependencies": {
