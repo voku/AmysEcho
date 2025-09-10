@@ -6,6 +6,17 @@ import {
   GestureImageCapture,
 } from '../services/openaiGestureValidationService';
 
+const IMAGE_CAPTURE_TIMEOUT_MS = 3000;
+
+const withTimeout = <T>(
+  p: Promise<T>,
+  ms = IMAGE_CAPTURE_TIMEOUT_MS
+) =>
+  Promise.race([
+    p,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]) as Promise<T | null>;
+
 type Landmarks = number[][][];
 type Handednesses = string[];
 
@@ -50,11 +61,6 @@ export const useOpenAIValidation = (
 
     if (shouldValidate) {
       try {
-        const withTimeout = <T>(p: Promise<T>, ms = 3000) =>
-          Promise.race([
-            p,
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-          ]) as Promise<T | null>;
         const imageCapture = captureImage
           ? await withTimeout(captureImage())
           : null;

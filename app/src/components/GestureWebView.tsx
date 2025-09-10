@@ -23,6 +23,10 @@ export const GestureWebView = forwardRef<WebView, Props>((
   },
   ref
 ) => {
+  const androidProps: any = {};
+  if (onConsoleMessage) androidProps.onConsoleMessage = onConsoleMessage;
+  if (onPermissionRequest) androidProps.onPermissionRequest = onPermissionRequest;
+
   return (
     <View style={styles.container}>
       <WebView
@@ -40,10 +44,9 @@ export const GestureWebView = forwardRef<WebView, Props>((
         mixedContentMode={'always'}
         onError={onError}
         onHttpError={onHttpError}
-        onConsoleMessage={onConsoleMessage}
-        onPermissionRequest={onPermissionRequest}
         cacheEnabled={true}
         cacheMode={'LOAD_CACHE_ELSE_NETWORK'}
+        {...androidProps}
       />
     </View>
   );
