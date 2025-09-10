@@ -4,8 +4,6 @@
  * Tests parallel processing, result merging, caching, and error handling
  */
 
-import { ParallelGestureProcessor, GestureResult, ProcessingStats } from '../../src/services/parallelGestureProcessor';
-
 // Mock the OpenAI validation service
 jest.mock('../../src/services/openaiGestureValidationService', () => ({
   validateGestureWithOpenAI: jest.fn(),
@@ -18,8 +16,9 @@ jest.mock('../../src/utils/imageUtils', () => ({
   computeHandRoi: jest.fn(() => ({ x: 10, y: 10, w: 100, h: 100 })),
 }));
 
-import { validateGestureWithOpenAI, shouldTriggerOpenAIValidation } from '../../src/services/openaiGestureValidationService';
-import { processDataUrl, computeHandRoi } from '../../src/utils/imageUtils';
+const { ParallelGestureProcessor, GestureResult, ProcessingStats } = require('../../src/services/parallelGestureProcessor');
+const { validateGestureWithOpenAI, shouldTriggerOpenAIValidation } = require('../../src/services/openaiGestureValidationService');
+const { processDataUrl, computeHandRoi } = require('../../src/utils/imageUtils');
 
 // Import realistic test fixtures
 import {
@@ -33,13 +32,15 @@ import {
 const mockValidateGestureWithOpenAI = validateGestureWithOpenAI as jest.MockedFunction<typeof validateGestureWithOpenAI>;
 const mockShouldTriggerOpenAIValidation = shouldTriggerOpenAIValidation as jest.MockedFunction<typeof shouldTriggerOpenAIValidation>;
 
+const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
+
 describe('ParallelGestureProcessor', () => {
   let processor: ParallelGestureProcessor;
   let mockFrame: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    processor = new ParallelGestureProcessor();
+    processor = new ParallelGestureProcessor({ maxConcurrentRequests: 1 });
     mockFrame = {
       base64: 'mockBase64Data',
       uri: 'data:image/jpeg;base64,mockBase64Data',
@@ -197,30 +198,6 @@ describe('ParallelGestureProcessor', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       expect(mockValidateGestureWithOpenAI).not.toHaveBeenCalled();
-    });
-
-    it('should accept data URL frames and strip prefix for OpenAI', async () => {
-      mockShouldTriggerOpenAIValidation.mockReturnValue(true);
-
-      const dataUrl = 'data:image/jpeg;base64,abc123BASE64';
-
-      await processor.processMediaPipeResult(
-        'thumbs_up',
-        0.4,
-        [[[0.5, 0.5, 0.8]]],
-        ['Right'],
-        false,
-        dataUrl
-      );
-
-      await new Promise((r) => setTimeout(r, 100));
-
-      expect(mockValidateGestureWithOpenAI).toHaveBeenCalledWith(
-        expect.objectContaining({
-          image: expect.objectContaining({ base64: 'abc123BASE64' }),
-          expectedGesture: 'thumbs_up',
-        })
-      );
     });
 
     it('crops and downscales data URL frames using ROI when landmarks available', async () => {

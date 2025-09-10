@@ -30,6 +30,9 @@ type StorageLike = {
   getItem(key: string): Promise<string | null>;
 };
 
+// Persist in-memory storage across calls when AsyncStorage is unavailable
+const memoryStorage = new Map<string, string>();
+
 async function getStorage(): Promise<StorageLike> {
   try {
     if (typeof (globalThis as any).window === 'undefined') {
@@ -38,13 +41,12 @@ async function getStorage(): Promise<StorageLike> {
     const mod = await import('@react-native-async-storage/async-storage');
     return mod.default as StorageLike;
   } catch {
-    const mem = new Map<string, string>();
     return {
       async setItem(key: string, value: string) {
-        mem.set(key, value);
+        memoryStorage.set(key, value);
       },
       async getItem(key: string) {
-        return mem.get(key) ?? null;
+        return memoryStorage.get(key) ?? null;
       },
     };
   }

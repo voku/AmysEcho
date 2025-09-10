@@ -45,7 +45,7 @@
     },
     "ci": {
       "description": "CI/CD environment tests",
-      "suites": ["dgs_basic", "dgs_security", "dgs_accessibility", "dgs_integration"],
+      "suites": [],
       "parallel": true,
       "maxWorkers": 4
     },

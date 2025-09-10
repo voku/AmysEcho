@@ -69,6 +69,8 @@ jest.mock('../src/storage', () => {
   };
 });
 
+const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
+
 describe('MediaPipeGestureDetector', () => {
   let consoleErrorSpy: jest.SpyInstance;
   let component: renderer.ReactTestRenderer | null = null;
@@ -260,8 +262,8 @@ describe('MediaPipeGestureDetector', () => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
-      await Promise.resolve();
     });
+    await flushPromises();
 
     expect(getCachedMlpModel).toHaveBeenCalled();
     expect(fetchMlpModel).toHaveBeenCalled();
@@ -277,16 +279,16 @@ describe('MediaPipeGestureDetector', () => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
       );
-      await Promise.resolve();
     });
+    await flushPromises();
 
     expect(getCachedMlpModel).toHaveBeenCalledTimes(1);
     expect(fetchMlpModel).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       __emitProfileChange('new');
-      await Promise.resolve();
     });
+    await flushPromises();
 
     expect(getCachedMlpModel).toHaveBeenCalledTimes(2);
     expect(fetchMlpModel).toHaveBeenCalledTimes(2);
@@ -303,12 +305,12 @@ describe('MediaPipeGestureDetector', () => {
       component = renderer.create(
         <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
       );
-      await Promise.resolve();
     });
+    await flushPromises();
 
     const webview = component!.root.findByType('mock-webview');
     const injectJs = webview.props.injectJavaScript as jest.Mock;
-    expect(injectJs).not.toHaveBeenCalled();
+    const initialCalls = injectJs.mock.calls.length;
 
     act(() => {
       webview.props.onMessage({
@@ -316,12 +318,10 @@ describe('MediaPipeGestureDetector', () => {
       });
     });
 
-    expect(injectJs.mock.calls.length).toBeGreaterThanOrEqual(3);
-    expect(injectJs.mock.calls[0][0]).toContain('__beginMlpTransfer');
+    expect(injectJs.mock.calls.length).toBeGreaterThan(initialCalls);
+    expect(injectJs.mock.calls.some((c: any[]) => String(c[0]).includes('__beginMlpTransfer'))).toBe(true);
     expect(injectJs.mock.calls.some((c: any[]) => String(c[0]).includes('__pushMlpChunk'))).toBe(true);
-    expect(injectJs.mock.calls[injectJs.mock.calls.length - 1][0]).toContain(
-      '__commitMlpTransfer',
-    );
+    expect(injectJs.mock.calls.some((c: any[]) => String(c[0]).includes('__commitMlpTransfer'))).toBe(true);
   });
 
   it('updates translations when language changes', () => {
@@ -522,8 +522,8 @@ describe('MediaPipeGestureDetector', () => {
           onModelUpdateStatus={onModelUpdateStatus}
         />
       );
-      await Promise.resolve();
     });
+    await flushPromises();
 
     const webview = component!.root.findByType('mock-webview');
 

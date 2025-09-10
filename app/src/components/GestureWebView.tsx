@@ -8,6 +8,8 @@ interface Props {
   onMessage: (event: WebViewMessageEvent) => void;
   onError: (event: any) => void;
   onHttpError: (event: any) => void;
+  onConsoleMessage?: (event: any) => void;
+  onPermissionRequest?: (event: any) => void;
 }
 
 export const GestureWebView = forwardRef<WebView, Props>((
@@ -16,6 +18,8 @@ export const GestureWebView = forwardRef<WebView, Props>((
     onMessage,
     onError,
     onHttpError,
+    onConsoleMessage,
+    onPermissionRequest,
   },
   ref
 ) => {
@@ -36,6 +40,8 @@ export const GestureWebView = forwardRef<WebView, Props>((
         mixedContentMode={'always'}
         onError={onError}
         onHttpError={onHttpError}
+        onConsoleMessage={onConsoleMessage}
+        onPermissionRequest={onPermissionRequest}
         cacheEnabled={true}
         cacheMode={'LOAD_CACHE_ELSE_NETWORK'}
       />

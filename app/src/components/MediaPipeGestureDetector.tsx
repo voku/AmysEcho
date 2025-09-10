@@ -322,6 +322,15 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         logger.warn('WebView HTTP error', e?.nativeEvent);
         onError('webview_http_error');
       }}
+      onConsoleMessage={(e: any) => {
+        try { console.log('WV:', e.nativeEvent.message); } catch {}
+      }}
+      onPermissionRequest={(e: any) => {
+        try {
+          const resources = (e.nativeEvent.resources || []).filter((r: string) => r === 'VIDEO_CAPTURE');
+          e.nativeEvent.grant(resources);
+        } catch {}
+      }}
     />
   );
 };

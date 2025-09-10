@@ -171,7 +171,7 @@ describe('API Integration Tests', () => {
               role: 'user',
               content: expect.arrayContaining([
                 expect.objectContaining({ type: 'input_text' }),
-                expect.objectContaining({ type: 'input_image', image_url: expect.objectContaining({ url: expect.stringContaining('test-image-data') }) }),
+                expect.objectContaining({ type: 'input_image', image_url: expect.stringContaining('test-image-data') }),
               ]),
             }),
           ]),
