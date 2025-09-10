@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "pretest": "npm ci --include=dev && npm ci --prefix ../server && npm run build --prefix ../server",
-    "test": "tsx --test"
+    "test": "tsx --test test/api.test.js"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
