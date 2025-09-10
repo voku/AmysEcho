@@ -2,7 +2,10 @@ import { useState, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import { validateGestureWithFallback, shouldTriggerOpenAIValidation } from '../services/openaiGestureValidationService';
 
-export const useOpenAIValidation = (onGestureDetected: any) => {
+export const useOpenAIValidation = (
+  onGestureDetected: any,
+  captureImage?: () => Promise<any>
+) => {
   const [openaiValidationResult, setOpenaiValidationResult] = useState<{
     gesture: string;
     confidence: number;
@@ -29,7 +32,7 @@ export const useOpenAIValidation = (onGestureDetected: any) => {
 
     if (shouldValidate) {
       try {
-        const imageCapture = null; // TODO: Implement actual image capture
+        const imageCapture = captureImage ? await captureImage() : null;
 
         if (imageCapture) {
           const validationResult = await validateGestureWithFallback(
@@ -75,7 +78,7 @@ export const useOpenAIValidation = (onGestureDetected: any) => {
     } else {
       onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
     }
-  }, [onGestureDetected]);
+  }, [onGestureDetected, captureImage]);
 
   return {
     openaiValidationResult,
