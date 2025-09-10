@@ -1,26 +1,44 @@
 import { useState, useCallback } from 'react';
 import { logger } from '../utils/logger';
-import { validateGestureWithFallback, shouldTriggerOpenAIValidation } from '../services/openaiGestureValidationService';
+import {
+  validateGestureWithFallback,
+  shouldTriggerOpenAIValidation,
+  GestureImageCapture,
+} from '../services/openaiGestureValidationService';
+
+type Landmarks = number[][][];
+type Handednesses = string[];
+
+export type OnGestureDetected = (
+  gesture: string | null,
+  confidence: number,
+  landmarks: Landmarks,
+  handednesses: Handednesses,
+  emergency?: boolean
+) => void;
+
+export interface OpenAIValidationResult {
+  gesture: string;
+  confidence: number;
+  feedback: string;
+  quality_score: number;
+  suggestions?: string[];
+  validation_source: 'mediapipe' | 'openai' | 'combined';
+}
 
 export const useOpenAIValidation = (
-  onGestureDetected: any,
-  captureImage?: () => Promise<any>
+  onGestureDetected: OnGestureDetected,
+  captureImage?: () => Promise<GestureImageCapture | null>
 ) => {
-  const [openaiValidationResult, setOpenaiValidationResult] = useState<{
-    gesture: string;
-    confidence: number;
-    feedback: string;
-    quality_score: number;
-    suggestions?: string[];
-    validation_source: 'mediapipe' | 'openai' | 'combined';
-  } | null>(null);
+  const [openaiValidationResult, setOpenaiValidationResult] =
+    useState<OpenAIValidationResult | null>(null);
   const [showOpenaiFeedback, setShowOpenaiFeedback] = useState(false);
 
   const handleOpenAIValidation = useCallback(async (
     gesture: string | null,
     confidence: number,
-    landmarks: number[][][],
-    handednesses: string[],
+    landmarks: Landmarks,
+    handednesses: Handednesses,
     emergency?: boolean
   ) => {
     if (!gesture) {
@@ -32,7 +50,14 @@ export const useOpenAIValidation = (
 
     if (shouldValidate) {
       try {
-        const imageCapture = captureImage ? await captureImage() : null;
+        const withTimeout = <T>(p: Promise<T>, ms = 3000) =>
+          Promise.race([
+            p,
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+          ]) as Promise<T | null>;
+        const imageCapture = captureImage
+          ? await withTimeout(captureImage())
+          : null;
 
         if (imageCapture) {
           const validationResult = await validateGestureWithFallback(
