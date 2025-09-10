@@ -18,4 +18,4 @@ jobs:
         with:
           python-version: '3.12'
       - name: Run full check
-        run: ./scripts/full-check.sh
+        run: NODE_OPTIONS=--max_old_space_size=4096 ./scripts/full-check.sh

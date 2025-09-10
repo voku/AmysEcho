@@ -936,4 +936,19 @@ describe('ParallelGestureProcessor', () => {
       });
     });
   });
+
+  describe('Frame conversion validation', () => {
+    it('throws when no frame is provided', async () => {
+      await expect((processor as any).convertFrameToBase64(null)).rejects.toThrow(
+        'No frame provided'
+      );
+    });
+
+    it('throws when processed frame is invalid', async () => {
+      (processDataUrl as jest.Mock).mockResolvedValueOnce(undefined);
+      await expect(
+        (processor as any).convertFrameToBase64('data:image/jpeg;base64,abc')
+      ).rejects.toThrow('Invalid frame data');
+    });
+  });
 });

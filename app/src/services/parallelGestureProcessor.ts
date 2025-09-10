@@ -370,11 +370,14 @@ class ParallelGestureProcessor {
   private async convertFrameToBase64(frame: CapturedFrame, landmarks?: number[][][]): Promise<string> {
      const result = await withErrorHandling(
        async () => {
-         // This would be implemented based on how frames are captured
-         // For WebView canvas capture, it might already be base64
-         // For native camera, we'd need to convert the image buffer
+        // This would be implemented based on how frames are captured
+        // For WebView canvas capture, it might already be base64
+        // For native camera, we'd need to convert the image buffer
+        if (!frame) {
+          throw new Error('No frame provided for conversion');
+        }
 
-          if (typeof frame === 'string' && frame.startsWith('data:image')) {
+        if (typeof frame === 'string' && frame.startsWith('data:image')) {
             // Optionally crop + downscale on web
             let processed = frame;
             try {
@@ -382,7 +385,10 @@ class ParallelGestureProcessor {
               const roi = computeHandRoi(landmarks, 640, 480);
               processed = await processDataUrl(frame, { maxWidth: 448, maxHeight: 448, roi, quality: 0.8 });
             } catch {}
-            return processed.split(',')[1];
+            if (typeof processed === 'string' && processed.includes(',')) {
+              return processed.split(',')[1];
+            }
+            throw new Error('Invalid frame data');
           }
 
           if (frame && typeof frame === 'object' && frame.base64) {
@@ -393,11 +399,16 @@ class ParallelGestureProcessor {
                 const h = typeof frame.height === 'number' ? frame.height : 480;
                 const roi = computeHandRoi(landmarks, w, h);
                 const processed = await processDataUrl(frame.uri, { maxWidth: 448, maxHeight: 448, roi, quality: 0.8 });
-                return processed.split(',')[1];
+                if (typeof processed === 'string' && processed.includes(',')) {
+                  return processed.split(',')[1];
+                }
               } catch {}
             }
             // Already has base64 property
-            return frame.base64;
+            if (typeof frame.base64 === 'string') {
+              return frame.base64;
+            }
+            throw new Error('Invalid frame data');
           }
 
          // Placeholder for native frame conversion logic
