@@ -36,7 +36,7 @@
   },
   "scripts": {
     "test": "npm run test:ts && npm run test:py",
-    "test:ts": "jest",
+    "test:ts": "jest --runInBand --forceExit",
     "test:py": "PYTHONPATH=./src:./ pytest -q",
     "train:mlp": "python3 src/amyserver_tools/train_mlp.py",
     "type-check": "tsc --noEmit --project tsconfig.json",
