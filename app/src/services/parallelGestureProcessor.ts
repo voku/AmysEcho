@@ -808,7 +808,11 @@ class ParallelGestureProcessor {
   /**
    * Clean up resources
    */
-  cleanup(): void {
+  async cleanup(): Promise<void> {
+     // Wait for any in-flight OpenAI requests to settle to avoid keeping Node's
+     // event loop active in tests
+     await Promise.allSettled(this.processingQueue.values());
+
      this.frameQueue = [];
      this.processingQueue.clear();
      this.resultCache.clear();

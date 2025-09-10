@@ -59,8 +59,8 @@ describe('ParallelGestureProcessor', () => {
     });
   });
 
-  afterEach(() => {
-    processor.cleanup();
+  afterEach(async () => {
+    await processor.cleanup();
   });
 
   describe('Basic Processing', () => {
@@ -512,15 +512,13 @@ describe('ParallelGestureProcessor', () => {
 
   describe('Caching', () => {
     it('should cache OpenAI results', async () => {
-      const timestamp = Date.now();
-
       mockValidateGestureWithOpenAI.mockResolvedValue({
         success: true,
         gesture: 'thumbs_up',
         confidence: 0.8,
       });
 
-      await processor.processMediaPipeResult(
+      const result = await processor.processMediaPipeResult(
         'thumbs_up',
         0.4,
         [],
@@ -531,7 +529,7 @@ describe('ParallelGestureProcessor', () => {
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const cached = processor.getCachedResult(timestamp);
+      const cached = processor.getCachedResult(result.timestamp);
       expect(cached).toEqual(
         expect.objectContaining({
           gesture: 'thumbs_up',
@@ -627,7 +625,7 @@ describe('ParallelGestureProcessor', () => {
       await processor.processMediaPipeResult('thumbs_up', 0.7, [], [], false);
 
       // Clean up
-      processor.cleanup();
+      await processor.cleanup();
 
       // Verify cleanup - create a new processor to check if cleanup worked
       const newProcessor = new ParallelGestureProcessor();
