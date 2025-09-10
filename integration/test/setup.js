@@ -65,7 +65,7 @@ jest.mock('expo-file-system', () => ({
   readAsStringAsync: jest.fn(),
   deleteAsync: jest.fn(),
   getInfoAsync: jest.fn(),
-}));
+}), { virtual: true });
 
 // Mock fetch globally
 global.fetch = jest.fn();
