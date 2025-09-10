@@ -18,6 +18,9 @@ module.exports = {
     '!src/**/*.d.ts',
     '!webview/**/*.d.ts',
   ],
+  coverageThreshold: {
+    global: { branches: 80, functions: 80, lines: 80, statements: 80 }
+  },
   // Memory optimization settings
   maxWorkers: 2, // Limit concurrent workers
   cache: true, // Enable caching

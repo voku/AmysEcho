@@ -11,16 +11,11 @@ import { LanguageManager } from '../services/LanguageManager';
 import { contextAwareRecognitionService } from '../services/contextAwareRecognitionService';
 
 
-import { GestureResult } from '../services/parallelGestureProcessor';
 import OpenAIGestureFeedback from './OpenAIGestureFeedback';
 import { logger } from '../utils/logger';
-import { performanceOptimizationService } from '../services/performanceOptimizationService';
-import { batteryOptimizationService } from '../services/batteryOptimizationService';
-import { frameRateOptimizationService } from '../services/frameRateOptimizationService';
 import { GestureWebView } from './GestureWebView';
 import { useModelInjection } from '../hooks/useModelInjection';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
-import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import { WebView } from 'react-native-webview';
 
@@ -51,10 +46,8 @@ interface Props {
   onModelUpdateStatus?: (status: 'idle' | 'updating' | 'complete' | 'error') => void;
   onPartialFeedback?: (gesture: string, completion: number, feedback: string) => void;
   onStabilityFeedback?: (isStable: boolean, stabilityScore: number, feedback: string) => void;
-  onMergedResult?: (result: GestureResult) => void; // New callback for merged results
   facingMode?: 'user' | 'environment';
   gestureSizeTolerance?: number;
-  enableParallelProcessing?: boolean; // Enable/disable parallel OpenAI processing
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({
@@ -64,16 +57,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   onModelUpdateStatus,
   onPartialFeedback,
   onStabilityFeedback,
-  onMergedResult,
   facingMode = 'user',
   gestureSizeTolerance = 0.3,
-  enableParallelProcessing = true
 }) => {
   const webviewRef = useRef<WebView>(null);
 
   const { injectModel, mlpReadyRef, pendingModelRef } = useModelInjection(webviewRef, onModelUpdateStatus);
   const { openaiValidationResult, setOpenaiValidationResult, showOpenaiFeedback, setShowOpenaiFeedback, handleOpenAIValidation } = useOpenAIValidation(onGestureDetected);
-  const { handleParallelProcessing } = useParallelProcessing(onGestureDetected, onMergedResult, setOpenaiValidationResult, setShowOpenaiFeedback, handleOpenAIValidation);
 
   const [, setLangTick] = useState(0);
 
@@ -126,30 +116,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     return unsubscribe;
   }, [injectModel]);
 
-  useEffect(() => {
-    const webview = webviewRef.current;
-
-    // Register WebView with performance service
-    if (webview) {
-      performanceOptimizationService.registerWebView(webview);
-    }
-
-    return () => {
-      // Unregister WebView from performance service
-      if (webview) {
-        performanceOptimizationService.unregisterWebView(webview);
-      }
-
-      try {
-        webview?.injectJavaScript(
-          'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
-        );
-      } catch (e) {
-        logger.warn('Failed to inject WebView cleanup script', e);
-      }
-    };
-  }, []);
-
   const gestureDetectorJs = require('../assets/gestureDetector.js');
   const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
   const htmlContent = `
@@ -174,11 +140,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
      window.__mlpThreshold = ${MLP_CONFIDENCE_THRESHOLD};
      window.__fallbackThreshold = ${FALLBACK_CONFIDENCE_THRESHOLD};
       window.__gestureSizeTolerance = ${gestureSizeTolerance};
-      // Performance-aware processing parameters
-      window.__processingParams = ${JSON.stringify(performanceOptimizationService.getOptimizedProcessingParams())};
-      window.__batteryParams = ${JSON.stringify(batteryOptimizationService.getBatteryOptimizedParams())};
-      window.__frameRateParams = ${JSON.stringify(frameRateOptimizationService.getFrameRateStats())};
-      window.__isLowPowerMode = ${performanceOptimizationService.isInLowPowerMode()};
       // Disable enhanced haptic system during testing to avoid interference
       window.__disableHapticSystem = ${process.env.NODE_ENV === 'test' ? 'true' : 'false'};
    </script>
@@ -209,26 +170,12 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         let confidence = typeof data.confidence === 'number' ? data.confidence : 0;
         const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][]) : [];
         const handednesses = Array.isArray(data.handednesses) ? (data.handednesses as string[]) : [];
-        const capturedFrame = data.capturedFrame || null;
-
-        // Get optimized processing parameters
-        const processingParams = performanceOptimizationService.getOptimizedProcessingParams();
-
-        // Compress landmarks for better performance (only if enabled)
-        if (processingParams.compressionEnabled) {
-          performanceOptimizationService.compressLandmarks(landmarks);
-        }
         // For tests, emit synchronously to satisfy expectations
         if (process.env.NODE_ENV === 'test') {
           onGestureDetected(gesture, confidence, landmarks, handednesses, data.emergency === true);
           return;
         }
-        // Enhanced gesture detection with parallel processing
-        if (enableParallelProcessing) {
-          handleParallelProcessing(gesture, confidence, landmarks, handednesses, data.emergency === true, capturedFrame);
-        } else {
-          handleOpenAIValidation(gesture, confidence, landmarks, handednesses, data.emergency === true);
-        }
+        handleOpenAIValidation(gesture, confidence, landmarks, handednesses, data.emergency === true);
       } else if (data.type === 'error') {
         // Amy First: Log technical errors but pass generic message to UI
         logger.error('WebView error', { message: data.message });
@@ -294,11 +241,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
               ...(Array.isArray(data.tracks) ? { tracks: data.tracks } : {}),
             };
 
-            // Batch telemetry messages for better performance
-            performanceOptimizationService.addWebViewMessage({
-              type: 'telemetry',
-              data: telemetryData
-            }, eventStr === 'gesture_processing_error' ? 'high' : 'low');
+            // Directly emit telemetry events
+            logger.info('WebView telemetry', telemetryData);
           }
         } catch (e) {
           logger.warn('Failed to queue telemetry', e);
