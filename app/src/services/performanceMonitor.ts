@@ -54,8 +54,11 @@ class PerformanceMonitor {
   private startTime = Date.now();
 
   private constructor() {
-    // Clean up old samples periodically
-    setInterval(() => this.cleanupOldSamples(), 30000);
+    // Clean up old samples periodically without keeping Node alive
+    const interval = setInterval(() => this.cleanupOldSamples(), 30000);
+    if (typeof interval === 'object' && typeof (interval as any).unref === 'function') {
+      (interval as any).unref();
+    }
   }
 
   // Simple metric recorder for ad-hoc counters/timings

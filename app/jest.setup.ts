@@ -36,7 +36,13 @@ if (!(global as any).fetch) {
   // @ts-ignore
   global.setTimeout = ((fn: any, ms?: number, ...args: any[]) => origSetTimeout(fn, clamp(ms ?? 0), ...args)) as any;
   // @ts-ignore
-  global.setInterval = ((fn: any, ms?: number, ...args: any[]) => origSetInterval(fn, clamp(ms ?? 0), ...args)) as any;
+  global.setInterval = ((fn: any, ms?: number, ...args: any[]) => {
+    const id = origSetInterval(fn, clamp(ms ?? 0), ...args);
+    if (typeof id === 'object' && typeof (id as any).unref === 'function') {
+      (id as any).unref();
+    }
+    return id;
+  }) as any;
 })();
 
 // Minimal canvas context mock for jsdom (avoid installing canvas dependency)
