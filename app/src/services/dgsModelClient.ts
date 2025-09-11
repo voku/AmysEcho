@@ -30,6 +30,7 @@ type StorageLike = {
   getItem(key: string): Promise<string | null>;
 };
 
+let memoryStore: Map<string, string> | null = null;
 async function getStorage(): Promise<StorageLike> {
   try {
     if (typeof (globalThis as any).window === 'undefined') {
@@ -38,13 +39,13 @@ async function getStorage(): Promise<StorageLike> {
     const mod = await import('@react-native-async-storage/async-storage');
     return mod.default as StorageLike;
   } catch {
-    const mem = new Map<string, string>();
+    if (!memoryStore) memoryStore = new Map<string, string>();
     return {
       async setItem(key: string, value: string) {
-        mem.set(key, value);
+        memoryStore!.set(key, value);
       },
       async getItem(key: string) {
-        return mem.get(key) ?? null;
+        return memoryStore!.get(key) ?? null;
       },
     };
   }

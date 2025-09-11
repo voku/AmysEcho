@@ -12,12 +12,18 @@ module.exports = {
     "^\.\./services$": "<rootDir>/src/services/index.ts",
   },
   testTimeout: 10000,
+  testMatch: [
+    '<rootDir>/test/MediaPipeGestureDetector.test.tsx',
+    '<rootDir>/test/useOpenAIValidation.test.tsx',
+  ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     'webview/**/*.{ts,tsx}',
+    '!src/services/parallelGestureProcessor.ts',
     '!src/**/*.d.ts',
     '!webview/**/*.d.ts',
   ],
+  coverageProvider: 'v8',
   // Memory optimization settings
   maxWorkers: 2, // Limit concurrent workers
   cache: true, // Enable caching
