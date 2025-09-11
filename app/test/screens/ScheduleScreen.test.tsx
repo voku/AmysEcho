@@ -10,6 +10,7 @@ jest.mock('react-native', () => {
 });
 
 import ScheduleScreen from '../../src/screens/ScheduleScreen';
+import { logger } from '../../src/utils/logger';
 
 jest.mock('../../src/components/VisualSchedule', () => {
   const React = require('react');
@@ -83,15 +84,15 @@ describe('ScheduleScreen', () => {
 
     const visualSchedule = component!.root.findByProps({ testID: 'visual-schedule' });
 
-    // Mock console.log to avoid console output in tests
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    // Mock logger to avoid console output in tests
+    const loggerSpy = jest.spyOn(logger, 'info').mockImplementation();
 
     act(() => {
       visualSchedule.props.onScheduleComplete();
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('Schedule completed!');
+    expect(loggerSpy).toHaveBeenCalledWith('Schedule completed!');
 
-    consoleSpy.mockRestore();
+    loggerSpy.mockRestore();
   });
 });

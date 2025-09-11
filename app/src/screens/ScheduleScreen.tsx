@@ -4,6 +4,7 @@ import type { NavigationProp } from '@react-navigation/native';
 import VisualSchedule from '../components/VisualSchedule';
 import BottomNav from '../components/BottomNav';
 import type { RootStackParamList } from '../navigation/types';
+import { logger } from '../utils/logger';
 
 export default function ScheduleScreen({
   navigation,
@@ -17,7 +18,7 @@ export default function ScheduleScreen({
 
   const handleScheduleComplete = () => {
     // Could show a celebration or navigate somewhere
-    console.log('Schedule completed!');
+    logger.info('Schedule completed!');
   };
 
   return (

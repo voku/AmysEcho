@@ -12,6 +12,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../utils/logger';
 
 export interface CommunicationSession {
   startTime: number;
@@ -217,7 +218,7 @@ class AdaptivePracticeTimingService {
 
       // If more than COMMUNICATION_TIMEOUT has passed, end the session
       if (timeSinceLastGesture > this.COMMUNICATION_TIMEOUT) {
-        console.log('Cleaning up stale communication session');
+        logger.debug('Cleaning up stale communication session');
         this.endCommunicationSession();
       }
     }
@@ -372,7 +373,7 @@ class AdaptivePracticeTimingService {
         this.lastPracticeSuggestion = parsed.lastPracticeSuggestion || 0;
       }
     } catch (error) {
-      console.warn('Failed to load practice timing data:', error);
+      logger.warn('Failed to load practice timing data:', error);
     }
   }
 
@@ -385,7 +386,7 @@ class AdaptivePracticeTimingService {
       };
       await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.warn('Failed to save practice timing data:', error);
+      logger.warn('Failed to save practice timing data:', error);
     }
   }
 }
