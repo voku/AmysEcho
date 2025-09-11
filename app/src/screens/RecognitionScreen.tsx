@@ -74,6 +74,7 @@ import { emergencyRollback } from '../services/modelUpdate';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
 import MoodSelector from '../components/MoodSelector';
+import LocationSelector from '../components/LocationSelector';
 import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
 import GestureComparison from '../components/GestureComparison';
@@ -119,6 +120,7 @@ export default function RecognitionScreen({
     screenReaderEnabled, setScreenReaderEnabled,
     modelUpdateStatus, setModelUpdateStatus,
     showMoodSelector, setShowMoodSelector,
+    showLocationSelector, setShowLocationSelector,
     kindergartenMode, setKindergartenMode,
     bullyingProtectionActive, setBullyingProtectionActive,
     gestureSizeTolerance, setGestureSizeTolerance,
@@ -475,6 +477,11 @@ export default function RecognitionScreen({
             onPress={() => setShowMoodSelector(!showMoodSelector)}
             accessibilityLabel="Stimmungsmodus ändern"
           />
+          <Button
+            title="Ort"
+            onPress={() => setShowLocationSelector(!showLocationSelector)}
+            accessibilityLabel="Ort festlegen"
+          />
         </View>
       )}
 
@@ -486,10 +493,17 @@ export default function RecognitionScreen({
             onPress={() => setShowMoodSelector(!showMoodSelector)}
             accessibilityLabel="Amy's Stimmung auswählen"
           />
+          <View style={{ height: SPACING.md }} />
+          <Button
+            title="📍 Wo bist du?"
+            onPress={() => setShowLocationSelector(!showLocationSelector)}
+            accessibilityLabel="Aktuellen Ort auswählen"
+          />
         </View>
       )}
 
       {showMoodSelector && <MoodSelector />}
+      {showLocationSelector && <LocationSelector />}
        <View style={styles.cameraContainer}>
          {
            <MediaPipeGestureDetector

@@ -8,6 +8,7 @@ import { setupDatabase } from './db';
 
 import { MessageProvider } from './src/context/MessageContext';
 import { MoodProvider } from './src/context/MoodContext';
+import { LocationProvider } from './src/context/LocationContext';
 import { AccessibilityContext, AccessibilitySettings } from './src/components/AccessibilityContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/storage';
@@ -126,8 +127,9 @@ function AppContent() {
     <SafeAreaProvider>
       <MessageProvider>
         <MoodProvider>
-          <PerformanceProvider>
-            <AppServicesProvider offline={isOffline}>
+          <LocationProvider>
+            <PerformanceProvider>
+              <AppServicesProvider offline={isOffline}>
               <AccessibilityContext.Provider
                 value={{
                   ...accessibility,
@@ -146,6 +148,7 @@ function AppContent() {
               </AccessibilityContext.Provider>
             </AppServicesProvider>
           </PerformanceProvider>
+        </LocationProvider>
         </MoodProvider>
       </MessageProvider>
     </SafeAreaProvider>

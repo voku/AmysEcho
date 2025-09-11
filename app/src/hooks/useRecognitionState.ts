@@ -30,6 +30,7 @@ export const useRecognitionState = () => {
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
   const [modelUpdateStatus, setModelUpdateStatus] = useState<'idle' | 'updating' | 'complete' | 'error'>('idle');
   const [showMoodSelector, setShowMoodSelector] = useState(false);
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [kindergartenMode, setKindergartenMode] = useState(true); // Default to kindergarten mode
   const [bullyingProtectionActive, setBullyingProtectionActive] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
@@ -70,6 +71,7 @@ export const useRecognitionState = () => {
     screenReaderEnabled, setScreenReaderEnabled,
     modelUpdateStatus, setModelUpdateStatus,
     showMoodSelector, setShowMoodSelector,
+    showLocationSelector, setShowLocationSelector,
     kindergartenMode, setKindergartenMode,
     bullyingProtectionActive, setBullyingProtectionActive,
     gestureSizeTolerance, setGestureSizeTolerance,
