@@ -59,6 +59,7 @@ describe('useOpenAIValidation', () => {
       feedback: 'ok',
       suggestions: ['tip'],
       validationSource: 'openai',
+      quality_score: 9.1,
     });
     const captureImage = jest.fn().mockResolvedValue({ uri: 'x', base64: 'y' });
     const ref = React.createRef<HookRef>();
@@ -66,12 +67,17 @@ describe('useOpenAIValidation', () => {
     await act(async () => {
       await ref.current!.handleOpenAIValidation('winken', 0.8, [], []);
     });
-    expect(ValidationSvc.validateGestureWithFallback).toHaveBeenCalled();
+    expect(ValidationSvc.validateGestureWithFallback).toHaveBeenCalledWith(
+      { gesture: 'winken', confidence: 0.8, landmarks: [] },
+      { uri: 'x', base64: 'y' },
+      expect.objectContaining({ session_id: expect.any(String), environment: 'home' })
+    );
     expect(onDetected).toHaveBeenCalledWith('winken', 0.95, [], [], undefined);
     expect(ref.current!.openaiValidationResult).toMatchObject({
       gesture: 'winken',
       confidence: 0.95,
       validation_source: 'openai',
+      quality_score: 9.1,
     });
     expect(ref.current!.showOpenaiFeedback).toBe(true);
   });

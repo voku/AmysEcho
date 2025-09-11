@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { logger } from '../utils/logger';
 import {
   validateGestureWithFallback,
@@ -43,6 +43,14 @@ export const useOpenAIValidation = (
   const [openaiValidationResult, setOpenaiValidationResult] =
     useState<OpenAIValidationResult | null>(null);
   const [showOpenaiFeedback, setShowOpenaiFeedback] = useState(false);
+  const sessionIdRef = useRef(`session_${Date.now()}`);
+  const environment = ((): 'home' | 'school' | 'therapy' => {
+    const env = process.env.EXPO_PUBLIC_DEFAULT_ENVIRONMENT;
+    if (env === 'home' || env === 'school' || env === 'therapy') {
+      return env;
+    }
+    return 'home';
+  })();
 
   const handleOpenAIValidation = useCallback(
     async (
@@ -78,8 +86,8 @@ export const useOpenAIValidation = (
           { gesture, confidence, landmarks },
           imageCapture,
           {
-            session_id: 'current-session', // TODO: context
-            environment: 'home', // TODO: context
+            session_id: sessionIdRef.current,
+            environment,
           }
         );
 
@@ -87,7 +95,7 @@ export const useOpenAIValidation = (
           gesture: validationResult.finalGesture,
           confidence: validationResult.finalConfidence,
           feedback: validationResult.feedback || 'Geste validiert',
-          quality_score: 7.5, // TODO: real value from response
+          quality_score: validationResult.quality_score ?? 0,
           suggestions: validationResult.suggestions,
           validation_source: validationResult.validationSource,
         });

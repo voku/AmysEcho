@@ -15,18 +15,14 @@ The script will:
 """
 
 import cv2
-import mediapipe as mp
 import numpy as np
 import json
 import os
 import argparse
 from typing import List, Dict, Any, Optional
 import sys
-
-# MediaPipe setup - temporarily disabled due to version compatibility issues
-# TODO: Fix MediaPipe imports for version 0.10.21
-# mp_hands = mp.solutions.hands
-# mp_drawing = mp.solutions.drawing_utils
+from mediapipe.python.solutions import hands as mp_hands
+from mediapipe.python.solutions import drawing_utils as mp_drawing
 
 class DGSVideoProcessor:
     def __init__(self, max_frames: int = 100, confidence_threshold: float = 0.7):
