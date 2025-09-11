@@ -310,25 +310,33 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   };
 
   return (
-    <GestureWebView
-      ref={webviewRef}
-      htmlContent={htmlContent}
-      onMessage={handleMessage}
-      onError={(e: any) => {
-        logger.warn('WebView runtime error', e?.nativeEvent);
-        onError('webview_load_error');
-      }}
-      onHttpError={(e: any) => {
-        logger.warn('WebView HTTP error', e?.nativeEvent);
-        onError('webview_http_error');
-      }}
-      onConsoleMessage={(e: any) => {
-        console.log('WV:', e.nativeEvent?.message);
-      }}
-      onPermissionRequest={(e: any) => {
-        const allowed = e.nativeEvent.resources.filter((r: string) => r === 'VIDEO_CAPTURE');
-        e.nativeEvent.grant(allowed);
-      }}
-    />
-  );
-};
+      <GestureWebView
+        ref={webviewRef}
+        htmlContent={htmlContent}
+        onMessage={handleMessage}
+        onError={(e: any) => {
+          logger.warn('WebView runtime error', e?.nativeEvent);
+          onError('webview_load_error');
+        }}
+        onHttpError={(e: any) => {
+          logger.warn('WebView HTTP error', e?.nativeEvent);
+          onError('webview_http_error');
+        }}
+        onConsoleMessage={(e: any) => {
+          console.log('WV:', e.nativeEvent?.message);
+        }}
+        onPermissionRequest={(e: any) => {
+          const { origin, resources, grant, deny } = e.nativeEvent;
+          const allowedOrigin = 'https://camera.local';
+          if (origin === allowedOrigin) {
+            const allowed = resources.filter((r: string) => r === 'VIDEO_CAPTURE');
+            if (allowed.length > 0) {
+              grant(allowed);
+              return;
+            }
+          }
+          deny();
+        }}
+      />
+    );
+  };
