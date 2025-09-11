@@ -3,6 +3,8 @@ import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDetector';
 import { LanguageManager } from '../src/services/LanguageManager';
+import { CAMERA_WEBVIEW_BASE_URL } from '../src/constants';
+import { logger } from '../src/utils/logger';
 
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/mock/documents/',
@@ -187,7 +189,7 @@ describe('MediaPipeGestureDetector', () => {
     expect(onGestureDetected).not.toHaveBeenCalled();
   });
 
-  it('handles permission requests', () => {
+    it('handles permission requests', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
 
@@ -199,16 +201,107 @@ describe('MediaPipeGestureDetector', () => {
 
     const webview = component!.root.findByType('mock-webview');
     const grant = jest.fn();
+    const deny = jest.fn();
     act(() => {
-      webview.props.onPermissionRequest({
-        nativeEvent: {
-          resources: ['VIDEO_CAPTURE', 'AUDIO_CAPTURE'],
-          grant,
-        },
+        webview.props.onPermissionRequest({
+          nativeEvent: {
+            origin: `${CAMERA_WEBVIEW_BASE_URL}/`,
+            resources: ['VIDEO_CAPTURE', 'AUDIO_CAPTURE'],
+            grant,
+            deny,
+          },
+        });
       });
-    });
 
     expect(grant).toHaveBeenCalledWith(['VIDEO_CAPTURE']);
+    expect(deny).not.toHaveBeenCalled();
   });
-});
+
+    it('denies permission requests from unknown origins', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const grant = jest.fn();
+    const deny = jest.fn();
+    act(() => {
+        webview.props.onPermissionRequest({
+          nativeEvent: {
+            origin: 'https://example.com/',
+            resources: ['VIDEO_CAPTURE'],
+            grant,
+            deny,
+          },
+        });
+      });
+
+      expect(grant).not.toHaveBeenCalled();
+      expect(deny).toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('denies microphone-only requests even from allowed origin', () => {
+      const onGestureDetected = jest.fn();
+      const onError = jest.fn();
+
+      act(() => {
+        component = renderer.create(
+          <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+        );
+      });
+
+      const webview = component!.root.findByType('mock-webview');
+      const grant = jest.fn();
+      const deny = jest.fn();
+      act(() => {
+        webview.props.onPermissionRequest({
+          nativeEvent: {
+            origin: `${CAMERA_WEBVIEW_BASE_URL}/`,
+            resources: ['AUDIO_CAPTURE'],
+            grant,
+            deny,
+          },
+        });
+      });
+
+      expect(grant).not.toHaveBeenCalled();
+      expect(deny).toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('denies permission requests with invalid origin', () => {
+      const onGestureDetected = jest.fn();
+      const onError = jest.fn();
+
+      act(() => {
+        component = renderer.create(
+          <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+        );
+      });
+
+      const webview = component!.root.findByType('mock-webview');
+      const grant = jest.fn();
+      const deny = jest.fn();
+      act(() => {
+        webview.props.onPermissionRequest({
+          nativeEvent: {
+            origin: '::::',
+            resources: ['VIDEO_CAPTURE'],
+            grant,
+            deny,
+          },
+        });
+      });
+
+      expect(grant).not.toHaveBeenCalled();
+      expect(deny).toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalled();
+    });
+  });
 

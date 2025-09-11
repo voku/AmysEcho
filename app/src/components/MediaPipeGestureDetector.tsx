@@ -4,6 +4,7 @@ import {
   API_TOKEN,
   MLP_CONFIDENCE_THRESHOLD,
   FALLBACK_CONFIDENCE_THRESHOLD,
+  CAMERA_WEBVIEW_BASE_URL,
 } from '../constants';
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
@@ -23,6 +24,7 @@ import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
 import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import { WebView } from 'react-native-webview';
+import type { WebViewPermissionRequestEvent } from '../webviewTypes';
 
 export type WebViewTelemetryEvent =
   | 'dom_ready'
@@ -310,25 +312,41 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   };
 
   return (
-    <GestureWebView
-      ref={webviewRef}
-      htmlContent={htmlContent}
-      onMessage={handleMessage}
-      onError={(e: any) => {
-        logger.warn('WebView runtime error', e?.nativeEvent);
-        onError('webview_load_error');
-      }}
-      onHttpError={(e: any) => {
-        logger.warn('WebView HTTP error', e?.nativeEvent);
-        onError('webview_http_error');
-      }}
-      onConsoleMessage={(e: any) => {
-        console.log('WV:', e.nativeEvent?.message);
-      }}
-      onPermissionRequest={(e: any) => {
-        const allowed = e.nativeEvent.resources.filter((r: string) => r === 'VIDEO_CAPTURE');
-        e.nativeEvent.grant(allowed);
-      }}
-    />
-  );
-};
+      <GestureWebView
+        ref={webviewRef}
+        htmlContent={htmlContent}
+        onMessage={handleMessage}
+        onError={(e: any) => {
+          logger.warn('WebView runtime error', e?.nativeEvent);
+          onError('webview_load_error');
+        }}
+        onHttpError={(e: any) => {
+          logger.warn('WebView HTTP error', e?.nativeEvent);
+          onError('webview_http_error');
+        }}
+        onConsoleMessage={(e: any) => {
+          console.log('WV:', e.nativeEvent?.message);
+        }}
+        onPermissionRequest={(e: WebViewPermissionRequestEvent) => {
+          const { origin, resources, grant, deny } = e.nativeEvent;
+          let requestOrigin: string;
+          try {
+            requestOrigin = new URL(origin).origin;
+          } catch (error) {
+            deny();
+            logger.warn('Invalid origin in permission request, denying.', { origin, error });
+            return;
+          }
+          if (
+            requestOrigin === CAMERA_WEBVIEW_BASE_URL &&
+            resources.includes('VIDEO_CAPTURE')
+          ) {
+            grant(['VIDEO_CAPTURE']);
+          } else {
+            deny();
+            logger.warn('Denied media permission', { origin, requested: resources });
+          }
+        }}
+      />
+    );
+  };
