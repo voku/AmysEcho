@@ -1,19 +1,28 @@
+# vendor stuff
 node_modules
+server/**/__pycache__/
+
+# build stuff
 dist
 .expo
 app/android/
 app/ios/
+
+# keys
 .openai-key
-server/**/__pycache__/
+
+# db
 app/watermelon.db
+
+# ide
 .idea
 
+# json stuff
 **/jest-results.json
 server/analytics.json
 server/telemetry.json
+
+# code coverage
 app/coverage/
 coverage/
 server/coverage/
-
-# Logs from full-check script
-full-check.log
