@@ -15,7 +15,14 @@ Use `onPermissionRequest` to validate both origin and requested resources before
 ```tsx
 onPermissionRequest={(e) => {
   const { origin, resources, grant, deny } = e.nativeEvent;
-  if (new URL(origin).origin === 'https://camera.local' && resources.includes('VIDEO_CAPTURE')) {
+  let requestOrigin: string;
+  try {
+    requestOrigin = new URL(origin).origin;
+  } catch {
+    deny();
+    return;
+  }
+  if (requestOrigin === 'https://camera.local' && resources.includes('VIDEO_CAPTURE')) {
     grant(['VIDEO_CAPTURE']);
   } else {
     deny();
