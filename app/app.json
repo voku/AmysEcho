@@ -26,12 +26,6 @@
       }
     },
     "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow Amy's Echo to access your camera for gesture recognition"
-        }
-      ],
       "expo-audio",
       "expo-secure-store"
     ]

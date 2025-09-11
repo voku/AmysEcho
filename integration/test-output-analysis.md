@@ -48,10 +48,10 @@ assert.strictEqual(result, true);
 **Problem**: ES module imports without file extensions
 ```javascript
 // ❌ Wrong
-import { Camera } from 'expo-camera';
+import { Audio } from 'expo-audio';
 
 // ✅ Correct
-import { Camera } from 'expo-camera/index.js';
+import { Audio } from 'expo-audio/index.js';
 ```
 
 ### 🟡 Moderate Issues

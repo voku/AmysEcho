@@ -55,19 +55,18 @@ assert.strictEqual(result, true);
 #### 2. **Mock Strategy Overhaul**
 ```javascript
 // ❌ Before: Complex Jest mocks
-jest.mock('expo-camera', () => ({
-  Camera: {
-    requestCameraPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
+jest.mock('expo-audio', () => ({
+  Audio: {
+    requestRecordingPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
   },
 }));
 
 // ✅ After: Simple test doubles
-const mockCamera = {
-  takePictureAsync: async () => ({
-    uri: 'file:///tmp/test-frame.jpg',
-    width: 640,
-    height: 480,
-    base64: 'mock-base64-frame-data',
+const mockRecorder = {
+  recordAsync: async () => ({
+    uri: 'file:///tmp/test-audio.m4a',
+    duration: 1200,
+    base64: 'mock-base64-audio-data',
   }),
 };
 ```
@@ -76,22 +75,22 @@ const mockCamera = {
 ```javascript
 // ❌ Before: Mixed require/import
 const { promises as fs } = require('fs');
-import { Camera } from 'expo-camera';
+import { Audio } from 'expo-audio';
 
 // ✅ After: Consistent ES modules
 import { promises as fs } from 'fs';
-import { Camera } from 'expo-camera/index.js';
+import { Audio } from 'expo-audio/index.js';
 ```
 
 #### 4. **Error Handling Improvements**
 ```javascript
 // ❌ Before: Brittle mocks
-mockCamera.takePictureAsync.mockRejectedValue(new Error('Camera not available'));
+mockRecorder.recordAsync.mockRejectedValue(new Error('Recorder not available'));
 
 // ✅ After: Graceful error simulation
-const failingCamera = {
-  takePictureAsync: async () => {
-    throw new Error('Camera not available');
+const failingRecorder = {
+  recordAsync: async () => {
+    throw new Error('Recorder not available');
   },
 };
 ```
