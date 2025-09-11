@@ -18,6 +18,17 @@ import { MessageProvider, useMessage } from '../src/context/MessageContext';
 import ErrorMessage from '../src/components/ErrorMessage';
 
 describe('MessageProvider', () => {
+  let warnSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
   it('displays console warnings', () => {
     let component: renderer.ReactTestRenderer;
     act(() => {

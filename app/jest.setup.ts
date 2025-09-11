@@ -18,7 +18,7 @@ const originalConsoleWarn = console.warn;
 console.warn = (...args: any[]) => {
   const msg = args[0];
   if (typeof msg === 'string') {
-    if (msg.startsWith('[🍉]')) return; // WatermelonDB internal logs
+    if (msg.startsWith('[🍉]') || msg.startsWith('[WARN]')) return; // Suppress WatermelonDB and logger warnings
   }
   originalConsoleWarn(...args);
 };
