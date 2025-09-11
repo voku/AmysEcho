@@ -1,7 +1,12 @@
 import React, { forwardRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
-import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
+import type {
+  WebViewMessageEvent,
+  MediaCapturePermissionGrantType,
+} from 'react-native-webview/lib/WebViewTypes';
+import { CAMERA_WEBVIEW_BASE_URL } from '../constants';
+import type { WebViewPermissionRequestEvent } from '../webviewTypes';
 
 interface Props {
   htmlContent: string;
@@ -9,7 +14,7 @@ interface Props {
   onError: (event: any) => void;
   onHttpError: (event: any) => void;
   onConsoleMessage?: (event: any) => void;
-  onPermissionRequest?: (event: any) => void;
+  onPermissionRequest?: (event: WebViewPermissionRequestEvent) => void;
 }
 
 export const GestureWebView = forwardRef<WebView, Props>(
@@ -24,29 +29,26 @@ export const GestureWebView = forwardRef<WebView, Props>(
     },
     ref
   ) => {
-    interface AndroidProps {
+    interface PlatformProps {
       onConsoleMessage?: (event: any) => void;
-      onPermissionRequest?: (event: any) => void;
-      mediaCapturePermissionGrantType?:
-        | 'grantIfSameHostElsePrompt'
-        | 'grantIfSameHostElseDeny'
-        | 'grant'
-        | 'deny'
-        | 'prompt';
+      onPermissionRequest?: (event: WebViewPermissionRequestEvent) => void;
+      mediaCapturePermissionGrantType?: MediaCapturePermissionGrantType;
     }
-    const androidProps: AndroidProps = {};
+    const platformProps: PlatformProps = {};
     if (onConsoleMessage) {
-      androidProps.onConsoleMessage = onConsoleMessage;
+      platformProps.onConsoleMessage = onConsoleMessage;
     }
     if (onPermissionRequest) {
-      androidProps.onPermissionRequest = onPermissionRequest;
-      androidProps.mediaCapturePermissionGrantType = 'grantIfSameHostElsePrompt';
+      platformProps.onPermissionRequest = onPermissionRequest;
+    }
+    if (Platform.OS === 'ios') {
+      platformProps.mediaCapturePermissionGrantType = 'grantIfSameHostElsePrompt';
     }
     return (
       <View style={styles.container}>
         <WebView
           ref={ref}
-          source={{ html: htmlContent, baseUrl: 'https://camera.local' }}
+          source={{ html: htmlContent, baseUrl: CAMERA_WEBVIEW_BASE_URL }}
           style={styles.webview}
           onMessage={onMessage}
           mediaPlaybackRequiresUserAction={false}
@@ -60,7 +62,7 @@ export const GestureWebView = forwardRef<WebView, Props>(
           onHttpError={onHttpError}
           cacheEnabled={true}
           cacheMode={'LOAD_CACHE_ELSE_NETWORK'}
-          {...androidProps}
+          {...platformProps}
         />
       </View>
     );

@@ -4,6 +4,7 @@ import {
   API_TOKEN,
   MLP_CONFIDENCE_THRESHOLD,
   FALLBACK_CONFIDENCE_THRESHOLD,
+  CAMERA_WEBVIEW_BASE_URL,
 } from '../constants';
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
@@ -23,6 +24,7 @@ import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
 import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import { WebView } from 'react-native-webview';
+import type { WebViewPermissionRequestEvent } from '../webviewTypes';
 
 export type WebViewTelemetryEvent =
   | 'dom_ready'
@@ -325,17 +327,17 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         onConsoleMessage={(e: any) => {
           console.log('WV:', e.nativeEvent?.message);
         }}
-        onPermissionRequest={(e: any) => {
+        onPermissionRequest={(e: WebViewPermissionRequestEvent) => {
           const { origin, resources, grant, deny } = e.nativeEvent;
-          const allowedOrigin = 'https://camera.local';
-          if (origin === allowedOrigin) {
-            const allowed = resources.filter((r: string) => r === 'VIDEO_CAPTURE');
-            if (allowed.length > 0) {
-              grant(allowed);
-              return;
-            }
+          if (
+            new URL(origin).origin === CAMERA_WEBVIEW_BASE_URL &&
+            resources.includes('VIDEO_CAPTURE')
+          ) {
+            grant(['VIDEO_CAPTURE']);
+          } else {
+            deny();
+            logger.warn('Denied media permission', { origin, requested: resources });
           }
-          deny();
         }}
       />
     );

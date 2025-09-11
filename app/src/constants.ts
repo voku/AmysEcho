@@ -9,6 +9,7 @@ export const MLP_CONFIDENCE_THRESHOLD = 0.4;
 export const FALLBACK_CONFIDENCE_THRESHOLD = 0.3;
 export const ANALYTICS_ENDPOINT = `${API_URL}/analytics`;
 export const ANALYTICS_TELEMETRY_ENDPOINT = `${API_URL}/telemetry`;
+export const CAMERA_WEBVIEW_BASE_URL = 'https://camera.local';
 
 export const ENABLE_REMOTE_CLASSIFICATION =
   process.env.EXPO_PUBLIC_ENABLE_REMOTE_CLASSIFICATION !== 'false';
