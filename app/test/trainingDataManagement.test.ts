@@ -52,7 +52,9 @@ import {
   addTrainingSample,
   getTrainingSamples,
   clearTrainingSamples,
+  addTrainingSampleWithFeedback,
 } from '../src/services/trainingDataService';
+import { LanguageManager } from '../src/services/LanguageManager';
 
 describe('Training Data Management - Colors and Food', () => {
   beforeEach(async () => {
@@ -164,17 +166,38 @@ describe('Training Data Management - Colors and Food', () => {
 
     it('rejects invalid landmark data', async () => {
       const invalidLandmarks = 'invalid';
-      await expect(addTrainingSample('test', invalidLandmarks as any)).rejects.toThrow();
+      await expect(addTrainingSample('test', invalidLandmarks as any)).rejects.toThrow(
+        LanguageManager.t('errors.invalidTrainingData')
+      );
     });
 
     it('rejects empty landmark data', async () => {
-      await expect(addTrainingSample('test', [])).rejects.toThrow();
+      await expect(addTrainingSample('test', [])).rejects.toThrow(
+        LanguageManager.t('errors.invalidTrainingData')
+      );
     });
 
     it('validates gesture ID', async () => {
       const landmarks = [[0, 0, 0]];
-      await expect(addTrainingSample('', landmarks)).rejects.toThrow();
-      await expect(addTrainingSample('   ', landmarks)).rejects.toThrow();
+      await expect(addTrainingSample('', landmarks)).rejects.toThrow(
+        LanguageManager.t('errors.invalidTrainingData')
+      );
+      await expect(addTrainingSample('   ', landmarks)).rejects.toThrow(
+        LanguageManager.t('errors.invalidTrainingData')
+      );
+    });
+  });
+
+  describe('Feedback Handling', () => {
+    it('returns localized error when adding invalid sample', async () => {
+      const result = await addTrainingSampleWithFeedback('test', []);
+      expect(result).toEqual({
+        success: false,
+        feedback: {
+          message: LanguageManager.t('errors.invalidTrainingData'),
+          type: 'error'
+        }
+      });
     });
   });
 

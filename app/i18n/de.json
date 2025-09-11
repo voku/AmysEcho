@@ -94,5 +94,8 @@
     "save_settings": "Einstellungen speichern",
     "settings_saved": "Einstellungen gespeichert",
     "settings_saved_desc": "Deine Datenschutzeinstellungen wurden erfolgreich gespeichert."
+  },
+  "errors": {
+    "invalidTrainingData": "Ungültige Trainingsdaten: Bitte gültige Gesten-ID und Landmarken (Tripel aus Zahlen) angeben."
   }
 }

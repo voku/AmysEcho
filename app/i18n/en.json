@@ -94,5 +94,8 @@
     "save_settings": "Save Settings",
     "settings_saved": "Settings Saved",
     "settings_saved_desc": "Your privacy settings have been saved successfully."
+  },
+  "errors": {
+    "invalidTrainingData": "Invalid training data: Please provide a valid gesture ID and landmark triplets (numbers)."
   }
 }
