@@ -101,6 +101,8 @@ jest.mock('../src/utils/logger', () => ({
   logger: {
     warn: jest.fn(),
     error: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
   },
 }));
 
@@ -129,7 +131,7 @@ describe('MediaPipeGestureDetector', () => {
   it('logs and forwards error messages from the WebView', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
 
     act(() => {
       component = renderer.create(
@@ -144,16 +146,16 @@ describe('MediaPipeGestureDetector', () => {
       });
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('WebView error:', 'Camera access denied');
+    expect(errorSpy).toHaveBeenCalledWith('WebView error', { message: 'Camera access denied' });
     expect(onError).toHaveBeenCalledWith('gesture_processing_error');
     expect(onGestureDetected).not.toHaveBeenCalled();
-    consoleSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('logs console messages from the WebView', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const debugSpy = jest.spyOn(logger, 'debug').mockImplementation(() => {});
 
     act(() => {
       component = renderer.create(
@@ -166,8 +168,8 @@ describe('MediaPipeGestureDetector', () => {
       webview.props.onConsoleMessage({ nativeEvent: { message: 'test log' } });
     });
 
-    expect(logSpy).toHaveBeenCalledWith('WV:', 'test log');
-    logSpy.mockRestore();
+    expect(debugSpy).toHaveBeenCalledWith('WebView console message', 'test log');
+    debugSpy.mockRestore();
   });
 
   it('calls onError when the message data is invalid JSON', () => {
