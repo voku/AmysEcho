@@ -44,12 +44,13 @@ export const useOpenAIValidation = (
     useState<OpenAIValidationResult | null>(null);
   const [showOpenaiFeedback, setShowOpenaiFeedback] = useState(false);
   const sessionIdRef = useRef(`session_${Date.now()}`);
-  const environment =
-    (process.env.EXPO_PUBLIC_DEFAULT_ENVIRONMENT as
-      | 'home'
-      | 'school'
-      | 'therapy'
-      | undefined) || 'home';
+  const environment = ((): 'home' | 'school' | 'therapy' => {
+    const env = process.env.EXPO_PUBLIC_DEFAULT_ENVIRONMENT;
+    if (env === 'home' || env === 'school' || env === 'therapy') {
+      return env;
+    }
+    return 'home';
+  })();
 
   const handleOpenAIValidation = useCallback(
     async (
