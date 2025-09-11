@@ -4,13 +4,14 @@ import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import Svg, { Path, Circle } from 'react-native-svg';
+import type { OptimizedGestureService } from '../services/optimizedGestureService';
 
 interface CorrectionPanelProps {
   onSelect: (choiceId: string) => void;
   onAddNew: () => void;
   onCancel: () => void;
   suggestions: { id: string; label: string; confidence?: number }[];
-  gestureModel?: any; // TODO: Add proper type
+  gestureModel?: OptimizedGestureService;
   showPictures?: boolean;
 }
 
