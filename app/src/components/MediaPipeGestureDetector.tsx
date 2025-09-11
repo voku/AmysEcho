@@ -329,8 +329,16 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         }}
         onPermissionRequest={(e: WebViewPermissionRequestEvent) => {
           const { origin, resources, grant, deny } = e.nativeEvent;
+          let requestOrigin: string;
+          try {
+            requestOrigin = new URL(origin).origin;
+          } catch (error) {
+            deny();
+            logger.warn('Invalid origin in permission request, denying.', { origin, error });
+            return;
+          }
           if (
-            new URL(origin).origin === CAMERA_WEBVIEW_BASE_URL &&
+            requestOrigin === CAMERA_WEBVIEW_BASE_URL &&
             resources.includes('VIDEO_CAPTURE')
           ) {
             grant(['VIDEO_CAPTURE']);

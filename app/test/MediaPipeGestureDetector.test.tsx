@@ -274,5 +274,34 @@ describe('MediaPipeGestureDetector', () => {
       expect(deny).toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalled();
     });
+
+    it('denies permission requests with invalid origin', () => {
+      const onGestureDetected = jest.fn();
+      const onError = jest.fn();
+
+      act(() => {
+        component = renderer.create(
+          <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />
+        );
+      });
+
+      const webview = component!.root.findByType('mock-webview');
+      const grant = jest.fn();
+      const deny = jest.fn();
+      act(() => {
+        webview.props.onPermissionRequest({
+          nativeEvent: {
+            origin: '::::',
+            resources: ['VIDEO_CAPTURE'],
+            grant,
+            deny,
+          },
+        });
+      });
+
+      expect(grant).not.toHaveBeenCalled();
+      expect(deny).toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalled();
+    });
   });
 

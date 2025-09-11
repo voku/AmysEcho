@@ -38,11 +38,10 @@ export const GestureWebView = forwardRef<WebView, Props>(
     if (onConsoleMessage) {
       platformProps.onConsoleMessage = onConsoleMessage;
     }
-    if (onPermissionRequest) {
-      platformProps.onPermissionRequest = onPermissionRequest;
-    }
     if (Platform.OS === 'ios') {
       platformProps.mediaCapturePermissionGrantType = 'grantIfSameHostElsePrompt';
+    } else if (onPermissionRequest) {
+      platformProps.onPermissionRequest = onPermissionRequest;
     }
     return (
       <View style={styles.container}>
