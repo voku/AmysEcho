@@ -14,3 +14,4 @@ server/telemetry.json
 app/coverage/
 coverage/
 server/coverage/
+integration/test-output.log
