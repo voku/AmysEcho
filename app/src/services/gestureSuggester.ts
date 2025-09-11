@@ -22,6 +22,7 @@ export interface GestureContext {
 class GestureSuggester {
   private gestureHistory: string[] = [];
   private readonly MAX_HISTORY = 10;
+  private suggestionStats: Record<string, { shown: number; accepted: number }> = {};
 
   /**
    * Get suggestions for a failed gesture attempt
@@ -61,9 +62,23 @@ class GestureSuggester {
 
     // Remove duplicates and sort by confidence
     const uniqueSuggestions = this.deduplicateSuggestions(suggestions);
+    uniqueSuggestions.forEach(s => {
+      const stats = this.suggestionStats[s.id] || { shown: 0, accepted: 0 };
+      const successRate = stats.shown > 0 ? stats.accepted / stats.shown : 0;
+      const weight = 0.5 + successRate / 2;
+      s.confidence *= weight;
+    });
     const sortedSuggestions = uniqueSuggestions
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, maxSuggestions);
+
+    // Track how often suggestions are shown
+    sortedSuggestions.forEach(s => {
+      if (!this.suggestionStats[s.id]) {
+        this.suggestionStats[s.id] = { shown: 0, accepted: 0 };
+      }
+      this.suggestionStats[s.id].shown++;
+    });
 
     logger.debug('Gesture suggestions generated:', sortedSuggestions);
     return sortedSuggestions;
@@ -253,6 +268,26 @@ class GestureSuggester {
    */
   clearHistory(): void {
     this.gestureHistory = [];
+    this.suggestionStats = {};
+  }
+
+  /**
+   * Record whether a suggestion was accepted by the user
+   */
+  recordSuggestionResult(id: string, accepted: boolean): void {
+    if (!this.suggestionStats[id]) {
+      this.suggestionStats[id] = { shown: 0, accepted: 0 };
+    }
+    if (accepted) {
+      this.suggestionStats[id].accepted++;
+    }
+  }
+
+  /**
+   * Expose suggestion stats for testing or analytics
+   */
+  getSuggestionStats(id: string): { shown: number; accepted: number } {
+    return this.suggestionStats[id] || { shown: 0, accepted: 0 };
   }
 }
 
