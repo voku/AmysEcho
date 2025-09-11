@@ -14,3 +14,6 @@ server/telemetry.json
 app/coverage/
 coverage/
 server/coverage/
+
+# Logs from full-check script
+full-check.log
