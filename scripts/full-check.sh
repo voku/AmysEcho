@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+# Ensure tests run non-interactively
+export CI="${CI:-true}"
+
 # Ensure Node dependencies are installed
 # Clear npm proxy settings to avoid warnings in CI
 unset npm_config_http_proxy
