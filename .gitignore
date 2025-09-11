@@ -15,3 +15,4 @@ app/coverage/
 coverage/
 server/coverage/
 integration/test-output.log
+analysis_output/
