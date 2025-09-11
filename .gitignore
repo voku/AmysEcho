@@ -14,3 +14,5 @@ server/telemetry.json
 app/coverage/
 coverage/
 server/coverage/
+
+analysis_output/

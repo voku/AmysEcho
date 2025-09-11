@@ -1,4 +1,0 @@
-
-> amys-echo-app@1.0.0 type-check
-> npx tsc --noEmit --project tsconfig.json
-
