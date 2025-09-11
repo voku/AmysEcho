@@ -31,7 +31,7 @@ interface LogContext {
   statusCode?: number;
 }
 
-class Logger {
+export class Logger {
   private serviceName: string;
   private logLevel: LogLevel;
   private context: LogContext = {};
@@ -81,44 +81,35 @@ class Logger {
     }
   }
 
+  private log(level: LogLevel, message: string, data?: any, userId?: string): void {
+    if (!this.shouldLog(level)) return;
+    const entry = this.formatLogEntry(level, message, data, userId);
+    this.writeLog(entry);
+  }
+
   error(message: string, data?: any, userId?: string): void {
-    if (this.shouldLog(LogLevel.ERROR)) {
-      const entry = this.formatLogEntry(LogLevel.ERROR, message, data, userId);
-      this.writeLog(entry);
-    }
+    this.log(LogLevel.ERROR, message, data, userId);
   }
 
   warn(message: string, data?: any, userId?: string): void {
-    if (this.shouldLog(LogLevel.WARN)) {
-      const entry = this.formatLogEntry(LogLevel.WARN, message, data, userId);
-      this.writeLog(entry);
-    }
+    this.log(LogLevel.WARN, message, data, userId);
   }
 
   info(message: string, data?: any, userId?: string): void {
-    if (this.shouldLog(LogLevel.INFO)) {
-      const entry = this.formatLogEntry(LogLevel.INFO, message, data, userId);
-      this.writeLog(entry);
-    }
+    this.log(LogLevel.INFO, message, data, userId);
   }
 
   debug(message: string, data?: any, userId?: string): void {
-    if (this.shouldLog(LogLevel.DEBUG)) {
-      const entry = this.formatLogEntry(LogLevel.DEBUG, message, data, userId);
-      this.writeLog(entry);
-    }
+    this.log(LogLevel.DEBUG, message, data, userId);
   }
 
   // Convenience methods for common patterns
   apiRequest(method: string, endpoint: string, statusCode?: number, duration?: number, userId?: string): void {
     const message = `${method} ${endpoint}`;
     const data = statusCode ? { statusCode, duration } : { duration };
+    const level = statusCode && statusCode >= 400 ? LogLevel.WARN : LogLevel.INFO;
 
-    if (statusCode && statusCode >= 400) {
-      this.warn(message, data, userId);
-    } else {
-      this.info(message, data, userId);
-    }
+    this.log(level, message, data, userId);
   }
 
   databaseOperation(operation: string, table: string, duration?: number, userId?: string): void {
@@ -174,10 +165,10 @@ class Logger {
   }
 
   requestEnd(method: string, url: string, statusCode: number, duration: number, userId?: string): void {
-    const level = statusCode >= 400 ? 'warn' : 'info';
+    const level = statusCode >= 400 ? LogLevel.WARN : LogLevel.INFO;
     const message = `${method} ${url} - Request completed`;
 
-    this[level](message, { method, url, statusCode, duration }, userId);
+    this.log(level, message, { method, url, statusCode, duration }, userId);
     this.clearContext();
   }
 }
