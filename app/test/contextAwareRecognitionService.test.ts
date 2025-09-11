@@ -6,6 +6,7 @@
  */
 
 import { contextAwareRecognitionService } from '../src/services/contextAwareRecognitionService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Mock AsyncStorage for testing
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -132,6 +133,25 @@ describe('ContextAwareRecognitionService', () => {
       contextAwareRecognitionService.setLocation('home');
       const homeAdjustment = contextAwareRecognitionService.getContextAdjustment('schul_geste', 0.8);
       expect(homeAdjustment.confidenceMultiplier).toBeLessThan(schoolAdjustment.confidenceMultiplier);
+    });
+  });
+
+  describe('Migration', () => {
+    test('adds default location to legacy pattern keys', async () => {
+      const stored = {
+        wave_morning: {
+          gesture: 'wave',
+          timeOfDay: 'morning',
+          averageConfidence: 0.8,
+          frequency: 2,
+          lastUsed: 0,
+          commonSequences: []
+        }
+      };
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(JSON.stringify(stored));
+      (contextAwareRecognitionService as any).patterns = new Map();
+      await (contextAwareRecognitionService as any).loadPatterns();
+      expect((contextAwareRecognitionService as any).patterns.has('wave_morning_home')).toBe(true);
     });
   });
 

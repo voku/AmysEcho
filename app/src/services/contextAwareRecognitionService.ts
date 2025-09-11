@@ -13,13 +13,15 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type Location = 'home' | 'school' | 'playground' | 'other';
+
 export interface GestureContext {
   gesture: string;
   confidence: number;
   timestamp: number;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
   dayOfWeek: number; // 0-6, Sunday = 0
-  location: 'home' | 'school' | 'playground' | 'other';
+  location: Location;
   previousGesture?: string;
   sessionDuration: number; // minutes since session start
 }
@@ -27,7 +29,7 @@ export interface GestureContext {
 export interface RecognitionPattern {
   gesture: string;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
-  location: 'home' | 'school' | 'playground' | 'other';
+  location: Location;
   averageConfidence: number;
   frequency: number;
   lastUsed: number;
@@ -49,7 +51,7 @@ class ContextAwareRecognitionService {
   private patterns: Map<string, RecognitionPattern> = new Map();
   private recentGestures: GestureContext[] = [];
   private sessionStartTime: number = Date.now();
-  private currentLocation: 'home' | 'school' | 'playground' | 'other' = 'home';
+  private currentLocation: Location = 'home';
   private readonly MAX_RECENT_GESTURES = 20;
   private readonly PATTERN_STORAGE_KEY = 'gesture_patterns';
   private readonly CONFIDENCE_HISTORY_SIZE = 10;
@@ -65,7 +67,7 @@ class ContextAwareRecognitionService {
     return ContextAwareRecognitionService.instance;
   }
 
-  setLocation(location: 'home' | 'school' | 'playground' | 'other'): void {
+  setLocation(location: Location): void {
     this.currentLocation = location;
   }
 
@@ -191,7 +193,7 @@ class ContextAwareRecognitionService {
       .map(seq => ({
         gesture: seq.nextGesture,
         probability: seq.probability,
-        reason: `Folgt häufig auf ${currentGesture} ${timeOfDay} in ${this.currentLocation}`
+        reason: `Often follows ${currentGesture} at ${timeOfDay} in ${this.currentLocation}`
       }))
       .sort((a, b) => b.probability - a.probability)
       .slice(0, 3); // Top 3 predictions
@@ -234,7 +236,12 @@ class ContextAwareRecognitionService {
     return 'night';
   }
 
-  private updatePattern(gesture: string, confidence: number, timeOfDay: string, location: string): void {
+  private updatePattern(
+    gesture: string,
+    confidence: number,
+    timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night',
+    location: Location
+  ): void {
     const patternKey = `${gesture}_${timeOfDay}_${location}`;
     const existing = this.patterns.get(patternKey);
 
@@ -252,8 +259,8 @@ class ContextAwareRecognitionService {
       // Create new pattern
       this.patterns.set(patternKey, {
         gesture,
-        timeOfDay: timeOfDay as any,
-        location: location as any,
+        timeOfDay,
+        location,
         averageConfidence: confidence,
         frequency: 1,
         lastUsed: Date.now(),
@@ -262,14 +269,20 @@ class ContextAwareRecognitionService {
     }
   }
 
-  private updateSequenceForPrevious(previousGesture: string, currentGesture: string, confidence: number, timeOfDay: string, location: string): void {
+  private updateSequenceForPrevious(
+    previousGesture: string,
+    currentGesture: string,
+    confidence: number,
+    timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night',
+    location: Location
+  ): void {
     const prevKey = `${previousGesture}_${timeOfDay}_${location}`;
     let pattern = this.patterns.get(prevKey);
     if (!pattern) {
       pattern = {
         gesture: previousGesture,
-        timeOfDay: timeOfDay as any,
-        location: location as any,
+        timeOfDay,
+        location,
         averageConfidence: confidence,
         frequency: 1,
         lastUsed: Date.now(),
@@ -506,11 +519,13 @@ class ContextAwareRecognitionService {
         const parsed = JSON.parse(stored);
         this.patterns = new Map(
           Object.entries(parsed).map(([key, value]) => {
-            const pattern = value as RecognitionPattern;
-            if (!pattern.location) {
-              pattern.location = 'home';
-            }
-            return [key, pattern];
+            const pattern = {
+              ...(value as RecognitionPattern),
+              location: (value as RecognitionPattern).location ?? 'home'
+            };
+            const parts = key.split('_');
+            const newKey = parts.length === 2 ? `${key}_${pattern.location}` : key;
+            return [newKey, pattern];
           })
         );
       }
