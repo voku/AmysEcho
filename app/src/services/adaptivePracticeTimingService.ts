@@ -373,7 +373,7 @@ class AdaptivePracticeTimingService {
         this.lastPracticeSuggestion = parsed.lastPracticeSuggestion || 0;
       }
     } catch (error) {
-      console.warn('Failed to load practice timing data:', error);
+      logger.warn('Failed to load practice timing data:', error);
     }
   }
 
@@ -386,7 +386,7 @@ class AdaptivePracticeTimingService {
       };
       await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.warn('Failed to save practice timing data:', error);
+      logger.warn('Failed to save practice timing data:', error);
     }
   }
 }

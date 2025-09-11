@@ -234,9 +234,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       } else if (data.type === 'error') {
         // Amy First: Log technical errors but pass generic message to UI
         logger.error('WebView error', { message: data.message });
-        if (process.env.NODE_ENV === 'test') {
-          try { console.error('WebView error:', String(data.message || '')); } catch {}
-        }
         onError('gesture_processing_error'); // Generic identifier for child-friendly handling
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
