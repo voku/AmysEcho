@@ -384,7 +384,9 @@ class ParallelGestureProcessor {
               // Assume default capture size 640x480 when ROI is computed; allow graceful fallback
               const roi = computeHandRoi(landmarks, 640, 480);
               processed = await processDataUrl(frame, { maxWidth: 448, maxHeight: 448, roi, quality: 0.8 });
-            } catch {}
+            } catch (e) {
+              logger.warn('Failed to process image for ROI cropping, using original frame', e);
+            }
             if (typeof processed === 'string' && processed.includes(',')) {
               return processed.split(',')[1];
             }
@@ -402,7 +404,9 @@ class ParallelGestureProcessor {
                 if (typeof processed === 'string' && processed.includes(',')) {
                   return processed.split(',')[1];
                 }
-              } catch {}
+              } catch (e) {
+                logger.warn('Failed to process image for ROI cropping, using base64 frame', e);
+              }
             }
             // Already has base64 property
             if (typeof frame.base64 === 'string') {

@@ -24,8 +24,15 @@ export const GestureWebView = forwardRef<WebView, Props>(
     },
     ref
   ) => {
-    const androidProps: any = {};
-    if (onConsoleMessage) androidProps.onConsoleMessage = onConsoleMessage;
+    interface AndroidProps {
+      onConsoleMessage?: (event: any) => void;
+      onPermissionRequest?: (event: any) => void;
+      mediaCapturePermissionGrantType?: 'grant' | 'deny' | 'prompt';
+    }
+    const androidProps: AndroidProps = {};
+    if (onConsoleMessage) {
+      androidProps.onConsoleMessage = onConsoleMessage;
+    }
     if (onPermissionRequest) {
       androidProps.onPermissionRequest = onPermissionRequest;
       androidProps.mediaCapturePermissionGrantType = 'grant';
