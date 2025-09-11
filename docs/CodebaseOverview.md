@@ -56,3 +56,6 @@ These are target values and should be validated on real devices.
 - All persistent data lives in `server/db.json`
 - `GET /api/profiles/:id/export` returns a profile's stored data as JSON
 - `DELETE /api/profiles/:id` removes a profile and associated usage/correction records to honor caregiver deletion requests
+
+## 10. Logging
+- Unified logging is handled by `app/src/utils/logger.ts`, providing consistent formatting and log-level control across the app. Direct `console.*` calls are avoided.
