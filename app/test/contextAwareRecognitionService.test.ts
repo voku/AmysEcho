@@ -6,6 +6,7 @@
  */
 
 import { contextAwareRecognitionService } from '../src/services/contextAwareRecognitionService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Mock AsyncStorage for testing
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -119,7 +120,22 @@ describe('ContextAwareRecognitionService', () => {
       expect(questionPrediction).toBeDefined();
       expect(questionPrediction!.probability).toBeGreaterThan(0.3);
     });
+
+    test('boosts confidence for location-based patterns', () => {
+      contextAwareRecognitionService.setLocation('school');
+      for (let i = 0; i < 5; i++) {
+        contextAwareRecognitionService.recordGesture('schul_geste', 0.6);
+      }
+
+      const schoolAdjustment = contextAwareRecognitionService.getContextAdjustment('schul_geste', 0.8);
+      expect(schoolAdjustment.confidenceMultiplier).toBeGreaterThan(1.05);
+
+      contextAwareRecognitionService.setLocation('home');
+      const homeAdjustment = contextAwareRecognitionService.getContextAdjustment('schul_geste', 0.8);
+      expect(homeAdjustment.confidenceMultiplier).toBeLessThan(schoolAdjustment.confidenceMultiplier);
+    });
   });
+
 
   describe('Session Management', () => {
     test('resets session correctly', () => {

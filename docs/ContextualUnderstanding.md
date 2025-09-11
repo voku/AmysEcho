@@ -42,6 +42,13 @@ The service tracks gesture sequences and predicts likely next gestures:
 - **Fatigue Detection:** Adjusts confidence based on session length (slight reduction if session >30 minutes)
 - **Confidence Trends:** Tracks whether Amy's performance is improving, stable, or declining
 
+### 5. Location-Based Context
+
+- **Supported Locations:** `home`, `school`, `playground`, `other`
+- **Manual Setting:** A location selector in the Recognition screen lets caregivers choose between *Zuhause*, *Kindergarten*, *Spielplatz* or *Anderer Ort*. Selection updates the context-aware recognition service automatically.
+- **Pattern Learning:** Gesture patterns are stored per location and time-of-day
+- **Contextual Boosting:** Gestures frequently used at the current location receive higher confidence
+
 ## Data Structures
 
 ### GestureContext
@@ -52,6 +59,7 @@ interface GestureContext {
   timestamp: number;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
   dayOfWeek: number;
+  location: 'home' | 'school' | 'playground' | 'other';
   previousGesture?: string;
   sessionDuration: number;
 }
@@ -62,6 +70,7 @@ interface GestureContext {
 interface RecognitionPattern {
   gesture: string;
   timeOfDay: string;
+  location: 'home' | 'school' | 'playground' | 'other';
   averageConfidence: number;
   frequency: number;
   lastUsed: number;
@@ -83,6 +92,9 @@ import { contextAwareRecognitionService } from '../services/contextAwareRecognit
 // Record a gesture for pattern learning
 contextAwareRecognitionService.recordGesture(gesture, confidence, previousGesture);
 
+// Set the current location (home, school, playground, other)
+contextAwareRecognitionService.setLocation('home');
+
 // Get context-adjusted confidence
 const adjustment = contextAwareRecognitionService.getContextAdjustment(gesture, baseConfidence);
 const adjustedConfidence = baseConfidence * adjustment.confidenceMultiplier;
@@ -99,4 +111,4 @@ const predictions = contextAwareRecognitionService.getPredictedGestures(currentG
 
 ## Future Enhancements
 
-While location-based context was planned, the current implementation focuses on time-of-day, sequences, and usage patterns. Location services could be added in the future using `expo-location` for more advanced contextual understanding.
+Future work may integrate automatic location detection using `expo-location` to remove the need for manual selection and to support additional environments.

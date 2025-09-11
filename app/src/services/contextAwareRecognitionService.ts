@@ -13,12 +13,15 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type Location = 'home' | 'school' | 'playground' | 'other';
+
 export interface GestureContext {
   gesture: string;
   confidence: number;
   timestamp: number;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
   dayOfWeek: number; // 0-6, Sunday = 0
+  location: Location;
   previousGesture?: string;
   sessionDuration: number; // minutes since session start
 }
@@ -26,6 +29,7 @@ export interface GestureContext {
 export interface RecognitionPattern {
   gesture: string;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
+  location: Location;
   averageConfidence: number;
   frequency: number;
   lastUsed: number;
@@ -47,6 +51,7 @@ class ContextAwareRecognitionService {
   private patterns: Map<string, RecognitionPattern> = new Map();
   private recentGestures: GestureContext[] = [];
   private sessionStartTime: number = Date.now();
+  private currentLocation: Location = 'home';
   private readonly MAX_RECENT_GESTURES = 20;
   private readonly PATTERN_STORAGE_KEY = 'gesture_patterns';
   private readonly CONFIDENCE_HISTORY_SIZE = 10;
@@ -62,6 +67,10 @@ class ContextAwareRecognitionService {
     return ContextAwareRecognitionService.instance;
   }
 
+  setLocation(location: Location): void {
+    this.currentLocation = location;
+  }
+
   /**
    * Record a gesture detection for pattern learning
    */
@@ -70,6 +79,7 @@ class ContextAwareRecognitionService {
     const timeOfDay = this.getTimeOfDay();
     const dayOfWeek = new Date().getDay();
     const sessionDuration = (now - this.sessionStartTime) / (1000 * 60); // minutes
+    const location = this.currentLocation;
 
     const context: GestureContext = {
       gesture,
@@ -77,6 +87,7 @@ class ContextAwareRecognitionService {
       timestamp: now,
       timeOfDay,
       dayOfWeek,
+      location,
       previousGesture,
       sessionDuration
     };
@@ -88,9 +99,9 @@ class ContextAwareRecognitionService {
     }
 
     // Update patterns
-    this.updatePattern(gesture, confidence, timeOfDay);
+    this.updatePattern(gesture, confidence, timeOfDay, location);
     if (previousGesture) {
-      this.updateSequenceForPrevious(previousGesture, gesture, confidence, timeOfDay);
+      this.updateSequenceForPrevious(previousGesture, gesture, confidence, timeOfDay, location);
     }
 
     // Save patterns periodically (every 10 gestures)
@@ -104,7 +115,7 @@ class ContextAwareRecognitionService {
    */
   getContextAdjustment(gesture: string, baseConfidence: number): ContextAdjustment {
     const timeOfDay = this.getTimeOfDay();
-    const patternKey = `${gesture}_${timeOfDay}`;
+    const patternKey = `${gesture}_${timeOfDay}_${this.currentLocation}`;
     const pattern = this.patterns.get(patternKey);
 
     let confidenceMultiplier = 1.0;
@@ -170,7 +181,7 @@ class ContextAwareRecognitionService {
     }
 
     const timeOfDay = this.getTimeOfDay();
-    const patternKey = `${currentGesture}_${timeOfDay}`;
+    const patternKey = `${currentGesture}_${timeOfDay}_${this.currentLocation}`;
     const pattern = this.patterns.get(patternKey);
 
     if (!pattern || !pattern.commonSequences.length) {
@@ -182,7 +193,7 @@ class ContextAwareRecognitionService {
       .map(seq => ({
         gesture: seq.nextGesture,
         probability: seq.probability,
-        reason: `Often follows ${currentGesture} at ${timeOfDay}`
+        reason: `Often follows ${currentGesture} at ${timeOfDay} in ${this.currentLocation}`
       }))
       .sort((a, b) => b.probability - a.probability)
       .slice(0, 3); // Top 3 predictions
@@ -225,8 +236,13 @@ class ContextAwareRecognitionService {
     return 'night';
   }
 
-  private updatePattern(gesture: string, confidence: number, timeOfDay: string): void {
-    const patternKey = `${gesture}_${timeOfDay}`;
+  private updatePattern(
+    gesture: string,
+    confidence: number,
+    timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night',
+    location: Location
+  ): void {
+    const patternKey = `${gesture}_${timeOfDay}_${location}`;
     const existing = this.patterns.get(patternKey);
 
     if (existing) {
@@ -243,7 +259,8 @@ class ContextAwareRecognitionService {
       // Create new pattern
       this.patterns.set(patternKey, {
         gesture,
-        timeOfDay: timeOfDay as any,
+        timeOfDay,
+        location,
         averageConfidence: confidence,
         frequency: 1,
         lastUsed: Date.now(),
@@ -252,13 +269,20 @@ class ContextAwareRecognitionService {
     }
   }
 
-  private updateSequenceForPrevious(previousGesture: string, currentGesture: string, confidence: number, timeOfDay: string): void {
-    const prevKey = `${previousGesture}_${timeOfDay}`;
+  private updateSequenceForPrevious(
+    previousGesture: string,
+    currentGesture: string,
+    confidence: number,
+    timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night',
+    location: Location
+  ): void {
+    const prevKey = `${previousGesture}_${timeOfDay}_${location}`;
     let pattern = this.patterns.get(prevKey);
     if (!pattern) {
       pattern = {
         gesture: previousGesture,
-        timeOfDay: timeOfDay as any,
+        timeOfDay,
+        location,
         averageConfidence: confidence,
         frequency: 1,
         lastUsed: Date.now(),
@@ -326,7 +350,7 @@ class ContextAwareRecognitionService {
 
     const lastGesture = this.recentGestures[this.recentGestures.length - 1];
     const timeOfDay = this.getTimeOfDay();
-    const prevKey = `${lastGesture.gesture}_${timeOfDay}`;
+    const prevKey = `${lastGesture.gesture}_${timeOfDay}_${lastGesture.location}`;
     const pattern = this.patterns.get(prevKey);
 
     if (!pattern) return { multiplier: 1.0, reason: 'No sequence pattern found', priority: 'low' };
@@ -345,7 +369,7 @@ class ContextAwareRecognitionService {
 
   private getFrequencyAdjustment(gesture: string): {multiplier: number; reason: string; priority: 'low' | 'medium' | 'high'} {
     const timeOfDay = this.getTimeOfDay();
-    const patternKey = `${gesture}_${timeOfDay}`;
+    const patternKey = `${gesture}_${timeOfDay}_${this.currentLocation}`;
     const pattern = this.patterns.get(patternKey);
 
     if (!pattern || pattern.frequency < 3) {
@@ -354,7 +378,7 @@ class ContextAwareRecognitionService {
 
     // Calculate relative frequency compared to other gestures at this time
     const timeOfDayPatterns = Array.from(this.patterns.values())
-      .filter(p => p.timeOfDay === timeOfDay);
+      .filter(p => p.timeOfDay === timeOfDay && p.location === this.currentLocation);
 
     if (timeOfDayPatterns.length < 2) {
       return { multiplier: 1.0, reason: 'Not enough comparison data', priority: 'low' };
@@ -404,8 +428,9 @@ class ContextAwareRecognitionService {
 
   private getTimeOfDayFavorites(): Array<{gesture: string; probability: number; reason: string}> {
     const timeOfDay = this.getTimeOfDay();
+    const location = this.currentLocation;
     const timeOfDayPatterns = Array.from(this.patterns.values())
-      .filter(p => p.timeOfDay === timeOfDay)
+      .filter(p => p.timeOfDay === timeOfDay && p.location === location)
       .sort((a, b) => b.frequency - a.frequency)
       .slice(0, 3);
 
@@ -421,7 +446,7 @@ class ContextAwareRecognitionService {
 
     return timeOfDays.map(timeOfDay => {
       const patterns = Array.from(this.patterns.values())
-        .filter(p => p.timeOfDay === timeOfDay)
+        .filter(p => p.timeOfDay === timeOfDay && p.location === this.currentLocation)
         .sort((a, b) => b.frequency - a.frequency);
 
       const favorite = patterns[0];
@@ -437,6 +462,7 @@ class ContextAwareRecognitionService {
     const sequences: Array<{from: string; to: string; frequency: number}> = [];
 
     for (const pattern of this.patterns.values()) {
+      if (pattern.location !== this.currentLocation) continue;
       for (const seq of pattern.commonSequences) {
         if (seq.probability > 0.4) {
           sequences.push({
@@ -491,7 +517,7 @@ class ContextAwareRecognitionService {
       const stored = await AsyncStorage.getItem(this.PATTERN_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        this.patterns = new Map(Object.entries(parsed));
+        this.patterns = new Map(Object.entries(parsed) as [string, RecognitionPattern][]);
       }
     } catch (error) {
       console.warn('Failed to load gesture patterns:', error);
