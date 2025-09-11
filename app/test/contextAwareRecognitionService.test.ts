@@ -136,24 +136,6 @@ describe('ContextAwareRecognitionService', () => {
     });
   });
 
-  describe('Migration', () => {
-    test('adds default location to legacy pattern keys', async () => {
-      const stored = {
-        wave_morning: {
-          gesture: 'wave',
-          timeOfDay: 'morning',
-          averageConfidence: 0.8,
-          frequency: 2,
-          lastUsed: 0,
-          commonSequences: []
-        }
-      };
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(JSON.stringify(stored));
-      (contextAwareRecognitionService as any).patterns = new Map();
-      await (contextAwareRecognitionService as any).loadPatterns();
-      expect((contextAwareRecognitionService as any).patterns.has('wave_morning_home')).toBe(true);
-    });
-  });
 
   describe('Session Management', () => {
     test('resets session correctly', () => {

@@ -517,17 +517,7 @@ class ContextAwareRecognitionService {
       const stored = await AsyncStorage.getItem(this.PATTERN_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        this.patterns = new Map(
-          Object.entries(parsed).map(([key, value]) => {
-            const pattern = {
-              ...(value as RecognitionPattern),
-              location: (value as RecognitionPattern).location ?? 'home'
-            };
-            const parts = key.split('_');
-            const newKey = parts.length === 2 ? `${key}_${pattern.location}` : key;
-            return [newKey, pattern];
-          })
-        );
+        this.patterns = new Map(Object.entries(parsed) as [string, RecognitionPattern][]);
       }
     } catch (error) {
       console.warn('Failed to load gesture patterns:', error);

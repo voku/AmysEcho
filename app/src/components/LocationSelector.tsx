@@ -4,18 +4,18 @@ import { useLocation } from '../context/LocationContext';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 
+const LOCATIONS = [
+  { key: 'home' as const, label: 'Zuhause', emoji: '🏠' },
+  { key: 'school' as const, label: 'Kindergarten', emoji: '🎒' },
+  { key: 'playground' as const, label: 'Spielplatz', emoji: '🛝' },
+  { key: 'other' as const, label: 'Anderer Ort', emoji: '📍' },
+];
+
 export default function LocationSelector() {
   const { currentLocation, setLocation } = useLocation();
   const { largeText, highContrast } = useAccessibility();
 
-  const locations = [
-    { key: 'home' as const, label: 'Zuhause', emoji: '🏠' },
-    { key: 'school' as const, label: 'Kindergarten', emoji: '🎒' },
-    { key: 'playground' as const, label: 'Spielplatz', emoji: '🛝' },
-    { key: 'other' as const, label: 'Anderer Ort', emoji: '📍' },
-  ];
-
-  const styles = StyleSheet.create({
+  const styles = React.useMemo(() => StyleSheet.create({
     container: {
       padding: SPACING.md,
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
@@ -60,13 +60,13 @@ export default function LocationSelector() {
     locationLabelActive: {
       color: highContrast ? COLORS.highContrastBackground : COLORS.highContrastText,
     },
-  });
+  }), [largeText, highContrast]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Ort wählen</Text>
       <View style={styles.locationContainer}>
-        {locations.map(loc => {
+        {LOCATIONS.map(loc => {
           const isActive = currentLocation === loc.key;
           return (
             <Pressable
