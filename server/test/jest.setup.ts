@@ -1,5 +1,5 @@
-jest.mock('../src/services/logger.js', () => ({
-  logger: {
+jest.mock('../src/services/logger.js', () => {
+  const mockLogger = {
     error: jest.fn(),
     warn: jest.fn(),
     info: jest.fn(),
@@ -16,23 +16,32 @@ jest.mock('../src/services/logger.js', () => ({
     performanceMetric: jest.fn(),
     requestStart: jest.fn(),
     requestEnd: jest.fn(),
-  },
-}));
+  };
+  return {
+    __esModule: true,
+    default: mockLogger,
+    logger: mockLogger,
+  };
+});
 
 const originalError = console.error;
-console.error = (...args: any[]) => {
-  const msg = args[0];
-  if (typeof msg === 'string' && (
-    msg.includes('OpenAI Vision validation error') ||
-    msg.includes('Failed to parse vision response') ||
-    msg.includes('LLM suggestion error')
-  )) return;
-  originalError(...args);
-};
+if (process.env.TEST_LOGS_VERBOSE !== '1') {
+  console.error = (...args: any[]) => {
+    const msg = args[0];
+    if (typeof msg === 'string' && (
+      msg.includes('OpenAI Vision validation error') ||
+      msg.includes('Failed to parse vision response') ||
+      msg.includes('LLM suggestion error')
+    )) return;
+    originalError(...args);
+  };
+}
 
 const originalWarn = console.warn;
-console.warn = (...args: any[]) => {
-  const msg = args[0];
-  if (typeof msg === 'string' && msg.includes('Cloud classification failed')) return;
-  originalWarn(...args);
-};
+if (process.env.TEST_LOGS_VERBOSE !== '1') {
+  console.warn = (...args: any[]) => {
+    const msg = args[0];
+    if (typeof msg === 'string' && msg.includes('Cloud classification failed')) return;
+    originalWarn(...args);
+  };
+}

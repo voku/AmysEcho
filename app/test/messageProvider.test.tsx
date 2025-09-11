@@ -27,8 +27,7 @@ describe('MessageProvider', () => {
   });
 
   afterEach(() => {
-    warnSpy.mockRestore();
-    errorSpy.mockRestore();
+    jest.restoreAllMocks();
   });
   it('displays console warnings', () => {
     let component: renderer.ReactTestRenderer;
