@@ -31,7 +31,7 @@ interface LogContext {
   statusCode?: number;
 }
 
-class Logger {
+export class Logger {
   private serviceName: string;
   private logLevel: LogLevel;
   private context: LogContext = {};
