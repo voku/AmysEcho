@@ -437,6 +437,7 @@ describe('OpenAI Gesture Validation Service', () => {
       expect(result.finalConfidence).toBe(0.9);
       expect(result.validationSource).toBe('openai');
       expect(result.feedback).toBe('Corrected gesture');
+      expect(result.quality_score).toBe(9.0);
     });
 
     it('should use OpenAI result when MediaPipe confidence is low', async () => {
@@ -477,6 +478,7 @@ describe('OpenAI Gesture Validation Service', () => {
       expect(result.finalConfidence).toBe(0.75);
       expect(result.validationSource).toBe('openai');
       expect(result.suggestions).toEqual(['Improve hand position']);
+      expect(result.quality_score).toBe(8.0);
     });
   });
 

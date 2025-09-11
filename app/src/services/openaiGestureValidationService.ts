@@ -428,6 +428,7 @@ export async function validateGestureWithFallback(
   validationSource: 'mediapipe' | 'openai' | 'combined';
   feedback?: string;
   suggestions?: string[];
+  quality_score?: number;
 }> {
   // Set logging context for this validation operation
   logger.setContext({
@@ -442,6 +443,7 @@ export async function validateGestureWithFallback(
   let validationSource: 'mediapipe' | 'openai' | 'combined' = 'mediapipe';
   let feedback: string | undefined;
   let suggestions: string[] | undefined;
+  let quality_score: number | undefined;
 
   // Check if we should trigger OpenAI validation
   if (imageCapture && shouldTriggerOpenAIValidation(mediapipeResult.confidence, mediapipeResult.gesture)) {
@@ -479,6 +481,7 @@ export async function validateGestureWithFallback(
 
           feedback = openaiResult.feedback;
           suggestions = openaiResult.suggestions;
+          quality_score = openaiResult.quality_score;
         }
       }
     } catch (error) {
@@ -493,6 +496,7 @@ export async function validateGestureWithFallback(
     validationSource,
     feedback,
     suggestions,
+    quality_score,
   };
 }
 
