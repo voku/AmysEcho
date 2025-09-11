@@ -52,6 +52,7 @@ import {
   addTrainingSample,
   getTrainingSamples,
   clearTrainingSamples,
+  addTrainingSampleWithFeedback,
 } from '../src/services/trainingDataService';
 import { LanguageManager } from '../src/services/LanguageManager';
 
@@ -184,6 +185,19 @@ describe('Training Data Management - Colors and Food', () => {
       await expect(addTrainingSample('   ', landmarks)).rejects.toThrow(
         LanguageManager.t('errors.invalidTrainingData')
       );
+    });
+  });
+
+  describe('Feedback Handling', () => {
+    it('returns localized error when adding invalid sample', async () => {
+      const result = await addTrainingSampleWithFeedback('test', []);
+      expect(result).toEqual({
+        success: false,
+        feedback: {
+          message: LanguageManager.t('errors.invalidTrainingData'),
+          type: 'error'
+        }
+      });
     });
   });
 

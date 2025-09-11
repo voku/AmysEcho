@@ -103,10 +103,12 @@ export async function addTrainingSampleWithFeedback(
     };
   } catch (error) {
     console.error('Failed to add training sample with feedback:', error);
+    const message =
+      error instanceof Error ? error.message : 'Failed to save training sample';
     return {
       success: false,
       feedback: {
-        message: 'Failed to save training sample',
+        message,
         type: 'error'
       }
     };
