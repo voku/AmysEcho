@@ -10,6 +10,7 @@ export default {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
+  setupFilesAfterEnv: ['<rootDir>/test/jest.setup.ts'],
   testTimeout: 10000,
   collectCoverageFrom: ['src/**/*.{ts,js}', '!src/**/*.d.ts'],
 };
