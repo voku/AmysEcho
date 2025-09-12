@@ -38,7 +38,9 @@ interface SuccessMoment {
 
 ### 3. Adaptive Encouragement Messages
 
-The system adapts feedback based on performance and context:
+The `emotionalResponseService` selects German encouragement messages and
+caregiver alerts based on detected emotion. The system adapts feedback based on
+performance and context:
 
 - **Success Streaks:** Increased celebration for consecutive successes
 - **Difficulty Adaptation:** Extra encouragement for challenging gestures
@@ -57,7 +59,8 @@ When Amy selects a mood via the MoodSelector:
 
 ### Feedback Service Integration
 
-The `FeedbackService` provides multi-sensory encouragement:
+The `FeedbackService` works together with `emotionalResponseService`
+to provide multi-sensory, emotionally-aware encouragement:
 
 ```typescript
 // From feedbackService.ts
@@ -86,12 +89,11 @@ recordSuccessWithEmotion(gesture: string, confidence: number, emotionalState: st
 - ✅ **Adaptive Celebrations:** Context-aware celebration intensity
 - ✅ **Mood Integration:** Feedback adapts to selected mood
 - ✅ **Success Analytics:** Detailed insights for caregivers
+- ✅ **Emotional Response Service:** German encouragement messages and caregiver alerts
+- ✅ **Emotion Detection & Persistence:** Last detected emotion stored across sessions
 
 ### Missing Features
 
-- ❌ **Dedicated Emotional Response Service:** No specialized service for emotion-based message selection
-- ❌ **Caregiver Alerts:** No automatic notifications for emotional state changes
-- ❌ **Emotional State Persistence:** Limited persistence of emotional context across sessions
 - ❌ **Advanced Message Bank:** No extensive collection of mood-specific messages
 
 ## Integration Points
