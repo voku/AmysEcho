@@ -15,6 +15,10 @@ const INTENSITY_LOW_THRESHOLD = 0.3;
 const INTENSITY_STABILITY_THRESHOLD = 0.5;
 const VALID_EMOTIONS: Emotion[] = ['happy', 'excited', 'calm', 'frustrated'];
 
+function isEmotion(value: unknown): value is Emotion {
+  return VALID_EMOTIONS.includes(value as Emotion);
+}
+
 /**
  * Simple heuristic-based emotion detection for Amy.
  * Uses gesture speed, intensity and repetition patterns
@@ -25,8 +29,10 @@ class EmotionDetectionService {
   private readonly STORAGE_KEY = 'last_emotion_state';
   private lastEmotion: Emotion | null = null;
 
-  private constructor() {
-    this.loadLastEmotion();
+  private constructor() {}
+
+  async init(): Promise<void> {
+    await this.loadLastEmotion();
   }
 
   static getInstance(): EmotionDetectionService {
@@ -86,18 +92,18 @@ class EmotionDetectionService {
   private async loadLastEmotion(): Promise<void> {
     try {
       const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
-      if (stored && this.lastEmotion === null && VALID_EMOTIONS.includes(stored as Emotion)) {
-        this.lastEmotion = stored as Emotion;
+      if (stored && this.lastEmotion === null && isEmotion(stored)) {
+        this.lastEmotion = stored;
       }
-    } catch {
-      // ignore load errors
+    } catch (error) {
+      console.error('EmotionDetectionService: Failed to load last emotion.', error);
     }
   }
 
   private saveLastEmotion(): void {
     if (!this.lastEmotion) return;
-    AsyncStorage.setItem(this.STORAGE_KEY, this.lastEmotion).catch(() => {
-      // ignore save errors
+    AsyncStorage.setItem(this.STORAGE_KEY, this.lastEmotion).catch((error) => {
+      console.error('EmotionDetectionService: Failed to save last emotion.', error);
     });
   }
 }

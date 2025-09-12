@@ -62,7 +62,7 @@ describe('EmotionDetectionService', () => {
 
   test('loads last emotion from storage', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue('calm');
-    await (emotionDetectionService as any).loadLastEmotion();
+    await emotionDetectionService.init();
     expect(emotionDetectionService.getLastEmotion()).toBe('calm');
   });
 });
