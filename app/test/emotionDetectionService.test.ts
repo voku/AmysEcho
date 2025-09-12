@@ -12,7 +12,7 @@ describe('EmotionDetectionService', () => {
   beforeEach(() => {
     (emotionDetectionService as any).lastEmotion = null;
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-    (AsyncStorage.setItem as jest.Mock).mockClear();
+    (AsyncStorage.setItem as jest.Mock).mockClear().mockResolvedValue(undefined);
   });
 
   test('detects excited emotion for fast intense gestures', () => {
@@ -39,5 +39,30 @@ describe('EmotionDetectionService', () => {
     const setMood = jest.fn();
     emotionDetectionService.detectAndUpdateMood(metrics, 'happy', setMood);
     expect(setMood).toHaveBeenCalledWith('excited');
+  });
+
+  test('defaults to happy for neutral gestures', () => {
+    const metrics: GestureMetrics = { speed: 0.5, intensity: 0.5 };
+    const emotion = emotionDetectionService.detectEmotion(metrics);
+    expect(emotion).toBe('happy');
+  });
+
+  test('keeps current mood when intensity low', () => {
+    const metrics: GestureMetrics = { speed: 0.7, intensity: 0.4 };
+    const emotion = emotionDetectionService.detectEmotion(metrics, 'calm');
+    expect(emotion).toBe('calm');
+  });
+
+  test('does not update MoodSelector when mood unchanged', () => {
+    const metrics: GestureMetrics = { speed: 0.5, intensity: 0.6 };
+    const setMood = jest.fn();
+    emotionDetectionService.detectAndUpdateMood(metrics, 'happy', setMood);
+    expect(setMood).not.toHaveBeenCalled();
+  });
+
+  test('loads last emotion from storage', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('calm');
+    await (emotionDetectionService as any).loadLastEmotion();
+    expect(emotionDetectionService.getLastEmotion()).toBe('calm');
   });
 });

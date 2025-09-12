@@ -8,6 +8,13 @@ export interface GestureMetrics {
   pattern?: string;
 }
 
+const SPEED_FAST_THRESHOLD = 0.8;
+const INTENSITY_HIGH_THRESHOLD = 0.7;
+const SPEED_SLOW_THRESHOLD = 0.3;
+const INTENSITY_LOW_THRESHOLD = 0.3;
+const INTENSITY_STABILITY_THRESHOLD = 0.5;
+const VALID_EMOTIONS: Emotion[] = ['happy', 'excited', 'calm', 'frustrated'];
+
 /**
  * Simple heuristic-based emotion detection for Amy.
  * Uses gesture speed, intensity and repetition patterns
@@ -38,9 +45,9 @@ class EmotionDetectionService {
 
     if (metrics.pattern === 'repeated_fast') {
       emotion = 'frustrated';
-    } else if (metrics.speed > 0.8 && metrics.intensity > 0.7) {
+    } else if (metrics.speed > SPEED_FAST_THRESHOLD && metrics.intensity > INTENSITY_HIGH_THRESHOLD) {
       emotion = 'excited';
-    } else if (metrics.speed < 0.3 && metrics.intensity < 0.3) {
+    } else if (metrics.speed < SPEED_SLOW_THRESHOLD && metrics.intensity < INTENSITY_LOW_THRESHOLD) {
       emotion = 'calm';
     } else {
       emotion = 'happy';
@@ -48,7 +55,7 @@ class EmotionDetectionService {
 
     // If detection disagrees with current mood but intensity is low,
     // keep the current mood to avoid unnecessary mood changes.
-    if (currentMood && emotion !== currentMood && metrics.intensity < 0.5) {
+    if (currentMood && emotion !== currentMood && metrics.intensity < INTENSITY_STABILITY_THRESHOLD) {
       emotion = currentMood;
     }
 
@@ -79,7 +86,7 @@ class EmotionDetectionService {
   private async loadLastEmotion(): Promise<void> {
     try {
       const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
-      if (stored) {
+      if (stored && this.lastEmotion === null && VALID_EMOTIONS.includes(stored as Emotion)) {
         this.lastEmotion = stored as Emotion;
       }
     } catch {
@@ -89,17 +96,9 @@ class EmotionDetectionService {
 
   private saveLastEmotion(): void {
     if (!this.lastEmotion) return;
-    try {
-      const setItem = (AsyncStorage as any)?.setItem;
-      if (typeof setItem === 'function') {
-        const result = setItem(this.STORAGE_KEY, this.lastEmotion);
-        if (result && typeof (result as any).catch === 'function') {
-          (result as Promise<void>).catch(() => {});
-        }
-      }
-    } catch {
+    AsyncStorage.setItem(this.STORAGE_KEY, this.lastEmotion).catch(() => {
       // ignore save errors
-    }
+    });
   }
 }
 

@@ -12,12 +12,7 @@ module.exports = {
     "^\.\./services$": "<rootDir>/src/services/index.ts",
   },
   testTimeout: 10000,
-  testMatch: [
-    '<rootDir>/test/MediaPipeGestureDetector.test.tsx',
-    '<rootDir>/test/useOpenAIValidation.test.tsx',
-    '<rootDir>/test/emotionDetectionService.test.ts',
-    '<rootDir>/test/emotionalResponseService.test.ts',
-  ],
+  testMatch: ['<rootDir>/test/**/*.test.ts?(x)'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     'webview/**/*.{ts,tsx}',
