@@ -113,9 +113,9 @@ This document outlines the current development roadmap and outstanding tasks for
   - [x] Implement location-based gesture context (home/school/playground)
   - [x] Create context-aware confidence scoring system
 - [x] **Predictive Gestures**: Suggest next likely gestures based on conversation patterns and context. See [Predictive Gestures Implementation Guide](./PredictiveGestures.md) for a detailed plan.
-  - Build gesture sequence prediction model using historical data
-  - Implement proactive gesture suggestions in RecognitionScreen
-  - Add predictive accuracy tracking and improvement
+    - [x] Build gesture sequence prediction model using historical data
+    - [x] Implement proactive gesture suggestions in RecognitionScreen
+    - [x] Add predictive accuracy tracking and improvement
 
 ### Phase 3.2: Emotional Intelligence
 - [x] **Emotional State Recognition**: Analyze gesture patterns to infer Amy's emotional state. See [Emotional State Recognition Implementation Guide](./EmotionalStateRecognition.md) for a detailed plan.
