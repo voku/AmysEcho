@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "start": "expo start",
     "test:all": "jest --detectOpenHandles --coverage --watchAll=false --verbose",
-    "test": "node test/run-tests.js",
+    "test": "NODE_OPTIONS=--max_old_space_size=8192 jest --detectOpenHandles --watchAll=false --verbose",
     "test:watch": "jest --detectOpenHandles --coverage",
     "test:memory": "node --max-old-space-size=4096 node_modules/.bin/jest --detectOpenHandles --coverage --watchAll=false --verbose",
     "type-check": "npx tsc --noEmit --project tsconfig.json",
