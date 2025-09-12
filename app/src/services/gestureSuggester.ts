@@ -275,11 +275,12 @@ class GestureSuggester {
    * Record whether a suggestion was accepted by the user
    */
   recordSuggestionResult(id: string, accepted: boolean): void {
-    if (!this.suggestionStats[id]) {
-      this.suggestionStats[id] = { shown: 0, accepted: 0 };
-    }
     if (accepted) {
-      this.suggestionStats[id].accepted++;
+      const stats = (this.suggestionStats[id] ??= { shown: 0, accepted: 0 });
+      stats.accepted++;
+      if (stats.shown < stats.accepted) {
+        stats.shown = stats.accepted;
+      }
     }
   }
 

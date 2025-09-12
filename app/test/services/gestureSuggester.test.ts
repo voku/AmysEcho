@@ -33,6 +33,13 @@ describe('GestureSuggester', () => {
     expect(stats.accepted).toBe(1);
   });
 
+  it('does not allow accepted count to exceed shown count', () => {
+    gestureSuggester.recordSuggestionResult('unseen', true);
+    const stats = gestureSuggester.getSuggestionStats('unseen');
+    expect(stats.accepted).toBe(1);
+    expect(stats.shown).toBe(1);
+  });
+
   it('boosts confidence for accurate suggestions', () => {
     const first = gestureSuggester.getSuggestions(null, context);
     const initialConf = first[0].confidence;
