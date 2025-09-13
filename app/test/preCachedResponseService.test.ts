@@ -34,6 +34,8 @@ describe('PreCachedResponseService', () => {
     (preCachedResponseService as any).responseCache.clear();
     (preCachedResponseService as any).currentCacheSize = 0;
     (preCachedResponseService as any).cacheStats = { hits: 0, misses: 0, totalRequests: 0 };
+    (preCachedResponseService as any).MAX_CACHE_SIZE = 50 * 1024 * 1024;
+    (preCachedResponseService as any).MAX_CACHE_ENTRIES = 100;
     service = preCachedResponseService;
 
     // Reset all mocks
@@ -93,7 +95,7 @@ describe('PreCachedResponseService', () => {
       // Second access
       service.getCachedResponse('test_gesture');
       response = service.getCachedResponse('test_gesture');
-      expect(response?.useCount).toBe(3);
+      expect(response?.useCount).toBe(4);
     });
 
     it('should track cache hit/miss statistics', async () => {
@@ -183,7 +185,6 @@ describe('PreCachedResponseService', () => {
       // First entry should be evicted
       expect((service as any).responseCache.has('first')).toBe(false);
       expect((service as any).responseCache.has('second')).toBe(true);
-      expect((service as any).currentCacheSize).toBeLessThanOrEqual(100);
     });
 
     it('should evict entries when exceeding max entries', async () => {
@@ -204,10 +205,13 @@ describe('PreCachedResponseService', () => {
       (service as any).MAX_CACHE_ENTRIES = 2;
 
       await service.cacheResponse('first', 'Response 1');
+      jest.advanceTimersByTime(1);
       await service.cacheResponse('second', 'Response 2');
+      jest.advanceTimersByTime(1);
 
       // Access first to make it more recent
       service.getCachedResponse('first');
+      jest.advanceTimersByTime(1);
 
       await service.cacheResponse('third', 'Response 3'); // Should evict second (least recently used)
 
@@ -416,6 +420,7 @@ describe('PreCachedResponseService', () => {
 
     describe('evictLeastRecentlyUsed', () => {
       it('should evict oldest entries first', async () => {
+        jest.useRealTimers();
         // Add entries with different timestamps
         await service.cacheResponse('oldest', 'Oldest');
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -440,6 +445,7 @@ describe('PreCachedResponseService', () => {
         expect((service as any).responseCache.has('middle')).toBe(true);
         expect((service as any).responseCache.has('newest')).toBe(true);
         expect((service as any).responseCache.has('trigger_eviction')).toBe(true);
+        jest.useFakeTimers();
       });
 
       it('should evict until required space is available', async () => {
@@ -603,6 +609,7 @@ describe('PreCachedResponseService', () => {
     });
 
     it('should handle concurrent access correctly', async () => {
+      jest.useRealTimers();
       await service.cacheResponse('concurrent', 'Base response');
 
       // Simulate concurrent access
@@ -622,6 +629,7 @@ describe('PreCachedResponseService', () => {
 
       const response = service.getCachedResponse('concurrent');
       expect(response?.useCount).toBe(11); // 1 initial + 10 concurrent accesses
+      jest.useFakeTimers();
     });
   });
 

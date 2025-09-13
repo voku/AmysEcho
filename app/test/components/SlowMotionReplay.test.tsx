@@ -45,11 +45,11 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import SlowMotionReplay from '../../src/components/SlowMotionReplay';
 
 // Disable accessibility checks that cause StyleSheet.flatten issues
-jest.mock('@testing-library/react-native/src/helpers/accessibility', () => ({
+jest.mock('@testing-library/react-native/build/helpers/accessibility', () => ({
   isSubtreeInaccessible: jest.fn(() => false),
 }));
 
-jest.mock('@testing-library/react-native/src/helpers/map-props', () => ({
+jest.mock('@testing-library/react-native/build/helpers/map-props', () => ({
   mapProps: jest.fn((props) => props),
 }));
 
