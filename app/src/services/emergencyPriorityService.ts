@@ -113,13 +113,9 @@ class EmergencyPriorityService {
       ]);
     } catch (error) {
       logger.error(`Failed to process emergency gesture: ${nextGesture.gesture}`, error);
-      const index = this.processingQueue.indexOf(nextGesture);
-      if (index > -1) {
-        this.processingQueue.splice(index, 1);
-      }
     }
 
-    // Update stats
+    // Update stats (and retain processed gesture for rate calculations)
     this.updateStats();
 
     return nextGesture;
@@ -146,6 +142,7 @@ class EmergencyPriorityService {
    * Get processing statistics
    */
   getStats(): PriorityQueueStats {
+    this.updateStats();
     return { ...this.stats };
   }
 
@@ -325,15 +322,16 @@ class EmergencyPriorityService {
    */
   private updateStats(): void {
     const now = Date.now();
-    const recentProcessing = this.processingQueue.filter(
-      g => now - g.timestamp < 60000 // Last minute
+    // Keep only gestures processed within the last minute
+    this.processingQueue = this.processingQueue.filter(
+      g => now - g.timestamp < 60000
     );
 
     this.stats = {
       queueLength: this.emergencyQueue.length,
       criticalCount: this.emergencyQueue.filter(g => g.priority === 'critical').length,
       highCount: this.emergencyQueue.filter(g => g.priority === 'high').length,
-      processingRate: recentProcessing.length / 60, // per second
+      processingRate: this.processingQueue.length / 60, // per second
       averageWaitTime: this.calculateAverageWaitTime()
     };
   }

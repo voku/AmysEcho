@@ -109,6 +109,8 @@ jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
   removeEventListener: jest.fn(),
 }));
 
+jest.mock('react-native/Libraries/Components/Pressable/Pressable', () => 'Pressable');
+
 // Mock StyleSheet for components that use it at module level
 jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
   create: jest.fn((styles) => styles),
@@ -160,12 +162,19 @@ jest.mock('expo-file-system', () => ({
   getInfoAsync: jest.fn(),
 }));
 
-// Simplified Reanimated mock for tests
-jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  Reanimated.default.call = () => {};
-  return Reanimated;
-});
+// Lightweight Reanimated mock to avoid hook issues in tests
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: { call: () => {} },
+  View: jest.fn(),
+  createAnimatedComponent: (comp: any) => comp,
+  useSharedValue: () => ({ value: 0 }),
+  useAnimatedStyle: () => ({}),
+  useAnimatedProps: () => ({}),
+  withTiming: (v: any) => v,
+  Easing: { linear: jest.fn() },
+  runOnJS: (fn: any) => fn,
+}));
 
 jest.mock('react-native/Libraries/Animated/Animated', () => {
   const ActualAnimated = jest.requireActual('react-native/Libraries/Animated/Animated');
@@ -174,4 +183,8 @@ jest.mock('react-native/Libraries/Animated/Animated', () => {
     createAnimatedComponent: (comp: any) => comp,
   };
 });
+
+// Bypass internal Animated component hooks
+jest.mock('react-native/Libraries/Animated/createAnimatedComponent', () => (comp: any) => comp);
+jest.mock('react-native/src/private/animated/createAnimatedPropsHook', () => () => () => ({}));
 
