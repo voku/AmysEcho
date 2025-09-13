@@ -35,7 +35,16 @@ interface SuccessMoment {
 - **Success Tracking:** Records successful gestures with emotional context
 - **Pattern Analysis:** Identifies which emotions correlate with successful communication
 
-### 3. Two-Hand Gesture Emotional Support
+### 3. Emotion Detection Service
+
+Located in `app/src/services/emotionDetectionService.ts`, this service infers
+emotional state from gesture metrics and keeps the last detected state across sessions:
+
+- **Gesture Metrics:** Considers speed, intensity and repetition patterns
+- **Mood Integration:** Updates the MoodSelector when the detected emotion changes
+- **Persistence:** Stores the last emotion using AsyncStorage
+
+### 4. Two-Hand Gesture Emotional Support
 
 The `TwoHandGestureService` includes emotional gesture categories:
 
@@ -43,7 +52,7 @@ The `TwoHandGestureService` includes emotional gesture categories:
 - **Category-Based Boosting:** Emotional gestures receive slight confidence boosts
 - **Accessibility:** Full German localization and visual feedback
 
-### 4. Context-Aware Emotional Adjustments
+### 5. Context-Aware Emotional Adjustments
 
 The `ContextAwareRecognitionService` considers emotional context:
 
@@ -79,10 +88,7 @@ updateSuccessPattern(gesture: string, confidence: number, timeOfDay: string, con
 
 The current implementation does not include:
 
-- **Dedicated Emotion Detection Service:** No automatic emotion detection from gesture patterns alone
-- **Advanced ML Models:** Relies on user-selected moods rather than inferred emotions
-- **Emotional Response Service:** No specialized service for emotion-based responses
-- **Caregiver Alerts:** No automatic notifications for emotional state changes
+- **Advanced ML Models:** Relies on simple heuristics rather than learned models
 
 ## Integration Points
 

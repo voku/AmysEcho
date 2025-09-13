@@ -12,10 +12,7 @@ module.exports = {
     "^\.\./services$": "<rootDir>/src/services/index.ts",
   },
   testTimeout: 10000,
-  testMatch: [
-    '<rootDir>/test/MediaPipeGestureDetector.test.tsx',
-    '<rootDir>/test/useOpenAIValidation.test.tsx',
-  ],
+  testMatch: ['<rootDir>/test/**/*.test.ts?(x)'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     'webview/**/*.{ts,tsx}',
@@ -25,9 +22,9 @@ module.exports = {
   ],
   coverageProvider: 'v8',
   // Memory optimization settings
-  maxWorkers: 2, // Limit concurrent workers
+  maxWorkers: 1, // Run tests serially to reduce memory
   cache: true, // Enable caching
   clearMocks: true, // Clear mocks between tests
   resetMocks: true, // Reset mocks between tests
-   // Increase Node.js memory limit for large test suites
+  // Increase Node.js memory limit for large test suites
 };

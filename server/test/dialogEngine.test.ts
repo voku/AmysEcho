@@ -95,15 +95,16 @@ describe('getLLMSuggestions', () => {
       expect(mockCreate).toHaveBeenCalledTimes(2);
     });
 
-    it.skip('caches identical requests within TTL', async () => {
+    it('caches identical requests within TTL', async () => {
       // Temporarily enable caching for this test
       process.env.OPENAI_DIALOG_CACHE_TTL_MS = '30000';
       mockCreate.mockImplementation(() => Promise.resolve({
         choices: [{ message: { content: JSON.stringify({ nextWords: ['ok'], caregiverPhrases: ['super'] }) } }],
       }));
 
-      const a = await getLLMSuggestions(req);
-      const b = await getLLMSuggestions(req);
+      const cacheReq = { ...req, input: 'Hallo2' };
+      const a = await getLLMSuggestions(cacheReq);
+      const b = await getLLMSuggestions(cacheReq);
       expect(a.nextWords).toContain('ok');
       expect(b.nextWords).toContain('ok');
       expect(mockCreate).toHaveBeenCalledTimes(1);
