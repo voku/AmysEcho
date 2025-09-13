@@ -1,15 +1,11 @@
-import { adaptiveLearningService, enhancedAdaptiveLearningService, recordInteraction } from '../src/services/adaptiveLearningService';
-import { database } from '../../db';
-
-// Mock the database and logger
-jest.mock('../../db', () => ({
+// Mock dependencies before importing the service
+jest.mock('../db', () => ({
   database: {
     get: jest.fn(),
     write: jest.fn(),
   },
 }));
 
-// Mock WatermelonDB Q
 jest.mock('@nozbe/watermelondb', () => ({
   Q: {
     where: jest.fn().mockReturnThis(),
@@ -28,6 +24,11 @@ jest.mock('../src/utils/logger', () => ({
   },
 }));
 
+import { database } from '../db';
+import { adaptiveLearningService, enhancedAdaptiveLearningService, recordInteraction } from '../src/services/adaptiveLearningService';
+
+const { loadUsageStats } = require('../src/services/usageTracker');
+
 describe('AdaptiveLearningService', () => {
   beforeEach(() => {
     // Clear all performance metrics before each test
@@ -36,7 +37,8 @@ describe('AdaptiveLearningService', () => {
     enhancedAdaptiveLearningService['learningPaths'].clear();
 
     // Reset mocks
-    jest.clearAllMocks();
+    (database.get as jest.Mock).mockReset();
+    (database.write as jest.Mock).mockReset();
   });
 
   describe('recordPracticeAttempt', () => {
@@ -276,7 +278,6 @@ describe('AdaptiveLearningService', () => {
           gesture3: 1,
         };
 
-        // Mock the loadUsageStats function
         const { loadUsageStats } = require('../src/services/usageTracker');
         loadUsageStats.mockResolvedValue(mockUsageStats);
 
@@ -306,16 +307,11 @@ describe('AdaptiveLearningService', () => {
           minConfidenceThreshold: 0.5,
         };
 
-        // Mock the database chain: get().query().fetch()
         const mockFetch = jest.fn().mockResolvedValue([mockGesture]);
-        const mockQueryResult = {
-          fetch: mockFetch,
-        };
+        const mockQueryResult = { fetch: mockFetch };
         const mockQuery = jest.fn().mockReturnValue(mockQueryResult);
 
-        (database.get as jest.Mock).mockReturnValue({
-          query: mockQuery,
-        });
+        (database.get as jest.Mock).mockReturnValue({ query: mockQuery });
 
         const result = await adaptiveLearningService.getWeakGesture(70);
 
@@ -356,19 +352,10 @@ describe('AdaptiveLearningService', () => {
           id: 'test_gesture',
           healthScore: 50,
           minConfidenceThreshold: 0.5,
-          update: jest.fn().mockImplementation(async (updater) => {
-            // Simulate WatermelonDB update pattern
-            const updates: any = {};
-            updater(updates);
-            Object.assign(mockGesture, updates);
-          }),
+          update: jest.fn().mockResolvedValue(undefined),
         };
 
-        const mockCollection = {
-          find: jest.fn().mockResolvedValue(mockGesture),
-        };
-
-        (database.get as jest.Mock).mockReturnValue(mockCollection);
+        (database.get as jest.Mock).mockReturnValue({ find: jest.fn().mockResolvedValue(mockGesture) });
         (database.write as jest.Mock).mockImplementation(async (callback) => await callback());
 
         const result = await recordInteraction('test_gesture', true);
@@ -383,19 +370,10 @@ describe('AdaptiveLearningService', () => {
           id: 'test_gesture',
           healthScore: 50,
           minConfidenceThreshold: 0.5,
-          update: jest.fn().mockImplementation(async (updater) => {
-            // Simulate WatermelonDB update pattern
-            const updates: any = {};
-            updater(updates);
-            Object.assign(mockGesture, updates);
-          }),
+          update: jest.fn().mockResolvedValue(undefined),
         };
 
-        const mockCollection = {
-          find: jest.fn().mockResolvedValue(mockGesture),
-        };
-
-        (database.get as jest.Mock).mockReturnValue(mockCollection);
+        (database.get as jest.Mock).mockReturnValue({ find: jest.fn().mockResolvedValue(mockGesture) });
         (database.write as jest.Mock).mockImplementation(async (callback) => await callback());
 
         const result = await recordInteraction('test_gesture', false);

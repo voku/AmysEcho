@@ -20,8 +20,8 @@ export interface CacheStats {
 class PreCachedResponseService {
   private static instance: PreCachedResponseService;
   private responseCache: Map<string, CachedResponse> = new Map();
-  private readonly MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB
-  private readonly MAX_CACHE_ENTRIES = 100;
+  private MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB
+  private MAX_CACHE_ENTRIES = 100;
   private currentCacheSize = 0;
   private cacheStats = {
     hits: 0,
@@ -89,14 +89,15 @@ class PreCachedResponseService {
   async cacheResponse(gesture: string, customResponse?: string): Promise<boolean> {
     try {
       const normalizedGesture = this.normalizeGesture(gesture);
-      const response = customResponse || this.generateDefaultResponse(gesture);
+      const response = customResponse ?? this.generateDefaultResponse(gesture);
 
       // Estimate size (rough approximation)
       const size = (response.length * 2) + (gesture.length * 2) + 100; // 2 bytes per char + overhead
 
       // Check if we have space
-      if (this.currentCacheSize + size > this.MAX_CACHE_SIZE) {
-        this.evictLeastRecentlyUsed(size);
+      while (this.currentCacheSize + size > this.MAX_CACHE_SIZE && this.responseCache.size > 0) {
+        const needed = this.currentCacheSize + size - this.MAX_CACHE_SIZE;
+        this.evictLeastRecentlyUsed(needed);
       }
 
       // Check entry limit
@@ -245,36 +246,19 @@ class PreCachedResponseService {
    * Evict least recently used entries to make space
    */
   private evictLeastRecentlyUsed(requiredSpace?: number): void {
-    const entries = Array.from(this.responseCache.entries());
-
-    // Sort by last used (oldest first)
-    entries.sort(([,a], [,b]) => a.lastUsed - b.lastUsed);
+    const entries = Array.from(this.responseCache.entries()).sort(([, a], [, b]) => a.lastUsed - b.lastUsed);
 
     let freedSpace = 0;
-    const toRemove: string[] = [];
-
     for (const [gesture, entry] of entries) {
-      toRemove.push(gesture);
+      this.responseCache.delete(gesture);
+      this.currentCacheSize -= entry.size;
       freedSpace += entry.size;
 
-      if (requiredSpace && freedSpace >= requiredSpace) {
-        break;
-      }
-
-      if (this.responseCache.size - toRemove.length <= this.MAX_CACHE_ENTRIES - 10) {
-        break; // Keep some buffer
-      }
+      if (requiredSpace && freedSpace >= requiredSpace) break;
+      if (!requiredSpace && this.responseCache.size <= this.MAX_CACHE_ENTRIES) break;
     }
 
-    for (const gesture of toRemove) {
-      const entry = this.responseCache.get(gesture);
-      if (entry) {
-        this.currentCacheSize -= entry.size;
-        this.responseCache.delete(gesture);
-      }
-    }
-
-    logger.debug(`Evicted ${toRemove.length} cache entries, freed ${freedSpace} bytes`);
+    logger.debug(`Evicted ${freedSpace} bytes from cache`);
   }
 
   /**

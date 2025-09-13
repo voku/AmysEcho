@@ -1,5 +1,12 @@
 import { logger } from '../utils/logger';
 
+export class DownloadAbortedError extends Error {
+  constructor(message = 'Download aborted') {
+    super(message);
+    this.name = 'DownloadAbortedError';
+  }
+}
+
 export interface ModelUpdateStatus {
   status: 'idle' | 'downloading' | 'validating' | 'ready' | 'failed';
   progress: number;
@@ -95,11 +102,15 @@ class ZeroDowntimeModelService {
 
     } catch (error) {
       logger.error('Model update failed:', error);
-      this.updateStatus = {
-        status: 'failed',
-        progress: 0,
-        message: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
+      if (error instanceof DownloadAbortedError) {
+        this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled' };
+      } else {
+        this.updateStatus = {
+          status: 'failed',
+          progress: 0,
+          message: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        };
+      }
       this.notifyCallbacks();
       return false;
     } finally {
@@ -251,6 +262,11 @@ class ZeroDowntimeModelService {
     let receivedLength = 0;
 
     while (true) {
+      // Abort early if the operation was cancelled
+      if (this.abortController?.signal.aborted) {
+        throw new DownloadAbortedError();
+      }
+
       const { done, value } = await reader.read();
 
       if (done) break;

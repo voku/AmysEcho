@@ -131,22 +131,11 @@ export function loadTasksVision() {
                         wasmBase: c.wasm,
                     };
                 }
-                // Try ESM next (optional: gate via host config)
-                if (window.__allowCdnEsm === true) {
-                    try {
-                        const mod = yield import(/* @vite-ignore */ c.esm);
-                        if ((mod === null || mod === void 0 ? void 0 : mod.FilesetResolver) && (mod === null || mod === void 0 ? void 0 : mod.GestureRecognizer)) {
-                            return {
-                                FilesetResolver: mod.FilesetResolver,
-                                GestureRecognizer: mod.GestureRecognizer,
-                                wasmBase: c.wasm,
-                            };
-                        }
-                    }
-                    catch (e) {
-                        lastError = e;
-                    }
-                }
+                // ESM loading is disabled in this environment to avoid dynamic imports
+                // which cause bundling failures on the Expo build service. The UMD path
+                // above remains the primary loading mechanism.
+                // If ESM loading is required in the future, implement a script-tag based
+                // loader here that does not rely on `import()`.
             }
             catch (e) {
                 lastError = e;

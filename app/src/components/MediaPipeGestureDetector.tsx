@@ -152,7 +152,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     };
   }, []);
 
-  const gestureDetectorJs = require('../assets/gestureDetector.js');
+  const gestureDetectorJs = require('../../assets/gestureDetector.js');
   const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
   const htmlContent = `
 <!DOCTYPE html>
