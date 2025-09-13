@@ -95,6 +95,7 @@ npm ci --prefix app
 npm run type-check --prefix app
 npm test --prefix app   # produces coverage report
 (cd app && npx expo install --check)
+(cd app && npx expo export:embed --eager --platform android --dev false) >/tmp/expo-export.log && tail -n 20 /tmp/expo-export.log
 # Optional: `expo-doctor` can fail when offline; run when networked
 (cd app && npx --yes expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")
 npm ci --prefix server

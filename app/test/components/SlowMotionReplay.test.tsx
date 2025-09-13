@@ -12,33 +12,22 @@ jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
   removeEventListener: jest.fn(),
 }));
 
-// Mock react-native completely
-// Mock react-native completely to avoid all issues
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
+// Mock StyleSheet and Modal separately to avoid issues with Jest's React Native mock
+jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => {
+  const StyleSheet = jest.requireActual('react-native/Libraries/StyleSheet/StyleSheet');
   return {
-    ...RN,
-    StyleSheet: {
-      ...RN.StyleSheet,
-      flatten: jest.fn((style) => {
-        if (!style || style === null) return {};
-        if (Array.isArray(style)) {
-          return style.reduce((acc, s) => {
-            const flattened = s ? {} : {}; // Simplified for tests
-            return { ...acc, ...flattened };
-          }, {});
-        }
-        return style;
-      }),
-    },
-    Modal: jest.fn(() => null),
-    Dimensions: {
-      get: jest.fn(() => ({ width: 375, height: 812 })),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    },
+    ...StyleSheet,
+    flatten: jest.fn((style: any) => {
+      if (!style) return {};
+      if (Array.isArray(style)) {
+        return style.reduce((acc: any, s: any) => ({ ...acc, ...(s || {}) }), {});
+      }
+      return style;
+    }),
   };
 });
+
+jest.mock('react-native/Libraries/Modal/Modal', () => 'Modal');
 
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';

@@ -18,31 +18,33 @@ import {
 } from '../../src/services/openaiGestureValidationService';
 
 // Mock the WebView component
-jest.mock('react-native-webview', () => ({
-  WebView: ({ onMessage }: any) => {
-    // Simulate WebView messages
-    React.useEffect(() => {
-      if (onMessage) {
-        // Simulate a gesture detection message
-        const mockMessage = {
-          nativeEvent: {
-            data: JSON.stringify({
-              type: 'gesture',
-              gesture: 'hello',
-              confidence: 0.5,
-              landmarks: [[[0.5, 0.5, 0.8]]],
-              handednesses: ['Right'],
-              emergency: false,
-            }),
-          },
-        };
-        setTimeout(() => onMessage(mockMessage), 100);
-      }
-    }, [onMessage]);
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  return {
+    WebView: ({ onMessage }: any) => {
+      // Simulate WebView messages
+      React.useEffect(() => {
+        if (onMessage) {
+          const mockMessage = {
+            nativeEvent: {
+              data: JSON.stringify({
+                type: 'gesture',
+                gesture: 'hello',
+                confidence: 0.5,
+                landmarks: [[[0.5, 0.5, 0.8]]],
+                handednesses: ['Right'],
+                emergency: false,
+              }),
+            },
+          };
+          setTimeout(() => onMessage(mockMessage), 100);
+        }
+      }, [onMessage]);
 
-    return React.createElement('View', { testID: 'webview' });
-  },
-}));
+      return React.createElement('View', { testID: 'webview' });
+    },
+  };
+});
 
 // Mock fetch for API calls
 global.fetch = jest.fn();

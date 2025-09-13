@@ -49,7 +49,9 @@ class PersonalizedConfidenceService {
   getPersonalizedThreshold(gestureId: string, baseConfidence: number): PersonalizedThreshold {
     const profile = this.profiles.get(gestureId);
     const timeOfDay = this.getTimeOfDay();
-    const contextAdjustment = contextAwareRecognitionService.getContextAdjustment(gestureId, baseConfidence);
+    const contextAdjustment =
+      contextAwareRecognitionService.getContextAdjustment(gestureId, baseConfidence) ||
+      { confidenceMultiplier: 1.0, reason: 'No context adjustment' };
 
     let threshold = 0.5; // Default threshold
     const adjustments: string[] = [];
@@ -62,7 +64,7 @@ class PersonalizedConfidenceService {
 
       // Apply time-of-day adjustment
       const timeAdjustment = profile.timeOfDayAdjustments[timeOfDay];
-      if (timeAdjustment !== 0) {
+      if (typeof timeAdjustment === 'number' && timeAdjustment !== 0) {
         threshold += timeAdjustment;
         threshold = Math.max(0.2, Math.min(0.8, threshold)); // Keep within reasonable bounds
         adjustments.push(`${timeOfDay} adjustment: ${(timeAdjustment > 0 ? '+' : '')}${timeAdjustment.toFixed(2)}`);
