@@ -60,6 +60,14 @@ describe('EmotionDetectionService', () => {
     expect(setMood).not.toHaveBeenCalled();
   });
 
+  test('persists emotion only when changed', () => {
+    const metrics: GestureMetrics = { speed: 0.5, intensity: 0.5 };
+    emotionDetectionService.detectEmotion(metrics);
+    expect(AsyncStorage.setItem).toHaveBeenCalledTimes(1);
+    emotionDetectionService.detectEmotion(metrics);
+    expect(AsyncStorage.setItem).toHaveBeenCalledTimes(1);
+  });
+
   test('loads last emotion from storage', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue('calm');
     await emotionDetectionService.init();

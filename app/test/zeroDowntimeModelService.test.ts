@@ -155,10 +155,18 @@ describe('ZeroDowntimeModelService', () => {
     it('should handle cancellation during download', async () => {
       // Mock a slow download
       const mockReader = {
-        read: jest.fn()
-          .mockImplementation(() => new Promise(resolve =>
-            setTimeout(() => resolve({ done: false, value: new Uint8Array([1, 2, 3]) }), 100)
-          ))
+        read: jest
+          .fn()
+          .mockImplementationOnce(
+            () =>
+              new Promise(resolve =>
+                setTimeout(
+                  () => resolve({ done: false, value: new Uint8Array([1, 2, 3]) }),
+                  100,
+                ),
+              ),
+          )
+          .mockResolvedValueOnce({ done: true, value: undefined }),
       };
 
       const mockResponse = {
@@ -409,10 +417,18 @@ describe('ZeroDowntimeModelService', () => {
     it('should cancel ongoing update', async () => {
       // Mock a slow download
       const mockReader = {
-        read: jest.fn()
-          .mockImplementation(() => new Promise(resolve =>
-            setTimeout(() => resolve({ done: false, value: new Uint8Array([1, 2, 3]) }), 100)
-          ))
+        read: jest
+          .fn()
+          .mockImplementationOnce(
+            () =>
+              new Promise(resolve =>
+                setTimeout(
+                  () => resolve({ done: false, value: new Uint8Array([1, 2, 3]) }),
+                  100,
+                ),
+              ),
+          )
+          .mockResolvedValueOnce({ done: true, value: undefined }),
       };
 
       const mockResponse = {
@@ -791,12 +807,21 @@ describe('ZeroDowntimeModelService', () => {
         ok: true,
         headers: new Map([['content-length', '1024000']]),
         body: {
-          getReader: () => ({
-            read: jest.fn()
-              .mockImplementation(() => new Promise(resolve =>
-                setTimeout(() => resolve({ done: false, value: new Uint8Array([1, 2, 3]) }), 100)
-              ))
-          })
+          getReader: () => {
+            const read = jest
+              .fn()
+              .mockImplementationOnce(
+                () =>
+                  new Promise(resolve =>
+                    setTimeout(
+                      () => resolve({ done: false, value: new Uint8Array([1, 2, 3]) }),
+                      100,
+                    ),
+                  ),
+              )
+              .mockResolvedValueOnce({ done: true, value: undefined });
+            return { read };
+          }
         }
       };
       (global.fetch as jest.Mock).mockResolvedValue(mockResponse);

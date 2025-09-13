@@ -65,8 +65,10 @@ class EmotionDetectionService {
       emotion = currentMood;
     }
 
-    this.lastEmotion = emotion;
-    this.saveLastEmotion();
+    if (this.lastEmotion !== emotion) {
+      this.lastEmotion = emotion;
+      this.saveLastEmotion();
+    }
     return emotion;
   }
 
