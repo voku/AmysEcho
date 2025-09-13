@@ -132,26 +132,13 @@ jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
   compose: jest.fn((style1, style2) => ({ ...style1, ...style2 })),
 }));
 
-// Also mock the main StyleSheet import
-jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
-  create: jest.fn((styles) => styles),
-  absoluteFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  absoluteFillObject: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  flatten: jest.fn((style) => style),
-  compose: jest.fn((style1, style2) => ({ ...style1, ...style2 })),
-}), { virtual: true });
+// Ensure React Native's StyleSheet export exists
+try {
+  const rn = require('react-native');
+  if (!rn.StyleSheet || typeof rn.StyleSheet.create !== 'function') {
+    rn.StyleSheet = require('react-native/Libraries/StyleSheet/StyleSheet');
+  }
+} catch {}
 
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/tmp/test-documents/',

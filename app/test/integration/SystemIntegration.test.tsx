@@ -40,6 +40,7 @@ jest.mock('../../db', () => ({
 
 // Mock components that might have issues
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
+  const React = require('react');
   return function MockMediaPipeGestureDetector({ onGestureDetected }: any) {
     return React.createElement('View', {
       testID: 'media-pipe-detector',
