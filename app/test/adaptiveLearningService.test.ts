@@ -39,6 +39,7 @@ describe('AdaptiveLearningService', () => {
     // Reset mocks
     (database.get as jest.Mock).mockReset();
     (database.write as jest.Mock).mockReset();
+    (loadUsageStats as jest.Mock).mockReset();
   });
 
   describe('recordPracticeAttempt', () => {
@@ -278,8 +279,7 @@ describe('AdaptiveLearningService', () => {
           gesture3: 1,
         };
 
-        const { loadUsageStats } = require('../src/services/usageTracker');
-        loadUsageStats.mockResolvedValue(mockUsageStats);
+        (loadUsageStats as jest.Mock).mockResolvedValue(mockUsageStats);
 
         const suggestions = await adaptiveLearningService.getSuggestions(mockVocabulary, 'profile1');
 
@@ -290,8 +290,7 @@ describe('AdaptiveLearningService', () => {
       });
 
       it('should handle errors gracefully', async () => {
-        const { loadUsageStats } = require('../src/services/usageTracker');
-        loadUsageStats.mockRejectedValue(new Error('Database error'));
+        (loadUsageStats as jest.Mock).mockRejectedValue(new Error('Database error'));
 
         const suggestions = await adaptiveLearningService.getSuggestions([], 'profile1');
 

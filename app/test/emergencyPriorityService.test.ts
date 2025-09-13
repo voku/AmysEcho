@@ -9,9 +9,6 @@ jest.mock('../src/utils/logger', () => ({
   },
 }));
 
-// Mock setInterval and clearInterval for background processing
-jest.useFakeTimers();
-
 describe('EmergencyPriorityService', () => {
   let service: typeof emergencyPriorityService;
 
@@ -27,7 +24,9 @@ describe('EmergencyPriorityService', () => {
   });
 
   afterEach(() => {
+    service.stopProcessingLoop();
     jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   describe('Singleton Pattern', () => {
@@ -132,25 +131,25 @@ describe('EmergencyPriorityService', () => {
     it('should order gestures by priority (critical > high > medium > low)', () => {
       service.addEmergencyGesture('hilfe', 0.95); // critical
       service.addEmergencyGesture('stop', 0.9); // high
-      service.addEmergencyGesture('danger', 0.8); // critical
-      service.addEmergencyGesture('gefahr', 0.7); // critical
+      service.addEmergencyGesture('danger', 0.8); // high (reduced from critical)
+      service.addEmergencyGesture('gefahr', 0.7); // high (reduced from critical)
 
       const gestures = (service as any).emergencyQueue;
 
-      // All should be critical priority, ordered by addition time
+      // Critical first, then high gestures in insertion order
       expect(gestures[0].gesture).toBe('hilfe');
-      expect(gestures[1].gesture).toBe('danger');
-      expect(gestures[2].gesture).toBe('gefahr');
-      expect(gestures[3].gesture).toBe('stop');
+      expect(gestures[1].gesture).toBe('stop');
+      expect(gestures[2].gesture).toBe('danger');
+      expect(gestures[3].gesture).toBe('gefahr');
     });
 
     it('should insert lower priority gestures after higher priority ones', () => {
       service.addEmergencyGesture('hilfe', 0.95); // critical
-      service.addEmergencyGesture('stop', 0.6); // medium (due to lower confidence)
+      service.addEmergencyGesture('stop', 0.6); // low (due to confidence)
 
       const gestures = (service as any).emergencyQueue;
       expect(gestures[0].priority).toBe('critical');
-      expect(gestures[1].priority).toBe('medium');
+      expect(gestures[1].priority).toBe('low');
     });
   });
 
@@ -218,14 +217,14 @@ describe('EmergencyPriorityService', () => {
   describe('getStats', () => {
     it('should return correct statistics', () => {
       service.addEmergencyGesture('hilfe', 0.95); // critical
-      service.addEmergencyGesture('stop', 0.8); // high
+      service.addEmergencyGesture('stop', 0.8); // medium
       service.addEmergencyGesture('danger', 0.9); // critical
 
       const stats = service.getStats();
 
       expect(stats.queueLength).toBe(3);
       expect(stats.criticalCount).toBe(2);
-      expect(stats.highCount).toBe(1);
+      expect(stats.highCount).toBe(0);
       expect(typeof stats.processingRate).toBe('number');
       expect(typeof stats.averageWaitTime).toBe('number');
     });
@@ -331,19 +330,22 @@ describe('EmergencyPriorityService', () => {
 
   describe('Background Processing', () => {
     it('should automatically process gestures in background', async () => {
+      jest.useFakeTimers();
+      service.startProcessingLoop();
+
       service.addEmergencyGesture('hilfe', 0.8);
 
-      // Fast-forward timers to trigger processing
-      jest.advanceTimersByTime(150); // More than 100ms interval
-
-      // Wait for processing to complete
-      await new Promise(resolve => setTimeout(resolve, 200));
+      jest.advanceTimersByTime(200);
+      await Promise.resolve();
 
       const queueStatus = service.getQueueStatus();
       expect(queueStatus.queueLength).toBe(0); // Should be processed
     });
 
     it('should not process when already processing', async () => {
+      jest.useFakeTimers();
+      service.startProcessingLoop();
+
       // Mock a long-running process
       const originalProcess = (service as any).processEmergencyGesture;
       (service as any).processEmergencyGesture = jest.fn().mockImplementation(
@@ -353,15 +355,12 @@ describe('EmergencyPriorityService', () => {
       service.addEmergencyGesture('hilfe', 0.8);
       service.addEmergencyGesture('stop', 0.9);
 
-      // Start first processing
       jest.advanceTimersByTime(150);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await Promise.resolve();
 
-      // Second gesture should still be in queue
       const queueStatus = service.getQueueStatus();
       expect(queueStatus.queueLength).toBe(1);
 
-      // Restore original method
       (service as any).processEmergencyGesture = originalProcess;
     });
   });
@@ -451,7 +450,7 @@ describe('EmergencyPriorityService', () => {
   describe('Integration Scenarios', () => {
     it('should handle multiple emergency gestures in sequence', async () => {
       service.addEmergencyGesture('hilfe', 0.95); // critical
-      service.addEmergencyGesture('stop', 0.8); // high
+      service.addEmergencyGesture('stop', 0.8); // medium
       service.addEmergencyGesture('danger', 0.9); // critical
 
       // Process first gesture
@@ -467,19 +466,19 @@ describe('EmergencyPriorityService', () => {
       // Process third gesture
       const third = await service.processNextEmergency();
       expect(third?.gesture).toBe('stop');
-      expect(third?.priority).toBe('high');
+      expect(third?.priority).toBe('medium');
     });
 
     it('should maintain priority order during concurrent additions', () => {
       // Add gestures in non-priority order
-      service.addEmergencyGesture('stop', 0.8); // high
+      service.addEmergencyGesture('stop', 0.8); // medium
       service.addEmergencyGesture('hilfe', 0.95); // critical
       service.addEmergencyGesture('danger', 0.7); // high (reduced from critical due to confidence)
 
       const queue = (service as any).emergencyQueue;
       expect(queue[0].gesture).toBe('hilfe'); // critical first
-      expect(queue[1].gesture).toBe('stop'); // high second
-      expect(queue[2].gesture).toBe('danger'); // high third
+      expect(queue[1].gesture).toBe('danger'); // high second
+      expect(queue[2].gesture).toBe('stop'); // medium last
     });
 
     it('should handle queue overflow correctly', () => {
@@ -505,6 +504,7 @@ describe('EmergencyPriorityService', () => {
     });
 
     it('should handle processing timeout gracefully', async () => {
+      jest.useFakeTimers();
       service.addEmergencyGesture('hilfe', 0.8);
 
       // Mock a very long process
@@ -515,13 +515,9 @@ describe('EmergencyPriorityService', () => {
 
       const promise = service.processNextEmergency();
 
-      // Fast-forward past timeout
       jest.advanceTimersByTime(6000);
-
-      // Should still resolve eventually
       await expect(promise).resolves.toBeDefined();
 
-      // Restore original method
       (service as any).processEmergencyGesture = originalProcess;
     });
   });

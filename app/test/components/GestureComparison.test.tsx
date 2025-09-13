@@ -10,6 +10,10 @@ import { render, fireEvent } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import GestureComparison from '../../src/components/GestureComparison';
 
+jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
+  create: jest.fn((styles) => styles),
+}));
+
 // Mock expo-haptics
 jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: {

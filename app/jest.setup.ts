@@ -109,6 +109,8 @@ jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
   removeEventListener: jest.fn(),
 }));
 
+jest.mock('react-native/Libraries/Components/Pressable/Pressable', () => 'Pressable');
+
 // Mock StyleSheet for components that use it at module level
 jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
   create: jest.fn((styles) => styles),
@@ -130,26 +132,13 @@ jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
   compose: jest.fn((style1, style2) => ({ ...style1, ...style2 })),
 }));
 
-// Also mock the main StyleSheet import
-jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
-  create: jest.fn((styles) => styles),
-  absoluteFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  absoluteFillObject: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  flatten: jest.fn((style) => style),
-  compose: jest.fn((style1, style2) => ({ ...style1, ...style2 })),
-}), { virtual: true });
+// Ensure React Native's StyleSheet export exists
+try {
+  const rn = require('react-native');
+  if (!rn.StyleSheet || typeof rn.StyleSheet.create !== 'function') {
+    rn.StyleSheet = require('react-native/Libraries/StyleSheet/StyleSheet');
+  }
+} catch {}
 
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/tmp/test-documents/',
@@ -159,4 +148,30 @@ jest.mock('expo-file-system', () => ({
   deleteAsync: jest.fn(),
   getInfoAsync: jest.fn(),
 }));
+
+// Lightweight Reanimated mock to avoid hook issues in tests
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: { call: () => {} },
+  View: jest.fn(),
+  createAnimatedComponent: (comp: any) => comp,
+  useSharedValue: () => ({ value: 0 }),
+  useAnimatedStyle: () => ({}),
+  useAnimatedProps: () => ({}),
+  withTiming: (v: any) => v,
+  Easing: { linear: jest.fn() },
+  runOnJS: (fn: any) => fn,
+}));
+
+jest.mock('react-native/Libraries/Animated/Animated', () => {
+  const ActualAnimated = jest.requireActual('react-native/Libraries/Animated/Animated');
+  return {
+    ...ActualAnimated,
+    createAnimatedComponent: (comp: any) => comp,
+  };
+});
+
+// Bypass internal Animated component hooks
+jest.mock('react-native/Libraries/Animated/createAnimatedComponent', () => (comp: any) => comp);
+jest.mock('react-native/src/private/animated/createAnimatedPropsHook', () => () => () => ({}));
 

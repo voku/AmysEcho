@@ -197,6 +197,8 @@ class GestureHistoryService {
         const data = window.localStorage.getItem(this.STORAGE_KEY);
         if (data) {
           this.history = JSON.parse(data);
+          // Sort newest first to match in-memory ordering
+          this.history.sort((a, b) => b.timestamp - a.timestamp);
           // Validate and clean up old entries (older than 24 hours)
           const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
           this.history = this.history.filter(entry => entry.timestamp > oneDayAgo);

@@ -25,6 +25,7 @@ class EmergencyPriorityService {
   private readonly MAX_QUEUE_SIZE = 10;
   private readonly PROCESSING_TIMEOUT = 5000; // 5 seconds
   private isProcessing = false;
+  private processingInterval: NodeJS.Timeout | null = null;
   private stats: PriorityQueueStats = {
     queueLength: 0,
     criticalCount: 0,
@@ -41,13 +42,14 @@ class EmergencyPriorityService {
   static getInstance(): EmergencyPriorityService {
     if (!EmergencyPriorityService.instance) {
       EmergencyPriorityService.instance = new EmergencyPriorityService();
+      if (process.env.NODE_ENV !== 'test') {
+        EmergencyPriorityService.instance.startProcessingLoop();
+      }
     }
     return EmergencyPriorityService.instance;
   }
 
-  private constructor() {
-    this.startProcessingLoop();
-  }
+  private constructor() {}
 
   /**
    * Add emergency gesture to priority queue
@@ -57,6 +59,10 @@ class EmergencyPriorityService {
     confidence: number,
     context?: string
   ): boolean {
+    if (typeof gesture !== 'string' || gesture.trim() === '') {
+      throw new Error('Ungültige Notfallgeste');
+    }
+
     // Check if this is actually an emergency gesture
     if (!this.isEmergencyGesture(gesture)) {
       return false;
@@ -98,10 +104,18 @@ class EmergencyPriorityService {
     nextGesture.processed = true;
     this.processingQueue.push(nextGesture);
 
-    // Process the emergency gesture
-    await this.processEmergencyGesture(nextGesture);
+    try {
+      await Promise.race([
+        this.processEmergencyGesture(nextGesture),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Processing timeout')), this.PROCESSING_TIMEOUT)
+        )
+      ]);
+    } catch (error) {
+      logger.error(`Failed to process emergency gesture: ${nextGesture.gesture}`, error);
+    }
 
-    // Update stats
+    // Update stats (and retain processed gesture for rate calculations)
     this.updateStats();
 
     return nextGesture;
@@ -128,6 +142,7 @@ class EmergencyPriorityService {
    * Get processing statistics
    */
   getStats(): PriorityQueueStats {
+    this.updateStats();
     return { ...this.stats };
   }
 
@@ -284,8 +299,9 @@ class EmergencyPriorityService {
   /**
    * Start background processing loop
    */
-  private startProcessingLoop(): void {
-    setInterval(async () => {
+  startProcessingLoop(): void {
+    if (this.processingInterval) return;
+    this.processingInterval = setInterval(async () => {
       if (!this.isProcessing && this.emergencyQueue.length > 0) {
         this.isProcessing = true;
         await this.processNextEmergency();
@@ -294,20 +310,28 @@ class EmergencyPriorityService {
     }, 100); // Process every 100ms
   }
 
+  stopProcessingLoop(): void {
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval);
+      this.processingInterval = null;
+    }
+  }
+
   /**
    * Update queue statistics
    */
   private updateStats(): void {
     const now = Date.now();
-    const recentProcessing = this.processingQueue.filter(
-      g => now - g.timestamp < 60000 // Last minute
+    // Keep only gestures processed within the last minute
+    this.processingQueue = this.processingQueue.filter(
+      g => now - g.timestamp < 60000
     );
 
     this.stats = {
       queueLength: this.emergencyQueue.length,
       criticalCount: this.emergencyQueue.filter(g => g.priority === 'critical').length,
       highCount: this.emergencyQueue.filter(g => g.priority === 'high').length,
-      processingRate: recentProcessing.length / 60, // per second
+      processingRate: this.processingQueue.length / 60, // per second
       averageWaitTime: this.calculateAverageWaitTime()
     };
   }

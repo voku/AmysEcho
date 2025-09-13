@@ -65,7 +65,6 @@ import { backgroundPrefetchService } from '../services/backgroundPrefetchService
 import { usePreloadComponents } from '../components/LazyComponent';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
-import SlowMotionReplay from '../components/SlowMotionReplay';
 import { LanguageManager } from '../services/LanguageManager';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
@@ -133,10 +132,8 @@ export default function RecognitionScreen({
     shortcutActivated, setShortcutActivated,
     showPipGuidance, setShowPipGuidance,
     pipGuidanceGesture, setPipGuidanceGesture,
-    showSlowMotionReplay, setShowSlowMotionReplay,
     showPracticeSuggestion, setShowPracticeSuggestion,
     showAdaptiveLearning, setShowAdaptiveLearning,
-    slowMotionGesture, setSlowMotionGesture,
     contextInsights,
     detectedTwoHandGesture, setDetectedTwoHandGesture,
   } = state;
@@ -305,7 +302,6 @@ export default function RecognitionScreen({
     'PracticeSuggestion',
     'AdaptiveLearningPanel',
     'PictureInPictureGuidance',
-    'SlowMotionReplay',
     'TwoHandGestureDisplay'
   ]);
 
@@ -635,19 +631,6 @@ export default function RecognitionScreen({
         }}
       />
 
-      {/* Amy First: Slow-motion replay for detailed gesture learning */}
-      <SlowMotionReplay
-        gestureId={slowMotionGesture?.id || ''}
-        videoUri={slowMotionGesture?.dgsVideoUri || ''}
-        isVisible={showSlowMotionReplay}
-        onClose={() => setShowSlowMotionReplay(false)}
-        onReplayComplete={() => {
-          setStatus('🎥 Wiederholung beendet. Versuche es selbst!');
-        }}
-        autoPlay={true}
-        initialSpeed={0.5}
-        showControls={true}
-      />
     </View>
 
     {showCelebration && <Celebration key={celebrationKey} />}

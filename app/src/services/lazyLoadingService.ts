@@ -74,8 +74,6 @@ export class LazyLoadingService {
           return (await import('../components/TwoHandGestureDisplay')).default;
         case 'PictureInPictureGuidance':
           return (await import('../components/PictureInPictureGuidance')).default;
-        case 'SlowMotionReplay':
-          return (await import('../components/SlowMotionReplay')).default;
         case 'DgsVideoPlayer':
           return (await import('../components/DgsVideoPlayer')).default;
         case 'OpenAIGestureFeedback':
@@ -135,7 +133,7 @@ export class LazyLoadingService {
     if (context.timeOfDay === 'morning') {
       componentsToPreload.push('PracticeSuggestion', 'AdaptiveLearningPanel');
     } else if (context.timeOfDay === 'afternoon') {
-      componentsToPreload.push('DgsVideoPlayer', 'SlowMotionReplay');
+      componentsToPreload.push('DgsVideoPlayer');
     }
 
     // Screen-based preloading

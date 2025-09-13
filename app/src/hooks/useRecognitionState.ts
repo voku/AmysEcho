@@ -43,10 +43,8 @@ export const useRecognitionState = () => {
   const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
   const [showPipGuidance, setShowPipGuidance] = useState(false);
   const [pipGuidanceGesture, setPipGuidanceGesture] = useState<GestureModelEntry | null>(null);
-  const [showSlowMotionReplay, setShowSlowMotionReplay] = useState(false);
   const [showPracticeSuggestion, setShowPracticeSuggestion] = useState(false);
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
-  const [slowMotionGesture, setSlowMotionGesture] = useState<GestureModelEntry | null>(null);
   const [contextInsights] = useState<any>(null);
   const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
 
@@ -84,10 +82,8 @@ export const useRecognitionState = () => {
     shortcutActivated, setShortcutActivated,
     showPipGuidance, setShowPipGuidance,
     pipGuidanceGesture, setPipGuidanceGesture,
-    showSlowMotionReplay, setShowSlowMotionReplay,
     showPracticeSuggestion, setShowPracticeSuggestion,
     showAdaptiveLearning, setShowAdaptiveLearning,
-    slowMotionGesture, setSlowMotionGesture,
     contextInsights,
     detectedTwoHandGesture, setDetectedTwoHandGesture,
   };
