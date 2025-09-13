@@ -156,11 +156,11 @@ class AmyFirstHapticService {
     switch (this.preferences.intensity) {
       case 'gentle':
         if (adjusted.intensity === 'heavy') adjusted.intensity = 'medium';
-        if (adjusted.intensity === 'medium') adjusted.intensity = 'light';
+        else if (adjusted.intensity === 'medium') adjusted.intensity = 'light';
         break;
       case 'strong':
         if (adjusted.intensity === 'light') adjusted.intensity = 'medium';
-        if (adjusted.intensity === 'medium') adjusted.intensity = 'heavy';
+        else if (adjusted.intensity === 'medium') adjusted.intensity = 'heavy';
         break;
     }
 
@@ -256,7 +256,7 @@ class AmyFirstHapticService {
     // Audio feedback (if enabled)
     if (options?.includeAudio !== false) {
       tasks.push(
-        audioService.playSuccessFeedback(gestureId, confidence)
+        Promise.resolve(audioService.playSuccessFeedback(gestureId, confidence))
           .catch(error => logger.debug('Audio feedback failed:', error))
       );
     }
@@ -518,7 +518,8 @@ export async function triggerSpeakAndShow(
   showSymbol: () => void,
 ): Promise<void> {
   const tasks: Promise<unknown>[] = [
-    audioService.playSuccessFeedback(text, confidence),
+    Promise.resolve(audioService.playSuccessFeedback(text, confidence))
+      .catch(error => logger.warn('Audio feedback failed:', error)),
     (async () => {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
