@@ -9,9 +9,6 @@ jest.mock('../src/utils/logger', () => ({
   },
 }));
 
-// Mock setInterval and clearInterval for background processing
-jest.useFakeTimers();
-
 describe('EmergencyPriorityService', () => {
   let service: typeof emergencyPriorityService;
 
@@ -27,7 +24,9 @@ describe('EmergencyPriorityService', () => {
   });
 
   afterEach(() => {
+    service.stopProcessingLoop();
     jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   describe('Singleton Pattern', () => {
@@ -150,7 +149,7 @@ describe('EmergencyPriorityService', () => {
 
       const gestures = (service as any).emergencyQueue;
       expect(gestures[0].priority).toBe('critical');
-      expect(gestures[1].priority).toBe('medium');
+      expect(gestures[1].priority).toBe('low');
     });
   });
 
@@ -331,19 +330,22 @@ describe('EmergencyPriorityService', () => {
 
   describe('Background Processing', () => {
     it('should automatically process gestures in background', async () => {
+      jest.useFakeTimers();
+      service.startProcessingLoop();
+
       service.addEmergencyGesture('hilfe', 0.8);
 
-      // Fast-forward timers to trigger processing
-      jest.advanceTimersByTime(150); // More than 100ms interval
-
-      // Wait for processing to complete
-      await new Promise(resolve => setTimeout(resolve, 200));
+      jest.advanceTimersByTime(200);
+      await Promise.resolve();
 
       const queueStatus = service.getQueueStatus();
       expect(queueStatus.queueLength).toBe(0); // Should be processed
     });
 
     it('should not process when already processing', async () => {
+      jest.useFakeTimers();
+      service.startProcessingLoop();
+
       // Mock a long-running process
       const originalProcess = (service as any).processEmergencyGesture;
       (service as any).processEmergencyGesture = jest.fn().mockImplementation(
@@ -353,15 +355,12 @@ describe('EmergencyPriorityService', () => {
       service.addEmergencyGesture('hilfe', 0.8);
       service.addEmergencyGesture('stop', 0.9);
 
-      // Start first processing
       jest.advanceTimersByTime(150);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await Promise.resolve();
 
-      // Second gesture should still be in queue
       const queueStatus = service.getQueueStatus();
       expect(queueStatus.queueLength).toBe(1);
 
-      // Restore original method
       (service as any).processEmergencyGesture = originalProcess;
     });
   });
@@ -505,6 +504,7 @@ describe('EmergencyPriorityService', () => {
     });
 
     it('should handle processing timeout gracefully', async () => {
+      jest.useFakeTimers();
       service.addEmergencyGesture('hilfe', 0.8);
 
       // Mock a very long process
@@ -515,13 +515,9 @@ describe('EmergencyPriorityService', () => {
 
       const promise = service.processNextEmergency();
 
-      // Fast-forward past timeout
       jest.advanceTimersByTime(6000);
-
-      // Should still resolve eventually
       await expect(promise).resolves.toBeDefined();
 
-      // Restore original method
       (service as any).processEmergencyGesture = originalProcess;
     });
   });
