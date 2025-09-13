@@ -1,5 +1,5 @@
 // Mock dependencies before importing the service
-jest.mock('../../db', () => ({
+jest.mock('../db', () => ({
   database: {
     get: jest.fn(),
     write: jest.fn(),
@@ -24,8 +24,10 @@ jest.mock('../src/utils/logger', () => ({
   },
 }));
 
-import { database } from '../../db';
+import { database } from '../db';
 import { adaptiveLearningService, enhancedAdaptiveLearningService, recordInteraction } from '../src/services/adaptiveLearningService';
+
+const { loadUsageStats } = require('../src/services/usageTracker');
 
 describe('AdaptiveLearningService', () => {
   beforeEach(() => {
@@ -35,7 +37,8 @@ describe('AdaptiveLearningService', () => {
     enhancedAdaptiveLearningService['learningPaths'].clear();
 
     // Reset mocks
-    jest.clearAllMocks();
+    (database.get as jest.Mock).mockReset();
+    (database.write as jest.Mock).mockReset();
   });
 
   describe('recordPracticeAttempt', () => {
@@ -280,7 +283,10 @@ describe('AdaptiveLearningService', () => {
 
         const suggestions = await adaptiveLearningService.getSuggestions(mockVocabulary, 'profile1');
 
-        expect(Array.isArray(suggestions)).toBe(true);
+        expect(suggestions).toHaveLength(3);
+        expect(suggestions[0].id).toBe('gesture2'); // Most used
+        expect(suggestions[1].id).toBe('gesture1'); // Second most used
+        expect(suggestions[2].id).toBe('gesture3'); // Least used
       });
 
       it('should handle errors gracefully', async () => {
@@ -309,7 +315,10 @@ describe('AdaptiveLearningService', () => {
 
         const result = await adaptiveLearningService.getWeakGesture(70);
 
-        expect(result === null || result.id === 'weak_gesture').toBe(true);
+        expect(result).toEqual(mockGesture);
+        expect(database.get).toHaveBeenCalledWith('gesture_definitions');
+        expect(mockQuery).toHaveBeenCalled();
+        expect(mockFetch).toHaveBeenCalled();
       });
 
       it('should return null when no weak gestures found', async () => {
@@ -343,7 +352,7 @@ describe('AdaptiveLearningService', () => {
           id: 'test_gesture',
           healthScore: 50,
           minConfidenceThreshold: 0.5,
-          update: jest.fn(),
+          update: jest.fn().mockResolvedValue(undefined),
         };
 
         (database.get as jest.Mock).mockReturnValue({ find: jest.fn().mockResolvedValue(mockGesture) });
@@ -352,6 +361,8 @@ describe('AdaptiveLearningService', () => {
         const result = await recordInteraction('test_gesture', true);
 
         expect(result).toBe(true);
+        expect(mockGesture.update).toHaveBeenCalled();
+        expect(database.write).toHaveBeenCalled();
       });
 
       it('should update gesture health score on failure', async () => {
@@ -359,7 +370,7 @@ describe('AdaptiveLearningService', () => {
           id: 'test_gesture',
           healthScore: 50,
           minConfidenceThreshold: 0.5,
-          update: jest.fn(),
+          update: jest.fn().mockResolvedValue(undefined),
         };
 
         (database.get as jest.Mock).mockReturnValue({ find: jest.fn().mockResolvedValue(mockGesture) });
@@ -368,6 +379,8 @@ describe('AdaptiveLearningService', () => {
         const result = await recordInteraction('test_gesture', false);
 
         expect(result).toBe(true);
+        expect(mockGesture.update).toHaveBeenCalled();
+        expect(database.write).toHaveBeenCalled();
       });
 
       it('should handle database errors gracefully', async () => {
@@ -377,7 +390,7 @@ describe('AdaptiveLearningService', () => {
 
         const result = await recordInteraction('test_gesture', true);
 
-        expect(typeof result).toBe('boolean');
+        expect(result).toBe(false);
       });
     });
   });
