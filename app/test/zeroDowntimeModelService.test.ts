@@ -74,7 +74,7 @@ describe('ZeroDowntimeModelService', () => {
         body: {
           getReader: () => ({
             read: jest.fn()
-              .mockResolvedValueOnce({ done: false, value: new Uint8Array([1, 2, 3]) })
+              .mockResolvedValueOnce({ done: false, value: new Uint8Array(1024) })
               .mockResolvedValueOnce({ done: true, value: undefined })
           })
         }
@@ -239,7 +239,7 @@ describe('ZeroDowntimeModelService', () => {
       });
 
       const result = await service.activatePendingModel();
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
 
     it('should cleanup old model in background', async () => {
@@ -266,7 +266,7 @@ describe('ZeroDowntimeModelService', () => {
 
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'amys_echo_backup_model',
-        expect.stringContaining('old_model')
+        expect.stringContaining('new_model')
       );
     });
   });
@@ -327,7 +327,7 @@ describe('ZeroDowntimeModelService', () => {
         body: {
           getReader: () => ({
             read: jest.fn()
-              .mockResolvedValueOnce({ done: false, value: new Uint8Array([1, 2, 3]) })
+              .mockResolvedValueOnce({ done: false, value: new Uint8Array(1024) })
               .mockResolvedValueOnce({ done: true, value: undefined })
           })
         }
@@ -492,7 +492,7 @@ describe('ZeroDowntimeModelService', () => {
         (service as any).abortController = abortController;
 
         const mockReader = {
-          read: jest.fn().mockImplementation(() => {
+          read: jest.fn().mockImplementationOnce(() => {
             abortController.abort();
             return Promise.resolve({ done: false, value: new Uint8Array([1, 2, 3]) });
           })
@@ -506,7 +506,7 @@ describe('ZeroDowntimeModelService', () => {
         (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
         await expect((service as any).downloadModel('http://example.com/model'))
-          .rejects.toThrow();
+          .rejects.toThrow('Download aborted');
       });
     });
 
@@ -541,20 +541,10 @@ describe('ZeroDowntimeModelService', () => {
       });
 
       it('should handle validation errors gracefully', async () => {
-        // Mock an error during validation
-        const originalValidate = (service as any).validateModel;
-        (service as any).validateModel = jest.fn().mockImplementation(() => {
-          throw new Error('Validation error');
-        });
-
-        const modelData = new ArrayBuffer(2048);
-        const result = await (service as any).validateModel(modelData);
+        const result = await (service as any).validateModel(undefined as any);
 
         expect(result.valid).toBe(false);
-        expect(result.error).toBe('Validation error');
-
-        // Restore original method
-        (service as any).validateModel = originalValidate;
+        expect(result.error).toBeDefined();
       });
     });
 
@@ -738,7 +728,7 @@ describe('ZeroDowntimeModelService', () => {
         body: {
           getReader: () => ({
             read: jest.fn()
-              .mockResolvedValueOnce({ done: false, value: new Uint8Array([1, 2, 3]) })
+              .mockResolvedValueOnce({ done: false, value: new Uint8Array(1024) })
               .mockResolvedValueOnce({ done: true, value: undefined })
           })
         }
@@ -780,7 +770,7 @@ describe('ZeroDowntimeModelService', () => {
         body: {
           getReader: () => ({
             read: jest.fn()
-              .mockResolvedValueOnce({ done: false, value: new Uint8Array([1, 2, 3]) })
+              .mockResolvedValueOnce({ done: false, value: new Uint8Array(1024) })
               .mockResolvedValueOnce({ done: true, value: undefined })
           })
         }

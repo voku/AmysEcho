@@ -95,11 +95,15 @@ class ZeroDowntimeModelService {
 
     } catch (error) {
       logger.error('Model update failed:', error);
-      this.updateStatus = {
-        status: 'failed',
-        progress: 0,
-        message: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
+      if (error instanceof Error && error.message === 'Download aborted') {
+        this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled' };
+      } else {
+        this.updateStatus = {
+          status: 'failed',
+          progress: 0,
+          message: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        };
+      }
       this.notifyCallbacks();
       return false;
     } finally {
@@ -251,6 +255,11 @@ class ZeroDowntimeModelService {
     let receivedLength = 0;
 
     while (true) {
+      // Abort early if the operation was cancelled
+      if (this.abortController?.signal.aborted) {
+        throw new Error('Download aborted');
+      }
+
       const { done, value } = await reader.read();
 
       if (done) break;

@@ -1907,83 +1907,36 @@ function processGestureResults(results, timestamp) {
                 errorRecoveryManager.recordFailure(err, 'combination_message_send');
             }
         }
-        // Draw overlay landmarks and stability guides
+        // Draw overlay landmarks and stability guides (simplified)
         try {
             const ctx = overlay.getContext('2d');
-            if (ctx && overlayWidth && overlayHeight) {
-                ctx.clearRect(0, 0, overlay.width, overlay.height);
-                ctx.save();
-                // Draw in CSS pixels while canvas is scaled for HiDPI
-                ctx.scale(overlayDpr, overlayDpr);
-                // Mirror horizontally to match video when using the front camera
-                if (mirrorOverlay) {
-                    ctx.scale(-1, 1);
-                    ctx.translate(-overlayWidth, 0);
+            if (!ctx || !overlayWidth || !overlayHeight) {
+                return;
+            }
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+            ctx.save();
+            ctx.scale(overlayDpr, overlayDpr);
+            if (mirrorOverlay) {
+                ctx.scale(-1, 1);
+                ctx.translate(-overlayWidth, 0);
+            }
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
+            ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
+            for (const hand of allLandmarks) {
+                if (!hand || hand.length === 0) {
+                    continue;
                 }
-                // Draw stability guide if needed
-                const stabilityStatus = handStabilityAssistant.getStabilityStatus();
-                if (!stabilityStatus.isStable && stabilityStatus.score < 0.7) {
-                    // Draw target circle for hand positioning
-                    const centerX = overlayWidth / 2;
-                    const centerY = overlayHeight / 2;
-                    const radius = Math.min(overlayWidth, overlayHeight) * 0.15;
-                    ctx.strokeStyle = stabilityStatus.score > 0.3 ? 'rgba(255, 165, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([10, 5]);
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    // Draw crosshairs
-                    ctx.beginPath();
-                    ctx.moveTo(centerX - radius * 0.7, centerY);
-                    ctx.lineTo(centerX + radius * 0.7, centerY);
-                    ctx.moveTo(centerX, centerY - radius * 0.7);
-                    ctx.lineTo(centerX, centerY + radius * 0.7);
-                    ctx.stroke();
-                }
-                if (finalGesture !== 'unknown') {
-                    // Draw hand landmarks
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
-                ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
-                for (const hand of allLandmarks) {
-                    if (!hand || hand.length === 0)
+                for (const lm of hand) {
+                    if (!lm || lm.length < 2) {
                         continue;
-                    // Draw connections
+                    }
                     ctx.beginPath();
-                    let hasMoves = false;
-                    for (const [a, b] of HAND_CONNECTIONS) {
-                        const pa = hand[a];
-                        const pb = hand[b];
-                        if (!pa || !pb)
-                            continue;
-                        const x1 = pa[0] * overlayWidth;
-                        const y1 = pa[1] * overlayHeight;
-                        const x2 = pb[0] * overlayWidth;
-                        const y2 = pb[1] * overlayHeight;
-                        if (!hasMoves) {
-                            ctx.moveTo(x1, y1);
-                            hasMoves = true;
-                        }
-                        else {
-                            ctx.moveTo(x1, y1);
-                        }
-                        ctx.lineTo(x2, y2);
-                    }
-                    if (hasMoves) {
-                        ctx.stroke();
-                    }
-                    // Draw points
-                    for (const lm of hand) {
-                        if (!lm || lm.length < 2)
-                            continue;
-                        ctx.beginPath();
-                        ctx.arc(lm[0] * overlayWidth, lm[1] * overlayHeight, 4, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
+                    ctx.arc(lm[0] * overlayWidth, lm[1] * overlayHeight, 4, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
+            ctx.restore();
         }
         catch (err) {
             console.warn('Failed to draw overlay:', err);
