@@ -73,8 +73,6 @@ This document outlines the current development roadmap and outstanding tasks for
   - *Verification:* ✅ `src/services/sequenceRecognizer.ts` and `src/services/gestureCombinationService.ts` implemented with comprehensive tests.
 - [x] **Adaptive PiP Guidance**: Context-aware Picture-in-Picture video guidance for learning.
   - *Verification:* ✅ Implemented in `src/components/PictureInPictureGuidance.tsx` and integrated in `RecognitionScreen.tsx`.
-- [x] **Slow-Motion Replay**: Allow review of gestures in slow motion for learning.
-  - *Verification:* ✅ Implemented in `src/components/SlowMotionReplay.tsx` and integrated in `RecognitionScreen.tsx` with comprehensive accessibility.
 - [x] **Screen Flash Feedback**: Visual feedback for successful gestures in quiet environments.
   - *Verification:* ✅ Implemented in `src/components/ScreenFlash.tsx` and integrated in `RecognitionScreen.tsx` with 10+ flash patterns.
 - [x] **Gesture Comparison**: Visual comparison of Amy's attempt vs. correct gesture after correction.
@@ -167,6 +165,5 @@ This document outlines the current development roadmap and outstanding tasks for
 
 ### Testing & Quality Assurance
 - [x] Fix ScreenFlash test mock issues (Dimensions.get undefined). ✅ Implemented in `app/jest.setup.ts` and `app/test/components/ScreenFlash.test.tsx`
-- [x] Fix SlowMotionReplay test mock issues (StyleSheet/PixelRatio). ✅ Implemented in `app/jest.setup.ts` and `app/test/components/SlowMotionReplay.test.tsx`
 - [x] Add comprehensive tests for GestureComparison component. ✅ Implemented in `app/test/components/GestureComparison.test.tsx`
 - [x] Add integration tests for Phase 2 component interactions. ✅ Implemented in `app/test/integration/` directory

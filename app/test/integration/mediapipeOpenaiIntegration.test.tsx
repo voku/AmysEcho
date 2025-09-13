@@ -50,24 +50,27 @@ jest.mock('react-native-webview', () => {
 global.fetch = jest.fn();
 
 // Mock OpenAI feedback component
-jest.mock('../../src/components/OpenAIGestureFeedback', () => ({
-  OpenAIGestureFeedback: ({ isVisible, validationResult }: any) => {
-    if (!isVisible) return null;
-    return React.createElement('View', {
-      testID: 'openai-feedback',
-      children: [
-        React.createElement('Text', {
-          key: 'gesture',
-          testID: 'feedback-gesture'
-        }, validationResult?.gesture || ''),
-        React.createElement('Text', {
-          key: 'source',
-          testID: 'feedback-source'
-        }, validationResult?.validation_source || ''),
-      ],
-    });
-  },
-}));
+jest.mock('../../src/components/OpenAIGestureFeedback', () => {
+  const React = require('react');
+  return {
+    OpenAIGestureFeedback: ({ isVisible, validationResult }: any) => {
+      if (!isVisible) return null;
+      return React.createElement('View', {
+        testID: 'openai-feedback',
+        children: [
+          React.createElement('Text', {
+            key: 'gesture',
+            testID: 'feedback-gesture'
+          }, validationResult?.gesture || ''),
+          React.createElement('Text', {
+            key: 'source',
+            testID: 'feedback-source'
+          }, validationResult?.validation_source || ''),
+        ],
+      });
+    },
+  };
+});
 
 describe('MediaPipe + OpenAI Integration', () => {
   const mockImageCapture = {

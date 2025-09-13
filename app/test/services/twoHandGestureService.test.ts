@@ -9,8 +9,15 @@
  * - Error handling robustness
  */
 
-import { twoHandGestureService, TwoHandGestureService } from '../../src/services/twoHandGestureService';
-import { TWO_HAND_GESTURES } from '../../src/constants/twoHandGestures';
+// Mock logger before importing service
+jest.mock('../../src/utils/logger', () => ({
+  logger: {
+    warn: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+    error: jest.fn(),
+  },
+}));
 
 // Mock performance monitor
 jest.mock('../../src/services/performanceMonitor', () => ({
@@ -20,15 +27,8 @@ jest.mock('../../src/services/performanceMonitor', () => ({
   },
 }));
 
-// Mock logger
-jest.mock('../../src/utils/logger', () => ({
-  logger: {
-    warn: jest.fn(),
-    debug: jest.fn(),
-    info: jest.fn(),
-    error: jest.fn(),
-  },
-}));
+import { twoHandGestureService, TwoHandGestureService } from '../../src/services/twoHandGestureService';
+import { TWO_HAND_GESTURES } from '../../src/constants/twoHandGestures';
 
 describe('TwoHandGestureService', () => {
   beforeEach(() => {
@@ -403,7 +403,8 @@ describe('TwoHandGestureService', () => {
         [[[0, 0, 0]], [[0, 0, 0]]]
       );
 
-      expect(logger.warn).toHaveBeenCalled();
+      const mockedLogger = require('../../src/utils/logger').logger;
+      expect(mockedLogger.error).toHaveBeenCalled();
     });
   });
 

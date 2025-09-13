@@ -22,29 +22,32 @@ import {
 global.fetch = jest.fn();
 
 // Mock the OpenAI feedback component
-jest.mock('../../src/components/OpenAIGestureFeedback', () => ({
-  OpenAIGestureFeedback: ({ isVisible, validationResult, onDismiss, onApplySuggestion }: any) => {
-    if (!isVisible) return null;
+jest.mock('../../src/components/OpenAIGestureFeedback', () => {
+  const React = require('react');
+  return {
+    OpenAIGestureFeedback: ({ isVisible, validationResult, onDismiss, onApplySuggestion }: any) => {
+      if (!isVisible) return null;
 
-    return React.createElement('View', {
-      testID: 'openai-feedback',
-      children: [
-        React.createElement('Text', { key: 'gesture', testID: 'gesture-text' }, validationResult?.gesture || ''),
-        React.createElement('Text', { key: 'confidence', testID: 'confidence-text' }, validationResult?.confidence?.toString() || ''),
-        React.createElement('TouchableOpacity', {
-          key: 'dismiss',
-          testID: 'dismiss-button',
-          onPress: onDismiss,
-        }, 'Dismiss'),
-        React.createElement('TouchableOpacity', {
-          key: 'apply-suggestion',
-          testID: 'apply-suggestion-button',
-          onPress: () => onApplySuggestion?.(validationResult?.suggestions?.[0] || ''),
-        }, 'Apply Suggestion'),
-      ],
-    });
-  },
-}));
+      return React.createElement('View', {
+        testID: 'openai-feedback',
+        children: [
+          React.createElement('Text', { key: 'gesture', testID: 'gesture-text' }, validationResult?.gesture || ''),
+          React.createElement('Text', { key: 'confidence', testID: 'confidence-text' }, validationResult?.confidence?.toString() || ''),
+          React.createElement('TouchableOpacity', {
+            key: 'dismiss',
+            testID: 'dismiss-button',
+            onPress: onDismiss,
+          }, 'Dismiss'),
+          React.createElement('TouchableOpacity', {
+            key: 'apply-suggestion',
+            testID: 'apply-suggestion-button',
+            onPress: () => onApplySuggestion?.(validationResult?.suggestions?.[0] || ''),
+          }, 'Apply Suggestion'),
+        ],
+      });
+    },
+  };
+});
 
 describe('OpenAI Gesture Validation Integration', () => {
   const mockImageCapture = {

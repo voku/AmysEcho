@@ -54,11 +54,6 @@ jest.mock('../../src/components/ScreenFlash', () => {
   };
 });
 
-jest.mock('../../src/components/SlowMotionReplay', () => {
-  return function MockSlowMotionReplay() {
-    return React.createElement('View', { testID: 'slow-motion-replay' });
-  };
-});
 
 jest.mock('../../src/components/GestureComparison', () => {
   return function MockGestureComparison() {

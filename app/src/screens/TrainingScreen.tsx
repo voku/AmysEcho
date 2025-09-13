@@ -20,7 +20,6 @@ import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import { createButtonStyles } from '../styles/buttonStyles';
 import { hapticFeedback } from '../utils/hapticUtils';
 import { childFriendlyStyles } from '../styles/touchTargets';
-import SlowMotionReplay from '../components/SlowMotionReplay';
 import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import PracticeSessionManager from '../components/PracticeSessionManager';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
@@ -42,7 +41,6 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
-  const [showSlowMotionReplay, setShowSlowMotionReplay] = useState(false);
   const [showPerformanceAnalytics, setShowPerformanceAnalytics] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [performanceMetrics, setPerformanceMetrics] = useState<{
@@ -514,31 +512,6 @@ export default function TrainingScreen({ navigation, route }: any) {
                </Pressable>
              </View>
 
-             {/* Slow motion replay button */}
-             {gestureId && recordedFrames.length > 0 && (
-               <Pressable
-                 style={({ pressed }) => [
-                   childFriendlyStyles.minTouchTarget,
-                   styles.secondaryButton,
-                   highContrast && styles.secondaryButtonHC,
-                   pressed && (highContrast ? styles.secondaryButtonPressedHC : styles.secondaryButtonPressed),
-                 ]}
-                  onPress={() => {
-                    void hapticFeedback.light();
-                    setShowSlowMotionReplay(true);
-                  }}
-                 accessibilityRole="button"
-                 accessibilityLabel="Zeitlupe-Wiederholung anzeigen"
-               >
-                 <Text style={[
-                   styles.secondaryButtonText,
-                   largeText && styles.secondaryButtonTextLarge,
-                   highContrast && styles.secondaryButtonTextHC,
-                 ]}>
-                   🎥 Zeitlupe anzeigen
-                 </Text>
-               </Pressable>
-             )}
            </>
          ) : (
           <Pressable
@@ -569,24 +542,6 @@ export default function TrainingScreen({ navigation, route }: any) {
           </Pressable>
         )}
        </View>
-
-       {/* Slow Motion Replay Overlay */}
-       {showSlowMotionReplay && gestureId && (
-         <View style={styles.overlay}>
-           <SlowMotionReplay
-             gestureId={gestureId}
-             videoUri={gestureModel.gestures.find(g => g.id === gestureId)?.dgsVideoUri || ''}
-             isVisible={showSlowMotionReplay}
-             onClose={() => setShowSlowMotionReplay(false)}
-             onReplayComplete={() => {
-               setMessage('🎥 Wiederholung beendet. Versuche es selbst!');
-             }}
-             autoPlay={true}
-             initialSpeed={0.5}
-             showControls={true}
-           />
-         </View>
-       )}
 
        {/* Performance Analytics Overlay */}
        {showPerformanceAnalytics && performanceMetrics && gestureId && (

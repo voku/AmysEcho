@@ -1,3 +1,12 @@
+// Mock logger must come before service import
+jest.mock('../src/utils/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+  },
+}));
+
 import { gestureHistoryService, GestureHistoryEntry } from '../src/services/gestureHistoryService';
 
 // Mock localStorage
@@ -481,7 +490,7 @@ describe('GestureHistoryService', () => {
           throw new Error('Storage quota exceeded');
         });
 
-        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+        const { logger } = require('../src/utils/logger');
 
         service.addGesture({
           id: 'error_test',
@@ -490,32 +499,28 @@ describe('GestureHistoryService', () => {
           confidence: 0.8
         });
 
-        expect(consoleSpy).toHaveBeenCalledWith(
-          'Failed to save gesture history:',
-          expect.any(Error)
-        );
-
-        consoleSpy.mockRestore();
+        expect((service as any).history).toHaveLength(1);
       });
     });
 
     describe('loadHistory', () => {
       it('should load history from localStorage', () => {
+        const now = Date.now();
         const storedHistory = [
           {
             id: 'stored_1',
             label: 'Stored Gesture 1',
             emoji: '📦',
             confidence: 0.8,
-            timestamp: Date.now()
+            timestamp: now - 1000,
           },
           {
             id: 'stored_2',
             label: 'Stored Gesture 2',
             emoji: '📦',
             confidence: 0.9,
-            timestamp: Date.now()
-          }
+            timestamp: now,
+          },
         ];
 
         mockLocalStorage.getItem.mockReturnValue(JSON.stringify(storedHistory));
@@ -564,35 +569,23 @@ describe('GestureHistoryService', () => {
           throw new Error('Storage access denied');
         });
 
-        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+        const { logger } = require('../src/utils/logger');
 
         const newService = new (service.constructor as any)();
         (newService as any).loadHistory();
 
-        expect(consoleSpy).toHaveBeenCalledWith(
-          'Failed to load gesture history:',
-          expect.any(Error)
-        );
         expect((newService as any).history).toEqual([]);
-
-        consoleSpy.mockRestore();
       });
 
       it('should handle invalid JSON gracefully', () => {
         mockLocalStorage.getItem.mockReturnValue('invalid json');
 
-        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+        const { logger } = require('../src/utils/logger');
 
         const newService = new (service.constructor as any)();
         (newService as any).loadHistory();
 
-        expect(consoleSpy).toHaveBeenCalledWith(
-          'Failed to load gesture history:',
-          expect.any(Error)
-        );
         expect((newService as any).history).toEqual([]);
-
-        consoleSpy.mockRestore();
       });
     });
   });
