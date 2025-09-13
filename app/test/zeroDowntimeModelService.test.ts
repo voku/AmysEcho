@@ -1,4 +1,4 @@
-import { zeroDowntimeModelService, ModelUpdateStatus, ModelVersion } from '../src/services/zeroDowntimeModelService';
+import { zeroDowntimeModelService, ModelUpdateStatus, ModelVersion, DownloadAbortedError } from '../src/services/zeroDowntimeModelService';
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -506,7 +506,7 @@ describe('ZeroDowntimeModelService', () => {
         (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
         await expect((service as any).downloadModel('http://example.com/model'))
-          .rejects.toThrow('Download aborted');
+          .rejects.toThrow(DownloadAbortedError);
       });
     });
 

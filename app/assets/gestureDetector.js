@@ -1,3 +1,7 @@
+/**
+ * Generated from app/webview/gestureDetector.ts
+ * Run `npm run build:webview --prefix app` to regenerate.
+ */
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -14,7 +18,6 @@ var _a, _b, _c, _d, _e, _f, _g;
  */
 import { unzipSync, unzip } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
-import { HAND_CONNECTIONS } from '../src/constants/hand';
 // Import new modular components
 import { GestureDetector } from './core/GestureDetector';
 import { ResourceManager } from './utils/ResourceManager';
@@ -1920,8 +1923,6 @@ function processGestureResults(results, timestamp) {
                 ctx.scale(-1, 1);
                 ctx.translate(-overlayWidth, 0);
             }
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
             ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
             for (const hand of allLandmarks) {
                 if (!hand || hand.length === 0) {

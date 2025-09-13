@@ -1,10 +1,10 @@
 /**
+ * Generated from app/webview/gestureDetector.ts
  * Bundled into app/assets/gestureDetector.js for the WebView.
  * Run `npm run build:webview --prefix app` to regenerate.
  */
 import { unzipSync, unzip } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
-import { HAND_CONNECTIONS } from '../src/constants/hand';
 import type {
   GestureRecognizerLike,
   TwoHandGesture
@@ -2230,37 +2230,11 @@ function processGestureResults(results: any, timestamp: number) {
       }
 
       // Draw hand landmarks
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
       ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
 
       for (const hand of allLandmarks) {
         if (!hand || hand.length === 0) continue;
 
-        // Draw connections
-        ctx.beginPath();
-        let hasMoves = false;
-        for (const [a, b] of HAND_CONNECTIONS) {
-          const pa = hand[a];
-          const pb = hand[b];
-          if (!pa || !pb) continue;
-          const x1 = pa[0] * overlayWidth;
-          const y1 = pa[1] * overlayHeight;
-          const x2 = pb[0] * overlayWidth;
-          const y2 = pb[1] * overlayHeight;
-          if (!hasMoves) {
-            ctx.moveTo(x1, y1);
-            hasMoves = true;
-          } else {
-            ctx.moveTo(x1, y1);
-          }
-          ctx.lineTo(x2, y2);
-        }
-        if (hasMoves) {
-          ctx.stroke();
-        }
-
-        // Draw points
         for (const lm of hand) {
           if (!lm || lm.length < 2) continue;
           ctx.beginPath();
@@ -2273,7 +2247,7 @@ function processGestureResults(results: any, timestamp: number) {
           );
           ctx.fill();
         }
-}
+      }
     }
   } catch (err) {
     console.warn('Failed to draw overlay:', err);
