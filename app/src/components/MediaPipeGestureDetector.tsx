@@ -101,7 +101,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
   const [webviewError, setWebviewError] = useState<string | null>(null);
 
-  const inlineGestureDetectorSource = useMemo(() => gestureDetectorBase64.replace(/\s+/g, ''), []);
+  const inlineGestureDetectorSource = useMemo(
+    () => `data:text/javascript;base64,${gestureDetectorBase64.replace(/\s+/g, '')}`,
+    [],
+  );
 
   const handleDismissFeedback = useCallback(() => {
     setShowOpenaiFeedback(false);
@@ -230,17 +233,36 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
    </script>
   <script>
     (function loadGestureBundle() {
-      var base64 = '${inlineGestureDetectorSource}';
+      var src = '${inlineGestureDetectorSource}';
       try {
         var script = document.createElement('script');
         script.type = 'text/javascript';
-        script.appendChild(document.createTextNode(window.atob(base64)));
+        script.src = src;
+        script.onload = function () {
+          try {
+            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+              window.ReactNativeWebView.postMessage(
+                JSON.stringify({ type: 'telemetry', event: 'inline_bundle_loaded' })
+              );
+            }
+          } catch (event) {
+            console.warn('Failed to report inline bundle load', event);
+          }
+        };
+        script.onerror = function (event) {
+          console.error('Failed to load inline gesture bundle', event);
+          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+            window.ReactNativeWebView.postMessage(
+              JSON.stringify({ type: 'error', message: 'inline_bundle_load_failed' })
+            );
+          }
+        };
         document.head.appendChild(script);
       } catch (error) {
         console.error('Failed to bootstrap gesture bundle', error);
         if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
           window.ReactNativeWebView.postMessage(
-            JSON.stringify({ type: 'error', message: 'inline_bundle_decode_failed' })
+            JSON.stringify({ type: 'error', message: 'inline_bundle_exception' })
           );
         }
       }
