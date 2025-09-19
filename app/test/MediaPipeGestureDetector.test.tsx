@@ -5,7 +5,7 @@ import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDete
 import { CAMERA_WEBVIEW_BASE_URL } from '../src/constants';
 import { logger } from '../src/utils/logger';
 
-const GESTURE_PROCESSING_ERROR = "Das hat nicht geklappt. Probier's einfach nochmal!";
+const GESTURE_PROCESSING_ERROR = 'gesture_processing_error';
 
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/mock/documents/',
@@ -144,7 +144,10 @@ describe('MediaPipeGestureDetector', () => {
       });
     });
 
-    expect(errorSpy).toHaveBeenCalledWith('WebView error', { message: 'Camera access denied' });
+    expect(errorSpy).toHaveBeenCalledWith('WebView error', {
+      message: 'Camera access denied',
+      code: undefined,
+    });
     expect(onError).toHaveBeenCalledWith('gesture_processing_error');
     expect(onGestureDetected).not.toHaveBeenCalled();
     errorSpy.mockRestore();

@@ -294,10 +294,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           handleOpenAIValidation(gesture, confidence, landmarks, handednesses, data.emergency === true);
         }
       } else if (data.type === 'error') {
+        const errorCode = typeof data.code === 'string' && data.code.trim().length > 0
+          ? data.code
+          : 'gesture_processing_error';
         // Amy First: Log technical errors but pass generic message to UI
-        logger.error('WebView error', { message: data.message });
+        logger.error('WebView error', { message: data.message, code: data.code });
         setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-        onError('gesture_processing_error'); // Generic identifier for child-friendly handling
+        onError(errorCode); // Use machine-friendly code so recovery services can respond
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
         logger.warn('WebView warning', { message: data.message });
@@ -373,7 +376,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     } catch (error) {
       logger.error('Error parsing WebView message', { error });
       setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-      onError(GESTURE_PROCESSING_ERROR_TEXT);
+      onError('gesture_processing_error');
     }
   };
 
