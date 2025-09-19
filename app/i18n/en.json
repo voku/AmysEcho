@@ -26,6 +26,11 @@
     "cameraError": "Camera needs a moment. Let's keep going!",
     "noLandmarksCaptured": "I don't see you yet. Move your hand a little!"
   },
+  "handPreview": {
+    "searching": "Looking for hands…",
+    "confidencePrefix": "Confidence",
+    "accessibilityLabel": "Hand landmark preview"
+  },
   "recognition": {
     "showDgsVideo": "Show DGS Video",
     "toggleDgsVideo": "Toggle DGS Video"

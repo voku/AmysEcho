@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { LanguageManager } from '../services/LanguageManager';
 import Svg, { Circle, G, Line } from 'react-native-svg';
 
 const HAND_CONNECTIONS: Array<[number, number]> = [
@@ -71,7 +73,9 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
   if (!hands.length) {
     return (
       <View style={[styles.container, style]}>
-        <Text style={styles.placeholder}>Hände werden gesucht…</Text>
+        <Text style={styles.placeholder} testID="hand-preview-placeholder">
+          {LanguageManager.t('handPreview.searching')}
+        </Text>
       </View>
     );
   }
@@ -79,7 +83,7 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
   return (
     <View style={[styles.container, style]}
       accessibilityRole="image"
-      accessibilityLabel="Hand-Landmark-Vorschau"
+      accessibilityLabel={LanguageManager.t('handPreview.accessibilityLabel')}
     >
       <Svg width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="xMidYMid meet">
         {hands.map((hand, handIndex) => {
@@ -134,7 +138,9 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
       </Svg>
       {typeof confidence === 'number' && (
         <View style={styles.confidenceBadge}>
-          <Text style={styles.confidenceText}>{`Sicherheit: ${(confidence * 100).toFixed(0)}%`}</Text>
+          <Text style={styles.confidenceText}>
+            {`${LanguageManager.t('handPreview.confidencePrefix')}: ${(confidence * 100).toFixed(0)}%`}
+          </Text>
         </View>
       )}
     </View>

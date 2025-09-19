@@ -38,8 +38,8 @@ const TWO_HANDS: number[][][] = [
 
 describe('HandLandmarkPreview', () => {
   it('renders fallback when no landmarks are provided', () => {
-    const { getByText } = render(<HandLandmarkPreview landmarks={[]} />);
-    expect(getByText('Hände werden gesucht…')).toBeTruthy();
+    const { getByTestId } = render(<HandLandmarkPreview landmarks={[]} />);
+    expect(getByTestId('hand-preview-placeholder')).toBeTruthy();
   });
 
   it('renders multiple hands with separate landmark groups', () => {
