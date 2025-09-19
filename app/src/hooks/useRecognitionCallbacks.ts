@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { NavigationProp } from '@react-navigation/native';
 import { LanguageManager } from '../services/LanguageManager';
@@ -102,13 +102,27 @@ export const useRecognitionCallbacks = ({
   const { successSound, contextInsights, screenReaderEnabled, showPipGuidance, gestureConfidence } = state;
 
   const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const screenFlashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visualRippleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const clearEncouragementTimeout = useCallback(() => {
-    if (encouragementTimeout.current) {
-      clearTimeout(encouragementTimeout.current);
-      encouragementTimeout.current = null;
+  const clearTimeoutRef = useCallback((ref: MutableRefObject<ReturnType<typeof setTimeout> | null>) => {
+    if (ref.current) {
+      clearTimeout(ref.current);
+      ref.current = null;
     }
   }, []);
+
+  const clearEncouragementTimeout = useCallback(() => {
+    clearTimeoutRef(encouragementTimeout);
+  }, [clearTimeoutRef]);
+
+  const clearScreenFlashTimeout = useCallback(() => {
+    clearTimeoutRef(screenFlashTimeout);
+  }, [clearTimeoutRef]);
+
+  const clearVisualRippleTimeout = useCallback(() => {
+    clearTimeoutRef(visualRippleTimeout);
+  }, [clearTimeoutRef]);
 
   const schedulePracticeSuggestion = useCallback(() => {
     if (!encouragementTimeout.current) {
@@ -118,6 +132,15 @@ export const useRecognitionCallbacks = ({
       }, PRACTICE_SUGGESTION_DELAY_MS);
     }
   }, [setShowPracticeSuggestion]);
+
+  useEffect(
+    () => () => {
+      clearEncouragementTimeout();
+      clearScreenFlashTimeout();
+      clearVisualRippleTimeout();
+    },
+    [clearEncouragementTimeout, clearScreenFlashTimeout, clearVisualRippleTimeout],
+  );
 
   const handleLowConfidenceGesture = useCallback(
     (
@@ -162,28 +185,26 @@ export const useRecognitionCallbacks = ({
     ],
   );
 
-  const handleSuccessfulGesture = useCallback(
-    async (
+  const showSuccessfulGestureUi = useCallback(
+    (
       gesture: string,
+      gestureMeta: ReturnType<typeof optimizedGestureService.getGestureById> | null,
+      label: string,
+      emoji: string,
       smoothedConfidence: number,
       landmarks: number[][][],
-      handedness: string[],
-      emergency: boolean,
     ) => {
-      setPendingGesture(null);
-      setShowVisualRipple(false);
-
-      const gestureMeta = optimizedGestureService.getGestureById(gesture);
-      const label = gestureMeta?.label || gesture;
-      const emoji = gestureMeta?.emoji || '🤟';
-
       setRecognitionPath('local');
-      setLastRecognizedGesture(gestureMeta ?? null);
+      setLastRecognizedGesture(gestureMeta);
       setStatus(helpers.getSuccessMessage(gesture));
       helpers.startFeedbackAnimation();
       setScreenFlashPattern(SUCCESS_FLASH);
       setShowScreenFlash(true);
-      setTimeout(() => setShowScreenFlash(false), SCREEN_FLASH_RESET_DELAY_MS);
+      clearScreenFlashTimeout();
+      screenFlashTimeout.current = setTimeout(() => {
+        setShowScreenFlash(false);
+        screenFlashTimeout.current = null;
+      }, SCREEN_FLASH_RESET_DELAY_MS);
 
       gestureHistoryService.addGesture({
         id: gesture,
@@ -195,7 +216,26 @@ export const useRecognitionCallbacks = ({
       });
 
       announceGestureRecognition(label, smoothedConfidence);
+    },
+    [
+      clearScreenFlashTimeout,
+      helpers,
+      setLastRecognizedGesture,
+      setRecognitionPath,
+      setScreenFlashPattern,
+      setShowScreenFlash,
+      setStatus,
+      successSound,
+    ],
+  );
 
+  const runRecognitionFeedback = useCallback(
+    async (
+      gesture: string,
+      label: string,
+      smoothedConfidence: number,
+      emergency: boolean,
+    ) => {
       await Promise.all([
         multiSensoryFeedback(gesture, smoothedConfidence, {
           ...contextInsights,
@@ -212,12 +252,23 @@ export const useRecognitionCallbacks = ({
           }
         })(),
       ]);
+    },
+    [contextInsights, helpers, successSound],
+  );
 
+  const handlePostRecognitionFollowups = useCallback(
+    (
+      gesture: string,
+      smoothedConfidence: number,
+      landmarks: number[][][],
+      handedness: string[],
+      emergency: boolean,
+    ) => {
       void logHIPEvent('HIP_1', 'gesture_recognized', {
         gesture,
         confidence: smoothedConfidence,
         emergency,
-      });
+      }).catch((error) => logger.warn('Failed to log HIP event', error));
 
       if (emergency) {
         emergencyPriorityService.addEmergencyGesture(gesture, smoothedConfidence);
@@ -246,31 +297,54 @@ export const useRecognitionCallbacks = ({
         handedness,
       });
       if (suggestions.length) {
-        setGestureSuggestions(suggestions.map(({ id, label: suggestionLabel }) => ({
-          id,
-          label: suggestionLabel,
-        })));
+        setGestureSuggestions(
+          suggestions.map(({ id, label: suggestionLabel }) => ({
+            id,
+            label: suggestionLabel,
+          })),
+        );
         setShowCorrection(true);
       }
 
       setShortcutActivated(null);
     },
     [
-      contextInsights,
-      helpers,
-      refs,
+      refs.labelHistoryRef,
       setGestureSuggestions,
-      setLastRecognizedGesture,
-      setPendingGesture,
-      setRecognitionPath,
-      setScreenFlashPattern,
       setShortcutActivated,
       setShowAdaptiveLearning,
       setShowCorrection,
-      setShowScreenFlash,
-      setShowVisualRipple,
       setStatus,
-      successSound,
+    ],
+  );
+
+  const handleSuccessfulGesture = useCallback(
+    async (
+      gesture: string,
+      smoothedConfidence: number,
+      landmarks: number[][][],
+      handedness: string[],
+      emergency: boolean,
+    ) => {
+      setPendingGesture(null);
+      setShowVisualRipple(false);
+
+      const gestureMeta = optimizedGestureService.getGestureById(gesture);
+      const label = gestureMeta?.label || gesture;
+      const emoji = gestureMeta?.emoji || '🤟';
+
+      showSuccessfulGestureUi(gesture, gestureMeta ?? null, label, emoji, smoothedConfidence, landmarks);
+
+      await runRecognitionFeedback(gesture, label, smoothedConfidence, emergency);
+
+      handlePostRecognitionFollowups(gesture, smoothedConfidence, landmarks, handedness, emergency);
+    },
+    [
+      handlePostRecognitionFollowups,
+      runRecognitionFeedback,
+      setPendingGesture,
+      setShowVisualRipple,
+      showSuccessfulGestureUi,
     ],
   );
 
@@ -292,7 +366,11 @@ export const useRecognitionCallbacks = ({
 
         if (landmarks.length) {
           setShowVisualRipple(true);
-          setTimeout(() => setShowVisualRipple(false), VISUAL_RIPPLE_RESET_DELAY_MS);
+          clearVisualRippleTimeout();
+          visualRippleTimeout.current = setTimeout(() => {
+            setShowVisualRipple(false);
+            visualRippleTimeout.current = null;
+          }, VISUAL_RIPPLE_RESET_DELAY_MS);
         }
 
         const gesture = normalizeGestureId(rawGesture);
@@ -346,6 +424,7 @@ export const useRecognitionCallbacks = ({
     },
     [
       clearEncouragementTimeout,
+      clearVisualRippleTimeout,
       handleLowConfidenceGesture,
       handleSuccessfulGesture,
       refs,
@@ -382,7 +461,9 @@ export const useRecognitionCallbacks = ({
         case 'complete':
           refs.lastModelUpdateTimeRef.current = Date.now();
           setStatus('✅ Neues Modell einsatzbereit!');
-          void zeroDowntimeModelService.activatePendingModel();
+          void zeroDowntimeModelService.activatePendingModel().catch((error) =>
+            logger.error('Failed to activate pending model', error),
+          );
           break;
         case 'error':
           setError('⚠️ Modellaktualisierung fehlgeschlagen.');
