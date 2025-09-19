@@ -1,5 +1,6 @@
 import { captureSamples } from '../../src/services/gestureRecorder';
-import { LanguageManager } from '../../src/services/LanguageManager';
+
+const NO_LANDMARKS_ERROR = 'Ich sehe dich noch nicht. Beweg deine Hand ein bisschen!';
 
 describe('captureSamples', () => {
   beforeEach(() => {
@@ -33,6 +34,6 @@ describe('captureSamples', () => {
     const getter = () => ({ landmarks: [] as number[][][], handedness: [] });
     const promise = captureSamples(getter, 100, 50);
     jest.advanceTimersByTime(100);
-    await expect(promise).rejects.toThrow(LanguageManager.t('mediapipe.noLandmarksCaptured'));
+    await expect(promise).rejects.toThrow(NO_LANDMARKS_ERROR);
   });
 });

@@ -3,7 +3,19 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { LanguageManager } from '../services/LanguageManager';
+
+const TEXT = {
+  title: 'Deine Erfolge heute',
+  subtitle: 'Das hast du toll gemacht!',
+  total: 'Gesamt',
+  unique: 'Verschiedene',
+  today: 'Heute',
+  mostUsed: 'Am häufigsten verwendet',
+  allGestures: 'Alle Gesten',
+  used: 'Verwendet',
+  times: 'Mal',
+  noData: 'Noch keine Gesten aufgezeichnet',
+};
 
 interface SuccessItem {
   gesture: string;
@@ -200,28 +212,28 @@ export default function DailySuccessSummary(_props: DailySuccessSummaryProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{LanguageManager.t('success.title')}</Text>
-        <Text style={styles.subtitle}>{LanguageManager.t('success.subtitle')}</Text>
+        <Text style={styles.title}>{TEXT.title}</Text>
+        <Text style={styles.subtitle}>{TEXT.subtitle}</Text>
       </View>
 
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{totalGestures}</Text>
-          <Text style={styles.statLabel}>{LanguageManager.t('success.total')}</Text>
+          <Text style={styles.statLabel}>{TEXT.total}</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{successData.length}</Text>
-          <Text style={styles.statLabel}>{LanguageManager.t('success.unique')}</Text>
+          <Text style={styles.statLabel}>{TEXT.unique}</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{recentGestures.length}</Text>
-          <Text style={styles.statLabel}>{LanguageManager.t('success.today')}</Text>
+          <Text style={styles.statLabel}>{TEXT.today}</Text>
         </View>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{LanguageManager.t('success.most_used')}</Text>
+          <Text style={styles.sectionTitle}>{TEXT.mostUsed}</Text>
           <View style={styles.gestureItem}>
             <View style={styles.gestureIcon}>
               {getGestureIcon(mostUsedGesture.icon, 32)}
@@ -229,14 +241,14 @@ export default function DailySuccessSummary(_props: DailySuccessSummaryProps) {
             <View style={styles.gestureInfo}>
               <Text style={styles.gestureName}>{mostUsedGesture.gesture}</Text>
               <Text style={styles.gestureStats}>
-                {LanguageManager.t('success.used')} <Text style={styles.gestureCount}>{mostUsedGesture.count}</Text> {LanguageManager.t('success.times')}
+                {TEXT.used} <Text style={styles.gestureCount}>{mostUsedGesture.count}</Text> {TEXT.times}
               </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{LanguageManager.t('success.all_gestures')}</Text>
+          <Text style={styles.sectionTitle}>{TEXT.allGestures}</Text>
           {successData.length > 0 ? (
             successData.map((item) => (
               <View key={item.gesture} style={styles.gestureItem}>
@@ -246,13 +258,13 @@ export default function DailySuccessSummary(_props: DailySuccessSummaryProps) {
                 <View style={styles.gestureInfo}>
                   <Text style={styles.gestureName}>{item.gesture}</Text>
                   <Text style={styles.gestureStats}>
-                    {LanguageManager.t('success.used')} <Text style={styles.gestureCount}>{item.count}</Text> {LanguageManager.t('success.times')}
+                    {TEXT.used} <Text style={styles.gestureCount}>{item.count}</Text> {TEXT.times}
                   </Text>
                 </View>
               </View>
             ))
           ) : (
-            <Text style={styles.emptyState}>{LanguageManager.t('success.no_data')}</Text>
+            <Text style={styles.emptyState}>{TEXT.noData}</Text>
           )}
         </View>
       </ScrollView>

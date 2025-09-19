@@ -4,7 +4,15 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { logger } from '../utils/logger';
 import { COLORS, RADIUS } from '../constants/ui';
-import { LanguageManager } from '../services/LanguageManager';
+
+const TEXT = {
+  dgsVideo: 'DGS-Video',
+  noVideo: 'Kein Video vorhanden',
+  play: 'Abspielen',
+  pause: 'Pause',
+  playVideo: 'Video abspielen',
+  pauseVideo: 'Video pausieren',
+};
 
 interface DgsVideoPlayerProps {
   videoSource?: any;
@@ -68,14 +76,14 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
           player={player}
           style={styles.video}
           contentFit={'contain'}
-          accessibilityLabel={LanguageManager.t('videoPlayer.dgsVideo')}
+          accessibilityLabel={TEXT.dgsVideo}
         />
       ) : (
         <Text
           style={styles.placeholderText}
-          accessibilityLabel={LanguageManager.t('videoPlayer.noVideo')}
+          accessibilityLabel={TEXT.noVideo}
         >
-          {LanguageManager.t('videoPlayer.noVideo')}
+          {TEXT.noVideo}
         </Text>
       )}
       {isBuffering && (
@@ -87,16 +95,10 @@ export default function DgsVideoPlayer({ videoSource, style, shouldPlay }: DgsVi
         <Pressable
           onPress={togglePlayback}
           style={styles.controlButton}
-          accessibilityLabel={
-            isPlaying
-              ? LanguageManager.t('videoPlayer.pauseVideo')
-              : LanguageManager.t('videoPlayer.playVideo')
-          }
+          accessibilityLabel={isPlaying ? TEXT.pauseVideo : TEXT.playVideo}
         >
           <Text style={styles.controlText}>
-            {isPlaying
-              ? LanguageManager.t('videoPlayer.pause')
-              : LanguageManager.t('videoPlayer.play')}
+            {isPlaying ? TEXT.pause : TEXT.play}
           </Text>
         </Pressable>
       )}

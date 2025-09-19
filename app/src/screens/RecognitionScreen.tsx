@@ -65,7 +65,6 @@ import { backgroundPrefetchService } from '../services/backgroundPrefetchService
 import { usePreloadComponents } from '../components/LazyComponent';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
-import { LanguageManager } from '../services/LanguageManager';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
@@ -88,6 +87,13 @@ import HandLandmarkPreview from '../components/HandLandmarkPreview';
 
 const FEEDBACK_THROTTLE_MS = 2000;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
+
+const RECOGNITION_TEXT = {
+  showDgsVideoLabel: 'DGS-Video anzeigen',
+  toggleDgsVideo: 'DGS-Video umschalten',
+  showPipGuidanceLabel: 'Gestenhilfe anzeigen',
+  togglePipGuidance: 'Gestenhilfe umschalten',
+};
 
 export default function RecognitionScreen({
   navigation,
@@ -722,20 +728,20 @@ export default function RecognitionScreen({
     </View>
 
     <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{LanguageManager.t('recognition.showDgsVideo')}</Text>
+      <Text style={styles.toggleLabel}>{RECOGNITION_TEXT.showDgsVideoLabel}</Text>
       <Switch
         value={showDgsVideo}
         onValueChange={setShowDgsVideo}
-        accessibilityLabel={LanguageManager.t('recognition.toggleDgsVideo')}
+        accessibilityLabel={RECOGNITION_TEXT.toggleDgsVideo}
       />
     </View>
 
     <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{LanguageManager.t('recognition.showPipGuidance')}</Text>
+      <Text style={styles.toggleLabel}>{RECOGNITION_TEXT.showPipGuidanceLabel}</Text>
       <Switch
         value={showPipGuidance}
         onValueChange={setShowPipGuidance}
-        accessibilityLabel={LanguageManager.t('recognition.togglePipGuidance')}
+        accessibilityLabel={RECOGNITION_TEXT.togglePipGuidance}
       />
     </View>
 

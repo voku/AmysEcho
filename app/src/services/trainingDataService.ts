@@ -2,7 +2,9 @@ import { Q } from '@nozbe/watermelondb';
 import { database } from '../../db';
 import { GestureTrainingData } from '../../db/models';
 import { trainingSessionManager, TrainingFeedback } from './TrainingSessionManager';
-import { LanguageManager } from './LanguageManager';
+
+const INVALID_TRAINING_DATA_ERROR =
+  'Ungültige Trainingsdaten: Bitte gültige Gesten-ID und Landmarken (Tripel aus Zahlen) angeben.';
 
 export interface TrainingSample {
   id?: string;
@@ -24,7 +26,7 @@ export async function addTrainingSample(
       p => Array.isArray(p) && p.length === 3 && p.every(n => typeof n === 'number' && Number.isFinite(n))
     );
   if (!gestureId || gestureId.trim() === '' || !isValidTuples) {
-    throw new Error(LanguageManager.t('errors.invalidTrainingData'));
+    throw new Error(INVALID_TRAINING_DATA_ERROR);
   }
 
   const createRecord = async () => {

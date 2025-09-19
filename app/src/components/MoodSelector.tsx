@@ -3,7 +3,6 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useMood } from '../context/MoodContext';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
-import { LanguageManager } from '../services/LanguageManager';
 
 export default function MoodSelector() {
   const { currentMood, setMood, getMoodEmoji, getMoodDescription } = useMood();
@@ -70,7 +69,7 @@ export default function MoodSelector() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{LanguageManager.t('mood.title')}</Text>
+      <Text style={styles.title}>Wie fühlst du dich?</Text>
 
       <View style={styles.moodContainer}>
         {moods.map((mood) => {

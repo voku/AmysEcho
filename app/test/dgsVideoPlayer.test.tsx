@@ -14,7 +14,9 @@ jest.mock('react-native', () => {
 import { ActivityIndicator } from 'react-native';
 
 import DgsVideoPlayer from '../src/components/DgsVideoPlayer';
-import { LanguageManager } from '../src/services/LanguageManager';
+
+const PLAY_VIDEO_LABEL = 'Video abspielen';
+const PAUSE_VIDEO_LABEL = 'Video pausieren';
 
 jest.mock('../src/utils/logger', () => ({
   logger: { error: jest.fn() },
@@ -91,7 +93,7 @@ describe('DgsVideoPlayer performance', () => {
       );
     });
     const playBtn = (component as renderer.ReactTestRenderer).root.findByProps({
-      accessibilityLabel: LanguageManager.t('videoPlayer.playVideo'),
+      accessibilityLabel: PLAY_VIDEO_LABEL,
     });
     act(() => {
       playBtn.props.onPress();
@@ -101,7 +103,7 @@ describe('DgsVideoPlayer performance', () => {
     mockPlayer.playing = true;
 
     const pauseBtn = (component as renderer.ReactTestRenderer).root.findByProps({
-      accessibilityLabel: LanguageManager.t('videoPlayer.pauseVideo'),
+      accessibilityLabel: PAUSE_VIDEO_LABEL,
     });
     act(() => {
       pauseBtn.props.onPress();
@@ -125,7 +127,7 @@ describe('DgsVideoPlayer performance', () => {
     });
     expect(mockPlayer.replay).not.toHaveBeenCalled();
     const playBtn = (component as renderer.ReactTestRenderer).root.findByProps({
-      accessibilityLabel: LanguageManager.t('videoPlayer.playVideo'),
+      accessibilityLabel: PLAY_VIDEO_LABEL,
     });
     expect(playBtn).toBeDefined();
   });
