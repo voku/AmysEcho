@@ -27,7 +27,7 @@ import gestureSuggester from '../services/gestureSuggester';
 import * as Haptics from 'expo-haptics';
 import { logger } from '../utils/logger';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
-import type { RecognitionState, ScreenFlashPattern } from './useRecognitionState';
+import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
 import type { RootStackParamList } from '../navigation/types';
 import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
 
@@ -57,7 +57,7 @@ export interface UseRecognitionCallbacksArgs {
   helpers: RecognitionHelpers;
 }
 
-const SUCCESS_FLASH: ScreenFlashPattern = 'success';
+const SUCCESS_FLASH: ScreenFlashPattern = ScreenFlashPattern.Success;
 const ENCOURAGEMENT_STATUS = 'Fast! Mach weiter so – ich sehe deine Hände!';
 const WAITING_STATUS = 'Ich suche deine Hände…';
 const WAITING_CONFIDENCE_THRESHOLD = 0.15;
@@ -169,7 +169,7 @@ export const useRecognitionCallbacks = ({
       });
       setStatus(ENCOURAGEMENT_STATUS);
       setShowScreenFlash(false);
-      setScreenFlashPattern('pulse');
+      setScreenFlashPattern(ScreenFlashPattern.Pulse);
       void detectionHapticFeedback().catch((error) =>
         logger.debug('Detection haptic feedback failed', error),
       );

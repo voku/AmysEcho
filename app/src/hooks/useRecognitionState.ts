@@ -5,29 +5,43 @@ import type { RecognitionPath } from '../utils/recognitionState';
 import type { DetectedTwoHandGesture } from '../services/twoHandGestureService';
 import type { Profile } from '../storage';
 
-export type ScreenFlashPattern =
-  | 'single'
-  | 'double'
-  | 'triple'
-  | 'pulse'
-  | 'ripple'
-  | 'wave'
-  | 'heartbeat'
-  | 'success'
-  | 'warning'
-  | 'error';
+export enum ScreenFlashPattern {
+  Single = 'single',
+  Double = 'double',
+  Triple = 'triple',
+  Pulse = 'pulse',
+  Ripple = 'ripple',
+  Wave = 'wave',
+  Heartbeat = 'heartbeat',
+  Success = 'success',
+  Warning = 'warning',
+  Error = 'error',
+}
 
-export interface RecognitionState {
+export interface RecognitionProfileState {
   profile: Profile | null;
   setProfile: Dispatch<SetStateAction<Profile | null>>;
   status: string;
   setStatus: Dispatch<SetStateAction<string>>;
-  gestureConfidence: number;
-  setGestureConfidence: Dispatch<SetStateAction<number>>;
   error: string | null;
   setError: Dispatch<SetStateAction<string | null>>;
-  showCorrection: boolean;
-  setShowCorrection: Dispatch<SetStateAction<boolean>>;
+  facingMode: 'user' | 'environment';
+  setFacingMode: Dispatch<SetStateAction<'user' | 'environment'>>;
+  screenReaderEnabled: boolean;
+  setScreenReaderEnabled: Dispatch<SetStateAction<boolean>>;
+  modelUpdateStatus: 'idle' | 'updating' | 'complete' | 'error';
+  setModelUpdateStatus: Dispatch<SetStateAction<'idle' | 'updating' | 'complete' | 'error'>>;
+}
+
+export interface RecognitionGestureState {
+  gestureConfidence: number;
+  setGestureConfidence: Dispatch<SetStateAction<number>>;
+  pendingGesture: string | null;
+  setPendingGesture: Dispatch<SetStateAction<string | null>>;
+  lastRecognizedGesture: GestureModelEntry | null;
+  setLastRecognizedGesture: Dispatch<SetStateAction<GestureModelEntry | null>>;
+  recognitionPath: RecognitionPath;
+  setRecognitionPath: Dispatch<SetStateAction<RecognitionPath>>;
   setSuggestions: Dispatch<SetStateAction<LLMSuggestionResponse>>;
   gestureSuggestions: Array<{ id: string; label: string }>;
   setGestureSuggestions: Dispatch<
@@ -35,38 +49,21 @@ export interface RecognitionState {
   >;
   dialogContext: string[];
   setDialogContext: Dispatch<SetStateAction<string[]>>;
-  pendingGesture: string | null;
-  setPendingGesture: Dispatch<SetStateAction<string | null>>;
-  lastRecognizedGesture: GestureModelEntry | null;
-  setLastRecognizedGesture: Dispatch<SetStateAction<GestureModelEntry | null>>;
-  facingMode: 'user' | 'environment';
-  setFacingMode: Dispatch<SetStateAction<'user' | 'environment'>>;
-  webviewKey: number;
-  setWebviewKey: Dispatch<SetStateAction<number>>;
-  webviewRetries: number;
-  setWebviewRetries: Dispatch<SetStateAction<number>>;
-  recognitionPath: RecognitionPath;
-  setRecognitionPath: Dispatch<SetStateAction<RecognitionPath>>;
-  showDgsVideo: boolean;
-  setShowDgsVideo: Dispatch<SetStateAction<boolean>>;
-  showCelebration: boolean;
-  setShowCelebration: Dispatch<SetStateAction<boolean>>;
-  celebrationKey: number;
-  setCelebrationKey: Dispatch<SetStateAction<number>>;
-  screenReaderEnabled: boolean;
-  setScreenReaderEnabled: Dispatch<SetStateAction<boolean>>;
-  modelUpdateStatus: 'idle' | 'updating' | 'complete' | 'error';
-  setModelUpdateStatus: Dispatch<SetStateAction<'idle' | 'updating' | 'complete' | 'error'>>;
-  showMoodSelector: boolean;
-  setShowMoodSelector: Dispatch<SetStateAction<boolean>>;
-  showLocationSelector: boolean;
-  setShowLocationSelector: Dispatch<SetStateAction<boolean>>;
-  kindergartenMode: boolean;
-  setKindergartenMode: Dispatch<SetStateAction<boolean>>;
-  bullyingProtectionActive: boolean;
-  setBullyingProtectionActive: Dispatch<SetStateAction<boolean>>;
   gestureSizeTolerance: number;
   setGestureSizeTolerance: Dispatch<SetStateAction<number>>;
+  contextInsights: any;
+  setContextInsights: Dispatch<SetStateAction<any>>;
+  detectedTwoHandGesture: DetectedTwoHandGesture | null;
+  setDetectedTwoHandGesture: Dispatch<SetStateAction<DetectedTwoHandGesture | null>>;
+  currentLandmarks: number[][][];
+  setCurrentLandmarks: Dispatch<SetStateAction<number[][][]>>;
+  currentHandedness: string[];
+  setCurrentHandedness: Dispatch<SetStateAction<string[]>>;
+}
+
+export interface RecognitionFeedbackState {
+  showCorrection: boolean;
+  setShowCorrection: Dispatch<SetStateAction<boolean>>;
   showVisualRipple: boolean;
   setShowVisualRipple: Dispatch<SetStateAction<boolean>>;
   successSound: string;
@@ -91,15 +88,34 @@ export interface RecognitionState {
   setShowPracticeSuggestion: Dispatch<SetStateAction<boolean>>;
   showAdaptiveLearning: boolean;
   setShowAdaptiveLearning: Dispatch<SetStateAction<boolean>>;
-  contextInsights: any;
-  setContextInsights: Dispatch<SetStateAction<any>>;
-  detectedTwoHandGesture: DetectedTwoHandGesture | null;
-  setDetectedTwoHandGesture: Dispatch<SetStateAction<DetectedTwoHandGesture | null>>;
-  currentLandmarks: number[][][];
-  setCurrentLandmarks: Dispatch<SetStateAction<number[][][]>>;
-  currentHandedness: string[];
-  setCurrentHandedness: Dispatch<SetStateAction<string[]>>;
 }
+
+export interface RecognitionSessionState {
+  webviewKey: number;
+  setWebviewKey: Dispatch<SetStateAction<number>>;
+  webviewRetries: number;
+  setWebviewRetries: Dispatch<SetStateAction<number>>;
+  showDgsVideo: boolean;
+  setShowDgsVideo: Dispatch<SetStateAction<boolean>>;
+  showCelebration: boolean;
+  setShowCelebration: Dispatch<SetStateAction<boolean>>;
+  celebrationKey: number;
+  setCelebrationKey: Dispatch<SetStateAction<number>>;
+  showMoodSelector: boolean;
+  setShowMoodSelector: Dispatch<SetStateAction<boolean>>;
+  showLocationSelector: boolean;
+  setShowLocationSelector: Dispatch<SetStateAction<boolean>>;
+  kindergartenMode: boolean;
+  setKindergartenMode: Dispatch<SetStateAction<boolean>>;
+  bullyingProtectionActive: boolean;
+  setBullyingProtectionActive: Dispatch<SetStateAction<boolean>>;
+}
+
+export interface RecognitionState
+  extends RecognitionProfileState,
+    RecognitionGestureState,
+    RecognitionFeedbackState,
+    RecognitionSessionState {}
 
 export const useRecognitionState = (): RecognitionState => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -133,7 +149,9 @@ export const useRecognitionState = (): RecognitionState => {
   const [showVisualRipple, setShowVisualRipple] = useState(false);
   const [successSound, setSuccessSound] = useState('success');
   const [showScreenFlash, setShowScreenFlash] = useState(false);
-  const [screenFlashPattern, setScreenFlashPattern] = useState<ScreenFlashPattern>('single');
+  const [screenFlashPattern, setScreenFlashPattern] = useState<ScreenFlashPattern>(
+    ScreenFlashPattern.Single,
+  );
   const [showGestureComparison, setShowGestureComparison] = useState(false);
   const [comparisonAttempt, setComparisonAttempt] = useState<{
     id: string;
