@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, Dimensions } from 'react-native';
 import { COLORS } from '../constants/ui';
+import { ScreenFlashPattern } from '../hooks/useRecognitionState';
 
 interface ScreenFlashProps {
   isActive: boolean;
-  pattern?: 'single' | 'double' | 'triple' | 'pulse' | 'ripple' | 'wave' | 'heartbeat' | 'success' | 'warning' | 'error';
+  pattern?: ScreenFlashPattern;
   color?: string;
   duration?: number;
   intensity?: 'subtle' | 'normal' | 'intense';
@@ -12,7 +13,7 @@ interface ScreenFlashProps {
 
 export default function ScreenFlash({
   isActive,
-  pattern = 'single',
+  pattern = ScreenFlashPattern.Single,
   color = COLORS.primaryAccent,
   duration = 300,
   intensity = 'normal'
@@ -49,7 +50,7 @@ export default function ScreenFlash({
 
       const runPattern = () => {
         switch (pattern) {
-          case 'single':
+          case ScreenFlashPattern.Single:
             // Single flash
             Animated.sequence([
               Animated.timing(opacityAnim, {
@@ -65,7 +66,7 @@ export default function ScreenFlash({
             ]).start();
             break;
 
-          case 'double':
+          case ScreenFlashPattern.Double:
             // Double flash
             Animated.sequence([
               // First flash
@@ -95,7 +96,7 @@ export default function ScreenFlash({
             ]).start();
             break;
 
-          case 'triple':
+          case ScreenFlashPattern.Triple:
             // Triple flash
             Animated.sequence([
               // First flash
@@ -134,7 +135,7 @@ export default function ScreenFlash({
             ]).start();
             break;
 
-          case 'pulse':
+          case ScreenFlashPattern.Pulse:
             // Pulsing effect
             Animated.loop(
               Animated.sequence([
@@ -171,7 +172,7 @@ export default function ScreenFlash({
             });
             break;
 
-          case 'ripple':
+          case ScreenFlashPattern.Ripple:
             // Ripple effect expanding outward
             Animated.sequence([
               Animated.parallel([
@@ -196,7 +197,7 @@ export default function ScreenFlash({
             });
             break;
 
-          case 'wave':
+          case ScreenFlashPattern.Wave:
             // Wave-like pulsing
             Animated.sequence([
               Animated.timing(opacityAnim, {
@@ -222,7 +223,7 @@ export default function ScreenFlash({
             ]).start();
             break;
 
-          case 'heartbeat':
+          case ScreenFlashPattern.Heartbeat:
             // Heartbeat-like double pulse
             Animated.sequence([
               // First beat
@@ -273,7 +274,7 @@ export default function ScreenFlash({
             ]).start();
             break;
 
-          case 'success':
+          case ScreenFlashPattern.Success:
             // Success pattern - green celebratory flash
             Animated.sequence([
               Animated.timing(opacityAnim, {
@@ -303,7 +304,7 @@ export default function ScreenFlash({
             });
             break;
 
-          case 'warning':
+          case ScreenFlashPattern.Warning:
             // Warning pattern - amber caution flash
             Animated.sequence([
               Animated.timing(opacityAnim, {
@@ -330,7 +331,7 @@ export default function ScreenFlash({
             ]).start();
             break;
 
-          case 'error':
+          case ScreenFlashPattern.Error:
             // Error pattern - red urgent flash
             Animated.sequence([
               Animated.timing(opacityAnim, {

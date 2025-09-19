@@ -24,10 +24,6 @@ jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false }),
 }));
 
-jest.mock('../../src/services/LanguageManager', () => ({
-  LanguageManager: { t: (k: string) => (k === 'celebration.label' ? 'Gut gemacht!' : k) },
-}));
-
 jest.mock('../../src/context/ThemeContext', () => ({
   useTheme: () => ({ themeName: 'pawPatrol' }),
 }));

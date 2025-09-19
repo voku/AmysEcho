@@ -7,7 +7,7 @@ Goals
 - Fail CI if critical deps are unpinned
 
 Critical packages
- - App: react, react-native, expo, react-native-webview, react-native-reanimated, @nozbe/watermelondb
+ - App: react, react-native, expo, react-native-webview, @nozbe/watermelondb
  - Server: express, express-rate-limit
 
 Workflow

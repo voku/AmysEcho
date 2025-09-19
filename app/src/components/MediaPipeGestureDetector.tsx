@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import {
   API_TOKEN,
@@ -8,7 +8,6 @@ import {
 } from '../constants';
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
-import { LanguageManager } from '../services/LanguageManager';
 import { contextAwareRecognitionService } from '../services/contextAwareRecognitionService';
 
 
@@ -25,6 +24,14 @@ import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import { WebView } from 'react-native-webview';
 import type { WebViewPermissionRequestEvent } from '../webviewTypes';
+import { gestureDetectorBase64 } from '../webview/gestureDetectorBase64';
+
+const WEBVIEW_UNAVAILABLE_TEXT = 'Ich brauche einen Moment. Lass uns gleich weitermachen!';
+const TAP_TO_START_TEXT = 'Tippe, um die Kamera zu starten';
+const RECOGNIZER_INIT_FAILED_TEXT = 'Ich bin gleich bereit. Versuch\'s nochmal!';
+const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
+const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
+const GESTURE_PROCESSING_ERROR_TEXT = 'Das hat nicht geklappt. Probier\'s einfach nochmal!';
 
 export type WebViewTelemetryEvent =
   | 'dom_ready'
@@ -69,20 +76,61 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   onMergedResult,
   facingMode = 'user',
   gestureSizeTolerance = 0.3,
-  enableParallelProcessing = true
+  enableParallelProcessing = true,
 }) => {
   const webviewRef = useRef<WebView>(null);
 
-  const { injectModel, mlpReadyRef, pendingModelRef } = useModelInjection(webviewRef, onModelUpdateStatus);
-  const { openaiValidationResult, setOpenaiValidationResult, showOpenaiFeedback, setShowOpenaiFeedback, handleOpenAIValidation } = useOpenAIValidation(onGestureDetected);
-  const { handleParallelProcessing } = useParallelProcessing(onGestureDetected, onMergedResult, setOpenaiValidationResult, setShowOpenaiFeedback, handleOpenAIValidation);
+  const { injectModel, mlpReadyRef, pendingModelRef, markTransferComplete } = useModelInjection(
+    webviewRef,
+    onModelUpdateStatus,
+  );
+  const {
+    openaiValidationResult,
+    setOpenaiValidationResult,
+    showOpenaiFeedback,
+    setShowOpenaiFeedback,
+    handleOpenAIValidation,
+  } = useOpenAIValidation(onGestureDetected);
+  const { handleParallelProcessing } = useParallelProcessing(
+    onGestureDetected,
+    onMergedResult,
+    setOpenaiValidationResult,
+    setShowOpenaiFeedback,
+    handleOpenAIValidation,
+  );
 
-  const [, setLangTick] = useState(0);
+  const [webviewError, setWebviewError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = LanguageManager.subscribe(() => setLangTick((v) => v + 1));
-    return unsubscribe;
-  }, []);
+  const inlineGestureDetectorSource = useMemo(
+    () => `data:text/javascript;base64,${gestureDetectorBase64.replace(/\s+/g, '')}`,
+    [],
+  );
+
+  const handleDismissFeedback = useCallback(() => {
+    setShowOpenaiFeedback(false);
+  }, [setShowOpenaiFeedback]);
+
+  const handleApplySuggestion = useCallback(
+    (suggestion: string) => {
+      logger.info('Applying OpenAI feedback suggestion', { suggestion });
+      setShowOpenaiFeedback(false);
+    },
+    [setShowOpenaiFeedback],
+  );
+
+  const handleWebviewError = useCallback(
+    (nativeEvent: unknown, type: 'runtime' | 'http') => {
+      if (type === 'runtime') {
+        logger.warn('WebView runtime error', nativeEvent);
+        onError('webview_load_error');
+      } else {
+        logger.warn('WebView HTTP error', nativeEvent);
+        onError('webview_http_error');
+      }
+      setWebviewError(WEBVIEW_UNAVAILABLE_TEXT);
+    },
+    [onError],
+  );
 
   // Initialize context-aware recognition session
   useEffect(() => {
@@ -91,10 +139,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
   const escapeJs = (s: string) =>
     s.replace(/\//g, '\\/').replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\n/g, '\\n');
-  const tapToStartText = escapeJs(LanguageManager.t('mediapipe.tapToStart'));
-  const recognizerInitFailed = escapeJs(LanguageManager.t('mediapipe.recognizerInitFailed'));
-  const predictionError = escapeJs(LanguageManager.t('mediapipe.predictionError'));
-  const cameraError = escapeJs(LanguageManager.t('mediapipe.cameraError'));
+  const tapToStartText = escapeJs(TAP_TO_START_TEXT);
+  const recognizerInitFailed = escapeJs(RECOGNIZER_INIT_FAILED_TEXT);
+  const predictionError = escapeJs(PREDICTION_ERROR_TEXT);
+  const cameraError = escapeJs(CAMERA_ERROR_TEXT);
 
 
 
@@ -152,7 +200,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     };
   }, []);
 
-  const gestureDetectorJs = require('../../assets/gestureDetector.js');
   const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
   const htmlContent = `
 <!DOCTYPE html>
@@ -184,7 +231,43 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       // Disable enhanced haptic system during testing to avoid interference
       window.__disableHapticSystem = ${process.env.NODE_ENV === 'test' ? 'true' : 'false'};
    </script>
-  <script src="${gestureDetectorJs}"></script>
+  <script>
+    (function loadGestureBundle() {
+      var src = '${inlineGestureDetectorSource}';
+      try {
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = src;
+        script.onload = function () {
+          try {
+            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+              window.ReactNativeWebView.postMessage(
+                JSON.stringify({ type: 'telemetry', event: 'inline_bundle_loaded' })
+              );
+            }
+          } catch (event) {
+            console.warn('Failed to report inline bundle load', event);
+          }
+        };
+        script.onerror = function (event) {
+          console.error('Failed to load inline gesture bundle', event);
+          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+            window.ReactNativeWebView.postMessage(
+              JSON.stringify({ type: 'error', message: 'inline_bundle_load_failed' })
+            );
+          }
+        };
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error('Failed to bootstrap gesture bundle', error);
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({ type: 'error', message: 'inline_bundle_exception' })
+          );
+        }
+      }
+    })();
+  </script>
 </head>
 <body></body>
 </html>`;
@@ -195,6 +278,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
       // Use performance service for message processing
       if (data.type === 'gesture') {
+        setWebviewError(null);
         const g = data.gesture;
         let gesture: string | null;
         if (g && typeof g === 'object') {
@@ -232,9 +316,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           handleOpenAIValidation(gesture, confidence, landmarks, handednesses, data.emergency === true);
         }
       } else if (data.type === 'error') {
+        const errorCode = typeof data.code === 'string' && data.code.trim().length > 0
+          ? data.code
+          : 'gesture_processing_error';
         // Amy First: Log technical errors but pass generic message to UI
-        logger.error('WebView error', { message: data.message });
-        onError('gesture_processing_error'); // Generic identifier for child-friendly handling
+        logger.error('WebView error', { message: data.message, code: data.code });
+        setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
+        onError(errorCode); // Use machine-friendly code so recovery services can respond
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
         logger.warn('WebView warning', { message: data.message });
@@ -269,18 +357,22 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         } catch (e) {
           logger.warn('Error in onWebViewEvent handler', e);
         }
+        if (eventStr === 'dom_ready' || eventStr === 'camera_started') {
+          setWebviewError(null);
+        }
+
         if (eventStr === 'mlp_ready') {
           mlpReadyRef.current = true;
-          injectModel(pendingModelRef.current);
-        } else if (eventStr === 'mlp_transfer_complete' || eventStr === 'mlp_transfer_skipped') {
           if (pendingModelRef.current) {
-            clearTimeout(pendingModelRef.current);
-            pendingModelRef.current = null;
-          }
-          onModelUpdateStatus?.('complete');
-          if (mlpReadyRef.current && pendingModelRef.current) {
             injectModel(pendingModelRef.current);
           }
+        } else if (eventStr === 'mlp_transfer_complete' || eventStr === 'mlp_transfer_skipped') {
+          markTransferComplete();
+          onModelUpdateStatus?.('complete');
+        } else if (eventStr === 'mlp_transfer_failed') {
+          markTransferComplete();
+          onModelUpdateStatus?.('error');
+          setWebviewError(PREDICTION_ERROR_TEXT);
         }
         try {
           // Use performance service for batched telemetry to reduce network overhead
@@ -303,41 +395,49 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           logger.warn('Failed to queue telemetry', e);
         }
       }
-    } catch {
-      onError(LanguageManager.t('mediapipe.gestureProcessingError'));
+    } catch (error) {
+      logger.error('Error parsing WebView message', { error });
+      setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
+      onError('gesture_processing_error');
     }
   };
 
   return (
+    <View style={styles.container}>
       <GestureWebView
         ref={webviewRef}
         htmlContent={htmlContent}
         onMessage={handleMessage}
-        onError={(e: any) => {
-          logger.warn('WebView runtime error', e?.nativeEvent);
-          onError('webview_load_error');
-        }}
-        onHttpError={(e: any) => {
-          logger.warn('WebView HTTP error', e?.nativeEvent);
-          onError('webview_http_error');
-        }}
+        onError={(e: any) => handleWebviewError(e?.nativeEvent, 'runtime')}
+        onHttpError={(e: any) => handleWebviewError(e?.nativeEvent, 'http')}
         onConsoleMessage={(e: any) => {
           logger.debug('WebView console message', e.nativeEvent?.message);
         }}
         onPermissionRequest={(e: WebViewPermissionRequestEvent) => {
           const { origin, resources, grant, deny } = e.nativeEvent;
-          let requestOrigin: string;
-          try {
-            requestOrigin = new URL(origin).origin;
-          } catch (error) {
-            deny();
-            logger.warn('Invalid origin in permission request, denying.', { origin, error });
-            return;
-          }
-          if (
-            requestOrigin === CAMERA_WEBVIEW_BASE_URL &&
-            resources.includes('VIDEO_CAPTURE')
-          ) {
+          const wantsCamera = resources.includes('VIDEO_CAPTURE');
+
+          const normalizedOrigin = (() => {
+            if (!origin || origin === 'null' || origin === 'about:blank') {
+              return 'inline';
+            }
+
+            if (origin.startsWith('data:')) {
+              return 'inline';
+            }
+
+            try {
+              return new URL(origin).origin;
+            } catch (error) {
+              logger.warn('Unparsable origin in permission request', { origin, error });
+              return null;
+            }
+          })();
+
+          const isTrustedOrigin =
+            normalizedOrigin === 'inline' || normalizedOrigin === CAMERA_WEBVIEW_BASE_URL;
+
+          if (wantsCamera && isTrustedOrigin) {
             grant(['VIDEO_CAPTURE']);
           } else {
             deny();
@@ -345,5 +445,38 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           }
         }}
       />
-    );
-  };
+
+      {webviewError && (
+        <View pointerEvents="none" style={styles.errorOverlay}>
+          <Text style={styles.errorText}>{webviewError}</Text>
+        </View>
+      )}
+
+      <OpenAIGestureFeedback
+        isVisible={showOpenaiFeedback}
+        validationResult={openaiValidationResult ?? undefined}
+        onDismiss={handleDismissFeedback}
+        onApplySuggestion={handleApplySuggestion}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(17, 24, 39, 0.75)',
+    paddingHorizontal: 24,
+  },
+  errorText: {
+    color: '#f9fafb',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});

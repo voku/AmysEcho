@@ -2,7 +2,30 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
-import { LanguageManager } from '../services/LanguageManager';
+
+const TEXT = {
+  savedTitle: 'Einstellungen gespeichert',
+  savedMessage: 'Deine Datenschutzeinstellungen wurden erfolgreich gespeichert.',
+  title: 'Datenschutz & Privatsphäre',
+  subtitle: 'Verwalte deine Daten und Privatsphäre',
+  dataCollection: 'Datensammlung',
+  gestureLogging: 'Gesten-Protokollierung',
+  essential: 'Erforderlich',
+  gestureLoggingDesc:
+    'Erforderlich für die Funktionalität der App - zeichnet Gesten für sofortiges Feedback auf',
+  analytics: 'Analyse-Funktionen',
+  analyticsDesc: 'Hilft uns, die App zu verbessern (optional)',
+  cloudBackup: 'Cloud-Sicherung',
+  cloudBackupDesc: 'Sichere deine Daten in der Cloud (optional)',
+  dataRetention: 'Datenaufbewahrung',
+  retentionPeriod: 'Aufbewahrungszeitraum',
+  retentionDesc: 'Wie lange Daten lokal gespeichert werden sollen',
+  days: 'Tage',
+  privacyNotice: 'Datenschutzhinweis',
+  privacyNoticeText:
+    'Deine Privatsphäre ist uns wichtig. Wir sammeln nur Daten, die für die Funktionalität der App erforderlich sind. Alle Daten werden lokal auf deinem Gerät gespeichert und niemals ohne deine ausdrückliche Zustimmung weitergegeben.',
+  saveSettings: 'Einstellungen speichern',
+};
 
 interface PrivacySettingsProps {
   onClose?: () => void;
@@ -18,10 +41,7 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
 
   const handleSaveSettings = () => {
     // In real app, save to storage
-    Alert.alert(
-      LanguageManager.t('privacy.settings_saved'),
-      LanguageManager.t('privacy.settings_saved_desc')
-    );
+    Alert.alert(TEXT.savedTitle, TEXT.savedMessage);
   };
 
   const styles = StyleSheet.create({
@@ -210,19 +230,19 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{LanguageManager.t('privacy.title')}</Text>
-        <Text style={styles.subtitle}>{LanguageManager.t('privacy.subtitle')}</Text>
+        <Text style={styles.title}>{TEXT.title}</Text>
+        <Text style={styles.subtitle}>{TEXT.subtitle}</Text>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{LanguageManager.t('privacy.data_collection')}</Text>
+          <Text style={styles.sectionTitle}>{TEXT.dataCollection}</Text>
 
           <View style={styles.settingItem}>
             <View style={styles.settingHeader}>
-              <Text style={styles.settingTitle}>{LanguageManager.t('privacy.gesture_logging')}</Text>
+              <Text style={styles.settingTitle}>{TEXT.gestureLogging}</Text>
               <View style={styles.essentialBadge}>
-                <Text style={styles.essentialText}>{LanguageManager.t('privacy.essential')}</Text>
+                <Text style={styles.essentialText}>{TEXT.essential}</Text>
               </View>
               <View style={styles.toggleContainer}>
                 <Toggle
@@ -232,14 +252,12 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
                 />
               </View>
             </View>
-            <Text style={styles.settingDescription}>
-              {LanguageManager.t('privacy.gesture_logging_desc')}
-            </Text>
+            <Text style={styles.settingDescription}>{TEXT.gestureLoggingDesc}</Text>
           </View>
 
           <View style={styles.settingItem}>
             <View style={styles.settingHeader}>
-              <Text style={styles.settingTitle}>{LanguageManager.t('privacy.analytics')}</Text>
+              <Text style={styles.settingTitle}>{TEXT.analytics}</Text>
               <View style={styles.toggleContainer}>
                 <Toggle
                   value={analyticsEnabled}
@@ -247,14 +265,12 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
                 />
               </View>
             </View>
-            <Text style={styles.settingDescription}>
-              {LanguageManager.t('privacy.analytics_desc')}
-            </Text>
+            <Text style={styles.settingDescription}>{TEXT.analyticsDesc}</Text>
           </View>
 
           <View style={styles.settingItem}>
             <View style={styles.settingHeader}>
-              <Text style={styles.settingTitle}>{LanguageManager.t('privacy.cloud_backup')}</Text>
+              <Text style={styles.settingTitle}>{TEXT.cloudBackup}</Text>
               <View style={styles.toggleContainer}>
                 <Toggle
                   value={cloudBackupEnabled}
@@ -262,19 +278,17 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
                 />
               </View>
             </View>
-            <Text style={styles.settingDescription}>
-              {LanguageManager.t('privacy.cloud_backup_desc')}
-            </Text>
+            <Text style={styles.settingDescription}>{TEXT.cloudBackupDesc}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{LanguageManager.t('privacy.data_retention')}</Text>
+          <Text style={styles.sectionTitle}>{TEXT.dataRetention}</Text>
 
           <View style={styles.settingItem}>
-            <Text style={styles.settingTitle}>{LanguageManager.t('privacy.retention_period')}</Text>
+            <Text style={styles.settingTitle}>{TEXT.retentionPeriod}</Text>
             <Text style={styles.settingDescription}>
-              {LanguageManager.t('privacy.retention_desc')}
+              {TEXT.retentionDesc}
             </Text>
 
             <View style={styles.retentionContainer}>
@@ -294,7 +308,7 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
                       styles.retentionText,
                       dataRetentionDays === days && styles.retentionTextSelected,
                     ]}>
-                      {days} {LanguageManager.t('privacy.days')}
+                      {days} {TEXT.days}
                     </Text>
                   </Pressable>
                 ))}
@@ -304,19 +318,17 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
         </View>
 
         <View style={styles.privacyNotice}>
-          <Text style={styles.privacyTitle}>{LanguageManager.t('privacy.privacy_notice')}</Text>
-          <Text style={styles.privacyText}>
-            {LanguageManager.t('privacy.privacy_notice_text')}
-          </Text>
+          <Text style={styles.privacyTitle}>{TEXT.privacyNotice}</Text>
+          <Text style={styles.privacyText}>{TEXT.privacyNoticeText}</Text>
         </View>
 
         <Pressable
           style={styles.saveButton}
           onPress={handleSaveSettings}
           accessibilityRole="button"
-          accessibilityLabel={LanguageManager.t('privacy.save_settings')}
+          accessibilityLabel={TEXT.saveSettings}
         >
-          <Text style={styles.saveButtonText}>{LanguageManager.t('privacy.save_settings')}</Text>
+          <Text style={styles.saveButtonText}>{TEXT.saveSettings}</Text>
         </Pressable>
       </ScrollView>
     </View>

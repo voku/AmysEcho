@@ -56,6 +56,7 @@ export class OneEuroFilter {
       const te = timestamp - this.lastTime;
       const edx = (x - this.x.lastRawValue()) / te;
       const alpha = this.getAlpha(this.minCutOff + this.beta * Math.abs(this.dx.filterWithAlpha(edx, this.getAlpha(this.dCutOff))));
+      this.lastTime = timestamp;
       return this.x.filterWithAlpha(x, alpha);
     }
     this.lastTime = timestamp;

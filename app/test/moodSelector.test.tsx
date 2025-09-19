@@ -42,17 +42,6 @@ jest.mock('../src/components/AccessibilityContext', () => ({
   },
 }));
 
-jest.mock('../src/services/LanguageManager', () => ({
-  LanguageManager: {
-    t: (key: string) => {
-      const translations: Record<string, string> = {
-        'mood.title': 'Stimmung wählen',
-      };
-      return translations[key] || key;
-    },
-  },
-}));
-
 import MoodSelector from '../src/components/MoodSelector';
 
 describe('MoodSelector', () => {

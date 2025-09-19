@@ -27,7 +27,6 @@ const criticalAppDeps = [
   'react-native',
   'expo',
   'react-native-webview',
-  'react-native-reanimated',
   '@nozbe/watermelondb',
 ];
 const criticalServerDeps = ['express', 'express-rate-limit'];

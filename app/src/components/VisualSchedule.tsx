@@ -9,7 +9,13 @@ import {
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { LanguageManager } from '../services/LanguageManager';
+
+const TEXT = {
+  title: 'Mein Tagesplan',
+  subtitle: 'Was machen wir heute?',
+  completed: 'erledigt',
+  now: 'JETZT',
+};
 
 interface ScheduleItem {
   id: string;
@@ -256,11 +262,11 @@ export default function VisualSchedule({ onScheduleComplete, onActivityPress }: 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{LanguageManager.t('schedule.title')}</Text>
-        <Text style={styles.subtitle}>{LanguageManager.t('schedule.subtitle')}</Text>
+        <Text style={styles.title}>{TEXT.title}</Text>
+        <Text style={styles.subtitle}>{TEXT.subtitle}</Text>
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>
-            {completedCount} / {totalCount} {LanguageManager.t('schedule.completed')}
+            {completedCount} / {totalCount} {TEXT.completed}
           </Text>
         </View>
       </View>
@@ -303,7 +309,7 @@ export default function VisualSchedule({ onScheduleComplete, onActivityPress }: 
 
               {isCurrent && (
                 <View style={styles.currentIndicator}>
-                  <Text style={styles.currentText}>{LanguageManager.t('schedule.now')}</Text>
+                  <Text style={styles.currentText}>{TEXT.now}</Text>
                 </View>
               )}
             </Pressable>

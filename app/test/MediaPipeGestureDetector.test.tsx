@@ -2,9 +2,10 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDetector';
-import { LanguageManager } from '../src/services/LanguageManager';
 import { CAMERA_WEBVIEW_BASE_URL } from '../src/constants';
 import { logger } from '../src/utils/logger';
+
+const GESTURE_PROCESSING_ERROR = 'gesture_processing_error';
 
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/mock/documents/',
@@ -113,9 +114,6 @@ describe('MediaPipeGestureDetector', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     process.env.NODE_ENV = 'test';
-    act(() => {
-      LanguageManager.setLanguage('de');
-    });
   });
 
   afterEach(() => {
@@ -146,7 +144,10 @@ describe('MediaPipeGestureDetector', () => {
       });
     });
 
-    expect(errorSpy).toHaveBeenCalledWith('WebView error', { message: 'Camera access denied' });
+    expect(errorSpy).toHaveBeenCalledWith('WebView error', {
+      message: 'Camera access denied',
+      code: undefined,
+    });
     expect(onError).toHaveBeenCalledWith('gesture_processing_error');
     expect(onGestureDetected).not.toHaveBeenCalled();
     errorSpy.mockRestore();
@@ -187,7 +188,7 @@ describe('MediaPipeGestureDetector', () => {
       webview.props.onMessage({ nativeEvent: { data: 'invalid json' } });
     });
 
-    expect(onError).toHaveBeenCalledWith(LanguageManager.t('mediapipe.gestureProcessingError'));
+    expect(onError).toHaveBeenCalledWith(GESTURE_PROCESSING_ERROR);
     expect(onGestureDetected).not.toHaveBeenCalled();
   });
 

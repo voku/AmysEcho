@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -65,7 +65,6 @@ import { backgroundPrefetchService } from '../services/backgroundPrefetchService
 import { usePreloadComponents } from '../components/LazyComponent';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
-import { LanguageManager } from '../services/LanguageManager';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
@@ -84,9 +83,17 @@ import type { RootStackParamList } from '../navigation/types';
 import { getShortcutMessage, getShortcutAction, getShortcutDisplayName } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
+import HandLandmarkPreview from '../components/HandLandmarkPreview';
 
 const FEEDBACK_THROTTLE_MS = 2000;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
+
+const RECOGNITION_TEXT = {
+  showDgsVideoLabel: 'DGS-Video anzeigen',
+  toggleDgsVideo: 'DGS-Video umschalten',
+  showPipGuidanceLabel: 'Gestenhilfe anzeigen',
+  togglePipGuidance: 'Gestenhilfe umschalten',
+};
 
 export default function RecognitionScreen({
   navigation,
@@ -98,7 +105,6 @@ export default function RecognitionScreen({
   const { getSuccessMessage } = useThemeMessages();
 
   const state = useRecognitionState();
-  const callbacks = useRecognitionCallbacks(state, () => {}, navigation);
   const {
     profile, setProfile,
     status, setStatus,
@@ -136,22 +142,9 @@ export default function RecognitionScreen({
     showAdaptiveLearning, setShowAdaptiveLearning,
     contextInsights,
     detectedTwoHandGesture, setDetectedTwoHandGesture,
+    currentLandmarks,
+    currentHandedness,
   } = state;
-
-  const {
-    handleGestureDetected,
-    handleModelUpdateStatus,
-    handlePartialFeedback,
-    handleStabilityFeedback,
-    handleGestureError,
-    handleSelectCorrection,
-    handleCloseComparison,
-    handleAcceptPractice,
-    handleDeclinePractice,
-    handleLaterPractice,
-    handleStartAdaptiveRecommendation,
-    handleTryAgainFromComparison,
-  } = callbacks;
 
   // Simple stub functions for adaptive PiP positioning
   const getAdaptivePipPosition = (): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' => 'top-right';
@@ -244,6 +237,59 @@ export default function RecognitionScreen({
     }
     celebrationTimeoutRef.current = setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
   }, [fadeAnim, symbolScaleAnim]);
+
+  const recognitionRefs = useMemo(
+    () => ({
+      confidenceFilterRef,
+      labelHistoryRef,
+      lastGestureIdRef,
+      lastSuccessAtRef,
+      lastFrameTimeRef,
+      lastModelUpdateTimeRef,
+    }),
+    [
+      confidenceFilterRef,
+      labelHistoryRef,
+      lastGestureIdRef,
+      lastSuccessAtRef,
+      lastFrameTimeRef,
+      lastModelUpdateTimeRef,
+    ],
+  );
+
+  const recognitionHelpers = useMemo(
+    () => ({
+      startFeedbackAnimation,
+      getSuccessMessage: (gestureId: string) => {
+        const base = getSuccessMessage();
+        const meta = optimizedGestureService.getGestureById(gestureId);
+        return meta ? `${base} ${meta.emoji ?? ''}`.trim() : base;
+      },
+    }),
+    [getSuccessMessage, startFeedbackAnimation],
+  );
+
+  const callbacks = useRecognitionCallbacks({
+    navigation,
+    state,
+    refs: recognitionRefs,
+    helpers: recognitionHelpers,
+  });
+
+  const {
+    handleGestureDetected,
+    handleModelUpdateStatus,
+    handlePartialFeedback,
+    handleStabilityFeedback,
+    handleGestureError,
+    handleSelectCorrection,
+    handleCloseComparison,
+    handleAcceptPractice,
+    handleDeclinePractice,
+    handleLaterPractice,
+    handleStartAdaptiveRecommendation,
+    handleTryAgainFromComparison,
+  } = callbacks;
 
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
@@ -514,6 +560,15 @@ export default function RecognitionScreen({
            />
          }
 
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+           <HandLandmarkPreview
+             landmarks={currentLandmarks}
+             handedness={currentHandedness}
+             mirror={facingMode === 'user'}
+             confidence={gestureConfidence}
+           />
+         </View>
+
          {/* Visual ripple effect for gesture processing feedback */}
          <VisualRipple
            isActive={showVisualRipple}
@@ -673,20 +728,20 @@ export default function RecognitionScreen({
     </View>
 
     <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{LanguageManager.t('recognition.showDgsVideo')}</Text>
+      <Text style={styles.toggleLabel}>{RECOGNITION_TEXT.showDgsVideoLabel}</Text>
       <Switch
         value={showDgsVideo}
         onValueChange={setShowDgsVideo}
-        accessibilityLabel={LanguageManager.t('recognition.toggleDgsVideo')}
+        accessibilityLabel={RECOGNITION_TEXT.toggleDgsVideo}
       />
     </View>
 
     <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{LanguageManager.t('recognition.showPipGuidance')}</Text>
+      <Text style={styles.toggleLabel}>{RECOGNITION_TEXT.showPipGuidanceLabel}</Text>
       <Switch
         value={showPipGuidance}
         onValueChange={setShowPipGuidance}
-        accessibilityLabel={LanguageManager.t('recognition.togglePipGuidance')}
+        accessibilityLabel={RECOGNITION_TEXT.togglePipGuidance}
       />
     </View>
 

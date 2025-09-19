@@ -1,11 +1,123 @@
-import { useState } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { GestureModelEntry } from '../model';
 import type { LLMSuggestionResponse } from '../services/dialogEngine';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { DetectedTwoHandGesture } from '../services/twoHandGestureService';
 import type { Profile } from '../storage';
 
-export const useRecognitionState = () => {
+export enum ScreenFlashPattern {
+  Single = 'single',
+  Double = 'double',
+  Triple = 'triple',
+  Pulse = 'pulse',
+  Ripple = 'ripple',
+  Wave = 'wave',
+  Heartbeat = 'heartbeat',
+  Success = 'success',
+  Warning = 'warning',
+  Error = 'error',
+}
+
+export interface RecognitionProfileState {
+  profile: Profile | null;
+  setProfile: Dispatch<SetStateAction<Profile | null>>;
+  status: string;
+  setStatus: Dispatch<SetStateAction<string>>;
+  error: string | null;
+  setError: Dispatch<SetStateAction<string | null>>;
+  facingMode: 'user' | 'environment';
+  setFacingMode: Dispatch<SetStateAction<'user' | 'environment'>>;
+  screenReaderEnabled: boolean;
+  setScreenReaderEnabled: Dispatch<SetStateAction<boolean>>;
+  modelUpdateStatus: 'idle' | 'updating' | 'complete' | 'error';
+  setModelUpdateStatus: Dispatch<SetStateAction<'idle' | 'updating' | 'complete' | 'error'>>;
+}
+
+export interface RecognitionGestureState {
+  gestureConfidence: number;
+  setGestureConfidence: Dispatch<SetStateAction<number>>;
+  pendingGesture: string | null;
+  setPendingGesture: Dispatch<SetStateAction<string | null>>;
+  lastRecognizedGesture: GestureModelEntry | null;
+  setLastRecognizedGesture: Dispatch<SetStateAction<GestureModelEntry | null>>;
+  recognitionPath: RecognitionPath;
+  setRecognitionPath: Dispatch<SetStateAction<RecognitionPath>>;
+  setSuggestions: Dispatch<SetStateAction<LLMSuggestionResponse>>;
+  gestureSuggestions: Array<{ id: string; label: string }>;
+  setGestureSuggestions: Dispatch<
+    SetStateAction<Array<{ id: string; label: string }>>
+  >;
+  dialogContext: string[];
+  setDialogContext: Dispatch<SetStateAction<string[]>>;
+  gestureSizeTolerance: number;
+  setGestureSizeTolerance: Dispatch<SetStateAction<number>>;
+  contextInsights: any;
+  setContextInsights: Dispatch<SetStateAction<any>>;
+  detectedTwoHandGesture: DetectedTwoHandGesture | null;
+  setDetectedTwoHandGesture: Dispatch<SetStateAction<DetectedTwoHandGesture | null>>;
+  currentLandmarks: number[][][];
+  setCurrentLandmarks: Dispatch<SetStateAction<number[][][]>>;
+  currentHandedness: string[];
+  setCurrentHandedness: Dispatch<SetStateAction<string[]>>;
+}
+
+export interface RecognitionFeedbackState {
+  showCorrection: boolean;
+  setShowCorrection: Dispatch<SetStateAction<boolean>>;
+  showVisualRipple: boolean;
+  setShowVisualRipple: Dispatch<SetStateAction<boolean>>;
+  successSound: string;
+  setSuccessSound: Dispatch<SetStateAction<string>>;
+  showScreenFlash: boolean;
+  setShowScreenFlash: Dispatch<SetStateAction<boolean>>;
+  screenFlashPattern: ScreenFlashPattern;
+  setScreenFlashPattern: Dispatch<SetStateAction<ScreenFlashPattern>>;
+  showGestureComparison: boolean;
+  setShowGestureComparison: Dispatch<SetStateAction<boolean>>;
+  comparisonAttempt: { id: string; label: string; confidence: number; timestamp: number } | null;
+  setComparisonAttempt: Dispatch<
+    SetStateAction<{ id: string; label: string; confidence: number; timestamp: number } | null>
+  >;
+  shortcutActivated: string | null;
+  setShortcutActivated: Dispatch<SetStateAction<string | null>>;
+  showPipGuidance: boolean;
+  setShowPipGuidance: Dispatch<SetStateAction<boolean>>;
+  pipGuidanceGesture: GestureModelEntry | null;
+  setPipGuidanceGesture: Dispatch<SetStateAction<GestureModelEntry | null>>;
+  showPracticeSuggestion: boolean;
+  setShowPracticeSuggestion: Dispatch<SetStateAction<boolean>>;
+  showAdaptiveLearning: boolean;
+  setShowAdaptiveLearning: Dispatch<SetStateAction<boolean>>;
+}
+
+export interface RecognitionSessionState {
+  webviewKey: number;
+  setWebviewKey: Dispatch<SetStateAction<number>>;
+  webviewRetries: number;
+  setWebviewRetries: Dispatch<SetStateAction<number>>;
+  showDgsVideo: boolean;
+  setShowDgsVideo: Dispatch<SetStateAction<boolean>>;
+  showCelebration: boolean;
+  setShowCelebration: Dispatch<SetStateAction<boolean>>;
+  celebrationKey: number;
+  setCelebrationKey: Dispatch<SetStateAction<number>>;
+  showMoodSelector: boolean;
+  setShowMoodSelector: Dispatch<SetStateAction<boolean>>;
+  showLocationSelector: boolean;
+  setShowLocationSelector: Dispatch<SetStateAction<boolean>>;
+  kindergartenMode: boolean;
+  setKindergartenMode: Dispatch<SetStateAction<boolean>>;
+  bullyingProtectionActive: boolean;
+  setBullyingProtectionActive: Dispatch<SetStateAction<boolean>>;
+}
+
+export interface RecognitionState
+  extends RecognitionProfileState,
+    RecognitionGestureState,
+    RecognitionFeedbackState,
+    RecognitionSessionState {}
+
+export const useRecognitionState = (): RecognitionState => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState('Ich höre zu…');
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
@@ -15,7 +127,7 @@ export const useRecognitionState = () => {
     nextWords: [],
     caregiverPhrases: [],
   });
-  const [gestureSuggestions, setGestureSuggestions] = useState<Array<{id: string; label: string}>>([]);
+  const [gestureSuggestions, setGestureSuggestions] = useState<Array<{ id: string; label: string }>>([]);
   const [dialogContext, setDialogContext] = useState<string[]>([]);
   const [pendingGesture, setPendingGesture] = useState<string | null>(null);
   const [lastRecognizedGesture, setLastRecognizedGesture] =
@@ -31,60 +143,111 @@ export const useRecognitionState = () => {
   const [modelUpdateStatus, setModelUpdateStatus] = useState<'idle' | 'updating' | 'complete' | 'error'>('idle');
   const [showMoodSelector, setShowMoodSelector] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
-  const [kindergartenMode, setKindergartenMode] = useState(true); // Default to kindergarten mode
+  const [kindergartenMode, setKindergartenMode] = useState(true);
   const [bullyingProtectionActive, setBullyingProtectionActive] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const [showVisualRipple, setShowVisualRipple] = useState(false);
   const [successSound, setSuccessSound] = useState('success');
   const [showScreenFlash, setShowScreenFlash] = useState(false);
-  const [screenFlashPattern, setScreenFlashPattern] = useState<'single' | 'double' | 'triple' | 'pulse' | 'ripple' | 'wave' | 'heartbeat' | 'success' | 'warning' | 'error'>('single');
+  const [screenFlashPattern, setScreenFlashPattern] = useState<ScreenFlashPattern>(
+    ScreenFlashPattern.Single,
+  );
   const [showGestureComparison, setShowGestureComparison] = useState(false);
-  const [comparisonAttempt, setComparisonAttempt] = useState<{id: string; label: string; confidence: number; timestamp: number} | null>(null);
+  const [comparisonAttempt, setComparisonAttempt] = useState<{
+    id: string;
+    label: string;
+    confidence: number;
+    timestamp: number;
+  } | null>(null);
   const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
   const [showPipGuidance, setShowPipGuidance] = useState(false);
   const [pipGuidanceGesture, setPipGuidanceGesture] = useState<GestureModelEntry | null>(null);
   const [showPracticeSuggestion, setShowPracticeSuggestion] = useState(false);
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
-  const [contextInsights] = useState<any>(null);
+  const [contextInsights, setContextInsights] = useState<any>(null);
   const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
+  const [currentLandmarks, setCurrentLandmarks] = useState<number[][][]>([]);
+  const [currentHandedness, setCurrentHandedness] = useState<string[]>([]);
 
   return {
-    profile, setProfile,
-    status, setStatus,
-    gestureConfidence, setGestureConfidence,
-    error, setError,
-    showCorrection, setShowCorrection,
+    profile,
+    setProfile,
+    status,
+    setStatus,
+    gestureConfidence,
+    setGestureConfidence,
+    error,
+    setError,
+    showCorrection,
+    setShowCorrection,
     setSuggestions,
-    gestureSuggestions, setGestureSuggestions,
-    dialogContext, setDialogContext,
-    pendingGesture, setPendingGesture,
-    lastRecognizedGesture, setLastRecognizedGesture,
-    facingMode, setFacingMode,
-    webviewKey, setWebviewKey,
-    webviewRetries, setWebviewRetries,
-    recognitionPath, setRecognitionPath,
-    showDgsVideo, setShowDgsVideo,
-    showCelebration, setShowCelebration,
-    celebrationKey, setCelebrationKey,
-    screenReaderEnabled, setScreenReaderEnabled,
-    modelUpdateStatus, setModelUpdateStatus,
-    showMoodSelector, setShowMoodSelector,
-    showLocationSelector, setShowLocationSelector,
-    kindergartenMode, setKindergartenMode,
-    bullyingProtectionActive, setBullyingProtectionActive,
-    gestureSizeTolerance, setGestureSizeTolerance,
-    showVisualRipple, setShowVisualRipple,
-    successSound, setSuccessSound,
-    showScreenFlash, setShowScreenFlash,
-    screenFlashPattern, setScreenFlashPattern,
-    showGestureComparison, setShowGestureComparison,
-    comparisonAttempt, setComparisonAttempt,
-    shortcutActivated, setShortcutActivated,
-    showPipGuidance, setShowPipGuidance,
-    pipGuidanceGesture, setPipGuidanceGesture,
-    showPracticeSuggestion, setShowPracticeSuggestion,
-    showAdaptiveLearning, setShowAdaptiveLearning,
+    gestureSuggestions,
+    setGestureSuggestions,
+    dialogContext,
+    setDialogContext,
+    pendingGesture,
+    setPendingGesture,
+    lastRecognizedGesture,
+    setLastRecognizedGesture,
+    facingMode,
+    setFacingMode,
+    webviewKey,
+    setWebviewKey,
+    webviewRetries,
+    setWebviewRetries,
+    recognitionPath,
+    setRecognitionPath,
+    showDgsVideo,
+    setShowDgsVideo,
+    showCelebration,
+    setShowCelebration,
+    celebrationKey,
+    setCelebrationKey,
+    screenReaderEnabled,
+    setScreenReaderEnabled,
+    modelUpdateStatus,
+    setModelUpdateStatus,
+    showMoodSelector,
+    setShowMoodSelector,
+    showLocationSelector,
+    setShowLocationSelector,
+    kindergartenMode,
+    setKindergartenMode,
+    bullyingProtectionActive,
+    setBullyingProtectionActive,
+    gestureSizeTolerance,
+    setGestureSizeTolerance,
+    showVisualRipple,
+    setShowVisualRipple,
+    successSound,
+    setSuccessSound,
+    showScreenFlash,
+    setShowScreenFlash,
+    screenFlashPattern,
+    setScreenFlashPattern,
+    showGestureComparison,
+    setShowGestureComparison,
+    comparisonAttempt,
+    setComparisonAttempt,
+    shortcutActivated,
+    setShortcutActivated,
+    showPipGuidance,
+    setShowPipGuidance,
+    pipGuidanceGesture,
+    setPipGuidanceGesture,
+    showPracticeSuggestion,
+    setShowPracticeSuggestion,
+    showAdaptiveLearning,
+    setShowAdaptiveLearning,
     contextInsights,
-    detectedTwoHandGesture, setDetectedTwoHandGesture,
+    setContextInsights,
+    detectedTwoHandGesture,
+    setDetectedTwoHandGesture,
+    currentLandmarks,
+    setCurrentLandmarks,
+    currentHandedness,
+    setCurrentHandedness,
   };
 };
+
+export type { RecognitionState as RecognitionStateType };

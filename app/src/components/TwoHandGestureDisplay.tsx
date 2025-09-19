@@ -9,8 +9,9 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
-import { LanguageManager } from '../services/LanguageManager';
 import { isTwoHandGestureString, parseTwoHandGestureString, getTwoHandGestureById } from '../constants/twoHandGestures';
+
+const CONFIDENCE_LABEL = 'Sicherheit';
 
 interface TwoHandGestureDisplayProps {
   gestureString: string;
@@ -147,7 +148,7 @@ export default function TwoHandGestureDisplay({
 
       {/* Confidence */}
       <Text style={styles.confidenceText}>
-        {Math.round(confidence * 100)}% {LanguageManager.t('recognition.confidence')}
+        {Math.round(confidence * 100)}% {CONFIDENCE_LABEL}
       </Text>
 
       {/* Additional details */}
