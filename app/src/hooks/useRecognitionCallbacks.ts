@@ -11,6 +11,7 @@ import {
   personalizedConfidenceService,
   gestureCombinationService,
   correctionService,
+  twoHandGestureService,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
@@ -28,6 +29,7 @@ import { logger } from '../utils/logger';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import type { RecognitionState, ScreenFlashPattern } from './useRecognitionState';
 import type { RootStackParamList } from '../navigation/types';
+import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
 
 const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
 const RECOVERING_CAMERA_TEXT = 'Ups! Ich starte die Kamera neu…';
@@ -100,9 +102,17 @@ export const useRecognitionCallbacks = ({
     setCurrentLandmarks,
     setCurrentHandedness,
     setModelUpdateStatus,
+    setContextInsights,
+    setDetectedTwoHandGesture,
   } = state;
 
-  const { successSound, contextInsights, screenReaderEnabled, showPipGuidance, gestureConfidence } = state;
+  const {
+    successSound,
+    contextInsights,
+    screenReaderEnabled,
+    showPipGuidance,
+    gestureConfidence,
+  } = state;
 
   const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const screenFlashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -338,6 +348,26 @@ export const useRecognitionCallbacks = ({
       const label = gestureMeta?.label || gesture;
       const emoji = gestureMeta?.emoji || '🤟';
 
+      if (isTwoHandGestureString(gesture)) {
+        const parsed = parseTwoHandGestureString(gesture);
+        if (parsed) {
+          const twoHandResult = await twoHandGestureService.processTwoHandGesture(
+            parsed.left,
+            parsed.right,
+            smoothedConfidence,
+            smoothedConfidence,
+            handedness,
+            landmarks,
+          );
+
+          setDetectedTwoHandGesture(twoHandResult);
+        } else {
+          setDetectedTwoHandGesture(null);
+        }
+      } else {
+        setDetectedTwoHandGesture(null);
+      }
+
       showSuccessfulGestureUi(gesture, gestureMeta ?? null, label, emoji, smoothedConfidence, landmarks);
 
       await runRecognitionFeedback(gesture, label, smoothedConfidence, emergency);
@@ -349,6 +379,7 @@ export const useRecognitionCallbacks = ({
       runRecognitionFeedback,
       setPendingGesture,
       setShowVisualRipple,
+      setDetectedTwoHandGesture,
       showSuccessfulGestureUi,
     ],
   );
@@ -381,6 +412,7 @@ export const useRecognitionCallbacks = ({
         const gesture = normalizeGestureId(rawGesture);
         if (!gesture) {
           setPendingGesture(null);
+          setDetectedTwoHandGesture(null);
           if (smoothedConfidence < WAITING_CONFIDENCE_THRESHOLD) {
             setStatus(WAITING_STATUS);
           }
@@ -394,11 +426,13 @@ export const useRecognitionCallbacks = ({
           smoothedConfidence,
           refs.lastGestureIdRef.current || undefined,
         );
+        setContextInsights(contextAwareRecognitionService.getInsights());
 
         const thresholdInfo = personalizedConfidenceService.getPersonalizedThreshold(gesture, smoothedConfidence);
         const meetsThreshold = emergency || smoothedConfidence >= thresholdInfo.threshold;
 
         if (!meetsThreshold) {
+          setDetectedTwoHandGesture(null);
           handleLowConfidenceGesture(gesture, smoothedConfidence, thresholdInfo.threshold, landmarks);
           return;
         }
@@ -445,8 +479,8 @@ export const useRecognitionCallbacks = ({
       helpers,
       setRecognitionPath,
       setLastRecognizedGesture,
-      contextInsights,
-      successSound,
+      setContextInsights,
+      setDetectedTwoHandGesture,
       setGestureSuggestions,
       setShowAdaptiveLearning,
       setShortcutActivated,

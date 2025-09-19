@@ -92,6 +92,7 @@ export interface RecognitionState {
   showAdaptiveLearning: boolean;
   setShowAdaptiveLearning: Dispatch<SetStateAction<boolean>>;
   contextInsights: any;
+  setContextInsights: Dispatch<SetStateAction<any>>;
   detectedTwoHandGesture: DetectedTwoHandGesture | null;
   setDetectedTwoHandGesture: Dispatch<SetStateAction<DetectedTwoHandGesture | null>>;
   currentLandmarks: number[][][];
@@ -145,7 +146,7 @@ export const useRecognitionState = (): RecognitionState => {
   const [pipGuidanceGesture, setPipGuidanceGesture] = useState<GestureModelEntry | null>(null);
   const [showPracticeSuggestion, setShowPracticeSuggestion] = useState(false);
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
-  const [contextInsights] = useState<any>(null);
+  const [contextInsights, setContextInsights] = useState<any>(null);
   const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
   const [currentLandmarks, setCurrentLandmarks] = useState<number[][][]>([]);
   const [currentHandedness, setCurrentHandedness] = useState<string[]>([]);
@@ -221,6 +222,7 @@ export const useRecognitionState = (): RecognitionState => {
     showAdaptiveLearning,
     setShowAdaptiveLearning,
     contextInsights,
+    setContextInsights,
     detectedTwoHandGesture,
     setDetectedTwoHandGesture,
     currentLandmarks,

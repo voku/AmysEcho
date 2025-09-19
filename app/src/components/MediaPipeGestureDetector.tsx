@@ -390,18 +390,29 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         }}
         onPermissionRequest={(e: WebViewPermissionRequestEvent) => {
           const { origin, resources, grant, deny } = e.nativeEvent;
-          let requestOrigin: string;
-          try {
-            requestOrigin = new URL(origin).origin;
-          } catch (error) {
-            deny();
-            logger.warn('Invalid origin in permission request, denying.', { origin, error });
-            return;
-          }
-          if (
-            requestOrigin === CAMERA_WEBVIEW_BASE_URL &&
-            resources.includes('VIDEO_CAPTURE')
-          ) {
+          const wantsCamera = resources.includes('VIDEO_CAPTURE');
+
+          const normalizedOrigin = (() => {
+            if (!origin || origin === 'null' || origin === 'about:blank') {
+              return 'inline';
+            }
+
+            if (origin.startsWith('data:')) {
+              return 'inline';
+            }
+
+            try {
+              return new URL(origin).origin;
+            } catch (error) {
+              logger.warn('Unparsable origin in permission request', { origin, error });
+              return null;
+            }
+          })();
+
+          const isTrustedOrigin =
+            normalizedOrigin === 'inline' || normalizedOrigin === CAMERA_WEBVIEW_BASE_URL;
+
+          if (wantsCamera && isTrustedOrigin) {
             grant(['VIDEO_CAPTURE']);
           } else {
             deny();
