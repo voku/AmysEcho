@@ -537,7 +537,7 @@ export default function RecognitionScreen({
            />
          }
 
-         <View style={styles.videoOverlay} pointerEvents="none">
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
            <HandLandmarkPreview
              landmarks={currentLandmarks}
              handedness={currentHandedness}

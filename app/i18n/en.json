@@ -22,6 +22,7 @@
     "gestureProcessingError": "That didn't work. Let's try again!",
     "recognizerInitFailed": "I'm almost ready. Try again!",
     "predictionError": "That didn't work. Let's try once more!",
+    "recoveringCamera": "Oops! Restarting the camera for you…",
     "cameraError": "Camera needs a moment. Let's keep going!",
     "noLandmarksCaptured": "I don't see you yet. Move your hand a little!"
   },

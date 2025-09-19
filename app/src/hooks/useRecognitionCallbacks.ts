@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { NavigationProp } from '@react-navigation/native';
 import { LanguageManager } from '../services/LanguageManager';
@@ -56,6 +56,12 @@ export interface UseRecognitionCallbacksArgs {
 const SUCCESS_FLASH: ScreenFlashPattern = 'success';
 const ENCOURAGEMENT_STATUS = 'Fast! Mach weiter so – ich sehe deine Hände!';
 const WAITING_STATUS = 'Ich suche deine Hände…';
+const WAITING_CONFIDENCE_THRESHOLD = 0.15;
+const LOW_CONFIDENCE_MARGIN = 0.05;
+const VISUAL_RIPPLE_RESET_DELAY_MS = 280;
+const PRACTICE_SUGGESTION_DELAY_MS = 2000;
+const RECENT_GESTURE_SUPPRESS_MS = 1000;
+const SCREEN_FLASH_RESET_DELAY_MS = 600;
 
 const normalizeGestureId = (gesture: string | null): string | null => {
   if (!gesture) return null;
@@ -95,9 +101,177 @@ export const useRecognitionCallbacks = ({
 
   const { successSound, contextInsights, screenReaderEnabled, showPipGuidance, gestureConfidence } = state;
 
-  const encouragementTimeout = useMemo<{ current: ReturnType<typeof setTimeout> | null }>(
-    () => ({ current: null }),
-    [],
+  const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearEncouragementTimeout = useCallback(() => {
+    if (encouragementTimeout.current) {
+      clearTimeout(encouragementTimeout.current);
+      encouragementTimeout.current = null;
+    }
+  }, []);
+
+  const schedulePracticeSuggestion = useCallback(() => {
+    if (!encouragementTimeout.current) {
+      encouragementTimeout.current = setTimeout(() => {
+        encouragementTimeout.current = null;
+        setShowPracticeSuggestion(true);
+      }, PRACTICE_SUGGESTION_DELAY_MS);
+    }
+  }, [setShowPracticeSuggestion]);
+
+  const handleLowConfidenceGesture = useCallback(
+    (
+      gesture: string,
+      smoothedConfidence: number,
+      threshold: number,
+      landmarks: number[][][],
+    ) => {
+      activeLearningService.recordUncertainSample(gesture, smoothedConfidence, landmarks, {
+        timeOfDay: new Date().getHours(),
+        activityLevel: 'normal',
+        consecutiveFailures: 1,
+      });
+      setStatus(ENCOURAGEMENT_STATUS);
+      setShowScreenFlash(false);
+      setScreenFlashPattern('pulse');
+      void detectionHapticFeedback();
+      if (smoothedConfidence > threshold - LOW_CONFIDENCE_MARGIN) {
+        void partialGestureHapticFeedback(smoothedConfidence).catch((error) =>
+          logger.debug('Partial haptic feedback failed', error),
+        );
+      }
+
+      if (!showPipGuidance) {
+        const suggestion = optimizedGestureService.getGestureById(gesture);
+        if (suggestion) {
+          setPipGuidanceGesture(suggestion);
+          setShowPipGuidance(true);
+        }
+      }
+
+      schedulePracticeSuggestion();
+    },
+    [
+      schedulePracticeSuggestion,
+      setShowScreenFlash,
+      setScreenFlashPattern,
+      setStatus,
+      setPipGuidanceGesture,
+      setShowPipGuidance,
+      showPipGuidance,
+    ],
+  );
+
+  const handleSuccessfulGesture = useCallback(
+    async (
+      gesture: string,
+      smoothedConfidence: number,
+      landmarks: number[][][],
+      handedness: string[],
+      emergency: boolean,
+    ) => {
+      setPendingGesture(null);
+      setShowVisualRipple(false);
+
+      const gestureMeta = optimizedGestureService.getGestureById(gesture);
+      const label = gestureMeta?.label || gesture;
+      const emoji = gestureMeta?.emoji || '🤟';
+
+      setRecognitionPath('local');
+      setLastRecognizedGesture(gestureMeta ?? null);
+      setStatus(helpers.getSuccessMessage(gesture));
+      helpers.startFeedbackAnimation();
+      setScreenFlashPattern(SUCCESS_FLASH);
+      setShowScreenFlash(true);
+      setTimeout(() => setShowScreenFlash(false), SCREEN_FLASH_RESET_DELAY_MS);
+
+      gestureHistoryService.addGesture({
+        id: gesture,
+        label,
+        emoji,
+        confidence: smoothedConfidence,
+        landmarks,
+        audioResponse: successSound,
+      });
+
+      announceGestureRecognition(label, smoothedConfidence);
+
+      await Promise.all([
+        multiSensoryFeedback(gesture, smoothedConfidence, {
+          ...contextInsights,
+          isEmergency: emergency,
+        }),
+        triggerSpeakAndShow(label, smoothedConfidence, helpers.startFeedbackAnimation),
+        (async () => {
+          if (successSound) {
+            try {
+              await audioService.playSound(successSound);
+            } catch (error) {
+              logger.debug('Failed to play success sound', error);
+            }
+          }
+        })(),
+      ]);
+
+      void logHIPEvent('HIP_1', 'gesture_recognized', {
+        gesture,
+        confidence: smoothedConfidence,
+        emergency,
+      });
+
+      if (emergency) {
+        emergencyPriorityService.addEmergencyGesture(gesture, smoothedConfidence);
+      }
+
+      activeLearningService.recordPracticeResults(gesture, smoothedConfidence);
+
+      const sequence = gestureCombinationService.processGesture(gesture, smoothedConfidence);
+      if (sequence?.sequence) {
+        setStatus(`✨ ${sequence.sequence.combinedMeaning}`);
+      }
+
+      const adaptiveRecommendations = adaptiveLearningService.getAdaptiveRecommendations(
+        refs.labelHistoryRef.current,
+        5,
+      );
+      if (adaptiveRecommendations.some((rec) => rec.type === 'practice')) {
+        setShowAdaptiveLearning(true);
+      }
+
+      const suggestions = gestureSuggester.getSuggestions(gesture, {
+        recentGestures: refs.labelHistoryRef.current,
+        timeOfDay: new Date().getHours(),
+        confidence: smoothedConfidence,
+        landmarks,
+        handedness,
+      });
+      if (suggestions.length) {
+        setGestureSuggestions(suggestions.map(({ id, label: suggestionLabel }) => ({
+          id,
+          label: suggestionLabel,
+        })));
+        setShowCorrection(true);
+      }
+
+      setShortcutActivated(null);
+    },
+    [
+      contextInsights,
+      helpers,
+      refs,
+      setGestureSuggestions,
+      setLastRecognizedGesture,
+      setPendingGesture,
+      setRecognitionPath,
+      setScreenFlashPattern,
+      setShortcutActivated,
+      setShowAdaptiveLearning,
+      setShowCorrection,
+      setShowScreenFlash,
+      setShowVisualRipple,
+      setStatus,
+      successSound,
+    ],
   );
 
   const handleGestureDetected = useCallback(
@@ -118,13 +292,13 @@ export const useRecognitionCallbacks = ({
 
         if (landmarks.length) {
           setShowVisualRipple(true);
-          setTimeout(() => setShowVisualRipple(false), 280);
+          setTimeout(() => setShowVisualRipple(false), VISUAL_RIPPLE_RESET_DELAY_MS);
         }
 
         const gesture = normalizeGestureId(rawGesture);
         if (!gesture) {
           setPendingGesture(null);
-          if (smoothedConfidence < 0.15) {
+          if (smoothedConfidence < WAITING_CONFIDENCE_THRESHOLD) {
             setStatus(WAITING_STATUS);
           }
           return;
@@ -142,140 +316,38 @@ export const useRecognitionCallbacks = ({
         const meetsThreshold = emergency || smoothedConfidence >= thresholdInfo.threshold;
 
         if (!meetsThreshold) {
-          activeLearningService.recordUncertainSample(gesture, smoothedConfidence, landmarks, {
-            timeOfDay: new Date().getHours(),
-            activityLevel: 'normal',
-            consecutiveFailures: 1,
-          });
-          setStatus(ENCOURAGEMENT_STATUS);
-          setShowScreenFlash(false);
-          setScreenFlashPattern('pulse');
-          void detectionHapticFeedback();
-          if (smoothedConfidence > thresholdInfo.threshold - 0.05) {
-            void partialGestureHapticFeedback(smoothedConfidence).catch((error) =>
-              logger.debug('Partial haptic feedback failed', error),
-            );
-          }
-
-          if (!showPipGuidance) {
-            const suggestion = optimizedGestureService.getGestureById(gesture);
-            if (suggestion) {
-              setPipGuidanceGesture(suggestion);
-              setShowPipGuidance(true);
-            }
-          }
-
-          if (!encouragementTimeout.current) {
-            encouragementTimeout.current = setTimeout(() => {
-              encouragementTimeout.current = null;
-              setShowPracticeSuggestion(true);
-            }, 2000);
-          }
-
+          handleLowConfidenceGesture(gesture, smoothedConfidence, thresholdInfo.threshold, landmarks);
           return;
         }
 
-        if (encouragementTimeout.current) {
-          clearTimeout(encouragementTimeout.current);
-          encouragementTimeout.current = null;
-        }
+        clearEncouragementTimeout();
 
         if (
           refs.lastGestureIdRef.current === gesture &&
-          Date.now() - refs.lastSuccessAtRef.current < 1000
+          Date.now() - refs.lastSuccessAtRef.current < RECENT_GESTURE_SUPPRESS_MS
         ) {
           return;
         }
 
         refs.lastGestureIdRef.current = gesture;
         refs.lastSuccessAtRef.current = Date.now();
-        setPendingGesture(null);
-        setShowVisualRipple(false);
 
-        const gestureMeta = optimizedGestureService.getGestureById(gesture);
-        const label = gestureMeta?.label || gesture;
-        const emoji = gestureMeta?.emoji || '🤟';
-
-        setRecognitionPath('local');
-        setLastRecognizedGesture(gestureMeta ?? null);
-        setStatus(helpers.getSuccessMessage(gesture));
-        helpers.startFeedbackAnimation();
-        setScreenFlashPattern(SUCCESS_FLASH);
-        setShowScreenFlash(true);
-        setTimeout(() => setShowScreenFlash(false), 600);
-
-        gestureHistoryService.addGesture({
-          id: gesture,
-          label,
-          emoji,
-          confidence: smoothedConfidence,
-          landmarks,
-          audioResponse: successSound,
-        });
-
-        announceGestureRecognition(label, smoothedConfidence);
-
-        await Promise.all([
-          multiSensoryFeedback(gesture, smoothedConfidence, {
-            ...contextInsights,
-            isEmergency: emergency,
-          }),
-          triggerSpeakAndShow(label, smoothedConfidence, helpers.startFeedbackAnimation),
-          (async () => {
-            if (successSound) {
-              try {
-                await audioService.playSound(successSound);
-              } catch (error) {
-                logger.debug('Failed to play success sound', error);
-              }
-            }
-          })(),
-        ]);
-
-        void logHIPEvent('HIP_1', 'gesture_recognized', {
+        await handleSuccessfulGesture(
           gesture,
-          confidence: smoothedConfidence,
-          emergency,
-        });
-
-        if (emergency) {
-          emergencyPriorityService.addEmergencyGesture(gesture, smoothedConfidence);
-        }
-
-        activeLearningService.recordPracticeResults(gesture, smoothedConfidence);
-
-        const sequence = gestureCombinationService.processGesture(gesture, smoothedConfidence);
-        if (sequence?.sequence) {
-          setStatus(`✨ ${sequence.sequence.combinedMeaning}`);
-        }
-
-        const adaptiveRecommendations = adaptiveLearningService.getAdaptiveRecommendations(
-          refs.labelHistoryRef.current,
-          5,
-        );
-        if (adaptiveRecommendations.some((rec) => rec.type === 'practice')) {
-          setShowAdaptiveLearning(true);
-        }
-
-        const suggestions = gestureSuggester.getSuggestions(gesture, {
-          recentGestures: refs.labelHistoryRef.current,
-          timeOfDay: new Date().getHours(),
-          confidence: smoothedConfidence,
+          smoothedConfidence,
           landmarks,
           handedness,
-        });
-        if (suggestions.length) {
-          setGestureSuggestions(suggestions.map(({ id, label }) => ({ id, label })));
-          setShowCorrection(true);
-        }
-
-        setShortcutActivated(null);
+          emergency,
+        );
       } catch (error) {
         logger.error('handleGestureDetected failed', error);
         setError(LanguageManager.t('mediapipe.predictionError'));
       }
     },
     [
+      clearEncouragementTimeout,
+      handleLowConfidenceGesture,
+      handleSuccessfulGesture,
       refs,
       setCurrentLandmarks,
       setCurrentHandedness,
@@ -286,8 +358,6 @@ export const useRecognitionCallbacks = ({
       showPipGuidance,
       setShowPipGuidance,
       setPipGuidanceGesture,
-      setShowPracticeSuggestion,
-      encouragementTimeout,
       helpers,
       setRecognitionPath,
       setLastRecognizedGesture,
@@ -358,8 +428,9 @@ export const useRecognitionCallbacks = ({
 
   const handleGestureError = useCallback(
     async (errorMessage: string) => {
-      setError(errorMessage);
-      setStatus('Ups! Ich starte die Kamera neu…');
+      logger.warn('Recognition WebView error', { errorMessage });
+      setError(LanguageManager.t('mediapipe.predictionError'));
+      setStatus(LanguageManager.t('mediapipe.recoveringCamera'));
       const recovered = await automaticRecoveryService.attemptRecovery(errorMessage, 'recognition_webview');
       if (!recovered) {
         setWebviewRetries((retries) => {
@@ -393,9 +464,9 @@ export const useRecognitionCallbacks = ({
       await correctionService.logCorrection(choiceId).catch((error) =>
         logger.warn('Failed to log correction', error),
       );
-      navigation.navigate('Teaching', { gestureId: choiceId } as any);
+      navigation.navigate('Teaching', { gestureId: choiceId });
     },
-    [navigation, setShowCorrection, setStatus],
+    [gestureConfidence, navigation, refs, setShowCorrection, setStatus],
   );
 
   const handleCloseComparison = useCallback(() => {
@@ -420,7 +491,7 @@ export const useRecognitionCallbacks = ({
     (recommendation: { gesture?: string; type?: string }) => {
       setShowAdaptiveLearning(false);
       if (recommendation?.gesture) {
-        navigation.navigate('Teaching', { gestureId: recommendation.gesture } as any);
+        navigation.navigate('Teaching', { gestureId: recommendation.gesture });
       } else if (recommendation?.type === 'break') {
         setStatus('Nimm dir kurz Zeit – ich bleibe bereit.');
       }

@@ -8,7 +8,7 @@ export type RootStackParamList = {
   Practice: undefined;
   GesturePractice: undefined;
   Teach: undefined;
-  Teaching: undefined;
+  Teaching: { gestureId?: string } | undefined;
   Parent: undefined;
   ProfileManager: undefined;
   ParentalGate: { target: string };
