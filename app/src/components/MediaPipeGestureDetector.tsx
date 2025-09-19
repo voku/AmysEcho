@@ -370,7 +370,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           logger.warn('Failed to queue telemetry', e);
         }
       }
-    } catch {
+    } catch (error) {
+      logger.error('Error parsing WebView message', { error });
       setWebviewError(LanguageManager.t('mediapipe.gestureProcessingError'));
       onError(LanguageManager.t('mediapipe.gestureProcessingError'));
     }

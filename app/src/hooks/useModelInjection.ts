@@ -45,7 +45,7 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
     transferWatchdogRef.current = setTimeout(() => {
       logger.warn('Model transfer timed out, unlocking and retrying if needed', {
         hasQueuedModel: queuedModelRef.current,
-        hasPendingModel: !!pendingModelRef.current
+        hasPendingModel: !!pendingModelRef.current,
       });
       modelTransferLock.current = false;
       clearTransferWatchdog();
@@ -57,6 +57,7 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
         injectModel(nextModel);
       } else {
         queuedModelRef.current = false;
+        pendingModelRef.current = null;
       }
     }, 15000);
   }, [clearTransferWatchdog, onModelUpdateStatus]);

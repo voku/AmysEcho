@@ -158,7 +158,9 @@ export const useRecognitionCallbacks = ({
       setStatus(ENCOURAGEMENT_STATUS);
       setShowScreenFlash(false);
       setScreenFlashPattern('pulse');
-      void detectionHapticFeedback();
+      void detectionHapticFeedback().catch((error) =>
+        logger.debug('Detection haptic feedback failed', error),
+      );
       if (smoothedConfidence > threshold - LOW_CONFIDENCE_MARGIN) {
         void partialGestureHapticFeedback(smoothedConfidence).catch((error) =>
           logger.debug('Partial haptic feedback failed', error),
