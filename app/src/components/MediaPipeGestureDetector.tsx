@@ -25,6 +25,7 @@ import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import { WebView } from 'react-native-webview';
 import type { WebViewPermissionRequestEvent } from '../webviewTypes';
+import { gestureDetectorBase64 } from '../webview/gestureDetectorBase64';
 
 export type WebViewTelemetryEvent =
   | 'dom_ready'
@@ -152,7 +153,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     };
   }, []);
 
-  const gestureDetectorJs = require('../../assets/gestureDetector.js');
+  const inlineGestureDetectorSource = gestureDetectorBase64.replace(/\s+/g, '');
   const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
   const htmlContent = `
 <!DOCTYPE html>
@@ -184,7 +185,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       // Disable enhanced haptic system during testing to avoid interference
       window.__disableHapticSystem = ${process.env.NODE_ENV === 'test' ? 'true' : 'false'};
    </script>
-  <script src="${gestureDetectorJs}"></script>
+  <script src="data:text/javascript;base64,${inlineGestureDetectorSource}"></script>
 </head>
 <body></body>
 </html>`;

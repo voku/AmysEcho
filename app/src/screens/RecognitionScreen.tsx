@@ -84,6 +84,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { getShortcutMessage, getShortcutAction, getShortcutDisplayName } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
+import HandLandmarkPreview from '../components/HandLandmarkPreview';
 
 const FEEDBACK_THROTTLE_MS = 2000;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
@@ -98,7 +99,6 @@ export default function RecognitionScreen({
   const { getSuccessMessage } = useThemeMessages();
 
   const state = useRecognitionState();
-  const callbacks = useRecognitionCallbacks(state, () => {}, navigation);
   const {
     profile, setProfile,
     status, setStatus,
@@ -136,22 +136,9 @@ export default function RecognitionScreen({
     showAdaptiveLearning, setShowAdaptiveLearning,
     contextInsights,
     detectedTwoHandGesture, setDetectedTwoHandGesture,
+    currentLandmarks,
+    currentHandedness,
   } = state;
-
-  const {
-    handleGestureDetected,
-    handleModelUpdateStatus,
-    handlePartialFeedback,
-    handleStabilityFeedback,
-    handleGestureError,
-    handleSelectCorrection,
-    handleCloseComparison,
-    handleAcceptPractice,
-    handleDeclinePractice,
-    handleLaterPractice,
-    handleStartAdaptiveRecommendation,
-    handleTryAgainFromComparison,
-  } = callbacks;
 
   // Simple stub functions for adaptive PiP positioning
   const getAdaptivePipPosition = (): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' => 'top-right';
@@ -244,6 +231,42 @@ export default function RecognitionScreen({
     }
     celebrationTimeoutRef.current = setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
   }, [fadeAnim, symbolScaleAnim]);
+
+  const callbacks = useRecognitionCallbacks({
+    navigation,
+    state,
+    refs: {
+      confidenceFilterRef,
+      labelHistoryRef,
+      lastGestureIdRef,
+      lastSuccessAtRef,
+      lastFrameTimeRef,
+      lastModelUpdateTimeRef,
+    },
+    helpers: {
+      startFeedbackAnimation,
+      getSuccessMessage: (gestureId: string) => {
+        const base = getSuccessMessage();
+        const meta = optimizedGestureService.getGestureById(gestureId);
+        return meta ? `${base} ${meta.emoji ?? ''}`.trim() : base;
+      },
+    },
+  });
+
+  const {
+    handleGestureDetected,
+    handleModelUpdateStatus,
+    handlePartialFeedback,
+    handleStabilityFeedback,
+    handleGestureError,
+    handleSelectCorrection,
+    handleCloseComparison,
+    handleAcceptPractice,
+    handleDeclinePractice,
+    handleLaterPractice,
+    handleStartAdaptiveRecommendation,
+    handleTryAgainFromComparison,
+  } = callbacks;
 
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
@@ -513,6 +536,15 @@ export default function RecognitionScreen({
              gestureSizeTolerance={gestureSizeTolerance}
            />
          }
+
+         <View style={styles.videoOverlay} pointerEvents="none">
+           <HandLandmarkPreview
+             landmarks={currentLandmarks}
+             handedness={currentHandedness}
+             mirror={facingMode === 'user'}
+             confidence={gestureConfidence}
+           />
+         </View>
 
          {/* Visual ripple effect for gesture processing feedback */}
          <VisualRipple
