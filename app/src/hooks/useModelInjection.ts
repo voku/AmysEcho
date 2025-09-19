@@ -8,6 +8,13 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
   const queuedModelRef = useRef(false);
   const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const clearTransferWatchdog = useCallback(() => {
+    if (transferWatchdogRef.current) {
+      clearTimeout(transferWatchdogRef.current);
+      transferWatchdogRef.current = null;
+    }
+  }, []);
+
   const injectModel = useCallback((b64: string | null) => {
     if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
     if (modelTransferLock.current) {
@@ -34,19 +41,41 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
     webviewRef.current.injectJavaScript(
       '(async()=>{window.__commitMlpTransfer&&await window.__commitMlpTransfer();})();',
     );
-    if (transferWatchdogRef.current) clearTimeout(transferWatchdogRef.current);
+    clearTransferWatchdog();
     transferWatchdogRef.current = setTimeout(() => {
       logger.warn('Model transfer timed out, unlocking and retrying if needed', {
         hasQueuedModel: queuedModelRef.current,
         hasPendingModel: !!pendingModelRef.current
       });
       modelTransferLock.current = false;
+      clearTransferWatchdog();
       onModelUpdateStatus?.('error');
       if (queuedModelRef.current && pendingModelRef.current) {
-        injectModel(pendingModelRef.current);
+        const nextModel = pendingModelRef.current;
+        pendingModelRef.current = null;
+        queuedModelRef.current = false;
+        injectModel(nextModel);
+      } else {
+        queuedModelRef.current = false;
       }
     }, 15000);
-  }, [onModelUpdateStatus]);
+  }, [clearTransferWatchdog, onModelUpdateStatus]);
 
-  return { injectModel, mlpReadyRef, pendingModelRef };
+  const markTransferComplete = useCallback(() => {
+    clearTransferWatchdog();
+    modelTransferLock.current = false;
+
+    if (queuedModelRef.current && pendingModelRef.current) {
+      const nextModel = pendingModelRef.current;
+      pendingModelRef.current = null;
+      queuedModelRef.current = false;
+      injectModel(nextModel);
+      return;
+    }
+
+    queuedModelRef.current = false;
+    pendingModelRef.current = null;
+  }, [clearTransferWatchdog, injectModel]);
+
+  return { injectModel, mlpReadyRef, pendingModelRef, markTransferComplete };
 };
