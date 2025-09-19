@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -232,25 +232,42 @@ export default function RecognitionScreen({
     celebrationTimeoutRef.current = setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
   }, [fadeAnim, symbolScaleAnim]);
 
-  const callbacks = useRecognitionCallbacks({
-    navigation,
-    state,
-    refs: {
+  const recognitionRefs = useMemo(
+    () => ({
       confidenceFilterRef,
       labelHistoryRef,
       lastGestureIdRef,
       lastSuccessAtRef,
       lastFrameTimeRef,
       lastModelUpdateTimeRef,
-    },
-    helpers: {
+    }),
+    [
+      confidenceFilterRef,
+      labelHistoryRef,
+      lastGestureIdRef,
+      lastSuccessAtRef,
+      lastFrameTimeRef,
+      lastModelUpdateTimeRef,
+    ],
+  );
+
+  const recognitionHelpers = useMemo(
+    () => ({
       startFeedbackAnimation,
       getSuccessMessage: (gestureId: string) => {
         const base = getSuccessMessage();
         const meta = optimizedGestureService.getGestureById(gestureId);
         return meta ? `${base} ${meta.emoji ?? ''}`.trim() : base;
       },
-    },
+    }),
+    [getSuccessMessage, startFeedbackAnimation],
+  );
+
+  const callbacks = useRecognitionCallbacks({
+    navigation,
+    state,
+    refs: recognitionRefs,
+    helpers: recognitionHelpers,
   });
 
   const {

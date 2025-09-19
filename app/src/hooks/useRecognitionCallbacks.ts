@@ -97,6 +97,7 @@ export const useRecognitionCallbacks = ({
     setPipGuidanceGesture,
     setCurrentLandmarks,
     setCurrentHandedness,
+    setModelUpdateStatus,
   } = state;
 
   const { successSound, contextInsights, screenReaderEnabled, showPipGuidance, gestureConfidence } = state;
@@ -453,7 +454,7 @@ export const useRecognitionCallbacks = ({
 
   const handleModelUpdateStatus = useCallback(
     (status: 'idle' | 'updating' | 'complete' | 'error') => {
-      state.setModelUpdateStatus(status);
+      setModelUpdateStatus(status);
       switch (status) {
         case 'updating':
           setStatus('🔄 Ich lade ein neues Modell…');
@@ -475,7 +476,7 @@ export const useRecognitionCallbacks = ({
           setStatus('Ich höre zu…');
       }
     },
-    [refs.lastModelUpdateTimeRef, setError, setStatus, state],
+    [refs.lastModelUpdateTimeRef, setError, setModelUpdateStatus, setStatus],
   );
 
   const handlePartialFeedback = useCallback(
