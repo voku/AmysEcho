@@ -228,7 +228,24 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       // Disable enhanced haptic system during testing to avoid interference
       window.__disableHapticSystem = ${process.env.NODE_ENV === 'test' ? 'true' : 'false'};
    </script>
-  <script src="data:text/javascript;base64,${inlineGestureDetectorSource}"></script>
+  <script>
+    (function loadGestureBundle() {
+      var base64 = '${inlineGestureDetectorSource}';
+      try {
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.appendChild(document.createTextNode(window.atob(base64)));
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error('Failed to bootstrap gesture bundle', error);
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({ type: 'error', message: 'inline_bundle_decode_failed' })
+          );
+        }
+      }
+    })();
+  </script>
 </head>
 <body></body>
 </html>`;
