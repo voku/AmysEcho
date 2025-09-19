@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { NavigationProp } from '@react-navigation/native';
-import { LanguageManager } from '../services/LanguageManager';
 import {
   audioService,
   triggerSpeakAndShow,
@@ -29,6 +28,9 @@ import { logger } from '../utils/logger';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import type { RecognitionState, ScreenFlashPattern } from './useRecognitionState';
 import type { RootStackParamList } from '../navigation/types';
+
+const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
+const RECOVERING_CAMERA_TEXT = 'Ups! Ich starte die Kamera neu…';
 
 type Navigation = NavigationProp<RootStackParamList, 'Recognition'>;
 
@@ -422,7 +424,7 @@ export const useRecognitionCallbacks = ({
         );
       } catch (error) {
         logger.error('handleGestureDetected failed', error);
-        setError(LanguageManager.t('mediapipe.predictionError'));
+        setError(PREDICTION_ERROR_TEXT);
       }
     },
     [
@@ -513,8 +515,8 @@ export const useRecognitionCallbacks = ({
   const handleGestureError = useCallback(
     async (errorMessage: string) => {
       logger.warn('Recognition WebView error', { errorMessage });
-      setError(LanguageManager.t('mediapipe.predictionError'));
-      setStatus(LanguageManager.t('mediapipe.recoveringCamera'));
+      setError(PREDICTION_ERROR_TEXT);
+      setStatus(RECOVERING_CAMERA_TEXT);
       const recovered = await automaticRecoveryService.attemptRecovery(errorMessage, 'recognition_webview');
       if (!recovered) {
         setWebviewRetries((retries) => {

@@ -8,7 +8,6 @@ import {
 } from '../constants';
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
-import { LanguageManager } from '../services/LanguageManager';
 import { contextAwareRecognitionService } from '../services/contextAwareRecognitionService';
 
 
@@ -26,6 +25,13 @@ import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes'
 import { WebView } from 'react-native-webview';
 import type { WebViewPermissionRequestEvent } from '../webviewTypes';
 import { gestureDetectorBase64 } from '../webview/gestureDetectorBase64';
+
+const WEBVIEW_UNAVAILABLE_TEXT = 'Ich brauche einen Moment. Lass uns gleich weitermachen!';
+const TAP_TO_START_TEXT = 'Tippe, um die Kamera zu starten';
+const RECOGNIZER_INIT_FAILED_TEXT = 'Ich bin gleich bereit. Versuch\'s nochmal!';
+const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
+const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
+const GESTURE_PROCESSING_ERROR_TEXT = 'Das hat nicht geklappt. Probier\'s einfach nochmal!';
 
 export type WebViewTelemetryEvent =
   | 'dom_ready'
@@ -93,7 +99,6 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     handleOpenAIValidation,
   );
 
-  const [, setLangTick] = useState(0);
   const [webviewError, setWebviewError] = useState<string | null>(null);
 
   const inlineGestureDetectorSource = useMemo(() => gestureDetectorBase64.replace(/\s+/g, ''), []);
@@ -119,15 +124,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         logger.warn('WebView HTTP error', nativeEvent);
         onError('webview_http_error');
       }
-      setWebviewError(LanguageManager.t('mediapipe.webviewUnavailable'));
+      setWebviewError(WEBVIEW_UNAVAILABLE_TEXT);
     },
     [onError],
   );
-
-  useEffect(() => {
-    const unsubscribe = LanguageManager.subscribe(() => setLangTick((v) => v + 1));
-    return unsubscribe;
-  }, []);
 
   // Initialize context-aware recognition session
   useEffect(() => {
@@ -136,10 +136,10 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
   const escapeJs = (s: string) =>
     s.replace(/\//g, '\\/').replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\n/g, '\\n');
-  const tapToStartText = escapeJs(LanguageManager.t('mediapipe.tapToStart'));
-  const recognizerInitFailed = escapeJs(LanguageManager.t('mediapipe.recognizerInitFailed'));
-  const predictionError = escapeJs(LanguageManager.t('mediapipe.predictionError'));
-  const cameraError = escapeJs(LanguageManager.t('mediapipe.cameraError'));
+  const tapToStartText = escapeJs(TAP_TO_START_TEXT);
+  const recognizerInitFailed = escapeJs(RECOGNIZER_INIT_FAILED_TEXT);
+  const predictionError = escapeJs(PREDICTION_ERROR_TEXT);
+  const cameraError = escapeJs(CAMERA_ERROR_TEXT);
 
 
 
@@ -296,7 +296,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       } else if (data.type === 'error') {
         // Amy First: Log technical errors but pass generic message to UI
         logger.error('WebView error', { message: data.message });
-        setWebviewError(LanguageManager.t('mediapipe.gestureProcessingError'));
+        setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
         onError('gesture_processing_error'); // Generic identifier for child-friendly handling
       } else if (data.type === 'warn') {
         // Optionally forward warning to analytics if needed
@@ -347,7 +347,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         } else if (eventStr === 'mlp_transfer_failed') {
           markTransferComplete();
           onModelUpdateStatus?.('error');
-          setWebviewError(LanguageManager.t('mediapipe.predictionError'));
+          setWebviewError(PREDICTION_ERROR_TEXT);
         }
         try {
           // Use performance service for batched telemetry to reduce network overhead
@@ -372,8 +372,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       }
     } catch (error) {
       logger.error('Error parsing WebView message', { error });
-      setWebviewError(LanguageManager.t('mediapipe.gestureProcessingError'));
-      onError(LanguageManager.t('mediapipe.gestureProcessingError'));
+      setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
+      onError(GESTURE_PROCESSING_ERROR_TEXT);
     }
   };
 

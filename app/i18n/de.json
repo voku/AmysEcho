@@ -26,11 +26,6 @@
     "cameraError": "Kamera braucht einen Moment. Lass uns weitermachen!",
     "noLandmarksCaptured": "Ich sehe dich noch nicht. Beweg deine Hand ein bisschen!"
   },
-  "handPreview": {
-    "searching": "Hände werden gesucht…",
-    "confidencePrefix": "Sicherheit",
-    "accessibilityLabel": "Hand-Landmark-Vorschau"
-  },
   "recognition": {
     "showDgsVideo": "DGS-Video anzeigen",
     "toggleDgsVideo": "DGS-Video umschalten"

@@ -149,20 +149,6 @@ jest.mock('expo-file-system', () => ({
   getInfoAsync: jest.fn(),
 }));
 
-// Lightweight Reanimated mock to avoid hook issues in tests
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: { call: () => {} },
-  View: jest.fn(),
-  createAnimatedComponent: (comp: any) => comp,
-  useSharedValue: () => ({ value: 0 }),
-  useAnimatedStyle: () => ({}),
-  useAnimatedProps: () => ({}),
-  withTiming: (v: any) => v,
-  Easing: { linear: jest.fn() },
-  runOnJS: (fn: any) => fn,
-}));
-
 jest.mock('react-native/Libraries/Animated/Animated', () => {
   const ActualAnimated = jest.requireActual('react-native/Libraries/Animated/Animated');
   return {

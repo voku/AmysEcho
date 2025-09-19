@@ -1,5 +1,6 @@
-import { LanguageManager } from './LanguageManager';
 import type { TrainingFrame } from '../storage';
+
+const NO_LANDMARKS_ERROR = 'Ich sehe dich noch nicht. Beweg deine Hand ein bisschen!';
 
 export async function captureSamples(
   getFrame: () => { landmarks: number[][][]; handedness: string[] },
@@ -16,6 +17,6 @@ export async function captureSamples(
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  if (frames.length === 0) throw new Error(LanguageManager.t('mediapipe.noLandmarksCaptured'));
+  if (frames.length === 0) throw new Error(NO_LANDMARKS_ERROR);
   return frames;
 }
