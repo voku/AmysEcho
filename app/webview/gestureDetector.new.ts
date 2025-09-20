@@ -47,10 +47,8 @@ const onUnhandledRejection = (e: PromiseRejectionEvent) => {
 };
 window.addEventListener('unhandledrejection', onUnhandledRejection);
 
-// Expose fflate for compatibility with older WebView bundles
-// This would be imported if needed
-// window.fflate = { unzip, unzipSync };
-
+import { unzip, unzipSync } from 'fflate';
+import { installMlp } from '../src/webview/installMlp';
 import { GestureRecognitionOrchestrator } from './core/GestureRecognitionOrchestrator';
 
 // Initialize configuration
@@ -172,6 +170,18 @@ function applyBaseStyles() {
 
   const shouldMirrorVideo = mirrorOverlay || facingMode === 'user';
   video.classList.toggle('mirrored', shouldMirrorVideo);
+}
+
+// Expose compression helpers and install the embedded MLP runtime
+window.fflate = { unzip, unzipSync };
+installMlp();
+
+try {
+  window.ReactNativeWebView?.postMessage?.(
+    JSON.stringify({ type: 'telemetry', event: 'mlp_ready' })
+  );
+} catch (err) {
+  console.warn("Failed to signal 'mlp_ready' event:", err);
 }
 
 // Create main orchestrator instance

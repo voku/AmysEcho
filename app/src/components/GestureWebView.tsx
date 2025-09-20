@@ -68,7 +68,12 @@ export const GestureWebView = forwardRef<WebView, Props>(
   }
 );
 
-const styles = StyleSheet.create({
+const createStyles =
+  typeof StyleSheet?.create === 'function'
+    ? StyleSheet.create.bind(StyleSheet)
+    : (<T,>(sheet: T) => sheet);
+
+const styles = createStyles({
   container: {
     flex: 1,
   },
