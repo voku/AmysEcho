@@ -1,462 +1,475 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import {
-  API_TOKEN,
-  MLP_CONFIDENCE_THRESHOLD,
-  FALLBACK_CONFIDENCE_THRESHOLD,
-  CAMERA_WEBVIEW_BASE_URL,
-} from '../constants';
-import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
-import { loadActiveProfileId, onActiveProfileChange } from '../storage';
-import { contextAwareRecognitionService } from '../services/contextAwareRecognitionService';
-
-
-import { GestureResult } from '../services/parallelGestureProcessor';
-import OpenAIGestureFeedback from './OpenAIGestureFeedback';
-import { logger } from '../utils/logger';
-import { performanceOptimizationService } from '../services/performanceOptimizationService';
-import { batteryOptimizationService } from '../services/batteryOptimizationService';
-import { frameRateOptimizationService } from '../services/frameRateOptimizationService';
-import { GestureWebView } from './GestureWebView';
-import { useModelInjection } from '../hooks/useModelInjection';
-import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
-import { useParallelProcessing } from '../hooks/useParallelProcessing';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+// Avoid pulling the module at import time. Use dynamic require below.
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
-import { WebView } from 'react-native-webview';
-import type { WebViewPermissionRequestEvent } from '../webviewTypes';
-import { gestureDetectorBase64 } from '../webview/gestureDetectorBase64';
-
-const WEBVIEW_UNAVAILABLE_TEXT = 'Ich brauche einen Moment. Lass uns gleich weitermachen!';
-const TAP_TO_START_TEXT = 'Tippe, um die Kamera zu starten';
-const RECOGNIZER_INIT_FAILED_TEXT = 'Ich bin gleich bereit. Versuch\'s nochmal!';
-const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
-const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
-const GESTURE_PROCESSING_ERROR_TEXT = 'Das hat nicht geklappt. Probier\'s einfach nochmal!';
-
-export type WebViewTelemetryEvent =
-  | 'dom_ready'
-  | 'tap_start'
-  | 'camera_started'
-  | 'recognizer_init'
-  | 'frame_latency'
-  | (string & {});
-
-export interface WebViewTelemetry {
-  event: WebViewTelemetryEvent;
-  ms?: number;
-  tracks?: string[];
-}
 
 interface Props {
   onGestureDetected: (
     gesture: string | null,
     confidence: number,
     landmarks: number[][][],
-    handedness: string[],
-    emergency?: boolean,
   ) => void;
   onError: (error: string) => void;
-  onWebViewEvent?: (telemetry: WebViewTelemetry) => void;
-  onModelUpdateStatus?: (status: 'idle' | 'updating' | 'complete' | 'error') => void;
-  onPartialFeedback?: (gesture: string, completion: number, feedback: string) => void;
-  onStabilityFeedback?: (isStable: boolean, stabilityScore: number, feedback: string) => void;
-  onMergedResult?: (result: GestureResult) => void; // New callback for merged results
+  onWebViewEvent?: (telemetry: any) => void;
   facingMode?: 'user' | 'environment';
-  gestureSizeTolerance?: number;
-  enableParallelProcessing?: boolean; // Enable/disable parallel OpenAI processing
 }
 
-export const MediaPipeGestureDetector: React.FC<Props> = ({
-  onGestureDetected,
-  onError,
-  onWebViewEvent,
-  onModelUpdateStatus,
-  onPartialFeedback,
-  onStabilityFeedback,
-  onMergedResult,
-  facingMode = 'user',
-  gestureSizeTolerance = 0.3,
-  enableParallelProcessing = true,
-}) => {
-  const webviewRef = useRef<WebView>(null);
+// Optional require to avoid crashing when native WebView module is not in the binary
+let WebViewImpl: React.ComponentType<any> | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  WebViewImpl = require('react-native-webview').WebView as unknown as React.ComponentType<any>;
+} catch (e) {
+  WebViewImpl = null;
+}
 
-  const { injectModel, mlpReadyRef, pendingModelRef, markTransferComplete } = useModelInjection(
-    webviewRef,
-    onModelUpdateStatus,
-  );
-  const {
-    openaiValidationResult,
-    setOpenaiValidationResult,
-    showOpenaiFeedback,
-    setShowOpenaiFeedback,
-    handleOpenAIValidation,
-  } = useOpenAIValidation(onGestureDetected);
-  const { handleParallelProcessing } = useParallelProcessing(
-    onGestureDetected,
-    onMergedResult,
-    setOpenaiValidationResult,
-    setShowOpenaiFeedback,
-    handleOpenAIValidation,
-  );
+export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError, onWebViewEvent, facingMode }) => {
+  const webviewRef = useRef<any>(null);
 
-  const [webviewError, setWebviewError] = useState<string | null>(null);
-
-  const inlineGestureDetectorSource = useMemo(
-    () => `data:text/javascript;base64,${gestureDetectorBase64.replace(/\s+/g, '')}`,
-    [],
-  );
-
-  const handleDismissFeedback = useCallback(() => {
-    setShowOpenaiFeedback(false);
-  }, [setShowOpenaiFeedback]);
-
-  const handleApplySuggestion = useCallback(
-    (suggestion: string) => {
-      logger.info('Applying OpenAI feedback suggestion', { suggestion });
-      setShowOpenaiFeedback(false);
-    },
-    [setShowOpenaiFeedback],
-  );
-
-  const handleWebviewError = useCallback(
-    (nativeEvent: unknown, type: 'runtime' | 'http') => {
-      if (type === 'runtime') {
-        logger.warn('WebView runtime error', nativeEvent);
-        onError('webview_load_error');
-      } else {
-        logger.warn('WebView HTTP error', nativeEvent);
-        onError('webview_http_error');
-      }
-      setWebviewError(WEBVIEW_UNAVAILABLE_TEXT);
-    },
-    [onError],
-  );
-
-  // Initialize context-aware recognition session
-  useEffect(() => {
-    contextAwareRecognitionService.resetSession();
-  }, []);
-
-  const escapeJs = (s: string) =>
-    s.replace(/\//g, '\\/').replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\n/g, '\\n');
-  const tapToStartText = escapeJs(TAP_TO_START_TEXT);
-  const recognizerInitFailed = escapeJs(RECOGNIZER_INIT_FAILED_TEXT);
-  const predictionError = escapeJs(PREDICTION_ERROR_TEXT);
-  const cameraError = escapeJs(CAMERA_ERROR_TEXT);
-
-
-
-  useEffect(() => {
-    const loadModel = async () => {
-      try {
-        const pid = await loadActiveProfileId().catch((err) => {
-          logger.warn('Failed to load active profile ID, falling back to global model', err);
-          return null;
-        });
-
-        const cached = await getCachedMlpModel(pid ?? undefined);
-        if (cached) {
-          pendingModelRef.current = cached;
-          injectModel(cached);
-        }
-
-        const latest = await fetchMlpModel(pid ?? undefined);
-        if (latest && latest !== cached) {
-          pendingModelRef.current = latest;
-          injectModel(latest);
-        }
-      } catch (e) {
-        logger.warn('Failed to load or inject MLP model', e);
-      }
-    };
-    loadModel();
-    const unsubscribe = onActiveProfileChange(() => {
-      loadModel();
-    });
-    return unsubscribe;
-  }, [injectModel]);
-
-  useEffect(() => {
-    const webview = webviewRef.current;
-
-    // Register WebView with performance service
-    if (webview) {
-      performanceOptimizationService.registerWebView(webview);
-    }
-
-    return () => {
-      // Unregister WebView from performance service
-      if (webview) {
-        performanceOptimizationService.unregisterWebView(webview);
-      }
-
-      try {
-        webview?.injectJavaScript(
-          'window.__cleanupGestureDetector&&window.__cleanupGestureDetector();',
-        );
-      } catch (e) {
-        logger.warn('Failed to inject WebView cleanup script', e);
-      }
-    };
-  }, []);
-
-  const videoTransform = facingMode === 'user' ? 'transform: scaleX(-1);' : '';
+  // HTML with MediaPipe gesture recognition
   const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    html, body { margin: 0; padding: 0; background: #000; }
-    video { position: absolute; inset: 0; width: 100vw; height: 100vh; object-fit: cover; ${videoTransform} }
-    canvas#overlay { position: absolute; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
-    #tapToStart { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(0,0,0,0.4); font-family: sans-serif; }
-    #tapToStart.hidden { display: none; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      width: 100%;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    #tapToStart {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 255, 0, 0.9);
+      color: #000;
+      padding: 20px 40px;
+      font-size: 24px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+    #tapToStart.hidden {
+      display: none;
+    }
+    #debug {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
   </style>
-   <script>
-     window.__facingMode = '${facingMode}';
-     window.__mirrorOverlay = ${facingMode === 'user' ? 'true' : 'false'};
-     window.__tapToStart = '${tapToStartText}';
-     window.__recognizerInitFailed = '${recognizerInitFailed}';
-     window.__predictionError = '${predictionError}';
-     window.__cameraError = '${cameraError}';
-     window.__mlpThreshold = ${MLP_CONFIDENCE_THRESHOLD};
-     window.__fallbackThreshold = ${FALLBACK_CONFIDENCE_THRESHOLD};
-      window.__gestureSizeTolerance = ${gestureSizeTolerance};
-      // Performance-aware processing parameters
-      window.__processingParams = ${JSON.stringify(performanceOptimizationService.getOptimizedProcessingParams())};
-      window.__batteryParams = ${JSON.stringify(batteryOptimizationService.getBatteryOptimizedParams())};
-      window.__frameRateParams = ${JSON.stringify(frameRateOptimizationService.getFrameRateStats())};
-      window.__isLowPowerMode = ${performanceOptimizationService.isInLowPowerMode()};
-      // Disable enhanced haptic system during testing to avoid interference
-      window.__disableHapticSystem = ${process.env.NODE_ENV === 'test' ? 'true' : 'false'};
-   </script>
-  <script>
-    (function loadGestureBundle() {
-      var src = '${inlineGestureDetectorSource}';
-      try {
-        var script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = src;
-        script.onload = function () {
-          try {
-            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-              window.ReactNativeWebView.postMessage(
-                JSON.stringify({ type: 'telemetry', event: 'inline_bundle_loaded' })
-              );
-            }
-          } catch (event) {
-            console.warn('Failed to report inline bundle load', event);
-          }
-        };
-        script.onerror = function (event) {
-          console.error('Failed to load inline gesture bundle', event);
-          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-            window.ReactNativeWebView.postMessage(
-              JSON.stringify({ type: 'error', message: 'inline_bundle_load_failed' })
-            );
-          }
-        };
-        document.head.appendChild(script);
-      } catch (error) {
-        console.error('Failed to bootstrap gesture bundle', error);
-        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-          window.ReactNativeWebView.postMessage(
-            JSON.stringify({ type: 'error', message: 'inline_bundle_exception' })
-          );
-        }
-      }
-    })();
-  </script>
 </head>
-<body></body>
-</html>`;
-  const handleMessage = async (event: WebViewMessageEvent) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      logger.debug('WebView message', data);
+<body>
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="overlay"></canvas>
+  <button id="tapToStart">Tap to start camera</button>
+  <div id="debug">WebView loaded</div>
+   <script>
+     // Extend window for MediaPipe globals
+     window.fileset_resolver = window.fileset_resolver || {};
+     window.vision = window.vision || {};
+     // Pass facing mode from React Native
+     window.facingMode = '${facingMode || 'user'}';
 
-      // Use performance service for message processing
-      if (data.type === 'gesture') {
-        setWebviewError(null);
-        const g = data.gesture;
-        let gesture: string | null;
-        if (g && typeof g === 'object') {
-          const { left, right } = g as { left?: unknown; right?: unknown };
-          gesture =
-            typeof left === 'string' && typeof right === 'string'
-              ? `${left}+${right}`
-              : null;
-        } else if (typeof g === 'string' || g === null) {
-          gesture = g as string | null;
-        } else {
-          gesture = null;
-        }
-        let confidence = typeof data.confidence === 'number' ? data.confidence : 0;
-        const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][]) : [];
-        const handednesses = Array.isArray(data.handednesses) ? (data.handednesses as string[]) : [];
-        const capturedFrame = data.capturedFrame || null;
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const tapToStart = document.getElementById('tapToStart');
+    const debug = document.getElementById('debug');
 
-        // Get optimized processing parameters
-        const processingParams = performanceOptimizationService.getOptimizedProcessingParams();
+    let gestureRecognizer;
+    let runningMode = "VIDEO";
+    let lastVideoTime = -1;
+    let frameCount = 0;
+    let lastSentAt = 0;
 
-        // Compress landmarks for better performance (only if enabled)
-        if (processingParams.compressionEnabled) {
-          performanceOptimizationService.compressLandmarks(landmarks);
-        }
-        // For tests, emit synchronously to satisfy expectations
-        if (process.env.NODE_ENV === 'test') {
-          onGestureDetected(gesture, confidence, landmarks, handednesses, data.emergency === true);
+    // Update debug info
+    function updateDebug(msg) {
+      debug.innerText = msg;
+    }
+
+    // Load MediaPipe Tasks Vision (modern ESM approach)
+    async function loadTasksVision() {
+      try {
+        updateDebug('Loading MediaPipe via ESM...');
+
+        // Check if already available
+        if (typeof window.fileset_resolver !== 'undefined' &&
+            typeof window.vision !== 'undefined' &&
+            window.fileset_resolver.FilesetResolver &&
+            window.vision.GestureRecognizer) {
+          updateDebug('MediaPipe already available');
+          createGestureRecognizer();
           return;
         }
-        // Enhanced gesture detection with parallel processing
-        if (enableParallelProcessing) {
-          handleParallelProcessing(gesture, confidence, landmarks, handednesses, data.emergency === true, capturedFrame);
-        } else {
-          handleOpenAIValidation(gesture, confidence, landmarks, handednesses, data.emergency === true);
-        }
-      } else if (data.type === 'error') {
-        const errorCode = typeof data.code === 'string' && data.code.trim().length > 0
-          ? data.code
-          : 'gesture_processing_error';
-        // Amy First: Log technical errors but pass generic message to UI
-        logger.error('WebView error', { message: data.message, code: data.code });
-        setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-        onError(errorCode); // Use machine-friendly code so recovery services can respond
-      } else if (data.type === 'warn') {
-        // Optionally forward warning to analytics if needed
-        logger.warn('WebView warning', { message: data.message });
-      } else if (data.type === 'partial_feedback') {
-        const gesture = String(data.gesture || '');
-        const completion = typeof data.completion === 'number' ? data.completion : 0;
-        const feedback = String(data.feedback || '');
+
+        // Try ESM import approach
         try {
-          onPartialFeedback?.(gesture, completion, feedback);
-        } catch (e) {
-          logger.warn('Error in onPartialFeedback handler', e);
+          updateDebug('Trying ESM import...');
+          const module = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs');
+          console.log('ESM import result:', module);
+
+          // Set globals manually
+          if (module.FilesetResolver) {
+            window.fileset_resolver = { FilesetResolver: module.FilesetResolver };
+          }
+          if (module.GestureRecognizer) {
+            window.vision = { GestureRecognizer: module.GestureRecognizer };
+          }
+
+          if (window.fileset_resolver && window.vision) {
+            updateDebug('ESM globals set manually');
+            createGestureRecognizer();
+            return;
+          }
+        } catch (esmError) {
+          updateDebug('ESM import failed: ' + esmError.message);
+          console.log('ESM error:', esmError);
         }
-      } else if (data.type === 'stability_feedback') {
-        const isStable = Boolean(data.isStable);
-        const stabilityScore = typeof data.stabilityScore === 'number' ? data.stabilityScore : 0;
-        const feedback = String(data.feedback || '');
-        try {
-          onStabilityFeedback?.(isStable, stabilityScore, feedback);
-        } catch (e) {
-          logger.warn('Error in onStabilityFeedback handler', e);
-        }
-      } else if (data.type === 'telemetry') {
-        const eventStr = String(data.event || '');
-        try {
-          onWebViewEvent?.(
-            {
-              event: eventStr,
-              ms: typeof data.ms === 'number' ? data.ms : undefined,
-              ...(Array.isArray(data.tracks) ? { tracks: data.tracks as string[] } : {})
+
+        // Try dynamic script loading with different approaches
+        const urls = [
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.js',
+          'https://unpkg.com/@mediapipe/tasks-vision@0.10.3/vision_bundle.js',
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/vision_bundle.js'
+        ];
+
+        for (const url of urls) {
+          try {
+            updateDebug('Trying script: ' + url.split('@')[1].split('/')[0]);
+
+            // Load script
+            const script = document.createElement('script');
+            script.src = url;
+            script.type = 'text/javascript';
+
+            await new Promise((resolve, reject) => {
+              script.onload = resolve;
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+
+            updateDebug('Script loaded, checking globals...');
+
+            // Check for various possible global names
+            const possibleGlobals = [
+              'fileset_resolver',
+              'vision',
+              'MediaPipeVision',
+              'TasksVision'
+            ];
+
+            console.log('Available globals:', Object.keys(window).filter(k =>
+              possibleGlobals.some(g => k.toLowerCase().includes(g.toLowerCase())) ||
+              k.toLowerCase().includes('mediapipe')
+            ));
+
+            // Check standard globals
+            if (window.fileset_resolver && window.vision &&
+                window.fileset_resolver.FilesetResolver && window.vision.GestureRecognizer) {
+              updateDebug('Standard globals found');
+              createGestureRecognizer();
+              return;
             }
-          );
-        } catch (e) {
-          logger.warn('Error in onWebViewEvent handler', e);
-        }
-        if (eventStr === 'dom_ready' || eventStr === 'camera_started') {
-          setWebviewError(null);
+
+            // Check alternative globals
+            if (window.MediaPipeVision || window.TasksVision) {
+              updateDebug('Alternative globals found');
+              // Try to map them to expected structure
+              if (window.MediaPipeVision) {
+                window.fileset_resolver = window.MediaPipeVision.fileset_resolver || window.fileset_resolver;
+                window.vision = window.MediaPipeVision.vision || window.vision;
+              }
+              if (window.TasksVision) {
+                window.fileset_resolver = window.TasksVision.fileset_resolver || window.fileset_resolver;
+                window.vision = window.TasksVision.vision || window.vision;
+              }
+
+              if (window.fileset_resolver && window.vision) {
+                createGestureRecognizer();
+                return;
+              }
+            }
+
+            // Wait and check again
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            if (window.fileset_resolver && window.vision &&
+                window.fileset_resolver.FilesetResolver && window.vision.GestureRecognizer) {
+              updateDebug('Globals found after delay');
+              createGestureRecognizer();
+              return;
+            }
+
+          } catch (e) {
+            updateDebug('Failed: ' + url.split('/')[2]);
+            continue;
+          }
         }
 
-        if (eventStr === 'mlp_ready') {
-          mlpReadyRef.current = true;
-          if (pendingModelRef.current) {
-            injectModel(pendingModelRef.current);
-          }
-        } else if (eventStr === 'mlp_transfer_complete' || eventStr === 'mlp_transfer_skipped') {
-          markTransferComplete();
-          onModelUpdateStatus?.('complete');
-        } else if (eventStr === 'mlp_transfer_failed') {
-          markTransferComplete();
-          onModelUpdateStatus?.('error');
-          setWebviewError(PREDICTION_ERROR_TEXT);
-        }
-        try {
-          // Use performance service for batched telemetry to reduce network overhead
-          if (API_TOKEN && API_TOKEN !== 'demo-token') {
-            const telemetryData = {
-              latencyMs: typeof data.ms === 'number' ? data.ms : 0,
-              timestamp: Date.now(),
-              event: eventStr || 'unknown',
-              source: 'webview-gesture-detector',
-              ...(Array.isArray(data.tracks) ? { tracks: data.tracks } : {}),
-            };
+        // If all failed
+        updateDebug('All MediaPipe loading attempts failed');
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({
+          type: 'error',
+          message: 'Failed to load MediaPipe - library may have changed API'
+        }));
 
-            // Batch telemetry messages for better performance
-            performanceOptimizationService.addWebViewMessage({
-              type: 'telemetry',
-              data: telemetryData
-            }, eventStr === 'gesture_processing_error' ? 'high' : 'low');
-          }
-        } catch (e) {
-          logger.warn('Failed to queue telemetry', e);
+      } catch (e) {
+        updateDebug('MediaPipe loading error: ' + e.message);
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({
+          type: 'error',
+          message: 'MediaPipe loading error: ' + e.message
+        }));
+      }
+    }
+
+    // Create gesture recognizer (for landmark detection only)
+    async function createGestureRecognizer() {
+      try {
+        updateDebug('Creating recognizer for landmarks...');
+        console.log('Creating recognizer with:', {
+          fileset_resolver: window.fileset_resolver,
+          vision: window.vision,
+          hasFilesetResolver: !!(window.fileset_resolver && window.fileset_resolver.FilesetResolver),
+          hasGestureRecognizer: !!(window.vision && window.vision.GestureRecognizer)
+        });
+
+        if (!window.fileset_resolver || !window.fileset_resolver.FilesetResolver) {
+          throw new Error('FilesetResolver not available');
         }
+
+        const vision = await window.fileset_resolver.FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+        );
+
+        if (!window.vision || !window.vision.GestureRecognizer) {
+          throw new Error('GestureRecognizer not available');
+        }
+
+        console.log('Creating gesture recognizer with vision object:', vision);
+        gestureRecognizer = await window.vision.GestureRecognizer.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+            delegate: "GPU",
+          },
+          runningMode,
+          numHands: 2,
+        });
+        console.log('Gesture recognizer created:', gestureRecognizer);
+        updateDebug('Recognizer ready');
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({
+          type: 'telemetry',
+          event: 'recognizer_ready'
+        }));
+
+        // Start prediction loop immediately if video is already loaded
+        if (video.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+          console.log('Video already loaded, starting prediction immediately');
+          updateDebug('Video already loaded, starting prediction');
+          predictWebcam();
+        } else {
+          // Start prediction loop when video loads
+          video.addEventListener('loadeddata', () => {
+            console.log('Video loadeddata event fired, starting prediction loop');
+            updateDebug('Video loaded, starting prediction');
+            predictWebcam();
+          });
+        }
+
+        video.addEventListener('play', () => {
+          console.log('Video play event fired');
+        });
+
+        video.addEventListener('canplay', () => {
+          console.log('Video canplay event fired');
+        });
+      } catch (e) {
+        updateDebug('Recognizer error: ' + e.message);
+        console.log('Recognizer creation failed:', e);
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({
+          type: 'error',
+          message: 'Failed to create gesture recognizer: ' + e.message
+        }));
+      }
+    }
+
+    // Prediction loop
+    function predictWebcam() {
+      try {
+        frameCount++;
+        if (frameCount % 60 === 0) { // Log every second at 60fps
+          console.log('Prediction loop running, video state:', {
+            currentTime: video.currentTime,
+            paused: video.paused,
+            ended: video.ended,
+            readyState: video.readyState
+          });
+        }
+
+        if (gestureRecognizer && video.currentTime > 0 && !video.paused && !video.ended) {
+          if (lastVideoTime !== video.currentTime) {
+            lastVideoTime = video.currentTime;
+            const start = performance.now();
+            const results = gestureRecognizer.recognizeForVideo(video, start);
+            const frameLatency = Math.round(performance.now() - start);
+            frameCount++;
+
+            // Process results - send landmarks only, no gesture classification
+            const allLandmarks = [];
+
+            if (results?.landmarks?.length) {
+              for (let i = 0; i < results.landmarks.length; i++) {
+                const hand = results.landmarks[i];
+                const landmarks = hand.map(lm => [lm.x, lm.y, lm.z ?? 0]);
+                allLandmarks.push(landmarks);
+              }
+            }
+
+            // Send landmark data only
+            const now = performance.now();
+            if (now - lastSentAt >= 100) { // Send every 100ms
+              lastSentAt = now;
+              console.log('Sending landmarks:', { landmarksCount: allLandmarks.length });
+              window.ReactNativeWebView?.postMessage?.(JSON.stringify({
+                type: 'gesture',
+                gesture: null, // No gesture from WebView
+                confidence: 0, // No confidence
+                landmarks: allLandmarks,
+              }));
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Prediction error:', e);
+      }
+      window.requestAnimationFrame(predictWebcam);
+    }
+
+    // Start camera function
+    async function startCamera() {
+      try {
+        updateDebug('Requesting camera access...');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: window.facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        video.srcObject = stream;
+        video.muted = true;
+        // Mirror video for front camera to correct left/right orientation
+        video.style.transform = window.facingMode === 'user' ? 'scaleX(-1)' : 'none';
+        await video.play();
+        updateDebug('Camera started, video playing. Loading MediaPipe...');
+        console.log('Video element state:', {
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          readyState: video.readyState,
+          currentTime: video.currentTime,
+          paused: video.paused,
+          ended: video.ended
+        });
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({
+          type: 'telemetry',
+          event: 'camera_started',
+          tracks: stream.getVideoTracks().map(t => t.label)
+        }));
+        // Load MediaPipe after camera starts
+        loadTasksVision();
+      } catch (err) {
+        const msg = (err && (err.name + ': ' + err.message)) || String(err);
+        updateDebug('Camera error: ' + msg);
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({
+          type: 'error',
+          message: 'Camera access failed: ' + msg
+        }));
+      }
+    }
+
+    // Tap to start handler
+    tapToStart.addEventListener('click', async () => {
+      tapToStart.classList.add('hidden');
+      await startCamera();
+    });
+
+    // Initial load message
+    window.ReactNativeWebView?.postMessage?.(JSON.stringify({
+      type: 'telemetry',
+      event: 'webview_loaded'
+    }));
+    updateDebug('WebView loaded at ' + new Date().toLocaleTimeString());
+  </script>
+</body>
+</html>`;
+
+  const handleMessage = (event: WebViewMessageEvent) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+
+      if (data.type === 'gesture') {
+        onGestureDetected(data.gesture, data.confidence, data.landmarks);
+      } else if (data.type === 'telemetry') {
+        onWebViewEvent?.(data);
+      } else if (data.type === 'error') {
+        onError(data.message);
       }
     } catch (error) {
-      logger.error('Error parsing WebView message', { error });
-      setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-      onError('gesture_processing_error');
+      onError('WebView message error');
     }
   };
 
+  if (!WebViewImpl) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text>WebView unavailable</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <GestureWebView
+      <WebViewImpl
         ref={webviewRef}
-        htmlContent={htmlContent}
+        source={{ html: htmlContent, baseUrl: 'https://camera.local' }}
+        style={styles.webview}
         onMessage={handleMessage}
-        onError={(e: any) => handleWebviewError(e?.nativeEvent, 'runtime')}
-        onHttpError={(e: any) => handleWebviewError(e?.nativeEvent, 'http')}
-        onConsoleMessage={(e: any) => {
-          logger.debug('WebView console message', e.nativeEvent?.message);
+        mediaPlaybackRequiresUserAction={false}
+        domStorageEnabled={true}
+        javaScriptEnabled={true}
+        allowsInlineMediaPlayback={true}
+        originWhitelist={['*']}
+        mediaCapturePermissionGrantType={'grant'}
+        androidLayerType={'hardware'}
+        mixedContentMode={'always'}
+        onPermissionRequest={(event: any) => {
+          try {
+            const videoOnly = (event.nativeEvent.resources || []).filter((r: string) => r === 'VIDEO_CAPTURE');
+            event.nativeEvent.grant(videoOnly);
+          } catch {}
         }}
-        onPermissionRequest={(e: WebViewPermissionRequestEvent) => {
-          const { origin, resources, grant, deny } = e.nativeEvent;
-          const wantsCamera = resources.includes('VIDEO_CAPTURE');
-
-          const normalizedOrigin = (() => {
-            if (!origin || origin === 'null' || origin === 'about:blank') {
-              return 'inline';
-            }
-
-            if (origin.startsWith('data:')) {
-              return 'inline';
-            }
-
-            try {
-              return new URL(origin).origin;
-            } catch (error) {
-              logger.warn('Unparsable origin in permission request', { origin, error });
-              return null;
-            }
-          })();
-
-          const isTrustedOrigin =
-            normalizedOrigin === 'inline' || normalizedOrigin === CAMERA_WEBVIEW_BASE_URL;
-
-          if (wantsCamera && isTrustedOrigin) {
-            grant(['VIDEO_CAPTURE']);
-          } else {
-            deny();
-            logger.warn('Denied media permission', { origin, requested: resources });
-          }
-        }}
-      />
-
-      {webviewError && (
-        <View pointerEvents="none" style={styles.errorOverlay}>
-          <Text style={styles.errorText}>{webviewError}</Text>
-        </View>
-      )}
-
-      <OpenAIGestureFeedback
-        isVisible={showOpenaiFeedback}
-        validationResult={openaiValidationResult ?? undefined}
-        onDismiss={handleDismissFeedback}
-        onApplySuggestion={handleApplySuggestion}
       />
     </View>
   );
@@ -466,17 +479,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(17, 24, 39, 0.75)',
-    paddingHorizontal: 24,
-  },
-  errorText: {
-    color: '#f9fafb',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+  webview: {
+    flex: 1,
   },
 });

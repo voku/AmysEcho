@@ -4,13 +4,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Animated,
   Easing,
   Button,
   Switch,
   AccessibilityInfo,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import type { NavigationProp } from '@react-navigation/native';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -47,8 +47,10 @@ import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap, Point } from '../services/dgsModelClient';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
-import { flattenHandsWithHandedness } from '../services/handUtils';
+import { flattenHandsWithHandedness, flattenHands } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
+import { shouldPromptPractice } from '../services/healthScore';
+import { gestureModel } from '../model';
 import { logInteractionEvent } from '../services/analytics';
 import { logHIPEvent } from '../services/hipEvents';
 import { OneEuroFilter } from '../services/OneEuroFilter';
@@ -104,6 +106,19 @@ export default function RecognitionScreen({
   const { setMessage } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
+  // Additional state variables needed for the simplified callback approach
+  const [detectedGesture, setDetectedGesture] = useState<string>('listening...');
+  const [suggestions, setSuggestions] = useState<LLMSuggestionResponse>({
+    nextWords: [],
+    caregiverPhrases: [],
+  });
+  const [showPracticeBanner, setShowPracticeBanner] = useState(false);
+  const [scheduledGesture, setScheduledGesture] = useState<string | null>(null);
+  const [webviewReady, setWebviewReady] = useState(false);
+  const [useExpoFallback, setUseExpoFallback] = useState(false);
+  const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
+  const [showTopControls, setShowTopControls] = useState(false);
+
   const state = useRecognitionState();
   const {
     profile, setProfile,
@@ -143,7 +158,9 @@ export default function RecognitionScreen({
     contextInsights,
     detectedTwoHandGesture, setDetectedTwoHandGesture,
     currentLandmarks,
+    setCurrentLandmarks,
     currentHandedness,
+    setCurrentHandedness,
   } = state;
 
   // Simple stub functions for adaptive PiP positioning
@@ -269,27 +286,216 @@ export default function RecognitionScreen({
     [getSuccessMessage, startFeedbackAnimation],
   );
 
-  const callbacks = useRecognitionCallbacks({
-    navigation,
-    state,
-    refs: recognitionRefs,
-    helpers: recognitionHelpers,
-  });
+  const handleGestureDetected = useCallback(async (
+    gesture: string | null,
+    confidence: number,
+    landmarks: number[][][],
+  ) => {
+    // Update landmark visualization
+    setCurrentLandmarks(landmarks);
+    // Note: handedness data is not currently sent from WebView, so we leave it empty
+    setCurrentHandedness([]);
 
-  const {
-    handleGestureDetected,
-    handleModelUpdateStatus,
-    handlePartialFeedback,
-    handleStabilityFeedback,
-    handleGestureError,
-    handleSelectCorrection,
-    handleCloseComparison,
-    handleAcceptPractice,
-    handleDeclinePractice,
-    handleLaterPractice,
-    handleStartAdaptiveRecommendation,
-    handleTryAgainFromComparison,
-  } = callbacks;
+    let g = gesture;
+    let c = confidence;
+    let path: RecognitionPath = 'local';
+
+    // Always try to classify with our custom model
+    if (centroidsRef.current) {
+      const flat = flattenHands(landmarks) as Point[];
+      const res = classifyWithCentroids(flat, centroidsRef.current);
+      if (res) {
+        g = res.label;
+        c = res.confidence;
+        path = 'centroid';
+      }
+    }
+    setRecognitionPath(path);
+
+    // Helper to apply a classification to UI + logs
+    const handleOutcome = async (
+      finalGesture: string,
+      finalConfidence: number,
+      processedBy: RecognitionPath,
+    ) => {
+      // Smooth confidence and label
+      const smoothed = confidenceFilterRef.current.filter(
+        Math.max(0, Math.min(1, finalConfidence)),
+        Date.now() / 1000,
+      );
+      const hist = labelHistoryRef.current;
+      hist.push(finalGesture);
+      if (hist.length > 5) hist.shift();
+      const freq = hist.reduce<Record<string, number>>((acc, g) => {
+        acc[g] = (acc[g] || 0) + 1;
+        return acc;
+      }, {});
+      const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
+      const stableGesture = top && top[1] >= 3 ? top[0] : finalGesture;
+
+      setDetectedGesture(stableGesture);
+      setGestureConfidence(smoothed);
+      setError(null);
+      uncertainCountRef.current = 0;
+
+      if (smoothed > 0.7 && stableGesture !== 'unknown') {
+        const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
+
+        const now = Date.now();
+        const timeSinceLastSuccess = now - lastSuccessAtRef.current;
+
+        // Only trigger feedback if enough time has passed since last success
+        // or if it's a different gesture
+        const shouldTriggerFeedback = timeSinceLastSuccess > FEEDBACK_THROTTLE_MS ||
+          lastGestureIdRef.current !== stableGesture;
+
+        // Disable feedback for 22q11 kids to avoid distraction
+        // if (shouldTriggerFeedback) {
+        //   lastSuccessAtRef.current = now;
+        //   lastGestureIdRef.current = stableGesture;
+        //   triggerSpeakAndShow(entry.label, smoothed, () => {});
+        //   startFeedbackAnimation();
+        //   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        // }
+
+        // Still update the recognized gesture but without any feedback
+        setLastRecognizedGesture(entry);
+        setStatus(entry.label);
+
+        // Log success
+        logInteractionEvent({
+          gestureDefinitionId: entry.id,
+          gestureName: entry.label,
+          wasSuccessful: true,
+          confidenceScore: smoothed,
+          timestamp: Date.now(),
+          processedBy,
+        }).catch(() => {});
+
+        try {
+          const adv = await dialogEngine.getSuggestions({
+            input: entry.label,
+            context: dialogContext,
+            language: 'de',
+            age: 4,
+          });
+          setSuggestions(adv);
+          setDialogContext((ctx) => {
+            const next = [...ctx, entry.label];
+            return next.slice(-5);
+          });
+        } catch (error) {
+          logger.warn('Failed to get LLM suggestions:', error);
+        }
+
+        // Evaluate practice prompt
+        shouldPromptPractice(entry.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
+          .then(setShowPracticeBanner)
+          .catch(() => setShowPracticeBanner(false));
+
+        // Sequence recognition (non-blocking): if a sequence matches, provide gentle feedback
+        try {
+          const seqId = seqRef.current.push(entry.id);
+          if (seqId) {
+            void logHIPEvent('HIP_2', 'sequence_detected', { sequence: seqId });
+        // Optional extra cue without altering primary status
+        // void audioService.playEncouragement(seqId);
+          }
+        } catch {}
+      } else {
+        setStatus('Ich bin mir nicht sicher. Bitte versuche es erneut.');
+        setPendingGesture(stableGesture);
+        // Only open correction after several consecutive uncertain frames
+        const now = Date.now();
+        if (now - lastUncertainAtRef.current > 1500) {
+          uncertainCountRef.current = 0;
+        }
+        lastUncertainAtRef.current = now;
+        uncertainCountRef.current += 1;
+        if (!showCorrection && uncertainCountRef.current >= 3) {
+          setShowCorrection(true);
+          uncertainCountRef.current = 0;
+        }
+        // Gentle nudge to retry
+        // try { await audioService.playEncouragement(); } catch {}
+        // HIP 3: opened correction/uncertainty path
+        void logHIPEvent('HIP_3', 'help_me_opened', { suggestionFor: finalGesture });
+        // Log failure for the incoming gesture id (could be 'unknown')
+        const id = (gestureModel.gestures.find((g) => g.id === stableGesture)?.id) || stableGesture || 'unknown';
+        logInteractionEvent({
+          gestureDefinitionId: id,
+          gestureName: stableGesture,
+          wasSuccessful: false,
+          confidenceScore: smoothed,
+          timestamp: Date.now(),
+          processedBy,
+        }).catch(() => {});
+        // Practice prompt check on last recognized if present
+        if (lastRecognizedGesture) {
+          shouldPromptPractice(lastRecognizedGesture.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
+            .then(setShowPracticeBanner)
+            .catch(() => setShowPracticeBanner(false));
+        }
+      }
+    };
+
+    // On-device classification only: use provided or locally-classified gesture
+    await handleOutcome(g || 'unknown', c, path);
+  }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
+
+  const handleGestureError = useCallback((errorMessage: string) => {
+    // Avoid flooding the UI; only surface critical init/camera errors
+    logger.warn('Gesture detection warning:', errorMessage);
+    if (/Camera error|Recognizer init failed/i.test(errorMessage)) {
+      setError(errorMessage);
+    }
+  }, []);
+
+  // Simple handler implementations for UI components
+  const handleSelectCorrection = useCallback(
+    async (choiceId: string) => {
+      setShowCorrection(false);
+      setStatus('Danke für deine Hilfe! Ich lerne daraus.');
+      navigation.navigate('Teaching', { gestureId: choiceId });
+    },
+    [navigation, setShowCorrection, setStatus],
+  );
+
+  const handleCloseComparison = useCallback(() => {
+    setShowGestureComparison(false);
+    setComparisonAttempt(null);
+  }, [setShowGestureComparison, setComparisonAttempt]);
+
+  const handleTryAgainFromComparison = useCallback(() => {
+    setShowGestureComparison(false);
+    setComparisonAttempt(null);
+    setStatus("Versuch's nochmal! Du schaffst das!");
+  }, [setShowGestureComparison, setComparisonAttempt, setStatus]);
+
+  const handleAcceptPractice = useCallback(() => {
+    setShowPracticeSuggestion(false);
+    navigation.navigate('Teaching');
+  }, [navigation, setShowPracticeSuggestion]);
+
+  const handleDeclinePractice = useCallback(() => {
+    setShowPracticeSuggestion(false);
+  }, [setShowPracticeSuggestion]);
+
+  const handleLaterPractice = useCallback(() => {
+    setShowPracticeSuggestion(false);
+  }, [setShowPracticeSuggestion]);
+
+  const handleStartAdaptiveRecommendation = useCallback(
+    (recommendation: { gesture?: string; type?: string }) => {
+      setShowAdaptiveLearning(false);
+      if (recommendation?.gesture) {
+        navigation.navigate('Teaching', { gestureId: recommendation.gesture });
+      } else if (recommendation?.type === 'break') {
+        setStatus('Nimm dir kurz Zeit – ich bleibe bereit.');
+      }
+    },
+    [navigation, setShowAdaptiveLearning, setStatus],
+  );
 
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
@@ -368,10 +574,8 @@ export default function RecognitionScreen({
     const handlePowerModeChange = (isLowPower: boolean) => {
       if (isLowPower) {
         setStatus('🔋 Akku ist schwach. Ich passe mich an, um Energie zu sparen.');
-        setTimeout(() => setStatus('Ich höre zu…'), 5000);
       } else {
         setStatus('🔋 Akku ist wieder gut geladen!');
-        setTimeout(() => setStatus('Ich höre zu…'), 3000);
       }
     };
 
@@ -503,7 +707,7 @@ export default function RecognitionScreen({
   return (
     <SafeAreaView style={styles.container}>
       {/* Kindergarten mode: Hide complex controls, show only essential ones */}
-      {!kindergartenMode && (
+      {showTopControls && !kindergartenMode && (
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: SPACING.md }}>
           <Button
             title={facingMode === 'user' ? 'Hintere Kamera verwenden' : 'Vordere Kamera verwenden'}
@@ -528,7 +732,7 @@ export default function RecognitionScreen({
       )}
 
       {/* Kindergarten mode: Simple mood button */}
-      {kindergartenMode && (
+      {showTopControls && kindergartenMode && (
         <View style={{ padding: SPACING.md, alignItems: 'center' }}>
           <Button
             title="😊 Wie geht's Amy?"
@@ -547,26 +751,24 @@ export default function RecognitionScreen({
       {showMoodSelector && <MoodSelector />}
       {showLocationSelector && <LocationSelector />}
        <View style={styles.cameraContainer}>
-         {
-           <MediaPipeGestureDetector
-             key={webviewKey}
-             onGestureDetected={handleGestureDetected}
-             onError={handleGestureError}
-             onModelUpdateStatus={handleModelUpdateStatus}
-             onPartialFeedback={handlePartialFeedback}
-             onStabilityFeedback={handleStabilityFeedback}
-             facingMode={facingMode}
-             gestureSizeTolerance={gestureSizeTolerance}
-           />
-         }
+           {
+              <MediaPipeGestureDetector
+                onGestureDetected={handleGestureDetected}
+                onError={handleGestureError}
+                onWebViewEvent={(telemetry) => {
+                  logger.info('WebView telemetry:', telemetry);
+                }}
+                facingMode={facingMode}
+              />
+           }
 
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-           <HandLandmarkPreview
-             landmarks={currentLandmarks}
-             handedness={currentHandedness}
-             mirror={facingMode === 'user'}
-             confidence={gestureConfidence}
-           />
+            <HandLandmarkPreview
+              landmarks={currentLandmarks}
+              handedness={currentHandedness}
+              mirror={facingMode !== 'user'}
+              confidence={gestureConfidence}
+            />
          </View>
 
          {/* Visual ripple effect for gesture processing feedback */}
@@ -585,7 +787,7 @@ export default function RecognitionScreen({
            duration={300}
          />
         {/* Kindergarten mode: Simplify status messages */}
-        <Text style={styles.statusText}>
+        {/* <Text style={styles.statusText}>
           {kindergartenMode ? (
             status === 'Bereit zur Gestenerkennung' ? '👋 Bereit!' :
             status === 'Geste erkannt!' ? '✨ Geste erkannt!' :
@@ -598,7 +800,7 @@ export default function RecognitionScreen({
               {modelUpdateStatus === 'updating' && ' 🔄'}
             </>
           )}
-        </Text>
+        </Text> */}
 
         {/* Shortcut activation indicator */}
         {shortcutActivated && (
@@ -725,36 +927,16 @@ export default function RecognitionScreen({
         accessibilityLabel="Neue Geste beibringen"
         onPress={() => navigation.navigate('Teaching')}
       />
-    </View>
-
-    <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{RECOGNITION_TEXT.showDgsVideoLabel}</Text>
-      <Switch
-        value={showDgsVideo}
-        onValueChange={setShowDgsVideo}
-        accessibilityLabel={RECOGNITION_TEXT.toggleDgsVideo}
-      />
-    </View>
-
-    <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{RECOGNITION_TEXT.showPipGuidanceLabel}</Text>
-      <Switch
-        value={showPipGuidance}
-        onValueChange={setShowPipGuidance}
-        accessibilityLabel={RECOGNITION_TEXT.togglePipGuidance}
-      />
-    </View>
-
-    {/* Kindergarten mode toggle (hidden feature for testing) */}
-    <View style={{ position: 'absolute', bottom: 100, right: 10 }}>
       <Button
-        title={kindergartenMode ? "👨‍🏫" : "👶"}
-        onPress={() => setKindergartenMode(!kindergartenMode)}
-        accessibilityLabel="Modus wechseln"
+        title="Einstellungen"
+        accessibilityLabel="Einstellungen anzeigen/verstecken"
+        onPress={() => setShowTopControls(!showTopControls)}
       />
     </View>
 
-    <BottomNav active="recognition" profileId={profile?.id || 'default'} />
+
+
+    {/* <BottomNav active="recognition" profileId={profile?.id || 'default'} /> */}
 
     {/* Gesture Comparison Overlay - Amy First: Encouraging, non-judgmental learning */}
     {showGestureComparison && comparisonAttempt && (
