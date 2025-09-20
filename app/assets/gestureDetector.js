@@ -4011,6 +4011,7 @@
       const rawResults = context.rawResults;
       const normalized = context.normalizedResults ?? mapMediaPipeResult(rawResults);
       const handednesses = normalized.handednesses;
+      const rawHandednesses = rawResults?.handednesses ?? [];
       const perHand = this.extractPerHandDetections(normalized);
       let selectedGesture = null;
       let selectedConfidence = 0;
@@ -4026,7 +4027,7 @@
         }
         if (perHand.length >= 2) {
           const twoHandCandidate = this.resolveTwoHandGesture(perHand);
-          if (twoHandCandidate && twoHandCandidate.score > selectedConfidence) {
+          if (twoHandCandidate) {
             selectedGesture = this.formatTwoHandGesture(twoHandCandidate.gesture);
             selectedConfidence = twoHandCandidate.score;
             detectionMethod = "mediapipe";
@@ -4037,7 +4038,10 @@
       let mlpMetadata = null;
       if (typeof window.__mlpPredict === "function") {
         try {
-          const mlpResult = window.__mlpPredict(context.landmarks ?? [], handednesses);
+          const mlpResult = window.__mlpPredict(
+            context.landmarks ?? [],
+            rawHandednesses.length > 0 ? rawHandednesses : handednesses
+          );
           if (mlpResult && typeof mlpResult.score === "number") {
             mlpMetadata = mlpResult;
             const threshold = this.config?.thresholds?.mlpConfidence ?? 0.4;

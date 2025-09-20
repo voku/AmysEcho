@@ -308,6 +308,7 @@ export class GestureDetectionStep implements ProcessingStep {
     const rawResults = context.rawResults;
     const normalized = context.normalizedResults ?? mapMediaPipeResult(rawResults);
     const handednesses = normalized.handednesses;
+    const rawHandednesses = rawResults?.handednesses ?? [];
 
     const perHand = this.extractPerHandDetections(normalized);
 
@@ -329,7 +330,7 @@ export class GestureDetectionStep implements ProcessingStep {
       // Attempt to form a two-hand gesture when both hands detected
       if (perHand.length >= 2) {
         const twoHandCandidate = this.resolveTwoHandGesture(perHand);
-        if (twoHandCandidate && twoHandCandidate.score > selectedConfidence) {
+        if (twoHandCandidate) {
           selectedGesture = this.formatTwoHandGesture(twoHandCandidate.gesture);
           selectedConfidence = twoHandCandidate.score;
           detectionMethod = 'mediapipe';
@@ -342,7 +343,14 @@ export class GestureDetectionStep implements ProcessingStep {
     let mlpMetadata: { label: string; score: number } | null = null;
     if (typeof window.__mlpPredict === 'function') {
       try {
-        const mlpResult = window.__mlpPredict(context.landmarks ?? [], handednesses);
+        // The embedded MLP expects MediaPipe's handedness structure to decide which
+        // hand should be mirrored, so prefer the raw array when available. Fall
+        // back to the normalized labels only if MediaPipe omitted handedness
+        // information entirely.
+        const mlpResult = window.__mlpPredict(
+          context.landmarks ?? [],
+          rawHandednesses.length > 0 ? rawHandednesses : handednesses
+        );
         if (mlpResult && typeof mlpResult.score === 'number') {
           mlpMetadata = mlpResult;
           const threshold = this.config?.thresholds?.mlpConfidence ?? 0.4;

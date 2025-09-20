@@ -98,8 +98,9 @@ describe('GestureDetectionStep', () => {
 
   it('prefers MLP predictions when above threshold and stronger than MediaPipe', async () => {
     const step = createStep();
+    const landmarks = [[[0.1, 0.2, 0.3]]] as any;
     const context = {
-      landmarks: [],
+      landmarks,
       timestamp: Date.now(),
       processingStep: 'gesture_detection',
       skipExpensiveSteps: false,
@@ -125,6 +126,10 @@ describe('GestureDetectionStep', () => {
     const result = await step.execute(context);
 
     expect(window.__mlpPredict).toHaveBeenCalled();
+    expect(window.__mlpPredict).toHaveBeenCalledWith(
+      landmarks,
+      context.rawResults?.handednesses
+    );
     expect(result.gesture).toBe('wave');
     expect(result.metadata?.mlp).toEqual({ label: 'Wave', score: 0.9 });
     expect(result.metadata?.method).toBe('mlp');
