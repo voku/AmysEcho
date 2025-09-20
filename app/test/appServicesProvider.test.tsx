@@ -55,50 +55,151 @@ jest.mock('../src/services/adaptiveLearningService', () => ({
 
 const mockLoadModels = jest.fn().mockRejectedValue(new Error('init fail'));
 
-jest.mock('../src/services', () => ({
-  mlService: {
-    loadModels: mockLoadModels,
-    isServiceReady: () => false,
-  },
-  audioService: {
-    initialize: jest.fn().mockResolvedValue(undefined),
-    dispose: jest.fn(),
-  },
-  adaptiveLearningService: {},
-  backupService: {},
-  gestureDataProtector: {},
-  gdprService: {},
-  checkForModelUpdate: jest.fn(),
-  syncTrainingData: jest.fn(),
-  uploadTelemetry: jest.fn(),
-  syncService: {
-    uploadPendingTrainingData: jest.fn(),
-  },
-  runDailyJobs: jest.fn(),
-  checkAllGesturesForDecliningAccuracy: jest.fn(),
-  checkPracticeRecommendations: jest.fn(),
-}));
+jest.mock('../src/services', () => {
+  if (!(globalThis as any).__mockServices) {
+    (globalThis as any).__mockServices = {
+      mlService: {
+        loadModels: mockLoadModels,
+        isServiceReady: () => false,
+      },
+      audioService: {
+        initialize: jest.fn().mockResolvedValue(undefined),
+        dispose: jest.fn(),
+      },
+      adaptiveLearningService: {},
+      backupService: {},
+      gestureDataProtector: {},
+      gdprService: {},
+      checkForModelUpdate: jest.fn().mockResolvedValue(undefined),
+      syncTrainingData: jest.fn().mockResolvedValue(undefined),
+      uploadTelemetry: jest.fn().mockResolvedValue(undefined),
+      syncService: {
+        uploadPendingTrainingData: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+  }
+  return (globalThis as any).__mockServices;
+});
 
+jest.mock('../src/services/dailyJobs', () => {
+  if (!(globalThis as any).__mockDailyJobs) {
+    (globalThis as any).__mockDailyJobs = {
+      runDailyJobs: jest.fn().mockResolvedValue(undefined),
+      checkAllGesturesForDecliningAccuracy: jest.fn(),
+      checkPracticeRecommendations: jest.fn(),
+    };
+  }
+  return (globalThis as any).__mockDailyJobs;
+});
+
+
+const AsyncStorage = require('@react-native-async-storage/async-storage');
+const { telemetry } = require('../src/telemetry/recorder');
+
+const services = require('../src/services');
+const dailyJobs = require('../src/services/dailyJobs');
+
+const { audioService, uploadTelemetry, syncService, syncTrainingData, checkForModelUpdate } = services;
+const { runDailyJobs } = dailyJobs;
+
+const flushAsync = async () => {
+  await act(async () => {
+    await Promise.resolve();
+  });
+  await act(async () => {});
+};
+
+const expectEventually = async (assertion: () => void, timeoutMs = 3000) => {
+  const timeoutAt = Date.now() + timeoutMs;
+  let lastError: unknown;
+  while (Date.now() < timeoutAt) {
+    try {
+      assertion();
+      return;
+    } catch (error) {
+      lastError = error;
+      await flushAsync();
+      await new Promise((resolve) => queueMicrotask(resolve));
+    }
+  }
+  throw lastError;
+};
 
 import { AppServicesProvider } from '../src/context/AppServicesProvider';
 import ErrorMessage from '../src/components/ErrorMessage';
 import { MessageProvider } from '../src/context/MessageContext';
 
+type TrackedRenderer = {
+  instance: renderer.ReactTestRenderer;
+  isMounted: boolean;
+};
+
+let mountedRenderers: TrackedRenderer[] = [];
+let setIntervalSpy: jest.SpyInstance | undefined;
+let setTimeoutSpy: jest.SpyInstance | undefined;
+
+const renderProvider = async (offline = false, child: React.ReactNode = <div>Test Child</div>) => {
+  let instance: renderer.ReactTestRenderer;
+  await act(async () => {
+    instance = renderer.create(
+      <MessageProvider>
+        <AppServicesProvider offline={offline}>{child}</AppServicesProvider>
+      </MessageProvider>,
+    );
+  });
+  const tracked = { instance: instance!, isMounted: true };
+  mountedRenderers.push(tracked);
+  return tracked;
+};
+
+const destroyRenderer = (tracked: TrackedRenderer) => {
+  if (!tracked.isMounted) {
+    return;
+  }
+  act(() => {
+    tracked.instance.unmount();
+  });
+  tracked.isMounted = false;
+};
+
+afterEach(() => {
+  mountedRenderers.forEach((tracked) => {
+    try {
+      destroyRenderer(tracked);
+    } catch {
+      // ignore double unmount errors from explicit test cleanup
+    }
+  });
+  mountedRenderers = [];
+  setIntervalSpy?.mockRestore();
+  setIntervalSpy = undefined;
+  setTimeoutSpy?.mockRestore();
+  setTimeoutSpy = undefined;
+});
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  setIntervalSpy = jest.spyOn(global, 'setInterval').mockImplementation(() => 0 as unknown as NodeJS.Timer);
+  setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((() => 0) as unknown as typeof setTimeout);
+  AsyncStorage.getItem.mockResolvedValue(null);
+  AsyncStorage.setItem.mockResolvedValue(undefined);
+  audioService.initialize.mockResolvedValue(undefined);
+  audioService.dispose.mockImplementation(() => undefined);
+  uploadTelemetry.mockResolvedValue(undefined);
+  syncService.uploadPendingTrainingData.mockResolvedValue(undefined);
+  syncTrainingData.mockResolvedValue(undefined);
+  checkForModelUpdate.mockResolvedValue(undefined);
+  runDailyJobs.mockResolvedValue(undefined);
+  telemetry.dump = jest.fn().mockResolvedValue([]);
+});
+
 describe('AppServicesProvider', () => {
   it('displays error message when initialization fails', async () => {
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
-      component = renderer.create(
-        <MessageProvider>
-          <AppServicesProvider>
-            <></>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-    await act(async () => {});
-    await act(async () => {});
-    const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
+    audioService.initialize.mockRejectedValueOnce(new Error('audio kaputt'));
+    const tracked = await renderProvider(false, <></>);
+    await flushAsync();
+    await flushAsync();
+    const error = tracked.instance.root.findByType(ErrorMessage as any);
     expect(error.props.message).toBe(
       'Dienste konnten nicht gestartet werden. Bitte Internetverbindung prüfen und erneut versuchen.',
     );
@@ -109,216 +210,87 @@ describe('AppServicesProvider', () => {
   });
 
   it('initializes successfully in online mode', async () => {
-    // Mock successful initialization
-    const { audioService } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
-      component = renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={false}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
-    // Should render children, not loading indicator
-    const children = component.root.findByType('div');
+    audioService.initialize.mockResolvedValueOnce(undefined);
+    const tracked = await renderProvider();
+    await flushAsync();
+    const children = tracked.instance.root.findByType('div');
     expect(children).toBeTruthy();
   });
 
   it('works in offline mode', async () => {
-    const { audioService } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    await act(async () => {
-      renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={true}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
+    audioService.initialize.mockResolvedValueOnce(undefined);
+    await renderProvider(true);
+    await flushAsync();
     expect(logger.info).toHaveBeenCalledWith('Starting in offline mode; skipping cloud sync');
   });
 
   it('handles profile loading failure gracefully', async () => {
     const { loadActiveProfileId } = require('../src/storage');
     loadActiveProfileId.mockRejectedValueOnce(new Error('Storage error'));
-
-    const { audioService } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
-      component = renderer.create(
-        <MessageProvider>
-          <AppServicesProvider>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
-    // Should still initialize successfully despite profile loading failure
-    const children = component.root.findByType('div');
-    expect(children).toBeTruthy();
+    audioService.initialize.mockResolvedValueOnce(undefined);
+    const tracked = await renderProvider();
+    await flushAsync();
+    expect(() => tracked.instance.root.findByType('div')).not.toThrow();
   });
 
   it('runs daily jobs when not run today', async () => {
-    // This test covers the branch for checking if daily jobs should run
-    const { audioService } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
-      component = renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={false}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
-    // The test covers the offline=false branch and AsyncStorage interaction
-    expect(component).toBeTruthy();
+    audioService.initialize.mockResolvedValueOnce(undefined);
+    const tracked = await renderProvider();
+    await flushAsync();
+    await expectEventually(() => expect(runDailyJobs).toHaveBeenCalled());
+    expect(() => tracked.instance.root.findByType('div')).not.toThrow();
   });
 
   it('skips daily jobs when already run today', async () => {
-    const { audioService, runDailyJobs } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    // Mock AsyncStorage to return today's date
-    const AsyncStorage = require('@react-native-async-storage/async-storage');
+    audioService.initialize.mockResolvedValueOnce(undefined);
     const today = new Date().toISOString().slice(0, 10);
     AsyncStorage.getItem.mockResolvedValueOnce(today);
-
-    await act(async () => {
-      renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={false}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
+    await renderProvider();
+    await flushAsync();
     expect(runDailyJobs).not.toHaveBeenCalled();
   });
 
   it('handles telemetry dump failures gracefully', async () => {
-    const { audioService } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    // Mock telemetry.dump to throw
-    const { telemetry } = require('../src/telemetry/recorder');
+    audioService.initialize.mockResolvedValueOnce(undefined);
     telemetry.dump = jest.fn().mockRejectedValue(new Error('Telemetry dump failed'));
-
-    await act(async () => {
-      renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={false}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
-    // Should not crash despite telemetry failure
-    expect(logger.warn).toHaveBeenCalledWith('Failed to run model update check', expect.any(Error));
+    await renderProvider();
+    await flushAsync();
+    await expectEventually(() =>
+      expect(logger.warn).toHaveBeenCalledWith('Failed to run model update check', expect.any(Error)),
+    );
   });
 
   it('handles telemetry upload failures gracefully', async () => {
-    const { audioService, uploadTelemetry } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    // Mock telemetry.dump to return events and uploadTelemetry to fail
-    const { telemetry } = require('../src/telemetry/recorder');
+    audioService.initialize.mockResolvedValueOnce(undefined);
     telemetry.dump = jest.fn().mockResolvedValue(['event1', 'event2']);
     uploadTelemetry.mockRejectedValue(new Error('Upload failed'));
-
-    await act(async () => {
-      renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={false}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
-    // Should not crash despite upload failure
-    expect(uploadTelemetry).toHaveBeenCalledWith(['event1', 'event2']);
+    await renderProvider();
+    await flushAsync();
+    await expectEventually(() => expect(uploadTelemetry).toHaveBeenCalledWith(['event1', 'event2']));
   });
 
   it('handles sync service failures gracefully', async () => {
-    const { audioService, syncService } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
+    audioService.initialize.mockResolvedValueOnce(undefined);
     syncService.uploadPendingTrainingData.mockRejectedValue(new Error('Sync failed'));
-
-    await act(async () => {
-      renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={false}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
-    // Should not crash despite sync failure
-    expect(syncService.uploadPendingTrainingData).toHaveBeenCalled();
+    await renderProvider();
+    await flushAsync();
+    await expectEventually(() => expect(syncService.uploadPendingTrainingData).toHaveBeenCalled());
   });
 
   it('handles AsyncStorage failures gracefully', async () => {
-    const { audioService } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    // Mock AsyncStorage to fail
-    const AsyncStorage = require('@react-native-async-storage/async-storage');
+    audioService.initialize.mockResolvedValueOnce(undefined);
     AsyncStorage.getItem.mockRejectedValue(new Error('Storage failed'));
     AsyncStorage.setItem.mockRejectedValue(new Error('Storage failed'));
-
-    await act(async () => {
-      renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={false}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
-    // Should not crash despite storage failures
-    expect(AsyncStorage.getItem).toHaveBeenCalled();
+    await renderProvider();
+    await flushAsync();
+    await expectEventually(() => expect(AsyncStorage.getItem).toHaveBeenCalled());
   });
 
   it('cleans up intervals and timeouts on unmount', async () => {
-    const { audioService } = require('../src/services');
-    audioService.initialize.mockResolvedValueOnce();
-
-    let component: renderer.ReactTestRenderer;
-    await act(async () => {
-      component = renderer.create(
-        <MessageProvider>
-          <AppServicesProvider offline={false}>
-            <div>Test Child</div>
-          </AppServicesProvider>
-        </MessageProvider>,
-      );
-    });
-
-    // Unmount the component
-    act(() => {
-      component.unmount();
-    });
-
-    expect(audioService.dispose).toHaveBeenCalled();
+    audioService.initialize.mockResolvedValueOnce(undefined);
+    const tracked = await renderProvider();
+    await flushAsync();
+    destroyRenderer(tracked);
+    await expectEventually(() => expect(audioService.dispose).toHaveBeenCalled());
   });
 });

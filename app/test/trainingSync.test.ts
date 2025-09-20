@@ -7,6 +7,33 @@ jest.mock('@react-native-community/netinfo', () => ({
   fetch: mockNetInfoFetch,
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () => {
+  const store = new Map<string, string>();
+  return {
+    __esModule: true,
+    default: {
+      async getItem(key: string) {
+        return store.get(key) ?? null;
+      },
+      async setItem(key: string, value: string) {
+        store.set(key, value);
+      },
+      async removeItem(key: string) {
+        store.delete(key);
+      },
+      async clear() {
+        store.clear();
+      },
+      async multiGet(keys: string[]) {
+        return keys.map((key) => [key, store.get(key) ?? null]);
+      },
+      async multiSet(entries: [string, string][]) {
+        entries.forEach(([key, value]) => store.set(key, value));
+      },
+    },
+  };
+});
+
 jest.mock('../src/storage', () => ({
   loadProfile: async () => ({ consentHelpMeGetSmarter: true, id: 'amy' }),
   loadBackendApiToken: async () => 'token',

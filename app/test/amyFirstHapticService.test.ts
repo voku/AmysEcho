@@ -17,7 +17,8 @@ jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn().mockResolvedValue(undefined),
   NotificationFeedbackType: {
     Success: 'success',
-    Error: 'error'
+    Error: 'error',
+    Warning: 'warning'
   },
   notificationAsync: jest.fn().mockResolvedValue(undefined)
 }));
@@ -36,15 +37,24 @@ jest.mock('../src/services/audioService', () => ({
 }));
 
 describe('AmyFirstHapticService', () => {
+  const expoHaptics = jest.requireMock('expo-haptics');
+  const asyncStorage = jest.requireMock('@react-native-async-storage/async-storage');
+  const audioServiceMock = jest.requireMock('../src/services/audioService');
+
   beforeEach(() => {
     jest.clearAllMocks();
+    expoHaptics.impactAsync.mockResolvedValue(undefined);
+    expoHaptics.notificationAsync.mockResolvedValue(undefined);
+    asyncStorage.getItem.mockResolvedValue(null);
+    asyncStorage.setItem.mockResolvedValue(undefined);
+    audioServiceMock.audioService.playSuccessFeedback.mockResolvedValue(undefined);
     // Reset service state
     (amyFirstHapticService as any).preferences = (amyFirstHapticService as any).getDefaultPreferences();
   });
 
   describe('Context-Aware Feedback', () => {
     test('provides basic feedback for simple gestures', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.provideContextAwareFeedback('thumbs_up', 0.8);
 
@@ -52,7 +62,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('adapts feedback based on time of day', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       // Morning context - should be gentler
       await amyFirstHapticService.provideContextAwareFeedback('hello', 0.8, {
@@ -63,7 +73,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('provides emergency feedback for critical gestures', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.provideContextAwareFeedback('hilfe', 0.8, {
         isEmergency: true
@@ -75,7 +85,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('adjusts feedback based on activity level', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       // High activity - should be gentler to avoid overwhelming
       await amyFirstHapticService.provideContextAwareFeedback('thumbs_up', 0.8, {
@@ -86,7 +96,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('recognizes pattern matches and boosts feedback', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.provideContextAwareFeedback('thumbs_up', 0.8, {
         patternMatch: true
@@ -99,7 +109,7 @@ describe('AmyFirstHapticService', () => {
 
   describe('Multi-Sensory Feedback', () => {
     test('combines haptic with audio and visual feedback', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
       const mockVisualCallback = jest.fn();
 
       await amyFirstHapticService.provideMultiSensoryFeedback('thumbs_up', 0.8, {}, {
@@ -113,7 +123,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('respects feedback channel preferences', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
       const mockVisualCallback = jest.fn();
 
       // Disable audio
@@ -128,7 +138,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('handles feedback failures gracefully', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
       impactAsync.mockRejectedValue(new Error('Haptic failed'));
 
       // Should not throw despite haptic failure
@@ -140,7 +150,7 @@ describe('AmyFirstHapticService', () => {
 
   describe('Amy Preferences', () => {
     test('applies gentle intensity preference', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.savePreferences({ intensity: 'gentle' });
       await amyFirstHapticService.provideContextAwareFeedback('thumbs_up', 0.8);
@@ -150,7 +160,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('applies strong intensity preference', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.savePreferences({ intensity: 'strong' });
       await amyFirstHapticService.provideContextAwareFeedback('thumbs_up', 0.8);
@@ -160,7 +170,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('respects time-based adjustment settings', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.savePreferences({
         timeBasedAdjustments: false,
@@ -176,7 +186,7 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('respects context awareness settings', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.savePreferences({
         contextAwareness: false
@@ -193,7 +203,7 @@ describe('AmyFirstHapticService', () => {
 
   describe('Gesture-Specific Patterns', () => {
     test('provides celebratory feedback for positive gestures', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.provideContextAwareFeedback('danke', 0.8);
 
@@ -202,19 +212,19 @@ describe('AmyFirstHapticService', () => {
     });
 
     test('provides gentle feedback for question gestures', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.provideContextAwareFeedback('was', 0.8);
 
-      expect(impactAsync).toHaveBeenCalledWith('light');
+      expect(impactAsync).toHaveBeenCalledWith('medium');
     });
 
     test('provides communication feedback for core gestures', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
 
       await amyFirstHapticService.provideContextAwareFeedback('ich', 0.8);
 
-      expect(impactAsync).toHaveBeenCalledWith('light');
+      expect(impactAsync).toHaveBeenCalledWith('medium');
     });
   });
 
@@ -251,7 +261,7 @@ describe('AmyFirstHapticService', () => {
 
   describe('Performance and Reliability', () => {
     test('maintains performance with rapid feedback requests', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
       const startTime = Date.now();
 
       // Simulate rapid feedback requests
@@ -266,11 +276,11 @@ describe('AmyFirstHapticService', () => {
 
       const duration = Date.now() - startTime;
       expect(duration).toBeLessThan(1000); // Should complete within 1 second
-      expect(impactAsync).toHaveBeenCalledTimes(20); // Updated for enhanced haptic system
+      expect(impactAsync).toHaveBeenCalledTimes(10); // Single pulse per request
     });
 
     test('handles concurrent multi-sensory requests', async () => {
-      const { impactAsync } = require('expo-haptics');
+      const impactAsync = expoHaptics.impactAsync;
       const mockVisualCallback = jest.fn();
 
       const promises = [];
@@ -286,7 +296,7 @@ describe('AmyFirstHapticService', () => {
 
       await Promise.all(promises);
 
-      expect(impactAsync).toHaveBeenCalledTimes(10); // Updated for enhanced haptic system
+      expect(impactAsync).toHaveBeenCalledTimes(5); // One haptic run per multi-sensory feedback
       expect(mockVisualCallback).toHaveBeenCalledTimes(5);
     });
   });

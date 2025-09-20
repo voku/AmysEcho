@@ -11,6 +11,8 @@ interface ScreenFlashProps {
   intensity?: 'subtle' | 'normal' | 'intense';
 }
 
+const DEFAULT_DIMENSIONS = { width: 360, height: 640 };
+
 export default function ScreenFlash({
   isActive,
   pattern = ScreenFlashPattern.Single,
@@ -18,7 +20,10 @@ export default function ScreenFlash({
   duration = 300,
   intensity = 'normal'
 }: ScreenFlashProps) {
-  const { width, height } = Dimensions.get('window');
+  const windowMetrics = Dimensions?.get?.('window');
+  const screenMetrics = Dimensions?.get?.('screen');
+  const width = windowMetrics?.width ?? screenMetrics?.width ?? DEFAULT_DIMENSIONS.width;
+  const height = windowMetrics?.height ?? screenMetrics?.height ?? DEFAULT_DIMENSIONS.height;
 
   const styles = React.useMemo(() => ({
     container: {
