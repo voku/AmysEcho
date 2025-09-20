@@ -62,6 +62,9 @@ const cameraError = window.__cameraError || 'Kamerafehler: ';
 const facingMode = window.__facingMode || 'user';
 const mirrorOverlay = window.__mirrorOverlay === true;
 
+const container = document.createElement('div');
+container.id = 'gestureCameraContainer';
+
 // Create DOM elements
 const video = document.createElement('video');
 const overlay = document.createElement('canvas');
@@ -70,13 +73,68 @@ video.setAttribute('autoplay', '');
 video.setAttribute('playsinline', '');
 video.setAttribute('muted', '');
 
+function applyBaseStyles() {
+  const docEl = document.documentElement;
+  docEl.style.height = '100%';
+  docEl.style.width = '100%';
+
+  document.body.style.margin = '0';
+  document.body.style.height = '100%';
+  document.body.style.width = '100%';
+  document.body.style.display = 'flex';
+  document.body.style.alignItems = 'center';
+  document.body.style.justifyContent = 'center';
+  document.body.style.backgroundColor = '#ecfdf5';
+  document.body.style.backgroundImage =
+    'radial-gradient(circle at 20% 20%, rgba(134, 239, 172, 0.25), transparent 60%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.18), transparent 55%)';
+  document.body.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+  container.style.position = 'relative';
+  container.style.width = 'min(96vw, 640px)';
+  container.style.height = 'min(72vh, 480px)';
+  container.style.maxWidth = '100vw';
+  container.style.maxHeight = '100vh';
+  container.style.borderRadius = '24px';
+  container.style.overflow = 'hidden';
+  container.style.boxShadow = '0 18px 40px rgba(15, 23, 42, 0.18)';
+  container.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(226, 252, 245, 0.92))';
+
+  video.style.width = '100%';
+  video.style.height = '100%';
+  video.style.objectFit = 'cover';
+  video.style.display = 'block';
+  video.style.backgroundColor = '#f8fafc';
+  video.style.filter = 'brightness(1.08)';
+  video.style.transition = 'filter 0.2s ease';
+  video.style.transformOrigin = 'center';
+
+  const shouldMirrorVideo = mirrorOverlay || facingMode === 'user';
+  if (shouldMirrorVideo) {
+    video.style.transform = 'scaleX(-1)';
+  } else {
+    video.style.removeProperty('transform');
+  }
+
+  overlay.style.position = 'absolute';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.pointerEvents = 'none';
+  overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+  overlay.style.mixBlendMode = 'screen';
+}
+
 // Create main orchestrator instance
 let orchestrator: GestureRecognitionOrchestrator | null = null;
 
 // Initialize DOM and start gesture recognition
 function initDom() {
-  document.body.appendChild(video);
-  document.body.appendChild(overlay);
+  applyBaseStyles();
+
+  container.appendChild(video);
+  container.appendChild(overlay);
+  document.body.appendChild(container);
 
   // Create orchestrator
   orchestrator = new GestureRecognitionOrchestrator(video, overlay);
@@ -118,6 +176,30 @@ function initDom() {
         }),
       );
     }
+  });
+
+  tap.style.position = 'absolute';
+  tap.style.bottom = '5%';
+  tap.style.left = '50%';
+  tap.style.transform = 'translateX(-50%)';
+  tap.style.padding = '12px 24px';
+  tap.style.background = 'linear-gradient(135deg, #10b981, #22d3ee)';
+  tap.style.color = '#0f172a';
+  tap.style.fontWeight = '600';
+  tap.style.borderRadius = '999px';
+  tap.style.boxShadow = '0 12px 24px rgba(14, 116, 144, 0.35)';
+  tap.style.cursor = 'pointer';
+  tap.style.userSelect = 'none';
+  tap.style.transition = 'transform 0.15s ease, box-shadow 0.2s ease';
+
+  tap.addEventListener('pointerdown', () => {
+    tap.style.transform = 'translateX(-50%) scale(0.98)';
+  });
+  tap.addEventListener('pointerup', () => {
+    tap.style.transform = 'translateX(-50%)';
+  });
+  tap.addEventListener('pointerleave', () => {
+    tap.style.transform = 'translateX(-50%)';
   });
 
   document.body.appendChild(tap);
@@ -175,6 +257,12 @@ async function cleanup() {
     overlay.remove();
   } catch (e) {
     console.warn("Failed to remove 'overlay' element:", e);
+  }
+
+  try {
+    container.remove();
+  } catch (e) {
+    console.warn('Failed to remove camera container:', e);
   }
 
   try {

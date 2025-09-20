@@ -2008,6 +2008,7 @@
         open_palm: 0.6,
         peace: 0.7
       };
+      this.recognitionThreshold = 0.6;
     }
     /**
      * Optimized partial gesture analysis with reduced memory allocation
@@ -2114,8 +2115,14 @@
           return `Geste zu ${completionPercent}% fertig.`;
       }
     }
+    setThreshold(threshold) {
+      if (Number.isFinite(threshold)) {
+        const clamped = Math.max(0, Math.min(1, threshold));
+        this.recognitionThreshold = clamped;
+      }
+    }
     shouldRecognizePartial(completion, confidence) {
-      return completion >= 0.4 && confidence >= 0.5;
+      return completion >= 0.4 && confidence >= this.recognitionThreshold;
     }
     cleanup() {
       const cutoffTime = Date.now() - 3e4;

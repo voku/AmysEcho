@@ -141,7 +141,9 @@ export default function GestureComparison({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StyleSheet?.create ?? ((input: any) => input)) as typeof StyleSheet.create;
+
+const styles = createStyles({
   overlay: {
     position: 'absolute',
     top: 0,
