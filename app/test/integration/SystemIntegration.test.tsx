@@ -42,10 +42,10 @@ jest.mock('../../db', () => ({
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   const React = require('react');
   return function MockMediaPipeGestureDetector({ onGestureDetected }: any) {
-    return React.createElement('View', {
-      testID: 'media-pipe-detector',
-      onPress: () => onGestureDetected?.('hello', 0.9, [[[0.5, 0.5, 0.8]]], ['right'])
-    });
+      return React.createElement('View', {
+        testID: 'media-pipe-detector',
+        onPress: () => onGestureDetected?.('hello', 0.9, [[[0.5, 0.5, 0.8]]])
+      });
   };
 });
 
@@ -141,7 +141,7 @@ describe('System Integration Tests', () => {
       MockDetector.mockImplementation(({ onGestureDetected }: any) => {
         return React.createElement('View', {
           testID: 'media-pipe-detector',
-          onPress: () => onGestureDetected?.('unclear_gesture', 0.3, [[[0.5, 0.5, 0.3]]], ['right'])
+          onPress: () => onGestureDetected?.('unclear_gesture', 0.3, [[[0.5, 0.5, 0.3]]])
         });
       });
 
@@ -172,7 +172,7 @@ describe('System Integration Tests', () => {
       MockDetector.mockImplementation(({ onGestureDetected }: any) => {
         return React.createElement('View', {
           testID: 'media-pipe-detector',
-          onPress: () => onGestureDetected?.('help', 0.95, [[[0.5, 0.5, 0.9]]], ['right'])
+          onPress: () => onGestureDetected?.('help', 0.95, [[[0.5, 0.5, 0.9]]])
         });
       });
 
