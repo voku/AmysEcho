@@ -103,14 +103,45 @@ export function installMlp() {
   }
   async function loadMlpFromB64(b64: string) {
     try {
-      const bin = atob(b64);
+      // Validate base64 input
+      if (!b64 || typeof b64 !== 'string' || b64.length === 0) {
+        throw new Error('Invalid base64 data: empty or not a string');
+      }
+
+      // Check if base64 data looks valid (basic validation)
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) {
+        throw new Error('Invalid base64 format: contains invalid characters');
+      }
+
+      let bin: string;
+      try {
+        bin = atob(b64);
+      } catch (e) {
+        throw new Error('Failed to decode base64: ' + (e instanceof Error ? e.message : String(e)));
+      }
+
+      if (bin.length === 0) {
+        throw new Error('Decoded base64 is empty');
+      }
+
       const u8 = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+
       const unzip = window.fflate?.unzip;
       if (!unzip) throw new Error('fflate unavailable');
+
       const files: Record<string, Uint8Array> = await new Promise((resolve, reject) => {
         unzip(u8, (err: any, data: Record<string, Uint8Array>) => {
-          if (err) reject(err); else resolve(data);
+          if (err) {
+            // Provide more specific error messages for common issues
+            if (err.code === 20) {
+              reject(new Error('Invalid zip data: corrupted or incomplete file'));
+            } else if (err.code === 13) {
+              reject(new Error('Invalid zip data: not a valid zip archive'));
+            } else {
+              reject(new Error('Zip extraction failed: ' + (err.message || String(err))));
+            }
+          } else resolve(data);
         });
       });
       const entries = Object.keys(files);
@@ -128,16 +159,78 @@ export function installMlp() {
       const w2b = npzFind(map, 'w2');
       const b2b = npzFind(map, 'b2');
       if (!w1b || !b1b || !w2b || !b2b) throw new Error('missing weights');
-      const w1 = parseNPY(w1b);
-      const b1 = parseNPY(b1b);
-      const w2 = parseNPY(w2b);
-      const b2 = parseNPY(b2b);
-      let labels: string[] = [];
+      // Parse and validate model weights
+      let w1, b1, w2, b2, labels: string[] = [];
+
+      try {
+        w1 = parseNPY(w1b);
+        if (!w1.data || w1.shape.length !== 2) {
+          throw new Error('Invalid w1 tensor: expected 2D array');
+        }
+      } catch (e) {
+        throw new Error('Failed to parse w1 weights: ' + (e instanceof Error ? e.message : String(e)));
+      }
+
+      try {
+        b1 = parseNPY(b1b);
+        if (!b1.data || b1.shape.length !== 1) {
+          throw new Error('Invalid b1 tensor: expected 1D array');
+        }
+      } catch (e) {
+        throw new Error('Failed to parse b1 biases: ' + (e instanceof Error ? e.message : String(e)));
+      }
+
+      try {
+        w2 = parseNPY(w2b);
+        if (!w2.data || w2.shape.length !== 2) {
+          throw new Error('Invalid w2 tensor: expected 2D array');
+        }
+      } catch (e) {
+        throw new Error('Failed to parse w2 weights: ' + (e instanceof Error ? e.message : String(e)));
+      }
+
+      try {
+        b2 = parseNPY(b2b);
+        if (!b2.data || b2.shape.length !== 1) {
+          throw new Error('Invalid b2 tensor: expected 1D array');
+        }
+      } catch (e) {
+        throw new Error('Failed to parse b2 biases: ' + (e instanceof Error ? e.message : String(e)));
+      }
+
+      // Parse labels if available
       const lb = npzFind(map, 'labels');
       if (lb) {
-        const parsed = parseNPY(lb);
-        labels = parsed.data as string[];
+        try {
+          const parsed = parseNPY(lb);
+          if (parsed.data && Array.isArray(parsed.data)) {
+            labels = parsed.data as string[];
+          } else {
+            console.warn('Labels data is not an array, using empty labels');
+            labels = [];
+          }
+        } catch (e) {
+          console.warn('Failed to parse labels, using empty labels:', e);
+          labels = [];
+        }
       }
+      // Validate tensor dimensions for MLP compatibility
+      const inputSize = w1.shape[1];
+      const hiddenSize = w1.shape[0];
+      const outputSize = w2.shape[0];
+
+      if (b1.shape[0] !== hiddenSize) {
+        throw new Error(`Dimension mismatch: b1 has ${b1.shape[0]} elements but expected ${hiddenSize}`);
+      }
+      if (w2.shape[1] !== hiddenSize) {
+        throw new Error(`Dimension mismatch: w2 input size ${w2.shape[1]} doesn't match hidden size ${hiddenSize}`);
+      }
+      if (b2.shape[0] !== outputSize) {
+        throw new Error(`Dimension mismatch: b2 has ${b2.shape[0]} elements but expected ${outputSize}`);
+      }
+
+      console.log(`MLP model loaded successfully: ${inputSize} -> ${hiddenSize} -> ${outputSize} with ${labels.length} labels`);
+
       mlp = {
         w1: { data: Float32Array.from(w1.data as ArrayLike<number>), shape: w1.shape },
         b1: { data: Float32Array.from(b1.data as ArrayLike<number>), shape: b1.shape },

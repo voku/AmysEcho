@@ -536,16 +536,6 @@ app.get('/api/v1/dgs/model', legacyAuth, async (req: any, res: any) => {
   }
 });
 
-// Amy-first: ensure MLP model is always fetchable; serve inline placeholder if needed (pre-handler)
-app.use('/api/v1/dgs/mlp-model', legacyAuth, async (_req: Request, res: Response, next: Function) => {
-  const buf = Buffer.from('mlp-model');
-  res.setHeader('Content-Type', 'application/octet-stream');
-  res.setHeader('Content-Length', String(buf.length));
-  res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-  res.setHeader('X-Resolved-Path', 'inline');
-  return res.end(buf);
-});
-
 // Serve per-profile MLP models (NPZ) with containment checks
 app.get('/api/v1/dgs/mlp-model', legacyAuth, async (req: Request, res: Response) => {
   try {

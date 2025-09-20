@@ -19,6 +19,7 @@ import { logger } from './src/utils/logger';
 
 import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashReporting';
 // Model updates are coordinated by AppServicesProvider
+import { AppServicesProvider } from './src/context/AppServicesProvider';
 
 import { PerformanceProvider } from './src/context/PerformanceContext';
 import ChildErrorBoundary from './src/components/ChildErrorBoundary';

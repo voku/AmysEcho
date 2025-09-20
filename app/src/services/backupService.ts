@@ -1,12 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import { Paths, writeAsStringAsync, readAsStringAsync } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+const { EncodingType } = FileSystem;
 import * as SecureStore from 'expo-secure-store';
 import CryptoJS from 'crypto-js';
 import { logger } from '../utils/logger';
 import { gestureDataProtector } from './dataProtection';
 
-const BACKUP_FILE = `${FileSystem.documentDirectory}protectedGesturesBackup.json`;
-const EXPORT_FILE = `${FileSystem.documentDirectory}protectedGesturesExport.json`;
+const BACKUP_FILE = `${Paths.document.uri}protectedGesturesBackup.json`;
+const EXPORT_FILE = `${Paths.document.uri}protectedGesturesExport.json`;
 const PROTECTED_GESTURES_KEY = 'protectedGestures';
 const BACKUP_KEY_ID = 'protectedGesturesBackupKey';
 
@@ -42,8 +44,8 @@ export const backupService = {
 
       const key = await getOrCreateKey();
       const cipher = CryptoJS.AES.encrypt(data, key).toString();
-      await FileSystem.writeAsStringAsync(BACKUP_FILE, cipher, {
-        encoding: FileSystem.EncodingType.UTF8,
+      await writeAsStringAsync(BACKUP_FILE, cipher, {
+        encoding: EncodingType.UTF8,
       });
       logger.info(`Backup created at ${BACKUP_FILE}`);
       return BACKUP_FILE;
@@ -62,8 +64,8 @@ export const backupService = {
       }
 
       const key = await getOrCreateKey();
-      const cipher = await FileSystem.readAsStringAsync(BACKUP_FILE, {
-        encoding: FileSystem.EncodingType.UTF8,
+      const cipher = await readAsStringAsync(BACKUP_FILE, {
+        encoding: EncodingType.UTF8,
       });
 
       let plain: string;
@@ -136,10 +138,10 @@ export const backupService = {
         }
       });
 
-      await FileSystem.writeAsStringAsync(
+      await writeAsStringAsync(
         EXPORT_FILE,
         JSON.stringify(decrypted, null, 2),
-        { encoding: FileSystem.EncodingType.UTF8 },
+        { encoding: EncodingType.UTF8 },
       );
       logger.info(`Export created at ${EXPORT_FILE}`);
       return EXPORT_FILE;

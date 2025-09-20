@@ -54,7 +54,7 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   }, [navigation]);
 
   // Enhanced breadcrumb system - show navigation path
-  const getCurrentScreenName = () => {
+  const getCurrentScreenName = useCallback(() => {
     const screenNames: Record<string, string> = {
       'Recognition': '🏠 Zuhören',
       'Training': '🎯 Lernen',
@@ -69,7 +69,7 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
       'ProfileManager': '⚙️ Einstellungen',
     };
     return screenNames[route.name] || route.name;
-  };
+  }, [route.name]);
 
   useEffect(() => {
     // Update navigation history

@@ -8,7 +8,8 @@ import {
 } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system';
+import { Paths, getInfoAsync } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // Local imports
 import { logger } from '../utils/logger';
@@ -75,10 +76,8 @@ export class AudioService {
     ];
 
     for (const name of names) {
-      const bundlePath = FileSystem.bundleDirectory
-        ? FileSystem.bundleDirectory + `assets/sounds/${name}.mp3`
-        : null;
-      const docPath = FileSystem.documentDirectory + `sounds/${name}.mp3`;
+      const bundlePath = Paths.bundle.uri + `assets/sounds/${name}.mp3`;
+      const docPath = Paths.document.uri + `sounds/${name}.mp3`;
 
       const candidates = [bundlePath, docPath].filter(Boolean) as string[];
       let loaded = false;
@@ -453,7 +452,7 @@ export async function playSymbolAudio(entry: { id: string; label: string; audioU
   }
 
   if (uri) {
-    const info = await FileSystem.getInfoAsync(uri);
+    const info = await getInfoAsync(uri);
     if (info.exists) {
       await audioService.playCustomAudio(uri);
       return;

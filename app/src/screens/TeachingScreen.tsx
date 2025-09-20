@@ -76,9 +76,9 @@ export default function TeachingScreen({ navigation }: any) {
   }, []);
 
   const handleGestureDetected = useCallback(
-    async (gesture: string | null, confidence: number, lms: number[][][], hands: string[]) => {
+    async (gesture: string | null, confidence: number, lms: number[][][]) => {
       landmarksRef.current = lms;
-      handednessRef.current = hands;
+      handednessRef.current = []; // No handedness data available in simplified mode
 
       // Enhanced feedback for teaching mode
       if (gesture && confidence > 0.3) {
@@ -94,7 +94,7 @@ export default function TeachingScreen({ navigation }: any) {
         });
 
         // Enhanced two-hand gesture validation and feedback
-        if (isTwoHandMode && selectedTwoHandGesture && hands.length >= 2 && lms.length >= 2) {
+        if (isTwoHandMode && selectedTwoHandGesture && lms.length >= 2) {
           const parsed = parseTwoHandGestureString(gesture);
           if (parsed) {
             const twoHandResult = await twoHandGestureService.processTwoHandGesture(
@@ -102,7 +102,7 @@ export default function TeachingScreen({ navigation }: any) {
               parsed.right,
               confidence,
               confidence,
-              hands,
+              [], // No handedness data in simplified mode
               lms
             );
 
@@ -430,7 +430,13 @@ export default function TeachingScreen({ navigation }: any) {
       ) : (
          <View style={styles.recordingContainer}>
            <View style={styles.camera}>
-             <MediaPipeGestureDetector onGestureDetected={handleGestureDetected} onError={setError} />
+              <MediaPipeGestureDetector
+                onGestureDetected={handleGestureDetected}
+                onError={setError}
+                onWebViewEvent={(telemetry) => {
+                  console.log('Teaching WebView telemetry:', telemetry);
+                }}
+              />
 
              {/* Visual feedback overlay */}
              <VisualFeedback

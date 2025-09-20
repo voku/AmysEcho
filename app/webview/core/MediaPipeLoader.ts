@@ -80,17 +80,20 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
       };
       const to = setTimeout(() => {
         cleanup();
-        reject(new Error('Script load timeout: ' + src));
+        console.warn(`Script load timeout after ${timeoutMs}ms: ${src}`);
+        reject(new Error(`Script load timeout after ${timeoutMs}ms: ${src}`));
       }, timeoutMs);
       s.onload = () => {
         clearTimeout(to);
         cleanup();
+        console.log(`Script loaded successfully: ${src}`);
         resolve(null);
       };
-      s.onerror = () => {
+      s.onerror = (event) => {
         clearTimeout(to);
         cleanup();
-        reject(new Error('Script failed to load: ' + src));
+        console.error(`Script failed to load: ${src}`, event);
+        reject(new Error(`Script failed to load: ${src}`));
       };
       document.head.appendChild(s);
     });
@@ -125,26 +128,36 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
   });
 
   let lastError = null;
+  let attemptCount = 0;
+
   for (const c of candidates) {
+    attemptCount++;
     try {
+      console.log(`Attempting to load MediaPipe from ${c.umd} (attempt ${attemptCount}/${candidates.length})`);
+
       // Try UMD first
       if (!haveUMD()) {
         const sri =
           pinned && c.umd.includes(`@${pinned.version}/`) ? (window as any).__visionBundleSri : undefined;
+        console.log(`Loading script from ${c.umd} with SRI: ${sri ? 'enabled' : 'disabled'}`);
         await tryLoadScript(c.umd, sri);
       }
       if (haveUMD()) {
+        console.log('Successfully loaded MediaPipe via UMD');
         return {
           FilesetResolver: window.fileset_resolver!.FilesetResolver,
           GestureRecognizer: window.vision!.GestureRecognizer,
           wasmBase: c.wasm,
         };
       }
-      // Try ESM next (optional: gate via host config)
+
+      // If UMD failed, try ESM as fallback
       if ((window as any).__allowCdnEsm === true) {
         try {
+          console.log(`Attempting ESM import from ${c.esm}`);
           const mod = await import(/* @vite-ignore */ c.esm);
           if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+            console.log('Successfully loaded MediaPipe via ESM');
             return {
               FilesetResolver: mod.FilesetResolver,
               GestureRecognizer: mod.GestureRecognizer,
@@ -152,15 +165,34 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
             };
           }
         } catch (e) {
+          console.warn(`ESM import failed for ${c.esm}:`, e);
           lastError = e;
         }
       }
     } catch (e) {
+      console.warn(`MediaPipe load attempt ${attemptCount} failed:`, e);
       lastError = e;
     }
   }
+
+  // Provide more detailed error information
+  const errorDetails = {
+    attempts: attemptCount,
+    candidates: candidates.map(c => ({ umd: c.umd, esm: c.esm })),
+    lastError: lastError ? {
+      message: lastError.message,
+      name: lastError.name,
+      stack: lastError.stack
+    } : null,
+    userAgent: navigator.userAgent,
+    hasFetch: typeof fetch !== 'undefined',
+    isSecureContext: window.isSecureContext,
+  };
+
+  console.error('All MediaPipe loading attempts failed:', errorDetails);
+
   throw new Error(
-    'Tasks Vision globals not available' +
+    'Tasks Vision globals not available after ' + attemptCount + ' attempts' +
       (lastError ? ': ' + (lastError.message || lastError) : ''),
   );
 }

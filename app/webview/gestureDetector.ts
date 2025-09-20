@@ -59,11 +59,30 @@ let lastCapturedFrame: string | null = null;
 // Forward script errors to React Native for easier debugging
 const onError = (e: ErrorEvent) => {
   try {
-    // Send a generic child-friendly error message instead of technical details
+    // Categorize errors for better handling
+    let errorCategory = 'gesture_processing_error';
+    const errorMessage = e.message?.toLowerCase() || '';
+
+    if (errorMessage.includes('camera') || errorMessage.includes('media') || errorMessage.includes('getusermedia')) {
+      errorCategory = 'CAMERA_ERROR';
+    } else if (errorMessage.includes('zip') || errorMessage.includes('fflate') || errorMessage.includes('unzip')) {
+      errorCategory = 'MLP_LOAD_ERROR';
+    } else if (errorMessage.includes('mediapipe') || errorMessage.includes('gesture') || errorMessage.includes('recognizer')) {
+      errorCategory = 'GESTURE_RECOGNITION_ERROR';
+    }
+
+    // Send categorized error message
     window.ReactNativeWebView?.postMessage?.(
       JSON.stringify({
         type: 'error',
-        message: 'gesture_processing_error', // Generic identifier for React Native to handle
+        message: errorCategory,
+        details: {
+          originalMessage: e.message,
+          file: e.filename,
+          line: e.lineno,
+          col: e.colno,
+          timestamp: Date.now(),
+        },
         // Keep technical details for logging but don't send to UI
         _technical: {
           message: e.message,
@@ -1507,6 +1526,15 @@ function processGestureResults(results: any, timestamp: number) {
     const frameLatency = Math.round(performance.now() - timestamp);
     frameCount++;
 
+    console.log('Processing gesture results:', {
+      hasResults: !!results,
+      hasLandmarks: !!(results?.landmarks),
+      landmarksCount: results?.landmarks?.length || 0,
+      hasHandednesses: !!(results?.handednesses),
+      handednessesCount: results?.handednesses?.length || 0,
+      frameLatency
+    });
+
     // Capture frame for parallel OpenAI processing
     let capturedFrame: string | null = null;
     if (frameCaptureEnabled && frameCounter % frameCaptureInterval === 0) {
@@ -1630,6 +1658,7 @@ function processGestureResults(results: any, timestamp: number) {
       allLandmarks,
       results?.handednesses ?? [],
     );
+    console.log('MLP prediction result:', mlpResult);
     if (mlpResult) {
       // Start recording if this is the first detection of a gesture
       if (!gestureReplayManager['currentRecording']) {

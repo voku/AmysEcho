@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-import { performanceOptimizationService } from './performanceOptimizationService';
+// Removed circular import - will use direct method calls instead
 
 // Battery optimization service
 export class BatteryOptimizationService {
@@ -43,11 +43,6 @@ export class BatteryOptimizationService {
       this.batteryLevel = batteryInfo.level;
       this.isCharging = batteryInfo.isCharging;
       this.isLowPowerMode = this.shouldEnableLowPowerMode(batteryInfo);
-
-      // Notify performance service of battery state
-      performanceOptimizationService.updateMetrics({
-        batteryLevel: this.batteryLevel
-      });
 
       // Notify listeners if low power mode changed
       if (previousLowPowerMode !== this.isLowPowerMode) {
@@ -110,13 +105,14 @@ export class BatteryOptimizationService {
   private enableBatteryOptimizations(): void {
     logger.info('Enabling battery optimizations');
 
-    // Reduce frame rate
-    performanceOptimizationService.updateMetrics({
-      frameRate: 15 // Reduce to 15 FPS
-    });
-
-    // Reduce telemetry frequency
-    // This would be handled by the performance service
+    // Use callback system instead of direct import to avoid circular dependency
+    if (typeof window !== 'undefined' && (window as any).performanceOptimizationCallback) {
+      (window as any).performanceOptimizationCallback({
+        action: 'enableBatteryOptimizations',
+        frameRate: 15,
+        batteryLevel: this.batteryLevel
+      });
+    }
 
     // Disable non-essential features
     this.disableNonEssentialFeatures();
@@ -128,10 +124,14 @@ export class BatteryOptimizationService {
   private disableBatteryOptimizations(): void {
     logger.info('Disabling battery optimizations');
 
-    // Restore normal frame rate
-    performanceOptimizationService.updateMetrics({
-      frameRate: 30 // Restore to 30 FPS
-    });
+    // Use callback system instead of direct import to avoid circular dependency
+    if (typeof window !== 'undefined' && (window as any).performanceOptimizationCallback) {
+      (window as any).performanceOptimizationCallback({
+        action: 'disableBatteryOptimizations',
+        frameRate: 30,
+        batteryLevel: this.batteryLevel
+      });
+    }
 
     // Re-enable features
     this.enableNonEssentialFeatures();

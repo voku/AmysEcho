@@ -66,10 +66,13 @@ export default function GesturePracticeScreen() {
             Halte deine Hand vor die Kamera und mache eine Geste
           </Text>
           <View style={styles.cameraContainer}>
-            <MediaPipeGestureDetector
-              onGestureDetected={handleGestureDetected}
-              onError={handleError}
-            />
+             <MediaPipeGestureDetector
+               onGestureDetected={handleGestureDetected}
+               onError={handleError}
+               onWebViewEvent={(telemetry) => {
+                 console.log('GesturePractice WebView telemetry:', telemetry);
+               }}
+             />
             {landmarks.length > 0 && (
               <View style={styles.overlay}>
                 <Text style={styles.detectionText}>

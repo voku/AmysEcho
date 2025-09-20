@@ -376,13 +376,16 @@ export default function TrainingScreen({ navigation, route }: any) {
             ) : null;
           })()}
            <View style={styles.cameraContainer}>
-             <MediaPipeGestureDetector
-               onGestureDetected={(gesture, confidence, lm, hands) => {
+              <MediaPipeGestureDetector
+                onWebViewEvent={(telemetry) => {
+                  logger.info('Training WebView telemetry:', telemetry);
+                }}
+                onGestureDetected={(gesture, confidence, lm) => {
                  setLandmarks(lm);
                  setLastDetection(Date.now());
 
-                 if (isRecordingRef.current) {
-                   setRecordedFrames((prev) => [...prev, { landmarks: lm, handedness: hands }]);
+                  if (isRecordingRef.current) {
+                    setRecordedFrames((prev) => [...prev, { landmarks: lm, handedness: [] }]);
                    setFramesCaptured((c) => c + 1);
 
                    // Track performance metrics

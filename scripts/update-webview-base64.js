@@ -11,7 +11,7 @@ function chunk(str, size) {
 }
 
 function writeTs(outPath, varName, base64, header) {
-  const chunks = chunk(base64, 76);
+  const chunks = chunk(base64, 8192);
   const body = chunks.join("' +\n  '");
   const content = `${header}\nexport const ${varName} =\n  '${body}';\n`;
   fs.writeFileSync(outPath, content);
@@ -93,9 +93,33 @@ function updateInstallMlp() {
   writeTs(dest, 'installMlpBase64', base64, header);
 }
 
+async function updateGestureDetector() {
+  const appDir = path.join(__dirname, '..', 'app');
+  const esbuildPath = path.join(appDir, 'node_modules', '.bin', 'esbuild');
+  const inputFile = path.join(appDir, 'webview', 'gestureDetector.ts');
+  const outputFile = path.join(appDir, 'assets', 'gestureDetector.js');
+
+  // Bundle the file
+  spawnSync(esbuildPath, [inputFile, '--bundle', `--outfile=${outputFile}`, '--format=iife'], { stdio: 'inherit' });
+
+  // Read the bundled file
+  const bundledCode = fs.readFileSync(outputFile, 'utf8');
+
+  // Add header comment to the bundled file
+  const header = `/**\n * Generated from app/webview/gestureDetector.ts\n * Run scripts/update-webview-base64.js after modifying gestureDetector.ts.\n */\n`;
+  const bundledCodeWithHeader = header + bundledCode;
+  fs.writeFileSync(outputFile, bundledCodeWithHeader);
+
+  const base64 = Buffer.from(bundledCodeWithHeader, 'utf8').toString('base64');
+  const base64Header = `/**\n * Generated from app/webview/gestureDetector.ts\n * Run scripts/update-webview-base64.js after modifying gestureDetector.ts.\n */`;
+  const dest = path.join(appDir, 'src', 'webview', 'gestureDetectorBase64.ts');
+  writeTs(dest, 'gestureDetectorBase64', base64, base64Header);
+}
+
 async function main() {
   await updateFflate();
   updateInstallMlp();
+  await updateGestureDetector();
   console.log('Updated Base64 webview dependencies.');
 }
 

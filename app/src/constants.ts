@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import { Paths } from 'expo-file-system';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 export const API_TOKEN = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
@@ -38,7 +38,7 @@ export const LOG_LEVEL =
     | 'info'
     | 'warn'
     | 'error';
-const BASE_DIR = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
+const BASE_DIR = Paths.document.uri ?? Paths.cache.uri;
 if (!BASE_DIR) {
   // Fail fast to surface misconfiguration early
   throw new Error('No writable FileSystem directory available');

@@ -21,37 +21,65 @@ export class CameraManager {
    */
   async startCamera(): Promise<void> {
     const facingMode = (window as any).__facingMode || 'user';
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
 
-    this.video.srcObject = stream;
-    this.resourceManager.registerMediaStream(stream);
-
-    // Set up video properties
-    this.video.muted = true;
-    this.video.setAttribute('autoplay', '');
-    this.video.setAttribute('playsinline', '');
-    this.video.setAttribute('muted', '');
-
-    await this.video.play();
-
-    // Update dimensions
-    this.updateVideoDimensions();
-
-    // Send telemetry
-    const tracks = stream.getVideoTracks();
     try {
-      (window as any).ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
-          type: 'telemetry',
-          event: 'camera_started',
-          tracks: tracks.map((t) => t.label),
-        }),
-      );
-    } catch (err) {
-      console.warn("Failed to send 'camera_started' telemetry event:", err);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+
+      this.video.srcObject = stream;
+      this.resourceManager.registerMediaStream(stream);
+
+      // Set up video properties
+      this.video.muted = true;
+      this.video.setAttribute('autoplay', '');
+      this.video.setAttribute('playsinline', '');
+      this.video.setAttribute('muted', '');
+
+      await this.video.play();
+
+      // Update dimensions
+      this.updateVideoDimensions();
+
+      // Send telemetry
+      const tracks = stream.getVideoTracks();
+      try {
+        (window as any).ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'telemetry',
+            event: 'camera_started',
+            tracks: tracks.map((t) => t.label),
+          }),
+        );
+      } catch (err) {
+        console.warn("Failed to send 'camera_started' telemetry event:", err);
+      }
+    } catch (error) {
+      // Provide specific error handling for camera access issues
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Camera access failed:', errorMessage);
+
+      // Send specific camera error to React Native
+      try {
+        (window as any).ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'error',
+            message: 'CAMERA_ERROR',
+            details: {
+              reason: errorMessage,
+              facingMode,
+              userAgent: navigator.userAgent,
+              hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
+            },
+          }),
+        );
+      } catch (postErr) {
+        console.warn('Failed to send camera error message:', postErr);
+      }
+
+      // Re-throw to allow caller to handle
+      throw error;
     }
   }
 

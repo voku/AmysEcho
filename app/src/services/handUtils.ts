@@ -2,6 +2,19 @@ import type { FrameData } from '../types/frames';
 
 export const HAND_LANDMARKS_PER_HAND = 21;
 
+export function flattenHands(hands: number[][][]): number[][] {
+  const left = hands?.[0] || [];
+  const right = hands?.[1] || [];
+  const out: number[][] = [];
+  for (let i = 0; i < HAND_LANDMARKS_PER_HAND; i++) {
+    out.push(left[i] ? [...left[i]] : [0, 0, 0]);
+  }
+  for (let i = 0; i < HAND_LANDMARKS_PER_HAND; i++) {
+    out.push(right[i] ? [...right[i]] : [0, 0, 0]);
+  }
+  return out;
+}
+
 export function flattenHandsWithHandedness(
   hands: number[][][],
   handedness: string[],

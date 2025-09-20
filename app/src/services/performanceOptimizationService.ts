@@ -60,6 +60,26 @@ export class PerformanceOptimizationService {
     };
 
     this.initializePerformanceMonitoring();
+    this.registerBatteryCallback();
+  }
+
+  // Register callback for battery optimization service to avoid circular dependency
+  private registerBatteryCallback(): void {
+    if (typeof window !== 'undefined') {
+      (window as any).performanceOptimizationCallback = (data: any) => {
+        if (data.action === 'enableBatteryOptimizations') {
+          this.updateMetrics({
+            frameRate: data.frameRate,
+            batteryLevel: data.batteryLevel,
+          });
+        } else if (data.action === 'disableBatteryOptimizations') {
+          this.updateMetrics({
+            frameRate: data.frameRate,
+            batteryLevel: data.batteryLevel,
+          });
+        }
+      };
+    }
   }
 
   public static getInstance(): PerformanceOptimizationService {
@@ -188,12 +208,10 @@ export class PerformanceOptimizationService {
   // Battery status monitoring
   private async checkBatteryStatus(): Promise<void> {
     try {
-      // Note: Battery monitoring would require a native module
-      // For now, we'll use a placeholder implementation
-      const batteryInfo = await this.getBatteryInfo();
+      const batteryInfo = batteryOptimizationService.getBatteryStatus();
 
       this.metrics.batteryLevel = batteryInfo.level;
-      this.isLowPowerMode = batteryInfo.level < 20 || batteryInfo.isLowPowerMode;
+      this.isLowPowerMode = batteryInfo.isLowPowerMode;
 
       // Adjust performance based on battery level
       if (this.isLowPowerMode) {
@@ -204,16 +222,6 @@ export class PerformanceOptimizationService {
     } catch (error) {
       logger.warn('Failed to check battery status', error);
     }
-  }
-
-  // Get battery information
-  private async getBatteryInfo(): Promise<BatteryInfo> {
-    // Placeholder - would need native battery module
-    return {
-      level: 100,
-      isLowPowerMode: false,
-      isCharging: false
-    };
   }
 
   // Enable low power mode optimizations

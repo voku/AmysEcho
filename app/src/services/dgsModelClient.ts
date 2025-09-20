@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const getApiUrl = () => process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 const getApiToken = () => process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
@@ -118,4 +119,133 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 export async function getCachedMlpModel(profileId?: string): Promise<string | null> {
   const storage = await getStorage();
   return storage.getItem(`${MLP_KEY}:${profileId || 'global'}`);
+}
+
+/**
+ * Load MLP model from local files as fallback when API is unavailable
+ */
+export async function loadLocalMlpModel(): Promise<string | null> {
+  try {
+    // Try to load from the app data directory (for development/testing)
+    try {
+      console.log('Trying react-native-fs for model loading...');
+      const fs = require('react-native-fs');
+
+      // Try different possible paths for the model file
+      const possiblePaths = [
+        fs.MainBundlePath + '/data/dgs_model.npz',
+        fs.DocumentDirectoryPath + '/dgs_model.npz',
+        '/data/dgs_model.npz', // Absolute path for development
+      ];
+
+      console.log('Available paths:', possiblePaths);
+
+      for (const modelPath of possiblePaths) {
+        try {
+          console.log(`Checking path: ${modelPath}`);
+          const exists = await fs.exists(modelPath);
+          console.log(`Path ${modelPath} exists:`, exists);
+
+          if (exists) {
+            const modelData = await fs.readFile(modelPath, 'base64');
+            if (modelData && modelData.length > 0) {
+              console.log(`Loaded MLP model from ${modelPath}, size: ${modelData.length} bytes`);
+              return modelData;
+            } else {
+              console.warn(`Model data from ${modelPath} is empty`);
+            }
+          }
+        } catch (pathError) {
+          console.warn(`Failed to load from ${modelPath}:`, (pathError as Error).message);
+          // Continue to next path
+          continue;
+        }
+      }
+    } catch (fsError) {
+      console.warn('react-native-fs not available, trying Expo FileSystem', fsError);
+    }
+
+    // Try Expo FileSystem as fallback
+    try {
+      console.log('Trying Expo FileSystem for model loading...');
+
+      // Log available directories for debugging
+      console.log('Document directory:', FileSystem.documentDirectory);
+      console.log('Bundle directory:', FileSystem.bundleDirectory);
+
+      // First, try to copy the model from assets to document directory if it doesn't exist
+      const docModelUri = FileSystem.documentDirectory + 'dgs_model.npz';
+      let modelInfo = await FileSystem.getInfoAsync(docModelUri);
+      console.log('Document directory model exists:', modelInfo.exists, 'size:', modelInfo.exists ? (modelInfo as any).size : 0);
+
+      if (!modelInfo.exists) {
+        try {
+          // Try to copy from the project data directory (for development)
+          const sourceUri = '/home/lars/PhpstormProjects/AmysEcho/data/dgs_model.npz';
+          console.log('Attempting to copy from project data directory:', sourceUri);
+
+          await FileSystem.copyAsync({
+            from: sourceUri,
+            to: docModelUri
+          });
+
+          console.log('Successfully copied model to document directory');
+          modelInfo = await FileSystem.getInfoAsync(docModelUri);
+          console.log('After copy - model exists:', modelInfo.exists, 'size:', modelInfo.exists ? (modelInfo as any).size : 0);
+        } catch (copyError) {
+          console.warn('Failed to copy model from project directory:', copyError);
+        }
+      }
+
+      if (modelInfo.exists && modelInfo.size > 0) {
+        console.log(`Loading MLP model from document directory: ${docModelUri}, size: ${modelInfo.size} bytes`);
+        const modelData = await FileSystem.readAsStringAsync(docModelUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        if (modelData && modelData.length > 0) {
+          console.log('Successfully loaded MLP model from document directory, data length:', modelData.length);
+          return modelData;
+        } else {
+          console.warn('Model data from document directory is empty or invalid');
+        }
+      } else {
+        console.warn('Model file not found in document directory or has invalid size');
+      }
+    } catch (expoError) {
+      console.warn('Expo FileSystem fallback failed:', expoError);
+    }
+
+    // Fallback: Try to load bundled base64 model
+    try {
+      console.log('Trying to load bundled base64 model...');
+      // For now, return a placeholder - we'll implement proper bundling
+      console.log('Bundled model loading not yet implemented');
+    } catch (bundleError) {
+      console.warn('Bundled model loading failed:', bundleError);
+    }
+
+    // For development: Try to load from the app data directory
+    try {
+      const fs = require('react-native-fs');
+      const appModelPath = '/data/dgs_model.npz';
+      if (await fs.exists(appModelPath)) {
+        const modelData = await fs.readFile(appModelPath, 'base64');
+        if (modelData && modelData.length > 0) {
+          console.log('Loaded MLP model from app data directory');
+          return modelData;
+        }
+      }
+    } catch (projectError) {
+      console.warn('Could not load from app data directory', projectError);
+    }
+
+    // Last resort: Return null - gesture detection will rely on MediaPipe only
+    console.warn('No local MLP model available, gesture detection will rely on MediaPipe only');
+    return null;
+
+  } catch (error) {
+    console.error('Failed to load local MLP model', error);
+    return null;
+  }
 }

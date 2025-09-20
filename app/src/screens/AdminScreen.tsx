@@ -17,7 +17,8 @@ import {
   saveCustomModelUri,
   loadActiveProfileId,
 } from '../storage';
-import * as FileSystem from 'expo-file-system';
+import { Paths } from 'expo-file-system';
+import { makeDirectoryAsync, moveAsync, downloadAsync, writeAsStringAsync, readAsStringAsync } from 'expo-file-system/legacy';
 import { API_URL } from '../constants';
 import { database } from '../../db';
 import { useServices } from '../context/ServicesContext';
@@ -30,7 +31,7 @@ import { getLocalCentroidSummary } from '../services/localCentroids';
 
 import { usePerformance } from '../context/PerformanceContext';
 
-const SYMBOL_EXPORT_PATH = `${FileSystem.documentDirectory || ''}symbols-export.json`;
+const SYMBOL_EXPORT_PATH = `${Paths.document.uri || ''}symbols-export.json`;
 
 export default function AdminScreen({ navigation }: any) {
   const { audioService, backupService, gdprService } = useServices();
@@ -102,9 +103,9 @@ export default function AdminScreen({ navigation }: any) {
     if (audioUri && targetId) {
       const dest = getCustomAudioPath(targetId);
       if (audioUri !== dest) {
-        await FileSystem.makeDirectoryAsync(CUSTOM_AUDIO_DIR, { intermediates: true });
+        await makeDirectoryAsync(CUSTOM_AUDIO_DIR, { intermediates: true });
         try {
-          await FileSystem.moveAsync({ from: audioUri, to: dest });
+          await moveAsync({ from: audioUri, to: dest });
           finalUri = dest;
         } catch (e) {
           logger.error('move failed', e);
@@ -155,7 +156,7 @@ export default function AdminScreen({ navigation }: any) {
       const token = await loadBackendApiToken();
       const profileId = await loadActiveProfileId().catch(() => undefined);
       const qs = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
-      const res = await FileSystem.downloadAsync(
+      const res = await downloadAsync(
         `${API_URL}/latest-model${qs}`,
         uri,
         { headers: { Authorization: `Bearer ${token || ''}` } },
@@ -195,7 +196,7 @@ export default function AdminScreen({ navigation }: any) {
         category: s.category,
         audioUri: (s as any).audioUri || null,
       }));
-      await FileSystem.writeAsStringAsync(
+      await writeAsStringAsync(
         SYMBOL_EXPORT_PATH,
         JSON.stringify(data, null, 2),
       );
@@ -208,7 +209,7 @@ export default function AdminScreen({ navigation }: any) {
 
   const handleImportSymbols = async () => {
     try {
-      const content = await FileSystem.readAsStringAsync(SYMBOL_EXPORT_PATH);
+      const content = await readAsStringAsync(SYMBOL_EXPORT_PATH);
       const items = JSON.parse(content);
       await database.write(async () => {
         const collection = database.get<DBSymbol>('symbols');
@@ -297,8 +298,8 @@ export default function AdminScreen({ navigation }: any) {
         Alert.alert('Export fehlgeschlagen');
         return;
       }
-      const path = `${FileSystem.documentDirectory || ''}profile-export.json`;
-      await FileSystem.writeAsStringAsync(path, JSON.stringify(data, null, 2));
+      const path = `${Paths.document.uri || ''}profile-export.json`;
+      await writeAsStringAsync(path, JSON.stringify(data, null, 2));
       Alert.alert('Profilexport abgeschlossen', `In ${path} gespeichert`);
     } catch (e) {
       Alert.alert('Export fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');

@@ -84,7 +84,29 @@ export class GestureDetector {
    * Start camera and detection
    */
   async start(): Promise<void> {
-    await this.cameraManager.startCamera();
+    try {
+      await this.cameraManager.startCamera();
+    } catch (error) {
+      console.error('Failed to start camera:', error);
+
+      // Send camera error telemetry
+      try {
+        (window as any).ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'telemetry',
+            event: 'camera_start_failed',
+            error: error instanceof Error ? error.message : String(error),
+            timestamp: Date.now(),
+          }),
+        );
+      } catch (telemetryErr) {
+        console.warn('Failed to send camera error telemetry:', telemetryErr);
+      }
+
+      // Continue with gesture detector initialization even if camera fails
+      // This allows the system to work with pre-recorded video or fallback modes
+      console.warn('Continuing gesture detector initialization despite camera failure');
+    }
   }
 
   /**
@@ -117,6 +139,14 @@ export class GestureDetector {
         const recognitionStart = performance.now();
         const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
         const recognitionTime = performance.now() - recognitionStart;
+
+        console.log('MediaPipe recognition results:', {
+          hasResults: !!results,
+          gestures: results?.gestures?.length || 0,
+          landmarks: results?.landmarks?.length || 0,
+          handednesses: results?.handednesses?.length || 0,
+          recognitionTime: Math.round(recognitionTime)
+        });
 
         // Call result callback if set
         if (this.resultCallback && results) {
