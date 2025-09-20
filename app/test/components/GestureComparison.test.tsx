@@ -5,14 +5,46 @@
  * side-by-side comparison of user's attempt vs correct gesture.
  */
 
+jest.mock('react-native', () => {
+  const actual = jest.requireActual('react-native');
+
+  const styleSheet = {
+    absoluteFill: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
+    absoluteFillObject: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
+    compose: jest.fn((styleA: any, styleB: any) => ({ ...(styleA ?? {}), ...(styleB ?? {}) })),
+    create: jest.fn((styles: any) => styles),
+    flatten: jest.fn((style: any) => style),
+  };
+
+  return new Proxy(actual, {
+    get(target, prop, receiver) {
+      if (prop === 'StyleSheet') {
+        return styleSheet;
+      }
+      if (prop === 'Pressable') {
+        return 'Pressable';
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+});
+
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import GestureComparison from '../../src/components/GestureComparison';
-
-jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
-  create: jest.fn((styles) => styles),
-}));
 
 // Mock expo-haptics
 jest.mock('expo-haptics', () => ({
@@ -73,8 +105,8 @@ jest.mock('../../src/constants/ui', () => ({
 }));
 
 const mockHaptics = Haptics.impactAsync as jest.MockedFunction<typeof Haptics.impactAsync>;
-const mockUseAccessibility = require('../../src/components/AccessibilityContext').useAccessibility;
-const mockUseThemeMessages = require('../../src/utils/themeMessages').useThemeMessages;
+const mockUseAccessibility = require('../../src/components/AccessibilityContext').useAccessibility as jest.MockedFunction<() => { largeText: boolean; highContrast: boolean }>;
+const mockUseThemeMessages = require('../../src/utils/themeMessages').useThemeMessages as jest.MockedFunction<() => { getTryAgainMessage: jest.Mock }>;
 
 describe('GestureComparison', () => {
   const mockUserAttempt = {
@@ -96,6 +128,10 @@ describe('GestureComparison', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAccessibility.mockReturnValue({ largeText: false, highContrast: false });
+    mockUseThemeMessages.mockReturnValue({
+      getTryAgainMessage: jest.fn(() => 'Versuche es nochmal! Du schaffst das!'),
+    });
   });
 
   describe('Rendering', () => {
@@ -222,7 +258,7 @@ describe('GestureComparison', () => {
 
   describe('Accessibility', () => {
     it('should have accessibility support', () => {
-      const { getByText } = render(
+      const { getByLabelText } = render(
         <GestureComparison
           userAttempt={mockUserAttempt}
           correctGesture={mockCorrectGesture}
@@ -231,12 +267,13 @@ describe('GestureComparison', () => {
         />
       );
 
-      const tryAgainButton = getByText('🔄 Nochmal versuchen');
-      const closeButton = getByText('✅ Fertig');
+      const tryAgainButton = getByLabelText('Nochmal versuchen');
+      const closeButton = getByLabelText('Schließen');
 
-      // Check that buttons are accessible
-      expect(tryAgainButton.props.accessible).toBe(true);
-      expect(closeButton.props.accessible).toBe(true);
+      expect(tryAgainButton.props.accessibilityRole).toBe('button');
+      expect(tryAgainButton.props.accessibilityHint).toBe('Die Geste nochmal versuchen');
+      expect(closeButton.props.accessibilityRole).toBe('button');
+      expect(closeButton.props.accessibilityHint).toBe('Vergleich schließen');
     });
 
     it('should apply large text styles when accessibility setting is enabled', () => {
@@ -430,7 +467,7 @@ describe('GestureComparison', () => {
 
   describe('Button Functionality', () => {
     it('should have functional buttons', () => {
-      const { getByText } = render(
+      const { getByLabelText } = render(
         <GestureComparison
           userAttempt={mockUserAttempt}
           correctGesture={mockCorrectGesture}
@@ -439,8 +476,8 @@ describe('GestureComparison', () => {
         />
       );
 
-      const tryAgainButton = getByText('🔄 Nochmal versuchen');
-      const closeButton = getByText('✅ Fertig');
+      const tryAgainButton = getByLabelText('Nochmal versuchen');
+      const closeButton = getByLabelText('Schließen');
 
       // The buttons should have press handlers
       expect(tryAgainButton.props.onPress).toBeDefined();

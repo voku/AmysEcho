@@ -47,10 +47,8 @@ const onUnhandledRejection = (e: PromiseRejectionEvent) => {
 };
 window.addEventListener('unhandledrejection', onUnhandledRejection);
 
-// Expose fflate for compatibility with older WebView bundles
-// This would be imported if needed
-// window.fflate = { unzip, unzipSync };
-
+import { unzip, unzipSync } from 'fflate';
+import { installMlp } from '../src/webview/installMlp';
 import { GestureRecognitionOrchestrator } from './core/GestureRecognitionOrchestrator';
 
 // Initialize configuration
@@ -62,6 +60,9 @@ const cameraError = window.__cameraError || 'Kamerafehler: ';
 const facingMode = window.__facingMode || 'user';
 const mirrorOverlay = window.__mirrorOverlay === true;
 
+const container = document.createElement('div');
+container.id = 'gestureCameraContainer';
+
 // Create DOM elements
 const video = document.createElement('video');
 const overlay = document.createElement('canvas');
@@ -70,13 +71,129 @@ video.setAttribute('autoplay', '');
 video.setAttribute('playsinline', '');
 video.setAttribute('muted', '');
 
+function ensureStyleSheet() {
+  if (document.getElementById('gesture-detector-styles')) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = 'gesture-detector-styles';
+  style.textContent = `
+    html, body {
+      height: 100%;
+      width: 100%;
+    }
+
+    body.gesture-detector {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #ecfdf5;
+      background-image: radial-gradient(circle at 20% 20%, rgba(134, 239, 172, 0.25), transparent 60%),
+        radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.18), transparent 55%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .gesture-detector-container {
+      position: relative;
+      width: min(96vw, 640px);
+      height: min(72vh, 480px);
+      max-width: 100vw;
+      max-height: 100vh;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(226, 252, 245, 0.92));
+    }
+
+    .gesture-detector-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background-color: #f8fafc;
+      filter: brightness(1.08);
+      transition: filter 0.2s ease;
+      transform-origin: center;
+    }
+
+    .gesture-detector-video.mirrored {
+      transform: scaleX(-1);
+    }
+
+    .gesture-detector-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background-color: rgba(255, 255, 255, 0.08);
+      mix-blend-mode: screen;
+    }
+
+    .gesture-detector-tap {
+      position: absolute;
+      bottom: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #10b981, #22d3ee);
+      color: #0f172a;
+      font-weight: 600;
+      border-radius: 999px;
+      box-shadow: 0 12px 24px rgba(14, 116, 144, 0.35);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    .gesture-detector-tap:active {
+      transform: translateX(-50%) scale(0.98);
+    }
+
+    .gesture-detector-tap.hidden {
+      display: none;
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function applyBaseStyles() {
+  ensureStyleSheet();
+  document.body.classList.add('gesture-detector');
+  container.classList.add('gesture-detector-container');
+  video.classList.add('gesture-detector-video');
+  overlay.classList.add('gesture-detector-overlay');
+
+  const shouldMirrorVideo = mirrorOverlay || facingMode === 'user';
+  video.classList.toggle('mirrored', shouldMirrorVideo);
+}
+
+// Expose compression helpers and install the embedded MLP runtime
+window.fflate = { unzip, unzipSync };
+installMlp();
+
+try {
+  window.ReactNativeWebView?.postMessage?.(
+    JSON.stringify({ type: 'telemetry', event: 'mlp_ready' })
+  );
+} catch (err) {
+  console.warn("Failed to signal 'mlp_ready' event:", err);
+}
+
 // Create main orchestrator instance
 let orchestrator: GestureRecognitionOrchestrator | null = null;
 
 // Initialize DOM and start gesture recognition
 function initDom() {
-  document.body.appendChild(video);
-  document.body.appendChild(overlay);
+  applyBaseStyles();
+
+  container.appendChild(video);
+  container.appendChild(overlay);
+  document.body.appendChild(container);
 
   // Create orchestrator
   orchestrator = new GestureRecognitionOrchestrator(video, overlay);
@@ -119,6 +236,8 @@ function initDom() {
       );
     }
   });
+
+  tap.classList.add('gesture-detector-tap');
 
   document.body.appendChild(tap);
 
@@ -178,10 +297,18 @@ async function cleanup() {
   }
 
   try {
+    container.remove();
+  } catch (e) {
+    console.warn('Failed to remove camera container:', e);
+  }
+
+  try {
     video.remove();
   } catch (e) {
     console.warn("Failed to remove 'video' element:", e);
   }
+
+  document.body.classList.remove('gesture-detector');
 
   window.ReactNativeWebView?.postMessage?.(
     JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }),

@@ -102,6 +102,30 @@ jest.mock('expo-haptics', () => ({
   },
 }));
 
+jest.mock('expo-audio', () => {
+  const createPlayer = () => ({
+    volume: 1,
+    loop: false,
+    play: jest.fn(),
+    stop: jest.fn(),
+    seekTo: jest.fn(),
+  });
+
+  class MockAudioRecorder {
+    startAsync = jest.fn(async () => {});
+    stopAndUnloadAsync = jest.fn(async () => {});
+    setStatusAsync = jest.fn(async () => {});
+  }
+
+  return {
+    setAudioModeAsync: jest.fn(async () => {}),
+    requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true })),
+    createAudioPlayer: jest.fn(() => createPlayer()),
+    AudioRecorder: MockAudioRecorder,
+    RecordingPresets: { HIGH_QUALITY: {}, LOW_QUALITY: {} },
+  };
+});
+
 // Mock Dimensions for components that use it at module level
 jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
   get: jest.fn(() => ({ width: 375, height: 812 })),
@@ -132,21 +156,46 @@ jest.mock('react-native/Libraries/StyleSheet/StyleSheet', () => ({
   compose: jest.fn((style1, style2) => ({ ...style1, ...style2 })),
 }));
 
-// Ensure React Native's StyleSheet export exists
+// Provide a fallback StyleSheet implementation on the main react-native export
 try {
-  const rn = require('react-native');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const rn: any = require('react-native');
   if (!rn.StyleSheet || typeof rn.StyleSheet.create !== 'function') {
     rn.StyleSheet = require('react-native/Libraries/StyleSheet/StyleSheet');
+  } else if (!rn.StyleSheet.flatten) {
+    rn.StyleSheet.flatten = (style: any) => style;
   }
 } catch {}
+
+const mockFileSystemPaths = {
+  document: { uri: 'file:///tmp/test-documents/' },
+  cache: { uri: 'file:///tmp/test-cache/' },
+};
 
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/tmp/test-documents/',
   cacheDirectory: '/tmp/test-cache/',
+  Paths: mockFileSystemPaths,
   writeAsStringAsync: jest.fn(),
   readAsStringAsync: jest.fn(),
   deleteAsync: jest.fn(),
   getInfoAsync: jest.fn(),
+  makeDirectoryAsync: jest.fn(),
+  moveAsync: jest.fn(),
+}));
+
+jest.mock('expo-file-system/legacy', () => ({
+  writeAsStringAsync: jest.fn(),
+  readAsStringAsync: jest.fn(),
+  deleteAsync: jest.fn(),
+  moveAsync: jest.fn(),
+  makeDirectoryAsync: jest.fn(),
+  downloadAsync: jest.fn(async (_url: string, _fileUri: string) => ({ uri: _fileUri })),
+  copyAsync: jest.fn(),
+  getInfoAsync: jest.fn(async () => ({ exists: true })),
+  cacheDirectory: '/tmp/test-cache/',
+  documentDirectory: '/tmp/test-documents/',
+  Paths: mockFileSystemPaths,
 }));
 
 jest.mock('react-native/Libraries/Animated/Animated', () => {
