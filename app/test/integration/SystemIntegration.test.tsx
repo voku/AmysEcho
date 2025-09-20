@@ -50,6 +50,7 @@ jest.mock('../../src/components/MediaPipeGestureDetector', () => {
 });
 
 jest.mock('../../src/components/ScreenFlash', () => {
+  const React = require('react');
   return function MockScreenFlash() {
     return React.createElement('View', { testID: 'screen-flash' });
   };
@@ -57,12 +58,14 @@ jest.mock('../../src/components/ScreenFlash', () => {
 
 
 jest.mock('../../src/components/GestureComparison', () => {
+  const React = require('react');
   return function MockGestureComparison() {
     return React.createElement('View', { testID: 'gesture-comparison' });
   };
 });
 
 jest.mock('../../src/components/TwoHandGestureDisplay', () => {
+  const React = require('react');
   return function MockTwoHandGestureDisplay() {
     return React.createElement('View', { testID: 'two-hand-display' });
   };

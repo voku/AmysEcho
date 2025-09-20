@@ -188,6 +188,15 @@ describe('PartialGestureDetector', () => {
     });
   });
 
+  describe('shouldRecognizePartial', () => {
+    it('should respect configured confidence threshold', () => {
+      detector.setThreshold(0.7);
+
+      expect(detector.shouldRecognizePartial(0.5, 0.6)).toBe(false);
+      expect(detector.shouldRecognizePartial(0.5, 0.75)).toBe(true);
+    });
+  });
+
   describe('analyzePartialCompletion', () => {
     it('should return default result for empty landmarks', () => {
       const result = detector.analyzePartialCompletion([], 'thumbs_up');

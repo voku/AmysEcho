@@ -5,6 +5,8 @@
 
 import { PerformanceOptimizer } from './PerformanceOptimizer';
 import { MemoryOptimizer } from './MemoryOptimizer';
+import { MediaPipeGestureResult } from '../types/MediaPipeTypes';
+import { NormalizedMediaPipeResult } from './mapMediaPipeResults';
 
 export interface ProcessingContext {
   landmarks: number[][][];
@@ -12,6 +14,9 @@ export interface ProcessingContext {
   previousLandmarks?: number[][][];
   processingStep: string;
   skipExpensiveSteps: boolean;
+  rawResults?: MediaPipeGestureResult;
+  handednesses?: string[];
+  normalizedResults?: NormalizedMediaPipeResult;
 }
 
 export interface ProcessingResult {

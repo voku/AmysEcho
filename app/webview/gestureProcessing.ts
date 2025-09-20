@@ -18,6 +18,7 @@ export class PartialGestureDetector {
     open_palm: 0.6,
     peace: 0.7,
   };
+  private recognitionThreshold = 0.6;
 
   /**
    * Optimized partial gesture analysis with reduced memory allocation
@@ -167,8 +168,15 @@ export class PartialGestureDetector {
     }
   }
 
+  setThreshold(threshold: number): void {
+    if (Number.isFinite(threshold)) {
+      const clamped = Math.max(0, Math.min(1, threshold));
+      this.recognitionThreshold = clamped;
+    }
+  }
+
   shouldRecognizePartial(completion: number, confidence: number): boolean {
-    return completion >= 0.4 && confidence >= 0.5;
+    return completion >= 0.4 && confidence >= this.recognitionThreshold;
   }
 
   cleanup(): void {

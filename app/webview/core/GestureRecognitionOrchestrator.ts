@@ -15,8 +15,9 @@ import { FallbackGestureDetector } from '../core/FallbackGestureDetector';
 import { EmergencyGestureSystem } from '../core/EmergencyGestureSystem';
 import { HandStabilityAssistant } from '../core/HandStabilityAssistant';
 import { BatteryMonitor } from '../core/BatteryMonitor';
-import { loadConfig } from '../config/GestureConfig';
-import { MediaPipeGestureResult } from '../types/MediaPipeTypes';
+import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
+import { MediaPipeGestureResult, TwoHandGesture } from '../types/MediaPipeTypes';
+import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
 
 export class GestureRecognitionOrchestrator {
   private gestureDetector: GestureDetector | null = null;
@@ -31,7 +32,7 @@ export class GestureRecognitionOrchestrator {
   private emergencySystem: EmergencyGestureSystem;
   private handStabilityAssistant: HandStabilityAssistant;
   private batteryMonitor: BatteryMonitor;
-  private config: any;
+  private config: GestureDetectorConfig;
 
   private isInitialized = false;
   private isRunning = false;
@@ -72,7 +73,7 @@ export class GestureRecognitionOrchestrator {
     // Add processing steps in order of execution
     this.processingPipeline.addStep(new LandmarkPreprocessingStep(this.sizeNormalizer, this.tremorCompensator));
     this.processingPipeline.addStep(new StabilityAnalysisStep(this.handStabilityAssistant));
-    this.processingPipeline.addStep(new GestureDetectionStep());
+    this.processingPipeline.addStep(new GestureDetectionStep(this.config));
     this.processingPipeline.addStep(new PartialGestureAnalysisStep(this.partialDetector));
     this.processingPipeline.addStep(new EmergencyGestureCheckStep(this.emergencySystem));
     this.processingPipeline.addStep(new FallbackProcessingStep(this.fallbackDetector, this.errorRecoveryManager));
@@ -148,11 +149,16 @@ export class GestureRecognitionOrchestrator {
       }
 
       // Prepare processing context
+      const normalized = mapMediaPipeResult(results);
+
       const context: ProcessingContext = {
-        landmarks: results.landmarks ? [results.landmarks.map(lm => [lm.x, lm.y, lm.z ?? 0])] : [],
+        landmarks: normalized.landmarks,
         timestamp,
         processingStep: 'gesture_results',
-        skipExpensiveSteps: this.shouldSkipExpensiveSteps()
+        skipExpensiveSteps: this.shouldSkipExpensiveSteps(),
+        rawResults: results,
+        handednesses: normalized.handednesses,
+        normalizedResults: normalized
       };
 
       // Execute processing pipeline
@@ -292,21 +298,169 @@ class StabilityAnalysisStep implements ProcessingStep {
 /**
  * Processing step for main gesture detection
  */
-class GestureDetectionStep implements ProcessingStep {
+export class GestureDetectionStep implements ProcessingStep {
   name = 'gesture_detection';
   isExpensive = true; // MediaPipe processing can be expensive
 
+  constructor(private config: GestureDetectorConfig) {}
+
   async execute(context: ProcessingContext): Promise<any> {
-    // This would integrate with the main gesture detector
-    // For now, return placeholder
+    const rawResults = context.rawResults;
+    const normalized = context.normalizedResults ?? mapMediaPipeResult(rawResults);
+    const handednesses = normalized.handednesses;
+
+    const perHand = this.extractPerHandDetections(normalized);
+
+    let selectedGesture: string | null = null;
+    let selectedConfidence = 0;
+    let detectionMethod: 'mediapipe' | 'mlp' | 'none' = 'none';
+    let twoHandMetadata: TwoHandGesture | null = null;
+
+    // Determine best MediaPipe gesture candidate
+    if (perHand.length > 0) {
+      for (const candidate of perHand) {
+        if (candidate.score > selectedConfidence) {
+          selectedGesture = this.normalizeLabel(candidate.label);
+          selectedConfidence = candidate.score;
+          detectionMethod = 'mediapipe';
+        }
+      }
+
+      // Attempt to form a two-hand gesture when both hands detected
+      if (perHand.length >= 2) {
+        const twoHandCandidate = this.resolveTwoHandGesture(perHand);
+        if (twoHandCandidate && twoHandCandidate.score > selectedConfidence) {
+          selectedGesture = this.formatTwoHandGesture(twoHandCandidate.gesture);
+          selectedConfidence = twoHandCandidate.score;
+          detectionMethod = 'mediapipe';
+          twoHandMetadata = twoHandCandidate.gesture;
+        }
+      }
+    }
+
+    // Invoke custom MLP if available and better than MediaPipe result
+    let mlpMetadata: { label: string; score: number } | null = null;
+    if (typeof window.__mlpPredict === 'function') {
+      try {
+        const mlpResult = window.__mlpPredict(
+          context.landmarks ?? [],
+          rawResults?.handednesses ?? handednesses
+        );
+        if (mlpResult && typeof mlpResult.score === 'number') {
+          mlpMetadata = mlpResult;
+          const threshold = this.config?.thresholds?.mlpConfidence ?? 0.4;
+          if (mlpResult.score >= threshold && mlpResult.score >= selectedConfidence) {
+            selectedGesture = this.normalizeLabel(mlpResult.label);
+            selectedConfidence = mlpResult.score;
+            detectionMethod = 'mlp';
+            twoHandMetadata = null;
+          }
+        }
+      } catch (error) {
+        console.warn('MLP prediction failed:', error);
+      }
+    }
+
     return {
-      gesture: null,
-      confidence: 0,
-      detection: {
-        method: 'mediapipe',
-        processed: true
+      gesture: selectedGesture,
+      confidence: selectedConfidence,
+      landmarks: context.landmarks,
+      metadata: {
+        method: detectionMethod,
+        perHand: perHand.map(({ hand, label, score }) => ({ hand, label, score })),
+        handednesses,
+        mlp: mlpMetadata,
+        twoHand: twoHandMetadata
       }
     };
+  }
+
+  private extractPerHandDetections(
+    normalized: NormalizedMediaPipeResult
+  ): Array<{ index: number; hand: string; label: string; score: number }> {
+    const detections: Array<{ index: number; hand: string; label: string; score: number }> = [];
+
+    normalized.hands.forEach((hand, index) => {
+      const topGesture = hand.gestures[0];
+      if (!topGesture) {
+        return;
+      }
+
+      const normalizedLabel = this.normalizeLabel(topGesture.label);
+      if (!normalizedLabel) {
+        return;
+      }
+
+      detections.push({
+        index,
+        hand: hand.handedness ?? 'unknown',
+        label: normalizedLabel,
+        score: topGesture.score
+      });
+    });
+
+    return detections;
+  }
+
+  private resolveTwoHandGesture(
+    perHand: Array<{ index: number; hand: string; label: string; score: number }>
+  ): { gesture: TwoHandGesture; score: number } | null {
+    if (perHand.length < 2) {
+      return null;
+    }
+
+    const leftCandidate = this.findCandidate(perHand, /left/i);
+    const rightCandidate = this.findCandidate(perHand, /right/i, leftCandidate?.index);
+
+    let finalLeft = leftCandidate ?? null;
+    let finalRight = rightCandidate ?? null;
+
+    if (!finalLeft) {
+      finalLeft = perHand[0];
+    }
+
+    if (!finalRight) {
+      finalRight = perHand.find(candidate => candidate.index !== finalLeft!.index) ?? null;
+    }
+
+    if (!finalLeft || !finalRight) {
+      return null;
+    }
+
+    return {
+      gesture: {
+        left: finalLeft.label,
+        right: finalRight.label
+      },
+      score: Math.sqrt(finalLeft.score * finalRight.score)
+    };
+  }
+
+  private findCandidate(
+    perHand: Array<{ index: number; hand: string; label: string; score: number }>,
+    pattern: RegExp,
+    excludeIndex?: number
+  ): { index: number; hand: string; label: string; score: number } | undefined {
+    return perHand.find(candidate => {
+      if (excludeIndex !== undefined && candidate.index === excludeIndex) {
+        return false;
+      }
+      return pattern.test(candidate.hand);
+    });
+  }
+
+  private formatTwoHandGesture(gesture: TwoHandGesture): string {
+    const left = this.normalizeLabel(gesture.left) ?? '';
+    const right = this.normalizeLabel(gesture.right) ?? '';
+    return `${left}+${right}`;
+  }
+
+  private normalizeLabel(label?: string | null): string | null {
+    if (!label) {
+      return null;
+    }
+    const normalized = label.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
   }
 }
 
