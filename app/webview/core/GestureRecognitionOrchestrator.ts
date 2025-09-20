@@ -342,10 +342,7 @@ export class GestureDetectionStep implements ProcessingStep {
     let mlpMetadata: { label: string; score: number } | null = null;
     if (typeof window.__mlpPredict === 'function') {
       try {
-        const mlpResult = window.__mlpPredict(
-          context.landmarks ?? [],
-          rawResults?.handednesses ?? handednesses
-        );
+        const mlpResult = window.__mlpPredict(context.landmarks ?? [], handednesses);
         if (mlpResult && typeof mlpResult.score === 'number') {
           mlpMetadata = mlpResult;
           const threshold = this.config?.thresholds?.mlpConfidence ?? 0.4;
@@ -442,9 +439,7 @@ export class GestureDetectionStep implements ProcessingStep {
   }
 
   private formatTwoHandGesture(gesture: TwoHandGesture): string {
-    const left = this.normalizeLabel(gesture.left) ?? '';
-    const right = this.normalizeLabel(gesture.right) ?? '';
-    return `${left}+${right}`;
+    return `${gesture.left}+${gesture.right}`;
   }
 
   private normalizeLabel(label?: string | null): string | null {
