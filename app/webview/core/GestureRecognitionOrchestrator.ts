@@ -412,16 +412,8 @@ export class GestureDetectionStep implements ProcessingStep {
     const leftCandidate = this.findCandidate(perHand, /left/i);
     const rightCandidate = this.findCandidate(perHand, /right/i, leftCandidate?.index);
 
-    let finalLeft = leftCandidate ?? null;
-    let finalRight = rightCandidate ?? null;
-
-    if (!finalLeft) {
-      finalLeft = perHand[0];
-    }
-
-    if (!finalRight) {
-      finalRight = perHand.find(candidate => candidate.index !== finalLeft!.index) ?? null;
-    }
+    const finalLeft = leftCandidate ?? null;
+    const finalRight = rightCandidate ?? null;
 
     if (!finalLeft || !finalRight) {
       return null;
