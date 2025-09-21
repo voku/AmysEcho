@@ -252,13 +252,18 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           }
 
           if (onWebViewEvent) {
+            const messageCount =
+              typeof data.messageCount === 'number' ? data.messageCount : messages.length;
             const telemetry: Record<string, unknown> = {
               type: 'telemetry',
               event: 'gesture_batch_received',
-              batchSize: messages.length,
+              batchSize: messageCount,
               processedCount,
             };
 
+            if (typeof data.messageCount === 'number') {
+              telemetry.messageCount = data.messageCount;
+            }
             if (typeof data.frameCount === 'number') {
               telemetry.frameCount = data.frameCount;
             }
@@ -301,7 +306,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       } catch (err) {
         logger.error('Error parsing WebView message', { error: err });
         setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-        onError('gesture_processing_error');
+        const errorMessage = err instanceof Error && err.message ? err.message : 'gesture_processing_error';
+        onError(errorMessage);
       }
     },
     [

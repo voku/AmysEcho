@@ -1,3 +1,6 @@
+const MAX_CAPTURE_DIMENSION = 640;
+const MAX_DATA_URL_LENGTH = 400_000; // ~400 KB cap to protect bridge bandwidth
+
 let frameCaptureEnabled = false;
 let frameCaptureInterval = 500;
 let lastCapturedFrame: string | null = null;
@@ -15,10 +18,17 @@ function ensureCanvas(video: HTMLVideoElement): void {
     throw new Error('Unable to initialize frame capture canvas');
   }
 
-  if (video.videoWidth && video.videoHeight) {
-    if (captureCanvas.width !== video.videoWidth || captureCanvas.height !== video.videoHeight) {
-      captureCanvas.width = video.videoWidth;
-      captureCanvas.height = video.videoHeight;
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+
+  if (width && height) {
+    const scale = Math.min(1, MAX_CAPTURE_DIMENSION / width, MAX_CAPTURE_DIMENSION / height);
+    const targetWidth = Math.max(1, Math.round(width * scale));
+    const targetHeight = Math.max(1, Math.round(height * scale));
+
+    if (captureCanvas.width !== targetWidth || captureCanvas.height !== targetHeight) {
+      captureCanvas.width = targetWidth;
+      captureCanvas.height = targetHeight;
     }
   }
 }
@@ -60,8 +70,28 @@ export function captureFrameForOpenAI(video: HTMLVideoElement): string | null {
     }
 
     captureContext.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
-    lastCapturedFrame = captureCanvas.toDataURL('image/jpeg', 0.7);
-    lastCaptureTimestamp = now;
+
+    const qualityLevels = [0.7, 0.5, 0.3];
+    let dataUrl: string | null = null;
+
+    for (const quality of qualityLevels) {
+      try {
+        dataUrl = captureCanvas.toDataURL('image/jpeg', quality);
+      } catch (error) {
+        console.warn('Frame capture encoding failed', error);
+        dataUrl = null;
+        break;
+      }
+
+      if (!dataUrl || dataUrl.length <= MAX_DATA_URL_LENGTH) {
+        break;
+      }
+    }
+
+    if (dataUrl && dataUrl.length <= MAX_DATA_URL_LENGTH) {
+      lastCapturedFrame = dataUrl;
+      lastCaptureTimestamp = now;
+    }
   } catch (error) {
     console.warn('Frame capture failed:', error);
   }
@@ -84,3 +114,10 @@ export const frameCaptureState = {
     return lastCapturedFrame;
   },
 };
+
+export function disposeFrameCapture(): void {
+  frameCaptureEnabled = false;
+  lastCapturedFrame = null;
+  captureCanvas = null;
+  captureContext = null;
+}

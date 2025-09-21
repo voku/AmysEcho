@@ -23,7 +23,10 @@ export class MessageBatcher {
       return;
     }
 
-    if (this.queue.length >= MAX_BATCH_SIZE || this.frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
+    if (
+      this.queue.length >= MAX_BATCH_SIZE ||
+      (this.frameCount > 0 && this.frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0)
+    ) {
       this.flushBatch();
       return;
     }
@@ -45,7 +48,8 @@ export class MessageBatcher {
 
     const batchPayload = {
       type: 'gesture_batch',
-      frameCount: messages.length,
+      messageCount: messages.length,
+      frameCount: this.frameCount,
       lastSentAt: Date.now(),
       messages,
     };

@@ -14,6 +14,8 @@ import {
   initializeFrameCapture,
   captureFrameForOpenAI,
   setFrameCaptureEnabled,
+  frameCaptureState,
+  disposeFrameCapture,
 } from '../utils/FrameCaptureManager';
 
 export class GestureDetector {
@@ -27,6 +29,7 @@ export class GestureDetector {
   private gestureRecognizer: GestureRecognizerLike | null = null;
   private running = false;
   private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
+  private lastCaptureAttempt = 0;
 
   constructor(video: HTMLVideoElement, overlay: HTMLCanvasElement) {
     this.video = video;
@@ -78,6 +81,7 @@ export class GestureDetector {
       // Set up video event listener
       const onLoadedData = () => {
         initializeFrameCapture(this.video);
+        this.lastCaptureAttempt = 0;
         this.startDetection();
       };
       this.video.addEventListener('loadeddata', onLoadedData);
@@ -170,7 +174,11 @@ export class GestureDetector {
             this.overlayRenderer.clear();
             this.overlayRenderer.drawHandLandmarks(results.landmarks, this.config.camera.mirrorOverlay);
           }
-          captureFrameForOpenAI(this.video);
+          const captureInterval = frameCaptureState.frameCaptureInterval;
+          if (frameStart - this.lastCaptureAttempt >= captureInterval) {
+            captureFrameForOpenAI(this.video);
+            this.lastCaptureAttempt = frameStart;
+          }
         }
 
         // Record successful frame with performance metrics
@@ -223,6 +231,7 @@ export class GestureDetector {
     await this.cameraManager.stopCamera();
     await this.resourceManager.dispose();
     setFrameCaptureEnabled(false);
+    disposeFrameCapture();
   }
 
   /**

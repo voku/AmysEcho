@@ -3,6 +3,8 @@
  * Handles critical gestures that require immediate attention
  */
 
+import { messageBatcher } from '../utils/MessageBatcher';
+
 export class EmergencyGestureSystem {
   private readonly EMERGENCY_GESTURES = new Set([
     'hilfe', 'help', 'emergency', 'stop', 'danger',
@@ -107,30 +109,31 @@ export class EmergencyGestureSystem {
   private sendEmergencyTelemetry(gesture: string, confidence: number): void {
     const timestamp = Date.now();
 
-    try {
-      const basePayload = {
-        gesture,
-        confidence,
-        timestamp,
-        systemHealth: 'active' as const,
-      };
+    const basePayload = {
+      gesture,
+      confidence,
+      timestamp,
+      systemHealth: 'active' as const,
+    };
 
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
+    try {
+      messageBatcher.queueMessage(
+        {
           type: 'telemetry',
           event: 'emergency_gesture_detected',
           ...basePayload,
-        })
+        },
+        { flushImmediately: false }
       );
-
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
+      messageBatcher.queueMessage(
+        {
           type: 'emergency_gesture',
           ...basePayload,
-        })
+        },
+        { flushImmediately: true }
       );
     } catch (err) {
-      console.error('Failed to send emergency telemetry:', err);
+      console.error('Failed to enqueue emergency telemetry:', err);
     }
   }
 
