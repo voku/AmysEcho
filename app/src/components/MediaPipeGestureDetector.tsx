@@ -296,7 +296,7 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
             code: (data as { code?: string }).code,
           });
           setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-          onError('gesture_processing_error');
+          onError(errorMessage);
         }
       } catch (err) {
         logger.error('Error parsing WebView message', { error: err });

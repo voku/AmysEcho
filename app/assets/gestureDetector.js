@@ -3303,12 +3303,18 @@
   };
 
   // app/webview/core/FallbackGestureDetector.ts
-  var FallbackGestureDetector = class {
+  var FallbackGestureDetector = class _FallbackGestureDetector {
     constructor() {
       this.lastLandmarks = null;
       this.gestureHistory = [];
       this.HISTORY_SIZE = 5;
       this.ruleBasedConfidence = 0;
+    }
+    static {
+      this.MIN_PALM_NORMALIZED_WIDTH = 0.15;
+    }
+    static {
+      this.MIN_PALM_NORMALIZED_HEIGHT = 0.15;
     }
     /**
      * Simple rule-based gesture detection as fallback
@@ -3423,7 +3429,7 @@
       const thumbExtended = hand[4][1] < hand[2][1];
       const palmWidth = Math.abs((hand[5]?.[0] ?? 0) - (hand[17]?.[0] ?? 0));
       const palmHeight = Math.abs((hand[0]?.[1] ?? 0) - (hand[9]?.[1] ?? 0));
-      return extendedFingers >= 3 && thumbExtended && palmWidth > 0.15 && palmHeight > 0.15;
+      return extendedFingers >= 3 && thumbExtended && palmWidth > _FallbackGestureDetector.MIN_PALM_NORMALIZED_WIDTH && palmHeight > _FallbackGestureDetector.MIN_PALM_NORMALIZED_HEIGHT;
     }
     calculateMovement(prevHand, currHand) {
       let totalMovement = 0;

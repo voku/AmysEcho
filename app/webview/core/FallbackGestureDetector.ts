@@ -8,6 +8,8 @@ export class FallbackGestureDetector {
   private gestureHistory: Array<{gesture: string; confidence: number; timestamp: number}> = [];
   private readonly HISTORY_SIZE = 5;
   private ruleBasedConfidence = 0.0;
+  private static readonly MIN_PALM_NORMALIZED_WIDTH = 0.15;
+  private static readonly MIN_PALM_NORMALIZED_HEIGHT = 0.15;
 
   /**
    * Simple rule-based gesture detection as fallback
@@ -168,7 +170,12 @@ export class FallbackGestureDetector {
     const palmWidth = Math.abs((hand[5]?.[0] ?? 0) - (hand[17]?.[0] ?? 0));
     const palmHeight = Math.abs((hand[0]?.[1] ?? 0) - (hand[9]?.[1] ?? 0));
 
-    return extendedFingers >= 3 && thumbExtended && palmWidth > 0.15 && palmHeight > 0.15;
+    return (
+      extendedFingers >= 3 &&
+      thumbExtended &&
+      palmWidth > FallbackGestureDetector.MIN_PALM_NORMALIZED_WIDTH &&
+      palmHeight > FallbackGestureDetector.MIN_PALM_NORMALIZED_HEIGHT
+    );
   }
 
   private calculateMovement(prevHand: number[][], currHand: number[][]): number {

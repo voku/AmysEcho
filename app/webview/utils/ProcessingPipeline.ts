@@ -5,7 +5,7 @@
 
 import { PerformanceOptimizer } from './PerformanceOptimizer';
 import { MemoryOptimizer } from './MemoryOptimizer';
-import { MediaPipeGestureResult } from '../types/MediaPipeTypes';
+import { MediaPipeGestureResult, TwoHandGesture } from '../types/MediaPipeTypes';
 import { NormalizedMediaPipeResult } from './mapMediaPipeResults';
 
 export interface ProcessingContext {
@@ -26,7 +26,48 @@ export interface ProcessingResult {
   processingTime: number;
   stepsExecuted: string[];
   skippedSteps: string[];
-  [key: string]: any;
+  timestamp?: number;
+  preprocessing?: {
+    sizeNormalized?: boolean;
+    tremorCompensated?: boolean;
+  };
+  stability?: {
+    isStable: boolean;
+    score: number;
+  };
+  feedback?: string;
+  partial?: {
+    isPartial: boolean;
+    completion: number;
+    confidence: number;
+    feedback: string;
+    gesture: string;
+  } | null;
+  emergency?: {
+    detected: boolean;
+    priority: 'normal' | 'high' | 'critical';
+    feedback: string;
+    cooldownRemaining: number;
+  };
+  fallback?: {
+    gesture: string;
+    confidence: number;
+    isFallback: boolean;
+    feedback?: string;
+  } | null;
+  isUsingFallback?: boolean;
+  isFallback?: boolean;
+  finalResult?: {
+    validated: boolean;
+    timestamp: number;
+  };
+  metadata?: {
+    method: 'mediapipe' | 'mlp' | 'none';
+    perHand: Array<{ hand: string; label: string; score: number }>;
+    handednesses: string[];
+    mlp: { label: string; score: number } | null;
+    twoHand: TwoHandGesture | null;
+  } | null;
 }
 
 export class ProcessingPipeline {
@@ -64,7 +105,7 @@ export class ProcessingPipeline {
     let currentConfidence = 0;
     let detectedGesture: string | undefined;
 
-    const aggregated: Record<string, unknown> = {};
+    const aggregated: Partial<ProcessingResult> = {};
 
     // Execute each step with optimization
     for (const step of this.processingSteps) {
@@ -86,7 +127,7 @@ export class ProcessingPipeline {
         stepsExecuted.push(step.name);
 
         if (stepResult && typeof stepResult === 'object') {
-          Object.assign(aggregated, stepResult);
+          Object.assign(aggregated, stepResult as Partial<ProcessingResult>);
         }
 
         // Update context with step results

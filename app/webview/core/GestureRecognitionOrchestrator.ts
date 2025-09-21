@@ -6,7 +6,12 @@
 import { GestureDetector } from './GestureDetector';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
 import { MemoryOptimizer } from '../utils/MemoryOptimizer';
-import { ProcessingPipeline, ProcessingStep, ProcessingContext } from '../utils/ProcessingPipeline';
+import {
+  ProcessingPipeline,
+  ProcessingStep,
+  ProcessingContext,
+  ProcessingResult,
+} from '../utils/ProcessingPipeline';
 import { OptimizedTremorCompensator } from '../utils/OptimizedTremorCompensator';
 import { GestureSizeNormalizer } from '../gestureProcessing';
 import { PartialGestureDetector } from '../gestureProcessing';
@@ -25,6 +30,25 @@ const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
 const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.4;
+
+interface GestureMessagePayload {
+  type: 'gesture';
+  gesture?: string;
+  confidence: number;
+  landmarks: number[][][];
+  handednesses: string[];
+  timestamp: number;
+  isFallback?: boolean;
+  systemHealth: ReturnType<ErrorRecoveryManager['getHealthStatus']>;
+  processingTime: number;
+  stepsExecuted: string[];
+  skippedSteps: string[];
+  thresholds: {
+    fallback: number;
+    mlp: number;
+  };
+  frameCapture?: string | null;
+}
 
 export class GestureRecognitionOrchestrator {
   private gestureDetector: GestureDetector | null = null;
@@ -207,9 +231,9 @@ export class GestureRecognitionOrchestrator {
   /**
    * Send gesture result to React Native
    */
-  private sendGestureResult(processingResult: any, originalResults: MediaPipeGestureResult): void {
+  private sendGestureResult(processingResult: ProcessingResult, originalResults: MediaPipeGestureResult): void {
     try {
-      const payload = {
+      const payload: GestureMessagePayload = {
         type: 'gesture',
         gesture: processingResult.gesture,
         confidence: processingResult.confidence,
@@ -224,12 +248,12 @@ export class GestureRecognitionOrchestrator {
         thresholds: {
           fallback: FALLBACK_CONFIDENCE_THRESHOLD,
           mlp: MLP_CONFIDENCE_THRESHOLD,
-        }
+        },
       };
 
       const frameCapture = getLastCapturedFrame();
       if (frameCapture && (processingResult.confidence ?? 0) < FALLBACK_CONFIDENCE_THRESHOLD) {
-        (payload as any).frameCapture = frameCapture;
+        payload.frameCapture = frameCapture;
       }
 
       messageBatcher.queueMessage(payload, {
