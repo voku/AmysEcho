@@ -10,6 +10,13 @@ import { ResourceManager } from '../utils/ResourceManager';
 import { HealthMonitor } from '../utils/HealthMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
 import { GestureRecognizerLike, MediaPipeGestureResult } from '../types/MediaPipeTypes';
+import {
+  initializeFrameCapture,
+  captureFrameForOpenAI,
+  setFrameCaptureEnabled,
+  frameCaptureState,
+  disposeFrameCapture,
+} from '../utils/FrameCaptureManager';
 
 export class GestureDetector {
   private config: GestureDetectorConfig;
@@ -22,6 +29,7 @@ export class GestureDetector {
   private gestureRecognizer: GestureRecognizerLike | null = null;
   private running = false;
   private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
+  private lastCaptureAttempt = 0;
 
   constructor(video: HTMLVideoElement, overlay: HTMLCanvasElement) {
     this.video = video;
@@ -71,8 +79,13 @@ export class GestureDetector {
       }
 
       // Set up video event listener
-      this.video.addEventListener('loadeddata', () => this.startDetection());
-      this.resourceManager.registerEventListener(this.video, 'loadeddata', () => this.startDetection());
+      const onLoadedData = () => {
+        initializeFrameCapture(this.video);
+        this.lastCaptureAttempt = 0;
+        this.startDetection();
+      };
+      this.video.addEventListener('loadeddata', onLoadedData);
+      this.resourceManager.registerEventListener(this.video, 'loadeddata', onLoadedData);
 
     } catch (error) {
       console.error('Failed to initialize gesture detector:', error);
@@ -86,6 +99,7 @@ export class GestureDetector {
   async start(): Promise<void> {
     try {
       await this.cameraManager.startCamera();
+      setFrameCaptureEnabled(true);
     } catch (error) {
       console.error('Failed to start camera:', error);
 
@@ -160,6 +174,11 @@ export class GestureDetector {
             this.overlayRenderer.clear();
             this.overlayRenderer.drawHandLandmarks(results.landmarks, this.config.camera.mirrorOverlay);
           }
+          const captureInterval = frameCaptureState.frameCaptureInterval;
+          if (frameStart - this.lastCaptureAttempt >= captureInterval) {
+            captureFrameForOpenAI(this.video);
+            this.lastCaptureAttempt = frameStart;
+          }
         }
 
         // Record successful frame with performance metrics
@@ -211,6 +230,8 @@ export class GestureDetector {
 
     await this.cameraManager.stopCamera();
     await this.resourceManager.dispose();
+    setFrameCaptureEnabled(false);
+    disposeFrameCapture();
   }
 
   /**

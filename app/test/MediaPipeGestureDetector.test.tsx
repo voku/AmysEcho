@@ -10,6 +10,10 @@ const GESTURE_PROCESSING_ERROR = 'gesture_processing_error';
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/mock/documents/',
   cacheDirectory: '/mock/cache/',
+  Paths: {
+    document: { uri: '/mock/documents/' },
+    cache: { uri: '/mock/cache/' },
+  },
 }));
 
 jest.mock('react-native', () => {
@@ -148,7 +152,7 @@ describe('MediaPipeGestureDetector', () => {
       message: 'Camera access denied',
       code: undefined,
     });
-    expect(onError).toHaveBeenCalledWith('gesture_processing_error');
+    expect(onError).toHaveBeenCalledWith('Camera access denied');
     expect(onGestureDetected).not.toHaveBeenCalled();
     errorSpy.mockRestore();
   });
@@ -188,8 +192,97 @@ describe('MediaPipeGestureDetector', () => {
       webview.props.onMessage({ nativeEvent: { data: 'invalid json' } });
     });
 
-    expect(onError).toHaveBeenCalledWith(GESTURE_PROCESSING_ERROR);
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining('Unexpected token'));
     expect(onGestureDetected).not.toHaveBeenCalled();
+  });
+
+  it('processes gesture batches emitted from the WebView bridge', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onWebViewEvent = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onWebViewEvent={onWebViewEvent}
+        />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const batchPayload = {
+      type: 'gesture_batch',
+      messageCount: 2,
+      frameCount: 12,
+      lastSentAt: 123456,
+      messages: [
+        { type: 'gesture', gesture: 'hallo', confidence: 0.82, landmarks: [[[0, 0, 0]]] },
+        { type: 'gesture', gesture: 'hilfe', confidence: 0.41 },
+      ],
+    };
+
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify(batchPayload) } });
+    });
+
+    expect(onGestureDetected).toHaveBeenNthCalledWith(1, 'hallo', 0.82, [[[0, 0, 0]]]);
+    expect(onGestureDetected).toHaveBeenNthCalledWith(2, 'hilfe', 0.41, []);
+    expect(onWebViewEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'telemetry',
+        event: 'gesture_batch_received',
+        batchSize: 2,
+        processedCount: 2,
+        messageCount: 2,
+        frameCount: 12,
+        lastSentAt: 123456,
+      })
+    );
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('reports processedCount only for valid gesture messages in a batch', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onWebViewEvent = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onWebViewEvent={onWebViewEvent}
+        />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const batchPayload = {
+      type: 'gesture_batch',
+      messageCount: 4,
+      messages: [
+        { type: 'gesture', gesture: 'hallo', confidence: 0.9 },
+        null,
+        'not-an-object',
+        { type: 'gesture', gesture: 'hilfe', confidence: 0.4 },
+      ],
+    };
+
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify(batchPayload) } });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledTimes(2);
+    expect(onWebViewEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'telemetry',
+        event: 'gesture_batch_received',
+        batchSize: 4,
+        processedCount: 2,
+      })
+    );
   });
 
     it('handles permission requests', () => {
