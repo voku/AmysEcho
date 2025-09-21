@@ -105,14 +105,28 @@ export class EmergencyGestureSystem {
    * Send emergency telemetry to React Native
    */
   private sendEmergencyTelemetry(gesture: string, confidence: number): void {
+    const timestamp = Date.now();
+
     try {
+      const basePayload = {
+        gesture,
+        confidence,
+        timestamp,
+        systemHealth: 'active' as const,
+      };
+
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'telemetry',
+          event: 'emergency_gesture_detected',
+          ...basePayload,
+        })
+      );
+
       window.ReactNativeWebView?.postMessage?.(
         JSON.stringify({
           type: 'emergency_gesture',
-          gesture,
-          confidence,
-          timestamp: Date.now(),
-          systemHealth: 'active' // Would integrate with error recovery manager
+          ...basePayload,
         })
       );
     } catch (err) {

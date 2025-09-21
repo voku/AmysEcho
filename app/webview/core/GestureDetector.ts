@@ -10,6 +10,11 @@ import { ResourceManager } from '../utils/ResourceManager';
 import { HealthMonitor } from '../utils/HealthMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
 import { GestureRecognizerLike, MediaPipeGestureResult } from '../types/MediaPipeTypes';
+import {
+  initializeFrameCapture,
+  captureFrameForOpenAI,
+  setFrameCaptureEnabled,
+} from '../utils/FrameCaptureManager';
 
 export class GestureDetector {
   private config: GestureDetectorConfig;
@@ -71,8 +76,12 @@ export class GestureDetector {
       }
 
       // Set up video event listener
-      this.video.addEventListener('loadeddata', () => this.startDetection());
-      this.resourceManager.registerEventListener(this.video, 'loadeddata', () => this.startDetection());
+      const onLoadedData = () => {
+        initializeFrameCapture(this.video);
+        this.startDetection();
+      };
+      this.video.addEventListener('loadeddata', onLoadedData);
+      this.resourceManager.registerEventListener(this.video, 'loadeddata', onLoadedData);
 
     } catch (error) {
       console.error('Failed to initialize gesture detector:', error);
@@ -86,6 +95,7 @@ export class GestureDetector {
   async start(): Promise<void> {
     try {
       await this.cameraManager.startCamera();
+      setFrameCaptureEnabled(true);
     } catch (error) {
       console.error('Failed to start camera:', error);
 
@@ -160,6 +170,7 @@ export class GestureDetector {
             this.overlayRenderer.clear();
             this.overlayRenderer.drawHandLandmarks(results.landmarks, this.config.camera.mirrorOverlay);
           }
+          captureFrameForOpenAI(this.video);
         }
 
         // Record successful frame with performance metrics
@@ -211,6 +222,7 @@ export class GestureDetector {
 
     await this.cameraManager.stopCamera();
     await this.resourceManager.dispose();
+    setFrameCaptureEnabled(false);
   }
 
   /**

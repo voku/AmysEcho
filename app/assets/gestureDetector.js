@@ -1843,6 +1843,71 @@
     return config;
   }
 
+  // app/webview/utils/FrameCaptureManager.ts
+  var frameCaptureEnabled = false;
+  var frameCaptureInterval = 500;
+  var lastCapturedFrame = null;
+  var lastCaptureTimestamp = 0;
+  var captureCanvas = null;
+  var captureContext = null;
+  function ensureCanvas(video2) {
+    if (!captureCanvas) {
+      captureCanvas = document.createElement("canvas");
+      captureContext = captureCanvas.getContext("2d");
+    }
+    if (!captureCanvas || !captureContext) {
+      throw new Error("Unable to initialize frame capture canvas");
+    }
+    if (video2.videoWidth && video2.videoHeight) {
+      if (captureCanvas.width !== video2.videoWidth || captureCanvas.height !== video2.videoHeight) {
+        captureCanvas.width = video2.videoWidth;
+        captureCanvas.height = video2.videoHeight;
+      }
+    }
+  }
+  function initializeFrameCapture(video2) {
+    try {
+      ensureCanvas(video2);
+      lastCapturedFrame = null;
+      lastCaptureTimestamp = 0;
+    } catch (error) {
+      console.warn("Failed to initialize frame capture:", error);
+    }
+  }
+  function setFrameCaptureEnabled(enabled, intervalMs) {
+    frameCaptureEnabled = enabled;
+    if (typeof intervalMs === "number" && intervalMs > 0) {
+      frameCaptureInterval = intervalMs;
+    }
+    if (!enabled) {
+      lastCapturedFrame = null;
+    }
+  }
+  function captureFrameForOpenAI(video2) {
+    if (!frameCaptureEnabled) {
+      return lastCapturedFrame;
+    }
+    try {
+      ensureCanvas(video2);
+      if (!captureCanvas || !captureContext || !video2.videoWidth || !video2.videoHeight) {
+        return lastCapturedFrame;
+      }
+      const now = Date.now();
+      if (now - lastCaptureTimestamp < frameCaptureInterval) {
+        return lastCapturedFrame;
+      }
+      captureContext.drawImage(video2, 0, 0, captureCanvas.width, captureCanvas.height);
+      lastCapturedFrame = captureCanvas.toDataURL("image/jpeg", 0.7);
+      lastCaptureTimestamp = now;
+    } catch (error) {
+      console.warn("Frame capture failed:", error);
+    }
+    return lastCapturedFrame;
+  }
+  function getLastCapturedFrame() {
+    return lastCapturedFrame;
+  }
+
   // app/webview/core/GestureDetector.ts
   var GestureDetector = class {
     constructor(video2, overlay2) {
@@ -1887,8 +1952,12 @@
             numHands: 2
           });
         }
-        this.video.addEventListener("loadeddata", () => this.startDetection());
-        this.resourceManager.registerEventListener(this.video, "loadeddata", () => this.startDetection());
+        const onLoadedData = () => {
+          initializeFrameCapture(this.video);
+          this.startDetection();
+        };
+        this.video.addEventListener("loadeddata", onLoadedData);
+        this.resourceManager.registerEventListener(this.video, "loadeddata", onLoadedData);
       } catch (error) {
         console.error("Failed to initialize gesture detector:", error);
         throw error;
@@ -1900,6 +1969,7 @@
     async start() {
       try {
         await this.cameraManager.startCamera();
+        setFrameCaptureEnabled(true);
       } catch (error) {
         console.error("Failed to start camera:", error);
         try {
@@ -1957,6 +2027,7 @@
               this.overlayRenderer.clear();
               this.overlayRenderer.drawHandLandmarks(results.landmarks, this.config.camera.mirrorOverlay);
             }
+            captureFrameForOpenAI(this.video);
           }
           this.healthMonitor.recordFrame(frameStart);
           if (recognitionTime > 50) {
@@ -1991,6 +2062,7 @@
       }
       await this.cameraManager.stopCamera();
       await this.resourceManager.dispose();
+      setFrameCaptureEnabled(false);
     }
     /**
      * Get current configuration
@@ -2436,6 +2508,7 @@
       let currentLandmarks = context.landmarks;
       let currentConfidence = 0;
       let detectedGesture;
+      const aggregated = {};
       for (const step of this.processingSteps) {
         const stepStartTime = performance.now();
         try {
@@ -2448,6 +2521,9 @@
             landmarks: currentLandmarks
           });
           stepsExecuted.push(step.name);
+          if (stepResult && typeof stepResult === "object") {
+            Object.assign(aggregated, stepResult);
+          }
           if (stepResult.landmarks) {
             currentLandmarks = stepResult.landmarks;
           }
@@ -2464,9 +2540,11 @@
       }
       const totalTime = performance.now() - startTime;
       this.performanceOptimizer.recordProcessingTime(totalTime);
+      aggregated.timestamp = aggregated.timestamp ?? context.timestamp;
       const result = {
-        gesture: detectedGesture,
-        confidence: currentConfidence,
+        ...aggregated,
+        gesture: detectedGesture ?? aggregated.gesture,
+        confidence: detectedGesture !== void 0 ? currentConfidence : typeof aggregated.confidence === "number" ? aggregated.confidence : currentConfidence,
         landmarks: currentLandmarks,
         processingTime: totalTime,
         stepsExecuted,
@@ -3301,6 +3379,9 @@
         case "thumbs_up":
           confidence += this.checkThumbsUpClarity(hand) ? 0.2 : -0.1;
           break;
+        case "open_palm":
+          confidence += this.checkOpenPalmClarity(hand) ? 0.2 : -0.05;
+          break;
       }
       return Math.max(0.1, Math.min(0.8, confidence));
     }
@@ -3330,6 +3411,20 @@
       hand[20][1] > hand[18][1];
       return thumbExtended && otherFingersCurled;
     }
+    checkOpenPalmClarity(hand) {
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      let extendedFingers = 0;
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+          extendedFingers += 1;
+        }
+      }
+      const thumbExtended = hand[4][1] < hand[2][1];
+      const palmWidth = Math.abs((hand[5]?.[0] ?? 0) - (hand[17]?.[0] ?? 0));
+      const palmHeight = Math.abs((hand[0]?.[1] ?? 0) - (hand[9]?.[1] ?? 0));
+      return extendedFingers >= 3 && thumbExtended && palmWidth > 0.15 && palmHeight > 0.15;
+    }
     calculateMovement(prevHand, currHand) {
       let totalMovement = 0;
       let points = 0;
@@ -3351,20 +3446,28 @@
     }
     getGestureFeedback(gesture, confidence) {
       if (confidence < 0.4) {
-        return "Versuch es nochmal, halte deine Hand ruhig";
+        return "Versuch es nochmal, wir schaffen das gemeinsam!";
       }
-      switch (gesture) {
-        case "fist":
-          return "Faust erkannt!";
-        case "point":
-          return "Zeigefinger erkannt!";
-        case "thumbs_up":
-          return "Daumen hoch erkannt!";
-        case "open_palm":
-          return "Offene Hand erkannt!";
-        default:
-          return "Geste erkannt!";
-      }
+      const celebrationMessages = [
+        "Super! Deine Hand bewegt sich richtig.",
+        "Toll! Ich sehe deine Geste ganz deutlich.",
+        "Fantastisch! Das war eine klasse Geste."
+      ];
+      const gestureLabels = {
+        fist: "Faust",
+        point: "Zeigefinger",
+        peace: "Peace-Geste",
+        thumbs_up: "Daumen hoch",
+        open_palm: "offene Hand"
+      };
+      const clampedConfidence = Math.max(0, Math.min(1, confidence));
+      const messageIndex = Math.min(
+        celebrationMessages.length - 1,
+        Math.floor((clampedConfidence - 0.4) / 0.2)
+      );
+      const celebration = celebrationMessages[Math.max(0, messageIndex)];
+      const friendlyLabel = gestureLabels[gesture] ?? "deine Geste";
+      return `${celebration} (${friendlyLabel}).`;
     }
     reset() {
       this.lastLandmarks = null;
@@ -3464,15 +3567,25 @@
      * Send emergency telemetry to React Native
      */
     sendEmergencyTelemetry(gesture, confidence) {
+      const timestamp = Date.now();
       try {
+        const basePayload = {
+          gesture,
+          confidence,
+          timestamp,
+          systemHealth: "active"
+        };
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "telemetry",
+            event: "emergency_gesture_detected",
+            ...basePayload
+          })
+        );
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({
             type: "emergency_gesture",
-            gesture,
-            confidence,
-            timestamp: Date.now(),
-            systemHealth: "active"
-            // Would integrate with error recovery manager
+            ...basePayload
           })
         );
       } catch (err2) {
@@ -3799,7 +3912,81 @@
     };
   }
 
+  // app/webview/utils/MessageBatcher.ts
+  var BATCH_INTERVAL_MS = 50;
+  var MAX_BATCH_SIZE = 5;
+  var FRAME_LATENCY_SAMPLE_INTERVAL = 10;
+  var MessageBatcher = class {
+    constructor() {
+      this.queue = [];
+      this.timer = null;
+      this.frameCount = 0;
+      this.lastSentAt = 0;
+    }
+    queueMessage(payload, options = {}) {
+      this.queue.push(payload);
+      this.frameCount += 1;
+      if (options.flushImmediately) {
+        this.forceFlush();
+        return;
+      }
+      if (this.queue.length >= MAX_BATCH_SIZE || this.frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
+        this.flushBatch();
+        return;
+      }
+      if (!this.timer) {
+        this.timer = setTimeout(() => this.flushBatch(), BATCH_INTERVAL_MS);
+      }
+    }
+    flushBatch() {
+      if (!this.queue.length) {
+        this.clearTimer();
+        return;
+      }
+      const messages = this.queue.slice();
+      this.queue = [];
+      this.clearTimer();
+      const batchPayload = {
+        type: "gesture_batch",
+        frameCount: messages.length,
+        lastSentAt: Date.now(),
+        messages
+      };
+      try {
+        if (window.ReactNativeWebView?.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(batchPayload));
+        } else {
+          console.warn("MessageBatcher: ReactNativeWebView not available, logging batch", batchPayload);
+        }
+        this.lastSentAt = batchPayload.lastSentAt;
+      } catch (error) {
+        console.error("MessageBatcher failed to flush batch:", error);
+      } finally {
+        this.frameCount = 0;
+      }
+    }
+    forceFlush() {
+      this.flushBatch();
+    }
+    getQueueStatus() {
+      return {
+        pending: this.queue.length,
+        frameCount: this.frameCount,
+        lastSentAt: this.lastSentAt
+      };
+    }
+    clearTimer() {
+      if (this.timer) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+    }
+  };
+  var messageBatcher = new MessageBatcher();
+
   // app/webview/core/GestureRecognitionOrchestrator.ts
+  var FALLBACK_CONFIDENCE_THRESHOLD = typeof window.__fallbackThreshold === "number" ? window.__fallbackThreshold : 0.35;
+  var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.4;
   var GestureRecognitionOrchestrator = class {
     constructor(video2, overlay2) {
       this.video = video2;
@@ -3807,6 +3994,7 @@
       this.gestureDetector = null;
       this.isInitialized = false;
       this.isRunning = false;
+      this.frameSampleCounter = 0;
       this.performanceOptimizer = new PerformanceOptimizer();
       this.memoryOptimizer = MemoryOptimizer.getInstance();
       this.processingPipeline = new ProcessingPipeline();
@@ -3858,6 +4046,7 @@
         });
         await this.gestureDetector.initialize();
         this.batteryMonitor.startMonitoring();
+        setFrameCaptureEnabled(true);
         this.isInitialized = true;
       } catch (error) {
         console.error("Failed to initialize gesture recognition orchestrator:", error);
@@ -3906,6 +4095,14 @@
           this.sendGestureResult(processingResult, results);
         }
         this.performanceOptimizer.recordProcessingTime(processingResult.processingTime);
+        this.frameSampleCounter += 1;
+        if (this.frameSampleCounter >= FRAME_LATENCY_SAMPLE_INTERVAL) {
+          const metrics = this.performanceOptimizer.getPerformanceMetrics();
+          if (metrics.averageProcessingTime > 45) {
+            messageBatcher.forceFlush();
+          }
+          this.frameSampleCounter = 0;
+        }
       } catch (error) {
         console.error("Error handling gesture results:", error);
         this.errorRecoveryManager.recordFailure(error, "gesture_result_processing");
@@ -3929,14 +4126,24 @@
           confidence: processingResult.confidence,
           landmarks: processingResult.landmarks,
           handednesses: originalResults.handednesses?.map((h) => h.categoryName) || [],
-          timestamp: processingResult.timestamp,
+          timestamp: processingResult.timestamp ?? Date.now(),
           isFallback: processingResult.isFallback,
           systemHealth: this.errorRecoveryManager.getHealthStatus(),
           processingTime: processingResult.processingTime,
           stepsExecuted: processingResult.stepsExecuted,
-          skippedSteps: processingResult.skippedSteps
+          skippedSteps: processingResult.skippedSteps,
+          thresholds: {
+            fallback: FALLBACK_CONFIDENCE_THRESHOLD,
+            mlp: MLP_CONFIDENCE_THRESHOLD
+          }
         };
-        window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
+        const frameCapture = getLastCapturedFrame();
+        if (frameCapture && (processingResult.confidence ?? 0) < FALLBACK_CONFIDENCE_THRESHOLD) {
+          payload.frameCapture = frameCapture;
+        }
+        messageBatcher.queueMessage(payload, {
+          flushImmediately: Boolean(processingResult.emergency?.detected || processingResult.isFallback)
+        });
       } catch (error) {
         console.warn("Failed to send gesture result:", error);
       }
@@ -3958,6 +4165,8 @@
      */
     async cleanup() {
       await this.stop();
+      messageBatcher.forceFlush();
+      setFrameCaptureEnabled(false);
       this.memoryOptimizer.performCleanup();
     }
   };
@@ -4044,7 +4253,7 @@
           );
           if (mlpResult && typeof mlpResult.score === "number") {
             mlpMetadata = mlpResult;
-            const threshold = this.config?.thresholds?.mlpConfidence ?? 0.4;
+            const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
             if (mlpResult.score >= threshold && mlpResult.score >= selectedConfidence) {
               selectedGesture = this.normalizeLabel(mlpResult.label);
               selectedConfidence = mlpResult.score;
@@ -4155,12 +4364,35 @@
       this.isExpensive = false;
     }
     async execute(context) {
-      return {
-        emergency: {
-          detected: false,
-          priority: "normal"
-        }
+      const normalized = context.normalizedResults ?? mapMediaPipeResult(context.rawResults);
+      const emergencyStatus = {
+        detected: false,
+        priority: "normal",
+        feedback: "",
+        cooldownRemaining: 0
       };
+      for (const hand of normalized.hands) {
+        const candidate = hand.gestures?.[0];
+        if (!candidate || !candidate.label) {
+          continue;
+        }
+        if (!this.emergencySystem.isEmergencyGesture(candidate.label, candidate.score ?? 0)) {
+          continue;
+        }
+        const processed = this.emergencySystem.processEmergencyGesture(
+          candidate.label,
+          candidate.score ?? 0,
+          context.landmarks
+        );
+        emergencyStatus.priority = processed.priority;
+        emergencyStatus.cooldownRemaining = processed.cooldownRemaining;
+        emergencyStatus.feedback = processed.feedback;
+        if (processed.shouldProcess) {
+          emergencyStatus.detected = true;
+          break;
+        }
+      }
+      return { emergency: emergencyStatus };
     }
   };
   var FallbackProcessingStep = class {

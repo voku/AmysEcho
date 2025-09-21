@@ -5,7 +5,11 @@ import type { WebViewPermissionRequestEvent } from '../webviewTypes';
 
 import { GestureWebView } from './GestureWebView';
 import { gestureDetectorBase64 } from '../webview/gestureDetectorBase64';
-import { FALLBACK_CONFIDENCE_THRESHOLD, MLP_CONFIDENCE_THRESHOLD } from '../constants';
+import {
+  CAMERA_WEBVIEW_BASE_URL,
+  FALLBACK_CONFIDENCE_THRESHOLD,
+  MLP_CONFIDENCE_THRESHOLD,
+} from '../constants';
 import { logger } from '../utils/logger';
 import { useModelInjection } from '../hooks/useModelInjection';
 import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
@@ -50,6 +54,26 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
   const { injectModel, mlpReadyRef, pendingModelRef, markTransferComplete } = useModelInjection(
     webviewRef,
     onModelUpdateStatus,
+  );
+
+  const deliverGestureMessage = useCallback(
+    (message: any) => {
+      if (!message || typeof message !== 'object') {
+        return false;
+      }
+
+      const gesture = typeof message.gesture === 'string' ? message.gesture : null;
+      const rawConfidence =
+        typeof message.confidence === 'number'
+          ? message.confidence
+          : parseFloat(String(message.confidence ?? ''));
+      const confidence = Number.isFinite(rawConfidence) ? rawConfidence : 0;
+      const landmarks = Array.isArray(message.landmarks) ? message.landmarks : [];
+
+      onGestureDetected(gesture, confidence, landmarks);
+      return true;
+    },
+    [onGestureDetected],
   );
 
   useEffect(() => {
@@ -174,11 +198,27 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
   const handlePermissionRequest = useCallback((event: WebViewPermissionRequestEvent) => {
     try {
-      const { resources, grant, deny } = event.nativeEvent;
-      if (Array.isArray(resources) && resources.includes('VIDEO_CAPTURE')) {
-        grant(['VIDEO_CAPTURE']);
+      const { origin, resources, grant, deny } = event.nativeEvent;
+      const normalizedOrigin = typeof origin === 'string' ? origin.trim() : '';
+      const trustedOrigin =
+        normalizedOrigin.length > 0 &&
+        normalizedOrigin.toLowerCase().startsWith(CAMERA_WEBVIEW_BASE_URL.toLowerCase());
+
+      if (!trustedOrigin) {
+        logger.warn('WebView permission denied: untrusted origin', { origin: normalizedOrigin });
+        deny?.();
+        return;
+      }
+
+      const wantsCamera = Array.isArray(resources) && resources.includes('VIDEO_CAPTURE');
+      if (wantsCamera) {
+        grant?.(['VIDEO_CAPTURE']);
       } else {
-        deny();
+        logger.warn('WebView permission denied: camera access not requested', {
+          origin: normalizedOrigin,
+          resources,
+        });
+        deny?.();
       }
     } catch (err) {
       logger.warn('Permission request handling failed', err);
@@ -194,8 +234,40 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
         const data = JSON.parse(event.nativeEvent.data);
 
         if (data.type === 'gesture') {
-          onGestureDetected(data.gesture, data.confidence, data.landmarks ?? []);
-          setWebviewError(null);
+          if (deliverGestureMessage(data)) {
+            setWebviewError(null);
+          }
+        } else if (data.type === 'gesture_batch') {
+          const messages = Array.isArray(data.messages) ? data.messages : [];
+          let processedCount = 0;
+
+          for (const message of messages) {
+            if (deliverGestureMessage(message)) {
+              processedCount += 1;
+            }
+          }
+
+          if (processedCount > 0) {
+            setWebviewError(null);
+          }
+
+          if (onWebViewEvent) {
+            const telemetry: Record<string, unknown> = {
+              type: 'telemetry',
+              event: 'gesture_batch_received',
+              batchSize: messages.length,
+              processedCount,
+            };
+
+            if (typeof data.frameCount === 'number') {
+              telemetry.frameCount = data.frameCount;
+            }
+            if (typeof data.lastSentAt === 'number') {
+              telemetry.lastSentAt = data.lastSentAt;
+            }
+
+            onWebViewEvent(telemetry);
+          }
         } else if (data.type === 'telemetry') {
           onWebViewEvent?.(data);
           const eventName = data.event;
@@ -218,8 +290,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
             setWebviewError(null);
           }
         } else if (data.type === 'error') {
+          const errorMessage = typeof data.message === 'string' ? data.message : 'gesture_processing_error';
+          logger.error('WebView error', {
+            message: errorMessage,
+            code: (data as { code?: string }).code,
+          });
           setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-          onError(data.message || 'gesture_processing_error');
+          onError('gesture_processing_error');
         }
       } catch (err) {
         logger.error('Error parsing WebView message', { error: err });
@@ -228,11 +305,11 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       }
     },
     [
+      deliverGestureMessage,
       injectModel,
       markTransferComplete,
       mlpReadyRef,
       onError,
-      onGestureDetected,
       onModelUpdateStatus,
       onWebViewEvent,
       pendingModelRef,

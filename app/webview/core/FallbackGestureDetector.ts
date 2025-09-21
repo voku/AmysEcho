@@ -110,6 +110,9 @@ export class FallbackGestureDetector {
       case 'thumbs_up':
         confidence += this.checkThumbsUpClarity(hand) ? 0.2 : -0.1;
         break;
+      case 'open_palm':
+        confidence += this.checkOpenPalmClarity(hand) ? 0.2 : -0.05;
+        break;
     }
 
     return Math.max(0.1, Math.min(0.8, confidence));
@@ -150,6 +153,24 @@ export class FallbackGestureDetector {
     return thumbExtended && otherFingersCurled;
   }
 
+  private checkOpenPalmClarity(hand: number[][]): boolean {
+    const fingerTips = [8, 12, 16, 20];
+    const fingerJoints = [6, 10, 14, 18];
+    let extendedFingers = 0;
+
+    for (let i = 0; i < fingerTips.length; i++) {
+      if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+        extendedFingers += 1;
+      }
+    }
+
+    const thumbExtended = hand[4][1] < hand[2][1];
+    const palmWidth = Math.abs((hand[5]?.[0] ?? 0) - (hand[17]?.[0] ?? 0));
+    const palmHeight = Math.abs((hand[0]?.[1] ?? 0) - (hand[9]?.[1] ?? 0));
+
+    return extendedFingers >= 3 && thumbExtended && palmWidth > 0.15 && palmHeight > 0.15;
+  }
+
   private calculateMovement(prevHand: number[][], currHand: number[][]): number {
     let totalMovement = 0;
     let points = 0;
@@ -178,21 +199,32 @@ export class FallbackGestureDetector {
 
   private getGestureFeedback(gesture: string, confidence: number): string {
     if (confidence < 0.4) {
-      return 'Versuch es nochmal, halte deine Hand ruhig';
+      return 'Versuch es nochmal, wir schaffen das gemeinsam!';
     }
 
-    switch (gesture) {
-      case 'fist':
-        return 'Faust erkannt!';
-      case 'point':
-        return 'Zeigefinger erkannt!';
-      case 'thumbs_up':
-        return 'Daumen hoch erkannt!';
-      case 'open_palm':
-        return 'Offene Hand erkannt!';
-      default:
-        return 'Geste erkannt!';
-    }
+    const celebrationMessages = [
+      'Super! Deine Hand bewegt sich richtig.',
+      'Toll! Ich sehe deine Geste ganz deutlich.',
+      'Fantastisch! Das war eine klasse Geste.',
+    ];
+
+    const gestureLabels: Record<string, string> = {
+      fist: 'Faust',
+      point: 'Zeigefinger',
+      peace: 'Peace-Geste',
+      thumbs_up: 'Daumen hoch',
+      open_palm: 'offene Hand',
+    };
+
+    const clampedConfidence = Math.max(0, Math.min(1, confidence));
+    const messageIndex = Math.min(
+      celebrationMessages.length - 1,
+      Math.floor((clampedConfidence - 0.4) / 0.2)
+    );
+    const celebration = celebrationMessages[Math.max(0, messageIndex)];
+    const friendlyLabel = gestureLabels[gesture] ?? 'deine Geste';
+
+    return `${celebration} (${friendlyLabel}).`;
   }
 
   reset(): void {

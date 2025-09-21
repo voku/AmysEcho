@@ -26,6 +26,7 @@ export interface ProcessingResult {
   processingTime: number;
   stepsExecuted: string[];
   skippedSteps: string[];
+  [key: string]: any;
 }
 
 export class ProcessingPipeline {
@@ -63,6 +64,8 @@ export class ProcessingPipeline {
     let currentConfidence = 0;
     let detectedGesture: string | undefined;
 
+    const aggregated: Record<string, unknown> = {};
+
     // Execute each step with optimization
     for (const step of this.processingSteps) {
       const stepStartTime = performance.now();
@@ -81,6 +84,10 @@ export class ProcessingPipeline {
         });
 
         stepsExecuted.push(step.name);
+
+        if (stepResult && typeof stepResult === 'object') {
+          Object.assign(aggregated, stepResult);
+        }
 
         // Update context with step results
         if (stepResult.landmarks) {
@@ -106,9 +113,17 @@ export class ProcessingPipeline {
     const totalTime = performance.now() - startTime;
     this.performanceOptimizer.recordProcessingTime(totalTime);
 
+    aggregated.timestamp = aggregated.timestamp ?? context.timestamp;
+
     const result: ProcessingResult = {
-      gesture: detectedGesture,
-      confidence: currentConfidence,
+      ...aggregated,
+      gesture: detectedGesture ?? (aggregated.gesture as string | undefined),
+      confidence:
+        detectedGesture !== undefined
+          ? currentConfidence
+          : typeof aggregated.confidence === 'number'
+            ? (aggregated.confidence as number)
+            : currentConfidence,
       landmarks: currentLandmarks,
       processingTime: totalTime,
       stepsExecuted,

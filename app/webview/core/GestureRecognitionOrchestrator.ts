@@ -18,6 +18,13 @@ import { BatteryMonitor } from '../core/BatteryMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
 import { MediaPipeGestureResult, TwoHandGesture } from '../types/MediaPipeTypes';
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
+import { messageBatcher, FRAME_LATENCY_SAMPLE_INTERVAL } from '../utils/MessageBatcher';
+import { getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
+
+const FALLBACK_CONFIDENCE_THRESHOLD =
+  typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
+const MLP_CONFIDENCE_THRESHOLD =
+  typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.4;
 
 export class GestureRecognitionOrchestrator {
   private gestureDetector: GestureDetector | null = null;
@@ -36,6 +43,7 @@ export class GestureRecognitionOrchestrator {
 
   private isInitialized = false;
   private isRunning = false;
+  private frameSampleCounter = 0;
 
   constructor(private video: HTMLVideoElement, private overlay: HTMLCanvasElement) {
     this.performanceOptimizer = new PerformanceOptimizer();
@@ -106,6 +114,7 @@ export class GestureRecognitionOrchestrator {
 
       // Start monitoring systems
       this.batteryMonitor.startMonitoring();
+      setFrameCaptureEnabled(true);
 
       this.isInitialized = true;
     } catch (error) {
@@ -172,6 +181,15 @@ export class GestureRecognitionOrchestrator {
       // Update performance metrics
       this.performanceOptimizer.recordProcessingTime(processingResult.processingTime);
 
+      this.frameSampleCounter += 1;
+      if (this.frameSampleCounter >= FRAME_LATENCY_SAMPLE_INTERVAL) {
+        const metrics = this.performanceOptimizer.getPerformanceMetrics();
+        if (metrics.averageProcessingTime > 45) {
+          messageBatcher.forceFlush();
+        }
+        this.frameSampleCounter = 0;
+      }
+
     } catch (error) {
       console.error('Error handling gesture results:', error);
       this.errorRecoveryManager.recordFailure(error as Error, 'gesture_result_processing');
@@ -197,15 +215,26 @@ export class GestureRecognitionOrchestrator {
         confidence: processingResult.confidence,
         landmarks: processingResult.landmarks,
         handednesses: originalResults.handednesses?.map(h => h.categoryName) || [],
-        timestamp: processingResult.timestamp,
+        timestamp: processingResult.timestamp ?? Date.now(),
         isFallback: processingResult.isFallback,
         systemHealth: this.errorRecoveryManager.getHealthStatus(),
         processingTime: processingResult.processingTime,
         stepsExecuted: processingResult.stepsExecuted,
-        skippedSteps: processingResult.skippedSteps
+        skippedSteps: processingResult.skippedSteps,
+        thresholds: {
+          fallback: FALLBACK_CONFIDENCE_THRESHOLD,
+          mlp: MLP_CONFIDENCE_THRESHOLD,
+        }
       };
 
-      window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
+      const frameCapture = getLastCapturedFrame();
+      if (frameCapture && (processingResult.confidence ?? 0) < FALLBACK_CONFIDENCE_THRESHOLD) {
+        (payload as any).frameCapture = frameCapture;
+      }
+
+      messageBatcher.queueMessage(payload, {
+        flushImmediately: Boolean(processingResult.emergency?.detected || processingResult.isFallback),
+      });
     } catch (error) {
       console.warn('Failed to send gesture result:', error);
     }
@@ -235,6 +264,8 @@ export class GestureRecognitionOrchestrator {
    */
   async cleanup(): Promise<void> {
     await this.stop();
+    messageBatcher.forceFlush();
+    setFrameCaptureEnabled(false);
     this.memoryOptimizer.performCleanup();
   }
 }
@@ -353,7 +384,7 @@ export class GestureDetectionStep implements ProcessingStep {
         );
         if (mlpResult && typeof mlpResult.score === 'number') {
           mlpMetadata = mlpResult;
-          const threshold = this.config?.thresholds?.mlpConfidence ?? 0.4;
+          const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
           if (mlpResult.score >= threshold && mlpResult.score >= selectedConfidence) {
             selectedGesture = this.normalizeLabel(mlpResult.label);
             selectedConfidence = mlpResult.score;
@@ -498,13 +529,41 @@ class EmergencyGestureCheckStep implements ProcessingStep {
   constructor(private emergencySystem: EmergencyGestureSystem) {}
 
   async execute(context: ProcessingContext): Promise<any> {
-    // Emergency gesture checking would be implemented here
-    return {
-      emergency: {
-        detected: false,
-        priority: 'normal'
-      }
+    const normalized = context.normalizedResults ?? mapMediaPipeResult(context.rawResults);
+    const emergencyStatus = {
+      detected: false,
+      priority: 'normal' as 'normal' | 'high' | 'critical',
+      feedback: '',
+      cooldownRemaining: 0,
     };
+
+    for (const hand of normalized.hands) {
+      const candidate = hand.gestures?.[0];
+      if (!candidate || !candidate.label) {
+        continue;
+      }
+
+      if (!this.emergencySystem.isEmergencyGesture(candidate.label, candidate.score ?? 0)) {
+        continue;
+      }
+
+      const processed = this.emergencySystem.processEmergencyGesture(
+        candidate.label,
+        candidate.score ?? 0,
+        context.landmarks
+      );
+
+      emergencyStatus.priority = processed.priority;
+      emergencyStatus.cooldownRemaining = processed.cooldownRemaining;
+      emergencyStatus.feedback = processed.feedback;
+
+      if (processed.shouldProcess) {
+        emergencyStatus.detected = true;
+        break;
+      }
+    }
+
+    return { emergency: emergencyStatus };
   }
 }
 
