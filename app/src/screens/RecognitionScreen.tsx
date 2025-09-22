@@ -318,7 +318,7 @@ export default function RecognitionScreen({
 
     // Always try to classify with our custom model
     if (centroidsRef.current) {
-      const flat = flattenHands(safeLandmarks) as Point[];
+      const flat = flattenHands(stabilized.landmarks) as Point[];
       const res = classifyWithCentroids(flat, centroidsRef.current);
       if (res) {
         g = res.label;
