@@ -224,7 +224,7 @@ export default function RecognitionScreen({
     handStabilizerRef.current.reset();
     setCurrentLandmarks([]);
     setCurrentHandedness([]);
-  }, [facingMode, handStabilizerRef, setCurrentHandedness, setCurrentLandmarks]);
+  }, [facingMode]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
