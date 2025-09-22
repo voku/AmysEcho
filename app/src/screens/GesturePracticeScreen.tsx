@@ -9,6 +9,7 @@ import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector
 
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
+import { cloneLandmarks } from '../utils/landmarkUtils';
 
 export default function GesturePracticeScreen() {
   const { largeText, highContrast } = useAccessibility();
@@ -44,8 +45,15 @@ export default function GesturePracticeScreen() {
     ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
     : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
 
-  const handleGestureDetected = (gesture: string | null, confidence: number, landmarks: number[][][]) => {
-    setLandmarks(landmarks);
+  const handleGestureDetected = (
+    gesture: string | null,
+    confidence: number,
+    rawLandmarks: number[][][],
+    handedness: string[],
+  ) => {
+    const safeLandmarks = cloneLandmarks(rawLandmarks);
+
+    setLandmarks(safeLandmarks);
     setLastDetection(Date.now());
     if (gesture && confidence > 0.5) {
       setMessage(`Gut gemacht! ${gesture} erkannt`);

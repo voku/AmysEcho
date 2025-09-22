@@ -195,7 +195,7 @@ export class PartialGestureDetector {
 }
 
 export class TremorCompensator {
-  private movementHistory: Array<{ landmarks: number[][]; timestamp: number }> = [];
+  private movementHistory: Array<{ landmarks: number[][][]; timestamp: number }> = [];
   private readonly MAX_HISTORY = 3;
   private readonly SMOOTHING_FACTOR = 0.7;
   private readonly MOVEMENT_THRESHOLD = 0.02;
@@ -204,85 +204,168 @@ export class TremorCompensator {
    * Optimized tremor compensation with reduced memory usage
    */
   smoothLandmarks(landmarks: number[][][]): number[][][] {
-    if (!landmarks?.[0] || landmarks[0].length < 21) {
+    if (!Array.isArray(landmarks) || landmarks.length === 0) {
       return landmarks;
     }
 
-    const currentLandmarks = landmarks[0];
+    const normalizedLandmarks = this.cloneHands(landmarks);
     const now = Date.now();
 
     // Add to history
-    this.movementHistory.push({ landmarks: currentLandmarks, timestamp: now });
+    this.movementHistory.push({ landmarks: this.cloneHands(normalizedLandmarks), timestamp: now });
     if (this.movementHistory.length > this.MAX_HISTORY) {
       this.movementHistory.shift();
     }
 
     // Only smooth if we have enough history
     if (this.movementHistory.length < 2) {
-      return landmarks;
+      return normalizedLandmarks;
     }
 
-    // Check if movement is intentional
-    if (!this.isIntentionalMovement(landmarks, [this.movementHistory[this.movementHistory.length - 2].landmarks])) {
-      // Return previous smoothed position to reduce tremor
-      return [this.movementHistory[this.movementHistory.length - 2].landmarks];
-    }
+    const previousEntry = this.movementHistory[this.movementHistory.length - 2];
 
-    // Apply smoothing
-    const smoothed = this.applySmoothing(currentLandmarks);
-    return [smoothed];
+    const smoothedHands = normalizedLandmarks.map((hand, index) => {
+      const previousHand = previousEntry.landmarks[index];
+
+      if (!hand || hand.length === 0) {
+        return hand;
+      }
+
+      if (!previousHand || previousHand.length === 0) {
+        return hand;
+      }
+
+      if (!this.isIntentionalMovementForHand(hand, previousHand)) {
+        return this.cloneHand(previousHand);
+      }
+
+      return this.applySmoothing(hand, previousHand);
+    });
+
+    return smoothedHands;
   }
 
-  private applySmoothing(current: number[][]): number[][] {
-    if (this.movementHistory.length < 2) return current;
-
-    const previous = this.movementHistory[this.movementHistory.length - 2].landmarks;
+  private applySmoothing(current: number[][], previous: number[][]): number[][] {
     const smoothed: number[][] = [];
+    const length = Math.min(current.length, previous.length);
 
-    for (let i = 0; i < Math.min(current.length, previous.length); i++) {
+    for (let i = 0; i < length; i++) {
       const currentPoint = current[i];
       const previousPoint = previous[i];
 
-      // Apply exponential smoothing
+      if (!currentPoint || !previousPoint) {
+        smoothed.push(currentPoint || previousPoint || [0, 0, 0]);
+        continue;
+      }
+
       const smoothedPoint = [
         previousPoint[0] * this.SMOOTHING_FACTOR + currentPoint[0] * (1 - this.SMOOTHING_FACTOR),
         previousPoint[1] * this.SMOOTHING_FACTOR + currentPoint[1] * (1 - this.SMOOTHING_FACTOR),
-        previousPoint[2] * this.SMOOTHING_FACTOR + currentPoint[2] * (1 - this.SMOOTHING_FACTOR),
+        (previousPoint[2] ?? 0) * this.SMOOTHING_FACTOR + (currentPoint[2] ?? 0) * (1 - this.SMOOTHING_FACTOR),
       ];
 
       smoothed.push(smoothedPoint);
+    }
+
+    if (current.length > length) {
+      for (let i = length; i < current.length; i++) {
+        smoothed.push(current[i]);
+      }
     }
 
     return smoothed;
   }
 
   isIntentionalMovement(currentLandmarks: number[][][], previousLandmarks: number[][][]): boolean {
-    if (!currentLandmarks?.[0] || !previousLandmarks?.[0]) return true;
-
-    const current = currentLandmarks[0];
-    const previous = previousLandmarks[0];
-
-    if (current.length !== previous.length) return true;
+    if (!currentLandmarks?.length || !previousLandmarks?.length) return true;
 
     let totalMovement = 0;
     let points = 0;
 
-    for (let i = 0; i < Math.min(current.length, previous.length, 21); i++) {
-      const currentPoint = current[i];
-      const previousPoint = previous[i];
+    for (let handIdx = 0; handIdx < Math.min(currentLandmarks.length, previousLandmarks.length); handIdx++) {
+      const currentHand = currentLandmarks[handIdx];
+      const previousHand = previousLandmarks[handIdx];
+      if (!currentHand || !previousHand) {
+        continue;
+      }
+
+      const length = Math.min(currentHand.length, previousHand.length, 21);
+      for (let i = 0; i < length; i++) {
+        const currentPoint = currentHand[i];
+        const previousPoint = previousHand[i];
+        if (!currentPoint || !previousPoint) {
+          continue;
+        }
+
+        const movement = Math.sqrt(
+          Math.pow((currentPoint[0] ?? 0) - (previousPoint[0] ?? 0), 2) +
+          Math.pow((currentPoint[1] ?? 0) - (previousPoint[1] ?? 0), 2) +
+          Math.pow((currentPoint[2] ?? 0) - (previousPoint[2] ?? 0), 2)
+        );
+
+        totalMovement += movement;
+        points++;
+      }
+    }
+
+    if (points === 0) {
+      return true;
+    }
+
+    const averageMovement = totalMovement / points;
+    return averageMovement > this.MOVEMENT_THRESHOLD;
+  }
+
+  private isIntentionalMovementForHand(currentHand: number[][], previousHand: number[][]): boolean {
+    if (!currentHand?.length || !previousHand?.length) {
+      return true;
+    }
+
+    const length = Math.min(currentHand.length, previousHand.length, 21);
+    let totalMovement = 0;
+    let points = 0;
+
+    for (let i = 0; i < length; i++) {
+      const currentPoint = currentHand[i];
+      const previousPoint = previousHand[i];
+      if (!currentPoint || !previousPoint) {
+        continue;
+      }
 
       const movement = Math.sqrt(
-        Math.pow(currentPoint[0] - previousPoint[0], 2) +
-        Math.pow(currentPoint[1] - previousPoint[1], 2) +
-        Math.pow(currentPoint[2] - previousPoint[2], 2)
+        Math.pow((currentPoint[0] ?? 0) - (previousPoint[0] ?? 0), 2) +
+        Math.pow((currentPoint[1] ?? 0) - (previousPoint[1] ?? 0), 2) +
+        Math.pow((currentPoint[2] ?? 0) - (previousPoint[2] ?? 0), 2)
       );
 
       totalMovement += movement;
       points++;
     }
 
-    const averageMovement = points > 0 ? totalMovement / points : 0;
+    if (points === 0) {
+      return true;
+    }
+
+    const averageMovement = totalMovement / points;
     return averageMovement > this.MOVEMENT_THRESHOLD;
+  }
+
+  private cloneHands(landmarks: number[][][]): number[][][] {
+    return landmarks.map((hand) => this.cloneHand(hand));
+  }
+
+  private cloneHand(hand: number[][]): number[][] {
+    if (!Array.isArray(hand)) {
+      return [];
+    }
+
+    return hand.map((point) => {
+      if (!Array.isArray(point)) {
+        return [0, 0, 0];
+      }
+
+      return [point[0] ?? 0, point[1] ?? 0, point[2] ?? 0];
+    });
   }
 
   clearHistory(): void {
@@ -291,35 +374,52 @@ export class TremorCompensator {
 }
 
 export class GestureSizeNormalizer {
-  private tolerance: number = 0.3;
-  private referenceHandSize: number | null = null;
+  private static readonly DEFAULT_TOLERANCE = 0.3;
+  private static readonly MIN_TOLERANCE = 0.1;
+  private static readonly MAX_TOLERANCE = 1.0;
+  private static readonly DEFAULT_MAX_SCALE = 1.4;
+
+  private tolerance: number = GestureSizeNormalizer.DEFAULT_TOLERANCE;
+  private referenceHandSizes: Array<number | null> = [];
 
   /**
    * Optimized gesture size normalization
    */
   normalizeHandSize(landmarks: number[][][]): number[][][] {
-    if (!landmarks?.[0] || landmarks[0].length < 21) {
+    if (!Array.isArray(landmarks) || landmarks.length === 0) {
       return landmarks;
     }
 
-    const hand = landmarks[0];
-    const handSize = this.calculateHandSize(hand);
+    const normalizedHands = landmarks.map((hand, index) => {
+      if (!Array.isArray(hand) || hand.length < 21) {
+        this.referenceHandSizes[index] = null;
+        return hand;
+      }
 
-    // Initialize reference size on first use
-    if (this.referenceHandSize === null) {
-      this.referenceHandSize = handSize;
-      return landmarks;
-    }
+      const handSize = this.calculateHandSize(hand);
 
-    // Check if normalization is needed
-    const sizeRatio = handSize / this.referenceHandSize;
-    if (Math.abs(sizeRatio - 1) <= this.tolerance) {
-      return landmarks; // No normalization needed
-    }
+      if (this.referenceHandSizes[index] === null || this.referenceHandSizes[index] === undefined) {
+        this.referenceHandSizes[index] = handSize;
+        return hand;
+      }
 
-    // Apply normalization
-    const normalizedHand = this.applySizeNormalization(hand, sizeRatio);
-    return [normalizedHand];
+      const referenceSize = this.referenceHandSizes[index] ?? 0;
+      if (referenceSize <= 0) {
+        this.referenceHandSizes[index] = handSize;
+        return hand;
+      }
+
+      const sizeRatio = handSize / referenceSize;
+      if (Math.abs(sizeRatio - 1) <= this.tolerance) {
+        return hand;
+      }
+
+      const { minScale, maxScale } = this.computeScaleBounds();
+      const clampedRatio = this.clampSizeRatio(sizeRatio, minScale, maxScale);
+      return this.applySizeNormalization(hand, clampedRatio);
+    });
+
+    return normalizedHands;
   }
 
   private calculateHandSize(hand: number[][]): number {
@@ -353,12 +453,62 @@ export class GestureSizeNormalizer {
     return normalized;
   }
 
+  private clampSizeRatio(sizeRatio: number, minScale: number, maxScale: number): number {
+    if (!Number.isFinite(sizeRatio) || sizeRatio <= 0) {
+      return 1;
+    }
+
+    if (sizeRatio < minScale) {
+      return minScale;
+    }
+
+    if (sizeRatio > maxScale) {
+      return maxScale;
+    }
+
+    return sizeRatio;
+  }
+
+  private clampTolerance(value: number): number {
+    if (!Number.isFinite(value)) {
+      return this.tolerance;
+    }
+
+    const clamped = Math.max(GestureSizeNormalizer.MIN_TOLERANCE, Math.min(GestureSizeNormalizer.MAX_TOLERANCE, value));
+    return clamped;
+  }
+
+  private computeScaleBounds(): { minScale: number; maxScale: number } {
+    const tolerance = this.tolerance;
+    const minScale = Math.max(0, 1 - tolerance);
+
+    const defaultMaxScale = GestureSizeNormalizer.DEFAULT_MAX_SCALE;
+    const computedMax = 1 + tolerance;
+    const isDefaultTolerance = Math.abs(tolerance - GestureSizeNormalizer.DEFAULT_TOLERANCE) < 1e-6;
+    const maxScale = isDefaultTolerance ? Math.max(defaultMaxScale, computedMax) : computedMax;
+
+    return {
+      minScale,
+      maxScale,
+    };
+  }
+
   setTolerance(tolerance: number): void {
-    this.tolerance = Math.max(0, Math.min(1, tolerance));
+    this.tolerance = this.clampTolerance(tolerance);
+  }
+
+  getTolerance(): { tolerance: number; minScale: number; maxScale: number } {
+    const { minScale, maxScale } = this.computeScaleBounds();
+
+    return {
+      tolerance: this.tolerance,
+      minScale,
+      maxScale,
+    };
   }
 
   reset(): void {
-    this.referenceHandSize = null;
+    this.referenceHandSizes = [];
   }
 }
 

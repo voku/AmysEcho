@@ -77,15 +77,16 @@ describe('GestureSizeNormalizer', () => {
     });
 
     it('should handle multiple hands', () => {
-      const landmarks = [
-        // Hand 1
-        Array(21).fill([0.1, 0.1, 0.0]),
-        // Hand 2
-        Array(21).fill([0.2, 0.2, 0.0])
-      ];
+      const createHand = (base: number) => Array.from({ length: 21 }, () => [base, base, 0]);
+      const landmarks = [createHand(0.1), createHand(0.2)];
 
-      const result = normalizer.normalizeHandSize(landmarks);
-      expect(result.length).toBe(2);
+      const first = normalizer.normalizeHandSize(landmarks);
+      const second = normalizer.normalizeHandSize(landmarks);
+
+      expect(first.length).toBe(2);
+      expect(second.length).toBe(2);
+      expect(first[0].length).toBe(21);
+      expect(first[1].length).toBe(21);
     });
 
     it('should skip hands with insufficient landmarks', () => {
@@ -347,6 +348,21 @@ describe('TremorCompensator', () => {
 
       const result = compensator.smoothLandmarks(landmarks);
       expect(result.length).toBe(2);
+    });
+
+    it('should preserve both hands after smoothing with history', () => {
+      const createHand = (base: number) =>
+        Array.from({ length: 21 }, () => [base, base, 0]);
+
+      const initial = [createHand(0.1), createHand(0.2)];
+      const moved = [createHand(0.11), createHand(0.21)];
+
+      compensator.smoothLandmarks(initial);
+      const result = compensator.smoothLandmarks(moved);
+
+      expect(result.length).toBe(2);
+      expect(result[0].length).toBe(21);
+      expect(result[1].length).toBe(21);
     });
   });
 

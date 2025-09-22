@@ -20,6 +20,7 @@ interface Props {
     gesture: string | null,
     confidence: number,
     landmarks: number[][][],
+    handedness: string[],
   ) => void;
   onError: (error: string) => void;
   onWebViewEvent?: (telemetry: any) => void;
@@ -69,8 +70,13 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           : parseFloat(String(message.confidence ?? ''));
       const confidence = Number.isFinite(rawConfidence) ? rawConfidence : 0;
       const landmarks = Array.isArray(message.landmarks) ? message.landmarks : [];
+      const handedness = Array.isArray(message.handednesses)
+        ? message.handednesses.map((label: unknown) =>
+            typeof label === 'string' ? label : String(label ?? ''),
+          )
+        : [];
 
-      onGestureDetected(gesture, confidence, landmarks);
+      onGestureDetected(gesture, confidence, landmarks, handedness);
       return true;
     },
     [onGestureDetected],

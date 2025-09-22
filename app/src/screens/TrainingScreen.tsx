@@ -14,6 +14,7 @@ import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
+import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 
@@ -380,12 +381,19 @@ export default function TrainingScreen({ navigation, route }: any) {
                 onWebViewEvent={(telemetry) => {
                   logger.info('Training WebView telemetry:', telemetry);
                 }}
-                onGestureDetected={(gesture, confidence, lm) => {
-                 setLandmarks(lm);
+                onGestureDetected={(gesture, confidence, lm, handedness) => {
+                 const mirrored = true;
+                 const safeLandmarks = cloneLandmarks(lm);
+                 const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
+
+                 setLandmarks(safeLandmarks);
                  setLastDetection(Date.now());
 
                   if (isRecordingRef.current) {
-                    setRecordedFrames((prev) => [...prev, { landmarks: lm, handedness: [] }]);
+                    setRecordedFrames((prev) => [
+                      ...prev,
+                      { landmarks: safeLandmarks, handedness: adjustedHandedness },
+                    ]);
                    setFramesCaptured((c) => c + 1);
 
                    // Track performance metrics

@@ -233,12 +233,20 @@ export class GestureRecognitionOrchestrator {
    */
   private sendGestureResult(processingResult: ProcessingResult, originalResults: MediaPipeGestureResult): void {
     try {
+      const handednessLabels =
+        processingResult.metadata?.handednesses?.map((label) => String(label)) ??
+        originalResults.handednesses?.map((hand) => {
+          const category = hand?.[0]?.categoryName;
+          return typeof category === 'string' ? category : 'unknown';
+        }) ??
+        [];
+
       const payload: GestureMessagePayload = {
         type: 'gesture',
         gesture: processingResult.gesture,
         confidence: processingResult.confidence,
         landmarks: processingResult.landmarks,
-        handednesses: originalResults.handednesses?.map(h => h.categoryName) || [],
+        handednesses: handednessLabels,
         timestamp: processingResult.timestamp ?? Date.now(),
         isFallback: processingResult.isFallback,
         systemHealth: this.errorRecoveryManager.getHealthStatus(),
