@@ -86,6 +86,11 @@ import { getShortcutMessage, getShortcutAction, getShortcutDisplayName } from '.
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import HandLandmarkPreview from '../components/HandLandmarkPreview';
+import {
+  cloneLandmarks,
+  adjustHandednessForMirror,
+  createHandLandmarkStabilizer,
+} from '../utils/landmarkUtils';
 
 const FEEDBACK_THROTTLE_MS = 2000;
 // CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
@@ -185,6 +190,7 @@ export default function RecognitionScreen({
   const consecutiveFailuresRef = useRef<number>(0);
   const consecutiveSuccessesRef = useRef<number>(0);
   const lastModelUpdateTimeRef = useRef<number>(0);
+  const handStabilizerRef = useRef(createHandLandmarkStabilizer({ ttlMs: 300, maxHands: 2 }));
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -213,6 +219,12 @@ export default function RecognitionScreen({
       })
       .catch((error) => { logger.warn('Failed to build local centroids:', error); });
   }, []);
+
+  useEffect(() => {
+    handStabilizerRef.current.reset();
+    setCurrentLandmarks([]);
+    setCurrentHandedness([]);
+  }, [facingMode]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -290,11 +302,15 @@ export default function RecognitionScreen({
     gesture: string | null,
     confidence: number,
     landmarks: number[][][],
+    handedness: string[],
   ) => {
-    // Update landmark visualization
-    setCurrentLandmarks(landmarks);
-    // Note: handedness data is not currently sent from WebView, so we leave it empty
-    setCurrentHandedness([]);
+    const mirrored = facingMode === 'user';
+    const safeLandmarks = cloneLandmarks(landmarks);
+    const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
+    const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
+
+    setCurrentLandmarks(stabilized.landmarks);
+    setCurrentHandedness(stabilized.handedness);
 
     let g = gesture;
     let c = confidence;
@@ -302,7 +318,7 @@ export default function RecognitionScreen({
 
     // Always try to classify with our custom model
     if (centroidsRef.current) {
-      const flat = flattenHands(landmarks) as Point[];
+      const flat = flattenHands(safeLandmarks) as Point[];
       const res = classifyWithCentroids(flat, centroidsRef.current);
       if (res) {
         g = res.label;
@@ -441,7 +457,13 @@ export default function RecognitionScreen({
 
     // On-device classification only: use provided or locally-classified gesture
     await handleOutcome(g || 'unknown', c, path);
-  }, [dialogContext, startFeedbackAnimation, lastRecognizedGesture]);
+  }, [
+    dialogContext,
+    facingMode,
+    handStabilizerRef,
+    lastRecognizedGesture,
+    startFeedbackAnimation,
+  ]);
 
   const handleGestureError = useCallback((errorMessage: string) => {
     // Avoid flooding the UI; only surface critical init/camera errors
@@ -766,7 +788,9 @@ export default function RecognitionScreen({
             <HandLandmarkPreview
               landmarks={currentLandmarks}
               handedness={currentHandedness}
-              mirror={facingMode !== 'user'}
+              // Mirror the overlay when the front camera is active so the landmarks align with the
+              // mirrored preview that the OS presents to the user.
+              mirror={facingMode === 'user'}
               confidence={gestureConfidence}
             />
          </View>

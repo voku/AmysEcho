@@ -227,8 +227,8 @@ describe('MediaPipeGestureDetector', () => {
       webview.props.onMessage({ nativeEvent: { data: JSON.stringify(batchPayload) } });
     });
 
-    expect(onGestureDetected).toHaveBeenNthCalledWith(1, 'hallo', 0.82, [[[0, 0, 0]]]);
-    expect(onGestureDetected).toHaveBeenNthCalledWith(2, 'hilfe', 0.41, []);
+    expect(onGestureDetected).toHaveBeenNthCalledWith(1, 'hallo', 0.82, [[[0, 0, 0]]], []);
+    expect(onGestureDetected).toHaveBeenNthCalledWith(2, 'hilfe', 0.41, [], []);
     expect(onWebViewEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'telemetry',
@@ -240,6 +240,33 @@ describe('MediaPipeGestureDetector', () => {
         lastSentAt: 123456,
       })
     );
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('passes handedness information from gesture messages', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const payload = {
+      type: 'gesture',
+      gesture: 'thumbs_up',
+      confidence: 0.9,
+      landmarks: [[[0.1, 0.2, 0.0]]],
+      handednesses: ['Left'],
+    };
+
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify(payload) } });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[[0.1, 0.2, 0.0]]], ['Left']);
     expect(onError).not.toHaveBeenCalled();
   });
 

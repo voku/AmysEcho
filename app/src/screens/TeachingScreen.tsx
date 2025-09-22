@@ -24,6 +24,7 @@ import { twoHandGestureService } from '../services/twoHandGestureService';
 import VisualFeedback from '../components/VisualFeedback';
 import ProgressTracker from '../components/ProgressTracker';
 import GestureValidationFeedback from '../components/GestureValidationFeedback';
+import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 
 const PREVIEW_SIZE = 240;
 
@@ -46,6 +47,9 @@ export default function TeachingScreen({ navigation }: any) {
     message: string;
     suggestions: string[];
   } | null>(null);
+  // Centralize the facing mode so the detector and overlays stay in sync if this screen later
+  // gains a camera toggle.
+  const facingMode: 'user' | 'environment' = 'user';
   const [currentGestureQuality, setCurrentGestureQuality] = useState<{
     confidence: number;
     stability: number;
@@ -76,9 +80,18 @@ export default function TeachingScreen({ navigation }: any) {
   }, []);
 
   const handleGestureDetected = useCallback(
-    async (gesture: string | null, confidence: number, lms: number[][][]) => {
-      landmarksRef.current = lms;
-      handednessRef.current = []; // No handedness data available in simplified mode
+    async (
+      gesture: string | null,
+      confidence: number,
+      lms: number[][][],
+      handedness: string[],
+    ) => {
+      const mirrored = facingMode === 'user';
+      const safeLandmarks = cloneLandmarks(lms);
+      const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
+
+      landmarksRef.current = safeLandmarks;
+      handednessRef.current = adjustedHandedness;
 
       // Enhanced feedback for teaching mode
       if (gesture && confidence > 0.3) {
@@ -89,12 +102,12 @@ export default function TeachingScreen({ navigation }: any) {
         // Update gesture quality metrics
         setCurrentGestureQuality({
           confidence,
-          stability: Math.min(1, lms.length / 2), // Rough stability based on landmark count
+          stability: Math.min(1, safeLandmarks.length / 2), // Rough stability based on landmark count
           clarity: confidence > 0.7 ? 1 : confidence > 0.5 ? 0.7 : 0.4
         });
 
         // Enhanced two-hand gesture validation and feedback
-        if (isTwoHandMode && selectedTwoHandGesture && lms.length >= 2) {
+        if (isTwoHandMode && selectedTwoHandGesture && safeLandmarks.length >= 2) {
           const parsed = parseTwoHandGestureString(gesture);
           if (parsed) {
             const twoHandResult = await twoHandGestureService.processTwoHandGesture(
@@ -102,8 +115,8 @@ export default function TeachingScreen({ navigation }: any) {
               parsed.right,
               confidence,
               confidence,
-              [], // No handedness data in simplified mode
-              lms
+              adjustedHandedness,
+              safeLandmarks
             );
 
             if (twoHandResult) {
@@ -436,6 +449,7 @@ export default function TeachingScreen({ navigation }: any) {
                 onWebViewEvent={(telemetry) => {
                   console.log('Teaching WebView telemetry:', telemetry);
                 }}
+                facingMode={facingMode}
               />
 
              {/* Visual feedback overlay */}
