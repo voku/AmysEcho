@@ -47,7 +47,7 @@ import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap, Point } from '../services/dgsModelClient';
 import { LLMSuggestionResponse } from '../services/dialogEngine';
-import { flattenHandsWithHandedness, flattenHands } from '../services/handUtils';
+import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
 import { shouldPromptPractice } from '../services/healthScore';
 import { gestureModel } from '../model';
@@ -318,7 +318,10 @@ export default function RecognitionScreen({
 
     // Always try to classify with our custom model
     if (centroidsRef.current) {
-      const flat = flattenHands(stabilized.landmarks) as Point[];
+      const flat = flattenHandsWithHandedness(
+        stabilized.landmarks,
+        stabilized.handedness,
+      ) as Point[];
       const res = classifyWithCentroids(flat, centroidsRef.current);
       if (res) {
         g = res.label;
