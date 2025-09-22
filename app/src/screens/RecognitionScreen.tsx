@@ -788,6 +788,8 @@ export default function RecognitionScreen({
             <HandLandmarkPreview
               landmarks={currentLandmarks}
               handedness={currentHandedness}
+              // Mirror the overlay when the front camera is active so the landmarks align with the
+              // mirrored preview that the OS presents to the user.
               mirror={facingMode === 'user'}
               confidence={gestureConfidence}
             />

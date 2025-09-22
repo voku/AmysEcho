@@ -28,11 +28,19 @@ describe('landmarkUtils', () => {
     expect(adjustHandednessForMirror(handedness, false)).toEqual(handedness);
   });
 
-  it('swaps left and right handedness when mirrored', () => {
+  it('keeps handedness orientation when mirrored', () => {
     expect(adjustHandednessForMirror(['Left', 'Right', 'unknown'], true)).toEqual([
-      'Right',
       'Left',
+      'Right',
       'unknown',
+    ]);
+  });
+
+  it('fills empty handedness labels with positional fallbacks', () => {
+    expect(adjustHandednessForMirror(['', undefined as unknown as string, '  '], true)).toEqual([
+      'Hand 1',
+      'Hand 2',
+      'Hand 3',
     ]);
   });
 

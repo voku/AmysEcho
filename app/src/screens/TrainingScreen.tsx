@@ -51,6 +51,8 @@ export default function TrainingScreen({ navigation, route }: any) {
     sessionDuration: number;
   } | null>(null);
   const [practiceMode, setPracticeMode] = useState(false);
+  // Keep the facing mode in one place so overlays and recordings stay aligned if we add a toggle.
+  const facingMode: 'user' | 'environment' = 'user';
 
   useEffect(() => {
     setMessage(error);
@@ -382,48 +384,49 @@ export default function TrainingScreen({ navigation, route }: any) {
                   logger.info('Training WebView telemetry:', telemetry);
                 }}
                 onGestureDetected={(gesture, confidence, lm, handedness) => {
-                 const mirrored = true;
-                 const safeLandmarks = cloneLandmarks(lm);
-                 const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
+                  const mirrored = facingMode === 'user';
+                  const safeLandmarks = cloneLandmarks(lm);
+                  const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
 
-                 setLandmarks(safeLandmarks);
-                 setLastDetection(Date.now());
+                  setLandmarks(safeLandmarks);
+                  setLastDetection(Date.now());
 
                   if (isRecordingRef.current) {
                     setRecordedFrames((prev) => [
                       ...prev,
                       { landmarks: safeLandmarks, handedness: adjustedHandedness },
                     ]);
-                   setFramesCaptured((c) => c + 1);
+                    setFramesCaptured((c) => c + 1);
 
-                   // Track performance metrics
-                   if (gestureId) {
-                     positiveTelemetryService.recordSuccess(
-                       gestureId,
-                       confidence,
-                       undefined, // context
-                       undefined, // emotionalState
-                       Date.now() - (sessionStartTime || Date.now()) // duration
-                     );
-                   }
-                 }
+                    // Track performance metrics
+                    if (gestureId) {
+                      positiveTelemetryService.recordSuccess(
+                        gestureId,
+                        confidence,
+                        undefined, // context
+                        undefined, // emotionalState
+                        Date.now() - (sessionStartTime || Date.now()), // duration
+                      );
+                    }
+                  }
 
-                 // Enhanced feedback for practice mode
-                 if (practiceMode && gesture && confidence > 0.5) {
-                   // Provide real-time feedback during practice
-                   if (confidence > 0.8) {
-                     setMessage('🎉 Perfekt! Das sieht sehr gut aus!');
-                   } else if (confidence > 0.6) {
-                     setMessage('👍 Gut gemacht! Fast richtig.');
-                   }
-                 }
-               }}
+                  // Enhanced feedback for practice mode
+                  if (practiceMode && gesture && confidence > 0.5) {
+                    // Provide real-time feedback during practice
+                    if (confidence > 0.8) {
+                      setMessage('🎉 Perfekt! Das sieht sehr gut aus!');
+                    } else if (confidence > 0.6) {
+                      setMessage('👍 Gut gemacht! Fast richtig.');
+                    }
+                  }
+                }}
                 onError={(m) => {
                   logger.warn('TrainingScreen detector error:', m);
                   // Amy First: Show encouraging message instead of technical error
                   setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
                 }}
-             />
+                facingMode={facingMode}
+              />
               {landmarks.length > 0 && (
                 <Svg
                   style={StyleSheet.absoluteFill}

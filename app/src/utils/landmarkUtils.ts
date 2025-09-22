@@ -8,26 +8,41 @@ const cloneHand = (hand: number[][]): number[][] =>
 export const cloneLandmarks = (landmarks: number[][][]): number[][][] =>
   Array.isArray(landmarks) ? landmarks.map((hand) => cloneHand(hand)) : [];
 
-export const adjustHandednessForMirror = (labels: string[], mirror: boolean): string[] => {
-  if (!mirror) {
-    return labels
-      .filter((label) => typeof label === 'string' && label.length > 0)
-      .map((label) => label);
+const normalizeHandednessLabel = (label: unknown): string => {
+  if (typeof label !== 'string') {
+    return String(label ?? '');
   }
 
-  return labels.map((label) => {
-    if (typeof label !== 'string' || label.length === 0) {
-      return String(label ?? '');
-    }
-    if (/left/i.test(label)) {
-      return 'Right';
-    }
-    if (/right/i.test(label)) {
-      return 'Left';
-    }
-    return label;
-  });
+  const trimmed = label.trim();
+  if (trimmed.length === 0) {
+    return '';
+  }
+
+  if (/^left$/i.test(trimmed)) {
+    return 'Left';
+  }
+
+  if (/^right$/i.test(trimmed)) {
+    return 'Right';
+  }
+
+  return trimmed;
 };
+
+export const adjustHandednessForMirror = (labels: string[], _mirror: boolean): string[] =>
+  labels.map((label, index) => {
+    const normalized = normalizeHandednessLabel(label);
+
+    if (normalized.length === 0) {
+      // Preserve the array length so callers can keep indices aligned with landmarks.
+      return `Hand ${index + 1}`;
+    }
+
+    // The camera preview may be mirrored, but the underlying handedness still reflects the
+    // physical hand. We intentionally avoid swapping "Left"/"Right" to keep feedback and
+    // analytics consistent regardless of the active camera.
+    return normalized;
+  });
 
 type StabilizerEntry = {
   id: string;

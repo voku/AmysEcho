@@ -212,7 +212,7 @@ export class TremorCompensator {
     const now = Date.now();
 
     // Add to history
-    this.movementHistory.push({ landmarks: this.cloneHands(normalizedLandmarks), timestamp: now });
+    this.movementHistory.push({ landmarks: normalizedLandmarks, timestamp: now });
     if (this.movementHistory.length > this.MAX_HISTORY) {
       this.movementHistory.shift();
     }
@@ -485,6 +485,9 @@ export class GestureSizeNormalizer {
     const defaultMaxScale = GestureSizeNormalizer.DEFAULT_MAX_SCALE;
     const computedMax = 1 + tolerance;
     const isDefaultTolerance = Math.abs(tolerance - GestureSizeNormalizer.DEFAULT_TOLERANCE) < 1e-6;
+    // Preserve the legacy maximum (1.4) when caregivers keep the default tolerance so existing
+    // trained samples continue to fit within the expected size window. Customized tolerances use
+    // the symmetric 1 ± tolerance range.
     const maxScale = isDefaultTolerance ? Math.max(defaultMaxScale, computedMax) : computedMax;
 
     return {

@@ -47,6 +47,9 @@ export default function TeachingScreen({ navigation }: any) {
     message: string;
     suggestions: string[];
   } | null>(null);
+  // Centralize the facing mode so the detector and overlays stay in sync if this screen later
+  // gains a camera toggle.
+  const facingMode: 'user' | 'environment' = 'user';
   const [currentGestureQuality, setCurrentGestureQuality] = useState<{
     confidence: number;
     stability: number;
@@ -83,7 +86,7 @@ export default function TeachingScreen({ navigation }: any) {
       lms: number[][][],
       handedness: string[],
     ) => {
-      const mirrored = true; // Teaching mode uses the front-facing preview by default
+      const mirrored = facingMode === 'user';
       const safeLandmarks = cloneLandmarks(lms);
       const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
 
@@ -446,6 +449,7 @@ export default function TeachingScreen({ navigation }: any) {
                 onWebViewEvent={(telemetry) => {
                   console.log('Teaching WebView telemetry:', telemetry);
                 }}
+                facingMode={facingMode}
               />
 
              {/* Visual feedback overlay */}
