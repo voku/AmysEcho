@@ -29,7 +29,7 @@ const normalizeHandednessLabel = (label: unknown): string => {
   return trimmed;
 };
 
-export const adjustHandednessForMirror = (labels: string[], _mirror: boolean): string[] =>
+export const normalizeHandednessLabels = (labels: string[]): string[] =>
   labels.map((label, index) => {
     const normalized = normalizeHandednessLabel(label);
 
