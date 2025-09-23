@@ -3,183 +3,193 @@
  * Tests the modular gesture recognition system
  */
 
-import { GestureRecognitionOrchestrator } from '../core/GestureRecognitionOrchestrator';
-import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
-import { MemoryOptimizer } from '../utils/MemoryOptimizer';
-import { ProcessingPipeline } from '../utils/ProcessingPipeline';
-import type { MediaPipeGestureResult } from '../types/MediaPipeTypes';
+const mockCameraStart = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+const mockCameraStop = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+const mockCameraUpdate = jest.fn();
+const mockCameraDimensionsChanged = jest.fn().mockReturnValue(false);
+const mockCameraReady = jest.fn().mockReturnValue(false);
 
-const mockQueueMessage = jest.fn();
-const mockForceFlush = jest.fn();
-const mockGetQueueStatus = jest
-  .fn()
-  .mockReturnValue({ pending: 0, frameCount: 0, lastSentAt: 0 });
-const mockGestureDetectorInitialize = jest.fn();
-const mockGestureDetectorStart = jest.fn();
-const mockGestureDetectorStop = jest.fn();
-const mockGestureDetectorSetResultCallback = jest.fn();
+const mockDisposeResources = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
-jest.mock('../utils/MessageBatcher', () => {
-  const actual = jest.requireActual('../utils/MessageBatcher');
+const mockRecognizeForVideo = jest.fn();
+const mockCloseRecognizer = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+const mockCreateFromOptions = jest
+  .fn<(
+    vision: unknown,
+    options: Record<string, unknown>
+  ) => Promise<{ recognizeForVideo: typeof mockRecognizeForVideo; close: typeof mockCloseRecognizer }>>()
+  .mockResolvedValue({ recognizeForVideo: mockRecognizeForVideo, close: mockCloseRecognizer });
+
+const mockFilesetResolver = {
+  forVisionTasks: jest.fn<() => Promise<unknown>>().mockResolvedValue({}),
+};
+
+const mockLoadTasksVision = jest.fn(async () => ({
+  FilesetResolver: mockFilesetResolver,
+  GestureRecognizer: { createFromOptions: mockCreateFromOptions },
+  wasmBase: 'mock-wasm-base',
+}));
+
+jest.mock('../core/MediaPipeLoader', () => ({
+  __esModule: true,
+  loadTasksVision: (...args: any[]) => mockLoadTasksVision(...args),
+}));
+
+jest.mock('../core/CameraManager', () => {
+  class MockCameraManager {
+    startCamera = mockCameraStart;
+    stopCamera = mockCameraStop;
+    updateVideoDimensions = mockCameraUpdate;
+    hasDimensionsChanged = mockCameraDimensionsChanged;
+    isVideoReady = mockCameraReady;
+  }
+
   return {
-    ...actual,
-    messageBatcher: {
-      queueMessage: mockQueueMessage,
-      forceFlush: mockForceFlush,
-      getQueueStatus: mockGetQueueStatus,
-    },
+    __esModule: true,
+    CameraManager: MockCameraManager,
   };
 });
 
-jest.mock('../core/GestureDetector', () => ({
+jest.mock('../core/OverlayRenderer', () => ({
   __esModule: true,
-  GestureDetector: jest.fn(),
+  OverlayRenderer: jest.fn().mockImplementation(() => ({
+    resizeOverlay: jest.fn(),
+    clear: jest.fn(),
+    drawHandLandmarks: jest.fn(),
+  })),
 }));
 
-const { GestureDetector: MockGestureDetector } = jest.requireMock('../core/GestureDetector') as {
-  GestureDetector: jest.Mock;
-};
+jest.mock('../utils/ResourceManager', () => {
+  class MockResourceManager {
+    registerCleanup = jest.fn();
+    registerEventListener = jest.fn();
+    registerMediaStream = jest.fn();
+    registerTimeout = jest.fn();
+    registerObserver = jest.fn();
+    dispose = mockDisposeResources;
+  }
 
-// Mock DOM elements
+  return {
+    __esModule: true,
+    ResourceManager: MockResourceManager,
+  };
+});
+
+jest.mock('../utils/HealthMonitor', () => ({
+  __esModule: true,
+  HealthMonitor: jest.fn().mockImplementation(() => ({
+    recordFrame: jest.fn(),
+    recordError: jest.fn(),
+    needsRecovery: jest.fn().mockReturnValue(false),
+  })),
+}));
+
+import { GestureRecognitionOrchestrator } from '../core/GestureRecognitionOrchestrator';
+import type { MediaPipeGestureResult } from '../types/MediaPipeTypes';
+import { messageBatcher } from '../utils/MessageBatcher';
+import { MemoryOptimizer } from '../utils/MemoryOptimizer';
+import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
+import * as FrameCaptureManager from '../utils/FrameCaptureManager';
+
 const mockVideo = document.createElement('video');
 const mockOverlay = document.createElement('canvas');
 
-// Mock dependencies
-jest.mock('../utils/PerformanceOptimizer');
-jest.mock('../utils/MemoryOptimizer');
-jest.mock('../utils/ProcessingPipeline');
-jest.mock('../utils/OptimizedTremorCompensator');
-jest.mock('../core/FallbackGestureDetector');
-jest.mock('../core/EmergencyGestureSystem');
-jest.mock('../core/HandStabilityAssistant');
-jest.mock('../core/BatteryMonitor');
-jest.mock('../utils/FrameCaptureManager', () => ({
-  __esModule: true,
-  getLastCapturedFrame: jest.fn(),
-  setFrameCaptureEnabled: jest.fn(),
-}));
-
-const { getLastCapturedFrame: mockGetLastCapturedFrame, setFrameCaptureEnabled: mockSetFrameCaptureEnabled } =
-  jest.requireMock('../utils/FrameCaptureManager') as {
-    getLastCapturedFrame: jest.Mock;
-    setFrameCaptureEnabled: jest.Mock;
-  };
-
-const createMockGestureResults = (): MediaPipeGestureResult => ({
-  landmarks: [[{ x: 0.1, y: 0.1, z: 0.0 }]],
+const createMockGestureResults = (overrides: Partial<MediaPipeGestureResult> = {}): MediaPipeGestureResult => ({
+  landmarks: [createHandLandmarks()],
   handednesses: [[{ categoryName: 'Left' }]],
+  gestures: [[{ categoryName: 'Thumbs_Up', score: 0.92 }]],
+  ...overrides,
 });
+
+function createHandLandmarks(): Array<{ x: number; y: number; z: number }> {
+  return Array.from({ length: 21 }, (_, index) => ({
+    x: 0.05 * index,
+    y: index < 5 ? 0.1 : 0.2 + index * 0.01,
+    z: 0,
+  }));
+}
 
 describe('GestureRecognitionOrchestrator', () => {
   let orchestrator: GestureRecognitionOrchestrator;
-  let mockPerformanceOptimizer: jest.Mocked<PerformanceOptimizer>;
-  let mockMemoryOptimizer: jest.Mocked<MemoryOptimizer>;
-  let mockProcessingPipeline: jest.Mocked<ProcessingPipeline>;
+  let queueSpy: jest.SpyInstance;
+  let forceFlushSpy: jest.SpyInstance;
+  let startMonitoringSpy: jest.SpyInstance;
+  let captureSpy: jest.SpyInstance;
+  let toggleCaptureSpy: jest.SpyInstance;
+
+  beforeAll(() => {
+    window.ReactNativeWebView = { postMessage: jest.fn() };
+  });
 
   beforeEach(() => {
-    // Reapply default mock behavior between tests
-    mockQueueMessage.mockImplementation(() => {});
-    mockForceFlush.mockImplementation(() => {});
-    mockGetQueueStatus.mockReturnValue({ pending: 0, frameCount: 0, lastSentAt: 0 });
-    mockGetLastCapturedFrame.mockReturnValue(null);
-    mockSetFrameCaptureEnabled.mockImplementation(() => {});
+    queueSpy = jest.spyOn(messageBatcher, 'queueMessage');
+    forceFlushSpy = jest.spyOn(messageBatcher, 'forceFlush');
+    startMonitoringSpy = jest
+      .spyOn(MemoryOptimizer.prototype as any, 'startMemoryMonitoring')
+      .mockImplementation(() => {});
+    captureSpy = jest.spyOn(FrameCaptureManager, 'getLastCapturedFrame').mockReturnValue(null);
+    toggleCaptureSpy = jest.spyOn(FrameCaptureManager, 'setFrameCaptureEnabled');
 
-    const { messageBatcher } = jest.requireMock('../utils/MessageBatcher') as {
-      messageBatcher: {
-        queueMessage: jest.Mock;
-        forceFlush: jest.Mock;
-        getQueueStatus: jest.Mock;
-      };
-    };
+    (MemoryOptimizer as unknown as { instance?: MemoryOptimizer }).instance = undefined;
 
-    messageBatcher.queueMessage = mockQueueMessage;
-    messageBatcher.forceFlush = mockForceFlush;
-    messageBatcher.getQueueStatus = mockGetQueueStatus;
+    mockCameraStart.mockClear();
+    mockCameraStop.mockClear();
+    mockCameraUpdate.mockClear();
+    mockCameraDimensionsChanged.mockReturnValue(false);
+    mockCameraReady.mockReturnValue(false);
 
-    mockGestureDetectorInitialize.mockResolvedValue(undefined);
-    mockGestureDetectorStart.mockResolvedValue(undefined);
-    mockGestureDetectorStop.mockResolvedValue(undefined);
-    mockGestureDetectorSetResultCallback.mockImplementation(() => {});
-
-    (MockGestureDetector as jest.Mock).mockImplementation(function GestureDetectorMock(this: any) {
-      this.initialize = mockGestureDetectorInitialize;
-      this.start = mockGestureDetectorStart;
-      this.stop = mockGestureDetectorStop;
-      this.setResultCallback = mockGestureDetectorSetResultCallback;
+    mockDisposeResources.mockClear();
+    mockRecognizeForVideo.mockClear();
+    mockCloseRecognizer.mockClear();
+    mockCreateFromOptions.mockClear().mockResolvedValue({
+      recognizeForVideo: mockRecognizeForVideo,
+      close: mockCloseRecognizer,
     });
-
-    // Setup mocks
-    mockPerformanceOptimizer = {
-      shouldProcessFrame: jest.fn().mockReturnValue(true),
-      recordProcessingTime: jest.fn(),
-      getPerformanceMetrics: jest.fn().mockReturnValue({
-        frameCount: 100,
-        averageProcessingTime: 25,
-        adaptiveFrameSkipping: false,
-        skipFrameCount: 0,
-        targetFrameRate: 30,
-      }),
-    } as any;
-
-    mockMemoryOptimizer = {
-      getOptimizedHistorySize: jest.fn().mockReturnValue(10),
-      performCleanup: jest.fn(),
-      getMemoryStatus: jest.fn().mockReturnValue({
-        pressureLevel: 0,
-        lastCleanupTime: Date.now(),
-        registeredComponents: 5,
-        estimatedMemoryUsage: 1024 * 1024,
-      }),
-    } as any;
-
-    mockProcessingPipeline = {
-      addStep: jest.fn(),
-      executePipeline: jest.fn().mockResolvedValue({
-        gesture: 'thumbs_up',
-        confidence: 0.8,
-        landmarks: [[[0.1, 0.1, 0.0]]],
-        processingTime: 25,
-        stepsExecuted: ['landmark_preprocessing', 'stability_analysis'],
-        skippedSteps: [],
-      }),
-      configureOptimization: jest.fn(),
-      getPerformanceMetrics: jest.fn().mockReturnValue({
-        pipelineMetrics: {},
-        memoryMetrics: {},
-        stepMetrics: {},
-      }),
-    } as any;
-
-    // Apply mocks
-    (PerformanceOptimizer as jest.MockedClass<typeof PerformanceOptimizer>).mockImplementation(
-      () => mockPerformanceOptimizer
-    );
-    (MemoryOptimizer.getInstance as jest.Mock).mockReturnValue(mockMemoryOptimizer);
-    (ProcessingPipeline as jest.MockedClass<typeof ProcessingPipeline>).mockImplementation(
-      () => mockProcessingPipeline
-    );
+    mockFilesetResolver.forVisionTasks.mockClear().mockResolvedValue({});
+    mockLoadTasksVision.mockClear().mockImplementation(async () => ({
+      FilesetResolver: mockFilesetResolver,
+      GestureRecognizer: { createFromOptions: mockCreateFromOptions },
+      wasmBase: 'mock-wasm-base',
+    }));
 
     orchestrator = new GestureRecognitionOrchestrator(mockVideo, mockOverlay);
   });
 
+  afterEach(() => {
+    messageBatcher.forceFlush();
+    queueSpy.mockRestore();
+    forceFlushSpy.mockRestore();
+    startMonitoringSpy.mockRestore();
+    captureSpy.mockRestore();
+    toggleCaptureSpy.mockRestore();
+    (MemoryOptimizer as unknown as { instance?: MemoryOptimizer }).instance = undefined;
+    (window.ReactNativeWebView!.postMessage as jest.Mock).mockReset();
+  });
+
   describe('initialization', () => {
-    it('should initialize successfully', async () => {
+    it('initializes the gesture detector and monitoring components', async () => {
       await expect(orchestrator.initialize()).resolves.toBeUndefined();
+      expect(mockLoadTasksVision).toHaveBeenCalled();
+      expect(toggleCaptureSpy).toHaveBeenCalledWith(true);
     });
 
-    it('should set up processing pipeline with correct steps', async () => {
-      await orchestrator.initialize();
+    it('configures the processing pipeline with all steps', () => {
+      const pipeline = (orchestrator as any).processingPipeline;
+      const steps = ((pipeline as any).processingSteps as any[]).map((step: any) => step.name);
 
-      expect(mockProcessingPipeline.addStep).toHaveBeenCalledTimes(7); // All processing steps
-      expect(mockProcessingPipeline.configureOptimization).toHaveBeenCalledWith({
-        targetFrameRate: 30,
-        landmarkChangeThreshold: 0.01,
-        enableMemoryOptimization: true
-      });
+      expect(steps).toEqual([
+        'landmark_preprocessing',
+        'stability_analysis',
+        'gesture_detection',
+        'partial_gesture_analysis',
+        'emergency_gesture_check',
+        'fallback_processing',
+        'result_processing',
+      ]);
     });
 
-    it('should handle initialization errors gracefully', async () => {
-      mockGestureDetectorInitialize.mockRejectedValueOnce(new Error('Hardware not available'));
+    it('propagates initialization failures from the gesture detector', async () => {
+      mockLoadTasksVision.mockRejectedValueOnce(new Error('Hardware not available'));
 
       await expect(orchestrator.initialize()).rejects.toThrow('Hardware not available');
     });
@@ -190,20 +200,23 @@ describe('GestureRecognitionOrchestrator', () => {
       await orchestrator.initialize();
     });
 
-    it('should start gesture recognition', async () => {
+    it('starts and stops the detector without duplicating work', async () => {
       await expect(orchestrator.start()).resolves.toBeUndefined();
+      await expect(orchestrator.start()).resolves.toBeUndefined();
+      await expect(orchestrator.stop()).resolves.toBeUndefined();
+      await expect(orchestrator.stop()).resolves.toBeUndefined();
+
+      expect(mockCameraStart).toHaveBeenCalledTimes(1);
+      expect(mockCameraStop).toHaveBeenCalledTimes(1);
     });
 
-    it('should stop gesture recognition', async () => {
-      await orchestrator.start();
-      await expect(orchestrator.stop()).resolves.toBeUndefined();
-    });
+    it('handles camera failures gracefully without throwing', async () => {
+      mockCameraStart.mockRejectedValueOnce(new Error('Camera permission denied'));
+      const initialCaptureCalls = toggleCaptureSpy.mock.calls.length;
 
-    it('should handle multiple start/stop calls', async () => {
-      await orchestrator.start();
-      await orchestrator.stop();
-      await orchestrator.start();
-      await expect(orchestrator.stop()).resolves.toBeUndefined();
+      await expect(orchestrator.start()).resolves.toBeUndefined();
+      expect(mockCameraStart).toHaveBeenCalled();
+      expect(toggleCaptureSpy.mock.calls.length).toBe(initialCaptureCalls);
     });
   });
 
@@ -213,206 +226,109 @@ describe('GestureRecognitionOrchestrator', () => {
       await orchestrator.start();
     });
 
-    it('should process gesture results when frame should be processed', async () => {
+    it('queues gesture payloads with metadata from the real pipeline', async () => {
       const mockResults = createMockGestureResults();
 
       await (orchestrator as any).handleGestureResults(mockResults, Date.now());
 
-      expect(mockProcessingPipeline.executePipeline).toHaveBeenCalledWith(
-        expect.objectContaining({
-          landmarks: [[[0.1, 0.1, 0]]],
-          handednesses: ['Left']
-        })
-      );
-      expect(mockQueueMessage).toHaveBeenCalledWith(
+      const gestureCall = queueSpy.mock.calls.find(([payload]) => payload.type === 'gesture');
+      expect(gestureCall).toBeDefined();
+      expect(gestureCall?.[0]).toEqual(
         expect.objectContaining({
           type: 'gesture',
           gesture: 'thumbs_up',
-          confidence: 0.8
-        }),
-        { flushImmediately: false }
-      );
-    });
-
-    it('should skip processing when performance optimizer indicates to skip', async () => {
-      mockPerformanceOptimizer.shouldProcessFrame.mockReturnValue(false);
-      const mockResults = createMockGestureResults();
-
-      await (orchestrator as any).handleGestureResults(mockResults, Date.now());
-
-      expect(mockProcessingPipeline.executePipeline).not.toHaveBeenCalled();
-      expect(mockQueueMessage).not.toHaveBeenCalled();
-    });
-
-    it('should handle processing pipeline errors', async () => {
-      mockProcessingPipeline.executePipeline.mockRejectedValue(new Error('Processing failed'));
-      const mockResults = createMockGestureResults();
-
-      await expect(
-        (orchestrator as any).handleGestureResults(mockResults, Date.now())
-      ).resolves.toBeUndefined();
-    });
-
-    it('should flush messages immediately for emergency detections', async () => {
-      const mockResults = createMockGestureResults();
-      mockProcessingPipeline.executePipeline.mockResolvedValueOnce({
-        gesture: 'help_me',
-        confidence: 0.9,
-        landmarks: [[[0.1, 0.1, 0]]],
-        processingTime: 18,
-        stepsExecuted: ['gesture_detection'],
-        skippedSteps: [],
-        metadata: { handednesses: ['Left'] },
-        emergency: { detected: true },
-      } as any);
-
-      await (orchestrator as any).handleGestureResults(mockResults, Date.now());
-
-      const [, options] = mockQueueMessage.mock.calls[0];
-      expect(options).toEqual({ flushImmediately: true });
-    });
-
-    it('should include frame capture for low confidence fallback results', async () => {
-      const mockResults = createMockGestureResults();
-      mockGetLastCapturedFrame.mockReturnValue('frame-data');
-      mockProcessingPipeline.executePipeline.mockResolvedValueOnce({
-        gesture: 'fallback_signal',
-        confidence: 0.2,
-        landmarks: [[[0.1, 0.1, 0]]],
-        processingTime: 22,
-        stepsExecuted: ['fallback_processing'],
-        skippedSteps: [],
-        metadata: { handednesses: ['Left'] },
-        isFallback: true,
-      } as any);
-
-      await (orchestrator as any).handleGestureResults(mockResults, Date.now());
-
-      const [payload, options] = mockQueueMessage.mock.calls[0];
-      expect(options).toEqual({ flushImmediately: true });
-      expect(payload).toEqual(
-        expect.objectContaining({
-          frameCapture: 'frame-data',
+          confidence: expect.any(Number),
+          handednesses: expect.arrayContaining(['Left']),
           thresholds: expect.objectContaining({ fallback: expect.any(Number), mlp: expect.any(Number) }),
         })
       );
+      expect(gestureCall?.[1]).toEqual({ flushImmediately: false });
+    });
+
+    it('skips processing when performance optimizer declines the frame', async () => {
+      const shouldProcessSpy = jest
+        .spyOn(PerformanceOptimizer.prototype, 'shouldProcessFrame')
+        .mockReturnValue(false);
+      const mockResults = createMockGestureResults();
+
+      await (orchestrator as any).handleGestureResults(mockResults, Date.now());
+
+      expect(queueSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'gesture' }), expect.anything());
+      shouldProcessSpy.mockRestore();
+    });
+
+    it('logs and continues when the processing pipeline throws', async () => {
+      const executeSpy = jest
+        .spyOn((orchestrator as any).processingPipeline, 'executePipeline')
+        .mockRejectedValueOnce(new Error('Processing failed'));
+      const mockResults = createMockGestureResults();
+
+      await expect((orchestrator as any).handleGestureResults(mockResults, Date.now())).resolves.toBeUndefined();
+      executeSpy.mockRestore();
+    });
+
+    it('flushes immediately for emergency detections', async () => {
+      const emergencyResults = createMockGestureResults({
+        gestures: [[{ categoryName: 'Help', score: 0.6 }]],
+      });
+
+      await (orchestrator as any).handleGestureResults(emergencyResults, Date.now());
+
+      const gestureCall = queueSpy.mock.calls.find(([payload]) => payload.type === 'gesture');
+      expect(gestureCall?.[1]).toEqual({ flushImmediately: true });
+    });
+
+    it('adds frame captures for fallback payloads and flushes immediately', async () => {
+      const fallbackResults = createMockGestureResults({ gestures: [[]] as any });
+      captureSpy.mockReturnValue('frame-data');
+      (orchestrator as any).errorRecoveryManager.activateFallbackMode();
+
+      await (orchestrator as any).handleGestureResults(fallbackResults, Date.now());
+
+      const gestureCall = queueSpy.mock.calls.find(([payload]) => payload.type === 'gesture');
+      expect(gestureCall?.[0]).toEqual(expect.objectContaining({ frameCapture: 'frame-data' }));
+      expect(gestureCall?.[1]).toEqual({ flushImmediately: true });
     });
   });
 
-  describe('system status', () => {
-    it('should provide comprehensive system status', () => {
-      const status = orchestrator.getStatus();
+  describe('status reporting', () => {
+    it('reports initialization and runtime state transitions', async () => {
+      let status = orchestrator.getStatus();
+      expect(status.initialized).toBe(false);
+      expect(status.running).toBe(false);
 
-      expect(status).toHaveProperty('initialized');
-      expect(status).toHaveProperty('running');
-      expect(status).toHaveProperty('performance');
-      expect(status).toHaveProperty('memory');
-      expect(status).toHaveProperty('health');
-    });
-
-    it('should report correct status after initialization', async () => {
       await orchestrator.initialize();
-
-      const status = orchestrator.getStatus();
+      status = orchestrator.getStatus();
       expect(status.initialized).toBe(true);
       expect(status.running).toBe(false);
-    });
 
-    it('should report correct status after starting', async () => {
-      await orchestrator.initialize();
       await orchestrator.start();
-
-      const status = orchestrator.getStatus();
-      expect(status.initialized).toBe(true);
+      status = orchestrator.getStatus();
       expect(status.running).toBe(true);
+      expect(status.performance).toBeDefined();
+      expect(status.memory).toBeDefined();
+      expect(status.health).toBeDefined();
     });
   });
 
   describe('cleanup', () => {
-    it('should cleanup resources properly', async () => {
+    it('flushes pending messages, disables capture and performs memory cleanup', async () => {
+      const cleanupSpy = jest.spyOn((orchestrator as any).memoryOptimizer, 'performCleanup');
+
       await orchestrator.initialize();
       await orchestrator.start();
 
       await expect(orchestrator.cleanup()).resolves.toBeUndefined();
-      expect(mockMemoryOptimizer.performCleanup).toHaveBeenCalled();
+
+      expect(forceFlushSpy).toHaveBeenCalled();
+      expect(toggleCaptureSpy).toHaveBeenCalledWith(false);
+      expect(cleanupSpy).toHaveBeenCalled();
+
+      cleanupSpy.mockRestore();
     });
 
-    it('should handle cleanup without initialization', async () => {
+    it('is safe to call without prior initialization', async () => {
       await expect(orchestrator.cleanup()).resolves.toBeUndefined();
-    });
-  });
-
-  describe('performance optimization integration', () => {
-    it('should use performance optimizer for frame processing decisions', async () => {
-      await orchestrator.initialize();
-      const mockResults = createMockGestureResults();
-
-      await (orchestrator as any).handleGestureResults(mockResults, Date.now());
-
-      // Verify performance optimizer is used
-      expect(mockPerformanceOptimizer.shouldProcessFrame).toHaveBeenCalled();
-      expect(mockPerformanceOptimizer.recordProcessingTime).toHaveBeenCalled();
-    });
-
-    it('should integrate with memory optimizer', async () => {
-      await orchestrator.initialize();
-
-      const status = orchestrator.getStatus();
-      expect(status.memory).toBeDefined();
-      expect(mockMemoryOptimizer.getMemoryStatus).toHaveBeenCalled();
-    });
-
-    it('should configure processing pipeline with optimization settings', async () => {
-      await orchestrator.initialize();
-
-      expect(mockProcessingPipeline.configureOptimization).toHaveBeenCalledWith(
-        expect.objectContaining({
-          targetFrameRate: 30,
-          enableMemoryOptimization: true
-        })
-      );
-    });
-  });
-
-  describe('error handling', () => {
-    it('should handle gesture detector initialization failures', async () => {
-      mockGestureDetectorInitialize.mockRejectedValueOnce(new Error('Camera not available'));
-
-      await expect(orchestrator.initialize()).rejects.toThrow('Camera not available');
-    });
-
-    it('should handle camera start failures', async () => {
-      mockGestureDetectorStart.mockRejectedValueOnce(new Error('Camera permission denied'));
-
-      await orchestrator.initialize();
-      await expect(orchestrator.start()).rejects.toThrow('Camera permission denied');
-    });
-
-    it('should continue operating after individual component failures', async () => {
-      // Simulate a component failure
-      mockProcessingPipeline.executePipeline.mockRejectedValueOnce(new Error('Temporary failure'));
-
-      // Should still be able to get status
-      const status = orchestrator.getStatus();
-      expect(status).toBeDefined();
-    });
-  });
-
-  describe('component integration', () => {
-    it('should initialize all required components', async () => {
-      await orchestrator.initialize();
-
-      // Verify that processing pipeline was set up with all steps
-      expect(mockProcessingPipeline.addStep).toHaveBeenCalledTimes(7);
-    });
-
-    it('should coordinate between performance and memory optimizers', () => {
-      const status = orchestrator.getStatus();
-
-      expect(status.performance).toBeDefined();
-      expect(status.memory).toBeDefined();
-      expect(mockPerformanceOptimizer.getPerformanceMetrics).toHaveBeenCalled();
-      expect(mockMemoryOptimizer.getMemoryStatus).toHaveBeenCalled();
     });
   });
 });

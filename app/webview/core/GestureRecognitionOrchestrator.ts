@@ -50,6 +50,10 @@ interface GestureMessagePayload {
   frameCapture?: string | null;
 }
 
+type OrchestratorDependencies = {
+  createGestureDetector?: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
+};
+
 export class GestureRecognitionOrchestrator {
   private gestureDetector: GestureDetector | null = null;
   private performanceOptimizer: PerformanceOptimizer;
@@ -69,11 +73,20 @@ export class GestureRecognitionOrchestrator {
   private isRunning = false;
   private frameSampleCounter = 0;
 
-  constructor(private video: HTMLVideoElement, private overlay: HTMLCanvasElement) {
+  private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
+
+  constructor(
+    private video: HTMLVideoElement,
+    private overlay: HTMLCanvasElement,
+    dependencies: OrchestratorDependencies = {}
+  ) {
     this.performanceOptimizer = new PerformanceOptimizer();
     this.memoryOptimizer = MemoryOptimizer.getInstance();
     this.processingPipeline = new ProcessingPipeline();
     this.config = loadConfig();
+
+    this.createGestureDetector =
+      dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
 
     // Initialize components
     this.initializeComponents();
@@ -127,7 +140,7 @@ export class GestureRecognitionOrchestrator {
 
     try {
       // Create and initialize the main gesture detector
-      this.gestureDetector = new GestureDetector(this.video, this.overlay);
+      this.gestureDetector = this.createGestureDetector(this.video, this.overlay);
 
       // Set up result callback
       this.gestureDetector.setResultCallback((results, timestamp) => {
@@ -197,8 +210,12 @@ export class GestureRecognitionOrchestrator {
       // Execute processing pipeline
       const processingResult = await this.processingPipeline.executePipeline(context);
 
-      // Handle processing result
-      if (processingResult.gesture || processingResult.confidence > 0) {
+      const hasGestureResult =
+        Boolean(processingResult.gesture) ||
+        (processingResult.confidence ?? 0) > 0 ||
+        Boolean(processingResult.fallback?.gesture);
+
+      if (hasGestureResult) {
         this.sendGestureResult(processingResult, results);
       }
 
@@ -259,13 +276,35 @@ export class GestureRecognitionOrchestrator {
         },
       };
 
+      const fallbackResult = processingResult.fallback;
+
+      if (!payload.gesture && fallbackResult?.gesture) {
+        payload.gesture = fallbackResult.gesture;
+      }
+
+      if ((payload.confidence ?? 0) === 0 && typeof fallbackResult?.confidence === 'number') {
+        payload.confidence = fallbackResult.confidence;
+      }
+
+      if (!payload.isFallback && fallbackResult?.isFallback) {
+        payload.isFallback = true;
+      }
+
       const frameCapture = getLastCapturedFrame();
-      if (frameCapture && (processingResult.confidence ?? 0) < FALLBACK_CONFIDENCE_THRESHOLD) {
+      const effectiveConfidence = payload.confidence ?? processingResult.confidence ?? 0;
+      if (frameCapture && (effectiveConfidence < FALLBACK_CONFIDENCE_THRESHOLD || payload.isFallback)) {
         payload.frameCapture = frameCapture;
       }
 
+      const shouldFlushImmediately = Boolean(
+        processingResult.emergency?.detected ||
+          processingResult.isFallback ||
+          fallbackResult?.isFallback ||
+          processingResult.isUsingFallback
+      );
+
       messageBatcher.queueMessage(payload, {
-        flushImmediately: Boolean(processingResult.emergency?.detected || processingResult.isFallback),
+        flushImmediately: shouldFlushImmediately,
       });
     } catch (error) {
       console.warn('Failed to send gesture result:', error);
