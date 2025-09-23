@@ -108,6 +108,10 @@ export class PartialGestureDetector {
   }
 
   private calculatePartialConfidence(hand: number[][], gestureId: string, completion: number): number {
+    if (completion <= 0) {
+      return 0;
+    }
+
     const baseConfidence = completion * 0.8; // Partial gestures have lower base confidence
 
     // Add stability bonus
