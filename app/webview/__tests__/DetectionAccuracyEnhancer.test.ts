@@ -321,9 +321,9 @@ describe('DetectionAccuracyEnhancer', () => {
 
       const results = enhancer.enhanceRuleBasedDetection(
         landmarks,
-        mockTremorCompensator as any,
-        mockSizeNormalizer as any,
-        mockPartialDetector as any
+        undefined,
+        undefined,
+        undefined
       );
 
       expect(results).toHaveLength(0);
@@ -334,9 +334,9 @@ describe('DetectionAccuracyEnhancer', () => {
 
       const results = enhancer.enhanceRuleBasedDetection(
         landmarks,
-        mockTremorCompensator as any,
-        mockSizeNormalizer as any,
-        mockPartialDetector as any
+        undefined,
+        undefined,
+        undefined
       );
 
       // Should not crash, may return empty or minimal results

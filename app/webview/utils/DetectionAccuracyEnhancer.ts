@@ -7,22 +7,6 @@ import { OptimizedTremorCompensator } from './OptimizedTremorCompensator';
 import { GestureSizeNormalizer } from '../gestureProcessing';
 import { PartialGestureDetector } from '../gestureProcessing';
 
-type OptionalDependencyName = 'mockTremorCompensator' | 'mockSizeNormalizer' | 'mockPartialDetector';
-
-const ensureGlobalDependency = (name: OptionalDependencyName): void => {
-  if (!(name in globalThis)) {
-    Object.defineProperty(globalThis, name, {
-      value: undefined,
-      writable: true,
-      configurable: true,
-    });
-  }
-};
-
-ensureGlobalDependency('mockTremorCompensator');
-ensureGlobalDependency('mockSizeNormalizer');
-ensureGlobalDependency('mockPartialDetector');
-
 export interface DetectionResult {
   gesture: string;
   confidence: number;
@@ -49,6 +33,13 @@ export class DetectionAccuracyEnhancer {
   private readonly CONFIDENCE_THRESHOLD_HIGH = 0.8;
   private readonly CONFIDENCE_THRESHOLD_MEDIUM = 0.6;
   private readonly CONFIDENCE_THRESHOLD_LOW = 0.4;
+  private readonly METHOD_PRIORITY: Record<DetectionResult['method'], number> = {
+    mediapipe: 4,
+    mlp: 3,
+    rule_based: 2,
+    partial: 1,
+    fallback: 0,
+  };
 
   /**
    * Resolve conflicts between multiple detection methods
@@ -217,7 +208,10 @@ export class DetectionAccuracyEnhancer {
     ring: 'extended' | 'curled' | 'unknown';
     pinky: 'extended' | 'curled' | 'unknown';
   } {
-    const fingerIndexPairs: Record<string, Array<{ tip: number; joint: number }>> = {
+    type FingerName = 'thumb' | 'index' | 'middle' | 'ring' | 'pinky';
+    type FingerState = 'extended' | 'curled' | 'unknown';
+
+    const fingerIndexPairs: Record<FingerName, Array<{ tip: number; joint: number }>> = {
       thumb: [
         { tip: 3, joint: 2 },
         { tip: 4, joint: 3 },
@@ -242,13 +236,7 @@ export class DetectionAccuracyEnhancer {
 
     const tolerance = 0.005;
 
-    const states: {
-      thumb: 'extended' | 'curled' | 'unknown';
-      index: 'extended' | 'curled' | 'unknown';
-      middle: 'extended' | 'curled' | 'unknown';
-      ring: 'extended' | 'curled' | 'unknown';
-      pinky: 'extended' | 'curled' | 'unknown';
-    } = {
+    const states: Record<FingerName, FingerState> = {
       thumb: 'unknown',
       index: 'unknown',
       middle: 'unknown',
@@ -256,7 +244,8 @@ export class DetectionAccuracyEnhancer {
       pinky: 'unknown',
     };
 
-    Object.entries(fingerIndexPairs).forEach(([finger, pairs]) => {
+    (Object.keys(fingerIndexPairs) as FingerName[]).forEach(finger => {
+      const pairs = fingerIndexPairs[finger];
       const availablePair = pairs.find(({ tip, joint }) => hand[tip] && hand[joint]);
 
       if (!availablePair) {
@@ -413,15 +402,7 @@ export class DetectionAccuracyEnhancer {
       }
 
       // Secondary sort by method priority
-      const methodPriority = {
-        'mediapipe': 4,
-        'mlp': 3,
-        'rule_based': 2,
-        'partial': 1,
-        'fallback': 0
-      };
-
-      return methodPriority[b.method] - methodPriority[a.method];
+      return this.METHOD_PRIORITY[b.method] - this.METHOD_PRIORITY[a.method];
     });
   }
 
@@ -446,13 +427,6 @@ export class DetectionAccuracyEnhancer {
    */
   private findBestResultsPerGesture(gestureGroups: Map<string, DetectionResult[]>): DetectionResult[] {
     const bestResults: DetectionResult[] = [];
-    const methodPriority: Record<DetectionResult['method'], number> = {
-      mediapipe: 4,
-      mlp: 3,
-      rule_based: 2,
-      partial: 1,
-      fallback: 0,
-    };
 
     gestureGroups.forEach(results => {
       const sortedByConfidence = [...results].sort((a, b) => b.confidence - a.confidence);
@@ -463,7 +437,7 @@ export class DetectionAccuracyEnhancer {
 
       if (tiedResults.length > 1) {
         tiedResults.sort(
-          (a, b) => methodPriority[b.method] - methodPriority[a.method]
+          (a, b) => this.METHOD_PRIORITY[b.method] - this.METHOD_PRIORITY[a.method]
         );
         const chosen = tiedResults[0];
         bestResults.push({
@@ -490,14 +464,6 @@ export class DetectionAccuracyEnhancer {
       return this.createEmptyResult();
     }
 
-    const methodPriority: Record<DetectionResult['method'], number> = {
-      mediapipe: 4,
-      mlp: 3,
-      rule_based: 2,
-      partial: 1,
-      fallback: 0,
-    };
-
     const enriched = results.map(result => {
       const historicalConfidence = this.getHistoricalConfidence(result.gesture);
       const boostedConfidence =
@@ -521,7 +487,7 @@ export class DetectionAccuracyEnhancer {
         return b.result.confidence - a.result.confidence;
       }
 
-      return methodPriority[b.result.method] - methodPriority[a.result.method];
+      return this.METHOD_PRIORITY[b.result.method] - this.METHOD_PRIORITY[a.result.method];
     });
 
     const best = enriched[0];
