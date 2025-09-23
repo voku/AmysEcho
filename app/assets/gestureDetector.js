@@ -1,9 +1,5 @@
-/**
- * Generated from app/webview/gestureDetector.ts
- * Run scripts/update-webview-base64.js after modifying gestureDetector.ts.
- */
 (() => {
-  // app/node_modules/fflate/esm/browser.js
+  // node_modules/fflate/esm/browser.js
   var ch2 = {};
   var wk = (function(c, id, msg, transfer, cb) {
     var w = new Worker(ch2[id] || (ch2[id] = URL.createObjectURL(new Blob([
@@ -654,7 +650,7 @@
     return files;
   }
 
-  // app/src/webview/installMlp.ts
+  // src/webview/installMlp.ts
   function installMlp() {
     let mlp = null;
     function parseNPY(buf) {
@@ -1077,7 +1073,7 @@
     };
   }
 
-  // app/webview/core/MediaPipeLoader.ts
+  // webview/core/MediaPipeLoader.ts
   async function loadTasksVision() {
     async function resolvePinnedBase() {
       const pinnedVersion = window.__mediapipeVersion;
@@ -1235,7 +1231,7 @@
     );
   }
 
-  // app/webview/core/CameraManager.ts
+  // webview/core/CameraManager.ts
   var CameraManager = class {
     constructor(video2, resourceManager) {
       this.lastVideoWidth = 0;
@@ -1344,7 +1340,7 @@
     }
   };
 
-  // app/src/constants/hand.ts
+  // src/constants/hand.ts
   var HAND_CONNECTIONS = [
     [0, 1],
     [1, 2],
@@ -1369,7 +1365,7 @@
     [0, 17]
   ];
 
-  // app/webview/core/OverlayRenderer.ts
+  // webview/core/OverlayRenderer.ts
   var OverlayRenderer = class {
     constructor(overlay2) {
       this.overlayWidth = 0;
@@ -1518,7 +1514,7 @@
     }
   };
 
-  // app/webview/utils/ResourceManager.ts
+  // webview/utils/ResourceManager.ts
   var ResourceManager = class {
     constructor() {
       this.resources = /* @__PURE__ */ new Set();
@@ -1617,7 +1613,7 @@
     }
   };
 
-  // app/webview/utils/HealthMonitor.ts
+  // webview/utils/HealthMonitor.ts
   var HealthMonitor = class {
     constructor() {
       this.metrics = {
@@ -1743,7 +1739,7 @@
     }
   };
 
-  // app/webview/config/GestureConfig.ts
+  // webview/config/GestureConfig.ts
   var defaultConfig = {
     performance: {
       telemetrySampleRate: 30,
@@ -1843,7 +1839,7 @@
     return config;
   }
 
-  // app/webview/utils/FrameCaptureManager.ts
+  // webview/utils/FrameCaptureManager.ts
   var MAX_CAPTURE_DIMENSION = 640;
   var MAX_DATA_URL_LENGTH = 4e5;
   var frameCaptureEnabled = false;
@@ -1948,7 +1944,7 @@
     captureContext = null;
   }
 
-  // app/webview/core/GestureDetector.ts
+  // webview/core/GestureDetector.ts
   var GestureDetector = class {
     constructor(video2, overlay2) {
       this.gestureRecognizer = null;
@@ -2119,7 +2115,7 @@
     }
   };
 
-  // app/webview/utils/PerformanceOptimizer.ts
+  // webview/utils/PerformanceOptimizer.ts
   var PerformanceOptimizer = class {
     constructor() {
       this.frameCount = 0;
@@ -2278,7 +2274,7 @@
     }
   };
 
-  // app/webview/utils/MemoryOptimizer.ts
+  // webview/utils/MemoryOptimizer.ts
   var MemoryOptimizer = class _MemoryOptimizer {
     // 100MB
     constructor() {
@@ -2528,7 +2524,7 @@
     }
   };
 
-  // app/webview/utils/ProcessingPipeline.ts
+  // webview/utils/ProcessingPipeline.ts
   var ProcessingPipeline = class {
     constructor() {
       this.processingSteps = [];
@@ -2692,7 +2688,7 @@
     }
   };
 
-  // app/webview/utils/OptimizedTremorCompensator.ts
+  // webview/utils/OptimizedTremorCompensator.ts
   var OptimizedTremorCompensator = class {
     constructor() {
       this.landmarkHistory = null;
@@ -2865,7 +2861,7 @@
     }
   };
 
-  // app/webview/gestureProcessing.ts
+  // webview/gestureProcessing.ts
   var PartialGestureDetector = class {
     constructor() {
       this.gestureHistory = /* @__PURE__ */ new Map();
@@ -2945,6 +2941,9 @@
       return Math.min(extendedFingers / 4, 1);
     }
     calculatePartialConfidence(hand, gestureId, completion) {
+      if (completion <= 0) {
+        return 0;
+      }
       const baseConfidence = completion * 0.8;
       const stability = this.calculateHandStability(hand);
       const stabilityBonus = stability * 0.2;
@@ -3016,87 +3015,179 @@
      * Optimized tremor compensation with reduced memory usage
      */
     smoothLandmarks(landmarks) {
-      if (!landmarks?.[0] || landmarks[0].length < 21) {
+      if (!Array.isArray(landmarks) || landmarks.length === 0) {
         return landmarks;
       }
-      const currentLandmarks = landmarks[0];
+      const normalizedLandmarks = this.cloneHands(landmarks);
       const now = Date.now();
-      this.movementHistory.push({ landmarks: currentLandmarks, timestamp: now });
+      this.movementHistory.push({ landmarks: normalizedLandmarks, timestamp: now });
       if (this.movementHistory.length > this.MAX_HISTORY) {
         this.movementHistory.shift();
       }
       if (this.movementHistory.length < 2) {
-        return landmarks;
+        return normalizedLandmarks;
       }
-      if (!this.isIntentionalMovement(landmarks, [this.movementHistory[this.movementHistory.length - 2].landmarks])) {
-        return [this.movementHistory[this.movementHistory.length - 2].landmarks];
-      }
-      const smoothed = this.applySmoothing(currentLandmarks);
-      return [smoothed];
+      const previousEntry = this.movementHistory[this.movementHistory.length - 2];
+      const smoothedHands = normalizedLandmarks.map((hand, index) => {
+        const previousHand = previousEntry.landmarks[index];
+        if (!hand || hand.length === 0) {
+          return hand;
+        }
+        if (!previousHand || previousHand.length === 0) {
+          return hand;
+        }
+        if (!this.isIntentionalMovementForHand(hand, previousHand)) {
+          return this.cloneHand(previousHand);
+        }
+        return this.applySmoothing(hand, previousHand);
+      });
+      return smoothedHands;
     }
-    applySmoothing(current) {
-      if (this.movementHistory.length < 2) return current;
-      const previous = this.movementHistory[this.movementHistory.length - 2].landmarks;
+    applySmoothing(current, previous) {
       const smoothed = [];
-      for (let i = 0; i < Math.min(current.length, previous.length); i++) {
+      const length = Math.min(current.length, previous.length);
+      for (let i = 0; i < length; i++) {
         const currentPoint = current[i];
         const previousPoint = previous[i];
+        if (!currentPoint || !previousPoint) {
+          smoothed.push(currentPoint || previousPoint || [0, 0, 0]);
+          continue;
+        }
         const smoothedPoint = [
           previousPoint[0] * this.SMOOTHING_FACTOR + currentPoint[0] * (1 - this.SMOOTHING_FACTOR),
           previousPoint[1] * this.SMOOTHING_FACTOR + currentPoint[1] * (1 - this.SMOOTHING_FACTOR),
-          previousPoint[2] * this.SMOOTHING_FACTOR + currentPoint[2] * (1 - this.SMOOTHING_FACTOR)
+          (previousPoint[2] ?? 0) * this.SMOOTHING_FACTOR + (currentPoint[2] ?? 0) * (1 - this.SMOOTHING_FACTOR)
         ];
         smoothed.push(smoothedPoint);
+      }
+      if (current.length > length) {
+        for (let i = length; i < current.length; i++) {
+          smoothed.push(current[i]);
+        }
       }
       return smoothed;
     }
     isIntentionalMovement(currentLandmarks, previousLandmarks) {
-      if (!currentLandmarks?.[0] || !previousLandmarks?.[0]) return true;
-      const current = currentLandmarks[0];
-      const previous = previousLandmarks[0];
-      if (current.length !== previous.length) return true;
+      if (!currentLandmarks?.length || !previousLandmarks?.length) return true;
       let totalMovement = 0;
       let points = 0;
-      for (let i = 0; i < Math.min(current.length, previous.length, 21); i++) {
-        const currentPoint = current[i];
-        const previousPoint = previous[i];
+      for (let handIdx = 0; handIdx < Math.min(currentLandmarks.length, previousLandmarks.length); handIdx++) {
+        const currentHand = currentLandmarks[handIdx];
+        const previousHand = previousLandmarks[handIdx];
+        if (!currentHand || !previousHand) {
+          continue;
+        }
+        const length = Math.min(currentHand.length, previousHand.length, 21);
+        for (let i = 0; i < length; i++) {
+          const currentPoint = currentHand[i];
+          const previousPoint = previousHand[i];
+          if (!currentPoint || !previousPoint) {
+            continue;
+          }
+          const movement = Math.sqrt(
+            Math.pow((currentPoint[0] ?? 0) - (previousPoint[0] ?? 0), 2) + Math.pow((currentPoint[1] ?? 0) - (previousPoint[1] ?? 0), 2) + Math.pow((currentPoint[2] ?? 0) - (previousPoint[2] ?? 0), 2)
+          );
+          totalMovement += movement;
+          points++;
+        }
+      }
+      if (points === 0) {
+        return true;
+      }
+      const averageMovement = totalMovement / points;
+      return averageMovement > this.MOVEMENT_THRESHOLD;
+    }
+    isIntentionalMovementForHand(currentHand, previousHand) {
+      if (!currentHand?.length || !previousHand?.length) {
+        return true;
+      }
+      const length = Math.min(currentHand.length, previousHand.length, 21);
+      let totalMovement = 0;
+      let points = 0;
+      for (let i = 0; i < length; i++) {
+        const currentPoint = currentHand[i];
+        const previousPoint = previousHand[i];
+        if (!currentPoint || !previousPoint) {
+          continue;
+        }
         const movement = Math.sqrt(
-          Math.pow(currentPoint[0] - previousPoint[0], 2) + Math.pow(currentPoint[1] - previousPoint[1], 2) + Math.pow(currentPoint[2] - previousPoint[2], 2)
+          Math.pow((currentPoint[0] ?? 0) - (previousPoint[0] ?? 0), 2) + Math.pow((currentPoint[1] ?? 0) - (previousPoint[1] ?? 0), 2) + Math.pow((currentPoint[2] ?? 0) - (previousPoint[2] ?? 0), 2)
         );
         totalMovement += movement;
         points++;
       }
-      const averageMovement = points > 0 ? totalMovement / points : 0;
+      if (points === 0) {
+        return true;
+      }
+      const averageMovement = totalMovement / points;
       return averageMovement > this.MOVEMENT_THRESHOLD;
+    }
+    cloneHands(landmarks) {
+      return landmarks.map((hand) => this.cloneHand(hand));
+    }
+    cloneHand(hand) {
+      if (!Array.isArray(hand)) {
+        return [];
+      }
+      return hand.map((point) => {
+        if (!Array.isArray(point)) {
+          return [0, 0, 0];
+        }
+        return [point[0] ?? 0, point[1] ?? 0, point[2] ?? 0];
+      });
     }
     clearHistory() {
       this.movementHistory = [];
     }
   };
-  var GestureSizeNormalizer = class {
+  var GestureSizeNormalizer = class _GestureSizeNormalizer {
     constructor() {
-      this.tolerance = 0.3;
-      this.referenceHandSize = null;
+      this.tolerance = _GestureSizeNormalizer.DEFAULT_TOLERANCE;
+      this.referenceHandSizes = [];
+    }
+    static {
+      this.DEFAULT_TOLERANCE = 0.3;
+    }
+    static {
+      this.MIN_TOLERANCE = 0.1;
+    }
+    static {
+      this.MAX_TOLERANCE = 1;
+    }
+    static {
+      this.DEFAULT_MAX_SCALE = 1.4;
     }
     /**
      * Optimized gesture size normalization
      */
     normalizeHandSize(landmarks) {
-      if (!landmarks?.[0] || landmarks[0].length < 21) {
+      if (!Array.isArray(landmarks) || landmarks.length === 0) {
         return landmarks;
       }
-      const hand = landmarks[0];
-      const handSize = this.calculateHandSize(hand);
-      if (this.referenceHandSize === null) {
-        this.referenceHandSize = handSize;
-        return landmarks;
-      }
-      const sizeRatio = handSize / this.referenceHandSize;
-      if (Math.abs(sizeRatio - 1) <= this.tolerance) {
-        return landmarks;
-      }
-      const normalizedHand = this.applySizeNormalization(hand, sizeRatio);
-      return [normalizedHand];
+      const normalizedHands = landmarks.map((hand, index) => {
+        if (!Array.isArray(hand) || hand.length < 21) {
+          this.referenceHandSizes[index] = null;
+          return hand;
+        }
+        const handSize = this.calculateHandSize(hand);
+        if (this.referenceHandSizes[index] === null || this.referenceHandSizes[index] === void 0) {
+          this.referenceHandSizes[index] = handSize;
+          return hand;
+        }
+        const referenceSize = this.referenceHandSizes[index] ?? 0;
+        if (referenceSize <= 0) {
+          this.referenceHandSizes[index] = handSize;
+          return hand;
+        }
+        const sizeRatio = handSize / referenceSize;
+        if (Math.abs(sizeRatio - 1) <= this.tolerance) {
+          return hand;
+        }
+        const { minScale, maxScale } = this.computeScaleBounds();
+        const clampedRatio = this.clampSizeRatio(sizeRatio, minScale, maxScale);
+        return this.applySizeNormalization(hand, clampedRatio);
+      });
+      return normalizedHands;
     }
     calculateHandSize(hand) {
       if (hand.length < 21) return 1;
@@ -3119,18 +3210,57 @@
       }
       return normalized;
     }
+    clampSizeRatio(sizeRatio, minScale, maxScale) {
+      if (!Number.isFinite(sizeRatio) || sizeRatio <= 0) {
+        return 1;
+      }
+      if (sizeRatio < minScale) {
+        return minScale;
+      }
+      if (sizeRatio > maxScale) {
+        return maxScale;
+      }
+      return sizeRatio;
+    }
+    clampTolerance(value) {
+      if (!Number.isFinite(value)) {
+        return this.tolerance;
+      }
+      const clamped = Math.max(_GestureSizeNormalizer.MIN_TOLERANCE, Math.min(_GestureSizeNormalizer.MAX_TOLERANCE, value));
+      return clamped;
+    }
+    computeScaleBounds() {
+      const tolerance = this.tolerance;
+      const minScale = Math.max(0, 1 - tolerance);
+      const defaultMaxScale = _GestureSizeNormalizer.DEFAULT_MAX_SCALE;
+      const computedMax = 1 + tolerance;
+      const isDefaultTolerance = Math.abs(tolerance - _GestureSizeNormalizer.DEFAULT_TOLERANCE) < 1e-6;
+      const maxScale = isDefaultTolerance ? Math.max(defaultMaxScale, computedMax) : computedMax;
+      return {
+        minScale,
+        maxScale
+      };
+    }
     setTolerance(tolerance) {
-      this.tolerance = Math.max(0, Math.min(1, tolerance));
+      this.tolerance = this.clampTolerance(tolerance);
+    }
+    getTolerance() {
+      const { minScale, maxScale } = this.computeScaleBounds();
+      return {
+        tolerance: this.tolerance,
+        minScale,
+        maxScale
+      };
     }
     reset() {
-      this.referenceHandSize = null;
+      this.referenceHandSizes = [];
     }
   };
   var partialGestureDetector = new PartialGestureDetector();
   var tremorCompensator = new TremorCompensator();
   var gestureSizeNormalizer = new GestureSizeNormalizer();
 
-  // app/webview/utils/ErrorRecoveryManager.ts
+  // webview/utils/ErrorRecoveryManager.ts
   var ErrorRecoveryManager = class {
     constructor() {
       this.failureCount = 0;
@@ -3349,7 +3479,7 @@
     }
   };
 
-  // app/webview/core/FallbackGestureDetector.ts
+  // webview/core/FallbackGestureDetector.ts
   var FallbackGestureDetector = class _FallbackGestureDetector {
     constructor() {
       this.lastLandmarks = null;
@@ -3528,7 +3658,7 @@
     }
   };
 
-  // app/webview/utils/MessageBatcher.ts
+  // webview/utils/MessageBatcher.ts
   var BATCH_INTERVAL_MS = 50;
   var MAX_BATCH_SIZE = 5;
   var FRAME_LATENCY_SAMPLE_INTERVAL = 10;
@@ -3601,7 +3731,7 @@
   };
   var messageBatcher = new MessageBatcher();
 
-  // app/webview/core/EmergencyGestureSystem.ts
+  // webview/core/EmergencyGestureSystem.ts
   var EmergencyGestureSystem = class {
     constructor() {
       this.EMERGENCY_GESTURES = /* @__PURE__ */ new Set([
@@ -3753,7 +3883,7 @@
     }
   };
 
-  // app/webview/core/HandStabilityAssistant.ts
+  // webview/core/HandStabilityAssistant.ts
   var HandStabilityAssistant = class {
     constructor() {
       this.stabilityHistory = [];
@@ -3864,7 +3994,7 @@
     }
   };
 
-  // app/webview/core/BatteryMonitor.ts
+  // webview/core/BatteryMonitor.ts
   var BatteryMonitor = class {
     constructor() {
       this.batteryLevel = 1;
@@ -3995,7 +4125,7 @@
     }
   };
 
-  // app/webview/utils/mapMediaPipeResults.ts
+  // webview/utils/mapMediaPipeResults.ts
   function normalizeHandLandmarks(hand) {
     if (!hand) {
       return [];
@@ -4040,11 +4170,11 @@
     };
   }
 
-  // app/webview/core/GestureRecognitionOrchestrator.ts
+  // webview/core/GestureRecognitionOrchestrator.ts
   var FALLBACK_CONFIDENCE_THRESHOLD = typeof window.__fallbackThreshold === "number" ? window.__fallbackThreshold : 0.35;
   var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.4;
   var GestureRecognitionOrchestrator = class {
-    constructor(video2, overlay2) {
+    constructor(video2, overlay2, dependencies = {}) {
       this.video = video2;
       this.overlay = overlay2;
       this.gestureDetector = null;
@@ -4055,6 +4185,8 @@
       this.memoryOptimizer = MemoryOptimizer.getInstance();
       this.processingPipeline = new ProcessingPipeline();
       this.config = loadConfig();
+      this.createGestureDetector = dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
+      this.errorRecoveryManager = dependencies.errorRecoveryManager ?? new ErrorRecoveryManager();
       this.initializeComponents();
       this.setupProcessingPipeline();
     }
@@ -4065,7 +4197,6 @@
       this.tremorCompensator = new OptimizedTremorCompensator();
       this.sizeNormalizer = new GestureSizeNormalizer();
       this.partialDetector = new PartialGestureDetector();
-      this.errorRecoveryManager = new ErrorRecoveryManager();
       this.fallbackDetector = new FallbackGestureDetector();
       this.emergencySystem = new EmergencyGestureSystem();
       this.handStabilityAssistant = new HandStabilityAssistant();
@@ -4096,7 +4227,7 @@
     async initialize() {
       if (this.isInitialized) return;
       try {
-        this.gestureDetector = new GestureDetector(this.video, this.overlay);
+        this.gestureDetector = this.createGestureDetector(this.video, this.overlay);
         this.gestureDetector.setResultCallback((results, timestamp) => {
           this.handleGestureResults(results, timestamp);
         });
@@ -4147,7 +4278,8 @@
           normalizedResults: normalized
         };
         const processingResult = await this.processingPipeline.executePipeline(context);
-        if (processingResult.gesture || processingResult.confidence > 0) {
+        const hasGestureResult = Boolean(processingResult.gesture) || (processingResult.confidence ?? 0) > 0 || Boolean(processingResult.fallback?.gesture);
+        if (hasGestureResult) {
           this.sendGestureResult(processingResult, results);
         }
         this.performanceOptimizer.recordProcessingTime(processingResult.processingTime);
@@ -4176,12 +4308,16 @@
      */
     sendGestureResult(processingResult, originalResults) {
       try {
+        const handednessLabels = processingResult.metadata?.handednesses?.map((label) => String(label)) ?? originalResults.handednesses?.map((hand) => {
+          const category = hand?.[0]?.categoryName;
+          return typeof category === "string" ? category : "unknown";
+        }) ?? [];
         const payload = {
           type: "gesture",
           gesture: processingResult.gesture,
           confidence: processingResult.confidence,
           landmarks: processingResult.landmarks,
-          handednesses: originalResults.handednesses?.map((h) => h.categoryName) || [],
+          handednesses: handednessLabels,
           timestamp: processingResult.timestamp ?? Date.now(),
           isFallback: processingResult.isFallback,
           systemHealth: this.errorRecoveryManager.getHealthStatus(),
@@ -4193,12 +4329,26 @@
             mlp: MLP_CONFIDENCE_THRESHOLD
           }
         };
+        const fallbackResult = processingResult.fallback;
+        if (!payload.gesture && fallbackResult?.gesture) {
+          payload.gesture = fallbackResult.gesture;
+        }
+        if ((payload.confidence ?? 0) === 0 && typeof fallbackResult?.confidence === "number") {
+          payload.confidence = fallbackResult.confidence;
+        }
+        if (!payload.isFallback && fallbackResult?.isFallback) {
+          payload.isFallback = true;
+        }
         const frameCapture = getLastCapturedFrame();
-        if (frameCapture && (processingResult.confidence ?? 0) < FALLBACK_CONFIDENCE_THRESHOLD) {
+        const effectiveConfidence = payload.confidence ?? 0;
+        if (frameCapture && (effectiveConfidence < FALLBACK_CONFIDENCE_THRESHOLD || payload.isFallback)) {
           payload.frameCapture = frameCapture;
         }
+        const shouldFlushImmediately = Boolean(
+          processingResult.emergency?.detected || processingResult.isFallback || fallbackResult?.isFallback || processingResult.isUsingFallback
+        );
         messageBatcher.queueMessage(payload, {
-          flushImmediately: Boolean(processingResult.emergency?.detected || processingResult.isFallback)
+          flushImmediately: shouldFlushImmediately
         });
       } catch (error) {
         console.warn("Failed to send gesture result:", error);
@@ -4488,7 +4638,7 @@
     }
   };
 
-  // app/webview/gestureDetector.new.ts
+  // webview/gestureDetector.new.ts
   var onError = (e) => {
     try {
       window.ReactNativeWebView?.postMessage?.(

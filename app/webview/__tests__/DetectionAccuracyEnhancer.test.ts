@@ -140,7 +140,7 @@ describe('DetectionAccuracyEnhancer', () => {
       const landmarks = [
         [
           [0.0, 0.0, 0.0], // wrist
-          [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -0.1, 0.0], // thumb (extended)
+          [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -0.1, 0.0], [0.0, -0.15, 0.0], // thumb (extended)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.1, 0.0], // index (curled)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.1, 0.0], // middle (curled)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.1, 0.0], // ring (curled)
@@ -166,7 +166,7 @@ describe('DetectionAccuracyEnhancer', () => {
       const landmarks = [
         [
           [0.0, 0.0, 0.0], // wrist
-          [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -0.1, 0.0], // thumb (extended)
+          [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -0.1, 0.0], [0.0, -0.15, 0.0], // thumb (extended)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -0.1, 0.0], [0.0, -0.1, 0.0], // index (extended)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -0.1, 0.0], [0.0, -0.1, 0.0], // middle (extended)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -0.1, 0.0], [0.0, -0.1, 0.0], // ring (extended)
@@ -192,7 +192,7 @@ describe('DetectionAccuracyEnhancer', () => {
       const landmarks = [
         [
           [0.0, 0.0, 0.0], // wrist
-          [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.1, 0.0], // thumb (curled)
+          [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.12, 0.0], // thumb (curled)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.1, 0.0], // index (curled)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.1, 0.0], // middle (curled)
           [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.1, 0.0], // ring (curled)
@@ -276,8 +276,10 @@ describe('DetectionAccuracyEnhancer', () => {
 
       expect(stats.totalGestures).toBeGreaterThan(0);
       expect(stats.averageConfidence).toBeGreaterThan(0);
+      expect(stats.averageCandidateConfidence).toBeGreaterThan(0);
+      expect(stats.averageFinalConfidence).toBeGreaterThan(0);
       expect(stats.historicalConfidence).toHaveProperty('thumbs_up');
-      expect(stats.historicalConfidence).toHaveProperty('open_palm');
+      expect(stats.historicalConfidence).not.toHaveProperty('open_palm');
     });
 
     it('should reset accuracy tracking', () => {
@@ -289,7 +291,11 @@ describe('DetectionAccuracyEnhancer', () => {
       expect(enhancer.getAccuracyStats().totalGestures).toBeGreaterThan(0);
 
       enhancer.reset();
-      expect(enhancer.getAccuracyStats().totalGestures).toBe(0);
+      const resetStats = enhancer.getAccuracyStats();
+      expect(resetStats.totalGestures).toBe(0);
+      expect(resetStats.averageConfidence).toBe(0);
+      expect(resetStats.averageCandidateConfidence).toBe(0);
+      expect(resetStats.averageFinalConfidence).toBe(0);
     });
   });
 
@@ -321,9 +327,9 @@ describe('DetectionAccuracyEnhancer', () => {
 
       const results = enhancer.enhanceRuleBasedDetection(
         landmarks,
-        mockTremorCompensator as any,
-        mockSizeNormalizer as any,
-        mockPartialDetector as any
+        undefined,
+        undefined,
+        undefined
       );
 
       expect(results).toHaveLength(0);
@@ -334,9 +340,9 @@ describe('DetectionAccuracyEnhancer', () => {
 
       const results = enhancer.enhanceRuleBasedDetection(
         landmarks,
-        mockTremorCompensator as any,
-        mockSizeNormalizer as any,
-        mockPartialDetector as any
+        undefined,
+        undefined,
+        undefined
       );
 
       // Should not crash, may return empty or minimal results
