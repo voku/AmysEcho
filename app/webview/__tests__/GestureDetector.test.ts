@@ -23,6 +23,7 @@ describe('GestureDetector', () => {
   let mockOverlay: HTMLCanvasElement;
   let mockGestureRecognizer: any;
   let mockComponents: MediaPipeComponents;
+  let mockLoadTasksVision: jest.Mock;
   let mockCameraManager: jest.Mocked<CameraManager>;
   let mockOverlayRenderer: jest.Mocked<OverlayRenderer>;
   let mockResourceManager: jest.Mocked<ResourceManager>;
@@ -71,13 +72,13 @@ describe('GestureDetector', () => {
     } as any;
 
     // Setup mocks
-    const mockLoadTasksVision = jest.fn().mockResolvedValue(mockComponents);
     const mockLoadConfig = jest.fn().mockReturnValue({
       performance: { telemetrySampleRate: 1000 },
       thresholds: { mlpConfidence: 0.8 },
     });
 
-    require('../core/MediaPipeLoader').loadTasksVision = mockLoadTasksVision;
+    mockLoadTasksVision = jest.fn().mockResolvedValue(mockComponents);
+    GestureDetector.setLoadTasksVisionImplementation(mockLoadTasksVision);
     require('../config/GestureConfig').loadConfig = mockLoadConfig;
 
     (CameraManager as jest.MockedClass<typeof CameraManager>).mockImplementation(() => mockCameraManager);
@@ -87,6 +88,7 @@ describe('GestureDetector', () => {
   });
 
   afterEach(() => {
+    GestureDetector.setLoadTasksVisionImplementation(null);
     jest.clearAllMocks();
   });
 
@@ -173,7 +175,6 @@ describe('GestureDetector', () => {
 
   describe('error handling', () => {
     it('should handle initialization errors gracefully', async () => {
-      const mockLoadTasksVision = require('../core/MediaPipeLoader').loadTasksVision;
       mockLoadTasksVision.mockRejectedValue(new Error('Network error'));
 
       const detector = new GestureDetector(mockVideo, mockOverlay);

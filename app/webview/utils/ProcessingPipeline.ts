@@ -140,8 +140,9 @@ export class ProcessingPipeline {
         }
 
         // Record step performance
-        const stepTime = performance.now() - stepStartTime;
-        this.recordStepPerformance(step.name, stepTime);
+        const stepEnd = performance.now();
+        const stepDuration = this.sanitizeDuration(stepEnd - stepStartTime);
+        this.recordStepPerformance(step.name, stepDuration);
 
       } catch (error) {
         console.warn(`Processing step ${step.name} failed:`, error);
@@ -151,7 +152,8 @@ export class ProcessingPipeline {
       }
     }
 
-    const totalTime = performance.now() - startTime;
+    const endTime = performance.now();
+    const totalTime = this.sanitizeDuration(endTime - startTime);
     this.performanceOptimizer.recordProcessingTime(totalTime);
 
     aggregated.timestamp = aggregated.timestamp ?? context.timestamp;
@@ -173,6 +175,13 @@ export class ProcessingPipeline {
 
     this.lastProcessingResult = result;
     return result;
+  }
+
+  private sanitizeDuration(duration: number): number {
+    if (!Number.isFinite(duration)) {
+      return 0.01;
+    }
+    return duration <= 0 ? 0.01 : duration;
   }
 
   /**
@@ -238,7 +247,7 @@ export class ProcessingPipeline {
       gesture: this.lastProcessingResult?.gesture,
       confidence: this.lastProcessingResult?.confidence || 0,
       landmarks: context.landmarks,
-      processingTime: performance.now() - startTime,
+      processingTime: this.sanitizeDuration(performance.now() - startTime),
       stepsExecuted: [],
       skippedSteps: ['frame_skipped']
     };

@@ -3,7 +3,7 @@
  * Coordinates all gesture detection components
  */
 
-import { loadTasksVision, MediaPipeComponents } from './MediaPipeLoader';
+import { loadTasksVision, type MediaPipeComponents } from './MediaPipeLoader';
 import { CameraManager } from './CameraManager';
 import { OverlayRenderer } from './OverlayRenderer';
 import { ResourceManager } from '../utils/ResourceManager';
@@ -19,6 +19,8 @@ import {
 } from '../utils/FrameCaptureManager';
 
 export class GestureDetector {
+  private static loadTasksVisionImpl: () => Promise<MediaPipeComponents | undefined> = loadTasksVision;
+
   private config: GestureDetectorConfig;
   private resourceManager: ResourceManager;
   private cameraManager: CameraManager;
@@ -42,6 +44,15 @@ export class GestureDetector {
   }
 
   /**
+   * Allows tests to override the MediaPipe loader implementation
+   */
+  static setLoadTasksVisionImplementation(
+    loader: (() => Promise<MediaPipeComponents | undefined>) | null,
+  ): void {
+    GestureDetector.loadTasksVisionImpl = loader ?? loadTasksVision;
+  }
+
+  /**
    * Set callback for gesture results
    */
   setResultCallback(callback: (results: MediaPipeGestureResult, timestamp: number) => void): void {
@@ -54,10 +65,21 @@ export class GestureDetector {
   async initialize(): Promise<void> {
     try {
       // Load MediaPipe components
-      const components: MediaPipeComponents = await loadTasksVision();
+      const components: MediaPipeComponents | undefined = await GestureDetector.loadTasksVisionImpl();
+
+      if (!components) {
+        throw new Error('Tasks Vision components not available');
+      }
 
       // Create gesture recognizer
-      const vision = await components.FilesetResolver.forVisionTasks(components.wasmBase);
+      const filesetResolver =
+        components.FilesetResolver ?? (window as any)?.fileset_resolver?.FilesetResolver;
+
+      if (!filesetResolver || typeof filesetResolver.forVisionTasks !== 'function') {
+        throw new Error('Tasks Vision FilesetResolver not available');
+      }
+
+      const vision = await filesetResolver.forVisionTasks(components.wasmBase);
       const baseOptions = {
         modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
         delegate: 'GPU' as const,
