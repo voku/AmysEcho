@@ -292,7 +292,7 @@ export class GestureRecognitionOrchestrator {
       }
 
       const frameCapture = getLastCapturedFrame();
-      const effectiveConfidence = payload.confidence ?? processingResult.confidence ?? 0;
+      const effectiveConfidence = payload.confidence ?? 0;
       if (frameCapture && (effectiveConfidence < FALLBACK_CONFIDENCE_THRESHOLD || payload.isFallback)) {
         payload.frameCapture = frameCapture;
       }
