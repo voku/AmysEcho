@@ -28,7 +28,9 @@ export class DetectionAccuracyEnhancer {
   private confidenceHistory: Map<string, number[]> = new Map();
   private methodUsage: Map<DetectionResult['method'], number> = new Map();
   private totalConfidenceSum = 0;
+  private totalFinalConfidenceSum = 0;
   private totalGestureObservations = 0;
+  private totalResolvedGestures = 0;
   private readonly HISTORY_SIZE = 5;
   private readonly CONFIDENCE_THRESHOLD_HIGH = 0.8;
   private readonly CONFIDENCE_THRESHOLD_MEDIUM = 0.6;
@@ -52,9 +54,7 @@ export class DetectionAccuracyEnhancer {
     detectionResults.forEach(result => this.recordDetectionResult(result));
 
     if (detectionResults.length === 1) {
-      const [singleResult] = detectionResults;
-      this.updateConfidenceHistory(singleResult.gesture, singleResult.confidence);
-      return this.createSingleResult(singleResult);
+      return this.applyConflictResolution(detectionResults);
     }
 
     // Group results by gesture
@@ -522,6 +522,8 @@ export class DetectionAccuracyEnhancer {
       reasoning = best.result.metadata.conflictReason;
     }
 
+    this.totalFinalConfidenceSum += finalConfidence;
+    this.totalResolvedGestures += 1;
     this.updateConfidenceHistory(best.result.gesture, finalConfidence);
 
     return {
@@ -604,6 +606,8 @@ export class DetectionAccuracyEnhancer {
   getAccuracyStats(): {
     totalGestures: number;
     averageConfidence: number;
+    averageCandidateConfidence: number;
+    averageFinalConfidence: number;
     methodDistribution: Record<string, number>;
     historicalConfidence: Record<string, number>;
   } {
@@ -618,12 +622,20 @@ export class DetectionAccuracyEnhancer {
       historicalConfidence[gesture] = history.reduce((sum, conf) => sum + conf, 0) / history.length;
     });
 
+    const averageCandidateConfidence =
+      this.totalGestureObservations > 0
+        ? this.totalConfidenceSum / this.totalGestureObservations
+        : 0;
+    const averageFinalConfidence =
+      this.totalResolvedGestures > 0
+        ? this.totalFinalConfidenceSum / this.totalResolvedGestures
+        : 0;
+
     return {
       totalGestures: this.totalGestureObservations,
-      averageConfidence:
-        this.totalGestureObservations > 0
-          ? this.totalConfidenceSum / this.totalGestureObservations
-          : 0,
+      averageConfidence: averageCandidateConfidence,
+      averageCandidateConfidence,
+      averageFinalConfidence,
       methodDistribution,
       historicalConfidence
     };
@@ -636,6 +648,8 @@ export class DetectionAccuracyEnhancer {
     this.confidenceHistory.clear();
     this.methodUsage.clear();
     this.totalConfidenceSum = 0;
+    this.totalFinalConfidenceSum = 0;
     this.totalGestureObservations = 0;
+    this.totalResolvedGestures = 0;
   }
 }

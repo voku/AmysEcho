@@ -276,6 +276,8 @@ describe('DetectionAccuracyEnhancer', () => {
 
       expect(stats.totalGestures).toBeGreaterThan(0);
       expect(stats.averageConfidence).toBeGreaterThan(0);
+      expect(stats.averageCandidateConfidence).toBeGreaterThan(0);
+      expect(stats.averageFinalConfidence).toBeGreaterThan(0);
       expect(stats.historicalConfidence).toHaveProperty('thumbs_up');
       expect(stats.historicalConfidence).not.toHaveProperty('open_palm');
     });
@@ -289,7 +291,11 @@ describe('DetectionAccuracyEnhancer', () => {
       expect(enhancer.getAccuracyStats().totalGestures).toBeGreaterThan(0);
 
       enhancer.reset();
-      expect(enhancer.getAccuracyStats().totalGestures).toBe(0);
+      const resetStats = enhancer.getAccuracyStats();
+      expect(resetStats.totalGestures).toBe(0);
+      expect(resetStats.averageConfidence).toBe(0);
+      expect(resetStats.averageCandidateConfidence).toBe(0);
+      expect(resetStats.averageFinalConfidence).toBe(0);
     });
   });
 
