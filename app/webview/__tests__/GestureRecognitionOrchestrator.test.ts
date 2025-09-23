@@ -39,15 +39,6 @@ const { GestureDetector: MockGestureDetector } = jest.requireMock('../core/Gestu
   GestureDetector: jest.Mock;
 };
 
-const { messageBatcher: mockMessageBatcher } = jest.requireMock('../utils/MessageBatcher') as {
-  messageBatcher: {
-    queueMessage: jest.Mock;
-    forceFlush: jest.Mock;
-    getQueueStatus: jest.Mock;
-  };
-};
-
-
 // Mock DOM elements
 const mockVideo = document.createElement('video');
 const mockOverlay = document.createElement('canvas');
@@ -69,23 +60,22 @@ describe('GestureRecognitionOrchestrator', () => {
   let mockProcessingPipeline: jest.Mocked<ProcessingPipeline>;
 
   beforeEach(() => {
-    // Reset mock state between tests
-    MockGestureDetector.mockReset();
-    mockQueueMessage.mockReset();
+    // Reapply default mock behavior between tests
     mockQueueMessage.mockImplementation(() => {});
-    mockForceFlush.mockReset();
     mockForceFlush.mockImplementation(() => {});
-    mockGetQueueStatus.mockReset();
     mockGetQueueStatus.mockReturnValue({ pending: 0, frameCount: 0, lastSentAt: 0 });
 
-    mockMessageBatcher.queueMessage = mockQueueMessage;
-    mockMessageBatcher.forceFlush = mockForceFlush;
-    mockMessageBatcher.getQueueStatus = mockGetQueueStatus;
+    const { messageBatcher } = jest.requireMock('../utils/MessageBatcher') as {
+      messageBatcher: {
+        queueMessage: jest.Mock;
+        forceFlush: jest.Mock;
+        getQueueStatus: jest.Mock;
+      };
+    };
 
-    mockGestureDetectorInitialize.mockReset();
-    mockGestureDetectorStart.mockReset();
-    mockGestureDetectorStop.mockReset();
-    mockGestureDetectorSetResultCallback.mockReset();
+    messageBatcher.queueMessage = mockQueueMessage;
+    messageBatcher.forceFlush = mockForceFlush;
+    messageBatcher.getQueueStatus = mockGetQueueStatus;
 
     mockGestureDetectorInitialize.mockResolvedValue(undefined);
     mockGestureDetectorStart.mockResolvedValue(undefined);
