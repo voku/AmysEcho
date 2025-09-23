@@ -85,6 +85,7 @@ jest.mock('../utils/HealthMonitor', () => ({
 }));
 
 import { GestureRecognitionOrchestrator } from '../core/GestureRecognitionOrchestrator';
+import { ErrorRecoveryManager } from '../utils/ErrorRecoveryManager';
 import type { MediaPipeGestureResult } from '../types/MediaPipeTypes';
 import { messageBatcher } from '../utils/MessageBatcher';
 import { MemoryOptimizer } from '../utils/MemoryOptimizer';
@@ -116,6 +117,7 @@ describe('GestureRecognitionOrchestrator', () => {
   let startMonitoringSpy: jest.SpyInstance;
   let captureSpy: jest.SpyInstance;
   let toggleCaptureSpy: jest.SpyInstance;
+  let errorRecoveryManager: ErrorRecoveryManager;
 
   beforeAll(() => {
     window.ReactNativeWebView = { postMessage: jest.fn() };
@@ -152,7 +154,10 @@ describe('GestureRecognitionOrchestrator', () => {
       wasmBase: 'mock-wasm-base',
     }));
 
-    orchestrator = new GestureRecognitionOrchestrator(mockVideo, mockOverlay);
+    errorRecoveryManager = new ErrorRecoveryManager();
+    orchestrator = new GestureRecognitionOrchestrator(mockVideo, mockOverlay, {
+      errorRecoveryManager,
+    });
   });
 
   afterEach(() => {
@@ -281,7 +286,7 @@ describe('GestureRecognitionOrchestrator', () => {
     it('adds frame captures for fallback payloads and flushes immediately', async () => {
       const fallbackResults = createMockGestureResults({ gestures: [[]] as any });
       captureSpy.mockReturnValue('frame-data');
-      (orchestrator as any).errorRecoveryManager.activateFallbackMode();
+      errorRecoveryManager.activateFallbackMode();
 
       await (orchestrator as any).handleGestureResults(fallbackResults, Date.now());
 

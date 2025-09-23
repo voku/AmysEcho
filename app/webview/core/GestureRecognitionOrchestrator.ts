@@ -52,6 +52,7 @@ interface GestureMessagePayload {
 
 type OrchestratorDependencies = {
   createGestureDetector?: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
+  errorRecoveryManager?: ErrorRecoveryManager;
 };
 
 export class GestureRecognitionOrchestrator {
@@ -87,6 +88,7 @@ export class GestureRecognitionOrchestrator {
 
     this.createGestureDetector =
       dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
+    this.errorRecoveryManager = dependencies.errorRecoveryManager ?? new ErrorRecoveryManager();
 
     // Initialize components
     this.initializeComponents();
@@ -100,7 +102,6 @@ export class GestureRecognitionOrchestrator {
     this.tremorCompensator = new OptimizedTremorCompensator();
     this.sizeNormalizer = new GestureSizeNormalizer();
     this.partialDetector = new PartialGestureDetector();
-    this.errorRecoveryManager = new ErrorRecoveryManager();
     this.fallbackDetector = new FallbackGestureDetector();
     this.emergencySystem = new EmergencyGestureSystem();
     this.handStabilityAssistant = new HandStabilityAssistant();
