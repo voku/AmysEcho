@@ -24,6 +24,18 @@ export interface ConflictResolutionResult {
   reasoning: string;
 }
 
+export interface AccuracyStats {
+  totalGestures: number;
+  /**
+   * @deprecated Use `averageCandidateConfidence` instead. This property will be removed in a future version.
+   */
+  averageConfidence: number;
+  averageCandidateConfidence: number;
+  averageFinalConfidence: number;
+  methodDistribution: Record<string, number>;
+  historicalConfidence: Record<string, number>;
+}
+
 export class DetectionAccuracyEnhancer {
   private confidenceHistory: Map<string, number[]> = new Map();
   private methodUsage: Map<DetectionResult['method'], number> = new Map();
@@ -35,6 +47,10 @@ export class DetectionAccuracyEnhancer {
   private readonly CONFIDENCE_THRESHOLD_HIGH = 0.8;
   private readonly CONFIDENCE_THRESHOLD_MEDIUM = 0.6;
   private readonly CONFIDENCE_THRESHOLD_LOW = 0.4;
+  private readonly HISTORICAL_CONFIDENCE_THRESHOLD = 0.7;
+  private readonly BOOSTED_CONFIDENCE_CAP = 0.95;
+  private readonly HISTORICAL_BONUS_FACTOR = 0.9;
+  private readonly CONFIDENCE_TIE_THRESHOLD = 0.05;
   private readonly METHOD_PRIORITY: Record<DetectionResult['method'], number> = {
     mediapipe: 4,
     mlp: 3,
@@ -446,8 +462,8 @@ export class DetectionAccuracyEnhancer {
     gestureGroups.forEach(results => {
       const sortedByConfidence = [...results].sort((a, b) => b.confidence - a.confidence);
       const top = sortedByConfidence[0];
-      const tiedResults = sortedByConfidence.filter(candidate =>
-        Math.abs(candidate.confidence - top.confidence) < 0.05
+      const tiedResults = sortedByConfidence.filter(
+        candidate => Math.abs(candidate.confidence - top.confidence) < this.CONFIDENCE_TIE_THRESHOLD
       );
 
       if (tiedResults.length > 1) {
@@ -482,8 +498,14 @@ export class DetectionAccuracyEnhancer {
     const enriched = results.map(result => {
       const historicalConfidence = this.getHistoricalConfidence(result.gesture);
       const boostedConfidence =
-        historicalConfidence > 0.7
-          ? Math.max(result.confidence, Math.min(0.95, historicalConfidence * 0.9))
+        historicalConfidence > this.HISTORICAL_CONFIDENCE_THRESHOLD
+          ? Math.max(
+              result.confidence,
+              Math.min(
+                this.BOOSTED_CONFIDENCE_CAP,
+                historicalConfidence * this.HISTORICAL_BONUS_FACTOR
+              )
+            )
           : result.confidence;
 
       return {
@@ -494,11 +516,11 @@ export class DetectionAccuracyEnhancer {
     });
 
     enriched.sort((a, b) => {
-      if (Math.abs(a.boostedConfidence - b.boostedConfidence) > 0.05) {
+      if (Math.abs(a.boostedConfidence - b.boostedConfidence) > this.CONFIDENCE_TIE_THRESHOLD) {
         return b.boostedConfidence - a.boostedConfidence;
       }
 
-      if (Math.abs(a.result.confidence - b.result.confidence) > 0.05) {
+      if (Math.abs(a.result.confidence - b.result.confidence) > this.CONFIDENCE_TIE_THRESHOLD) {
         return b.result.confidence - a.result.confidence;
       }
 
@@ -588,14 +610,7 @@ export class DetectionAccuracyEnhancer {
   /**
    * Get detection accuracy statistics
    */
-  getAccuracyStats(): {
-    totalGestures: number;
-    averageConfidence: number;
-    averageCandidateConfidence: number;
-    averageFinalConfidence: number;
-    methodDistribution: Record<string, number>;
-    historicalConfidence: Record<string, number>;
-  } {
+  getAccuracyStats(): AccuracyStats {
     const methodDistribution: Record<string, number> = {};
     this.methodUsage.forEach((count, method) => {
       methodDistribution[method] = count;
