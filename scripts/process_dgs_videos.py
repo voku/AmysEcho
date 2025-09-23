@@ -25,9 +25,10 @@ from mediapipe.python.solutions import hands as mp_hands
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 
 class DGSVideoProcessor:
-    def __init__(self, max_frames: int = 100, confidence_threshold: float = 0.7):
+    def __init__(self, max_frames: int = 300, confidence_threshold: float = 0.7, frame_skip: int = 2):
         self.max_frames = max_frames
         self.confidence_threshold = confidence_threshold
+        self.frame_skip = frame_skip
         self.hands = mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=2,
@@ -107,8 +108,8 @@ class DGSVideoProcessor:
 
             frame_count += 1
 
-            # Skip frames for efficiency (process every 5th frame)
-            if frame_count % 5 != 0:
+            # Skip frames for efficiency (process every Nth frame)
+            if frame_count % self.frame_skip != 0:
                 continue
 
             landmarks = self.extract_landmarks_from_frame(frame)
@@ -187,18 +188,22 @@ def main():
     parser = argparse.ArgumentParser(description="Process DGS videos to extract hand landmarks for training")
     parser.add_argument('--videos-dir', required=True, help='Directory containing DGS video files')
     parser.add_argument('--output', required=True, help='Output JSON file path')
-    parser.add_argument('--max-frames', type=int, default=100, help='Maximum frames to process per video')
+    parser.add_argument('--max-frames', type=int, default=300, help='Maximum frames to process per video')
     parser.add_argument('--confidence', type=float, default=0.7, help='Detection confidence threshold')
+    parser.add_argument('--frame-skip', type=int, default=2, help='Process every Nth frame (1 = every frame, 2 = every 2nd frame, etc.)')
 
     args = parser.parse_args()
 
     print("Starting DGS Video Processing...")
     print(f"Videos directory: {args.videos_dir}")
     print(f"Output file: {args.output}")
+    print(f"Max frames per video: {args.max_frames}")
+    print(f"Frame skip: {args.frame_skip}")
 
     processor = DGSVideoProcessor(
         max_frames=args.max_frames,
-        confidence_threshold=args.confidence
+        confidence_threshold=args.confidence,
+        frame_skip=args.frame_skip
     )
 
     samples = processor.process_videos_directory(args.videos_dir)

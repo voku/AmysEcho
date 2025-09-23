@@ -29,7 +29,7 @@ import { getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCapt
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
 const MLP_CONFIDENCE_THRESHOLD =
-  typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.2;
+  typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 
 interface GestureMessagePayload {
   type: 'gesture';
@@ -418,6 +418,7 @@ class LandmarkPreprocessingStep implements ProcessingStep {
 
     return {
       landmarks: processedLandmarks,
+      rawLandmarks: context.landmarks,
       preprocessing: {
         sizeNormalized: true,
         tremorCompensated: true
@@ -508,7 +509,7 @@ export class GestureDetectionStep implements ProcessingStep {
         console.log('MLP input landmarks:', context.landmarks);
         console.log('MLP input handednesses:', rawHandednesses.length > 0 ? rawHandednesses : handednesses);
         const mlpResult = window.__mlpPredict(
-          context.landmarks ?? [],
+          context.rawLandmarks ?? context.landmarks ?? [],
           rawHandednesses.length > 0 ? rawHandednesses : handednesses
         );
         console.log('MLP prediction result:', JSON.stringify(mlpResult)); // Debug logging
@@ -516,7 +517,7 @@ export class GestureDetectionStep implements ProcessingStep {
           mlpMetadata = mlpResult;
           const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
           console.log('MLP threshold check:', JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence })); // Debug logging
-          if (mlpResult.score >= threshold && mlpResult.score >= selectedConfidence) {
+          if (mlpResult.score >= threshold && (selectedGesture === null || selectedGesture === 'none' || mlpResult.score >= selectedConfidence)) {
             console.log('MLP gesture selected:', JSON.stringify({ label: mlpResult.label, score: mlpResult.score })); // Debug logging
             selectedGesture = this.normalizeLabel(mlpResult.label);
             selectedConfidence = mlpResult.score;

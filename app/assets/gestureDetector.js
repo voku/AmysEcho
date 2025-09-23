@@ -4209,7 +4209,7 @@
 
   // webview/core/GestureRecognitionOrchestrator.ts
   var FALLBACK_CONFIDENCE_THRESHOLD = typeof window.__fallbackThreshold === "number" ? window.__fallbackThreshold : 0.35;
-  var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.2;
+  var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.05;
   var GestureRecognitionOrchestrator = class {
     constructor(video2, overlay2, dependencies = {}) {
       this.video = video2;
@@ -4474,6 +4474,7 @@
       processedLandmarks = this.tremorCompensator.smoothLandmarks(processedLandmarks);
       return {
         landmarks: processedLandmarks,
+        rawLandmarks: context.landmarks,
         preprocessing: {
           sizeNormalized: true,
           tremorCompensated: true
@@ -4543,7 +4544,7 @@
           console.log("MLP input landmarks:", context.landmarks);
           console.log("MLP input handednesses:", rawHandednesses.length > 0 ? rawHandednesses : handednesses);
           const mlpResult = window.__mlpPredict(
-            context.landmarks ?? [],
+            context.rawLandmarks ?? context.landmarks ?? [],
             rawHandednesses.length > 0 ? rawHandednesses : handednesses
           );
           console.log("MLP prediction result:", JSON.stringify(mlpResult));
@@ -4551,7 +4552,7 @@
             mlpMetadata = mlpResult;
             const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
             console.log("MLP threshold check:", JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence }));
-            if (mlpResult.score >= threshold && mlpResult.score >= selectedConfidence) {
+            if (mlpResult.score >= threshold && (selectedGesture === null || selectedGesture === "none" || mlpResult.score >= selectedConfidence)) {
               console.log("MLP gesture selected:", JSON.stringify({ label: mlpResult.label, score: mlpResult.score }));
               selectedGesture = this.normalizeLabel(mlpResult.label);
               selectedConfidence = mlpResult.score;

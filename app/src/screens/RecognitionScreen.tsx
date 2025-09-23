@@ -309,6 +309,18 @@ export default function RecognitionScreen({
     const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
     const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
 
+    // Skip processing if no hands detected
+    if (stabilized.landmarks.length === 0) {
+      setStatus('Ich höre zu…');
+      return;
+    }
+
+    // If no gesture detected, set status to indicate no recognition
+    if (!gesture) {
+      setStatus('none');
+      return;
+    }
+
     setCurrentLandmarks(stabilized.landmarks);
     setCurrentHandedness(stabilized.handedness);
 
@@ -354,7 +366,7 @@ export default function RecognitionScreen({
       setError(null);
       uncertainCountRef.current = 0;
 
-      if (smoothed > 0.1 && stableGesture !== 'unknown') {
+       if (smoothed > 0.05 && stableGesture !== 'unknown') {
         const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
 
         const now = Date.now();

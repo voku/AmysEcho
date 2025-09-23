@@ -29,7 +29,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 VIDEO_DIR = PROJECT_ROOT / "app" / "assets" / "videos"
-DATA_DIR = PROJECT_ROOT / "server" / "data"
+DATA_DIR = PROJECT_ROOT / "data"
 SAMPLES_FILE = DATA_DIR / "dgs_samples.json"
 MODEL_FILE = DATA_DIR / "dgs_model.npz"
 

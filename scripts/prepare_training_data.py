@@ -45,8 +45,30 @@ def merge_training_data(video_data: Dict[str, Any], existing_data: Dict[str, Any
 
     return {"samples": merged_samples}
 
-def validate_samples(samples: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Validate and clean samples"""
+def augment_sample(sample: Dict[str, Any], num_augmentations: int = 3) -> List[Dict[str, Any]]:
+    """Create augmented versions of a sample by adding small random noise"""
+    import numpy as np
+
+    augmented = [sample]  # Keep original
+    landmarks = np.array(sample["landmarks"])
+
+    for _ in range(num_augmentations):
+        # Add small random noise to landmarks
+        noise = np.random.normal(0, 0.01, landmarks.shape)  # Small noise
+        augmented_landmarks = landmarks + noise
+
+        # Ensure values stay in reasonable range
+        augmented_landmarks = np.clip(augmented_landmarks, -2.0, 2.0)
+
+        augmented.append({
+            "label": sample["label"],
+            "landmarks": augmented_landmarks.tolist()
+        })
+
+    return augmented
+
+def validate_samples(samples: List[Dict[str, Any]], augment: bool = True) -> List[Dict[str, Any]]:
+    """Validate and clean samples, with optional augmentation"""
     valid_samples = []
 
     for sample in samples:
@@ -65,10 +87,16 @@ def validate_samples(samples: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             # Truncate to 42 if too many
             landmarks = landmarks[:42]
 
-            valid_samples.append({
+            clean_sample = {
                 "label": label,
                 "landmarks": landmarks
-            })
+            }
+
+            valid_samples.append(clean_sample)
+
+            # Add augmented versions if requested
+            if augment:
+                valid_samples.extend(augment_sample(clean_sample))
 
     return valid_samples
 
