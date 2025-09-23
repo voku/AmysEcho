@@ -1945,7 +1945,7 @@
   }
 
   // webview/core/GestureDetector.ts
-  var GestureDetector = class {
+  var GestureDetector = class _GestureDetector {
     constructor(video2, overlay2) {
       this.gestureRecognizer = null;
       this.running = false;
@@ -1958,6 +1958,15 @@
       this.overlayRenderer = new OverlayRenderer(overlay2);
       this.healthMonitor = new HealthMonitor();
     }
+    static {
+      this.loadTasksVisionImpl = loadTasksVision;
+    }
+    /**
+     * Allows tests to override the MediaPipe loader implementation
+     */
+    static setLoadTasksVisionImplementation(loader) {
+      _GestureDetector.loadTasksVisionImpl = loader ?? loadTasksVision;
+    }
     /**
      * Set callback for gesture results
      */
@@ -1969,8 +1978,15 @@
      */
     async initialize() {
       try {
-        const components = await loadTasksVision();
-        const vision = await components.FilesetResolver.forVisionTasks(components.wasmBase);
+        const components = await _GestureDetector.loadTasksVisionImpl();
+        if (!components) {
+          throw new Error("Tasks Vision components not available");
+        }
+        const filesetResolver = components.FilesetResolver ?? window?.fileset_resolver?.FilesetResolver;
+        if (!filesetResolver || typeof filesetResolver.forVisionTasks !== "function") {
+          throw new Error("Tasks Vision FilesetResolver not available");
+        }
+        const vision = await filesetResolver.forVisionTasks(components.wasmBase);
         const baseOptions = {
           modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
           delegate: "GPU"
@@ -2574,14 +2590,16 @@
             detectedGesture = stepResult.gesture;
             currentConfidence = stepResult.confidence;
           }
-          const stepTime = performance.now() - stepStartTime;
-          this.recordStepPerformance(step.name, stepTime);
+          const stepEnd = performance.now();
+          const stepDuration = this.sanitizeDuration(stepEnd - stepStartTime);
+          this.recordStepPerformance(step.name, stepDuration);
         } catch (error) {
           console.warn(`Processing step ${step.name} failed:`, error);
           stepsExecuted.push(step.name);
         }
       }
-      const totalTime = performance.now() - startTime;
+      const endTime = performance.now();
+      const totalTime = this.sanitizeDuration(endTime - startTime);
       this.performanceOptimizer.recordProcessingTime(totalTime);
       aggregated.timestamp = aggregated.timestamp ?? context.timestamp;
       const result = {
@@ -2595,6 +2613,12 @@
       };
       this.lastProcessingResult = result;
       return result;
+    }
+    sanitizeDuration(duration) {
+      if (!Number.isFinite(duration)) {
+        return 0.01;
+      }
+      return duration <= 0 ? 0.01 : duration;
     }
     /**
      * Determine if an expensive step should be skipped
@@ -2644,7 +2668,7 @@
         gesture: this.lastProcessingResult?.gesture,
         confidence: this.lastProcessingResult?.confidence || 0,
         landmarks: context.landmarks,
-        processingTime: performance.now() - startTime,
+        processingTime: this.sanitizeDuration(performance.now() - startTime),
         stepsExecuted: [],
         skippedSteps: ["frame_skipped"]
       };
