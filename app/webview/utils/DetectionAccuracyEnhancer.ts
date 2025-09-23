@@ -42,6 +42,13 @@ export class DetectionAccuracyEnhancer {
     partial: 1,
     fallback: 0,
   };
+  private readonly defaultTremorCompensator: OptimizedTremorCompensator = {
+    smoothLandmarks: (data: number[][][]) => data,
+  } as OptimizedTremorCompensator;
+  private readonly defaultSizeNormalizer: GestureSizeNormalizer = {
+    normalizeHandSize: (data: number[][][]) => data,
+  } as GestureSizeNormalizer;
+  private readonly defaultPartialDetector = new PartialGestureDetector();
 
   /**
    * Resolve conflicts between multiple detection methods
@@ -82,17 +89,9 @@ export class DetectionAccuracyEnhancer {
       return [];
     }
 
-    const safeTremor =
-      tremorCompensator ??
-      ({
-        smoothLandmarks: (data: number[][][]) => data,
-      } as OptimizedTremorCompensator);
-    const safeNormalizer =
-      sizeNormalizer ??
-      ({
-        normalizeHandSize: (data: number[][][]) => data,
-      } as GestureSizeNormalizer);
-    const safePartialDetector = partialDetector ?? new PartialGestureDetector();
+    const safeTremor = tremorCompensator ?? this.defaultTremorCompensator;
+    const safeNormalizer = sizeNormalizer ?? this.defaultSizeNormalizer;
+    const safePartialDetector = partialDetector ?? this.defaultPartialDetector;
 
     // Apply preprocessing before validating landmark density so mocks are exercised
     const processedLandmarks = this.preprocessLandmarks(landmarks, safeTremor, safeNormalizer);
@@ -102,7 +101,7 @@ export class DetectionAccuracyEnhancer {
     }
 
     const hand = processedLandmarks[0];
-    const hasSufficientLandmarks = Array.isArray(hand) && hand.length >= 20;
+    const hasSufficientLandmarks = Array.isArray(hand) && hand.length >= 21;
     const basicGestures = hasSufficientLandmarks ? this.detectBasicGesturesEnhanced(hand) : [];
 
     // Add partial gesture analysis
@@ -510,7 +509,7 @@ export class DetectionAccuracyEnhancer {
     const alternatives = enriched.slice(1).map(entry => entry.result);
     const finalConfidence = best.boostedConfidence;
 
-    let reasoning = best.result.metadata?.conflictReason ?? 'Best ranked candidate';
+    let reasoning: string;
     if (best.boostedConfidence > best.result.confidence) {
       reasoning = 'Historical consistency bonus';
     } else if (
@@ -518,8 +517,8 @@ export class DetectionAccuracyEnhancer {
       (finalConfidence >= this.CONFIDENCE_THRESHOLD_MEDIUM && enriched.length === 1)
     ) {
       reasoning = 'Clear high-confidence result';
-    } else if (best.result.metadata?.conflictReason) {
-      reasoning = best.result.metadata.conflictReason;
+    } else {
+      reasoning = best.result.metadata?.conflictReason ?? 'Best ranked candidate';
     }
 
     this.totalFinalConfidenceSum += finalConfidence;
@@ -583,20 +582,6 @@ export class DetectionAccuracyEnhancer {
       alternatives: [],
       confidence: 0,
       reasoning: 'No detection results available'
-    };
-  }
-
-  /**
-   * Create single result conflict resolution
-   */
-  private createSingleResult(result: DetectionResult): ConflictResolutionResult {
-    return {
-      finalGesture: result.gesture,
-      finalConfidence: result.confidence,
-      methodUsed: result.method,
-      alternatives: [],
-      confidence: result.confidence,
-      reasoning: 'Single detection result'
     };
   }
 
