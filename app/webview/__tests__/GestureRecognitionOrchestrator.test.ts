@@ -7,6 +7,7 @@ import { GestureRecognitionOrchestrator } from '../core/GestureRecognitionOrches
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
 import { MemoryOptimizer } from '../utils/MemoryOptimizer';
 import { ProcessingPipeline } from '../utils/ProcessingPipeline';
+import type { MediaPipeGestureResult } from '../types/MediaPipeTypes';
 
 const mockQueueMessage = jest.fn();
 const mockForceFlush = jest.fn();
@@ -52,6 +53,22 @@ jest.mock('../core/FallbackGestureDetector');
 jest.mock('../core/EmergencyGestureSystem');
 jest.mock('../core/HandStabilityAssistant');
 jest.mock('../core/BatteryMonitor');
+jest.mock('../utils/FrameCaptureManager', () => ({
+  __esModule: true,
+  getLastCapturedFrame: jest.fn(),
+  setFrameCaptureEnabled: jest.fn(),
+}));
+
+const { getLastCapturedFrame: mockGetLastCapturedFrame, setFrameCaptureEnabled: mockSetFrameCaptureEnabled } =
+  jest.requireMock('../utils/FrameCaptureManager') as {
+    getLastCapturedFrame: jest.Mock;
+    setFrameCaptureEnabled: jest.Mock;
+  };
+
+const createMockGestureResults = (): MediaPipeGestureResult => ({
+  landmarks: [[{ x: 0.1, y: 0.1, z: 0.0 }]],
+  handednesses: [[{ categoryName: 'Left' }]],
+});
 
 describe('GestureRecognitionOrchestrator', () => {
   let orchestrator: GestureRecognitionOrchestrator;
@@ -64,6 +81,8 @@ describe('GestureRecognitionOrchestrator', () => {
     mockQueueMessage.mockImplementation(() => {});
     mockForceFlush.mockImplementation(() => {});
     mockGetQueueStatus.mockReturnValue({ pending: 0, frameCount: 0, lastSentAt: 0 });
+    mockGetLastCapturedFrame.mockReturnValue(null);
+    mockSetFrameCaptureEnabled.mockImplementation(() => {});
 
     const { messageBatcher } = jest.requireMock('../utils/MessageBatcher') as {
       messageBatcher: {
@@ -195,10 +214,7 @@ describe('GestureRecognitionOrchestrator', () => {
     });
 
     it('should process gesture results when frame should be processed', async () => {
-      const mockResults = {
-        landmarks: [[{ x: 0.1, y: 0.1, z: 0.0 }]],
-        handednesses: [[{ categoryName: 'Left' }]]
-      } as any;
+      const mockResults = createMockGestureResults();
 
       await (orchestrator as any).handleGestureResults(mockResults, Date.now());
 
@@ -220,10 +236,7 @@ describe('GestureRecognitionOrchestrator', () => {
 
     it('should skip processing when performance optimizer indicates to skip', async () => {
       mockPerformanceOptimizer.shouldProcessFrame.mockReturnValue(false);
-      const mockResults = {
-        landmarks: [[{ x: 0.1, y: 0.1, z: 0.0 }]],
-        handednesses: [[{ categoryName: 'Left' }]]
-      } as any;
+      const mockResults = createMockGestureResults();
 
       await (orchestrator as any).handleGestureResults(mockResults, Date.now());
 
@@ -233,14 +246,56 @@ describe('GestureRecognitionOrchestrator', () => {
 
     it('should handle processing pipeline errors', async () => {
       mockProcessingPipeline.executePipeline.mockRejectedValue(new Error('Processing failed'));
-      const mockResults = {
-        landmarks: [[{ x: 0.1, y: 0.1, z: 0.0 }]],
-        handednesses: [[{ categoryName: 'Left' }]]
-      } as any;
+      const mockResults = createMockGestureResults();
 
       await expect(
         (orchestrator as any).handleGestureResults(mockResults, Date.now())
       ).resolves.toBeUndefined();
+    });
+
+    it('should flush messages immediately for emergency detections', async () => {
+      const mockResults = createMockGestureResults();
+      mockProcessingPipeline.executePipeline.mockResolvedValueOnce({
+        gesture: 'help_me',
+        confidence: 0.9,
+        landmarks: [[[0.1, 0.1, 0]]],
+        processingTime: 18,
+        stepsExecuted: ['gesture_detection'],
+        skippedSteps: [],
+        metadata: { handednesses: ['Left'] },
+        emergency: { detected: true },
+      } as any);
+
+      await (orchestrator as any).handleGestureResults(mockResults, Date.now());
+
+      const [, options] = mockQueueMessage.mock.calls[0];
+      expect(options).toEqual({ flushImmediately: true });
+    });
+
+    it('should include frame capture for low confidence fallback results', async () => {
+      const mockResults = createMockGestureResults();
+      mockGetLastCapturedFrame.mockReturnValue('frame-data');
+      mockProcessingPipeline.executePipeline.mockResolvedValueOnce({
+        gesture: 'fallback_signal',
+        confidence: 0.2,
+        landmarks: [[[0.1, 0.1, 0]]],
+        processingTime: 22,
+        stepsExecuted: ['fallback_processing'],
+        skippedSteps: [],
+        metadata: { handednesses: ['Left'] },
+        isFallback: true,
+      } as any);
+
+      await (orchestrator as any).handleGestureResults(mockResults, Date.now());
+
+      const [payload, options] = mockQueueMessage.mock.calls[0];
+      expect(options).toEqual({ flushImmediately: true });
+      expect(payload).toEqual(
+        expect.objectContaining({
+          frameCapture: 'frame-data',
+          thresholds: expect.objectContaining({ fallback: expect.any(Number), mlp: expect.any(Number) }),
+        })
+      );
     });
   });
 
@@ -290,10 +345,7 @@ describe('GestureRecognitionOrchestrator', () => {
   describe('performance optimization integration', () => {
     it('should use performance optimizer for frame processing decisions', async () => {
       await orchestrator.initialize();
-      const mockResults = {
-        landmarks: [[{ x: 0.1, y: 0.1, z: 0.0 }]],
-        handednesses: [[{ categoryName: 'Left' }]]
-      } as any;
+      const mockResults = createMockGestureResults();
 
       await (orchestrator as any).handleGestureResults(mockResults, Date.now());
 
