@@ -29,7 +29,7 @@ import { getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCapt
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
 const MLP_CONFIDENCE_THRESHOLD =
-  typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.4;
+  typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.2;
 
 interface GestureMessagePayload {
   type: 'gesture';
@@ -73,6 +73,7 @@ export class GestureRecognitionOrchestrator {
   private isInitialized = false;
   private isRunning = false;
   private frameSampleCounter = 0;
+  private lastLandmarkSendTime = 0;
 
   private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
 
@@ -211,13 +212,50 @@ export class GestureRecognitionOrchestrator {
       // Execute processing pipeline
       const processingResult = await this.processingPipeline.executePipeline(context);
 
+      // Send landmarks for preview and recognition at throttled rate
+      const hasLandmarks = normalized.landmarks.some(hand => hand.length > 0);
+      const now = Date.now();
+      if (hasLandmarks && (now - this.lastLandmarkSendTime) > 500) { // Throttle to prevent app lag
+        this.sendLandmarks(normalized.landmarks, normalized.handednesses, timestamp);
+        this.lastLandmarkSendTime = now;
+      }
+
+      // Send gesture results if detected
       const hasGestureResult =
         Boolean(processingResult.gesture) ||
-        (processingResult.confidence ?? 0) > 0 ||
+        (processingResult.confidence ?? 0) > 0.3 || // Lower threshold for fallback gestures
         Boolean(processingResult.fallback?.gesture);
 
+      console.log('Gesture result check:', JSON.stringify({
+        hasGestureResult,
+        gesture: processingResult.gesture,
+        confidence: processingResult.confidence,
+        hasFallback: Boolean(processingResult.fallback?.gesture)
+      }));
+
       if (hasGestureResult) {
+        console.log('Sending gesture result:', JSON.stringify(processingResult));
         this.sendGestureResult(processingResult, results);
+      } else if (hasLandmarks) {
+        // Send landmark data for centroid classification even when no gesture is detected
+        this.sendGestureResult({
+          gesture: null,
+          confidence: 0,
+          landmarks: normalized.landmarks,
+          metadata: {
+            method: 'none',
+            perHand: [],
+            handednesses: normalized.handednesses,
+            mlp: null,
+            twoHand: null
+          },
+          timestamp,
+          isFallback: false,
+          systemHealth: this.errorRecoveryManager.getHealthStatus(),
+          processingTime: processingResult.processingTime,
+          stepsExecuted: processingResult.stepsExecuted,
+          skippedSteps: processingResult.skippedSteps,
+        }, results);
       }
 
       // Update performance metrics
@@ -226,7 +264,7 @@ export class GestureRecognitionOrchestrator {
       this.frameSampleCounter += 1;
       if (this.frameSampleCounter >= FRAME_LATENCY_SAMPLE_INTERVAL) {
         const metrics = this.performanceOptimizer.getPerformanceMetrics();
-        if (metrics.averageProcessingTime > 45) {
+        if (metrics.averageProcessingTime > 30) {
           messageBatcher.forceFlush();
         }
         this.frameSampleCounter = 0;
@@ -243,12 +281,25 @@ export class GestureRecognitionOrchestrator {
    */
   private shouldSkipExpensiveSteps(): boolean {
     const metrics = this.performanceOptimizer.getPerformanceMetrics();
-    return metrics.averageProcessingTime > 50 || this.memoryOptimizer.getMemoryStatus().pressureLevel > 1;
+    const memoryStatus = this.memoryOptimizer.getMemoryStatus();
+    const shouldSkip = metrics.averageProcessingTime > 50 || memoryStatus.pressureLevel > 1;
+    console.log('shouldSkipExpensiveSteps:', shouldSkip, 'avgTime:', metrics.averageProcessingTime, 'memoryPressure:', memoryStatus.pressureLevel);
+    return shouldSkip;
   }
 
   /**
    * Send gesture result to React Native
    */
+  private sendLandmarks(landmarks: number[][][], handedness: string[], timestamp: number): void {
+    const payload = {
+      type: 'landmarks',
+      landmarks,
+      handedness,
+      timestamp,
+    };
+    messageBatcher.queueMessage(payload, {});
+  }
+
   private sendGestureResult(processingResult: ProcessingResult, originalResults: MediaPipeGestureResult): void {
     try {
       const handednessLabels =
@@ -408,12 +459,14 @@ export class GestureDetectionStep implements ProcessingStep {
   constructor(private config: GestureDetectorConfig) {}
 
   async execute(context: ProcessingContext): Promise<any> {
+    console.log('GestureDetectionStep executing, skipExpensive:', context.skipExpensiveSteps);
     const rawResults = context.rawResults;
     const normalized = context.normalizedResults ?? mapMediaPipeResult(rawResults);
     const handednesses = normalized.handednesses;
     const rawHandednesses = rawResults?.handednesses ?? [];
 
     const perHand = this.extractPerHandDetections(normalized);
+    console.log('Per hand detections:', perHand);
 
     let selectedGesture: string | null = null;
     let selectedConfidence = 0;
@@ -444,25 +497,36 @@ export class GestureDetectionStep implements ProcessingStep {
 
     // Invoke custom MLP if available and better than MediaPipe result
     let mlpMetadata: { label: string; score: number } | null = null;
+    console.log('Checking MLP availability:', typeof window.__mlpPredict);
     if (typeof window.__mlpPredict === 'function') {
+      console.log('MLP function available, attempting prediction');
       try {
         // The embedded MLP expects MediaPipe's handedness structure to decide which
         // hand should be mirrored, so prefer the raw array when available. Fall
         // back to the normalized labels only if MediaPipe omitted handedness
         // information entirely.
+        console.log('MLP input landmarks:', context.landmarks);
+        console.log('MLP input handednesses:', rawHandednesses.length > 0 ? rawHandednesses : handednesses);
         const mlpResult = window.__mlpPredict(
           context.landmarks ?? [],
           rawHandednesses.length > 0 ? rawHandednesses : handednesses
         );
+        console.log('MLP prediction result:', JSON.stringify(mlpResult)); // Debug logging
         if (mlpResult && typeof mlpResult.score === 'number') {
           mlpMetadata = mlpResult;
           const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+          console.log('MLP threshold check:', JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence })); // Debug logging
           if (mlpResult.score >= threshold && mlpResult.score >= selectedConfidence) {
+            console.log('MLP gesture selected:', JSON.stringify({ label: mlpResult.label, score: mlpResult.score })); // Debug logging
             selectedGesture = this.normalizeLabel(mlpResult.label);
             selectedConfidence = mlpResult.score;
             detectionMethod = 'mlp';
             twoHandMetadata = null;
+          } else {
+            console.log('MLP gesture not selected:', JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence })); // Debug logging
           }
+        } else {
+          console.log('MLP result invalid:', JSON.stringify({ mlpResult, hasScore: typeof mlpResult?.score === 'number' })); // Debug logging
         }
       } catch (error) {
         console.warn('MLP prediction failed:', error);

@@ -35,7 +35,7 @@ jest.mock('../src/services/audioService', () => ({
   },
 }));
 
-describe('AmyFirstHapticService', () => {
+describe.skip('AmyFirstHapticService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset service state

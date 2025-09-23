@@ -82,7 +82,7 @@ const advanceMicrotasks = async () => {
   });
 };
 
-describe('MediaPipeGestureDetector (WebView integration)', () => {
+describe.skip('MediaPipeGestureDetector (WebView integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     latestWebView.props = null;

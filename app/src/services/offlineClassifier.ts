@@ -37,7 +37,7 @@ export function classifyWithCentroids(
       const dz = q[i][2] - c[i][2];
       d += dx * dx + dy * dy + dz * dz;
     }
-    const score = 1.0 / (1e-6 + Math.sqrt(d));
+    const score = Math.exp(-Math.sqrt(d) / 10);
     sumScores += score;
     if (score > bestScore) {
       bestScore = score;

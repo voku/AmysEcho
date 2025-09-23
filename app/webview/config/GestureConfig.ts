@@ -94,13 +94,13 @@ export const defaultConfig: GestureDetectorConfig = {
     },
     afternoonMode: {
       // Learning-focused settings
-      thresholds: { mlpConfidence: 0.45, fallbackConfidence: 0.35 },
+      thresholds: { mlpConfidence: 0.25, fallbackConfidence: 0.35 },
       gestures: { sizeTolerance: 0.25 }, // Stricter for learning
       performance: { messageThrottleMs: 80 }, // Faster feedback
     },
     eveningMode: {
       // Relaxation-focused settings
-      thresholds: { mlpConfidence: 0.4, fallbackConfidence: 0.3 },
+      thresholds: { mlpConfidence: 0.2, fallbackConfidence: 0.3 },
       gestures: { sizeTolerance: 0.35 },
       timing: { emergencyCooldownMs: 1200 },
     },

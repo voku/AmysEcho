@@ -22,6 +22,10 @@ interface Props {
     landmarks: number[][][],
     handedness: string[],
   ) => void;
+  onLandmarks?: (
+    landmarks: number[][][],
+    handedness: string[],
+  ) => void;
   onError: (error: string) => void;
   onWebViewEvent?: (telemetry: any) => void;
   onModelUpdateStatus?: (status: 'idle' | 'updating' | 'complete' | 'error') => void;
@@ -44,6 +48,7 @@ const escapeJs = (value: string) =>
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({
   onGestureDetected,
+  onLandmarks,
   onError,
   onWebViewEvent,
   onModelUpdateStatus,
@@ -243,6 +248,8 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           if (deliverGestureMessage(data)) {
             setWebviewError(null);
           }
+        } else if (data.type === 'landmarks') {
+          onLandmarks?.(data.landmarks || [], data.handedness || []);
         } else if (data.type === 'gesture_batch') {
           const messages = Array.isArray(data.messages) ? data.messages : [];
           let processedCount = 0;

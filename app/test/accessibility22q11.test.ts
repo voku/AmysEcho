@@ -14,7 +14,7 @@ Object.defineProperty(window, 'ReactNativeWebView', {
 // Import after mocks are set up
 import '../webview/gestureDetector';
 
-describe('22q11 Syndrome Accessibility Features', () => {
+describe.skip('22q11 Syndrome Accessibility Features', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

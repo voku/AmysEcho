@@ -27,6 +27,24 @@ const onError = (e: ErrorEvent) => {
 };
 window.addEventListener('error', onError);
 
+// Forward console.log to React Native for debugging
+const originalConsoleLog = console.log;
+console.log = (...args: any[]) => {
+  try {
+    window.ReactNativeWebView?.postMessage?.(
+      JSON.stringify({
+        type: 'telemetry',
+        event: 'console_log',
+        message: args.join(' '),
+        timestamp: Date.now(),
+      }),
+    );
+  } catch (err) {
+    // Fallback to original if forwarding fails
+  }
+  originalConsoleLog(...args);
+};
+
 const onUnhandledRejection = (e: PromiseRejectionEvent) => {
   try {
     // Send a generic child-friendly error message instead of technical details

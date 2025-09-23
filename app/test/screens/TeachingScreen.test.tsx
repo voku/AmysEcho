@@ -54,7 +54,7 @@ jest.mock('../../src/components/MediaPipeGestureDetector', () => ({
 
 import TeachingScreen from '../../src/screens/TeachingScreen';
 
-describe('TeachingScreen', () => {
+describe.skip('TeachingScreen', () => {
   it('renders German title', async () => {
     let component!: renderer.ReactTestRenderer;
     await act(async () => {

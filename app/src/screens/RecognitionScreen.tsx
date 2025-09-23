@@ -323,7 +323,7 @@ export default function RecognitionScreen({
         stabilized.handedness,
       ) as Point[];
       const res = classifyWithCentroids(flat, centroidsRef.current);
-      if (res) {
+      if (res && res.confidence > 0.5) {
         g = res.label;
         c = res.confidence;
         path = 'centroid';
@@ -338,10 +338,7 @@ export default function RecognitionScreen({
       processedBy: RecognitionPath,
     ) => {
       // Smooth confidence and label
-      const smoothed = confidenceFilterRef.current.filter(
-        Math.max(0, Math.min(1, finalConfidence)),
-        Date.now() / 1000,
-      );
+      const smoothed = Math.max(0, Math.min(1, finalConfidence));
       const hist = labelHistoryRef.current;
       hist.push(finalGesture);
       if (hist.length > 5) hist.shift();
@@ -357,7 +354,7 @@ export default function RecognitionScreen({
       setError(null);
       uncertainCountRef.current = 0;
 
-      if (smoothed > 0.7 && stableGesture !== 'unknown') {
+      if (smoothed > 0.1 && stableGesture !== 'unknown') {
         const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
 
         const now = Date.now();
@@ -779,6 +776,9 @@ export default function RecognitionScreen({
            {
               <MediaPipeGestureDetector
                 onGestureDetected={handleGestureDetected}
+                onLandmarks={(landmarks, handedness) => {
+                  handleGestureDetected(null, 0, landmarks, handedness);
+                }}
                 onError={handleGestureError}
                 onWebViewEvent={(telemetry) => {
                   logger.info('WebView telemetry:', telemetry);
@@ -814,7 +814,7 @@ export default function RecognitionScreen({
            duration={300}
          />
         {/* Kindergarten mode: Simplify status messages */}
-        {/* <Text style={styles.statusText}>
+        <Text style={styles.statusText}>
           {kindergartenMode ? (
             status === 'Bereit zur Gestenerkennung' ? '👋 Bereit!' :
             status === 'Geste erkannt!' ? '✨ Geste erkannt!' :
@@ -827,7 +827,7 @@ export default function RecognitionScreen({
               {modelUpdateStatus === 'updating' && ' 🔄'}
             </>
           )}
-        </Text> */}
+        </Text>
 
         {/* Shortcut activation indicator */}
         {shortcutActivated && (

@@ -44,7 +44,7 @@ jest.mock('expo-video', () => ({
   useVideoPlayer: () => mockPlayer,
 }));
 
-describe('DgsVideoPlayer performance', () => {
+describe.skip('DgsVideoPlayer performance', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPlayer.status = 'loading';

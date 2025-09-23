@@ -13,7 +13,7 @@ DATASET_PATH = os.environ.get(
 )
 MODEL_PATH = os.environ.get(
     "MLP_MODEL_PATH",
-    os.path.join(os.path.dirname(__file__), "../../data/dgs_model.npz"),
+    os.path.join(os.path.dirname(__file__), "../../../data/dgs_model.npz"),
 )
 HIDDEN_SIZE = int(os.environ.get("MLP_HIDDEN_SIZE", "128"))
 LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))
@@ -83,9 +83,9 @@ def train_mlp(X, y, output_size):
 
     # Initialize weights
     w1 = np.random.randn(input_size, HIDDEN_SIZE) * 0.01
-    b1 = np.zeros((1, HIDDEN_SIZE))
+    b1 = np.zeros(HIDDEN_SIZE)
     w2 = np.random.randn(HIDDEN_SIZE, output_size) * 0.01
-    b2 = np.zeros((1, output_size))
+    b2 = np.zeros(output_size)
 
     num_samples = X.shape[0]
 
@@ -106,13 +106,13 @@ def train_mlp(X, y, output_size):
         dz2 /= num_samples
 
         dw2 = np.dot(a1.T, dz2)
-        db2 = np.sum(dz2, axis=0, keepdims=True)
+        db2 = np.sum(dz2, axis=0)
 
         da1 = np.dot(dz2, w2.T)
         dz1 = da1 * relu_derivative(z1)
 
         dw1 = np.dot(X.T, dz1)
-        db1 = np.sum(dz1, axis=0, keepdims=True)
+        db1 = np.sum(dz1, axis=0)
 
         # --- Update Weights ---
         w1 -= LEARNING_RATE * dw1
@@ -227,7 +227,7 @@ def main():
     tmp_path = MODEL_PATH + ".tmp"
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     with open(tmp_path, "wb") as f:
-        np.savez(f, w1=w1, b1=b1, w2=w2, b2=b2, labels=np.array(labels))
+        np.savez(f, w1=np.array(w1.T, order='C'), b1=b1, w2=np.array(w2.T, order='C'), b2=b2, labels=np.array(labels))
     # Replace atomically and set restrictive permissions
     os.replace(tmp_path, MODEL_PATH)
     try:

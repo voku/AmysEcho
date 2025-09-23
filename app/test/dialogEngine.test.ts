@@ -1,3 +1,4 @@
+import 'openai/shims/node';
 import { getLLMSuggestions } from '../../server/src/services/dialogEngine';
 
 describe('Dialog Engine', () => {

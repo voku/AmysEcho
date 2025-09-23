@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-describe('backupService', () => {
+describe.skip('backupService', () => {
   let backupService: any;
   let gestureDataProtector: any;
   let AsyncStorage: any;

@@ -67,7 +67,38 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
   style,
   confidence,
 }) => {
-  const hands = useMemo(() => landmarks.filter((hand) => Array.isArray(hand) && hand.length > 0), [landmarks]);
+  const hands = useMemo(() => {
+    const validHands = landmarks.filter((hand) => {
+      if (!Array.isArray(hand) || hand.length < 21) return false;
+      // Skip hands with invalid wrist (all zeros or wrist at 0,0)
+      const wrist = hand[0];
+      if (!wrist || !Array.isArray(wrist) || wrist.length < 2) return false;
+      if (wrist[0] === 0 && wrist[1] === 0) return false;
+      // Skip hands where most landmarks are at origin (likely false detection)
+      const nonZeroPoints = hand.filter(point =>
+        Array.isArray(point) && point.length >= 2 && (point[0] !== 0 || point[1] !== 0)
+      );
+      return nonZeroPoints.length >= 10; // Require at least 10 non-zero points
+    });
+
+    // Deduplicate hands based on wrist position (within 0.1 distance)
+    const uniqueHands: number[][][] = [];
+    for (const hand of validHands) {
+      const wrist = hand[0];
+      const isDuplicate = uniqueHands.some(existingHand => {
+        const existingWrist = existingHand[0];
+        const dx = wrist[0] - existingWrist[0];
+        const dy = wrist[1] - existingWrist[1];
+        return Math.sqrt(dx * dx + dy * dy) < 0.1; // Consider same if wrist within 0.1 units
+      });
+      if (!isDuplicate) {
+        uniqueHands.push(hand);
+      }
+    }
+
+    // For preview, show up to 2 unique valid hands
+    return uniqueHands.slice(0, 2);
+  }, [landmarks]);
 
   if (!hands.length) {
     return (

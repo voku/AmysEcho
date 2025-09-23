@@ -172,8 +172,8 @@ export class PersonalizedThresholdManager {
   private calculatePersonalizedThreshold(performance: GesturePerformance): number {
     const { successRate, averageConfidence, totalAttempts } = performance;
 
-    // Base threshold starts at 0.4 (default MLP threshold)
-    let threshold = 0.4;
+    // Base threshold starts at 0.2 (default MLP threshold)
+    let threshold = 0.2;
 
     // Adjust based on success rate
     if (successRate > 0.8) {

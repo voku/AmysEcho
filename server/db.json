@@ -20,20 +20,7 @@
     }
   ],
   "gestureDefinitions": [],
-  "gestureTrainingData": [
-    {
-      "id": "mfd1bl04z2cbhni9o9i",
-      "gestureDefinitionId": "hello",
-      "landmarkData": [
-        1,
-        2,
-        3
-      ],
-      "source": "HIP_2",
-      "syncStatus": "pending",
-      "approved": true
-    }
-  ],
+  "gestureTrainingData": [],
   "interactionLogs": [],
   "profiles": [
     {
@@ -56,25 +43,25 @@
   ],
   "vocabularySetSymbols": [
     {
-      "id": "mfd1bkm1auqny9c3e7n",
+      "id": "mfwu2kn1t8207gcvbgk",
       "vocabularySetId": "basic",
       "symbolId": "hello"
     },
     {
-      "id": "mfd1bkm1mj6epw0pns",
+      "id": "mfwu2kn1su2jazhpnod",
       "vocabularySetId": "basic",
       "symbolId": "drink"
     }
   ],
   "usageStats": [
     {
-      "id": "mfd1bkm1gwphhcxii1l",
+      "id": "mfwu2kn1gma10fpb09f",
       "symbolId": "hello",
       "profileId": "default",
       "count": 0
     },
     {
-      "id": "mfd1bkm1xum5ilckx2",
+      "id": "mfwu2kn1w0k5ecds3p",
       "symbolId": "drink",
       "profileId": "default",
       "count": 0

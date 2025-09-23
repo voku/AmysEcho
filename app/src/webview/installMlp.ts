@@ -33,7 +33,7 @@ export function installMlp() {
     }
     const fortran = fortranMatch[1] === 'True';
     const shapeStr = shapeMatch[1].trim();
-    const shape = shapeStr.length
+    let shape = shapeStr.length
       ? shapeStr
           .split(',')
           .map((s) => parseInt(s.trim(), 10))
@@ -41,30 +41,29 @@ export function installMlp() {
       : [1];
     const offset = headerStart + headerLen;
     const type = descr.slice(1);
-    if (fortran) throw new Error('fortran not supported');
     const size = shape.reduce((a, b) => a * b, 1);
+    let data: Float32Array | string[];
     if (type === 'f8') {
-      return { data: new Float64Array(buf.buffer, buf.byteOffset + offset, size), shape };
-    }
-    if (type === 'f4') {
-      return { data: new Float32Array(buf.buffer, buf.byteOffset + offset, size), shape };
-    }
-    if (type === 'f2') {
+      data = new Float32Array(new Float64Array(buf.buffer, buf.byteOffset + offset, size));
+    } else if (type === 'f4') {
+      data = new Float32Array(buf.buffer, buf.byteOffset + offset, size);
+    } else if (type === 'f2') {
       const src = new Uint16Array(buf.buffer, buf.byteOffset + offset, size);
-      const out = new Float32Array(size);
-      for (let i = 0; i < size; i++) out[i] = f16ToF32(src[i]);
-      return { data: out, shape };
-    }
-    if (type === 'i4') {
-      return { data: new Int32Array(buf.buffer, buf.byteOffset + offset, size), shape };
-    }
-    if (type === 'i2') {
-      return { data: new Int16Array(buf.buffer, buf.byteOffset + offset, size), shape };
-    }
-    if (type === 'u1') {
-      return { data: new Uint8Array(buf.buffer, buf.byteOffset + offset, size), shape };
-    }
-    if (type.startsWith('U')) {
+      data = new Float32Array(size);
+      for (let i = 0; i < size; i++) data[i] = f16ToF32(src[i]);
+    } else if (type === 'i4') {
+      const src = new Int32Array(buf.buffer, buf.byteOffset + offset, size);
+      data = new Float32Array(size);
+      for (let i = 0; i < size; i++) data[i] = src[i];
+    } else if (type === 'i2') {
+      const src = new Int16Array(buf.buffer, buf.byteOffset + offset, size);
+      data = new Float32Array(size);
+      for (let i = 0; i < size; i++) data[i] = src[i];
+    } else if (type === 'u1') {
+      const src = new Uint8Array(buf.buffer, buf.byteOffset + offset, size);
+      data = new Float32Array(size);
+      for (let i = 0; i < size; i++) data[i] = src[i];
+    } else if (type.startsWith('U')) {
       const itemSize = parseInt(type.slice(1), 10);
       const raw = new Uint32Array(buf.buffer, buf.byteOffset + offset, size * itemSize);
       const out: string[] = [];
@@ -79,8 +78,21 @@ export function installMlp() {
         out.push(s);
       }
       return { data: out, shape };
+    } else {
+      throw new Error('dtype ' + type);
     }
-    throw new Error('dtype ' + type);
+    if (fortran && shape.length === 2) {
+      const [rows, cols] = shape;
+      const newData = new Float32Array(size);
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+          newData[j * rows + i] = data[i * cols + j];
+        }
+      }
+      data = newData;
+      shape = [cols, rows];
+    }
+    return { data, shape };
   }
 
   // IEEE-754 half -> float conversion
@@ -162,14 +174,14 @@ export function installMlp() {
       // Parse and validate model weights
       let w1, b1, w2, b2, labels: string[] = [];
 
-      try {
-        w1 = parseNPY(w1b);
-        if (!w1.data || w1.shape.length !== 2) {
-          throw new Error('Invalid w1 tensor: expected 2D array');
-        }
-      } catch (e) {
-        throw new Error('Failed to parse w1 weights: ' + (e instanceof Error ? e.message : String(e)));
-      }
+       try {
+         w1 = parseNPY(w1b);
+         if (!w1.data || w1.shape.length !== 2) {
+           throw new Error('Invalid w1 tensor: expected 2D array');
+         }
+       } catch (e) {
+         throw new Error('Failed to parse w1 weights: ' + (e instanceof Error ? e.message : String(e)));
+       }
 
       try {
         b1 = parseNPY(b1b);
@@ -180,14 +192,14 @@ export function installMlp() {
         throw new Error('Failed to parse b1 biases: ' + (e instanceof Error ? e.message : String(e)));
       }
 
-      try {
-        w2 = parseNPY(w2b);
-        if (!w2.data || w2.shape.length !== 2) {
-          throw new Error('Invalid w2 tensor: expected 2D array');
-        }
-      } catch (e) {
-        throw new Error('Failed to parse w2 weights: ' + (e instanceof Error ? e.message : String(e)));
-      }
+       try {
+         w2 = parseNPY(w2b);
+         if (!w2.data || w2.shape.length !== 2) {
+           throw new Error('Invalid w2 tensor: expected 2D array');
+         }
+       } catch (e) {
+         throw new Error('Failed to parse w2 weights: ' + (e instanceof Error ? e.message : String(e)));
+       }
 
       try {
         b2 = parseNPY(b2b);

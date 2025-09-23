@@ -110,19 +110,19 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
   const candidates = [];
   if (pinned) {
     candidates.push({
-      umd: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/vision_bundle.js',
+      umd: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/vision_bundle.cjs',
       esm: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/vision_bundle.mjs',
       wasm: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/wasm',
     });
   }
   // Generic latest as fallback
   candidates.push({
-    umd: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js',
+    umd: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.cjs',
     esm: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs',
     wasm: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm',
   });
   candidates.push({
-    umd: 'https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.js',
+    umd: 'https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.cjs',
     esm: 'https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.mjs',
     wasm: 'https://unpkg.com/@mediapipe/tasks-vision/wasm',
   });
@@ -133,13 +133,29 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
   for (const c of candidates) {
     attemptCount++;
     try {
-      console.log(`Attempting to load MediaPipe from ${c.umd} (attempt ${attemptCount}/${candidates.length})`);
+      console.log(`Attempting to load MediaPipe from ${c.esm} (attempt ${attemptCount}/${candidates.length})`);
 
-      // Try UMD first
+      // Try ESM first
+      try {
+        const mod = await import(/* @vite-ignore */ c.esm);
+        if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+          console.log('Successfully loaded MediaPipe via ESM');
+          return {
+            FilesetResolver: mod.FilesetResolver,
+            GestureRecognizer: mod.GestureRecognizer,
+            wasmBase: c.wasm,
+          };
+        }
+      } catch (e) {
+        console.warn(`ESM import failed for ${c.esm}:`, e);
+        lastError = e;
+      }
+
+      // Try UMD as fallback
+      console.log(`Attempting to load MediaPipe from ${c.umd} (attempt ${attemptCount}/${candidates.length})`);
       if (!haveUMD()) {
         const sri =
           pinned && c.umd.includes(`@${pinned.version}/`) ? (window as any).__visionBundleSri : undefined;
-        console.log(`Loading script from ${c.umd} with SRI: ${sri ? 'enabled' : 'disabled'}`);
         await tryLoadScript(c.umd, sri);
       }
       if (haveUMD()) {
@@ -149,25 +165,6 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
           GestureRecognizer: window.vision!.GestureRecognizer,
           wasmBase: c.wasm,
         };
-      }
-
-      // If UMD failed, try ESM as fallback
-      if ((window as any).__allowCdnEsm === true) {
-        try {
-          console.log(`Attempting ESM import from ${c.esm}`);
-          const mod = await import(/* @vite-ignore */ c.esm);
-          if (mod?.FilesetResolver && mod?.GestureRecognizer) {
-            console.log('Successfully loaded MediaPipe via ESM');
-            return {
-              FilesetResolver: mod.FilesetResolver,
-              GestureRecognizer: mod.GestureRecognizer,
-              wasmBase: c.wasm,
-            };
-          }
-        } catch (e) {
-          console.warn(`ESM import failed for ${c.esm}:`, e);
-          lastError = e;
-        }
       }
     } catch (e) {
       console.warn(`MediaPipe load attempt ${attemptCount} failed:`, e);

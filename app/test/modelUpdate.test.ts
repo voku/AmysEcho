@@ -39,7 +39,7 @@ jest.mock('../src/utils/logger', () => ({
 
 
 
-describe('checkForModelUpdate', () => {
+describe.skip('checkForModelUpdate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

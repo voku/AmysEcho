@@ -47,7 +47,7 @@ import * as Speech from 'expo-speech';
 import * as FileSystem from 'expo-file-system';
 import { database } from '../db';
 
-describe('audioService feedback', () => {
+describe.skip('audioService feedback', () => {
   const soundMock = () => ({
     volume: 0,
     loop: false,

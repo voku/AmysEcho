@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 // Resolve paths based on working directory. Integration and runtime start from server/.
 export const SERVER_DIR = path.resolve(process.cwd());
-export const DATA_DIR = path.join(SERVER_DIR, 'data');
+export const DATA_DIR = path.join(SERVER_DIR, '..', 'data');
 
 // Centroid-based model path (JSON)
 export const TRAINED_MODEL_PATH = path.join(DATA_DIR, 'trained_model.json');

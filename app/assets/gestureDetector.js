@@ -1,3 +1,7 @@
+/**
+ * Generated from app/webview/gestureDetector.ts
+ * Run scripts/update-webview-base64.js after modifying gestureDetector.ts.
+ */
 (() => {
   // node_modules/fflate/esm/browser.js
   var ch2 = {};
@@ -673,33 +677,32 @@
       }
       const fortran = fortranMatch[1] === "True";
       const shapeStr = shapeMatch[1].trim();
-      const shape = shapeStr.length ? shapeStr.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n)) : [1];
+      let shape = shapeStr.length ? shapeStr.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n)) : [1];
       const offset = headerStart + headerLen;
       const type = descr.slice(1);
-      if (fortran) throw new Error("fortran not supported");
       const size = shape.reduce((a, b) => a * b, 1);
+      let data;
       if (type === "f8") {
-        return { data: new Float64Array(buf.buffer, buf.byteOffset + offset, size), shape };
-      }
-      if (type === "f4") {
-        return { data: new Float32Array(buf.buffer, buf.byteOffset + offset, size), shape };
-      }
-      if (type === "f2") {
+        data = new Float32Array(new Float64Array(buf.buffer, buf.byteOffset + offset, size));
+      } else if (type === "f4") {
+        data = new Float32Array(buf.buffer, buf.byteOffset + offset, size);
+      } else if (type === "f2") {
         const src = new Uint16Array(buf.buffer, buf.byteOffset + offset, size);
-        const out = new Float32Array(size);
-        for (let i = 0; i < size; i++) out[i] = f16ToF32(src[i]);
-        return { data: out, shape };
-      }
-      if (type === "i4") {
-        return { data: new Int32Array(buf.buffer, buf.byteOffset + offset, size), shape };
-      }
-      if (type === "i2") {
-        return { data: new Int16Array(buf.buffer, buf.byteOffset + offset, size), shape };
-      }
-      if (type === "u1") {
-        return { data: new Uint8Array(buf.buffer, buf.byteOffset + offset, size), shape };
-      }
-      if (type.startsWith("U")) {
+        data = new Float32Array(size);
+        for (let i = 0; i < size; i++) data[i] = f16ToF32(src[i]);
+      } else if (type === "i4") {
+        const src = new Int32Array(buf.buffer, buf.byteOffset + offset, size);
+        data = new Float32Array(size);
+        for (let i = 0; i < size; i++) data[i] = src[i];
+      } else if (type === "i2") {
+        const src = new Int16Array(buf.buffer, buf.byteOffset + offset, size);
+        data = new Float32Array(size);
+        for (let i = 0; i < size; i++) data[i] = src[i];
+      } else if (type === "u1") {
+        const src = new Uint8Array(buf.buffer, buf.byteOffset + offset, size);
+        data = new Float32Array(size);
+        for (let i = 0; i < size; i++) data[i] = src[i];
+      } else if (type.startsWith("U")) {
         const itemSize = parseInt(type.slice(1), 10);
         const raw = new Uint32Array(buf.buffer, buf.byteOffset + offset, size * itemSize);
         const out = [];
@@ -714,8 +717,21 @@
           out.push(s);
         }
         return { data: out, shape };
+      } else {
+        throw new Error("dtype " + type);
       }
-      throw new Error("dtype " + type);
+      if (fortran && shape.length === 2) {
+        const [rows, cols] = shape;
+        const newData = new Float32Array(size);
+        for (let i = 0; i < rows; i++) {
+          for (let j = 0; j < cols; j++) {
+            newData[j * rows + i] = data[i * cols + j];
+          }
+        }
+        data = newData;
+        shape = [cols, rows];
+      }
+      return { data, shape };
     }
     function f16ToF32(h) {
       const s = (h & 32768) << 16;
@@ -1154,18 +1170,18 @@
     const candidates = [];
     if (pinned) {
       candidates.push({
-        umd: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.js",
+        umd: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.cjs",
         esm: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.mjs",
         wasm: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/wasm"
       });
     }
     candidates.push({
-      umd: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js",
+      umd: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.cjs",
       esm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs",
       wasm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
     });
     candidates.push({
-      umd: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.js",
+      umd: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.cjs",
       esm: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.mjs",
       wasm: "https://unpkg.com/@mediapipe/tasks-vision/wasm"
     });
@@ -1174,10 +1190,27 @@
     for (const c of candidates) {
       attemptCount++;
       try {
+        console.log(`Attempting to load MediaPipe from ${c.esm} (attempt ${attemptCount}/${candidates.length})`);
+        try {
+          const mod = await import(
+            /* @vite-ignore */
+            c.esm
+          );
+          if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+            console.log("Successfully loaded MediaPipe via ESM");
+            return {
+              FilesetResolver: mod.FilesetResolver,
+              GestureRecognizer: mod.GestureRecognizer,
+              wasmBase: c.wasm
+            };
+          }
+        } catch (e) {
+          console.warn(`ESM import failed for ${c.esm}:`, e);
+          lastError = e;
+        }
         console.log(`Attempting to load MediaPipe from ${c.umd} (attempt ${attemptCount}/${candidates.length})`);
         if (!haveUMD()) {
           const sri = pinned && c.umd.includes(`@${pinned.version}/`) ? window.__visionBundleSri : void 0;
-          console.log(`Loading script from ${c.umd} with SRI: ${sri ? "enabled" : "disabled"}`);
           await tryLoadScript(c.umd, sri);
         }
         if (haveUMD()) {
@@ -1187,26 +1220,6 @@
             GestureRecognizer: window.vision.GestureRecognizer,
             wasmBase: c.wasm
           };
-        }
-        if (window.__allowCdnEsm === true) {
-          try {
-            console.log(`Attempting ESM import from ${c.esm}`);
-            const mod = await import(
-              /* @vite-ignore */
-              c.esm
-            );
-            if (mod?.FilesetResolver && mod?.GestureRecognizer) {
-              console.log("Successfully loaded MediaPipe via ESM");
-              return {
-                FilesetResolver: mod.FilesetResolver,
-                GestureRecognizer: mod.GestureRecognizer,
-                wasmBase: c.wasm
-              };
-            }
-          } catch (e) {
-            console.warn(`ESM import failed for ${c.esm}:`, e);
-            lastError = e;
-          }
         }
       } catch (e) {
         console.warn(`MediaPipe load attempt ${attemptCount} failed:`, e);
@@ -1789,7 +1802,7 @@
       },
       afternoonMode: {
         // Learning-focused settings
-        thresholds: { mlpConfidence: 0.45, fallbackConfidence: 0.35 },
+        thresholds: { mlpConfidence: 0.25, fallbackConfidence: 0.35 },
         gestures: { sizeTolerance: 0.25 },
         // Stricter for learning
         performance: { messageThrottleMs: 80 }
@@ -1797,7 +1810,7 @@
       },
       eveningMode: {
         // Relaxation-focused settings
-        thresholds: { mlpConfidence: 0.4, fallbackConfidence: 0.3 },
+        thresholds: { mlpConfidence: 0.2, fallbackConfidence: 0.3 },
         gestures: { sizeTolerance: 0.35 },
         timing: { emergencyCooldownMs: 1200 }
       },
@@ -4196,7 +4209,7 @@
 
   // webview/core/GestureRecognitionOrchestrator.ts
   var FALLBACK_CONFIDENCE_THRESHOLD = typeof window.__fallbackThreshold === "number" ? window.__fallbackThreshold : 0.35;
-  var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.4;
+  var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.2;
   var GestureRecognitionOrchestrator = class {
     constructor(video2, overlay2, dependencies = {}) {
       this.video = video2;
@@ -4205,6 +4218,7 @@
       this.isInitialized = false;
       this.isRunning = false;
       this.frameSampleCounter = 0;
+      this.lastLandmarkSendTime = 0;
       this.performanceOptimizer = new PerformanceOptimizer();
       this.memoryOptimizer = MemoryOptimizer.getInstance();
       this.processingPipeline = new ProcessingPipeline();
@@ -4302,15 +4316,48 @@
           normalizedResults: normalized
         };
         const processingResult = await this.processingPipeline.executePipeline(context);
-        const hasGestureResult = Boolean(processingResult.gesture) || (processingResult.confidence ?? 0) > 0 || Boolean(processingResult.fallback?.gesture);
+        const hasLandmarks = normalized.landmarks.some((hand) => hand.length > 0);
+        const now = Date.now();
+        if (hasLandmarks && now - this.lastLandmarkSendTime > 500) {
+          this.sendLandmarks(normalized.landmarks, normalized.handednesses, timestamp);
+          this.lastLandmarkSendTime = now;
+        }
+        const hasGestureResult = Boolean(processingResult.gesture) || (processingResult.confidence ?? 0) > 0.3 || // Lower threshold for fallback gestures
+        Boolean(processingResult.fallback?.gesture);
+        console.log("Gesture result check:", JSON.stringify({
+          hasGestureResult,
+          gesture: processingResult.gesture,
+          confidence: processingResult.confidence,
+          hasFallback: Boolean(processingResult.fallback?.gesture)
+        }));
         if (hasGestureResult) {
+          console.log("Sending gesture result:", JSON.stringify(processingResult));
           this.sendGestureResult(processingResult, results);
+        } else if (hasLandmarks) {
+          this.sendGestureResult({
+            gesture: null,
+            confidence: 0,
+            landmarks: normalized.landmarks,
+            metadata: {
+              method: "none",
+              perHand: [],
+              handednesses: normalized.handednesses,
+              mlp: null,
+              twoHand: null
+            },
+            timestamp,
+            isFallback: false,
+            systemHealth: this.errorRecoveryManager.getHealthStatus(),
+            processingTime: processingResult.processingTime,
+            stepsExecuted: processingResult.stepsExecuted,
+            skippedSteps: processingResult.skippedSteps
+          }, results);
         }
         this.performanceOptimizer.recordProcessingTime(processingResult.processingTime);
         this.frameSampleCounter += 1;
         if (this.frameSampleCounter >= FRAME_LATENCY_SAMPLE_INTERVAL) {
           const metrics = this.performanceOptimizer.getPerformanceMetrics();
-          if (metrics.averageProcessingTime > 45) {
+          if (metrics.averageProcessingTime > 30) {
             messageBatcher.forceFlush();
           }
           this.frameSampleCounter = 0;
@@ -4325,11 +4372,23 @@
      */
     shouldSkipExpensiveSteps() {
       const metrics = this.performanceOptimizer.getPerformanceMetrics();
-      return metrics.averageProcessingTime > 50 || this.memoryOptimizer.getMemoryStatus().pressureLevel > 1;
+      const memoryStatus = this.memoryOptimizer.getMemoryStatus();
+      const shouldSkip = metrics.averageProcessingTime > 50 || memoryStatus.pressureLevel > 1;
+      console.log("shouldSkipExpensiveSteps:", shouldSkip, "avgTime:", metrics.averageProcessingTime, "memoryPressure:", memoryStatus.pressureLevel);
+      return shouldSkip;
     }
     /**
      * Send gesture result to React Native
      */
+    sendLandmarks(landmarks, handedness, timestamp) {
+      const payload = {
+        type: "landmarks",
+        landmarks,
+        handedness,
+        timestamp
+      };
+      messageBatcher.queueMessage(payload, {});
+    }
     sendGestureResult(processingResult, originalResults) {
       try {
         const handednessLabels = processingResult.metadata?.handednesses?.map((label) => String(label)) ?? originalResults.handednesses?.map((hand) => {
@@ -4447,11 +4506,13 @@
       this.isExpensive = true;
     }
     async execute(context) {
+      console.log("GestureDetectionStep executing, skipExpensive:", context.skipExpensiveSteps);
       const rawResults = context.rawResults;
       const normalized = context.normalizedResults ?? mapMediaPipeResult(rawResults);
       const handednesses = normalized.handednesses;
       const rawHandednesses = rawResults?.handednesses ?? [];
       const perHand = this.extractPerHandDetections(normalized);
+      console.log("Per hand detections:", perHand);
       let selectedGesture = null;
       let selectedConfidence = 0;
       let detectionMethod = "none";
@@ -4475,21 +4536,32 @@
         }
       }
       let mlpMetadata = null;
+      console.log("Checking MLP availability:", typeof window.__mlpPredict);
       if (typeof window.__mlpPredict === "function") {
+        console.log("MLP function available, attempting prediction");
         try {
+          console.log("MLP input landmarks:", context.landmarks);
+          console.log("MLP input handednesses:", rawHandednesses.length > 0 ? rawHandednesses : handednesses);
           const mlpResult = window.__mlpPredict(
             context.landmarks ?? [],
             rawHandednesses.length > 0 ? rawHandednesses : handednesses
           );
+          console.log("MLP prediction result:", JSON.stringify(mlpResult));
           if (mlpResult && typeof mlpResult.score === "number") {
             mlpMetadata = mlpResult;
             const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+            console.log("MLP threshold check:", JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence }));
             if (mlpResult.score >= threshold && mlpResult.score >= selectedConfidence) {
+              console.log("MLP gesture selected:", JSON.stringify({ label: mlpResult.label, score: mlpResult.score }));
               selectedGesture = this.normalizeLabel(mlpResult.label);
               selectedConfidence = mlpResult.score;
               detectionMethod = "mlp";
               twoHandMetadata = null;
+            } else {
+              console.log("MLP gesture not selected:", JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence }));
             }
+          } else {
+            console.log("MLP result invalid:", JSON.stringify({ mlpResult, hasScore: typeof mlpResult?.score === "number" }));
           }
         } catch (error) {
           console.warn("MLP prediction failed:", error);
@@ -4685,6 +4757,21 @@
     }
   };
   window.addEventListener("error", onError);
+  var originalConsoleLog = console.log;
+  console.log = (...args) => {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "telemetry",
+          event: "console_log",
+          message: args.join(" "),
+          timestamp: Date.now()
+        })
+      );
+    } catch (err2) {
+    }
+    originalConsoleLog(...args);
+  };
   var onUnhandledRejection = (e) => {
     try {
       window.ReactNativeWebView?.postMessage?.(

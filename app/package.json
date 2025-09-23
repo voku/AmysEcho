@@ -15,7 +15,7 @@
     "type-check": "npx tsc --noEmit --project tsconfig.json",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
-    "build:webview": "esbuild webview/gestureDetector.ts --bundle --outfile=assets/gestureDetector.js --format=iife",
+    "build:webview": "esbuild webview/gestureDetector.ts --bundle --outfile=assets/gestureDetector.js --format=iife && node ../scripts/update-webview-base64.js",
     "clean": "rm -rf node_modules/.cache && rm -rf .expo && rm -rf dist"
   },
   "dependencies": {
