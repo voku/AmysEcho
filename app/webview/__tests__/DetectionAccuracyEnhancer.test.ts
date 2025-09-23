@@ -277,7 +277,7 @@ describe('DetectionAccuracyEnhancer', () => {
       expect(stats.totalGestures).toBeGreaterThan(0);
       expect(stats.averageConfidence).toBeGreaterThan(0);
       expect(stats.historicalConfidence).toHaveProperty('thumbs_up');
-      expect(stats.historicalConfidence).toHaveProperty('open_palm');
+      expect(stats.historicalConfidence).not.toHaveProperty('open_palm');
     });
 
     it('should reset accuracy tracking', () => {

@@ -52,7 +52,9 @@ export class DetectionAccuracyEnhancer {
     detectionResults.forEach(result => this.recordDetectionResult(result));
 
     if (detectionResults.length === 1) {
-      return this.createSingleResult(detectionResults[0]);
+      const [singleResult] = detectionResults;
+      this.updateConfidenceHistory(singleResult.gesture, singleResult.confidence);
+      return this.createSingleResult(singleResult);
     }
 
     // Group results by gesture
@@ -263,10 +265,7 @@ export class DetectionAccuracyEnhancer {
 
       if (delta < -tolerance) {
         states[finger] = 'extended';
-        return;
-      }
-
-      if (delta > tolerance) {
+      } else if (delta > tolerance) {
         states[finger] = 'curled';
       }
     });
@@ -315,14 +314,20 @@ export class DetectionAccuracyEnhancer {
   /**
    * Calculate confidence scores for different gestures
    */
-  private calculateThumbsUpConfidence(fingerStates: any, palmOrientation: string): number {
+  private calculateThumbsUpConfidence(
+    fingerStates: ReturnType<DetectionAccuracyEnhancer['analyzeFingerStates']>,
+    palmOrientation: ReturnType<DetectionAccuracyEnhancer['analyzePalmOrientation']>
+  ): number {
+    type FingerStates = ReturnType<DetectionAccuracyEnhancer['analyzeFingerStates']>;
+    type OtherFingers = Exclude<keyof FingerStates, 'thumb'>;
+
     let confidence = 0;
 
     // Thumb should be extended
     if (fingerStates.thumb === 'extended') confidence += 0.4;
 
     // Other fingers should be curled
-    const otherFingers = ['index', 'middle', 'ring', 'pinky'];
+    const otherFingers: OtherFingers[] = ['index', 'middle', 'ring', 'pinky'];
     const curledCount = otherFingers.filter(finger => fingerStates[finger] === 'curled').length;
     confidence += (curledCount / 4) * 0.4;
 
@@ -332,28 +337,39 @@ export class DetectionAccuracyEnhancer {
     return Math.min(confidence, 1.0);
   }
 
-  private calculateOpenPalmConfidence(fingerStates: any, handShape: string): number {
+  private calculateOpenPalmConfidence(
+    fingerStates: ReturnType<DetectionAccuracyEnhancer['analyzeFingerStates']>,
+    handShape: ReturnType<DetectionAccuracyEnhancer['analyzeHandShape']>
+  ): number {
     if (handShape === 'open') return 0.9;
 
     const extendedCount = Object.values(fingerStates).filter(state => state === 'extended').length;
     return extendedCount / 5;
   }
 
-  private calculateFistConfidence(fingerStates: any, handShape: string): number {
+  private calculateFistConfidence(
+    fingerStates: ReturnType<DetectionAccuracyEnhancer['analyzeFingerStates']>,
+    handShape: ReturnType<DetectionAccuracyEnhancer['analyzeHandShape']>
+  ): number {
     if (handShape === 'closed') return 0.9;
 
     const curledCount = Object.values(fingerStates).filter(state => state === 'curled').length;
     return curledCount / 5;
   }
 
-  private calculatePointConfidence(fingerStates: any): number {
+  private calculatePointConfidence(
+    fingerStates: ReturnType<DetectionAccuracyEnhancer['analyzeFingerStates']>
+  ): number {
+    type FingerStates = ReturnType<DetectionAccuracyEnhancer['analyzeFingerStates']>;
+    type OtherFingers = Extract<keyof FingerStates, 'middle' | 'ring' | 'pinky'>;
+
     let confidence = 0;
 
     // Index should be extended
     if (fingerStates.index === 'extended') confidence += 0.5;
 
     // Other fingers should be curled
-    const otherFingers = ['middle', 'ring', 'pinky'];
+    const otherFingers: OtherFingers[] = ['middle', 'ring', 'pinky'];
     const curledCount = otherFingers.filter(finger => fingerStates[finger] === 'curled').length;
     confidence += (curledCount / 3) * 0.4;
 
@@ -495,16 +511,18 @@ export class DetectionAccuracyEnhancer {
     const finalConfidence = best.boostedConfidence;
 
     let reasoning = best.result.metadata?.conflictReason ?? 'Best ranked candidate';
-    if (
+    if (best.boostedConfidence > best.result.confidence) {
+      reasoning = 'Historical consistency bonus';
+    } else if (
       finalConfidence >= this.CONFIDENCE_THRESHOLD_HIGH ||
       (finalConfidence >= this.CONFIDENCE_THRESHOLD_MEDIUM && enriched.length === 1)
     ) {
       reasoning = 'Clear high-confidence result';
-    } else if (best.boostedConfidence > best.result.confidence) {
-      reasoning = 'Historical consistency bonus';
     } else if (best.result.metadata?.conflictReason) {
       reasoning = best.result.metadata.conflictReason;
     }
+
+    this.updateConfidenceHistory(best.result.gesture, finalConfidence);
 
     return {
       finalGesture: best.result.gesture,
@@ -520,8 +538,6 @@ export class DetectionAccuracyEnhancer {
    * Record detection statistics for accuracy tracking
    */
   private recordDetectionResult(result: DetectionResult): void {
-    this.updateConfidenceHistory(result.gesture, result.confidence);
-
     this.methodUsage.set(result.method, (this.methodUsage.get(result.method) ?? 0) + 1);
     this.totalConfidenceSum += result.confidence;
     this.totalGestureObservations += 1;
