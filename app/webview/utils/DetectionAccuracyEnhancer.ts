@@ -18,7 +18,7 @@ export interface DetectionResult {
 export interface ConflictResolutionResult {
   finalGesture: string;
   finalConfidence: number;
-  methodUsed: string;
+  methodUsed: DetectionResult['method'] | 'none';
   alternatives: DetectionResult[];
   confidence: number;
   reasoning: string;
@@ -494,7 +494,7 @@ export class DetectionAccuracyEnhancer {
     const alternatives = enriched.slice(1).map(entry => entry.result);
     const finalConfidence = best.boostedConfidence;
 
-    let reasoning = 'Method priority tiebreaker';
+    let reasoning = best.result.metadata?.conflictReason ?? 'Best ranked candidate';
     if (
       finalConfidence >= this.CONFIDENCE_THRESHOLD_HIGH ||
       (finalConfidence >= this.CONFIDENCE_THRESHOLD_MEDIUM && enriched.length === 1)
