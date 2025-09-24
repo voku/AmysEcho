@@ -584,7 +584,8 @@ describe('ZeroDowntimeModelService', () => {
         const estimate = (service as any).estimateTimeRemaining(received, total);
 
         // At 512 bytes per second, should take ~1 second for remaining 512 bytes
-        expect(estimate).toBeCloseTo(1000, 100); // Allow some tolerance
+        expect(estimate).toBeGreaterThan(950);
+        expect(estimate).toBeLessThan(1050);
       });
 
       it('should return 0 for zero received', () => {

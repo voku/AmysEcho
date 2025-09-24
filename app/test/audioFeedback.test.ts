@@ -30,6 +30,16 @@ jest.mock('expo-file-system', () => ({
   bundleDirectory: '/bundle/',
   documentDirectory: '/doc/',
   getInfoAsync: jest.fn(),
+  Paths: {
+    document: { uri: 'file:///doc/' },
+    cache: { uri: 'file:///cache/' },
+  },
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  Paths: {
+    document: { uri: 'file:///doc/' },
+    cache: { uri: 'file:///cache/' },
+  },
 }));
 
 jest.mock('../db', () => ({
@@ -195,4 +205,3 @@ describe.skip('audioService feedback', () => {
     spy.mockRestore();
   });
 });
-

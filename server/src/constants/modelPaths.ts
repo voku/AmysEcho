@@ -1,14 +1,42 @@
 import path from 'path';
-import { promises as fs } from 'fs';
-import { fileURLToPath } from 'url';
+import { promises as fs, existsSync } from 'fs';
 
 const explicitDataDir = process.env.AMY_ECHO_DATA_DIR || process.env.AMY_DATA_DIR;
 
-// Derive server directory from this module location to avoid cwd surprises.
-const moduleDir: string = typeof __dirname !== 'undefined'
-  ? __dirname
-  : path.dirname(fileURLToPath(import.meta.url));
-export const SERVER_DIR = path.resolve(moduleDir, '..', '..');
+function resolveServerDir(): string {
+  const candidates: (string | undefined)[] = [];
+
+  if (typeof __dirname !== 'undefined') {
+    candidates.push(path.resolve(__dirname, '..', '..'));
+  }
+
+  if (typeof process !== 'undefined') {
+    const cwd = typeof process.cwd === 'function' ? process.cwd() : undefined;
+    if (cwd) {
+      candidates.push(path.resolve(cwd));
+      candidates.push(path.resolve(cwd, 'server'));
+    }
+
+    if (Array.isArray(process.argv)) {
+      const scriptPath = process.argv[1];
+      if (scriptPath) {
+        candidates.push(path.resolve(path.dirname(scriptPath), '..'));
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (existsSync(path.join(candidate, 'package.json'))) {
+      return candidate;
+    }
+  }
+
+  // Fall back to cwd so tests still have a deterministic location.
+  return candidates.find(Boolean) ?? path.resolve('.');
+}
+
+export const SERVER_DIR = resolveServerDir();
 export const DATA_DIR = explicitDataDir
   ? path.resolve(explicitDataDir)
   : path.join(SERVER_DIR, 'data');

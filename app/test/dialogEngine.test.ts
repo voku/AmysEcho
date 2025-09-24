@@ -1,54 +1,50 @@
-import 'openai/shims/node';
 import { getLLMSuggestions } from '../../server/src/services/dialogEngine';
 
+const openaiMock = jest.requireMock('openai');
+
 describe('Dialog Engine', () => {
-  it('should return empty suggestions without an API key', async () => {
+  it('returns empty suggestions without an API key', async () => {
     const res = await getLLMSuggestions({
       input: 'hello',
       context: ['hi'],
       language: 'English',
       age: 4,
     });
-    expect(res.nextWords.length).toBe(0);
-    expect(res.caregiverPhrases.length).toBe(0);
+    expect(res.nextWords).toEqual([]);
+    expect(res.caregiverPhrases).toEqual([]);
   });
 
-  it('uses context to fetch and parse suggestions', async () => {
+  it('constructs OpenAI chat request with context when API key present', async () => {
+    openaiMock.__reset();
     const originalKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = 'test-key';
-    const mockFetch = jest
-      .spyOn(global, 'fetch' as any)
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          choices: [
-            {
-              message: {
-                content: JSON.stringify({
-                  nextWords: ['foo'],
-                  caregiverPhrases: ['bar'],
-                }),
-              },
-            },
-          ],
-        }),
-      } as any);
 
-    const res = await getLLMSuggestions({
-      input: 'water',
-      context: ['want', 'some'],
-      language: 'English',
-      age: 4,
+    openaiMock.__setResponse({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ nextWords: ['foo'], caregiverPhrases: ['bar'] }),
+          },
+        },
+      ],
     });
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    const body = JSON.parse((mockFetch.mock.calls[0][1] as any).body);
-    expect(body.messages[0].content).toContain('water');
-    expect(body.messages[0].content).toContain('want, some');
+    const res = await getLLMSuggestions({
+      input: 'wasser',
+      context: ['ich', 'möchte'],
+      language: 'German',
+      age: 5,
+    });
+
+    const configs = openaiMock.__getConfigs();
+    expect(configs[0]).toEqual({ apiKey: 'test-key' });
+    expect(openaiMock.__createMock).toHaveBeenCalledTimes(1);
+    const payload = openaiMock.__createMock.mock.calls[0][0];
+    expect(payload.messages[0].content).toContain('wasser');
+    expect(payload.messages[0].content).toContain('ich, möchte');
     expect(res.nextWords).toEqual(['foo']);
     expect(res.caregiverPhrases).toEqual(['bar']);
 
-    mockFetch.mockRestore();
     if (originalKey) {
       process.env.OPENAI_API_KEY = originalKey;
     } else {

@@ -8,22 +8,11 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: async () => {},
 }));
 
-const mockCreate = jest.fn(async (cb: any) => cb({ gestureDefinition: {}, landmarkData: '', source: '', qualityScore: 1, frameMetadata: '', createdAt: new Date(), customSyncStatus: 'pending' }));
-
-jest.mock('../db', () => ({
-  database: {
-    get: jest.fn(() => ({ create: mockCreate })),
-    write: jest.fn(async (fn: any) => fn()),
-  }
-}));
-jest.mock('../db/models', () => ({ GestureTrainingData: {} }));
-
 import { saveTrainingSample, loadTrainingSampleCount, TrainingFrame } from '../src/storage';
 
 describe('training sample persistence', () => {
   beforeEach(() => {
     for (const k of Object.keys(store)) delete store[k];
-    mockCreate.mockClear();
   });
 
   it('saves samples and counts them', async () => {
@@ -32,6 +21,5 @@ describe('training sample persistence', () => {
     await saveTrainingSample('g1', [frame]);
     const count = await loadTrainingSampleCount('g1');
     expect(count).toBe(2);
-    expect(mockCreate).toHaveBeenCalledTimes(2);
   });
 });

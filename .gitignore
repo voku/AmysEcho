@@ -21,6 +21,7 @@ app/watermelon.db
 **/jest-results.json
 server/analytics.json
 server/telemetry.json
+server/training-debug.log
 
 # code coverage
 app/coverage/

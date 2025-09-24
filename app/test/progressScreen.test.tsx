@@ -85,6 +85,16 @@ jest.mock('expo-file-system', () => ({
   bundleDirectory: 'bundle/',
   documentDirectory: 'docs/',
   getInfoAsync: jest.fn(() => ({ exists: true })),
+  Paths: {
+    document: { uri: 'file://docs' },
+    cache: { uri: 'file://cache' },
+  },
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  Paths: {
+    document: { uri: 'file://docs' },
+    cache: { uri: 'file://cache' },
+  },
 }));
 jest.mock('../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),

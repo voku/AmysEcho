@@ -10,6 +10,7 @@ module.exports = {
     "^react-native-webview$": "<rootDir>/test/__mocks__/react-native-webview.js",
     "gestureDetector\\.js$": "<rootDir>/test/__mocks__/fileMock.js",
     "^\.\./services$": "<rootDir>/src/services/index.ts",
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   testTimeout: 10000,
   testMatch: [

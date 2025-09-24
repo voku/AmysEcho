@@ -436,7 +436,7 @@ describe('EmergencyPriorityService', () => {
         ];
 
         const avgWaitTime = (service as any).calculateAverageWaitTime();
-        expect(avgWaitTime).toBeCloseTo(3000, 0); // (5000 + 3000 + 1000) / 3
+        expect(Math.round(avgWaitTime)).toBe(3000); // (5000 + 3000 + 1000) / 3
       });
 
       it('should return 0 for empty processing queue', () => {

@@ -43,11 +43,22 @@ jest.mock('expo-speech', () => ({
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(),
   impactAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
 }));
 jest.mock('expo-file-system', () => ({
   bundleDirectory: 'bundle/',
   documentDirectory: 'docs/',
   getInfoAsync: jest.fn(() => ({ exists: true })),
+  Paths: {
+    document: { uri: 'file://docs/' },
+    cache: { uri: 'file://cache/' },
+  },
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  Paths: {
+    document: { uri: 'file://docs/' },
+    cache: { uri: 'file://cache/' },
+  },
 }));
 jest.mock('react-native-svg', () => {
   const React = require('react');

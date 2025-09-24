@@ -1,6 +1,8 @@
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn().mockResolvedValue(undefined),
   NotificationFeedbackType: { Success: 'success' },
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  impactAsync: jest.fn(),
 }));
 
 jest.mock('../src/services/audioService', () => ({

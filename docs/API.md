@@ -10,6 +10,64 @@ Two rate limiters are applied:
 
 ## Endpoints
 
+### Authentication
+
+#### POST /auth/login
+Authenticate a user and return a JWT.
+
+**Body**
+```json
+{
+  "username": "admin",
+  "password": "password"
+}
+```
+
+**Response**
+```json
+{
+  "user": {
+    "id": "admin-user",
+    "username": "admin",
+    "role": "admin"
+  },
+  "accessToken": "...",
+  "refreshToken": "..."
+}
+```
+
+#### POST /auth/refresh
+Refresh an expired JWT.
+
+**Body**
+```json
+{
+  "refreshToken": "..."
+}
+```
+
+**Response**
+```json
+{
+  "accessToken": "...",
+  "refreshToken": "..."
+}
+```
+
+#### GET /auth/me
+Get the currently authenticated user.
+
+**Response**
+```json
+{
+  "user": {
+    "id": "admin-user",
+    "username": "admin",
+    "role": "admin"
+  }
+}
+```
+
 ### Analytics
 
 #### GET /api/analytics/profiles
@@ -152,6 +210,38 @@ Ask the dialog engine for caregiver suggestions.
 }
 ```
 
+### DGS Model
+
+#### GET /api/v1/dgs/model
+Get the DGS model.
+
+**Response**
+```json
+{
+  "type": "centroid_model",
+  "updatedAt": 1700000000000,
+  "centroids": { ... },
+  "counts": { ... }
+}
+```
+
+#### POST /api/v1/dgs/samples
+Add DGS samples.
+
+**Body**
+```json
+{
+  "label": "wave",
+  "profileId": "profile1",
+  "landmarks": [ ... ]
+}
+```
+
+**Response**
+```json
+{ "status": "ok" }
+```
+
 ### Model Training & Serving
 
 #### POST /train-model
@@ -281,6 +371,42 @@ Each report includes:
 **Response**
 ```json
 { "status": "ok", "saved": 1 }
+```
+
+### Other
+
+#### GET /health
+Health check endpoint.
+
+**Response**
+```json
+{ "status": "ok", "uptime": 12345 }
+```
+
+#### GET /api/docs
+Get API documentation.
+
+**Response**
+```json
+{ ... }
+```
+
+#### POST /api/gesture/validate-vision
+Validate a gesture using OpenAI Vision.
+
+**Body**
+```json
+{
+  "imageBase64": "...",
+  "expectedGesture": "wave",
+  "context": { ... },
+  "options": { ... }
+}
+```
+
+**Response**
+```json
+{ ... }
 ```
 
 ### Portal

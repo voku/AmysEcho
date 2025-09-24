@@ -19,6 +19,10 @@ jest.mock('expo-file-system', () => ({
     return Promise.resolve({ exists: false, size: 0 });
   }),
   copyAsync: jest.fn().mockResolvedValue(undefined),
+  Paths: {
+    document: { uri: '/tmp/' },
+    cache: { uri: '/tmp/cache/' },
+  },
 }));
 
 jest.mock('../src/storage', () => ({

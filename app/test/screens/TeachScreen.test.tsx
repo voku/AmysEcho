@@ -14,6 +14,42 @@ jest.mock('react-native', () => {
 import TeachScreen from '../../src/screens/TeachScreen';
 
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
+jest.mock('expo-audio', () => ({
+  requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  setAudioModeAsync: jest.fn(),
+  createAudioPlayer: jest.fn(() => ({
+    volume: 1,
+    loop: false,
+    seekTo: jest.fn(),
+    play: jest.fn(),
+    remove: jest.fn(),
+  })),
+  RecordingPresets: { HIGH_QUALITY: {} },
+}));
+jest.mock('expo-speech', () => ({
+  speak: jest.fn(),
+  stop: jest.fn(),
+}));
+jest.mock('expo-haptics', () => ({
+  notificationAsync: jest.fn(),
+  impactAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'light' },
+}));
+jest.mock('expo-file-system', () => ({
+  documentDirectory: 'file:///docs/',
+  cacheDirectory: 'file:///cache/',
+  getInfoAsync: jest.fn(() => Promise.resolve({ exists: true })),
+  Paths: {
+    document: { uri: 'file:///docs/' },
+    cache: { uri: 'file:///cache/' },
+  },
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  Paths: {
+    document: { uri: 'file:///docs/' },
+    cache: { uri: 'file:///cache/' },
+  },
+}));
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));

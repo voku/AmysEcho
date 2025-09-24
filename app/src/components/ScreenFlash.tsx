@@ -18,7 +18,17 @@ export default function ScreenFlash({
   duration = 300,
   intensity = 'normal'
 }: ScreenFlashProps) {
-  const { width, height } = Dimensions.get('window');
+  const windowDims = (() => {
+    try {
+      return Dimensions && typeof Dimensions.get === 'function'
+        ? Dimensions.get('window')
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+  const width = windowDims?.width ?? 0;
+  const height = windowDims?.height ?? 0;
 
   const styles = React.useMemo(() => ({
     container: {
@@ -385,4 +395,3 @@ export default function ScreenFlash({
     </View>
   );
 }
-

@@ -83,6 +83,56 @@ jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => {}),
 }));
+jest.mock('openai/shims/node', () => ({}), { virtual: true });
+let mockOpenAIModule: any;
+jest.mock('openai', () => {
+  const defaultResponse = { choices: [{ message: { content: '{}' } }] };
+  const createMock = jest.fn().mockResolvedValue(defaultResponse);
+  const configs: any[] = [];
+  mockOpenAIModule = {
+    __esModule: true,
+    default: class MockOpenAI {
+      constructor(config: any) {
+        configs.push(config);
+      }
+
+      chat = {
+        completions: {
+          create: createMock,
+        },
+      };
+    },
+    __createMock: createMock,
+    __getConfigs: () => configs,
+    __reset: () => {
+      configs.length = 0;
+      createMock.mockClear();
+      createMock.mockResolvedValue(defaultResponse);
+    },
+    __setResponse: (response: any) => {
+      createMock.mockResolvedValue(response);
+    },
+  };
+  return mockOpenAIModule;
+}, { virtual: true });
+
+afterEach(() => {
+  mockOpenAIModule?.__reset();
+});
+jest.mock('expo-file-system', () => ({
+  bundleDirectory: 'bundle/',
+  documentDirectory: 'file:///doc/',
+  cacheDirectory: 'file:///cache/',
+  getInfoAsync: jest.fn(async () => ({ exists: true })),
+  readAsStringAsync: jest.fn(),
+  writeAsStringAsync: jest.fn(),
+  deleteAsync: jest.fn(),
+  makeDirectoryAsync: jest.fn(),
+  Paths: {
+    document: { uri: 'file:///doc/' },
+    cache: { uri: 'file:///cache/' },
+  },
+}));
 jest.mock('./db', () => ({ database: { get: jest.fn(), write: jest.fn() } }));
 jest.mock('./db/models', () => ({}));
 // Note: NetInfo is mocked per-test where needed to avoid shape conflicts
@@ -209,4 +259,3 @@ jest.mock('react-native/Libraries/Animated/Animated', () => {
 // Bypass internal Animated component hooks
 jest.mock('react-native/Libraries/Animated/createAnimatedComponent', () => (comp: any) => comp);
 jest.mock('react-native/src/private/animated/createAnimatedPropsHook', () => () => () => ({}));
-

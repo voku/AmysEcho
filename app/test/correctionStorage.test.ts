@@ -20,14 +20,16 @@ describe('logCorrection', () => {
   it('stores correction samples and logs', async () => {
     await logCorrection('gesture1');
 
-    const trainingRaw = store['gestureTrainingData'];
+    const trainingKey = 'gestureTrainingData_default';
+    const trainingRaw = store[trainingKey];
     expect(trainingRaw).toBeTruthy();
     const training = JSON.parse(trainingRaw as string);
     expect(training).toHaveLength(1);
     expect(training[0].gestureDefinitionId).toBe('gesture1');
     expect(training[0].source).toBe('HIP_3');
 
-    const logsRaw = store['interactionLogs'];
+    const logsKey = 'interactionLogs_default';
+    const logsRaw = store[logsKey];
     expect(logsRaw).toBeTruthy();
     const logs = JSON.parse(logsRaw as string);
     expect(logs).toHaveLength(1);

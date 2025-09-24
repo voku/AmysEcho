@@ -27,13 +27,20 @@ jest.mock('react-native-svg', () => {
   };
 });
 
+jest.mock('expo-file-system/legacy', () => ({
+  Paths: {
+    document: { uri: 'file://docs/' },
+    cache: { uri: 'file://cache/' },
+  },
+}));
+
 const SINGLE_HAND: number[][][] = [
-  Array.from({ length: 21 }, (_, index) => [index / 20, index / 20, 0]) as number[][],
+  Array.from({ length: 21 }, (_, index) => [0.1 + index / 30, 0.1 + index / 40, 0]) as number[][],
 ];
 
 const TWO_HANDS: number[][][] = [
-  Array.from({ length: 21 }, (_, index) => [index / 20, index / 20, 0]) as number[][],
-  Array.from({ length: 21 }, (_, index) => [1 - index / 20, index / 20, 0]) as number[][],
+  Array.from({ length: 21 }, (_, index) => [0.1 + index / 30, 0.1 + index / 40, 0]) as number[][],
+  Array.from({ length: 21 }, (_, index) => [0.9 - index / 30, 0.1 + index / 40, 0]) as number[][],
 ];
 
 describe('HandLandmarkPreview', () => {
@@ -62,7 +69,7 @@ describe('HandLandmarkPreview', () => {
     );
 
     const points = getAllByTestId('landmark-0');
-    // The first point is at x=0 without mirroring, so with mirroring it should be close to 1
-    expect(points[0].props.cx).toBeCloseTo(1, 2);
+    const originalX = SINGLE_HAND[0][0][0];
+    expect(points[0].props.cx).toBeCloseTo(1 - originalX, 2);
   });
 });
