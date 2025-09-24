@@ -517,14 +517,30 @@ export class GestureDetectionStep implements ProcessingStep {
           mlpMetadata = mlpResult;
           const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
           console.log('MLP threshold check:', JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence })); // Debug logging
-          if (mlpResult.score >= threshold && (selectedGesture === null || selectedGesture === 'none' || mlpResult.score >= selectedConfidence)) {
-            console.log('MLP gesture selected:', JSON.stringify({ label: mlpResult.label, score: mlpResult.score })); // Debug logging
+          // Calculate confidence margin - require higher confidence to override mediapipe
+          const isMediaPipeConfident = selectedConfidence > 0.3;
+          const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
+
+          if (mlpResult.score >= threshold && 
+              (selectedGesture === null || 
+               selectedGesture === 'none' || 
+               mlpResult.score >= (selectedConfidence + confidenceMargin))) {
+            console.log('MLP gesture selected:', JSON.stringify({ 
+              label: mlpResult.label, 
+              score: mlpResult.score,
+              margin: confidenceMargin
+            })); // Debug logging
             selectedGesture = this.normalizeLabel(mlpResult.label);
             selectedConfidence = mlpResult.score;
             detectionMethod = 'mlp';
             twoHandMetadata = null;
           } else {
-            console.log('MLP gesture not selected:', JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence })); // Debug logging
+            console.log('MLP gesture not selected:', JSON.stringify({ 
+              score: mlpResult.score, 
+              threshold, 
+              selectedConfidence,
+              margin: confidenceMargin 
+            })); // Debug logging
           }
         } else {
           console.log('MLP result invalid:', JSON.stringify({ mlpResult, hasScore: typeof mlpResult?.score === 'number' })); // Debug logging

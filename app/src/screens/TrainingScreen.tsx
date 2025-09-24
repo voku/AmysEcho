@@ -13,7 +13,13 @@ import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
-import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
+const required = require('../../src/components/MediaPipeGestureDetector');
+
+console.log('required MediaPipeGestureDetector', required);
+
+const { MediaPipeGestureDetector } = required;
+
+console.log('MediaPipeGestureDetector after destructuring', MediaPipeGestureDetector);
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';

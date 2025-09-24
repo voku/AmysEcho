@@ -6,6 +6,7 @@ import { createHash } from 'crypto';
 import { spawn } from 'child_process';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
+
 import config from './config/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -59,6 +60,7 @@ import { AuthService } from './services/authService.js';
 import logger from './services/logger.js';
 
 export const app = express();
+
 // Increase JSON body size limit to accommodate base64 images from the app
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true, limit: '8mb' }));
@@ -1003,6 +1005,16 @@ app.get('/train-status/:id', legacyAuth, (req: Request, res: Response) => {
 // Gracefully handle accidental empty-id requests
 app.get('/train-status', legacyAuth, (_req: Request, res: Response) => {
   res.json({ status: 'completed', progress: 100, endedAt: Date.now() });
+});
+
+// Query video training job status
+app.get('/api/training-status/:id', auth, (req: Request, res: Response) => {
+  const id = req.params.id;
+  const job = trainingJobs.get(id);
+  if (!job) {
+    return res.status(404).json({ error: 'Training job not found' });
+  }
+  res.json(job);
 });
 
 app.get('/model-version', legacyAuth, async (_req: Request, res: Response) => {

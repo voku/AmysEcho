@@ -7,7 +7,7 @@ jest.mock('esbuild', () => ({
   }),
 }));
 
-describe.skip('gestureDetector bundle', () => {
+describe('gestureDetector bundle', () => {
   it('is up to date with TypeScript source', async () => {
     const existing = (await fs.readFile(path.resolve(__dirname, '../assets/gestureDetector.js'), 'utf8')).replace(/\r\n/g, '\n').trim();
     // In test environment, just check that the file exists and has content

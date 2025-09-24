@@ -13,6 +13,18 @@ jest.mock('react-native', () => {
   } as any;
 });
 
+jest.mock('react-native-webview', () => ({
+  WebView: () => null,
+}));
+
+jest.mock('react-native-webview/lib/WebViewTypes', () => ({}));
+
+
+
+jest.mock('../../src/components/GestureWebView', () => ({
+  GestureWebView: () => null,
+}));
+
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));
@@ -33,6 +45,17 @@ jest.mock('../../src/services/TrainingDataValidator', () => ({
 
 jest.mock('../../src/components/BottomNav', () => () => null);
 jest.mock('../../src/components/DgsVideoPlayer', () => () => null);
+jest.mock('../../src/components/PerformanceAnalytics', () => () => null);
+jest.mock('../../src/components/PracticeSessionManager', () => () => null);
+
+jest.mock('../../src/hooks/useModelInjection', () => ({
+  useModelInjection: () => ({}),
+}));
+
+jest.mock('../../src/services/dgsModelClient', () => ({
+  fetchMlpModel: jest.fn(),
+  getCachedMlpModel: jest.fn(),
+}));
 
 jest.mock('../../src/services', () => ({
   audioService: { playEncouragement: jest.fn() },
@@ -49,18 +72,19 @@ jest.mock('../../src/model', () => ({
 jest.mock('../../src/storage', () => ({
   saveTrainingSample: jest.fn(async () => {}),
   loadProfile: jest.fn(async () => null),
+  loadActiveProfileId: jest.fn(async () => null),
+  onActiveProfileChange: jest.fn(),
 }));
 
 jest.mock('../../src/utils/logger', () => ({
   logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 
-jest.mock('../../src/components/MediaPipeGestureDetector', () => {
-  const React = require('react');
-  return {
-    MediaPipeGestureDetector: (props: any) => React.createElement('MediaPipeGestureDetector', props, null),
-  };
-});
+
+
+jest.mock('../../src/components/GestureWebView', () => ({
+  GestureWebView: () => null,
+}));
 
 jest.mock('react-native-svg', () => {
   const React = require('react');
@@ -71,9 +95,13 @@ jest.mock('react-native-svg', () => {
   };
 });
 
+const { MediaPipeGestureDetector } = require('../../src/components/MediaPipeGestureDetector');
+
+console.log('MediaPipeGestureDetector from require:', MediaPipeGestureDetector);
+
 import TrainingScreen from '../../src/screens/TrainingScreen';
 
-describe.skip('TrainingScreen', () => {
+describe('TrainingScreen', () => {
   let component: renderer.ReactTestRenderer | null = null;
 
   afterEach(() => {

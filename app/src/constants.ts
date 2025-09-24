@@ -4,7 +4,7 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000
 export const API_TOKEN = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
 export const CONFIDENCE_THRESHOLD = 0.7;
 // Amy First: Lower thresholds for imperfect gestures (22q11 syndrome)
-export const MLP_CONFIDENCE_THRESHOLD = 0.05;
+export const MLP_CONFIDENCE_THRESHOLD = 0.15;
 // Lower bound for rule-based gesture fallback when MLP confidence is low
 export const FALLBACK_CONFIDENCE_THRESHOLD = 0.3;
 export const ANALYTICS_ENDPOINT = `${API_URL}/analytics`;
