@@ -2,9 +2,14 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 
-// Resolve paths based on working directory. Integration and runtime start from server/.
-export const SERVER_DIR = path.resolve(process.cwd());
-export const DATA_DIR = path.join(SERVER_DIR, '..', 'data');
+const explicitDataDir = process.env.AMY_ECHO_DATA_DIR || process.env.AMY_DATA_DIR;
+
+// Derive server directory from this module location to avoid cwd surprises.
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+export const SERVER_DIR = path.resolve(moduleDir, '..', '..');
+export const DATA_DIR = explicitDataDir
+  ? path.resolve(explicitDataDir)
+  : path.join(SERVER_DIR, 'data');
 
 // Centroid-based model path (JSON)
 export const TRAINED_MODEL_PATH = path.join(DATA_DIR, 'trained_model.json');
@@ -30,6 +35,7 @@ export const TRAINED_MLP_MODEL_PATH = path.join(DATA_DIR, 'dgs_model.npz');
 export function getMlpModelPath(profileId?: string): string {
   return getProfiledPath(TRAINED_MLP_MODEL_PATH, profileId);
 }
+export const BASELINE_MLP_MODEL_PATH = path.join(SERVER_DIR, '..', 'data', 'dgs_model.npz');
 export const GESTURE_LABELS_PATH = path.join(
   SERVER_DIR,
   '../app/assets/models/gesture_labels.json',

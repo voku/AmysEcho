@@ -3,27 +3,17 @@ import renderer, { act } from 'react-test-renderer';
 
 jest.mock('react-native', () => {
   const React = require('react');
+  const createElement = (name: string) => (props: any) => React.createElement(name, props, props.children);
+
   return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    Text: (p: any) => React.createElement('Text', p, p.children),
-    Button: (p: any) => React.createElement('Button', p, p.children),
-    StyleSheet: { create: (s: any) => s },
-    SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
+    View: createElement('View'),
+    Text: createElement('Text'),
+    Pressable: createElement('Pressable'),
+    StyleSheet: { create: (styles: any) => styles, absoluteFill: { position: 'absolute' } },
+    SafeAreaView: createElement('SafeAreaView'),
     AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
   } as any;
 });
-
-jest.mock('react-native-webview', () => ({
-  WebView: () => null,
-}));
-
-jest.mock('react-native-webview/lib/WebViewTypes', () => ({}));
-
-
-
-jest.mock('../../src/components/GestureWebView', () => ({
-  GestureWebView: () => null,
-}));
 
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
@@ -48,21 +38,27 @@ jest.mock('../../src/components/DgsVideoPlayer', () => () => null);
 jest.mock('../../src/components/PerformanceAnalytics', () => () => null);
 jest.mock('../../src/components/PracticeSessionManager', () => () => null);
 
-jest.mock('../../src/hooks/useModelInjection', () => ({
-  useModelInjection: () => ({}),
-}));
-
-jest.mock('../../src/services/dgsModelClient', () => ({
-  fetchMlpModel: jest.fn(),
-  getCachedMlpModel: jest.fn(),
-}));
-
 jest.mock('../../src/services', () => ({
-  audioService: { playEncouragement: jest.fn() },
+  audioService: {
+    playEncouragement: jest.fn(),
+    playCelebrationFeedback: jest.fn(),
+  },
 }));
 
 jest.mock('../../src/services/hipEvents', () => ({
   logHIPEvent: jest.fn(),
+}));
+
+jest.mock('../../src/services/positiveTelemetryService', () => ({
+  positiveTelemetryService: { recordSuccess: jest.fn() },
+}));
+
+jest.mock('../../src/styles/touchTargets', () => ({
+  childFriendlyStyles: { minTouchTarget: { minWidth: 60, minHeight: 60 } },
+}));
+
+jest.mock('../../src/utils/hapticUtils', () => ({
+  hapticFeedback: { light: jest.fn() },
 }));
 
 jest.mock('../../src/model', () => ({
@@ -70,9 +66,9 @@ jest.mock('../../src/model', () => ({
 }));
 
 jest.mock('../../src/storage', () => ({
-  saveTrainingSample: jest.fn(async () => {}),
-  loadProfile: jest.fn(async () => null),
-  loadActiveProfileId: jest.fn(async () => null),
+  saveTrainingSample: jest.fn(() => Promise.resolve()),
+  loadProfile: jest.fn(() => Promise.resolve(null)),
+  loadActiveProfileId: jest.fn(() => Promise.resolve(null)),
   onActiveProfileChange: jest.fn(),
 }));
 
@@ -80,24 +76,22 @@ jest.mock('../../src/utils/logger', () => ({
   logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 
-
-
-jest.mock('../../src/components/GestureWebView', () => ({
-  GestureWebView: () => null,
-}));
-
 jest.mock('react-native-svg', () => {
   const React = require('react');
   return {
     __esModule: true,
-    default: (p: any) => React.createElement('Svg', p, p.children),
-    Circle: (p: any) => React.createElement('Circle', p),
+    default: (props: any) => React.createElement('Svg', props, props.children),
+    Circle: (props: any) => React.createElement('Circle', props),
   };
 });
 
-const { MediaPipeGestureDetector } = require('../../src/components/MediaPipeGestureDetector');
-
-console.log('MediaPipeGestureDetector from require:', MediaPipeGestureDetector);
+jest.mock('../../src/components/MediaPipeGestureDetector', () => {
+  const React = require('react');
+  return {
+    MediaPipeGestureDetector: (props: any) =>
+      React.createElement('MediaPipeGestureDetector', props, props.children),
+  };
+});
 
 import TrainingScreen from '../../src/screens/TrainingScreen';
 
@@ -112,27 +106,42 @@ describe('TrainingScreen', () => {
   });
 
   it('records landmarks via MediaPipe gesture detector', async () => {
-    const { saveTrainingSample } = require('../../src/storage');
+    const { saveTrainingSample, loadProfile } = require('../../src/storage');
+    (loadProfile as jest.Mock).mockResolvedValue(null);
+    (saveTrainingSample as jest.Mock).mockResolvedValue(undefined);
     await act(async () => {
       component = renderer.create(
         <TrainingScreen navigation={{ goBack: jest.fn() }} route={{ params: { gestureLabel: 'hello' } }} /> as any,
       );
       await Promise.resolve();
     });
+
     expect(component).not.toBeNull();
-    const button = component!.root.findByType('Button');
+
+    const recordPressable = component!
+      .root
+      .findAll((node) => node.type === 'Pressable' && node.props.accessibilityLabel === 'Gestenaufnahme starten')[0];
+
     act(() => {
-      button.props.onPress();
+      recordPressable.props.onPress();
     });
+
     const detector = component!.root.findByType('MediaPipeGestureDetector');
     act(() => {
       detector.props.onGestureDetected(null, 0.9, [[[1, 2, 3]]], ['Left']);
     });
+
     await act(async () => {
-      button.props.onPress();
+      recordPressable.props.onPress();
       await Promise.resolve();
     });
-    expect(saveTrainingSample).toHaveBeenCalledWith('hello', [{ landmarks: [[[1, 2, 3]]], handedness: ['Left'] }], 'HIP_2');
+
+    expect(saveTrainingSample).toHaveBeenCalledWith(
+      'hello',
+      [{ landmarks: [[[1, 2, 3]]], handedness: ['Left'] }],
+      'HIP_2',
+    );
+
     const { sendDgsSample } = require('../../src/services/dgsTrainingService');
     expect(sendDgsSample).toHaveBeenCalledWith(
       'hello',
@@ -141,4 +150,3 @@ describe('TrainingScreen', () => {
     );
   });
 });
-

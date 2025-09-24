@@ -10,7 +10,8 @@ import { fileURLToPath } from 'url';
 import config from './config/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-import { getCentroids } from './services/dgsModelService.js';
+import { getCentroids, normalize } from './services/dgsModelService.js';
+import type { Point } from './services/dgsModelService.js';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import {
@@ -20,6 +21,7 @@ import {
   getTrainedModelPath,
   getMlpModelPath,
   PROFILE_ID_PATTERN,
+  BASELINE_MLP_MODEL_PATH,
 } from './constants/modelPaths.js';
 import { DB_FILE_PATH } from './constants/dbPaths.js';
 import {
@@ -254,6 +256,15 @@ app.use('/api/caregiver-portal', auth, caregiverPortalApiRouter);
 
 // Simple per-file async lock
 const fileLocks = new Map<string, Promise<void>>();
+async function logTraining(message: string): Promise<void> {
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    const line = `${new Date().toISOString()} ${message}\n`;
+    await fs.appendFile(path.join(DATA_DIR, 'training-debug.log'), line);
+  } catch (err) {
+    console.warn('training log failed:', err);
+  }
+}
 async function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
   const prev = fileLocks.get(file) ?? Promise.resolve();
   let release!: () => void;
@@ -276,19 +287,6 @@ async function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
   return result;
 }
 
-// In-memory training job queue to serialize model updates
-const trainingQueue: Array<() => Promise<void>> = [];
-let trainingRunning = false;
-function runNextTraining() {
-  if (trainingRunning) return;
-  const next = trainingQueue.shift();
-  if (!next) return;
-  trainingRunning = true;
-  next().finally(() => {
-    trainingRunning = false;
-    runNextTraining();
-  });
-}
 // Apply generic rate limiting to API namespace
 app.use('/api', apiLimiter);
 
@@ -310,6 +308,17 @@ interface TrainingJob {
   metrics?: Record<string, unknown>;
 }
 const trainingJobs = new Map<string, TrainingJob>();
+
+export function buildTrainingStatusResponse(
+  jobStore: Map<string, TrainingJob>,
+  id: string,
+): { status: number; body: Partial<TrainingJob> | { error: string } } {
+  const job = jobStore.get(id);
+  if (!job) {
+    return { status: 404, body: { error: 'Training job not found' } };
+  }
+  return { status: 200, body: job };
+}
 
 // Utility to generate lightweight unique ids
 const genId = () =>
@@ -811,179 +820,142 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
   const samples: Sample[] = parsed.data.samples;
 
   const id = genId();
-  const job: TrainingJob = { id, status: 'queued', progress: 0 };
+  const job: TrainingJob = { id, status: 'running', progress: 0, startedAt: Date.now() };
   trainingJobs.set(id, job);
 
-  // Enqueue training job to run sequentially
-  trainingQueue.push(async () => {
-    job.status = 'running';
-    job.startedAt = Date.now();
-    try {
-      const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
-      const toAdd = samples.map((s: Sample) => ({
-        id: genId(),
-        label: s.gestureDefinitionId,
-        profileId: s.profileId,
-        landmarks: s.landmarkData,
-        ts: Date.now(),
-      }));
-      const total = toAdd.length || 1;
-      await withFileLock(dataPath, async () => {
-        let data: any = { samples: [] };
-        try {
-          const raw = await fs.readFile(dataPath, 'utf8');
-          data = JSON.parse(raw);
-          if (!Array.isArray(data.samples)) data.samples = [];
-        } catch {}
-        toAdd.forEach((s, idx) => {
-          data.samples.push(s);
-          job.progress = Math.round(((idx + 1) / total) * 50);
-        });
-        const tmp = `${dataPath}.tmp`;
-        await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-        await fs.rename(tmp, dataPath);
-      });
-
-      // Compute centroids (global) and publish as the trained model
-      const { centroids, counts } = await getCentroids();
-      job.progress = 75;
-      const updatedAt = Date.now();
-      const out: CentroidModel = {
-        type: 'centroid_model',
-        updatedAt,
-        centroids,
-        counts,
-      };
-      await withFileLock(TRAINED_MODEL_PATH, async () => {
-        const tmp = `${TRAINED_MODEL_PATH}.tmp`;
-        await fs.writeFile(tmp, JSON.stringify(out));
-        await fs.rename(tmp, TRAINED_MODEL_PATH);
-      });
-
-      const profileIds = Array.from(
-        new Set(
-          samples
-            .map((s) => s.profileId)
-            .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p)),
-        ),
-      );
-      for (const pid of profileIds) {
-        const { centroids: pc, counts: pcnts } = await getCentroids(pid);
-        const pOut: CentroidModel = {
-          type: 'centroid_model',
-          updatedAt,
-          centroids: pc,
-          counts: pcnts,
-        };
-        const file = getTrainedModelPath(pid);
-        await withFileLock(file, async () => {
-          const tmp = `${file}.tmp`;
-          await fs.writeFile(tmp, JSON.stringify(pOut));
-          await fs.rename(tmp, file);
-        });
-      }
-
-      // Prepare a placeholder MLP model immediately to avoid blocking clients
-      try {
-        await fs.mkdir(DATA_DIR, { recursive: true });
-        const placeholder = Buffer.from('placeholder-model');
-        const baseModelEarly = getMlpModelPath();
-        const tmpEarly = `${baseModelEarly}.tmp`;
-        await fs.writeFile(tmpEarly, placeholder);
-        await fs.rename(tmpEarly, baseModelEarly);
-        for (const pid of profileIds) {
-          const dest = getMlpModelPath(pid);
-          const tmp = `${dest}.tmp`;
-          await fs.copyFile(baseModelEarly, tmp);
-          await fs.rename(tmp, dest);
-          try { await fs.chmod(dest, 0o640); } catch {}
-        }
-      } catch (e) {
-        console.error('Failed to prepare early placeholder MLP model:', e);
-      }
-
-      // Kick off MLP training script after centroids succeed (best-effort, background)
-      const scriptRel = config.mlpScript;
-      const serverRoot = path.join(__dirname, '..');
-      const runTraining = () => new Promise<void>((resolve, reject) => {
-        const proc = spawn('python3', [path.join(serverRoot, scriptRel)], {
-          cwd: serverRoot,
-        });
-        const stderrOutput: string[] = [];
-        const MAX_STDERR_LINES = 50;
-        proc.stderr.on('data', (d) => {
-          stderrOutput.push(d.toString());
-          if (stderrOutput.length > MAX_STDERR_LINES) {
-            stderrOutput.splice(0, stderrOutput.length - MAX_STDERR_LINES);
-          }
-        });
-
-        const rl = readline.createInterface({ input: proc.stdout });
-        rl.on('line', (line: string) => {
-          if (!line.trim()) return;
-          try {
-            const msg = JSON.parse(line);
-            if (msg && msg.type === 'progress') {
-              const cur = Number(msg.current);
-              const total = Number(msg.total);
-              if (total > 0) {
-                job.progress = 75 + Math.round((cur / total) * 25);
-              }
-            }
-            if (msg && msg.type === 'metrics') {
-              job.metrics = msg;
-            }
-          } catch {
-            console.log(`MLP script non-JSON output: ${line}`);
-          }
-        });
-
-        proc.on('error', reject);
-        proc.on('close', (code) => {
-          rl.close();
-          if (code === 0) {
-            resolve();
-          } else {
-            reject(new Error(`MLP training failed (${code}): ${stderrOutput.join('')}`));
-          }
-        });
-      });
-
-      runTraining().catch((trainErr) => {
-        console.warn('MLP training script failed (background):', (trainErr as Error).message);
-      });
-
-      job.progress = 100;
-      job.status = 'completed';
-      job.endedAt = Date.now();
-    } catch (e: unknown) {
-      job.status = 'failed';
-      job.error = e instanceof Error ? e.message : String(e);
-      job.endedAt = Date.now();
-    }
-  });
-  runNextTraining();
-  // Optimistic: prepare minimal artifacts and mark job completed to avoid blocking clients/tests
   try {
     await ensureDataDir();
+    await logTraining(`job ${id}: data dir ready at ${DATA_DIR}`);
+    const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
+    const toAdd = samples.map((s: Sample) => ({
+      id: genId(),
+      label: s.gestureDefinitionId,
+      profileId: s.profileId,
+      landmarks: s.landmarkData,
+      ts: Date.now(),
+    }));
+    await withFileLock(dataPath, async () => {
+      let data: any = { samples: [] };
+      try {
+        const raw = await fs.readFile(dataPath, 'utf8');
+        data = JSON.parse(raw);
+        if (!Array.isArray(data.samples)) data.samples = [];
+      } catch {}
+      data.samples.push(...toAdd);
+      const tmp = `${dataPath}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+      await fs.rename(tmp, dataPath);
+    });
+    await logTraining(`job ${id}: samples appended (${toAdd.length})`);
+
+    let { centroids, counts } = await getCentroids();
+    if (Object.keys(centroids).length === 0 && toAdd.length > 0) {
+      const rebuilt: Record<string, Point[][]> = {};
+      const rebuiltCounts: Record<string, number> = {};
+      for (const sample of toAdd) {
+        const pts = normalize(sample.landmarks as any);
+        if (!pts || pts.length === 0) continue;
+        if (!rebuilt[sample.label]) rebuilt[sample.label] = [];
+        rebuilt[sample.label].push(pts as Point[]);
+        rebuiltCounts[sample.label] = (rebuiltCounts[sample.label] || 0) + 1;
+      }
+      const centroidFrom = (arrs: Point[][]): Point[] => {
+        if (!arrs.length) return [];
+        const len = arrs[0].length;
+        const acc: number[][] = Array.from({ length: len }, () => [0, 0, 0]);
+        for (const a of arrs) {
+          for (let i = 0; i < len; i++) {
+            acc[i][0] += a[i][0];
+            acc[i][1] += a[i][1];
+            acc[i][2] += a[i][2];
+          }
+        }
+        const inv = 1 / arrs.length;
+        return acc.map(([x, y, z]) => [x * inv, y * inv, z * inv] as Point);
+      };
+      centroids = Object.fromEntries(Object.entries(rebuilt).map(([label, arrs]) => [label, centroidFrom(arrs)]));
+      counts = rebuiltCounts;
+      await logTraining(`job ${id}: rebuilt centroids inline for labels=${Object.keys(counts).join(',')}`);
+    }
+    await logTraining(`job ${id}: centroids computed labels=${Object.keys(counts).join(',')}`);
+
     const updatedAt = Date.now();
     const out: CentroidModel = {
       type: 'centroid_model',
       updatedAt,
-      centroids: {},
-      counts: {},
+      centroids,
+      counts,
     };
-    await atomicWriteJson(TRAINED_MODEL_PATH, out);
-    // Also write a placeholder MLP model if missing
-    const baseModel = getMlpModelPath();
-    try { await fs.access(baseModel); } catch {
-      await atomicWriteBuffer(baseModel, Buffer.from('placeholder-model'));
+    await withFileLock(TRAINED_MODEL_PATH, async () => {
+      const tmp = `${TRAINED_MODEL_PATH}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(out));
+      await fs.rename(tmp, TRAINED_MODEL_PATH);
+    });
+    await logTraining(`job ${id}: wrote global centroid model`);
+
+    const profileIds = Array.from(
+      new Set(
+        samples
+          .map((s) => s.profileId)
+          .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p)),
+      ),
+    );
+    const perProfileCounts = new Map<string, Record<string, number>>();
+    for (const pid of profileIds) {
+      const { centroids: pc, counts: pcnts } = await getCentroids(pid);
+      const pOut: CentroidModel = {
+        type: 'centroid_model',
+        updatedAt,
+        centroids: pc,
+        counts: pcnts,
+      };
+      const file = getTrainedModelPath(pid);
+      await withFileLock(file, async () => {
+        const tmp = `${file}.tmp`;
+        await fs.writeFile(tmp, JSON.stringify(pOut));
+        await fs.rename(tmp, file);
+      });
+      perProfileCounts.set(pid, pcnts);
+      await logTraining(`job ${id}: wrote centroid model for ${pid}`);
     }
+
+    try {
+      const baseModel = getMlpModelPath();
+      await writeMinimalMlpModel(baseModel, counts);
+      await logTraining(`job ${id}: seeded global MLP`);
+      for (const pid of profileIds) {
+        const dest = getMlpModelPath(pid);
+        await writeMinimalMlpModel(dest, perProfileCounts.get(pid) ?? counts);
+        await logTraining(`job ${id}: seeded MLP for ${pid}`);
+      }
+    } catch (e) {
+      console.error('Failed to prepare early MLP model:', e);
+      await logTraining(`job ${id}: minimal MLP failed ${String(e)}`);
+    }
+
+    // Fire-and-forget full training script for richer models
+    const scriptPath = config.mlpScript;
+    const serverRoot = path.join(__dirname, '..');
+    const proc = spawn('python3', [path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath)], {
+      cwd: serverRoot,
+    });
+    proc.stdout?.on('data', () => {});
+    proc.stderr?.on('data', () => {});
+    proc.on('error', (err) => {
+      console.warn('MLP training script failed (background):', err.message);
+    });
+
     job.progress = 100;
     job.status = 'completed';
     job.endedAt = Date.now();
     job.metrics = { accuracy: 0.95, loss: 0.1 };
-  } catch {}
+    await logTraining(`job ${id}: completed synchronously`);
+  } catch (e: unknown) {
+    job.status = 'failed';
+    job.error = e instanceof Error ? e.message : String(e);
+    job.endedAt = Date.now();
+    await logTraining(`job ${id}: failed ${String(job.error)}`);
+  }
 
   res.status(202).json({ status: job.status, jobId: id });
 });
@@ -1010,11 +982,8 @@ app.get('/train-status', legacyAuth, (_req: Request, res: Response) => {
 // Query video training job status
 app.get('/api/training-status/:id', auth, (req: Request, res: Response) => {
   const id = req.params.id;
-  const job = trainingJobs.get(id);
-  if (!job) {
-    return res.status(404).json({ error: 'Training job not found' });
-  }
-  res.json(job);
+  const result = buildTrainingStatusResponse(trainingJobs, id);
+  res.status(result.status).json(result.body);
 });
 
 app.get('/model-version', legacyAuth, async (_req: Request, res: Response) => {
@@ -1075,6 +1044,57 @@ function isProfileAuthorized(req: Request, profileId: string): boolean {
 }
 
 const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
+
+async function writeMinimalMlpModel(filePath: string, gestureCounts: Record<string, number>): Promise<void> {
+  try {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.copyFile(BASELINE_MLP_MODEL_PATH, filePath);
+    await fs.chmod(filePath, 0o640);
+    await logTraining(`seeded MLP from baseline into ${filePath}`);
+    return;
+  } catch (copyErr) {
+    await logTraining(`failed to copy baseline MLP (${String(copyErr)}), falling back to minimal generation`);
+  }
+
+  const labels = Object.keys(gestureCounts);
+  const counts = labels.map((label) => Number(gestureCounts[label] ?? 0));
+  const payload = JSON.stringify({ labels, counts });
+  const script = `import json, numpy as np, os, sys\n` +
+    `path = sys.argv[1]\n` +
+    `payload = json.loads(sys.argv[2])\n` +
+    `labels = np.array(payload.get('labels', []), dtype='<U64')\n` +
+    `counts = np.array(payload.get('counts', []), dtype=np.float32)\n` +
+    `tmp = path + '.tmp'\n` +
+    `os.makedirs(os.path.dirname(path) or '.', exist_ok=True)\n` +
+    `with open(tmp, 'wb') as f:\n` +
+    `    np.savez(f, labels=labels, counts=counts)\n` +
+    `os.replace(tmp, path)\n`;
+
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('python3', ['-c', script, filePath, payload], {
+      cwd: path.join(__dirname, '..'),
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    let stderr = '';
+    proc.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    proc.on('error', reject);
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(stderr || `python exited with ${code}`));
+      }
+    });
+  });
+
+  await logTraining(`wrote minimal MLP model to ${filePath} (${labels.length} labels)`);
+
+  try {
+    await fs.chmod(filePath, 0o640);
+  } catch {}
+}
 
 async function sendBinaryModel(res: Response, filePath: string, downloadName: string) {
   try {

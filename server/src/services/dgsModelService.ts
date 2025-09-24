@@ -1,7 +1,7 @@
 import path from 'path';
 import { DATA_DIR } from '../constants/modelPaths.js';
 import { promises as fs } from 'fs';
-type Point = [number, number, number];
+export type Point = [number, number, number];
 const HAND_SIZE = 21;
 
 // Define possible landmark formats
