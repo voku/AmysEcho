@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url';
 const explicitDataDir = process.env.AMY_ECHO_DATA_DIR || process.env.AMY_DATA_DIR;
 
 // Derive server directory from this module location to avoid cwd surprises.
-const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const moduleDir: string = typeof __dirname !== 'undefined'
+  ? __dirname
+  : path.dirname(fileURLToPath(import.meta.url));
 export const SERVER_DIR = path.resolve(moduleDir, '..', '..');
 export const DATA_DIR = explicitDataDir
   ? path.resolve(explicitDataDir)

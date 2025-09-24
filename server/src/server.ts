@@ -21,6 +21,7 @@ import {
   getTrainedModelPath,
   getMlpModelPath,
   PROFILE_ID_PATTERN,
+  SERVER_DIR,
   BASELINE_MLP_MODEL_PATH,
 } from './constants/modelPaths.js';
 import { DB_FILE_PATH } from './constants/dbPaths.js';
@@ -261,6 +262,7 @@ async function logTraining(message: string): Promise<void> {
     await fs.mkdir(DATA_DIR, { recursive: true });
     const line = `${new Date().toISOString()} ${message}\n`;
     await fs.appendFile(path.join(DATA_DIR, 'training-debug.log'), line);
+    await fs.appendFile(path.join(SERVER_DIR, 'training-debug.log'), line);
   } catch (err) {
     console.warn('training log failed:', err);
   }
@@ -1174,16 +1176,20 @@ app.get('/latest-mlp-model', legacyAuth, async (req: Request, res: Response) => 
   try {
     await fs.stat(profiledPath);
     chosen = profiledPath;
+    await logTraining(`latest-mlp-model resolved profile file ${profiledPath}`);
   } catch {
     try {
       await fs.stat(globalPath);
       chosen = globalPath;
+      await logTraining(`latest-mlp-model falling back to global file ${globalPath}`);
     } catch {
       // Neither exists — respond with 404 to match tests
+      await logTraining(`latest-mlp-model missing profile=${profileId ?? 'global'}`);
       return res.status(404).json({ error: 'Model not found' });
     }
   }
 
+  await logTraining(`latest-mlp-model serving ${chosen}`);
   await sendBinaryModel(
     res,
     chosen,
