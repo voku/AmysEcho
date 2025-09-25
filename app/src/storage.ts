@@ -20,6 +20,8 @@ const ACTIVE_PROFILE_KEY = 'activeProfileId';
 
 export interface TrainingFrame {
   landmarks: number[][][];
+  // Values provided by MediaPipe such as "Left" / "Right"; optional when detector omits them
+  handedness?: ReadonlyArray<string>;
 }
 
 export interface TrainingSample {

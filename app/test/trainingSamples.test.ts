@@ -20,7 +20,13 @@ describe('training sample persistence', () => {
   });
 
   it('saves samples and counts them', async () => {
-    const frame: TrainingFrame = { landmarks: [[[1, 2, 3]]], handedness: ['Left'] } as any;
+    const frame: TrainingFrame = {
+      landmarks: [
+        [
+          [1, 2, 3],
+        ],
+      ],
+    };
     const sampleA = createTrainingSample({
       profileId: 'default',
       label: 'g1',

@@ -6,10 +6,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { unzipSync, strFromU8 } from 'fflate';
 
-type TrainingFrame = {
-  landmarks: number[][][];
-  handedness: string[];
-};
+import type { TrainingFrame } from '../../src/storage';
 
 async function loadSampleFrame(): Promise<TrainingFrame> {
   const repoRoot = path.resolve(__dirname, '../../..');
@@ -239,7 +236,18 @@ describe('uploadTrainingBundle spike', () => {
     const clipPath = path.join(fsTempRoot, 'clip.mp4');
     await fs.writeFile(clipPath, Buffer.from('clip-data'), 'utf8');
 
-    const frames: TrainingFrame[] = [await loadSampleFrame()];
+    const baseFrame = await loadSampleFrame();
+    const cloneHand = (hand: number[][]) => hand.map((point) => [...point]);
+    const frames: TrainingFrame[] = [
+      baseFrame,
+      {
+        landmarks: [
+          cloneHand(baseFrame.landmarks[1] ?? []),
+          cloneHand(baseFrame.landmarks[0] ?? []),
+        ],
+        handedness: ['Right', 'Left'],
+      },
+    ];
 
     const result = await uploadTrainingBundle(
       {
@@ -270,8 +278,10 @@ describe('uploadTrainingBundle spike', () => {
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
     });
-    expect(entry.frames[0].handedness).toEqual(frames[0].handedness);
-    expect(entry.frames[0].landmarks[0]).toEqual(frames[0].landmarks[0][0]);
+    expect(entry.frames[0].handedness).toEqual(['Left', 'Right']);
+    expect(entry.frames[1].handedness).toEqual(['Left', 'Right']);
+    expect(entry.frames[0].landmarks[0]).toEqual(baseFrame.landmarks[0][0]);
+    expect(entry.frames[1].landmarks[0]).toEqual(baseFrame.landmarks[0][0]);
     expect(entry.files).toEqual(expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.mp4']));
   });
 });

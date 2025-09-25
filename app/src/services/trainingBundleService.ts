@@ -41,10 +41,55 @@ function buildMetadata(payload: TrainingBundlePayload) {
   };
 }
 
-function buildFrameTimeline(frames: TrainingFrame[]) {
-  return frames.map((frame) => ({
-    landmarks: flattenHandsWithHandedness(frame.landmarks, []),
-  }));
+function alignHandednessForTimeline(
+  handedness: ReadonlyArray<string> | undefined,
+): string[] {
+  if (!handedness) {
+    return [];
+  }
+
+  const entries = handedness
+    .map((label) =>
+      typeof label === 'string'
+        ? { raw: label, normalized: label.trim() }
+        : null,
+    )
+    .filter((entry): entry is { raw: string; normalized: string } => !!entry && entry.normalized.length > 0);
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const leftEntry = entries.find((entry) => /left/i.test(entry.normalized));
+  const rightEntry = entries.find((entry) => /right/i.test(entry.normalized));
+
+  const aligned: string[] = [];
+  if (leftEntry) {
+    aligned.push(leftEntry.raw);
+  }
+  if (rightEntry && rightEntry !== leftEntry) {
+    aligned.push(rightEntry.raw);
+  }
+
+  entries.forEach((entry) => {
+    if (entry !== leftEntry && entry !== rightEntry) {
+      aligned.push(entry.raw);
+    }
+  });
+
+  return aligned;
+}
+
+function buildFrameTimeline(
+  frames: TrainingFrame[],
+): { handedness: string[]; landmarks: number[][] }[] {
+  return frames.map((frame) => {
+    const rawHandedness = Array.from(frame.handedness ?? []);
+    const handedness = alignHandednessForTimeline(rawHandedness);
+    return {
+      handedness,
+      landmarks: flattenHandsWithHandedness(frame.landmarks, rawHandedness),
+    };
+  });
 }
 
 type LegacyFileSystemModule = Partial<typeof FileSystem> & {
