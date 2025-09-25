@@ -63,13 +63,23 @@ export function getTrainedModelPath(profileId?: string): string {
 // MLP model path (.npz)
 export const TRAINED_MLP_MODEL_PATH = path.join(DATA_DIR, 'amy_model.npz');
 export function getMlpModelPath(profileId?: string): string {
-  return getProfiledPath(TRAINED_MLP_MODEL_PATH, profileId);
+  if (!profileId) {
+    return TRAINED_MLP_MODEL_PATH;
+  }
+  if (!PROFILE_ID_PATTERN.test(profileId)) {
+    throw new Error('Invalid profileId');
+  }
+  return path.join(DATA_DIR, `dgs_model_${profileId}.npz`);
 }
 export const BASELINE_MLP_MODEL_PATH = path.join(SERVER_DIR, '..', 'data', 'amy_model.npz');
 export const GESTURE_LABELS_PATH = path.join(
   SERVER_DIR,
   '../app/assets/models/gesture_labels.json',
 );
+
+export const TRAINING_UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+export const TRAINING_DATASETS_DIR = path.join(DATA_DIR, 'datasets');
+export const TRAINING_MANIFEST_PATH = path.join(TRAINING_DATASETS_DIR, 'training_manifest.json');
 
 // Ensure DATA_DIR exists before any read/write
 export async function ensureDataDir(): Promise<void> {
