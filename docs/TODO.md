@@ -29,7 +29,7 @@ We have MediaPipe capture working in the app and a Python MLP trainer on the ser
 
 ## 3. Ingest Bundles on the Server (`server/`)
 - [ ] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/` and register them in `data/datasets/training_manifest.json`.
-- [ ] Update the caregiver moderation portal (`server/src/portal/index.ts`) to display bundle metadata and play the attached clip before approval. Point reviewers to the stored manifest entries instead of `db.gestureTrainingData`.
+- [x] Update the caregiver moderation portal (`server/src/portal/index.ts`) to display bundle metadata and play the attached clip before approval. Point reviewers to the stored manifest entries instead of `db.gestureTrainingData`.
 - [ ] Write integration tests in `server/test/trainingBundles.test.ts` that POST a fixture zip and assert the manifest entry (include a fixture example in `server/test/fixtures/trainingBundle.zip`).
 
 ## 4. Retrain the Model with Bundle Data (`server/src/amyserver_tools`)
