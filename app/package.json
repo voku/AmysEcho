@@ -21,7 +21,6 @@
     "clean": "rm -rf node_modules/.cache && rm -rf .expo && rm -rf dist"
   },
   "dependencies": {
-    "@expo/metro-config": "^54.0.4",
     "@nozbe/watermelondb": "0.28.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.4.1",
@@ -29,10 +28,10 @@
     "@react-navigation/stack": "6.4.1",
     "buffer": "^6.0.3",
     "crypto-js": "4.2.0",
-    "expo": "^54.0.9",
+    "expo": "~54.0.10",
     "expo-audio": "^1.0.13",
     "expo-camera": "^17.0.8",
-    "expo-file-system": "^19.0.14",
+    "expo-file-system": "~19.0.15",
     "expo-haptics": "^15.0.7",
     "expo-linear-gradient": "^15.0.7",
     "expo-secure-store": "^15.0.7",
