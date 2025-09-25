@@ -32,12 +32,13 @@ This backlog turns the high-level roadmap into implementation-ready next steps f
 ### 2. Sample Packaging & Background Upload
 - [ ] Introduce a batching helper (e.g., `queueTrainingUpload(samples: TrainingSample[])`) that groups the frame-by-frame `sendDgsSample` calls into a single encrypted payload when the caregiver chooses "upload now".
   - Use the existing offline storage in `saveTrainingSample` and include `profileId` so the server can differentiate personalization candidates.
-- [ ] Schedule background flushes via the existing job infrastructure (`app/src/services/dailyJobs.ts`) to retry uploads when Wi‑Fi + charging criteria are met.
+  - Ensure the legacy `syncTrainingData` job in `app/src/services/dgsTrainingService.ts` reads the same per-profile buckets so previously queued samples are not lost when batching is enabled.
+- [ ] Design a dedicated background flush (likely via `expo-task-manager` or a headless JS task) because `app/src/services/dailyJobs.ts` currently lacks power/network gating; add Wi‑Fi + charging checks before dispatching the queued payload.
 - [ ] Add retry/backoff semantics to `sendDgsSample` (wrap abort controller errors into a queue) and emit German toasts when retries exhaust.
 
 ### 3. Server Ingestion, Review & Quality Control
-- [ ] Expand the `/api/v1/dgs/samples` schema to accept optional metadata (lighting, caregiver notes) and persist alongside `label`/`profileId` in `data/dgs_samples.json`.
-- [ ] Build a moderation queue UI in the caregiver portal that surfaces the newest entries from `data/dgs_samples.json`, reusing the endpoints in `server/src/portal/index.ts` for approve/delete actions.
+- [ ] Expand the `/api/v1/dgs/samples` schema to accept optional metadata (lighting, caregiver notes) and persist alongside `label`/`profileId` in `data/dgs_samples.json`; update the handler to accept an array payload so the client batching helper can post multiple frames at once.
+- [ ] Build a moderation queue UI in the caregiver portal that surfaces the newest entries from `data/dgs_samples.json`, and either extend the existing endpoints in `server/src/portal/index.ts` to read/write that file or add parallel routes dedicated to the new dataset before wiring the UI.
 - [ ] Implement automated validators server-side (e.g., blur detection, min frame count) that mirror the client `validateLandmarkSequence` heuristics before records are marked `approved`.
 - [ ] Provide an export endpoint that bundles approved samples plus metadata into a signed archive for offline review.
 
@@ -57,7 +58,7 @@ This backlog turns the high-level roadmap into implementation-ready next steps f
 - [ ] Feed training job progress (`server/src/server.ts` training job registry) into caregiver dashboards so they can watch when their uploads trigger retraining.
 - [ ] Aggregate post-deployment metrics (recognition accuracy, emergency gesture latency) and write them to a new `modelPerformance` collection in `server/src/db.ts` for portal visualization.
 - [ ] Add hooks in `app/src/screens/RecognitionScreen.tsx` to prompt caregivers for quick feedback after a new model goes live, storing responses with the active `modelVersion`.
-- [ ] Document the entire loop (capture ➜ upload ➜ approve ➜ train ➜ distribute ➜ monitor) in `docs/` with links back to each code touchpoint above so onboarding agents can ramp quickly.
+- [ ] Document the entire loop (capture ➜ upload ➜ approve ➜ train ➜ distribute ➜ monitor) in `docs/` with links back to each code touchpoint above so onboarding agents can ramp quickly, and include a sequence diagram or flowchart that visualizes the transitions.
 
 ---
 
