@@ -53,7 +53,6 @@ type LegacyFileSystemModule = Partial<typeof FileSystem> & {
   cacheDirectory?: string;
   documentDirectory?: string;
   EncodingType?: { UTF8: string; Base64: string };
-  FileSystemUploadType?: { BINARY_CONTENT: string };
 };
 
 function isUploadResponse(obj: unknown): obj is { id: string; status?: unknown } {
@@ -92,6 +91,13 @@ export async function uploadTrainingBundle(
   if (!baseDir) {
     throw new Error(
       'Temporäres Verzeichnis für das Trainingspaket nicht verfügbar. (Temporary training bundle directory unavailable.)',
+    );
+  }
+
+  const uploadType = FileSystem.FileSystemUploadType?.BINARY_CONTENT;
+  if (uploadType === undefined) {
+    throw new Error(
+      'Datei-Upload-Typ nicht verfügbar. (FileSystem binary upload type unavailable.)',
     );
   }
 
@@ -142,7 +148,7 @@ export async function uploadTrainingBundle(
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
-        uploadType: (legacyFs.FileSystemUploadType?.BINARY_CONTENT ?? 'BINARY_CONTENT') as any,
+        uploadType,
       },
     );
 

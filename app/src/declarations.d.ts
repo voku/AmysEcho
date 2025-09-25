@@ -11,6 +11,13 @@ declare module 'expo-crypto' {
   ): Promise<string>;
 }
 
+declare module 'expo-file-system' {
+  export enum FileSystemUploadType {
+    BINARY_CONTENT = 0,
+    MULTIPART = 1,
+  }
+}
+
 import type { unzip, unzipSync } from 'fflate';
 
 export {};

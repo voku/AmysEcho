@@ -100,8 +100,8 @@ jest.mock('expo-file-system', () => {
     deleteAsync,
     getInfoAsync,
     readAsStringAsync,
-    FileSystemUploadType: { BINARY_CONTENT: 'BINARY_CONTENT' },
-    EncodingType: { UTF8: 'utf8' },
+    FileSystemUploadType: { BINARY_CONTENT: 0 },
+    EncodingType: { UTF8: 'utf8', Base64: 'base64' },
   };
 });
 
