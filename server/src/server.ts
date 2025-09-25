@@ -8,8 +8,10 @@ import readline from 'readline';
 import { fileURLToPath } from 'url';
 
 import config from './config/index.js';
+import { withFileLock } from './utils/fileLock.js';
+import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const serverModuleDir = path.dirname(fileURLToPath(import.meta.url));
 import { getCentroids, normalize } from './services/dgsModelService.js';
 import type { Point } from './services/dgsModelService.js';
 import { z } from 'zod';
@@ -64,6 +66,30 @@ import logger from './services/logger.js';
 
 export const app = express();
 
+const portalPath = path.join(serverModuleDir, 'portal');
+let portalAvailable = true;
+try {
+  await fs.access(portalPath);
+} catch (error) {
+  portalAvailable = false;
+  logger.warn('Portal directory missing', { portalPath, error: (error as Error).message });
+}
+
+async function readServerPackageJson(): Promise<any> {
+  const candidates = [path.join(SERVER_DIR, 'package.json'), path.join(SERVER_DIR, '..', 'package.json')];
+  for (const candidate of candidates) {
+    try {
+      const raw = await fs.readFile(candidate, 'utf8');
+      return JSON.parse(raw);
+    } catch (error: any) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+  throw new Error('package.json not found');
+}
+
 // Increase JSON body size limit to accommodate base64 images from the app
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true, limit: '8mb' }));
@@ -109,11 +135,27 @@ const apiLimiter = rateLimit({
 });
 
 // Serve static files from the portal directory
-app.use('/portal', express.static(path.join(__dirname, 'portal')));
+if (portalAvailable) {
+  app.use('/portal', express.static(portalPath));
+}
 
 // Serve the main portal HTML file
 app.get('/portal', (_req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, 'portal', 'index.html'));
+  if (!portalAvailable) {
+    return res.status(404).send('Portal not available');
+  }
+  const indexPath = path.join(portalPath, 'index.html');
+  res.sendFile(indexPath, (error) => {
+    if (!error) return;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      res.status(404).send('Portal not available');
+    } else {
+      logger.error('Failed to serve portal index', { error: (error as Error).message });
+      if (!res.headersSent) {
+        res.status(500).send('Failed to load portal');
+      }
+    }
+  });
 });
 
 // Basic health check endpoint for monitoring
@@ -251,12 +293,10 @@ app.get('/auth/me', auth, (req: Request, res: Response) => {
 app.use('/portal', portalRouter);
 
 // Serve static files from the caregiver portal directory
-app.use('/caregiver-portal', express.static(path.join(__dirname, 'caregiver-portal')));
+app.use('/caregiver-portal', express.static(path.join(serverModuleDir, 'caregiver-portal')));
 
 app.use('/api/caregiver-portal', auth, caregiverPortalApiRouter);
 
-// Simple per-file async lock
-const fileLocks = new Map<string, Promise<void>>();
 async function logTraining(message: string): Promise<void> {
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
@@ -267,28 +307,6 @@ async function logTraining(message: string): Promise<void> {
     console.warn('training log failed:', err);
   }
 }
-async function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
-  const prev = fileLocks.get(file) ?? Promise.resolve();
-  let release!: () => void;
-  const next = new Promise<void>((res) => (release = res));
-  fileLocks.set(file, prev.finally(() => next));
-
-  let result: T;
-  try {
-    result = await fn();
-  } catch (error) {
-    // Ensure cleanup happens even if fn throws
-    release();
-    if (fileLocks.get(file) === next) fileLocks.delete(file);
-    throw error;
-  }
-
-  // Normal cleanup
-  release();
-  if (fileLocks.get(file) === next) fileLocks.delete(file);
-  return result;
-}
-
 // Apply generic rate limiting to API namespace
 app.use('/api', apiLimiter);
 
@@ -594,8 +612,10 @@ app.get('/api/v1/dgs/mlp-model', legacyAuth, async (req: Request, res: Response)
   }
 });
 
-  // Add a labeled DGS sample (landmarks normalized [0..1])
- app.post('/api/v1/dgs/samples', legacyAuth, async (req: Request, res: Response) => {
+registerTrainingBundleRoute(app, genId);
+
+// Add a labeled DGS sample (landmarks normalized [0..1])
+app.post('/api/v1/dgs/samples', legacyAuth, async (req: Request, res: Response) => {
   try {
     const Body = z.object({
       label: z.string().min(1),
@@ -617,6 +637,9 @@ app.get('/api/v1/dgs/mlp-model', legacyAuth, async (req: Request, res: Response)
         .json({ error: 'label and landmarks (42 × [x,y,z]) required', details: parsed.error.flatten() });
     }
     const { label, profileId, landmarks } = parsed.data;
+    if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
+      return res.status(400).json({ error: 'Invalid profileId' });
+    }
     console.log(`Received DGS sample: label=${label}, profileId=${profileId}, landmarks length=${landmarks.length}`);
     const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
     await withFileLock(dataPath, async () => {
@@ -938,7 +961,7 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
 
     // Fire-and-forget full training script for richer models
     const scriptPath = config.mlpScript;
-    const serverRoot = path.join(__dirname, '..');
+    const serverRoot = SERVER_DIR;
     const proc = spawn('python3', [path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath)], {
       cwd: serverRoot,
     });
@@ -991,9 +1014,8 @@ app.get('/api/training-status/:id', auth, (req: Request, res: Response) => {
 
 app.get('/model-version', legacyAuth, async (_req: Request, res: Response) => {
   try {
-    const pkgPath = path.join(__dirname, '..', 'package.json');
-    const pkgRaw = await fs.readFile(pkgPath, 'utf8');
-    const { version } = JSON.parse(pkgRaw);
+    const pkg = await readServerPackageJson();
+    const { version } = pkg;
     res.json({ version, modelPath: 'latest-model' });
   } catch (err) {
     console.error('Failed to read model version:', err);
@@ -1049,19 +1071,25 @@ function isProfileAuthorized(req: Request, profileId: string): boolean {
 const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
 
 async function writeMinimalMlpModel(filePath: string, gestureCounts: Record<string, number>): Promise<void> {
-  try {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.copyFile(BASELINE_MLP_MODEL_PATH, filePath);
-    await fs.chmod(filePath, 0o640);
-    await logTraining(`seeded MLP from baseline into ${filePath}`);
-    return;
-  } catch (copyErr) {
-    await logTraining(`failed to copy baseline MLP (${String(copyErr)}), falling back to minimal generation`);
+  const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
+  const hasCounts = entries.some(([, count]) => count > 0);
+
+  if (!hasCounts) {
+    try {
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.copyFile(BASELINE_MLP_MODEL_PATH, filePath);
+      await fs.chmod(filePath, 0o640);
+      await logTraining(`seeded MLP from baseline into ${filePath}`);
+      return;
+    } catch (copyErr) {
+      await logTraining(`failed to copy baseline MLP (${String(copyErr)}), falling back to minimal generation`);
+    }
   }
 
-  const labels = Object.keys(gestureCounts);
-  const counts = labels.map((label) => Number(gestureCounts[label] ?? 0));
+  const labels = entries.map(([label]) => label);
+  const counts = entries.map(([, count]) => count);
   const payload = JSON.stringify({ labels, counts });
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
   const script = `import json, numpy as np, os, sys\n` +
     `path = sys.argv[1]\n` +
     `payload = json.loads(sys.argv[2])\n` +
@@ -1075,7 +1103,7 @@ async function writeMinimalMlpModel(filePath: string, gestureCounts: Record<stri
 
   await new Promise<void>((resolve, reject) => {
     const proc = spawn('python3', ['-c', script, filePath, payload], {
-      cwd: path.join(__dirname, '..'),
+      cwd: path.join(serverModuleDir, '..'),
       stdio: ['ignore', 'ignore', 'pipe'],
     });
     let stderr = '';
@@ -1194,7 +1222,7 @@ app.get('/latest-mlp-model', legacyAuth, async (req: Request, res: Response) => 
   await sendBinaryModel(
     res,
     chosen,
-    profileId ? `amy_model_${profileId}.npz` : 'amy_model.npz',
+    profileId ? `dgs_model_${profileId}.npz` : 'amy_model.npz',
   );
 });
 
@@ -1205,9 +1233,8 @@ app.get('/model-metadata', legacyAuth, async (req: Request, res: Response) => {
   const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
   if (!resolvedFile) return;
   try {
-    const pkgPath = path.join(__dirname, '..', 'package.json');
-    const pkgRaw = await fs.readFile(pkgPath, 'utf8');
-    const { version } = JSON.parse(pkgRaw);
+    const pkg = await readServerPackageJson();
+    const { version } = pkg;
     const stat = await fs.stat(resolvedFile);
     const buf = await fs.readFile(resolvedFile);
     const sha256 = createHash('sha256').update(buf).digest('hex');
