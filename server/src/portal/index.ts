@@ -31,6 +31,12 @@ type TrainingManifestEntry = {
   receivedAt: string;
 };
 
+declare module 'express-serve-static-core' {
+  interface Request {
+    trainingBundleEntry?: TrainingManifestEntry;
+  }
+}
+
 async function loadTrainingManifest(): Promise<TrainingManifestEntry[]> {
   try {
     const raw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
@@ -51,12 +57,37 @@ function resolveStoredPath(entry: TrainingManifestEntry, fileName: string): stri
   if (typeof entry.storage?.directory !== 'string') {
     return null;
   }
-  const target = path.resolve(DATA_DIR, entry.storage.directory, fileName);
-  const expectedRoot = path.resolve(DATA_DIR, entry.storage.directory);
+
+  const dataRoot = path.resolve(DATA_DIR);
+  const expectedRoot = path.resolve(dataRoot, entry.storage.directory);
+  if (expectedRoot !== dataRoot && !expectedRoot.startsWith(`${dataRoot}${path.sep}`)) {
+    return null;
+  }
+
+  const target = path.resolve(expectedRoot, fileName);
   if (target === expectedRoot || target.startsWith(`${expectedRoot}${path.sep}`)) {
     return target;
   }
   return null;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case "'":
+        return '&#39;';
+      default:
+        return char;
+    }
+  });
 }
 
 function createManifestHtml(entries: TrainingManifestEntry[]): string {
@@ -69,10 +100,10 @@ function createManifestHtml(entries: TrainingManifestEntry[]): string {
     .reverse()
     .map((entry) => {
       const meta = [
-        entry.profileId ? `Profil: ${entry.profileId}` : 'Profil: unbekannt',
-        `Label: ${entry.label}`,
-        entry.capturedAt ? `Erfasst: ${entry.capturedAt}` : null,
-        entry.source ? `Quelle: ${entry.source}` : null,
+        entry.profileId ? `Profil: ${escapeHtml(entry.profileId)}` : 'Profil: unbekannt',
+        `Label: ${escapeHtml(entry.label)}`,
+        entry.capturedAt ? `Erfasst: ${escapeHtml(entry.capturedAt)}` : null,
+        entry.source ? `Quelle: ${escapeHtml(entry.source)}` : null,
       ]
         .filter(Boolean)
         .join(' · ');
@@ -81,22 +112,22 @@ function createManifestHtml(entries: TrainingManifestEntry[]): string {
       const metadataHref = `/portal/training-bundles/${encodeURIComponent(entry.id)}/metadata`;
       const files = Array.isArray(entry.storage.files) ? entry.storage.files : [];
       const filesList = files
-        .map((file) => `<li>${file}</li>`)
+        .map((file) => `<li>${escapeHtml(file)}</li>`)
         .join('');
 
       return `
-        <section style="border:1px solid #ccc;padding:12px;border-radius:8px;margin-bottom:16px;background:#fafafa">
-          <h3>Bundle ${entry.id}</h3>
+        <section class="bundle">
+          <h3>Bundle ${escapeHtml(entry.id)}</h3>
           <p>${meta}</p>
-          <p>Eingegangen am: ${entry.receivedAt}</p>
+          <p>Eingegangen am: ${escapeHtml(entry.receivedAt)}</p>
           <details>
             <summary>Metadaten anzeigen</summary>
             <p><a href="${metadataHref}" target="_blank" rel="noopener">Metadaten als JSON</a></p>
             <strong>Enthaltene Dateien:</strong>
             <ul>${filesList}</ul>
           </details>
-          <div style="margin-top:8px">
-            <video src="${clipHref}" controls preload="metadata" style="max-width:100%;height:auto"></video>
+          <div class="bundle__video">
+            <video src="${clipHref}" controls preload="metadata" class="bundle__video-element"></video>
           </div>
         </section>
       `;
@@ -201,67 +232,110 @@ router.get('/training-bundles', limiter, async (_req, res) => {
   try {
     const entries = await loadTrainingManifest();
     const body = `
-      <h1>Hochgeladene Trainingspakete</h1>
-      <p>Hier sehen Pflegekräfte jedes Paket inklusive Video, bevor es in das Modell einfließt.</p>
-      ${createManifestHtml(entries)}
-      <p><a href="/portal">Zurück zur Übersicht</a></p>
+      <!doctype html>
+      <html lang="de">
+        <head>
+          <meta charset="utf-8" />
+          <title>Hochgeladene Trainingspakete</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              margin: 24px;
+              background: #f7f7f7;
+              color: #222;
+            }
+            a {
+              color: #005ea8;
+            }
+            .bundle {
+              border: 1px solid #ccc;
+              padding: 12px;
+              border-radius: 8px;
+              margin-bottom: 16px;
+              background: #fafafa;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            .bundle__video {
+              margin-top: 8px;
+            }
+            .bundle__video-element {
+              max-width: 100%;
+              height: auto;
+              border-radius: 4px;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Hochgeladene Trainingspakete</h1>
+          <p>Hier sehen Pflegekräfte jedes Paket inklusive Video, bevor es in das Modell einfließt.</p>
+          ${createManifestHtml(entries)}
+          <p><a href="/portal">Zurück zur Übersicht</a></p>
+        </body>
+      </html>
     `;
     res.send(body);
   } catch (error) {
-    res.status(500).send(`Training manifest konnte nicht geladen werden: ${(error as Error).message}`);
+    res.status(500).send(`Training manifest could not be loaded: ${(error as Error).message}`);
   }
 });
 
-router.get('/training-bundles/:id/metadata', limiter, async (req, res) => {
+router.param('bundleId', async (req, res, next, bundleId) => {
   try {
     const entries = await loadTrainingManifest();
-    const entry = entries.find((e) => e.id === req.params.id);
+    const entry = entries.find((e) => e.id === bundleId);
     if (!entry) {
-      res.status(404).send('Bundle nicht gefunden');
+      res.status(404).send('Bundle not found');
       return;
     }
-    res.json({
-      id: entry.id,
-      profileId: entry.profileId,
-      label: entry.label,
-      capturedAt: entry.capturedAt,
-      source: entry.source,
-      receivedAt: entry.receivedAt,
-    });
+    req.trainingBundleEntry = entry;
+    next();
   } catch (error) {
-    res.status(500).send(`Metadaten konnten nicht geladen werden: ${(error as Error).message}`);
+    res.status(500).send(`Training manifest could not be loaded: ${(error as Error).message}`);
   }
 });
 
-router.get('/training-bundles/:id/clip', limiter, async (req, res) => {
-  try {
-    const entries = await loadTrainingManifest();
-    const entry = entries.find((e) => e.id === req.params.id);
-    if (!entry) {
-      res.status(404).send('Bundle nicht gefunden');
-      return;
-    }
-
-    const clipFile = entry.storage.files.find((file) => file.endsWith('clip.mp4'));
-    if (!clipFile) {
-      res.status(404).send('Kein Videoclip vorhanden');
-      return;
-    }
-
-    const clipPath = resolveStoredPath(entry, clipFile);
-    if (!clipPath) {
-      res.status(400).send('Ungültiger Dateipfad im Bundle');
-      return;
-    }
-
-    res.sendFile(clipPath, (err) => {
-      if (err) {
-        res.status(500).send('Videodatei konnte nicht geladen werden');
-      }
-    });
-  } catch (error) {
-    res.status(500).send(`Videodatei konnte nicht geladen werden: ${(error as Error).message}`);
+router.get('/training-bundles/:bundleId/metadata', limiter, (req, res) => {
+  const entry = req.trainingBundleEntry;
+  if (!entry) {
+    res.status(500).send('Training bundle metadata is unavailable');
+    return;
   }
+
+  res.json({
+    id: entry.id,
+    profileId: entry.profileId,
+    label: entry.label,
+    capturedAt: entry.capturedAt,
+    source: entry.source,
+    receivedAt: entry.receivedAt,
+  });
+});
+
+router.get('/training-bundles/:bundleId/clip', limiter, (req, res) => {
+  const entry = req.trainingBundleEntry;
+  if (!entry) {
+    res.status(500).send('Training bundle clip is unavailable');
+    return;
+  }
+
+  const files = Array.isArray(entry.storage.files) ? entry.storage.files : [];
+  const clipFile = files.find((file) => file.endsWith('clip.mp4'));
+  if (!clipFile) {
+    res.status(404).send('No video clip available');
+    return;
+  }
+
+  const clipPath = resolveStoredPath(entry, clipFile);
+  if (!clipPath) {
+    res.status(400).send('Invalid file path in bundle');
+    return;
+  }
+
+  res.sendFile(clipPath, (err) => {
+    if (err) {
+      res.status(500).send('Video file could not be loaded');
+    }
+  });
 });
 
 export default router;
