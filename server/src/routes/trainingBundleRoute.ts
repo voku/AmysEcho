@@ -180,6 +180,10 @@ export function registerTrainingBundleRoute(app: Express, genId: () => string): 
             throw new Error(`Invalid entry name: ${entry.entryName}`);
           }
           const targetPath = path.resolve(bundleRoot, fileName.split('/').join(path.sep));
+          // Prevent overwriting the archived bundle copy stored alongside the extracted files
+          if (targetPath === bundleZipPath) {
+            throw new Error(`Entry not allowed: ${entry.entryName}`);
+          }
           if (!isPathInside(targetPath, bundleRootResolved)) {
             throw new Error(`Unsafe entry path: ${entry.entryName}`);
           }
@@ -224,9 +228,10 @@ export function registerTrainingBundleRoute(app: Express, genId: () => string): 
         try {
           const raw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
           const parsed = JSON.parse(raw);
-          if (parsed && Array.isArray(parsed.entries)) {
-            manifest.entries = parsed.entries as TrainingBundleManifestEntry[];
+          if (!parsed || typeof parsed !== 'object' || !Array.isArray((parsed as any).entries)) {
+            throw new Error('Training manifest file is corrupted and would be overwritten.');
           }
+          manifest.entries = (parsed as TrainingBundleManifestFile).entries;
         } catch (error: any) {
           if (error?.code !== 'ENOENT') throw error;
         }

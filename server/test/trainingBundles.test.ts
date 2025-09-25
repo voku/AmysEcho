@@ -158,4 +158,45 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(response.status).toBe(400);
     await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
   });
+
+  it('rejects bundles that try to overwrite the archived bundle.zip copy', async () => {
+    const metadata = {
+      label: 'HILFE',
+    };
+    const zip = new AdmZip();
+    zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+    zip.addFile('bundle.zip', Buffer.from('malicious'));
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', 'Bearer bundle-token')
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(400);
+    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('returns 500 when existing manifest is corrupted and leaves it untouched', async () => {
+    await fs.mkdir(path.dirname(manifestPath), { recursive: true });
+    const corrupted = JSON.stringify({ entries: 'not-an-array' });
+    await fs.writeFile(manifestPath, corrupted, 'utf8');
+
+    const metadata = {
+      profileId: 'p-test-123',
+      label: 'HILFE',
+    };
+    const zip = new AdmZip();
+    zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', 'Bearer bundle-token')
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(500);
+    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
+    expect(manifestRaw).toBe(corrupted);
+  });
 });
