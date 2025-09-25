@@ -150,7 +150,11 @@ function createServer(port: number, manifestFile: string) {
           if (!Array.isArray(manifest.entries)) {
             manifest.entries = [];
           }
-        } catch {}
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            throw error;
+          }
+        }
         manifest.entries.push({
           id,
           metadata,
@@ -163,7 +167,8 @@ function createServer(port: number, manifestFile: string) {
         res.end(JSON.stringify({ status: 'queued', id }));
       } catch (error) {
         res.statusCode = 500;
-        res.end(String(error));
+        console.error(error);
+        res.end('Internal server error');
       }
     });
   });

@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system';
+import { randomUUID } from 'expo-crypto';
 import { Buffer } from 'buffer';
 import { zipSync, strToU8 } from 'fflate';
 import { API_URL } from '../constants';
@@ -48,33 +49,54 @@ function buildFrameTimeline(frames: TrainingFrame[]) {
   }));
 }
 
+type LegacyFileSystemModule = Partial<typeof FileSystem> & {
+  cacheDirectory?: string;
+  documentDirectory?: string;
+  EncodingType?: { UTF8: string; Base64: string };
+  FileSystemUploadType?: { BINARY_CONTENT: string };
+};
+
+function isUploadResponse(obj: unknown): obj is { id: string; status?: unknown } {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    typeof (obj as { id: unknown }).id === 'string'
+  );
+}
+
 export async function uploadTrainingBundle(
   payload: TrainingBundlePayload,
   options: UploadTrainingBundleOptions = {},
 ): Promise<UploadTrainingBundleResponse> {
   if (!payload?.frames?.length) {
-    throw new Error('Ungültige Trainingsdaten: Es wurden keine Frames aufgezeichnet.');
+    throw new Error(
+      'Ungültige Trainingsdaten: Es wurden keine Frames aufgezeichnet. (Invalid training data: no frames recorded.)',
+    );
   }
   if (!payload.clipUri) {
-    throw new Error('Ungültige Trainingsdaten: Es wurde kein Videoclip gespeichert.');
+    throw new Error(
+      'Ungültige Trainingsdaten: Es wurde kein Videoclip gespeichert. (Invalid training data: missing clip.)',
+    );
   }
 
   const token = options.tokenOverride ?? (await loadBackendApiToken());
   if (!token) {
-    throw new Error('Kein Zugangstoken für den Server verfügbar.');
+    throw new Error(
+      'Kein Zugangstoken für den Server verfügbar. (Server access token unavailable.)',
+    );
   }
 
-  const legacyFs = FileSystem as unknown as {
-    cacheDirectory?: string;
-    documentDirectory?: string;
-    EncodingType?: { UTF8: string; Base64: string };
-    FileSystemUploadType?: { BINARY_CONTENT: string };
-  };
+  const legacyFs = FileSystem as LegacyFileSystemModule;
+  const baseDir = legacyFs.cacheDirectory ?? legacyFs.documentDirectory;
+  if (!baseDir) {
+    throw new Error(
+      'Temporäres Verzeichnis für das Trainingspaket nicht verfügbar. (Temporary training bundle directory unavailable.)',
+    );
+  }
 
-  const baseDirectory = ensureDirPrefix(
-    legacyFs.cacheDirectory ?? legacyFs.documentDirectory ?? 'file:///data/user/0/temporary/',
-  );
-  const bundleId = `training-bundle-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const baseDirectory = ensureDirPrefix(baseDir);
+  const bundleId = `training-bundle-${randomUUID()}`;
   const zipPath = `${baseDirectory}${bundleId}.zip`;
 
   // Beispiel für metadata.json:
@@ -119,7 +141,7 @@ export async function uploadTrainingBundle(
     );
 
     if (uploadResult.status < 200 || uploadResult.status >= 300) {
-      throw new Error(`Upload fehlgeschlagen (Status ${uploadResult.status}).`);
+      throw new Error(`Upload fehlgeschlagen (Status ${uploadResult.status}). (Upload failed.)`);
     }
 
     let responseJson: unknown;
@@ -127,34 +149,35 @@ export async function uploadTrainingBundle(
       try {
         responseJson = JSON.parse(uploadResult.body);
       } catch (error) {
-        logger.warn('Upload-Antwort konnte nicht geparst werden', error);
+        logger.warn('Upload-Antwort konnte nicht geparst werden (Failed to parse upload response)', error);
       }
     }
 
-    if (
-      !responseJson ||
-      typeof responseJson !== 'object' ||
-      !('id' in responseJson) ||
-      typeof (responseJson as any).id !== 'string'
-    ) {
-      throw new Error('Serverantwort enthält keine gültige Bundle-ID.');
+    if (!isUploadResponse(responseJson)) {
+      throw new Error(
+        'Serverantwort enthält keine gültige Bundle-ID. (Server response missing bundle identifier.)',
+      );
     }
 
     return {
-      id: (responseJson as any).id,
-      status: typeof (responseJson as any).status === 'string' ? (responseJson as any).status : 'queued',
+      id: responseJson.id,
+      status: typeof responseJson.status === 'string' ? responseJson.status : 'queued',
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Zeitüberschreitung beim Hochladen des Trainingspakets.');
+      throw new Error(
+        'Zeitüberschreitung beim Hochladen des Trainingspakets. (Training bundle upload timed out.)',
+      );
     }
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Hochladen des Trainingspakets fehlgeschlagen: ${message}`);
+    throw new Error(
+      `Hochladen des Trainingspakets fehlgeschlagen: ${message}. (Training bundle upload failed.)`,
+    );
   } finally {
     try {
       await FileSystem.deleteAsync(zipPath, { idempotent: true } as any);
     } catch (cleanupError) {
-      logger.warn('Bereinigung der ZIP-Datei fehlgeschlagen', cleanupError);
+      logger.warn('Bereinigung der ZIP-Datei fehlgeschlagen (ZIP cleanup failed)', cleanupError);
     }
   }
 }

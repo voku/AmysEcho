@@ -4,6 +4,7 @@ declare module 'expo-crypto' {
   export enum CryptoDigestAlgorithm {
     SHA256 = 'SHA256',
   }
+  export function randomUUID(): string;
   export function digestFileAsync(
     algorithm: CryptoDigestAlgorithm,
     fileUri: string
