@@ -1,169 +1,68 @@
-# Project Roadmap & TODO
+# Amy's Echo Gesture Model Training Backlog (LLM Working Notes)
 
-This document outlines the current development roadmap and outstanding tasks for Amy's Echo.
+This backlog turns the high-level roadmap into implementation-ready next steps for the model improvement loop. Every section includes the concrete entry points that already exist in the repo so the next iteration can extend them instead of starting from scratch.
 
-## 🚀 Phase 1: Core Functionality & MVP (Completed)
+## 🔍 Reference Map of Existing Hooks
+- **App capture UX** – `app/src/screens/TrainingScreen.tsx`
+  - `startRecording`/`stopRecording` already drive MediaPipe capture, call `saveTrainingSample`, and stream each `TrainingFrame` to the server via `sendDgsSample`.
+  - Example: `stopRecording` validates sequences with `validateLandmarkSequence` before calling `sendDgsSample(gestureId, frame, profile?.id)` for every frame.
+- **Local persistence** – `app/src/storage.ts`
+  - `saveTrainingSample` stores samples per active profile (`gestureTrainingData_${profile}`) so that per-child personalization is already supported client-side.
+- **Upload service** – `app/src/services/dgsTrainingService.ts`
+  - `sendDgsSample` flattens landmarks with handedness helpers and POSTs to `/api/v1/dgs/samples` with bearer auth.
+- **Server ingestion** – `server/src/server.ts`
+  - `/api/v1/dgs/samples` validates 42×[x,y,z] arrays, assigns IDs with `genId()`, and appends to `data/dgs_samples.json` inside a file lock.
+  - `/api/v1/dgs/mlp-model` and `/latest-mlp-model` stream profile-aware model binaries with cache headers.
+- **Curation tooling** – `server/src/portal/index.ts`
+  - Caregiver portal endpoints list, approve, and export training data (`addGestureTrainingData`, `updateGestureTrainingData`).
+- **Training scripts** – `server/src/tools/autoRetrain.ts` & `server/src/amyserver_tools/train_mlp.py`
+  - `autoRetrain` shells out to the Python MLP trainer with temp JSON built from corrections and negative samples.
+  - `train_mlp.py` loads `data/dgs_samples.json`, normalizes frames, and trains a NumPy MLP while printing JSON progress events.
+- **Model consumers** – `app/src/model.ts`, `app/src/services/optimizedGestureService.ts`
+  - `gestureModel.gestures` is the single source of truth for vocab updates; downstream services like `optimizedGestureService` expose filtered views for the UI and recognition flow.
 
-- [x] Basic gesture recognition (single hand)
-- [x] Text-to-speech output for recognized gestures
-- [x] Simple UI for recognition screen
-- [x] Initial data storage for gestures and profiles
-- [x] Onboarding flow (HIP 1)
-- [x] Correction flow (HIP 3)
+## 🧭 Execution Backlog
 
-## ⚡ Phase 3: Advanced Gesture Detection Optimization (Completed ✅)
+### 1. In-App Capture & Consent UX
+- [ ] Extend `TrainingScreen` to gate recording behind an explicit caregiver opt-in modal summarizing capture scope (videos vs. landmarks) and storage duration.
+  - Wire acceptance to a persisted flag in `app/src/storage.ts` so that opt-in can be per profile; fall back to prompting again if the profile changes.
+- [ ] Add contextual help bubbles in `TrainingScreen` that reuse `setMessage` to explain why landmarks are recorded and how they improve recognition (copy in German).
+- [ ] Record lightweight session analytics (e.g., frames captured, validation errors) via `logHIPEvent` to feed future quality dashboards.
 
-### Performance Enhancements
-- [x] **Multi-layered Detection System**: MediaPipe + OpenAI Vision fallback with intelligent switching
-- [x] **Emergency Gesture Priority**: <50ms response time for critical communications
-- [x] **Adaptive Confidence Thresholds**: Personalized thresholds (0.12-0.32) based on individual patterns
-- [x] **WebView Message Batching**: 50ms intervals, max 5 messages per batch for reduced latency
-- [x] **Enhanced Fallback Detection**: Rule-based gesture recognition with stability analysis
-- [x] **Performance Monitoring**: Real-time tracking of latency, accuracy, and emergency response times
+### 2. Sample Packaging & Background Upload
+- [ ] Introduce a batching helper (e.g., `queueTrainingUpload(samples: TrainingSample[])`) that groups the frame-by-frame `sendDgsSample` calls into a single encrypted payload when the caregiver chooses "upload now".
+  - Use the existing offline storage in `saveTrainingSample` and include `profileId` so the server can differentiate personalization candidates.
+- [ ] Schedule background flushes via the existing job infrastructure (`app/src/services/dailyJobs.ts`) to retry uploads when Wi‑Fi + charging criteria are met.
+- [ ] Add retry/backoff semantics to `sendDgsSample` (wrap abort controller errors into a queue) and emit German toasts when retries exhaust.
 
-### Accessibility Improvements
-- [x] **German Localization**: Complete UI and feedback translation for Amy's language environment
-- [x] **Positive Reinforcement System**: Emojis and encouraging messages for all gesture attempts
-- [x] **Tremor Compensation**: Advanced stability analysis for 22q11 movement patterns
-- [x] **Battery Monitoring**: Emergency mode activation when battery critical
-- [x] **Partial Gesture Detection**: Recognition of incomplete gestures for learning support
+### 3. Server Ingestion, Review & Quality Control
+- [ ] Expand the `/api/v1/dgs/samples` schema to accept optional metadata (lighting, caregiver notes) and persist alongside `label`/`profileId` in `data/dgs_samples.json`.
+- [ ] Build a moderation queue UI in the caregiver portal that surfaces the newest entries from `data/dgs_samples.json`, reusing the endpoints in `server/src/portal/index.ts` for approve/delete actions.
+- [ ] Implement automated validators server-side (e.g., blur detection, min frame count) that mirror the client `validateLandmarkSequence` heuristics before records are marked `approved`.
+- [ ] Provide an export endpoint that bundles approved samples plus metadata into a signed archive for offline review.
 
-### Additional Gesture Support
-- [x] **Extended Gesture Set**: Added middle_finger, three_fingers, circle_gesture variations
-- [x] **Improved Detection Logic**: Enhanced finger detection with better angle considerations
-- [x] **Context-Aware Recognition**: Time-of-day and activity level adjustments
-- [x] **Gesture Combination System**: Multi-gesture sequence recognition with time windows
+### 4. Training Pipeline Automation
+- [ ] Update `autoRetrain` to read both curated portal data and raw `dgs_samples.json`, tagging the temp file with provenance so `train_mlp.py` can weight samples.
+- [ ] Enhance `train_mlp.py` to compute per-gesture F1/latency stats and emit them as JSON logs for `server/src/server.ts` to capture in `training-debug.log`.
+- [ ] Store trained weight blobs under `data/models/{modelVersion}/` alongside metadata (hyperparameters, dataset hashes) and upload summaries to the caregiver portal.
+- [ ] Prototype per-profile fine-tuning by passing a `profileId` filter into `train_mlp.py`, generating adapter weights that the app can download via `/latest-mlp-model?profileId=...`.
 
-### Testing & Validation
-- [x] **Comprehensive Test Suite**: 95%+ test coverage for all gesture detection components
-- [x] **Integration Testing**: Full end-to-end validation of gesture detection pipeline
-- [x] **Performance Benchmarking**: Established baseline metrics for latency and accuracy
-- [x] **Real-World Validation Guide**: Complete framework for testing with Amy
+### 5. Distribution & App Integration
+- [ ] Add ETag/hash headers to `/api/v1/dgs/mlp-model` so `app/src/model.ts` can skip downloads when the on-device hash matches.
+- [ ] Implement a `modelUpdateService` in the app that checks the server route after successful training uploads and swaps in new weights without resetting `gestureModel.gestures` state.
+- [ ] Surface release notes inside `PracticeSessionManager` once `gestureModel` reloads, pulling changelog strings from the distribution response.
+- [ ] Cache personalized models per profile directory (align with `saveCustomModelUri` / `saveCustomModelHash`) to ensure instant rollback on degraded accuracy.
 
-## ✨ Phase 2: Enhanced Learning & Personalization (Completed ✅)
+### 6. Monitoring & Feedback Loop
+- [ ] Feed training job progress (`server/src/server.ts` training job registry) into caregiver dashboards so they can watch when their uploads trigger retraining.
+- [ ] Aggregate post-deployment metrics (recognition accuracy, emergency gesture latency) and write them to a new `modelPerformance` collection in `server/src/db.ts` for portal visualization.
+- [ ] Add hooks in `app/src/screens/RecognitionScreen.tsx` to prompt caregivers for quick feedback after a new model goes live, storing responses with the active `modelVersion`.
+- [ ] Document the entire loop (capture ➜ upload ➜ approve ➜ train ➜ distribute ➜ monitor) in `docs/` with links back to each code touchpoint above so onboarding agents can ramp quickly.
 
-### High Priority
+---
 
-- [x] **Adaptive Learning Service (ALS)**: Implement logic to adjust confidence thresholds and suggest practice based on Amy's performance.
-    - *Verification:* ✅ Implemented in `src/services/adaptiveLearningService.ts` with comprehensive tests in `test/adaptiveLearningService.test.ts`.
-- [x] **Personalized Confidence Thresholds**: Dynamically adjust recognition sensitivity per child profile.
-    - *Verification:* ✅ Implemented in `src/services/personalizedConfidenceService.ts` with comprehensive tests in `test/personalizedConfidenceService.test.ts`.
-- [x] **Gesture History & Replay**: Store a history of recognized gestures for review and replay.
-    - *Verification:* ✅ Implemented in `src/services/gestureHistoryService.ts` with comprehensive tests in `test/gestureHistoryService.test.ts`.
-- [x] **Multi-sensory Feedback**: Integrate haptic, audio, and visual cues for recognition.
-    - *Verification:* ✅ Implemented in `src/services/feedbackService.ts` with comprehensive tests in `test/feedbackService.test.ts`.
-- [x] **Emergency Priority Gestures**: Implement a system for critical gestures (e.g., "Help Me") to bypass normal processing.
-    - *Verification:* ✅ Implemented in `src/services/emergencyPriorityService.ts` with comprehensive tests in `test/emergencyPriorityService.test.ts`.
-- [x] **Zero-Downtime Model Updates**: Allow model updates without interrupting the app's recognition flow.
-    - *Verification:* ✅ Implemented in `src/services/zeroDowntimeModelService.ts` with comprehensive tests in `test/zeroDowntimeModelService.test.ts`.
-- [x] **Pre-cached LLM Responses**: Store common LLM responses locally for instant feedback.
-    - *Verification:* ✅ Implemented in `src/services/preCachedResponseService.ts` with comprehensive tests in `test/preCachedResponseService.test.ts`.
-- [x] **Bullying Protection**: Implement security measures to prevent unauthorized use on shared devices.
-  - *Verification:* ✅ Implemented in `src/screens/ProfileManagerScreen.tsx` with comprehensive security features.
-- [x] **Gesture Size Tolerance**: Allow caregivers to adjust the tolerance for gesture size variations.
-  - *Verification:* ✅ Implemented in `src/screens/ProfileManagerScreen.tsx` with caregiver controls.
-
-### Medium Priority
-
-- [x] **Training Mode (HIP 2)**: Guided flow for caregivers to train new gestures.
-    - *Verification:* ✅ Implemented in `src/screens/TeachingScreen.tsx` with tests in `test/screens/TeachingScreen.test.tsx`.
-- [x] **Practice Mode (HIP 4)**: Guided practice sessions for Amy based on ALS suggestions.
-    - *Verification:* ✅ Implemented in `src/screens/TrainingScreen.tsx` with tests in `test/screens/TrainingScreen.test.tsx`.
-- [x] **Gesture Combinations/Sequences**: Recognize sequences of gestures (e.g., "more" + "please").
-  - *Verification:* ✅ `src/services/sequenceRecognizer.ts` and `src/services/gestureCombinationService.ts` implemented with comprehensive tests.
-- [x] **Adaptive PiP Guidance**: Context-aware Picture-in-Picture video guidance for learning.
-  - *Verification:* ✅ Implemented in `src/components/PictureInPictureGuidance.tsx` and integrated in `RecognitionScreen.tsx`.
-- [x] **Screen Flash Feedback**: Visual feedback for successful gestures in quiet environments.
-  - *Verification:* ✅ Implemented in `src/components/ScreenFlash.tsx` and integrated in `RecognitionScreen.tsx` with 10+ flash patterns.
-- [x] **Gesture Comparison**: Visual comparison of Amy's attempt vs. correct gesture after correction.
-  - *Verification:* ✅ Implemented in `src/components/GestureComparison.tsx` and integrated in `RecognitionScreen.tsx` with German localization.
-- [x] **Mood Selector**: Allow Amy to express her mood, influencing app behavior.
-  - *Verification:* ✅ Implemented in `src/components/MoodSelector.tsx` and integrated in `RecognitionScreen.tsx` with full accessibility.
-
-### Low Priority
-
-- [x] **Expanded Analytics Dashboard**: More detailed insights for caregivers.
-  - *Verification:* ✅ Implemented in `src/components/CommunicationInsights.tsx` with comprehensive analytics and positive telemetry.
-- [x] **Custom Audio Support**: Allow caregivers to record custom audio for gestures.
-  - *Verification:* ✅ Implemented in `src/storage.ts` and `src/services/audioService.ts` with recording/playback capabilities.
-- [x] **Caregiver Web Portal**: Web interface for advanced management.
-  - *Verification:* ✅ Implemented in `server/src/portal/` with analytics viewing and training data approval workflows.
-
-## 🚀 Phase 3: Advanced Features & Refinements (Current Focus)
-
-### Phase 3.1: Multi-hand Gesture Recognition (Completed ✅)
-- [x] **Multi-hand Gesture Recognition**: Extend MediaPipe integration to support simultaneous two-hand gesture detection
-  - *Verification:* ✅ Implemented in `app/src/constants/twoHandGestures.ts` with 7 predefined two-hand gestures
-  - *Verification:* ✅ Enhanced UI components `TwoHandGestureDisplay.tsx` and `TwoHandGestureSelector.tsx`
-  - *Verification:* ✅ Comprehensive test coverage in `app/test/components/MultiHandGesture.test.tsx`
-- [x] **Gesture Library**: Created comprehensive two-hand gesture definitions
-  - *Verification:* ✅ 7 predefined gestures: please, help, play, happy, hello/goodbye, more, stop
-  - *Verification:* ✅ German localization and accessibility support
-  - *Verification:* ✅ Visual feedback with hand indicators and special formatting
-- [x] **Training Support**: Enhanced teaching interface for two-hand gestures
-  - *Verification:* ✅ `TwoHandGestureSelector` component for teaching new gestures
-  - *Verification:* ✅ Integration with existing `TeachingScreen.tsx`
-  - *Verification:* ✅ Hand coordination algorithms and visual guidance
-
-### Immediate Next Steps (Phase 3.2: Emotional Intelligence)
-- [x] **Contextual Understanding**: Integrate environmental and temporal context into recognition decisions. See [Contextual Understanding Implementation Guide](./ContextualUnderstanding.md) for a detailed plan.
-  - [x] Add time-of-day awareness for gesture interpretation
-  - [x] Implement location-based gesture context (home/school/playground)
-  - [x] Create context-aware confidence scoring system
-- [x] **Predictive Gestures**: Suggest next likely gestures based on conversation patterns and context. See [Predictive Gestures Implementation Guide](./PredictiveGestures.md) for a detailed plan.
-    - [x] Build gesture sequence prediction model using historical data
-    - [x] Implement proactive gesture suggestions in RecognitionScreen
-    - [x] Add predictive accuracy tracking and improvement
-
-### Phase 3.2: Emotional Intelligence
-- [x] **Emotional State Recognition**: Analyze gesture patterns to infer Amy's emotional state. See [Emotional State Recognition Implementation Guide](./EmotionalStateRecognition.md) for a detailed plan.
-  - [x] Develop emotion detection algorithms based on gesture speed, intensity, and patterns
-  - [x] Integrate with MoodSelector for bi-directional feedback
-  - [x] Create emotional context-aware response system
-- [x] **Adaptive Emotional Support**: Provide appropriate emotional responses based on detected state. See [Adaptive Emotional Support Implementation Guide](./AdaptiveEmotionalSupport.md) for a detailed plan.
-  - [x] Implement emotion-based encouragement messages
-  - [x] Add emotional state persistence across sessions
-  - [x] Create caregiver alerts for emotional state changes
-
-### Phase 3.3: Intelligent Learning
-- [x] **Automated Content Generation**: Generate personalized learning content based on Amy's progress. See [Automated Content Generation Implementation Guide](./AutomatedContentGeneration.md) for a detailed plan.
-  - [x] Build adaptive difficulty scaling algorithms
-  - [x] Implement personalized practice session generation
-  - [x] Create progress-based content recommendations
-- [x] **Smart Practice Sessions**: AI-driven practice recommendations. See [Smart Practice Sessions Implementation Guide](./SmartPracticeSessions.md) for a detailed plan.
-  - [x] Analyze performance patterns to identify weak areas
-  - [x] Generate targeted practice exercises
-  - [x] Implement spaced repetition learning techniques
-
-### Phase 3 Implementation Plan
-1. **Foundation (Q1) ✅ COMPLETED**: Multi-hand gesture recognition and basic contextual understanding
-2. **Intelligence (Q2) ✅ COMPLETED**: Predictive gestures and emotional state recognition
-3. **Personalization (Q3) ✅ COMPLETED**: Automated content generation and adaptive learning
-4. **Optimization (Q4) ✅ COMPLETED**: Performance tuning, accessibility enhancements, and production readiness
-
-### Technical Architecture for Phase 3
-- **Multi-hand Processing ✅**: Enhanced MediaPipe integration with parallel hand processing
-  - *Status:* ✅ Implemented with automatic left/right hand identification
-  - *Status:* ✅ 7 predefined two-hand gestures with German localization
-  - *Status:* ✅ Visual feedback and accessibility support
-- **Context Engine ✅**: Integrated contextual awareness in `contextAwareRecognitionService.ts`
-  - *Status:* ✅ Time-of-day pattern learning and confidence adjustments
-  - *Status:* ✅ Sequence prediction with probability tracking
-  - *Status:* ✅ Session-based fatigue and motivation detection
-- **Prediction Engine ✅**: Rule-based gesture prediction using historical patterns
-  - *Status:* ✅ Sequence transition probability learning
-  - *Status:* ✅ Context-aware next gesture suggestions
-  - *Status:* ✅ Time-of-day specific pattern recognition
-- **Emotion Engine ✅**: Emotional pattern tracking in `positiveTelemetryService.ts`
-  - *Status:* ✅ Mood correlation with gesture success
-  - *Status:* ✅ Emotional state persistence and pattern learning
-  - *Status:* ✅ Mood-based feedback adaptation
-- **Content Engine ✅**: Algorithmic content generation in `adaptiveLearningService.ts`
-  - *Status:* ✅ Learning path management with prerequisites
-  - *Status:* ✅ Performance-based difficulty scaling
-  - *Status:* ✅ Personalized practice session generation
-
-### Testing & Quality Assurance
-- [x] Fix ScreenFlash test mock issues (Dimensions.get undefined). ✅ Implemented in `app/jest.setup.ts` and `app/test/components/ScreenFlash.test.tsx`
-- [x] Add comprehensive tests for GestureComparison component. ✅ Implemented in `app/test/components/GestureComparison.test.tsx`
-- [x] Add integration tests for Phase 2 component interactions. ✅ Implemented in `app/test/integration/` directory
+**Quick Start for the Next Coding Session**
+1. Re-read the Reference Map to pick the right extension point.
+2. Choose one backlog item, trace the referenced files, and draft the interface change.
+3. Align naming with existing services/components (`*Service`, `*Screen`, etc.).
+4. Update or add Jest/API tests alongside the implementation to keep the loop reliable.
