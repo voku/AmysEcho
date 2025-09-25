@@ -1,5 +1,4 @@
 import * as FileSystem from 'expo-file-system';
-import { randomUUID } from 'expo-crypto';
 import { Buffer } from 'buffer';
 import { zipSync, strToU8 } from 'fflate';
 import { API_URL } from '../constants';
@@ -55,6 +54,44 @@ type LegacyFileSystemModule = Partial<typeof FileSystem> & {
   EncodingType?: { UTF8: string; Base64: string };
 };
 
+type CryptoLike = {
+  randomUUID?: () => string;
+  getRandomValues?: (array: Uint8Array) => void;
+};
+
+function createUuid(): string | undefined {
+  const cryptoImpl: CryptoLike | undefined =
+    typeof globalThis === 'object' && 'crypto' in globalThis
+      ? (globalThis.crypto as CryptoLike | undefined)
+      : undefined;
+
+  if (cryptoImpl?.randomUUID) {
+    return cryptoImpl.randomUUID();
+  }
+
+  if (cryptoImpl?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    cryptoImpl.getRandomValues(bytes);
+    // Version 4 UUID per RFC 4122
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  return undefined;
+}
+
+function createBundleId(): string {
+  const uuid = createUuid();
+  if (uuid) {
+    return `training-bundle-${uuid}`;
+  }
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).slice(2);
+  return `training-bundle-${timestamp}-${random}`;
+}
+
 function isUploadResponse(obj: unknown): obj is { id: string; status?: unknown } {
   return (
     typeof obj === 'object' &&
@@ -102,7 +139,7 @@ export async function uploadTrainingBundle(
   }
 
   const baseDirectory = ensureDirPrefix(baseDir);
-  const bundleId = `training-bundle-${randomUUID()}`;
+  const bundleId = createBundleId();
   const zipPath = `${baseDirectory}${bundleId}.zip`;
 
   // Beispiel für metadata.json:

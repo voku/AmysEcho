@@ -1,16 +1,5 @@
 declare module 'crypto-js';
 declare module 'react-native-webview';
-declare module 'expo-crypto' {
-  export enum CryptoDigestAlgorithm {
-    SHA256 = 'SHA256',
-  }
-  export function randomUUID(): string;
-  export function digestFileAsync(
-    algorithm: CryptoDigestAlgorithm,
-    fileUri: string
-  ): Promise<string>;
-}
-
 declare module 'expo-file-system' {
   export enum FileSystemUploadType {
     BINARY_CONTENT = 0,
