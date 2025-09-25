@@ -13,7 +13,7 @@ DATASET_PATH = os.environ.get(
 )
 MODEL_PATH = os.environ.get(
     "MLP_MODEL_PATH",
-    os.path.join(os.path.dirname(__file__), "../../../data/dgs_model.npz"),
+    os.path.join(os.path.dirname(__file__), "../../../data/amy_model.npz"),
 )
 HIDDEN_SIZE = int(os.environ.get("MLP_HIDDEN_SIZE", "128"))
 LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))

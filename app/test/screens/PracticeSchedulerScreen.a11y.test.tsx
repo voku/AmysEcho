@@ -38,6 +38,7 @@ jest.mock('../../src/model', () => ({
 }));
 
 jest.mock('../../src/services/practiceScheduler', () => ({
+  __esModule: true,
   listSchedules: jest.fn(async () => []),
   addSchedule: jest.fn(async () => {}),
   removeSchedule: jest.fn(async () => {}),
@@ -45,6 +46,7 @@ jest.mock('../../src/services/practiceScheduler', () => ({
 }));
 
 jest.mock('../../src/storage', () => ({
+  __esModule: true,
   loadProfile: jest.fn(async () => ({ id: 'p1', name: 'Amy' })),
 }));
 
@@ -52,9 +54,16 @@ jest.mock('../../src/components/BottomNav', () => () => null);
 
 import PracticeSchedulerScreen from '../../src/screens/PracticeSchedulerScreen';
 
-describe.skip('PracticeSchedulerScreen accessibility', () => {
+describe('PracticeSchedulerScreen accessibility', () => {
   it('renders German labels and accessible buttons', async () => {
     let comp!: renderer.ReactTestRenderer;
+    const storage = require('../../src/storage');
+    const schedules = require('../../src/services/practiceScheduler');
+    (storage.loadProfile as jest.Mock).mockResolvedValue({ id: 'p1', name: 'Amy' });
+    (schedules.listSchedules as jest.Mock).mockResolvedValue([]);
+    (schedules.addSchedule as jest.Mock).mockResolvedValue(undefined);
+    (schedules.removeSchedule as jest.Mock).mockResolvedValue(undefined);
+    (schedules.setScheduleEnabled as jest.Mock).mockResolvedValue(undefined);
     await act(async () => {
       comp = renderer.create(
         <PracticeSchedulerScreen navigation={{ goBack: jest.fn() }} route={{ params: {} }} /> as any,
@@ -75,4 +84,3 @@ describe.skip('PracticeSchedulerScreen accessibility', () => {
     ]));
   });
 });
-

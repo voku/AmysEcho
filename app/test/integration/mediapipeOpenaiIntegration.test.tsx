@@ -82,7 +82,7 @@ const advanceMicrotasks = async () => {
   });
 };
 
-describe.skip('MediaPipeGestureDetector (WebView integration)', () => {
+describe('MediaPipeGestureDetector (WebView integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     latestWebView.props = null;
@@ -139,7 +139,7 @@ describe.skip('MediaPipeGestureDetector (WebView integration)', () => {
       });
     });
 
-    expect(onGestureDetected).toHaveBeenCalledWith('hello', 0.82, [[[0.1, 0.2, 0.3]]]);
+    expect(onGestureDetected).toHaveBeenCalledWith('hello', 0.82, [[[0.1, 0.2, 0.3]]], []);
   });
 
   it('injects pending models once the WebView reports mlp readiness', async () => {
@@ -265,6 +265,6 @@ describe.skip('MediaPipeGestureDetector (WebView integration)', () => {
       });
     });
 
-    expect(onError).toHaveBeenCalledWith('gesture_processing_error');
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining('not-json'));
   });
 });

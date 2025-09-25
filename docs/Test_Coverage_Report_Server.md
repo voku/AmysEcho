@@ -18,7 +18,7 @@ This analysis highlights areas where dedicated test files are missing. While som
 *   `server/src/db.ts` (Database interactions)
 *   `server/src/index.ts` (Server entry point)
 *   `server/src/middleware/auth.ts` (Authentication middleware)
-*   `server/src/mockTrain.py` (Mock training script)
+*   `scripts/train_model.py` (Full training pipeline)
 *   `server/src/portal/index.ts` (Portal routes)
 
 *   `server/src/services/adaptiveLearningService.ts`

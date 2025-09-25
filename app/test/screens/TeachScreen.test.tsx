@@ -5,13 +5,19 @@ jest.mock('react-native', () => {
   const React = require('react');
   return {
     View: (p: any) => React.createElement('View', p, p.children),
+    Text: (p: any) => React.createElement('Text', p, p.children),
     Button: (p: any) => React.createElement('Button', p, p.children),
     SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
+    Pressable: (p: any) => React.createElement('Pressable', p, p.children),
     StyleSheet: { create: (s: any) => s },
   } as any;
 });
 
 import TeachScreen from '../../src/screens/TeachScreen';
+
+jest.mock('../../src/services/feedbackService', () => ({
+  childHaptic: jest.fn(),
+}));
 
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
 jest.mock('expo-audio', () => ({
@@ -54,7 +60,7 @@ jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));
 
-describe.skip('TeachScreen', () => {
+describe('TeachScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

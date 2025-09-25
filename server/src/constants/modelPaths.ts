@@ -61,11 +61,11 @@ export function getTrainedModelPath(profileId?: string): string {
 }
 
 // MLP model path (.npz)
-export const TRAINED_MLP_MODEL_PATH = path.join(DATA_DIR, 'dgs_model.npz');
+export const TRAINED_MLP_MODEL_PATH = path.join(DATA_DIR, 'amy_model.npz');
 export function getMlpModelPath(profileId?: string): string {
   return getProfiledPath(TRAINED_MLP_MODEL_PATH, profileId);
 }
-export const BASELINE_MLP_MODEL_PATH = path.join(SERVER_DIR, '..', 'data', 'dgs_model.npz');
+export const BASELINE_MLP_MODEL_PATH = path.join(SERVER_DIR, '..', 'data', 'amy_model.npz');
 export const GESTURE_LABELS_PATH = path.join(
   SERVER_DIR,
   '../app/assets/models/gesture_labels.json',

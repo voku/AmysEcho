@@ -122,7 +122,7 @@ If landmark extraction fails:
 
 The script creates several files:
 - `data/amy_model.npz`: Trained model weights and labels
-- `app/assets/dgs_model.npz`: Deployed model (copied from amy_model.npz)
+- `app/assets/amy_model.npz`: Deployed model (copied from amy_model.npz)
 - `app/assets/dgs_model_base64.txt`: Base64 encoded model for WebView
 - `app/assets/gestureDetector.js`: Updated WebView bundle
 

@@ -127,7 +127,7 @@ def test_train_endpoint(tmp_path):
             assert data.get("counts", {}).get("g1") == 1
 
         # verify MLP model files created
-        npz = SERVER_DIR / "data" / "dgs_model.npz"
+        npz = SERVER_DIR / "data" / "amy_model.npz"
         prof_npz = SERVER_DIR / "data" / "dgs_model_p1.npz"
         assert npz.exists()
         assert prof_npz.exists()

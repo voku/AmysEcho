@@ -104,8 +104,27 @@ jest.mock('../src/components/AccessibilityContext', () => ({
 jest.mock('../src/components/BottomNav', () => () => null);
 
 import ProgressScreen from '../src/screens/ProgressScreen';
+import { loadProfile } from '../src/storage';
+import { loadUsageStats } from '../src/services/usageTracker';
+import { loadEngagementStats } from '../src/services/engagementTracker';
 
-describe.skip('ProgressScreen', () => {
+describe('ProgressScreen', () => {
+  beforeEach(() => {
+    (loadProfile as jest.Mock).mockResolvedValue({
+      id: 'p1',
+      name: 'Test',
+      consentDataUpload: true,
+      consentHelpMeGetSmarter: true,
+      vocabularySetId: 'basic',
+    });
+    (loadUsageStats as jest.Mock).mockResolvedValue({ hello: 3 });
+    (loadEngagementStats as jest.Mock).mockResolvedValue({
+      totalSessions: 2,
+      totalDurationMs: 10000,
+      averageDurationMs: 5000,
+    });
+  });
+
   it('renders usage statistics', async () => {
     let component: renderer.ReactTestRenderer;
     await act(async () => {

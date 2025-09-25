@@ -98,7 +98,11 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
       // Not modified, keep cached model
       return storage.getItem(`${MLP_KEY}:${profileId || 'global'}`);
     }
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      // API failed, try local fallback
+      console.log('API failed, trying local MLP model');
+      return await loadLocalMlpModel();
+    }
     const buf = Buffer.from(await resp.arrayBuffer());
     const b64 = buf.toString('base64');
     await storage.setItem(`${MLP_KEY}:${profileId || 'global'}`, b64);
@@ -112,7 +116,9 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
     return b64;
   } catch (error) {
     console.error('Failed to fetch MLP model:', error);
-    return null;
+    // Try local fallback on network errors
+    console.log('Network error, trying local MLP model');
+    return await loadLocalMlpModel();
   }
 }
 
@@ -133,9 +139,9 @@ export async function loadLocalMlpModel(): Promise<string | null> {
 
       // Try different possible paths for the model file
       const possiblePaths = [
-        fs.MainBundlePath + '/data/dgs_model.npz',
-        fs.DocumentDirectoryPath + '/dgs_model.npz',
-        '/data/dgs_model.npz', // Absolute path for development
+        fs.MainBundlePath + '/data/amy_model.npz',
+        fs.DocumentDirectoryPath + '/amy_model.npz',
+        '/data/amy_model.npz', // Absolute path for development
       ];
 
       console.log('Available paths:', possiblePaths);
@@ -174,26 +180,42 @@ export async function loadLocalMlpModel(): Promise<string | null> {
       console.log('Bundle directory:', FileSystem.bundleDirectory);
 
       // First, try to copy the model from assets to document directory if it doesn't exist
-      const docModelUri = FileSystem.documentDirectory + 'dgs_model.npz';
+      const docModelUri = FileSystem.documentDirectory + 'amy_model.npz';
       let modelInfo = await FileSystem.getInfoAsync(docModelUri);
       console.log('Document directory model exists:', modelInfo.exists, 'size:', modelInfo.exists ? (modelInfo as any).size : 0);
 
       if (!modelInfo.exists) {
         try {
-          // Try to copy from the project data directory (for development)
-          const sourceUri = '/home/lars/PhpstormProjects/AmysEcho/data/dgs_model.npz';
-          console.log('Attempting to copy from project data directory:', sourceUri);
+          // Try to copy from the bundle assets (for production)
+          const bundleUri = FileSystem.bundleDirectory + 'data/amy_model.npz';
+          console.log('Attempting to copy from bundle assets:', bundleUri);
 
           await FileSystem.copyAsync({
-            from: sourceUri,
+            from: bundleUri,
             to: docModelUri
           });
 
-          console.log('Successfully copied model to document directory');
+          console.log('Successfully copied model from bundle to document directory');
           modelInfo = await FileSystem.getInfoAsync(docModelUri);
           console.log('After copy - model exists:', modelInfo.exists, 'size:', modelInfo.exists ? (modelInfo as any).size : 0);
-        } catch (copyError) {
-          console.warn('Failed to copy model from project directory:', copyError);
+        } catch (bundleError) {
+          console.warn('Failed to copy model from bundle:', bundleError);
+          try {
+            // Try to copy from the project data directory (for development)
+            const sourceUri = '/home/lars/PhpstormProjects/AmysEcho/data/amy_model.npz';
+            console.log('Attempting to copy from project data directory:', sourceUri);
+
+            await FileSystem.copyAsync({
+              from: sourceUri,
+              to: docModelUri
+            });
+
+            console.log('Successfully copied model to document directory');
+            modelInfo = await FileSystem.getInfoAsync(docModelUri);
+            console.log('After copy - model exists:', modelInfo.exists, 'size:', modelInfo.exists ? (modelInfo as any).size : 0);
+          } catch (copyError) {
+            console.warn('Failed to copy model from project directory:', copyError);
+          }
         }
       }
 
@@ -228,7 +250,7 @@ export async function loadLocalMlpModel(): Promise<string | null> {
     // For development: Try to load from the app data directory
     try {
       const fs = require('react-native-fs');
-      const appModelPath = '/data/dgs_model.npz';
+      const appModelPath = '/data/amy_model.npz';
       if (await fs.exists(appModelPath)) {
         const modelData = await fs.readFile(appModelPath, 'base64');
         if (modelData && modelData.length > 0) {

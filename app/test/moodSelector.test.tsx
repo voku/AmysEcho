@@ -44,7 +44,7 @@ jest.mock('../src/components/AccessibilityContext', () => ({
 
 import MoodSelector from '../src/components/MoodSelector';
 
-describe.skip('MoodSelector', () => {
+describe('MoodSelector', () => {
   beforeEach(() => {
     mockCurrentMood = 'neutral';
     mockLargeText = false;
@@ -199,7 +199,7 @@ describe.skip('MoodSelector', () => {
     });
 
     const texts = component.root.findAllByType('Text');
-    const titleText = texts.find(text => text.props.children === 'Stimmung wählen');
+    const titleText = texts.find(text => text.props.children === 'Wie fühlst du dich?');
     expect(titleText).toBeTruthy();
   });
 

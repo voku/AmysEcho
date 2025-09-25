@@ -29,7 +29,7 @@ import { adaptiveLearningService, enhancedAdaptiveLearningService, recordInterac
 
 const { loadUsageStats } = require('../src/services/usageTracker');
 
-describe.skip('AdaptiveLearningService', () => {
+describe('AdaptiveLearningService', () => {
   beforeEach(() => {
     // Clear all performance metrics before each test
     enhancedAdaptiveLearningService['performanceMetrics'].clear();

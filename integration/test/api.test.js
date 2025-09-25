@@ -225,10 +225,10 @@ test('POST /analytics then GET returns same data', async () => {
 });
 
 test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
-  const modelDir = join(serverDir, '..', 'data');
+  const modelDir = join(serverDir, 'data');
   await fs.mkdir(modelDir, { recursive: true });
   const buf = Buffer.from('mlp-model');
-  const modelPath = join(modelDir, 'dgs_model_p1.npz');
+   const modelPath = join(modelDir, 'amy_model_p1.npz');
   await fs.writeFile(modelPath, buf);
   try {
     // Retry up to 3x to tolerate file-race conditions

@@ -595,7 +595,7 @@ app.get('/api/v1/dgs/mlp-model', legacyAuth, async (req: Request, res: Response)
 });
 
   // Add a labeled DGS sample (landmarks normalized [0..1])
-app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
+ app.post('/api/v1/dgs/samples', legacyAuth, async (req: Request, res: Response) => {
   try {
     const Body = z.object({
       label: z.string().min(1),
@@ -617,6 +617,7 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
         .json({ error: 'label and landmarks (42 × [x,y,z]) required', details: parsed.error.flatten() });
     }
     const { label, profileId, landmarks } = parsed.data;
+    console.log(`Received DGS sample: label=${label}, profileId=${profileId}, landmarks length=${landmarks.length}`);
     const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
     await withFileLock(dataPath, async () => {
       let data: any = { samples: [] };
@@ -1193,7 +1194,7 @@ app.get('/latest-mlp-model', legacyAuth, async (req: Request, res: Response) => 
   await sendBinaryModel(
     res,
     chosen,
-    profileId ? `dgs_model_${profileId}.npz` : 'dgs_model.npz',
+    profileId ? `amy_model_${profileId}.npz` : 'amy_model.npz',
   );
 });
 

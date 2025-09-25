@@ -1,7 +1,28 @@
 const { spawnSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 const appDir = path.resolve(__dirname, '..');
+
+function ensureWebviewBundle() {
+  const bundlePath = path.join(appDir, 'webview', 'dist', 'gestureDetector.js');
+  if (fs.existsSync(bundlePath)) {
+    return;
+  }
+
+  const build = spawnSync('npm', ['run', 'build:webview'], {
+    cwd: appDir,
+    stdio: 'inherit',
+    env: process.env,
+  });
+
+  if (build.status !== 0) {
+    console.error('Failed to build webview bundle required for tests.');
+    process.exit(build.status);
+  }
+}
+
+ensureWebviewBundle();
 
 // Get list of test files from Jest
 const list = spawnSync('npx', ['jest', '--listTests'], {

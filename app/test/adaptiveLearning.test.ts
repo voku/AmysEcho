@@ -2,7 +2,7 @@ import { createDatabase, addGestureDefinition } from '../../server/src/db';
 import { processInteraction } from '../../server/src/services/adaptiveLearningService';
 import { GestureDefinition, InteractionLog } from '../../server/src/types';
 
-describe.skip('Adaptive Learning', () => {
+describe('Adaptive Learning', () => {
   it('should correctly process interactions and update gesture definitions', () => {
     const db = createDatabase();
     const def: GestureDefinition = {

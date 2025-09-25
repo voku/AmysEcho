@@ -73,7 +73,7 @@ jest.mock('../../src/components/AccessibilityContext', () => ({
 }));
 jest.mock('../../src/components/PulsingCircle', () => () => null);
 
-describe.skip('CorrectionScreen', () => {
+describe('CorrectionScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

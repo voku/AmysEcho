@@ -3,18 +3,22 @@ import renderer, { act } from 'react-test-renderer';
 
 jest.mock('react-native', () => {
   const React = require('react');
+  const { Fragment } = React;
   return {
     View: (props: any) => React.createElement('View', props, props.children),
     Pressable: (props: any) => React.createElement('Pressable', props, props.children),
     Text: (props: any) => React.createElement('Text', props, props.children),
-    FlatList: ({ data, renderItem, ListEmptyComponent }: any) =>
-      React.createElement(
-        'FlatList',
-        null,
-        data && data.length
-          ? data.map((item: any, index: number) => renderItem({ item, index }))
-          : ListEmptyComponent || null,
-      ),
+    FlatList: ({ data = [], renderItem, ListEmptyComponent, keyExtractor }: any) => {
+      const items = (data as any[]).map((item, index) => {
+        const rendered = renderItem({ item, index });
+        const key = keyExtractor ? keyExtractor(item, index) : index;
+        return React.createElement(Fragment, { key }, rendered);
+      });
+      if (items.length === 0 && ListEmptyComponent) {
+        return React.createElement('FlatList', null, React.createElement(Fragment, { key: 'empty' }, ListEmptyComponent));
+      }
+      return React.createElement('FlatList', null, ...items);
+    },
     StyleSheet: { create: (styles: any) => styles },
   };
 });
@@ -22,10 +26,16 @@ jest.mock('react-native', () => {
 let mockHighContrast = false;
 
 const mockNavigate = jest.fn();
+const mockNavigation = {
+  navigate: mockNavigate,
+  canGoBack: jest.fn(() => true),
+  goBack: jest.fn(),
+};
+let mockRouteName = 'Recognition';
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate, canGoBack: jest.fn(() => true) }),
-  useRoute: () => ({ name: 'Recognition' }),
+  useNavigation: () => mockNavigation,
+  useRoute: () => ({ name: mockRouteName }),
 }));
 
 
@@ -71,9 +81,17 @@ jest.mock('../src/context/ThemeContext', () => ({
 import BottomNav from '../src/components/BottomNav';
 import { COLORS } from '../src/constants/ui';
 
-describe.skip('BottomNav', () => {
+describe('BottomNav', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    mockNavigation.goBack.mockClear();
+    mockNavigation.canGoBack.mockReturnValue(true);
+    mockRouteName = 'Recognition';
+    mockHighContrast = false;
+  });
+
+  afterEach(() => {
+    mockHighContrast = false;
   });
 
   it('uses large touch targets with haptic feedback', () => {
@@ -171,14 +189,10 @@ describe.skip('BottomNav', () => {
         expect.objectContaining({ backgroundColor: COLORS.highContrastPressed }),
       ]),
     );
-
-    mockHighContrast = false; // Reset
   });
 
   it('handles unknown route names', () => {
-    // Mock the useRoute hook to return an unknown screen name
-    const originalUseRoute = require('@react-navigation/native').useRoute;
-    require('@react-navigation/native').useRoute = jest.fn(() => ({ name: 'UnknownScreen' }));
+    mockRouteName = 'UnknownScreen';
 
     let component: renderer.ReactTestRenderer;
     act(() => {
@@ -188,9 +202,7 @@ describe.skip('BottomNav', () => {
     const texts = (component as renderer.ReactTestRenderer).root.findAllByType('Text');
     const breadcrumbText = texts.find(text => text.props.children === 'UnknownScreen');
     expect(breadcrumbText).toBeTruthy();
-
-    // Restore original mock
-    require('@react-navigation/native').useRoute = originalUseRoute;
+    mockRouteName = 'Recognition';
   });
 
   it('navigates to different screens', () => {

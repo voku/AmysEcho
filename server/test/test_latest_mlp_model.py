@@ -70,7 +70,7 @@ def global_model_file():
         )
         shutil.move(str(data_dir), str(backup_dir))
     data_dir.mkdir()
-    model_path = data_dir / "dgs_model.npz"
+    model_path = data_dir / "amy_model.npz"
     model_path.write_bytes(b"placeholder")
     try:
         yield model_path

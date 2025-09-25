@@ -57,7 +57,7 @@ import * as Speech from 'expo-speech';
 import * as FileSystem from 'expo-file-system';
 import { database } from '../db';
 
-describe.skip('audioService feedback', () => {
+describe('audioService feedback', () => {
   const soundMock = () => ({
     volume: 0,
     loop: false,
@@ -86,6 +86,12 @@ describe.skip('audioService feedback', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (Speech.speak as jest.Mock).mockImplementation((text: string, options?: Speech.SpeechOptions) => {
+      options?.onDone?.();
+    });
+    (Speech.stop as jest.Mock).mockResolvedValue(undefined);
+    (Haptics.notificationAsync as jest.Mock).mockResolvedValue(undefined);
+    (Haptics.impactAsync as jest.Mock).mockResolvedValue(undefined);
     resetService();
   });
 
@@ -168,7 +174,8 @@ describe.skip('audioService feedback', () => {
 
   it('allows repeat after debounce window', async () => {
     await audioService.speak('Hallo');
-    await new Promise((res) => setTimeout(res, 2100));
+    const config = (audioService as any).config;
+    (audioService as any).lastSpokenAt = Date.now() - (config.duplicateSpeechDebounceMs + 10);
     await audioService.speak('Hallo');
     expect(Speech.speak).toHaveBeenCalledTimes(2);
   });

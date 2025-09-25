@@ -12,14 +12,15 @@ jest.mock('../db/models', () => ({}));
 
 // Mock dynamic import
 jest.mock('../src/storage', () => ({
-  saveCustomGesture: jest.fn(),
-  loadCustomGestures: jest.fn(() => Promise.resolve([])),
+  __esModule: true,
+  saveCustomGesture: jest.fn(async () => {}),
+  loadCustomGestures: async () => [],
 }));
 
 import { saveCustomGesture, loadCustomGestures } from '../src/storage';
 import { gestureModel, initGestureModel } from '../src/model';
 
-describe.skip('custom gesture persistence', () => {
+describe('custom gesture persistence', () => {
   beforeEach(() => {
     for (const k of Object.keys(store)) delete store[k];
     // remove test gesture from model if present

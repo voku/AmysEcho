@@ -16,7 +16,7 @@ The script will:
 2. Use fallback sample data if videos are not processed
 3. Train the model with optimized parameters
 4. Validate model performance
-5. Save the model to server/data/dgs_model.npz
+5. Save the model to server/data/amy_model.npz
 """
 
 import json
@@ -31,7 +31,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 VIDEO_DIR = PROJECT_ROOT / "app" / "assets" / "videos"
 DATA_DIR = PROJECT_ROOT / "data"
 SAMPLES_FILE = DATA_DIR / "dgs_samples.json"
-MODEL_FILE = DATA_DIR / "dgs_model.npz"
+MODEL_FILE = DATA_DIR / "amy_model.npz"
 
 def check_existing_data():
     """Check if processed landmark data already exists"""

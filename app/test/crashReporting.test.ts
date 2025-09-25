@@ -1,18 +1,31 @@
+const mockStorage: Record<string, string> = {};
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: async (key: string) => (key in mockStorage ? mockStorage[key] : null),
+    setItem: async (key: string, value: string) => {
+      mockStorage[key] = value;
+    },
+    removeItem: async (key: string) => {
+      delete mockStorage[key];
+    },
+    clear: async () => {
+      Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
+    },
+  },
+}));
+
 import * as crash from '../src/services/crashReporting';
 const { enqueueCrashReport, flushCrashReports, initCrashReporting } = crash;
 
-// Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
-);
-
-describe.skip('crashReporting', () => {
+describe('crashReporting', () => {
   let prevErrorHandler: jest.Mock;
   let setGlobalHandler: jest.Mock;
   let prevUnhandled: jest.Mock;
   let currentHandler: any;
 
   beforeEach(() => {
+    Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
     (global as any).fetch = jest.fn(() => Promise.resolve({ ok: true, status: 202 })) as any;
     prevErrorHandler = jest.fn();
     currentHandler = prevErrorHandler;
@@ -33,6 +46,7 @@ describe.skip('crashReporting', () => {
   });
 
   it('queues and flushes crash reports', async () => {
+    const asyncStorage = jest.requireMock('@react-native-async-storage/async-storage').default;
     await enqueueCrashReport(new Error('boom'), { screen: 'Recognition' });
     await enqueueCrashReport('string error');
 
@@ -66,4 +80,3 @@ describe.skip('crashReporting', () => {
     expect(prevUnhandled).toHaveBeenCalledWith(event);
   });
 });
-

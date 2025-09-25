@@ -20,12 +20,13 @@ jest.mock('../../src/services/feedbackService', () => ({
 }));
 
 jest.mock('../../src/storage', () => ({
-  loadProfile: jest.fn(async () => ({ id: 'p1', name: 'Amy' })),
+  __esModule: true,
+  loadProfile: () => Promise.resolve({ id: 'p1', name: 'Amy' }),
 }));
 
 import ProfileSelectScreen from '../../src/screens/ProfileSelectScreen';
 
-describe.skip('ProfileSelectScreen accessibility', () => {
+describe('ProfileSelectScreen accessibility', () => {
   it('renders German title and accessible actions', async () => {
     let comp!: renderer.ReactTestRenderer;
     await act(async () => {
@@ -54,4 +55,3 @@ describe.skip('ProfileSelectScreen accessibility', () => {
     );
   });
 });
-

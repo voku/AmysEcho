@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-describe.skip('backupService', () => {
+describe('backupService', () => {
   let backupService: any;
   let gestureDataProtector: any;
   let AsyncStorage: any;
@@ -11,23 +11,42 @@ describe.skip('backupService', () => {
   beforeEach(() => {
     jest.resetModules();
 
+    const fileStore: Record<string, string> = {};
+
     // Mock FileSystem with simple in-memory store before importing constants
-    jest.doMock('expo-file-system', () => {
-      const store: Record<string, string> = {};
-      return {
-        documentDirectory: '/test/documents/',
-        EncodingType: {
-          UTF8: 'utf8',
-        },
-        writeAsStringAsync: jest.fn(async (path: string, content: string) => {
-          store[path] = content;
-        }),
-        readAsStringAsync: jest.fn(async (path: string) => store[path] ?? ''),
-        getInfoAsync: jest.fn(async (path: string) => ({ exists: Object.prototype.hasOwnProperty.call(store, path) })),
-        deleteAsync: jest.fn(async (path: string) => { delete store[path]; }),
-        __resetMock: jest.fn(() => { Object.keys(store).forEach(k => delete store[k]); }),
-      };
-    });
+    jest.doMock('expo-file-system', () => ({
+      documentDirectory: '/test/documents/',
+      cacheDirectory: '/test/cache/',
+      Paths: {
+        document: { uri: '/test/documents/' },
+        cache: { uri: '/test/cache/' },
+      },
+      writeAsStringAsync: jest.fn(async (path: string, content: string) => {
+        fileStore[path] = content;
+      }),
+      readAsStringAsync: jest.fn(async (path: string) => fileStore[path] ?? ''),
+      getInfoAsync: jest.fn(async (path: string) => ({ exists: Object.prototype.hasOwnProperty.call(fileStore, path) })),
+      deleteAsync: jest.fn(async (path: string) => { delete fileStore[path]; }),
+      makeDirectoryAsync: jest.fn(async (_path: string) => {}),
+      moveAsync: jest.fn(async (_config: any) => {}),
+      __resetMock: jest.fn(() => { Object.keys(fileStore).forEach(k => delete fileStore[k]); }),
+    }));
+
+    jest.doMock('expo-file-system/legacy', () => ({
+      EncodingType: { UTF8: 'utf8' },
+      getInfoAsync: jest.fn(async (path: string) => ({ exists: Object.prototype.hasOwnProperty.call(fileStore, path) })),
+      writeAsStringAsync: jest.fn(async (path: string, content: string) => { fileStore[path] = content; }),
+      readAsStringAsync: jest.fn(async (path: string) => fileStore[path] ?? ''),
+      deleteAsync: jest.fn(async (path: string) => { delete fileStore[path]; }),
+      makeDirectoryAsync: jest.fn(async (_path: string) => {}),
+      moveAsync: jest.fn(async (_config: any) => {}),
+      documentDirectory: '/test/documents/',
+      cacheDirectory: '/test/cache/',
+      Paths: {
+        document: { uri: '/test/documents/' },
+        cache: { uri: '/test/cache/' },
+      },
+    }));
 
     jest.doMock('expo-secure-store', () => {
       const store: Record<string, string> = {};

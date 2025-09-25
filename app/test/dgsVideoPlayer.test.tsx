@@ -24,7 +24,6 @@ jest.mock('../src/utils/logger', () => ({
 
 const play = jest.fn();
 const pause = jest.fn();
-const listeners: Record<string, Function> = {};
 const mockPlayer: any = {
   status: 'loading',
   duration: 10,
@@ -34,7 +33,6 @@ const mockPlayer: any = {
   pause,
   replay: jest.fn(),
   addListener: jest.fn((event: string, cb: Function) => {
-    listeners[event] = cb;
     return { remove: jest.fn() };
   }),
 };
@@ -44,14 +42,13 @@ jest.mock('expo-video', () => ({
   useVideoPlayer: () => mockPlayer,
 }));
 
-describe.skip('DgsVideoPlayer performance', () => {
+describe('DgsVideoPlayer performance', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPlayer.status = 'loading';
     mockPlayer.playing = false;
     mockPlayer.currentTime = 0;
     mockPlayer.replay.mockClear();
-    Object.keys(listeners).forEach((key) => delete listeners[key]);
   });
 
   it('shows a loading indicator while buffering', () => {
@@ -120,10 +117,12 @@ describe.skip('DgsVideoPlayer performance', () => {
         <DgsVideoPlayer videoSource={{ uri: 'foo' }} shouldPlay />
       );
     });
+    const playToEndHandler = mockPlayer.addListener.mock.calls.find((call) => call[0] === 'playToEnd')?.[1] as Function | undefined;
+    expect(typeof playToEndHandler).toBe('function');
     // simulate video ending
     act(() => {
       mockPlayer.playing = false;
-      listeners['playToEnd']();
+      playToEndHandler?.();
     });
     expect(mockPlayer.replay).not.toHaveBeenCalled();
     const playBtn = (component as renderer.ReactTestRenderer).root.findByProps({

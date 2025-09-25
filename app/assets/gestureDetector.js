@@ -958,6 +958,7 @@
         if (!mlp) return null;
         const x = normalizeLandmarks(all, handednesses);
         if (!x) return null;
+        if (x.every((v) => v === 0)) return null;
         const cols1 = x.length;
         if (mlp.w1.shape[1] !== cols1) throw new Error("Input dimension mismatch");
         const rows1 = mlp.w1.shape[0];

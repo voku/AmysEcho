@@ -53,7 +53,6 @@ The performance budget for the gesture recognition pipeline is as follows:
 These are target values and should be validated on real devices.
 
 ## 9. Data Privacy & Profile Management
-- All persistent data lives in `server/db.json`
 - `GET /api/profiles/:id/export` returns a profile's stored data as JSON
 - `DELETE /api/profiles/:id` removes a profile and associated usage/correction records to honor caregiver deletion requests
 

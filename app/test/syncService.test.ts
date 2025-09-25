@@ -39,6 +39,19 @@ import { syncService, __setDatabaseForTests } from '../src/services/syncService'
 import { refreshDgsModel } from '../src/services/modelUpdate';
 import { telemetry } from '../src/telemetry/recorder';
 import { uploadTelemetry } from '../src/services/analytics';
+import * as storage from '../src/storage';
+
+let mockSamples: Array<{
+  id: string;
+  landmarkData: string;
+  gestureDefinition: { id: string };
+  customSyncStatus: 'pending' | 'synced' | 'corrupted';
+  update: jest.Mock;
+}> = [];
+let collectionMock: {
+  query: jest.Mock;
+  find: jest.Mock;
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -46,24 +59,42 @@ beforeEach(() => {
   mockLogger.info = jest.fn();
   mockLogger.warn = jest.fn();
   mockLogger.error = jest.fn();
-  const sample: {
-    landmarkData: string;
-    gestureDefinition: { id: string };
-    customSyncStatus: 'pending' | 'synced';
-    update: jest.Mock;
-  } = {
+
+  (storage.loadActiveProfileId as jest.Mock).mockResolvedValue('p1');
+  (storage.loadProfile as jest.Mock).mockResolvedValue({ id: 'p1', consentHelpMeGetSmarter: true });
+
+  const sample = {
+    id: 'sample-1',
     landmarkData: JSON.stringify([
       { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
     ]),
     gestureDefinition: { id: 'g1' },
-    customSyncStatus: 'pending',
+    customSyncStatus: 'pending' as const,
     update: jest.fn(),
   };
   sample.update.mockImplementation((fn: (s: typeof sample) => void) => fn(sample));
   mockSamples = [sample];
-  mockDatabase.get.mockReturnValue({
-    query: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue(mockSamples) })),
+
+  collectionMock = {
+    query: jest.fn(() => ({
+      fetch: jest.fn().mockImplementation(async () => mockSamples),
+    })),
+    find: jest.fn(async (id: string) => {
+      const found = mockSamples.find((s) => s.id === id);
+      if (!found) {
+        throw new Error(`Sample ${id} not found`);
+      }
+      return found;
+    }),
+  };
+
+  mockDatabase.get.mockImplementation((table: string) => {
+    if (table === 'gesture_training_data') {
+      return collectionMock;
+    }
+    throw new Error(`Unexpected table requested: ${table}`);
   });
+
   mockDatabase.write.mockImplementation(async (fn: any) => { await fn(); });
   (global as any).fetch = jest.fn(async () => ({ ok: true }));
   (telemetry.dump as jest.Mock).mockResolvedValue([]);
@@ -76,7 +107,7 @@ afterEach(() => {
   jest.clearAllTimers();
 });
 
-describe.skip('syncService.uploadPendingTrainingData', () => {
+describe('syncService.uploadPendingTrainingData', () => {
   it('uploads samples and marks them synced', async () => {
     await syncService.uploadPendingTrainingData();
     expect(global.fetch).toHaveBeenCalledWith(
@@ -129,7 +160,7 @@ describe.skip('syncService.uploadPendingTrainingData', () => {
   });
 });
 
-describe.skip('consent caching', () => {
+describe('consent caching', () => {
   it('caches consent status with TTL', async () => {
     jest.useFakeTimers();
     const t0 = new Date('2025-01-01T00:00:00Z');
@@ -159,7 +190,7 @@ describe.skip('consent caching', () => {
   });
 });
 
-describe.skip('telemetry sync', () => {
+describe('telemetry sync', () => {
   it('uploads telemetry events even when no training data', async () => {
     mockSamples = [];
     mockDatabase.get.mockReturnValue({

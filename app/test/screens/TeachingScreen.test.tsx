@@ -54,9 +54,18 @@ jest.mock('../../src/components/MediaPipeGestureDetector', () => ({
 
 import TeachingScreen from '../../src/screens/TeachingScreen';
 
-describe.skip('TeachingScreen', () => {
+describe('TeachingScreen', () => {
   it('renders German title', async () => {
     let component!: renderer.ReactTestRenderer;
+    const storage = require('../../src/storage');
+    const recorder = require('../../src/services/gestureRecorder');
+    const services = require('../../src/services');
+    (storage.loadProfile as jest.Mock).mockResolvedValue({ id: '1', name: 'Amy' });
+    (storage.loadTrainingSampleCount as jest.Mock).mockResolvedValue(0);
+    (storage.saveTrainingSample as jest.Mock).mockResolvedValue(undefined);
+    (storage.saveCustomGesture as jest.Mock).mockResolvedValue(undefined);
+    (recorder.captureSamples as jest.Mock).mockResolvedValue([]);
+    (services.syncTrainingData as jest.Mock).mockResolvedValue(undefined);
     await act(async () => {
       component = renderer.create(<TeachingScreen navigation={{ goBack: jest.fn() }} />);
       await Promise.resolve();

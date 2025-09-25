@@ -11,8 +11,6 @@ jest.mock('react-native', () => {
   } as any;
 });
 
-import GesturePracticeScreen from '../../src/screens/GesturePracticeScreen';
-
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
@@ -23,7 +21,8 @@ jest.mock('../../src/components/MediaPipeGestureDetector', () => ({
   MediaPipeGestureDetector: (props: any) => mockReact.createElement('MediaPipeGestureDetector', props, null),
 }));
 jest.mock('../../src/storage', () => ({
-  loadProfile: jest.fn(() => Promise.resolve({ id: 'p1', name: 'Test Profile' }))
+  __esModule: true,
+  loadProfile: () => Promise.resolve({ id: 'p1', name: 'Test Profile' }),
 }));
 
 // Mock setInterval and clearInterval
@@ -34,14 +33,11 @@ jest.mock('../../src/context/MessageContext', () => ({
 }));
 jest.mock('../../src/utils/logger', () => ({ logger: { error: jest.fn(), warn: jest.fn() } }));
 
-describe.skip('GesturePracticeScreen', () => {
+import GesturePracticeScreen from '../../src/screens/GesturePracticeScreen';
+
+describe('GesturePracticeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('renders correctly', () => {

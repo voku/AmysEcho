@@ -1,265 +1,100 @@
-import { jest } from '@jest/globals';
+import { BatteryMonitor } from '../webview/core/BatteryMonitor';
+import { ErrorRecoveryManager } from '../webview/utils/ErrorRecoveryManager';
 
-// Mock the WebView environment
-const mockPostMessage = jest.fn();
-const mockReactNativeWebView = {
-  postMessage: mockPostMessage
-};
-
-Object.defineProperty(window, 'ReactNativeWebView', {
-  value: mockReactNativeWebView,
-  writable: true
+// Ensure ReactNativeWebView exists for telemetry posts
+beforeEach(() => {
+  (window as any).ReactNativeWebView = {
+    postMessage: jest.fn(),
+  };
+  jest.useFakeTimers();
 });
 
-// Import after mocks are set up
-import '../webview/gestureDetector';
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+  delete (window as any).ReactNativeWebView;
+  delete (navigator as any).getBattery;
+});
 
-describe.skip('Fallback System - Multi-Layer Resilience Tests', () => {
+describe('BatteryMonitor', () => {
+  const defineBattery = (level: number) => {
+    Object.defineProperty(navigator, 'getBattery', {
+      configurable: true,
+      value: jest.fn().mockResolvedValue({
+        level,
+      }),
+    });
+  };
+
+  it('activates emergency mode when battery is critical', async () => {
+    defineBattery(0.03);
+    const monitor = new BatteryMonitor();
+
+    monitor.startMonitoring();
+    await (monitor as any).checkBatteryLevel?.();
+
+    expect((window.ReactNativeWebView?.postMessage as jest.Mock)).toHaveBeenCalledWith(
+      expect.stringContaining('emergency_mode_activated'),
+    );
+    expect(monitor.getStatus().emergencyMode).toBe(true);
+  });
+
+  it('reports last check timestamp even when API unavailable', async () => {
+    // Remove battery API so monitor falls back gracefully
+    Object.defineProperty(navigator, 'getBattery', {
+      configurable: true,
+      value: undefined,
+    });
+    const monitor = new BatteryMonitor();
+
+    monitor.startMonitoring();
+    await (monitor as any).checkBatteryLevel?.();
+
+    const status = monitor.getStatus();
+    expect(status.level).toBeGreaterThan(0);
+    expect(status.lastCheck).toBeGreaterThan(0);
+  });
+});
+
+describe('ErrorRecoveryManager', () => {
+  let manager: ErrorRecoveryManager;
+
   beforeEach(() => {
-    jest.clearAllMocks();
-    // Reset system states
-    window.errorRecoveryManager?.reset();
+    manager = new ErrorRecoveryManager();
   });
 
-  describe('MLP → Centroid → Rule-based Fallback Chain', () => {
-    test('should fallback to centroid when MLP fails', () => {
-      // Mock MLP failure
-      window.__mlpPredict = undefined;
+  it('activates fallback mode after MediaPipe failures', () => {
+    const retry = manager.recordFailure(new Error('MediaPipe crashed'), 'mediapipe processing');
+    expect(retry).toBe(false);
+    expect(manager.isInFallbackMode()).toBe(true);
 
-      // Mock centroid data
-      const mockCentroids = {
-        'thumbs_up': [[0, 0, 0], [1, 1, 1]], // Mock landmark data
-        'hello': [[0, 0, 0], [2, 2, 2]]
-      };
-
-      // Simulate gesture detection with MLP unavailable
-      const landmarks = [[[0, 0, 0], [1, 1, 1]]];
-
-      // Should attempt centroid matching
-      // Note: Actual centroid logic would be tested in integration
-      expect(window.__mlpPredict).toBeUndefined();
-    });
-
-    test('should fallback to rule-based detection when both MLP and centroid fail', () => {
-      // Mock complete failure of advanced systems
-      window.__mlpPredict = undefined;
-      // Assume centroid loading also fails
-
-      const landmarks = [
-        // Mock "thumbs up"-like landmarks simplified for test booleans
-        [0, 0, 0],  // Wrist
-        [1, -2, 0], // Thumb base (higher up)
-        [2, 1, 0],  // Thumb joint (lower than tip index compared to base)
-        [3, 1, 0],  // Index base
-        [4, -3, 0], // Index tip (above base -> treated as extended in test formula)
-        [5, 2, 0],  // Middle base
-        [6, 3, 0],  // Middle tip (below base -> not extended)
-        [7, 3, 0],  // Ring base
-        [8, 4, 0],  // Ring tip (below base -> not extended)
-        [9, 4, 0],  // Pinky base
-        [10, 5, 0], // Pinky tip (below base -> not extended)
-      ];
-
-      // Rule-based detection should identify thumbs up
-      const thumbUp = landmarks[4][1] < landmarks[2][1]; // Thumb tip above thumb base
-      const indexUp = landmarks[8][1] < landmarks[6][1]; // Index tip above index base
-      const otherFingersDown = !indexUp; // Other fingers should be down
-
-      expect(thumbUp).toBe(true);
-      expect(otherFingersDown).toBe(true);
-    });
-
-    test('should maintain emergency gesture processing through all fallback layers', () => {
-      // Simulate complete system failure
-      window.__mlpPredict = undefined;
-      window.errorRecoveryManager?.activateFallbackMode();
-
-      // Emergency gesture should still work
-      const emergencyResult = window.emergencyGestureSystem?.processEmergencyGesture(
-        'hilfe',
-        0.2, // Very low confidence
-        [[[0, 0, 0]]]
-      );
-
-      expect(emergencyResult?.shouldProcess).toBe(true);
-      expect(emergencyResult?.priority).toBe('critical');
-    });
+    const telemetryCalls = (window.ReactNativeWebView?.postMessage as jest.Mock).mock.calls;
+    const payloads = telemetryCalls.map(([arg]) => JSON.parse(arg as string));
+    expect(payloads.some((event) => event.event === 'fallback_mode_activated')).toBe(true);
   });
 
-  describe('Error Recovery Circuit Breaker', () => {
-    test('should activate circuit breaker after repeated failures', () => {
-      const mediaPipeError = new Error('MediaPipe processing failed');
+  it('opens circuit breaker after repeated failures', () => {
+    for (let i = 0; i < 5; i += 1) {
+      manager.recordFailure(new Error('MediaPipe crashed'), 'mediapipe processing');
+    }
 
-      // Trigger multiple failures
-      for (let i = 0; i < 6; i++) {
-        window.errorRecoveryManager?.recordFailure(mediaPipeError, 'MediaPipe processing');
-      }
+    expect(manager.isCircuitBreakerOpen()).toBe(true);
+    expect(manager.isInEmergencyMode()).toBe(true);
 
-      const health = window.errorRecoveryManager?.getHealthStatus();
-      expect(health?.circuitBreakerOpen).toBe(true);
-    });
-
-    test('should recover after circuit breaker timeout', async () => {
-      const mediaPipeError = new Error('MediaPipe processing failed');
-
-      // Trigger circuit breaker
-      for (let i = 0; i < 6; i++) {
-        window.errorRecoveryManager?.recordFailure(mediaPipeError, 'MediaPipe processing');
-      }
-
-      // Wait for circuit breaker timeout (30 seconds)
-      await new Promise(resolve => setTimeout(resolve, 31000));
-
-      // Should allow recovery
-      const health = window.errorRecoveryManager?.getHealthStatus();
-      expect(health?.circuitBreakerOpen).toBe(false);
-    });
-
-    test('should provide user-friendly error messages during failures', () => {
-      const errors = [
-        { error: new Error('Camera permission denied'), context: 'camera' },
-        { error: new Error('Network timeout'), context: 'network' },
-        { error: new Error('WebGL context lost'), context: 'mediapipe' },
-        { error: new Error('Out of memory'), context: 'memory' }
-      ];
-
-      errors.forEach(({ error, context }) => {
-        const errorInfo = window.errorRecoveryManager?.getErrorInfo(error, context);
-        expect(errorInfo?.userMessage).toBeTruthy();
-        expect(errorInfo?.userMessage).not.toContain('Error');
-        expect(errorInfo?.userMessage).not.toContain('Failed');
-        expect(errorInfo?.userMessage).not.toContain('Exception');
-      });
-    });
+    const payloads = (window.ReactNativeWebView?.postMessage as jest.Mock).mock.calls
+      .map(([arg]) => JSON.parse(arg as string));
+    expect(payloads.some((event) => event.event === 'emergency_mode_activated')).toBe(true);
   });
 
-  describe('Continuous Operation During Updates', () => {
-    test('should maintain gesture detection during model updates', () => {
-      // Simulate model update in progress
-      window.__modelUpdateInProgress = true;
+  it('records successful recovery and clears breaker after timeout', () => {
+    manager.recordFailure(new Error('MediaPipe crashed'), 'mediapipe processing');
+    manager.recordSuccessfulRecovery('mediapipe processing');
 
-      // Gesture detection should continue
-      const landmarks = [[[0, 0, 0]]];
-      const emergencyResult = window.emergencyGestureSystem?.processEmergencyGesture(
-        'help',
-        0.3,
-        landmarks
-      );
+    const payloads = (window.ReactNativeWebView?.postMessage as jest.Mock).mock.calls
+      .map(([arg]) => JSON.parse(arg as string));
+    expect(payloads.some((event) => event.event === 'recovery_successful')).toBe(true);
 
-      expect(emergencyResult?.shouldProcess).toBe(true);
-      expect(window.__modelUpdateInProgress).toBe(true);
-    });
-
-    test('should handle model update failures gracefully', () => {
-      // Simulate model update failure
-      const updateError = new Error('Model update failed');
-      window.errorRecoveryManager?.recordFailure(updateError, 'model_update');
-
-      // Should fallback to previous model
-      const health = window.errorRecoveryManager?.getHealthStatus();
-      expect(health?.fallbackActive).toBe(true);
-    });
-
-    test('should never interrupt active gesture recognition for updates', () => {
-      // Simulate active recognition session
-      window.__activeRecognitionSession = true;
-
-      // Model update should not interrupt
-      const updateAttempt = () => {
-        if (window.__activeRecognitionSession) {
-          throw new Error('Cannot update during active recognition');
-        }
-      };
-
-      expect(updateAttempt).toThrow();
-      expect(window.__activeRecognitionSession).toBe(true);
-    });
-  });
-
-  describe('Performance Degradation Prevention', () => {
-    test('should maintain full functionality at low battery', async () => {
-      // Mock critical battery
-      const mockBattery = { level: 0.01 };
-      Object.defineProperty(navigator, 'getBattery', {
-        value: jest.fn().mockResolvedValue(mockBattery),
-        writable: true
-      });
-
-      await window.batteryMonitor?.checkBatteryLevel();
-
-      // Should still process gestures normally
-      const emergencyResult = window.emergencyGestureSystem?.processEmergencyGesture(
-        'emergency',
-        0.3,
-        [[[0, 0, 0]]]
-      );
-
-      expect(emergencyResult?.shouldProcess).toBe(true);
-    });
-
-    test('should not reduce frame rate for battery optimization', () => {
-      // Even at critical battery, should maintain full performance
-      const batteryStatus = window.batteryMonitor?.getStatus();
-
-      // System should not throttle based on battery
-      // (This would be verified in integration tests with actual frame rate monitoring)
-      expect(batteryStatus?.emergencyMode).toBeDefined();
-    });
-
-    test('should handle thermal throttling gracefully', () => {
-      // Simulate thermal throttling detection
-      const thermalError = new Error('Device overheating - thermal throttling active');
-      window.errorRecoveryManager?.recordFailure(thermalError, 'performance');
-
-      // Should not reduce gesture recognition quality
-      const health = window.errorRecoveryManager?.getHealthStatus();
-      expect(health?.fallbackActive).toBe(true);
-    });
-  });
-
-  describe('Integration Test Scenarios', () => {
-    test('should handle complete MediaPipe failure with emergency gestures', () => {
-      // Simulate complete MediaPipe system failure
-      window.__mlpPredict = undefined;
-      window.errorRecoveryManager?.activateFallbackMode();
-
-      // Emergency gesture should still work through rule-based fallback
-      const emergencyResult = window.emergencyGestureSystem?.processEmergencyGesture(
-        'hilfe',
-        0.2,
-        [[[0, 0, 0]]]
-      );
-
-      expect(emergencyResult?.shouldProcess).toBe(true);
-      expect(mockPostMessage).toHaveBeenCalledWith(
-        expect.stringContaining('emergency_gesture')
-      );
-    });
-
-    test('should recover from network failure without losing functionality', () => {
-      // Simulate network failure
-      const networkError = new Error('Network connection lost');
-      window.errorRecoveryManager?.recordFailure(networkError, 'network');
-
-      // Local gesture recognition should continue
-      const landmarks = [[[0, 0, 0]]];
-      const result = window.emergencyGestureSystem?.processEmergencyGesture(
-        'stop',
-        0.3,
-        landmarks
-      );
-
-      expect(result?.shouldProcess).toBe(true);
-    });
-
-    test('should handle memory pressure without crashing', () => {
-      // Simulate memory pressure
-      const memoryError = new Error('Out of memory');
-      window.errorRecoveryManager?.recordFailure(memoryError, 'memory');
-
-      // Should activate cleanup and continue
-      const health = window.errorRecoveryManager?.getHealthStatus();
-      expect(health?.fallbackActive).toBe(true);
-    });
+    jest.advanceTimersByTime(20);
+    expect(manager.isCircuitBreakerOpen()).toBe(false);
   });
 });

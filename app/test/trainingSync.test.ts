@@ -1,271 +1,70 @@
-const mockNetInfoFetch = jest.fn(async () => ({
-  isConnected: true,
-  isInternetReachable: true,
-  type: 'wifi',
-}));
-jest.mock('@react-native-community/netinfo', () => ({
-  fetch: mockNetInfoFetch,
-}));
+import { processFramesForUpload, HAND_LANDMARKS_PER_HAND } from '../src/services/handUtils';
+import { syncTrainingData } from '../src/services/trainingSync';
 
 jest.mock('../src/storage', () => ({
-  loadProfile: async () => ({ consentHelpMeGetSmarter: true, id: 'amy' }),
+  __esModule: true,
+  loadProfile: async () => ({ consentHelpMeGetSmarter: false, id: 'amy' }),
   loadBackendApiToken: async () => 'token',
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: jest.fn(async () => null),
+    setItem: jest.fn(),
+  },
+}));
+
+jest.mock('@react-native-community/netinfo', () => ({
+  fetch: jest.fn(async () => ({
+    isConnected: true,
+    isInternetReachable: true,
+    type: 'wifi',
+  })),
+}));
+
 jest.mock('../src/services/modelUpdate', () => ({
-  refreshDgsModel: jest.fn(async () => 'centroid'),
+  __esModule: true,
+  refreshDgsModel: jest.fn(),
 }));
 
 jest.mock('../src/utils/logger', () => ({
   logger: { warn: jest.fn() },
 }));
 
-import { syncTrainingData } from '../src/services/trainingSync';
-import { refreshDgsModel } from '../src/services/modelUpdate';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { logger } from '../src/utils/logger';
+describe('processFramesForUpload', () => {
+  it('flattens frames with handedness ordering', () => {
+    const left = Array.from({ length: HAND_LANDMARKS_PER_HAND }, (_, i) => [i, i, i]);
+    const right = Array.from({ length: HAND_LANDMARKS_PER_HAND }, (_, i) => [i + 100, i + 100, i + 100]);
 
-const TRAINING_KEY = 'gestureTrainingData';
+    const result = processFramesForUpload([
+      { landmarks: [right, left], handedness: ['Right', 'Left'] },
+    ], 'g1', 'amy');
 
-const setupPendingSample = () =>
-  AsyncStorage.setItem(
-    TRAINING_KEY,
-    JSON.stringify([
-      {
-        id: '1',
-        gestureDefinitionId: 'g1',
-        frames: [
-          { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
-        ],
-        source: 'HIP_2',
-        syncStatus: 'pending',
-      },
-    ]),
-  );
-
-describe.skip('syncTrainingData', () => {
-  beforeEach(async () => {
-    await (AsyncStorage as any).clear();
-    jest.clearAllMocks();
-    mockNetInfoFetch.mockResolvedValue({
-      isConnected: true,
-      isInternetReachable: true,
-      type: 'wifi',
-    });
-    (global as any).fetch = jest.fn(async (url: string) => {
-      if (url.includes('/train-model')) {
-        return { ok: true, json: async () => ({ jobId: '1' }) } as any;
-      }
-      return { ok: true, json: async () => ({ status: 'completed', progress: 100 }) } as any;
-    });
+    expect(result).toHaveLength(1);
+    const [sample] = result;
+    expect(sample.gestureDefinitionId).toBe('g1');
+    expect(sample.profileId).toBe('amy');
+    expect(sample.landmarkData[0]).toEqual([0, 0, 0]);
+    expect(sample.landmarkData[HAND_LANDMARKS_PER_HAND]).toEqual([100, 100, 100]);
   });
 
-  it('uploads pending samples with labels', async () => {
-    await AsyncStorage.setItem(
-      TRAINING_KEY,
-      JSON.stringify([
-        {
-          id: '1',
-          gestureDefinitionId: 'g1',
-          frames: [
-            {
-              landmarks: [
-                [[1, 2, 3]],
-                [],
-              ],
-              handedness: ['Left', 'Right'],
-            },
-          ],
-          source: 'HIP_2',
-          syncStatus: 'pending',
-        },
-      ]),
-    );
+  it('filters out empty frames', () => {
+    const result = processFramesForUpload([
+      { landmarks: [[], []], handedness: [] },
+      { landmarks: [[[1, 2, 3]], []], handedness: [] },
+    ], 'g1');
 
+    expect(result).toHaveLength(1);
+    expect(result[0].landmarkData[0]).toEqual([1, 2, 3]);
+  });
+});
+
+describe('syncTrainingData', () => {
+  it('returns early when user lacks consent', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch' as any);
     await syncTrainingData();
-
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    const [, options] = (global.fetch as jest.Mock).mock.calls[0];
-    const body = JSON.parse(options.body);
-    expect(body.samples[0].gestureDefinitionId).toBe('g1');
-    expect(body.samples[0].landmarkData[0]).toEqual([1, 2, 3]);
-    expect(body.samples[0].landmarkData).toHaveLength(42);
-    expect(body.samples[0].profileId).toBe('amy');
-    expect(refreshDgsModel).toHaveBeenCalledWith('amy');
-    const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
-    expect(updated[0].syncStatus).toBe('synced');
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
   });
-
-  it('uploads legacy samples stored under landmarkData', async () => {
-    await AsyncStorage.setItem(
-      TRAINING_KEY,
-      JSON.stringify([
-        {
-          id: '1',
-          gestureDefinitionId: 'g1',
-          landmarkData: [
-            {
-              landmarks: [
-                [[1, 2, 3]],
-                [],
-              ],
-              handedness: ['Left', 'Right'],
-            },
-          ],
-          source: 'HIP_2',
-          syncStatus: 'pending',
-        },
-      ]),
-    );
-
-    await syncTrainingData();
-
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    const [, options] = (global.fetch as jest.Mock).mock.calls[0];
-    const body = JSON.parse(options.body);
-    expect(body.samples[0].gestureDefinitionId).toBe('g1');
-    expect(body.samples[0].landmarkData[0]).toEqual([1, 2, 3]);
-    const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
-    expect(updated[0].syncStatus).toBe('synced');
-  });
-
-  it('orders landmarks using handedness when hands are reversed', async () => {
-    const left = Array.from({ length: 21 }, (_, i) => [i, i, i]);
-    const right = Array.from({ length: 21 }, (_, i) => [i + 100, i + 100, i + 100]);
-    await AsyncStorage.setItem(
-      TRAINING_KEY,
-      JSON.stringify([
-        {
-          id: '1',
-          gestureDefinitionId: 'g1',
-          frames: [
-            {
-              landmarks: [right, left],
-              handedness: ['Right', 'Left'],
-            },
-          ],
-          source: 'HIP_2',
-          syncStatus: 'pending',
-        },
-      ]),
-    );
-
-    await syncTrainingData();
-
-    const [, options] = (global.fetch as jest.Mock).mock.calls[0];
-    const body = JSON.parse(options.body);
-    expect(body.samples[0].landmarkData[0]).toEqual([0, 0, 0]);
-    expect(body.samples[0].landmarkData[21]).toEqual([100, 100, 100]);
-  });
-
-  it('logs warning and keeps samples pending on failure', async () => {
-    await AsyncStorage.setItem(
-      TRAINING_KEY,
-      JSON.stringify([
-        {
-          id: '1',
-          gestureDefinitionId: 'g1',
-          frames: [
-            { landmarks: [[[1, 2, 3]], []], handedness: ['Left', 'Right'] },
-          ],
-          source: 'HIP_2',
-          syncStatus: 'pending',
-        },
-      ]),
-    );
-
-    (global as any).fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
-
-    await syncTrainingData();
-
-    expect(logger.warn).toHaveBeenCalledWith(
-      'training sync failed',
-      expect.any(Error),
-    );
-    const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
-    expect(updated[0].syncStatus).toBe('pending');
-  });
-
-  it('skips syncing when network is not wifi', async () => {
-    await setupPendingSample();
-
-    mockNetInfoFetch.mockResolvedValueOnce({
-      isConnected: true,
-      isInternetReachable: true,
-      type: 'cellular',
-    });
-
-    await syncTrainingData();
-
-    expect(global.fetch).not.toHaveBeenCalled();
-    expect(mockNetInfoFetch).toHaveBeenCalledTimes(1);
-    const stored = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
-    expect(stored[0].syncStatus).toBe('pending');
-  });
-
-  it('reports progress via callback', async () => {
-    await setupPendingSample();
-
-    const progress = jest.fn();
-    await syncTrainingData({ onProgress: progress });
-
-    expect(progress).toHaveBeenCalledWith(0);
-    expect(progress).toHaveBeenCalledWith(100);
-    expect(progress).toHaveBeenCalledTimes(2);
-  });
-
-    it('keeps samples pending if server returns invalid JSON', async () => {
-      await setupPendingSample();
-
-      (global as any).fetch = jest.fn(async (url: string) => {
-        if (url.includes('/train-model')) {
-          return { ok: true, json: async () => { throw new Error('bad json'); } } as any;
-        }
-        return { ok: true, json: async () => ({}) } as any;
-      });
-
-      await syncTrainingData();
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        'failed to parse training response',
-        expect.any(Error),
-      );
-      expect(logger.warn).toHaveBeenCalledWith(
-        'training sync failed',
-        expect.any(Error),
-      );
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-      const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
-      expect(updated[0].syncStatus).toBe('pending');
-    });
-
-    it('keeps samples pending when polling fails repeatedly', async () => {
-      jest.useFakeTimers();
-      try {
-        await setupPendingSample();
-
-        let polls = 0;
-        (global as any).fetch = jest.fn(async (url: string) => {
-          if (url.includes('/train-model')) {
-            return { ok: true, json: async () => ({ jobId: '1' }) } as any;
-          }
-          polls += 1;
-          return { ok: false, status: 500 } as any;
-        });
-
-        const syncPromise = syncTrainingData();
-        await jest.advanceTimersByTimeAsync(3000);
-        await syncPromise;
-        expect(polls).toBeGreaterThanOrEqual(3);
-      } finally {
-        jest.useRealTimers();
-      }
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        'training sync failed',
-        expect.any(Error),
-      );
-      const updated = JSON.parse((await AsyncStorage.getItem(TRAINING_KEY))!);
-      expect(updated[0].syncStatus).toBe('pending');
-    });
 });

@@ -7,9 +7,10 @@ global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
 
 import { sendDgsSample } from '../src/services/dgsTrainingService';
 
-describe.skip('sendDgsSample', () => {
+describe('sendDgsSample', () => {
   beforeEach(() => {
-    (fetch as jest.Mock).mockClear();
+    (fetch as jest.Mock).mockReset();
+    (fetch as jest.Mock).mockResolvedValue({ ok: true, text: async () => '' });
   });
 
   it('flattens landmarks and preserves handedness', async () => {

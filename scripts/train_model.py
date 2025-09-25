@@ -28,7 +28,7 @@ ASSUMPTIONS:
 
 OUTPUT:
 - data/amy_model.npz: Trained model
-- app/assets/dgs_model.npz: Deployed model
+- app/assets/amy_model.npz: Deployed model
 - app/assets/gestureDetector.js: Updated WebView bundle
 - Console logs with training progress, evaluation metrics, and final accuracy
 
@@ -325,19 +325,19 @@ def deploy_model(model_path: str, app_assets_dir: str) -> bool:
     print("Deploying model to app...")
 
     # Copy model to app assets
-    assets_model = os.path.join(app_assets_dir, "dgs_model.npz")
+    assets_model = os.path.join(app_assets_dir, "amy_model.npz")
     if run_command(f"cp {model_path} {assets_model}"):
         print(f"Copied model to {assets_model}")
     else:
         return False
 
-    # Update base64 encoding
-    if run_command("base64 -w 0 dgs_model.npz > dgs_model_base64.txt", cwd=app_assets_dir):
+    # Update base64 encoding for WebView consumers
+    if run_command("base64 -w 0 amy_model.npz > dgs_model_base64.txt", cwd=app_assets_dir):
         print("Updated base64 encoding")
     else:
         return False
 
-    # Rebuild WebView bundle
+    # Rebuild WebView bundle so the base64 string stays in sync
     if run_command("npm run build:webview", cwd="app"):
         print("Rebuilt WebView bundle")
         return True
