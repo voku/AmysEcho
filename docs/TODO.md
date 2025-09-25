@@ -48,4 +48,4 @@ We have MediaPipe capture working in the app and a Python MLP trainer on the ser
 - [ ] Create a manual QA checklist covering "record gesture", "bundle visible in portal", "training job succeeds", "personalized model downloaded".
 
 ---
-**Immediate Task for the Coding Agent:** Spike `uploadTrainingBundle` end-to-end by zipping an existing landmark sample, POSTing it to a stubbed `/api/v1/dgs/sample-bundles`, and asserting the manifest entry is created.
+**Immediate Task for the Coding Agent:** ✅ Spike `uploadTrainingBundle` end-to-end by zipping an existing landmark sample, POSTing it to a stubbed `/api/v1/dgs/sample-bundles`, and asserting the manifest entry is created.

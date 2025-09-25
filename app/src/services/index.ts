@@ -23,3 +23,4 @@ export * from './activeLearningService';
 export * from './emotionDetectionService';
 export * from './emotionalResponseService';
 export * from './LanguageManager';
+export * from './trainingBundleService';
