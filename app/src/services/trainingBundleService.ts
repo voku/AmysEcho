@@ -59,19 +59,19 @@ function alignHandednessForTimeline(
     return [];
   }
 
-  const leftIndex = entries.findIndex((entry) => /left/i.test(entry.normalized));
-  const rightIndex = entries.findIndex((entry) => /right/i.test(entry.normalized));
+  const leftEntry = entries.find((entry) => /left/i.test(entry.normalized));
+  const rightEntry = entries.find((entry) => /right/i.test(entry.normalized));
 
   const aligned: string[] = [];
-  if (leftIndex >= 0) {
-    aligned.push(entries[leftIndex].raw);
+  if (leftEntry) {
+    aligned.push(leftEntry.raw);
   }
-  if (rightIndex >= 0 && rightIndex !== leftIndex) {
-    aligned.push(entries[rightIndex].raw);
+  if (rightEntry && rightEntry !== leftEntry) {
+    aligned.push(rightEntry.raw);
   }
 
-  entries.forEach((entry, index) => {
-    if (index !== leftIndex && index !== rightIndex) {
+  entries.forEach((entry) => {
+    if (entry !== leftEntry && entry !== rightEntry) {
       aligned.push(entry.raw);
     }
   });
