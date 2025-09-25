@@ -68,8 +68,6 @@ function alignHandednessForTimeline(
   }
   if (rightIndex >= 0 && rightIndex !== leftIndex) {
     aligned.push(entries[rightIndex].raw);
-  } else if (rightIndex >= 0 && leftIndex < 0) {
-    aligned.push(entries[rightIndex].raw);
   }
 
   entries.forEach((entry, index) => {
@@ -85,10 +83,8 @@ function buildFrameTimeline(
   frames: TrainingFrame[],
 ): { handedness: string[]; landmarks: number[][] }[] {
   return frames.map((frame) => {
-    const rawHandedness = Array.isArray(frame.handedness)
-      ? Array.from(frame.handedness)
-      : [];
-    const handedness = alignHandednessForTimeline(frame.handedness);
+    const rawHandedness = Array.from(frame.handedness ?? []);
+    const handedness = alignHandednessForTimeline(rawHandedness);
     return {
       handedness,
       landmarks: flattenHandsWithHandedness(frame.landmarks, rawHandedness),
