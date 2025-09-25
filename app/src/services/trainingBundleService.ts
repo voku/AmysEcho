@@ -41,12 +41,57 @@ function buildMetadata(payload: TrainingBundlePayload) {
   };
 }
 
-function buildFrameTimeline(frames: TrainingFrame[]) {
+function alignHandednessForTimeline(
+  handedness: ReadonlyArray<string> | undefined,
+): string[] {
+  if (!handedness) {
+    return [];
+  }
+
+  const entries = handedness
+    .map((label) =>
+      typeof label === 'string'
+        ? { raw: label, normalized: label.trim() }
+        : null,
+    )
+    .filter((entry): entry is { raw: string; normalized: string } => !!entry && entry.normalized.length > 0);
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const leftIndex = entries.findIndex((entry) => /left/i.test(entry.normalized));
+  const rightIndex = entries.findIndex((entry) => /right/i.test(entry.normalized));
+
+  const aligned: string[] = [];
+  if (leftIndex >= 0) {
+    aligned.push(entries[leftIndex].raw);
+  }
+  if (rightIndex >= 0 && rightIndex !== leftIndex) {
+    aligned.push(entries[rightIndex].raw);
+  } else if (rightIndex >= 0 && leftIndex < 0) {
+    aligned.push(entries[rightIndex].raw);
+  }
+
+  entries.forEach((entry, index) => {
+    if (index !== leftIndex && index !== rightIndex) {
+      aligned.push(entry.raw);
+    }
+  });
+
+  return aligned;
+}
+
+function buildFrameTimeline(
+  frames: TrainingFrame[],
+): { handedness: string[]; landmarks: number[][] }[] {
   return frames.map((frame) => {
-    const handedness = Array.isArray(frame.handedness) ? frame.handedness : [];
+    const rawHandedness = Array.isArray(frame.handedness)
+      ? Array.from(frame.handedness)
+      : [];
+    const handedness = alignHandednessForTimeline(frame.handedness);
     return {
       handedness,
-      landmarks: flattenHandsWithHandedness(frame.landmarks, handedness),
+      landmarks: flattenHandsWithHandedness(frame.landmarks, rawHandedness),
     };
   });
 }
