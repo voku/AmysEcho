@@ -795,6 +795,19 @@ export default function RecognitionScreen({
                 onWebViewEvent={(telemetry) => {
                   logger.info('WebView telemetry:', telemetry);
                 }}
+                onModelUpdateStatus={(status) => {
+                  setModelUpdateStatus(status);
+                  if (status === 'complete') {
+                    const now = Date.now();
+                    if (now - lastModelUpdateTimeRef.current > 1500) {
+                      lastModelUpdateTimeRef.current = now;
+                      setMessage('Danke für deine neuen Gesten! Dein Modell ist jetzt aktualisiert.');
+                    }
+                  }
+                  if (status === 'error') {
+                    setMessage('Ups, das Modell konnte nicht aktualisiert werden. Versuch es später nochmal.');
+                  }
+                }}
                 facingMode={facingMode}
               />
            }

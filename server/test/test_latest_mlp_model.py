@@ -49,7 +49,8 @@ def model_file():
         )
         shutil.move(str(data_dir), str(backup_dir))
     data_dir.mkdir()
-    model_path = data_dir / "dgs_model_p1.npz"
+    model_path = data_dir / "models" / "p1" / "amy_model.npz"
+    model_path.parent.mkdir(parents=True, exist_ok=True)
     model_path.write_bytes(b"placeholder")
     try:
         yield model_path
@@ -70,7 +71,8 @@ def global_model_file():
         )
         shutil.move(str(data_dir), str(backup_dir))
     data_dir.mkdir()
-    model_path = data_dir / "amy_model.npz"
+    model_path = data_dir / "models" / "global" / "amy_model.npz"
+    model_path.parent.mkdir(parents=True, exist_ok=True)
     model_path.write_bytes(b"placeholder")
     try:
         yield model_path

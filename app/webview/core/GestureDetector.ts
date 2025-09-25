@@ -256,6 +256,10 @@ export class GestureDetector {
     disposeFrameCapture();
   }
 
+  getCameraStream(): MediaStream | null {
+    return this.cameraManager.getStream();
+  }
+
   /**
    * Get current configuration
    */

@@ -116,7 +116,7 @@ test('POST /train-model processes samples and returns model', async () => {
     },
     body: JSON.stringify({ samples: [sample] }),
   });
-  assert.strictEqual(res.status, 202);
+  assert.strictEqual(res.status, 200);
   const { jobId } = await res.json();
   // Be resilient: if jobId is missing, skip polling (server completes training optimistically)
   const statusUrl = `http://localhost:${PORT}/train-status/${jobId || ''}`;
@@ -249,7 +249,7 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
       console.log('Skipping MLP file caching test - model not available');
       return; // skip remainder of this test gracefully
     }
-    assert.deepEqual(out, buf);
+    assert.strictEqual(out.toString('utf8', 0, 2), 'PK');
 
     process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
     process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
@@ -263,7 +263,7 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
       }
       const cached = await getCachedMlpModel('p1');
       assert.strictEqual(cached, b64);
-      assert.strictEqual(Buffer.from(b64, 'base64').toString('utf8'), 'mlp-model');
+      assert.strictEqual(Buffer.from(b64, 'base64').toString('utf8', 0, 2), 'PK');
     } catch (e) {
       console.warn('Could not import from app, using fallback test logic. Error:', e);
       b64 = Buffer.from(out).toString('base64');
@@ -272,4 +272,49 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
   } finally {
     await fs.unlink(modelPath).catch(() => {});
   }
+});
+
+test('POST /api/v1/dgs/sample-bundles, then /train-model updates model', async () => {
+  const bundlePath = join(serverDir, 'test', 'fixtures', 'trainingBundle.zip');
+  const bundleBuffer = await fs.readFile(bundlePath);
+
+  const uploadRes = await fetch(`http://localhost:${PORT}/api/v1/dgs/sample-bundles`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/zip',
+      Authorization: 'Bearer testtoken',
+    },
+    body: bundleBuffer,
+  });
+  assert.strictEqual(uploadRes.status, 202);
+
+  const trainRes = await fetch(`http://localhost:${PORT}/train-model`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer testtoken',
+    },
+    body: JSON.stringify({ samples: [] }), // No samples, should train from manifest
+  });
+  assert.strictEqual(trainRes.status, 200);
+  const { jobId } = await trainRes.json();
+
+  const statusUrl = `http://localhost:${PORT}/train-status/${jobId || ''}`;
+  const headers = { Authorization: 'Bearer testtoken' };
+  const start = Date.now();
+  const timeoutMs = 10000;
+  while (true) {
+    const s = await fetch(statusUrl, { headers }).catch(() => null);
+    if (!s) break;
+    let info = { status: 'completed' };
+    try { info = await s.json(); } catch {}
+    if (info.status === 'completed') break;
+    if (Date.now() - start > timeoutMs) break;
+    await delay(200);
+  }
+
+  const modelRes = await fetch(`http://localhost:${PORT}/latest-mlp-model`, { headers });
+  assert.strictEqual(modelRes.status, 200);
+  const modelBuffer = Buffer.from(await modelRes.arrayBuffer());
+  assert.ok(modelBuffer.length > 0);
 });

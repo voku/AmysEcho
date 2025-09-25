@@ -36,12 +36,16 @@ jest.mock('../../src/components/BottomNav', () => () => null);
 jest.mock('../../src/services/audioService', () => ({
   audioService: { speak: jest.fn(), playSound: jest.fn() },
 }));
-jest.mock('../../src/storage', () => ({
-  loadProfile: jest.fn(async () => ({ id: '1', name: 'Amy' })),
-  loadTrainingSampleCount: jest.fn(async () => 0),
-  saveTrainingSample: jest.fn(async () => {}),
-  saveCustomGesture: jest.fn(async () => {}),
-}));
+jest.mock('../../src/storage', () => {
+  const actual = jest.requireActual('../../src/storage');
+  return {
+    ...actual,
+    loadProfile: jest.fn(async () => ({ id: '1', name: 'Amy' })),
+    loadTrainingSampleCount: jest.fn(async () => 0),
+    saveTrainingSample: jest.fn(async () => {}),
+    saveCustomGesture: jest.fn(async () => {}),
+  };
+});
 jest.mock('../../src/services/gestureRecorder', () => ({
   captureSamples: jest.fn(async () => []),
 }));

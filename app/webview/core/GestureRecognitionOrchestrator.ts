@@ -24,7 +24,7 @@ import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
 import { MediaPipeGestureResult, TwoHandGesture } from '../types/MediaPipeTypes';
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
 import { messageBatcher, FRAME_LATENCY_SAMPLE_INTERVAL } from '../utils/MessageBatcher';
-import { getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
+import { captureFrameForOpenAI, getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
@@ -48,6 +48,26 @@ interface GestureMessagePayload {
     mlp: number;
   };
   frameCapture?: string | null;
+}
+
+const FRAME_BATCH_INTERVAL_MS = 400;
+const FRAME_BUFFER_LIMIT = 24;
+
+interface FrameBatchEntry {
+  frame: string;
+  landmarks: number[][][];
+  handednesses: string[];
+  timestamp: number;
+}
+
+interface ClipCaptureState {
+  id: string;
+  recorder: MediaRecorder;
+  chunks: BlobPart[];
+  startedAt: number;
+  mimeType: string;
+  frameCount: number;
+  timeoutHandle?: number | null;
 }
 
 type OrchestratorDependencies = {
@@ -74,6 +94,9 @@ export class GestureRecognitionOrchestrator {
   private isRunning = false;
   private frameSampleCounter = 0;
   private lastLandmarkSendTime = 0;
+  private frameBuffer: FrameBatchEntry[] = [];
+  private frameBatchTimer: number | null = null;
+  private clipCaptureState: ClipCaptureState | null = null;
 
   private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
 
@@ -182,6 +205,10 @@ export class GestureRecognitionOrchestrator {
   async stop(): Promise<void> {
     if (!this.isRunning) return;
 
+    this.cancelClipCapture();
+    this.flushFrameBatch(true);
+    this.frameBuffer = [];
+
     await this.gestureDetector?.stop();
     this.isRunning = false;
   }
@@ -198,6 +225,7 @@ export class GestureRecognitionOrchestrator {
 
       // Prepare processing context
       const normalized = mapMediaPipeResult(results);
+      this.collectFrameForBatch(normalized);
 
       const context: ProcessingContext = {
         landmarks: normalized.landmarks,
@@ -274,6 +302,330 @@ export class GestureRecognitionOrchestrator {
       console.error('Error handling gesture results:', error);
       this.errorRecoveryManager.recordFailure(error as Error, 'gesture_result_processing');
     }
+  }
+
+  private collectFrameForBatch(normalized: NormalizedMediaPipeResult): void {
+    try {
+      const frameDataUrl = captureFrameForOpenAI(this.video);
+      if (!frameDataUrl) {
+        return;
+      }
+
+      const entry: FrameBatchEntry = {
+        frame: frameDataUrl,
+        landmarks: normalized.landmarks,
+        handednesses: normalized.handednesses,
+        timestamp: Date.now(),
+      };
+
+      this.frameBuffer.push(entry);
+      if (this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
+        this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
+      }
+
+      if (this.clipCaptureState) {
+        this.clipCaptureState.frameCount += 1;
+      }
+
+      if (this.frameBatchTimer === null) {
+        this.frameBatchTimer = window.setTimeout(() => this.flushFrameBatch(), FRAME_BATCH_INTERVAL_MS);
+      }
+    } catch (error) {
+      console.warn('Failed to collect frame batch:', error);
+    }
+  }
+
+  private flushFrameBatch(sendFullBuffer = false): void {
+    if (this.frameBatchTimer !== null) {
+      clearTimeout(this.frameBatchTimer);
+      this.frameBatchTimer = null;
+    }
+
+    if (this.frameBuffer.length === 0) {
+      return;
+    }
+
+    const entries = sendFullBuffer
+      ? [...this.frameBuffer]
+      : this.frameBuffer.slice(-Math.min(this.frameBuffer.length, 6));
+
+    try {
+      const payload = {
+        type: 'FRAME_BATCH',
+        landmarks: entries.map((entry) => entry.landmarks),
+        frames: entries.map((entry) => entry.frame),
+      } as const;
+
+      /*
+        Example payload posted back to React Native:
+        {
+          "type": "FRAME_BATCH",
+          "landmarks": [...],
+          "frames": ["data:image/jpeg;base64,..."]
+        }
+      */
+      messageBatcher.queueMessage(payload, { flushImmediately: false });
+    } catch (error) {
+      console.warn('Failed to enqueue frame batch payload:', error);
+    }
+
+    if (!sendFullBuffer && this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
+      this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
+    }
+  }
+
+  startClipCapture(requestId: string): void {
+    if (this.clipCaptureState) {
+      this.sendClipError(requestId, 'capture_in_progress');
+      return;
+    }
+
+    if (typeof window.MediaRecorder === 'undefined') {
+      this.sendClipError(requestId, 'media_recorder_unavailable');
+      return;
+    }
+
+    const stream = this.gestureDetector?.getCameraStream();
+    if (!stream) {
+      this.sendClipError(requestId, 'no_camera_stream');
+      return;
+    }
+
+    const mimeType = this.selectClipMimeType();
+    let recorder: MediaRecorder;
+    try {
+      recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch (error) {
+      this.sendClipError(requestId, 'recorder_init_failed', error);
+      return;
+    }
+
+    const state: ClipCaptureState = {
+      id: requestId,
+      recorder,
+      chunks: [],
+      startedAt: Date.now(),
+      mimeType: recorder.mimeType || mimeType || 'video/mp4',
+      frameCount: 0,
+      timeoutHandle: null,
+    };
+
+    recorder.ondataavailable = (event: BlobEvent) => {
+      if (event.data && event.data.size > 0) {
+        state.chunks.push(event.data);
+      }
+    };
+
+    recorder.onerror = (event: MediaRecorderErrorEvent) => {
+      this.sendClipError(requestId, 'recorder_error', event?.error);
+      this.resetClipCapture(true);
+    };
+
+    recorder.onstop = () => {
+      this.handleClipStop(state);
+    };
+
+    try {
+      recorder.start(500);
+    } catch (error) {
+      this.sendClipError(requestId, 'recorder_start_failed', error);
+      this.resetClipCapture(true);
+      return;
+    }
+
+    state.timeoutHandle = window.setTimeout(() => {
+      this.sendClipError(requestId, 'recorder_timeout');
+      this.resetClipCapture(true);
+    }, 15000);
+
+    this.clipCaptureState = state;
+    this.sendClipTelemetry('clip_started', requestId, { mimeType: state.mimeType });
+  }
+
+  stopClipCapture(requestId: string): void {
+    if (!this.clipCaptureState || this.clipCaptureState.id !== requestId) {
+      this.sendClipError(requestId, 'unknown_capture_id');
+      return;
+    }
+
+    try {
+      if (this.clipCaptureState.recorder.state !== 'inactive') {
+        this.clipCaptureState.recorder.stop();
+      }
+      this.sendClipTelemetry('clip_stop_requested', requestId, undefined);
+    } catch (error) {
+      this.sendClipError(requestId, 'recorder_stop_failed', error);
+      this.resetClipCapture(true);
+    }
+  }
+
+  cancelClipCapture(): void {
+    if (!this.clipCaptureState) {
+      return;
+    }
+    try {
+      if (this.clipCaptureState.recorder.state !== 'inactive') {
+        this.clipCaptureState.recorder.stop();
+      }
+    } catch (error) {
+      console.warn('Failed to cancel clip capture:', error);
+    }
+    this.resetClipCapture(true);
+  }
+
+  private resetClipCapture(stopRecorder: boolean): void {
+    if (!this.clipCaptureState) {
+      return;
+    }
+
+    const state = this.clipCaptureState;
+    if (state.timeoutHandle) {
+      clearTimeout(state.timeoutHandle);
+    }
+
+    if (stopRecorder) {
+      try {
+        if (state.recorder.state !== 'inactive') {
+          state.recorder.stop();
+        }
+      } catch (error) {
+        console.warn('Failed to stop recorder during reset:', error);
+      }
+    }
+
+    this.clipCaptureState = null;
+  }
+
+  private handleClipStop(state: ClipCaptureState): void {
+    if (state.timeoutHandle) {
+      clearTimeout(state.timeoutHandle);
+    }
+
+    const blob = new Blob(state.chunks, { type: state.mimeType || 'video/mp4' });
+    if (blob.size === 0) {
+      this.sendClipError(state.id, 'empty_clip_blob');
+      this.resetClipCapture(false);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      try {
+        const result = reader.result as string | null;
+        if (!result) {
+          throw new Error('clip_read_failed');
+        }
+        const base64 = result.includes(',') ? result.split(',')[1] ?? '' : result;
+        const durationMs = Math.max(0, Date.now() - state.startedAt);
+        this.postClipReady({
+          id: state.id,
+          base64,
+          mimeType: state.mimeType || 'video/mp4',
+          durationMs,
+          frameCount: state.frameCount,
+          capturedAt: new Date(state.startedAt).toISOString(),
+        });
+      } catch (error) {
+        this.sendClipError(state.id, 'clip_read_failed', error);
+      } finally {
+        this.resetClipCapture(false);
+      }
+    };
+
+    reader.onerror = () => {
+      this.sendClipError(state.id, 'clip_read_failed', reader.error);
+      this.resetClipCapture(false);
+    };
+
+    try {
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      this.sendClipError(state.id, 'clip_read_failed', error);
+      this.resetClipCapture(false);
+    }
+  }
+
+  private postClipReady(payload: {
+    id: string;
+    base64: string;
+    mimeType: string;
+    durationMs: number;
+    frameCount: number;
+    capturedAt: string;
+  }): void {
+    try {
+      window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'clip_ready', ...payload }));
+      this.flushFrameBatch(true);
+      this.sendClipTelemetry('clip_ready', payload.id, {
+        durationMs: payload.durationMs,
+        frameCount: payload.frameCount,
+        mimeType: payload.mimeType,
+      });
+    } catch (error) {
+      console.warn('Failed to post clip_ready message:', error);
+    }
+  }
+
+  private sendClipError(requestId: string, reason: string, details?: unknown): void {
+    try {
+      const payload = {
+        type: 'clip_error',
+        id: requestId,
+        reason,
+        details: this.serializeError(details),
+      };
+      window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
+      this.sendClipTelemetry('clip_error', requestId, { reason, details: this.serializeError(details) });
+    } catch (error) {
+      console.warn('Failed to post clip_error message:', error);
+    }
+  }
+
+  private sendClipTelemetry(event: string, requestId: string, data: Record<string, unknown> | undefined): void {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'telemetry',
+          event,
+          requestId,
+          data,
+          timestamp: Date.now(),
+        }),
+      );
+    } catch (error) {
+      console.warn('Failed to send clip telemetry:', error);
+    }
+  }
+
+  private selectClipMimeType(): string | undefined {
+    if (typeof window.MediaRecorder === 'undefined' || typeof window.MediaRecorder.isTypeSupported !== 'function') {
+      return undefined;
+    }
+    const candidates = [
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+    ];
+    return candidates.find((candidate) => window.MediaRecorder!.isTypeSupported(candidate));
+  }
+
+  private serializeError(details: unknown): unknown {
+    if (!details) {
+      return undefined;
+    }
+    if (details instanceof Error) {
+      return { message: details.message, name: details.name };
+    }
+    if (typeof details === 'object') {
+      try {
+        return JSON.parse(JSON.stringify(details));
+      } catch {
+        return String(details);
+      }
+    }
+    return details;
   }
 
   /**

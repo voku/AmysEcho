@@ -69,6 +69,14 @@ import { unzip, unzipSync } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
 import { GestureRecognitionOrchestrator } from './core/GestureRecognitionOrchestrator';
 
+declare global {
+  interface Window {
+    __startClipCapture?: (id: string) => void;
+    __stopClipCapture?: (id: string) => void;
+    __gestureOrchestrator?: GestureRecognitionOrchestrator | null;
+  }
+}
+
 // Initialize configuration
 const tapToStartText = window.__tapToStart || '';
 const recognizerInitFailed =
@@ -215,6 +223,7 @@ function initDom() {
 
   // Create orchestrator
   orchestrator = new GestureRecognitionOrchestrator(video, overlay);
+  window.__gestureOrchestrator = orchestrator;
 
   // Initialize orchestrator
   orchestrator.initialize().catch(error => {
@@ -298,7 +307,14 @@ document.addEventListener('visibilitychange', onVisibilityChange);
 
 // Cleanup function
 async function cleanup() {
+  try {
+    orchestrator?.cancelClipCapture();
+  } catch (err) {
+    console.warn('Failed to cancel clip capture during cleanup:', err);
+  }
   await orchestrator?.cleanup();
+  orchestrator = null;
+  window.__gestureOrchestrator = null;
 
   // Remove DOM elements
   try {
@@ -335,6 +351,48 @@ async function cleanup() {
 
 // Expose cleanup function
 window.__cleanupGestureDetector = cleanup;
+
+window.__startClipCapture = (id: string) => {
+  try {
+    if (!orchestrator) {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: 'clip_error', id, reason: 'orchestrator_unavailable' })
+      );
+      return;
+    }
+    orchestrator.startClipCapture(id);
+  } catch (error) {
+    window.ReactNativeWebView?.postMessage?.(
+      JSON.stringify({
+        type: 'clip_error',
+        id,
+        reason: 'start_clip_failed',
+        details: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+};
+
+window.__stopClipCapture = (id: string) => {
+  try {
+    if (!orchestrator) {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({ type: 'clip_error', id, reason: 'orchestrator_unavailable' })
+      );
+      return;
+    }
+    orchestrator.stopClipCapture(id);
+  } catch (error) {
+    window.ReactNativeWebView?.postMessage?.(
+      JSON.stringify({
+        type: 'clip_error',
+        id,
+        reason: 'stop_clip_failed',
+        details: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+};
 
 // Expose system status for debugging
 window.__getGestureSystemStatus = () => {

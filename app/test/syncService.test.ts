@@ -7,7 +7,7 @@ const mockDatabase = {
 jest.mock('../../db', () => ({
   database: mockDatabase,
   GestureTrainingData: class {},
-}));
+}), { virtual: true });
 
 jest.mock('../src/storage', () => ({
   loadActiveProfileId: jest.fn(async () => 'p1'),

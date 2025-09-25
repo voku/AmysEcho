@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, SafeAreaView } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
 import Svg, { Circle } from 'react-native-svg';
-import { saveTrainingSample, loadProfile, Profile, TrainingFrame } from '../storage';
-import { sendDgsSample } from '../services/dgsTrainingService';
+import { saveTrainingSample, loadProfile, Profile, TrainingFrame, createTrainingSample } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { audioService } from '../services';
@@ -13,7 +13,7 @@ import { COLORS, SPACING, RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
-import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
+import { MediaPipeGestureDetector, MediaPipeGestureDetectorHandle } from '../components/MediaPipeGestureDetector';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
@@ -24,6 +24,30 @@ import { childFriendlyStyles } from '../styles/touchTargets';
 import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import PracticeSessionManager from '../components/PracticeSessionManager';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
+
+const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
+
+type ClipReadyPayload = {
+  id: string;
+  base64: string;
+  mimeType: string;
+  durationMs: number;
+  frameCount: number;
+  capturedAt: string;
+};
+
+type FrameBatchPayload = {
+  frames: string[];
+  landmarks: number[][][][];
+};
+
+type ExpoFileSystemCompat = typeof FileSystem & {
+  cacheDirectory?: string;
+  documentDirectory?: string;
+  EncodingType?: { Base64: string };
+};
+
+const expoFs = FileSystem as ExpoFileSystemCompat;
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -53,6 +77,34 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [practiceMode, setPracticeMode] = useState(false);
   // Keep the facing mode in one place so overlays and recordings stay aligned if we add a toggle.
   const facingMode: 'user' | 'environment' = 'user';
+  const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
+  const clipRequestIdRef = useRef<string | null>(null);
+  const clipFileRef = useRef<string | null>(null);
+
+  const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
+    const directory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
+    if (!directory) {
+      throw new Error('clip_directory_unavailable');
+    }
+    const extension = clip.mimeType.includes('webm') ? 'webm' : 'mp4';
+    const targetUri = `${directory}amy-training-${clip.id}.${extension}`;
+    await expoFs.writeAsStringAsync(targetUri, clip.base64, {
+      encoding: (expoFs.EncodingType?.Base64 ?? 'base64') as any,
+    });
+    clipFileRef.current = targetUri;
+    return targetUri;
+  }, []);
+
+  const cleanupClipFile = useCallback(async () => {
+    if (!clipFileRef.current) return;
+    try {
+      await expoFs.deleteAsync(clipFileRef.current, { idempotent: true });
+    } catch (error) {
+      logger.warn('Failed to clean up training clip file', error);
+    } finally {
+      clipFileRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     setMessage(error);
@@ -88,33 +140,101 @@ export default function TrainingScreen({ navigation, route }: any) {
     if (!detectionActive) setLandmarks([]);
   }, [detectionActive]);
 
-  const startRecording = () => {
+  const handleFrameBatch = useCallback(
+    (payload: FrameBatchPayload) => {
+      if (!isRecordingRef.current || !payload || payload.landmarks.length === 0) {
+        return;
+      }
+
+      const mirrored = facingMode === 'user';
+      const framesToAppend: TrainingFrame[] = [];
+      payload.landmarks.forEach((frame, index) => {
+        const cloned = cloneLandmarks(frame as number[][][]);
+        if (!cloned.some((hand) => hand.length > 0)) {
+          return;
+        }
+        framesToAppend.push({
+          landmarks: cloned,
+        });
+      });
+
+      if (framesToAppend.length === 0) {
+        return;
+      }
+
+      const lastFrame = framesToAppend[framesToAppend.length - 1];
+      setLandmarks(cloneLandmarks(lastFrame.landmarks));
+      setLastDetection(Date.now());
+
+      setRecordedFrames((prev) => {
+        const combined = [...prev, ...framesToAppend];
+        const MAX_BUFFERED_FRAMES = 240;
+        return combined.length > MAX_BUFFERED_FRAMES ? combined.slice(-MAX_BUFFERED_FRAMES) : combined;
+      });
+      setFramesCaptured((count) => count + framesToAppend.length);
+    },
+    [facingMode],
+  );
+
+  const startRecording = useCallback(async () => {
     if (!gestureId) return;
     setError(null);
     setRecordedFrames([]);
     setFramesCaptured(0);
     setLastDetection(0);
+    await cleanupClipFile();
     setIsRecording(true);
     setSessionStartTime(Date.now());
+
+    try {
+      clipRequestIdRef.current = detectorRef.current
+        ? await detectorRef.current.startClipCapture()
+        : null;
+    } catch (error) {
+      clipRequestIdRef.current = null;
+      logger.warn('Failed to start clip capture', error);
+    }
 
     // Initialize performance tracking
     setPerformanceMetrics({
       averageConfidence: 0,
       totalFrames: 0,
       successfulFrames: 0,
-      sessionDuration: 0
+      sessionDuration: 0,
     });
 
     // HIP 2 or 4: sample start
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
-  };
+  }, [cleanupClipFile, gestureId, isPractice]);
 
-  const stopRecording = async () => {
+  const stopRecording = useCallback(async () => {
     const endTime = Date.now();
     const sessionDuration = sessionStartTime ? endTime - sessionStartTime : 0;
 
     setIsRecording(false);
     if (!gestureId) return;
+
+    let clipUri: string | null = null;
+    if (clipRequestIdRef.current && detectorRef.current) {
+      try {
+        const clipResult = await detectorRef.current.stopClipCapture();
+        clipUri = await persistClip(clipResult);
+      } catch (error) {
+        logger.warn('Failed to stop clip capture', error);
+        detectorRef.current.cancelClipCapture();
+        setMessage(CLIP_RECORDING_ERROR_TEXT);
+      } finally {
+        clipRequestIdRef.current = null;
+      }
+    } else {
+      detectorRef.current?.cancelClipCapture();
+      clipRequestIdRef.current = null;
+    }
+
+    if (!clipUri) {
+      setMessage(CLIP_RECORDING_ERROR_TEXT);
+      return;
+    }
 
     const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
     if (!validation.ok) {
@@ -124,7 +244,18 @@ export default function TrainingScreen({ navigation, route }: any) {
     }
 
     try {
-      await saveTrainingSample(gestureId, recordedFrames, isPractice ? 'HIP_4' : 'HIP_2');
+      const capturedAt = sessionStartTime ? new Date(sessionStartTime).toISOString() : new Date().toISOString();
+      const sample = createTrainingSample({
+        profileId: profile?.id ?? 'default',
+        label: gestureId,
+        frames: recordedFrames,
+        clipUri,
+        source: isPractice ? 'HIP_4' : 'HIP_2',
+        capturedAt,
+      });
+
+      await saveTrainingSample(sample);
+      setRecordedFrames([]);
       setCount((c) => c + 1);
       setError(null);
 
@@ -147,22 +278,6 @@ export default function TrainingScreen({ navigation, route }: any) {
         performance: { averageConfidence, totalFrames, successfulFrames, sessionDuration }
       });
 
-      // Send each frame of the sample sequence to the server dataset for DGS
-      if (recordedFrames.length > 0) {
-        const sendAllFrames = async () => {
-          await Promise.all(
-            recordedFrames.map(async (frame) => {
-              try {
-                await sendDgsSample(gestureId, frame, profile?.id);
-              } catch (e) {
-                logger.warn('Failed to send DGS sample frame', e);
-              }
-            }),
-          );
-        };
-        void sendAllFrames();
-      }
-
       if (isPractice) {
         await audioService.playEncouragement(gestureId);
       }
@@ -182,8 +297,19 @@ export default function TrainingScreen({ navigation, route }: any) {
         gestureId,
         framesCaptured
       });
+      clipRequestIdRef.current = null;
     }
-  };
+  }, [
+    detectorRef,
+    framesCaptured,
+    gestureId,
+    isPractice,
+    persistClip,
+    profile?.id,
+    recordedFrames,
+    sessionStartTime,
+    setMessage,
+  ]);
 
   const handleFinish = () => {
     navigation.goBack();
@@ -378,36 +504,26 @@ export default function TrainingScreen({ navigation, route }: any) {
               </View>
             ) : null;
           })()}
-           <View style={styles.cameraContainer}>
+              <View style={styles.cameraContainer}>
               <MediaPipeGestureDetector
+                ref={detectorRef}
                 onWebViewEvent={(telemetry) => {
                   logger.info('Training WebView telemetry:', telemetry);
                 }}
-                onGestureDetected={(gesture, confidence, lm, handedness) => {
-                  const mirrored = facingMode === 'user';
-                  const safeLandmarks = cloneLandmarks(lm);
-                  const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
-
-                  setLandmarks(safeLandmarks);
+                onFrameBatch={handleFrameBatch}
+                onLandmarks={(lm) => {
+                  setLandmarks(cloneLandmarks(lm));
                   setLastDetection(Date.now());
-
-                  if (isRecordingRef.current) {
-                    setRecordedFrames((prev) => [
-                      ...prev,
-                      { landmarks: safeLandmarks, handedness: adjustedHandedness },
-                    ]);
-                    setFramesCaptured((c) => c + 1);
-
-                    // Track performance metrics
-                    if (gestureId) {
-                      positiveTelemetryService.recordSuccess(
-                        gestureId,
-                        confidence,
-                        undefined, // context
-                        undefined, // emotionalState
-                        Date.now() - (sessionStartTime || Date.now()), // duration
-                      );
-                    }
+                }}
+                onGestureDetected={(gesture, confidence) => {
+                  if (isRecordingRef.current && gestureId) {
+                    positiveTelemetryService.recordSuccess(
+                      gestureId,
+                      confidence,
+                      undefined, // context
+                      undefined, // emotionalState
+                      Date.now() - (sessionStartTime || Date.now()), // duration
+                    );
                   }
 
                   // Enhanced feedback for practice mode
@@ -479,14 +595,14 @@ export default function TrainingScreen({ navigation, route }: any) {
                 !gestureId && styles.buttonDisabled,
                 pressed && gestureId && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
               ]}
-               onPress={() => {
-                 void hapticFeedback.light();
-                 if (isRecording) {
-                   stopRecording();
-                 } else {
-                   startRecording();
-                 }
-               }}
+             onPress={() => {
+               void hapticFeedback.light();
+               if (isRecording) {
+                  void stopRecording();
+                } else {
+                  void startRecording();
+                }
+              }}
               accessibilityRole="button"
               accessibilityLabel="Gestenaufnahme starten"
               disabled={!gestureId}

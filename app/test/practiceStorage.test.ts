@@ -18,7 +18,12 @@ jest.mock('../db', () => ({
 
 jest.mock('../db/models', () => ({}));
 
-import { saveTrainingSample, TrainingFrame } from '../src/storage';
+jest.mock('../src/services/trainingBundleQueue', () => ({
+  __esModule: true,
+  enqueueTrainingBundle: jest.fn(async () => 'bundle-key'),
+}));
+
+import { saveTrainingSample, TrainingFrame, createTrainingSample } from '../src/storage';
 
 describe('saveTrainingSample', () => {
   beforeEach(() => {
@@ -27,15 +32,32 @@ describe('saveTrainingSample', () => {
   });
 
   it('stores samples with default HIP_2 source', async () => {
-    await saveTrainingSample('gesture1', [] as TrainingFrame[]);
+    const sample = createTrainingSample({
+      profileId: 'default',
+      label: 'gesture1',
+      frames: [] as TrainingFrame[],
+      clipUri: 'file://clip.mp4',
+    });
+    const storedSample = await saveTrainingSample(sample);
     const raw = store['gestureTrainingData_default'];
     expect(raw).toBeTruthy();
     const data = JSON.parse(raw as string);
     expect(data[0].source).toBe('HIP_2');
+    const queue = require('../src/services/trainingBundleQueue');
+    expect(queue.enqueueTrainingBundle).toHaveBeenCalled();
+    expect(storedSample.syncStatus).toBe('queued');
+    expect(storedSample.clipUri).toBe('file://clip.mp4');
   });
 
   it('stores samples with HIP_4 source when specified', async () => {
-    await saveTrainingSample('gesture1', [] as TrainingFrame[], 'HIP_4');
+    const sample = createTrainingSample({
+      profileId: 'default',
+      label: 'gesture1',
+      frames: [] as TrainingFrame[],
+      clipUri: 'file://clip.mp4',
+      source: 'HIP_4',
+    });
+    await saveTrainingSample(sample);
     const raw = store['gestureTrainingData_default'];
     expect(raw).toBeTruthy();
     const data = JSON.parse(raw as string);

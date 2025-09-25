@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { database } from '../db';
 import { Profile as DBProfile } from '../db/models';
 import { secureConfigManager } from './services/secureConfig';
+import { enqueueTrainingBundle } from './services/trainingBundleQueue';
 
 export interface Profile {
   id: string;
@@ -19,15 +20,125 @@ const ACTIVE_PROFILE_KEY = 'activeProfileId';
 
 export interface TrainingFrame {
   landmarks: number[][][];
-  handedness: string[];
 }
 
 export interface TrainingSample {
   id: string;
-  gestureDefinitionId: string;
+  profileId: string;
+  label: string;
   frames: TrainingFrame[];
+  clipUri: string;
   source: 'HIP_2' | 'HIP_3' | 'HIP_4';
-  syncStatus: 'pending' | 'synced';
+  capturedAt: string;
+  createdAt: string;
+  syncStatus: 'pending' | 'queued' | 'synced';
+  bundleKey?: string;
+}
+
+export interface TrainingSampleInput {
+  profileId: string;
+  label: string;
+  frames: TrainingFrame[];
+  clipUri: string;
+  source?: 'HIP_2' | 'HIP_3' | 'HIP_4';
+  capturedAt?: string;
+}
+
+export function createTrainingSample(input: TrainingSampleInput): TrainingSample {
+  const now = new Date();
+  return {
+    id: genId(),
+    profileId: input.profileId,
+    label: input.label,
+    frames: input.frames,
+    clipUri: input.clipUri,
+    source: input.source ?? 'HIP_2',
+    capturedAt: input.capturedAt ?? now.toISOString(),
+    createdAt: now.toISOString(),
+    syncStatus: 'pending',
+  };
+}
+
+function normalizeTrainingSample(raw: any, fallbackProfileId: string): TrainingSample | null {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const label =
+    typeof raw.label === 'string'
+      ? raw.label
+      : typeof raw.gestureDefinitionId === 'string'
+      ? raw.gestureDefinitionId
+      : null;
+  if (!label) return null;
+
+  const frames: TrainingFrame[] = Array.isArray(raw.frames)
+    ? raw.frames
+    : Array.isArray(raw.landmarkData)
+    ? raw.landmarkData
+    : [];
+
+  const clipUri = typeof raw.clipUri === 'string' ? raw.clipUri : '';
+  const source: TrainingSample['source'] = raw.source === 'HIP_3' || raw.source === 'HIP_4' ? raw.source : 'HIP_2';
+  const capturedAt = typeof raw.capturedAt === 'string' ? raw.capturedAt : new Date().toISOString();
+  const createdAt = typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString();
+  const syncStatus: TrainingSample['syncStatus'] =
+    raw.syncStatus === 'queued' || raw.syncStatus === 'synced' ? raw.syncStatus : 'pending';
+  const profileId = typeof raw.profileId === 'string' ? raw.profileId : fallbackProfileId;
+  const bundleKey = typeof raw.bundleKey === 'string' ? raw.bundleKey : undefined;
+
+  return {
+    id: typeof raw.id === 'string' ? raw.id : genId(),
+    profileId,
+    label,
+    frames,
+    clipUri,
+    source,
+    capturedAt,
+    createdAt,
+    syncStatus,
+    bundleKey,
+  };
+}
+
+async function loadSamplesForProfile(profileId: string): Promise<TrainingSample[]> {
+  const trainingKey = `gestureTrainingData_${profileId}`;
+  const raw = await AsyncStorage.getItem(trainingKey);
+  if (!raw) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    console.warn('Failed to parse training samples', error);
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  const normalized: TrainingSample[] = [];
+  let mutated = false;
+
+  for (const entry of parsed) {
+    const sample = normalizeTrainingSample(entry, profileId);
+    if (!sample) continue;
+    if (
+      !entry ||
+      typeof entry !== 'object' ||
+      entry.label !== sample.label ||
+      entry.clipUri !== sample.clipUri ||
+      entry.profileId !== sample.profileId
+    ) {
+      mutated = true;
+    }
+    normalized.push(sample);
+  }
+
+  if (mutated) {
+    await AsyncStorage.setItem(trainingKey, JSON.stringify(normalized));
+  }
+
+  return normalized;
 }
 
 export async function loadProfiles(): Promise<Profile[]> {
@@ -115,13 +226,14 @@ export async function logCorrection(correctId: string, profileId?: string): Prom
 
   const trainingRaw = await AsyncStorage.getItem(trainingKey);
   const training = trainingRaw ? JSON.parse(trainingRaw) : [];
-  training.push({
-    id: genId(),
-    gestureDefinitionId: correctId,
+  const sample = createTrainingSample({
+    profileId: activeProfileId,
+    label: correctId,
     frames: [],
+    clipUri: '',
     source: 'HIP_3',
-    syncStatus: 'pending',
   });
+  training.push(sample);
   await AsyncStorage.setItem(trainingKey, JSON.stringify(training));
 
   const logsRaw = await AsyncStorage.getItem(logKey);
@@ -137,46 +249,56 @@ export async function logCorrection(correctId: string, profileId?: string): Prom
   await AsyncStorage.setItem(logKey, JSON.stringify(logs));
 }
 
-export async function saveTrainingSample(
-  gestureDefinitionId: string,
-  frames: TrainingFrame[],
-  source: 'HIP_2' | 'HIP_4' = 'HIP_2',
-  profileId?: string,
-): Promise<void> {
-  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
-  const trainingKey = `gestureTrainingData_${activeProfileId}`;
+export async function saveTrainingSample(sample: TrainingSample): Promise<TrainingSample> {
+  const trainingKey = `gestureTrainingData_${sample.profileId}`;
+  const existing = await loadSamplesForProfile(sample.profileId);
+  const stored: TrainingSample = { ...sample };
 
-  const raw = await AsyncStorage.getItem(trainingKey);
-  const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
-  data.push({
-    id: genId(),
-    gestureDefinitionId,
-    frames,
-    source,
-    syncStatus: 'pending',
+  if (stored.clipUri) {
+    try {
+      const bundleKey = await enqueueTrainingBundle(stored);
+      stored.syncStatus = 'queued';
+      stored.bundleKey = bundleKey;
+    } catch (error) {
+      console.warn('Failed to enqueue training bundle', error);
+      stored.syncStatus = 'pending';
+    }
+  } else {
+    stored.syncStatus = 'pending';
+  }
 
-  });
-  await AsyncStorage.setItem(trainingKey, JSON.stringify(data));
+  existing.push(stored);
+  await AsyncStorage.setItem(trainingKey, JSON.stringify(existing));
+  return stored;
 }
 
 export async function loadTrainingSampleCount(
-  gestureDefinitionId: string,
+  label: string,
   profileId?: string,
 ): Promise<number> {
   const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
-  const trainingKey = `gestureTrainingData_${activeProfileId}`;
-
-  const raw = await AsyncStorage.getItem(trainingKey);
-  const data: TrainingSample[] = raw ? JSON.parse(raw) : [];
-  return data.filter((s) => s.gestureDefinitionId === gestureDefinitionId).length;
+  const samples = await loadSamplesForProfile(activeProfileId);
+  return samples.filter((s) => s.label === label).length;
 }
 
 export async function loadTrainingSamples(profileId?: string): Promise<TrainingSample[]> {
   const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
-  const trainingKey = `gestureTrainingData_${activeProfileId}`;
+  return loadSamplesForProfile(activeProfileId);
+}
 
-  const raw = await AsyncStorage.getItem(trainingKey);
-  return raw ? JSON.parse(raw) : [];
+export async function updateTrainingSample(
+  sampleId: string,
+  profileId: string,
+  updates: Partial<TrainingSample>,
+): Promise<TrainingSample | null> {
+  const samples = await loadSamplesForProfile(profileId);
+  const index = samples.findIndex((sample) => sample.id === sampleId);
+  if (index === -1) return null;
+  const updated = { ...samples[index], ...updates } as TrainingSample;
+  samples[index] = updated;
+  const trainingKey = `gestureTrainingData_${profileId}`;
+  await AsyncStorage.setItem(trainingKey, JSON.stringify(samples));
+  return updated;
 }
 
 export async function loadInteractionLogs(profileId?: string): Promise<any[]> {

@@ -61,7 +61,9 @@ export function getTrainedModelPath(profileId?: string): string {
 }
 
 // MLP model path (.npz)
-export const TRAINED_MLP_MODEL_PATH = path.join(DATA_DIR, 'amy_model.npz');
+export const MLP_MODELS_DIR = path.join(DATA_DIR, 'models');
+export const TRAINED_MLP_GLOBAL_DIR = path.join(MLP_MODELS_DIR, 'global');
+export const TRAINED_MLP_MODEL_PATH = path.join(TRAINED_MLP_GLOBAL_DIR, 'amy_model.npz');
 export function getMlpModelPath(profileId?: string): string {
   if (!profileId) {
     return TRAINED_MLP_MODEL_PATH;
@@ -69,9 +71,9 @@ export function getMlpModelPath(profileId?: string): string {
   if (!PROFILE_ID_PATTERN.test(profileId)) {
     throw new Error('Invalid profileId');
   }
-  return path.join(DATA_DIR, `dgs_model_${profileId}.npz`);
+  return path.join(MLP_MODELS_DIR, profileId, 'amy_model.npz');
 }
-export const BASELINE_MLP_MODEL_PATH = path.join(SERVER_DIR, '..', 'data', 'amy_model.npz');
+export const BASELINE_MLP_MODEL_PATH = path.join(SERVER_DIR, '..', 'data', 'models', 'global', 'amy_model.npz');
 export const GESTURE_LABELS_PATH = path.join(
   SERVER_DIR,
   '../app/assets/models/gesture_labels.json',

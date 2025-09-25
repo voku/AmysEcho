@@ -43,8 +43,7 @@ function buildMetadata(payload: TrainingBundlePayload) {
 
 function buildFrameTimeline(frames: TrainingFrame[]) {
   return frames.map((frame) => ({
-    handedness: frame.handedness ?? [],
-    landmarks: flattenHandsWithHandedness(frame.landmarks, frame.handedness ?? []),
+    landmarks: flattenHandsWithHandedness(frame.landmarks, []),
   }));
 }
 

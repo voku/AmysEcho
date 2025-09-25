@@ -1,0 +1,86 @@
+import { syncTrainingData } from '../../src/services/trainingSync';
+import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from '../../src/services/trainingBundleQueue';
+import { uploadTrainingBundle } from '../../src/services/trainingBundleService';
+import { loadProfile, loadBackendApiToken, updateTrainingSample } from '../../src/storage';
+import * as NetInfo from '@react-native-community/netinfo';
+import { batteryOptimizationService } from '../../src/services/batteryOptimizationService';
+import * as FileSystem from 'expo-file-system';
+
+jest.mock('../../src/services/trainingBundleQueue');
+jest.mock('../../src/services/trainingBundleService');
+jest.mock('../../src/storage');
+jest.mock('@react-native-community/netinfo');
+jest.mock('../../src/services/batteryOptimizationService');
+jest.mock('expo-file-system');
+
+const mockedListQueuedTrainingBundles = listQueuedTrainingBundles as jest.Mock;
+const mockedRemoveQueuedTrainingBundle = removeQueuedTrainingBundle as jest.Mock;
+const mockedUploadTrainingBundle = uploadTrainingBundle as jest.Mock;
+const mockedLoadProfile = loadProfile as jest.Mock;
+const mockedLoadBackendApiToken = loadBackendApiToken as jest.Mock;
+const mockedUpdateTrainingSample = updateTrainingSample as jest.Mock;
+const mockedBatteryOptimizationService = batteryOptimizationService as { isDeviceCharging: jest.Mock };
+const mockedNetInfo = NetInfo as { fetch: jest.Mock };
+const mockedFileSystem = FileSystem as { deleteAsync: jest.Mock };
+
+describe('syncTrainingData', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should not upload if user has not consented', async () => {
+    mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: false });
+    const result = await syncTrainingData();
+    expect(result.uploaded).toBe(0);
+    expect(mockedListQueuedTrainingBundles).not.toHaveBeenCalled();
+  });
+
+  it('should not upload if there are no bundles', async () => {
+    mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: true });
+    mockedListQueuedTrainingBundles.mockResolvedValue([]);
+    const result = await syncTrainingData();
+    expect(result.uploaded).toBe(0);
+  });
+
+  it('should not upload if not on wifi', async () => {
+    mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: true });
+    mockedListQueuedTrainingBundles.mockResolvedValue([{}]);
+    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'cellular' });
+    const result = await syncTrainingData();
+    expect(result.uploaded).toBe(0);
+  });
+
+  it('should not upload if not charging', async () => {
+    mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: true });
+    mockedListQueuedTrainingBundles.mockResolvedValue([{}]);
+    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
+    mockedBatteryOptimizationService.isDeviceCharging.mockReturnValue(false);
+    const result = await syncTrainingData();
+    expect(result.uploaded).toBe(0);
+  });
+
+  it('should upload bundles and clean up', async () => {
+    const profile = { id: 'profile1', consentHelpMeGetSmarter: true };
+    const bundles = [
+      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+      { key: 'bundle2', sampleId: 'sample2', profileId: 'profile1', clipUri: 'uri2', frames: [], label: 'test', capturedAt: 'date' },
+    ];
+    mockedLoadProfile.mockResolvedValue(profile);
+    mockedListQueuedTrainingBundles.mockResolvedValue(bundles);
+    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
+    mockedBatteryOptimizationService.isDeviceCharging.mockReturnValue(true);
+    mockedLoadBackendApiToken.mockResolvedValue('token');
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'success' });
+    mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
+
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(2);
+    expect(result.remaining).toBe(0);
+    expect(mockedUploadTrainingBundle).toHaveBeenCalledTimes(2);
+    expect(mockedRemoveQueuedTrainingBundle).toHaveBeenCalledTimes(2);
+    expect(mockedUpdateTrainingSample).toHaveBeenCalledTimes(2);
+    expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(2);
+  });
+});

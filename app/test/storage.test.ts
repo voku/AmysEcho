@@ -21,7 +21,9 @@ import {
   saveCustomGesture,
   loadCustomGestures,
   TrainingFrame,
+  createTrainingSample,
 } from '../src/storage';
+import { enqueueTrainingBundle } from '../src/services/trainingBundleQueue';
 
 // Mock dependencies
 jest.mock('@react-native-async-storage/async-storage');
@@ -38,10 +40,14 @@ jest.mock('../src/services/secureConfig', () => ({
     getAPIKey: jest.fn(),
   },
 }));
+jest.mock('../src/services/trainingBundleQueue', () => ({
+  enqueueTrainingBundle: jest.fn(async () => 'bundle-key'),
+}));
 
 const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
 const mockDatabase = database as jest.Mocked<typeof database>;
+const mockEnqueue = enqueueTrainingBundle as jest.MockedFunction<typeof enqueueTrainingBundle>;
 
 describe('Storage', () => {
   beforeEach(() => {
@@ -270,21 +276,30 @@ describe('Storage', () => {
       mockDatabase.get.mockReturnValue(mockCollection as any);
       mockDatabase.write.mockImplementation((callback) => callback());
 
-      await saveTrainingSample('gesture-1', frames, 'HIP_4');
+      const sample = createTrainingSample({
+        profileId: 'default',
+        label: 'gesture-1',
+        frames,
+        clipUri: 'file://clip.mp4',
+        source: 'HIP_4',
+      });
+
+      await saveTrainingSample(sample);
 
       expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
         'gestureTrainingData_default',
-        expect.stringContaining('gesture-1')
+        expect.stringContaining('gesture-1'),
       );
+      expect(mockEnqueue).toHaveBeenCalled();
     });
   });
 
   describe('loadTrainingSampleCount', () => {
     it('returns count of training samples for gesture', async () => {
       const mockData = [
-        { gestureDefinitionId: 'gesture-1' },
-        { gestureDefinitionId: 'gesture-2' },
-        { gestureDefinitionId: 'gesture-1' },
+        { label: 'gesture-1' },
+        { label: 'gesture-2' },
+        { label: 'gesture-1' },
       ];
 
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(mockData));
@@ -508,8 +523,8 @@ describe('Storage', () => {
     });
   });
 
-  describe('Training sample database operations', () => {
-    it('handles database write errors in saveTrainingSample', async () => {
+  describe('Training sample queue operations', () => {
+    it('falls back to pending state when enqueue fails', async () => {
       const frames: TrainingFrame[] = [
         {
           landmarks: [[[1, 2, 3]]],
@@ -519,10 +534,19 @@ describe('Storage', () => {
 
       mockAsyncStorage.getItem.mockResolvedValue(null);
       mockAsyncStorage.setItem.mockResolvedValue();
+      mockEnqueue.mockRejectedValueOnce(new Error('enqueue failed'));
 
-      mockDatabase.write.mockRejectedValue(new Error('Database write error'));
+      const sample = createTrainingSample({
+        profileId: 'default',
+        label: 'gesture-1',
+        frames,
+        clipUri: 'file://clip.mp4',
+      });
 
-      await expect(saveTrainingSample('gesture-1', frames)).resolves.toBeUndefined();
+      const stored = await saveTrainingSample(sample);
+
+      expect(stored.syncStatus).toBe('pending');
+      expect(mockAsyncStorage.setItem).toHaveBeenCalled();
     });
   });
 

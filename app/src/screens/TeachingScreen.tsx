@@ -4,7 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 // Camera handled inside WebView detector
 // mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
-import { saveTrainingSample, loadProfile, Profile, loadTrainingSampleCount, saveCustomGesture } from '../storage';
+import {
+  saveTrainingSample,
+  loadProfile,
+  Profile,
+  loadTrainingSampleCount,
+  saveCustomGesture,
+  createTrainingSample,
+} from '../storage';
 import { captureSamples } from '../services/gestureRecorder';
 import { addGesture } from '../model';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
@@ -210,7 +217,13 @@ export default function TeachingScreen({ navigation }: any) {
     setError(null);
     try {
       const frames = await captureSamples(() => ({ landmarks: landmarksRef.current, handedness: handednessRef.current }));
-      await saveTrainingSample(gestureLabel, frames);
+      const sample = createTrainingSample({
+        profileId: profile?.id ?? 'default',
+        label: gestureLabel,
+        frames,
+        clipUri: '',
+      });
+      await saveTrainingSample(sample);
       setSampleCount((c) => c + 1);
       startSampleCaptureAnimation();
       audioService.playSound('confirmation');

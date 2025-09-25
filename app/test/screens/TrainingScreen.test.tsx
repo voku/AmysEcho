@@ -25,10 +25,6 @@ jest.mock('../../src/context/MessageContext', () => ({
 
 jest.mock('@react-navigation/native', () => ({ useIsFocused: () => true }));
 
-jest.mock('../../src/services/dgsTrainingService', () => ({
-  sendDgsSample: jest.fn().mockResolvedValue(undefined),
-}));
-
 jest.mock('../../src/services/TrainingDataValidator', () => ({
   validateLandmarkSequence: () => ({ ok: true, suggestions: [] }),
 }));
@@ -53,6 +49,14 @@ jest.mock('../../src/services/positiveTelemetryService', () => ({
   positiveTelemetryService: { recordSuccess: jest.fn() },
 }));
 
+jest.mock('expo-file-system', () => ({
+  cacheDirectory: 'file://cache/',
+  documentDirectory: 'file://documents/',
+  writeAsStringAsync: jest.fn(async () => {}),
+  deleteAsync: jest.fn(async () => {}),
+  EncodingType: { Base64: 'base64' },
+}));
+
 jest.mock('../../src/styles/touchTargets', () => ({
   childFriendlyStyles: { minTouchTarget: { minWidth: 60, minHeight: 60 } },
 }));
@@ -65,12 +69,16 @@ jest.mock('../../src/model', () => ({
   gestureModel: { gestures: [{ id: 'hello', label: 'Hallo' }] },
 }));
 
-jest.mock('../../src/storage', () => ({
-  saveTrainingSample: jest.fn(() => Promise.resolve()),
-  loadProfile: jest.fn(() => Promise.resolve(null)),
-  loadActiveProfileId: jest.fn(() => Promise.resolve(null)),
-  onActiveProfileChange: jest.fn(),
-}));
+jest.mock('../../src/storage', () => {
+  const actual = jest.requireActual('../../src/storage');
+  return {
+    ...actual,
+    saveTrainingSample: jest.fn(async (sample: any) => sample),
+    loadProfile: jest.fn(() => Promise.resolve(null)),
+    loadActiveProfileId: jest.fn(() => Promise.resolve(null)),
+    onActiveProfileChange: jest.fn(),
+  };
+});
 
 jest.mock('../../src/utils/logger', () => ({
   logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn(), debug: jest.fn() },
@@ -88,8 +96,21 @@ jest.mock('react-native-svg', () => {
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   const React = require('react');
   return {
-    MediaPipeGestureDetector: (props: any) =>
-      React.createElement('MediaPipeGestureDetector', props, props.children),
+    MediaPipeGestureDetector: React.forwardRef((props: any, ref: any) => {
+      React.useImperativeHandle(ref, () => ({
+        startClipCapture: jest.fn(async () => 'clip-id'),
+        stopClipCapture: jest.fn(async () => ({
+          id: 'clip-id',
+          base64: 'dGVzdA==',
+          mimeType: 'video/mp4',
+          durationMs: 500,
+          frameCount: 10,
+          capturedAt: new Date().toISOString(),
+        })),
+        cancelClipCapture: jest.fn(),
+      }));
+      return React.createElement('MediaPipeGestureDetector', props, props.children);
+    }),
   };
 });
 
@@ -122,13 +143,21 @@ describe('TrainingScreen', () => {
       .root
       .findAll((node) => node.type === 'Pressable' && node.props.accessibilityLabel === 'Gestenaufnahme starten')[0];
 
-    act(() => {
+    await act(async () => {
       recordPressable.props.onPress();
+      await Promise.resolve();
     });
 
     const detector = component!.root.findByType('MediaPipeGestureDetector');
+    const timestamp = Date.now();
     act(() => {
-      detector.props.onGestureDetected(null, 0.9, [[[1, 2, 3]]], ['Left']);
+      detector.props.onLandmarks?.([[[1, 2, 3]]], ['Left']);
+      detector.props.onFrameBatch?.({
+        frames: ['data:image/jpeg;base64,test'],
+        landmarks: [[[[1, 2, 3]]]],
+        handednesses: [['Left']],
+        timestamps: [timestamp],
+      });
     });
 
     await act(async () => {
@@ -137,16 +166,19 @@ describe('TrainingScreen', () => {
     });
 
     expect(saveTrainingSample).toHaveBeenCalledWith(
-      'hello',
-      [{ landmarks: [[[1, 2, 3]]], handedness: ['Left'] }],
-      'HIP_2',
+      expect.objectContaining({
+        label: 'hello',
+        frames: [
+          {
+            landmarks: [[[1, 2, 3]]],
+            handedness: ['Left'],
+          },
+        ],
+        source: 'HIP_2',
+      }),
     );
 
-    const { sendDgsSample } = require('../../src/services/dgsTrainingService');
-    expect(sendDgsSample).toHaveBeenCalledWith(
-      'hello',
-      { landmarks: [[[1, 2, 3]]], handedness: ['Left'] },
-      undefined,
-    );
+    const fs = require('expo-file-system');
+    expect(fs.writeAsStringAsync).toHaveBeenCalled();
   });
 });

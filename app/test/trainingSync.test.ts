@@ -1,18 +1,21 @@
-import { processFramesForUpload, HAND_LANDMARKS_PER_HAND } from '../src/services/handUtils';
 import { syncTrainingData } from '../src/services/trainingSync';
 
 jest.mock('../src/storage', () => ({
   __esModule: true,
-  loadProfile: async () => ({ consentHelpMeGetSmarter: false, id: 'amy' }),
-  loadBackendApiToken: async () => 'token',
+  loadProfile: jest.fn(async () => ({ consentHelpMeGetSmarter: false, id: 'amy' })),
+  loadBackendApiToken: jest.fn(async () => 'token'),
+  updateTrainingSample: jest.fn(async () => null),
 }));
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
+jest.mock('../src/services/trainingBundleQueue', () => ({
   __esModule: true,
-  default: {
-    getItem: jest.fn(async () => null),
-    setItem: jest.fn(),
-  },
+  listQueuedTrainingBundles: jest.fn(async () => []),
+  removeQueuedTrainingBundle: jest.fn(async () => {}),
+}));
+
+jest.mock('../src/services/trainingBundleService', () => ({
+  __esModule: true,
+  uploadTrainingBundle: jest.fn(async () => ({ status: 'queued', id: 'bundle' })),
 }));
 
 jest.mock('@react-native-community/netinfo', () => ({
@@ -28,43 +31,102 @@ jest.mock('../src/services/modelUpdate', () => ({
   refreshDgsModel: jest.fn(),
 }));
 
-jest.mock('../src/utils/logger', () => ({
-  logger: { warn: jest.fn() },
+jest.mock('../src/services/batteryOptimizationService', () => ({
+  batteryOptimizationService: {
+    isDeviceCharging: jest.fn(() => true),
+  },
 }));
 
-describe('processFramesForUpload', () => {
-  it('flattens frames with handedness ordering', () => {
-    const left = Array.from({ length: HAND_LANDMARKS_PER_HAND }, (_, i) => [i, i, i]);
-    const right = Array.from({ length: HAND_LANDMARKS_PER_HAND }, (_, i) => [i + 100, i + 100, i + 100]);
+jest.mock('expo-file-system', () => ({
+  deleteAsync: jest.fn(async () => {}),
+}));
 
-    const result = processFramesForUpload([
-      { landmarks: [right, left], handedness: ['Right', 'Left'] },
-    ], 'g1', 'amy');
+jest.mock('../src/utils/logger', () => ({
+  logger: { warn: jest.fn(), info: jest.fn() },
+}));
 
-    expect(result).toHaveLength(1);
-    const [sample] = result;
-    expect(sample.gestureDefinitionId).toBe('g1');
-    expect(sample.profileId).toBe('amy');
-    expect(sample.landmarkData[0]).toEqual([0, 0, 0]);
-    expect(sample.landmarkData[HAND_LANDMARKS_PER_HAND]).toEqual([100, 100, 100]);
-  });
-
-  it('filters out empty frames', () => {
-    const result = processFramesForUpload([
-      { landmarks: [[], []], handedness: [] },
-      { landmarks: [[[1, 2, 3]], []], handedness: [] },
-    ], 'g1');
-
-    expect(result).toHaveLength(1);
-    expect(result[0].landmarkData[0]).toEqual([1, 2, 3]);
-  });
-});
+const { loadProfile, updateTrainingSample } = require('../src/storage');
+const { listQueuedTrainingBundles, removeQueuedTrainingBundle } = require('../src/services/trainingBundleQueue');
+const { uploadTrainingBundle } = require('../src/services/trainingBundleService');
+const { batteryOptimizationService } = require('../src/services/batteryOptimizationService');
+const fs = require('expo-file-system');
 
 describe('syncTrainingData', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns early when user lacks consent', async () => {
-    const fetchSpy = jest.spyOn(global, 'fetch' as any);
-    await syncTrainingData();
-    expect(fetchSpy).not.toHaveBeenCalled();
-    fetchSpy.mockRestore();
+    (loadProfile as jest.Mock).mockResolvedValue({ consentHelpMeGetSmarter: false, id: 'amy' });
+    const result = await syncTrainingData();
+    expect(uploadTrainingBundle).not.toHaveBeenCalled();
+    expect(result).toEqual({ uploaded: 0, remaining: 0 });
+  });
+
+  it('uploads queued bundles when conditions are met', async () => {
+    (loadProfile as jest.Mock).mockResolvedValue({ consentHelpMeGetSmarter: true, id: 'amy' });
+    (listQueuedTrainingBundles as jest.Mock)
+      .mockResolvedValueOnce([
+        {
+          key: 'trainingBundles:amy:test',
+          sampleId: 'sample-1',
+          profileId: 'amy',
+          label: 'HALLO',
+          frames: [],
+          clipUri: 'file://cache/clip.mp4',
+          capturedAt: '2024-05-28T12:03:11Z',
+          source: 'HIP_2',
+          queuedAt: '2024-05-28T12:03:12Z',
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    (batteryOptimizationService.isDeviceCharging as jest.Mock).mockReturnValue(true);
+
+    const onProgress = jest.fn();
+    const result = await syncTrainingData({ onProgress });
+
+    expect(listQueuedTrainingBundles).toHaveBeenCalledWith('amy');
+    expect(uploadTrainingBundle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'HALLO',
+        profileId: 'amy',
+        clipUri: 'file://cache/clip.mp4',
+        capturedAt: '2024-05-28T12:03:11Z',
+        source: 'app://mediapipe',
+      }),
+      expect.any(Object),
+    );
+    expect(removeQueuedTrainingBundle).toHaveBeenCalledWith('trainingBundles:amy:test');
+    expect(updateTrainingSample).toHaveBeenCalledWith('sample-1', 'amy', {
+      syncStatus: 'synced',
+      bundleKey: undefined,
+    });
+    expect(fs.deleteAsync).toHaveBeenCalledWith('file://cache/clip.mp4', { idempotent: true });
+    expect(onProgress).toHaveBeenCalledWith(100);
+    expect(result).toEqual({ uploaded: 1, remaining: 0 });
+  });
+
+  it('skips upload when device is not charging', async () => {
+    (loadProfile as jest.Mock).mockResolvedValue({ consentHelpMeGetSmarter: true, id: 'amy' });
+    (listQueuedTrainingBundles as jest.Mock).mockResolvedValueOnce([
+      {
+        key: 'trainingBundles:amy:test',
+        sampleId: 'sample-1',
+        profileId: 'amy',
+        label: 'HALLO',
+        frames: [],
+        clipUri: 'file://cache/clip.mp4',
+        capturedAt: '2024-05-28T12:03:11Z',
+        source: 'HIP_2',
+        queuedAt: '2024-05-28T12:03:12Z',
+      },
+    ]);
+    (batteryOptimizationService.isDeviceCharging as jest.Mock).mockReturnValue(false);
+
+    const result = await syncTrainingData();
+
+    expect(uploadTrainingBundle).not.toHaveBeenCalled();
+    expect(removeQueuedTrainingBundle).not.toHaveBeenCalled();
+    expect(result).toEqual({ uploaded: 0, remaining: 1 });
   });
 });

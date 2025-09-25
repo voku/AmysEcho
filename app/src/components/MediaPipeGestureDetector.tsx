@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import type { WebViewPermissionRequestEvent } from '../webviewTypes';
@@ -12,8 +20,37 @@ import {
 } from '../constants';
 import { logger } from '../utils/logger';
 import { useModelInjection } from '../hooks/useModelInjection';
-import { fetchMlpModel, getCachedMlpModel } from '../services/dgsModelClient';
+import { fetchMlpModel, getCachedMlpModel, getCachedMlpMeta } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
+
+interface FrameBatchPayload {
+  frames: string[];
+  landmarks: number[][][][];
+  handednesses: string[][];
+  timestamps: number[];
+}
+
+interface ClipReadyPayload {
+  id: string;
+  base64: string;
+  mimeType: string;
+  durationMs: number;
+  frameCount: number;
+  capturedAt: string;
+}
+
+export interface MediaPipeGestureDetectorHandle {
+  startClipCapture: () => Promise<string>;
+  stopClipCapture: () => Promise<ClipReadyPayload>;
+  cancelClipCapture: () => void;
+}
+
+type ClipRequestState = {
+  id: string | null;
+  resolve?: (payload: ClipReadyPayload) => void;
+  reject?: (error: Error) => void;
+  timeout?: ReturnType<typeof setTimeout> | null;
+};
 
 interface Props {
   onGestureDetected: (
@@ -30,6 +67,7 @@ interface Props {
   onWebViewEvent?: (telemetry: any) => void;
   onModelUpdateStatus?: (status: 'idle' | 'updating' | 'complete' | 'error') => void;
   facingMode?: 'user' | 'environment';
+  onFrameBatch?: (payload: FrameBatchPayload) => void;
 }
 
 const WEBVIEW_UNAVAILABLE_TEXT = 'Ich brauche einen Moment. Lass uns gleich weitermachen!';
@@ -38,6 +76,7 @@ const RECOGNIZER_INIT_FAILED_TEXT = 'Ich bin gleich bereit. Versuch\'s nochmal!'
 const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
 const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
 const GESTURE_PROCESSING_ERROR_TEXT = 'Das hat nicht geklappt. Probier\'s einfach nochmal!';
+const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
 const escapeJs = (value: string) =>
   value
@@ -46,15 +85,21 @@ const escapeJs = (value: string) =>
     .replace(/\$/g, '\\$')
     .replace(/'/g, "\\'");
 
-export const MediaPipeGestureDetector: React.FC<Props> = ({
-  onGestureDetected,
-  onLandmarks,
-  onError,
-  onWebViewEvent,
-  onModelUpdateStatus,
-  facingMode = 'user',
-}) => {
+export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandle, Props>(
+(
+  {
+    onGestureDetected,
+    onLandmarks,
+    onError,
+    onWebViewEvent,
+    onModelUpdateStatus,
+    onFrameBatch,
+    facingMode = 'user',
+  },
+  ref,
+) => {
   const webviewRef = useRef<any>(null);
+  const clipStateRef = useRef<ClipRequestState>({ id: null, resolve: undefined, reject: undefined, timeout: null });
   const [webviewError, setWebviewError] = useState<string | null>(null);
 
   const { injectModel, mlpReadyRef, pendingModelRef, markTransferComplete } = useModelInjection(
@@ -87,6 +132,105 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
     [onGestureDetected],
   );
 
+  const clearClipTimeout = useCallback(() => {
+    const state = clipStateRef.current;
+    if (state.timeout) {
+      clearTimeout(state.timeout);
+      state.timeout = null;
+    }
+  }, []);
+
+  const resetClipState = useCallback(() => {
+    clearClipTimeout();
+    clipStateRef.current.id = null;
+    clipStateRef.current.resolve = undefined;
+    clipStateRef.current.reject = undefined;
+  }, [clearClipTimeout]);
+
+  const cancelClipCapture = useCallback(() => {
+    const state = clipStateRef.current;
+    if (!state.id) {
+      return;
+    }
+    const error = new Error('clip_capture_cancelled');
+    state.reject?.(error);
+    resetClipState();
+  }, [resetClipState]);
+
+  const startClipCapture = useCallback(async () => {
+    const state = clipStateRef.current;
+    if (state.id) {
+      logger.warn('Clip capture already active, returning existing request id', { clipId: state.id });
+      return state.id;
+    }
+
+    if (!webviewRef.current) {
+      throw new Error('webview_not_ready');
+    }
+
+    const clipId = `clip_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    state.id = clipId;
+
+    try {
+      webviewRef.current.injectJavaScript(
+        `window.__startClipCapture && window.__startClipCapture(${JSON.stringify(clipId)}); true;`
+      );
+    } catch (error) {
+      resetClipState();
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+
+    return clipId;
+  }, [resetClipState]);
+
+  const stopClipCapture = useCallback(() => {
+    const state = clipStateRef.current;
+    if (!state.id) {
+      return Promise.reject(new Error('no_active_clip_capture'));
+    }
+
+    if (!webviewRef.current) {
+      resetClipState();
+      return Promise.reject(new Error('webview_not_ready'));
+    }
+
+    return new Promise<ClipReadyPayload>((resolve, reject) => {
+      clearClipTimeout();
+      state.resolve = (payload) => {
+        resolve(payload);
+      };
+      state.reject = (error) => {
+        reject(error);
+      };
+      state.timeout = setTimeout(() => {
+        const timeoutError = new Error('clip_capture_timeout');
+        state.reject?.(timeoutError);
+        onError(CLIP_RECORDING_ERROR_TEXT);
+        resetClipState();
+      }, 20000);
+
+      try {
+        webviewRef.current!.injectJavaScript(
+          `window.__stopClipCapture && window.__stopClipCapture(${JSON.stringify(state.id)}); true;`
+        );
+      } catch (error) {
+        clearClipTimeout();
+        resetClipState();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
+  }, [clearClipTimeout, onError, resetClipState]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      startClipCapture,
+      stopClipCapture,
+      cancelClipCapture,
+    }),
+    [cancelClipCapture, startClipCapture, stopClipCapture],
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -97,16 +241,43 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
           return null;
         });
 
-        const cached = await getCachedMlpModel(profileId ?? undefined);
+        let cached = await getCachedMlpModel(profileId ?? undefined);
+        let cachedMeta = await getCachedMlpMeta(profileId ?? undefined);
+        let cachedSource: string = profileId ? 'profile-cache' : 'global-cache';
+
+        if (!cached && profileId) {
+          cached = await getCachedMlpModel();
+          cachedMeta = await getCachedMlpMeta();
+          cachedSource = 'global-cache';
+        }
+
         if (!cancelled && cached) {
-          pendingModelRef.current = cached;
-          injectModel(cached);
+          injectModel(cached, {
+            profileId: cachedSource === 'global-cache' ? 'global' : profileId,
+            version: cachedMeta?.version ?? null,
+            source: cachedSource ?? 'cache',
+            cached: true,
+          });
         }
 
         const latest = await fetchMlpModel(profileId ?? undefined);
-        if (!cancelled && latest && latest !== cached) {
-          pendingModelRef.current = latest;
-          injectModel(latest);
+        if (!cancelled && latest) {
+          let latestMeta = await getCachedMlpMeta(profileId ?? undefined);
+          let source: string = profileId ? 'profile' : 'global';
+          let contextProfileId: string | null | undefined = profileId ?? null;
+
+          if (!latestMeta && profileId) {
+            latestMeta = await getCachedMlpMeta();
+            source = 'global';
+            contextProfileId = 'global';
+          }
+
+          injectModel(latest, {
+            profileId: contextProfileId,
+            version: latestMeta?.version ?? null,
+            source,
+            cached: false,
+          });
         }
       } catch (err) {
         logger.warn('Failed to load or inject MLP model', err);
@@ -135,8 +306,9 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       } catch (err) {
         logger.warn('Failed to inject WebView cleanup script', err);
       }
+      cancelClipCapture();
     };
-  }, []);
+  }, [cancelClipCapture]);
 
   const inlineGestureDetectorSource = useMemo(
     () => `data:text/javascript;base64,${gestureDetectorBase64.replace(/\s+/g, '')}`,
@@ -286,6 +458,54 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
 
             onWebViewEvent(telemetry);
           }
+        } else if (data.type === 'FRAME_BATCH') {
+          if (onFrameBatch) {
+            const frames = Array.isArray(data.frames)
+              ? data.frames.filter((frame: unknown) => typeof frame === 'string')
+              : [];
+            const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][][]) : [];
+            const timestamps = Array.isArray(data.timestamps)
+              ? data.timestamps.filter((ts: unknown) => typeof ts === 'number')
+              : [];
+            const handednesses = Array.isArray(data.handednesses)
+              ? data.handednesses.map((entry: unknown) => {
+                  if (!Array.isArray(entry)) {
+                    return [] as string[];
+                  }
+                  return entry
+                    .filter((label: unknown): label is string => typeof label === 'string')
+                    .map((label) => label);
+                })
+              : [];
+            onFrameBatch({ frames, landmarks, handednesses, timestamps });
+          }
+        } else if (data.type === 'clip_ready') {
+          const clipId = typeof data.id === 'string' ? data.id : null;
+          if (!clipId || clipId !== clipStateRef.current.id) {
+            return;
+          }
+          const payload: ClipReadyPayload = {
+            id: clipId,
+            base64: typeof data.base64 === 'string' ? data.base64 : '',
+            mimeType: typeof data.mimeType === 'string' ? data.mimeType : 'video/mp4',
+            durationMs: typeof data.durationMs === 'number' ? data.durationMs : 0,
+            frameCount: typeof data.frameCount === 'number' ? data.frameCount : 0,
+            capturedAt:
+              typeof data.capturedAt === 'string' ? data.capturedAt : new Date().toISOString(),
+          };
+          clearClipTimeout();
+          clipStateRef.current.resolve?.(payload);
+          resetClipState();
+        } else if (data.type === 'clip_error') {
+          const errorId = typeof data.id === 'string' ? data.id : null;
+          if (errorId && errorId === clipStateRef.current.id) {
+            clearClipTimeout();
+            const reason = typeof data.reason === 'string' ? data.reason : 'clip_error';
+            clipStateRef.current.reject?.(new Error(reason));
+            resetClipState();
+          }
+          setWebviewError(CLIP_RECORDING_ERROR_TEXT);
+          onError('clip_error');
         } else if (data.type === 'telemetry') {
           onWebViewEvent?.(data);
           const eventName = data.event;
@@ -363,21 +583,25 @@ export const MediaPipeGestureDetector: React.FC<Props> = ({
       )}
     </View>
   );
-};
+});
 
-const createStyles =
-  typeof StyleSheet?.create === 'function'
-    ? StyleSheet.create.bind(StyleSheet)
-    : (<T,>(sheet: T) => sheet);
+function createStyles<T extends Record<string, any>>(sheet: T): T {
+  if (StyleSheet && typeof StyleSheet.create === 'function') {
+    return StyleSheet.create(sheet) as T;
+  }
+  return sheet;
+}
 
 const absoluteFill =
-  StyleSheet?.absoluteFillObject ?? {
-    position: 'absolute' as const,
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  };
+  StyleSheet && StyleSheet.absoluteFillObject
+    ? StyleSheet.absoluteFillObject
+    : {
+      position: 'absolute' as const,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    };
 
 const styles = createStyles({
   container: {
@@ -385,15 +609,15 @@ const styles = createStyles({
   },
   errorOverlay: {
     ...absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     backgroundColor: 'rgba(17, 24, 39, 0.75)',
     paddingHorizontal: 24,
   },
   errorText: {
     color: '#f9fafb',
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '600' as const,
+    textAlign: 'center' as const,
   },
 });

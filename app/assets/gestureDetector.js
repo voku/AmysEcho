@@ -1250,6 +1250,7 @@
     constructor(video2, resourceManager) {
       this.lastVideoWidth = 0;
       this.lastVideoHeight = 0;
+      this.stream = null;
       this.video = video2;
       this.resourceManager = resourceManager;
     }
@@ -1263,6 +1264,7 @@
           video: { facingMode: facingMode2, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         });
+        this.stream = stream;
         this.video.srcObject = stream;
         this.resourceManager.registerMediaStream(stream);
         this.video.muted = true;
@@ -1320,6 +1322,14 @@
           s.getTracks().forEach((t) => t.stop());
           this.video.srcObject = null;
         }
+        if (this.stream) {
+          try {
+            this.stream.getTracks().forEach((t) => t.stop());
+          } catch (err2) {
+            console.warn("Failed to stop stored stream:", err2);
+          }
+        }
+        this.stream = null;
       } catch (e) {
         console.warn("Failed to stop camera stream:", e);
       }
@@ -1345,6 +1355,9 @@
         width: this.video.videoWidth,
         height: this.video.videoHeight
       };
+    }
+    getStream() {
+      return this.stream;
     }
     /**
      * Check if video is ready for processing
@@ -2136,6 +2149,9 @@
       await this.resourceManager.dispose();
       setFrameCaptureEnabled(false);
       disposeFrameCapture();
+    }
+    getCameraStream() {
+      return this.cameraManager.getStream();
     }
     /**
      * Get current configuration
@@ -4211,6 +4227,8 @@
   // webview/core/GestureRecognitionOrchestrator.ts
   var FALLBACK_CONFIDENCE_THRESHOLD = typeof window.__fallbackThreshold === "number" ? window.__fallbackThreshold : 0.35;
   var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.05;
+  var FRAME_BATCH_INTERVAL_MS = 400;
+  var FRAME_BUFFER_LIMIT = 24;
   var GestureRecognitionOrchestrator = class {
     constructor(video2, overlay2, dependencies = {}) {
       this.video = video2;
@@ -4220,6 +4238,9 @@
       this.isRunning = false;
       this.frameSampleCounter = 0;
       this.lastLandmarkSendTime = 0;
+      this.frameBuffer = [];
+      this.frameBatchTimer = null;
+      this.clipCaptureState = null;
       this.performanceOptimizer = new PerformanceOptimizer();
       this.memoryOptimizer = MemoryOptimizer.getInstance();
       this.processingPipeline = new ProcessingPipeline();
@@ -4295,6 +4316,9 @@
      */
     async stop() {
       if (!this.isRunning) return;
+      this.cancelClipCapture();
+      this.flushFrameBatch(true);
+      this.frameBuffer = [];
       await this.gestureDetector?.stop();
       this.isRunning = false;
     }
@@ -4307,6 +4331,7 @@
           return;
         }
         const normalized = mapMediaPipeResult(results);
+        this.collectFrameForBatch(normalized);
         const context = {
           landmarks: normalized.landmarks,
           timestamp,
@@ -4367,6 +4392,276 @@
         console.error("Error handling gesture results:", error);
         this.errorRecoveryManager.recordFailure(error, "gesture_result_processing");
       }
+    }
+    collectFrameForBatch(normalized) {
+      try {
+        const frameDataUrl = captureFrameForOpenAI(this.video);
+        if (!frameDataUrl) {
+          return;
+        }
+        const entry = {
+          frame: frameDataUrl,
+          landmarks: normalized.landmarks,
+          handednesses: normalized.handednesses,
+          timestamp: Date.now()
+        };
+        this.frameBuffer.push(entry);
+        if (this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
+          this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
+        }
+        if (this.clipCaptureState) {
+          this.clipCaptureState.frameCount += 1;
+        }
+        if (this.frameBatchTimer === null) {
+          this.frameBatchTimer = window.setTimeout(() => this.flushFrameBatch(), FRAME_BATCH_INTERVAL_MS);
+        }
+      } catch (error) {
+        console.warn("Failed to collect frame batch:", error);
+      }
+    }
+    flushFrameBatch(sendFullBuffer = false) {
+      if (this.frameBatchTimer !== null) {
+        clearTimeout(this.frameBatchTimer);
+        this.frameBatchTimer = null;
+      }
+      if (this.frameBuffer.length === 0) {
+        return;
+      }
+      const entries = sendFullBuffer ? [...this.frameBuffer] : this.frameBuffer.slice(-Math.min(this.frameBuffer.length, 6));
+      try {
+        const payload = {
+          type: "FRAME_BATCH",
+          frames: entries.map((entry) => entry.frame),
+          landmarks: entries.map((entry) => entry.landmarks),
+          handednesses: entries.map((entry) => entry.handednesses),
+          timestamps: entries.map((entry) => entry.timestamp)
+        };
+        messageBatcher.queueMessage(payload, { flushImmediately: false });
+      } catch (error) {
+        console.warn("Failed to enqueue frame batch payload:", error);
+      }
+      if (!sendFullBuffer && this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
+        this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
+      }
+    }
+    startClipCapture(requestId) {
+      if (this.clipCaptureState) {
+        this.sendClipError(requestId, "capture_in_progress");
+        return;
+      }
+      if (typeof window.MediaRecorder === "undefined") {
+        this.sendClipError(requestId, "media_recorder_unavailable");
+        return;
+      }
+      const stream = this.gestureDetector?.getCameraStream();
+      if (!stream) {
+        this.sendClipError(requestId, "no_camera_stream");
+        return;
+      }
+      const mimeType = this.selectClipMimeType();
+      let recorder;
+      try {
+        recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch (error) {
+        this.sendClipError(requestId, "recorder_init_failed", error);
+        return;
+      }
+      const state = {
+        id: requestId,
+        recorder,
+        chunks: [],
+        startedAt: Date.now(),
+        mimeType: recorder.mimeType || mimeType || "video/mp4",
+        frameCount: 0,
+        timeoutHandle: null
+      };
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          state.chunks.push(event.data);
+        }
+      };
+      recorder.onerror = (event) => {
+        this.sendClipError(requestId, "recorder_error", event?.error);
+        this.resetClipCapture(true);
+      };
+      recorder.onstop = () => {
+        this.handleClipStop(state);
+      };
+      try {
+        recorder.start(500);
+      } catch (error) {
+        this.sendClipError(requestId, "recorder_start_failed", error);
+        this.resetClipCapture(true);
+        return;
+      }
+      state.timeoutHandle = window.setTimeout(() => {
+        this.sendClipError(requestId, "recorder_timeout");
+        this.resetClipCapture(true);
+      }, 15e3);
+      this.clipCaptureState = state;
+      this.sendClipTelemetry("clip_started", requestId, { mimeType: state.mimeType });
+    }
+    stopClipCapture(requestId) {
+      if (!this.clipCaptureState || this.clipCaptureState.id !== requestId) {
+        this.sendClipError(requestId, "unknown_capture_id");
+        return;
+      }
+      try {
+        if (this.clipCaptureState.recorder.state !== "inactive") {
+          this.clipCaptureState.recorder.stop();
+        }
+        this.sendClipTelemetry("clip_stop_requested", requestId, void 0);
+      } catch (error) {
+        this.sendClipError(requestId, "recorder_stop_failed", error);
+        this.resetClipCapture(true);
+      }
+    }
+    cancelClipCapture() {
+      if (!this.clipCaptureState) {
+        return;
+      }
+      try {
+        if (this.clipCaptureState.recorder.state !== "inactive") {
+          this.clipCaptureState.recorder.stop();
+        }
+      } catch (error) {
+        console.warn("Failed to cancel clip capture:", error);
+      }
+      this.resetClipCapture(true);
+    }
+    resetClipCapture(stopRecorder) {
+      if (!this.clipCaptureState) {
+        return;
+      }
+      const state = this.clipCaptureState;
+      if (state.timeoutHandle) {
+        clearTimeout(state.timeoutHandle);
+      }
+      if (stopRecorder) {
+        try {
+          if (state.recorder.state !== "inactive") {
+            state.recorder.stop();
+          }
+        } catch (error) {
+          console.warn("Failed to stop recorder during reset:", error);
+        }
+      }
+      this.clipCaptureState = null;
+    }
+    handleClipStop(state) {
+      if (state.timeoutHandle) {
+        clearTimeout(state.timeoutHandle);
+      }
+      const blob = new Blob(state.chunks, { type: state.mimeType || "video/mp4" });
+      if (blob.size === 0) {
+        this.sendClipError(state.id, "empty_clip_blob");
+        this.resetClipCapture(false);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        try {
+          const result = reader.result;
+          if (!result) {
+            throw new Error("clip_read_failed");
+          }
+          const base64 = result.includes(",") ? result.split(",")[1] ?? "" : result;
+          const durationMs = Math.max(0, Date.now() - state.startedAt);
+          this.postClipReady({
+            id: state.id,
+            base64,
+            mimeType: state.mimeType || "video/mp4",
+            durationMs,
+            frameCount: state.frameCount,
+            capturedAt: new Date(state.startedAt).toISOString()
+          });
+        } catch (error) {
+          this.sendClipError(state.id, "clip_read_failed", error);
+        } finally {
+          this.resetClipCapture(false);
+        }
+      };
+      reader.onerror = () => {
+        this.sendClipError(state.id, "clip_read_failed", reader.error);
+        this.resetClipCapture(false);
+      };
+      try {
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        this.sendClipError(state.id, "clip_read_failed", error);
+        this.resetClipCapture(false);
+      }
+    }
+    postClipReady(payload) {
+      try {
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "clip_ready", ...payload }));
+        this.flushFrameBatch(true);
+        this.sendClipTelemetry("clip_ready", payload.id, {
+          durationMs: payload.durationMs,
+          frameCount: payload.frameCount,
+          mimeType: payload.mimeType
+        });
+      } catch (error) {
+        console.warn("Failed to post clip_ready message:", error);
+      }
+    }
+    sendClipError(requestId, reason, details) {
+      try {
+        const payload = {
+          type: "clip_error",
+          id: requestId,
+          reason,
+          details: this.serializeError(details)
+        };
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
+        this.sendClipTelemetry("clip_error", requestId, { reason, details: this.serializeError(details) });
+      } catch (error) {
+        console.warn("Failed to post clip_error message:", error);
+      }
+    }
+    sendClipTelemetry(event, requestId, data) {
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "telemetry",
+            event,
+            requestId,
+            data,
+            timestamp: Date.now()
+          })
+        );
+      } catch (error) {
+        console.warn("Failed to send clip telemetry:", error);
+      }
+    }
+    selectClipMimeType() {
+      if (typeof window.MediaRecorder === "undefined" || typeof window.MediaRecorder.isTypeSupported !== "function") {
+        return void 0;
+      }
+      const candidates = [
+        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+        "video/mp4",
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm"
+      ];
+      return candidates.find((candidate) => window.MediaRecorder.isTypeSupported(candidate));
+    }
+    serializeError(details) {
+      if (!details) {
+        return void 0;
+      }
+      if (details instanceof Error) {
+        return { message: details.message, name: details.name };
+      }
+      if (typeof details === "object") {
+        try {
+          return JSON.parse(JSON.stringify(details));
+        } catch {
+          return String(details);
+        }
+      }
+      return details;
     }
     /**
      * Determine if expensive processing steps should be skipped
@@ -4930,6 +5225,7 @@
     container.appendChild(overlay);
     document.body.appendChild(container);
     orchestrator = new GestureRecognitionOrchestrator(video, overlay);
+    window.__gestureOrchestrator = orchestrator;
     orchestrator.initialize().catch((error) => {
       console.error("Failed to initialize gesture recognition:", error);
       window.ReactNativeWebView?.postMessage?.(
@@ -4994,7 +5290,14 @@
   };
   document.addEventListener("visibilitychange", onVisibilityChange);
   async function cleanup() {
+    try {
+      orchestrator?.cancelClipCapture();
+    } catch (err2) {
+      console.warn("Failed to cancel clip capture during cleanup:", err2);
+    }
     await orchestrator?.cleanup();
+    orchestrator = null;
+    window.__gestureOrchestrator = null;
     try {
       const tapEl = document.getElementById("tapToStart");
       if (tapEl) tapEl.remove();
@@ -5022,6 +5325,46 @@
     );
   }
   window.__cleanupGestureDetector = cleanup;
+  window.__startClipCapture = (id) => {
+    try {
+      if (!orchestrator) {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "clip_error", id, reason: "orchestrator_unavailable" })
+        );
+        return;
+      }
+      orchestrator.startClipCapture(id);
+    } catch (error) {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "clip_error",
+          id,
+          reason: "start_clip_failed",
+          details: error instanceof Error ? error.message : String(error)
+        })
+      );
+    }
+  };
+  window.__stopClipCapture = (id) => {
+    try {
+      if (!orchestrator) {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "clip_error", id, reason: "orchestrator_unavailable" })
+        );
+        return;
+      }
+      orchestrator.stopClipCapture(id);
+    } catch (error) {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "clip_error",
+          id,
+          reason: "stop_clip_failed",
+          details: error instanceof Error ? error.message : String(error)
+        })
+      );
+    }
+  };
   window.__getGestureSystemStatus = () => {
     return orchestrator?.getStatus() || { error: "Orchestrator not initialized" };
   };

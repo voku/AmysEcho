@@ -8,7 +8,11 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: async () => {},
 }));
 
-import { saveTrainingSample, loadTrainingSampleCount, TrainingFrame } from '../src/storage';
+jest.mock('../src/services/trainingBundleQueue', () => ({
+  enqueueTrainingBundle: jest.fn(async () => 'bundle-key'),
+}));
+
+import { saveTrainingSample, loadTrainingSampleCount, TrainingFrame, createTrainingSample } from '../src/storage';
 
 describe('training sample persistence', () => {
   beforeEach(() => {
@@ -17,8 +21,20 @@ describe('training sample persistence', () => {
 
   it('saves samples and counts them', async () => {
     const frame: TrainingFrame = { landmarks: [[[1, 2, 3]]], handedness: ['Left'] } as any;
-    await saveTrainingSample('g1', [frame]);
-    await saveTrainingSample('g1', [frame]);
+    const sampleA = createTrainingSample({
+      profileId: 'default',
+      label: 'g1',
+      frames: [frame],
+      clipUri: 'file://clip.mp4',
+    });
+    const sampleB = createTrainingSample({
+      profileId: 'default',
+      label: 'g1',
+      frames: [frame],
+      clipUri: 'file://clip.mp4',
+    });
+    await saveTrainingSample(sampleA);
+    await saveTrainingSample(sampleB);
     const count = await loadTrainingSampleCount('g1');
     expect(count).toBe(2);
   });

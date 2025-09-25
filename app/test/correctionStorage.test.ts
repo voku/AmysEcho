@@ -25,7 +25,7 @@ describe('logCorrection', () => {
     expect(trainingRaw).toBeTruthy();
     const training = JSON.parse(trainingRaw as string);
     expect(training).toHaveLength(1);
-    expect(training[0].gestureDefinitionId).toBe('gesture1');
+    expect(training[0].label).toBe('gesture1');
     expect(training[0].source).toBe('HIP_3');
 
     const logsKey = 'interactionLogs_default';

@@ -25,6 +25,9 @@ import {
   PROFILE_ID_PATTERN,
   SERVER_DIR,
   BASELINE_MLP_MODEL_PATH,
+  TRAINING_MANIFEST_PATH,
+  MLP_MODELS_DIR,
+  TRAINED_MLP_GLOBAL_DIR,
 } from './constants/modelPaths.js';
 import { DB_FILE_PATH } from './constants/dbPaths.js';
 import {
@@ -326,6 +329,8 @@ interface TrainingJob {
   startedAt?: number;
   endedAt?: number;
   metrics?: Record<string, unknown>;
+  report?: Record<string, unknown>;
+  message?: string;
 }
 const trainingJobs = new Map<string, TrainingJob>();
 
@@ -835,7 +840,7 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
         message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1]',
       }),
   });
-  const BodySchema = z.object({ samples: z.array(SampleSchema).min(1) });
+  const BodySchema = z.object({ samples: z.array(SampleSchema) });
   const parsed = BodySchema.safeParse(req.body);
   if (!parsed.success) {
     return res
@@ -959,22 +964,64 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
       await logTraining(`job ${id}: minimal MLP failed ${String(e)}`);
     }
 
-    // Fire-and-forget full training script for richer models
+    // Run full training script synchronously so we can surface its report
     const scriptPath = config.mlpScript;
     const serverRoot = SERVER_DIR;
-    const proc = spawn('python3', [path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath)], {
-      cwd: serverRoot,
+    const scriptArgs = [
+      path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath),
+      '--manifest',
+      TRAINING_MANIFEST_PATH,
+      '--data-dir',
+      DATA_DIR,
+    ];
+
+    const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      const proc = spawn('python3', scriptArgs, {
+        cwd: serverRoot,
+      });
+      let stdout = '';
+      let stderr = '';
+      proc.stdout?.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+      proc.stderr?.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+      proc.on('error', reject);
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve({ stdout, stderr });
+        } else {
+          reject(new Error(stderr || `train_mlp exited with code ${code}`));
+        }
+      });
     });
-    proc.stdout?.on('data', () => {});
-    proc.stderr?.on('data', () => {});
-    proc.on('error', (err) => {
-      console.warn('MLP training script failed (background):', err.message);
-    });
+
+    if (runReport.stderr.trim().length > 0) {
+      await logTraining(`job ${id}: train_mlp stderr ${runReport.stderr.trim()}`);
+    }
+
+    let parsedReport: Record<string, unknown> = {};
+    const stdoutText = runReport.stdout.trim();
+    if (stdoutText.length > 0) {
+      try {
+        // In case of stray newlines pick the last JSON object
+        const lines = stdoutText.split(/\r?\n/).filter(Boolean);
+        parsedReport = JSON.parse(lines[lines.length - 1]);
+      } catch (err) {
+        await logTraining(`job ${id}: failed to parse training report (${String(err)})`);
+      }
+    }
 
     job.progress = 100;
     job.status = 'completed';
     job.endedAt = Date.now();
-    job.metrics = { accuracy: 0.95, loss: 0.1 };
+    job.metrics = {
+      accuracy: (parsedReport as any)?.global?.accuracy ?? 0,
+      samples: (parsedReport as any)?.global?.samples ?? 0,
+    };
+    job.report = parsedReport;
+    job.message = 'Dein Modell ist jetzt aktualisiert';
     await logTraining(`job ${id}: completed synchronously`);
   } catch (e: unknown) {
     job.status = 'failed';
@@ -982,27 +1029,34 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
     job.endedAt = Date.now();
     await logTraining(`job ${id}: failed ${String(job.error)}`);
   }
+  trainingJobs.set(id, job);
 
-  res.status(202).json({ status: job.status, jobId: id });
+  if (job.status === 'failed') {
+    return res.status(500).json({ status: job.status, jobId: id, error: job.error });
+  }
+
+  res.status(200).json({
+    status: job.status,
+    jobId: id,
+    report: job.report ?? {},
+    message: job.message ?? 'Dein Modell ist jetzt aktualisiert',
+    metrics: job.metrics ?? {},
+  });
 });
 
 // Query training job status (explicit id)
 app.get('/train-status/:id', legacyAuth, (req: Request, res: Response) => {
   const id = req.params.id;
   const job = trainingJobs.get(id);
-  // If job is missing or not yet completed, return a completed status to unblock clients/tests
   if (!job) {
-    return res.json({ id, status: 'completed', progress: 100, endedAt: Date.now() });
-  }
-  if (job.status !== 'completed') {
-    return res.json({ ...job, status: 'completed', progress: 100, endedAt: Date.now() });
+    return res.status(404).json({ id, status: 'not_found' });
   }
   res.json(job);
 });
 
 // Gracefully handle accidental empty-id requests
 app.get('/train-status', legacyAuth, (_req: Request, res: Response) => {
-  res.json({ status: 'completed', progress: 100, endedAt: Date.now() });
+  res.json({ status: 'unknown' });
 });
 
 // Query video training job status
@@ -1137,9 +1191,18 @@ async function sendBinaryModel(res: Response, filePath: string, downloadName: st
     // Range support
     const range = (res.req.headers['range'] as string | undefined) || undefined;
     res.setHeader('Accept-Ranges', 'bytes');
-    const baseName = path.basename(filePath, path.extname(filePath));
-    const isProfileSpecific =
-      baseName.startsWith('dgs_model_') || baseName.startsWith('centroid_model_');
+    const baseName = path.basename(filePath);
+    let isProfileSpecific = baseName.startsWith('centroid_model_');
+    if (!isProfileSpecific) {
+      const modelsDirResolved = path.resolve(MLP_MODELS_DIR);
+      if (filePath.startsWith(modelsDirResolved)) {
+        const relDir = path.relative(modelsDirResolved, path.dirname(filePath));
+        const firstSegment = relDir.split(path.sep)[0];
+        if (firstSegment && firstSegment !== 'global' && firstSegment !== '.') {
+          isProfileSpecific = true;
+        }
+      }
+    }
     if (isProfileSpecific) {
       res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     } else {

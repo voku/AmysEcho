@@ -83,35 +83,22 @@ def test_train_endpoint(tmp_path):
         }
         req = urllib.request.Request(url, data=data, headers=headers)
         with urllib.request.urlopen(req) as resp:
-            assert resp.getcode() == 202
+            assert resp.getcode() == 200
             resp_data = json.loads(resp.read().decode())
             job_id = resp_data["jobId"]
+            report = resp_data.get("report", {})
+            assert report.get("global", {}).get("samples", 0) >= 1
 
-        # poll for completion
         status_url = f"http://localhost:{PORT}/train-status/{job_id}"
-        start = time.time()
-        while True:
-            status_req = urllib.request.Request(
-                status_url, headers={"Authorization": "Bearer testtoken"}
-            )
-            with urllib.request.urlopen(status_req) as sresp:
-                info = json.loads(sresp.read().decode())
-            if info["status"] == "completed":
-                break
-            if time.time() - start > 30:
-                raise RuntimeError("training did not complete")
-            time.sleep(0.2)
-        # Wait a bit for training to complete
-        time.sleep(5)
-
-        # metrics should be present after completion
         status_req = urllib.request.Request(
             status_url, headers={"Authorization": "Bearer testtoken"}
         )
         with urllib.request.urlopen(status_req) as sresp:
             final_info = json.loads(sresp.read().decode())
+        assert final_info.get("status") == "completed"
         assert "metrics" in final_info
         assert "accuracy" in final_info["metrics"]
+        assert final_info.get("report", {}).get("global")
 
         # ensure centroid model downloadable
         model_req = urllib.request.Request(
@@ -127,8 +114,8 @@ def test_train_endpoint(tmp_path):
             assert data.get("counts", {}).get("g1") == 1
 
         # verify MLP model files created
-        npz = SERVER_DIR / "data" / "amy_model.npz"
-        prof_npz = SERVER_DIR / "data" / "dgs_model_p1.npz"
+        npz = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
+        prof_npz = SERVER_DIR / "data" / "models" / "p1" / "amy_model.npz"
         assert npz.exists()
         assert prof_npz.exists()
         with np.load(npz) as model:

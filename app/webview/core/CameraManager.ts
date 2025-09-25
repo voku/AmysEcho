@@ -10,6 +10,7 @@ export class CameraManager {
   private resourceManager: ResourceManager;
   private lastVideoWidth = 0;
   private lastVideoHeight = 0;
+  private stream: MediaStream | null = null;
 
   constructor(video: HTMLVideoElement, resourceManager: ResourceManager) {
     this.video = video;
@@ -28,6 +29,7 @@ export class CameraManager {
         audio: false,
       });
 
+      this.stream = stream;
       this.video.srcObject = stream;
       this.resourceManager.registerMediaStream(stream);
 
@@ -99,6 +101,14 @@ export class CameraManager {
         s.getTracks().forEach((t) => t.stop());
         this.video.srcObject = null;
       }
+      if (this.stream) {
+        try {
+          this.stream.getTracks().forEach((t) => t.stop());
+        } catch (err) {
+          console.warn('Failed to stop stored stream:', err);
+        }
+      }
+      this.stream = null;
     } catch (e) {
       console.warn('Failed to stop camera stream:', e);
     }
@@ -130,6 +140,10 @@ export class CameraManager {
       width: this.video.videoWidth,
       height: this.video.videoHeight
     };
+  }
+
+  getStream(): MediaStream | null {
+    return this.stream;
   }
 
   /**

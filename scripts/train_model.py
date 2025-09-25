@@ -249,15 +249,44 @@ def augment_sample(sample: Dict[str, Any], num_augmentations: int = 3) -> List[D
     return augmented
 
 def prepare_data(
-    landmarks_file: str, augmentation_factor: int, test_split: float
+    manifest_file: str, augmentation_factor: int, test_split: float, profile_id_filter: Optional[str] = None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, int]]:
-    """Load, augment, and split data for training and testing."""
-    with open(landmarks_file, "r") as f:
-        data = json.load(f)
+    """
+    Load, augment, and split data for training and testing.
+    If profile_id_filter is provided, only data for that profile will be loaded.
+    """
+    with open(manifest_file, "r") as f:
+        manifest = json.load(f)
 
-    samples = data.get("samples", [])
+    samples = []
+    data_dir = Path(manifest_file).resolve().parent.parent
+
+    for entry in manifest.get("entries", []):
+        profile_id = entry.get("profileId")
+        if profile_id_filter and profile_id != profile_id_filter:
+            continue
+
+        lm_file = next((f for f in entry["storage"]["files"] if f.endswith("landmarks.json")), None)
+        if not lm_file:
+            continue
+        
+        landmarks_path = data_dir / entry["storage"]["directory"] / lm_file
+        
+        if not landmarks_path.exists():
+            print(f"Warning: landmarks.json not found at {landmarks_path}", file=sys.stderr)
+            continue
+            
+        with open(landmarks_path, "r") as f:
+            landmark_data = json.load(f)
+        
+        label = entry.get("label")
+
+        for frame in landmark_data.get("frames", []):
+            sample = {"label": label, "landmarks": frame["landmarks"]}
+            samples.append(sample)
+
     if not samples:
-        raise ValueError("No samples found in the landmarks file.")
+        raise ValueError(f"No samples found in the manifest for profile '{profile_id_filter or 'all'}'.")
 
     # Augment data
     if augmentation_factor > 1:
@@ -320,6 +349,14 @@ def prepare_data(
     return X_train, y_train, X_test, y_test, label_to_idx
 
 
+def train_and_evaluate_model(X_train, y_train, X_test, y_test, label_to_idx, args):
+    mlp = MLP(X_train.shape[1], args.hidden_size, len(label_to_idx), args.hidden_size_2)
+    mlp.train(X_train, y_train, args.epochs, args.learning_rate)
+    train_acc = evaluate_model(mlp, X_train, y_train)
+    test_acc = evaluate_model(mlp, X_test, y_test)
+    return mlp, train_acc, test_acc
+
+
 def deploy_model(model_path: str, app_assets_dir: str) -> bool:
     """Deploy the trained model to the app"""
     print("Deploying model to app...")
@@ -352,7 +389,7 @@ def evaluate_model(mlp, X, y):
 
 def main():
     parser = argparse.ArgumentParser(description="Train gesture recognition model for Amy's Echo")
-    parser.add_argument('--videos-dir', required=True, help='Directory containing gesture videos')
+    parser.add_argument('--manifest', default='server/data/datasets/training_manifest.json', help='Path to the training manifest file')
     parser.add_argument('--output-model', default='data/amy_model.npz', help='Output model path')
     parser.add_argument('--epochs', type=int, default=500, help='Training epochs')
     parser.add_argument('--hidden-size', type=int, default=128, help='Hidden layer size')
@@ -370,39 +407,24 @@ def main():
 
     landmarks_file = "data/temp_landmarks.json"
     try:
-        # Step 1: Extract landmarks
-        print("📹 Step 1: Extracting landmarks from videos...")
-        if not extract_landmarks_from_videos(args.videos_dir, landmarks_file, args.max_frames, args.frame_skip):
-            sys.exit(1)
-
-        # Step 2: Prepare data
-        print("🔄 Step 2: Preparing and splitting data...")
+        # Global model
+        print("--- Training global model ---")
         X_train, y_train, X_test, y_test, label_to_idx = prepare_data(
-            landmarks_file, args.augmentation_factor, args.test_split
+            args.manifest, args.augmentation_factor, args.test_split
         )
+        mlp, train_acc, test_acc = train_and_evaluate_model(X_train, y_train, X_test, y_test, label_to_idx, args)
         
-        print(f"Data prepared:")
-        print(f"  - Training samples: {X_train.shape[0]}")
-        print(f"  - Testing samples: {X_test.shape[0]}")
-        print(f"  - Number of classes: {len(label_to_idx)}")
-
-
-        # Step 3: Train model
-        print("🧠 Step 3: Training neural network...")
-        mlp = MLP(X_train.shape[1], args.hidden_size, len(label_to_idx), args.hidden_size_2)
-        mlp.train(X_train, y_train, args.epochs, args.learning_rate)
-
-        # Step 4: Evaluate model
-        print("📊 Step 4: Evaluating model...")
-        train_acc = evaluate_model(mlp, X_train, y_train)
-        test_acc = evaluate_model(mlp, X_test, y_test)
+        report = {
+            "global": {
+                "train_accuracy": train_acc,
+                "test_accuracy": test_acc,
+                "samples": len(X_train) + len(X_test),
+                "labels": list(label_to_idx.keys()),
+            },
+            "profiles": {}
+        }
         
-        print(f"Evaluation results:")
-        print(f"  - Training Accuracy: {train_acc:.4f}")
-        print(f"  - Testing Accuracy: {test_acc:.4f}")
-
-        # Step 5: Save model
-        print("💾 Step 5: Saving model...")
+        print("💾 Saving global model...")
         labels = sorted(label_to_idx.keys())
         os.makedirs(os.path.dirname(args.output_model), exist_ok=True)
         with open(args.output_model, "wb") as f:
@@ -412,6 +434,40 @@ def main():
                 np.savez(f, w1=np.array(mlp.w1.T, order='C'), b1=mlp.b1, w2=np.array(mlp.w2.T, order='C'), b2=mlp.b2, labels=np.array(labels))
         print(f"Model saved to {args.output_model}")
 
+        # Per-profile models
+        with open(args.manifest, "r") as f:
+            manifest = json.load(f)
+        profile_ids = set(entry.get("profileId") for entry in manifest.get("entries", []) if entry.get("profileId"))
+
+        for profile_id in profile_ids:
+            print(f"--- Training model for profile: {profile_id} ---")
+            try:
+                p_X_train, p_y_train, p_X_test, p_y_test, p_label_to_idx = prepare_data(
+                    args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=profile_id
+                )
+                p_mlp, p_train_acc, p_test_acc = train_and_evaluate_model(p_X_train, p_y_train, p_X_test, p_y_test, p_label_to_idx, args)
+                
+                profile_model_path = f"server/data/models/{profile_id}/amy_model.npz"
+                os.makedirs(os.path.dirname(profile_model_path), exist_ok=True)
+                
+                print(f"💾 Saving model for profile: {profile_id}...")
+                p_labels = sorted(p_label_to_idx.keys())
+                with open(profile_model_path, "wb") as f:
+                    if args.hidden_size_2 > 0:
+                        np.savez(f, w1=np.array(p_mlp.w1.T, order='C'), b1=p_mlp.b1, w2=np.array(p_mlp.w2.T, order='C'), b2=p_mlp.b2, w3=np.array(p_mlp.w3.T, order='C'), b3=p_mlp.b3, labels=np.array(p_labels))
+                    else:
+                        np.savez(f, w1=np.array(p_mlp.w1.T, order='C'), b1=p_mlp.b1, w2=np.array(p_mlp.w2.T, order='C'), b2=p_mlp.b2, labels=np.array(p_labels))
+                print(f"Model saved to {profile_model_path}")
+
+                report["profiles"][profile_id] = {
+                    "train_accuracy": p_train_acc,
+                    "test_accuracy": p_test_acc,
+                    "samples": len(p_X_train) + len(p_X_test),
+                    "labels": list(p_label_to_idx.keys()),
+                }
+            except ValueError as e:
+                print(f"Skipping profile {profile_id}: {e}")
+
         # Step 6: Deploy model
         if not args.skip_deploy:
             print("📦 Step 6: Deploying model to app...")
@@ -420,6 +476,9 @@ def main():
                 print("✅ Model deployed to app!")
             else:
                 sys.exit(1)
+        
+        print("--- Training Report ---")
+        print(json.dumps(report, indent=2))
 
     finally:
         # Clean up temporary files

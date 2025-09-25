@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
 import * as FileSystem from 'expo-file-system/legacy';
+import { logger } from '../utils/logger';
 
 const getApiUrl = () => process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 const getApiToken = () => process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
@@ -81,50 +82,109 @@ export async function getCachedCentroids(profileId?: string): Promise<{ centroid
 type MlpMeta = { etag?: string; checksum?: string; version?: string };
 
 export async function fetchMlpModel(profileId?: string): Promise<string | null> {
+  const storage = await getStorage();
+  const cacheKey = `${MLP_KEY}:${profileId || 'global'}`;
+  const metaKey = `${MLP_META_KEY}:${profileId || 'global'}`;
+  const prevMetaRaw = await storage.getItem(metaKey);
+  let prevMeta: MlpMeta | null = null;
   try {
-    const url = new URL('/api/v1/dgs/mlp-model', getApiUrl());
-    if (profileId) url.searchParams.set('profileId', profileId);
-    const headers: Record<string, string> = { Authorization: `Bearer ${getApiToken()}` };
-    if (profileId) headers['X-Profile-Id'] = profileId;
-    // Conditional request using cached ETag
-    const storage = await getStorage();
-    const prevMetaRaw = await storage.getItem(`${MLP_META_KEY}:${profileId || 'global'}`);
-    let prevMeta: MlpMeta | null = null;
-    try { prevMeta = prevMetaRaw ? JSON.parse(prevMetaRaw) : null; } catch {}
-    if (prevMeta?.etag) headers['If-None-Match'] = prevMeta.etag;
-
-    const resp = await fetch(url.toString(), { headers });
-    if (resp.status === 304) {
-      // Not modified, keep cached model
-      return storage.getItem(`${MLP_KEY}:${profileId || 'global'}`);
-    }
-    if (!resp.ok) {
-      // API failed, try local fallback
-      console.log('API failed, trying local MLP model');
-      return await loadLocalMlpModel();
-    }
-    const buf = Buffer.from(await resp.arrayBuffer());
-    const b64 = buf.toString('base64');
-    await storage.setItem(`${MLP_KEY}:${profileId || 'global'}`, b64);
-    const meta: MlpMeta = {
-      etag: resp.headers.get('ETag') || undefined,
-      checksum: resp.headers.get('X-Checksum-SHA256') || undefined,
-      version: resp.headers.get('X-Model-Version') || undefined,
-    };
-    await storage.setItem(`${MLP_META_KEY}:${profileId || 'global'}`, JSON.stringify(meta));
-    emitMlpModelUpdated();
-    return b64;
-  } catch (error) {
-    console.error('Failed to fetch MLP model:', error);
-    // Try local fallback on network errors
-    console.log('Network error, trying local MLP model');
-    return await loadLocalMlpModel();
+    prevMeta = prevMetaRaw ? JSON.parse(prevMetaRaw) : null;
+  } catch {
+    prevMeta = null;
   }
+
+  const url = new URL('/api/v1/dgs/mlp-model', getApiUrl());
+  if (profileId) url.searchParams.set('profileId', profileId);
+  const headers: Record<string, string> = { Authorization: `Bearer ${getApiToken()}` };
+  if (profileId) headers['X-Profile-Id'] = profileId;
+  if (prevMeta?.etag) headers['If-None-Match'] = prevMeta.etag;
+
+  let resp: Response;
+  try {
+    resp = await fetch(url.toString(), { headers });
+  } catch (error) {
+    logger.error('Failed to reach MLP model API, using local fallback', {
+      profileId: profileId ?? 'global',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    const local = await loadLocalMlpModel();
+    if (local) {
+      logger.info('Loaded local fallback MLP model');
+    }
+    return local;
+  }
+
+  if (resp.status === 304) {
+    const cached = await storage.getItem(cacheKey);
+    if (cached) {
+      logger.info('Using cached MLP model', {
+        profileId: profileId ?? 'global',
+        version: prevMeta?.version ?? null,
+        source: profileId ? 'profile' : 'global',
+      });
+      return cached;
+    }
+    logger.warn('Received 304 for MLP model but cache was empty, refetching', {
+      profileId: profileId ?? 'global',
+    });
+    await storage.setItem(metaKey, JSON.stringify({}));
+    return fetchMlpModel(profileId);
+  }
+
+  if (!resp.ok) {
+    if (profileId) {
+      logger.warn('Personalized MLP unavailable, falling back to global model', {
+        profileId,
+        status: resp.status,
+      });
+      return fetchMlpModel();
+    }
+    logger.warn('Global MLP fetch failed, attempting local fallback', {
+      status: resp.status,
+    });
+    const local = await loadLocalMlpModel();
+    if (local) {
+      logger.info('Loaded local fallback MLP model');
+    }
+    return local;
+  }
+
+  const buf = Buffer.from(await resp.arrayBuffer());
+  const b64 = buf.toString('base64');
+  const meta: MlpMeta = {
+    etag: resp.headers.get('ETag') || undefined,
+    checksum: resp.headers.get('X-Checksum-SHA256') || undefined,
+    version: resp.headers.get('X-Model-Version') || undefined,
+  };
+
+  await storage.setItem(cacheKey, b64);
+  await storage.setItem(metaKey, JSON.stringify(meta));
+  emitMlpModelUpdated();
+
+  logger.info('Fetched MLP model', {
+    profileId: profileId ?? 'global',
+    version: meta.version ?? null,
+    source: profileId ? 'profile' : 'global',
+    status: resp.status,
+  });
+
+  return b64;
 }
 
 export async function getCachedMlpModel(profileId?: string): Promise<string | null> {
   const storage = await getStorage();
   return storage.getItem(`${MLP_KEY}:${profileId || 'global'}`);
+}
+
+export async function getCachedMlpMeta(profileId?: string): Promise<MlpMeta | null> {
+  const storage = await getStorage();
+  const raw = await storage.getItem(`${MLP_META_KEY}:${profileId || 'global'}`);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as MlpMeta;
+  } catch {
+    return null;
+  }
 }
 
 /**
