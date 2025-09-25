@@ -52,25 +52,31 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     manifestPath = path.join(dataDir, 'datasets', 'training_manifest.json');
   });
 
+  beforeEach(async () => {
+    await fs.rm(dataDir, { recursive: true, force: true });
+    await fs.mkdir(dataDir, { recursive: true });
+  });
+
   afterAll(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     delete process.env.AMY_ECHO_DATA_DIR;
     delete process.env.API_TOKEN;
   });
 
-  it('stores manifest entry for zipped training bundle', async () => {
+  it('stores manifest entry for zipped training bundle and strips unknown metadata fields', async () => {
     const metadata = {
       profileId: 'p-test-123',
       label: 'HILFE',
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
+      extra: 'ignored',
     };
     const landmarks = await loadSampleLandmarks();
 
     const zip = new AdmZip();
-    zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
-    zip.addFile('landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
-    zip.addFile('clip.mp4', Buffer.from('fake-video-data'));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
+    zip.addFile('bundle/clip.mp4', Buffer.from('fake-video-data'));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
@@ -100,21 +106,56 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(entry.profileId).toBe(metadata.profileId);
     expect(entry.label).toBe(metadata.label);
     expect(entry.storage.files).toEqual(
-      expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.mp4']),
+      expect.arrayContaining(['bundle/metadata.json', 'bundle/landmarks.json', 'bundle/clip.mp4']),
     );
-    expect(entry.metadata).toMatchObject(metadata);
+    expect(entry.metadata).toEqual({
+      label: metadata.label,
+      profileId: metadata.profileId,
+      capturedAt: metadata.capturedAt,
+      source: metadata.source,
+    });
 
     const storedDir = path.join(dataDir, entry.storage.directory);
-    const storedMetadataRaw = await fs.readFile(path.join(storedDir, 'metadata.json'), 'utf8');
+    const storedMetadataRaw = await fs.readFile(path.join(storedDir, 'bundle', 'metadata.json'), 'utf8');
     const storedMetadata = JSON.parse(storedMetadataRaw);
     expect(storedMetadata).toMatchObject(metadata);
 
-    const storedLandmarksRaw = await fs.readFile(path.join(storedDir, 'landmarks.json'), 'utf8');
+    const storedLandmarksRaw = await fs.readFile(path.join(storedDir, 'bundle', 'landmarks.json'), 'utf8');
     const storedLandmarks = JSON.parse(storedLandmarksRaw);
     expect(storedLandmarks.landmarks[0]).toEqual(landmarks[0]);
 
     const bundleZipPath = path.join(dataDir, entry.storage.bundle);
     const bundleStat = await fs.stat(bundleZipPath);
     expect(bundleStat.isFile()).toBe(true);
+  });
+
+  it('rejects unauthenticated upload', async () => {
+    const zip = new AdmZip();
+    zip.addFile('metadata.json', Buffer.from(JSON.stringify({ label: 'HILFE' })));
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(401);
+    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('rejects bundles containing traversal entries', async () => {
+    const zip = new AdmZip();
+    zip.addFile('../metadata.json', Buffer.from(JSON.stringify({ label: 'BAD' })));
+    zip.addFile('../clip.mp4', Buffer.from('bad'));
+    const entries = zip.getEntries();
+    if (entries[0]) entries[0].entryName = '../metadata.json';
+    if (entries[1]) entries[1].entryName = '../clip.mp4';
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', 'Bearer bundle-token')
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(400);
+    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });

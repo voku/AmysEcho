@@ -2,7 +2,9 @@ import express, { Request, Response } from 'express';
 import type { Express } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
-import AdmZip, { IZipEntry } from 'adm-zip';
+import AdmZip from 'adm-zip';
+import type { IZipEntry } from 'adm-zip';
+import { z } from 'zod';
 
 import { atomicWriteJson, atomicWriteBuffer } from '../utils/atomicFs.js';
 import {
@@ -16,6 +18,13 @@ import {
 import { legacyAuth } from '../middleware/auth.js';
 import { withFileLock } from '../utils/fileLock.js';
 
+interface TrainingBundleMetadata {
+  label: string;
+  profileId: string | null;
+  capturedAt: string | null;
+  source: string | null;
+}
+
 interface TrainingBundleManifestEntry {
   id: string;
   profileId: string | null;
@@ -27,7 +36,7 @@ interface TrainingBundleManifestEntry {
     bundle: string;
     files: string[];
   };
-  metadata: unknown;
+  metadata: TrainingBundleMetadata;
   receivedAt: string;
 }
 
@@ -35,10 +44,47 @@ interface TrainingBundleManifestFile {
   entries: TrainingBundleManifestEntry[];
 }
 
-const trainingBundleUpload = express.raw({ type: 'application/zip', limit: '64mb' });
+const trainingBundleUpload = express.raw({
+  type: ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
+  limit: '64mb',
+});
+
+const MetadataSchema = z
+  .object({
+    label: z.string().min(1),
+    profileId: z.string().optional(),
+    capturedAt: z.string().optional(),
+    source: z.string().optional(),
+  })
+  .passthrough();
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
+}
+
+function sanitizeEntryName(entryName: string): string {
+  const normalized = path.posix.normalize(entryName.replace(/\\/g, '/')).replace(/^\//, '');
+  if (!normalized || normalized === '.') {
+    return '';
+  }
+  const withoutTrailingSlash = normalized.replace(/\/$/, '');
+  if (!withoutTrailingSlash) {
+    return '';
+  }
+  if (withoutTrailingSlash.includes(':')) {
+    return '';
+  }
+  const segments = withoutTrailingSlash.split('/');
+  if (segments.some((segment) => segment === '' || segment === '..')) {
+    return '';
+  }
+  return withoutTrailingSlash;
+}
+
+function isPathInside(target: string, root: string): boolean {
+  const normalizedRoot = root.endsWith(path.sep) ? root : `${root}${path.sep}`;
+  const resolved = path.resolve(target);
+  return resolved === root || resolved.startsWith(normalizedRoot);
 }
 
 export function registerTrainingBundleRoute(app: Express, genId: () => string): void {
@@ -59,7 +105,14 @@ export function registerTrainingBundleRoute(app: Express, genId: () => string): 
         return res.status(400).json({ error: 'Invalid training bundle ZIP' });
       }
 
-      const metadataEntry = zip.getEntry('metadata.json');
+      let metadataEntry: IZipEntry | null = zip.getEntry('metadata.json');
+      if (!metadataEntry) {
+        metadataEntry =
+          zip
+            .getEntries()
+            .find((entry) => !entry.isDirectory && entry.entryName.replace(/\\/g, '/').endsWith('/metadata.json')) ??
+          null;
+      }
       if (!metadataEntry) {
         return res.status(400).json({ error: 'metadata.json missing from bundle' });
       }
@@ -72,20 +125,27 @@ export function registerTrainingBundleRoute(app: Express, genId: () => string): 
         return res.status(400).json({ error: 'Failed to read metadata.json' });
       }
 
-      let metadata: any;
+      let parsedMetadata: z.infer<typeof MetadataSchema>;
       try {
-        metadata = JSON.parse(metadataContent);
+        const metadata = JSON.parse(metadataContent);
+        const result = MetadataSchema.safeParse(metadata);
+        if (!result.success) {
+          return res.status(400).json({ error: 'metadata.json validation failed', details: result.error.flatten() });
+        }
+        parsedMetadata = result.data;
       } catch (error) {
         console.error('metadata.json is not valid JSON:', error);
         return res.status(400).json({ error: 'metadata.json must be valid JSON' });
       }
 
-      const label = isNonEmptyString(metadata.label) ? metadata.label.trim() : '';
+      const label = parsedMetadata.label.trim();
       if (!label) {
         return res.status(400).json({ error: 'metadata.label is required' });
       }
 
-      const profileIdRaw = isNonEmptyString(metadata.profileId) ? metadata.profileId.trim() : undefined;
+      const profileIdRaw = isNonEmptyString(parsedMetadata.profileId)
+        ? parsedMetadata.profileId.trim()
+        : undefined;
       if (profileIdRaw && !PROFILE_ID_PATTERN.test(profileIdRaw)) {
         return res.status(400).json({ error: 'metadata.profileId is invalid' });
       }
@@ -98,28 +158,62 @@ export function registerTrainingBundleRoute(app: Express, genId: () => string): 
       const bundleZipPath = path.join(bundleRoot, 'bundle.zip');
       await atomicWriteBuffer(bundleZipPath, req.body as Buffer);
 
+      const bundleRootResolved = path.resolve(bundleRoot);
+      const storedFiles: string[] = [];
       try {
-        zip.extractAllTo(bundleRoot, true);
+        for (const entry of zip.getEntries()) {
+          if (entry.isDirectory) {
+            const dirName = sanitizeEntryName(entry.entryName);
+            if (!dirName) {
+              throw new Error(`Unsafe directory entry: ${entry.entryName}`);
+            }
+            const targetDir = path.resolve(bundleRoot, dirName.split('/').join(path.sep));
+            if (!isPathInside(targetDir, bundleRootResolved)) {
+              throw new Error(`Unsafe directory entry: ${entry.entryName}`);
+            }
+            await fs.mkdir(targetDir, { recursive: true });
+            continue;
+          }
+
+          const fileName = sanitizeEntryName(entry.entryName);
+          if (!fileName) {
+            throw new Error(`Invalid entry name: ${entry.entryName}`);
+          }
+          const targetPath = path.resolve(bundleRoot, fileName.split('/').join(path.sep));
+          if (!isPathInside(targetPath, bundleRootResolved)) {
+            throw new Error(`Unsafe entry path: ${entry.entryName}`);
+          }
+
+          await fs.mkdir(path.dirname(targetPath), { recursive: true });
+          await fs.writeFile(targetPath, entry.getData());
+          storedFiles.push(fileName);
+        }
       } catch (error) {
         console.error('Failed to extract training bundle payload:', error);
         return res.status(400).json({ error: 'Failed to extract training bundle' });
       }
 
+      const sanitizedMetadata: TrainingBundleMetadata = {
+        label,
+        profileId: profileIdRaw ?? null,
+        capturedAt: isNonEmptyString(parsedMetadata.capturedAt) ? parsedMetadata.capturedAt : null,
+        source: isNonEmptyString(parsedMetadata.source) ? parsedMetadata.source : null,
+      };
+
+      const files = Array.from(new Set(storedFiles));
+
       const manifestEntry: TrainingBundleManifestEntry = {
         id: bundleId,
         profileId: profileIdRaw ?? null,
         label,
-        capturedAt: isNonEmptyString(metadata.capturedAt) ? metadata.capturedAt : null,
-        source: isNonEmptyString(metadata.source) ? metadata.source : null,
+        capturedAt: sanitizedMetadata.capturedAt,
+        source: sanitizedMetadata.source,
         storage: {
           directory: path.relative(DATA_DIR, bundleRoot),
           bundle: path.relative(DATA_DIR, bundleZipPath),
-          files: zip
-            .getEntries()
-            .filter((entry: IZipEntry) => !entry.isDirectory)
-            .map((entry: IZipEntry) => entry.entryName),
+          files,
         },
-        metadata,
+        metadata: sanitizedMetadata,
         receivedAt: new Date().toISOString(),
       };
 

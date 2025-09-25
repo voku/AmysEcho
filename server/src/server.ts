@@ -11,34 +11,7 @@ import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
 
-function resolveServerModuleDir(): string {
-  if (typeof __dirname !== 'undefined') {
-    return __dirname;
-  }
-  let metaUrl: string | undefined;
-  try {
-    metaUrl = (0, eval)('import.meta.url') as string;
-  } catch {
-    metaUrl = undefined;
-  }
-  if (metaUrl) {
-    try {
-      return path.dirname(fileURLToPath(metaUrl));
-    } catch {
-      // fall through to cwd fallback
-    }
-  }
-  if (Array.isArray(process.argv) && process.argv[1]) {
-    try {
-      return path.dirname(path.resolve(process.argv[1]));
-    } catch {
-      // ignore
-    }
-  }
-  return path.resolve('.');
-}
-
-const serverModuleDir = resolveServerModuleDir();
+const serverModuleDir = path.dirname(fileURLToPath(import.meta.url));
 import { getCentroids, normalize } from './services/dgsModelService.js';
 import type { Point } from './services/dgsModelService.js';
 import { z } from 'zod';
@@ -93,6 +66,30 @@ import logger from './services/logger.js';
 
 export const app = express();
 
+const portalPath = path.join(serverModuleDir, 'portal');
+let portalAvailable = true;
+try {
+  await fs.access(portalPath);
+} catch (error) {
+  portalAvailable = false;
+  logger.warn('Portal directory missing', { portalPath, error: (error as Error).message });
+}
+
+async function readServerPackageJson(): Promise<any> {
+  const candidates = [path.join(SERVER_DIR, 'package.json'), path.join(SERVER_DIR, '..', 'package.json')];
+  for (const candidate of candidates) {
+    try {
+      const raw = await fs.readFile(candidate, 'utf8');
+      return JSON.parse(raw);
+    } catch (error: any) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+  throw new Error('package.json not found');
+}
+
 // Increase JSON body size limit to accommodate base64 images from the app
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true, limit: '8mb' }));
@@ -138,11 +135,27 @@ const apiLimiter = rateLimit({
 });
 
 // Serve static files from the portal directory
-app.use('/portal', express.static(path.join(serverModuleDir, 'portal')));
+if (portalAvailable) {
+  app.use('/portal', express.static(portalPath));
+}
 
 // Serve the main portal HTML file
 app.get('/portal', (_req: Request, res: Response) => {
-  res.sendFile(path.join(serverModuleDir, 'portal', 'index.html'));
+  if (!portalAvailable) {
+    return res.status(404).send('Portal not available');
+  }
+  const indexPath = path.join(portalPath, 'index.html');
+  res.sendFile(indexPath, (error) => {
+    if (!error) return;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      res.status(404).send('Portal not available');
+    } else {
+      logger.error('Failed to serve portal index', { error: (error as Error).message });
+      if (!res.headersSent) {
+        res.status(500).send('Failed to load portal');
+      }
+    }
+  });
 });
 
 // Basic health check endpoint for monitoring
@@ -624,6 +637,9 @@ app.post('/api/v1/dgs/samples', legacyAuth, async (req: Request, res: Response) 
         .json({ error: 'label and landmarks (42 × [x,y,z]) required', details: parsed.error.flatten() });
     }
     const { label, profileId, landmarks } = parsed.data;
+    if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
+      return res.status(400).json({ error: 'Invalid profileId' });
+    }
     console.log(`Received DGS sample: label=${label}, profileId=${profileId}, landmarks length=${landmarks.length}`);
     const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
     await withFileLock(dataPath, async () => {
@@ -945,7 +961,7 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
 
     // Fire-and-forget full training script for richer models
     const scriptPath = config.mlpScript;
-    const serverRoot = path.join(serverModuleDir, '..');
+    const serverRoot = SERVER_DIR;
     const proc = spawn('python3', [path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath)], {
       cwd: serverRoot,
     });
@@ -998,9 +1014,8 @@ app.get('/api/training-status/:id', auth, (req: Request, res: Response) => {
 
 app.get('/model-version', legacyAuth, async (_req: Request, res: Response) => {
   try {
-    const pkgPath = path.join(serverModuleDir, '..', 'package.json');
-    const pkgRaw = await fs.readFile(pkgPath, 'utf8');
-    const { version } = JSON.parse(pkgRaw);
+    const pkg = await readServerPackageJson();
+    const { version } = pkg;
     res.json({ version, modelPath: 'latest-model' });
   } catch (err) {
     console.error('Failed to read model version:', err);
@@ -1207,7 +1222,7 @@ app.get('/latest-mlp-model', legacyAuth, async (req: Request, res: Response) => 
   await sendBinaryModel(
     res,
     chosen,
-    profileId ? `amy_model_${profileId}.npz` : 'amy_model.npz',
+    profileId ? `dgs_model_${profileId}.npz` : 'amy_model.npz',
   );
 });
 
@@ -1218,9 +1233,8 @@ app.get('/model-metadata', legacyAuth, async (req: Request, res: Response) => {
   const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
   if (!resolvedFile) return;
   try {
-    const pkgPath = path.join(serverModuleDir, '..', 'package.json');
-    const pkgRaw = await fs.readFile(pkgPath, 'utf8');
-    const { version } = JSON.parse(pkgRaw);
+    const pkg = await readServerPackageJson();
+    const { version } = pkg;
     const stat = await fs.stat(resolvedFile);
     const buf = await fs.readFile(resolvedFile);
     const sha256 = createHash('sha256').update(buf).digest('hex');

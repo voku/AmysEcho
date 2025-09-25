@@ -3,19 +3,17 @@ const fileLocks = new Map<string, Promise<void>>();
 export async function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
   const prev = fileLocks.get(file) ?? Promise.resolve();
   let release!: () => void;
-  const next = new Promise<void>((res) => (release = res));
-  fileLocks.set(file, prev.finally(() => next));
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  const chain = prev.catch(() => undefined).then(() => gate);
+  fileLocks.set(file, chain);
 
-  let result: T;
   try {
-    result = await fn();
-  } catch (error) {
+    await prev.catch(() => undefined);
+    return await fn();
+  } finally {
     release();
-    if (fileLocks.get(file) === next) fileLocks.delete(file);
-    throw error;
+    if (fileLocks.get(file) === chain) {
+      fileLocks.delete(file);
+    }
   }
-
-  release();
-  if (fileLocks.get(file) === next) fileLocks.delete(file);
-  return result;
 }
