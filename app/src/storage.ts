@@ -20,6 +20,7 @@ const ACTIVE_PROFILE_KEY = 'activeProfileId';
 
 export interface TrainingFrame {
   landmarks: number[][][];
+  handedness?: string[];
 }
 
 export interface TrainingSample {

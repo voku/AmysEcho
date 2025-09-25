@@ -8,7 +8,7 @@ import { unzipSync, strFromU8 } from 'fflate';
 
 type TrainingFrame = {
   landmarks: number[][][];
-  handedness: string[];
+  handedness?: string[];
 };
 
 async function loadSampleFrame(): Promise<TrainingFrame> {

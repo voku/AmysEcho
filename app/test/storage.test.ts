@@ -248,8 +248,11 @@ describe('Storage', () => {
     it('saves training sample to AsyncStorage and database', async () => {
       const frames: TrainingFrame[] = [
         {
-          landmarks: [[[1, 2, 3]]],
-          handedness: ['Left'],
+          landmarks: [
+            [
+              [1, 2, 3],
+            ],
+          ],
         },
       ];
 
@@ -527,8 +530,11 @@ describe('Storage', () => {
     it('falls back to pending state when enqueue fails', async () => {
       const frames: TrainingFrame[] = [
         {
-          landmarks: [[[1, 2, 3]]],
-          handedness: ['Left'],
+          landmarks: [
+            [
+              [1, 2, 3],
+            ],
+          ],
         },
       ];
 

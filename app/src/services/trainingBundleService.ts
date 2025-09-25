@@ -42,9 +42,13 @@ function buildMetadata(payload: TrainingBundlePayload) {
 }
 
 function buildFrameTimeline(frames: TrainingFrame[]) {
-  return frames.map((frame) => ({
-    landmarks: flattenHandsWithHandedness(frame.landmarks, []),
-  }));
+  return frames.map((frame) => {
+    const handedness = Array.isArray(frame.handedness) ? frame.handedness : [];
+    return {
+      handedness,
+      landmarks: flattenHandsWithHandedness(frame.landmarks, handedness),
+    };
+  });
 }
 
 type LegacyFileSystemModule = Partial<typeof FileSystem> & {
