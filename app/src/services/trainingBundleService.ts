@@ -120,10 +120,15 @@ export async function uploadTrainingBundle(
     const zipped = zipSync({
       'metadata.json': strToU8(metadataContent),
       'landmarks.json': strToU8(landmarksContent),
-      'clip.mp4': clipBinary instanceof Uint8Array ? clipBinary : Uint8Array.from(clipBinary),
+      // Store MP4 without extra compression (level: 0) to reduce CPU and time
+      'clip.mp4': [
+        clipBinary instanceof Uint8Array ? clipBinary : Uint8Array.from(clipBinary),
+        { level: 0 },
+      ],
     });
 
-    await FileSystem.writeAsStringAsync(zipPath, Buffer.from(zipped).toString('base64'), {
+    const base64Zip = Buffer.from(zipped.buffer, zipped.byteOffset, zipped.byteLength).toString('base64');
+    await FileSystem.writeAsStringAsync(zipPath, base64Zip, {
       encoding: (legacyFs.EncodingType?.Base64 ?? 'base64') as any,
     });
 
@@ -135,6 +140,7 @@ export async function uploadTrainingBundle(
         headers: {
           'Content-Type': 'application/zip',
           Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
         uploadType: (legacyFs.FileSystemUploadType?.BINARY_CONTENT ?? 'BINARY_CONTENT') as any,
       },
@@ -149,7 +155,10 @@ export async function uploadTrainingBundle(
       try {
         responseJson = JSON.parse(uploadResult.body);
       } catch (error) {
-        logger.warn('Upload-Antwort konnte nicht geparst werden (Failed to parse upload response)', error);
+        logger.warn(
+          'Upload-Antwort konnte nicht geparst werden (Failed to parse upload response)',
+          error instanceof Error ? error.message : error,
+        );
       }
     }
 
