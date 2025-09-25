@@ -6,6 +6,46 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { unzipSync, strFromU8 } from 'fflate';
 
+type TrainingFrame = {
+  landmarks: number[][][];
+  handedness: string[];
+};
+
+async function loadSampleFrame(): Promise<TrainingFrame> {
+  const repoRoot = path.resolve(__dirname, '../../..');
+  const samplePath = path.join(repoRoot, 'server', 'data', 'dgs_samples.json');
+
+  const buildFallback = (): TrainingFrame => {
+    const fallback = Array.from({ length: 42 }, (_, idx) => {
+      const base = idx / 100;
+      return [base, base, base / 2];
+    });
+    return {
+      landmarks: [fallback.slice(0, 21), fallback.slice(21, 42)],
+      handedness: ['Left', 'Right'],
+    };
+  };
+
+  try {
+    const raw = await fs.readFile(samplePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    const sample = parsed?.samples?.[0];
+    const landmarks = Array.isArray(sample?.landmarks) ? sample.landmarks : null;
+    if (!landmarks || landmarks.length < 42) {
+      return buildFallback();
+    }
+    return {
+      landmarks: [landmarks.slice(0, 21), landmarks.slice(21, 42)],
+      handedness: ['Left', 'Right'],
+    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+    return buildFallback();
+  }
+}
+
 jest.mock('../../src/constants', () => ({
   API_URL: 'http://127.0.0.1:0',
 }));
@@ -106,10 +146,6 @@ jest.mock('expo-file-system', () => {
 });
 
 import { uploadTrainingBundle } from '../../src/services/trainingBundleService';
-type TrainingFrame = {
-  landmarks: number[][][];
-  handedness: string[];
-};
 
 const manifestPath = () => path.join(fsTempRoot, 'training_manifest.json');
 
@@ -203,14 +239,7 @@ describe('uploadTrainingBundle spike', () => {
     const clipPath = path.join(fsTempRoot, 'clip.mp4');
     await fs.writeFile(clipPath, Buffer.from('clip-data'), 'utf8');
 
-    const frames: TrainingFrame[] = [
-      {
-        landmarks: [
-          Array.from({ length: 21 }, (_, idx) => [idx, idx + 1, idx + 2]),
-        ],
-        handedness: ['Left'],
-      },
-    ];
+    const frames: TrainingFrame[] = [await loadSampleFrame()];
 
     const result = await uploadTrainingBundle(
       {
@@ -241,7 +270,8 @@ describe('uploadTrainingBundle spike', () => {
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
     });
-    expect(entry.frames[0].landmarks[0]).toEqual([0, 1, 2]);
+    expect(entry.frames[0].handedness).toEqual(frames[0].handedness);
+    expect(entry.frames[0].landmarks[0]).toEqual(frames[0].landmarks[0][0]);
     expect(entry.files).toEqual(expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.mp4']));
   });
 });
