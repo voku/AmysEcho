@@ -1,69 +1,46 @@
-# Amy's Echo Gesture Model Training Backlog (LLM Working Notes)
+# Amy's Echo Gesture Model — Training Loop Backlog
 
-This backlog turns the high-level roadmap into implementation-ready next steps for the model improvement loop. Every section includes the concrete entry points that already exist in the repo so the next iteration can extend them instead of starting from scratch.
+## Baseline We Already Have
+- **On-device detection:** `app/src/components/MediaPipeGestureDetector.tsx` streams landmarks from the MediaPipe WebView and already refreshes cached MLP weights via `useModelInjection`.
+- **Capture UI:** `app/src/screens/TrainingScreen.tsx` records `TrainingFrame[]` sequences, validates them, saves them with `saveTrainingSample`, and emits per-frame uploads with `sendDgsSample`.
+- **Storage helpers:** `app/src/storage.ts` keeps per-profile sample queues; `app/src/services/gestureRecorder.ts` can sample consistent landmark sequences from the detector feed.
+- **Server endpoints:** `server/src/server.ts` exposes `/api/v1/dgs/samples` (landmark ingest) and `/train-model` (kicks off Python training), persisting data under `data/dgs_samples.json`.
+- **Python trainer:** `server/src/amyserver_tools/train_mlp.py` converts landmark JSON into an `amy_model.npz` MLP bundle consumed by the WebView model injection.
 
-## 🔍 Reference Map of Existing Hooks
-- **App capture UX** – `app/src/screens/TrainingScreen.tsx`
-  - `startRecording`/`stopRecording` already drive MediaPipe capture, call `saveTrainingSample`, and stream each `TrainingFrame` to the server via `sendDgsSample`.
-  - Example: `stopRecording` validates sequences with `validateLandmarkSequence` before calling `sendDgsSample(gestureId, frame, profile?.id)` for every frame.
-- **Local persistence** – `app/src/storage.ts`
-  - `saveTrainingSample` stores samples per active profile (`gestureTrainingData_${profile}`) so that per-child personalization is already supported client-side.
-- **Upload service** – `app/src/services/dgsTrainingService.ts`
-  - `sendDgsSample` flattens landmarks with handedness helpers and POSTs to `/api/v1/dgs/samples` with bearer auth.
-- **Server ingestion** – `server/src/server.ts`
-  - `/api/v1/dgs/samples` validates 42×[x,y,z] arrays, assigns IDs with `genId()`, and appends to `data/dgs_samples.json` inside a file lock.
-  - `/api/v1/dgs/mlp-model` and `/latest-mlp-model` stream profile-aware model binaries with cache headers.
-- **Curation tooling** – `server/src/portal/index.ts`
-  - Caregiver portal endpoints list, approve, and export training data (`addGestureTrainingData`, `updateGestureTrainingData`).
-- **Training scripts** – `server/src/tools/autoRetrain.ts` & `server/src/amyserver_tools/train_mlp.py`
-  - `autoRetrain` shells out to the Python MLP trainer with temp JSON built from corrections and negative samples.
-  - `train_mlp.py` loads `data/dgs_samples.json`, normalizes frames, and trains a NumPy MLP while printing JSON progress events.
-- **Model consumers** – `app/src/model.ts`, `app/src/services/optimizedGestureService.ts`
-  - `gestureModel.gestures` is the single source of truth for vocab updates; downstream services like `optimizedGestureService` expose filtered views for the UI and recognition flow.
+## Objective
+Enable the MediaPipe-driven capture flow in `app/` to feed Amy's existing Python video-training stack so that curated caregiver recordings produce refreshed global and per-profile models without relying on ad-hoc JSON dumps.
 
-## 🧭 Execution Backlog
+## 1. Capture Enhancements (app/)
+- [ ] Extend `MediaPipeGestureDetector`'s WebView bundle (`app/webview/gestureDetector.new.ts`) to surface buffered camera frames (JPEG snapshots via `FrameCaptureManager`) alongside landmarks through the existing `onWebViewEvent` channel.
+- [ ] In `TrainingScreen.tsx`, add a session recorder that collects both the landmark timeline and a short MP4/WebM clip (generated from the captured frames) while `isRecording` is true.
+- [ ] Persist the richer sample payload in `saveTrainingSample` (store `videoUri` + `frames`) and guard uploads behind the caregiver opt-in flags that already live on `Profile`.
 
-### 1. In-App Capture & Consent UX
-- [ ] Extend `TrainingScreen` to gate recording behind an explicit caregiver opt-in modal summarizing capture scope (videos vs. landmarks) and storage duration.
-  - Wire acceptance to a persisted flag in `app/src/storage.ts` so that opt-in can be per profile; fall back to prompting again if the profile changes.
-- [ ] Add contextual help bubbles in `TrainingScreen` that reuse `setMessage` to explain why landmarks are recorded and how they improve recognition (copy in German).
-- [ ] Record lightweight session analytics (e.g., frames captured, validation errors) via `logHIPEvent` to feed future quality dashboards.
+## 2. Upload Packaging (app/)
+- [ ] Replace the per-frame `sendDgsSample` calls with a new `uploadTrainingBundle` service that zips `{metadata.json, landmarks.json, clip.mp4}` and POSTs it; reuse the handedness flattening helpers from `app/src/services/dgsTrainingService.ts` for backwards compatibility.
+- [ ] Reuse `app/src/services/gestureRecorder.ts` to down-sample long sessions before packaging so that uploads stay within mobile bandwidth limits (target <5 MB per gesture).
+- [ ] Queue bundles in AsyncStorage per profile and flush them through a background task once Wi-Fi + charging conditions are met (extend the existing scheduler pattern in `app/src/services/trainingSync.ts`).
 
-### 2. Sample Packaging & Background Upload
-- [ ] Introduce a batching helper (e.g., `queueTrainingUpload(samples: TrainingSample[])`) that groups the frame-by-frame `sendDgsSample` calls into a single encrypted payload when the caregiver chooses "upload now".
-  - Use the existing offline storage in `saveTrainingSample` and include `profileId` so the server can differentiate personalization candidates.
-  - Ensure the legacy `syncTrainingData` job in `app/src/services/dgsTrainingService.ts` reads the same per-profile buckets so previously queued samples are not lost when batching is enabled.
-- [ ] Design a dedicated background flush (likely via `expo-task-manager` or a headless JS task) because `app/src/services/dailyJobs.ts` currently lacks power/network gating; add Wi‑Fi + charging checks before dispatching the queued payload.
-- [ ] Add retry/backoff semantics to `sendDgsSample` (wrap abort controller errors into a queue) and emit German toasts when retries exhaust.
+## 3. Server Intake & Dataset Assembly (server/)
+- [ ] Add `/api/v1/dgs/sample-bundles` in `server/src/server.ts` to accept multipart/zip uploads, validate auth, and store payloads under `data/uploads/<profile>/<timestamp>/`.
+- [ ] Extract landmarks server-side using the same schema produced by the WebView (fall back to JSON inside the bundle if provided) and run MediaPipe landmarking for clips that only contain raw video.
+- [ ] Normalize and append approved samples to a structured dataset manifest (`data/datasets/caregiver_samples.parquet` or similar) instead of the ad-hoc `dgs_samples.json`; keep a shim writer so the legacy `/api/v1/dgs/samples` path continues to feed the JSON until the transition completes.
+- [ ] Extend the caregiver moderation portal (`server/src/portal/index.ts`) to browse bundles, play clips, and mark sessions as "approved for training" before they move into the manifest.
 
-### 3. Server Ingestion, Review & Quality Control
-- [ ] Expand the `/api/v1/dgs/samples` schema to accept optional metadata (lighting, caregiver notes) and persist alongside `label`/`profileId` in `data/dgs_samples.json`; update the handler to accept an array payload so the client batching helper can post multiple frames at once.
-- [ ] Build a moderation queue UI in the caregiver portal that surfaces the newest entries from `data/dgs_samples.json`, and either extend the existing endpoints in `server/src/portal/index.ts` to read/write that file or add parallel routes dedicated to the new dataset before wiring the UI.
-- [ ] Implement automated validators server-side (e.g., blur detection, min frame count) that mirror the client `validateLandmarkSequence` heuristics before records are marked `approved`.
-- [ ] Provide an export endpoint that bundles approved samples plus metadata into a signed archive for offline review.
+## 4. Python Training Pipeline (server/src/amyserver_tools)
+- [ ] Teach `train_mlp.py` to read from the new manifest (support both JSON and Parquet) so the same script can be reused for existing DSG video exports and app-recorded clips.
+- [ ] When clips are present, run MediaPipe landmark extraction offline as part of the training job (call out to a new helper module that mirrors the WebView normalization) and cache the derived landmarks for reuse.
+- [ ] Emit per-profile datasets by filtering on `profileId` in the manifest and produce adapter files (e.g., `data/models/<profile>/amy_model.npz`) so the app can request personalized weights.
+- [ ] Update the training job log emitted from `/train-model` to include counts of raw clips vs. landmark-only samples so we can monitor coverage.
 
-### 4. Training Pipeline Automation
-- [ ] Update `autoRetrain` to read both curated portal data and raw `dgs_samples.json`, tagging the temp file with provenance so `train_mlp.py` can weight samples.
-- [ ] Enhance `train_mlp.py` to compute per-gesture F1/latency stats and emit them as JSON logs for `server/src/server.ts` to capture in `training-debug.log`.
-- [ ] Store trained weight blobs under `data/models/{modelVersion}/` alongside metadata (hyperparameters, dataset hashes) and upload summaries to the caregiver portal.
-- [ ] Prototype per-profile fine-tuning by passing a `profileId` filter into `train_mlp.py`, generating adapter weights that the app can download via `/latest-mlp-model?profileId=...`.
+## 5. Model Distribution & App Integration
+- [ ] Expand `server/src/server.ts` `/latest-mlp-model` to handle optional `profileId` and serve the personalized adapters with proper cache headers.
+- [ ] Update `app/src/services/dgsModelClient.ts` and the `useModelInjection` hook to look for a personalized bundle first and gracefully fall back to the global model if none exists.
+- [ ] After a successful download, notify caregivers inside `TrainingScreen` / `RecognitionScreen` that a new model trained from their videos is active (German copy, align with Amy First messaging).
 
-### 5. Distribution & App Integration
-- [ ] Add ETag/hash headers to `/api/v1/dgs/mlp-model` so `app/src/model.ts` can skip downloads when the on-device hash matches.
-- [ ] Implement a `modelUpdateService` in the app that checks the server route after successful training uploads and swaps in new weights without resetting `gestureModel.gestures` state.
-- [ ] Surface release notes inside `PracticeSessionManager` once `gestureModel` reloads, pulling changelog strings from the distribution response.
-- [ ] Cache personalized models per profile directory (align with `saveCustomModelUri` / `saveCustomModelHash`) to ensure instant rollback on degraded accuracy.
-
-### 6. Monitoring & Feedback Loop
-- [ ] Feed training job progress (`server/src/server.ts` training job registry) into caregiver dashboards so they can watch when their uploads trigger retraining.
-- [ ] Aggregate post-deployment metrics (recognition accuracy, emergency gesture latency) and write them to a new `modelPerformance` collection in `server/src/db.ts` for portal visualization.
-- [ ] Add hooks in `app/src/screens/RecognitionScreen.tsx` to prompt caregivers for quick feedback after a new model goes live, storing responses with the active `modelVersion`.
-- [ ] Document the entire loop (capture ➜ upload ➜ approve ➜ train ➜ distribute ➜ monitor) in `docs/` with links back to each code touchpoint above so onboarding agents can ramp quickly, and include a sequence diagram or flowchart that visualizes the transitions.
+## 6. Verification & Documentation
+- [ ] Add automated tests: web (MediaPipe capture events), app (bundle upload queue), and server (ingestion + training pipeline) to cover the new flow end-to-end.
+- [ ] Document the capture → upload → moderation → training → distribution pipeline in `docs/` with a sequence diagram and explicit references to `MediaPipeGestureDetector`, `train_mlp.py`, and the new endpoints so future contributors can retrace the flow quickly.
+- [ ] Record a manual QA checklist covering "new caregiver records gesture," "bundle appears in portal," "Python job trains," and "app downloads updated model".
 
 ---
-
-**Quick Start for the Next Coding Session**
-1. Re-read the Reference Map to pick the right extension point.
-2. Choose one backlog item, trace the referenced files, and draft the interface change.
-3. Align naming with existing services/components (`*Service`, `*Screen`, etc.).
-4. Update or add Jest/API tests alongside the implementation to keep the loop reliable.
+**Next Action:** Prototype the bundle upload by stubbing `uploadTrainingBundle` to wrap the existing landmark JSON and verify the server can unpack and append it via a temporary integration test.
