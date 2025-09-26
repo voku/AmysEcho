@@ -12,6 +12,20 @@ import { batteryOptimizationService } from './batteryOptimizationService';
 import { uploadTrainingBundle } from './trainingBundleService';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from './trainingBundleQueue';
 
+type NetInfoState = {
+  isConnected?: boolean;
+  isInternetReachable?: boolean;
+  type?: string;
+};
+
+let fetchNetOverride: (() => Promise<NetInfoState | undefined>) | undefined;
+
+export function __setNetInfoFetchOverride(
+  override?: () => Promise<NetInfoState | undefined>,
+): void {
+  fetchNetOverride = override;
+}
+
 export interface SyncProgressOptions {
   onProgress?: (progress: number) => void;
 }
@@ -31,12 +45,21 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
   if (bundles.length === 0) {
     return { uploaded: 0, remaining: 0 };
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const NetInfoMod = require('@react-native-community/netinfo');
-  const fetchNet: any = NetInfoMod.fetch || NetInfoMod.default?.fetch;
-  const net = await (typeof fetchNet === 'function' ? fetchNet() : Promise.resolve({ isConnected: false }));
+  let netState: NetInfoState | undefined;
+  if (fetchNetOverride) {
+    netState = await fetchNetOverride();
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const NetInfoMod = require('@react-native-community/netinfo');
+    const fetchNet: any = NetInfoMod.fetch || NetInfoMod.default?.fetch;
+    const netResult = await (typeof fetchNet === 'function'
+      ? fetchNet()
+      : Promise.resolve<NetInfoState | undefined>(undefined));
+    netState = netResult && typeof netResult === 'object' ? netResult : undefined;
+  }
+  const net: NetInfoState = netState ?? { isConnected: false, isInternetReachable: false, type: undefined };
   if (
-    !net.isConnected ||
+    net.isConnected !== true ||
     net.isInternetReachable !== true ||
     net.type !== 'wifi'
   )
