@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import type { NetInfoState } from '@react-native-community/netinfo';
+import { NetInfoStateType } from '@react-native-community/netinfo';
 // Use dynamic require to honor various mock shapes in tests
 import {
   loadProfile,
@@ -52,7 +53,13 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
       : Promise.resolve<NetInfoState | undefined>(undefined));
     netState = netResult && typeof netResult === 'object' ? netResult : undefined;
   }
-  const net: NetInfoState = netState ?? { isConnected: false, isInternetReachable: false, type: undefined };
+  const net: NetInfoState =
+    netState ?? {
+      type: NetInfoStateType.none,
+      isConnected: false,
+      isInternetReachable: false,
+      details: null,
+    };
   if (
     net.isConnected !== true ||
     net.isInternetReachable !== true ||
