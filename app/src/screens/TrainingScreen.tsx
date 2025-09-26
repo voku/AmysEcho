@@ -39,6 +39,8 @@ type ClipReadyPayload = {
 type FrameBatchPayload = {
   frames: string[];
   landmarks: number[][][][];
+  handednesses?: string[][];
+  timestamps?: number[];
 };
 
 type ExpoFileSystemCompat = typeof FileSystem & {
@@ -148,13 +150,19 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       const mirrored = facingMode === 'user';
       const framesToAppend: TrainingFrame[] = [];
+      const handednessBatches = Array.isArray(payload.handednesses)
+        ? payload.handednesses
+        : [];
+
       payload.landmarks.forEach((frame, index) => {
         const cloned = cloneLandmarks(frame as number[][][]);
         if (!cloned.some((hand) => hand.length > 0)) {
           return;
         }
+        const handedness = adjustHandednessForMirror(handednessBatches[index] ?? [], mirrored);
         framesToAppend.push({
           landmarks: cloned,
+          handedness,
         });
       });
 
