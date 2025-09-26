@@ -23,6 +23,8 @@ import { useModelInjection } from '../hooks/useModelInjection';
 import { fetchMlpModel, getCachedMlpModel, getCachedMlpMeta } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
 
+const MAX_ERROR_PAYLOAD_SNIPPET_LENGTH = 200;
+
 interface FrameBatchPayload {
   frames: string[];
   landmarks: number[][][][];
@@ -539,14 +541,15 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       } catch (err) {
         logger.error('Error parsing WebView message', { error: err });
         setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-        const baseMessage = err instanceof Error && err.message ? err.message : 'gesture_processing_error';
-        const rawPayload =
-          event && event.nativeEvent && typeof event.nativeEvent.data === 'string'
-            ? event.nativeEvent.data
-            : '';
-        const errorMessage = rawPayload
-          ? `${baseMessage}: ${rawPayload.slice(0, 200)}`
-          : baseMessage;
+        const baseMessage =
+          err instanceof Error && err.message ? err.message : 'gesture_processing_error';
+        const rawPayloadString =
+          typeof event?.nativeEvent?.data === 'string' ? event.nativeEvent.data : '';
+        const snippet = rawPayloadString
+          .trim()
+          .replace(/[\r\n\t]+/g, ' ')
+          .slice(0, MAX_ERROR_PAYLOAD_SNIPPET_LENGTH);
+        const errorMessage = snippet ? `${baseMessage}: ${snippet}` : baseMessage;
         onError(errorMessage);
       }
     },
