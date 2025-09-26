@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system';
+import type { NetInfoState } from '@react-native-community/netinfo';
 // Use dynamic require to honor various mock shapes in tests
 import {
   loadProfile,
@@ -11,12 +12,6 @@ import { refreshDgsModel } from './modelUpdate';
 import { batteryOptimizationService } from './batteryOptimizationService';
 import { uploadTrainingBundle } from './trainingBundleService';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from './trainingBundleQueue';
-
-type NetInfoState = {
-  isConnected?: boolean;
-  isInternetReachable?: boolean;
-  type?: string;
-};
 
 let fetchNetOverride: (() => Promise<NetInfoState | undefined>) | undefined;
 
