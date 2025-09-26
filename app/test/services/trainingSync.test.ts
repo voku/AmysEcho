@@ -1,4 +1,4 @@
-import { syncTrainingData } from '../../src/services/trainingSync';
+import { syncTrainingData, __setNetInfoFetchOverride } from '../../src/services/trainingSync';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from '../../src/services/trainingBundleQueue';
 import { uploadTrainingBundle } from '../../src/services/trainingBundleService';
 import { loadProfile, loadBackendApiToken, updateTrainingSample } from '../../src/storage';
@@ -12,6 +12,9 @@ jest.mock('../../src/storage');
 jest.mock('@react-native-community/netinfo');
 jest.mock('../../src/services/batteryOptimizationService');
 jest.mock('expo-file-system');
+jest.mock('../../src/services/modelUpdate', () => ({
+  refreshDgsModel: jest.fn().mockResolvedValue(undefined),
+}));
 
 const mockedListQueuedTrainingBundles = listQueuedTrainingBundles as jest.Mock;
 const mockedRemoveQueuedTrainingBundle = removeQueuedTrainingBundle as jest.Mock;
@@ -26,6 +29,7 @@ const mockedFileSystem = FileSystem as { deleteAsync: jest.Mock };
 describe('syncTrainingData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    __setNetInfoFetchOverride();
   });
 
   it('should not upload if user has not consented', async () => {
@@ -46,6 +50,7 @@ describe('syncTrainingData', () => {
     mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: true });
     mockedListQueuedTrainingBundles.mockResolvedValue([{}]);
     mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'cellular' });
+    __setNetInfoFetchOverride(mockedNetInfo.fetch);
     const result = await syncTrainingData();
     expect(result.uploaded).toBe(0);
   });
@@ -54,6 +59,7 @@ describe('syncTrainingData', () => {
     mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: true });
     mockedListQueuedTrainingBundles.mockResolvedValue([{}]);
     mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
+    __setNetInfoFetchOverride(mockedNetInfo.fetch);
     mockedBatteryOptimizationService.isDeviceCharging.mockReturnValue(false);
     const result = await syncTrainingData();
     expect(result.uploaded).toBe(0);
@@ -68,6 +74,7 @@ describe('syncTrainingData', () => {
     mockedLoadProfile.mockResolvedValue(profile);
     mockedListQueuedTrainingBundles.mockResolvedValue(bundles);
     mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
+    __setNetInfoFetchOverride(mockedNetInfo.fetch);
     mockedBatteryOptimizationService.isDeviceCharging.mockReturnValue(true);
     mockedLoadBackendApiToken.mockResolvedValue('token');
     mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'success' });
