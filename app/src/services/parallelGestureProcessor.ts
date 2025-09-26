@@ -316,7 +316,9 @@ class ParallelGestureProcessor {
           timestamp: startTime,
         },
         mediapipeConfidence:
-          typeof mediapipeConfidenceForOpenAI === 'number' ? mediapipeConfidenceForOpenAI : 0.5,
+          typeof mediapipeConfidenceForOpenAI === 'number'
+            ? Math.max(0, Math.min(1, mediapipeConfidenceForOpenAI))
+            : 0.5,
       };
 
       if (expectedGesture) {
@@ -784,23 +786,23 @@ class ParallelGestureProcessor {
     const recommendations: string[] = [];
 
     if (performanceReport.metrics.averageProcessingTime > 50) {
-      recommendations.push('Consider reducing processing load or optimizing MediaPipe configuration');
+      recommendations.push('Erwägen Sie, die Verarbeitungslast zu reduzieren oder die MediaPipe-Konfiguration zu optimieren');
     }
 
     if (emergencyResponseTime > 30) {
-      recommendations.push('Emergency response time exceeds Amy First target of 30ms');
+      recommendations.push('Die Notfall-Reaktionszeit überschreitet das Amy‑First‑Ziel von 30 ms');
     }
 
     if (errorRate > 0.1) {
-      recommendations.push('High error rate detected - check OpenAI API connectivity');
+      recommendations.push('Hohe Fehlerrate erkannt – OpenAI‑API‑Konnektivität prüfen');
     }
 
     if (concurrentLoad > this.options.maxConcurrentRequests * 0.8) {
-      recommendations.push('Approaching concurrent request limit - consider increasing maxConcurrentRequests');
+      recommendations.push('Grenze für gleichzeitige Anfragen wird erreicht – Erhöhung von maxConcurrentRequests in Erwägung ziehen');
     }
 
     if (cacheEfficiency < 0.3) {
-      recommendations.push('Low cache efficiency - results may not be optimally reused');
+      recommendations.push('Niedrige Cache‑Effizienz – Ergebnisse werden möglicherweise nicht optimal wiederverwendet');
     }
 
     return {

@@ -3,7 +3,7 @@ import type { CentroidMap } from './dgsModelClient';
 import type { FrameData } from '../types/frames';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
 
-type TrainingSample = {
+type LocalTrainingSample = {
   gestureDefinitionId: string;
   frames?: FrameData[];
   landmarkData?: FrameData[] | number[][][];
@@ -11,7 +11,7 @@ type TrainingSample = {
 
 // Embedded DGS training data (generated from processing DGS videos)
 // This ensures the centroids work even without AsyncStorage data
-function getEmbeddedTrainingData(): TrainingSample[] {
+function getEmbeddedTrainingData(): LocalTrainingSample[] {
   // Load the training data that was processed from DGS videos
   // This is a subset of the full training data for initial centroids
   return [
@@ -130,7 +130,7 @@ const TRAINING_KEY = 'gestureTrainingData';
 
 export async function buildLocalCentroids(): Promise<CentroidMap> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
-  let data: TrainingSample[] = [];
+  let data: LocalTrainingSample[] = [];
 
   if (!raw) {
     // Fallback: Use embedded DGS training data
@@ -144,9 +144,18 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
     }
   } else {
     try {
-      data = JSON.parse(raw) as TrainingSample[];
-    } catch {
-      return {};
+      data = JSON.parse(raw) as LocalTrainingSample[];
+    } catch (e) {
+      console.warn(
+        'Fehler beim Parsen der Trainingsdaten aus AsyncStorage; verwende eingebettete Daten als Fallback.',
+        e,
+      );
+      try {
+        data = getEmbeddedTrainingData();
+      } catch (embeddedErr) {
+        console.warn('Fallback: Eingebettete Trainingsdaten konnten nicht geladen werden.', embeddedErr);
+        return {};
+      }
     }
   }
 
@@ -165,10 +174,15 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
       if (!f) {
         continue;
       }
-      const lms = Array.isArray(f) ? f : f.landmarks || [];
+      const rawLms = (Array.isArray(f) ? f : f.landmarks || []) as number[][][] | number[][];
+      const firstEntry = rawLms[0];
+      const is2D = Array.isArray(firstEntry) && typeof (firstEntry as number[])[0] === 'number';
+      const lms3D: number[][][] = is2D
+        ? [rawLms as unknown as number[][]]
+        : (rawLms as number[][][]);
       const handed = Array.isArray(f) ? [] : f.handedness || [];
-      if (!frameHasAnyLandmarks(lms)) continue;
-      const flat = flattenHandsWithHandedness(lms, handed);
+      if (!frameHasAnyLandmarks(lms3D)) continue;
+      const flat = flattenHandsWithHandedness(lms3D, handed);
       if (!sums[label]) {
         sums[label] = {
           sum: flat.map(() => [0, 0, 0]),
@@ -217,9 +231,9 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
 export async function getLocalCentroidSummary(): Promise<Record<string, number>> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   if (!raw) return {};
-  let data: TrainingSample[] = [];
+  let data: LocalTrainingSample[] = [];
   try {
-    data = JSON.parse(raw) as TrainingSample[];
+    data = JSON.parse(raw) as LocalTrainingSample[];
   } catch {
     return {};
   }
