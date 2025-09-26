@@ -539,7 +539,14 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       } catch (err) {
         logger.error('Error parsing WebView message', { error: err });
         setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-        const errorMessage = err instanceof Error && err.message ? err.message : 'gesture_processing_error';
+        const baseMessage = err instanceof Error && err.message ? err.message : 'gesture_processing_error';
+        const rawPayload =
+          event && event.nativeEvent && typeof event.nativeEvent.data === 'string'
+            ? event.nativeEvent.data
+            : '';
+        const errorMessage = rawPayload
+          ? `${baseMessage}: ${rawPayload.slice(0, 200)}`
+          : baseMessage;
         onError(errorMessage);
       }
     },
