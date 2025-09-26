@@ -472,57 +472,32 @@ class ParallelGestureProcessor {
     }
   }
 
-  /**
-   * Attempt to merge MediaPipe and OpenAI results intelligently
-   */
-  // (Removed duplicate simple attemptResultMerging)
-  /* private attemptResultMerging(
+  private mergeOptionalResultFields(
+    target: GestureResult,
     mediapipeResult: GestureResult,
-    openaiResult: GestureResult
+    openaiResult: GestureResult,
   ): void {
-    // Only merge if results are reasonably close in time
-    const timeDiff = Math.abs(openaiResult.timestamp - mediapipeResult.timestamp);
-    if (timeDiff > 1000) return; // Don't merge if more than 1 second apart
-
-    // Determine if merging makes sense
-    const shouldMerge = this.shouldMergeResults(mediapipeResult, openaiResult);
-
-    if (shouldMerge) {
-      const mergedResult: GestureResult = {
-        gesture: this.selectBestGesture(mediapipeResult, openaiResult),
-        confidence: Math.max(mediapipeResult.confidence, openaiResult.confidence),
-        source: 'combined',
-        processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
-        timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
-      };
-
-      if (mediapipeResult.landmarks) {
-        mergedResult.landmarks = mediapipeResult.landmarks;
-      }
-
-      if (mediapipeResult.handedness) {
-        mergedResult.handedness = mediapipeResult.handedness;
-      }
-
-      if (mediapipeResult.emergency !== undefined) {
-        mergedResult.emergency = mediapipeResult.emergency;
-      }
-
-      const feedback = openaiResult.feedback ?? mediapipeResult.feedback;
-      if (feedback) {
-        mergedResult.feedback = feedback;
-      }
-
-      if (openaiResult.quality_score !== undefined) {
-        mergedResult.quality_score = openaiResult.quality_score;
-      }
-
-      this.stats.combinedResults++;
-
-      // Emit merged result (this would need to be connected to the UI)
-      this.emitMergedResult(mergedResult);
+    if (mediapipeResult.landmarks) {
+      target.landmarks = mediapipeResult.landmarks;
     }
-  } */
+
+    if (mediapipeResult.handedness) {
+      target.handedness = mediapipeResult.handedness;
+    }
+
+    if (mediapipeResult.emergency !== undefined) {
+      target.emergency = mediapipeResult.emergency;
+    }
+
+    const feedback = openaiResult.feedback ?? mediapipeResult.feedback;
+    if (feedback) {
+      target.feedback = feedback;
+    }
+
+    if (openaiResult.quality_score !== undefined) {
+      target.quality_score = openaiResult.quality_score;
+    }
+  }
 
   /**
    * Determine if two results should be merged
@@ -701,37 +676,18 @@ class ParallelGestureProcessor {
     }
 
     // Determine if merging makes sense
-    const shouldMerge = this.shouldMergeResults(mediapipeResult, openaiResult);
+      const shouldMerge = this.shouldMergeResults(mediapipeResult, openaiResult);
 
-    if (shouldMerge) {
-      const mergedResult: GestureResult = {
-        gesture: this.selectBestGesture(mediapipeResult, openaiResult),
+      if (shouldMerge) {
+        const mergedResult: GestureResult = {
+          gesture: this.selectBestGesture(mediapipeResult, openaiResult),
         confidence: Math.max(mediapipeResult.confidence, openaiResult.confidence),
         source: 'combined',
-        processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
-        timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
-      };
+          processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
+          timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
+        };
 
-      if (mediapipeResult.landmarks) {
-        mergedResult.landmarks = mediapipeResult.landmarks;
-      }
-
-      if (mediapipeResult.handedness) {
-        mergedResult.handedness = mediapipeResult.handedness;
-      }
-
-      if (mediapipeResult.emergency !== undefined) {
-        mergedResult.emergency = mediapipeResult.emergency;
-      }
-
-      const feedback = openaiResult.feedback ?? mediapipeResult.feedback;
-      if (feedback) {
-        mergedResult.feedback = feedback;
-      }
-
-      if (openaiResult.quality_score !== undefined) {
-        mergedResult.quality_score = openaiResult.quality_score;
-      }
+        this.mergeOptionalResultFields(mergedResult, mediapipeResult, openaiResult);
 
       this.stats.combinedResults++;
 

@@ -245,6 +245,10 @@ class PersonalizedConfidenceService {
   }
 
   private generateReason(adjustments: string[]): string {
+    if (adjustments.length === 0) {
+      return '';
+    }
+
     if (adjustments.length === 1) {
       return adjustments[0] ?? '';
     }

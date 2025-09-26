@@ -3,9 +3,15 @@ import type { CentroidMap } from './dgsModelClient';
 import type { FrameData } from '../types/frames';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
 
+type TrainingSample = {
+  gestureDefinitionId: string;
+  frames?: FrameData[];
+  landmarkData?: FrameData[] | number[][][];
+};
+
 // Embedded DGS training data (generated from processing DGS videos)
 // This ensures the centroids work even without AsyncStorage data
-function getEmbeddedTrainingData(): Array<{ gestureDefinitionId: string; frames?: FrameData[]; landmarkData?: any }> {
+function getEmbeddedTrainingData(): TrainingSample[] {
   // Load the training data that was processed from DGS videos
   // This is a subset of the full training data for initial centroids
   return [
@@ -124,7 +130,7 @@ const TRAINING_KEY = 'gestureTrainingData';
 
 export async function buildLocalCentroids(): Promise<CentroidMap> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
-  let data: Array<{ gestureDefinitionId: string; frames?: FrameData[]; landmarkData?: any }> = [];
+  let data: TrainingSample[] = [];
 
   if (!raw) {
     // Fallback: Use embedded DGS training data
@@ -137,18 +143,24 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
       return {};
     }
   } else {
-    try { data = JSON.parse(raw); } catch { return {}; }
+    try {
+      data = JSON.parse(raw) as TrainingSample[];
+    } catch {
+      return {};
+    }
   }
 
   if (!Array.isArray(data) || data.length === 0) {
     return {};
   }
 
-  const sums: Record<string, { sum: number[][]; count: number }> = {};
+  const sums: Record<string, { sum: number[][]; count: number; countsByIndex: number[] }> = {};
   for (const sample of data) {
     const label = sample.gestureDefinitionId;
-    const framesAny = sample.frames || sample.landmarkData;
-    const frames: (FrameData | number[][][])[] = Array.isArray(framesAny) ? framesAny : [];
+    const framesAny = sample.frames ?? sample.landmarkData;
+    const frames: (FrameData | number[][][])[] = Array.isArray(framesAny)
+      ? (framesAny as (FrameData | number[][][])[])
+      : [];
     for (const f of frames) {
       if (!f) {
         continue;
@@ -158,11 +170,18 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
       if (!frameHasAnyLandmarks(lms)) continue;
       const flat = flattenHandsWithHandedness(lms, handed);
       if (!sums[label]) {
-        sums[label] = { sum: flat.map(() => [0, 0, 0]), count: 0 };
+        sums[label] = {
+          sum: flat.map(() => [0, 0, 0]),
+          count: 0,
+          countsByIndex: flat.map(() => 0),
+        };
       }
-      const s = sums[label];
-      if (!s) {
-        continue;
+      const s = sums[label]!;
+      if (s.sum.length < flat.length) {
+        for (let i = s.sum.length; i < flat.length; i++) {
+          s.sum[i] = [0, 0, 0];
+          s.countsByIndex[i] = 0;
+        }
       }
       for (let i = 0; i < flat.length; i++) {
         const sampleVector = flat[i];
@@ -174,15 +193,22 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
         sumEntry[0] = (sumEntry[0] ?? 0) + sampleX;
         sumEntry[1] = (sumEntry[1] ?? 0) + sampleY;
         sumEntry[2] = (sumEntry[2] ?? 0) + sampleZ;
+        s.countsByIndex[i] = (s.countsByIndex[i] ?? 0) + 1;
       }
       s.count += 1;
     }
   }
   const centroids: CentroidMap = {};
   for (const [label, value] of Object.entries(sums)) {
-    const { sum, count } = value;
+    const { sum, count, countsByIndex } = value;
     if (count > 0) {
-      centroids[label] = sum.map(([x = 0, y = 0, z = 0]) => [x / count, y / count, z / count]);
+      centroids[label] = sum.map(([x = 0, y = 0, z = 0], index) => {
+        const divisor = countsByIndex[index] ?? count;
+        if (!divisor) {
+          return [0, 0, 0];
+        }
+        return [x / divisor, y / divisor, z / divisor];
+      });
     }
   }
   return centroids;
@@ -191,8 +217,12 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
 export async function getLocalCentroidSummary(): Promise<Record<string, number>> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
   if (!raw) return {};
-  let data: Array<{ gestureDefinitionId: string }> = [];
-  try { data = JSON.parse(raw); } catch { return {}; }
+  let data: TrainingSample[] = [];
+  try {
+    data = JSON.parse(raw) as TrainingSample[];
+  } catch {
+    return {};
+  }
 
   const counts: Record<string, number> = {};
   for (const sample of data) {

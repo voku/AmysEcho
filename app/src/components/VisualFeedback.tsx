@@ -103,10 +103,6 @@ export default function VisualFeedback({
       position: 'absolute',
       top: '50%',
       left: '50%',
-      transform: [
-        { translateX: -75 },
-        { translateY: -25 }
-      ],
       backgroundColor: typeStyles.backgroundColor,
       borderRadius: RADIUS,
       paddingHorizontal: SPACING.md,

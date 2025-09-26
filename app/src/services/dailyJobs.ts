@@ -175,7 +175,19 @@ export async function getAmyQuietPeriods(): Promise<Array<{hour: number, minute:
 
     // Find hours with lowest activity
     const hours = Object.keys(hourlyActivity).map(Number);
-    const sortedHours = hours.sort((a, b) => (hourlyActivity[a] ?? Number.POSITIVE_INFINITY) - (hourlyActivity[b] ?? Number.POSITIVE_INFINITY));
+    const sortedHours = hours.sort(
+      (a, b) =>
+        (hourlyActivity[a] ?? Number.POSITIVE_INFINITY) -
+        (hourlyActivity[b] ?? Number.POSITIVE_INFINITY),
+    );
+
+    if (sortedHours.length === 0) {
+      return [
+        { hour: 14, minute: 0, confidence: 0.5 },
+        { hour: 16, minute: 30, confidence: 0.5 },
+        { hour: 19, minute: 0, confidence: 0.5 },
+      ];
+    }
 
     // Return top 3 quietest hours
     return sortedHours.slice(0, 3).map(hour => ({

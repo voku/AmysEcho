@@ -296,11 +296,7 @@ export async function updateTrainingSample(
   const samples = await loadSamplesForProfile(profileId);
   const index = samples.findIndex((sample) => sample.id === sampleId);
   if (index === -1) return null;
-  const baseSample = { ...samples[index] } as TrainingSample;
-  if ('bundleKey' in updates && (updates.bundleKey === undefined || updates.bundleKey === null)) {
-    delete baseSample.bundleKey;
-  }
-  const updated = { ...baseSample, ...updates } as TrainingSample;
+  const updated = { ...samples[index], ...updates } as TrainingSample;
   samples[index] = updated;
   const trainingKey = `gestureTrainingData_${profileId}`;
   await AsyncStorage.setItem(trainingKey, JSON.stringify(samples));

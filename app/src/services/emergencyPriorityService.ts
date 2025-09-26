@@ -346,8 +346,9 @@ class EmergencyPriorityService {
   private calculateAverageWaitTime(): number {
     if (this.processingQueue.length === 0) return 0;
 
+    const now = Date.now();
     const totalWaitTime = this.processingQueue.reduce((sum, gesture) => {
-      return sum + (Date.now() - gesture.timestamp);
+      return sum + (now - gesture.timestamp);
     }, 0);
 
     return totalWaitTime / this.processingQueue.length;

@@ -64,7 +64,7 @@ export class Telemetry {
   add(event: string, latencyMs: number, source?: string): Promise<void> {
     return this.enqueue(async () => {
       const entry: TelemetryEvent = { timestamp: Date.now(), latencyMs, event };
-      if (source) {
+      if (source !== undefined && source !== null) {
         entry.source = source;
       }
       this.buffer.push(entry);

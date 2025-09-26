@@ -37,9 +37,11 @@ export function classifyWithCentroids(
       if (!qPoint || !cPoint) {
         continue;
       }
-      const dx = (qPoint[0] ?? 0) - (cPoint[0] ?? 0);
-      const dy = (qPoint[1] ?? 0) - (cPoint[1] ?? 0);
-      const dz = (qPoint[2] ?? 0) - (cPoint[2] ?? 0);
+      const [qx = 0, qy = 0, qz = 0] = qPoint;
+      const [cx = 0, cy = 0, cz = 0] = cPoint;
+      const dx = qx - cx;
+      const dy = qy - cy;
+      const dz = qz - cz;
       d += dx * dx + dy * dy + dz * dz;
     }
     const score = Math.exp(-Math.sqrt(d) / 10);
