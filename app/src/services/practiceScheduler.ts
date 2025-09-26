@@ -33,8 +33,11 @@ export async function setScheduleEnabled(id: string, enabled: boolean): Promise<
   const all = await listSchedules();
   const idx = all.findIndex((s) => s.id === id);
   if (idx >= 0) {
-    all[idx].enabled = enabled;
-    await AsyncStorage.setItem(KEY, JSON.stringify(all));
+    const schedule = all[idx];
+    if (schedule) {
+      schedule.enabled = enabled;
+      await AsyncStorage.setItem(KEY, JSON.stringify(all));
+    }
   }
 }
 

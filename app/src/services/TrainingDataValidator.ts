@@ -30,7 +30,12 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
   let motionSamples = 0;
 
   for (let i = 0; i < frameCount; i++) {
-    const frame = samples[i].flat();
+    const currentFrame = samples[i];
+    if (!currentFrame) {
+      hasMissing = true;
+      continue;
+    }
+    const frame = currentFrame.flat();
     if (!frame || frame.length === 0) {
       hasMissing = true;
       continue;
@@ -43,6 +48,10 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
         continue;
       }
       const [x, y] = p;
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        hasMissing = true;
+        continue;
+      }
       if (
         typeof x !== 'number' ||
         typeof y !== 'number' ||
@@ -54,9 +63,17 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
         outOfRange = true;
       }
       if (i > 0) {
-        const prev = samples[i - 1].flat();
-        if (prev[j]) {
-          const [px, py] = prev[j];
+        const prevFrame = samples[i - 1];
+        if (!prevFrame) {
+          continue;
+        }
+        const prev = prevFrame.flat();
+        const prevPoint = prev[j];
+        if (prevPoint) {
+          const [px, py] = prevPoint;
+          if (typeof px !== 'number' || typeof py !== 'number') {
+            continue;
+          }
           const dx = x - px;
           const dy = y - py;
           totalMotion += Math.hypot(dx, dy);

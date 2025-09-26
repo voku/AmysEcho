@@ -45,7 +45,7 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigation.navigate('Training', { gestureLabel: undefined });
+    navigation.navigate('Training', {});
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {
@@ -78,7 +78,8 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
     setNavHistory(prev => {
       const newHistory = [...prev];
       // Keep only last 3 screens for breadcrumb
-      if (newHistory.length === 0 || newHistory[newHistory.length - 1].name !== route.name) {
+      const lastEntry = newHistory[newHistory.length - 1];
+      if (!lastEntry || lastEntry.name !== route.name) {
         newHistory.push({
           name: route.name,
           title: currentScreen,

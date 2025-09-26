@@ -389,16 +389,16 @@ export class PerformanceOptimizationService {
     // In emergency mode, prioritize gesture messages and disable batching optimizations
     if (isEmergencyMode) {
       // Handle gesture messages first and individually for immediate processing
-      if (groupedMessages.gesture) {
-        groupedMessages.gesture.forEach(msg => {
+      const emergencyGestures = groupedMessages.gesture ?? [];
+      emergencyGestures.forEach(msg => {
           scripts.push(`window.__handleGesture && window.__handleGesture(${JSON.stringify(msg)});`);
-        });
-      }
+      });
 
       // Handle other emergency messages
       Object.keys(groupedMessages).forEach(type => {
         if (type !== 'gesture') {
-          groupedMessages[type].forEach(msg => {
+          const messages = groupedMessages[type] ?? [];
+          messages.forEach(msg => {
             scripts.push(`window.__handleMessage && window.__handleMessage(${JSON.stringify(msg)});`);
           });
         }
@@ -410,7 +410,7 @@ export class PerformanceOptimizationService {
     // Normal batching for non-emergency messages
     // Handle telemetry messages specially (most common)
     if (groupedMessages.telemetry) {
-      const telemetryBatch = groupedMessages.telemetry.map(msg =>
+      const telemetryBatch = (groupedMessages.telemetry ?? []).map(msg =>
         `window.__handleTelemetry && window.__handleTelemetry(${JSON.stringify(msg.data)});`
       ).join('\n');
       scripts.push(telemetryBatch);
@@ -418,7 +418,7 @@ export class PerformanceOptimizationService {
 
     // Handle gesture messages
     if (groupedMessages.gesture) {
-      const gestureBatch = groupedMessages.gesture.map(msg =>
+      const gestureBatch = (groupedMessages.gesture ?? []).map(msg =>
         `window.__handleGesture && window.__handleGesture(${JSON.stringify(msg)});`
       ).join('\n');
       scripts.push(gestureBatch);
@@ -427,7 +427,7 @@ export class PerformanceOptimizationService {
     // Handle other message types
     Object.keys(groupedMessages).forEach(type => {
       if (type !== 'telemetry' && type !== 'gesture') {
-        const batch = groupedMessages[type].map(msg =>
+        const batch = (groupedMessages[type] ?? []).map(msg =>
           `window.__handleMessage && window.__handleMessage(${JSON.stringify(msg)});`
         ).join('\n');
         scripts.push(batch);
@@ -485,9 +485,18 @@ export class PerformanceOptimizationService {
     if (flattened.length === 0) return '';
 
     // Delta encoding: store differences instead of absolute values
-    const deltas: number[] = [flattened[0]]; // First value as-is
+    const firstValue = flattened[0];
+    if (typeof firstValue !== 'number' || !Number.isFinite(firstValue)) {
+      return '';
+    }
+    const deltas: number[] = [firstValue]; // First value as-is
     for (let i = 1; i < flattened.length; i++) {
-      deltas.push(flattened[i] - flattened[i - 1]);
+      const current = flattened[i];
+      const previous = flattened[i - 1];
+      if (typeof current !== 'number' || typeof previous !== 'number') {
+        continue;
+      }
+      deltas.push(current - previous);
     }
 
     // Quantize to reduce precision (adaptive based on low power mode)
@@ -501,13 +510,20 @@ export class PerformanceOptimizationService {
   public decompressLandmarks(compressed: string): number[][][] {
     if (!compressed) return [];
 
-    const deltas = compressed.split(',').map(coord => parseFloat(coord));
-    if (deltas.length === 0) return [];
+    const deltas = compressed.split(',').map(coord => Number.parseFloat(coord));
+    const firstDeltaCandidate = deltas[0];
+    if (typeof firstDeltaCandidate !== 'number' || !Number.isFinite(firstDeltaCandidate)) return [];
+    const firstDelta = firstDeltaCandidate;
 
     // Reverse delta encoding
-    const coords: number[] = [deltas[0]];
+    const coords: number[] = [firstDelta];
     for (let i = 1; i < deltas.length; i++) {
-      coords.push(coords[i - 1] + deltas[i]);
+      const previous = coords[i - 1];
+      const deltaValue = deltas[i];
+      if (previous === undefined || !Number.isFinite(previous) || typeof deltaValue !== 'number' || !Number.isFinite(deltaValue)) {
+        continue;
+      }
+      coords.push(previous + deltaValue);
     }
 
     // Reconstruct landmark structure

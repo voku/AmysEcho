@@ -27,10 +27,15 @@ export async function enqueueCrashReport(error: unknown, extra?: Record<string, 
       id: genId(),
       name: e.name || 'Error',
       message: e.message || String(error),
-      stack: e.stack,
       timestamp: Date.now(),
-      extra,
     };
+
+    if (e.stack) {
+      report.stack = e.stack;
+    }
+    if (extra) {
+      report.extra = extra;
+    }
     queue.push(report);
     // Keep queue bounded to avoid unbounded growth
     const bounded = queue.slice(-100);

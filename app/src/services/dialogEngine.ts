@@ -97,7 +97,10 @@ class DialogEngine {
       const idx = vocabulary.findIndex((s) => s.id === lastSymbol.id);
       const result = [] as Symbol[];
       for (let i = idx + 1; i < vocabulary.length && result.length < 3; i++) {
-        result.push(vocabulary[i]);
+        const candidate = vocabulary[i];
+        if (candidate) {
+          result.push(candidate);
+        }
       }
       return result;
     } catch {

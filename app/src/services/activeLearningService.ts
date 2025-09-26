@@ -232,7 +232,17 @@ export class ActiveLearningService {
       };
     }
 
-    const topPriority = eligiblePriorities[0];
+    const [topPriority] = eligiblePriorities;
+    if (!topPriority) {
+      return {
+        shouldSuggest: false,
+        gesture: '',
+        reason: 'no_priorities_due',
+        urgency: 'when_convenient',
+        expectedImprovement: 0,
+        timeEstimate: 0
+      };
+    }
 
     // Check if this is a good time for the suggested gesture
     const timeCompatibility = this.checkTimeCompatibility();

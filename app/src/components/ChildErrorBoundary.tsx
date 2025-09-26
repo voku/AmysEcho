@@ -14,16 +14,16 @@ interface State {
 }
 
 export class ChildErrorBoundary extends Component<Props, State> {
-  static contextType = AccessibilityContext;
-  context!: React.ContextType<typeof AccessibilityContext>;
+  static override contextType = AccessibilityContext;
+  override context!: React.ContextType<typeof AccessibilityContext>;
 
-  state: State = { hasError: false };
+  override state: State = { hasError: false };
 
   static getDerivedStateFromError(): State {
     return { hasError: true };
   }
 
-  componentDidCatch(error: unknown) {
+  override componentDidCatch(error: unknown) {
     logger.error('Uncaught error:', error);
     enqueueCrashReport(error, { boundary: 'ChildErrorBoundary' });
   }
@@ -32,7 +32,7 @@ export class ChildErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false });
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       const { largeText, highContrast } = this.context;
       const fontSize = largeText ? 20 : 16;

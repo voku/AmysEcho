@@ -74,9 +74,12 @@ class EmergencyPriorityService {
       confidence,
       timestamp: Date.now(),
       priority: this.calculatePriority(gesture, confidence),
-      context,
       processed: false
     };
+
+    if (context) {
+      emergencyGesture.context = context;
+    }
 
     // Add to queue with priority ordering
     this.addToQueue(emergencyGesture);
@@ -130,9 +133,10 @@ class EmergencyPriorityService {
     criticalCount: number;
     isProcessing: boolean;
   } {
+    const nextGesture = this.emergencyQueue[0];
     return {
       queueLength: this.emergencyQueue.length,
-      nextGesture: this.emergencyQueue[0],
+      ...(nextGesture ? { nextGesture } : {}),
       criticalCount: this.emergencyQueue.filter(g => g.priority === 'critical').length,
       isProcessing: this.isProcessing
     };

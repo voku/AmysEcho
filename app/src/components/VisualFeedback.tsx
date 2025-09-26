@@ -61,6 +61,7 @@ export default function VisualFeedback({
 
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isActive, fadeAnim, scaleAnim, duration]);
 
   if (!isActive) return null;

@@ -111,6 +111,9 @@ export async function scheduleAdaptivePractice(gestureId: string): Promise<void>
     if (quietPeriods.length > 0) {
       // Schedule for the next available quiet period
       const nextQuietPeriod = quietPeriods[0];
+      if (!nextQuietPeriod) {
+        return;
+      }
       const scheduleTime = new Date();
       scheduleTime.setHours(nextQuietPeriod.hour, nextQuietPeriod.minute, 0, 0);
 
@@ -172,7 +175,7 @@ export async function getAmyQuietPeriods(): Promise<Array<{hour: number, minute:
 
     // Find hours with lowest activity
     const hours = Object.keys(hourlyActivity).map(Number);
-    const sortedHours = hours.sort((a, b) => hourlyActivity[a] - hourlyActivity[b]);
+    const sortedHours = hours.sort((a, b) => (hourlyActivity[a] ?? Number.POSITIVE_INFINITY) - (hourlyActivity[b] ?? Number.POSITIVE_INFINITY));
 
     // Return top 3 quietest hours
     return sortedHours.slice(0, 3).map(hour => ({

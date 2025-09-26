@@ -13,7 +13,11 @@
  * - Background processing for improved responsiveness
  */
 
-import { validateGestureWithOpenAI, shouldTriggerOpenAIValidation } from './openaiGestureValidationService';
+import {
+  validateGestureWithOpenAI,
+  shouldTriggerOpenAIValidation,
+  type ValidationRequest,
+} from './openaiGestureValidationService';
 import { computeHandRoi, processDataUrl } from '../utils/imageUtils';
 
 
@@ -146,7 +150,7 @@ class ParallelGestureProcessor {
        // Continue processing but log the validation issues
      }
 
-     const mediapipeResult: GestureResult = {
+    const mediapipeResult: GestureResult = {
       gesture,
       confidence,
       landmarks,
@@ -154,8 +158,11 @@ class ParallelGestureProcessor {
       source: 'mediapipe',
       processingTime: Date.now() - startTime,
       timestamp: startTime,
-      emergency,
     };
+
+    if (typeof emergency === 'boolean') {
+      mediapipeResult.emergency = emergency;
+    }
 
     // Always count MediaPipe results
     this.stats.mediapipeResults++;
@@ -300,7 +307,7 @@ class ParallelGestureProcessor {
       const imageBase64 = await this.convertFrameToBase64(frame, landmarks);
 
       // Call OpenAI validation
-      const validationResult = await validateGestureWithOpenAI({
+      const validationRequest: ValidationRequest = {
         image: {
           uri: `data:image/jpeg;base64,${imageBase64}`,
           base64: imageBase64,
@@ -308,9 +315,15 @@ class ParallelGestureProcessor {
           height: 480,
           timestamp: startTime,
         },
-        expectedGesture: expectedGesture || undefined,
-        mediapipeConfidence: typeof mediapipeConfidenceForOpenAI === 'number' ? mediapipeConfidenceForOpenAI : 0.5,
-      });
+        mediapipeConfidence:
+          typeof mediapipeConfidenceForOpenAI === 'number' ? mediapipeConfidenceForOpenAI : 0.5,
+      };
+
+      if (expectedGesture) {
+        validationRequest.expectedGesture = expectedGesture;
+      }
+
+      const validationResult = await validateGestureWithOpenAI(validationRequest);
 
       if (!validationResult.success) {
         throw new Error(validationResult.error || 'OpenAI validation failed');
@@ -322,9 +335,15 @@ class ParallelGestureProcessor {
         source: 'openai',
         processingTime: Date.now() - startTime,
         timestamp: startTime,
-        feedback: validationResult.feedback,
-        quality_score: validationResult.quality_score,
       };
+
+      if (validationResult.feedback) {
+        openaiResult.feedback = validationResult.feedback;
+      }
+
+      if (validationResult.quality_score !== undefined) {
+        openaiResult.quality_score = validationResult.quality_score;
+      }
 
         this.stats.openaiResults++;
 
@@ -472,15 +491,31 @@ class ParallelGestureProcessor {
       const mergedResult: GestureResult = {
         gesture: this.selectBestGesture(mediapipeResult, openaiResult),
         confidence: Math.max(mediapipeResult.confidence, openaiResult.confidence),
-        landmarks: mediapipeResult.landmarks, // Keep MediaPipe landmarks
-        handedness: mediapipeResult.handedness, // Keep MediaPipe handedness
         source: 'combined',
         processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
         timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
-        emergency: mediapipeResult.emergency,
-        feedback: openaiResult.feedback || mediapipeResult.feedback,
-        quality_score: openaiResult.quality_score,
       };
+
+      if (mediapipeResult.landmarks) {
+        mergedResult.landmarks = mediapipeResult.landmarks;
+      }
+
+      if (mediapipeResult.handedness) {
+        mergedResult.handedness = mediapipeResult.handedness;
+      }
+
+      if (mediapipeResult.emergency !== undefined) {
+        mergedResult.emergency = mediapipeResult.emergency;
+      }
+
+      const feedback = openaiResult.feedback ?? mediapipeResult.feedback;
+      if (feedback) {
+        mergedResult.feedback = feedback;
+      }
+
+      if (openaiResult.quality_score !== undefined) {
+        mergedResult.quality_score = openaiResult.quality_score;
+      }
 
       this.stats.combinedResults++;
 
@@ -672,15 +707,31 @@ class ParallelGestureProcessor {
       const mergedResult: GestureResult = {
         gesture: this.selectBestGesture(mediapipeResult, openaiResult),
         confidence: Math.max(mediapipeResult.confidence, openaiResult.confidence),
-        landmarks: mediapipeResult.landmarks, // Keep MediaPipe landmarks
-        handedness: mediapipeResult.handedness, // Keep MediaPipe handedness
         source: 'combined',
         processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
         timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
-        emergency: mediapipeResult.emergency,
-        feedback: openaiResult.feedback || mediapipeResult.feedback,
-        quality_score: openaiResult.quality_score,
       };
+
+      if (mediapipeResult.landmarks) {
+        mergedResult.landmarks = mediapipeResult.landmarks;
+      }
+
+      if (mediapipeResult.handedness) {
+        mergedResult.handedness = mediapipeResult.handedness;
+      }
+
+      if (mediapipeResult.emergency !== undefined) {
+        mergedResult.emergency = mediapipeResult.emergency;
+      }
+
+      const feedback = openaiResult.feedback ?? mediapipeResult.feedback;
+      if (feedback) {
+        mergedResult.feedback = feedback;
+      }
+
+      if (openaiResult.quality_score !== undefined) {
+        mergedResult.quality_score = openaiResult.quality_score;
+      }
 
       this.stats.combinedResults++;
 

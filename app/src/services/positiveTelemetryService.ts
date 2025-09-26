@@ -96,10 +96,19 @@ class PositiveTelemetryService {
       timestamp: now,
       timeOfDay,
       dayOfWeek,
-      context,
-      emotionalState,
-      duration
     };
+
+    if (context) {
+      successMoment.context = context;
+    }
+
+    if (emotionalState) {
+      successMoment.emotionalState = emotionalState;
+    }
+
+    if (duration !== undefined) {
+      successMoment.duration = duration;
+    }
 
     // Add to success moments
     this.successMoments.push(successMoment);
@@ -160,18 +169,31 @@ class PositiveTelemetryService {
     if (!pattern) return null;
 
     const gestureSuccesses = this.successMoments.filter(m => m.gesture === gesture);
+    if (gestureSuccesses.length === 0) {
+      return null;
+    }
     const averageConfidence = gestureSuccesses.reduce((sum, m) => sum + m.confidence, 0) / gestureSuccesses.length;
 
     const timeOfDayStats = this.getTimeOfDayStats(gesture);
-    const bestTimeOfDay = timeOfDayStats.reduce((best, current) =>
-      current.averageConfidence > best.averageConfidence ? current : best
-    , timeOfDayStats[0])?.timeOfDay || 'morning';
+    const firstTimeStat = timeOfDayStats.find(Boolean) ?? null;
+    const bestTimeOfDayStat = firstTimeStat
+      ? timeOfDayStats.reduce((best, current) =>
+          current.averageConfidence > best.averageConfidence ? current : best,
+          firstTimeStat,
+        )
+      : null;
+    const bestTimeOfDay = bestTimeOfDayStat?.timeOfDay ?? 'morning';
 
     const streaks = this.calculateStreaks(gesture);
     const contextStats = this.getContextStats(gesture);
-    const favoriteContext = contextStats.reduce((best, current) =>
-      current.frequency > best.frequency ? current : best
-    , contextStats[0])?.context;
+    const firstContextStat = contextStats.find(Boolean) ?? null;
+    const favoriteContextStat = firstContextStat
+      ? contextStats.reduce((best, current) =>
+          current.frequency > best.frequency ? current : best,
+          firstContextStat,
+        )
+      : null;
+    const favoriteContext = favoriteContextStat?.context;
 
     return {
       totalSuccesses: gestureSuccesses.length,
@@ -179,7 +201,7 @@ class PositiveTelemetryService {
       bestTimeOfDay,
       currentStreak: streaks.current,
       longestStreak: streaks.longest,
-      favoriteContext
+      ...(favoriteContext ? { favoriteContext } : {})
     };
   }
 
@@ -248,16 +270,24 @@ class PositiveTelemetryService {
       existing.streakCount = this.calculateCurrentStreak(gesture);
     } else {
       // Create new pattern
-      this.successPatterns.set(patternKey, {
+      const newPattern: SuccessPattern = {
         gesture,
         timeOfDay: timeOfDay as any,
         averageConfidence: confidence,
         frequency: 1,
         lastSuccess: Date.now(),
-        bestContext: context,
-        emotionalPattern: emotionalState,
-        streakCount: 1
-      });
+        streakCount: 1,
+      };
+
+      if (context) {
+        newPattern.bestContext = context;
+      }
+
+      if (emotionalState) {
+        newPattern.emotionalPattern = emotionalState;
+      }
+
+      this.successPatterns.set(patternKey, newPattern);
     }
   }
 
@@ -404,9 +434,14 @@ class PositiveTelemetryService {
     let longestStreak = 1;
     let tempStreak = 1;
 
-    for (let i = 1; i < gestureMoments.length; i++) {
-      const prevDate = new Date(gestureMoments[i - 1].timestamp).toDateString();
-      const currDate = new Date(gestureMoments[i].timestamp).toDateString();
+      for (let i = 1; i < gestureMoments.length; i++) {
+        const previousMoment = gestureMoments[i - 1];
+        const currentMoment = gestureMoments[i];
+        if (!previousMoment || !currentMoment) {
+          continue;
+        }
+        const prevDate = new Date(previousMoment.timestamp).toDateString();
+        const currDate = new Date(currentMoment.timestamp).toDateString();
 
       if (prevDate === currDate) {
         tempStreak++;

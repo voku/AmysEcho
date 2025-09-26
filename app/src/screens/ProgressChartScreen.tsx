@@ -76,6 +76,9 @@ export default function ProgressChartScreen({ route }: any) {
                 data.map((d, i) => {
                   if (i === 0) return null;
                   const p1 = data[i - 1];
+                  if (!p1) {
+                    return null;
+                  }
                   const p2 = d;
                   return (
                     <Line

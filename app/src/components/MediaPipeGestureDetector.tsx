@@ -86,7 +86,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
   ref,
 ) => {
   const webviewRef = useRef<any>(null);
-  const clipStateRef = useRef<ClipRequestState>({ id: null, resolve: undefined, reject: undefined, timeout: null });
+  const clipStateRef = useRef<ClipRequestState>({ id: null, timeout: null });
   const [webviewError, setWebviewError] = useState<string | null>(null);
 
   const { injectModel, mlpReadyRef, pendingModelRef, markTransferComplete } = useModelInjection(
@@ -130,8 +130,8 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
   const resetClipState = useCallback(() => {
     clearClipTimeout();
     clipStateRef.current.id = null;
-    clipStateRef.current.resolve = undefined;
-    clipStateRef.current.reject = undefined;
+    delete clipStateRef.current.resolve;
+    delete clipStateRef.current.reject;
   }, [clearClipTimeout]);
 
   const cancelClipCapture = useCallback(() => {

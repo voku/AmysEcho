@@ -13,12 +13,19 @@ export function normalizeLandmarks(landmarks: Point[]): Point[] {
   }
 
   const hand = landmarks.slice(0, HAND_SIZE);
-  const [wx, wy, wz] = hand[WRIST_INDEX];
-  const translated = hand.map(([x, y, z]) => [
-    x - wx,
-    y - wy,
-    (z ?? 0) - (wz ?? 0),
-  ] as Point);
+  const wrist = hand[WRIST_INDEX];
+  if (!wrist) {
+    return [];
+  }
+  const [wx = 0, wy = 0, wzRaw = 0] = wrist;
+  const translated = hand.map((point) => {
+    const [x = 0, y = 0, z = 0] = point ?? [];
+    return [
+      x - wx,
+      y - wy,
+      (z ?? 0) - (wzRaw ?? 0),
+    ] as Point;
+  });
 
   const maxd = translated.reduce(
     (currentMax, [x, y, z]) =>

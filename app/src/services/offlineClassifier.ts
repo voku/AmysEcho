@@ -32,9 +32,14 @@ export function classifyWithCentroids(
     const m = Math.min(q.length, c.length);
     let d = 0;
     for (let i = 0; i < m; i++) {
-      const dx = q[i][0] - c[i][0];
-      const dy = q[i][1] - c[i][1];
-      const dz = q[i][2] - c[i][2];
+      const qPoint = q[i];
+      const cPoint = c[i];
+      if (!qPoint || !cPoint) {
+        continue;
+      }
+      const dx = (qPoint[0] ?? 0) - (cPoint[0] ?? 0);
+      const dy = (qPoint[1] ?? 0) - (cPoint[1] ?? 0);
+      const dz = (qPoint[2] ?? 0) - (cPoint[2] ?? 0);
       d += dx * dx + dy * dy + dz * dz;
     }
     const score = Math.exp(-Math.sqrt(d) / 10);

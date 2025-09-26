@@ -10,7 +10,11 @@ const ENCOURAGEMENT: Record<Emotion, string[]> = {
 class EmotionalResponseService {
   getEncouragement(emotion: Emotion): string {
     const options = ENCOURAGEMENT[emotion];
-    return options[Math.floor(Math.random() * options.length)];
+    if (!options || options.length === 0) {
+      return 'Du machst das super!';
+    }
+    const randomIndex = Math.floor(Math.random() * options.length);
+    return options[randomIndex] ?? 'Du machst das super!';
   }
 
   /**

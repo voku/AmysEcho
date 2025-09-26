@@ -43,14 +43,18 @@ export async function apiRequest<T = any>(
   const startTime = Date.now();
 
   // Prepare request options
+  const timeoutSignal = AbortSignal.timeout ? AbortSignal.timeout(timeout) : null;
   const requestOptions: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
       ...headers
     },
-    signal: AbortSignal.timeout ? AbortSignal.timeout(timeout) : undefined
   };
+
+  if (timeoutSignal) {
+    requestOptions.signal = timeoutSignal;
+  }
 
   if (body && typeof body === 'object') {
     requestOptions.body = JSON.stringify(body);

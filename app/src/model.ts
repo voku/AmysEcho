@@ -85,7 +85,17 @@ export function setActiveVocabularySet(id: string): void {
 }
 
 export function getActiveVocabularySet(): VocabularySet {
-  return availableVocabularySets.find(s => s.id === activeVocabularySetId) || availableVocabularySets[0];
+  const matchedSet = availableVocabularySets.find(s => s.id === activeVocabularySetId);
+  if (matchedSet) {
+    return matchedSet;
+  }
+
+  const fallbackSet = availableVocabularySets[0];
+  if (fallbackSet) {
+    return fallbackSet;
+  }
+
+  throw new Error('Keine aktiven Vokabelsets konfiguriert');
 }
 
 export function getGesturesForVocabularySet(setId: string): GestureModelEntry[] {

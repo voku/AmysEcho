@@ -24,7 +24,10 @@ export async function logHIPEvent(
 ): Promise<void> {
   const raw = await AsyncStorage.getItem(KEY);
   const current: HIPEvent[] = raw ? JSON.parse(raw) : [];
-  const evt: HIPEvent = { id: genId(), hip, type, timestamp: Date.now(), details };
+  const evt: HIPEvent = { id: genId(), hip, type, timestamp: Date.now() };
+  if (details) {
+    evt.details = details;
+  }
   current.push(evt);
   await AsyncStorage.setItem(KEY, JSON.stringify(current));
   // Also push a lightweight telemetry marker

@@ -133,10 +133,11 @@ export class LoggingOptimizationService {
 
     // Process each group
     Object.keys(groupedLogs).forEach(key => {
-      const logs = groupedLogs[key];
-      if (logs.length > 0) {
-        this.processLogGroup(logs);
+      const logsForKey = groupedLogs[key];
+      if (!logsForKey || logsForKey.length === 0) {
+        return;
       }
+      this.processLogGroup(logsForKey);
     });
 
     // Clear processed logs
@@ -157,12 +158,21 @@ export class LoggingOptimizationService {
 
   // Process a group of logs
   private processLogGroup(logs: typeof this.logQueue): void {
+    if (!logs || logs.length === 0) {
+      return;
+    }
     if (logs.length === 1) {
       // Single log - process normally
-      this.processSingleLog(logs[0]);
+      const firstLog = logs[0];
+      if (firstLog) {
+        this.processSingleLog(firstLog);
+      }
     } else {
       // Multiple logs - batch them
       const sampleLog = logs[0];
+      if (!sampleLog) {
+        return;
+      }
       const count = logs.length;
 
       // Log a summary for batched logs
@@ -170,19 +180,26 @@ export class LoggingOptimizationService {
 
       this.logMessage(LogLevel.INFO, LogCategory.PERFORMANCE, summaryMessage, {
         totalLogs: count,
-        sampleMessage: logs[0].message,
+        sampleMessage: sampleLog.message,
         category: sampleLog.category
       });
 
       // Only log first few individual logs if in debug mode
       if (!this.isProduction && logs.length <= 3) {
-        logs.forEach(log => this.processSingleLog(log));
+        logs.forEach(log => {
+          if (log) {
+            this.processSingleLog(log);
+          }
+        });
       }
     }
   }
 
   // Process a single log
   private processSingleLog(log: typeof this.logQueue[0]): void {
+    if (!log) {
+      return;
+    }
     this.logMessage(log.level, log.category, log.message, log.data);
   }
 

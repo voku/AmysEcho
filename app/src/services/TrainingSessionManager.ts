@@ -61,7 +61,10 @@ export class TrainingSessionManager {
 
     // Validate the sample
     const validationResult = validateLandmarkSequence([landmarks.map(hand =>
-      hand.map(lm => [lm[0], lm[1], lm[2] || 0])
+      hand.map(lm => {
+        const [x, y, z] = lm ?? [];
+        return [x ?? 0, y ?? 0, z ?? 0];
+      })
     )]);
 
     // Create sample
@@ -152,7 +155,8 @@ export class TrainingSessionManager {
       (sum, sample) => sum + sample.qualityScore,
       0
     );
-    this.currentSession.averageQuality = totalQuality / this.currentSession.samples.length;
+    const sampleCount = this.currentSession.samples.length || 1;
+    this.currentSession.averageQuality = totalQuality / sampleCount;
   }
 
   /**

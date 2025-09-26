@@ -113,7 +113,11 @@ class GestureHistoryService {
     let streak = 0;
     const now = Date.now();
     for (let i = 0; i < this.history.length; i++) {
-      const timeDiff = now - this.history[i].timestamp;
+      const entry = this.history[i];
+      if (!entry) {
+        break;
+      }
+      const timeDiff = now - entry.timestamp;
       // Consider it part of streak if within 5 minutes
       if (timeDiff < 5 * 60 * 1000) {
         streak++;

@@ -91,14 +91,19 @@ export const useOpenAIValidation = (
           }
         );
 
-        setOpenaiValidationResult({
+        const result: OpenAIValidationResult = {
           gesture: validationResult.finalGesture,
           confidence: validationResult.finalConfidence,
           feedback: validationResult.feedback || 'Geste validiert',
           quality_score: validationResult.quality_score ?? 0,
-          suggestions: validationResult.suggestions,
           validation_source: validationResult.validationSource,
-        });
+        };
+
+        if (validationResult.suggestions) {
+          result.suggestions = validationResult.suggestions;
+        }
+
+        setOpenaiValidationResult(result);
 
         if (validationResult.validationSource !== 'mediapipe') {
           setShowOpenaiFeedback(true);

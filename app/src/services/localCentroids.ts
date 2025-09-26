@@ -124,7 +124,7 @@ const TRAINING_KEY = 'gestureTrainingData';
 
 export async function buildLocalCentroids(): Promise<CentroidMap> {
   const raw = await AsyncStorage.getItem(TRAINING_KEY);
-  let data: Array<{ gestureDefinitionId: string; frames?: FrameData[]; landmarkData?: any }>; // backward compat
+  let data: Array<{ gestureDefinitionId: string; frames?: FrameData[]; landmarkData?: any }> = [];
 
   if (!raw) {
     // Fallback: Use embedded DGS training data
@@ -138,6 +138,10 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
     }
   } else {
     try { data = JSON.parse(raw); } catch { return {}; }
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return {};
   }
 
   const sums: Record<string, { sum: number[][]; count: number }> = {};
@@ -157,18 +161,28 @@ export async function buildLocalCentroids(): Promise<CentroidMap> {
         sums[label] = { sum: flat.map(() => [0, 0, 0]), count: 0 };
       }
       const s = sums[label];
+      if (!s) {
+        continue;
+      }
       for (let i = 0; i < flat.length; i++) {
-        s.sum[i][0] += flat[i][0] || 0;
-        s.sum[i][1] += flat[i][1] || 0;
-        s.sum[i][2] += flat[i][2] || 0;
+        const sampleVector = flat[i];
+        if (!sampleVector) {
+          continue;
+        }
+        const sumEntry = s.sum[i] ?? (s.sum[i] = [0, 0, 0]);
+        const [sampleX = 0, sampleY = 0, sampleZ = 0] = sampleVector;
+        sumEntry[0] = (sumEntry[0] ?? 0) + sampleX;
+        sumEntry[1] = (sumEntry[1] ?? 0) + sampleY;
+        sumEntry[2] = (sumEntry[2] ?? 0) + sampleZ;
       }
       s.count += 1;
     }
   }
   const centroids: CentroidMap = {};
-  for (const [label, { sum, count }] of Object.entries(sums)) {
+  for (const [label, value] of Object.entries(sums)) {
+    const { sum, count } = value;
     if (count > 0) {
-      centroids[label] = sum.map(([x,y,z]) => [x/count, y/count, z/count]);
+      centroids[label] = sum.map(([x = 0, y = 0, z = 0]) => [x / count, y / count, z / count]);
     }
   }
   return centroids;

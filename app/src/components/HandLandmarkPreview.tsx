@@ -85,10 +85,18 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
     const uniqueHands: number[][][] = [];
     for (const hand of validHands) {
       const wrist = hand[0];
+      if (!wrist) {
+        continue;
+      }
+      const [wristX = 0, wristY = 0] = wrist;
       const isDuplicate = uniqueHands.some(existingHand => {
         const existingWrist = existingHand[0];
-        const dx = wrist[0] - existingWrist[0];
-        const dy = wrist[1] - existingWrist[1];
+        if (!existingWrist) {
+          return false;
+        }
+        const [existingX = 0, existingY = 0] = existingWrist;
+        const dx = wristX - existingX;
+        const dy = wristY - existingY;
         return Math.sqrt(dx * dx + dy * dy) < 0.1; // Consider same if wrist within 0.1 units
       });
       if (!isDuplicate) {
@@ -117,20 +125,26 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
     >
       <Svg width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="xMidYMid meet">
         {hands.map((hand, handIndex) => {
-          const color = HAND_COLORS[handIndex % HAND_COLORS.length];
+          const color = HAND_COLORS[handIndex % HAND_COLORS.length] ?? '#ffffff';
           const label = handedness[handIndex]?.toLowerCase();
           const strokeDasharray = label === 'left' ? '2 1' : undefined;
 
           return (
             <G key={`hand-${handIndex}`} testID={`hand-group-${handIndex}`}>
               {HAND_CONNECTIONS.map(([start, end]) => {
-                const startPoint = toLandmark(hand[start]);
-                const endPoint = toLandmark(hand[end]);
+                const startRaw = hand[start];
+                const endRaw = hand[end];
+                if (!startRaw || !endRaw) {
+                  return null;
+                }
+                const startPoint = toLandmark(startRaw);
+                const endPoint = toLandmark(endRaw);
                 if (!startPoint || !endPoint) {
                   return null;
                 }
                 const p1 = projectPoint(startPoint, mirror);
                 const p2 = projectPoint(endPoint, mirror);
+                const lineProps = strokeDasharray ? { strokeDasharray } : undefined;
                 return (
                   <Line
                     key={`hand-${handIndex}-line-${start}-${end}`}
@@ -140,7 +154,7 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
                     y2={p2.y}
                     stroke={color}
                     strokeWidth={0.01}
-                    strokeDasharray={strokeDasharray}
+                    {...lineProps}
                   />
                 );
               })}

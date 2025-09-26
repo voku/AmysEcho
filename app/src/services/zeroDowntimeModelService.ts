@@ -82,8 +82,11 @@ class ZeroDowntimeModelService {
         timestamp: Date.now(),
         size: expectedSize || 0, // Use expected size or 0 if not available
         hash: await this.calculateHash(modelData),
-        performanceMetrics: validationResult.metrics
       };
+
+      if (validationResult.metrics) {
+        newModel.performanceMetrics = validationResult.metrics;
+      }
 
       this.pendingModel = newModel;
 
@@ -243,9 +246,13 @@ class ZeroDowntimeModelService {
    * Download model with progress tracking
    */
   private async downloadModel(url: string, expectedSize?: number): Promise<ArrayBuffer> {
-    const response = await fetch(url, {
-      signal: this.abortController?.signal
-    });
+    const requestOptions: RequestInit = {};
+    const abortSignal = this.abortController?.signal ?? null;
+    if (abortSignal) {
+      requestOptions.signal = abortSignal;
+    }
+
+    const response = await fetch(url, requestOptions);
 
     if (!response.ok) {
       throw new Error(`Download failed: ${response.status}`);

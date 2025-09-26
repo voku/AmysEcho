@@ -160,6 +160,9 @@ export default function TrainingScreen({ navigation, route }: any) {
       }
 
       const lastFrame = framesToAppend[framesToAppend.length - 1];
+      if (!lastFrame) {
+        return;
+      }
       setLandmarks(cloneLandmarks(lastFrame.landmarks));
       setLastDetection(Date.now());
 
@@ -547,15 +550,21 @@ export default function TrainingScreen({ navigation, route }: any) {
                   pointerEvents="none"
                 >
                   {landmarks.map((hand, handIdx) =>
-                    hand.map((l, lmIdx) => (
-                      <Circle
-                        key={`${handIdx}-${lmIdx}`}
-                        cx={l[0] * PREVIEW_SIZE}
-                        cy={l[1] * PREVIEW_SIZE}
-                        r={3}
-                        fill={COLORS.warning}
-                      />
-                    ))
+                    hand.map((l, lmIdx) => {
+                      const [x, y] = l ?? [];
+                      if (typeof x !== 'number' || typeof y !== 'number') {
+                        return null;
+                      }
+                      return (
+                        <Circle
+                          key={`${handIdx}-${lmIdx}`}
+                          cx={x * PREVIEW_SIZE}
+                          cy={y * PREVIEW_SIZE}
+                          r={3}
+                          fill={COLORS.warning}
+                        />
+                      );
+                    })
                   )}
                 </Svg>
               )}

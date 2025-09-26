@@ -8,7 +8,7 @@
  * - Memory-efficient processing
  */
 
-import { validateGestureWithOpenAI } from './openaiGestureValidationService';
+import { validateGestureWithOpenAI, type ValidationRequest } from './openaiGestureValidationService';
 import { logger } from '../utils/logger';
 
 export interface OptimizedGestureResult {
@@ -131,13 +131,17 @@ class OptimizedParallelGestureProcessor {
 
     // Create a simplified fingerprint of the hand pose
     const hand = landmarks[0];
-    if (hand.length < 21) return 'incomplete';
+    if (!hand || hand.length < 21) return 'incomplete';
 
     // Use key landmark positions for fingerprinting
     const keyPoints = [0, 4, 8, 12, 16, 20]; // Wrist, thumb, fingers
     const fingerprint = keyPoints.map(i => {
       const point = hand[i];
-      return `${Math.round(point[0] * 10)},${Math.round(point[1] * 10)}`;
+      if (!point) {
+        return '0,0';
+      }
+      const [x = 0, y = 0] = point;
+      return `${Math.round(x * 10)},${Math.round(y * 10)}`;
     }).join('|');
 
     const confidenceBucket = Math.floor(confidence * 10) / 10; // Round to nearest 0.1
@@ -277,7 +281,7 @@ class OptimizedParallelGestureProcessor {
 
     try {
       const imageBase64 = await this.convertFrameToBase64(frame);
-      const result = await validateGestureWithOpenAI({
+      const validationRequest: ValidationRequest = {
         image: {
           uri: `data:image/jpeg;base64,${imageBase64}`,
           base64: imageBase64,
@@ -285,17 +289,35 @@ class OptimizedParallelGestureProcessor {
           height: 480,
           timestamp: startTime,
         },
-        expectedGesture: expectedGesture || undefined,
         mediapipeConfidence: 0.5,
-      });
+      };
+
+      if (expectedGesture) {
+        validationRequest.expectedGesture = expectedGesture;
+      }
+
+      const result = await validateGestureWithOpenAI(validationRequest);
 
       if (result.success) {
-        return {
+        const response = {
           gesture: result.gesture,
           confidence: result.confidence || 0,
-          feedback: result.feedback,
-          quality_score: result.quality_score,
+        } as {
+          gesture: string | undefined;
+          confidence: number;
+          feedback?: string;
+          quality_score?: number;
         };
+
+        if (result.feedback) {
+          response.feedback = result.feedback;
+        }
+
+        if (result.quality_score !== undefined) {
+          response.quality_score = result.quality_score;
+        }
+
+        return response;
       }
     } catch (error) {
       logger.warn('OpenAI processing failed', error);
@@ -309,7 +331,8 @@ class OptimizedParallelGestureProcessor {
     // This would be implemented based on the actual frame format
     // For WebView canvas capture, it might already be base64
     if (typeof frame === 'string' && frame.startsWith('data:image')) {
-      return frame.split(',')[1];
+      const parts = frame.split(',');
+      return parts[1] ?? '';
     }
 
     if (frame.base64) {

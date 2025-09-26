@@ -63,7 +63,8 @@ class GestureSuggester {
     // Remove duplicates and sort by confidence
     const uniqueSuggestions = this.deduplicateSuggestions(suggestions);
     uniqueSuggestions.forEach(s => {
-      const stats = this.suggestionStats[s.id] || { shown: 0, accepted: 0 };
+      const stats = this.suggestionStats[s.id] ?? { shown: 0, accepted: 0 };
+      this.suggestionStats[s.id] = stats;
       const successRate = stats.shown > 0 ? stats.accepted / stats.shown : 0;
       const weight = 0.5 + successRate / 2;
       s.confidence *= weight;
@@ -74,10 +75,9 @@ class GestureSuggester {
 
     // Track how often suggestions are shown
     sortedSuggestions.forEach(s => {
-      if (!this.suggestionStats[s.id]) {
-        this.suggestionStats[s.id] = { shown: 0, accepted: 0 };
-      }
-      this.suggestionStats[s.id].shown++;
+      const stats = this.suggestionStats[s.id] ?? { shown: 0, accepted: 0 };
+      stats.shown += 1;
+      this.suggestionStats[s.id] = stats;
     });
 
     logger.debug('Gesture suggestions generated:', sortedSuggestions);
@@ -131,7 +131,11 @@ class GestureSuggester {
     // Simple heuristic: compare finger positions
     // This is a simplified version - in a real implementation,
     // you'd use more sophisticated shape analysis
-    const handShape = this.analyzeHandShape(landmarks[0]);
+    const primaryHand = landmarks[0];
+    if (!primaryHand) {
+      return suggestions;
+    }
+    const handShape = this.analyzeHandShape(primaryHand);
 
     // Suggest gestures that might have similar hand shapes
     const shapeMatches: Record<string, string[]> = {
@@ -170,8 +174,16 @@ class GestureSuggester {
 
     let extendedFingers = 0;
     for (let i = 0; i < fingerTips.length; i++) {
-      const tip = landmarks[fingerTips[i]][1];
-      const base = landmarks[fingerBases[i]][1];
+      const tipIndex = fingerTips[i];
+      const baseIndex = fingerBases[i];
+      if (tipIndex === undefined || baseIndex === undefined) {
+        continue;
+      }
+      const tip = landmarks[tipIndex]?.[1];
+      const base = landmarks[baseIndex]?.[1];
+      if (typeof tip !== 'number' || typeof base !== 'number') {
+        continue;
+      }
       if (tip < base) { // Finger extended
         extendedFingers++;
       }
@@ -182,9 +194,9 @@ class GestureSuggester {
     if (extendedFingers === 0) return 'fist';
 
     // Check thumb position for thumbs up
-    const thumbTip = landmarks[4][0];
-    const thumbBase = landmarks[2][0];
-    if (thumbTip > thumbBase) return 'thumbs_up';
+    const thumbTip = landmarks[4]?.[0];
+    const thumbBase = landmarks[2]?.[0];
+    if (typeof thumbTip === 'number' && typeof thumbBase === 'number' && thumbTip > thumbBase) return 'thumbs_up';
 
     return 'unknown';
   }

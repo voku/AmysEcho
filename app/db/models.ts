@@ -2,8 +2,8 @@ import { Model } from '@nozbe/watermelondb';
 import { field, relation, text, date, children, json } from '@nozbe/watermelondb/decorators';
 
 export class Profile extends Model {
-  static table = 'profiles';
-  static associations = {
+  static override table = 'profiles';
+  static override associations = {
     vocabulary_sets: { type: 'belongs_to', key: 'active_vocabulary_set_id' },
   } as const;
 
@@ -18,7 +18,7 @@ export class Profile extends Model {
 }
 
 export class Symbol extends Model {
-  static table = 'symbols';
+  static override table = 'symbols';
 
   @text('name') name!: string;
   @text('icon_name') iconName!: string;
@@ -53,8 +53,8 @@ export class Symbol extends Model {
 }
 
 export class VocabularySet extends Model {
-  static table = 'vocabulary_sets';
-  static associations = {
+  static override table = 'vocabulary_sets';
+  static override associations = {
     vocabulary_set_symbols: { type: 'has_many', foreignKey: 'vocabulary_set_id' },
   } as const;
 
@@ -62,21 +62,21 @@ export class VocabularySet extends Model {
 }
 
 export class UsageStat extends Model {
-  static table = 'usage_stats';
+  static override table = 'usage_stats';
   @relation('profiles', 'profile_id') profile!: any;
   @relation('symbols', 'symbol_id') symbol!: any;
   @field('usage_count') usageCount!: number;
 }
 
 export class VocabularySetSymbol extends Model {
-  static table = 'vocabulary_set_symbols';
+  static override table = 'vocabulary_set_symbols';
   @relation('vocabulary_sets', 'vocabulary_set_id') vocabularySet!: any;
   @relation('symbols', 'symbol_id') symbol!: any;
 }
 
 export class GestureDefinition extends Model {
-  static table = 'gesture_definitions';
-  static associations = {
+  static override table = 'gesture_definitions';
+  static override associations = {
     symbols: { type: 'belongs_to', key: 'symbol_id' },
     gesture_training_data: { type: 'has_many', foreignKey: 'gesture_definition_id' },
   } as const;
@@ -95,8 +95,8 @@ export class GestureDefinition extends Model {
 }
 
 export class GestureTrainingData extends Model {
-  static table = 'gesture_training_data';
-  static associations = {
+  static override table = 'gesture_training_data';
+  static override associations = {
     gesture_definitions: { type: 'belongs_to', key: 'gesture_definition_id' },
   } as const;
   @text('landmark_data') landmarkData!: string;
@@ -109,7 +109,7 @@ export class GestureTrainingData extends Model {
 }
 
 export class InteractionLog extends Model {
-  static table = 'interaction_logs';
+  static override table = 'interaction_logs';
   @text('session_id') sessionId!: string;
   @text('gesture_definition_id') gestureDefinitionId!: string;
   @field('was_successful') wasSuccessful!: boolean;
@@ -122,7 +122,7 @@ export class InteractionLog extends Model {
 }
 
 export class LearningAnalytic extends Model {
-  static table = 'learning_analytics';
+  static override table = 'learning_analytics';
   @text('gesture_definition_id') gestureDefinitionId!: string;
   @field('success_rate_24h') successRate24h!: number;
   @field('success_rate_7d') successRate7d!: number;
@@ -137,7 +137,7 @@ export function sanitizeLandmarks(data: any): any {
 }
 
 export class Correction extends Model {
-  static table = 'corrections';
+  static override table = 'corrections';
 
   @text('predicted_gesture') predictedGesture!: string;
   @text('actual_gesture') actualGesture!: string;
