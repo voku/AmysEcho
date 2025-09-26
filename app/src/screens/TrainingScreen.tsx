@@ -24,24 +24,9 @@ import { childFriendlyStyles } from '../styles/touchTargets';
 import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import PracticeSessionManager from '../components/PracticeSessionManager';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
+import type { ClipReadyPayload, FrameBatchPayload } from '../types/frames';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
-
-type ClipReadyPayload = {
-  id: string;
-  base64: string;
-  mimeType: string;
-  durationMs: number;
-  frameCount: number;
-  capturedAt: string;
-};
-
-type FrameBatchPayload = {
-  frames: string[];
-  landmarks: number[][][][];
-  handednesses?: string[][];
-  timestamps?: number[];
-};
 
 type ExpoFileSystemCompat = typeof FileSystem & {
   cacheDirectory?: string;
@@ -159,7 +144,11 @@ export default function TrainingScreen({ navigation, route }: any) {
         if (!cloned.some((hand) => hand.length > 0)) {
           return;
         }
-        const handedness = adjustHandednessForMirror(handednessBatches[index] ?? [], mirrored);
+        const fallbackLabels: Array<string | undefined> = new Array(cloned.length).fill(undefined);
+        const handedness = adjustHandednessForMirror(
+          handednessBatches[index] ?? fallbackLabels,
+          mirrored,
+        );
         framesToAppend.push({
           landmarks: cloned,
           handedness,
