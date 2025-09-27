@@ -389,7 +389,7 @@ export class PerformanceOptimizationService {
     // In emergency mode, prioritize gesture messages and disable batching optimizations
     if (isEmergencyMode) {
       // Handle gesture messages first and individually for immediate processing
-      const emergencyGestures = groupedMessages.gesture ?? [];
+      const emergencyGestures = groupedMessages['gesture'] ?? [];
       emergencyGestures.forEach(msg => {
           scripts.push(`window.__handleGesture && window.__handleGesture(${JSON.stringify(msg)});`);
       });
@@ -409,27 +409,33 @@ export class PerformanceOptimizationService {
 
     // Normal batching for non-emergency messages
     // Handle telemetry messages specially (most common)
-    if (groupedMessages.telemetry) {
-      const telemetryBatch = (groupedMessages.telemetry ?? []).map(msg =>
-        `window.__handleTelemetry && window.__handleTelemetry(${JSON.stringify(msg.data)});`
-      ).join('\n');
+    const telemetryMessages = groupedMessages['telemetry'] ?? [];
+    if (telemetryMessages.length > 0) {
+      const telemetryBatch = telemetryMessages
+        .map(msg =>
+          `window.__handleTelemetry && window.__handleTelemetry(${JSON.stringify(msg.data)});`
+        )
+        .join('\n');
       scripts.push(telemetryBatch);
     }
 
     // Handle gesture messages
-    if (groupedMessages.gesture) {
-      const gestureBatch = (groupedMessages.gesture ?? []).map(msg =>
-        `window.__handleGesture && window.__handleGesture(${JSON.stringify(msg)});`
-      ).join('\n');
+    const gestureMessages = groupedMessages['gesture'] ?? [];
+    if (gestureMessages.length > 0) {
+      const gestureBatch = gestureMessages
+        .map(msg =>
+          `window.__handleGesture && window.__handleGesture(${JSON.stringify(msg)});`
+        )
+        .join('\n');
       scripts.push(gestureBatch);
     }
 
     // Handle other message types
     Object.keys(groupedMessages).forEach(type => {
       if (type !== 'telemetry' && type !== 'gesture') {
-        const batch = (groupedMessages[type] ?? []).map(msg =>
-          `window.__handleMessage && window.__handleMessage(${JSON.stringify(msg)});`
-        ).join('\n');
+        const batch = (groupedMessages[type] ?? [])
+          .map(msg => `window.__handleMessage && window.__handleMessage(${JSON.stringify(msg)});`)
+          .join('\n');
         scripts.push(batch);
       }
     });

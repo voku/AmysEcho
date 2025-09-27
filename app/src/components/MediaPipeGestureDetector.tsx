@@ -426,7 +426,15 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           if (onWebViewEvent) {
             const messageCount =
               typeof data.messageCount === 'number' ? data.messageCount : messages.length;
-            const telemetry: Record<string, unknown> = {
+            const telemetry: {
+              type: 'telemetry';
+              event: 'gesture_batch_received';
+              batchSize: number;
+              processedCount: number;
+              messageCount?: number;
+              frameCount?: number;
+              lastSentAt?: number;
+            } = {
               type: 'telemetry',
               event: 'gesture_batch_received',
               batchSize: messageCount,

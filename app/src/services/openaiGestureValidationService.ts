@@ -52,8 +52,10 @@ let __rateCount = 0;
 // Defaults: disabled in production, enabled in tests to validate behavior
 const DEFAULT_LIMIT = process.env.NODE_ENV === 'test' ? 5 : 0;
 const DEFAULT_WINDOW_MS = process.env.NODE_ENV === 'test' ? 10_000 : 0;
-const RATE_LIMIT = Number(process.env.EXPO_PUBLIC_OPENAI_RATE_LIMIT ?? DEFAULT_LIMIT);
-const RATE_WINDOW_MS = Number(process.env.EXPO_PUBLIC_OPENAI_RATE_WINDOW_MS ?? DEFAULT_WINDOW_MS);
+const RATE_LIMIT = Number(process.env['EXPO_PUBLIC_OPENAI_RATE_LIMIT'] ?? DEFAULT_LIMIT);
+const RATE_WINDOW_MS = Number(
+  process.env['EXPO_PUBLIC_OPENAI_RATE_WINDOW_MS'] ?? DEFAULT_WINDOW_MS,
+);
 
 function checkRateLimit(): { allowed: boolean; resetMs: number } {
   if (!RATE_LIMIT || !RATE_WINDOW_MS) {
@@ -203,7 +205,7 @@ export async function validateGestureWithOpenAI(
       logger.warn('Validation warnings for gesture request', { warnings: validationResult.warnings });
     }
 
-    const apiToken = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
+    const apiToken = process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
 
     if (!apiToken) {
       throw new Error('Missing API token configuration');

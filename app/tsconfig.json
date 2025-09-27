@@ -26,6 +26,7 @@
     "noImplicitReturns": true,
     "noImplicitOverride": true,
     "useUnknownInCatchVariables": true,
+    "noPropertyAccessFromIndexSignature": true,
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,

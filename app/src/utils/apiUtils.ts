@@ -165,7 +165,7 @@ export async function apiDelete<T = any>(
  * Gets the API base URL from environment
  */
 export function getApiBaseUrl(): string {
-  return process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+  return process.env['EXPO_PUBLIC_API_URL'] || 'http://localhost:5000';
 }
 
 /**
@@ -183,7 +183,7 @@ export function createAuthHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = {};
 
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   return headers;

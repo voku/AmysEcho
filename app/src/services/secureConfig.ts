@@ -50,7 +50,7 @@ class SecureConfigManager {
       return null;
     } catch (error) {
       logger.error('Failed to retrieve API key:', error);
-      return process.env.OPENAI_API_KEY || null;
+      return process.env['OPENAI_API_KEY'] || null;
     }
   }
 

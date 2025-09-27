@@ -45,7 +45,7 @@ export const useOpenAIValidation = (
   const [showOpenaiFeedback, setShowOpenaiFeedback] = useState(false);
   const sessionIdRef = useRef(`session_${Date.now()}`);
   const environment = ((): 'home' | 'school' | 'therapy' => {
-    const env = process.env.EXPO_PUBLIC_DEFAULT_ENVIRONMENT;
+    const env = process.env['EXPO_PUBLIC_DEFAULT_ENVIRONMENT'];
     if (env === 'home' || env === 'school' || env === 'therapy') {
       return env;
     }

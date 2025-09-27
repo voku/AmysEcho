@@ -2,8 +2,8 @@ import { Buffer } from 'buffer';
 import * as FileSystem from 'expo-file-system/legacy';
 import { logger } from '../utils/logger';
 
-const getApiUrl = () => process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-const getApiToken = () => process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
+const getApiUrl = () => process.env['EXPO_PUBLIC_API_URL'] || 'http://localhost:5000';
+const getApiToken = () => process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
 
 const KEY = 'dgsCentroids';
 const MLP_KEY = 'dgsMlpModel';

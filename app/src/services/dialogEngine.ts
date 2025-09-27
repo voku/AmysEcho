@@ -39,8 +39,8 @@ const CACHE_TTL_MS = 30_000; // 30s
 // Lightweight client-side rate limiter (disabled by default)
 let bucketCount = 0;
 let bucketWindowStart = 0;
-let RATE_LIMIT = Number(process.env.EXPO_PUBLIC_DIALOG_RATE_LIMIT || 0); // e.g., 10
-let RATE_WINDOW_MS = Number(process.env.EXPO_PUBLIC_DIALOG_RATE_WINDOW_MS || 0); // e.g., 60_000
+let RATE_LIMIT = Number(process.env['EXPO_PUBLIC_DIALOG_RATE_LIMIT'] || 0); // e.g., 10
+let RATE_WINDOW_MS = Number(process.env['EXPO_PUBLIC_DIALOG_RATE_WINDOW_MS'] || 0); // e.g., 60_000
 
 function checkRate(): boolean {
   if (!RATE_LIMIT || !RATE_WINDOW_MS) return true;
