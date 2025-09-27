@@ -34,7 +34,7 @@ export interface TrainingSample {
   capturedAt: string;
   createdAt: string;
   syncStatus: 'pending' | 'queued' | 'synced';
-  bundleKey?: string;
+  bundleKey?: string | null;
 }
 
 export interface TrainingSampleInput {

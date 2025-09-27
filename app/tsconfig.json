@@ -8,6 +8,11 @@
     "module": "ESNext",
     "rootDir": ".",
     "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "expo-file-system": ["node_modules/expo-file-system/build/index.d.ts"],
+      "expo-file-system/legacy": ["node_modules/expo-file-system/build/legacy/index.d.ts"]
+    },
     "types": [
       "node",
       "jest"
@@ -18,6 +23,12 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "isolatedModules": true
   },

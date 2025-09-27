@@ -44,7 +44,10 @@ export const setupDatabase = async () => {
 
   if (profiles.length > 0) {
     logger.info('Database already populated.');
-    return profiles[0].id;
+    const firstProfile = profiles[0];
+    if (firstProfile) {
+      return firstProfile.id;
+    }
   }
 
   let amyProfileId = '';

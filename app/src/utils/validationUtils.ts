@@ -49,11 +49,16 @@ export function validateWithRules<T>(
     }
   }
 
-  return {
+  const result: ValidationResult = {
     valid: errors.length === 0,
     errors,
-    warnings: warnings.length > 0 ? warnings : undefined
   };
+
+  if (warnings.length > 0) {
+    result.warnings = warnings;
+  }
+
+  return result;
 }
 
 /**
@@ -248,11 +253,16 @@ export function validateApiResponse<T>(
     }
   }
 
-  return {
+  const result: ValidationResult = {
     valid: errors.length === 0,
     errors,
-    warnings: warnings.length > 0 ? warnings : undefined
   };
+
+  if (warnings.length > 0) {
+    result.warnings = warnings;
+  }
+
+  return result;
 }
 
 /**

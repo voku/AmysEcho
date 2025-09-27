@@ -7,10 +7,12 @@ export function flattenHands(hands: number[][][]): number[][] {
   const right = hands?.[1] || [];
   const out: number[][] = [];
   for (let i = 0; i < HAND_LANDMARKS_PER_HAND; i++) {
-    out.push(left[i] ? [...left[i]] : [0, 0, 0]);
+    const point = left[i];
+    out.push(point ? [...point] : [0, 0, 0]);
   }
   for (let i = 0; i < HAND_LANDMARKS_PER_HAND; i++) {
-    out.push(right[i] ? [...right[i]] : [0, 0, 0]);
+    const point = right[i];
+    out.push(point ? [...point] : [0, 0, 0]);
   }
   return out;
 }
@@ -27,8 +29,8 @@ export function flattenHandsWithHandedness(
   } else {
     const leftIndex = handedness.findIndex((h) => /left/i.test(h));
     const rightIndex = handedness.findIndex((h) => /right/i.test(h));
-    left = leftIndex >= 0 ? hands[leftIndex] : [];
-    right = rightIndex >= 0 ? hands[rightIndex] : [];
+    left = leftIndex >= 0 ? hands[leftIndex] ?? [] : [];
+    right = rightIndex >= 0 ? hands[rightIndex] ?? [] : [];
   }
   const out: number[][] = [];
   for (let i = 0; i < HAND_LANDMARKS_PER_HAND; i++) {

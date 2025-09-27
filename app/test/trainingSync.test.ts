@@ -99,7 +99,7 @@ describe('syncTrainingData', () => {
     expect(removeQueuedTrainingBundle).toHaveBeenCalledWith('trainingBundles:amy:test');
     expect(updateTrainingSample).toHaveBeenCalledWith('sample-1', 'amy', {
       syncStatus: 'synced',
-      bundleKey: undefined,
+      bundleKey: null,
     });
     expect(fs.deleteAsync).toHaveBeenCalledWith('file://cache/clip.mp4', { idempotent: true });
     expect(onProgress).toHaveBeenCalledWith(100);

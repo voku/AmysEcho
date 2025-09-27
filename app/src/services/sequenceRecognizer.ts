@@ -18,7 +18,11 @@ export class SequenceRecognizer {
     // Add event and prune > max window while bounding history size
     this.events.push({ g: gesture, t: timestamp });
     const cutoff = timestamp - this.maxWindow;
-    while (this.events.length && this.events[0].t < cutoff) {
+    while (this.events.length) {
+      const first = this.events[0];
+      if (!first || first.t >= cutoff) {
+        break;
+      }
       this.events.shift();
     }
     if (this.events.length > this.maxLen) {
@@ -31,7 +35,12 @@ export class SequenceRecognizer {
       const recent = this.events.slice(-needed);
       if (recent.length < needed) continue;
       const names = recent.map((r) => r.g);
-      if (arraysEqual(names, d.pattern) && recent[recent.length - 1].t - recent[0].t <= d.windowMs) {
+      const lastEvent = recent[recent.length - 1];
+      const firstEvent = recent[0];
+      if (!lastEvent || !firstEvent) {
+        continue;
+      }
+      if (arraysEqual(names, d.pattern) && lastEvent.t - firstEvent.t <= d.windowMs) {
         return d.id;
       }
     }

@@ -9,7 +9,7 @@ import { fetchCentroids, fetchMlpModel } from './dgsModelClient';
 export async function checkForModelUpdate(profileId?: string): Promise<boolean> {
   const net = await NetInfo.fetch();
   const allowCellular =
-    process.env.EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES === 'true';
+    process.env['EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES'] === 'true';
   if (
     !net.isConnected ||
     net.isInternetReachable !== true ||

@@ -27,7 +27,7 @@ export class LazyComponent extends React.Component<LazyComponentProps, LazyCompo
     };
   }
 
-  async componentDidMount() {
+  override async componentDidMount() {
     const { componentName } = this.props;
 
     try {
@@ -50,7 +50,7 @@ export class LazyComponent extends React.Component<LazyComponentProps, LazyCompo
     }
   }
 
-  render() {
+  override render() {
     const { Component, isLoading, error } = this.state;
     const { componentName, fallback: Fallback, loadingProps, ...otherProps } = this.props;
 

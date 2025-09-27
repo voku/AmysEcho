@@ -45,7 +45,7 @@ export const useOpenAIValidation = (
   const [showOpenaiFeedback, setShowOpenaiFeedback] = useState(false);
   const sessionIdRef = useRef(`session_${Date.now()}`);
   const environment = ((): 'home' | 'school' | 'therapy' => {
-    const env = process.env.EXPO_PUBLIC_DEFAULT_ENVIRONMENT;
+    const env = process.env['EXPO_PUBLIC_DEFAULT_ENVIRONMENT'];
     if (env === 'home' || env === 'school' || env === 'therapy') {
       return env;
     }
@@ -91,14 +91,19 @@ export const useOpenAIValidation = (
           }
         );
 
-        setOpenaiValidationResult({
+        const result: OpenAIValidationResult = {
           gesture: validationResult.finalGesture,
           confidence: validationResult.finalConfidence,
           feedback: validationResult.feedback || 'Geste validiert',
           quality_score: validationResult.quality_score ?? 0,
-          suggestions: validationResult.suggestions,
           validation_source: validationResult.validationSource,
-        });
+        };
+
+        if (validationResult.suggestions) {
+          result.suggestions = validationResult.suggestions;
+        }
+
+        setOpenaiValidationResult(result);
 
         if (validationResult.validationSource !== 'mediapipe') {
           setShowOpenaiFeedback(true);

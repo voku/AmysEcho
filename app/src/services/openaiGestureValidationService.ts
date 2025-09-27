@@ -6,7 +6,7 @@
  */
 
 import { Platform } from 'react-native';
-import { logger } from '../utils/logger';
+import { logger, type LogContext } from '../utils/logger';
 import { withErrorHandling } from '../utils/errorUtils';
 import { apiPost, buildApiUrl, createAuthHeaders } from '../utils/apiUtils';
 import { validateWithRules, commonValidationRules, ValidationRule } from '../utils/validationUtils';
@@ -52,8 +52,10 @@ let __rateCount = 0;
 // Defaults: disabled in production, enabled in tests to validate behavior
 const DEFAULT_LIMIT = process.env.NODE_ENV === 'test' ? 5 : 0;
 const DEFAULT_WINDOW_MS = process.env.NODE_ENV === 'test' ? 10_000 : 0;
-const RATE_LIMIT = Number(process.env.EXPO_PUBLIC_OPENAI_RATE_LIMIT ?? DEFAULT_LIMIT);
-const RATE_WINDOW_MS = Number(process.env.EXPO_PUBLIC_OPENAI_RATE_WINDOW_MS ?? DEFAULT_WINDOW_MS);
+const RATE_LIMIT = Number(process.env['EXPO_PUBLIC_OPENAI_RATE_LIMIT'] ?? DEFAULT_LIMIT);
+const RATE_WINDOW_MS = Number(
+  process.env['EXPO_PUBLIC_OPENAI_RATE_WINDOW_MS'] ?? DEFAULT_WINDOW_MS,
+);
 
 function checkRateLimit(): { allowed: boolean; resetMs: number } {
   if (!RATE_LIMIT || !RATE_WINDOW_MS) {
@@ -130,11 +132,16 @@ export async function validateGestureWithOpenAI(
   const startTime = Date.now();
 
   // Set logging context for this validation operation
-  logger.setContext({
+  const validationLogContext: Partial<LogContext> = {
     component: 'OpenAIGestureValidation',
-    gesture: request.expectedGesture,
-    sessionId: request.context?.session_id
-  });
+  };
+  if (request.expectedGesture) {
+    validationLogContext.gesture = request.expectedGesture;
+  }
+  if (request.context?.session_id) {
+    validationLogContext.sessionId = request.context.session_id;
+  }
+  logger.setContext(validationLogContext);
 
   try {
     // Rate limit to protect UX and budgets
@@ -198,7 +205,7 @@ export async function validateGestureWithOpenAI(
       logger.warn('Validation warnings for gesture request', { warnings: validationResult.warnings });
     }
 
-    const apiToken = process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
+    const apiToken = process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
 
     if (!apiToken) {
       throw new Error('Missing API token configuration');
@@ -243,19 +250,28 @@ export async function validateGestureWithOpenAI(
 
     const result: ValidationResponse = {
       success: true,
-      gesture: data.primary_gesture?.gesture,
-      confidence: typeof data.primary_gesture?.confidence === 'number'
-        ? Math.max(0, Math.min(1, data.primary_gesture.confidence))
-        : undefined,
-      feedback: data.primary_gesture?.feedback,
-      quality_score: typeof data.primary_gesture?.quality_score === 'number'
-        ? Math.max(0, Math.min(10, data.primary_gesture.quality_score))
-        : undefined,
-      suggestions: Array.isArray(data.primary_gesture?.suggestions)
-        ? data.primary_gesture.suggestions
-        : undefined,
       processing_time_ms: Date.now() - startTime,
     };
+
+    if (data.primary_gesture?.gesture) {
+      result.gesture = data.primary_gesture.gesture;
+    }
+
+    if (typeof data.primary_gesture?.confidence === 'number') {
+      result.confidence = Math.max(0, Math.min(1, data.primary_gesture.confidence));
+    }
+
+    if (data.primary_gesture?.feedback) {
+      result.feedback = data.primary_gesture.feedback;
+    }
+
+    if (typeof data.primary_gesture?.quality_score === 'number') {
+      result.quality_score = Math.max(0, Math.min(10, data.primary_gesture.quality_score));
+    }
+
+    if (Array.isArray(data.primary_gesture?.suggestions)) {
+      result.suggestions = data.primary_gesture.suggestions;
+    }
 
     // Cache the successful result
     __openaiValidationCache.set(cacheKey, { result, ts: Date.now() });
@@ -431,11 +447,14 @@ export async function validateGestureWithFallback(
   quality_score?: number;
 }> {
   // Set logging context for this validation operation
-  logger.setContext({
+  const fallbackLogContext: Partial<LogContext> = {
     component: 'GestureValidationFallback',
     gesture: mediapipeResult.gesture,
-    sessionId: context?.session_id
-  });
+  };
+  if (context?.session_id) {
+    fallbackLogContext.sessionId = context.session_id;
+  }
+  logger.setContext(fallbackLogContext);
 
   // Start with MediaPipe result
   let finalGesture = mediapipeResult.gesture;
@@ -453,12 +472,18 @@ export async function validateGestureWithFallback(
     });
 
     try {
-      const openaiResult = await validateGestureWithOpenAI({
+      const validationRequest: ValidationRequest = {
         image: imageCapture,
-        expectedGesture: mediapipeResult.gesture,
         mediapipeConfidence: mediapipeResult.confidence,
-        context,
-      });
+      };
+      if (mediapipeResult.gesture) {
+        validationRequest.expectedGesture = mediapipeResult.gesture;
+      }
+      if (context) {
+        validationRequest.context = context;
+      }
+
+      const openaiResult = await validateGestureWithOpenAI(validationRequest);
 
       if (openaiResult.success && openaiResult.confidence !== undefined) {
         // Use OpenAI result if it's more confident or if MediaPipe was very uncertain
@@ -490,14 +515,30 @@ export async function validateGestureWithFallback(
   }
 
   logger.clearContext();
-  return {
+  const outcome: {
+    finalGesture: string;
+    finalConfidence: number;
+    validationSource: 'mediapipe' | 'openai' | 'combined';
+    feedback?: string;
+    suggestions?: string[];
+    quality_score?: number;
+  } = {
     finalGesture,
     finalConfidence,
     validationSource,
-    feedback,
-    suggestions,
-    quality_score,
   };
+
+  if (feedback) {
+    outcome.feedback = feedback;
+  }
+  if (suggestions) {
+    outcome.suggestions = suggestions;
+  }
+  if (quality_score !== undefined) {
+    outcome.quality_score = quality_score;
+  }
+
+  return outcome;
 }
 
 /**

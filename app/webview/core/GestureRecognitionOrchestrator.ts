@@ -353,6 +353,8 @@ export class GestureRecognitionOrchestrator {
       const payload = {
         type: 'FRAME_BATCH',
         landmarks: entries.map((entry) => entry.landmarks),
+        handednesses: entries.map((entry) => entry.handednesses),
+        timestamps: entries.map((entry) => entry.timestamp),
         frames: entries.map((entry) => entry.frame),
       } as const;
 
@@ -361,6 +363,8 @@ export class GestureRecognitionOrchestrator {
         {
           "type": "FRAME_BATCH",
           "landmarks": [...],
+          "handednesses": [...],
+          "timestamps": [...],
           "frames": ["data:image/jpeg;base64,..."]
         }
       */

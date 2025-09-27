@@ -17,14 +17,21 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [themeName, setThemeName] = useState<ThemeName>(DEFAULT_THEME);
-  const [theme, setTheme] = useState<Theme>(THEMES[DEFAULT_THEME]);
+  const defaultTheme = THEMES[DEFAULT_THEME] ?? Object.values(THEMES)[0];
+  if (!defaultTheme) {
+    throw new Error('Kein Standard-Theme verfügbar');
+  }
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
 
   useEffect(() => {
     loadThemeFromStorage();
   }, []);
 
   useEffect(() => {
-    setTheme(THEMES[themeName]);
+    const selectedTheme = THEMES[themeName];
+    if (selectedTheme) {
+      setTheme(selectedTheme);
+    }
   }, [themeName]);
 
   const loadThemeFromStorage = async () => {

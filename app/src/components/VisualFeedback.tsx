@@ -27,40 +27,46 @@ export default function VisualFeedback({
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    if (isActive) {
-      // Start animation
+    if (!isActive) {
+      fadeAnim.stopAnimation();
+      scaleAnim.stopAnimation();
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.8);
+      return;
+    }
+
+    // Start animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Auto-hide after duration
+    const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(fadeAnim, {
-          toValue: 1,
+          toValue: 0,
           duration: 200,
           useNativeDriver: true,
         }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 5,
-          tension: 80,
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
+          duration: 200,
           useNativeDriver: true,
         }),
       ]).start();
+    }, duration);
 
-      // Auto-hide after duration
-      const timer = setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: 0.8,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }, duration);
-
-      return () => clearTimeout(timer);
-    }
+    return () => clearTimeout(timer);
   }, [isActive, fadeAnim, scaleAnim, duration]);
 
   if (!isActive) return null;
@@ -102,10 +108,6 @@ export default function VisualFeedback({
       position: 'absolute',
       top: '50%',
       left: '50%',
-      transform: [
-        { translateX: -75 },
-        { translateY: -25 }
-      ],
       backgroundColor: typeStyles.backgroundColor,
       borderRadius: RADIUS,
       paddingHorizontal: SPACING.md,

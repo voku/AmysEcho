@@ -195,11 +195,22 @@ export class AudioService {
         await new Promise((res) => setTimeout(res, 200));
 
         // expo-speech's speak call is synchronous and uses callbacks for completion
+        const speakOptions: Speech.SpeechOptions = {};
+        if (options.language) {
+          speakOptions.language = options.language;
+        }
+        if (options.pitch !== undefined) {
+          speakOptions.pitch = options.pitch;
+        }
+        if (options.rate !== undefined) {
+          speakOptions.rate = options.rate;
+        }
+        if (options.volume !== undefined) {
+          speakOptions.volume = options.volume;
+        }
+
         Speech.speak(text, {
-          language: options.language,
-          pitch: options.pitch,
-          rate: options.rate,
-          volume: options.volume,
+          ...speakOptions,
           onDone: () => {
             this.isSpeaking = false;
             this.processNextSpeechInQueue();
@@ -335,7 +346,8 @@ export class AudioService {
           'Prima, weiter üben!'
         ];
 
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    const randomIndex = Math.floor(Math.random() * phrases.length);
+    const phrase = phrases[randomIndex] ?? 'Weiter so!';
     if (this.config.enableHaptics) {
       try {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

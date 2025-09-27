@@ -169,8 +169,13 @@ export function parseTwoHandGestureString(gestureString: string): { left: string
     return null;
   }
 
+  const [left, right] = parts;
+  if (!left || !right) {
+    return null;
+  }
+
   return {
-    left: parts[0],
-    right: parts[1]
+    left,
+    right
   };
 }

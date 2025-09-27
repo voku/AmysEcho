@@ -33,11 +33,14 @@ export async function withErrorHandling<T>(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`Error in ${context}: ${errorMessage}`, error);
-    return {
+    const result: ErrorResult<T> = {
       success: false,
       error: errorMessage,
-      data: fallback
     };
+    if (fallback !== undefined) {
+      result.data = fallback;
+    }
+    return result;
   }
 }
 
@@ -55,11 +58,14 @@ export function withSyncErrorHandling<T>(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`Error in ${context}: ${errorMessage}`, error);
-    return {
+    const result: ErrorResult<T> = {
       success: false,
       error: errorMessage,
-      data: fallback
     };
+    if (fallback !== undefined) {
+      result.data = fallback;
+    }
+    return result;
   }
 }
 

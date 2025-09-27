@@ -60,8 +60,12 @@ export function computeHandRoi(
   for (const hand of landmarks) {
     if (!hand || hand.length === 0) continue;
     for (const p of hand) {
-      const x = p[0] * frameWidth;
-      const y = p[1] * frameHeight;
+      const [xNorm, yNorm] = p ?? [];
+      if (typeof xNorm !== 'number' || typeof yNorm !== 'number') {
+        continue;
+      }
+      const x = xNorm * frameWidth;
+      const y = yNorm * frameHeight;
       if (x < minX) minX = x;
       if (y < minY) minY = y;
       if (x > maxX) maxX = x;

@@ -88,9 +88,12 @@ class ContextAwareRecognitionService {
       timeOfDay,
       dayOfWeek,
       location,
-      previousGesture,
       sessionDuration
     };
+
+    if (previousGesture) {
+      context.previousGesture = previousGesture;
+    }
 
     // Add to recent gestures
     this.recentGestures.push(context);
@@ -349,6 +352,9 @@ class ContextAwareRecognitionService {
     if (this.recentGestures.length < 2) return { multiplier: 1.0, reason: 'Not enough sequence data', priority: 'low' };
 
     const lastGesture = this.recentGestures[this.recentGestures.length - 1];
+    if (!lastGesture) {
+      return { multiplier: 1.0, reason: 'Not enough sequence data', priority: 'low' };
+    }
     const timeOfDay = this.getTimeOfDay();
     const prevKey = `${lastGesture.gesture}_${timeOfDay}_${lastGesture.location}`;
     const pattern = this.patterns.get(prevKey);

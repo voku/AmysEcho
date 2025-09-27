@@ -232,7 +232,7 @@ export class ActiveLearningService {
       };
     }
 
-    const topPriority = eligiblePriorities[0];
+    const topPriority = eligiblePriorities[0]!;
 
     // Check if this is a good time for the suggested gesture
     const timeCompatibility = this.checkTimeCompatibility();

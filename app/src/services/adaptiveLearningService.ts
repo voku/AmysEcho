@@ -143,7 +143,10 @@ class EnhancedAdaptiveLearningService {
 
     // Update learning rate (simplified)
     if (metrics.totalAttempts > 5) {
-      const recentAvg = metrics.recentPerformance.reduce((a, b) => a + b, 0) / metrics.recentPerformance.length;
+      const recentTotal = metrics.recentPerformance.reduce((a, b) => a + b, 0);
+      const recentAvg = metrics.recentPerformance.length > 0
+        ? recentTotal / metrics.recentPerformance.length
+        : 0;
       const olderAvg = metrics.averageConfidence;
       metrics.learningRate = recentAvg - olderAvg;
     }
@@ -160,8 +163,12 @@ class EnhancedAdaptiveLearningService {
    * Get or create performance metrics for a gesture
    */
   private getOrCreateMetrics(gesture: string): PerformanceMetrics {
-    if (!this.performanceMetrics.has(gesture)) {
-      this.performanceMetrics.set(gesture, {
+    const existing = this.performanceMetrics.get(gesture);
+    if (existing) {
+      return existing;
+    }
+
+    const created: PerformanceMetrics = {
         gesture,
         totalAttempts: 0,
         successfulAttempts: 0,
@@ -173,9 +180,9 @@ class EnhancedAdaptiveLearningService {
         difficultyLevel: 'beginner',
         lastPracticed: 0,
         masteryThreshold: 0.8
-      });
-    }
-    return this.performanceMetrics.get(gesture)!;
+    };
+    this.performanceMetrics.set(gesture, created);
+    return created;
   }
 
   /**
@@ -234,11 +241,12 @@ class EnhancedAdaptiveLearningService {
 
     // 2. Review recently learned gestures
     const reviewCandidates = this.getReviewCandidates();
-    if (reviewCandidates.length > 0 && recommendations.length < 3) {
+    const [firstReview] = reviewCandidates;
+    if (firstReview && recommendations.length < 3) {
       recommendations.push({
         type: 'review',
-        gesture: reviewCandidates[0],
-        reason: `${reviewCandidates[0]} wiederholen zur Festigung`,
+        gesture: firstReview,
+        reason: `${firstReview} wiederholen zur Festigung`,
         priority: 'medium',
         estimatedTime: 2,
         expectedDifficulty: 'easy',
@@ -248,11 +256,12 @@ class EnhancedAdaptiveLearningService {
 
     // 3. Challenge with advanced gestures (if doing well)
     const challengeCandidates = this.getChallengeCandidates();
-    if (challengeCandidates.length > 0 && recommendations.length < 4) {
+    const [firstChallenge] = challengeCandidates;
+    if (firstChallenge && recommendations.length < 4) {
       recommendations.push({
         type: 'challenge',
-        gesture: challengeCandidates[0],
-        reason: `${challengeCandidates[0]} als neue Herausforderung`,
+        gesture: firstChallenge,
+        reason: `${firstChallenge} als neue Herausforderung`,
         priority: 'medium',
         estimatedTime: 5,
         expectedDifficulty: 'medium',
@@ -403,8 +412,9 @@ class EnhancedAdaptiveLearningService {
           Q.where('health_score', Q.lt(threshold))
         )
         .fetch();
-      if (gestures.length > 0) {
-        return gestures[0];
+      const [firstGesture] = gestures;
+      if (firstGesture) {
+        return firstGesture;
       }
       return null;
     } catch (error) {

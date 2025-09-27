@@ -188,7 +188,10 @@ class PersonalizedConfidenceService {
       else struggling++;
 
       Object.entries(profile.timeOfDayAdjustments).forEach(([time, adjustment]) => {
-        timeOfDayPreferences[time as 'morning' | 'afternoon' | 'evening' | 'night'] += adjustment;
+        const key = time as 'morning' | 'afternoon' | 'evening' | 'night';
+        if (key in timeOfDayPreferences) {
+          timeOfDayPreferences[key] += adjustment;
+        }
       });
     });
 
@@ -242,11 +245,15 @@ class PersonalizedConfidenceService {
   }
 
   private generateReason(adjustments: string[]): string {
-    if (adjustments.length === 1) {
-      return adjustments[0];
+    if (adjustments.length === 0) {
+      return '';
     }
 
-    const primary = adjustments[0];
+    if (adjustments.length === 1) {
+      return adjustments[0] ?? '';
+    }
+
+    const primary = adjustments[0] ?? '';
     const count = adjustments.length - 1;
     return `${primary} (+${count} adjustments)`;
   }

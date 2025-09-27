@@ -72,14 +72,19 @@ class AdaptivePracticeTimingService {
     }
 
     const now = Date.now();
-    this.currentSession = {
+    const session: CommunicationSession = {
       startTime: now,
       duration: 0,
       gesturesCount: 0,
       timeOfDay: this.getTimeOfDay(),
       dayOfWeek: new Date().getDay(),
-      energyLevel
     };
+
+    if (energyLevel) {
+      session.energyLevel = energyLevel;
+    }
+
+    this.currentSession = session;
   }
 
   /**

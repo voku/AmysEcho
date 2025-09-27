@@ -915,8 +915,8 @@ export default function RecognitionScreen({
 
       {/* Amy First: Enhanced Picture-in-Picture guidance for learning during recognition */}
       <PictureInPictureGuidance
-        gestureId={pipGuidanceGesture?.id}
-        videoUri={pipGuidanceGesture?.dgsVideoUri}
+        {...(pipGuidanceGesture?.id ? { gestureId: pipGuidanceGesture.id } : {})}
+        {...(pipGuidanceGesture?.dgsVideoUri ? { videoUri: pipGuidanceGesture.dgsVideoUri } : {})}
         isVisible={showPipGuidance}
         onClose={() => setShowPipGuidance(false)}
         position={getAdaptivePipPosition()}
@@ -994,11 +994,16 @@ export default function RecognitionScreen({
     {showGestureComparison && comparisonAttempt && (
       <GestureComparison
         userAttempt={comparisonAttempt}
-          correctGesture={{
+        correctGesture={(() => {
+          const referenceGesture = optimizedGestureService.getGestureById(pendingGesture || '');
+          return {
             id: pendingGesture || '',
-            label: optimizedGestureService.getGestureById(pendingGesture || '')?.label || 'Unbekannte Geste',
-            dgsVideoUri: optimizedGestureService.getGestureById(pendingGesture || '')?.dgsVideoUri
-          }}
+            label: referenceGesture?.label ?? 'Unbekannte Geste',
+            ...(referenceGesture?.dgsVideoUri
+              ? { dgsVideoUri: referenceGesture.dgsVideoUri }
+              : {}),
+          };
+        })()}
         onClose={handleCloseComparison}
         onTryAgain={handleTryAgainFromComparison}
       />

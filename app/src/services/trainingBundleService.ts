@@ -85,9 +85,10 @@ function buildFrameTimeline(
   return frames.map((frame) => {
     const rawHandedness = Array.from(frame.handedness ?? []);
     const handedness = alignHandednessForTimeline(rawHandedness);
+    const landmarks = Array.isArray(frame.landmarks) ? frame.landmarks : [];
     return {
       handedness,
-      landmarks: flattenHandsWithHandedness(frame.landmarks, rawHandedness),
+      landmarks: flattenHandsWithHandedness(landmarks, rawHandedness),
     };
   });
 }
@@ -117,8 +118,10 @@ function createUuid(): string | undefined {
     const bytes = new Uint8Array(16);
     cryptoImpl.getRandomValues(bytes);
     // Version 4 UUID per RFC 4122
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const sixth = bytes[6] ?? 0;
+    const eighth = bytes[8] ?? 0;
+    bytes[6] = (sixth & 0x0f) | 0x40;
+    bytes[8] = (eighth & 0x3f) | 0x80;
     const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }

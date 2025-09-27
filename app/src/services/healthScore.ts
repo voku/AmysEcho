@@ -46,7 +46,11 @@ export async function shouldPromptPractice(
   opts?: { minSamples?: number; threshold?: number; windowMs?: number; lastN?: number },
 ): Promise<boolean> {
   const { minSamples = 5, threshold = 0.6, windowMs, lastN = 10 } = opts || {};
-  const health = await getGestureHealth(gestureId, { windowMs, lastN });
+  const historyOptions: { windowMs?: number; lastN?: number } = { lastN };
+  if (windowMs !== undefined) {
+    historyOptions.windowMs = windowMs;
+  }
+  const health = await getGestureHealth(gestureId, historyOptions);
   return health.count >= minSamples && health.successRate < threshold;
 }
 
@@ -97,7 +101,11 @@ function calculateTrend(
   let sx2 = 0;
 
   for (let i = 0; i < n; i++) {
-    const y = data[i].successRate;
+    const entry = data[i];
+    if (!entry) {
+      continue;
+    }
+    const y = entry.successRate;
     sx += i;
     sy += y;
     sxy += i * y;

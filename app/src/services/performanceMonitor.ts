@@ -91,12 +91,18 @@ class PerformanceMonitor {
     const sample: PerformanceSample = {
       timestamp: Date.now(),
       processingTime,
-      gesture: gesture || undefined,
       confidence,
       isEmergency,
       success,
-      error
     };
+
+    if (gesture) {
+      sample.gesture = gesture;
+    }
+
+    if (error) {
+      sample.error = error;
+    }
 
     this.samples.push(sample);
 
@@ -280,16 +286,23 @@ class PerformanceMonitor {
     if (values.length === 0) return 0;
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
+    if (sorted.length % 2 === 0) {
+      const lower = sorted[mid - 1];
+      const upper = sorted[mid];
+      if (lower === undefined || upper === undefined) {
+        return lower ?? upper ?? 0;
+      }
+      return (lower + upper) / 2;
+    }
+    return sorted[mid] ?? 0;
   }
 
   private calculatePercentile(values: number[], percentile: number): number {
     if (values.length === 0) return 0;
     const sorted = [...values].sort((a, b) => a - b);
     const index = Math.ceil((percentile / 100) * sorted.length) - 1;
-    return sorted[Math.max(0, index)];
+    const safeIndex = Math.max(0, index);
+    return sorted[safeIndex] ?? 0;
   }
 
   private calculateGestureAccuracy(samples: PerformanceSample[]): Map<string, number> {

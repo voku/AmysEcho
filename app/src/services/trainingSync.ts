@@ -77,6 +77,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     let processed = 0;
     for (const bundle of bundles) {
       try {
+        const uploadOptions = token ? { tokenOverride: token } : {};
         await uploadTrainingBundle(
           {
             label: bundle.label,
@@ -86,13 +87,13 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
             capturedAt: bundle.capturedAt,
             source: 'app://mediapipe',
           },
-          { tokenOverride: token || undefined },
+          uploadOptions,
         );
 
         await removeQueuedTrainingBundle(bundle.key);
         await updateTrainingSample(bundle.sampleId, bundle.profileId, {
           syncStatus: 'synced',
-          bundleKey: undefined,
+          bundleKey: null,
         });
         try {
           await FileSystem.deleteAsync(bundle.clipUri, { idempotent: true });

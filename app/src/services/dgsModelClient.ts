@@ -2,8 +2,8 @@ import { Buffer } from 'buffer';
 import * as FileSystem from 'expo-file-system/legacy';
 import { logger } from '../utils/logger';
 
-const getApiUrl = () => process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-const getApiToken = () => process.env.EXPO_PUBLIC_API_TOKEN || 'demo-token';
+const getApiUrl = () => process.env['EXPO_PUBLIC_API_URL'] || 'http://localhost:5000';
+const getApiToken = () => process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
 
 const KEY = 'dgsCentroids';
 const MLP_KEY = 'dgsMlpModel';
@@ -151,11 +151,19 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   const buf = Buffer.from(await resp.arrayBuffer());
   const b64 = buf.toString('base64');
-  const meta: MlpMeta = {
-    etag: resp.headers.get('ETag') || undefined,
-    checksum: resp.headers.get('X-Checksum-SHA256') || undefined,
-    version: resp.headers.get('X-Model-Version') || undefined,
-  };
+  const meta: MlpMeta = {};
+  const etag = resp.headers.get('ETag');
+  if (etag) {
+    meta.etag = etag;
+  }
+  const checksum = resp.headers.get('X-Checksum-SHA256');
+  if (checksum) {
+    meta.checksum = checksum;
+  }
+  const version = resp.headers.get('X-Model-Version');
+  if (version) {
+    meta.version = version;
+  }
 
   await storage.setItem(cacheKey, b64);
   await storage.setItem(metaKey, JSON.stringify(meta));

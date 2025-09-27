@@ -63,7 +63,11 @@ export class Telemetry {
 
   add(event: string, latencyMs: number, source?: string): Promise<void> {
     return this.enqueue(async () => {
-      this.buffer.push({ timestamp: Date.now(), latencyMs, event, source });
+      const entry: TelemetryEvent = { timestamp: Date.now(), latencyMs, event };
+      if (source !== undefined && source !== null) {
+        entry.source = source;
+      }
+      this.buffer.push(entry);
       if (this.buffer.length > this.MAX) {
         this.buffer.shift();
       }

@@ -671,12 +671,19 @@
       const shapeMatch = headerStr.match(/'shape':\s*\(([^\)]*)\)/);
       if (!dtypeMatch || !fortranMatch || !shapeMatch) throw new Error("npy header");
       const descr = dtypeMatch[1];
+      if (!descr) {
+        throw new Error("npy header missing descriptor");
+      }
       const endian = descr[0];
       if (endian !== "<" && endian !== "|") {
         throw new Error("big-endian dtype not supported");
       }
       const fortran = fortranMatch[1] === "True";
-      const shapeStr = shapeMatch[1].trim();
+      const shapeCaptured = shapeMatch[1];
+      if (!shapeCaptured) {
+        throw new Error("npy header missing shape");
+      }
+      const shapeStr = shapeCaptured.trim();
       let shape = shapeStr.length ? shapeStr.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n)) : [1];
       const offset = headerStart + headerLen;
       const type = descr.slice(1);
@@ -689,19 +696,28 @@
       } else if (type === "f2") {
         const src = new Uint16Array(buf.buffer, buf.byteOffset + offset, size);
         data = new Float32Array(size);
-        for (let i = 0; i < size; i++) data[i] = f16ToF32(src[i]);
+        for (let i = 0; i < size; i++) {
+          const value = src[i] ?? 0;
+          data[i] = f16ToF32(value);
+        }
       } else if (type === "i4") {
         const src = new Int32Array(buf.buffer, buf.byteOffset + offset, size);
         data = new Float32Array(size);
-        for (let i = 0; i < size; i++) data[i] = src[i];
+        for (let i = 0; i < size; i++) {
+          data[i] = src[i] ?? 0;
+        }
       } else if (type === "i2") {
         const src = new Int16Array(buf.buffer, buf.byteOffset + offset, size);
         data = new Float32Array(size);
-        for (let i = 0; i < size; i++) data[i] = src[i];
+        for (let i = 0; i < size; i++) {
+          data[i] = src[i] ?? 0;
+        }
       } else if (type === "u1") {
         const src = new Uint8Array(buf.buffer, buf.byteOffset + offset, size);
         data = new Float32Array(size);
-        for (let i = 0; i < size; i++) data[i] = src[i];
+        for (let i = 0; i < size; i++) {
+          data[i] = src[i] ?? 0;
+        }
       } else if (type.startsWith("U")) {
         const itemSize = parseInt(type.slice(1), 10);
         const raw = new Uint32Array(buf.buffer, buf.byteOffset + offset, size * itemSize);
@@ -711,7 +727,7 @@
           let s = "";
           for (let j = 0; j < itemSize; j++) {
             const code = raw[start + j];
-            if (code === 0) break;
+            if (!code) break;
             s += String.fromCodePoint(code);
           }
           out.push(s);
@@ -721,11 +737,16 @@
         throw new Error("dtype " + type);
       }
       if (fortran && shape.length === 2) {
-        const [rows, cols] = shape;
+        const rows = shape[0];
+        const cols = shape[1];
+        if (rows === void 0 || cols === void 0) {
+          throw new Error("Invalid shape for Fortran array");
+        }
         const newData = new Float32Array(size);
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < cols; j++) {
-            newData[j * rows + i] = data[i * cols + j];
+            const value = data[i * cols + j] ?? 0;
+            newData[j * rows + i] = value;
           }
         }
         data = newData;
@@ -746,12 +767,14 @@
         e++;
         f &= ~1024;
       } else if (e === 31) {
-        const bits3 = s | 2139095040 | f << 13;
-        return new Float32Array(new Uint32Array([bits3]).buffer)[0];
+        const computedBits = s | 2139095040 | f << 13;
+        const view2 = new Float32Array(new Uint32Array([computedBits]).buffer);
+        return view2[0] ?? 0;
       }
       e = e + (127 - 15);
       const bits2 = s | e << 23 | f << 13;
-      return new Float32Array(new Uint32Array([bits2]).buffer)[0];
+      const view = new Float32Array(new Uint32Array([bits2]).buffer);
+      return view[0] ?? 0;
     }
     async function loadMlpFromB64(b64) {
       try {
@@ -796,7 +819,10 @@
         if (entries.length > 32) throw new Error("too many entries");
         const map = {};
         for (const name of entries) {
-          map[name.replace(/.*\//, "")] = files[name];
+          const file = files[name];
+          if (file) {
+            map[name.replace(/.*\//, "")] = file;
+          }
         }
         const w1b = npzFind2(map, "w1");
         const b1b = npzFind2(map, "b1");
@@ -890,19 +916,31 @@
       }
     }
     function relu(x) {
-      for (let i = 0; i < x.length; i++) if (x[i] < 0) x[i] = 0;
+      for (let i = 0; i < x.length; i++) {
+        const value = x[i] ?? 0;
+        if (value < 0) {
+          x[i] = 0;
+        }
+      }
       return x;
     }
     function softmax(x) {
       let max2 = -Infinity;
-      for (let i = 0; i < x.length; i++) if (x[i] > max2) max2 = x[i];
+      for (let i = 0; i < x.length; i++) {
+        const value = x[i] ?? -Infinity;
+        if (value > max2) max2 = value;
+      }
       let s = 0;
       for (let i = 0; i < x.length; i++) {
-        x[i] = Math.exp(x[i] - max2);
-        s += x[i];
+        const value = x[i] ?? 0;
+        const expValue = Math.exp(value - max2);
+        x[i] = expValue;
+        s += expValue;
       }
+      const denom = s || 1;
       for (let i = 0; i < x.length; i++) {
-        x[i] /= s;
+        const current = x[i] ?? 0;
+        x[i] = current / denom;
       }
       return x;
     }
@@ -910,8 +948,13 @@
       const out = new Float32Array(rows);
       for (let r = 0; r < rows; r++) {
         let sum = 0;
-        for (let c = 0; c < cols; c++) sum += mat[r * cols + c] * vec[c];
-        out[r] = sum + bias[r];
+        for (let c = 0; c < cols; c++) {
+          const matValue = mat[r * cols + c] ?? 0;
+          const vecValue = vec[c] ?? 0;
+          sum += matValue * vecValue;
+        }
+        const biasValue = bias[r] ?? 0;
+        out[r] = sum + biasValue;
       }
       return out;
     }
@@ -920,9 +963,16 @@
       const flat = new Float32Array(21 * 2 * 3);
       function normHand(hand) {
         if (!hand || hand.length < 21) return null;
-        const [wx, wy, wz] = hand[0];
+        const wrist = hand[0];
+        if (!wrist) {
+          return null;
+        }
+        const [wx = 0, wy = 0, wz = 0] = wrist;
         const centered = hand.map(
-          (p) => [p[0] - wx, p[1] - wy, p[2] - wz]
+          (p) => {
+            const [x = 0, y = 0, z = 0] = p ?? [0, 0, 0];
+            return [x - wx, y - wy, z - wz];
+          }
         );
         const maxd = centered.reduce(
           (currentMax, [x, y, z]) => Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
@@ -939,17 +989,17 @@
       const rightHandIndex = handednesses?.findIndex(
         (h) => h?.[0]?.categoryName === "Right"
       );
-      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] : null;
-      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] : null;
+      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
+      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
       const left = normHand(leftHand) ?? EMPTY_HAND;
-      const right = normHand(rightHand);
-      const r = right ?? EMPTY_HAND;
-      const both = left.concat(r);
+      const right = normHand(rightHand) ?? EMPTY_HAND;
+      const both = [...left, ...right];
       let k = 0;
       for (const p of both) {
-        flat[k++] = p[0];
-        flat[k++] = p[1];
-        flat[k++] = p[2];
+        const [px = 0, py = 0, pz = 0] = p ?? [0, 0, 0];
+        flat[k++] = px;
+        flat[k++] = py;
+        flat[k++] = pz;
       }
       return flat;
     }
@@ -960,24 +1010,37 @@
         if (!x) return null;
         if (x.every((v) => v === 0)) return null;
         const cols1 = x.length;
-        if (mlp.w1.shape[1] !== cols1) throw new Error("Input dimension mismatch");
-        const rows1 = mlp.w1.shape[0];
-        if (mlp.b1.shape[0] !== rows1) throw new Error("b1 dimension mismatch");
+        const [rows1Raw, cols1Expected] = mlp.w1.shape;
+        const rows1 = rows1Raw ?? 0;
+        if (cols1Expected === void 0 || rows1 === 0) {
+          throw new Error("Invalid w1 shape");
+        }
+        if (cols1Expected !== cols1) throw new Error("Input dimension mismatch");
+        const b1Shape = mlp.b1.shape[0];
+        if (b1Shape === void 0 || b1Shape !== rows1) throw new Error("b1 dimension mismatch");
         const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);
         const a1 = relu(z1);
-        const rows2 = mlp.w2.shape[0];
-        const cols2 = mlp.w2.shape[1];
+        const [rows2Raw, cols2] = mlp.w2.shape;
+        const rows2 = rows2Raw ?? 0;
+        if (cols2 === void 0 || rows2 === 0) {
+          throw new Error("Invalid w2 shape");
+        }
         if (cols2 !== a1.length) throw new Error("Hidden layer size mismatch");
-        if (mlp.b2.shape[0] !== rows2) throw new Error("b2 dimension mismatch");
+        const b2Shape = mlp.b2.shape[0];
+        if (b2Shape === void 0 || b2Shape !== rows2) throw new Error("b2 dimension mismatch");
         const z2 = affineMV(mlp.w2.data, rows2, cols2, a1, mlp.b2.data);
         const probs = softmax(z2);
         let bestI = 0;
-        let best = probs[0];
+        let best = probs[0] ?? -Infinity;
         for (let i = 1; i < probs.length; i++) {
-          if (probs[i] > best) {
-            best = probs[i];
+          const value = probs[i] ?? -Infinity;
+          if (value > best) {
+            best = value;
             bestI = i;
           }
+        }
+        if (!Number.isFinite(best)) {
+          return null;
         }
         const label = mlp.labels?.[bestI] ?? String(bestI);
         return { label, score: best };
@@ -4431,10 +4494,10 @@
       try {
         const payload = {
           type: "FRAME_BATCH",
-          frames: entries.map((entry) => entry.frame),
           landmarks: entries.map((entry) => entry.landmarks),
           handednesses: entries.map((entry) => entry.handednesses),
-          timestamps: entries.map((entry) => entry.timestamp)
+          timestamps: entries.map((entry) => entry.timestamp),
+          frames: entries.map((entry) => entry.frame)
         };
         messageBatcher.queueMessage(payload, { flushImmediately: false });
       } catch (error) {

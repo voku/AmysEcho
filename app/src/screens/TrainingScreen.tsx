@@ -62,8 +62,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     sessionDuration: number;
   } | null>(null);
   const [practiceMode, setPracticeMode] = useState(false);
-  // Keep the facing mode in one place so overlays and recordings stay aligned if we add a toggle.
-  const facingMode: 'user' | 'environment' = 'user';
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
   const clipRequestIdRef = useRef<string | null>(null);
   const clipFileRef = useRef<string | null>(null);
@@ -160,6 +159,9 @@ export default function TrainingScreen({ navigation, route }: any) {
       }
 
       const lastFrame = framesToAppend[framesToAppend.length - 1];
+      if (!lastFrame) {
+        return;
+      }
       setLandmarks(cloneLandmarks(lastFrame.landmarks));
       setLastDetection(Date.now());
 
@@ -172,6 +174,13 @@ export default function TrainingScreen({ navigation, route }: any) {
     },
     [facingMode],
   );
+
+  const toggleFacingMode = useCallback(() => {
+    void hapticFeedback.light();
+    setFacingMode((current) => (current === 'user' ? 'environment' : 'user'));
+    setLandmarks([]);
+    setLastDetection(0);
+  }, []);
 
   const startRecording = useCallback(async () => {
     if (!gestureId) return;
@@ -333,6 +342,33 @@ export default function TrainingScreen({ navigation, route }: any) {
       height: PREVIEW_SIZE,
       marginBottom: SPACING.sm,
       position: 'relative',
+    },
+    cameraHeader: {
+      width: PREVIEW_SIZE,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: SPACING.xs,
+    },
+    cameraLabel: {
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontSize: largeText ? 16 : 14,
+      marginRight: SPACING.sm,
+      flexShrink: 1,
+    },
+    cameraToggle: {
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      borderRadius: RADIUS,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: SPACING.xs,
+    },
+    cameraTogglePressed: {
+      opacity: 0.85,
+    },
+    cameraToggleText: {
+      color: highContrast ? COLORS.highContrastBackground : COLORS.highContrastText,
+      fontSize: largeText ? 14 : 12,
+      fontWeight: '600',
     },
     camera: {
       flex: 1,
@@ -501,6 +537,26 @@ export default function TrainingScreen({ navigation, route }: any) {
               </View>
             ) : null;
           })()}
+          <View style={styles.cameraHeader}>
+            <Text style={styles.cameraLabel}>
+              {`Aktive Kamera: ${facingMode === 'user' ? 'Vorderseite' : 'Rückseite'}`}
+            </Text>
+            <Pressable
+              onPress={toggleFacingMode}
+              accessibilityRole="button"
+              accessibilityLabel="Kamera wechseln"
+              accessibilityHint="Zwischen Vorder- und Rückkamera umschalten"
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.cameraToggle,
+                pressed && styles.cameraTogglePressed,
+              ]}
+            >
+              <Text style={styles.cameraToggleText}>
+                {facingMode === 'user' ? 'Zur Rückkamera' : 'Zur Frontkamera'}
+              </Text>
+            </Pressable>
+          </View>
               <View style={styles.cameraContainer}>
               <MediaPipeGestureDetector
                 ref={detectorRef}
@@ -547,15 +603,21 @@ export default function TrainingScreen({ navigation, route }: any) {
                   pointerEvents="none"
                 >
                   {landmarks.map((hand, handIdx) =>
-                    hand.map((l, lmIdx) => (
-                      <Circle
-                        key={`${handIdx}-${lmIdx}`}
-                        cx={l[0] * PREVIEW_SIZE}
-                        cy={l[1] * PREVIEW_SIZE}
-                        r={3}
-                        fill={COLORS.warning}
-                      />
-                    ))
+                    hand.map((l, lmIdx) => {
+                      const [x, y] = l ?? [];
+                      if (typeof x !== 'number' || typeof y !== 'number') {
+                        return null;
+                      }
+                      return (
+                        <Circle
+                          key={`${handIdx}-${lmIdx}`}
+                          cx={x * PREVIEW_SIZE}
+                          cy={y * PREVIEW_SIZE}
+                          r={3}
+                          fill={COLORS.warning}
+                        />
+                      );
+                    })
                   )}
                 </Svg>
               )}

@@ -151,12 +151,16 @@ export function getThemeMessage(themeName: string, type: MessageType): string {
   const themeMessages = THEME_MESSAGES[themeName as keyof typeof THEME_MESSAGES];
   if (!themeMessages) {
     // Fallback to classic theme
-    const classicMessages = THEME_MESSAGES.classic[type];
-    return classicMessages[Math.floor(Math.random() * classicMessages.length)];
+    const classicMessages = THEME_MESSAGES.classic[type] ?? THEME_MESSAGES.classic.success;
+    const fallbackMessages = classicMessages ?? [];
+    const randomIndex = Math.floor(Math.random() * Math.max(1, fallbackMessages.length));
+    return fallbackMessages[randomIndex] ?? 'Super gemacht!';
   }
 
   const messages = themeMessages[type];
-  return messages[Math.floor(Math.random() * messages.length)];
+  const pool = messages ?? THEME_MESSAGES.classic[type] ?? THEME_MESSAGES.classic.success;
+  const randomIndex = Math.floor(Math.random() * Math.max(1, pool.length));
+  return pool[randomIndex] ?? 'Super gemacht!';
 }
 
 // Hook for components to get theme-based messages

@@ -13,7 +13,11 @@
  * - Background processing for improved responsiveness
  */
 
-import { validateGestureWithOpenAI, shouldTriggerOpenAIValidation } from './openaiGestureValidationService';
+import {
+  validateGestureWithOpenAI,
+  shouldTriggerOpenAIValidation,
+  type ValidationRequest,
+} from './openaiGestureValidationService';
 import { computeHandRoi, processDataUrl } from '../utils/imageUtils';
 
 
@@ -146,7 +150,7 @@ class ParallelGestureProcessor {
        // Continue processing but log the validation issues
      }
 
-     const mediapipeResult: GestureResult = {
+    const mediapipeResult: GestureResult = {
       gesture,
       confidence,
       landmarks,
@@ -154,8 +158,11 @@ class ParallelGestureProcessor {
       source: 'mediapipe',
       processingTime: Date.now() - startTime,
       timestamp: startTime,
-      emergency,
     };
+
+    if (typeof emergency === 'boolean') {
+      mediapipeResult.emergency = emergency;
+    }
 
     // Always count MediaPipe results
     this.stats.mediapipeResults++;
@@ -300,7 +307,11 @@ class ParallelGestureProcessor {
       const imageBase64 = await this.convertFrameToBase64(frame, landmarks);
 
       // Call OpenAI validation
-      const validationResult = await validateGestureWithOpenAI({
+      const hasFiniteConfidence =
+        typeof mediapipeConfidenceForOpenAI === 'number' &&
+        Number.isFinite(mediapipeConfidenceForOpenAI);
+
+      const validationRequest: ValidationRequest = {
         image: {
           uri: `data:image/jpeg;base64,${imageBase64}`,
           base64: imageBase64,
@@ -308,9 +319,16 @@ class ParallelGestureProcessor {
           height: 480,
           timestamp: startTime,
         },
-        expectedGesture: expectedGesture || undefined,
-        mediapipeConfidence: typeof mediapipeConfidenceForOpenAI === 'number' ? mediapipeConfidenceForOpenAI : 0.5,
-      });
+        mediapipeConfidence: hasFiniteConfidence
+          ? Math.max(0, Math.min(1, mediapipeConfidenceForOpenAI as number))
+          : 0.5,
+      };
+
+      if (expectedGesture) {
+        validationRequest.expectedGesture = expectedGesture;
+      }
+
+      const validationResult = await validateGestureWithOpenAI(validationRequest);
 
       if (!validationResult.success) {
         throw new Error(validationResult.error || 'OpenAI validation failed');
@@ -322,9 +340,15 @@ class ParallelGestureProcessor {
         source: 'openai',
         processingTime: Date.now() - startTime,
         timestamp: startTime,
-        feedback: validationResult.feedback,
-        quality_score: validationResult.quality_score,
       };
+
+      if (validationResult.feedback) {
+        openaiResult.feedback = validationResult.feedback;
+      }
+
+      if (validationResult.quality_score !== undefined) {
+        openaiResult.quality_score = validationResult.quality_score;
+      }
 
         this.stats.openaiResults++;
 
@@ -453,41 +477,32 @@ class ParallelGestureProcessor {
     }
   }
 
-  /**
-   * Attempt to merge MediaPipe and OpenAI results intelligently
-   */
-  // (Removed duplicate simple attemptResultMerging)
-  /* private attemptResultMerging(
+  private mergeOptionalResultFields(
+    target: GestureResult,
     mediapipeResult: GestureResult,
-    openaiResult: GestureResult
+    openaiResult: GestureResult,
   ): void {
-    // Only merge if results are reasonably close in time
-    const timeDiff = Math.abs(openaiResult.timestamp - mediapipeResult.timestamp);
-    if (timeDiff > 1000) return; // Don't merge if more than 1 second apart
-
-    // Determine if merging makes sense
-    const shouldMerge = this.shouldMergeResults(mediapipeResult, openaiResult);
-
-    if (shouldMerge) {
-      const mergedResult: GestureResult = {
-        gesture: this.selectBestGesture(mediapipeResult, openaiResult),
-        confidence: Math.max(mediapipeResult.confidence, openaiResult.confidence),
-        landmarks: mediapipeResult.landmarks, // Keep MediaPipe landmarks
-        handedness: mediapipeResult.handedness, // Keep MediaPipe handedness
-        source: 'combined',
-        processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
-        timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
-        emergency: mediapipeResult.emergency,
-        feedback: openaiResult.feedback || mediapipeResult.feedback,
-        quality_score: openaiResult.quality_score,
-      };
-
-      this.stats.combinedResults++;
-
-      // Emit merged result (this would need to be connected to the UI)
-      this.emitMergedResult(mergedResult);
+    if (mediapipeResult.landmarks) {
+      target.landmarks = mediapipeResult.landmarks;
     }
-  } */
+
+    if (mediapipeResult.handedness) {
+      target.handedness = mediapipeResult.handedness;
+    }
+
+    if (mediapipeResult.emergency !== undefined) {
+      target.emergency = mediapipeResult.emergency;
+    }
+
+    const feedback = openaiResult.feedback ?? mediapipeResult.feedback;
+    if (feedback) {
+      target.feedback = feedback;
+    }
+
+    if (openaiResult.quality_score !== undefined) {
+      target.quality_score = openaiResult.quality_score;
+    }
+  }
 
   /**
    * Determine if two results should be merged
@@ -666,21 +681,18 @@ class ParallelGestureProcessor {
     }
 
     // Determine if merging makes sense
-    const shouldMerge = this.shouldMergeResults(mediapipeResult, openaiResult);
+      const shouldMerge = this.shouldMergeResults(mediapipeResult, openaiResult);
 
-    if (shouldMerge) {
-      const mergedResult: GestureResult = {
-        gesture: this.selectBestGesture(mediapipeResult, openaiResult),
+      if (shouldMerge) {
+        const mergedResult: GestureResult = {
+          gesture: this.selectBestGesture(mediapipeResult, openaiResult),
         confidence: Math.max(mediapipeResult.confidence, openaiResult.confidence),
-        landmarks: mediapipeResult.landmarks, // Keep MediaPipe landmarks
-        handedness: mediapipeResult.handedness, // Keep MediaPipe handedness
         source: 'combined',
-        processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
-        timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
-        emergency: mediapipeResult.emergency,
-        feedback: openaiResult.feedback || mediapipeResult.feedback,
-        quality_score: openaiResult.quality_score,
-      };
+          processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
+          timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
+        };
+
+        this.mergeOptionalResultFields(mergedResult, mediapipeResult, openaiResult);
 
       this.stats.combinedResults++;
 
@@ -777,23 +789,23 @@ class ParallelGestureProcessor {
     const recommendations: string[] = [];
 
     if (performanceReport.metrics.averageProcessingTime > 50) {
-      recommendations.push('Consider reducing processing load or optimizing MediaPipe configuration');
+      recommendations.push('Erwägen Sie, die Verarbeitungslast zu reduzieren oder die MediaPipe-Konfiguration zu optimieren');
     }
 
     if (emergencyResponseTime > 30) {
-      recommendations.push('Emergency response time exceeds Amy First target of 30ms');
+      recommendations.push('Die Notfall-Reaktionszeit überschreitet das Amy‑First‑Ziel von 30 ms');
     }
 
     if (errorRate > 0.1) {
-      recommendations.push('High error rate detected - check OpenAI API connectivity');
+      recommendations.push('Hohe Fehlerrate erkannt – OpenAI‑API‑Konnektivität prüfen');
     }
 
     if (concurrentLoad > this.options.maxConcurrentRequests * 0.8) {
-      recommendations.push('Approaching concurrent request limit - consider increasing maxConcurrentRequests');
+      recommendations.push('Grenze für gleichzeitige Anfragen wird erreicht – Erhöhung von maxConcurrentRequests in Erwägung ziehen');
     }
 
     if (cacheEfficiency < 0.3) {
-      recommendations.push('Low cache efficiency - results may not be optimally reused');
+      recommendations.push('Niedrige Cache‑Effizienz – Ergebnisse werden möglicherweise nicht optimal wiederverwendet');
     }
 
     return {
