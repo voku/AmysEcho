@@ -36,9 +36,9 @@ export class PerformanceOptimizationService {
   private static instance: PerformanceOptimizationService;
   private metrics: PerformanceMetrics;
   private messageBatch: WebViewMessageBatch;
-  private batchTimer: NodeJS.Timeout | null = null;
-  private memoryCleanupTimer: NodeJS.Timeout | null = null;
-  private batteryCheckTimer: NodeJS.Timeout | null = null;
+  private batchTimer: ReturnType<typeof setInterval> | null = null;
+  private memoryCleanupTimer: ReturnType<typeof setInterval> | null = null;
+  private batteryCheckTimer: ReturnType<typeof setInterval> | null = null;
   private isLowPowerMode = false;
   private webviewRefs: Set<any> = new Set();
 
@@ -357,11 +357,11 @@ export class PerformanceOptimizationService {
     // Group messages by type for better processing
     const groupedMessages = this.groupMessagesByType(messages);
 
+    const batchScript = this.createOptimizedBatchScript(groupedMessages, isEmergencyMode);
+
     this.webviewRefs.forEach(webview => {
       try {
         if (webview && webview.injectJavaScript) {
-          // Create optimized batch script
-          const batchScript = this.createOptimizedBatchScript(groupedMessages, isEmergencyMode);
           webview.injectJavaScript(batchScript);
         }
       } catch (error) {
@@ -409,7 +409,7 @@ export class PerformanceOptimizationService {
 
     // Normal batching for non-emergency messages
     // Handle telemetry messages specially (most common)
-    const telemetryMessages = groupedMessages['telemetry'] ?? [];
+    const telemetryMessages = (groupedMessages['telemetry'] ?? []).filter(msg => msg?.data !== undefined);
     if (telemetryMessages.length > 0) {
       const telemetryBatch = telemetryMessages
         .map(msg =>
@@ -436,7 +436,9 @@ export class PerformanceOptimizationService {
         const batch = (groupedMessages[type] ?? [])
           .map(msg => `window.__handleMessage && window.__handleMessage(${JSON.stringify(msg)});`)
           .join('\n');
-        scripts.push(batch);
+        if (batch) {
+          scripts.push(batch);
+        }
       }
     });
 
@@ -499,7 +501,12 @@ export class PerformanceOptimizationService {
     for (let i = 1; i < flattened.length; i++) {
       const current = flattened[i];
       const previous = flattened[i - 1];
-      if (typeof current !== 'number' || typeof previous !== 'number') {
+      if (
+        typeof current !== 'number' ||
+        typeof previous !== 'number' ||
+        !Number.isFinite(current) ||
+        !Number.isFinite(previous)
+      ) {
         continue;
       }
       deltas.push(current - previous);
@@ -527,7 +534,7 @@ export class PerformanceOptimizationService {
       const previous = coords[i - 1];
       const deltaValue = deltas[i];
       if (previous === undefined || !Number.isFinite(previous) || typeof deltaValue !== 'number' || !Number.isFinite(deltaValue)) {
-        continue;
+        break; // abort on first invalid delta to avoid drifting shapes
       }
       coords.push(previous + deltaValue);
     }
