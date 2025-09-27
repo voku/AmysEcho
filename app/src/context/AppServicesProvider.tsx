@@ -2,7 +2,7 @@ import { runDailyJobs, checkAllGesturesForDecliningAccuracy, checkPracticeRecomm
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect, useMemo } from 'react';
 import { audioService, backupService, checkForModelUpdate, syncService, syncTrainingData, gestureDataProtector, gdprService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -12,6 +12,7 @@ import { logger } from '../utils/logger';
 import { uploadTelemetry } from '../services';
 import { telemetry } from '../telemetry/recorder';
 import { useServicesStore, type Services } from '../stores/servicesStore';
+import { ServicesContext } from './ServicesContext';
 
 interface ProviderProps {
   children: ReactNode;
@@ -22,7 +23,14 @@ const services: Services = { audioService, adaptiveLearningService, backupServic
 
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const { setMessage } = useMessage();
-  const { setServices, setReady, isReady } = useServicesStore();
+  const setServices = useServicesStore((state) => state.setServices);
+  const setReady = useServicesStore((state) => state.setReady);
+  const isReady = useServicesStore((state) => state.isReady);
+  const audioServiceInstance = useServicesStore((state) => state.audioService);
+  const adaptiveLearningServiceInstance = useServicesStore((state) => state.adaptiveLearningService);
+  const backupServiceInstance = useServicesStore((state) => state.backupService);
+  const gestureDataProtectorInstance = useServicesStore((state) => state.gestureDataProtector);
+  const gdprServiceInstance = useServicesStore((state) => state.gdprService);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -121,9 +129,26 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     };
   }, [offline, setMessage, setReady, setServices]);
 
+  const contextValue = useMemo(
+    () => ({
+      audioService: audioServiceInstance,
+      adaptiveLearningService: adaptiveLearningServiceInstance,
+      backupService: backupServiceInstance,
+      gestureDataProtector: gestureDataProtectorInstance,
+      gdprService: gdprServiceInstance,
+    }),
+    [
+      audioServiceInstance,
+      adaptiveLearningServiceInstance,
+      backupServiceInstance,
+      gestureDataProtectorInstance,
+      gdprServiceInstance,
+    ],
+  );
+
   if (!isReady) {
     return <LoadingIndicator />;
   }
 
-  return <>{children}</>;
+  return <ServicesContext.Provider value={contextValue}>{children}</ServicesContext.Provider>;
 };

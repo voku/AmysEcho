@@ -123,6 +123,7 @@ jest.mock('../src/services/dailyJobs', () => ({
 
 
 const { AppServicesProvider } = require('../src/context/AppServicesProvider');
+const { useServices } = require('../src/context/ServicesContext');
 const ErrorMessage = require('../src/components/ErrorMessage').default;
 const { MessageProvider } = require('../src/context/MessageContext');
 
@@ -377,6 +378,28 @@ describe('AppServicesProvider', () => {
 
     await expectEventually(() => {
       expect(audioServiceMock.dispose).toHaveBeenCalled();
+    });
+  });
+
+  it('provides initialized services through context', async () => {
+    audioServiceMock.initialize.mockResolvedValueOnce();
+
+    const Consumer = () => {
+      const services = useServices();
+      return (
+        <div
+          data-audio-service-ready={services.audioService?.initialize === audioServiceMock.initialize}
+        />
+      );
+    };
+
+    const component = await renderProvider({ child: <Consumer /> });
+
+    await expectEventually(() => {
+      const nodes = component.root.findAll(
+        (node) => node.props['data-audio-service-ready'] === true,
+      );
+      expect(nodes.length).toBeGreaterThan(0);
     });
   });
 });
