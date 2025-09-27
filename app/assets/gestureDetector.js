@@ -4495,6 +4495,8 @@
         const payload = {
           type: "FRAME_BATCH",
           landmarks: entries.map((entry) => entry.landmarks),
+          handednesses: entries.map((entry) => entry.handednesses),
+          timestamps: entries.map((entry) => entry.timestamp),
           frames: entries.map((entry) => entry.frame)
         };
         messageBatcher.queueMessage(payload, { flushImmediately: false });

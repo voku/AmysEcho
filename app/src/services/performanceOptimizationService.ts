@@ -498,18 +498,14 @@ export class PerformanceOptimizationService {
       return '';
     }
     const deltas: number[] = [firstValue]; // First value as-is
+    let lastValid = firstValue;
     for (let i = 1; i < flattened.length; i++) {
       const current = flattened[i];
-      const previous = flattened[i - 1];
-      if (
-        typeof current !== 'number' ||
-        typeof previous !== 'number' ||
-        !Number.isFinite(current) ||
-        !Number.isFinite(previous)
-      ) {
+      if (typeof current !== 'number' || !Number.isFinite(current)) {
         continue;
       }
-      deltas.push(current - previous);
+      deltas.push(current - lastValid);
+      lastValid = current;
     }
 
     // Quantize to reduce precision (adaptive based on low power mode)
