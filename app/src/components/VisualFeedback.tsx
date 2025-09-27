@@ -28,6 +28,10 @@ export default function VisualFeedback({
 
   useEffect(() => {
     if (!isActive) {
+      fadeAnim.stopAnimation();
+      scaleAnim.stopAnimation();
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.8);
       return;
     }
 

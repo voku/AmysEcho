@@ -307,6 +307,10 @@ class ParallelGestureProcessor {
       const imageBase64 = await this.convertFrameToBase64(frame, landmarks);
 
       // Call OpenAI validation
+      const hasFiniteConfidence =
+        typeof mediapipeConfidenceForOpenAI === 'number' &&
+        Number.isFinite(mediapipeConfidenceForOpenAI);
+
       const validationRequest: ValidationRequest = {
         image: {
           uri: `data:image/jpeg;base64,${imageBase64}`,
@@ -315,10 +319,9 @@ class ParallelGestureProcessor {
           height: 480,
           timestamp: startTime,
         },
-        mediapipeConfidence:
-          typeof mediapipeConfidenceForOpenAI === 'number'
-            ? Math.max(0, Math.min(1, mediapipeConfidenceForOpenAI))
-            : 0.5,
+        mediapipeConfidence: hasFiniteConfidence
+          ? Math.max(0, Math.min(1, mediapipeConfidenceForOpenAI as number))
+          : 0.5,
       };
 
       if (expectedGesture) {
