@@ -9,7 +9,11 @@ jest.mock('react-native', () => {
     View: createElement('View'),
     Text: createElement('Text'),
     Pressable: createElement('Pressable'),
-    StyleSheet: { create: (styles: any) => styles, absoluteFill: { position: 'absolute' } },
+    StyleSheet: {
+      create: (styles: any) => styles,
+      absoluteFill: { position: 'absolute' },
+      flatten: (styles: any) => styles,
+    },
     SafeAreaView: createElement('SafeAreaView'),
     AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
   } as any;
@@ -18,6 +22,20 @@ jest.mock('react-native', () => {
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));
+
+jest.mock('../../src/context/ThemeContext', () => {
+  const actualThemes = jest.requireActual('../../src/constants/themes');
+  const theme = actualThemes.THEMES[actualThemes.DEFAULT_THEME];
+
+  return {
+    useTheme: () => ({
+      theme,
+      themeName: actualThemes.DEFAULT_THEME,
+      setTheme: jest.fn(),
+      availableThemes: actualThemes.THEMES,
+    }),
+  };
+});
 
 jest.mock('../../src/context/MessageContext', () => ({
   useMessage: () => ({ setMessage: jest.fn() }),
