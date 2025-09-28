@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function ParentalGateScreen({ route, navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -36,7 +37,7 @@ export default function ParentalGateScreen({ route, navigation }: any) {
       justifyContent: 'center',
       alignItems: 'center',
       padding: SPACING.lg,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 28 : 24,
@@ -87,7 +88,7 @@ export default function ParentalGateScreen({ route, navigation }: any) {
   });
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground style={styles.container}>
       <Text style={styles.title}>{problem}</Text>
       <TextInput
         style={styles.input}
@@ -154,6 +155,6 @@ export default function ParentalGateScreen({ route, navigation }: any) {
           Zurück
         </Text>
       </Pressable>
-    </View>
+    </ScreenBackground>
   );
 }

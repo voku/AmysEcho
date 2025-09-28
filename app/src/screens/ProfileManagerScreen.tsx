@@ -16,6 +16,7 @@ import { childHaptic } from '../services/feedbackService';
 import GestureHistoryViewer from '../components/GestureHistoryViewer';
 import ProfileAnalytics from '../components/ProfileAnalytics';
 import { gestureHistoryService } from '../services/gestureHistoryService';
+import ScreenBackground from '../components/ScreenBackground';
 
 
 export default function ProfileManagerScreen({ navigation, route }: any) {
@@ -273,7 +274,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
   };
 
   const styles = StyleSheet.create({
-    container: { flex: 1, padding: SPACING.lg, backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface },
+    container: { flex: 1, padding: SPACING.lg, backgroundColor: 'transparent' },
     title: { fontSize: largeText ? 28 : 24, marginBottom: SPACING.lg, textAlign: 'center', color: highContrast ? COLORS.highContrastText : COLORS.text },
     row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
     name: { fontSize: largeText ? 22 : 18, color: highContrast ? COLORS.highContrastText : COLORS.text },
@@ -390,7 +391,8 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
   });
 
   return (
-    <View style={styles.container}>
+    <>
+      <ScreenBackground style={styles.container}>
       <Text style={styles.title}>Profile</Text>
 
       {/* Trusted Device Section */}
@@ -629,58 +631,62 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
         </View>
 
         <FlatList
-        data={profiles}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Pressable
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.button,
-                highContrast && styles.buttonHC,
-                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-              ]}
-              onPress={() => {
-                void childHaptic();
-                handleSelect(item.id);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`Profil ${item.name} auswählen`}
-            >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
-                Auswählen
-              </Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.button,
-                highContrast && styles.buttonHC,
-                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-              ]}
-              onPress={() => {
-                void childHaptic();
-                handleDelete(item.id);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`Profil ${item.name} löschen`}
-            >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
-                Löschen
-              </Text>
-            </Pressable>
-          </View>
-        )}
-      />
+          data={profiles}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.row}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void childHaptic();
+                  handleSelect(item.id);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Profil ${item.name} auswählen`}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  Auswählen
+                </Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void childHaptic();
+                  handleDelete(item.id);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Profil ${item.name} löschen`}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  Löschen
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        />
       <Pressable
         style={({ pressed }) => [
           childFriendlyStyles.minTouchTarget,
@@ -703,37 +709,37 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
           Neues Profil
         </Text>
       </Pressable>
-       {/* Gesture History Overlay */}
-       {showGestureHistory && (
-         <View style={styles.overlay}>
-           <GestureHistoryViewer
-             gestureHistory={gestureHistory}
-             onClose={() => setShowGestureHistory(false)}
-             onGestureSelect={(gesture) => {
-               // Could navigate to practice this specific gesture
-               setShowGestureHistory(false);
-               navigation.navigate('Training', { gestureLabel: gesture.id });
-             }}
-           />
-         </View>
-       )}
+        {/* Gesture History Overlay */}
+        {showGestureHistory && (
+          <View style={styles.overlay}>
+            <GestureHistoryViewer
+              gestureHistory={gestureHistory}
+              onClose={() => setShowGestureHistory(false)}
+              onGestureSelect={(gesture) => {
+                // Could navigate to practice this specific gesture
+                setShowGestureHistory(false);
+                navigation.navigate('Training', { gestureLabel: gesture.id });
+              }}
+            />
+          </View>
+        )}
 
-       {/* Profile Analytics Overlay */}
-       {showProfileAnalytics && profileStats && (
-         <View style={styles.overlay}>
-           <ProfileAnalytics
-             stats={profileStats}
-             onClose={() => setShowProfileAnalytics(false)}
-             onViewDetails={() => {
-               // Could show more detailed analytics
-               setShowProfileAnalytics(false);
-             }}
-           />
-         </View>
-       )}
-
-       {profileId && <BottomNav active="parent" profileId={profileId} />}
-     </View>
-   );
- }
+        {/* Profile Analytics Overlay */}
+        {showProfileAnalytics && profileStats && (
+          <View style={styles.overlay}>
+            <ProfileAnalytics
+              stats={profileStats}
+              onClose={() => setShowProfileAnalytics(false)}
+              onViewDetails={() => {
+                // Could show more detailed analytics
+                setShowProfileAnalytics(false);
+              }}
+            />
+          </View>
+        )}
+      </ScreenBackground>
+      {profileId && <BottomNav active="parent" profileId={profileId} />}
+    </>
+  );
+}
 

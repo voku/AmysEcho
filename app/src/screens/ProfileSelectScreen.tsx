@@ -4,6 +4,7 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function ProfileSelectScreen({ navigation }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -19,10 +20,7 @@ export default function ProfileSelectScreen({ navigation }: any) {
       justifyContent: 'center',
       alignItems: 'center',
       padding: SPACING.lg,
-      backgroundColor: COLORS.surface,
-    },
-    containerHC: {
-      backgroundColor: COLORS.highContrastBackground,
+      backgroundColor: 'transparent',
     },
     title: {
       fontSize: 24,
@@ -123,7 +121,7 @@ export default function ProfileSelectScreen({ navigation }: any) {
   );
 
   return (
-    <View style={[styles.container, highContrast && styles.containerHC]}>
+    <ScreenBackground style={styles.container}>
       <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
         Was möchtest du tun?
       </Text>
@@ -157,6 +155,6 @@ export default function ProfileSelectScreen({ navigation }: any) {
           accessibilityLabel="Profile verwalten"
         />
       </View>
-    </View>
+    </ScreenBackground>
   );
 }

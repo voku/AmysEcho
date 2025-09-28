@@ -8,6 +8,7 @@ import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
 import { childHaptic } from '../services/feedbackService';
 import { childFriendlyStyles } from '../styles/touchTargets';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function PracticeSchedulerScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -30,7 +31,7 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
   }, []);
 
   const styles = StyleSheet.create({
-    container: { flex: 1, padding: SPACING.lg, backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface },
+    container: { flex: 1, padding: SPACING.lg, backgroundColor: 'transparent' },
     title: { fontSize: largeText ? 24 : 20, marginBottom: SPACING.md, color: highContrast ? COLORS.highContrastText : COLORS.text },
     row: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm },
     label: { color: highContrast ? COLORS.highContrastText : COLORS.text, marginRight: SPACING.sm },
@@ -97,76 +98,97 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
   });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Übungsplaner</Text>
-      <View style={styles.row}>
-        <Text style={styles.label}>Geste</Text>
-        <FlatList
-          data={gestureModel.gestures}
-          horizontal
-          keyExtractor={(g) => g.id}
-          renderItem={({ item }) => (
-             <Pressable
-               style={({ pressed }) => [
-                 childFriendlyStyles.minTouchTarget,
-                 styles.gestureButton,
-                 highContrast && styles.gestureButtonHC,
-                 gestureId === item.id && (highContrast ? styles.gestureButtonSelectedHC : styles.gestureButtonSelected),
-                 pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-               ]}
-               onPress={() => {
-                 void childHaptic();
-                 setGestureId(item.id);
-               }}
-               accessibilityRole="button"
-               accessibilityLabel={`Geste ${item.label} auswählen`}
-               accessibilityState={{ selected: gestureId === item.id }}
-             >
-               <Text style={[
-                 styles.buttonText,
-                 largeText && styles.buttonTextLarge,
-                 highContrast && styles.buttonTextHC,
-                 gestureId === item.id && highContrast && { color: COLORS.highContrastBackground },
-               ]}>
-                 {item.label}
-               </Text>
-             </Pressable>
-           )}
-          style={{ maxHeight: 44 }}
-        />
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Zeit (24h)</Text>
-        <TextInput style={styles.input} keyboardType="number-pad" value={hour} onChangeText={setHour} accessibilityLabel="Stunde" />
-        <Text style={styles.label}>:</Text>
-        <TextInput style={styles.input} keyboardType="number-pad" value={minute} onChangeText={setMinute} accessibilityLabel="Minute" />
-        <Pressable
-          style={({ pressed }) => [
-            childFriendlyStyles.minTouchTarget,
-            styles.button,
-            highContrast && styles.buttonHC,
-            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-          ]}
-          onPress={async () => {
-            void childHaptic();
-            const h = Math.max(0, Math.min(23, parseInt(hour || '0', 10)));
-            const m = Math.max(0, Math.min(59, parseInt(minute || '0', 10)));
-            await addSchedule({ gestureId, hour: h, minute: m, daysOfWeek: days, enabled: true } as any);
-            setDays([]);
-            await load();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Plan hinzufügen"
-        >
-          <Text style={[
-            styles.buttonText,
-            largeText && styles.buttonTextLarge,
-            highContrast && styles.buttonTextHC,
-          ]}>
-            Hinzufügen
-          </Text>
-        </Pressable>
-      </View>
+    <>
+      <ScreenBackground style={styles.container}>
+        <Text style={styles.title}>Übungsplaner</Text>
+        <View style={styles.row}>
+          <Text style={styles.label}>Geste</Text>
+          <FlatList
+            data={gestureModel.gestures}
+            horizontal
+            keyExtractor={(g) => g.id}
+            renderItem={({ item }) => (
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.gestureButton,
+                  highContrast && styles.gestureButtonHC,
+                  gestureId === item.id &&
+                    (highContrast
+                      ? styles.gestureButtonSelectedHC
+                      : styles.gestureButtonSelected),
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void childHaptic();
+                  setGestureId(item.id);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Geste ${item.label} auswählen`}
+                accessibilityState={{ selected: gestureId === item.id }}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                    gestureId === item.id &&
+                      highContrast && { color: COLORS.highContrastBackground },
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            )}
+            style={{ maxHeight: 44 }}
+          />
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Zeit (24h)</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="number-pad"
+            value={hour}
+            onChangeText={setHour}
+            accessibilityLabel="Stunde"
+          />
+          <Text style={styles.label}>:</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="number-pad"
+            value={minute}
+            onChangeText={setMinute}
+            accessibilityLabel="Minute"
+          />
+          <Pressable
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.button,
+              highContrast && styles.buttonHC,
+              pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+            ]}
+            onPress={async () => {
+              void childHaptic();
+              const h = Math.max(0, Math.min(23, parseInt(hour || '0', 10)));
+              const m = Math.max(0, Math.min(59, parseInt(minute || '0', 10)));
+              await addSchedule({ gestureId, hour: h, minute: m, daysOfWeek: days, enabled: true } as any);
+              setDays([]);
+              await load();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Plan hinzufügen"
+          >
+            <Text
+              style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}
+            >
+              Hinzufügen
+            </Text>
+          </Pressable>
+        </View>
 
       <View style={styles.row}>
         <Text style={styles.label}>Tage</Text>
@@ -204,65 +226,70 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
                 : 'täglich'})
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Switch value={item.enabled} onValueChange={async (v) => { await setScheduleEnabled(item.id, v); await load(); }} />
-               <Pressable
-                 style={({ pressed }) => [
-             {
-              minWidth: 60,
-              minHeight: 60,
-              padding: SPACING.sm,
-              alignItems: 'center',
-              justifyContent: 'center',
-            },
-                   styles.button,
-                   highContrast && styles.buttonHC,
-                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                 ]}
-                 onPress={async () => {
-                   void childHaptic();
-                   await removeSchedule(item.id);
-                   await load();
-                 }}
-                 accessibilityRole="button"
-                 accessibilityLabel="Plan löschen"
-               >
-                 <Text style={[
-                   styles.buttonText,
-                   largeText && styles.buttonTextLarge,
-                   highContrast && styles.buttonTextHC,
-                 ]}>
-                   Löschen
-                 </Text>
-               </Pressable>
+              <Switch
+                value={item.enabled}
+                onValueChange={async (v) => {
+                  await setScheduleEnabled(item.id, v);
+                  await load();
+                }}
+              />
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={async () => {
+                  void childHaptic();
+                  await removeSchedule(item.id);
+                  await load();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Plan löschen"
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  Löschen
+                </Text>
+              </Pressable>
             </View>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.label}>Keine Pläne</Text>}
       />
 
-      <Pressable
-        style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
-          styles.button,
-          highContrast && styles.buttonHC,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
-        onPress={() => {
-          void childHaptic();
-          navigation.goBack();
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Zurück"
-      >
-        <Text style={[
-          styles.buttonText,
-          largeText && styles.buttonTextLarge,
-          highContrast && styles.buttonTextHC,
-        ]}>
-          Zurück
-        </Text>
-      </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            childFriendlyStyles.minTouchTarget,
+            styles.button,
+            highContrast && styles.buttonHC,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          onPress={() => {
+            void childHaptic();
+            navigation.goBack();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Zurück"
+        >
+          <Text
+            style={[
+              styles.buttonText,
+              largeText && styles.buttonTextLarge,
+              highContrast && styles.buttonTextHC,
+            ]}
+          >
+            Zurück
+          </Text>
+        </Pressable>
+      </ScreenBackground>
       {profile && <BottomNav active="schedule" profileId={profile.id} />}
-    </View>
+    </>
   );
 }

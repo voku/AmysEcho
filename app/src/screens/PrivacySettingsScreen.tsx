@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import PrivacySettings from '../components/PrivacySettings';
 import BottomNav from '../components/BottomNav';
+import ScreenBackground from '../components/ScreenBackground';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -16,15 +17,18 @@ export default function PrivacySettingsScreen({
   };
 
   return (
-    <View style={styles.container}>
-      <PrivacySettings onClose={handleClose} />
+    <>
+      <ScreenBackground style={styles.container}>
+        <PrivacySettings onClose={handleClose} />
+      </ScreenBackground>
       <BottomNav active="parent" profileId="default" />
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
 });
