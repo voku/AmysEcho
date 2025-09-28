@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
 
@@ -52,7 +52,7 @@ export default function ProfileAnalytics({
   const styles = StyleSheet.create({
     container: {
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.lg,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
@@ -80,7 +80,7 @@ export default function ProfileAnalytics({
     },
     performanceCard: {
       backgroundColor: highContrast ? COLORS.surface : 'rgba(0, 0, 0, 0.05)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.lg,
       alignItems: 'center',
@@ -146,7 +146,7 @@ export default function ProfileAnalytics({
     },
     mostUsedCard: {
       backgroundColor: highContrast ? COLORS.surface : 'rgba(0, 0, 0, 0.05)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.lg,
     },
@@ -173,7 +173,7 @@ export default function ProfileAnalytics({
     button: {
       flex: 1,
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
     },
     detailsButton: {

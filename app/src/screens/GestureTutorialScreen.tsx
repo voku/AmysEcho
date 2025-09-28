@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 
 export default function GestureTutorialScreen({ navigation }: any) {
@@ -31,7 +31,7 @@ export default function GestureTutorialScreen({ navigation }: any) {
     button: {
       backgroundColor: COLORS.primaryAccent,
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 120,
       alignItems: 'center',
       marginTop: SPACING.lg,

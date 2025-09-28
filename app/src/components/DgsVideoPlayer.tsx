@@ -3,7 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Text, Pressable } from 'react-nati
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { logger } from '../utils/logger';
-import { COLORS, RADIUS } from '../constants/ui';
+import { COLORS, DEFAULT_RADIUS } from '../constants/ui';
 
 const TEXT = {
   dgsVideo: 'DGS-Video',
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     backgroundColor: COLORS.highContrastBackground,
-    borderRadius: RADIUS * 2,
+    borderRadius: DEFAULT_RADIUS * 2,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     backgroundColor: COLORS.highContrastBackground,
-    borderRadius: RADIUS,
+    borderRadius: DEFAULT_RADIUS,
   },
   controlText: {
     color: COLORS.highContrastText,

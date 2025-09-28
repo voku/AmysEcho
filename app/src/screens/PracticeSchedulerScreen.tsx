@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, Switch, Pressable } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { addSchedule, listSchedules, removeSchedule, setScheduleEnabled, PracticeSchedule } from '../services/practiceScheduler';
 import { gestureModel } from '../model';
 import BottomNav from '../components/BottomNav';
@@ -49,7 +49,7 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
     button: {
       backgroundColor: COLORS.primaryAccent,
       padding: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 80,
       alignItems: 'center',
       marginHorizontal: SPACING.xs,
@@ -79,7 +79,7 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
       borderWidth: 1,
       borderColor: COLORS.primaryAccent,
       padding: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 80,
       alignItems: 'center',
       marginHorizontal: SPACING.xs,

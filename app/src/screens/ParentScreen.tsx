@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 
 export default function ParentScreen({ navigation }: any) {
@@ -55,7 +55,7 @@ export default function ParentScreen({ navigation }: any) {
     button: {
       backgroundColor: COLORS.primaryAccent,
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
       minHeight: 48,
     },

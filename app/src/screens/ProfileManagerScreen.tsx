@@ -6,7 +6,7 @@ import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../stora
 import { Profile as DBProfile } from '../../db/models';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { database } from '../../db';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 import SoundSelector from '../components/SoundSelector';
 import BottomNav from '../components/BottomNav';
@@ -328,7 +328,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
     button: {
       backgroundColor: COLORS.primaryAccent,
       padding: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 80,
       alignItems: 'center',
       marginHorizontal: SPACING.xs,
@@ -368,7 +368,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       marginTop: SPACING.sm,
       padding: SPACING.sm,
       backgroundColor: highContrast ? COLORS.surface : 'rgba(0, 0, 0, 0.05)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
     },
     statsText: {
       fontSize: largeText ? 14 : 12,

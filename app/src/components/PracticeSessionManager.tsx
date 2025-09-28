@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 
@@ -65,7 +65,7 @@ export default function PracticeSessionManager({
       left: SPACING.md,
       right: SPACING.md,
       backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.95)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
@@ -90,7 +90,7 @@ export default function PracticeSessionManager({
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: difficulty.color,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       paddingHorizontal: SPACING.xs,
       paddingVertical: 2,
     },
@@ -112,7 +112,7 @@ export default function PracticeSessionManager({
     },
     progressContainer: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.sm,
     },
     progressText: {

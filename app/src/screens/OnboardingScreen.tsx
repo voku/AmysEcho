@@ -15,7 +15,7 @@ import {
   setActiveVocabularySet,
 } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logHIPEvent } from '../services/hipEvents';
 
 export default function OnboardingScreen({ navigation }: any) {
@@ -61,7 +61,7 @@ export default function OnboardingScreen({ navigation }: any) {
       marginBottom: SPACING.lg,
       width: '100%',
       backgroundColor: COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
     },
     heart: { fontSize: largeText ? 80 : 64, textAlign: 'center', marginBottom: SPACING.lg, color: highContrast ? COLORS.highContrastText : COLORS.text },
     title: { fontSize: largeText ? 32 : 24, textAlign: 'center', marginBottom: SPACING.lg, color: highContrast ? COLORS.highContrastText : COLORS.text },

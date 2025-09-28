@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 
 interface PerformanceMetrics {
@@ -46,7 +46,7 @@ export default function PerformanceAnalytics({
   const styles = StyleSheet.create({
     container: {
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.lg,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
@@ -72,7 +72,7 @@ export default function PerformanceAnalytics({
       marginBottom: SPACING.lg,
       padding: SPACING.md,
       backgroundColor: highContrast ? COLORS.surface : 'rgba(0, 0, 0, 0.05)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
     },
     ratingEmoji: {
       fontSize: largeText ? 32 : 28,
@@ -111,7 +111,7 @@ export default function PerformanceAnalytics({
     button: {
       flex: 1,
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
     },
     retryButton: {

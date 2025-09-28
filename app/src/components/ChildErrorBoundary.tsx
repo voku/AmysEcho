@@ -1,7 +1,7 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { AccessibilityContext } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { enqueueCrashReport } from '../services/crashReporting';
 import { logger } from '../utils/logger';
 
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   button: {
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
-    borderRadius: RADIUS,
+    borderRadius: DEFAULT_RADIUS,
   },
   buttonText: {
     textAlign: 'center',

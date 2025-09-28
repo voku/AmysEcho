@@ -10,7 +10,7 @@ import { Pressable, Text, StyleSheet } from 'react-native';
 // Local imports
 import { Symbol } from '../../db/models';
 import { useAccessibility } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   button: {
     padding: SPACING.md,
     margin: SPACING.sm,
-    borderRadius: RADIUS,
+    borderRadius: DEFAULT_RADIUS,
     borderWidth: 1,
     minWidth: 120,
     alignItems: 'center',

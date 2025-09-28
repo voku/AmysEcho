@@ -15,7 +15,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
 import { useTheme } from '../context/ThemeContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import activeLearningService, { PracticeSuggestion as PracticeSuggestionType } from '../services/activeLearningService';
 
 interface PracticeSuggestionProps {
@@ -106,7 +106,7 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
     },
     container: {
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: RADIUS * 2,
+      borderRadius: DEFAULT_RADIUS * 2,
       padding: SPACING.lg,
       margin: SPACING.lg,
       maxWidth: '85%',
@@ -143,7 +143,7 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
     },
     benefits: {
       backgroundColor: highContrast ? COLORS.textMuted : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.md,
     },
@@ -172,7 +172,7 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
       flex: 1,
       paddingVertical: SPACING.md,
       paddingHorizontal: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
       marginHorizontal: SPACING.xs,
     },

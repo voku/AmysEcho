@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
 
@@ -51,7 +51,7 @@ export default function ParentalGateScreen({ route, navigation }: any) {
       padding: SPACING.sm,
       textAlign: 'center',
       marginBottom: SPACING.lg,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       fontSize: largeText ? 20 : 16,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
@@ -59,7 +59,7 @@ export default function ParentalGateScreen({ route, navigation }: any) {
     button: {
       backgroundColor: COLORS.primaryAccent,
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 100,
       alignItems: 'center',
       marginBottom: SPACING.sm,

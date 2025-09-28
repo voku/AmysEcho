@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 
 const TEXT = {
   savedTitle: 'Einstellungen gespeichert',
@@ -80,7 +80,7 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
     },
     settingItem: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.sm,
       borderWidth: highContrast ? 2 : 1,
@@ -136,7 +136,7 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
       backgroundColor: highContrast ? COLORS.primaryAccent : '#FFF3CD',
       paddingHorizontal: SPACING.sm,
       paddingVertical: SPACING.xs,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       marginLeft: SPACING.sm,
     },
     essentialText: {
@@ -157,7 +157,7 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
       alignItems: 'center',
       padding: SPACING.sm,
       marginHorizontal: SPACING.xs,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       borderWidth: 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
     },
@@ -175,7 +175,7 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
     saveButton: {
       backgroundColor: highContrast ? COLORS.primaryAccent : COLORS.primaryAccent,
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
       marginTop: SPACING.md,
     },
@@ -186,7 +186,7 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
     },
     privacyNotice: {
       backgroundColor: highContrast ? COLORS.surface : '#E3F2FD',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginTop: SPACING.md,
       borderWidth: highContrast ? 2 : 1,
