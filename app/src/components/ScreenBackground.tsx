@@ -47,8 +47,8 @@ export default function ScreenBackground({
   );
 
   const contentStyle = React.useMemo(
-    () => [basePadding, styles.scrollContainer, style, contentContainerStyle],
-    [basePadding, contentContainerStyle, style],
+    () => [basePadding, styles.scrollContainer, contentContainerStyle],
+    [basePadding, contentContainerStyle],
   );
 
   if (scrollable) {

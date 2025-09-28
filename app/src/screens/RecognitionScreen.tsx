@@ -11,7 +11,6 @@ import {
   AccessibilityInfo,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import type { NavigationProp } from '@react-navigation/native';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -82,6 +81,7 @@ import GestureComparison from '../components/GestureComparison';
 import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
 import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
 import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
+import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
 import { getShortcutMessage, getShortcutAction, getShortcutDisplayName } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
@@ -629,14 +629,10 @@ export default function RecognitionScreen({
 
 
   const styles = StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: COLORS.background,
-    },
-    safeAreaHC: {
-      backgroundColor: COLORS.highContrastBackground,
-    },
     container: {
+      flex: 1,
+    },
+    contentWrapper: {
       flex: 1,
     },
     scrollContent: {
@@ -822,8 +818,8 @@ export default function RecognitionScreen({
     : normalizedStatus;
 
   return (
-    <SafeAreaView style={[styles.safeArea, highContrast && styles.safeAreaHC]}>
-      <View style={styles.container}>
+    <ScreenBackground style={styles.container}>
+      <View style={styles.contentWrapper}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -1056,7 +1052,7 @@ export default function RecognitionScreen({
                         style={[styles.confidenceText, largeText && styles.confidenceTextLarge]}
                         testID="recognition-path"
                       >
-                        via {recognitionPath}
+                        über {recognitionPath}
                       </Text>
                     </>
                   )}
@@ -1169,6 +1165,6 @@ export default function RecognitionScreen({
         onStartRecommendation={handleStartAdaptiveRecommendation}
         availableTime={10}
       />
-    </SafeAreaView>
+    </ScreenBackground>
   );
 }
