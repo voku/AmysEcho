@@ -97,15 +97,11 @@ export default function ScreenBackground({
 
       const resolveEdge = (
         ...values: unknown[]
-      ): number | string | undefined => {
-        for (const value of values) {
-          if (typeof value === 'number' || typeof value === 'string') {
-            return value;
-          }
-        }
-
-        return undefined;
-      };
+      ): number | string | undefined =>
+        values.find(
+          (value): value is number | string =>
+            typeof value === 'number' || typeof value === 'string',
+        );
 
       const clampPadding = (
         edge: keyof typeof safeAreaPadding,
