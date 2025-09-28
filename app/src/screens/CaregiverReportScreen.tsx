@@ -69,15 +69,16 @@ export default function CaregiverReportScreen({ navigation }: any) {
   });
 
   return (
-    <ScreenBackground style={styles.container}>
-      <Text style={styles.title}>Lernfortschritt</Text>
-      <FlatList
-        data={gestureModel.gestures}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.label}>{item.label}</Text>
-            <Pressable
+    <>
+      <ScreenBackground style={styles.container}>
+        <Text style={styles.title}>Lernfortschritt</Text>
+        <FlatList
+          data={gestureModel.gestures}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.item}>
+              <Text style={styles.label}>{item.label}</Text>
+              <Pressable
         style={({ pressed }) => [
           {
             minWidth: 60,
@@ -90,54 +91,55 @@ export default function CaregiverReportScreen({ navigation }: any) {
           highContrast && styles.buttonHC,
           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
         ]}
-              onPress={() => {
-                void childHaptic();
-                navigation.navigate('ProgressChart', { gestureId: item.id });
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`Details für ${item.label} anzeigen`}
-            >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
-                Details
-              </Text>
-            </Pressable>
-          </View>
-        )}
-        ListEmptyComponent={<Text style={styles.label}>Keine Gesten verfügbar</Text>}
-      />
-      <Pressable
-        style={({ pressed }) => [
-          {
-            minWidth: 60,
-            minHeight: 60,
-            padding: SPACING.sm,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          styles.button,
-          highContrast && styles.buttonHC,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
-        onPress={() => {
-          void childHaptic();
-          navigation.goBack();
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Zurück"
-      >
-        <Text style={[
-          styles.buttonText,
-          largeText && styles.buttonTextLarge,
-          highContrast && styles.buttonTextHC,
-        ]}>
-          Zurück
-        </Text>
-      </Pressable>
+                onPress={() => {
+                  void childHaptic();
+                  navigation.navigate('ProgressChart', { gestureId: item.id });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Details für ${item.label} anzeigen`}
+              >
+                <Text style={[
+                  styles.buttonText,
+                  largeText && styles.buttonTextLarge,
+                  highContrast && styles.buttonTextHC,
+                ]}>
+                  Details
+                </Text>
+              </Pressable>
+            </View>
+          )}
+          ListEmptyComponent={<Text style={styles.label}>Keine Gesten verfügbar</Text>}
+        />
+        <Pressable
+          style={({ pressed }) => [
+            {
+              minWidth: 60,
+              minHeight: 60,
+              padding: SPACING.sm,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+            styles.button,
+            highContrast && styles.buttonHC,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          onPress={() => {
+            void childHaptic();
+            navigation.goBack();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Zurück"
+        >
+          <Text style={[
+            styles.buttonText,
+            largeText && styles.buttonTextLarge,
+            highContrast && styles.buttonTextHC,
+          ]}>
+            Zurück
+          </Text>
+        </Pressable>
+      </ScreenBackground>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
-    </ScreenBackground>
+    </>
   );
 }

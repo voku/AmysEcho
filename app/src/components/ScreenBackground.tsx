@@ -96,20 +96,12 @@ export default function ScreenBackground({
       } = flattened;
 
       const resolveEdge = (
-        direct?: unknown,
-        axis?: unknown,
-        shorthand?: unknown,
+        ...values: unknown[]
       ): number | string | undefined => {
-        if (typeof direct === 'number' || typeof direct === 'string') {
-          return direct;
-        }
-
-        if (typeof axis === 'number' || typeof axis === 'string') {
-          return axis;
-        }
-
-        if (typeof shorthand === 'number' || typeof shorthand === 'string') {
-          return shorthand;
+        for (const value of values) {
+          if (typeof value === 'number' || typeof value === 'string') {
+            return value;
+          }
         }
 
         return undefined;
@@ -187,16 +179,7 @@ export default function ScreenBackground({
         mergedContentStyle.mergedPadding.paddingRight,
       ),
     }),
-    [
-      mergedContainerStyle.mergedPadding.paddingBottom,
-      mergedContainerStyle.mergedPadding.paddingLeft,
-      mergedContainerStyle.mergedPadding.paddingRight,
-      mergedContainerStyle.mergedPadding.paddingTop,
-      mergedContentStyle.mergedPadding.paddingBottom,
-      mergedContentStyle.mergedPadding.paddingLeft,
-      mergedContentStyle.mergedPadding.paddingRight,
-      mergedContentStyle.mergedPadding.paddingTop,
-    ],
+    [mergedContainerStyle.mergedPadding, mergedContentStyle.mergedPadding],
   );
 
   const contentStyle = React.useMemo<StyleProp<ViewStyle>>(() => {

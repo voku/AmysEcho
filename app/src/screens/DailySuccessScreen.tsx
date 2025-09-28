@@ -17,10 +17,12 @@ export default function DailySuccessScreen({
   };
 
   return (
-    <ScreenBackground style={styles.container}>
-      <DailySuccessSummary onClose={handleClose} />
+    <>
+      <ScreenBackground style={styles.container}>
+        <DailySuccessSummary onClose={handleClose} />
+      </ScreenBackground>
       <BottomNav active="parent" profileId="default" />
-    </ScreenBackground>
+    </>
   );
 }
 

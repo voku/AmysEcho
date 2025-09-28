@@ -101,72 +101,74 @@ export default function DashboardScreen({ navigation }: any) {
   });
 
   return (
-    <ScreenBackground style={styles.container}>
-      <Text style={styles.label}>Analyse-Dashboard</Text>
-      {data ? (
-        <>
-          <View style={styles.barBackground}>
-            <View
-              style={[
-                styles.barFill,
-                { width: `${Math.round(data.successRate7d * 100)}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.label}>
-            Erfolgsrate (7 Tage): {(data.successRate7d * 100).toFixed(0)}%
+    <>
+      <ScreenBackground style={styles.container}>
+        <Text style={styles.label}>Analyse-Dashboard</Text>
+        {data ? (
+          <>
+            <View style={styles.barBackground}>
+              <View
+                style={[
+                  styles.barFill,
+                  { width: `${Math.round(data.successRate7d * 100)}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.label}>
+              Erfolgsrate (7 Tage): {(data.successRate7d * 100).toFixed(0)}%
+            </Text>
+            <Text style={styles.label}>
+              Trend: {(data.improvementTrend * 100).toFixed(0)}%
+            </Text>
+            {summary && (
+              <>
+                <Text style={styles.label}>Korrekturen: {(summary.correctionRate * 100).toFixed(0)}%</Text>
+                <Text style={styles.label}>Unsicherheit: {(summary.uncertaintyRatio * 100).toFixed(0)}%</Text>
+                {summary.medianLatencyMs != null && (
+                  <Text style={styles.label}>Mittlere Latenz: {summary.medianLatencyMs} ms</Text>
+                )}
+              </>
+            )}
+            {insights && Array.isArray(insights.recommendations) && insights.recommendations.length > 0 && (
+              <>
+                <Text style={styles.label}>Empfehlungen:</Text>
+                <Text style={styles.label}>{insights.recommendations.map((r: any) => r.gesture).join(', ')}</Text>
+              </>
+            )}
+          </>
+        ) : (
+          <Text style={styles.label}>Keine Daten</Text>
+        )}
+        <Pressable
+          style={({ pressed }) => [
+            {
+              minWidth: 60,
+              minHeight: 60,
+              padding: SPACING.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+            styles.button,
+            highContrast && styles.buttonHC,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          onPress={() => {
+            void childHaptic();
+            navigation.goBack();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Zurück"
+        >
+          <Text style={[
+            styles.buttonText,
+            largeText && styles.buttonTextLarge,
+            highContrast && styles.buttonTextHC,
+          ]}>
+            Zurück
           </Text>
-          <Text style={styles.label}>
-            Trend: {(data.improvementTrend * 100).toFixed(0)}%
-          </Text>
-          {summary && (
-            <>
-              <Text style={styles.label}>Korrekturen: {(summary.correctionRate * 100).toFixed(0)}%</Text>
-              <Text style={styles.label}>Unsicherheit: {(summary.uncertaintyRatio * 100).toFixed(0)}%</Text>
-              {summary.medianLatencyMs != null && (
-                <Text style={styles.label}>Mittlere Latenz: {summary.medianLatencyMs} ms</Text>
-              )}
-            </>
-          )}
-          {insights && Array.isArray(insights.recommendations) && insights.recommendations.length > 0 && (
-            <>
-              <Text style={styles.label}>Empfehlungen:</Text>
-              <Text style={styles.label}>{insights.recommendations.map((r: any) => r.gesture).join(', ')}</Text>
-            </>
-          )}
-        </>
-      ) : (
-        <Text style={styles.label}>Keine Daten</Text>
-      )}
-      <Pressable
-        style={({ pressed }) => [
-          {
-            minWidth: 60,
-            minHeight: 60,
-            padding: SPACING.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          styles.button,
-          highContrast && styles.buttonHC,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
-        onPress={() => {
-          void childHaptic();
-          navigation.goBack();
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Zurück"
-      >
-        <Text style={[
-          styles.buttonText,
-          largeText && styles.buttonTextLarge,
-          highContrast && styles.buttonTextHC,
-        ]}>
-          Zurück
-        </Text>
-      </Pressable>
+        </Pressable>
+      </ScreenBackground>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
-    </ScreenBackground>
+    </>
   );
 }

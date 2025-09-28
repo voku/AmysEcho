@@ -317,8 +317,9 @@ export default function TeachingScreen({ navigation }: any) {
   // }
 
   return (
-    <ScreenBackground>
-      <View style={styles.container}>
+    <>
+      <ScreenBackground>
+        <View style={styles.container}>
       <Text style={styles.title}>Neue Geste beibringen</Text>
       {!isSessionActive ? (
        <View style={styles.inputContainer}>
@@ -619,20 +620,21 @@ export default function TeachingScreen({ navigation }: any) {
         onPress={() => navigation.goBack()}
         accessibilityLabel="Zurück"
       />
-       {profile && <BottomNav active="training" profileId={profile.id} />}
 
-       {/* Two-Hand Gesture Selector Overlay */}
-       {showTwoHandSelector && (
-         <View style={styles.overlay}>
-           <TwoHandGestureSelector
-             onGestureSelected={handleTwoHandGestureSelected}
-             onCancel={() => setShowTwoHandSelector(false)}
-           />
-         </View>
-       )}
-     </View>
+      {/* Two-Hand Gesture Selector Overlay */}
+      {showTwoHandSelector && (
+        <View style={styles.overlay}>
+          <TwoHandGestureSelector
+            onGestureSelected={handleTwoHandGestureSelected}
+            onCancel={() => setShowTwoHandSelector(false)}
+          />
+        </View>
+      )}
+    </View>
     </ScreenBackground>
-  );
+    {profile && <BottomNav active="training" profileId={profile.id} />}
+  </>
+);
 }
 
 const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: any) =>

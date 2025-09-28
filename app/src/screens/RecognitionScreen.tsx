@@ -820,8 +820,9 @@ export default function RecognitionScreen({
     : normalizedStatus;
 
   return (
-    <ScreenBackground style={styles.container}>
-      <View style={styles.contentWrapper}>
+    <>
+      <ScreenBackground style={styles.container}>
+        <View style={styles.contentWrapper}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -1150,8 +1151,6 @@ export default function RecognitionScreen({
             onTryAgain={handleTryAgainFromComparison}
           />
         )}
-
-        <BottomNav active="recognition" profileId={profile?.id || 'default'} />
       </View>
 
       <PracticeSuggestion
@@ -1168,5 +1167,7 @@ export default function RecognitionScreen({
         availableTime={10}
       />
     </ScreenBackground>
-  );
+    <BottomNav active="recognition" profileId={profile?.id || 'default'} />
+  </>
+);
 }

@@ -16,51 +16,53 @@ export default function HelpScreen({ navigation }: any) {
   }, []);
 
   return (
-    <ScreenBackground style={styles.container}>
-      <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
-        Wie du Amy helfen kannst
-      </Text>
-      <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
-        Wenn Amy Schwierigkeiten hat, verstanden zu werden, kannst du Folgendes tun:
-      </Text>
-      <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
-        • Ermutige sie, die Geste erneut und vielleicht deutlicher zu zeigen.
-      </Text>
-      <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
-        • Wenn die App ein Korrekturfenster zeigt, wähle das richtige Symbol aus.
-      </Text>
-      <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
-        • Wenn die App wiederholt falsch erkennt, sieh dir den Bereich "Training" an, um neue Gesten hinzuzufügen oder bestehende zu verfeinern.
-      </Text>
-      <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
-        • Achte darauf, dass Amy in einem gut beleuchteten Bereich ist und ihre Hände für die Kamera klar sichtbar sind.
-      </Text>
-      <Pressable
-        style={({ pressed }) => [
-          {
-            minWidth: 60,
-            minHeight: 60,
-            padding: SPACING.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          styles.button,
-          highContrast && styles.buttonHC,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
-        onPress={() => {
-          void childHaptic();
-          navigation.goBack();
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Zurück zur vorherigen Seite"
-      >
-        <Text style={[styles.buttonText, largeText && styles.buttonTextLarge, highContrast && styles.buttonTextHC]}>
-          Zurück
+    <>
+      <ScreenBackground style={styles.container}>
+        <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
+          Wie du Amy helfen kannst
         </Text>
-      </Pressable>
+        <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
+          Wenn Amy Schwierigkeiten hat, verstanden zu werden, kannst du Folgendes tun:
+        </Text>
+        <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
+          • Ermutige sie, die Geste erneut und vielleicht deutlicher zu zeigen.
+        </Text>
+        <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
+          • Wenn die App ein Korrekturfenster zeigt, wähle das richtige Symbol aus.
+        </Text>
+        <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
+          • Wenn die App wiederholt falsch erkennt, sieh dir den Bereich "Training" an, um neue Gesten hinzuzufügen oder bestehende zu verfeinern.
+        </Text>
+        <Text style={[styles.text, largeText && styles.textLarge, highContrast && styles.textHC]}>
+          • Achte darauf, dass Amy in einem gut beleuchteten Bereich ist und ihre Hände für die Kamera klar sichtbar sind.
+        </Text>
+        <Pressable
+          style={({ pressed }) => [
+            {
+              minWidth: 60,
+              minHeight: 60,
+              padding: SPACING.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+            styles.button,
+            highContrast && styles.buttonHC,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          onPress={() => {
+            void childHaptic();
+            navigation.goBack();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Zurück zur vorherigen Seite"
+        >
+          <Text style={[styles.buttonText, largeText && styles.buttonTextLarge, highContrast && styles.buttonTextHC]}>
+            Zurück
+          </Text>
+        </Pressable>
+      </ScreenBackground>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
-    </ScreenBackground>
+    </>
   );
 }
 

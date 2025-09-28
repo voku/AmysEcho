@@ -51,28 +51,30 @@ export default function PracticeScreen({ navigation }: any) {
   );
 
   return (
-    <ScreenBackground>
-      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Gesten üben</Text>
-          <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: SPACING.md }}>
-            <Button title="3" onPress={() => setTargetSamples(3)} accessibilityLabel="3 Beispiele" color={targetSamples===3? COLORS.primaryAccent : undefined} />
-            <View style={{ width: SPACING.sm }} />
-            <Button title="5" onPress={() => setTargetSamples(5)} accessibilityLabel="5 Beispiele" color={targetSamples===5? COLORS.primaryAccent : undefined} />
-            <View style={{ width: SPACING.sm }} />
-            <Button title="8" onPress={() => setTargetSamples(8)} accessibilityLabel="8 Beispiele" color={targetSamples===8? COLORS.primaryAccent : undefined} />
+    <>
+      <ScreenBackground>
+        <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+          <View style={styles.container}>
+            <Text style={styles.title}>Gesten üben</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: SPACING.md }}>
+              <Button title="3" onPress={() => setTargetSamples(3)} accessibilityLabel="3 Beispiele" color={targetSamples===3? COLORS.primaryAccent : undefined} />
+              <View style={{ width: SPACING.sm }} />
+              <Button title="5" onPress={() => setTargetSamples(5)} accessibilityLabel="5 Beispiele" color={targetSamples===5? COLORS.primaryAccent : undefined} />
+              <View style={{ width: SPACING.sm }} />
+              <Button title="8" onPress={() => setTargetSamples(8)} accessibilityLabel="8 Beispiele" color={targetSamples===8? COLORS.primaryAccent : undefined} />
+            </View>
+            <FlatList
+              data={gestureModel.gestures}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              contentContainerStyle={styles.list}
+              ListEmptyComponent={<Text style={styles.empty}>Keine Gesten verfügbar</Text>}
+            />
           </View>
-          <FlatList
-            data={gestureModel.gestures}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.list}
-            ListEmptyComponent={<Text style={styles.empty}>Keine Gesten verfügbar</Text>}
-          />
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </ScreenBackground>
       {profile && <BottomNav active="training" profileId={profile.id} />}
-    </ScreenBackground>
+    </>
   );
 }
 

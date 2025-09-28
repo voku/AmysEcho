@@ -17,10 +17,12 @@ export default function CommunicationInsightsScreen({
   };
 
   return (
-    <ScreenBackground style={styles.container} testID="communication-insights-screen">
-      <CommunicationInsights onClose={handleClose} />
+    <>
+      <ScreenBackground style={styles.container} testID="communication-insights-screen">
+        <CommunicationInsights onClose={handleClose} />
+      </ScreenBackground>
       <BottomNav active="parent" profileId="default" />
-    </ScreenBackground>
+    </>
   );
 }
 

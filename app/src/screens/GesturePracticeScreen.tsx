@@ -63,36 +63,38 @@ export default function GesturePracticeScreen() {
   };
 
   return (
-    <ScreenBackground>
-      <View style={styles.container}>
-        <Text style={styles.title}>Gesten üben</Text>
-        <View style={styles.content}>
-          <Text style={styles.instruction}>
-            Halte deine Hand vor die Kamera und mache eine Geste
-          </Text>
-          <View style={styles.cameraContainer}>
-             <MediaPipeGestureDetector
-               onGestureDetected={handleGestureDetected}
-               onError={handleError}
-               onWebViewEvent={(telemetry) => {
-                 console.log('GesturePractice WebView telemetry:', telemetry);
-               }}
-             />
-            {landmarks.length > 0 && (
-              <View style={styles.overlay}>
-                <Text style={styles.detectionText}>
-                  {detectionActive ? 'Hand erkannt' : 'Keine Hand'}
-                </Text>
-              </View>
-            )}
+    <>
+      <ScreenBackground>
+        <View style={styles.container}>
+          <Text style={styles.title}>Gesten üben</Text>
+          <View style={styles.content}>
+            <Text style={styles.instruction}>
+              Halte deine Hand vor die Kamera und mache eine Geste
+            </Text>
+            <View style={styles.cameraContainer}>
+               <MediaPipeGestureDetector
+                 onGestureDetected={handleGestureDetected}
+                 onError={handleError}
+                 onWebViewEvent={(telemetry) => {
+                   console.log('GesturePractice WebView telemetry:', telemetry);
+                 }}
+               />
+              {landmarks.length > 0 && (
+                <View style={styles.overlay}>
+                  <Text style={styles.detectionText}>
+                    {detectionActive ? 'Hand erkannt' : 'Keine Hand'}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.hint}>
+              Versuche verschiedene Gesten aus dem Modell
+            </Text>
           </View>
-          <Text style={styles.hint}>
-            Versuche verschiedene Gesten aus dem Modell
-          </Text>
         </View>
-      </View>
+      </ScreenBackground>
       {profile && <BottomNav active="training" profileId={profile.id} />}
-    </ScreenBackground>
+    </>
   );
 }
 
