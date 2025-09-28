@@ -17,16 +17,22 @@ export default function PrivacySettingsScreen({
   };
 
   return (
-    <ScreenBackground style={styles.container}>
-      <PrivacySettings onClose={handleClose} />
+    <View style={styles.screen}>
+      <ScreenBackground>
+        <View style={styles.content}>
+          <PrivacySettings onClose={handleClose} />
+        </View>
+      </ScreenBackground>
       <BottomNav active="parent" profileId="default" />
-    </ScreenBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: 'transparent',
+  },
+  content: {
+    flex: 1,
   },
 });
