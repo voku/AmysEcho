@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import PrivacySettings from '../components/PrivacySettings';
 import BottomNav from '../components/BottomNav';
