@@ -202,70 +202,77 @@ export default function CorrectionScreen({ navigation, route }: any) {
   });
 
   return (
-    <ScreenBackground>
-      <View style={styles.container}>
-        <Text style={styles.title}>
-          {attemptedGesture ? `War das "${attemptedGesture}"?` : 'Korrektur senden'}
-        </Text>
+    <ScreenBackground scrollable style={styles.container}>
+      <Text style={styles.title}>
+        {attemptedGesture ? `War das "${attemptedGesture}"?` : 'Korrektur senden'}
+      </Text>
 
-        {suggestions.length > 0 && (
-          <View style={styles.suggestionsContainer}>
-            <Text style={[styles.subtitle, highContrast && styles.subtitleHC]}>
-              Vielleicht meinst du:
-            </Text>
-            <FlatList
-              data={suggestions}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={[styles.suggestionButton, highContrast && styles.suggestionButtonHC]}
-                  onPress={() => handleSuggestionSelect(item.id)}
-                  accessibilityLabel={`Korrigiere zu ${item.label}`}
-                  accessibilityRole="button"
-                >
-                  <View style={styles.suggestionIconContainer}>
-                    {getGestureIcon(item.id)}
-                    {item.confidence > 0.7 && (
-                      <View style={styles.confidenceBadge}>
-                        <Text style={styles.confidenceText}>⭐</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={[styles.suggestionText, highContrast && styles.suggestionTextHC]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              )}
-              contentContainerStyle={styles.suggestionsList}
-            />
-          </View>
-        )}
+      {suggestions.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          <Text style={[styles.subtitle, highContrast && styles.subtitleHC]}>
+            Vielleicht meinst du:
+          </Text>
+          <FlatList
+            data={suggestions}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            renderItem={({ item }) => (
+              <Pressable
+                style={[styles.suggestionButton, highContrast && styles.suggestionButtonHC]}
+                onPress={() => handleSuggestionSelect(item.id)}
+                accessibilityLabel={`Korrigiere zu ${item.label}`}
+                accessibilityRole="button"
+              >
+                <View style={styles.suggestionIconContainer}>
+                  {getGestureIcon(item.id)}
+                  {item.confidence > 0.7 && (
+                    <View style={styles.confidenceBadge}>
+                      <Text style={styles.confidenceText}>⭐</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.suggestionText, highContrast && styles.suggestionTextHC]}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            )}
+            contentContainerStyle={styles.suggestionsList}
+          />
+        </View>
+      )}
 
-        <View style={styles.pulseWrapper}>
-          <PulsingCircle size={120} color={highContrast ? COLORS.highContrastText : '#ffffff'} />
-          <Pressable
-            style={[styles.choiceButton, highContrast && styles.choiceButtonHC]}
-            testID="btn-submit-correction"
-            accessibilityRole="button"
-            accessibilityLabel="Korrektur senden"
-            onPress={handleSubmit}
-          >
-            <Text style={styles.choiceButtonText}>Korrektur senden</Text>
-          </Pressable>
-        </View>
-        <View style={{ marginBottom: SPACING.sm }}>
-          <Pressable
-            style={[styles.choiceButton, highContrast && styles.choiceButtonHC]}
-            testID="btn-cancel-correction"
-            accessibilityRole="button"
-            accessibilityLabel="Abbrechen"
-            onPress={handleCancel}
-          >
-            <Text style={styles.choiceButtonText}>Abbrechen</Text>
-          </Pressable>
-        </View>
+      <View style={styles.pulseWrapper}>
+        <PulsingCircle size={120} color={highContrast ? COLORS.highContrastText : '#ffffff'} />
+        <Pressable
+          style={[styles.choiceButton, highContrast && styles.choiceButtonHC]}
+          testID="btn-submit-correction"
+          accessibilityRole="button"
+          accessibilityLabel="Korrektur senden"
+          onPress={handleSubmit}
+        >
+          <Text style={styles.choiceButtonText}>Korrektur senden</Text>
+        </Pressable>
       </View>
+      <View style={{ marginBottom: SPACING.sm }}>
+        <Pressable
+          style={[styles.choiceButton, highContrast && styles.choiceButtonHC]}
+          testID="btn-cancel-correction"
+          accessibilityRole="button"
+          accessibilityLabel="Abbrechen"
+          onPress={handleCancel}
+        >
+          <Text style={styles.choiceButtonText}>Abbrechen</Text>
+        </Pressable>
+      </View>
+
+      <Pressable
+        style={[styles.choiceButton, highContrast && styles.choiceButtonHC]}
+        accessibilityRole="button"
+        accessibilityLabel="Alle Korrekturen ansehen"
+        onPress={() => navigation.navigate('CorrectionHistory')}
+      >
+        <Text style={styles.choiceButtonText}>Vergangene Korrekturen</Text>
+      </Pressable>
     </ScreenBackground>
   );
 }

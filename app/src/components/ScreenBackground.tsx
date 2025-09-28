@@ -24,26 +24,40 @@ export default function ScreenBackground({
   const insets = useSafeAreaInsets();
   const { highContrast } = useAccessibility();
   const { theme } = useTheme();
+  const { gradientStart, gradientEnd } = theme.colors;
 
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([
-        theme.colors.gradientStart ?? COLORS.backgroundStart,
-        theme.colors.gradientEnd ?? COLORS.backgroundEnd,
-      ] as const);
+  const gradientColors = React.useMemo(
+    () =>
+      highContrast
+        ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
+        : ([
+            gradientStart ?? COLORS.backgroundStart,
+            gradientEnd ?? COLORS.backgroundEnd,
+          ] as const),
+    [gradientEnd, gradientStart, highContrast],
+  );
 
-  const basePadding: ViewStyle = {
-    paddingTop: insets.top + SPACING.lg,
-    paddingBottom: insets.bottom + SPACING.lg,
-    paddingHorizontal: SPACING.lg,
-  };
+  const basePadding: ViewStyle = React.useMemo(
+    () => ({
+      paddingTop: insets.top + SPACING.lg,
+      paddingBottom: insets.bottom + SPACING.lg,
+      paddingHorizontal: SPACING.lg,
+    }),
+    [insets.bottom, insets.top],
+  );
+
+  const contentStyle = React.useMemo(
+    () => [basePadding, styles.scrollContainer, style, contentContainerStyle],
+    [basePadding, contentContainerStyle, style],
+  );
 
   if (scrollable) {
     return (
       <LinearGradient colors={gradientColors} style={styles.gradient}>
         <ScrollView
-          style={styles.flex}
-          contentContainerStyle={[basePadding, styles.scrollContainer, contentContainerStyle]}
+          style={[styles.flex, style]}
+          contentContainerStyle={contentStyle}
+          keyboardShouldPersistTaps="handled"
           testID={testID}
         >
           {children}

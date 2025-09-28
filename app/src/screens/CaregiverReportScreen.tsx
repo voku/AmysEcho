@@ -20,7 +20,7 @@ export default function CaregiverReportScreen({ navigation }: any) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : 'transparent',
+      backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 24 : 20,

@@ -16,7 +16,7 @@ export default function HelpScreen({ navigation }: any) {
   }, []);
 
   return (
-    <ScreenBackground style={[styles.container, highContrast && styles.containerHC]}>
+    <ScreenBackground style={styles.container}>
       <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
         Wie du Amy helfen kannst
       </Text>
@@ -70,9 +70,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
-  },
-  containerHC: {
-    backgroundColor: COLORS.highContrastBackground,
   },
   title: {
     fontSize: 24,

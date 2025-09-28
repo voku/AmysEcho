@@ -52,7 +52,7 @@ export default function DashboardScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: highContrast ? COLORS.highContrastBackground : 'transparent',
+      backgroundColor: 'transparent',
     },
     label: {
       fontSize: largeText ? 24 : 20,

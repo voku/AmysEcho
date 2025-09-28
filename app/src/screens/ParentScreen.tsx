@@ -19,9 +19,6 @@ export default function ParentScreen({ navigation }: any) {
       alignItems: 'center',
       backgroundColor: 'transparent',
     },
-    containerHC: {
-      backgroundColor: COLORS.highContrastBackground,
-    },
     title: {
       fontSize: 24,
       fontWeight: 'bold',
@@ -123,7 +120,7 @@ export default function ParentScreen({ navigation }: any) {
   );
 
   return (
-    <ScreenBackground style={[styles.container, highContrast && styles.containerHC]}>
+    <ScreenBackground style={styles.container}>
       <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
         Elternbereich
       </Text>

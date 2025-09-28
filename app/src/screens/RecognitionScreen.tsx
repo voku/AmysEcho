@@ -808,6 +808,19 @@ export default function RecognitionScreen({
     },
   });
 
+  const normalizedStatus = status === 'none' ? 'Ich höre zu…' : status;
+  const displayStatus = kindergartenMode
+    ? normalizedStatus === 'Bereit zur Gestenerkennung'
+      ? '👋 Bereit!'
+      : normalizedStatus === 'Geste erkannt!'
+      ? '✨ Geste erkannt!'
+      : normalizedStatus.includes('Hilfe')
+      ? '🆘 Hilfe wird gerufen!'
+      : normalizedStatus.includes('Fehler')
+      ? '😊 Lass es uns nochmal versuchen!'
+      : normalizedStatus
+    : normalizedStatus;
+
   return (
     <SafeAreaView style={[styles.safeArea, highContrast && styles.safeAreaHC]}>
       <View style={styles.container}>
@@ -881,17 +894,7 @@ export default function RecognitionScreen({
               ]}
               accessibilityRole="text"
             >
-              {kindergartenMode
-                ? status === 'Bereit zur Gestenerkennung'
-                  ? '👋 Bereit!'
-                  : status === 'Geste erkannt!'
-                  ? '✨ Geste erkannt!'
-                  : status.includes('Hilfe')
-                  ? '🆘 Hilfe wird gerufen!'
-                  : status.includes('Fehler')
-                  ? '😊 Lass es uns nochmal versuchen!'
-                  : status
-                : status}
+              {displayStatus}
             </Text>
             {!kindergartenMode && modelUpdateStatus === 'updating' && (
               <Text
