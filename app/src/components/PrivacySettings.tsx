@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 
@@ -29,10 +38,12 @@ const TEXT = {
 
 interface PrivacySettingsProps {
   onClose?: () => void;
+  backgroundColor?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function PrivacySettings(_: PrivacySettingsProps) {
+export default function PrivacySettings({ backgroundColor, style }: PrivacySettingsProps) {
   const { largeText, highContrast } = useAccessibility();
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const [gestureLoggingEnabled, setGestureLoggingEnabled] = useState(true); // Essential for app function
@@ -44,10 +55,13 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
     Alert.alert(TEXT.savedTitle, TEXT.savedMessage);
   };
 
+  const containerBackgroundColor =
+    backgroundColor ?? (highContrast ? COLORS.highContrastBackground : COLORS.backgroundStart);
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.backgroundStart,
+      backgroundColor: containerBackgroundColor,
     },
     header: {
       padding: SPACING.md,
@@ -228,7 +242,7 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={styles.header}>
         <Text style={styles.title}>{TEXT.title}</Text>
         <Text style={styles.subtitle}>{TEXT.subtitle}</Text>
