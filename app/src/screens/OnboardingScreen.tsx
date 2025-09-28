@@ -5,10 +5,8 @@ import {
   Switch,
   Button,
   StyleSheet,
-  SafeAreaView,
   TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { createProfile } from '../storage';
 import {
   availableVocabularySets,
@@ -17,6 +15,7 @@ import {
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logHIPEvent } from '../services/hipEvents';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function OnboardingScreen({ navigation }: any) {
   const [name, setName] = useState('');
@@ -52,8 +51,6 @@ export default function OnboardingScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      padding: SPACING.lg,
-      backgroundColor: 'transparent',
     },
     input: {
       borderWidth: 1,
@@ -83,12 +80,9 @@ export default function OnboardingScreen({ navigation }: any) {
     setRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: SPACING.lg },
   });
 
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
   return (
-    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-    <SafeAreaView style={styles.container}>
+    <ScreenBackground scrollable>
+      <View style={styles.container}>
       <Text style={styles.heart}>❤️</Text>
       <Text style={styles.title}>Willkommen bei Amys Echo</Text>
       <Text
@@ -164,7 +158,7 @@ export default function OnboardingScreen({ navigation }: any) {
         onPress={() => navigation.replace('Recognition')}
         accessibilityLabel="Überspringen"
       />
-    </SafeAreaView>
-    </LinearGradient>
+      </View>
+    </ScreenBackground>
   );
 }

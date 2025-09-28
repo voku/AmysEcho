@@ -21,8 +21,8 @@ const TEXT = {
 };
 
 interface PictureInPictureGuidanceProps {
-  gestureId?: string;
-  videoUri?: string;
+  gestureId?: string | undefined;
+  videoUri?: string | undefined;
   isVisible: boolean;
   onClose?: () => void;
   position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';

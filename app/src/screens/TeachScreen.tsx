@@ -1,9 +1,9 @@
 import React from 'react';
-import { StyleSheet, SafeAreaView, Pressable, Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, View, Pressable, Text } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function TeachScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -37,12 +37,9 @@ export default function TeachScreen({ navigation }: any) {
       color: COLORS.highContrastBackground,
     },
   });
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
   return (
-    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+    <ScreenBackground>
+      <View style={styles.container}>
         <Pressable
           style={({ pressed }) => [
           {
@@ -72,7 +69,7 @@ export default function TeachScreen({ navigation }: any) {
             Neue Gebärde hinzufügen
           </Text>
         </Pressable>
-      </SafeAreaView>
-    </LinearGradient>
+      </View>
+    </ScreenBackground>
   );
 }

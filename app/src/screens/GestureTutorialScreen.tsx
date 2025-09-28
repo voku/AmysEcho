@@ -1,9 +1,9 @@
 import React from 'react';
-import { Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function GestureTutorialScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -13,8 +13,6 @@ export default function GestureTutorialScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      padding: SPACING.lg,
-      backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 32 : 24,
@@ -58,13 +56,9 @@ export default function GestureTutorialScreen({ navigation }: any) {
     },
   });
 
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
-
   return (
-    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+    <ScreenBackground>
+      <View style={styles.container}>
         <Text style={styles.title}>Wie man Gesten verwendet</Text>
         <Text style={styles.text}>1. Stelle sicher, dass deine Hand für die Kamera sichtbar ist.</Text>
         <Text style={styles.text}>2. Halte deine Hand ruhig, während du die Gebärde machst.</Text>
@@ -97,8 +91,8 @@ export default function GestureTutorialScreen({ navigation }: any) {
             Starten
           </Text>
         </Pressable>
-      </SafeAreaView>
-    </LinearGradient>
+      </View>
+    </ScreenBackground>
   );
 }
 

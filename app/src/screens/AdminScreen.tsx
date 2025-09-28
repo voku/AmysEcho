@@ -31,6 +31,7 @@ import { logger } from '../utils/logger';
 import { getLocalCentroidSummary } from '../services/localCentroids';
 
 import { usePerformance } from '../context/PerformanceContext';
+import ScreenBackground from '../components/ScreenBackground';
 
 const SYMBOL_EXPORT_PATH = `${Paths.document.uri || ''}symbols-export.json`;
 
@@ -341,7 +342,7 @@ export default function AdminScreen({ navigation }: any) {
   };
 
   const styles = StyleSheet.create({
-    container: { flex: 1, padding: SPACING.lg },
+    container: { flex: 1 },
     title: { fontSize: 24, marginBottom: SPACING.lg, textAlign: 'center' },
     row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
     modal: { flex: 1, justifyContent: 'center', padding: SPACING.lg },
@@ -350,7 +351,7 @@ export default function AdminScreen({ navigation }: any) {
   });
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground style={styles.container}>
       <Text style={styles.title}>Adminbereich</Text>
       <FlatList
         data={symbols}
@@ -518,6 +519,6 @@ export default function AdminScreen({ navigation }: any) {
           <Button title="Abbrechen" onPress={() => setModalVisible(false)} accessibilityLabel="Abbrechen" />
         </View>
       </Modal>
-    </View>
+    </ScreenBackground>
   );
 }

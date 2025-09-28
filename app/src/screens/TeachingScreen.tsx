@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView, Button } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, Pressable, StyleSheet, Alert, TextInput, Animated, Easing, Button } from 'react-native';
 // Camera handled inside WebView detector
 // mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
@@ -32,6 +31,7 @@ import VisualFeedback from '../components/VisualFeedback';
 import ProgressTracker from '../components/ProgressTracker';
 import GestureValidationFeedback from '../components/GestureValidationFeedback';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
+import ScreenBackground from '../components/ScreenBackground';
 
 const PREVIEW_SIZE = 240;
 
@@ -295,18 +295,6 @@ export default function TeachingScreen({ navigation }: any) {
   const buttonStyles = createButtonStyles();
   const styles = createStyles(largeText, highContrast, buttonStyles);
 
-  if (false) {
-    const gradientColors = highContrast
-      ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-      : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
-    return (
-      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-        <SafeAreaView style={styles.container}>
-        </SafeAreaView>
-      </LinearGradient>
-    );
-  }
-
   // Camera permissions are currently handled within the WebView-based detector.
   // Retain this block as a reference for a potential native fallback, but keep it
   // disabled to avoid unused variables and type errors.
@@ -328,12 +316,10 @@ export default function TeachingScreen({ navigation }: any) {
   //   );
   // }
 
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
   return (
-    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+    <>
+      <ScreenBackground>
+        <View style={styles.container}>
       <Text style={styles.title}>Neue Geste beibringen</Text>
       {!isSessionActive ? (
        <View style={styles.inputContainer}>
@@ -634,30 +620,29 @@ export default function TeachingScreen({ navigation }: any) {
         onPress={() => navigation.goBack()}
         accessibilityLabel="Zurück"
       />
-       {profile && <BottomNav active="training" profileId={profile.id} />}
 
-       {/* Two-Hand Gesture Selector Overlay */}
-       {showTwoHandSelector && (
-         <View style={styles.overlay}>
-           <TwoHandGestureSelector
-             onGestureSelected={handleTwoHandGestureSelected}
-             onCancel={() => setShowTwoHandSelector(false)}
-           />
-         </View>
-       )}
-     </SafeAreaView>
-     </LinearGradient>
-   );
- }
+      {/* Two-Hand Gesture Selector Overlay */}
+      {showTwoHandSelector && (
+        <View style={styles.overlay}>
+          <TwoHandGestureSelector
+            onGestureSelected={handleTwoHandGestureSelected}
+            onCancel={() => setShowTwoHandSelector(false)}
+          />
+        </View>
+      )}
+    </View>
+    </ScreenBackground>
+    {profile && <BottomNav active="training" profileId={profile.id} />}
+  </>
+);
+}
 
 const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: any) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      padding: SPACING.lg,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 28 : 24,
