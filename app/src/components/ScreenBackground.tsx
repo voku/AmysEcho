@@ -9,7 +9,16 @@ import { COLORS, SPACING } from '../constants/ui';
 export interface ScreenBackgroundProps {
   children: React.ReactNode;
   scrollable?: boolean;
+  /**
+   * Additional styles for the scrollable content wrapper. To guarantee safe-area spacing,
+   * only numeric padding overrides are supported; string-based paddings will be ignored in
+   * favour of the safe default.
+   */
   contentContainerStyle?: StyleProp<ViewStyle>;
+  /**
+   * Extra styles for the root container. Numeric padding overrides are clamped so the safe
+   * area inset cannot be reduced. String padding values are ignored to preserve safe padding.
+   */
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }
@@ -37,106 +46,126 @@ export default function ScreenBackground({
     [gradientEnd, gradientStart, highContrast],
   );
 
-  const basePadding: ViewStyle = React.useMemo(
+  const safeAreaPadding = React.useMemo(
     () => ({
-      paddingTop: insets.top + SPACING.lg,
-      paddingBottom: insets.bottom + SPACING.lg,
-      paddingHorizontal: SPACING.lg,
+      top: insets.top + SPACING.lg,
+      bottom: insets.bottom + SPACING.lg,
+      left: SPACING.lg,
+      right: SPACING.lg,
     }),
     [insets.bottom, insets.top],
   );
 
+  const mergeSafePadding = React.useCallback(
+    (incomingStyle?: StyleProp<ViewStyle>) => {
+      const safeDefaults: ViewStyle = {
+        paddingTop: safeAreaPadding.top,
+        paddingBottom: safeAreaPadding.bottom,
+        paddingLeft: safeAreaPadding.left,
+        paddingRight: safeAreaPadding.right,
+      };
+
+      if (!incomingStyle) {
+        return { mergedPadding: safeDefaults };
+      }
+
+      const flattened = StyleSheet.flatten(incomingStyle) as ViewStyle | undefined;
+
+      if (!flattened) {
+        return { mergedPadding: safeDefaults };
+      }
+
+      const {
+        padding,
+        paddingVertical,
+        paddingHorizontal,
+        paddingTop,
+        paddingBottom,
+        paddingLeft,
+        paddingRight,
+        ...rest
+      } = flattened;
+
+      const resolveEdge = (
+        direct?: unknown,
+        axis?: unknown,
+        shorthand?: unknown,
+      ): number | string | undefined => {
+        if (typeof direct === 'number' || typeof direct === 'string') {
+          return direct;
+        }
+
+        if (typeof axis === 'number' || typeof axis === 'string') {
+          return axis;
+        }
+
+        if (typeof shorthand === 'number' || typeof shorthand === 'string') {
+          return shorthand;
+        }
+
+        return undefined;
+      };
+
+      const clampPadding = (
+        edge: keyof typeof safeAreaPadding,
+        value: number | string | undefined,
+      ): number => {
+        if (typeof value === 'number') {
+          return Math.max(safeAreaPadding[edge], value);
+        }
+
+        if (__DEV__ && typeof value === 'string') {
+          console.warn(
+            `ScreenBackground ignoriert das Zeichenketten-Polster "${value}" für ${edge}, um den Safe-Area-Abstand zu bewahren.`,
+          );
+        }
+
+        return safeAreaPadding[edge];
+      };
+
+      const mergedPadding: ViewStyle = {
+        paddingTop: clampPadding('top', resolveEdge(paddingTop, paddingVertical, padding)),
+        paddingBottom: clampPadding(
+          'bottom',
+          resolveEdge(paddingBottom, paddingVertical, padding),
+        ),
+        paddingLeft: clampPadding(
+          'left',
+          resolveEdge(paddingLeft, paddingHorizontal, padding),
+        ),
+        paddingRight: clampPadding(
+          'right',
+          resolveEdge(paddingRight, paddingHorizontal, padding),
+        ),
+      };
+
+      return {
+        mergedPadding,
+        rest: Object.keys(rest).length > 0 ? rest : undefined,
+      };
+    },
+    [safeAreaPadding],
+  );
+
   const contentStyle = React.useMemo(() => {
-    const basePaddingTop =
-      typeof basePadding.paddingTop === 'number' ? basePadding.paddingTop : 0;
-    const basePaddingBottom =
-      typeof basePadding.paddingBottom === 'number' ? basePadding.paddingBottom : 0;
-    const basePaddingHorizontal =
-      typeof basePadding.paddingHorizontal === 'number'
-        ? basePadding.paddingHorizontal
-        : 0;
+    const { mergedPadding, rest } = mergeSafePadding(contentContainerStyle);
 
-    const safeDefaults: ViewStyle = {
-      paddingTop: basePaddingTop,
-      paddingBottom: basePaddingBottom,
-      paddingLeft: basePaddingHorizontal,
-      paddingRight: basePaddingHorizontal,
-    };
-
-    if (!contentContainerStyle) {
-      return [styles.scrollContainer, safeDefaults];
+    if (rest) {
+      return [styles.scrollContainer, rest, mergedPadding];
     }
 
-    const flattened = StyleSheet.flatten(contentContainerStyle) as
-      | ViewStyle
-      | undefined;
+    return [styles.scrollContainer, mergedPadding];
+  }, [contentContainerStyle, mergeSafePadding]);
 
-    if (!flattened) {
-      return [styles.scrollContainer, safeDefaults];
+  const containerStyle = React.useMemo(() => {
+    const { mergedPadding, rest } = mergeSafePadding(style);
+
+    if (rest) {
+      return [styles.flex, rest, mergedPadding];
     }
 
-    const {
-      padding,
-      paddingVertical,
-      paddingHorizontal,
-      paddingTop,
-      paddingBottom,
-      paddingLeft,
-      paddingRight,
-      ...rest
-    } = flattened;
-
-    const resolvedTop =
-      typeof paddingTop === 'number'
-        ? paddingTop
-        : typeof paddingVertical === 'number'
-        ? paddingVertical
-        : typeof padding === 'number'
-        ? padding
-        : undefined;
-
-    const resolvedBottom =
-      typeof paddingBottom === 'number'
-        ? paddingBottom
-        : typeof paddingVertical === 'number'
-        ? paddingVertical
-        : typeof padding === 'number'
-        ? padding
-        : undefined;
-
-    const resolvedLeft =
-      typeof paddingLeft === 'number'
-        ? paddingLeft
-        : typeof paddingHorizontal === 'number'
-        ? paddingHorizontal
-        : typeof padding === 'number'
-        ? padding
-        : undefined;
-
-    const resolvedRight =
-      typeof paddingRight === 'number'
-        ? paddingRight
-        : typeof paddingHorizontal === 'number'
-        ? paddingHorizontal
-        : typeof padding === 'number'
-        ? padding
-        : undefined;
-
-    const mergedPadding: ViewStyle = {
-      paddingTop: Math.max(basePaddingTop, resolvedTop ?? basePaddingTop),
-      paddingBottom: Math.max(
-        basePaddingBottom,
-        resolvedBottom ?? basePaddingBottom,
-      ),
-      paddingLeft: Math.max(basePaddingHorizontal, resolvedLeft ?? basePaddingHorizontal),
-      paddingRight: Math.max(
-        basePaddingHorizontal,
-        resolvedRight ?? basePaddingHorizontal,
-      ),
-    };
-
-    return [styles.scrollContainer, rest, mergedPadding];
-  }, [basePadding, contentContainerStyle]);
+    return [styles.flex, mergedPadding];
+  }, [mergeSafePadding, style]);
 
   if (scrollable) {
     return (
@@ -155,7 +184,7 @@ export default function ScreenBackground({
 
   return (
     <LinearGradient colors={gradientColors} style={styles.gradient}>
-      <View style={[styles.flex, basePadding, style]} testID={testID}>
+      <View style={containerStyle} testID={testID}>
         {children}
       </View>
     </LinearGradient>

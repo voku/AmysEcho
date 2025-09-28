@@ -628,7 +628,9 @@ export default function RecognitionScreen({
   }, []);
 
 
-  const styles = StyleSheet.create({
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
     container: {
       flex: 1,
     },
@@ -800,7 +802,9 @@ export default function RecognitionScreen({
       flexBasis: '48%',
       marginBottom: SPACING.sm,
     },
-  });
+      }),
+    [highContrast, largeText],
+  );
 
   const normalizedStatus = status === 'none' ? 'Ich höre zu…' : status;
   const displayStatus = kindergartenMode

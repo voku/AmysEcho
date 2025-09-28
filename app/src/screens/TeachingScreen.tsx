@@ -295,15 +295,6 @@ export default function TeachingScreen({ navigation }: any) {
   const buttonStyles = createButtonStyles();
   const styles = createStyles(largeText, highContrast, buttonStyles);
 
-  if (false) {
-    return (
-      <ScreenBackground>
-        <View style={styles.container}>
-        </View>
-      </ScreenBackground>
-    );
-  }
-
   // Camera permissions are currently handled within the WebView-based detector.
   // Retain this block as a reference for a potential native fallback, but keep it
   // disabled to avoid unused variables and type errors.
