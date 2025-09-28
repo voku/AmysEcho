@@ -23,6 +23,13 @@ export interface ScreenBackgroundProps {
   testID?: string;
 }
 
+type EdgePadding = {
+  paddingTop: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  paddingRight: number;
+};
+
 export default function ScreenBackground({
   children,
   scrollable = false,
@@ -57,8 +64,10 @@ export default function ScreenBackground({
   );
 
   const mergeSafePadding = React.useCallback(
-    (incomingStyle?: StyleProp<ViewStyle>) => {
-      const safeDefaults: ViewStyle = {
+    (
+      incomingStyle?: StyleProp<ViewStyle>,
+    ): { mergedPadding: EdgePadding; rest: ViewStyle | undefined } => {
+      const safeDefaults: EdgePadding = {
         paddingTop: safeAreaPadding.top,
         paddingBottom: safeAreaPadding.bottom,
         paddingLeft: safeAreaPadding.left,
@@ -66,13 +75,13 @@ export default function ScreenBackground({
       };
 
       if (!incomingStyle) {
-        return { mergedPadding: safeDefaults };
+        return { mergedPadding: safeDefaults, rest: undefined };
       }
 
       const flattened = StyleSheet.flatten(incomingStyle) as ViewStyle | undefined;
 
       if (!flattened) {
-        return { mergedPadding: safeDefaults };
+        return { mergedPadding: safeDefaults, rest: undefined };
       }
 
       const {
@@ -116,14 +125,14 @@ export default function ScreenBackground({
 
         if (__DEV__ && typeof value === 'string') {
           console.warn(
-            `ScreenBackground ignoriert das Zeichenketten-Polster "${value}" für ${edge}, um den Safe-Area-Abstand zu bewahren.`,
+            `ScreenBackground is ignoring string padding "${value}" for ${edge} to preserve safe-area spacing.`,
           );
         }
 
         return safeAreaPadding[edge];
       };
 
-      const mergedPadding: ViewStyle = {
+      const mergedPadding: EdgePadding = {
         paddingTop: clampPadding('top', resolveEdge(paddingTop, paddingVertical, padding)),
         paddingBottom: clampPadding(
           'bottom',
@@ -139,39 +148,90 @@ export default function ScreenBackground({
         ),
       };
 
+      const restStyle = Object.keys(rest).length > 0 ? (rest as ViewStyle) : undefined;
+
       return {
         mergedPadding,
-        rest: Object.keys(rest).length > 0 ? rest : undefined,
+        rest: restStyle,
       };
     },
     [safeAreaPadding],
   );
 
-  const contentStyle = React.useMemo(() => {
-    const { mergedPadding, rest } = mergeSafePadding(contentContainerStyle);
+  const mergedContainerStyle = React.useMemo(
+    () => mergeSafePadding(style),
+    [mergeSafePadding, style],
+  );
 
-    if (rest) {
-      return [styles.scrollContainer, rest, mergedPadding];
+  const mergedContentStyle = React.useMemo(
+    () => mergeSafePadding(contentContainerStyle),
+    [contentContainerStyle, mergeSafePadding],
+  );
+
+  const scrollContentPadding = React.useMemo<EdgePadding>(
+    () => ({
+      paddingTop: Math.max(
+        mergedContainerStyle.mergedPadding.paddingTop,
+        mergedContentStyle.mergedPadding.paddingTop,
+      ),
+      paddingBottom: Math.max(
+        mergedContainerStyle.mergedPadding.paddingBottom,
+        mergedContentStyle.mergedPadding.paddingBottom,
+      ),
+      paddingLeft: Math.max(
+        mergedContainerStyle.mergedPadding.paddingLeft,
+        mergedContentStyle.mergedPadding.paddingLeft,
+      ),
+      paddingRight: Math.max(
+        mergedContainerStyle.mergedPadding.paddingRight,
+        mergedContentStyle.mergedPadding.paddingRight,
+      ),
+    }),
+    [
+      mergedContainerStyle.mergedPadding.paddingBottom,
+      mergedContainerStyle.mergedPadding.paddingLeft,
+      mergedContainerStyle.mergedPadding.paddingRight,
+      mergedContainerStyle.mergedPadding.paddingTop,
+      mergedContentStyle.mergedPadding.paddingBottom,
+      mergedContentStyle.mergedPadding.paddingLeft,
+      mergedContentStyle.mergedPadding.paddingRight,
+      mergedContentStyle.mergedPadding.paddingTop,
+    ],
+  );
+
+  const contentStyle = React.useMemo<StyleProp<ViewStyle>>(() => {
+    if (mergedContentStyle.rest) {
+      return [styles.scrollContainer, mergedContentStyle.rest, scrollContentPadding];
     }
 
-    return [styles.scrollContainer, mergedPadding];
-  }, [contentContainerStyle, mergeSafePadding]);
+    return [styles.scrollContainer, scrollContentPadding];
+  }, [mergedContentStyle, scrollContentPadding]);
 
-  const containerStyle = React.useMemo(() => {
-    const { mergedPadding, rest } = mergeSafePadding(style);
-
-    if (rest) {
-      return [styles.flex, rest, mergedPadding];
+  const containerStyle = React.useMemo<StyleProp<ViewStyle>>(() => {
+    if (mergedContainerStyle.rest) {
+      return [
+        styles.flex,
+        mergedContainerStyle.rest,
+        mergedContainerStyle.mergedPadding,
+      ];
     }
 
-    return [styles.flex, mergedPadding];
-  }, [mergeSafePadding, style]);
+    return [styles.flex, mergedContainerStyle.mergedPadding];
+  }, [mergedContainerStyle]);
+
+  const scrollViewStyle = React.useMemo<StyleProp<ViewStyle>>(() => {
+    if (mergedContainerStyle.rest) {
+      return [styles.flex, mergedContainerStyle.rest];
+    }
+
+    return styles.flex;
+  }, [mergedContainerStyle.rest]);
 
   if (scrollable) {
     return (
       <LinearGradient colors={gradientColors} style={styles.gradient}>
         <ScrollView
-          style={[styles.flex, style]}
+          style={scrollViewStyle}
           contentContainerStyle={contentStyle}
           keyboardShouldPersistTaps="handled"
           testID={testID}
