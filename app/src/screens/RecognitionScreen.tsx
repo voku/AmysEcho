@@ -992,10 +992,8 @@ export default function RecognitionScreen({
             </View>
 
             <PictureInPictureGuidance
-              {...(pipGuidanceGesture?.id ? { gestureId: pipGuidanceGesture.id } : {})}
-              {...(pipGuidanceGesture?.dgsVideoUri
-                ? { videoUri: pipGuidanceGesture.dgsVideoUri }
-                : {})}
+              gestureId={pipGuidanceGesture?.id}
+              videoUri={pipGuidanceGesture?.dgsVideoUri}
               isVisible={showPipGuidance}
               onClose={() => setShowPipGuidance(false)}
               position={getAdaptivePipPosition()}
