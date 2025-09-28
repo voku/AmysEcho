@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useTheme } from '../context/ThemeContext';
 import { adaptiveLearningService, AdaptiveRecommendation } from '../services/adaptiveLearningService';
 
@@ -124,7 +124,7 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
     },
     container: {
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: RADIUS * 2,
+      borderRadius: DEFAULT_RADIUS * 2,
       padding: SPACING.lg,
       margin: SPACING.lg,
       maxWidth: '90%',
@@ -151,7 +151,7 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
     },
     closeButton: {
       padding: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       backgroundColor: highContrast ? COLORS.textMuted : COLORS.secondaryAccent,
     },
     closeButtonText: {
@@ -161,7 +161,7 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
     },
     progressSection: {
       backgroundColor: highContrast ? COLORS.textMuted : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.md,
     },
@@ -200,7 +200,7 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
     },
     recommendationCard: {
       backgroundColor: highContrast ? COLORS.text : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.sm,
       borderWidth: highContrast ? 1 : 0,
@@ -224,7 +224,7 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
     priorityBadge: {
       paddingHorizontal: SPACING.sm,
       paddingVertical: SPACING.xs,
-      borderRadius: RADIUS / 2,
+      borderRadius: DEFAULT_RADIUS / 2,
       alignSelf: 'flex-start',
     },
     priorityText: {
@@ -257,7 +257,7 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
       backgroundColor: COLORS.primaryAccent,
       paddingVertical: SPACING.sm,
       paddingHorizontal: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
     },
     startButtonText: {

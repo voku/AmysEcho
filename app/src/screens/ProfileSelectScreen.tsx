@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Pressable, StyleSheet, Text } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
@@ -47,7 +47,7 @@ export default function ProfileSelectScreen({ navigation }: any) {
     button: {
       backgroundColor: COLORS.primaryAccent,
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 120,
       alignItems: 'center',
     },

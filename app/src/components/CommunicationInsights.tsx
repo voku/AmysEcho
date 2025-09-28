@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 
@@ -204,7 +204,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     },
     chartContainer: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       alignItems: 'center',
       borderWidth: highContrast ? 2 : 1,
@@ -220,7 +220,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: highContrast ? COLORS.surface : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.sm,
       borderWidth: highContrast ? 2 : 1,
@@ -261,7 +261,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     },
     insightsList: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,

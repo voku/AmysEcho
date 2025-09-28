@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import Svg, { Path, Circle } from 'react-native-svg';
 import type { OptimizedGestureService } from '../services/optimizedGestureService';
 
@@ -84,7 +84,7 @@ function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions, gestureMod
     },
     container: {
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: RADIUS * 2,
+      borderRadius: DEFAULT_RADIUS * 2,
       padding: SPACING.md,
       margin: SPACING.md,
       maxWidth: '90%',
@@ -108,7 +108,7 @@ function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions, gestureMod
     optionButton: {
       width: '48%',
       backgroundColor: highContrast ? COLORS.text : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.sm,
       alignItems: 'center',
@@ -144,7 +144,7 @@ function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions, gestureMod
       backgroundColor: COLORS.primaryAccent,
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 104,
     },
     actionButtonSecondary: {

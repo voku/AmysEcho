@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useLocation } from '../context/LocationContext';
 import { useAccessibility } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 
 const LOCATIONS = [
   { key: 'home' as const, label: 'Zuhause', emoji: '🏠' },
@@ -19,7 +19,7 @@ export default function LocationSelector() {
     container: {
       padding: SPACING.md,
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       margin: SPACING.md,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
@@ -39,7 +39,7 @@ export default function LocationSelector() {
     locationButton: {
       alignItems: 'center',
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 80,
     },
     locationButtonActive: {

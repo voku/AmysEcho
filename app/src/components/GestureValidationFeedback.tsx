@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 
 interface GestureValidationFeedbackProps {
@@ -25,7 +25,7 @@ export default function GestureValidationFeedback({
   const styles = StyleSheet.create({
     container: {
       backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.95)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginVertical: SPACING.sm,
       borderWidth: highContrast ? 2 : 1,
@@ -51,7 +51,7 @@ export default function GestureValidationFeedback({
     },
     suggestionsContainer: {
       backgroundColor: highContrast ? COLORS.backgroundEnd : 'rgba(0, 0, 0, 0.05)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.sm,
     },
     suggestionsTitle: {
