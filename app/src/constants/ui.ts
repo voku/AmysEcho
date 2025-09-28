@@ -34,12 +34,14 @@ export const SPACING = {
 } as const;
 
 // Default radius (md) with size shortcuts attached.
-export const RADIUS = Object.assign(8, {
+export const RADIUS = {
   sm: 4,
   md: 8,
   lg: 12,
   xl: 16,
-}) as number & { sm: number; md: number; lg: number; xl: number };
+} as const;
+
+export const DEFAULT_RADIUS = RADIUS.md;
 
 export const FONT_SIZES = {
   xs: 12,

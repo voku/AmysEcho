@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
-import { SPACING, RADIUS, COLORS } from '../constants/ui';
+import { SPACING, COLORS, DEFAULT_RADIUS } from '../constants/ui';
 
 interface ErrorMessageProps {
   message: string | null;
@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     right: SPACING.md,
     backgroundColor: `${COLORS.warning}B3`,
     padding: SPACING.sm,
-    borderRadius: RADIUS,
+    borderRadius: DEFAULT_RADIUS,
   },
   text: {
     color: COLORS.highContrastText,

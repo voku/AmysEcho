@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { logCorrection } from '../storage';
 import { correctionService } from '../services/correctionService';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logHIPEvent } from '../services/hipEvents';
 import { gestureModel } from '../model';
 import { childHaptic } from '../services/feedbackService';
@@ -113,7 +113,7 @@ export default function CorrectionScreen({ navigation, route }: any) {
       width: '48%',
       backgroundColor: COLORS.primaryAccent,
       paddingVertical: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
     },
     choiceButtonHC: {
@@ -154,7 +154,7 @@ export default function CorrectionScreen({ navigation, route }: any) {
       backgroundColor: COLORS.surface,
       borderWidth: 2,
       borderColor: COLORS.primaryAccent,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       margin: SPACING.xs,
       minWidth: 120,

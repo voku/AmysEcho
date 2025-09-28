@@ -1,10 +1,10 @@
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 
 export const createButtonStyles = () => ({
   button: {
     backgroundColor: COLORS.primaryAccent,
     padding: SPACING.md,
-    borderRadius: RADIUS,
+    borderRadius: DEFAULT_RADIUS,
     minWidth: 120,
     alignItems: 'center' as const,
     marginVertical: SPACING.sm,

@@ -9,7 +9,7 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { audioService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
   // Local landmark detection removed; relies on server fallback below.
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
@@ -358,7 +358,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     },
     cameraToggle: {
       backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       paddingHorizontal: SPACING.sm,
       paddingVertical: SPACING.xs,
     },
@@ -394,7 +394,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       width: PREVIEW_SIZE,
       height: 10,
       backgroundColor: highContrast ? COLORS.borderDark : COLORS.border,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       overflow: 'hidden',
       marginBottom: SPACING.sm,
     },
@@ -411,7 +411,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       marginTop: SPACING.sm,
       padding: SPACING.sm,
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
     },
@@ -423,7 +423,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     practiceModeToggle: {
       width: 40,
       height: 40,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
       borderWidth: 2,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
@@ -442,7 +442,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     secondaryButton: {
       backgroundColor: COLORS.secondaryAccent,
       padding: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
       marginTop: SPACING.sm,
       minWidth: 100,

@@ -6,7 +6,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Text, StyleSheet, Animated } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 
 interface VisualFeedbackProps {
@@ -109,7 +109,7 @@ export default function VisualFeedback({
       top: '50%',
       left: '50%',
       backgroundColor: typeStyles.backgroundColor,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.sm,
       flexDirection: 'row',

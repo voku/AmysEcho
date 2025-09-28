@@ -15,7 +15,7 @@ import {
 } from '../services/analytics';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { API_URL, API_TOKEN } from '../constants';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import BottomNav from '../components/BottomNav';
 import { childHaptic } from '../services/feedbackService';
@@ -72,7 +72,7 @@ export default function DashboardScreen({ navigation }: any) {
     button: {
       backgroundColor: COLORS.primaryAccent,
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
       marginTop: SPACING.lg,
       minWidth: 120,
