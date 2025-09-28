@@ -46,10 +46,97 @@ export default function ScreenBackground({
     [insets.bottom, insets.top],
   );
 
-  const contentStyle = React.useMemo(
-    () => [basePadding, styles.scrollContainer, contentContainerStyle],
-    [basePadding, contentContainerStyle],
-  );
+  const contentStyle = React.useMemo(() => {
+    const basePaddingTop =
+      typeof basePadding.paddingTop === 'number' ? basePadding.paddingTop : 0;
+    const basePaddingBottom =
+      typeof basePadding.paddingBottom === 'number' ? basePadding.paddingBottom : 0;
+    const basePaddingHorizontal =
+      typeof basePadding.paddingHorizontal === 'number'
+        ? basePadding.paddingHorizontal
+        : 0;
+
+    const safeDefaults: ViewStyle = {
+      paddingTop: basePaddingTop,
+      paddingBottom: basePaddingBottom,
+      paddingLeft: basePaddingHorizontal,
+      paddingRight: basePaddingHorizontal,
+    };
+
+    if (!contentContainerStyle) {
+      return [styles.scrollContainer, safeDefaults];
+    }
+
+    const flattened = StyleSheet.flatten(contentContainerStyle) as
+      | ViewStyle
+      | undefined;
+
+    if (!flattened) {
+      return [styles.scrollContainer, safeDefaults];
+    }
+
+    const {
+      padding,
+      paddingVertical,
+      paddingHorizontal,
+      paddingTop,
+      paddingBottom,
+      paddingLeft,
+      paddingRight,
+      ...rest
+    } = flattened;
+
+    const resolvedTop =
+      typeof paddingTop === 'number'
+        ? paddingTop
+        : typeof paddingVertical === 'number'
+        ? paddingVertical
+        : typeof padding === 'number'
+        ? padding
+        : undefined;
+
+    const resolvedBottom =
+      typeof paddingBottom === 'number'
+        ? paddingBottom
+        : typeof paddingVertical === 'number'
+        ? paddingVertical
+        : typeof padding === 'number'
+        ? padding
+        : undefined;
+
+    const resolvedLeft =
+      typeof paddingLeft === 'number'
+        ? paddingLeft
+        : typeof paddingHorizontal === 'number'
+        ? paddingHorizontal
+        : typeof padding === 'number'
+        ? padding
+        : undefined;
+
+    const resolvedRight =
+      typeof paddingRight === 'number'
+        ? paddingRight
+        : typeof paddingHorizontal === 'number'
+        ? paddingHorizontal
+        : typeof padding === 'number'
+        ? padding
+        : undefined;
+
+    const mergedPadding: ViewStyle = {
+      paddingTop: Math.max(basePaddingTop, resolvedTop ?? basePaddingTop),
+      paddingBottom: Math.max(
+        basePaddingBottom,
+        resolvedBottom ?? basePaddingBottom,
+      ),
+      paddingLeft: Math.max(basePaddingHorizontal, resolvedLeft ?? basePaddingHorizontal),
+      paddingRight: Math.max(
+        basePaddingHorizontal,
+        resolvedRight ?? basePaddingHorizontal,
+      ),
+    };
+
+    return [styles.scrollContainer, rest, mergedPadding];
+  }, [basePadding, contentContainerStyle]);
 
   if (scrollable) {
     return (

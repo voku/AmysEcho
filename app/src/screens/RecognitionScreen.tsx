@@ -636,8 +636,6 @@ export default function RecognitionScreen({
       flex: 1,
     },
     scrollContent: {
-      paddingHorizontal: SPACING.lg,
-      paddingTop: SPACING.lg,
       paddingBottom: SPACING.xl * 2,
     },
     card: {
