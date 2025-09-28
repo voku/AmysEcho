@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import { isTwoHandGestureString, parseTwoHandGestureString, getTwoHandGestureById } from '../constants/twoHandGestures';
 
@@ -70,7 +70,7 @@ export default function TwoHandGestureDisplay({
     container: {
       alignItems: 'center',
       backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(0, 0, 0, 0.7)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.sm,
       borderWidth: highContrast ? 2 : 0,
       borderColor: highContrast ? COLORS.highContrastText : 'transparent',
@@ -105,7 +105,7 @@ export default function TwoHandGestureDisplay({
     },
     detailsContainer: {
       backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.1)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.xs,
       marginTop: SPACING.xs,
       borderWidth: highContrast ? 1 : 0,
@@ -119,7 +119,7 @@ export default function TwoHandGestureDisplay({
     },
     categoryBadge: {
       backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       paddingHorizontal: SPACING.xs,
       paddingVertical: 2,
       marginTop: SPACING.xs,

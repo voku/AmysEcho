@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, Pressable } from 'react-native';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
 import { childHaptic } from '../services/feedbackService';
@@ -42,7 +42,7 @@ export default function CaregiverReportScreen({ navigation }: any) {
     button: {
       backgroundColor: COLORS.primaryAccent,
       padding: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 80,
       alignItems: 'center',
     },

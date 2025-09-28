@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useMood } from '../context/MoodContext';
 import { useAccessibility } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 
 export default function MoodSelector() {
   const { currentMood, setMood, getMoodEmoji, getMoodDescription } = useMood();
@@ -18,7 +18,7 @@ export default function MoodSelector() {
     container: {
       padding: SPACING.md,
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       margin: SPACING.md,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
@@ -38,7 +38,7 @@ export default function MoodSelector() {
     moodButton: {
       alignItems: 'center',
       padding: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       minWidth: 80,
     },
     moodButtonActive: {

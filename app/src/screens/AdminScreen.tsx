@@ -26,7 +26,7 @@ import { useServices } from '../context/ServicesContext';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants';
 import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { getLocalCentroidSummary } from '../services/localCentroids';
 
@@ -345,8 +345,8 @@ export default function AdminScreen({ navigation }: any) {
     title: { fontSize: 24, marginBottom: SPACING.lg, textAlign: 'center' },
     row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
     modal: { flex: 1, justifyContent: 'center', padding: SPACING.lg },
-    input: { borderWidth: 1, padding: SPACING.sm, marginBottom: SPACING.md, borderRadius: RADIUS },
-    apiInput: { borderWidth: 1, padding: SPACING.sm, marginVertical: SPACING.md, borderRadius: RADIUS },
+    input: { borderWidth: 1, padding: SPACING.sm, marginBottom: SPACING.md, borderRadius: DEFAULT_RADIUS },
+    apiInput: { borderWidth: 1, padding: SPACING.sm, marginVertical: SPACING.md, borderRadius: DEFAULT_RADIUS },
   });
 
   return (

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 
 interface ProgressTrackerProps {
@@ -45,7 +45,7 @@ export default function ProgressTracker({
       maxWidth: 300,
       height: 12,
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
       overflow: 'hidden',
@@ -53,7 +53,7 @@ export default function ProgressTracker({
     progressBar: {
       height: '100%',
       backgroundColor: isComplete ? COLORS.success : color,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       width: `${percentage}%`,
     },
     progressText: {

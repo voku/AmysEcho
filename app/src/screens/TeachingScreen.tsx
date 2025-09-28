@@ -17,7 +17,7 @@ import { addGesture } from '../model';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { syncTrainingData } from '../services';
@@ -624,7 +624,7 @@ export default function TeachingScreen({ navigation }: any) {
       {syncing && (
         <View style={{ width: '100%', padding: SPACING.md }}>
           <Text>Modell wird trainiert… {Math.round(progress)}%</Text>
-          <View style={{ height: 8, backgroundColor: COLORS.border, borderRadius: RADIUS, overflow: 'hidden', marginTop: 6 }}>
+          <View style={{ height: 8, backgroundColor: COLORS.border, borderRadius: DEFAULT_RADIUS, overflow: 'hidden', marginTop: 6 }}>
             <View style={{ height: '100%', width: `${Math.max(0, Math.min(100, progress))}%`, backgroundColor: COLORS.success }} />
           </View>
         </View>
@@ -671,7 +671,7 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       marginBottom: SPACING.md,
       backgroundColor: COLORS.surface,
       color: COLORS.text,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
     },
     recordingContainer: { alignItems: 'center', position: 'relative' },
     camera: {
@@ -679,7 +679,7 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       height: PREVIEW_SIZE,
       marginBottom: SPACING.sm,
       position: 'relative',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       overflow: 'hidden',
     },
     prompt: { fontSize: largeText ? 22 : 18, marginVertical: SPACING.sm, color: highContrast ? COLORS.highContrastText : COLORS.text },
@@ -689,7 +689,7 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       top: 100,
       backgroundColor: `${COLORS.success}B3`,
       padding: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
     },
     sampleIndicatorText: {
       color: COLORS.highContrastText,
@@ -704,7 +704,7 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       marginBottom: SPACING.md,
       padding: SPACING.sm,
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
     },
@@ -716,7 +716,7 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
     modeToggle: {
       width: 50,
       height: 50,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
       borderWidth: 2,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
@@ -734,7 +734,7 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
     },
     selectedGestureContainer: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
@@ -787,7 +787,7 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
     // Enhanced feedback styles
     qualityContainer: {
       backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.9)',
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.sm,
       marginVertical: SPACING.sm,
       borderWidth: highContrast ? 2 : 1,

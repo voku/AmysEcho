@@ -10,7 +10,7 @@ import { View, StyleSheet, Text, Pressable, Animated } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { logger } from '../utils/logger';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 
 const TEXT = {
   gestureVideoLabel: 'Gesten-Video',
@@ -240,14 +240,14 @@ const styles = StyleSheet.create({
   videoContainer: {
     flex: 1,
     backgroundColor: COLORS.highContrastBackground,
-    borderRadius: RADIUS * 2,
+    borderRadius: DEFAULT_RADIUS * 2,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: COLORS.primaryAccent,
   },
   video: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: RADIUS * 2,
+    borderRadius: DEFAULT_RADIUS * 2,
   },
   placeholder: {
     ...StyleSheet.absoluteFillObject,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     right: 4,
     left: 32,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: RADIUS,
+    borderRadius: DEFAULT_RADIUS,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(34, 197, 94, 0.9)',
-    borderRadius: RADIUS,
+    borderRadius: DEFAULT_RADIUS,
     paddingHorizontal: 8,
     paddingVertical: 4,
     alignItems: 'center',

@@ -1,5 +1,5 @@
 import { StyleSheet, ViewStyle } from 'react-native';
-import { COLORS, RADIUS } from '../constants/ui';
+import { COLORS, DEFAULT_RADIUS } from '../constants/ui';
 
 const base: ViewStyle = {
   minWidth: 60,
@@ -14,6 +14,6 @@ export const childFriendlyStyles = StyleSheet.create({
   primaryButton: {
     ...base,
     backgroundColor: COLORS.primaryAccent,
-    borderRadius: RADIUS,
+    borderRadius: DEFAULT_RADIUS,
   },
 });

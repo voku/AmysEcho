@@ -2,29 +2,35 @@ import { runDailyJobs, checkAllGesturesForDecliningAccuracy, checkPracticeRecomm
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { audioService, backupService, checkForModelUpdate, syncService, syncTrainingData, gestureDataProtector, gdprService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { useMessage } from './MessageContext';
 import { loadActiveProfileId } from '../storage';
 import { logger } from '../utils/logger';
-import { uploadTelemetry } from '../services';
 import { telemetry } from '../telemetry/recorder';
-import { useServicesStore, type Services } from '../stores/servicesStore';
+import { ServicesContext, type Services } from './ServicesContext';
 
 interface ProviderProps {
   children: ReactNode;
   offline?: boolean;
 }
 
-const services: Services = { audioService, adaptiveLearningService, backupService, gestureDataProtector, gdprService };
+const defaultServices: Services = {
+  audioService,
+  adaptiveLearningService,
+  backupService,
+  gestureDataProtector,
+  gdprService,
+};
 
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const { setMessage } = useMessage();
-  const { setServices, setReady, isReady } = useServicesStore();
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     async function runModelUpdate() {
@@ -39,8 +45,6 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       try {
         // WebView + server path: no native TensorFlow model loading here.
         await audioService.initialize();
-        setServices(services);
-        setReady(true);
         if (!offline) {
           // Ensure immediate sync attempt is observable by tests
           try { await syncService.uploadPendingTrainingData(); } catch {}
@@ -105,12 +109,16 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       } catch (e) {
         logger.error('Dienste konnten nicht initialisiert werden:', e);
         setMessage('Dienste konnten nicht gestartet werden. Bitte Internetverbindung prüfen und erneut versuchen.');
-        setReady(true);
+      } finally {
+        if (!cancelled) {
+          setIsReady(true);
+        }
       }
     }
 
     initializeServices();
     return () => {
+      cancelled = true;
       if (interval) clearInterval(interval);
       if (telemetryTimeout) clearTimeout(telemetryTimeout);
       try {
@@ -119,11 +127,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         Promise.resolve((audioService as any).dispose?.()).catch(() => {});
       } catch {}
     };
-  }, [offline, setMessage, setReady, setServices]);
+  }, [offline, setMessage]);
 
   if (!isReady) {
     return <LoadingIndicator />;
   }
 
-  return <>{children}</>;
+  return <ServicesContext.Provider value={defaultServices}>{children}</ServicesContext.Provider>;
 };

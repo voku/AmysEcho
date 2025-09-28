@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import { TWO_HAND_GESTURES, TwoHandGestureDefinition } from '../constants/twoHandGestures';
 
@@ -38,7 +38,7 @@ export default function TwoHandGestureSelector({
     container: {
       flex: 1,
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: RADIUS * 2,
+      borderRadius: DEFAULT_RADIUS * 2,
       padding: SPACING.lg,
       maxHeight: '80%',
     },
@@ -67,7 +67,7 @@ export default function TwoHandGestureSelector({
     categoryButton: {
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.sm,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       margin: SPACING.xs,
       borderWidth: 2,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
@@ -91,7 +91,7 @@ export default function TwoHandGestureSelector({
     },
     gestureCard: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.sm,
       borderWidth: highContrast ? 2 : 1,
@@ -112,7 +112,7 @@ export default function TwoHandGestureSelector({
     difficultyBadge: {
       paddingHorizontal: SPACING.sm,
       paddingVertical: 2,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       backgroundColor: highContrast ? COLORS.highContrastText : COLORS.secondaryAccent,
     },
     difficultyText: {
@@ -152,7 +152,7 @@ export default function TwoHandGestureSelector({
       backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
       paddingVertical: SPACING.sm,
       paddingHorizontal: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
     },
     selectButtonText: {
@@ -164,7 +164,7 @@ export default function TwoHandGestureSelector({
       backgroundColor: 'transparent',
       paddingVertical: SPACING.sm,
       paddingHorizontal: SPACING.md,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
       marginTop: SPACING.md,
       borderWidth: 2,

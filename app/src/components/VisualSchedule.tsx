@@ -7,7 +7,7 @@ import {
   Pressable,
 } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
-import { COLORS, SPACING, RADIUS } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 const TEXT = {
@@ -187,7 +187,7 @@ export default function VisualSchedule({ onScheduleComplete, onActivityPress }: 
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: highContrast ? COLORS.surface : COLORS.surface,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
       marginBottom: SPACING.sm,
       borderWidth: highContrast ? 2 : 1,
@@ -250,7 +250,7 @@ export default function VisualSchedule({ onScheduleComplete, onActivityPress }: 
       backgroundColor: highContrast ? COLORS.highContrastText : '#FF9800',
       paddingHorizontal: SPACING.sm,
       paddingVertical: SPACING.xs,
-      borderRadius: RADIUS,
+      borderRadius: DEFAULT_RADIUS,
     },
     currentText: {
       color: highContrast ? COLORS.highContrastBackground : 'white',
