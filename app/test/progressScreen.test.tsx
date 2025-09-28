@@ -100,6 +100,20 @@ jest.mock('../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));
 
+jest.mock('../src/context/ThemeContext', () => {
+  const themes = jest.requireActual('../src/constants/themes');
+  const theme = themes.THEMES[themes.DEFAULT_THEME];
+
+  return {
+    useTheme: () => ({
+      theme,
+      themeName: themes.DEFAULT_THEME,
+      setTheme: jest.fn(),
+      availableThemes: themes.THEMES,
+    }),
+  };
+});
+
 // Mock BottomNav to avoid requiring a NavigationContainer context in unit test
 jest.mock('../src/components/BottomNav', () => () => null);
 
