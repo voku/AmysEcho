@@ -3,7 +3,8 @@ import renderer, { act } from 'react-test-renderer';
 
 jest.mock('react-native', () => {
   const React = require('react');
-  const createElement = (name: string) => (props: any) => React.createElement(name, props, props.children);
+  const createElement = (name: string) => (props: any) =>
+    React.createElement(name, props, props.children);
 
   return {
     View: createElement('View'),
@@ -150,16 +151,24 @@ describe('TrainingScreen', () => {
     (saveTrainingSample as jest.Mock).mockResolvedValue(undefined);
     await act(async () => {
       component = renderer.create(
-        <TrainingScreen navigation={{ goBack: jest.fn() }} route={{ params: { gestureLabel: 'hello' } }} /> as any,
+        (
+          <TrainingScreen
+            navigation={{ goBack: jest.fn() }}
+            route={{ params: { gestureLabel: 'hello' } }}
+          />
+        ) as any,
       );
       await Promise.resolve();
     });
 
     expect(component).not.toBeNull();
 
-    const recordPressable = component!
-      .root
-      .findAll((node) => node.type === 'Pressable' && node.props.accessibilityLabel === 'Gestenaufnahme starten')[0];
+    const recordPressable = component!.root.findAll(
+      (node) =>
+        node.type === 'Pressable' &&
+        typeof node.props.accessibilityLabel === 'string' &&
+        node.props.accessibilityLabel.startsWith('Beispiel '),
+    )[0];
 
     await act(async () => {
       recordPressable.props.onPress();

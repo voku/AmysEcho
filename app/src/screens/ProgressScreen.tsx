@@ -15,7 +15,10 @@ export default function ProgressScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   const [stats, setStats] = useState<Record<string, number>>({});
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [engagement, setEngagement] = useState<{ totalSessions: number; averageDurationMs: number }>({ totalSessions: 0, averageDurationMs: 0 });
+  const [engagement, setEngagement] = useState<{
+    totalSessions: number;
+    averageDurationMs: number;
+  }>({ totalSessions: 0, averageDurationMs: 0 });
 
   useEffect(() => {
     loadProfile().then((p) => {
@@ -32,6 +35,7 @@ export default function ProgressScreen({ navigation }: any) {
     .filter((e) => e.count > 0);
 
   const styles = StyleSheet.create({
+    screen: { flex: 1 },
     container: {
       flex: 1,
       padding: SPACING.lg,
@@ -93,78 +97,80 @@ export default function ProgressScreen({ navigation }: any) {
   });
 
   return (
-    <ScreenBackground style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Fortschritt</Text>
-        <View style={styles.summaryItem}>
-          <Text style={styles.label}>Sitzungen</Text>
-          <Text style={styles.label}>{engagement.totalSessions}</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.label}>Durchschnittliche Sitzungsdauer (s)</Text>
-          <Text style={styles.label}>{Math.round(engagement.averageDurationMs / 1000)}</Text>
-        </View>
-        <FlatList
-          data={entries}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.item}>
-              <Text style={styles.label}>{item.label}</Text>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void childHaptic();
-                  navigation.navigate('ProgressChart', { gestureId: item.id });
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Details für ${item.label} anzeigen`}
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
+    <View style={styles.screen}>
+      <ScreenBackground style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Fortschritt</Text>
+          <View style={styles.summaryItem}>
+            <Text style={styles.label}>Sitzungen</Text>
+            <Text style={styles.label}>{engagement.totalSessions}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.label}>Durchschnittliche Sitzungsdauer (s)</Text>
+            <Text style={styles.label}>{Math.round(engagement.averageDurationMs / 1000)}</Text>
+          </View>
+          <FlatList
+            data={entries}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.item}>
+                <Text style={styles.label}>{item.label}</Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.button,
+                    highContrast && styles.buttonHC,
+                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                   ]}
+                  onPress={() => {
+                    void childHaptic();
+                    navigation.navigate('ProgressChart', { gestureId: item.id });
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Details für ${item.label} anzeigen`}
                 >
-                  Details
-                </Text>
-              </Pressable>
-              <Text style={styles.label}>{item.count}</Text>
-            </View>
-          )}
-          ListEmptyComponent={<Text style={styles.label}>Noch keine Nutzung</Text>}
-        />
-        <Pressable
-          style={({ pressed }) => [
-            childFriendlyStyles.minTouchTarget,
-            styles.button,
-            highContrast && styles.buttonHC,
-            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-          ]}
-          onPress={() => {
-            void childHaptic();
-            navigation.goBack();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Zurück"
-        >
-          <Text
-            style={[
-              styles.buttonText,
-              largeText && styles.buttonTextLarge,
-              highContrast && styles.buttonTextHC,
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      largeText && styles.buttonTextLarge,
+                      highContrast && styles.buttonTextHC,
+                    ]}
+                  >
+                    Details
+                  </Text>
+                </Pressable>
+                <Text style={styles.label}>{item.count}</Text>
+              </View>
+            )}
+            ListEmptyComponent={<Text style={styles.label}>Noch keine Nutzung</Text>}
+          />
+          <Pressable
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.button,
+              highContrast && styles.buttonHC,
+              pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
             ]}
+            onPress={() => {
+              void childHaptic();
+              navigation.goBack();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Zurück"
           >
-            Zurück
-          </Text>
-        </Pressable>
-      </View>
+            <Text
+              style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}
+            >
+              Zurück
+            </Text>
+          </Pressable>
+        </View>
+      </ScreenBackground>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
-    </ScreenBackground>
+    </View>
   );
 }

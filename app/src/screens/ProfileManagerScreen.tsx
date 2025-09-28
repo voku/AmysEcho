@@ -18,7 +18,6 @@ import ProfileAnalytics from '../components/ProfileAnalytics';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
 
-
 export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isTrustedDevice, setIsTrustedDevice] = useState(false);
@@ -76,7 +75,8 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
         const historyStats = gestureHistoryService.getStats();
         const stats = {
           totalGestures: historyStats.totalGestures,
-          uniqueGestures: new Set(gestureHistoryService.getRecentHistory().map(h => h.label)).size,
+          uniqueGestures: new Set(gestureHistoryService.getRecentHistory().map((h) => h.label))
+            .size,
           averageConfidence: historyStats.successRate,
           mostUsedGesture: historyStats.mostUsedGesture,
           recentActivity: historyStats.recentActivity,
@@ -101,7 +101,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
           // Update profile in database
           await database.write(async () => {
             const dbProfile = await database.get<DBProfile>('profiles').find(activeProfileId);
-            await dbProfile.update(p => {
+            await dbProfile.update((p) => {
               (p as any).successSound = soundId;
             });
           });
@@ -145,7 +145,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       Alert.alert(
         'Vertrauenswürdiges Gerät eingerichtet',
         'Dieses Gerät ist jetzt als vertrauenswürdig markiert. Amy kann es ohne zusätzliche Sicherheitseinstellungen verwenden.',
-        [{ text: 'OK' }]
+        [{ text: 'OK' }],
       );
     } catch (error) {
       logger.error('Failed to setup trusted device:', error);
@@ -170,9 +170,9 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
             } catch (error) {
               logger.error('Failed to remove trusted device:', error);
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -184,14 +184,14 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       if (enabled) {
         Alert.alert(
           'Mobbing-Schutz aktiviert',
-          'Das Gerät ist jetzt vor unbefugter Nutzung geschützt. Nur vertrauenswürdige Benutzer können Amy\'s App verwenden.',
-          [{ text: 'OK' }]
+          "Das Gerät ist jetzt vor unbefugter Nutzung geschützt. Nur vertrauenswürdige Benutzer können Amy's App verwenden.",
+          [{ text: 'OK' }],
         );
       } else {
         Alert.alert(
           'Mobbing-Schutz deaktiviert',
           'Der Schutz wurde deaktiviert. Stelle sicher, dass das Gerät sicher verwendet wird.',
-          [{ text: 'OK' }]
+          [{ text: 'OK' }],
         );
       }
     } catch (error) {
@@ -203,7 +203,10 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
     try {
       await AsyncStorage.setItem('gestureSizeTolerance', tolerance.toString());
       setGestureSizeTolerance(tolerance);
-      Alert.alert('Gespeichert', `Gestengrößen-Toleranz auf ${Math.round(tolerance * 100)}% gesetzt.`);
+      Alert.alert(
+        'Gespeichert',
+        `Gestengrößen-Toleranz auf ${Math.round(tolerance * 100)}% gesetzt.`,
+      );
     } catch (error) {
       logger.error('Failed to save gesture size tolerance:', error);
     }
@@ -231,7 +234,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
     if (activeProfileId) {
       await database.write(async () => {
         const dbProfile = await database.get<DBProfile>('profiles').find(activeProfileId);
-        await dbProfile.update(p => {
+        await dbProfile.update((p) => {
           (p as any).largeText = enabled;
         });
       });
@@ -246,7 +249,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
     if (activeProfileId) {
       await database.write(async () => {
         const dbProfile = await database.get<DBProfile>('profiles').find(activeProfileId);
-        await dbProfile.update(p => {
+        await dbProfile.update((p) => {
           (p as any).highContrast = enabled;
         });
       });
@@ -266,7 +269,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
               const profileToDelete = await database.get<DBProfile>('profiles').find(id);
               await profileToDelete.destroyPermanently();
             });
-            setProfiles(profiles.filter(p => p.id !== id));
+            setProfiles(profiles.filter((p) => p.id !== id));
           },
         },
       ],
@@ -274,10 +277,19 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
   };
 
   const styles = StyleSheet.create({
+    screen: { flex: 1 },
     container: { flex: 1, padding: SPACING.lg, backgroundColor: 'transparent' },
-    title: { fontSize: largeText ? 28 : 24, marginBottom: SPACING.lg, textAlign: 'center', color: highContrast ? COLORS.highContrastText : COLORS.text },
+    title: {
+      fontSize: largeText ? 28 : 24,
+      marginBottom: SPACING.lg,
+      textAlign: 'center',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
     row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
-    name: { fontSize: largeText ? 22 : 18, color: highContrast ? COLORS.highContrastText : COLORS.text },
+    name: {
+      fontSize: largeText ? 22 : 18,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
     trustedDeviceSection: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
       padding: SPACING.md,
@@ -315,7 +327,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       textAlign: 'center',
       marginBottom: SPACING.md,
     },
-    
+
     accessibilityRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -391,122 +403,17 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
   });
 
   return (
-    <ScreenBackground style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
+    <View style={styles.screen}>
+      <ScreenBackground style={styles.container}>
+        <Text style={styles.title}>Profile</Text>
 
-      {/* Trusted Device Section */}
-      <View style={styles.trustedDeviceSection}>
-        <Text style={styles.sectionTitle}>Vertrauenswürdiges Gerät</Text>
-        {isTrustedDevice ? (
-          <View style={styles.trustedDeviceInfo}>
-            <Text style={styles.trustedDeviceText}>✅ Dieses Gerät ist vertrauenswürdig</Text>
-            <Pressable
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.button,
-                highContrast && styles.buttonHC,
-                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-              ]}
-              onPress={() => {
-                void childHaptic();
-                removeTrustedDevice();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Vertrauenswürdiges Gerät entfernen"
-            >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
-                Entfernen
-              </Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.trustedDeviceSetup}>
-            <Text style={styles.trustedDeviceText}>
-              Richte dieses Gerät als vertrauenswürdig ein für einfacheren Zugriff
-            </Text>
-            <Pressable
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.button,
-                highContrast && styles.buttonHC,
-                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-              ]}
-              onPress={() => {
-                void childHaptic();
-                setupTrustedDevice();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Gerät als vertrauenswürdig einrichten"
-            >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
-                Als vertrauenswürdig einrichten
-              </Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
-
-      {/* Bullying Protection Section */}
-      <View style={styles.trustedDeviceSection}>
-        <Text style={styles.sectionTitle}>Mobbing-Schutz</Text>
-        <View style={styles.protectionInfo}>
-          <Text style={styles.trustedDeviceText}>
-            {bullyingProtectionEnabled
-              ? '🛡️ Mobbing-Schutz ist aktiviert'
-              : '⚠️ Mobbing-Schutz ist deaktiviert'}
-          </Text>
-          <Text style={styles.protectionDescription}>
-            Schützt Amy vor unbefugter Nutzung auf geteilten Geräten
-          </Text>
-          <View style={styles.buttonRow}>
-            <Pressable
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.button,
-                highContrast && styles.buttonHC,
-                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-              ]}
-              onPress={() => {
-                void childHaptic();
-                toggleBullyingProtection(!bullyingProtectionEnabled);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`Mobbing-Schutz ${bullyingProtectionEnabled ? 'deaktivieren' : 'aktivieren'}`}
-            >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
-                {bullyingProtectionEnabled ? "Deaktivieren" : "Aktivieren"}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-
-      {/* Gesture Size Tolerance Section */}
-      <View style={styles.trustedDeviceSection}>
-        <Text style={styles.sectionTitle}>Gestengrößen-Toleranz</Text>
-        <View style={styles.protectionInfo}>
-          <Text style={styles.trustedDeviceText}>
-            Aktuell: {Math.round(gestureSizeTolerance * 100)}%
-          </Text>
-          <Text style={styles.protectionDescription}>
-            Wie viel Größenunterschied bei Gesten erlaubt ist
-          </Text>
-          <View style={styles.toleranceButtons}>
-            {[0.1, 0.2, 0.3, 0.4, 0.5].map((tolerance) => (
+        {/* Trusted Device Section */}
+        <View style={styles.trustedDeviceSection}>
+          <Text style={styles.sectionTitle}>Vertrauenswürdiges Gerät</Text>
+          {isTrustedDevice ? (
+            <View style={styles.trustedDeviceInfo}>
+              <Text style={styles.trustedDeviceText}>✅ Dieses Gerät ist vertrauenswürdig</Text>
               <Pressable
-                key={tolerance}
                 style={({ pressed }) => [
                   childFriendlyStyles.minTouchTarget,
                   styles.button,
@@ -515,29 +422,140 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
                 ]}
                 onPress={() => {
                   void childHaptic();
-                  saveGestureSizeTolerance(tolerance);
+                  removeTrustedDevice();
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={`Toleranz auf ${Math.round(tolerance * 100)}% setzen`}
+                accessibilityLabel="Vertrauenswürdiges Gerät entfernen"
               >
-                <Text style={[
-                  styles.buttonText,
-                  largeText && styles.buttonTextLarge,
-                  highContrast && styles.buttonTextHC,
-                ]}>
-                  {`${Math.round(tolerance * 100)}%`}
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  Entfernen
                 </Text>
               </Pressable>
-            ))}
+            </View>
+          ) : (
+            <View style={styles.trustedDeviceSetup}>
+              <Text style={styles.trustedDeviceText}>
+                Richte dieses Gerät als vertrauenswürdig ein für einfacheren Zugriff
+              </Text>
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void childHaptic();
+                  setupTrustedDevice();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Gerät als vertrauenswürdig einrichten"
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  Als vertrauenswürdig einrichten
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+
+        {/* Bullying Protection Section */}
+        <View style={styles.trustedDeviceSection}>
+          <Text style={styles.sectionTitle}>Mobbing-Schutz</Text>
+          <View style={styles.protectionInfo}>
+            <Text style={styles.trustedDeviceText}>
+              {bullyingProtectionEnabled
+                ? '🛡️ Mobbing-Schutz ist aktiviert'
+                : '⚠️ Mobbing-Schutz ist deaktiviert'}
+            </Text>
+            <Text style={styles.protectionDescription}>
+              Schützt Amy vor unbefugter Nutzung auf geteilten Geräten
+            </Text>
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void childHaptic();
+                  toggleBullyingProtection(!bullyingProtectionEnabled);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Mobbing-Schutz ${bullyingProtectionEnabled ? 'deaktivieren' : 'aktivieren'}`}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  {bullyingProtectionEnabled ? 'Deaktivieren' : 'Aktivieren'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
-       </View>
+
+        {/* Gesture Size Tolerance Section */}
+        <View style={styles.trustedDeviceSection}>
+          <Text style={styles.sectionTitle}>Gestengrößen-Toleranz</Text>
+          <View style={styles.protectionInfo}>
+            <Text style={styles.trustedDeviceText}>
+              Aktuell: {Math.round(gestureSizeTolerance * 100)}%
+            </Text>
+            <Text style={styles.protectionDescription}>
+              Wie viel Größenunterschied bei Gesten erlaubt ist
+            </Text>
+            <View style={styles.toleranceButtons}>
+              {[0.1, 0.2, 0.3, 0.4, 0.5].map((tolerance) => (
+                <Pressable
+                  key={tolerance}
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.button,
+                    highContrast && styles.buttonHC,
+                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                  ]}
+                  onPress={() => {
+                    void childHaptic();
+                    saveGestureSizeTolerance(tolerance);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Toleranz auf ${Math.round(tolerance * 100)}% setzen`}
+                >
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      largeText && styles.buttonTextLarge,
+                      highContrast && styles.buttonTextHC,
+                    ]}
+                  >
+                    {`${Math.round(tolerance * 100)}%`}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </View>
 
         {/* Success Sound Selection Section */}
-        <SoundSelector
-          selectedSound={selectedSuccessSound}
-          onSoundSelect={handleSoundSelect}
-        />
+        <SoundSelector selectedSound={selectedSuccessSound} onSoundSelect={handleSoundSelect} />
 
         {/* Accessibility Settings Section */}
         <View style={styles.trustedDeviceSection}>
@@ -583,11 +601,13 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
               accessibilityRole="button"
               accessibilityLabel="Gestenverlauf anzeigen"
             >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  largeText && styles.buttonTextLarge,
+                  highContrast && styles.buttonTextHC,
+                ]}
+              >
                 📚 Verlauf anzeigen
               </Text>
             </Pressable>
@@ -605,20 +625,20 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
               accessibilityRole="button"
               accessibilityLabel="Leistungsanalyse anzeigen"
             >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  largeText && styles.buttonTextLarge,
+                  highContrast && styles.buttonTextHC,
+                ]}
+              >
                 📊 Analyse
               </Text>
             </Pressable>
           </View>
           {profileStats && (
             <View style={styles.statsSummary}>
-              <Text style={styles.statsText}>
-                Gesamt: {profileStats.totalGestures} Gesten
-              </Text>
+              <Text style={styles.statsText}>Gesamt: {profileStats.totalGestures} Gesten</Text>
               <Text style={styles.statsText}>
                 Einzigartig: {profileStats.uniqueGestures} Gesten
               </Text>
@@ -686,60 +706,61 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
             </View>
           )}
         />
-      <Pressable
-        style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
-          styles.button,
-          highContrast && styles.buttonHC,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
-        onPress={() => {
-          void childHaptic();
-          navigation.navigate('Onboarding');
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Neues Profil anlegen"
-      >
-        <Text style={[
-          styles.buttonText,
-          largeText && styles.buttonTextLarge,
-          highContrast && styles.buttonTextHC,
-        ]}>
-          Neues Profil
-        </Text>
-      </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            childFriendlyStyles.minTouchTarget,
+            styles.button,
+            highContrast && styles.buttonHC,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          onPress={() => {
+            void childHaptic();
+            navigation.navigate('Onboarding');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Neues Profil anlegen"
+        >
+          <Text
+            style={[
+              styles.buttonText,
+              largeText && styles.buttonTextLarge,
+              highContrast && styles.buttonTextHC,
+            ]}
+          >
+            Neues Profil
+          </Text>
+        </Pressable>
 
-      {/* Gesture History Overlay */}
-      {showGestureHistory && (
-        <View style={styles.overlay}>
-          <GestureHistoryViewer
-            gestureHistory={gestureHistory}
-            onClose={() => setShowGestureHistory(false)}
-            onGestureSelect={(gesture) => {
-              // Could navigate to practice this specific gesture
-              setShowGestureHistory(false);
-              navigation.navigate('Training', { gestureLabel: gesture.id });
-            }}
-          />
-        </View>
-      )}
+        {/* Gesture History Overlay */}
+        {showGestureHistory && (
+          <View style={styles.overlay}>
+            <GestureHistoryViewer
+              gestureHistory={gestureHistory}
+              onClose={() => setShowGestureHistory(false)}
+              onGestureSelect={(gesture) => {
+                // Could navigate to practice this specific gesture
+                setShowGestureHistory(false);
+                navigation.navigate('Training', { gestureLabel: gesture.id });
+              }}
+            />
+          </View>
+        )}
 
-      {/* Profile Analytics Overlay */}
-      {showProfileAnalytics && profileStats && (
-        <View style={styles.overlay}>
-          <ProfileAnalytics
-            stats={profileStats}
-            onClose={() => setShowProfileAnalytics(false)}
-            onViewDetails={() => {
-              // Could show more detailed analytics
-              setShowProfileAnalytics(false);
-            }}
-          />
-        </View>
-      )}
-
+        {/* Profile Analytics Overlay */}
+        {showProfileAnalytics && profileStats && (
+          <View style={styles.overlay}>
+            <ProfileAnalytics
+              stats={profileStats}
+              onClose={() => setShowProfileAnalytics(false)}
+              onViewDetails={() => {
+                // Could show more detailed analytics
+                setShowProfileAnalytics(false);
+              }}
+            />
+          </View>
+        )}
+      </ScreenBackground>
       {profileId && <BottomNav active="parent" profileId={profileId} />}
-    </ScreenBackground>
+    </View>
   );
 }
-

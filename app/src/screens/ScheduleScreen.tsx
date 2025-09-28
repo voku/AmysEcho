@@ -23,19 +23,24 @@ export default function ScheduleScreen({
   };
 
   return (
-    <ScreenBackground style={styles.container}>
-      <View style={styles.content}>
-        <VisualSchedule
-          onActivityPress={handleActivityPress}
-          onScheduleComplete={handleScheduleComplete}
-        />
-      </View>
+    <View style={styles.screen}>
+      <ScreenBackground style={styles.container}>
+        <View style={styles.content}>
+          <VisualSchedule
+            onActivityPress={handleActivityPress}
+            onScheduleComplete={handleScheduleComplete}
+          />
+        </View>
+      </ScreenBackground>
       <BottomNav active="training" profileId="default" />
-    </ScreenBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: 'transparent',

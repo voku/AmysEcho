@@ -3,17 +3,26 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
 import Svg, { Circle } from 'react-native-svg';
-import { saveTrainingSample, loadProfile, Profile, TrainingFrame, createTrainingSample } from '../storage';
+import {
+  saveTrainingSample,
+  loadProfile,
+  Profile,
+  TrainingFrame,
+  createTrainingSample,
+} from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { audioService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
-  // Local landmark detection removed; relies on server fallback below.
+// Local landmark detection removed; relies on server fallback below.
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
-import { MediaPipeGestureDetector, MediaPipeGestureDetectorHandle } from '../components/MediaPipeGestureDetector';
+import {
+  MediaPipeGestureDetector,
+  MediaPipeGestureDetectorHandle,
+} from '../components/MediaPipeGestureDetector';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
@@ -135,9 +144,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       const mirrored = facingMode === 'user';
       const framesToAppend: TrainingFrame[] = [];
-      const handednessBatches = Array.isArray(payload.handednesses)
-        ? payload.handednesses
-        : [];
+      const handednessBatches = Array.isArray(payload.handednesses) ? payload.handednesses : [];
 
       payload.landmarks.forEach((frame, index) => {
         const cloned = cloneLandmarks(frame as number[][][]);
@@ -169,7 +176,9 @@ export default function TrainingScreen({ navigation, route }: any) {
       setRecordedFrames((prev) => {
         const combined = [...prev, ...framesToAppend];
         const MAX_BUFFERED_FRAMES = 240;
-        return combined.length > MAX_BUFFERED_FRAMES ? combined.slice(-MAX_BUFFERED_FRAMES) : combined;
+        return combined.length > MAX_BUFFERED_FRAMES
+          ? combined.slice(-MAX_BUFFERED_FRAMES)
+          : combined;
       });
       setFramesCaptured((count) => count + framesToAppend.length);
     },
@@ -251,7 +260,9 @@ export default function TrainingScreen({ navigation, route }: any) {
     }
 
     try {
-      const capturedAt = sessionStartTime ? new Date(sessionStartTime).toISOString() : new Date().toISOString();
+      const capturedAt = sessionStartTime
+        ? new Date(sessionStartTime).toISOString()
+        : new Date().toISOString();
       const sample = createTrainingSample({
         profileId: profile?.id ?? 'default',
         label: gestureId,
@@ -268,21 +279,23 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       // Calculate performance metrics
       const totalFrames = recordedFrames.length;
-      const successfulFrames = recordedFrames.filter(f => f.landmarks && f.landmarks.length > 0).length;
+      const successfulFrames = recordedFrames.filter(
+        (f) => f.landmarks && f.landmarks.length > 0,
+      ).length;
       const averageConfidence = totalFrames > 0 ? successfulFrames / totalFrames : 0;
 
       setPerformanceMetrics({
         averageConfidence,
         totalFrames,
         successfulFrames,
-        sessionDuration
+        sessionDuration,
       });
 
       // HIP 2 or 4: sample saved
       void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', {
         gestureId,
         frames: framesCaptured,
-        performance: { averageConfidence, totalFrames, successfulFrames, sessionDuration }
+        performance: { averageConfidence, totalFrames, successfulFrames, sessionDuration },
       });
 
       if (isPractice) {
@@ -302,7 +315,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'training_save_failed', {
         error: String(e).substring(0, 100),
         gestureId,
-        framesCaptured
+        framesCaptured,
       });
       clipRequestIdRef.current = null;
     }
@@ -324,6 +337,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const buttonStyles = createButtonStyles();
   const styles = StyleSheet.create({
+    screen: { flex: 1 },
     container: {
       flex: 1,
       backgroundColor: 'transparent',
@@ -485,8 +499,8 @@ export default function TrainingScreen({ navigation, route }: any) {
   // Camera permission handled by WebView context.
 
   return (
-    <ScreenBackground style={styles.container}>
-      <>
+    <View style={styles.screen}>
+      <ScreenBackground style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>
             {isPractice
@@ -528,15 +542,22 @@ export default function TrainingScreen({ navigation, route }: any) {
           ) : count < TARGET_SAMPLES ? (
             <>
               {/* Optional DGS demo video if available */}
-              {gestureId && (() => {
-                const entry = gestureModel.gestures.find((g) => g.id === gestureId);
-                const videoSource = entry?.dgsVideoUri ? { uri: entry.dgsVideoUri } : undefined;
-                return videoSource ? (
-                  <View style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, marginBottom: SPACING.sm }}>
-                    <DgsVideoPlayer videoSource={videoSource} shouldPlay={true} />
-                  </View>
-                ) : null;
-              })()}
+              {gestureId &&
+                (() => {
+                  const entry = gestureModel.gestures.find((g) => g.id === gestureId);
+                  const videoSource = entry?.dgsVideoUri ? { uri: entry.dgsVideoUri } : undefined;
+                  return videoSource ? (
+                    <View
+                      style={{
+                        width: PREVIEW_SIZE,
+                        height: PREVIEW_SIZE,
+                        marginBottom: SPACING.sm,
+                      }}
+                    >
+                      <DgsVideoPlayer videoSource={videoSource} shouldPlay={true} />
+                    </View>
+                  ) : null;
+                })()}
               <View style={styles.cameraHeader}>
                 <Text style={styles.cameraLabel}>
                   {`Aktive Kamera: ${facingMode === 'user' ? 'Vorderseite' : 'Rückseite'}`}
@@ -617,21 +638,26 @@ export default function TrainingScreen({ navigation, route }: any) {
                             fill={COLORS.warning}
                           />
                         );
-                      })
+                      }),
                     )}
                   </Svg>
                 )}
                 <View style={styles.detectionIndicator}>
-                  <View style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]} />
-                <Text style={styles.detectionText}>
-                  {isRecording
-                    ? detectionActive
-                      ? `Aufnahme läuft … ${framesCaptured}`
-                      : 'Keine Hand erkannt'
-                    : detectionActive
-                      ? 'Hand erkannt'
-                      : 'Keine Hand'}
-                </Text>
+                  <View
+                    style={[
+                      styles.dot,
+                      { backgroundColor: detectionActive ? COLORS.success : COLORS.warning },
+                    ]}
+                  />
+                  <Text style={styles.detectionText}>
+                    {isRecording
+                      ? detectionActive
+                        ? `Aufnahme läuft … ${framesCaptured}`
+                        : 'Keine Hand erkannt'
+                      : detectionActive
+                        ? 'Hand erkannt'
+                        : 'Keine Hand'}
+                  </Text>
                 </View>
               </View>
               <View
@@ -640,10 +666,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                 accessibilityValue={{ now: count, min: 0, max: TARGET_SAMPLES }}
               >
                 <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${(count / TARGET_SAMPLES) * 100}%` },
-                  ]}
+                  style={[styles.progressFill, { width: `${(count / TARGET_SAMPLES) * 100}%` }]}
                 />
               </View>
               <Pressable
@@ -665,20 +688,24 @@ export default function TrainingScreen({ navigation, route }: any) {
                   }
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="Gestenaufnahme starten"
+                accessibilityLabel={
+                  isRecording
+                    ? 'Gestenaufnahme stoppen'
+                    : `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`
+                }
                 disabled={!gestureId}
               >
-              <Text
-                style={[
-                  styles.buttonText,
-                  largeText && styles.buttonTextLarge,
-                  highContrast && styles.buttonTextHC,
-                ]}
-              >
-                {isRecording
-                  ? 'Aufnahme stoppen'
-                  : `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`}
-              </Text>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  {isRecording
+                    ? 'Aufnahme stoppen'
+                    : `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`}
+                </Text>
               </Pressable>
               {!isRecording && framesCaptured > 0 && (
                 <Text style={styles.detectionText}>
@@ -701,9 +728,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                   accessibilityRole="button"
                   accessibilityLabel="Übungsmodus umschalten"
                 >
-                  <Text style={styles.practiceModeToggleText}>
-                    {practiceMode ? '🎯' : '📝'}
-                  </Text>
+                  <Text style={styles.practiceModeToggleText}>{practiceMode ? '🎯' : '📝'}</Text>
                 </Pressable>
               </View>
             </>
@@ -731,9 +756,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                 handleFinish();
               }}
               accessibilityRole="button"
-              accessibilityLabel={
-                isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'
-              }
+              accessibilityLabel={isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
             >
               <Text
                 style={[
@@ -777,9 +800,8 @@ export default function TrainingScreen({ navigation, route }: any) {
             }}
           />
         )}
-
-        {profile && <BottomNav active="training" profileId={profile.id} />}
-      </>
-    </ScreenBackground>
+      </ScreenBackground>
+      {profile && <BottomNav active="training" profileId={profile.id} />}
+    </View>
   );
 }
