@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import VisualSchedule from '../components/VisualSchedule';
-import BottomNav from '../components/BottomNav';
 import type { RootStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
+import ScreenBackground from '../components/ScreenBackground';
+import BottomNav from '../components/BottomNav';
 
 export default function ScheduleScreen({
   navigation,
@@ -22,18 +23,29 @@ export default function ScheduleScreen({
   };
 
   return (
-    <View style={styles.container}>
-      <VisualSchedule
-        onActivityPress={handleActivityPress}
-        onScheduleComplete={handleScheduleComplete}
-      />
+    <View style={styles.screen}>
+      <ScreenBackground style={styles.container}>
+        <View style={styles.content}>
+          <VisualSchedule
+            onActivityPress={handleActivityPress}
+            onScheduleComplete={handleScheduleComplete}
+          />
+        </View>
+      </ScreenBackground>
       <BottomNav active="training" profileId="default" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   container: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  content: {
     flex: 1,
   },
 });

@@ -1,19 +1,28 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
 import Svg, { Circle } from 'react-native-svg';
-import { saveTrainingSample, loadProfile, Profile, TrainingFrame, createTrainingSample } from '../storage';
+import {
+  saveTrainingSample,
+  loadProfile,
+  Profile,
+  TrainingFrame,
+  createTrainingSample,
+} from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { audioService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
-  // Local landmark detection removed; relies on server fallback below.
+// Local landmark detection removed; relies on server fallback below.
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
-import { MediaPipeGestureDetector, MediaPipeGestureDetectorHandle } from '../components/MediaPipeGestureDetector';
+import {
+  MediaPipeGestureDetector,
+  MediaPipeGestureDetectorHandle,
+} from '../components/MediaPipeGestureDetector';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
@@ -25,6 +34,7 @@ import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import PracticeSessionManager from '../components/PracticeSessionManager';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 import type { ClipReadyPayload, FrameBatchPayload } from '../types/frames';
+import ScreenBackground from '../components/ScreenBackground';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
@@ -112,7 +122,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       .then(setProfile)
       .catch((e) => {
         logger.error('Failed to load profile', e);
-        setError('Failed to load profile');
+        setError('Profil konnte nicht geladen werden.');
       });
   }, []);
 
@@ -134,9 +144,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       const mirrored = facingMode === 'user';
       const framesToAppend: TrainingFrame[] = [];
-      const handednessBatches = Array.isArray(payload.handednesses)
-        ? payload.handednesses
-        : [];
+      const handednessBatches = Array.isArray(payload.handednesses) ? payload.handednesses : [];
 
       payload.landmarks.forEach((frame, index) => {
         const cloned = cloneLandmarks(frame as number[][][]);
@@ -168,7 +176,9 @@ export default function TrainingScreen({ navigation, route }: any) {
       setRecordedFrames((prev) => {
         const combined = [...prev, ...framesToAppend];
         const MAX_BUFFERED_FRAMES = 240;
-        return combined.length > MAX_BUFFERED_FRAMES ? combined.slice(-MAX_BUFFERED_FRAMES) : combined;
+        return combined.length > MAX_BUFFERED_FRAMES
+          ? combined.slice(-MAX_BUFFERED_FRAMES)
+          : combined;
       });
       setFramesCaptured((count) => count + framesToAppend.length);
     },
@@ -244,13 +254,15 @@ export default function TrainingScreen({ navigation, route }: any) {
 
     const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
     if (!validation.ok) {
-      const msg = `Sample needs improvement: ${validation.suggestions.join(' ')}`;
+      const msg = `Aufnahme muss verbessert werden: ${validation.suggestions.join(' ')}`;
       setError(msg);
       return;
     }
 
     try {
-      const capturedAt = sessionStartTime ? new Date(sessionStartTime).toISOString() : new Date().toISOString();
+      const capturedAt = sessionStartTime
+        ? new Date(sessionStartTime).toISOString()
+        : new Date().toISOString();
       const sample = createTrainingSample({
         profileId: profile?.id ?? 'default',
         label: gestureId,
@@ -267,21 +279,23 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       // Calculate performance metrics
       const totalFrames = recordedFrames.length;
-      const successfulFrames = recordedFrames.filter(f => f.landmarks && f.landmarks.length > 0).length;
+      const successfulFrames = recordedFrames.filter(
+        (f) => f.landmarks && f.landmarks.length > 0,
+      ).length;
       const averageConfidence = totalFrames > 0 ? successfulFrames / totalFrames : 0;
 
       setPerformanceMetrics({
         averageConfidence,
         totalFrames,
         successfulFrames,
-        sessionDuration
+        sessionDuration,
       });
 
       // HIP 2 or 4: sample saved
       void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', {
         gestureId,
         frames: framesCaptured,
-        performance: { averageConfidence, totalFrames, successfulFrames, sessionDuration }
+        performance: { averageConfidence, totalFrames, successfulFrames, sessionDuration },
       });
 
       if (isPractice) {
@@ -301,7 +315,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'training_save_failed', {
         error: String(e).substring(0, 100),
         gestureId,
-        framesCaptured
+        framesCaptured,
       });
       clipRequestIdRef.current = null;
     }
@@ -323,9 +337,10 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const buttonStyles = createButtonStyles();
   const styles = StyleSheet.create({
+    screen: { flex: 1 },
     container: {
       flex: 1,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.backgroundStart,
+      backgroundColor: 'transparent',
     },
     content: {
       flex: 1,
@@ -484,285 +499,309 @@ export default function TrainingScreen({ navigation, route }: any) {
   // Camera permission handled by WebView context.
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>
-          {isPractice
-            ? gestureId
-              ? `Practice ${gestureId}`
-              : 'Practice Mode'
-            : `Training ${gestureId ? `for ${gestureId}` : 'Mode'}`}
-        </Text>
-        {!gestureId ? (
+    <View style={styles.screen}>
+      <ScreenBackground style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>
+            {isPractice
+              ? gestureId
+                ? `Übung ${gestureId}`
+                : 'Übungsmodus'
+              : gestureId
+                ? `Training für ${gestureId}`
+                : 'Trainingsmodus'}
+          </Text>
+          {!gestureId ? (
             gestureModel.gestures.map((g: { id: string; label: string }) => (
-             <Pressable
-               key={g.id}
-               style={({ pressed }) => [
-            {
-              minWidth: 60,
-              minHeight: 60,
-              padding: SPACING.md,
-              alignItems: 'center',
-              justifyContent: 'center',
-            },
-                 styles.button,
-                 highContrast && styles.buttonHC,
-                 pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-               ]}
+              <Pressable
+                key={g.id}
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
                 onPress={() => {
                   void hapticFeedback.light();
                   setGestureId(g.id);
                 }}
-               accessibilityRole="button"
-               accessibilityLabel={`Trainiere Geste ${g.label}`}
-             >
-               <Text style={[
-                 styles.buttonText,
-                 largeText && styles.buttonTextLarge,
-                 highContrast && styles.buttonTextHC,
-               ]}>
-                 {g.label}
-               </Text>
-             </Pressable>
-           ))
-        ) : count < TARGET_SAMPLES ? (
-          <>
-          {/* Optional DGS demo video if available */}
-          {gestureId && (() => {
-            const entry = gestureModel.gestures.find(g => g.id === gestureId);
-            const videoSource = entry?.dgsVideoUri ? { uri: entry.dgsVideoUri } : undefined;
-            return videoSource ? (
-              <View style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, marginBottom: SPACING.sm }}>
-                <DgsVideoPlayer videoSource={videoSource} shouldPlay={true} />
-              </View>
-            ) : null;
-          })()}
-          <View style={styles.cameraHeader}>
-            <Text style={styles.cameraLabel}>
-              {`Aktive Kamera: ${facingMode === 'user' ? 'Vorderseite' : 'Rückseite'}`}
-            </Text>
-            <Pressable
-              onPress={toggleFacingMode}
-              accessibilityRole="button"
-              accessibilityLabel="Kamera wechseln"
-              accessibilityHint="Zwischen Vorder- und Rückkamera umschalten"
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.cameraToggle,
-                pressed && styles.cameraTogglePressed,
-              ]}
-            >
-              <Text style={styles.cameraToggleText}>
-                {facingMode === 'user' ? 'Zur Rückkamera' : 'Zur Frontkamera'}
-              </Text>
-            </Pressable>
-          </View>
-              <View style={styles.cameraContainer}>
-              <MediaPipeGestureDetector
-                ref={detectorRef}
-                onWebViewEvent={(telemetry) => {
-                  logger.info('Training WebView telemetry:', telemetry);
-                }}
-                onFrameBatch={handleFrameBatch}
-                onLandmarks={(lm) => {
-                  setLandmarks(cloneLandmarks(lm));
-                  setLastDetection(Date.now());
-                }}
-                onGestureDetected={(gesture, confidence) => {
-                  if (isRecordingRef.current && gestureId) {
-                    positiveTelemetryService.recordSuccess(
-                      gestureId,
-                      confidence,
-                      undefined, // context
-                      undefined, // emotionalState
-                      Date.now() - (sessionStartTime || Date.now()), // duration
-                    );
-                  }
-
-                  // Enhanced feedback for practice mode
-                  if (practiceMode && gesture && confidence > 0.5) {
-                    // Provide real-time feedback during practice
-                    if (confidence > 0.8) {
-                      setMessage('🎉 Perfekt! Das sieht sehr gut aus!');
-                    } else if (confidence > 0.6) {
-                      setMessage('👍 Gut gemacht! Fast richtig.');
-                    }
-                  }
-                }}
-                onError={(m) => {
-                  logger.warn('TrainingScreen detector error:', m);
-                  // Amy First: Show encouraging message instead of technical error
-                  setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
-                }}
-                facingMode={facingMode}
-              />
-              {landmarks.length > 0 && (
-                <Svg
-                  style={StyleSheet.absoluteFill}
-                  viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
-                  pointerEvents="none"
+                accessibilityRole="button"
+                accessibilityLabel={`Trainiere Geste ${g.label}`}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
                 >
-                  {landmarks.map((hand, handIdx) =>
-                    hand.map((l, lmIdx) => {
-                      const [x, y] = l ?? [];
-                      if (typeof x !== 'number' || typeof y !== 'number') {
-                        return null;
-                      }
-                      return (
-                        <Circle
-                          key={`${handIdx}-${lmIdx}`}
-                          cx={x * PREVIEW_SIZE}
-                          cy={y * PREVIEW_SIZE}
-                          r={3}
-                          fill={COLORS.warning}
-                        />
-                      );
-                    })
-                  )}
-                </Svg>
-              )}
-              <View style={styles.detectionIndicator}>
-                <View style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]} />
-                <Text style={styles.detectionText}>
-                  {isRecording
-                    ? detectionActive
-                      ? `Recording... ${framesCaptured}`
-                      : 'No hand detected'
-                    : detectionActive
-                    ? 'Hand detected'
-                    : 'No hand'}
+                  {g.label}
                 </Text>
+              </Pressable>
+            ))
+          ) : count < TARGET_SAMPLES ? (
+            <>
+              {/* Optional DGS demo video if available */}
+              {gestureId &&
+                (() => {
+                  const entry = gestureModel.gestures.find((g) => g.id === gestureId);
+                  const videoSource = entry?.dgsVideoUri ? { uri: entry.dgsVideoUri } : undefined;
+                  return videoSource ? (
+                    <View
+                      style={{
+                        width: PREVIEW_SIZE,
+                        height: PREVIEW_SIZE,
+                        marginBottom: SPACING.sm,
+                      }}
+                    >
+                      <DgsVideoPlayer videoSource={videoSource} shouldPlay={true} />
+                    </View>
+                  ) : null;
+                })()}
+              <View style={styles.cameraHeader}>
+                <Text style={styles.cameraLabel}>
+                  {`Aktive Kamera: ${facingMode === 'user' ? 'Vorderseite' : 'Rückseite'}`}
+                </Text>
+                <Pressable
+                  onPress={toggleFacingMode}
+                  accessibilityRole="button"
+                  accessibilityLabel="Kamera wechseln"
+                  accessibilityHint="Zwischen Vorder- und Rückkamera umschalten"
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.cameraToggle,
+                    pressed && styles.cameraTogglePressed,
+                  ]}
+                >
+                  <Text style={styles.cameraToggleText}>
+                    {facingMode === 'user' ? 'Zur Rückkamera' : 'Zur Frontkamera'}
+                  </Text>
+                </Pressable>
               </View>
-            </View>
-            <View
-              style={styles.progressBar}
-              accessibilityRole="progressbar"
-              accessibilityValue={{ now: count, min: 0, max: TARGET_SAMPLES }}
-            >
+              <View style={styles.cameraContainer}>
+                <MediaPipeGestureDetector
+                  ref={detectorRef}
+                  onWebViewEvent={(telemetry) => {
+                    logger.info('Training WebView telemetry:', telemetry);
+                  }}
+                  onFrameBatch={handleFrameBatch}
+                  onLandmarks={(lm) => {
+                    setLandmarks(cloneLandmarks(lm));
+                    setLastDetection(Date.now());
+                  }}
+                  onGestureDetected={(gesture, confidence) => {
+                    if (isRecordingRef.current && gestureId) {
+                      positiveTelemetryService.recordSuccess(
+                        gestureId,
+                        confidence,
+                        undefined, // context
+                        undefined, // emotionalState
+                        Date.now() - (sessionStartTime || Date.now()), // duration
+                      );
+                    }
+
+                    // Enhanced feedback for practice mode
+                    if (practiceMode && gesture && confidence > 0.5) {
+                      // Provide real-time feedback during practice
+                      if (confidence > 0.8) {
+                        setMessage('🎉 Perfekt! Das sieht sehr gut aus!');
+                      } else if (confidence > 0.6) {
+                        setMessage('👍 Gut gemacht! Fast richtig.');
+                      }
+                    }
+                  }}
+                  onError={(m) => {
+                    logger.warn('TrainingScreen detector error:', m);
+                    // Amy First: Show encouraging message instead of technical error
+                    setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+                  }}
+                  facingMode={facingMode}
+                />
+                {landmarks.length > 0 && (
+                  <Svg
+                    style={StyleSheet.absoluteFill}
+                    viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
+                    pointerEvents="none"
+                  >
+                    {landmarks.map((hand, handIdx) =>
+                      hand.map((l, lmIdx) => {
+                        const [x, y] = l ?? [];
+                        if (typeof x !== 'number' || typeof y !== 'number') {
+                          return null;
+                        }
+                        return (
+                          <Circle
+                            key={`${handIdx}-${lmIdx}`}
+                            cx={x * PREVIEW_SIZE}
+                            cy={y * PREVIEW_SIZE}
+                            r={3}
+                            fill={COLORS.warning}
+                          />
+                        );
+                      }),
+                    )}
+                  </Svg>
+                )}
+                <View style={styles.detectionIndicator}>
+                  <View
+                    style={[
+                      styles.dot,
+                      { backgroundColor: detectionActive ? COLORS.success : COLORS.warning },
+                    ]}
+                  />
+                  <Text style={styles.detectionText}>
+                    {isRecording
+                      ? detectionActive
+                        ? `Aufnahme läuft … ${framesCaptured}`
+                        : 'Keine Hand erkannt'
+                      : detectionActive
+                        ? 'Hand erkannt'
+                        : 'Keine Hand'}
+                  </Text>
+                </View>
+              </View>
               <View
-                style={[
-                  styles.progressFill,
-                  { width: `${(count / TARGET_SAMPLES) * 100}%` },
+                style={styles.progressBar}
+                accessibilityRole="progressbar"
+                accessibilityValue={{ now: count, min: 0, max: TARGET_SAMPLES }}
+              >
+                <View
+                  style={[styles.progressFill, { width: `${(count / TARGET_SAMPLES) * 100}%` }]}
+                />
+              </View>
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  !gestureId && styles.buttonDisabled,
+                  pressed &&
+                    gestureId &&
+                    (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                 ]}
-              />
-            </View>
+                onPress={() => {
+                  void hapticFeedback.light();
+                  if (isRecording) {
+                    void stopRecording();
+                  } else {
+                    void startRecording();
+                  }
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isRecording
+                    ? 'Gestenaufnahme stoppen'
+                    : `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`
+                }
+                disabled={!gestureId}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  {isRecording
+                    ? 'Aufnahme stoppen'
+                    : `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`}
+                </Text>
+              </Pressable>
+              {!isRecording && framesCaptured > 0 && (
+                <Text style={styles.detectionText}>
+                  Länge der letzten Aufnahme: {framesCaptured} Frames
+                </Text>
+              )}
+
+              {/* Practice mode toggle */}
+              <View style={styles.practiceModeContainer}>
+                <Text style={styles.practiceModeLabel}>
+                  Übungsmodus: {practiceMode ? 'Aktiviert' : 'Deaktiviert'}
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.practiceModeToggle,
+                    practiceMode && styles.practiceModeToggleActive,
+                    pressed && styles.practiceModeTogglePressed,
+                  ]}
+                  onPress={() => setPracticeMode(!practiceMode)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Übungsmodus umschalten"
+                >
+                  <Text style={styles.practiceModeToggleText}>{practiceMode ? '🎯' : '📝'}</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
             <Pressable
               style={({ pressed }) => [
                 childFriendlyStyles.minTouchTarget,
                 styles.button,
                 highContrast && styles.buttonHC,
-                !gestureId && styles.buttonDisabled,
-                pressed && gestureId && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
               ]}
-             onPress={() => {
-               void hapticFeedback.light();
-               if (isRecording) {
-                  void stopRecording();
-                } else {
-                  void startRecording();
+              onPress={async () => {
+                void hapticFeedback.light();
+                if (isPractice && gestureId) {
+                  try {
+                    await audioService.playCelebrationFeedback();
+                  } catch {}
+                  try {
+                    await logHIPEvent('HIP_4', 'practice_completed', {
+                      gestureId,
+                      samples: TARGET_SAMPLES,
+                    });
+                  } catch {}
                 }
+                handleFinish();
               }}
               accessibilityRole="button"
-              accessibilityLabel="Gestenaufnahme starten"
-              disabled={!gestureId}
+              accessibilityLabel={isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
             >
-              <Text style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}>
-                {isRecording ? 'Stop Recording' : `Record Sample ${count + 1} / ${TARGET_SAMPLES}`}
+              <Text
+                style={[
+                  styles.buttonText,
+                  largeText && styles.buttonTextLarge,
+                  highContrast && styles.buttonTextHC,
+                ]}
+              >
+                {isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
               </Text>
             </Pressable>
-             {!isRecording && framesCaptured > 0 && (
-               <Text style={styles.detectionText}>
-                 Last recording length: {framesCaptured} frames
-               </Text>
-             )}
+          )}
+        </View>
 
-             {/* Practice mode toggle */}
-             <View style={styles.practiceModeContainer}>
-               <Text style={styles.practiceModeLabel}>
-                 Übungsmodus: {practiceMode ? 'Aktiviert' : 'Deaktiviert'}
-               </Text>
-               <Pressable
-                 style={({ pressed }) => [
-                   styles.practiceModeToggle,
-                   practiceMode && styles.practiceModeToggleActive,
-                   pressed && styles.practiceModeTogglePressed,
-                 ]}
-                 onPress={() => setPracticeMode(!practiceMode)}
-                 accessibilityRole="button"
-                 accessibilityLabel="Übungsmodus umschalten"
-               >
-                 <Text style={styles.practiceModeToggleText}>
-                   {practiceMode ? '🎯' : '📝'}
-                 </Text>
-               </Pressable>
-             </View>
-
-           </>
-         ) : (
-          <Pressable
-            style={({ pressed }) => [
-              childFriendlyStyles.minTouchTarget,
-              styles.button,
-              highContrast && styles.buttonHC,
-              pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-            ]}
-             onPress={async () => {
-               void hapticFeedback.light();
-               if (isPractice && gestureId) {
-                 try { await audioService.playCelebrationFeedback(); } catch {}
-                 try { await logHIPEvent('HIP_4', 'practice_completed', { gestureId, samples: TARGET_SAMPLES }); } catch {}
-               }
-               handleFinish();
-             }}
-            accessibilityRole="button"
-            accessibilityLabel={isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
-          >
-            <Text style={[
-              styles.buttonText,
-              largeText && styles.buttonTextLarge,
-              highContrast && styles.buttonTextHC,
-            ]}>
-              {isPractice ? 'Übung beenden' : 'Trainingsdaten speichern'}
-            </Text>
-          </Pressable>
+        {/* Performance Analytics Overlay */}
+        {showPerformanceAnalytics && performanceMetrics && gestureId && (
+          <View style={styles.overlay}>
+            <PerformanceAnalytics
+              gestureId={gestureId}
+              metrics={performanceMetrics}
+              onClose={() => setShowPerformanceAnalytics(false)}
+              onRetry={() => {
+                setShowPerformanceAnalytics(false);
+                setCount(0);
+                setIsRecording(false);
+                setRecordedFrames([]);
+                setFramesCaptured(0);
+              }}
+            />
+          </View>
         )}
-       </View>
 
-       {/* Performance Analytics Overlay */}
-       {showPerformanceAnalytics && performanceMetrics && gestureId && (
-         <View style={styles.overlay}>
-           <PerformanceAnalytics
-             gestureId={gestureId}
-             metrics={performanceMetrics}
-             onClose={() => setShowPerformanceAnalytics(false)}
-             onRetry={() => {
-               setShowPerformanceAnalytics(false);
-               setCount(0);
-               setIsRecording(false);
-               setRecordedFrames([]);
-               setFramesCaptured(0);
-             }}
-           />
-         </View>
-       )}
-
-       {/* Practice Session Manager */}
-       {practiceMode && gestureId && (
-         <PracticeSessionManager
-           gestureId={gestureId}
-           currentProgress={count}
-           targetSamples={TARGET_SAMPLES}
-           onSessionComplete={() => {
-             setMessage('🎉 Übungssession abgeschlossen! Gut gemacht!');
-           }}
-         />
-       )}
-
-       {profile && <BottomNav active="training" profileId={profile.id} />}
-     </SafeAreaView>
-   );
- }
+        {/* Practice Session Manager */}
+        {practiceMode && gestureId && (
+          <PracticeSessionManager
+            gestureId={gestureId}
+            currentProgress={count}
+            targetSamples={TARGET_SAMPLES}
+            onSessionComplete={() => {
+              setMessage('🎉 Übungssession abgeschlossen! Gut gemacht!');
+            }}
+          />
+        )}
+      </ScreenBackground>
+      {profile && <BottomNav active="training" profileId={profile.id} />}
+    </View>
+  );
+}

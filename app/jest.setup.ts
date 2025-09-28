@@ -83,6 +83,24 @@ jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => {}),
 }));
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const LinearGradient = ({ children, style, ...rest }: any) =>
+    React.createElement(View, { ...rest, style }, children);
+
+  return { LinearGradient };
+});
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
+
+  return {
+    SafeAreaProvider: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    SafeAreaView: ({ children, ...props }: any) => React.createElement('SafeAreaView', props, children),
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+  };
+});
 jest.mock('openai/shims/node', () => ({}), { virtual: true });
 let mockOpenAIModule: any;
 jest.mock('openai', () => {

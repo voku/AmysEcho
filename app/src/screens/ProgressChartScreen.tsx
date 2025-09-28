@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { Svg, G, Line, Text as SvgText } from 'react-native-svg';
 import { loadHistoricalHealthData, HistoricalHealthEntry } from '../services/healthScore';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING } from '../constants/ui';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function ProgressChartScreen({ route }: any) {
   const { gestureId } = route.params;
@@ -18,7 +19,7 @@ export default function ProgressChartScreen({ route }: any) {
     container: {
       flex: 1,
       padding: SPACING.lg,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 24 : 20,
@@ -35,7 +36,7 @@ export default function ProgressChartScreen({ route }: any) {
   const yScale = (value: number) => height - padding - (height - 2 * padding) * value;
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground style={styles.container}>
       <Text style={styles.title}>Fortschritt für {gestureId}</Text>
       <Svg height={height} width={width}>
         <G y={height}>
@@ -97,6 +98,6 @@ export default function ProgressChartScreen({ route }: any) {
           )}
         </G>
       </Svg>
-    </View>
+    </ScreenBackground>
   );
 }
