@@ -79,7 +79,7 @@ import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
 import GestureComparison from '../components/GestureComparison';
 import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
-import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
+import { isTwoHandGestureString } from '../constants/twoHandGestures';
 import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
 import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
