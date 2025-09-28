@@ -743,6 +743,9 @@ export default function RecognitionScreen({
       color: COLORS.text,
       marginBottom: SPACING.sm,
     },
+    symbolDisplayHC: {
+      color: COLORS.highContrastText,
+    },
     symbolDisplayLarge: {
       fontSize: 44,
     },
@@ -751,6 +754,9 @@ export default function RecognitionScreen({
       fontWeight: '600',
       color: COLORS.text,
     },
+    gestureTextHC: {
+      color: COLORS.highContrastText,
+    },
     gestureTextLarge: {
       fontSize: 20,
     },
@@ -758,6 +764,9 @@ export default function RecognitionScreen({
       fontSize: 14,
       color: COLORS.textMuted,
       marginTop: SPACING.xs,
+    },
+    confidenceTextHC: {
+      color: COLORS.highContrastText,
     },
     confidenceTextLarge: {
       fontSize: 16,
@@ -1040,6 +1049,7 @@ export default function RecognitionScreen({
                   <Animated.Text
                     style={[
                       styles.symbolDisplay,
+                      highContrast && styles.symbolDisplayHC,
                       largeText && styles.symbolDisplayLarge,
                       { transform: [{ scale: symbolScaleAnim }] },
                     ]}
@@ -1048,11 +1058,21 @@ export default function RecognitionScreen({
                   </Animated.Text>
                   {!kindergartenMode && (
                     <>
-                      <Text style={[styles.gestureText, largeText && styles.gestureTextLarge]}>
+                      <Text
+                        style={[
+                          styles.gestureText,
+                          largeText && styles.gestureTextLarge,
+                          highContrast && styles.gestureTextHC,
+                        ]}
+                      >
                         {(gestureConfidence * 100).toFixed(0)}%
                       </Text>
                       <Text
-                        style={[styles.confidenceText, largeText && styles.confidenceTextLarge]}
+                        style={[
+                          styles.confidenceText,
+                          largeText && styles.confidenceTextLarge,
+                          highContrast && styles.confidenceTextHC,
+                        ]}
                         testID="recognition-path"
                       >
                         über {recognitionPath}
