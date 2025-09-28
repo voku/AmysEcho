@@ -4,6 +4,7 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function ParentScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -16,8 +17,7 @@ export default function ParentScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      padding: SPACING.lg,
-      backgroundColor: COLORS.surface,
+      backgroundColor: 'transparent',
     },
     containerHC: {
       backgroundColor: COLORS.highContrastBackground,
@@ -123,7 +123,7 @@ export default function ParentScreen({ navigation }: any) {
   );
 
   return (
-    <View style={[styles.container, highContrast && styles.containerHC]}>
+    <ScreenBackground style={[styles.container, highContrast && styles.containerHC]}>
       <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
         Elternbereich
       </Text>
@@ -203,6 +203,6 @@ export default function ParentScreen({ navigation }: any) {
         onPress={() => navigation.goBack()}
         accessibilityLabel="Zurück"
       />
-    </View>
+    </ScreenBackground>
   );
 }

@@ -3,17 +3,16 @@ import {
   View,
   Button,
   StyleSheet,
-  SafeAreaView,
   Text,
   FlatList,
   Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING } from '../constants/ui';
 import { gestureModel, GestureModelEntry } from '../model';
 import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function PracticeScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -36,10 +35,6 @@ export default function PracticeScreen({ navigation }: any) {
   }, [fadeAnim]);
 
   const styles = createStyles(largeText, highContrast);
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
-
   const renderItem = ({ item }: { item: GestureModelEntry }) => (
     <View style={styles.item}>
       <Button
@@ -56,9 +51,9 @@ export default function PracticeScreen({ navigation }: any) {
   );
 
   return (
-    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
+    <ScreenBackground>
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
           <Text style={styles.title}>Gesten üben</Text>
           <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: SPACING.md }}>
             <Button title="3" onPress={() => setTargetSamples(3)} accessibilityLabel="3 Beispiele" color={targetSamples===3? COLORS.primaryAccent : undefined} />
@@ -74,16 +69,16 @@ export default function PracticeScreen({ navigation }: any) {
             contentContainerStyle={styles.list}
             ListEmptyComponent={<Text style={styles.empty}>Keine Gesten verfügbar</Text>}
           />
-        </SafeAreaView>
+        </View>
       </Animated.View>
       {profile && <BottomNav active="training" profileId={profile.id} />}
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 
 const createStyles = (largeText: boolean, highContrast: boolean) =>
   StyleSheet.create({
-    container: { flex: 1, padding: SPACING.lg },
+    container: { flex: 1 },
     title: {
       fontSize: largeText ? 28 : 24,
       marginBottom: SPACING.lg,

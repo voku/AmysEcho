@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
 import PulsingCircle from '../components/PulsingCircle';
-import { LinearGradient } from 'expo-linear-gradient';
 import { logCorrection } from '../storage';
 import { correctionService } from '../services/correctionService';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -10,6 +9,7 @@ import { logHIPEvent } from '../services/hipEvents';
 import { gestureModel } from '../model';
 import { childHaptic } from '../services/feedbackService';
 import { getGestureIcon } from '../components/CorrectionPanel';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function CorrectionScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -102,7 +102,6 @@ export default function CorrectionScreen({ navigation, route }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 24 : 20,
@@ -202,12 +201,9 @@ export default function CorrectionScreen({ navigation, route }: any) {
     },
   });
 
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
   return (
-    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+    <ScreenBackground>
+      <View style={styles.container}>
         <Text style={styles.title}>
           {attemptedGesture ? `War das "${attemptedGesture}"?` : 'Korrektur senden'}
         </Text>
@@ -269,7 +265,7 @@ export default function CorrectionScreen({ navigation, route }: any) {
             <Text style={styles.choiceButtonText}>Abbrechen</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
-    </LinearGradient>
+      </View>
+    </ScreenBackground>
   );
 }

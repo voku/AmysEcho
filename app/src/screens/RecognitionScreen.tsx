@@ -9,6 +9,7 @@ import {
   Button,
   Switch,
   AccessibilityInfo,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -19,7 +20,7 @@ import BottomNav from '../components/BottomNav';
 import CorrectionPanel from '../components/CorrectionPanel';
 import PracticeSuggestion from '../components/PracticeSuggestion';
 import AdaptiveLearningPanel from '../components/AdaptiveLearningPanel';
-import { COLORS, SPACING } from '../constants/ui';
+import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 import {
   audioService,
@@ -107,7 +108,7 @@ export default function RecognitionScreen({
 }: {
   navigation: NavigationProp<RootStackParamList, 'Recognition'>;
 }) {
-  const { largeText } = useAccessibility();
+  const { largeText, highContrast } = useAccessibility();
   const { setMessage } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
@@ -626,166 +627,301 @@ export default function RecognitionScreen({
     };
   }, []);
 
+
   const styles = StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    safeAreaHC: {
+      backgroundColor: COLORS.highContrastBackground,
+    },
     container: {
       flex: 1,
-      backgroundColor: COLORS.backgroundStart,
     },
-    cameraContainer: {
-      flex: 1,
-      borderRadius: 0,
-      overflow: 'hidden',
-      margin: 0,
-      position: 'relative',
+    scrollContent: {
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.lg,
+      paddingBottom: SPACING.xl * 2,
     },
-    gestureInfo: {
-      position: 'absolute',
-      bottom: SPACING.lg,
-      left: SPACING.md,
-      right: SPACING.md,
+    card: {
+      backgroundColor: COLORS.surface,
+      borderRadius: DEFAULT_RADIUS,
       padding: SPACING.md,
-      backgroundColor: '#000A',
-      borderRadius: SPACING.md,
+      marginBottom: SPACING.lg,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 3,
+    },
+    cardHC: {
+      backgroundColor: COLORS.highContrastBackground,
+      borderWidth: 2,
+      borderColor: COLORS.highContrastText,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    sectionSpacing: {
+      marginBottom: SPACING.lg,
+    },
+    controlRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    controlButton: {
+      flexBasis: '32%',
+      marginBottom: SPACING.sm,
+    },
+    controlColumn: {
       alignItems: 'center',
     },
-    gestureText: {
-      fontSize: largeText ? 22 : 18,
-      fontWeight: 'bold',
+    controlSpacer: {
+      height: SPACING.sm,
+    },
+    statusLabel: {
+      fontSize: 16,
+      fontWeight: '600',
       color: COLORS.text,
-    },
-    confidenceText: {
-      fontSize: largeText ? 16 : 14,
-      color: COLORS.textMuted,
-      marginTop: SPACING.sm,
-    },
-    statusText: {
-      position: 'absolute',
-      top: SPACING.md,
-      left: SPACING.md,
-      right: SPACING.md,
-      fontSize: largeText ? 18 : 16,
-      fontWeight: 'bold',
-      color: '#fff',
       textAlign: 'center',
-      backgroundColor: '#0008',
-      paddingVertical: 4,
-      borderRadius: 6,
+    },
+    statusLabelLarge: {
+      fontSize: 18,
+    },
+    statusLabelHC: {
+      color: COLORS.highContrastText,
+    },
+    statusSubtle: {
+      marginTop: SPACING.xs,
+      fontSize: 14,
+      color: COLORS.textMuted,
+      textAlign: 'center',
+    },
+    statusSubtleLarge: {
+      fontSize: 16,
+    },
+    statusSubtleHC: {
+      color: COLORS.highContrastText,
+    },
+    shortcutCard: {
+      alignItems: 'center',
+      backgroundColor: '#E0ECFF',
+    },
+    shortcutText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: COLORS.primaryAccent,
+    },
+    shortcutTextLarge: {
+      fontSize: 18,
+    },
+    shortcutTextHC: {
+      color: COLORS.highContrastText,
+    },
+    cameraCard: {
+      padding: 0,
       overflow: 'hidden',
     },
-    errorContainer: {
-      position: 'absolute',
-      bottom: SPACING.md,
-      left: SPACING.md,
-      right: SPACING.md,
-      backgroundColor: '#000C',
-      padding: SPACING.md,
-      borderRadius: 8,
-    },
-    errorText: {
-      color: '#fff',
-      fontSize: largeText ? 16 : 14,
-      textAlign: 'center',
-    },
-    symbolDisplay: {
-      fontSize: largeText ? 48 : 36,
-      marginBottom: SPACING.sm,
-      color: '#fff',
+    cameraSurface: {
+      width: '100%',
+      aspectRatio: 3 / 4,
+      backgroundColor: '#000',
+      position: 'relative',
     },
     videoOverlay: {
       position: 'absolute',
       top: SPACING.md,
       right: SPACING.md,
-      width: SPACING.md * 10,
-      height: SPACING.md * 10,
+      width: SPACING.xl * 4,
+      height: SPACING.xl * 4,
+      borderRadius: DEFAULT_RADIUS,
+      overflow: 'hidden',
     },
-    toggleRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
+    gestureCard: {
       alignItems: 'center',
-      padding: SPACING.md,
     },
-    toggleLabel: {
-      marginRight: SPACING.sm,
+    symbolDisplay: {
+      fontSize: 36,
+      fontWeight: '700',
       color: COLORS.text,
-      fontSize: largeText ? 18 : 16,
+      marginBottom: SPACING.sm,
     },
-    shortcutIndicator: {
-      position: 'absolute',
-      top: SPACING.xl,
-      left: SPACING.md,
-      right: SPACING.md,
-      backgroundColor: 'rgba(59, 130, 246, 0.9)',
-      borderRadius: 12,
-      padding: SPACING.md,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
+    symbolDisplayLarge: {
+      fontSize: 44,
     },
-  shortcutText: {
-    fontSize: 12,
-    color: COLORS.highContrastText,
-  },
-  encouragementText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.success,
-    textAlign: 'center',
-    marginTop: SPACING.sm,
-  },
-});
+    gestureText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: COLORS.text,
+    },
+    gestureTextLarge: {
+      fontSize: 20,
+    },
+    confidenceText: {
+      fontSize: 14,
+      color: COLORS.textMuted,
+      marginTop: SPACING.xs,
+    },
+    confidenceTextLarge: {
+      fontSize: 16,
+    },
+    encouragementText: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: COLORS.success,
+      marginTop: SPACING.sm,
+    },
+    encouragementTextLarge: {
+      fontSize: 20,
+    },
+    errorCard: {
+      backgroundColor: '#FEE2E2',
+      borderWidth: 1,
+      borderColor: '#FCA5A5',
+    },
+    errorCardHC: {
+      backgroundColor: COLORS.highContrastBackground,
+      borderWidth: 2,
+      borderColor: COLORS.error,
+    },
+    errorText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: COLORS.error,
+      textAlign: 'center',
+    },
+    errorTextLarge: {
+      fontSize: 18,
+    },
+    errorTextHC: {
+      color: COLORS.highContrastText,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    actionButton: {
+      flexBasis: '48%',
+      marginBottom: SPACING.sm,
+    },
+  });
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Kindergarten mode: Hide complex controls, show only essential ones */}
-      {showTopControls && !kindergartenMode && (
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: SPACING.md }}>
-          <Button
-            title={facingMode === 'user' ? 'Hintere Kamera verwenden' : 'Vordere Kamera verwenden'}
-            onPress={() => {
-              const m = facingMode === 'user' ? 'environment' : 'user';
-              setFacingMode(m);
-              setWebviewKey((k) => k + 1);
-            }}
-            accessibilityLabel="Kamera wechseln"
-          />
-          <Button
-            title="Stimmung"
-            onPress={() => setShowMoodSelector(!showMoodSelector)}
-            accessibilityLabel="Stimmungsmodus ändern"
-          />
-          <Button
-            title="Ort"
-            onPress={() => setShowLocationSelector(!showLocationSelector)}
-            accessibilityLabel="Ort festlegen"
-          />
-        </View>
-      )}
+    <SafeAreaView style={[styles.safeArea, highContrast && styles.safeAreaHC]}>
+      <View style={styles.container}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {(showTopControls || showMoodSelector || showLocationSelector) && (
+            <View style={styles.sectionSpacing}>
+              {showTopControls && !kindergartenMode && (
+                <View style={[styles.card, styles.controlRow, highContrast && styles.cardHC]}>
+                  <View style={styles.controlButton}>
+                    <Button
+                      title={
+                        facingMode === 'user'
+                          ? 'Hintere Kamera verwenden'
+                          : 'Vordere Kamera verwenden'
+                      }
+                      onPress={() => {
+                        const m = facingMode === 'user' ? 'environment' : 'user';
+                        setFacingMode(m);
+                        setWebviewKey((k) => k + 1);
+                      }}
+                      accessibilityLabel="Kamera wechseln"
+                    />
+                  </View>
+                  <View style={styles.controlButton}>
+                    <Button
+                      title="Stimmung"
+                      onPress={() => setShowMoodSelector(!showMoodSelector)}
+                      accessibilityLabel="Stimmungsmodus ändern"
+                    />
+                  </View>
+                  <View style={styles.controlButton}>
+                    <Button
+                      title="Ort"
+                      onPress={() => setShowLocationSelector(!showLocationSelector)}
+                      accessibilityLabel="Ort festlegen"
+                    />
+                  </View>
+                </View>
+              )}
 
-      {/* Kindergarten mode: Simple mood button */}
-      {showTopControls && kindergartenMode && (
-        <View style={{ padding: SPACING.md, alignItems: 'center' }}>
-          <Button
-            title="😊 Wie geht's Amy?"
-            onPress={() => setShowMoodSelector(!showMoodSelector)}
-            accessibilityLabel="Amy's Stimmung auswählen"
-          />
-          <View style={{ height: SPACING.md }} />
-          <Button
-            title="📍 Wo bist du?"
-            onPress={() => setShowLocationSelector(!showLocationSelector)}
-            accessibilityLabel="Aktuellen Ort auswählen"
-          />
-        </View>
-      )}
+              {showTopControls && kindergartenMode && (
+                <View style={[styles.card, styles.controlColumn, highContrast && styles.cardHC]}>
+                  <Button
+                    title="😊 Wie geht's Amy?"
+                    onPress={() => setShowMoodSelector(!showMoodSelector)}
+                    accessibilityLabel="Amy's Stimmung auswählen"
+                  />
+                  <View style={styles.controlSpacer} />
+                  <Button
+                    title="📍 Wo bist du?"
+                    onPress={() => setShowLocationSelector(!showLocationSelector)}
+                    accessibilityLabel="Aktuellen Ort auswählen"
+                  />
+                </View>
+              )}
 
-      {showMoodSelector && <MoodSelector />}
-      {showLocationSelector && <LocationSelector />}
-       <View style={styles.cameraContainer}>
-           {
+              {showMoodSelector && <MoodSelector />}
+              {showLocationSelector && <LocationSelector />}
+            </View>
+          )}
+
+          <View style={[styles.card, highContrast && styles.cardHC]}>
+            <Text
+              style={[
+                styles.statusLabel,
+                largeText && styles.statusLabelLarge,
+                highContrast && styles.statusLabelHC,
+              ]}
+              accessibilityRole="text"
+            >
+              {kindergartenMode
+                ? status === 'Bereit zur Gestenerkennung'
+                  ? '👋 Bereit!'
+                  : status === 'Geste erkannt!'
+                  ? '✨ Geste erkannt!'
+                  : status.includes('Hilfe')
+                  ? '🆘 Hilfe wird gerufen!'
+                  : status.includes('Fehler')
+                  ? '😊 Lass es uns nochmal versuchen!'
+                  : status
+                : status}
+            </Text>
+            {!kindergartenMode && modelUpdateStatus === 'updating' && (
+              <Text
+                style={[
+                  styles.statusSubtle,
+                  largeText && styles.statusSubtleLarge,
+                  highContrast && styles.statusSubtleHC,
+                ]}
+              >
+                🔄 Modell wird aktualisiert …
+              </Text>
+            )}
+          </View>
+
+          {shortcutActivated && (
+            <View style={[styles.card, styles.shortcutCard, highContrast && styles.cardHC]}>
+              <Text
+                style={[
+                  styles.shortcutText,
+                  largeText && styles.shortcutTextLarge,
+                  highContrast && styles.shortcutTextHC,
+                ]}
+              >
+                ⚡ {getShortcutMessage(shortcutActivated)}
+              </Text>
+            </View>
+          )}
+
+          <View style={[styles.card, styles.cameraCard, highContrast && styles.cardHC]}>
+            <View style={styles.cameraSurface}>
               <MediaPipeGestureDetector
                 onGestureDetected={handleGestureDetected}
                 onLandmarks={(landmarks, handedness) => {
@@ -810,220 +946,226 @@ export default function RecognitionScreen({
                 }}
                 facingMode={facingMode}
               />
-           }
 
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-            <HandLandmarkPreview
-              landmarks={currentLandmarks}
-              handedness={currentHandedness}
-              // Mirror the overlay when the front camera is active so the landmarks align with the
-              // mirrored preview that the OS presents to the user.
-              mirror={facingMode === 'user'}
+              <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                <HandLandmarkPreview
+                  landmarks={currentLandmarks}
+                  handedness={currentHandedness}
+                  mirror={facingMode === 'user'}
+                  confidence={gestureConfidence}
+                />
+              </View>
+
+              <VisualRipple
+                isActive={showVisualRipple}
+                duration={800}
+                color={COLORS.primaryAccent}
+                size={300}
+              />
+
+              <ScreenFlash
+                isActive={showScreenFlash}
+                pattern={screenFlashPattern}
+                color={COLORS.success}
+                duration={300}
+              />
+
+              {showDgsVideo && lastRecognizedGesture?.dgsVideoUri && (
+                <View style={styles.videoOverlay}>
+                  <DgsVideoPlayer
+                    videoSource={{ uri: lastRecognizedGesture.dgsVideoUri }}
+                    shouldPlay
+                  />
+                </View>
+              )}
+            </View>
+
+            <PictureInPictureGuidance
+              {...(pipGuidanceGesture?.id ? { gestureId: pipGuidanceGesture.id } : {})}
+              {...(pipGuidanceGesture?.dgsVideoUri
+                ? { videoUri: pipGuidanceGesture.dgsVideoUri }
+                : {})}
+              isVisible={showPipGuidance}
+              onClose={() => setShowPipGuidance(false)}
+              position={getAdaptivePipPosition()}
+              size={getAdaptivePipSize()}
+              autoPlay
+              showControls={false}
+              playbackMode={getAdaptivePlaybackMode()}
               confidence={gestureConfidence}
+              onPlaybackComplete={() => {
+                if (pipGuidanceGesture?.id) {
+                  void logHIPEvent('HIP_1', 'pip_guidance_completed', {
+                    gestureId: pipGuidanceGesture.id,
+                    confidence: gestureConfidence,
+                    context: contextInsights
+                      ? {
+                          timeOfDay: contextInsights.timeOfDay,
+                          patternMatch: contextInsights.patternMatch,
+                        }
+                      : undefined,
+                  });
+                }
+              }}
             />
-         </View>
-
-         {/* Visual ripple effect for gesture processing feedback */}
-         <VisualRipple
-           isActive={showVisualRipple}
-           duration={800}
-           color={COLORS.primaryAccent}
-           size={300}
-         />
-
-         {/* Screen flash for LED-like visual feedback in quiet environments */}
-         <ScreenFlash
-           isActive={showScreenFlash}
-           pattern={screenFlashPattern}
-           color={COLORS.success}
-           duration={300}
-         />
-        {/* Kindergarten mode: Simplify status messages */}
-        <Text style={styles.statusText}>
-          {kindergartenMode ? (
-            status === 'Bereit zur Gestenerkennung' ? '👋 Bereit!' :
-            status === 'Geste erkannt!' ? '✨ Geste erkannt!' :
-            status.includes('Hilfe') ? '🆘 Hilfe wird gerufen!' :
-            status.includes('Fehler') ? '😊 Lass es uns nochmal versuchen!' :
-            status
-          ) : (
-            <>
-              {status}
-              {modelUpdateStatus === 'updating' && ' 🔄'}
-            </>
-          )}
-        </Text>
-
-        {/* Shortcut activation indicator */}
-        {shortcutActivated && (
-          <View style={styles.shortcutIndicator}>
-            <Text style={styles.shortcutText}>
-              ⚡ {getShortcutMessage(shortcutActivated)}
-            </Text>
           </View>
-        )}
 
-        {/* Amy First: Never show technical errors to Amy - all errors are handled via status messages */}
-
-        {!error && !showCorrection && lastRecognizedGesture && (
-          <Animated.View style={[styles.gestureInfo, { opacity: fadeAnim }]}>
-            {isTwoHandGestureString(lastRecognizedGesture.label) && detectedTwoHandGesture ? (
-              <TwoHandGestureDisplay
-                gestureString={detectedTwoHandGesture.gesture.id}
-                confidence={detectedTwoHandGesture.confidence}
-                showDetails={!kindergartenMode} // Hide technical details in kindergarten mode
-                size="large" // Larger for kindergarten visibility
-              />
-            ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
-              <TwoHandGestureDisplay
-                gestureString={lastRecognizedGesture.label}
-                confidence={gestureConfidence}
-                showDetails={!kindergartenMode}
-                size="large"
-              />
-            ) : (
-              <>
-                <Animated.Text style={[styles.symbolDisplay, { transform: [{ scale: symbolScaleAnim }] }]}>
-                  {lastRecognizedGesture.label}
-                </Animated.Text>
-                {/* Kindergarten mode: Hide technical details */}
-                {!kindergartenMode && (
-                  <>
-                    <Text style={styles.gestureText}>{(gestureConfidence * 100).toFixed(0)}%</Text>
-                    <Text style={styles.confidenceText} testID="recognition-path">
-                      via {recognitionPath}
+          {!error && !showCorrection && lastRecognizedGesture && (
+            <Animated.View
+              style={[
+                styles.card,
+                styles.gestureCard,
+                highContrast && styles.cardHC,
+                { opacity: fadeAnim },
+              ]}
+            >
+              {isTwoHandGestureString(lastRecognizedGesture.label) && detectedTwoHandGesture ? (
+                <TwoHandGestureDisplay
+                  gestureString={detectedTwoHandGesture.gesture.id}
+                  confidence={detectedTwoHandGesture.confidence}
+                  showDetails={!kindergartenMode}
+                  size="large"
+                />
+              ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
+                <TwoHandGestureDisplay
+                  gestureString={lastRecognizedGesture.label}
+                  confidence={gestureConfidence}
+                  showDetails={!kindergartenMode}
+                  size="large"
+                />
+              ) : (
+                <>
+                  <Animated.Text
+                    style={[
+                      styles.symbolDisplay,
+                      largeText && styles.symbolDisplayLarge,
+                      { transform: [{ scale: symbolScaleAnim }] },
+                    ]}
+                  >
+                    {lastRecognizedGesture.label}
+                  </Animated.Text>
+                  {!kindergartenMode && (
+                    <>
+                      <Text style={[styles.gestureText, largeText && styles.gestureTextLarge]}>
+                        {(gestureConfidence * 100).toFixed(0)}%
+                      </Text>
+                      <Text
+                        style={[styles.confidenceText, largeText && styles.confidenceTextLarge]}
+                        testID="recognition-path"
+                      >
+                        via {recognitionPath}
+                      </Text>
+                    </>
+                  )}
+                  {kindergartenMode && gestureConfidence > 0.6 && (
+                    <Text style={[styles.encouragementText, largeText && styles.encouragementTextLarge]}>
+                      🎉 Super!
                     </Text>
-                  </>
-                )}
-                {/* Kindergarten mode: Show simple encouragement */}
-                {kindergartenMode && gestureConfidence > 0.6 && (
-                  <Text style={styles.encouragementText}>🎉 Super!</Text>
-                )}
-              </>
-            )}
-          </Animated.View>
+                  )}
+                </>
+              )}
+            </Animated.View>
+          )}
+
+          {error && (
+            <View style={[styles.card, styles.errorCard, highContrast && styles.errorCardHC]}>
+              <Text
+                style={[
+                  styles.errorText,
+                  largeText && styles.errorTextLarge,
+                  highContrast && styles.errorTextHC,
+                ]}
+              >
+                {error}
+              </Text>
+            </View>
+          )}
+
+          <View style={[styles.card, styles.actionRow, highContrast && styles.cardHC]}>
+            <View style={styles.actionButton}>
+              <Button
+                testID="btn-correction"
+                title="Korrektur"
+                accessibilityLabel="Korrekturseite öffnen"
+                onPress={() => navigation.navigate('Correction')}
+              />
+            </View>
+            <View style={styles.actionButton}>
+              <Button
+                testID="btn-adaptive-learning"
+                title="Lernfortschritt"
+                accessibilityLabel="Persönliches Lernen öffnen"
+                onPress={() => setShowAdaptiveLearning(true)}
+              />
+            </View>
+            <View style={styles.actionButton}>
+              <Button
+                testID="btn-teach"
+                title="Neue Geste beibringen"
+                accessibilityLabel="Neue Geste beibringen"
+                onPress={() => navigation.navigate('Teaching')}
+              />
+            </View>
+            <View style={styles.actionButton}>
+              <Button
+                title="Einstellungen"
+                accessibilityLabel="Einstellungen anzeigen/verstecken"
+                onPress={() => setShowTopControls(!showTopControls)}
+              />
+            </View>
+          </View>
+        </ScrollView>
+
+        {showCelebration && <Celebration key={celebrationKey} />}
+
+        {showCorrection && (
+          <CorrectionPanel
+            onSelect={handleSelectCorrection}
+            onAddNew={() => {
+              setShowCorrection(false);
+              navigation.navigate('Teaching');
+            }}
+            onCancel={() => setShowCorrection(false)}
+            suggestions={gestureSuggestions}
+            gestureModel={optimizedGestureService}
+            showPictures
+          />
         )}
 
-      {showDgsVideo && lastRecognizedGesture?.dgsVideoUri && (
-        <View style={styles.videoOverlay}>
-          <DgsVideoPlayer
-            videoSource={{ uri: lastRecognizedGesture.dgsVideoUri }}
-            shouldPlay={true}
+        {showGestureComparison && comparisonAttempt && (
+          <GestureComparison
+            userAttempt={comparisonAttempt}
+            correctGesture={(() => {
+              const referenceGesture = optimizedGestureService.getGestureById(pendingGesture || '');
+              return {
+                id: pendingGesture || '',
+                label: referenceGesture?.label ?? 'Unbekannte Geste',
+                ...(referenceGesture?.dgsVideoUri
+                  ? { dgsVideoUri: referenceGesture.dgsVideoUri }
+                  : {}),
+              };
+            })()}
+            onClose={handleCloseComparison}
+            onTryAgain={handleTryAgainFromComparison}
           />
-        </View>
-      )}
+        )}
 
-      {/* Amy First: Enhanced Picture-in-Picture guidance for learning during recognition */}
-      <PictureInPictureGuidance
-        {...(pipGuidanceGesture?.id ? { gestureId: pipGuidanceGesture.id } : {})}
-        {...(pipGuidanceGesture?.dgsVideoUri ? { videoUri: pipGuidanceGesture.dgsVideoUri } : {})}
-        isVisible={showPipGuidance}
-        onClose={() => setShowPipGuidance(false)}
-        position={getAdaptivePipPosition()}
-        size={getAdaptivePipSize()}
-        autoPlay={true}
-        showControls={false}
-        playbackMode={getAdaptivePlaybackMode()}
-        confidence={gestureConfidence}
-        onPlaybackComplete={() => {
-          // Track completion for learning analytics
-          if (pipGuidanceGesture?.id) {
-            void logHIPEvent('HIP_1', 'pip_guidance_completed', {
-              gestureId: pipGuidanceGesture.id,
-              confidence: gestureConfidence,
-              context: contextInsights ? {
-                timeOfDay: contextInsights.timeOfDay,
-                patternMatch: contextInsights.patternMatch
-              } : undefined
-            });
-          }
-        }}
+        <BottomNav active="recognition" profileId={profile?.id || 'default'} />
+      </View>
+
+      <PracticeSuggestion
+        visible={showPracticeSuggestion}
+        onAccept={handleAcceptPractice}
+        onDecline={handleDeclinePractice}
+        onLater={handleLaterPractice}
       />
 
-    </View>
-
-    {showCelebration && <Celebration key={celebrationKey} />}
-
-    {showCorrection && (
-      <CorrectionPanel
-        onSelect={handleSelectCorrection}
-        onAddNew={() => {
-          setShowCorrection(false);
-          navigation.navigate('Teaching');
-        }}
-        onCancel={() => setShowCorrection(false)}
-        suggestions={gestureSuggestions}
-        gestureModel={optimizedGestureService}
-        showPictures={true}
+      <AdaptiveLearningPanel
+        visible={showAdaptiveLearning}
+        onClose={() => setShowAdaptiveLearning(false)}
+        onStartRecommendation={handleStartAdaptiveRecommendation}
+        availableTime={10}
       />
-    )}
-
-    {/* Optional controls could be reintroduced as overlays if needed */}
-
-    <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.md }}>
-      <Button
-        testID="btn-correction"
-        title="Korrektur"
-        accessibilityLabel="Korrekturseite öffnen"
-        onPress={() => navigation.navigate('Correction')}
-      />
-      <Button
-        testID="btn-adaptive-learning"
-        title="Lernfortschritt"
-        accessibilityLabel="Persönliches Lernen öffnen"
-        onPress={() => setShowAdaptiveLearning(true)}
-      />
-      <Button
-        testID="btn-teach"
-        title="Neue Geste beibringen"
-        accessibilityLabel="Neue Geste beibringen"
-        onPress={() => navigation.navigate('Teaching')}
-      />
-      <Button
-        title="Einstellungen"
-        accessibilityLabel="Einstellungen anzeigen/verstecken"
-        onPress={() => setShowTopControls(!showTopControls)}
-      />
-    </View>
-
-
-
-    {/* <BottomNav active="recognition" profileId={profile?.id || 'default'} /> */}
-
-    {/* Gesture Comparison Overlay - Amy First: Encouraging, non-judgmental learning */}
-    {showGestureComparison && comparisonAttempt && (
-      <GestureComparison
-        userAttempt={comparisonAttempt}
-        correctGesture={(() => {
-          const referenceGesture = optimizedGestureService.getGestureById(pendingGesture || '');
-          return {
-            id: pendingGesture || '',
-            label: referenceGesture?.label ?? 'Unbekannte Geste',
-            ...(referenceGesture?.dgsVideoUri
-              ? { dgsVideoUri: referenceGesture.dgsVideoUri }
-              : {}),
-          };
-        })()}
-        onClose={handleCloseComparison}
-        onTryAgain={handleTryAgainFromComparison}
-      />
-    )}
-
-    {/* Practice Suggestion Overlay - Amy First: Targeted learning support */}
-    <PracticeSuggestion
-      visible={showPracticeSuggestion}
-      onAccept={handleAcceptPractice}
-      onDecline={handleDeclinePractice}
-      onLater={handleLaterPractice}
-    />
-
-    {/* Adaptive Learning Panel - Amy First: Personalized learning paths */}
-    <AdaptiveLearningPanel
-      visible={showAdaptiveLearning}
-      onClose={() => setShowAdaptiveLearning(false)}
-      onStartRecommendation={handleStartAdaptiveRecommendation}
-      availableTime={10}
-    />
-  </SafeAreaView>
-);
+    </SafeAreaView>
+  );
 }

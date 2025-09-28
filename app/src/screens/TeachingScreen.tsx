@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, TextInput, Animated, Easing, SafeAreaView, Button } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, Pressable, StyleSheet, Alert, TextInput, Animated, Easing, Button } from 'react-native';
 // Camera handled inside WebView detector
 // mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
@@ -32,6 +31,7 @@ import VisualFeedback from '../components/VisualFeedback';
 import ProgressTracker from '../components/ProgressTracker';
 import GestureValidationFeedback from '../components/GestureValidationFeedback';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
+import ScreenBackground from '../components/ScreenBackground';
 
 const PREVIEW_SIZE = 240;
 
@@ -296,14 +296,11 @@ export default function TeachingScreen({ navigation }: any) {
   const styles = createStyles(largeText, highContrast, buttonStyles);
 
   if (false) {
-    const gradientColors = highContrast
-      ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-      : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
     return (
-      <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-        <SafeAreaView style={styles.container}>
-        </SafeAreaView>
-      </LinearGradient>
+      <ScreenBackground>
+        <View style={styles.container}>
+        </View>
+      </ScreenBackground>
     );
   }
 
@@ -328,12 +325,9 @@ export default function TeachingScreen({ navigation }: any) {
   //   );
   // }
 
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
   return (
-    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+    <ScreenBackground>
+      <View style={styles.container}>
       <Text style={styles.title}>Neue Geste beibringen</Text>
       {!isSessionActive ? (
        <View style={styles.inputContainer}>
@@ -645,19 +639,17 @@ export default function TeachingScreen({ navigation }: any) {
            />
          </View>
        )}
-     </SafeAreaView>
-     </LinearGradient>
-   );
- }
+     </View>
+    </ScreenBackground>
+  );
+}
 
 const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: any) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      padding: SPACING.lg,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'transparent',
     },
     title: {
       fontSize: largeText ? 28 : 24,

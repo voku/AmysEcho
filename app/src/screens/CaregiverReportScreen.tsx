@@ -7,6 +7,7 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
 import { childHaptic } from '../services/feedbackService';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function CaregiverReportScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -19,8 +20,7 @@ export default function CaregiverReportScreen({ navigation }: any) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      padding: SPACING.lg,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'transparent',
     },
     title: {
       fontSize: largeText ? 24 : 20,
@@ -69,7 +69,7 @@ export default function CaregiverReportScreen({ navigation }: any) {
   });
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground style={styles.container}>
       <Text style={styles.title}>Lernfortschritt</Text>
       <FlatList
         data={gestureModel.gestures}
@@ -138,6 +138,6 @@ export default function CaregiverReportScreen({ navigation }: any) {
         </Text>
       </Pressable>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
-    </View>
+    </ScreenBackground>
   );
 }

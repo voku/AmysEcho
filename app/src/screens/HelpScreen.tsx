@@ -5,6 +5,7 @@ import { loadProfile, Profile } from '../storage';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function HelpScreen({ navigation }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -15,7 +16,7 @@ export default function HelpScreen({ navigation }: any) {
   }, []);
 
   return (
-    <View style={[styles.container, highContrast && styles.containerHC]}>
+    <ScreenBackground style={[styles.container, highContrast && styles.containerHC]}>
       <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
         Wie du Amy helfen kannst
       </Text>
@@ -59,7 +60,7 @@ export default function HelpScreen({ navigation }: any) {
         </Text>
       </Pressable>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
-    </View>
+    </ScreenBackground>
   );
 }
 
@@ -68,8 +69,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.lg,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'transparent',
   },
   containerHC: {
     backgroundColor: COLORS.highContrastBackground,

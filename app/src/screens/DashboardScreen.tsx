@@ -19,6 +19,7 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import BottomNav from '../components/BottomNav';
 import { childHaptic } from '../services/feedbackService';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function DashboardScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -51,7 +52,7 @@ export default function DashboardScreen({ navigation }: any) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'transparent',
     },
     label: {
       fontSize: largeText ? 24 : 20,
@@ -100,7 +101,7 @@ export default function DashboardScreen({ navigation }: any) {
   });
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground style={styles.container}>
       <Text style={styles.label}>Analyse-Dashboard</Text>
       {data ? (
         <>
@@ -166,6 +167,6 @@ export default function DashboardScreen({ navigation }: any) {
         </Text>
       </Pressable>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
-    </View>
+    </ScreenBackground>
   );
 }

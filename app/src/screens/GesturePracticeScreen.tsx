@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
@@ -10,6 +9,7 @@ import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import { cloneLandmarks } from '../utils/landmarkUtils';
+import ScreenBackground from '../components/ScreenBackground';
 
 export default function GesturePracticeScreen() {
   const { largeText, highContrast } = useAccessibility();
@@ -41,9 +41,6 @@ export default function GesturePracticeScreen() {
   }, [detectionActive]);
 
   const styles = createStyles(largeText, highContrast);
-  const gradientColors = highContrast
-    ? ([COLORS.highContrastBackground, COLORS.highContrastBackground] as const)
-    : ([COLORS.backgroundStart, COLORS.backgroundEnd] as const);
 
   const handleGestureDetected = (
     gesture: string | null,
@@ -66,8 +63,8 @@ export default function GesturePracticeScreen() {
   };
 
   return (
-    <LinearGradient colors={gradientColors} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+    <ScreenBackground>
+      <View style={styles.container}>
         <Text style={styles.title}>Gesten üben</Text>
         <View style={styles.content}>
           <Text style={styles.instruction}>
@@ -93,15 +90,15 @@ export default function GesturePracticeScreen() {
             Versuche verschiedene Gesten aus dem Modell
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
       {profile && <BottomNav active="training" profileId={profile.id} />}
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 
 const createStyles = (largeText: boolean, highContrast: boolean) =>
   StyleSheet.create({
-    container: { flex: 1, padding: SPACING.lg },
+    container: { flex: 1 },
     title: {
       fontSize: largeText ? 28 : 24,
       marginBottom: SPACING.lg,
