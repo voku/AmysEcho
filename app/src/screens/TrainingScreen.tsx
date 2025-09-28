@@ -113,7 +113,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       .then(setProfile)
       .catch((e) => {
         logger.error('Failed to load profile', e);
-        setError('Failed to load profile');
+        setError('Profil konnte nicht geladen werden.');
       });
   }, []);
 
@@ -245,7 +245,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
     const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
     if (!validation.ok) {
-      const msg = `Sample needs improvement: ${validation.suggestions.join(' ')}`;
+      const msg = `Aufnahme muss verbessert werden: ${validation.suggestions.join(' ')}`;
       setError(msg);
       return;
     }
@@ -485,28 +485,24 @@ export default function TrainingScreen({ navigation, route }: any) {
   // Camera permission handled by WebView context.
 
   return (
-    <>
-      <ScreenBackground style={styles.container}>
+    <ScreenBackground style={styles.container}>
+      <>
         <View style={styles.content}>
           <Text style={styles.title}>
             {isPractice
               ? gestureId
-                ? `Practice ${gestureId}`
-                : 'Practice Mode'
-              : `Training ${gestureId ? `for ${gestureId}` : 'Mode'}`}
+                ? `Übung ${gestureId}`
+                : 'Übungsmodus'
+              : gestureId
+                ? `Training für ${gestureId}`
+                : 'Trainingsmodus'}
           </Text>
           {!gestureId ? (
             gestureModel.gestures.map((g: { id: string; label: string }) => (
               <Pressable
                 key={g.id}
                 style={({ pressed }) => [
-                  {
-                    minWidth: 60,
-                    minHeight: 60,
-                    padding: SPACING.md,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  },
+                  childFriendlyStyles.minTouchTarget,
                   styles.button,
                   highContrast && styles.buttonHC,
                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
@@ -627,15 +623,15 @@ export default function TrainingScreen({ navigation, route }: any) {
                 )}
                 <View style={styles.detectionIndicator}>
                   <View style={[styles.dot, { backgroundColor: detectionActive ? COLORS.success : COLORS.warning }]} />
-                  <Text style={styles.detectionText}>
-                    {isRecording
-                      ? detectionActive
-                        ? `Recording... ${framesCaptured}`
-                        : 'No hand detected'
-                      : detectionActive
-                      ? 'Hand detected'
-                      : 'No hand'}
-                  </Text>
+                <Text style={styles.detectionText}>
+                  {isRecording
+                    ? detectionActive
+                      ? `Aufnahme läuft … ${framesCaptured}`
+                      : 'Keine Hand erkannt'
+                    : detectionActive
+                      ? 'Hand erkannt'
+                      : 'Keine Hand'}
+                </Text>
                 </View>
               </View>
               <View
@@ -672,21 +668,21 @@ export default function TrainingScreen({ navigation, route }: any) {
                 accessibilityLabel="Gestenaufnahme starten"
                 disabled={!gestureId}
               >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  {isRecording
-                    ? 'Stop Recording'
-                    : `Record Sample ${count + 1} / ${TARGET_SAMPLES}`}
-                </Text>
+              <Text
+                style={[
+                  styles.buttonText,
+                  largeText && styles.buttonTextLarge,
+                  highContrast && styles.buttonTextHC,
+                ]}
+              >
+                {isRecording
+                  ? 'Aufnahme stoppen'
+                  : `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`}
+              </Text>
               </Pressable>
               {!isRecording && framesCaptured > 0 && (
                 <Text style={styles.detectionText}>
-                  Last recording length: {framesCaptured} frames
+                  Länge der letzten Aufnahme: {framesCaptured} Frames
                 </Text>
               )}
 
@@ -781,8 +777,9 @@ export default function TrainingScreen({ navigation, route }: any) {
             }}
           />
         )}
-      </ScreenBackground>
-      {profile && <BottomNav active="training" profileId={profile.id} />}
-    </>
+
+        {profile && <BottomNav active="training" profileId={profile.id} />}
+      </>
+    </ScreenBackground>
   );
 }

@@ -391,8 +391,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
   });
 
   return (
-    <>
-      <ScreenBackground style={styles.container}>
+    <ScreenBackground style={styles.container}>
       <Text style={styles.title}>Profile</Text>
 
       {/* Trusted Device Section */}
@@ -709,37 +708,38 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
           Neues Profil
         </Text>
       </Pressable>
-        {/* Gesture History Overlay */}
-        {showGestureHistory && (
-          <View style={styles.overlay}>
-            <GestureHistoryViewer
-              gestureHistory={gestureHistory}
-              onClose={() => setShowGestureHistory(false)}
-              onGestureSelect={(gesture) => {
-                // Could navigate to practice this specific gesture
-                setShowGestureHistory(false);
-                navigation.navigate('Training', { gestureLabel: gesture.id });
-              }}
-            />
-          </View>
-        )}
 
-        {/* Profile Analytics Overlay */}
-        {showProfileAnalytics && profileStats && (
-          <View style={styles.overlay}>
-            <ProfileAnalytics
-              stats={profileStats}
-              onClose={() => setShowProfileAnalytics(false)}
-              onViewDetails={() => {
-                // Could show more detailed analytics
-                setShowProfileAnalytics(false);
-              }}
-            />
-          </View>
-        )}
-      </ScreenBackground>
+      {/* Gesture History Overlay */}
+      {showGestureHistory && (
+        <View style={styles.overlay}>
+          <GestureHistoryViewer
+            gestureHistory={gestureHistory}
+            onClose={() => setShowGestureHistory(false)}
+            onGestureSelect={(gesture) => {
+              // Could navigate to practice this specific gesture
+              setShowGestureHistory(false);
+              navigation.navigate('Training', { gestureLabel: gesture.id });
+            }}
+          />
+        </View>
+      )}
+
+      {/* Profile Analytics Overlay */}
+      {showProfileAnalytics && profileStats && (
+        <View style={styles.overlay}>
+          <ProfileAnalytics
+            stats={profileStats}
+            onClose={() => setShowProfileAnalytics(false)}
+            onViewDetails={() => {
+              // Could show more detailed analytics
+              setShowProfileAnalytics(false);
+            }}
+          />
+        </View>
+      )}
+
       {profileId && <BottomNav active="parent" profileId={profileId} />}
-    </>
+    </ScreenBackground>
   );
 }
 

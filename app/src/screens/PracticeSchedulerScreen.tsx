@@ -32,6 +32,7 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
 
   const styles = StyleSheet.create({
     container: { flex: 1, padding: SPACING.lg, backgroundColor: 'transparent' },
+    content: { flex: 1 },
     title: { fontSize: largeText ? 24 : 20, marginBottom: SPACING.md, color: highContrast ? COLORS.highContrastText : COLORS.text },
     row: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm },
     label: { color: highContrast ? COLORS.highContrastText : COLORS.text, marginRight: SPACING.sm },
@@ -98,8 +99,8 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
   });
 
   return (
-    <>
-      <ScreenBackground style={styles.container}>
+    <ScreenBackground style={styles.container}>
+      <View style={styles.content}>
         <Text style={styles.title}>Übungsplaner</Text>
         <View style={styles.row}>
           <Text style={styles.label}>Geste</Text>
@@ -190,79 +191,79 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
           </Pressable>
         </View>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>Tage</Text>
-        <FlatList
-          data={dayLabels}
-          horizontal
-          keyExtractor={(d) => d}
-          renderItem={({ item, index }) => (
-            <Pressable
-              onPress={() =>
-                setDays((prev) =>
-                  prev.includes(index) ? prev.filter((d) => d !== index) : [...prev, index],
-                )
-              }
-              style={[styles.dayButton, days.includes(index) && styles.dayButtonSelected]}
-              accessibilityLabel={item}
-              accessibilityState={{ selected: days.includes(index) }}
-            >
-              <Text style={styles.dayButtonText}>{item}</Text>
-            </Pressable>
-          )}
-          style={{ maxHeight: 44 }}
-        />
-      </View>
-
-      <FlatList
-        data={schedules}
-        keyExtractor={(s) => s.id}
-        renderItem={({ item }) => (
-          <View style={styles.listItem}>
-            <Text style={styles.label}>
-              {item.gestureId} @ {String(item.hour).padStart(2, '0')}:{String(item.minute).padStart(2, '0')} (
-              {item.daysOfWeek && item.daysOfWeek.length
-                ? item.daysOfWeek.map((d) => dayLabels[d]).join(',')
-                : 'täglich'})
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Switch
-                value={item.enabled}
-                onValueChange={async (v) => {
-                  await setScheduleEnabled(item.id, v);
-                  await load();
-                }}
-              />
+        <View style={styles.row}>
+          <Text style={styles.label}>Tage</Text>
+          <FlatList
+            data={dayLabels}
+            horizontal
+            keyExtractor={(d) => d}
+            renderItem={({ item, index }) => (
               <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={async () => {
-                  void childHaptic();
-                  await removeSchedule(item.id);
-                  await load();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Plan löschen"
+                onPress={() =>
+                  setDays((prev) =>
+                    prev.includes(index) ? prev.filter((d) => d !== index) : [...prev, index],
+                  )
+                }
+                style={[styles.dayButton, days.includes(index) && styles.dayButtonSelected]}
+                accessibilityLabel={item}
+                accessibilityState={{ selected: days.includes(index) }}
               >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  Löschen
-                </Text>
+                <Text style={styles.dayButtonText}>{item}</Text>
               </Pressable>
+            )}
+            style={{ maxHeight: 44 }}
+          />
+        </View>
+
+        <FlatList
+          data={schedules}
+          keyExtractor={(s) => s.id}
+          renderItem={({ item }) => (
+            <View style={styles.listItem}>
+              <Text style={styles.label}>
+                {item.gestureId} @ {String(item.hour).padStart(2, '0')}:{String(item.minute).padStart(2, '0')} (
+                {item.daysOfWeek && item.daysOfWeek.length
+                  ? item.daysOfWeek.map((d) => dayLabels[d]).join(',')
+                  : 'täglich'})
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Switch
+                  value={item.enabled}
+                  onValueChange={async (v) => {
+                    await setScheduleEnabled(item.id, v);
+                    await load();
+                  }}
+                />
+                <Pressable
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.button,
+                    highContrast && styles.buttonHC,
+                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                  ]}
+                  onPress={async () => {
+                    void childHaptic();
+                    await removeSchedule(item.id);
+                    await load();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Plan löschen"
+                >
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      largeText && styles.buttonTextLarge,
+                      highContrast && styles.buttonTextHC,
+                    ]}
+                  >
+                    Löschen
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
-        )}
-        ListEmptyComponent={<Text style={styles.label}>Keine Pläne</Text>}
-      />
+          )}
+          ListEmptyComponent={<Text style={styles.label}>Keine Pläne</Text>}
+        />
 
         <Pressable
           style={({ pressed }) => [
@@ -288,8 +289,8 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
             Zurück
           </Text>
         </Pressable>
-      </ScreenBackground>
+      </View>
       {profile && <BottomNav active="schedule" profileId={profile.id} />}
-    </>
+    </ScreenBackground>
   );
 }

@@ -17,12 +17,10 @@ export default function PrivacySettingsScreen({
   };
 
   return (
-    <>
-      <ScreenBackground style={styles.container}>
-        <PrivacySettings onClose={handleClose} />
-      </ScreenBackground>
+    <ScreenBackground style={styles.container}>
+      <PrivacySettings onClose={handleClose} />
       <BottomNav active="parent" profileId="default" />
-    </>
+    </ScreenBackground>
   );
 }
 

@@ -9,6 +9,7 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import { childFriendlyStyles } from '../styles/touchTargets';
 
 export default function ProgressScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -35,6 +36,9 @@ export default function ProgressScreen({ navigation }: any) {
       flex: 1,
       padding: SPACING.lg,
       backgroundColor: 'transparent',
+    },
+    content: {
+      flex: 1,
     },
     title: {
       fontSize: largeText ? 24 : 20,
@@ -89,8 +93,8 @@ export default function ProgressScreen({ navigation }: any) {
   });
 
   return (
-    <>
-      <ScreenBackground style={styles.container}>
+    <ScreenBackground style={styles.container}>
+      <View style={styles.content}>
         <Text style={styles.title}>Fortschritt</Text>
         <View style={styles.summaryItem}>
           <Text style={styles.label}>Sitzungen</Text>
@@ -108,13 +112,7 @@ export default function ProgressScreen({ navigation }: any) {
               <Text style={styles.label}>{item.label}</Text>
               <Pressable
                 style={({ pressed }) => [
-                  {
-                    minWidth: 60,
-                    minHeight: 60,
-                    padding: SPACING.sm,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  },
+                  childFriendlyStyles.minTouchTarget,
                   styles.button,
                   highContrast && styles.buttonHC,
                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
@@ -143,13 +141,7 @@ export default function ProgressScreen({ navigation }: any) {
         />
         <Pressable
           style={({ pressed }) => [
-            {
-              minWidth: 60,
-              minHeight: 60,
-              padding: SPACING.md,
-              alignItems: 'center',
-              justifyContent: 'center',
-            },
+            childFriendlyStyles.minTouchTarget,
             styles.button,
             highContrast && styles.buttonHC,
             pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
@@ -171,8 +163,8 @@ export default function ProgressScreen({ navigation }: any) {
             Zurück
           </Text>
         </Pressable>
-      </ScreenBackground>
+      </View>
       {profile && <BottomNav active="parent" profileId={profile.id} />}
-    </>
+    </ScreenBackground>
   );
 }
