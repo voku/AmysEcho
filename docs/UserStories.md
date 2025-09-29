@@ -21,14 +21,13 @@ This document outlines the main user stories for Amy's Echo and how the screens 
 - **Flow**:
   1. **Recognition** opens with the camera active.
   2. When a sign is detected, the matching symbol and audio are shown.
-  3. If the confidence is low, a caregiver taps **Help Me** to reveal the **Correction** panel. The legacy `CorrectionScreen` is accessible from the Admin menu.
+  3. Wenn die Sicherheit gering ist, öffnet ein Tipp auf **Hilfe** das Korrekturpanel direkt in **Recognition**.
 
 ## 4. Caregiver Fixes a Misunderstanding (HIP&nbsp;3)
 - **Story**: As a caregiver, I want to correct the app when it guesses wrong.
 - **Flow**:
-  1. In **Recognition**, the **Help Me** button opens the correction panel with four symbol choices.
-  2. Selecting the correct symbol logs a correction sample for later training.
-  3. The Admin menu also links to the standalone **Correction** screen used in early versions.
+  1. In **Recognition** öffnet der Button **Hilfe** das Korrekturpanel mit vier Symbolvorschlägen.
+  2. Die Auswahl des richtigen Symbols protokolliert eine Korrektur für spätere Trainings.
 
 ## 5. Caregiver Teaches a New Sign (HIP&nbsp;2)
 - **Story**: As a caregiver, I want to record samples so the app learns a new gesture.
@@ -50,6 +49,6 @@ This document outlines the main user stories for Amy's Echo and how the screens 
   2. Analytics are loaded from local storage and uploaded to the server when online.
 
 ## Screen Linking Overview
-- `App.tsx` registers routes for all screens, including **LegacyTraining** and **Correction**.
-- `AdminScreen` provides buttons to reach **Training**, **LegacyTraining**, **Correction**, and **Dashboard** alongside other admin tools.
+- `App.tsx` registriert alle aktiven Screens, inklusive **LegacyTraining**.
+- `AdminScreen` bietet Buttons für **Training**, **LegacyTraining**, **Dashboard** und weitere Admin-Werkzeuge.
 - `RecognitionScreen` has a **Menu** button that opens **ProfileSelect** for switching profiles or entering the parent/admin areas.

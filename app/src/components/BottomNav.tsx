@@ -63,7 +63,6 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
       'Help': '❓ Hilfe',
       'Dashboard': '📊 Auswertung',
       'Progress': '📈 Fortschritt',
-      'Correction': '🔧 Korrektur',
       'Parent': '👨‍👩‍👧 Eltern',
       'ProfileSelect': '👤 Profile',
       'ProfileManager': '⚙️ Einstellungen',
