@@ -1104,14 +1104,6 @@ export default function RecognitionScreen({
           <View style={[styles.card, styles.actionRow, highContrast && styles.cardHC]}>
             <View style={styles.actionButton}>
               <Button
-                testID="btn-correction"
-                title="Korrektur"
-                accessibilityLabel="Korrekturseite öffnen"
-                onPress={() => navigation.navigate('Correction')}
-              />
-            </View>
-            <View style={styles.actionButton}>
-              <Button
                 testID="btn-adaptive-learning"
                 title="Lernfortschritt"
                 accessibilityLabel="Persönliches Lernen öffnen"

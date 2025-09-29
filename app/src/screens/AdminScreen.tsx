@@ -443,11 +443,6 @@ export default function AdminScreen({ navigation }: any) {
         accessibilityLabel="Trainingsmodus öffnen"
       />
       <Button
-        title="Korrektur"
-        onPress={() => navigation.navigate('Correction')}
-        accessibilityLabel="Korrekturmodus öffnen"
-      />
-      <Button
         title="Dashboard"
         onPress={() => navigation.navigate('Dashboard')}
         accessibilityLabel="Analytics-Dashboard öffnen"
