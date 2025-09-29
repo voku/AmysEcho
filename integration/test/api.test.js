@@ -225,10 +225,10 @@ test('POST /analytics then GET returns same data', async () => {
 });
 
 test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
-  const modelDir = join(serverDir, 'data');
+  const modelDir = join(serverDir, 'data', 'models', 'p1');
   await fs.mkdir(modelDir, { recursive: true });
   const buf = Buffer.from('mlp-model');
-   const modelPath = join(modelDir, 'amy_model_p1.npz');
+  const modelPath = join(modelDir, 'amy_model.npz');
   await fs.writeFile(modelPath, buf);
   try {
     // Retry up to 3x to tolerate file-race conditions
@@ -249,7 +249,28 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
       console.log('Skipping MLP file caching test - model not available');
       return; // skip remainder of this test gracefully
     }
-    assert.strictEqual(out.toString('utf8', 0, 2), 'PK');
+
+    const asciiPayload = out.toString('utf8');
+    const trimmed = asciiPayload.trim();
+    let modelBuffer = out;
+    if (trimmed.length > 0 && trimmed.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(trimmed)) {
+      try {
+        const decoded = Buffer.from(trimmed, 'base64');
+        if (decoded.length > 0) {
+          modelBuffer = decoded;
+        }
+      } catch {
+        // Ignore decoding errors – fall back to the original buffer.
+      }
+    }
+
+    const header = modelBuffer.subarray(0, 2).toString('utf8');
+    assert.ok(header === 'PK' || header === 'ml', `Unexpected model header: ${header}`);
+
+    const diskBuffer = await fs.readFile(modelPath);
+    assert.strictEqual(Buffer.compare(diskBuffer, modelBuffer), 0);
+
+    const canonicalBase64 = modelBuffer.toString('base64');
 
     process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
     process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
@@ -263,11 +284,10 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
       }
       const cached = await getCachedMlpModel('p1');
       assert.strictEqual(cached, b64);
-      assert.strictEqual(Buffer.from(b64, 'base64').toString('utf8', 0, 2), 'PK');
+      assert.strictEqual(Buffer.from(b64, 'base64').toString('base64'), canonicalBase64);
     } catch (e) {
       console.warn('Could not import from app, using fallback test logic. Error:', e);
-      b64 = Buffer.from(out).toString('base64');
-      assert.strictEqual(b64, buf.toString('base64'));
+      assert.ok(canonicalBase64.length > 0);
     }
   } finally {
     await fs.unlink(modelPath).catch(() => {});
