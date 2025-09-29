@@ -18,7 +18,7 @@ export default function PrivacySettingsScreen({
 
   return (
     <View style={styles.screen}>
-      <ScreenBackground style={styles.background}>
+      <ScreenBackground>
         <PrivacySettings onClose={handleClose} backgroundColor="transparent" />
       </ScreenBackground>
       <BottomNav active="parent" profileId="default" />
@@ -29,9 +29,5 @@ export default function PrivacySettingsScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-  },
-  background: {
-    flex: 1,
-    backgroundColor: 'transparent',
   },
 });

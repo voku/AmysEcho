@@ -8,7 +8,11 @@ jest.mock('react-native', () => {
     Text: (p: any) => React.createElement('Text', p, p.children),
     Pressable: (p: any) => React.createElement('Pressable', p, p.children),
     SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
-    StyleSheet: { create: (s: any) => s },
+    ScrollView: (p: any) => React.createElement('ScrollView', p, p.children),
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
   } as any;
 });
 
@@ -70,6 +74,14 @@ jest.mock('react-native-svg', () => {
 });
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
+}));
+jest.mock('../../src/context/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: { colors: { gradientStart: '#000000', gradientEnd: '#111111' } },
+    themeName: 'default',
+    setTheme: jest.fn(),
+    availableThemes: {},
+  }),
 }));
 jest.mock('../../src/components/PulsingCircle', () => () => null);
 
