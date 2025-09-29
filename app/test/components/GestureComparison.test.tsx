@@ -5,42 +5,6 @@
  * side-by-side comparison of user's attempt vs correct gesture.
  */
 
-jest.mock('react-native', () => {
-  const actual = jest.requireActual('react-native');
-
-  const styleSheet = {
-    absoluteFill: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 0,
-    },
-    absoluteFillObject: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 0,
-    },
-    compose: jest.fn((styleA: any, styleB: any) => ({ ...(styleA ?? {}), ...(styleB ?? {}) })),
-    create: jest.fn((styles: any) => styles),
-    flatten: jest.fn((style: any) => style),
-  };
-
-  return new Proxy(actual, {
-    get(target, prop, receiver) {
-      if (prop === 'StyleSheet') {
-        return styleSheet;
-      }
-      if (prop === 'Pressable') {
-        return 'Pressable';
-      }
-      return Reflect.get(target, prop, receiver);
-    },
-  });
-});
-
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';

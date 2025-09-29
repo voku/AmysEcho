@@ -1,19 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    Text: (p: any) => React.createElement('Text', p, p.children),
-    Switch: (p: any) => React.createElement('Switch', p, p.children),
-    Button: (p: any) => React.createElement('Button', p, p.children),
-    TextInput: (p: any) => React.createElement('TextInput', p, p.children),
-    SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
-    StyleSheet: { create: (s: any) => s },
-  } as any;
-});
-
 jest.mock('../../src/storage', () => ({
   createProfile: jest.fn(() => Promise.resolve({ id: '1' })),
 }));

@@ -1,17 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    Text: (p: any) => React.createElement('Text', p, p.children),
-    TextInput: (p: any) => React.createElement('TextInput', p, p.children),
-    Pressable: (p: any) => React.createElement('Pressable', p, p.children),
-    StyleSheet: { create: (s: any) => s },
-  } as any;
-});
-
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
 }));

@@ -1,16 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    ActivityIndicator: (props: any) => React.createElement('ActivityIndicator', props),
-    View: (props: any) => React.createElement('View', props, props.children),
-    Text: (props: any) => React.createElement('Text', props, props.children),
-    Pressable: (props: any) => React.createElement('Pressable', props, props.children),
-    StyleSheet: { create: () => ({}) },
-  };
-});
 import { ActivityIndicator } from 'react-native';
 
 import DgsVideoPlayer from '../src/components/DgsVideoPlayer';

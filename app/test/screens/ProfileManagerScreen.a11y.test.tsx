@@ -1,30 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    Text: (p: any) => React.createElement('Text', p, p.children),
-    Pressable: (p: any) => React.createElement('Pressable', p, p.children),
-    StyleSheet: { create: (s: any) => s },
-    Alert: { alert: jest.fn() },
-    Switch: (p: any) => React.createElement('Switch', p),
-    FlatList: ({ data, renderItem, ListEmptyComponent, keyExtractor }: any) =>
-      React.createElement(
-        'FlatList',
-        null,
-        data && data.length
-          ? data.map((item: any, index: number) => {
-              const element = renderItem({ item, index });
-              const key = keyExtractor ? keyExtractor(item) : index;
-              return React.cloneElement(element, { key });
-            })
-          : ListEmptyComponent || null,
-      ),
-  } as any;
-});
-
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false, update: jest.fn() }),
 }));

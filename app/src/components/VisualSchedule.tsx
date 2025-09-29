@@ -10,13 +10,6 @@ import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-const TEXT = {
-  title: 'Mein Tagesplan',
-  subtitle: 'Was machen wir heute?',
-  completed: 'erledigt',
-  now: 'JETZT',
-};
-
 interface ScheduleItem {
   id: string;
   time: string;
@@ -262,11 +255,11 @@ export default function VisualSchedule({ onScheduleComplete, onActivityPress }: 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{TEXT.title}</Text>
-        <Text style={styles.subtitle}>{TEXT.subtitle}</Text>
+        <Text style={styles.title}>Mein Tagesplan</Text>
+        <Text style={styles.subtitle}>Was machen wir heute?</Text>
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>
-            {completedCount} / {totalCount} {TEXT.completed}
+            {completedCount} / {totalCount} erledigt
           </Text>
         </View>
       </View>
@@ -307,12 +300,12 @@ export default function VisualSchedule({ onScheduleComplete, onActivityPress }: 
                 </View>
               </View>
 
-              {isCurrent && (
-                <View style={styles.currentIndicator}>
-                  <Text style={styles.currentText}>{TEXT.now}</Text>
-                </View>
-              )}
-            </Pressable>
+          {isCurrent && (
+            <View style={styles.currentIndicator}>
+              <Text style={styles.currentText}>JETZT</Text>
+            </View>
+          )}
+        </Pressable>
           );
         })}
       </ScrollView>

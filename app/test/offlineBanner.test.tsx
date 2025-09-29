@@ -1,12 +1,3 @@
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (props: any) => React.createElement('View', props, props.children),
-    Text: (props: any) => React.createElement('Text', props, props.children),
-    StyleSheet: { create: (styles: any) => styles },
-  };
-});
-
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0 }),
 }));

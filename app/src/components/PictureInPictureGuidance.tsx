@@ -12,14 +12,6 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { logger } from '../utils/logger';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 
-const TEXT = {
-  gestureVideoLabel: 'Gesten-Video',
-  loading: 'Lädt…',
-  close: 'Bild-im-Bild schließen',
-  pause: 'Pause',
-  play: 'Abspielen',
-};
-
 interface PictureInPictureGuidanceProps {
   gestureId?: string | undefined;
   videoUri?: string | undefined;
@@ -166,13 +158,13 @@ export default function PictureInPictureGuidance({
             contentFit="contain"
             allowsFullscreen={false}
             allowsPictureInPicture={false}
-            accessibilityLabel={`${TEXT.gestureVideoLabel} ${gestureId || 'unknown'}`}
+            accessibilityLabel={`Gesten-Video ${gestureId || 'unknown'}`}
             testID="pip-guidance-video"
           />
         ) : (
           <View style={styles.placeholder}>
             <Text style={styles.placeholderText}>
-              {TEXT.loading}
+              Lädt…
             </Text>
           </View>
         )}
@@ -181,7 +173,7 @@ export default function PictureInPictureGuidance({
         <Pressable
           style={styles.closeButton}
           onPress={handleClose}
-          accessibilityLabel={TEXT.close}
+          accessibilityLabel="Bild-im-Bild schließen"
           testID="pip-close-button"
         >
           <Text style={styles.closeText}>×</Text>
@@ -194,8 +186,8 @@ export default function PictureInPictureGuidance({
             onPress={togglePlayback}
             accessibilityLabel={
               isPlaying
-                ? TEXT.pause
-                : TEXT.play
+                ? 'Pause'
+                : 'Abspielen'
             }
             testID="pip-control-button"
           >

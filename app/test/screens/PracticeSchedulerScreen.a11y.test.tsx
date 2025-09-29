@@ -1,32 +1,17 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    Text: (p: any) => React.createElement('Text', p, p.children),
-    Pressable: (p: any) => React.createElement('Pressable', p, p.children),
-    TextInput: (p: any) => React.createElement('TextInput', p, p.children),
-    Switch: (p: any) => React.createElement('Switch', p, p.children),
-    FlatList: ({ data, renderItem, keyExtractor, ListEmptyComponent }: any) =>
-      React.createElement(
-        'FlatList',
-        null,
-        data && data.length
-          ? data.map((item: any, index: number) => {
-              const element = renderItem({ item, index });
-              const key = keyExtractor ? keyExtractor(item) : index;
-              return React.cloneElement(element, { key });
-            })
-          : ListEmptyComponent || null,
-      ),
-    StyleSheet: { create: (s: any) => s },
-  } as any;
-});
-
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
+}));
+
+jest.mock('../../src/context/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: { colors: { gradientStart: '#000000', gradientEnd: '#111111' } },
+    themeName: 'default',
+    setTheme: jest.fn(),
+    availableThemes: {},
+  }),
 }));
 
 jest.mock('../../src/services/feedbackService', () => ({

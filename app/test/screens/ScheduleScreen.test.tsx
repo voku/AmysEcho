@@ -1,14 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    StyleSheet: { create: (s: any) => s },
-  } as any;
-});
-
 import ScheduleScreen from '../../src/screens/ScheduleScreen';
 import { logger } from '../../src/utils/logger';
 

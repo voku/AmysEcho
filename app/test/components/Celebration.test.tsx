@@ -2,24 +2,6 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import Celebration from '../../src/components/Celebration';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    Animated: {
-      Value: jest.fn().mockImplementation((initialValue: any) => ({
-        _value: initialValue,
-        setValue: jest.fn(),
-      })),
-      timing: () => ({ start: jest.fn(), stop: jest.fn() }),
-      delay: () => ({ start: jest.fn(), stop: jest.fn() }),
-      sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
-      View: (p: any) => React.createElement('Animated.View', p, p.children),
-    },
-    StyleSheet: { create: (s: any) => s },
-    Text: (p: any) => React.createElement('Text', p, p.children),
-  } as any;
-});
-
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false }),
 }));

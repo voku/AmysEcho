@@ -1,17 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    Text: (p: any) => React.createElement('Text', p, p.children),
-    Pressable: (p: any) => React.createElement('Pressable', p, p.children),
-    SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
-    StyleSheet: { create: (s: any) => s },
-  } as any;
-});
-
 jest.mock('../../src/storage', () => ({ logCorrection: jest.fn() }));
 import { logCorrection } from '../../src/storage';
 
@@ -70,6 +59,14 @@ jest.mock('react-native-svg', () => {
 });
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
+}));
+jest.mock('../../src/context/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: { colors: { gradientStart: '#000000', gradientEnd: '#111111' } },
+    themeName: 'default',
+    setTheme: jest.fn(),
+    availableThemes: {},
+  }),
 }));
 jest.mock('../../src/components/PulsingCircle', () => () => null);
 

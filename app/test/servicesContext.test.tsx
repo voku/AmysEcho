@@ -1,13 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (props: any) => React.createElement('View', props, props.children),
-  };
-});
-
 import { ServicesContext, useServices } from '../src/context/ServicesContext';
 
 describe('ServicesContext', () => {

@@ -1,32 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (props: any) => React.createElement('View', props, props.children),
-    Text: (props: any) => React.createElement('Text', props, props.children),
-    Pressable: (props: any) => React.createElement('Pressable', props, props.children),
-    Button: (props: any) => React.createElement('Button', props, props.children),
-    FlatList: ({ data, renderItem, ListEmptyComponent, keyExtractor }: any) =>
-      React.createElement(
-        'FlatList',
-        null,
-        data && data.length
-          ? data.map((item: any, index: number) => {
-              const element = renderItem({ item, index });
-              const key = keyExtractor ? keyExtractor(item) : index;
-              return React.cloneElement(element, { key });
-            })
-          : ListEmptyComponent || null,
-      ),
-    StyleSheet: { create: () => ({}) },
-    Touchable: {
-      Mixin: {},
-    },
-  };
-});
-
 jest.mock('react-native-svg', () => {
   const React = require('react');
   return {

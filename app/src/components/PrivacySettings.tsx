@@ -1,38 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 
-const TEXT = {
-  savedTitle: 'Einstellungen gespeichert',
-  savedMessage: 'Deine Datenschutzeinstellungen wurden erfolgreich gespeichert.',
-  title: 'Datenschutz & Privatsphäre',
-  subtitle: 'Verwalte deine Daten und Privatsphäre',
-  dataCollection: 'Datensammlung',
-  gestureLogging: 'Gesten-Protokollierung',
-  essential: 'Erforderlich',
-  gestureLoggingDesc:
-    'Erforderlich für die Funktionalität der App - zeichnet Gesten für sofortiges Feedback auf',
-  analytics: 'Analyse-Funktionen',
-  analyticsDesc: 'Hilft uns, die App zu verbessern (optional)',
-  cloudBackup: 'Cloud-Sicherung',
-  cloudBackupDesc: 'Sichere deine Daten in der Cloud (optional)',
-  dataRetention: 'Datenaufbewahrung',
-  retentionPeriod: 'Aufbewahrungszeitraum',
-  retentionDesc: 'Wie lange Daten lokal gespeichert werden sollen',
-  days: 'Tage',
-  privacyNotice: 'Datenschutzhinweis',
-  privacyNoticeText:
-    'Deine Privatsphäre ist uns wichtig. Wir sammeln nur Daten, die für die Funktionalität der App erforderlich sind. Alle Daten werden lokal auf deinem Gerät gespeichert und niemals ohne deine ausdrückliche Zustimmung weitergegeben.',
-  saveSettings: 'Einstellungen speichern',
-};
-
 interface PrivacySettingsProps {
   onClose?: () => void;
+  backgroundColor?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function PrivacySettings(_: PrivacySettingsProps) {
+export default function PrivacySettings({ backgroundColor, style }: PrivacySettingsProps) {
   const { largeText, highContrast } = useAccessibility();
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const [gestureLoggingEnabled, setGestureLoggingEnabled] = useState(true); // Essential for app function
@@ -41,13 +28,19 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
 
   const handleSaveSettings = () => {
     // In real app, save to storage
-    Alert.alert(TEXT.savedTitle, TEXT.savedMessage);
+    Alert.alert(
+      'Einstellungen gespeichert',
+      'Deine Datenschutzeinstellungen wurden erfolgreich gespeichert.'
+    );
   };
+
+  const containerBackgroundColor =
+    backgroundColor ?? (highContrast ? COLORS.highContrastBackground : COLORS.backgroundStart);
 
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.backgroundStart,
+      backgroundColor: containerBackgroundColor,
     },
     header: {
       padding: SPACING.md,
@@ -228,21 +221,21 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{TEXT.title}</Text>
-        <Text style={styles.subtitle}>{TEXT.subtitle}</Text>
+        <Text style={styles.title}>Datenschutz & Privatsphäre</Text>
+        <Text style={styles.subtitle}>Verwalte deine Daten und Privatsphäre</Text>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{TEXT.dataCollection}</Text>
+          <Text style={styles.sectionTitle}>Datensammlung</Text>
 
           <View style={styles.settingItem}>
             <View style={styles.settingHeader}>
-              <Text style={styles.settingTitle}>{TEXT.gestureLogging}</Text>
+              <Text style={styles.settingTitle}>Gesten-Protokollierung</Text>
               <View style={styles.essentialBadge}>
-                <Text style={styles.essentialText}>{TEXT.essential}</Text>
+                <Text style={styles.essentialText}>Erforderlich</Text>
               </View>
               <View style={styles.toggleContainer}>
                 <Toggle
@@ -252,12 +245,14 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
                 />
               </View>
             </View>
-            <Text style={styles.settingDescription}>{TEXT.gestureLoggingDesc}</Text>
+            <Text style={styles.settingDescription}>
+              Erforderlich für die Funktionalität der App - zeichnet Gesten für sofortiges Feedback auf
+            </Text>
           </View>
 
           <View style={styles.settingItem}>
             <View style={styles.settingHeader}>
-              <Text style={styles.settingTitle}>{TEXT.analytics}</Text>
+              <Text style={styles.settingTitle}>Analyse-Funktionen</Text>
               <View style={styles.toggleContainer}>
                 <Toggle
                   value={analyticsEnabled}
@@ -265,12 +260,14 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
                 />
               </View>
             </View>
-            <Text style={styles.settingDescription}>{TEXT.analyticsDesc}</Text>
+            <Text style={styles.settingDescription}>
+              Hilft uns, die App zu verbessern (optional)
+            </Text>
           </View>
 
           <View style={styles.settingItem}>
             <View style={styles.settingHeader}>
-              <Text style={styles.settingTitle}>{TEXT.cloudBackup}</Text>
+              <Text style={styles.settingTitle}>Cloud-Sicherung</Text>
               <View style={styles.toggleContainer}>
                 <Toggle
                   value={cloudBackupEnabled}
@@ -278,17 +275,19 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
                 />
               </View>
             </View>
-            <Text style={styles.settingDescription}>{TEXT.cloudBackupDesc}</Text>
+            <Text style={styles.settingDescription}>
+              Sichere deine Daten in der Cloud (optional)
+            </Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{TEXT.dataRetention}</Text>
+          <Text style={styles.sectionTitle}>Datenaufbewahrung</Text>
 
           <View style={styles.settingItem}>
-            <Text style={styles.settingTitle}>{TEXT.retentionPeriod}</Text>
+            <Text style={styles.settingTitle}>Aufbewahrungszeitraum</Text>
             <Text style={styles.settingDescription}>
-              {TEXT.retentionDesc}
+              Wie lange Daten lokal gespeichert werden sollen
             </Text>
 
             <View style={styles.retentionContainer}>
@@ -304,11 +303,13 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
                     accessibilityRole="button"
                     accessibilityState={{ selected: dataRetentionDays === days }}
                   >
-                    <Text style={[
-                      styles.retentionText,
-                      dataRetentionDays === days && styles.retentionTextSelected,
-                    ]}>
-                      {days} {TEXT.days}
+                    <Text
+                      style={[
+                        styles.retentionText,
+                        dataRetentionDays === days && styles.retentionTextSelected,
+                      ]}
+                    >
+                      {days} Tage
                     </Text>
                   </Pressable>
                 ))}
@@ -318,17 +319,20 @@ export default function PrivacySettings(_: PrivacySettingsProps) {
         </View>
 
         <View style={styles.privacyNotice}>
-          <Text style={styles.privacyTitle}>{TEXT.privacyNotice}</Text>
-          <Text style={styles.privacyText}>{TEXT.privacyNoticeText}</Text>
+          <Text style={styles.privacyTitle}>Datenschutzhinweis</Text>
+          <Text style={styles.privacyText}>
+            Deine Privatsphäre ist uns wichtig. Wir sammeln nur Daten, die für die Funktionalität der App erforderlich sind.
+            Alle Daten werden lokal auf deinem Gerät gespeichert und niemals ohne deine ausdrückliche Zustimmung weitergegeben.
+          </Text>
         </View>
 
         <Pressable
           style={styles.saveButton}
           onPress={handleSaveSettings}
           accessibilityRole="button"
-          accessibilityLabel={TEXT.saveSettings}
+          accessibilityLabel="Einstellungen speichern"
         >
-          <Text style={styles.saveButtonText}>{TEXT.saveSettings}</Text>
+          <Text style={styles.saveButtonText}>Einstellungen speichern</Text>
         </Pressable>
       </ScrollView>
     </View>
