@@ -4,19 +4,6 @@ import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-const TEXT = {
-  title: 'Deine Erfolge heute',
-  subtitle: 'Das hast du toll gemacht!',
-  total: 'Gesamt',
-  unique: 'Verschiedene',
-  today: 'Heute',
-  mostUsed: 'Am häufigsten verwendet',
-  allGestures: 'Alle Gesten',
-  used: 'Verwendet',
-  times: 'Mal',
-  noData: 'Noch keine Gesten aufgezeichnet',
-};
-
 interface SuccessItem {
   gesture: string;
   count: number;
@@ -212,28 +199,28 @@ export default function DailySuccessSummary(_props: DailySuccessSummaryProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{TEXT.title}</Text>
-        <Text style={styles.subtitle}>{TEXT.subtitle}</Text>
+        <Text style={styles.title}>Deine Erfolge heute</Text>
+        <Text style={styles.subtitle}>Das hast du toll gemacht!</Text>
       </View>
 
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{totalGestures}</Text>
-          <Text style={styles.statLabel}>{TEXT.total}</Text>
+          <Text style={styles.statLabel}>Gesamt</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{successData.length}</Text>
-          <Text style={styles.statLabel}>{TEXT.unique}</Text>
+          <Text style={styles.statLabel}>Verschiedene</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{recentGestures.length}</Text>
-          <Text style={styles.statLabel}>{TEXT.today}</Text>
+          <Text style={styles.statLabel}>Heute</Text>
         </View>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{TEXT.mostUsed}</Text>
+          <Text style={styles.sectionTitle}>Am häufigsten verwendet</Text>
           <View style={styles.gestureItem}>
             <View style={styles.gestureIcon}>
               {getGestureIcon(mostUsedGesture.icon, 32)}
@@ -241,14 +228,14 @@ export default function DailySuccessSummary(_props: DailySuccessSummaryProps) {
             <View style={styles.gestureInfo}>
               <Text style={styles.gestureName}>{mostUsedGesture.gesture}</Text>
               <Text style={styles.gestureStats}>
-                {TEXT.used} <Text style={styles.gestureCount}>{mostUsedGesture.count}</Text> {TEXT.times}
+                Verwendet <Text style={styles.gestureCount}>{mostUsedGesture.count}</Text> Mal
               </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{TEXT.allGestures}</Text>
+          <Text style={styles.sectionTitle}>Alle Gesten</Text>
           {successData.length > 0 ? (
             successData.map((item) => (
               <View key={item.gesture} style={styles.gestureItem}>
@@ -258,13 +245,13 @@ export default function DailySuccessSummary(_props: DailySuccessSummaryProps) {
                 <View style={styles.gestureInfo}>
                   <Text style={styles.gestureName}>{item.gesture}</Text>
                   <Text style={styles.gestureStats}>
-                    {TEXT.used} <Text style={styles.gestureCount}>{item.count}</Text> {TEXT.times}
+                    Verwendet <Text style={styles.gestureCount}>{item.count}</Text> Mal
                   </Text>
                 </View>
               </View>
             ))
           ) : (
-            <Text style={styles.emptyState}>{TEXT.noData}</Text>
+            <Text style={styles.emptyState}>Noch keine Gesten aufgezeichnet</Text>
           )}
         </View>
       </ScrollView>

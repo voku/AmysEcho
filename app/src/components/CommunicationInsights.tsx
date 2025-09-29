@@ -5,25 +5,6 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 
-const TEXT = {
-  loadingTitle: 'Erkenntnisse werden geladen…',
-  mostActiveTime: 'Du bist morgens am aktivsten mit Gesten',
-  confidence: 'Sicherheit',
-  favoriteGesture: "Deine Lieblingsgeste ist 'Hallo'",
-  times: 'Mal',
-  consistentDays: 'Du bist an 5 von 7 Tagen aktiv',
-  daysInRow: 'Tage in Folge',
-  weeklyTrend: 'Wöchentlicher Trend',
-  improving: 'wird besser',
-  stable: 'bleibt stabil',
-  title: 'Kommunikationsmuster',
-  subtitle: 'Erkenntnisse aus deiner Kommunikation',
-  weeklyOverview: 'Wöchentliche Übersicht',
-  gesturesPerDay: 'Gesten pro Tag',
-  patterns: 'Zeitliche Muster',
-  keyInsights: 'Wichtige Erkenntnisse',
-};
-
 interface PatternData {
   timeOfDay: string;
   gesture: string;
@@ -288,7 +269,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
   if (isLoading || !insightData) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>{TEXT.loadingTitle}</Text>
+        <Text style={styles.title}>Erkenntnisse werden geladen…</Text>
       </View>
     );
   }
@@ -299,27 +280,27 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     {
       icon: '📈',
       text: insightData.peakPerformanceTimes.length > 0
-        ? `${TEXT.mostActiveTime}: ${insightData.peakPerformanceTimes[0].timeOfDay} (${Math.round(insightData.peakPerformanceTimes[0].averageConfidence * 100)}% ${TEXT.confidence})`
-        : TEXT.mostActiveTime,
+        ? `Du bist morgens am aktivsten mit Gesten: ${insightData.peakPerformanceTimes[0].timeOfDay} (${Math.round(insightData.peakPerformanceTimes[0].averageConfidence * 100)}% Sicherheit)`
+        : 'Du bist morgens am aktivsten mit Gesten',
     },
     {
       icon: '🎯',
       text: insightData.topGestures.length > 0
-        ? `${TEXT.favoriteGesture}: ${insightData.topGestures[0].gesture} (${insightData.topGestures[0].frequency} ${TEXT.times})`
-        : TEXT.favoriteGesture,
+        ? `Deine Lieblingsgeste ist 'Hallo': ${insightData.topGestures[0].gesture} (${insightData.topGestures[0].frequency} Mal)`
+        : "Deine Lieblingsgeste ist 'Hallo'",
     },
     {
       icon: '📅',
       text: insightData.communicationStreaks.length > 0
-        ? `${TEXT.consistentDays}: ${insightData.communicationStreaks[0].gesture} (${insightData.communicationStreaks[0].currentStreak} ${TEXT.daysInRow})`
-        : TEXT.consistentDays,
+        ? `Du bist an 5 von 7 Tagen aktiv: ${insightData.communicationStreaks[0].gesture} (${insightData.communicationStreaks[0].currentStreak} Tage in Folge)`
+        : 'Du bist an 5 von 7 Tagen aktiv',
     },
     {
       icon: insightData.weeklyProgress.improvementTrend === 'improving' ? '💪' : '🎉',
-      text: `${TEXT.weeklyTrend}: ${
+      text: `Wöchentlicher Trend: ${
         insightData.weeklyProgress.improvementTrend === 'improving'
-          ? TEXT.improving
-          : TEXT.stable
+          ? 'wird besser'
+          : 'bleibt stabil'
       }`,
     },
   ];
@@ -337,7 +318,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>{TEXT.title}</Text>
+          <Text style={styles.title}>Kommunikationsmuster</Text>
           <Text style={styles.subtitle}>Lade Daten...</Text>
         </View>
         <View style={styles.content}>
@@ -351,7 +332,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>{TEXT.title}</Text>
+          <Text style={styles.title}>Kommunikationsmuster</Text>
           <Text style={styles.subtitle}>Keine Daten verfügbar</Text>
         </View>
       </View>
@@ -380,21 +361,21 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{TEXT.title}</Text>
-        <Text style={styles.subtitle}>{TEXT.subtitle}</Text>
+        <Text style={styles.title}>Kommunikationsmuster</Text>
+        <Text style={styles.subtitle}>Erkenntnisse aus deiner Kommunikation</Text>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{TEXT.weeklyOverview}</Text>
+          <Text style={styles.sectionTitle}>Wöchentliche Übersicht</Text>
           <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>{TEXT.gesturesPerDay}</Text>
+            <Text style={styles.chartTitle}>Gesten pro Tag</Text>
             <SimpleBarChart data={weeklyData} />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{TEXT.patterns}</Text>
+          <Text style={styles.sectionTitle}>Zeitliche Muster</Text>
           {patterns.map((pattern) => (
             <View key={`${pattern.timeOfDay}-${pattern.gesture}`} style={styles.patternItem}>
               <View style={styles.patternInfo}>
@@ -402,7 +383,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
                 <Text style={styles.patternGesture}>{pattern.gesture}</Text>
                 <View style={styles.patternStats}>
                   <Text style={styles.patternFrequency}>
-                    {pattern.frequency} {TEXT.times}
+                    {pattern.frequency} Mal
                   </Text>
                   <View style={styles.trendContainer}>
                     <TrendIndicator trend={pattern.trend} />
@@ -414,7 +395,7 @@ export default function CommunicationInsights({ onClose }: CommunicationInsights
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{TEXT.keyInsights}</Text>
+          <Text style={styles.sectionTitle}>Wichtige Erkenntnisse</Text>
           <View style={styles.insightsList}>
             {allInsights.map((insight: { icon: string; text: string }, index: number) => (
               <View key={index} style={styles.insightItem}>
