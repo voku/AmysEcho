@@ -8,10 +8,6 @@ jest.mock('../src/model', () => ({
   gestureModel: { gestures: [{ id: 'g1', label: 'Hallo' }] },
 }));
 
-jest.mock('react-native', () => ({
-  Alert: { alert: jest.fn() },
-}));
-
 jest.mock('../src/services/practiceRecommender', () => ({
   getPracticeRecommendation: jest.fn(),
 }));

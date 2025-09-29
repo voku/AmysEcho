@@ -1,16 +1,5 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (props: any) => React.createElement('View', props, props.children),
-    StyleSheet: {
-      create: (styles: any) => styles,
-      flatten: (styles: any) => styles,
-    },
-  };
-});
-
 import CommunicationInsightsScreen from '../../src/screens/CommunicationInsightsScreen';
 
 // Mock navigation

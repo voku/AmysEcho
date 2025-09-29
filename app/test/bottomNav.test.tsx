@@ -1,28 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  const { Fragment } = React;
-  return {
-    View: (props: any) => React.createElement('View', props, props.children),
-    Pressable: (props: any) => React.createElement('Pressable', props, props.children),
-    Text: (props: any) => React.createElement('Text', props, props.children),
-    FlatList: ({ data = [], renderItem, ListEmptyComponent, keyExtractor }: any) => {
-      const items = (data as any[]).map((item, index) => {
-        const rendered = renderItem({ item, index });
-        const key = keyExtractor ? keyExtractor(item, index) : index;
-        return React.createElement(Fragment, { key }, rendered);
-      });
-      if (items.length === 0 && ListEmptyComponent) {
-        return React.createElement('FlatList', null, React.createElement(Fragment, { key: 'empty' }, ListEmptyComponent));
-      }
-      return React.createElement('FlatList', null, ...items);
-    },
-    StyleSheet: { create: (styles: any) => styles },
-  };
-});
-
 let mockHighContrast = false;
 
 const mockNavigate = jest.fn();

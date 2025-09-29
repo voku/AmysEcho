@@ -63,8 +63,7 @@ try {
 
 // Provide a default Dimensions mock for React Native components in tests
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const rn: any = require('react-native');
+  const rn: any = jest.requireActual('react-native');
   if (!rn.Dimensions) {
     rn.Dimensions = {
       get: jest.fn(() => ({ width: 375, height: 812, scale: 2 })),
@@ -77,6 +76,114 @@ try {
     rn.Dimensions.removeEventListener = jest.fn();
   }
 } catch {}
+
+jest.mock('react-native', () => {
+  const React = require('react');
+  const actual = jest.requireActual('react-native');
+  const { Platform, NativeModules, NativeEventEmitter, DeviceEventEmitter, PixelRatio, Appearance } = actual;
+
+  const createHostComponent = (name: string) =>
+    ({ children, ...props }: any) => React.createElement(name, props, children);
+
+  const flatten = (style: any): any => {
+    if (!style) {
+      return {};
+    }
+    if (!Array.isArray(style)) {
+      return style;
+    }
+    return style.reduce((acc: Record<string, any>, item: any) => {
+      if (!item) {
+        return acc;
+      }
+      const value = flatten(item);
+      return { ...acc, ...value };
+    }, {});
+  };
+
+  const cloneChild = (child: any, key: string | number) => {
+    if (React.isValidElement(child)) {
+      return React.cloneElement(child, { key: child.key ?? key });
+    }
+    return child;
+  };
+
+  return {
+    Platform,
+    NativeModules,
+    NativeEventEmitter,
+    DeviceEventEmitter,
+    PixelRatio,
+    Appearance,
+    View: createHostComponent('View'),
+    Text: createHostComponent('Text'),
+    Image: createHostComponent('Image'),
+    Pressable: createHostComponent('Pressable'),
+    Button: createHostComponent('Button'),
+    TextInput: createHostComponent('TextInput'),
+    SafeAreaView: createHostComponent('SafeAreaView'),
+    ScrollView: createHostComponent('ScrollView'),
+    ActivityIndicator: createHostComponent('ActivityIndicator'),
+    Switch: ({ children, ...props }: any) =>
+      React.createElement('Switch', props, children),
+    FlatList: ({
+      data,
+      renderItem,
+      ListEmptyComponent,
+      keyExtractor,
+      children,
+      ...props
+    }: any) => {
+      const items = Array.isArray(data) ? data : [];
+      const rendered =
+        items.length && typeof renderItem === 'function'
+          ? items.map((item, index) =>
+              cloneChild(
+                renderItem({ item, index }),
+                keyExtractor ? keyExtractor(item, index) : index,
+              ),
+            )
+          : typeof ListEmptyComponent === 'function'
+            ? ListEmptyComponent()
+            : ListEmptyComponent ?? null;
+      return React.createElement('FlatList', props, rendered ?? children ?? null);
+    },
+    Animated: {
+      View: createHostComponent('Animated.View'),
+      Value: function (initialValue?: any) {
+        return {
+          _value: initialValue ?? 0,
+          setValue: jest.fn(),
+          interpolate: jest.fn(() => 1),
+        };
+      },
+      timing: () => ({ start: jest.fn(), stop: jest.fn() }),
+      spring: () => ({ start: jest.fn(), stop: jest.fn() }),
+      delay: () => ({ start: jest.fn(), stop: jest.fn() }),
+      sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
+    },
+    Easing: { ease: {} },
+    Alert: { alert: jest.fn() },
+    AppState: {
+      currentState: 'active',
+      addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+      removeEventListener: jest.fn(),
+    },
+    Touchable: { Mixin: {} },
+    Dimensions: {
+      get: jest.fn(() => ({ width: 375, height: 812, scale: 2 })),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    },
+    StyleSheet: {
+      ...actual.StyleSheet,
+      create: (styles: any) => styles,
+      flatten,
+      absoluteFill: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+      absoluteFillObject: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+    },
+  };
+});
 
 
 jest.mock('expo-secure-store', () => ({

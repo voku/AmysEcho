@@ -1,20 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    Text: (p: any) => React.createElement('Text', p, p.children),
-    SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
-    ScrollView: (p: any) => React.createElement('ScrollView', p, p.children),
-    StyleSheet: {
-      create: (s: any) => s,
-      flatten: (style: any) => style,
-    },
-  } as any;
-});
-
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),

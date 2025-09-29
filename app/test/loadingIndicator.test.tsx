@@ -1,13 +1,3 @@
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (props: any) => React.createElement('View', props, props.children),
-    Text: (props: any) => React.createElement('Text', props, props.children),
-    ActivityIndicator: (props: any) => React.createElement('ActivityIndicator', props, props.children),
-    StyleSheet: { create: (styles: any) => styles },
-  };
-});
-
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import LoadingIndicator from '../src/components/LoadingIndicator';

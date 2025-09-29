@@ -1,22 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (p: any) => React.createElement('View', p, p.children),
-    Text: (p: any) => React.createElement('Text', p, p.children),
-    Button: (p: any) => React.createElement('Button', p, p.children),
-    SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
-    Pressable: (p: any) => React.createElement('Pressable', p, p.children),
-    StyleSheet: {
-      create: (s: any) => s,
-      flatten: (style: any) => style,
-    },
-    ScrollView: (p: any) => React.createElement('ScrollView', p, p.children),
-  } as any;
-});
-
 import TeachScreen from '../../src/screens/TeachScreen';
 
 jest.mock('../../src/services/feedbackService', () => ({

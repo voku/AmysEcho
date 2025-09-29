@@ -1,20 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (props: any) => React.createElement('View', props, props.children),
-    Text: (props: any) => React.createElement('Text', props, props.children),
-    Pressable: ({ onPress, children, ...rest }: any) =>
-      React.createElement('Pressable', { ...rest, onPress }, children),
-    StyleSheet: {
-      create: (s: any) => s,
-      flatten: (style: any) => style,
-    },
-  } as any;
-});
-
 jest.mock('../../src/services/contextAwareRecognitionService', () => ({
   contextAwareRecognitionService: {
     setLocation: jest.fn(),

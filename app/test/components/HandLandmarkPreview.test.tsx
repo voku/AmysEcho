@@ -2,18 +2,6 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { HandLandmarkPreview } from '../../src/components/HandLandmarkPreview';
 
-jest.mock('react-native', () => {
-  const React = require('react');
-  return {
-    View: (props: any) => React.createElement('View', props, props.children),
-    Text: (props: any) => React.createElement('Text', props, props.children),
-    StyleSheet: {
-      create: (styles: any) => styles,
-      flatten: (styles: any) => styles,
-    },
-  };
-});
-
 jest.mock('react-native-svg', () => {
   const React = require('react');
   const createElement = (name: string) => (props: any) =>
