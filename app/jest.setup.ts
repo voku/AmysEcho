@@ -108,6 +108,16 @@ jest.mock('react-native', () => {
     return child;
   };
 
+  const createAnimation = () => ({
+    start: jest.fn((callback?: (result: { finished: boolean }) => void) => {
+      callback?.({ finished: true });
+    }),
+    stop: jest.fn(),
+    reset: jest.fn(),
+  });
+
+  const createAnimationFactory = () => (..._args: any[]) => createAnimation();
+
   return {
     Platform,
     NativeModules,
@@ -157,10 +167,12 @@ jest.mock('react-native', () => {
           interpolate: jest.fn(() => 1),
         };
       },
-      timing: () => ({ start: jest.fn(), stop: jest.fn() }),
-      spring: () => ({ start: jest.fn(), stop: jest.fn() }),
-      delay: () => ({ start: jest.fn(), stop: jest.fn() }),
-      sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
+      timing: createAnimationFactory(),
+      spring: createAnimationFactory(),
+      delay: createAnimationFactory(),
+      sequence: createAnimationFactory(),
+      parallel: createAnimationFactory(),
+      stagger: createAnimationFactory(),
     },
     Easing: { ease: {} },
     Alert: { alert: jest.fn() },
