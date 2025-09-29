@@ -8,7 +8,11 @@ jest.mock('react-native', () => {
     Text: (p: any) => React.createElement('Text', p, p.children),
     Pressable: (p: any) => React.createElement('Pressable', p, p.children),
     Switch: (p: any) => React.createElement('Switch', p, null),
-    StyleSheet: { create: (s: any) => s },
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
+    ScrollView: (p: any) => React.createElement('ScrollView', p, p.children),
   } as any;
 });
 

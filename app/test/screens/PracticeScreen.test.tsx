@@ -14,13 +14,17 @@ jest.mock('react-native', () => {
         data && data.length ? data.map((item: any, index: number) => renderItem({ item, index })) : ListEmptyComponent || null,
       ),
     SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
+    ScrollView: (p: any) => React.createElement('ScrollView', p, p.children),
     Animated: {
       Value: jest.fn().mockImplementation((initialValue: any) => ({ _value: initialValue })),
       timing: () => ({ start: jest.fn() }),
       spring: () => ({ start: jest.fn() }),
       View: (p: any) => React.createElement('Animated.View', p, p.children),
     },
-    StyleSheet: { create: (s: any) => s },
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
   } as any;
 });
 

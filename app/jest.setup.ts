@@ -83,6 +83,15 @@ jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => {}),
 }));
+jest.mock('./src/context/ThemeContext', () => ({
+  ThemeProvider: ({ children }: { children: any }) => children,
+  useTheme: () => ({
+    theme: { colors: { gradientStart: '#000000', gradientEnd: '#111111' } },
+    themeName: 'default',
+    setTheme: jest.fn(),
+    availableThemes: {},
+  }),
+}));
 jest.mock('expo-linear-gradient', () => {
   const React = require('react');
   const { View } = require('react-native');

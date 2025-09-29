@@ -7,7 +7,10 @@ jest.mock('react-native', () => {
     View: (p: any) => React.createElement('View', p, p.children),
     Text: (p: any) => React.createElement('Text', p, p.children),
     Pressable: (p: any) => React.createElement('Pressable', p, p.children),
-    StyleSheet: { create: (s: any) => s },
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
     Alert: { alert: jest.fn() },
     Switch: (p: any) => React.createElement('Switch', p),
     FlatList: ({ data, renderItem, ListEmptyComponent, keyExtractor }: any) =>
@@ -27,6 +30,15 @@ jest.mock('react-native', () => {
 
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false, update: jest.fn() }),
+}));
+
+jest.mock('../../src/context/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: { colors: { gradientStart: '#000000', gradientEnd: '#111111' } },
+    themeName: 'default',
+    setTheme: jest.fn(),
+    availableThemes: {},
+  }),
 }));
 
 jest.mock('../../src/services/feedbackService', () => ({

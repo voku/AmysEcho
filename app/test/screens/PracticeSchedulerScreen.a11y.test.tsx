@@ -21,12 +21,25 @@ jest.mock('react-native', () => {
             })
           : ListEmptyComponent || null,
       ),
-    StyleSheet: { create: (s: any) => s },
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
+    ScrollView: (p: any) => React.createElement('ScrollView', p, p.children),
   } as any;
 });
 
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
+}));
+
+jest.mock('../../src/context/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: { colors: { gradientStart: '#000000', gradientEnd: '#111111' } },
+    themeName: 'default',
+    setTheme: jest.fn(),
+    availableThemes: {},
+  }),
 }));
 
 jest.mock('../../src/services/feedbackService', () => ({

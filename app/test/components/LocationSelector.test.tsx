@@ -8,7 +8,10 @@ jest.mock('react-native', () => {
     Text: (props: any) => React.createElement('Text', props, props.children),
     Pressable: ({ onPress, children, ...rest }: any) =>
       React.createElement('Pressable', { ...rest, onPress }, children),
-    StyleSheet: { create: (s: any) => s },
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
   } as any;
 });
 

@@ -18,7 +18,10 @@ jest.mock('react-native', () => {
     Button: (p: any) => React.createElement('Button', p, p.children),
     TextInput: (p: any) => React.createElement('TextInput', p, p.children),
     SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
-    StyleSheet: { create: (s: any) => s },
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
     Alert: { alert: jest.fn() },
     Animated: animated,
     Easing: { ease: {} },
@@ -28,6 +31,14 @@ jest.mock('react-native', () => {
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
+}));
+jest.mock('../../src/context/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: { colors: { gradientStart: '#000000', gradientEnd: '#111111' } },
+    themeName: 'default',
+    setTheme: jest.fn(),
+    availableThemes: {},
+  }),
 }));
 jest.mock('../../src/context/MessageContext', () => ({
   useMessage: () => ({ setMessage: jest.fn() }),

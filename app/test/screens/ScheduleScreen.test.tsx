@@ -5,7 +5,11 @@ jest.mock('react-native', () => {
   const React = require('react');
   return {
     View: (p: any) => React.createElement('View', p, p.children),
-    StyleSheet: { create: (s: any) => s },
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
+    ScrollView: (p: any) => React.createElement('ScrollView', p, p.children),
   } as any;
 });
 

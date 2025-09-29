@@ -10,7 +10,11 @@ jest.mock('react-native', () => {
     Button: (p: any) => React.createElement('Button', p, p.children),
     TextInput: (p: any) => React.createElement('TextInput', p, p.children),
     SafeAreaView: (p: any) => React.createElement('SafeAreaView', p, p.children),
-    StyleSheet: { create: (s: any) => s },
+    ScrollView: (p: any) => React.createElement('ScrollView', p, p.children),
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
   } as any;
 });
 

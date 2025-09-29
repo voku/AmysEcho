@@ -15,7 +15,10 @@ jest.mock('react-native', () => {
       sequence: () => ({ start: jest.fn(), stop: jest.fn() }),
       View: (p: any) => React.createElement('Animated.View', p, p.children),
     },
-    StyleSheet: { create: (s: any) => s },
+    StyleSheet: {
+      create: (s: any) => s,
+      flatten: (style: any) => style,
+    },
     Text: (p: any) => React.createElement('Text', p, p.children),
   } as any;
 });
