@@ -309,6 +309,9 @@ export default function RecognitionScreen({
     const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
     const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
 
+    setCurrentLandmarks(stabilized.landmarks);
+    setCurrentHandedness(stabilized.handedness);
+
     // Skip processing if no hands detected
     if (stabilized.landmarks.length === 0) {
       setStatus('Ich höre zu…');
@@ -320,9 +323,6 @@ export default function RecognitionScreen({
       setStatus('none');
       return;
     }
-
-    setCurrentLandmarks(stabilized.landmarks);
-    setCurrentHandedness(stabilized.handedness);
 
     let g = gesture;
     let c = confidence;
