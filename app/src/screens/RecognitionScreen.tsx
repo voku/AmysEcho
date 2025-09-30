@@ -84,7 +84,6 @@ import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
 import { getShortcutMessage, getShortcutAction, getShortcutDisplayName } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
-import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import HandLandmarkPreview from '../components/HandLandmarkPreview';
 import {
   cloneLandmarks,
