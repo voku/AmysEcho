@@ -219,12 +219,12 @@ export class PerformanceOptimizationService {
     }
 
     // Process medium priority messages
-    if (mediumPriority.length > 0 && !this.isInLowPowerMode()) {
+    if (mediumPriority.length > 0) {
       this.sendMessagesToWebViews(mediumPriority);
     }
 
-    // Process low priority messages only when not in low power mode
-    if (lowPriority.length > 0 && !this.isInLowPowerMode()) {
+    // Process low priority messages
+    if (lowPriority.length > 0) {
       this.sendMessagesToWebViews(lowPriority);
     }
 
