@@ -5,7 +5,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface PerformanceMetrics {
   memoryUsage: number;
   cpuUsage: number;
-  batteryLevel: number;
   frameRate: number;
   webviewMessageCount: number;
   gestureProcessingTime: number;
@@ -37,7 +36,6 @@ export class PerformanceOptimizationService {
     this.metrics = {
       memoryUsage: 0,
       cpuUsage: 0,
-      batteryLevel: 100,
       frameRate: 30,
       webviewMessageCount: 0,
       gestureProcessingTime: 0,
