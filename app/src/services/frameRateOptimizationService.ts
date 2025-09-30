@@ -1,6 +1,5 @@
 import { logger } from '../utils/logger';
 import { performanceOptimizationService } from './performanceOptimizationService';
-import { batteryOptimizationService } from './batteryOptimizationService';
 
 // Frame rate optimization service
 export class FrameRateOptimizationService {
@@ -73,10 +72,8 @@ export class FrameRateOptimizationService {
 
     const avgProcessingTime = this.getAverageProcessingTime();
     const avgComplexity = this.getAverageComplexity();
-    const batteryParams = batteryOptimizationService.getBatteryOptimizedParams();
-
-    // Base frame rate on battery status
-    let newTargetFrameRate = batteryParams.frameRate;
+    // Base frame rate on default performance target
+    let newTargetFrameRate = 30;
 
     // Adjust based on processing time
     if (avgProcessingTime > 0) {

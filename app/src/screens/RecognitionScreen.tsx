@@ -59,7 +59,6 @@ import { RecognitionPath } from '../utils/recognitionState';
 import { recordAmyActivity } from '../services/dailyJobs';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 import { performanceOptimizationService } from '../services/performanceOptimizationService';
-import { batteryOptimizationService } from '../services/batteryOptimizationService';
 import { frameRateOptimizationService } from '../services/frameRateOptimizationService';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
@@ -605,24 +604,10 @@ export default function RecognitionScreen({
     // Monitor performance every 5 seconds
     const performanceInterval = setInterval(updatePerformanceMetrics, 5000);
 
-    // Monitor battery status and show warnings when needed
-    const handlePowerModeChange = (isLowPower: boolean) => {
-      if (isLowPower) {
-        setStatus('🔋 Akku ist schwach. Ich passe mich an, um Energie zu sparen.');
-      } else {
-        setStatus('🔋 Akku ist wieder gut geladen!');
-      }
-    };
-
-    // Register battery monitoring callback
-    batteryOptimizationService.onPowerModeChange(handlePowerModeChange);
-
     return () => {
       clearInterval(performanceInterval);
-      batteryOptimizationService.removePowerModeChangeCallback(handlePowerModeChange);
       // Cleanup services on unmount
       performanceOptimizationService.cleanup();
-      batteryOptimizationService.cleanup();
       backgroundPrefetchService.cleanup();
     };
   }, []);

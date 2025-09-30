@@ -56,12 +56,6 @@ jest.mock('../src/services/performanceOptimizationService', () => ({
   },
 }));
 
-jest.mock('../src/services/batteryOptimizationService', () => ({
-  batteryOptimizationService: {
-    getBatteryOptimizedParams: jest.fn(() => ({})),
-  },
-}));
-
 jest.mock('../src/services/frameRateOptimizationService', () => ({
   frameRateOptimizationService: {
     getFrameRateStats: jest.fn(() => ({})),
