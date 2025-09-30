@@ -50,7 +50,6 @@ jest.mock('../src/services/performanceOptimizationService', () => ({
     getOptimizedProcessingParams: jest.fn(() => ({ compressionEnabled: false })),
     compressLandmarks: jest.fn(),
     addWebViewMessage: jest.fn(),
-    isInLowPowerMode: jest.fn(() => false),
     registerWebView: jest.fn(),
     unregisterWebView: jest.fn(),
   },

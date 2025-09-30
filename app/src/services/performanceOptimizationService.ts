@@ -186,7 +186,7 @@ export class PerformanceOptimizationService {
 
     this.metrics.webviewMessageCount++;
 
-    // Process critical messages immediately, or emergency gestures in low power mode
+    // Process critical messages and emergency gestures immediately
     if (priority === 'critical' || isEmergencyGesture) {
       this.processMessageBatch();
     } else if (priority === 'high') {
@@ -377,11 +377,6 @@ export class PerformanceOptimizationService {
     return { ...this.metrics };
   }
 
-  // Check if in low power mode
-  public isInLowPowerMode(): boolean {
-    return false;
-  }
-
   // Adaptive frame rate based on performance
   public getAdaptiveFrameRate(): number {
     // Adjust based on CPU usage (placeholder logic)
@@ -416,7 +411,7 @@ export class PerformanceOptimizationService {
       lastValid = current;
     }
 
-    // Quantize to reduce precision (adaptive based on low power mode)
+    // Quantize to reduce precision
     const precision = 100;
     const compressed = deltas.map(delta => Math.round(delta * precision) / precision);
 
