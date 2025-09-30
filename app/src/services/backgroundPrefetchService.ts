@@ -94,11 +94,6 @@ export class BackgroundPrefetchService {
 
   // Check if prefetching should be performed
   private shouldPrefetch(): boolean {
-    // Don't prefetch if battery is low
-    if (performanceOptimizationService.isInLowPowerMode()) {
-      return false;
-    }
-
     // Don't prefetch if memory usage is high
     const metrics = performanceOptimizationService.getMetrics();
     if (metrics.memoryUsage > 80) {

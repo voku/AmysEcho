@@ -1,22 +1,14 @@
 import { logger } from '../utils/logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { batteryOptimizationService } from './batteryOptimizationService';
 
 // Performance monitoring interfaces
 export interface PerformanceMetrics {
   memoryUsage: number;
   cpuUsage: number;
-  batteryLevel: number;
   frameRate: number;
   webviewMessageCount: number;
   gestureProcessingTime: number;
   lastUpdated: number;
-}
-
-export interface BatteryInfo {
-  level: number;
-  isLowPowerMode: boolean;
-  isCharging: boolean;
 }
 
 export interface MemoryInfo {
@@ -38,15 +30,12 @@ export class PerformanceOptimizationService {
   private messageBatch: WebViewMessageBatch;
   private batchTimer: ReturnType<typeof setInterval> | null = null;
   private memoryCleanupTimer: ReturnType<typeof setInterval> | null = null;
-  private batteryCheckTimer: ReturnType<typeof setInterval> | null = null;
-  private isLowPowerMode = false;
   private webviewRefs: Set<any> = new Set();
 
   private constructor() {
     this.metrics = {
       memoryUsage: 0,
       cpuUsage: 0,
-      batteryLevel: 100,
       frameRate: 30,
       webviewMessageCount: 0,
       gestureProcessingTime: 0,
@@ -60,26 +49,6 @@ export class PerformanceOptimizationService {
     };
 
     this.initializePerformanceMonitoring();
-    this.registerBatteryCallback();
-  }
-
-  // Register callback for battery optimization service to avoid circular dependency
-  private registerBatteryCallback(): void {
-    if (typeof window !== 'undefined') {
-      (window as any).performanceOptimizationCallback = (data: any) => {
-        if (data.action === 'enableBatteryOptimizations') {
-          this.updateMetrics({
-            frameRate: data.frameRate,
-            batteryLevel: data.batteryLevel,
-          });
-        } else if (data.action === 'disableBatteryOptimizations') {
-          this.updateMetrics({
-            frameRate: data.frameRate,
-            batteryLevel: data.batteryLevel,
-          });
-        }
-      };
-    }
   }
 
   public static getInstance(): PerformanceOptimizationService {
@@ -95,11 +64,6 @@ export class PerformanceOptimizationService {
     this.memoryCleanupTimer = setInterval(() => {
       this.performMemoryCleanup();
     }, 30000);
-
-    // Start battery monitoring (every 60 seconds)
-    this.batteryCheckTimer = setInterval(() => {
-      this.checkBatteryStatus();
-    }, 60000);
 
     // Start message batch processing (every 100ms)
     this.batchTimer = setInterval(() => {
@@ -205,60 +169,6 @@ export class PerformanceOptimizationService {
     };
   }
 
-  // Battery status monitoring
-  private async checkBatteryStatus(): Promise<void> {
-    try {
-      const batteryInfo = batteryOptimizationService.getBatteryStatus();
-
-      this.metrics.batteryLevel = batteryInfo.level;
-      this.isLowPowerMode = batteryInfo.isLowPowerMode;
-
-      // Adjust performance based on battery level
-      if (this.isLowPowerMode) {
-        this.enableLowPowerMode();
-      } else {
-        this.disableLowPowerMode();
-      }
-    } catch (error) {
-      logger.warn('Failed to check battery status', error);
-    }
-  }
-
-  // Enable low power mode optimizations
-  private enableLowPowerMode(): void {
-    // Get battery-optimized parameters (no emergency bypass for general optimizations)
-    const batteryParams = batteryOptimizationService.getBatteryOptimizedParams(false);
-
-    // Apply battery optimizations
-    this.metrics.frameRate = batteryParams.frameRate;
-
-    // Adjust batch processing based on battery level
-    if (this.batchTimer) {
-      clearInterval(this.batchTimer);
-      // Increase batch interval in low power mode
-      this.batchTimer = setInterval(() => {
-        this.processMessageBatch();
-      }, batteryParams.telemetryInterval / 10); // Process batches more frequently than telemetry
-    }
-
-    logger.info('Low power mode enabled with battery optimizations', batteryParams);
-  }
-
-  // Disable low power mode
-  private disableLowPowerMode(): void {
-    // Restore normal parameters
-    this.metrics.frameRate = 30;
-
-    // Restore normal batch processing
-    if (this.batchTimer) {
-      clearInterval(this.batchTimer);
-      this.batchTimer = setInterval(() => {
-        this.processMessageBatch();
-      }, 100); // Normal 100ms interval
-    }
-
-    logger.info('Low power mode disabled');
-  }
 
   // WebView message batching
   public addWebViewMessage(message: any, priority: 'low' | 'medium' | 'high' | 'critical' = 'medium'): void {
@@ -274,8 +184,8 @@ export class PerformanceOptimizationService {
 
     this.metrics.webviewMessageCount++;
 
-    // Process critical messages immediately, or emergency gestures in low power mode
-    if (priority === 'critical' || (isEmergencyGesture && this.isLowPowerMode)) {
+    // Process critical messages and emergency gestures immediately
+    if (priority === 'critical' || isEmergencyGesture) {
       this.processMessageBatch();
     } else if (priority === 'high') {
       this.processMessageBatch();
@@ -307,12 +217,12 @@ export class PerformanceOptimizationService {
     }
 
     // Process medium priority messages
-    if (mediumPriority.length > 0 && !this.isLowPowerMode) {
+    if (mediumPriority.length > 0) {
       this.sendMessagesToWebViews(mediumPriority);
     }
 
-    // Process low priority messages only when not in low power mode
-    if (lowPriority.length > 0 && !this.isLowPowerMode) {
+    // Process low priority messages
+    if (lowPriority.length > 0) {
       this.sendMessagesToWebViews(lowPriority);
     }
 
@@ -465,17 +375,8 @@ export class PerformanceOptimizationService {
     return { ...this.metrics };
   }
 
-  // Check if in low power mode
-  public isInLowPowerMode(): boolean {
-    return this.isLowPowerMode;
-  }
-
   // Adaptive frame rate based on performance
   public getAdaptiveFrameRate(): number {
-    if (this.isLowPowerMode) {
-      return Math.max(15, this.metrics.frameRate * 0.7);
-    }
-
     // Adjust based on CPU usage (placeholder logic)
     if (this.metrics.cpuUsage > 80) {
       return Math.max(20, this.metrics.frameRate * 0.8);
@@ -508,8 +409,8 @@ export class PerformanceOptimizationService {
       lastValid = current;
     }
 
-    // Quantize to reduce precision (adaptive based on low power mode)
-    const precision = this.isLowPowerMode ? 50 : 100; // Lower precision in low power mode
+    // Quantize to reduce precision
+    const precision = 100;
     const compressed = deltas.map(delta => Math.round(delta * precision) / precision);
 
     return compressed.join(',');
@@ -553,14 +454,13 @@ export class PerformanceOptimizationService {
     batchSize: number;
     telemetryEnabled: boolean;
   } {
-    const isLowPower = this.isInLowPowerMode();
     const highMemoryUsage = this.metrics.memoryUsage > 80;
 
     return {
       frameRate: this.getAdaptiveFrameRate(),
       compressionEnabled: true, // Always compress to save bandwidth
-      batchSize: isLowPower ? 5 : 10, // Smaller batches in low power mode
-      telemetryEnabled: !isLowPower && !highMemoryUsage // Disable telemetry when resources are constrained
+      batchSize: 10,
+      telemetryEnabled: !highMemoryUsage // Disable telemetry when resources are constrained
     };
   }
 
@@ -569,11 +469,6 @@ export class PerformanceOptimizationService {
     if (this.memoryCleanupTimer) {
       clearInterval(this.memoryCleanupTimer);
       this.memoryCleanupTimer = null;
-    }
-
-    if (this.batteryCheckTimer) {
-      clearInterval(this.batteryCheckTimer);
-      this.batteryCheckTimer = null;
     }
 
     if (this.batchTimer) {

@@ -3,14 +3,12 @@ import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from '../../src
 import { uploadTrainingBundle } from '../../src/services/trainingBundleService';
 import { loadProfile, loadBackendApiToken, updateTrainingSample } from '../../src/storage';
 import * as NetInfo from '@react-native-community/netinfo';
-import { batteryOptimizationService } from '../../src/services/batteryOptimizationService';
 import * as FileSystem from 'expo-file-system';
 
 jest.mock('../../src/services/trainingBundleQueue');
 jest.mock('../../src/services/trainingBundleService');
 jest.mock('../../src/storage');
 jest.mock('@react-native-community/netinfo');
-jest.mock('../../src/services/batteryOptimizationService');
 jest.mock('expo-file-system');
 jest.mock('../../src/services/modelUpdate', () => ({
   refreshDgsModel: jest.fn().mockResolvedValue(undefined),
@@ -22,7 +20,6 @@ const mockedUploadTrainingBundle = uploadTrainingBundle as jest.Mock;
 const mockedLoadProfile = loadProfile as jest.Mock;
 const mockedLoadBackendApiToken = loadBackendApiToken as jest.Mock;
 const mockedUpdateTrainingSample = updateTrainingSample as jest.Mock;
-const mockedBatteryOptimizationService = batteryOptimizationService as { isDeviceCharging: jest.Mock };
 const mockedNetInfo = NetInfo as { fetch: jest.Mock };
 const mockedFileSystem = FileSystem as { deleteAsync: jest.Mock };
 
@@ -55,16 +52,6 @@ describe('syncTrainingData', () => {
     expect(result.uploaded).toBe(0);
   });
 
-  it('should not upload if not charging', async () => {
-    mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: true });
-    mockedListQueuedTrainingBundles.mockResolvedValue([{}]);
-    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
-    __setNetInfoFetchOverride(mockedNetInfo.fetch);
-    mockedBatteryOptimizationService.isDeviceCharging.mockReturnValue(false);
-    const result = await syncTrainingData();
-    expect(result.uploaded).toBe(0);
-  });
-
   it('should upload bundles and clean up', async () => {
     const profile = { id: 'profile1', consentHelpMeGetSmarter: true };
     const bundles = [
@@ -75,7 +62,6 @@ describe('syncTrainingData', () => {
     mockedListQueuedTrainingBundles.mockResolvedValue(bundles);
     mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
     __setNetInfoFetchOverride(mockedNetInfo.fetch);
-    mockedBatteryOptimizationService.isDeviceCharging.mockReturnValue(true);
     mockedLoadBackendApiToken.mockResolvedValue('token');
     mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'success' });
     mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);

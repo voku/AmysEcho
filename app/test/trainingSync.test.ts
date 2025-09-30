@@ -31,12 +31,6 @@ jest.mock('../src/services/modelUpdate', () => ({
   refreshDgsModel: jest.fn(),
 }));
 
-jest.mock('../src/services/batteryOptimizationService', () => ({
-  batteryOptimizationService: {
-    isDeviceCharging: jest.fn(() => true),
-  },
-}));
-
 jest.mock('expo-file-system', () => ({
   deleteAsync: jest.fn(async () => {}),
 }));
@@ -48,7 +42,6 @@ jest.mock('../src/utils/logger', () => ({
 const { loadProfile, updateTrainingSample } = require('../src/storage');
 const { listQueuedTrainingBundles, removeQueuedTrainingBundle } = require('../src/services/trainingBundleQueue');
 const { uploadTrainingBundle } = require('../src/services/trainingBundleService');
-const { batteryOptimizationService } = require('../src/services/batteryOptimizationService');
 const fs = require('expo-file-system');
 
 describe('syncTrainingData', () => {
@@ -80,8 +73,6 @@ describe('syncTrainingData', () => {
         },
       ])
       .mockResolvedValueOnce([]);
-    (batteryOptimizationService.isDeviceCharging as jest.Mock).mockReturnValue(true);
-
     const onProgress = jest.fn();
     const result = await syncTrainingData({ onProgress });
 
@@ -106,27 +97,4 @@ describe('syncTrainingData', () => {
     expect(result).toEqual({ uploaded: 1, remaining: 0 });
   });
 
-  it('skips upload when device is not charging', async () => {
-    (loadProfile as jest.Mock).mockResolvedValue({ consentHelpMeGetSmarter: true, id: 'amy' });
-    (listQueuedTrainingBundles as jest.Mock).mockResolvedValueOnce([
-      {
-        key: 'trainingBundles:amy:test',
-        sampleId: 'sample-1',
-        profileId: 'amy',
-        label: 'HALLO',
-        frames: [],
-        clipUri: 'file://cache/clip.mp4',
-        capturedAt: '2024-05-28T12:03:11Z',
-        source: 'HIP_2',
-        queuedAt: '2024-05-28T12:03:12Z',
-      },
-    ]);
-    (batteryOptimizationService.isDeviceCharging as jest.Mock).mockReturnValue(false);
-
-    const result = await syncTrainingData();
-
-    expect(uploadTrainingBundle).not.toHaveBeenCalled();
-    expect(removeQueuedTrainingBundle).not.toHaveBeenCalled();
-    expect(result).toEqual({ uploaded: 0, remaining: 1 });
-  });
 });

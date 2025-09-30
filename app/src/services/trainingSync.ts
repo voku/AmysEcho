@@ -10,7 +10,6 @@ import {
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
 import { refreshDgsModel } from './modelUpdate';
-import { batteryOptimizationService } from './batteryOptimizationService';
 import { uploadTrainingBundle } from './trainingBundleService';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from './trainingBundleQueue';
 
@@ -66,11 +65,6 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     net.type !== 'wifi'
   )
     return { uploaded: 0, remaining: bundles.length };
-
-  if (!batteryOptimizationService.isDeviceCharging()) {
-    logger.info('Device is not charging. Postponing training bundle upload.');
-    return { uploaded: 0, remaining: bundles.length };
-  }
 
   try {
     const token = await loadBackendApiToken();
