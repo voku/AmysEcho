@@ -4,6 +4,7 @@ import type { LLMSuggestionResponse } from '../services/dialogEngine';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { DetectedTwoHandGesture } from '../services/twoHandGestureService';
 import type { Profile } from '../storage';
+import type { StabilizedHands } from '../utils/landmarkUtils';
 
 export enum ScreenFlashPattern {
   Single = 'single',
@@ -55,10 +56,8 @@ export interface RecognitionGestureState {
   setContextInsights: Dispatch<SetStateAction<any>>;
   detectedTwoHandGesture: DetectedTwoHandGesture | null;
   setDetectedTwoHandGesture: Dispatch<SetStateAction<DetectedTwoHandGesture | null>>;
-  currentLandmarks: number[][][];
-  setCurrentLandmarks: Dispatch<SetStateAction<number[][][]>>;
-  currentHandedness: string[];
-  setCurrentHandedness: Dispatch<SetStateAction<string[]>>;
+  stabilizedHands: StabilizedHands;
+  setStabilizedHands: Dispatch<SetStateAction<StabilizedHands>>;
 }
 
 export interface RecognitionFeedbackState {
@@ -166,8 +165,10 @@ export const useRecognitionState = (): RecognitionState => {
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
   const [contextInsights, setContextInsights] = useState<any>(null);
   const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
-  const [currentLandmarks, setCurrentLandmarks] = useState<number[][][]>([]);
-  const [currentHandedness, setCurrentHandedness] = useState<string[]>([]);
+  const [stabilizedHands, setStabilizedHands] = useState<StabilizedHands>({
+    landmarks: [],
+    handedness: [],
+  });
 
   return {
     profile,
@@ -243,10 +244,8 @@ export const useRecognitionState = (): RecognitionState => {
     setContextInsights,
     detectedTwoHandGesture,
     setDetectedTwoHandGesture,
-    currentLandmarks,
-    setCurrentLandmarks,
-    currentHandedness,
-    setCurrentHandedness,
+    stabilizedHands,
+    setStabilizedHands,
   };
 };
 

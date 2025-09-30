@@ -99,8 +99,7 @@ export const useRecognitionCallbacks = ({
     setShortcutActivated,
     setShowPipGuidance,
     setPipGuidanceGesture,
-    setCurrentLandmarks,
-    setCurrentHandedness,
+    setStabilizedHands,
     setModelUpdateStatus,
     setContextInsights,
     setDetectedTwoHandGesture,
@@ -394,8 +393,7 @@ export const useRecognitionCallbacks = ({
     ) => {
       try {
         refs.lastFrameTimeRef.current = Date.now();
-        setCurrentLandmarks(landmarks);
-        setCurrentHandedness(handedness);
+        setStabilizedHands({ landmarks, handedness });
 
         const smoothedConfidence = refs.confidenceFilterRef.current.filter(confidence, Date.now() / 1000);
         setGestureConfidence(smoothedConfidence);
@@ -467,8 +465,7 @@ export const useRecognitionCallbacks = ({
       handleLowConfidenceGesture,
       handleSuccessfulGesture,
       refs,
-      setCurrentLandmarks,
-      setCurrentHandedness,
+      setStabilizedHands,
       setGestureConfidence,
       setShowVisualRipple,
       setPendingGesture,

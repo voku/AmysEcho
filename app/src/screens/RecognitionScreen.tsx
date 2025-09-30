@@ -162,10 +162,8 @@ export default function RecognitionScreen({
     showAdaptiveLearning, setShowAdaptiveLearning,
     contextInsights,
     detectedTwoHandGesture, setDetectedTwoHandGesture,
-    currentLandmarks,
-    setCurrentLandmarks,
-    currentHandedness,
-    setCurrentHandedness,
+    stabilizedHands,
+    setStabilizedHands,
   } = state;
 
   // Simple stub functions for adaptive PiP positioning
@@ -222,8 +220,7 @@ export default function RecognitionScreen({
 
   useEffect(() => {
     handStabilizerRef.current.reset();
-    setCurrentLandmarks([]);
-    setCurrentHandedness([]);
+    setStabilizedHands({ landmarks: [], handedness: [] });
   }, [facingMode]);
 
   useEffect(() => {
@@ -309,8 +306,7 @@ export default function RecognitionScreen({
     const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
     const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
 
-    setCurrentLandmarks(stabilized.landmarks);
-    setCurrentHandedness(stabilized.handedness);
+    setStabilizedHands(stabilized);
 
     // Skip processing if no hands detected
     if (stabilized.landmarks.length === 0) {
@@ -945,8 +941,8 @@ export default function RecognitionScreen({
 
               <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
                 <HandLandmarkPreview
-                  landmarks={currentLandmarks}
-                  handedness={currentHandedness}
+                  landmarks={stabilizedHands.landmarks}
+                  handedness={stabilizedHands.handedness}
                   mirror={facingMode === 'user'}
                   confidence={gestureConfidence}
                 />
