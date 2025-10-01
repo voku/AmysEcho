@@ -161,8 +161,10 @@ export default function RecognitionScreen({
     showAdaptiveLearning, setShowAdaptiveLearning,
     contextInsights,
     detectedTwoHandGesture, setDetectedTwoHandGesture,
-    stabilizedHands,
-    setStabilizedHands,
+    currentLandmarks,
+    setCurrentLandmarks,
+    currentHandedness,
+    setCurrentHandedness,
   } = state;
 
   // Simple stub functions for adaptive PiP positioning
@@ -219,7 +221,8 @@ export default function RecognitionScreen({
 
   useEffect(() => {
     handStabilizerRef.current.reset();
-    setStabilizedHands({ landmarks: [], handedness: [] });
+    setCurrentLandmarks([]);
+    setCurrentHandedness([]);
   }, [facingMode]);
 
   useEffect(() => {
@@ -305,17 +308,22 @@ export default function RecognitionScreen({
     const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
     const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
 
-    setStabilizedHands(stabilized);
+    setCurrentLandmarks(stabilized.landmarks);
+    setCurrentHandedness(stabilized.handedness);
 
     // Skip processing if no hands detected
     if (stabilized.landmarks.length === 0) {
       setStatus('Ich höre zu…');
+      setPendingGesture(null);
+      setDetectedTwoHandGesture(null);
       return;
     }
 
     // If no gesture detected, set status to indicate no recognition
     if (!gesture) {
       setStatus('none');
+      setPendingGesture(null);
+      setDetectedTwoHandGesture(null);
       return;
     }
 
@@ -469,6 +477,7 @@ export default function RecognitionScreen({
     facingMode,
     handStabilizerRef,
     lastRecognizedGesture,
+    showCorrection,
     startFeedbackAnimation,
   ]);
 
@@ -940,8 +949,8 @@ export default function RecognitionScreen({
 
               <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
                 <HandLandmarkPreview
-                  landmarks={stabilizedHands.landmarks}
-                  handedness={stabilizedHands.handedness}
+                  landmarks={currentLandmarks}
+                  handedness={currentHandedness}
                   mirror={facingMode === 'user'}
                   confidence={gestureConfidence}
                 />
