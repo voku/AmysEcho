@@ -84,7 +84,6 @@ import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
 import { getShortcutMessage, getShortcutAction, getShortcutDisplayName } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
-import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import HandLandmarkPreview from '../components/HandLandmarkPreview';
 import {
   cloneLandmarks,
@@ -309,20 +308,24 @@ export default function RecognitionScreen({
     const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
     const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
 
+    setCurrentLandmarks(stabilized.landmarks);
+    setCurrentHandedness(stabilized.handedness);
+
     // Skip processing if no hands detected
     if (stabilized.landmarks.length === 0) {
       setStatus('Ich höre zu…');
+      setPendingGesture(null);
+      setDetectedTwoHandGesture(null);
       return;
     }
 
     // If no gesture detected, set status to indicate no recognition
     if (!gesture) {
       setStatus('none');
+      setPendingGesture(null);
+      setDetectedTwoHandGesture(null);
       return;
     }
-
-    setCurrentLandmarks(stabilized.landmarks);
-    setCurrentHandedness(stabilized.handedness);
 
     let g = gesture;
     let c = confidence;
@@ -474,6 +477,7 @@ export default function RecognitionScreen({
     facingMode,
     handStabilizerRef,
     lastRecognizedGesture,
+    showCorrection,
     startFeedbackAnimation,
   ]);
 
