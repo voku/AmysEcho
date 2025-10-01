@@ -50,7 +50,7 @@ import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
 import { isTwoHandGestureString } from '../constants/twoHandGestures';
 import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
-import { getShortcutMessage, getShortcutAction, getShortcutDisplayName } from '../utils/shortcutUtils';
+import { getShortcutMessage } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import HandLandmarkPreview from '../components/HandLandmarkPreview';
@@ -153,6 +153,7 @@ export default function RecognitionScreen({
   const lastFrameTimeRef = useRef<number>(0);
   const centroidsRef = useRef<CentroidMap>({});
   const lastModelUpdateTimeRef = useRef<number>(0);
+  const lastOfflineClassifyAtRef = useRef<number>(0);
   const handStabilizerRef = useRef(createHandLandmarkStabilizer({ ttlMs: 300, maxHands: 2 }));
 
   useEffect(() => {
@@ -292,27 +293,39 @@ export default function RecognitionScreen({
       const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
       const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
 
-      setCurrentLandmarks(stabilized.landmarks);
-      setCurrentHandedness(stabilized.handedness);
-
       let processedGesture = gesture;
       let processedConfidence = confidence;
       let recognitionSource: RecognitionPath = 'local';
 
-      if (centroidsRef.current && stabilized.landmarks.length > 0) {
+      if (
+        (!processedGesture || processedConfidence < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD) &&
+        centroidsRef.current &&
+        stabilized.landmarks.length > 0
+      ) {
         try {
-          const flattened = flattenHandsWithHandedness(
-            stabilized.landmarks,
-            stabilized.handedness,
-          ) as Point[];
-          const centroidResult = classifyWithCentroids(flattened, centroidsRef.current);
-          if (
-            centroidResult &&
-            centroidResult.confidence >= OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD
-          ) {
-            processedGesture = centroidResult.label;
-            processedConfidence = centroidResult.confidence;
-            recognitionSource = 'centroid';
+          const now = Date.now();
+          if (now - lastOfflineClassifyAtRef.current > 150) {
+            lastOfflineClassifyAtRef.current = now;
+            const flattened = flattenHandsWithHandedness(
+              stabilized.landmarks,
+              stabilized.handedness,
+            );
+            const flattenedPoints: Point[] = flattened.map((point) => {
+              const [x = 0, y = 0, z = 0] = point ?? [];
+              return [x, y, z] as Point;
+            });
+            const centroidResult = classifyWithCentroids(flattenedPoints, centroidsRef.current);
+            if (
+              centroidResult &&
+              centroidResult.confidence >= Math.max(
+                OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD,
+                processedConfidence,
+              )
+            ) {
+              processedGesture = centroidResult.label;
+              processedConfidence = centroidResult.confidence;
+              recognitionSource = 'centroid';
+            }
           }
         } catch (error) {
           logger.warn('Failed to classify with local centroids', error);
@@ -340,9 +353,8 @@ export default function RecognitionScreen({
       centroidsRef,
       facingMode,
       handStabilizerRef,
-      setCurrentHandedness,
-      setCurrentLandmarks,
       setRecognitionPath,
+      lastOfflineClassifyAtRef,
     ],
   );
 
@@ -742,19 +754,7 @@ export default function RecognitionScreen({
                 onWebViewEvent={(telemetry) => {
                   logger.info('WebView telemetry:', telemetry);
                 }}
-                onModelUpdateStatus={(status) => {
-                  handleModelUpdateStatus(status);
-                  if (status === 'complete') {
-                    const now = Date.now();
-                    if (now - lastModelUpdateTimeRef.current > 1500) {
-                      lastModelUpdateTimeRef.current = now;
-                      setMessage('Danke für deine neuen Gesten! Dein Modell ist jetzt aktualisiert.');
-                    }
-                  }
-                  if (status === 'error') {
-                    setMessage('Ups, das Modell konnte nicht aktualisiert werden. Versuch es später nochmal.');
-                  }
-                }}
+                onModelUpdateStatus={handleModelUpdateStatus}
                 facingMode={facingMode}
               />
 
