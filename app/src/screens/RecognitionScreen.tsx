@@ -28,7 +28,7 @@ import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
 import { logHIPEvent } from '../services/hipEvents';
 import { OneEuroFilter } from '../services/OneEuroFilter';
-import { RecognitionPath } from '../utils/recognitionState';
+import type { RecognitionPath } from '../utils/recognitionState';
 import { performanceOptimizationService } from '../services/performanceOptimizationService';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
@@ -97,7 +97,6 @@ export default function RecognitionScreen({
     webviewKey,
     setWebviewKey,
     recognitionPath,
-    setRecognitionPath,
     showDgsVideo,
     showCelebration,
     setShowCelebration,
@@ -338,13 +337,8 @@ export default function RecognitionScreen({
         stabilized.landmarks,
         stabilized.handedness,
         emergency,
+        recognitionSource,
       );
-
-      if (recognitionSource !== 'local') {
-        void resultPromise
-          ?.then(() => setRecognitionPath(recognitionSource))
-          .catch((error) => logger.debug('Failed to update recognition path', error));
-      }
 
       return resultPromise;
     },
@@ -353,7 +347,6 @@ export default function RecognitionScreen({
       centroidsRef,
       facingMode,
       handStabilizerRef,
-      setRecognitionPath,
       lastOfflineClassifyAtRef,
     ],
   );

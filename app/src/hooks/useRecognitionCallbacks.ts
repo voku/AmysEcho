@@ -28,6 +28,7 @@ import * as Haptics from 'expo-haptics';
 import { logger } from '../utils/logger';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
+import type { RecognitionPath } from '../utils/recognitionState';
 import type { RootStackParamList } from '../navigation/types';
 import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
 
@@ -208,8 +209,9 @@ export const useRecognitionCallbacks = ({
       emoji: string,
       smoothedConfidence: number,
       landmarks: number[][][],
+      recognitionSource: RecognitionPath,
     ) => {
-      setRecognitionPath('local');
+      setRecognitionPath(recognitionSource);
       setLastRecognizedGesture(gestureMeta);
       setStatus(helpers.getSuccessMessage(gesture));
       helpers.startFeedbackAnimation();
@@ -340,6 +342,7 @@ export const useRecognitionCallbacks = ({
       landmarks: number[][][],
       handedness: string[],
       emergency: boolean,
+      recognitionSource: RecognitionPath,
     ) => {
       setPendingGesture(null);
       setShowVisualRipple(false);
@@ -368,7 +371,15 @@ export const useRecognitionCallbacks = ({
         setDetectedTwoHandGesture(null);
       }
 
-      showSuccessfulGestureUi(gesture, gestureMeta ?? null, label, emoji, smoothedConfidence, landmarks);
+      showSuccessfulGestureUi(
+        gesture,
+        gestureMeta ?? null,
+        label,
+        emoji,
+        smoothedConfidence,
+        landmarks,
+        recognitionSource,
+      );
 
       await runRecognitionFeedback(gesture, label, smoothedConfidence, emergency);
 
@@ -391,6 +402,7 @@ export const useRecognitionCallbacks = ({
       landmarks: number[][][],
       handedness: string[],
       emergency = false,
+      recognitionSource: RecognitionPath = 'local',
     ) => {
       try {
         refs.lastFrameTimeRef.current = Date.now();
@@ -455,6 +467,7 @@ export const useRecognitionCallbacks = ({
           landmarks,
           handedness,
           emergency,
+          recognitionSource,
         );
       } catch (error) {
         logger.error('handleGestureDetected failed', error);
