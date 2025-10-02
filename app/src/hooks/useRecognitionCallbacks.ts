@@ -13,6 +13,7 @@ import {
   correctionService,
   twoHandGestureService,
   dialogEngine,
+  LanguageManager,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
@@ -70,6 +71,11 @@ const VISUAL_RIPPLE_RESET_DELAY_MS = 280;
 const PRACTICE_SUGGESTION_DELAY_MS = 2000;
 const RECENT_GESTURE_SUPPRESS_MS = 1000;
 const SCREEN_FLASH_RESET_DELAY_MS = 600;
+const PRACTICE_PROMPT_OPTIONS = {
+  minSamples: 5,
+  lastN: 10,
+  threshold: 0.6,
+};
 
 const normalizeGestureId = (gesture: string | null): string | null => {
   if (!gesture) return null;
@@ -120,6 +126,7 @@ export const useRecognitionCallbacks = ({
     gestureConfidence,
     dialogContext,
     lastRecognizedGesture,
+    profile,
   } = state;
 
   const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -208,11 +215,7 @@ export const useRecognitionCallbacks = ({
       }).catch((error) => logger.debug('Failed to log uncertain gesture event', error));
 
       if (lastRecognizedGesture) {
-        void shouldPromptPractice(lastRecognizedGesture.id, {
-          minSamples: 5,
-          lastN: 10,
-          threshold: 0.6,
-        })
+        void shouldPromptPractice(lastRecognizedGesture.id, PRACTICE_PROMPT_OPTIONS)
           .then((shouldShow) => {
             if (shouldShow) {
               setShowPracticeSuggestion(true);
@@ -358,7 +361,7 @@ export const useRecognitionCallbacks = ({
 
       setShortcutActivated(null);
 
-      void shouldPromptPractice(gesture, { minSamples: 5, lastN: 10, threshold: 0.6 })
+      void shouldPromptPractice(gesture, PRACTICE_PROMPT_OPTIONS)
         .then((shouldShow) => setShowPracticeSuggestion(shouldShow))
         .catch((error) => logger.debug('Failed to evaluate practice suggestion', error));
     },
@@ -419,12 +422,15 @@ export const useRecognitionCallbacks = ({
         recognitionSource,
       );
 
+      const suggestionLanguage = profile?.language ?? LanguageManager.getLanguage();
+      const suggestionAge = profile?.age ?? 4;
+
       try {
         const suggestions = await dialogEngine.getSuggestions({
           input: label,
           context: dialogContext,
-          language: 'de',
-          age: 4,
+          language: suggestionLanguage,
+          age: suggestionAge,
         });
         setSuggestions(suggestions);
         setDialogContext((ctx) => {
@@ -458,6 +464,7 @@ export const useRecognitionCallbacks = ({
       setDialogContext,
       dialogContext,
       showSuccessfulGestureUi,
+      profile,
     ],
   );
 

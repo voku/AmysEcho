@@ -14,6 +14,8 @@ export interface Profile {
   largeText?: boolean;
   highContrast?: boolean;
   successSound?: string; // Customizable success sound preference
+  language?: string;
+  age?: number;
 }
 
 const ACTIVE_PROFILE_KEY = 'activeProfileId';
@@ -158,6 +160,8 @@ function mapDbProfile(p: DBProfile): Profile {
     largeText: p.largeText,
     highContrast: p.highContrast,
     successSound: (p as any).successSound || 'success', // Default to 'success'
+    language: (p as any).language || 'de',
+    age: typeof (p as any).age === 'number' ? (p as any).age : undefined,
   };
 }
 
