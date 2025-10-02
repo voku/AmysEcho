@@ -422,7 +422,7 @@ export const useRecognitionCallbacks = ({
         recognitionSource,
       );
 
-      const suggestionLanguage = profile?.language ?? LanguageManager.getLanguage();
+      const suggestionLanguage = LanguageManager.getLanguage();
       const suggestionAge = profile?.age ?? 4;
 
       try {
