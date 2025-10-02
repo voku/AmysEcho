@@ -15,7 +15,7 @@ This document summarizes the repository in key areas with concrete file referenc
 - `app/webview/gestureDetector.ts` compiles to `app/assets/gestureDetector.js`; a Jest test (`app/test/gestureDetectorBuild.test.ts`) keeps the bundle synced with its TypeScript source.
 - `app/src/screens/RecognitionScreen.tsx` hosts the detector, fuses results with cached centroids, and logs outcomes.
 - `app/src/services/offlineClassifier.ts` performs centroid-based fallback classification when confidence is low.
-- The pipeline is enhanced with contextual awareness (`app/src/services/contextAwareRecognitionService.ts`), predictive gestures (`app/src/services/gestureSuggester.ts`), and emotional state recognition (integrated in `app/src/services/positiveTelemetryService.ts`).
+- The pipeline is enhanced with contextual awareness (`app/src/services/contextAwareRecognitionService.ts`) and predictive gestures (`app/src/services/gestureSuggester.ts`).
 
 ## 3. Training and Personalization
 - Sample collection UI in `app/src/screens/TeachingScreen.tsx`

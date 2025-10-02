@@ -4,12 +4,135 @@ import { logger } from '../utils/logger';
 import { APIRetryManager } from './APIRetryManager';
 import { API_URL } from '../constants';
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-// Prefer a small, fast model for suggestions
-const MODEL = 'gpt-4o-mini';
+const OPENAI_URL = 'https://api.openai.com/v1/responses';
+// Prefer a small, fast model for short caregiver prompts
+const MODEL = 'gpt-4.1-mini';
 const OPENAI_TIMEOUT_MS = 4000;
-const OPENAI_MAX_TOKENS = 256;
+const OPENAI_MAX_OUTPUT_TOKENS = 256;
 const OPENAI_TEMPERATURE = 0.3;
+
+const SUGGESTION_SCHEMA = {
+  name: 'CaregiverSupportResponse',
+  schema: {
+    type: 'object',
+    properties: {
+      nextWords: {
+        type: 'array',
+        items: { type: 'string' },
+        default: [],
+      },
+      caregiverPhrases: {
+        type: 'array',
+        items: { type: 'string' },
+        default: [],
+      },
+    },
+    required: ['nextWords', 'caregiverPhrases'],
+    additionalProperties: false,
+  },
+  strict: true,
+} as const;
+
+interface OpenAIOutputTextBlock {
+  type?: string;
+  text?: string;
+}
+
+interface OpenAIOutputItem {
+  content?: OpenAIOutputTextBlock[] | string;
+}
+
+interface OpenAIResponsePayload {
+  output_text?: string;
+  output?: OpenAIOutputItem[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parseOpenAIResponse(raw: unknown): OpenAIResponsePayload {
+  if (!isRecord(raw)) {
+    return {};
+  }
+
+  const payload: OpenAIResponsePayload = {};
+  const outputText = raw['output_text'];
+  if (typeof outputText === 'string') {
+    payload.output_text = outputText;
+  }
+
+  const output = raw['output'];
+  if (Array.isArray(output)) {
+    payload.output = output.map((item): OpenAIOutputItem => {
+      if (!isRecord(item)) {
+        return {};
+      }
+      const entry: OpenAIOutputItem = {};
+      const content = item['content'];
+      if (typeof content === 'string') {
+        entry.content = content;
+      } else if (Array.isArray(content)) {
+        const blocks: OpenAIOutputTextBlock[] = [];
+        for (const block of content) {
+          if (!isRecord(block)) {
+            continue;
+          }
+          const type = typeof block['type'] === 'string' ? (block['type'] as string) : undefined;
+          const text = typeof block['text'] === 'string' ? (block['text'] as string) : undefined;
+          if (type || text) {
+            const blockEntry: OpenAIOutputTextBlock = {};
+            if (type) {
+              blockEntry.type = type;
+            }
+            if (text) {
+              blockEntry.text = text;
+            }
+            blocks.push(blockEntry);
+          }
+        }
+        if (blocks.length > 0) {
+          entry.content = blocks;
+        }
+      }
+      return entry;
+    });
+  }
+
+  return payload;
+}
+
+function extractOutputText(data: OpenAIResponsePayload): string {
+  if (typeof data.output_text === 'string' && data.output_text.trim().length > 0) {
+    return data.output_text;
+  }
+
+  if (!Array.isArray(data.output)) {
+    return '';
+  }
+
+  const parts = data.output
+    .map((item) => {
+      if (!item) {
+        return '';
+      }
+      const { content } = item;
+      if (typeof content === 'string') {
+        return content;
+      }
+      if (Array.isArray(content)) {
+        const block = content.find(
+          (entry): entry is OpenAIOutputTextBlock =>
+            Boolean(entry) && entry.type === 'output_text' && typeof entry.text === 'string',
+        );
+        return block?.text ?? '';
+      }
+      return '';
+    })
+    .filter((text) => typeof text === 'string' && text.trim().length > 0);
+
+  return parts.join('\n');
+}
 
 // LLM Hint: Define a clear type for the expected JSON response from the LLM.
 export type LLMSuggestionResponse = {
@@ -72,8 +195,10 @@ export function __setDialogRateLimitForTests(limit: number, windowMs: number) {
   RATE_WINDOW_MS = windowMs;
 }
 
+type DialogRole = 'user' | 'assistant';
+
 class DialogEngine {
-  private history: { role: 'user' | 'assistant'; content: string }[] = [];
+  private history: { role: DialogRole; content: string }[] = [];
 
   /**
    * Reset the stored conversation history. Useful for new sessions
@@ -128,7 +253,7 @@ class DialogEngine {
     language: string;
     age: number;
   }): Promise<LLMSuggestionResponse> {
-    const apiKey = await loadOpenAIApiKey();
+    const apiKey = (await loadOpenAIApiKey())?.trim();
     if (!apiKey) {
       return { nextWords: [], caregiverPhrases: [] };
     }
@@ -150,26 +275,49 @@ class DialogEngine {
       const retry = new APIRetryManager();
       const response = await retry.executeWithRetry(async () => {
         const controller = new AbortController();
-        const to = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+        const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
         try {
+          const conversation: Array<{ role: 'system' | DialogRole; content: string }> = [
+            {
+              role: 'system',
+              content:
+                'Du bist Amys Kommunikations-Coach. Liefere nur JSON, das dem bereitgestellten Schema entspricht, ohne zusätzlichen Text.',
+            },
+            ...this.history,
+            { role: 'user', content: prompt },
+          ];
+
+          const payload = {
+            model: MODEL,
+            input: conversation.map((message) => ({
+              role: message.role,
+              content: [
+                {
+                  type: 'input_text',
+                  text: message.content,
+                },
+              ],
+            })),
+            temperature: OPENAI_TEMPERATURE,
+            max_output_tokens: OPENAI_MAX_OUTPUT_TOKENS,
+            response_format: {
+              type: 'json_schema',
+              json_schema: SUGGESTION_SCHEMA,
+            },
+          };
+
           const res = await fetch(OPENAI_URL, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({
-              model: MODEL,
-              messages: [...this.history, { role: 'user', content: prompt }],
-              response_format: { type: 'json_object' },
-              temperature: OPENAI_TEMPERATURE,
-              max_tokens: OPENAI_MAX_TOKENS,
-            }),
+            body: JSON.stringify(payload),
             signal: controller.signal,
           });
           return res;
         } finally {
-          clearTimeout(to);
+          clearTimeout(timeout);
         }
       }, 'dialogEngine');
 
@@ -178,8 +326,11 @@ class DialogEngine {
         return { nextWords: [], caregiverPhrases: [] };
       }
 
-      const data = await response.json();
-      const messageContent = data.choices?.[0]?.message?.content || '{}';
+      const raw = await response.json();
+      const data = parseOpenAIResponse(raw);
+      const outputText = extractOutputText(data);
+
+      const messageContent = typeof outputText === 'string' && outputText.trim().length > 0 ? outputText : '{}';
 
       // Update conversation history with the latest exchange
       this.history.push({ role: 'user', content: prompt });
@@ -238,12 +389,13 @@ class DialogEngine {
           };
         }
         logger.warn(`Server /dialog returned status ${response.status}; falling back`);
+      } else {
+        logger.debug('No backend token available for dialog suggestions; using OpenAI directly');
       }
     } catch (e) {
       logger.warn('Server /dialog request failed; falling back', e);
     }
-    // No fallback to direct OpenAI
-    return { nextWords: [], caregiverPhrases: [] };
+    return this.getLLMSuggestions({ input, context, language, age });
   }
 }
 

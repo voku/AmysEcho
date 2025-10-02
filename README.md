@@ -16,7 +16,6 @@ All app UI text and error messages are written in German to match Amy's language
 
 - [Codebase overview](docs/CodebaseOverview.md)
 - [User stories](docs/UserStories.md)
-- [Kindergarten staff field guide](docs/KindergartenWorkflow.md)
 - [Caregiver guide](docs/CaregiverGuide.md)
 - [Build & test instructions](docs/BUILD_AND_TEST.md)
 - [Android in WSL2 guide](docs/AndroidWSL2.md)

@@ -87,6 +87,7 @@ describe('Storage', () => {
         largeText: true,
         highContrast: false,
         successSound: 'success',
+        age: undefined,
       });
     });
   });
@@ -161,6 +162,7 @@ describe('Storage', () => {
         largeText: false,
         highContrast: true,
         successSound: 'success',
+        age: undefined,
       });
     });
 

@@ -7,11 +7,9 @@ import {
   Animated,
   Easing,
   Button,
-  Switch,
   AccessibilityInfo,
   ScrollView,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import type { NavigationProp } from '@react-navigation/native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
@@ -21,45 +19,16 @@ import PracticeSuggestion from '../components/PracticeSuggestion';
 import AdaptiveLearningPanel from '../components/AdaptiveLearningPanel';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
-import {
-  audioService,
-  triggerSpeakAndShow,
-  correctionService,
-  dialogEngine,
-  announceGestureRecognition,
-  gestureSuggester,
-  detectionHapticFeedback,
-  partialGestureHapticFeedback,
-  multiSensoryFeedback,
-   activeLearningService,
-   adaptiveLearningService,
-   personalizedConfidenceService,
-  gestureCombinationService,
-} from '../services';
-import { gestureHistoryService } from '../services/gestureHistoryService';
-import { automaticRecoveryService } from '../services/automaticRecoveryService';
-import { zeroDowntimeModelService } from '../services/zeroDowntimeModelService';
-import { emergencyPriorityService } from '../services/emergencyPriorityService';
-import { preCachedResponseService } from '../services/preCachedResponseService';
 import { loadProfile, Profile } from '../storage';
-import { GestureModelEntry } from '../model';
 import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap, Point } from '../services/dgsModelClient';
-import { LLMSuggestionResponse } from '../services/dialogEngine';
 import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
-import { shouldPromptPractice } from '../services/healthScore';
-import { gestureModel } from '../model';
-import { logInteractionEvent } from '../services/analytics';
 import { logHIPEvent } from '../services/hipEvents';
 import { OneEuroFilter } from '../services/OneEuroFilter';
-import { SequenceRecognizer, SequenceDefinition } from '../services/sequenceRecognizer';
-import { RecognitionPath } from '../utils/recognitionState';
-import { recordAmyActivity } from '../services/dailyJobs';
-import { positiveTelemetryService } from '../services/positiveTelemetryService';
+import type { RecognitionPath } from '../utils/recognitionState';
 import { performanceOptimizationService } from '../services/performanceOptimizationService';
-import { frameRateOptimizationService } from '../services/frameRateOptimizationService';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
 import { backgroundPrefetchService } from '../services/backgroundPrefetchService';
@@ -69,30 +38,24 @@ import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
-import { emergencyRollback } from '../services/modelUpdate';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
-import MoodSelector from '../components/MoodSelector';
-import LocationSelector from '../components/LocationSelector';
 import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
 import GestureComparison from '../components/GestureComparison';
 import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
 import { isTwoHandGestureString } from '../constants/twoHandGestures';
-import { twoHandGestureService, DetectedTwoHandGesture } from '../services/twoHandGestureService';
 import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
-import { getShortcutMessage, getShortcutAction, getShortcutDisplayName } from '../utils/shortcutUtils';
+import { getShortcutMessage } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
+import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import HandLandmarkPreview from '../components/HandLandmarkPreview';
 import {
   cloneLandmarks,
   adjustHandednessForMirror,
   createHandLandmarkStabilizer,
 } from '../utils/landmarkUtils';
-
-const FEEDBACK_THROTTLE_MS = 2000;
-// CELEBRATION_DURATION_MS sourced from Celebration.tsx sequence
 
 const RECOGNITION_TEXT = {
   showDgsVideoLabel: 'DGS-Video anzeigen',
@@ -110,57 +73,56 @@ export default function RecognitionScreen({
   const { setMessage } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
-  // Additional state variables needed for the simplified callback approach
-  const [detectedGesture, setDetectedGesture] = useState<string>('listening...');
-  const [suggestions, setSuggestions] = useState<LLMSuggestionResponse>({
-    nextWords: [],
-    caregiverPhrases: [],
-  });
-  const [showPracticeBanner, setShowPracticeBanner] = useState(false);
-  const [scheduledGesture, setScheduledGesture] = useState<string | null>(null);
-  const [webviewReady, setWebviewReady] = useState(false);
-  const [useExpoFallback, setUseExpoFallback] = useState(false);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
   const [showTopControls, setShowTopControls] = useState(false);
 
   const state = useRecognitionState();
   const {
-    profile, setProfile,
-    status, setStatus,
-    gestureConfidence, setGestureConfidence,
-    error, setError,
-    showCorrection, setShowCorrection,
-    gestureSuggestions, setGestureSuggestions,
-    dialogContext, setDialogContext,
-    pendingGesture, setPendingGesture,
-    lastRecognizedGesture, setLastRecognizedGesture,
-    facingMode, setFacingMode,
-    webviewKey, setWebviewKey,
-    webviewRetries, setWebviewRetries,
-    recognitionPath, setRecognitionPath,
-    showDgsVideo, setShowDgsVideo,
-    showCelebration, setShowCelebration,
-    celebrationKey, setCelebrationKey,
-    screenReaderEnabled, setScreenReaderEnabled,
-    modelUpdateStatus, setModelUpdateStatus,
-    showMoodSelector, setShowMoodSelector,
-    showLocationSelector, setShowLocationSelector,
-    kindergartenMode, setKindergartenMode,
-    bullyingProtectionActive, setBullyingProtectionActive,
-    gestureSizeTolerance, setGestureSizeTolerance,
-    showVisualRipple, setShowVisualRipple,
-    successSound, setSuccessSound,
-    showScreenFlash, setShowScreenFlash,
-    screenFlashPattern, setScreenFlashPattern,
-    showGestureComparison, setShowGestureComparison,
-    comparisonAttempt, setComparisonAttempt,
-    shortcutActivated, setShortcutActivated,
-    showPipGuidance, setShowPipGuidance,
-    pipGuidanceGesture, setPipGuidanceGesture,
-    showPracticeSuggestion, setShowPracticeSuggestion,
-    showAdaptiveLearning, setShowAdaptiveLearning,
+    profile,
+    setProfile,
+    status,
+    setStatus,
+    gestureConfidence,
+    error,
+    showCorrection,
+    setShowCorrection,
+    gestureSuggestions,
+    pendingGesture,
+    lastRecognizedGesture,
+    facingMode,
+    setFacingMode,
+    webviewKey,
+    setWebviewKey,
+    recognitionPath,
+    showDgsVideo,
+    showCelebration,
+    setShowCelebration,
+    celebrationKey,
+    setCelebrationKey,
+    screenReaderEnabled,
+    setScreenReaderEnabled,
+    modelUpdateStatus,
+    bullyingProtectionActive,
+    setBullyingProtectionActive,
+    gestureSizeTolerance,
+    setGestureSizeTolerance,
+    showVisualRipple,
+    successSound,
+    setSuccessSound,
+    showScreenFlash,
+    screenFlashPattern,
+    showGestureComparison,
+    setShowGestureComparison,
+    comparisonAttempt,
+    shortcutActivated,
+    showPipGuidance,
+    setShowPipGuidance,
+    pipGuidanceGesture,
+    showPracticeSuggestion,
+    showAdaptiveLearning,
+    setShowAdaptiveLearning,
     contextInsights,
-    detectedTwoHandGesture, setDetectedTwoHandGesture,
+    detectedTwoHandGesture,
     currentLandmarks,
     setCurrentLandmarks,
     currentHandedness,
@@ -176,19 +138,12 @@ export default function RecognitionScreen({
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
   const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
   const labelHistoryRef = useRef<string[]>([]);
-  const seqDefsRef = useRef<SequenceDefinition[]>([
-    { id: 'more_please', pattern: ['more', 'please'], windowMs: 3000 },
-  ]);
-  const seqRef = useRef(new SequenceRecognizer(seqDefsRef.current));
-  const uncertainCountRef = useRef(0);
-  const lastUncertainAtRef = useRef<number>(0);
   const lastSuccessAtRef = useRef<number>(0);
   const lastGestureIdRef = useRef<string | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const centroidsRef = useRef<CentroidMap>({});
-  const consecutiveFailuresRef = useRef<number>(0);
-  const consecutiveSuccessesRef = useRef<number>(0);
   const lastModelUpdateTimeRef = useRef<number>(0);
+  const lastOfflineClassifyAtRef = useRef<number>(0);
   const handStabilizerRef = useRef(createHandLandmarkStabilizer({ ttlMs: 300, maxHands: 2 }));
 
   useEffect(() => {
@@ -297,242 +252,94 @@ export default function RecognitionScreen({
     [getSuccessMessage, startFeedbackAnimation],
   );
 
-  const handleGestureDetected = useCallback(async (
-    gesture: string | null,
-    confidence: number,
-    landmarks: number[][][],
-    handedness: string[],
-  ) => {
-    const mirrored = facingMode === 'user';
-    const safeLandmarks = cloneLandmarks(landmarks);
-    const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
-    const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
+  const {
+    handleGestureDetected: baseHandleGestureDetected,
+    handleModelUpdateStatus,
+    handleGestureError,
+    handleSelectCorrection,
+    handleCloseComparison,
+    handleAcceptPractice,
+    handleDeclinePractice,
+    handleLaterPractice,
+    handleStartAdaptiveRecommendation,
+    handleTryAgainFromComparison,
+  } = useRecognitionCallbacks({
+    navigation,
+    state,
+    refs: recognitionRefs,
+    helpers: recognitionHelpers,
+  });
 
-    setCurrentLandmarks(stabilized.landmarks);
-    setCurrentHandedness(stabilized.handedness);
+  const handleGestureDetected = useCallback(
+    (
+      gesture: string | null,
+      confidence: number,
+      landmarks: number[][][],
+      handedness: string[],
+      emergency = false,
+    ) => {
+      const mirrored = facingMode === 'user';
+      const safeLandmarks = cloneLandmarks(landmarks);
+      const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
+      const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
 
-    // Skip processing if no hands detected
-    if (stabilized.landmarks.length === 0) {
-      setStatus('Ich höre zu…');
-      setPendingGesture(null);
-      setDetectedTwoHandGesture(null);
-      return;
-    }
+      let processedGesture = gesture;
+      let processedConfidence = confidence;
+      let recognitionSource: RecognitionPath = 'local';
 
-    // If no gesture detected, set status to indicate no recognition
-    if (!gesture) {
-      setStatus('none');
-      setPendingGesture(null);
-      setDetectedTwoHandGesture(null);
-      return;
-    }
+      if (
+        (!processedGesture || processedConfidence < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD) &&
+        centroidsRef.current &&
+        stabilized.landmarks.length > 0
+      ) {
+        try {
+          const now = Date.now();
+          if (now - lastOfflineClassifyAtRef.current > 150) {
+            lastOfflineClassifyAtRef.current = now;
+            const flattened = flattenHandsWithHandedness(
+              stabilized.landmarks,
+              stabilized.handedness,
+            );
+            const flattenedPoints: Point[] = [];
+            for (const coords of flattened) {
+              if (!Array.isArray(coords)) {
+                flattenedPoints.push([0, 0, 0]);
+                continue;
+              }
+              const [x = 0, y = 0, z = 0] = coords;
+              const point: Point = [x, y, z];
+              flattenedPoints.push(point);
+            }
+            const centroidResult = classifyWithCentroids(flattenedPoints, centroidsRef.current);
+            if (
+              centroidResult &&
+              centroidResult.confidence >= Math.max(
+                OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD,
+                processedConfidence,
+              )
+            ) {
+              processedGesture = centroidResult.label;
+              processedConfidence = centroidResult.confidence;
+              recognitionSource = 'centroid';
+            }
+          }
+        } catch (error) {
+          logger.warn('Failed to classify with local centroids', error);
+        }
+      }
 
-    let g = gesture;
-    let c = confidence;
-    let path: RecognitionPath = 'local';
-
-    // Always try to classify with our custom model
-    if (centroidsRef.current) {
-      const flat = flattenHandsWithHandedness(
+      const resultPromise = baseHandleGestureDetected(
+        processedGesture,
+        processedConfidence,
         stabilized.landmarks,
         stabilized.handedness,
-      ) as Point[];
-      const res = classifyWithCentroids(flat, centroidsRef.current);
-      if (res && res.confidence > 0.5) {
-        g = res.label;
-        c = res.confidence;
-        path = 'centroid';
-      }
-    }
-    setRecognitionPath(path);
+        emergency,
+        recognitionSource,
+      );
 
-    // Helper to apply a classification to UI + logs
-    const handleOutcome = async (
-      finalGesture: string,
-      finalConfidence: number,
-      processedBy: RecognitionPath,
-    ) => {
-      // Smooth confidence and label
-      const smoothed = Math.max(0, Math.min(1, finalConfidence));
-      const hist = labelHistoryRef.current;
-      hist.push(finalGesture);
-      if (hist.length > 5) hist.shift();
-      const freq = hist.reduce<Record<string, number>>((acc, g) => {
-        acc[g] = (acc[g] || 0) + 1;
-        return acc;
-      }, {});
-      const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
-      const stableGesture = top && top[1] >= 3 ? top[0] : finalGesture;
-
-      setDetectedGesture(stableGesture);
-      setGestureConfidence(smoothed);
-      setError(null);
-      uncertainCountRef.current = 0;
-
-       if (smoothed > 0.05 && stableGesture !== 'unknown') {
-        const entry = (gestureModel.gestures.find((g) => g.id === stableGesture) || { id: stableGesture, label: stableGesture }) as GestureModelEntry;
-
-        const now = Date.now();
-        const timeSinceLastSuccess = now - lastSuccessAtRef.current;
-
-        // Only trigger feedback if enough time has passed since last success
-        // or if it's a different gesture
-        const shouldTriggerFeedback = timeSinceLastSuccess > FEEDBACK_THROTTLE_MS ||
-          lastGestureIdRef.current !== stableGesture;
-
-        // Disable feedback for 22q11 kids to avoid distraction
-        // if (shouldTriggerFeedback) {
-        //   lastSuccessAtRef.current = now;
-        //   lastGestureIdRef.current = stableGesture;
-        //   triggerSpeakAndShow(entry.label, smoothed, () => {});
-        //   startFeedbackAnimation();
-        //   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        // }
-
-        // Still update the recognized gesture but without any feedback
-        setLastRecognizedGesture(entry);
-        setStatus(entry.label);
-
-        // Log success
-        logInteractionEvent({
-          gestureDefinitionId: entry.id,
-          gestureName: entry.label,
-          wasSuccessful: true,
-          confidenceScore: smoothed,
-          timestamp: Date.now(),
-          processedBy,
-        }).catch(() => {});
-
-        try {
-          const adv = await dialogEngine.getSuggestions({
-            input: entry.label,
-            context: dialogContext,
-            language: 'de',
-            age: 4,
-          });
-          setSuggestions(adv);
-          setDialogContext((ctx) => {
-            const next = [...ctx, entry.label];
-            return next.slice(-5);
-          });
-        } catch (error) {
-          logger.warn('Failed to get LLM suggestions:', error);
-        }
-
-        // Evaluate practice prompt
-        shouldPromptPractice(entry.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
-          .then(setShowPracticeBanner)
-          .catch(() => setShowPracticeBanner(false));
-
-        // Sequence recognition (non-blocking): if a sequence matches, provide gentle feedback
-        try {
-          const seqId = seqRef.current.push(entry.id);
-          if (seqId) {
-            void logHIPEvent('HIP_2', 'sequence_detected', { sequence: seqId });
-        // Optional extra cue without altering primary status
-        // void audioService.playEncouragement(seqId);
-          }
-        } catch {}
-      } else {
-        setStatus('Ich bin mir nicht sicher. Bitte versuche es erneut.');
-        setPendingGesture(stableGesture);
-        // Only open correction after several consecutive uncertain frames
-        const now = Date.now();
-        if (now - lastUncertainAtRef.current > 1500) {
-          uncertainCountRef.current = 0;
-        }
-        lastUncertainAtRef.current = now;
-        uncertainCountRef.current += 1;
-        if (!showCorrection && uncertainCountRef.current >= 3) {
-          setShowCorrection(true);
-          uncertainCountRef.current = 0;
-        }
-        // Gentle nudge to retry
-        // try { await audioService.playEncouragement(); } catch {}
-        // HIP 3: opened correction/uncertainty path
-        void logHIPEvent('HIP_3', 'help_me_opened', { suggestionFor: finalGesture });
-        // Log failure for the incoming gesture id (could be 'unknown')
-        const id = (gestureModel.gestures.find((g) => g.id === stableGesture)?.id) || stableGesture || 'unknown';
-        logInteractionEvent({
-          gestureDefinitionId: id,
-          gestureName: stableGesture,
-          wasSuccessful: false,
-          confidenceScore: smoothed,
-          timestamp: Date.now(),
-          processedBy,
-        }).catch(() => {});
-        // Practice prompt check on last recognized if present
-        if (lastRecognizedGesture) {
-          shouldPromptPractice(lastRecognizedGesture.id, { minSamples: 5, lastN: 10, threshold: 0.6 })
-            .then(setShowPracticeBanner)
-            .catch(() => setShowPracticeBanner(false));
-        }
-      }
-    };
-
-    // On-device classification only: use provided or locally-classified gesture
-    await handleOutcome(g || 'unknown', c, path);
-  }, [
-    dialogContext,
-    facingMode,
-    handStabilizerRef,
-    lastRecognizedGesture,
-    showCorrection,
-    startFeedbackAnimation,
-  ]);
-
-  const handleGestureError = useCallback((errorMessage: string) => {
-    // Avoid flooding the UI; only surface critical init/camera errors
-    logger.warn('Gesture detection warning:', errorMessage);
-    if (/Camera error|Recognizer init failed/i.test(errorMessage)) {
-      setError(errorMessage);
-    }
-  }, []);
-
-  // Simple handler implementations for UI components
-  const handleSelectCorrection = useCallback(
-    async (choiceId: string) => {
-      setShowCorrection(false);
-      setStatus('Danke für deine Hilfe! Ich lerne daraus.');
-      navigation.navigate('Teaching', { gestureId: choiceId });
+      return resultPromise;
     },
-    [navigation, setShowCorrection, setStatus],
-  );
-
-  const handleCloseComparison = useCallback(() => {
-    setShowGestureComparison(false);
-    setComparisonAttempt(null);
-  }, [setShowGestureComparison, setComparisonAttempt]);
-
-  const handleTryAgainFromComparison = useCallback(() => {
-    setShowGestureComparison(false);
-    setComparisonAttempt(null);
-    setStatus("Versuch's nochmal! Du schaffst das!");
-  }, [setShowGestureComparison, setComparisonAttempt, setStatus]);
-
-  const handleAcceptPractice = useCallback(() => {
-    setShowPracticeSuggestion(false);
-    navigation.navigate('Teaching');
-  }, [navigation, setShowPracticeSuggestion]);
-
-  const handleDeclinePractice = useCallback(() => {
-    setShowPracticeSuggestion(false);
-  }, [setShowPracticeSuggestion]);
-
-  const handleLaterPractice = useCallback(() => {
-    setShowPracticeSuggestion(false);
-  }, [setShowPracticeSuggestion]);
-
-  const handleStartAdaptiveRecommendation = useCallback(
-    (recommendation: { gesture?: string; type?: string }) => {
-      setShowAdaptiveLearning(false);
-      if (recommendation?.gesture) {
-        navigation.navigate('Teaching', { gestureId: recommendation.gesture });
-      } else if (recommendation?.type === 'break') {
-        setStatus('Nimm dir kurz Zeit – ich bleibe bereit.');
-      }
-    },
-    [navigation, setShowAdaptiveLearning, setStatus],
+    [baseHandleGestureDetected, facingMode],
   );
 
   useEffect(() => {
@@ -805,17 +612,7 @@ export default function RecognitionScreen({
   );
 
   const normalizedStatus = status === 'none' ? 'Ich höre zu…' : status;
-  const displayStatus = kindergartenMode
-    ? normalizedStatus === 'Bereit zur Gestenerkennung'
-      ? '👋 Bereit!'
-      : normalizedStatus === 'Geste erkannt!'
-      ? '✨ Geste erkannt!'
-      : normalizedStatus.includes('Hilfe')
-      ? '🆘 Hilfe wird gerufen!'
-      : normalizedStatus.includes('Fehler')
-      ? '😊 Lass es uns nochmal versuchen!'
-      : normalizedStatus
-    : normalizedStatus;
+  const displayStatus = normalizedStatus;
 
   return (
     <>
@@ -825,60 +622,25 @@ export default function RecognitionScreen({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {(showTopControls || showMoodSelector || showLocationSelector) && (
+          {showTopControls && (
             <View style={styles.sectionSpacing}>
-              {showTopControls && !kindergartenMode && (
-                <View style={[styles.card, styles.controlRow, highContrast && styles.cardHC]}>
-                  <View style={styles.controlButton}>
-                    <Button
-                      title={
-                        facingMode === 'user'
-                          ? 'Hintere Kamera verwenden'
-                          : 'Vordere Kamera verwenden'
-                      }
-                      onPress={() => {
-                        const m = facingMode === 'user' ? 'environment' : 'user';
-                        setFacingMode(m);
-                        setWebviewKey((k) => k + 1);
-                      }}
-                      accessibilityLabel="Kamera wechseln"
-                    />
-                  </View>
-                  <View style={styles.controlButton}>
-                    <Button
-                      title="Stimmung"
-                      onPress={() => setShowMoodSelector(!showMoodSelector)}
-                      accessibilityLabel="Stimmungsmodus ändern"
-                    />
-                  </View>
-                  <View style={styles.controlButton}>
-                    <Button
-                      title="Ort"
-                      onPress={() => setShowLocationSelector(!showLocationSelector)}
-                      accessibilityLabel="Ort festlegen"
-                    />
-                  </View>
-                </View>
-              )}
-
-              {showTopControls && kindergartenMode && (
-                <View style={[styles.card, styles.controlColumn, highContrast && styles.cardHC]}>
+              <View style={[styles.card, styles.controlRow, highContrast && styles.cardHC]}>
+                <View style={styles.controlButton}>
                   <Button
-                    title="😊 Wie geht's Amy?"
-                    onPress={() => setShowMoodSelector(!showMoodSelector)}
-                    accessibilityLabel="Amy's Stimmung auswählen"
-                  />
-                  <View style={styles.controlSpacer} />
-                  <Button
-                    title="📍 Wo bist du?"
-                    onPress={() => setShowLocationSelector(!showLocationSelector)}
-                    accessibilityLabel="Aktuellen Ort auswählen"
+                    title={
+                      facingMode === 'user'
+                        ? 'Hintere Kamera verwenden'
+                        : 'Vordere Kamera verwenden'
+                    }
+                    onPress={() => {
+                      const m = facingMode === 'user' ? 'environment' : 'user';
+                      setFacingMode(m);
+                      setWebviewKey((k) => k + 1);
+                    }}
+                    accessibilityLabel="Kamera wechseln"
                   />
                 </View>
-              )}
-
-              {showMoodSelector && <MoodSelector />}
-              {showLocationSelector && <LocationSelector />}
+              </View>
             </View>
           )}
 
@@ -893,7 +655,7 @@ export default function RecognitionScreen({
             >
               {displayStatus}
             </Text>
-            {!kindergartenMode && modelUpdateStatus === 'updating' && (
+            {modelUpdateStatus === 'updating' && (
               <Text
                 style={[
                   styles.statusSubtle,
@@ -931,19 +693,7 @@ export default function RecognitionScreen({
                 onWebViewEvent={(telemetry) => {
                   logger.info('WebView telemetry:', telemetry);
                 }}
-                onModelUpdateStatus={(status) => {
-                  setModelUpdateStatus(status);
-                  if (status === 'complete') {
-                    const now = Date.now();
-                    if (now - lastModelUpdateTimeRef.current > 1500) {
-                      lastModelUpdateTimeRef.current = now;
-                      setMessage('Danke für deine neuen Gesten! Dein Modell ist jetzt aktualisiert.');
-                    }
-                  }
-                  if (status === 'error') {
-                    setMessage('Ups, das Modell konnte nicht aktualisiert werden. Versuch es später nochmal.');
-                  }
-                }}
+                onModelUpdateStatus={handleModelUpdateStatus}
                 facingMode={facingMode}
               />
 
@@ -1021,14 +771,14 @@ export default function RecognitionScreen({
                 <TwoHandGestureDisplay
                   gestureString={detectedTwoHandGesture.gesture.id}
                   confidence={detectedTwoHandGesture.confidence}
-                  showDetails={!kindergartenMode}
+                  showDetails
                   size="large"
                 />
               ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
                 <TwoHandGestureDisplay
                   gestureString={lastRecognizedGesture.label}
                   confidence={gestureConfidence}
-                  showDetails={!kindergartenMode}
+                  showDetails
                   size="large"
                 />
               ) : (
@@ -1040,37 +790,28 @@ export default function RecognitionScreen({
                       largeText && styles.symbolDisplayLarge,
                       { transform: [{ scale: symbolScaleAnim }] },
                     ]}
+                    >
+                      {lastRecognizedGesture.label}
+                    </Animated.Text>
+                  <Text
+                    style={[
+                      styles.gestureText,
+                      largeText && styles.gestureTextLarge,
+                      highContrast && styles.gestureTextHC,
+                    ]}
                   >
-                    {lastRecognizedGesture.label}
-                  </Animated.Text>
-                  {!kindergartenMode && (
-                    <>
-                      <Text
-                        style={[
-                          styles.gestureText,
-                          largeText && styles.gestureTextLarge,
-                          highContrast && styles.gestureTextHC,
-                        ]}
-                      >
-                        {(gestureConfidence * 100).toFixed(0)}%
-                      </Text>
-                      <Text
-                        style={[
-                          styles.confidenceText,
-                          largeText && styles.confidenceTextLarge,
-                          highContrast && styles.confidenceTextHC,
-                        ]}
-                        testID="recognition-path"
-                      >
-                        über {recognitionPath}
-                      </Text>
-                    </>
-                  )}
-                  {kindergartenMode && gestureConfidence > 0.6 && (
-                    <Text style={[styles.encouragementText, largeText && styles.encouragementTextLarge]}>
-                      🎉 Super!
-                    </Text>
-                  )}
+                    {(gestureConfidence * 100).toFixed(0)}%
+                  </Text>
+                  <Text
+                    style={[
+                      styles.confidenceText,
+                      largeText && styles.confidenceTextLarge,
+                      highContrast && styles.confidenceTextHC,
+                    ]}
+                    testID="recognition-path"
+                  >
+                    über {recognitionPath}
+                  </Text>
                 </>
               )}
             </Animated.View>

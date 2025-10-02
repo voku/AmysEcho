@@ -8,7 +8,7 @@ This document records the major architectural choices made for Amy's Echo.
 - **Decision**: Use a hybrid online/offline gesture recognition pipeline.
 - **Rationale**: Online services provide higher accuracy and faster iteration, while a WebView-based detector with a small rule-based classifier ensures functionality without network access.
 - **Consequences**: The app must seamlessly switch between modes within 400 ms and always maintain an offline fallback to protect the user experience.
-- **Enhancements**: The pipeline is now enhanced with contextual awareness, predictive gestures, and emotional state recognition to provide a more intelligent and supportive user experience.
+- **Enhancements**: The pipeline is now enhanced with contextual awareness and predictive gestures to provide a more intelligent and supportive user experience.
 
 ## Technology Stack
 - **Decision**: Build the mobile app with React Native and TypeScript.

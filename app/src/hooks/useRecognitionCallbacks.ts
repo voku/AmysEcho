@@ -12,6 +12,8 @@ import {
   gestureCombinationService,
   correctionService,
   twoHandGestureService,
+  dialogEngine,
+  LanguageManager,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
@@ -28,8 +30,11 @@ import * as Haptics from 'expo-haptics';
 import { logger } from '../utils/logger';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
+import type { RecognitionPath } from '../utils/recognitionState';
 import type { RootStackParamList } from '../navigation/types';
 import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
+import { shouldPromptPractice } from '../services/healthScore';
+import { logInteractionEvent } from '../services/analytics';
 
 const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
 const RECOVERING_CAMERA_TEXT = 'Ups! Ich starte die Kamera neu…';
@@ -66,6 +71,11 @@ const VISUAL_RIPPLE_RESET_DELAY_MS = 280;
 const PRACTICE_SUGGESTION_DELAY_MS = 2000;
 const RECENT_GESTURE_SUPPRESS_MS = 1000;
 const SCREEN_FLASH_RESET_DELAY_MS = 600;
+const PRACTICE_PROMPT_OPTIONS = {
+  minSamples: 5,
+  lastN: 10,
+  threshold: 0.6,
+};
 
 const normalizeGestureId = (gesture: string | null): string | null => {
   if (!gesture) return null;
@@ -93,6 +103,8 @@ export const useRecognitionCallbacks = ({
     setGestureConfidence,
     setLastRecognizedGesture,
     setRecognitionPath,
+    setSuggestions,
+    setDialogContext,
     setShowVisualRipple,
     setShowScreenFlash,
     setScreenFlashPattern,
@@ -112,6 +124,9 @@ export const useRecognitionCallbacks = ({
     screenReaderEnabled,
     showPipGuidance,
     gestureConfidence,
+    dialogContext,
+    lastRecognizedGesture,
+    profile,
   } = state;
 
   const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -188,6 +203,26 @@ export const useRecognitionCallbacks = ({
       }
 
       schedulePracticeSuggestion();
+
+      const gestureMeta = optimizedGestureService.getGestureById(gesture);
+      void logInteractionEvent({
+        gestureDefinitionId: gestureMeta?.id ?? gesture,
+        gestureName: gestureMeta?.label ?? gesture,
+        wasSuccessful: false,
+        confidenceScore: smoothedConfidence,
+        timestamp: Date.now(),
+        processedBy: 'local',
+      }).catch((error) => logger.debug('Failed to log uncertain gesture event', error));
+
+      if (lastRecognizedGesture) {
+        void shouldPromptPractice(lastRecognizedGesture.id, PRACTICE_PROMPT_OPTIONS)
+          .then((shouldShow) => {
+            if (shouldShow) {
+              setShowPracticeSuggestion(true);
+            }
+          })
+          .catch((error) => logger.debug('Practice suggestion check failed', error));
+      }
     },
     [
       schedulePracticeSuggestion,
@@ -197,6 +232,8 @@ export const useRecognitionCallbacks = ({
       setPipGuidanceGesture,
       setShowPipGuidance,
       showPipGuidance,
+      lastRecognizedGesture,
+      setShowPracticeSuggestion,
     ],
   );
 
@@ -208,8 +245,9 @@ export const useRecognitionCallbacks = ({
       emoji: string,
       smoothedConfidence: number,
       landmarks: number[][][],
+      recognitionSource: RecognitionPath,
     ) => {
-      setRecognitionPath('local');
+      setRecognitionPath(recognitionSource);
       setLastRecognizedGesture(gestureMeta);
       setStatus(helpers.getSuccessMessage(gesture));
       helpers.startFeedbackAnimation();
@@ -322,6 +360,10 @@ export const useRecognitionCallbacks = ({
       }
 
       setShortcutActivated(null);
+
+      void shouldPromptPractice(gesture, PRACTICE_PROMPT_OPTIONS)
+        .then((shouldShow) => setShowPracticeSuggestion(shouldShow))
+        .catch((error) => logger.debug('Failed to evaluate practice suggestion', error));
     },
     [
       refs.labelHistoryRef,
@@ -329,6 +371,7 @@ export const useRecognitionCallbacks = ({
       setShortcutActivated,
       setShowAdaptiveLearning,
       setShowCorrection,
+      setShowPracticeSuggestion,
       setStatus,
     ],
   );
@@ -340,6 +383,7 @@ export const useRecognitionCallbacks = ({
       landmarks: number[][][],
       handedness: string[],
       emergency: boolean,
+      recognitionSource: RecognitionPath,
     ) => {
       setPendingGesture(null);
       setShowVisualRipple(false);
@@ -368,7 +412,43 @@ export const useRecognitionCallbacks = ({
         setDetectedTwoHandGesture(null);
       }
 
-      showSuccessfulGestureUi(gesture, gestureMeta ?? null, label, emoji, smoothedConfidence, landmarks);
+      showSuccessfulGestureUi(
+        gesture,
+        gestureMeta ?? null,
+        label,
+        emoji,
+        smoothedConfidence,
+        landmarks,
+        recognitionSource,
+      );
+
+      const suggestionLanguage = LanguageManager.getLanguage();
+      const suggestionAge = profile?.age ?? 4;
+
+      try {
+        const suggestions = await dialogEngine.getSuggestions({
+          input: label,
+          context: dialogContext,
+          language: suggestionLanguage,
+          age: suggestionAge,
+        });
+        setSuggestions(suggestions);
+        setDialogContext((ctx) => {
+          const next = [...ctx, label];
+          return next.slice(-5);
+        });
+      } catch (error) {
+        logger.warn('Failed to get LLM suggestions:', error);
+      }
+
+      void logInteractionEvent({
+        gestureDefinitionId: gestureMeta?.id ?? gesture,
+        gestureName: label,
+        wasSuccessful: true,
+        confidenceScore: smoothedConfidence,
+        timestamp: Date.now(),
+        processedBy: recognitionSource,
+      }).catch((error) => logger.debug('Failed to log successful gesture', error));
 
       await runRecognitionFeedback(gesture, label, smoothedConfidence, emergency);
 
@@ -380,7 +460,11 @@ export const useRecognitionCallbacks = ({
       setPendingGesture,
       setShowVisualRipple,
       setDetectedTwoHandGesture,
+      setSuggestions,
+      setDialogContext,
+      dialogContext,
       showSuccessfulGestureUi,
+      profile,
     ],
   );
 
@@ -391,6 +475,7 @@ export const useRecognitionCallbacks = ({
       landmarks: number[][][],
       handedness: string[],
       emergency = false,
+      recognitionSource: RecognitionPath = 'local',
     ) => {
       try {
         refs.lastFrameTimeRef.current = Date.now();
@@ -455,6 +540,7 @@ export const useRecognitionCallbacks = ({
           landmarks,
           handedness,
           emergency,
+          recognitionSource,
         );
       } catch (error) {
         logger.error('handleGestureDetected failed', error);

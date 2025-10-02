@@ -179,8 +179,7 @@ describe('Core Communication Workflows', () => {
       const successData = {
         gesture: 'thank_you',
         confidence: 0.91,
-        context: 'after_help',
-        emotionalState: 'happy' as const
+        context: 'after_help'
       };
 
       positiveTelemetryService.recordSuccess(successData);

@@ -20,7 +20,5 @@ export * from './gestureCombinationService';
 export * from './twoHandGestureService';
 export * from './adaptiveLearningService';
 export * from './activeLearningService';
-export * from './emotionDetectionService';
-export * from './emotionalResponseService';
 export * from './LanguageManager';
 export * from './trainingBundleService';

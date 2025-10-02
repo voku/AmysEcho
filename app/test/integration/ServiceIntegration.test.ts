@@ -57,8 +57,7 @@ describe('Service Integration Tests', () => {
       mockTelemetry.recordSuccess({
         gesture: gestureData.label,
         confidence: gestureData.confidence,
-        context: 'communication',
-        emotionalState: 'happy'
+        context: 'communication'
       });
 
       // Verify integration
