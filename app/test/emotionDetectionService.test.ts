@@ -34,7 +34,7 @@ describe('EmotionDetectionService', () => {
     expect(emotion).toBe('frustrated');
   });
 
-  test('updates MoodSelector when emotion changes', () => {
+  test('notifies mood setter when emotion changes', () => {
     const metrics: GestureMetrics = { speed: 0.9, intensity: 0.9 };
     const setMood = jest.fn();
     emotionDetectionService.detectAndUpdateMood(metrics, 'happy', setMood);
@@ -53,7 +53,7 @@ describe('EmotionDetectionService', () => {
     expect(emotion).toBe('calm');
   });
 
-  test('does not update MoodSelector when mood unchanged', () => {
+  test('does not notify mood setter when mood unchanged', () => {
     const metrics: GestureMetrics = { speed: 0.5, intensity: 0.6 };
     const setMood = jest.fn();
     emotionDetectionService.detectAndUpdateMood(metrics, 'happy', setMood);

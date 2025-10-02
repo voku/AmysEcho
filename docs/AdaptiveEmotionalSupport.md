@@ -47,12 +47,12 @@ performance and context:
 - **Time-of-Day Awareness:** Appropriate encouragement based on time patterns
 - **Personalization:** Learns which types of feedback work best for Amy
 
-### 4. Mood-Based Adaptations
+### 4. Emotion-Based Adaptations
 
-When Amy selects a mood via the MoodSelector:
+When the emotion detector reports a new state:
 
-- **Feedback Adjustment:** Encouragement messages adapt to current mood
-- **Gesture Suggestions:** Mood influences which gestures are suggested
+- **Feedback Adjustment:** Encouragement messages adapt to the detected mood
+- **Gesture Suggestions:** Emotion influences which gestures are suggested
 - **Activity Recommendations:** System suggests activities based on emotional state
 
 ## Implementation Details
@@ -87,7 +87,7 @@ recordSuccessWithEmotion(gesture: string, confidence: number, emotionalState: st
 - ✅ **Multi-sensory Feedback:** Visual, audio, and haptic encouragement
 - ✅ **Emotional Pattern Learning:** Tracks mood correlations with success
 - ✅ **Adaptive Celebrations:** Context-aware celebration intensity
-- ✅ **Mood Integration:** Feedback adapts to selected mood
+- ✅ **Emotion Integration:** Feedback adapts to detected mood
 - ✅ **Success Analytics:** Detailed insights for caregivers
 - ✅ **Emotional Response Service:** German encouragement messages and caregiver alerts
 - ✅ **Emotion Detection & Persistence:** Last detected emotion stored across sessions
@@ -99,7 +99,7 @@ recordSuccessWithEmotion(gesture: string, confidence: number, emotionalState: st
 ## Integration Points
 
 ### RecognitionScreen
-- Displays MoodSelector for emotional input
+- Subscribes to emotion updates from `emotionDetectionService`
 - Shows adaptive feedback based on performance and mood
 - Records emotional context with gesture attempts
 
@@ -115,13 +115,6 @@ recordSuccessWithEmotion(gesture: string, confidence: number, emotionalState: st
 
 ## Usage Examples
 
-### Mood-Based Feedback
-```typescript
-// When Amy is in "excited" mood
-// System provides more energetic celebrations
-// Suggestions favor playful gestures
-```
-
 ### Pattern-Based Adaptation
 ```typescript
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
@@ -134,7 +127,7 @@ positiveTelemetryService.recordSuccess(gesture, confidence, timeOfDay, emotional
 
 ## Data Flow
 
-1. **Mood Selection:** Amy selects current mood via MoodSelector
+1. **Emotion Detection:** Gesture metrics trigger mood updates
 2. **Gesture Attempt:** System records emotional context
 3. **Feedback Generation:** Multi-sensory response adapts to mood and performance
 4. **Pattern Learning:** Success moments build emotional communication patterns

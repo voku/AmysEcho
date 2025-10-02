@@ -66,8 +66,6 @@ export class LazyLoadingService {
           return (await import('../components/AdaptiveLearningPanel')).default;
         case 'GestureComparison':
           return (await import('../components/GestureComparison')).default;
-        case 'MoodSelector':
-          return (await import('../components/MoodSelector')).default;
         case 'ScreenFlash':
           return (await import('../components/ScreenFlash')).default;
         case 'TwoHandGestureDisplay':

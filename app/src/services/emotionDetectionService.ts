@@ -73,7 +73,7 @@ class EmotionDetectionService {
   }
 
   /**
-   * Detect emotion and update MoodSelector via callback when mood changed.
+   * Detect emotion and notify a mood setter callback when the state changes.
    */
   detectAndUpdateMood(
     metrics: GestureMetrics,

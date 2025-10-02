@@ -4,19 +4,11 @@ This document describes the current implementation of emotional state recognitio
 
 ## Overview
 
-Emotional state recognition is implemented through several integrated components rather than a single dedicated service. The system uses gesture patterns, user-selected moods, and contextual data to provide emotionally aware responses.
+Emotional state recognition is implemented through several integrated services rather than a single dedicated feature. The system relies on gesture patterns, lightweight heuristics, and contextual data to provide emotionally aware responses.
 
 ## Key Components
 
-### 1. Mood Selector Component
-
-Located in `app/src/components/MoodSelector.tsx`, this component allows Amy to express her current emotional state:
-
-- **Available Moods:** Happy (😊), Sad (😢), Angry (😠), Surprised (😲), Excited (🤩)
-- **Integration:** Connected to RecognitionScreen for real-time mood updates
-- **Persistence:** Moods are tracked and can influence app behavior
-
-### 2. Positive Telemetry Service
+### 1. Positive Telemetry Service
 
 The `PositiveTelemetryService` in `app/src/services/positiveTelemetryService.ts` tracks emotional patterns:
 
@@ -35,16 +27,16 @@ interface SuccessMoment {
 - **Success Tracking:** Records successful gestures with emotional context
 - **Pattern Analysis:** Identifies which emotions correlate with successful communication
 
-### 3. Emotion Detection Service
+### 2. Emotion Detection Service
 
 Located in `app/src/services/emotionDetectionService.ts`, this service infers
 emotional state from gesture metrics and keeps the last detected state across sessions:
 
 - **Gesture Metrics:** Considers speed, intensity and repetition patterns
-- **Mood Integration:** Updates the MoodSelector when the detected emotion changes
+- **Mood Updates:** Exposes a callback-based API so screens can react to emotion changes
 - **Persistence:** Stores the last emotion using AsyncStorage
 
-### 4. Two-Hand Gesture Emotional Support
+### 3. Two-Hand Gesture Emotional Support
 
 The `TwoHandGestureService` includes emotional gesture categories:
 
@@ -52,7 +44,7 @@ The `TwoHandGestureService` includes emotional gesture categories:
 - **Category-Based Boosting:** Emotional gestures receive slight confidence boosts
 - **Accessibility:** Full German localization and visual feedback
 
-### 5. Context-Aware Emotional Adjustments
+### 4. Context-Aware Emotional Adjustments
 
 The `ContextAwareRecognitionService` considers emotional context:
 
@@ -61,18 +53,6 @@ The `ContextAwareRecognitionService` considers emotional context:
 - **Motivation Tracking:** Monitors performance improvements that suggest emotional engagement
 
 ## Implementation Details
-
-### Mood Integration
-
-Moods are integrated throughout the app:
-
-```typescript
-// From RecognitionScreen.tsx
-const [currentMood, setCurrentMood] = useState<Mood | null>(null);
-
-// Mood influences gesture recognition context
-const emotionalState = currentMood?.id;
-```
 
 ### Emotional Pattern Learning
 
@@ -93,7 +73,7 @@ The current implementation does not include:
 ## Integration Points
 
 ### RecognitionScreen
-- Displays MoodSelector component
+- Receives emotion updates from `emotionDetectionService`
 - Records emotional context with gestures
 - Uses mood data for contextual adjustments
 
@@ -109,12 +89,6 @@ The current implementation does not include:
 
 ## Usage Examples
 
-### Setting Mood
-```typescript
-// User selects mood through MoodSelector component
-// Mood is stored in component state and passed to recognition context
-```
-
 ### Emotional Pattern Tracking
 ```typescript
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
@@ -127,14 +101,13 @@ positiveTelemetryService.recordSuccess(gesture, confidence, timeOfDay, emotional
 
 To fully implement the planned emotional state recognition:
 
-1. **Create EmotionDetectionService:** Analyze gesture speed, intensity, and patterns for automatic emotion detection
-2. **Implement EmotionalResponseService:** Provide mood-adaptive encouragement messages
-3. **Add Caregiver Alerts:** Notify caregivers of significant emotional state changes
-4. **Enhance Dialog Engine:** Integrate emotional context into AI-generated responses
+1. **Implement EmotionalResponseService:** Provide mood-adaptive encouragement messages
+2. **Add Caregiver Alerts:** Notify caregivers of significant emotional state changes
+3. **Enhance Dialog Engine:** Integrate emotional context into AI-generated responses
 
 ## Data Flow
 
-1. **Mood Selection:** User selects current mood via MoodSelector
+1. **Emotion Detection:** Gesture metrics are evaluated for emotional cues
 2. **Context Recording:** Emotional state recorded with each gesture attempt
 3. **Pattern Learning:** PositiveTelemetryService learns emotional patterns
 4. **Adaptive Responses:** System adapts feedback based on emotional context

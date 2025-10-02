@@ -45,7 +45,7 @@ The service tracks gesture sequences and predicts likely next gestures:
 ### 5. Location-Based Context
 
 - **Supported Locations:** `home`, `school`, `playground`, `other`
-- **Manual Setting:** A location selector in the Recognition screen lets caregivers choose between *Zuhause*, *Kindergarten*, *Spielplatz* or *Anderer Ort*. Selection updates the context-aware recognition service automatically.
+- **Programmatic Setting:** Services can call `contextAwareRecognitionService.setLocation()` to adjust the active context.
 - **Pattern Learning:** Gesture patterns are stored per location and time-of-day
 - **Contextual Boosting:** Gestures frequently used at the current location receive higher confidence
 
