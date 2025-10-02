@@ -33,6 +33,107 @@ const SUGGESTION_SCHEMA = {
   strict: true,
 } as const;
 
+interface OpenAIOutputTextBlock {
+  type?: string;
+  text?: string;
+}
+
+interface OpenAIOutputItem {
+  content?: OpenAIOutputTextBlock[] | string;
+}
+
+interface OpenAIResponsePayload {
+  output_text?: string;
+  output?: OpenAIOutputItem[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parseOpenAIResponse(raw: unknown): OpenAIResponsePayload {
+  if (!isRecord(raw)) {
+    return {};
+  }
+
+  const payload: OpenAIResponsePayload = {};
+  const outputText = raw['output_text'];
+  if (typeof outputText === 'string') {
+    payload.output_text = outputText;
+  }
+
+  const output = raw['output'];
+  if (Array.isArray(output)) {
+    payload.output = output.map((item): OpenAIOutputItem => {
+      if (!isRecord(item)) {
+        return {};
+      }
+      const entry: OpenAIOutputItem = {};
+      const content = item['content'];
+      if (typeof content === 'string') {
+        entry.content = content;
+      } else if (Array.isArray(content)) {
+        const blocks: OpenAIOutputTextBlock[] = [];
+        for (const block of content) {
+          if (!isRecord(block)) {
+            continue;
+          }
+          const type = typeof block['type'] === 'string' ? (block['type'] as string) : undefined;
+          const text = typeof block['text'] === 'string' ? (block['text'] as string) : undefined;
+          if (type || text) {
+            const blockEntry: OpenAIOutputTextBlock = {};
+            if (type) {
+              blockEntry.type = type;
+            }
+            if (text) {
+              blockEntry.text = text;
+            }
+            blocks.push(blockEntry);
+          }
+        }
+        if (blocks.length > 0) {
+          entry.content = blocks;
+        }
+      }
+      return entry;
+    });
+  }
+
+  return payload;
+}
+
+function extractOutputText(data: OpenAIResponsePayload): string {
+  if (typeof data.output_text === 'string' && data.output_text.trim().length > 0) {
+    return data.output_text;
+  }
+
+  if (!Array.isArray(data.output)) {
+    return '';
+  }
+
+  const parts = data.output
+    .map((item) => {
+      if (!item) {
+        return '';
+      }
+      const { content } = item;
+      if (typeof content === 'string') {
+        return content;
+      }
+      if (Array.isArray(content)) {
+        const block = content.find(
+          (entry): entry is OpenAIOutputTextBlock =>
+            Boolean(entry) && entry.type === 'output_text' && typeof entry.text === 'string',
+        );
+        return block?.text ?? '';
+      }
+      return '';
+    })
+    .filter((text) => typeof text === 'string' && text.trim().length > 0);
+
+  return parts.join('\n');
+}
+
 // LLM Hint: Define a clear type for the expected JSON response from the LLM.
 export type LLMSuggestionResponse = {
   nextWords: string[];
@@ -225,23 +326,9 @@ class DialogEngine {
         return { nextWords: [], caregiverPhrases: [] };
       }
 
-      const data = await response.json();
-      const outputText: string = data?.output_text
-        ?? data?.output?.map((item: any) => {
-          if (Array.isArray(item?.content)) {
-            const textBlock = item.content.find((block: any) => block?.type === 'output_text');
-            if (typeof textBlock?.text === 'string') {
-              return textBlock.text;
-            }
-          }
-          if (typeof item?.content === 'string') {
-            return item.content;
-          }
-          return '';
-        })
-          .filter((text: string) => Boolean(text))
-          .join('\n')
-        ?? '';
+      const raw = await response.json();
+      const data = parseOpenAIResponse(raw);
+      const outputText = extractOutputText(data);
 
       const messageContent = typeof outputText === 'string' && outputText.trim().length > 0 ? outputText : '{}';
 
