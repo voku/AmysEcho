@@ -300,10 +300,16 @@ export default function RecognitionScreen({
               stabilized.landmarks,
               stabilized.handedness,
             );
-            const flattenedPoints: Point[] = flattened.map((coords) => {
-              const [x = 0, y = 0, z = 0] = Array.isArray(coords) ? coords : [];
-              return [x, y, z] as Point;
-            });
+            const flattenedPoints: Point[] = [];
+            for (const coords of flattened) {
+              if (!Array.isArray(coords)) {
+                flattenedPoints.push([0, 0, 0]);
+                continue;
+              }
+              const [x = 0, y = 0, z = 0] = coords;
+              const point: Point = [x, y, z];
+              flattenedPoints.push(point);
+            }
             const centroidResult = classifyWithCentroids(flattenedPoints, centroidsRef.current);
             if (
               centroidResult &&
