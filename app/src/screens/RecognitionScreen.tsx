@@ -301,7 +301,7 @@ export default function RecognitionScreen({
               stabilized.handedness,
             );
             const flattenedPoints: Point[] = flattened.map((coords) => {
-              const [x = 0, y = 0, z = 0] = coords ?? [];
+              const [x = 0, y = 0, z = 0] = Array.isArray(coords) ? coords : [];
               return [x, y, z] as Point;
             });
             const centroidResult = classifyWithCentroids(flattenedPoints, centroidsRef.current);
@@ -333,13 +333,7 @@ export default function RecognitionScreen({
 
       return resultPromise;
     },
-    [
-      baseHandleGestureDetected,
-      centroidsRef,
-      facingMode,
-      handStabilizerRef,
-      lastOfflineClassifyAtRef,
-    ],
+    [baseHandleGestureDetected, facingMode],
   );
 
   useEffect(() => {
