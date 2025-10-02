@@ -101,7 +101,7 @@
 6. **Multi-User Profile Management:** Expand multi-user profile management to support multiple children or users with personalized settings and learning data.
 7. **Augmented Reality (AR) Overlays:** Explore AR overlays to provide interactive visual feedback directly on the camera feed, enhancing the learning experience.
 8. **Integration with External DGS Resources:** Integrate with external DGS dictionaries, video libraries, or educational content providers to enrich the learning material.
-9. **Emotion Recognition Integration:** Explore integrating emotion recognition to understand Amy's emotional state and adapt responses accordingly.
+9. **Confidence Trend Insights:** Deepen analytics around confidence trends to tailor reinforcement without relying on inferred emotions.
 10. **Predictive Gesture Completion:** Implement predictive gesture completion, where the system suggests the likely next part of a gesture as Amy performs it.
 
 ## IX. Enhanced Communication & Collaboration

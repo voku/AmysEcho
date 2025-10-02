@@ -34,12 +34,10 @@ This document details the comprehensive machine learning and large language mode
 - **Primary Functions**:
   - Gesture quality assessment and feedback
   - Personalized improvement suggestions
-  - Emotional state recognition from gesture patterns
   - Conversational dialog generation
 
 ### Feedback Intelligence Features
 - **Contextual Analysis**: Considers time of day, user history, and environment
-- **Emotional Awareness**: Adapts feedback based on detected emotional state
 - **Personalization**: Learns user preferences and communication patterns
 - **Multilingual Support**: German localization for all AI-generated content
 
@@ -49,7 +47,7 @@ This document details the comprehensive machine learning and large language mode
 - **Features**:
   - Next-word prediction based on gesture sequences
   - Caregiver phrase suggestions
-  - Emotional support messaging
+  - Confidence-aligned caregiver prompts
 - **Implementation**: `app/src/services/dialogEngine.ts`
 
 ## 🔄 ML/LLM Pipeline Architecture
@@ -118,7 +116,6 @@ const analysis = await validateGestureWithVision({
 ### For Amy (End User)
 - **Higher Accuracy**: ML fallback catches uncertain gestures
 - **Better Feedback**: LLM provides personalized, encouraging suggestions
-- **Emotional Support**: AI recognizes communication intent beyond literal gestures
 - **Learning Acceleration**: Intelligent suggestions speed up gesture mastery
 
 ### For Caregivers
@@ -141,7 +138,6 @@ const analysis = await validateGestureWithVision({
 - **Multi-modal Integration**: Combine gesture, facial expression, and voice analysis
 
 ### Enhanced LLM Capabilities
-- **Emotion Recognition**: Advanced emotional state detection from gesture patterns
 - **Conversational Memory**: Long-term context retention across sessions
 - **Personalized Learning**: AI tutor that adapts to Amy's learning style
 - **Multilingual Expansion**: Support for additional languages beyond German
@@ -171,7 +167,6 @@ This comprehensive ML/LLM integration ensures Amy's Echo provides the most advan
 ## 🧠 LLM for Feedback & Communication
 - **OpenAI GPT-4 Vision**: Analyzes gesture images and provides detailed feedback
 - **Dialog Engine**: Generates contextual conversation suggestions
-- **Emotional Intelligence**: Adapts feedback based on detected emotional states
 
 ## 🔄 Intelligent Pipeline
 The system uses a sophisticated fallback system:

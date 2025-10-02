@@ -595,7 +595,6 @@ export default function TrainingScreen({ navigation, route }: any) {
                         gestureId,
                         confidence,
                         undefined, // context
-                        undefined, // emotionalState
                         Date.now() - (sessionStartTime || Date.now()), // duration
                       );
                     }

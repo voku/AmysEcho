@@ -21,7 +21,6 @@ export interface SuccessMoment {
   dayOfWeek: number;
   context?: string; // e.g., "with_favorite_toy", "after_meal"
   duration?: number; // how long the communication moment lasted
-  emotionalState?: 'happy' | 'excited' | 'calm' | 'focused';
 }
 
 export interface SuccessPattern {
@@ -31,7 +30,6 @@ export interface SuccessPattern {
   frequency: number;
   lastSuccess: number;
   bestContext?: string;
-  emotionalPattern?: string;
   streakCount: number; // consecutive successful uses
 }
 
@@ -83,7 +81,6 @@ class PositiveTelemetryService {
     gesture: string,
     confidence: number,
     context?: string,
-    emotionalState?: 'happy' | 'excited' | 'calm' | 'focused',
     duration?: number
   ): void {
     const now = Date.now();
@@ -102,10 +99,6 @@ class PositiveTelemetryService {
       successMoment.context = context;
     }
 
-    if (emotionalState) {
-      successMoment.emotionalState = emotionalState;
-    }
-
     if (duration !== undefined) {
       successMoment.duration = duration;
     }
@@ -117,7 +110,7 @@ class PositiveTelemetryService {
     }
 
     // Update patterns
-    this.updateSuccessPattern(gesture, confidence, timeOfDay, context, emotionalState);
+    this.updateSuccessPattern(gesture, confidence, timeOfDay, context);
 
     // Check for celebrations
     const celebration = this.checkForCelebration(gesture, confidence);
@@ -242,8 +235,7 @@ class PositiveTelemetryService {
     gesture: string,
     confidence: number,
     timeOfDay: string,
-    context?: string,
-    emotionalState?: string
+    context?: string
   ): void {
     const patternKey = `${gesture}_${timeOfDay}`;
     const existing = this.successPatterns.get(patternKey);
@@ -257,13 +249,9 @@ class PositiveTelemetryService {
       existing.averageConfidence = newAverageConfidence;
       existing.lastSuccess = Date.now();
 
-      // Update context and emotional patterns
+      // Update context pattern
       if (context && (!existing.bestContext || this.getContextFrequency(gesture, context) > this.getContextFrequency(gesture, existing.bestContext))) {
         existing.bestContext = context;
-      }
-
-      if (emotionalState && (!existing.emotionalPattern || this.getEmotionalFrequency(gesture, emotionalState) > this.getEmotionalFrequency(gesture, existing.emotionalPattern))) {
-        existing.emotionalPattern = emotionalState;
       }
 
       // Update streak
@@ -281,10 +269,6 @@ class PositiveTelemetryService {
 
       if (context) {
         newPattern.bestContext = context;
-      }
-
-      if (emotionalState) {
-        newPattern.emotionalPattern = emotionalState;
       }
 
       this.successPatterns.set(patternKey, newPattern);
@@ -571,10 +555,6 @@ class PositiveTelemetryService {
     return this.successMoments.filter(m => m.gesture === gesture && m.context === context).length;
   }
 
-  private getEmotionalFrequency(gesture: string, emotionalState: string): number {
-    return this.successMoments.filter(m => m.gesture === gesture && m.emotionalState === emotionalState).length;
-  }
-
   private rebuildPatternsFromMoments(): void {
     this.successPatterns.clear();
 
@@ -583,8 +563,7 @@ class PositiveTelemetryService {
         moment.gesture,
         moment.confidence,
         moment.timeOfDay,
-        moment.context,
-        moment.emotionalState
+        moment.context
       );
     }
   }

@@ -28,13 +28,12 @@ describe('PositiveTelemetryService', () => {
 
   describe('Success Recording', () => {
     test('records successful communication moments', () => {
-      positiveTelemetryService.recordSuccess('thumbs_up', 0.8, 'playtime', 'happy');
+      positiveTelemetryService.recordSuccess('thumbs_up', 0.8, 'playtime');
 
       expect((positiveTelemetryService as any).successMoments.length).toBe(1);
       expect((positiveTelemetryService as any).successMoments[0].gesture).toBe('thumbs_up');
       expect((positiveTelemetryService as any).successMoments[0].confidence).toBe(0.8);
       expect((positiveTelemetryService as any).successMoments[0].context).toBe('playtime');
-      expect((positiveTelemetryService as any).successMoments[0].emotionalState).toBe('happy');
     });
 
     test('maintains maximum success moments limit', () => {

@@ -30,7 +30,6 @@ interface LearningPath {
 
 **Predefined Paths:**
 - **Basic Communication:** Essential gestures (hello, thank_you, please, yes, no)
-- **Emotional Expression:** Feelings and emotions (happy, sad, angry, surprised, excited)
 - **Daily Activities:** Routine gestures (eat, drink, sleep, play, bathroom)
 
 ### 2. Performance-Based Difficulty Scaling
