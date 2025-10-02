@@ -105,8 +105,6 @@ export interface RecognitionSessionState {
   setShowMoodSelector: Dispatch<SetStateAction<boolean>>;
   showLocationSelector: boolean;
   setShowLocationSelector: Dispatch<SetStateAction<boolean>>;
-  kindergartenMode: boolean;
-  setKindergartenMode: Dispatch<SetStateAction<boolean>>;
   bullyingProtectionActive: boolean;
   setBullyingProtectionActive: Dispatch<SetStateAction<boolean>>;
 }
@@ -143,7 +141,6 @@ export const useRecognitionState = (): RecognitionState => {
   const [modelUpdateStatus, setModelUpdateStatus] = useState<'idle' | 'updating' | 'complete' | 'error'>('idle');
   const [showMoodSelector, setShowMoodSelector] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
-  const [kindergartenMode, setKindergartenMode] = useState(true);
   const [bullyingProtectionActive, setBullyingProtectionActive] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const [showVisualRipple, setShowVisualRipple] = useState(false);
@@ -211,8 +208,6 @@ export const useRecognitionState = (): RecognitionState => {
     setShowMoodSelector,
     showLocationSelector,
     setShowLocationSelector,
-    kindergartenMode,
-    setKindergartenMode,
     bullyingProtectionActive,
     setBullyingProtectionActive,
     gestureSizeTolerance,

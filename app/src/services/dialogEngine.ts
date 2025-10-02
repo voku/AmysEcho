@@ -238,12 +238,13 @@ class DialogEngine {
           };
         }
         logger.warn(`Server /dialog returned status ${response.status}; falling back`);
+      } else {
+        logger.debug('No backend token available for dialog suggestions; using OpenAI directly');
       }
     } catch (e) {
       logger.warn('Server /dialog request failed; falling back', e);
     }
-    // No fallback to direct OpenAI
-    return { nextWords: [], caregiverPhrases: [] };
+    return this.getLLMSuggestions({ input, context, language, age });
   }
 }
 

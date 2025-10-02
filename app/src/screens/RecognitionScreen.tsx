@@ -7,7 +7,6 @@ import {
   Animated,
   Easing,
   Button,
-  Switch,
   AccessibilityInfo,
   ScrollView,
 } from 'react-native';
@@ -109,8 +108,6 @@ export default function RecognitionScreen({
     setShowMoodSelector,
     showLocationSelector,
     setShowLocationSelector,
-    kindergartenMode,
-    setKindergartenMode,
     bullyingProtectionActive,
     setBullyingProtectionActive,
     gestureSizeTolerance,
@@ -618,17 +615,7 @@ export default function RecognitionScreen({
   );
 
   const normalizedStatus = status === 'none' ? 'Ich höre zu…' : status;
-  const displayStatus = kindergartenMode
-    ? normalizedStatus === 'Bereit zur Gestenerkennung'
-      ? '👋 Bereit!'
-      : normalizedStatus === 'Geste erkannt!'
-      ? '✨ Geste erkannt!'
-      : normalizedStatus.includes('Hilfe')
-      ? '🆘 Hilfe wird gerufen!'
-      : normalizedStatus.includes('Fehler')
-      ? '😊 Lass es uns nochmal versuchen!'
-      : normalizedStatus
-    : normalizedStatus;
+  const displayStatus = normalizedStatus;
 
   return (
     <>
@@ -640,7 +627,7 @@ export default function RecognitionScreen({
         >
           {(showTopControls || showMoodSelector || showLocationSelector) && (
             <View style={styles.sectionSpacing}>
-              {showTopControls && !kindergartenMode && (
+              {showTopControls && (
                 <View style={[styles.card, styles.controlRow, highContrast && styles.cardHC]}>
                   <View style={styles.controlButton}>
                     <Button
@@ -674,22 +661,6 @@ export default function RecognitionScreen({
                 </View>
               )}
 
-              {showTopControls && kindergartenMode && (
-                <View style={[styles.card, styles.controlColumn, highContrast && styles.cardHC]}>
-                  <Button
-                    title="😊 Wie geht's Amy?"
-                    onPress={() => setShowMoodSelector(!showMoodSelector)}
-                    accessibilityLabel="Amy's Stimmung auswählen"
-                  />
-                  <View style={styles.controlSpacer} />
-                  <Button
-                    title="📍 Wo bist du?"
-                    onPress={() => setShowLocationSelector(!showLocationSelector)}
-                    accessibilityLabel="Aktuellen Ort auswählen"
-                  />
-                </View>
-              )}
-
               {showMoodSelector && <MoodSelector />}
               {showLocationSelector && <LocationSelector />}
             </View>
@@ -706,7 +677,7 @@ export default function RecognitionScreen({
             >
               {displayStatus}
             </Text>
-            {!kindergartenMode && modelUpdateStatus === 'updating' && (
+            {modelUpdateStatus === 'updating' && (
               <Text
                 style={[
                   styles.statusSubtle,
@@ -822,14 +793,14 @@ export default function RecognitionScreen({
                 <TwoHandGestureDisplay
                   gestureString={detectedTwoHandGesture.gesture.id}
                   confidence={detectedTwoHandGesture.confidence}
-                  showDetails={!kindergartenMode}
+                  showDetails
                   size="large"
                 />
               ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
                 <TwoHandGestureDisplay
                   gestureString={lastRecognizedGesture.label}
                   confidence={gestureConfidence}
-                  showDetails={!kindergartenMode}
+                  showDetails
                   size="large"
                 />
               ) : (
@@ -841,37 +812,28 @@ export default function RecognitionScreen({
                       largeText && styles.symbolDisplayLarge,
                       { transform: [{ scale: symbolScaleAnim }] },
                     ]}
+                    >
+                      {lastRecognizedGesture.label}
+                    </Animated.Text>
+                  <Text
+                    style={[
+                      styles.gestureText,
+                      largeText && styles.gestureTextLarge,
+                      highContrast && styles.gestureTextHC,
+                    ]}
                   >
-                    {lastRecognizedGesture.label}
-                  </Animated.Text>
-                  {!kindergartenMode && (
-                    <>
-                      <Text
-                        style={[
-                          styles.gestureText,
-                          largeText && styles.gestureTextLarge,
-                          highContrast && styles.gestureTextHC,
-                        ]}
-                      >
-                        {(gestureConfidence * 100).toFixed(0)}%
-                      </Text>
-                      <Text
-                        style={[
-                          styles.confidenceText,
-                          largeText && styles.confidenceTextLarge,
-                          highContrast && styles.confidenceTextHC,
-                        ]}
-                        testID="recognition-path"
-                      >
-                        über {recognitionPath}
-                      </Text>
-                    </>
-                  )}
-                  {kindergartenMode && gestureConfidence > 0.6 && (
-                    <Text style={[styles.encouragementText, largeText && styles.encouragementTextLarge]}>
-                      🎉 Super!
-                    </Text>
-                  )}
+                    {(gestureConfidence * 100).toFixed(0)}%
+                  </Text>
+                  <Text
+                    style={[
+                      styles.confidenceText,
+                      largeText && styles.confidenceTextLarge,
+                      highContrast && styles.confidenceTextHC,
+                    ]}
+                    testID="recognition-path"
+                  >
+                    über {recognitionPath}
+                  </Text>
                 </>
               )}
             </Animated.View>

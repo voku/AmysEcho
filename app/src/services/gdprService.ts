@@ -5,22 +5,6 @@ export interface ExportedProfileData {
   profile: any;
   usageStats: any[];
   corrections: any[];
-  kindergartenMetadata?: {
-    exportDate: string;
-    kindergartenId?: string;
-    teacherId?: string;
-    exportReason: 'parent_request' | 'school_transfer' | 'legal_requirement' | 'maintenance';
-    dataRetention: 'active' | 'archived' | 'scheduled_deletion';
-  };
-}
-
-export interface KindergartenSecurityConfig {
-  dataRetentionDays: number;
-  requireParentalConsent: boolean;
-  allowDataSharing: boolean;
-  encryptionLevel: 'basic' | 'enhanced' | 'military';
-  auditLogging: boolean;
-  emergencyDataAccess: boolean;
 }
 
 async function request(url: string, options: RequestInit = {}): Promise<Response | null> {
@@ -50,12 +34,6 @@ export const gdprService = {
     if (!resp) return null;
     try {
       const data = (await resp.json()) as ExportedProfileData;
-      // Add kindergarten metadata
-      data.kindergartenMetadata = {
-        exportDate: new Date().toISOString(),
-        exportReason: reason,
-        dataRetention: 'active'
-      };
       return data;
     } catch (e) {
       logger.error('[gdprService] Failed to parse export', e);
@@ -70,20 +48,6 @@ export const gdprService = {
       logger.info(`[gdprService] Profile ${profileId} deleted for privacy compliance`);
     }
     return !!resp;
-  },
-
-  // Kindergarten-specific security functions
-  async enableKindergartenMode(profileId: string, config: KindergartenSecurityConfig): Promise<boolean> {
-    try {
-      const resp = await request(`${API_URL}/api/profiles/${profileId}/kindergarten-mode`, {
-        method: 'POST',
-        body: JSON.stringify(config)
-      });
-      return !!resp;
-    } catch (e) {
-      logger.error('[gdprService] Failed to enable kindergarten mode', e);
-      return false;
-    }
   },
 
   async auditDataAccess(profileId: string, accessorId: string, accessType: 'view' | 'export' | 'modify' | 'delete'): Promise<void> {
@@ -112,7 +76,7 @@ export const gdprService = {
         method: 'POST',
         body: JSON.stringify({
           deletionDate: deletionDate.toISOString(),
-          reason: 'kindergarten_data_retention_policy'
+          reason: 'data_retention_policy'
         })
       });
       return !!resp;
