@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
 import React, { ReactNode, useEffect, useState } from 'react';
-import { audioService, backupService, checkForModelUpdate, syncService, syncTrainingData, gestureDataProtector, gdprService } from '../services';
+import { audioService, backupService, checkForModelUpdate, syncTrainingData, gestureDataProtector, gdprService } from '../services';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { useMessage } from './MessageContext';
@@ -46,8 +46,6 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         // WebView + server path: no native TensorFlow model loading here.
         await audioService.initialize();
         if (!offline) {
-          // Ensure immediate sync attempt is observable by tests
-          try { await syncService.uploadPendingTrainingData(); } catch {}
           // Synchronous-first attempt to run telemetry upload so tests can assert behavior reliably
           try {
             const firstEvents = await telemetry.dump();
@@ -79,12 +77,10 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           interval = setInterval(() => {
             syncTrainingData().catch(() => {});
             runModelUpdate().catch(() => {});
-            try { require('../services').syncService.uploadPendingTrainingData().catch(() => {}); } catch {}
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
           runModelUpdate().catch(() => {});
-          syncService.uploadPendingTrainingData().catch(() => {})
 
           // Lightweight periodic telemetry upload
           const runPeriodicTelemetryUpload = async () => {

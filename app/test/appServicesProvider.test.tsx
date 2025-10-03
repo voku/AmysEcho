@@ -79,15 +79,9 @@ const audioServiceMock = {
   dispose: createResolvedMock(),
 };
 
-const syncServiceMock = {
-  ...actualServices.syncService,
-  uploadPendingTrainingData: createResolvedMock(),
-};
-
 const mockServices = {
   ...actualServices,
   audioService: audioServiceMock,
-  syncService: syncServiceMock,
   uploadTelemetry: createResolvedMock(),
   checkForModelUpdate: createResolvedMock(),
   syncTrainingData: createResolvedMock(),
@@ -182,7 +176,6 @@ describe('AppServicesProvider', () => {
     mockServices.checkForModelUpdate.mockReset().mockResolvedValue(undefined);
     mockServices.syncTrainingData.mockReset().mockResolvedValue(undefined);
     mockServices.uploadTelemetry.mockReset().mockResolvedValue(undefined);
-    syncServiceMock.uploadPendingTrainingData.mockReset().mockResolvedValue(undefined);
     mockDailyJobs.runDailyJobs.mockReset().mockResolvedValue(undefined);
     mockDailyJobs.checkAllGesturesForDecliningAccuracy.mockReset();
     mockDailyJobs.checkPracticeRecommendations.mockReset();
@@ -315,22 +308,6 @@ describe('AppServicesProvider', () => {
     expectNoErrorMessage(component);
     await expectEventually(() => {
       expect(logger.warn).toHaveBeenCalledWith('Failed to run model update check', expect.any(Error));
-    });
-    expect(logger.error).not.toHaveBeenCalled();
-  });
-
-  it('handles sync service failures gracefully', async () => {
-    audioServiceMock.initialize.mockResolvedValueOnce();
-
-    syncServiceMock.uploadPendingTrainingData.mockRejectedValue(new Error('Sync failed'));
-
-    const component = await renderProvider();
-
-    await expectChildRendered(component);
-
-    expectNoErrorMessage(component);
-    await expectEventually(() => {
-      expect(syncServiceMock.uploadPendingTrainingData).toHaveBeenCalled();
     });
     expect(logger.error).not.toHaveBeenCalled();
   });
