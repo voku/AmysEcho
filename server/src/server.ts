@@ -896,7 +896,8 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
         await logTraining(`job ${id}: ingested ${bundleFrames} frames from training bundles`);
       }
     } catch (err) {
-      await logTraining(`job ${id}: failed to ingest training bundles (${String(err)})`);
+      logger.error(`job ${id}: failed to ingest training bundles`, { error: err });
+      await logTraining(`job ${id}: failed to ingest training bundles`);
     }
 
     let { centroids, counts } = await getCentroids();

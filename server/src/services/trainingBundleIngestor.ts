@@ -1,27 +1,30 @@
 import path from 'path';
 import { promises as fs } from 'fs';
+import { z } from 'zod';
 import { ensureDataDir, DATA_DIR, TRAINING_MANIFEST_PATH } from '../constants/modelPaths.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
 import { logger } from './logger.js';
 
-interface TrainingBundleManifestEntry {
-  id: string;
-  profileId: string | null;
-  label: string;
-  capturedAt: string | null;
-  source: string | null;
-  storage: {
-    directory: string;
-    bundle: string;
-    files: string[];
-  };
-  receivedAt: string;
-}
+const TrainingBundleManifestEntrySchema = z
+  .object({
+    id: z.string(),
+    profileId: z.string().nullable().optional(),
+    label: z.string().trim().min(1),
+    capturedAt: z.string().nullable().optional(),
+    source: z.string().nullable().optional(),
+    storage: z
+      .object({
+        directory: z.string(),
+        bundle: z.string().optional(),
+        files: z.array(z.string()),
+      })
+      .passthrough(),
+    receivedAt: z.string(),
+  })
+  .passthrough();
 
-interface TrainingBundleManifestFile {
-  entries: TrainingBundleManifestEntry[];
-}
+type TrainingBundleManifestEntry = z.infer<typeof TrainingBundleManifestEntrySchema>;
 
 interface LandmarksFrameEntry {
   landmarks?: unknown;
@@ -63,23 +66,26 @@ function ensureInside(base: string, target: string): string {
 async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
   try {
     const raw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
-    const parsed = JSON.parse(raw) as TrainingBundleManifestFile;
-    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.entries)) {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
       return [];
     }
-    return parsed.entries.filter((entry): entry is TrainingBundleManifestEntry => {
-      return (
-        entry !== null &&
-        typeof entry === 'object' &&
-        typeof entry.id === 'string' &&
-        typeof entry.label === 'string' &&
-        entry.label.trim().length > 0 &&
-        entry.storage !== null &&
-        typeof entry.storage === 'object' &&
-        typeof entry.storage.directory === 'string' &&
-        Array.isArray(entry.storage.files)
-      );
+    const entries = Array.isArray((parsed as { entries?: unknown }).entries)
+      ? ((parsed as { entries: unknown[] }).entries)
+      : [];
+    const validEntries: TrainingBundleManifestEntry[] = [];
+    entries.forEach((entry, index) => {
+      const result = TrainingBundleManifestEntrySchema.safeParse(entry);
+      if (result.success) {
+        validEntries.push(result.data);
+      } else {
+        logger.warn('Skipping invalid training bundle manifest entry', {
+          index,
+          issues: result.error.issues,
+        });
+      }
     });
+    return validEntries;
   } catch (error: any) {
     if (error?.code === 'ENOENT') {
       return [];
