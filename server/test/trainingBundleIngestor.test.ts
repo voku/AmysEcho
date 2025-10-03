@@ -60,7 +60,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
           storage: {
             directory: 'training_uploads/unassigned/bundle-1',
             bundle: 'training_uploads/unassigned/bundle-1/bundle.zip',
-            files: ['bundle/landmarks.json', 'bundle/metadata.json'],
+            files: ['bundle/landmarks.json', 'bundle/metadata.json', 'bundle/clip.mp4'],
           },
           metadata: {},
           receivedAt: '2024-05-28T12:03:12Z',
