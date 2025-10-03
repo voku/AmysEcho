@@ -14,21 +14,18 @@ import {
   saveOpenAIApiKey,
   loadBackendApiToken,
   saveBackendApiToken,
-  saveCustomModelUri,
   loadActiveProfileId,
 } from '../storage';
 import { Paths } from 'expo-file-system';
-import { makeDirectoryAsync, moveAsync, downloadAsync, writeAsStringAsync, readAsStringAsync } from 'expo-file-system/legacy';
-
-import { API_URL } from '../constants';
+import { makeDirectoryAsync, moveAsync, writeAsStringAsync, readAsStringAsync } from 'expo-file-system/legacy';
 import { database } from '../../db';
 import { useServices } from '../context/ServicesContext';
-import { CUSTOM_GESTURE_MODEL_PATH } from '../constants';
 import { CUSTOM_AUDIO_DIR, getCustomAudioPath } from '../constants/audioPaths';
 import { Symbol as DBSymbol } from '../../db/models';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { getLocalCentroidSummary } from '../services/localCentroids';
+import { fetchMlpModel } from '../services/dgsModelClient';
 
 import { usePerformance } from '../context/PerformanceContext';
 import ScreenBackground from '../components/ScreenBackground';
@@ -155,17 +152,13 @@ export default function AdminScreen({ navigation }: any) {
 
   const handleDownloadModel = async () => {
     try {
-      const uri = CUSTOM_GESTURE_MODEL_PATH;
-      const token = await loadBackendApiToken();
       const profileId = await loadActiveProfileId().catch(() => undefined);
-      const qs = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
-      const res = await downloadAsync(
-        `${API_URL}/latest-model${qs}`,
-        uri,
-        { headers: { Authorization: `Bearer ${token || ''}` } },
-      );
-      await saveCustomModelUri(res.uri);
-      Alert.alert('Modell heruntergeladen');
+      const model = await fetchMlpModel(profileId);
+      if (model) {
+        Alert.alert('Modell heruntergeladen');
+        return;
+      }
+      Alert.alert('Download fehlgeschlagen', 'Kein Modell verfügbar.');
     } catch (e) {
       logger.error('Model download failed', e);
       Alert.alert('Download fehlgeschlagen', (e as Error).message || 'Unbekannter Fehler');

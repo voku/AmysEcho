@@ -3,7 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
 import React, { ReactNode, useEffect, useState } from 'react';
-import { audioService, backupService, checkForModelUpdate, syncTrainingData, gestureDataProtector, gdprService } from '../services';
+import { audioService, backupService, syncTrainingData, gestureDataProtector, gdprService, refreshDgsModel } from '../services';
+import { onMlpModelUpdated } from '../services/dgsModelClient';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { useMessage } from './MessageContext';
@@ -33,10 +34,10 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let cancelled = false;
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
-    async function runModelUpdate() {
+    async function runModelRefresh() {
       try {
         const pid = await loadActiveProfileId().catch(() => null);
-        await checkForModelUpdate(pid ?? undefined);
+        await refreshDgsModel(pid ?? undefined);
       } catch (e) {
         logger.warn('Failed to run model update check', e);
       }
@@ -74,13 +75,17 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             })
             .catch(() => {});
 
+          const unsubscribeModelUpdates = onMlpModelUpdated(() => {
+            logger.info('MLP model update event received');
+          });
+
           interval = setInterval(() => {
             syncTrainingData().catch(() => {});
-            runModelUpdate().catch(() => {});
+            runModelRefresh().catch(() => {});
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          runModelUpdate().catch(() => {});
+          runModelRefresh().catch(() => {});
 
           // Lightweight periodic telemetry upload
           const runPeriodicTelemetryUpload = async () => {
@@ -98,6 +103,9 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             }
           };
           runPeriodicTelemetryUpload();
+          return () => {
+            unsubscribeModelUpdates();
+          };
         } else {
           logger.info('Starting in offline mode; skipping cloud sync');
         }
@@ -112,7 +120,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       }
     }
 
-    initializeServices();
+    const cleanupPromise = initializeServices();
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
@@ -122,6 +130,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         Promise.resolve((audioService as any).dispose?.()).catch(() => {});
       } catch {}
+      cleanupPromise
+        .then((cleanup) => {
+          if (typeof cleanup === 'function') cleanup();
+        })
+        .catch(() => {});
     };
   }, [offline, setMessage]);
 

@@ -65,6 +65,17 @@ jest.mock('../src/telemetry/recorder', () => ({ telemetry: mockTelemetry }));
 
 const createResolvedMock = () => jest.fn().mockResolvedValue(undefined);
 
+const modelUpdateListeners = new Set<() => void>();
+const mockOnMlpModelUpdated = jest.fn((listener: () => void) => {
+  modelUpdateListeners.add(listener);
+  return () => {
+    modelUpdateListeners.delete(listener);
+  };
+});
+jest.mock('../src/services/dgsModelClient', () => ({
+  onMlpModelUpdated: mockOnMlpModelUpdated,
+}));
+
 const mockDailyJobs = {
   runDailyJobs: createResolvedMock(),
   checkAllGesturesForDecliningAccuracy: jest.fn(),
@@ -79,11 +90,13 @@ const audioServiceMock = {
   dispose: createResolvedMock(),
 };
 
+const refreshDgsModelMock = jest.fn().mockResolvedValue('mlp');
+
 const mockServices = {
   ...actualServices,
   audioService: audioServiceMock,
   uploadTelemetry: createResolvedMock(),
-  checkForModelUpdate: createResolvedMock(),
+  refreshDgsModel: refreshDgsModelMock,
   syncTrainingData: createResolvedMock(),
   mlService: {
     ...(actualServices.mlService ?? {}),
@@ -173,12 +186,15 @@ describe('AppServicesProvider', () => {
     mockLoadModels.mockReset().mockRejectedValue(new Error('init fail'));
     audioServiceMock.initialize.mockReset().mockResolvedValue(undefined);
     audioServiceMock.dispose.mockReset().mockResolvedValue(undefined);
-    mockServices.checkForModelUpdate.mockReset().mockResolvedValue(undefined);
+    refreshDgsModelMock.mockReset().mockResolvedValue('mlp');
     mockServices.syncTrainingData.mockReset().mockResolvedValue(undefined);
     mockServices.uploadTelemetry.mockReset().mockResolvedValue(undefined);
     mockDailyJobs.runDailyJobs.mockReset().mockResolvedValue(undefined);
     mockDailyJobs.checkAllGesturesForDecliningAccuracy.mockReset();
     mockDailyJobs.checkPracticeRecommendations.mockReset();
+
+    mockOnMlpModelUpdated.mockClear();
+    modelUpdateListeners.clear();
 
     AsyncStorage.getItem.mockReset().mockResolvedValue(null);
     AsyncStorage.setItem.mockReset().mockResolvedValue(undefined);
