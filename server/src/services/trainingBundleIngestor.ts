@@ -123,7 +123,10 @@ async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<number
   }
   const dataRoot = path.resolve(DATA_DIR);
   const bundleRoot = ensureInside(dataRoot, path.join(dataRoot, entry.storage.directory));
-  const relativeLandmarks = entry.storage.files.find((f) => f.replace(/\\/g, '/').endsWith('landmarks.json'));
+  const files = Array.isArray(entry.storage.files)
+    ? entry.storage.files.filter((file): file is string => typeof file === 'string')
+    : [];
+  const relativeLandmarks = files.find((f) => f.replace(/\\/g, '/').endsWith('landmarks.json'));
   if (!relativeLandmarks) {
     return [];
   }

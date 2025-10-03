@@ -13,6 +13,8 @@ import { refreshDgsModel } from './modelUpdate';
 import { uploadTrainingBundle } from './trainingBundleService';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from './trainingBundleQueue';
 
+const TRAINING_JOB_TRIGGER_TIMEOUT_MS = 30_000;
+
 let fetchNetOverride: (() => Promise<NetInfoState | undefined>) | undefined;
 
 export function __setNetInfoFetchOverride(
@@ -111,7 +113,9 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
         try {
           const controller =
             typeof AbortController !== 'undefined' ? new AbortController() : undefined;
-          const timeoutId = controller ? setTimeout(() => controller.abort(), 30000) : undefined;
+          const timeoutId = controller
+            ? setTimeout(() => controller.abort(), TRAINING_JOB_TRIGGER_TIMEOUT_MS)
+            : undefined;
           try {
             const response = await fetch(`${API_URL}/train-model`, {
               method: 'POST',
@@ -131,7 +135,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
                 logger.info('Training job triggered for uploaded bundles', { jobId: payload.jobId });
               }
             } catch (parseError) {
-              logger.warn('Failed to parse training job response', parseError as Error);
+              logger.warn('Failed to parse training job response', { error: parseError });
             }
           } finally {
             if (timeoutId) {
@@ -139,7 +143,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
             }
           }
         } catch (triggerError) {
-          logger.warn('Training job trigger failed after bundle upload', triggerError as Error);
+          logger.warn('Training job trigger failed after bundle upload', { error: triggerError });
         }
       } else {
         logger.warn('Skipping training job trigger: missing API token');
