@@ -70,7 +70,9 @@ export async function fetchCentroids(profileId?: string): Promise<{ centroids: C
     await storage.setItem(`${KEY}:${profileId || 'global'}`, JSON.stringify(data));
     return data;
   } catch (error) {
-    console.error('Failed to fetch MLP model:', error);
+    logger.error('Failed to fetch MLP model', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -267,7 +269,7 @@ export async function loadLocalMlpModel(): Promise<string | null> {
   }
 }
 
-const LOCAL_MODEL_FILE = 'amy_model.npz';
+const LOCAL_MODEL_FILE = 'dgs_model.npz';
 
 async function loadDocumentDirectoryModel(): Promise<string | null> {
   const { documentDirectory } = FileSystem;
