@@ -107,6 +107,34 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     }
 
     if (processed > 0) {
+      if (token) {
+        try {
+          const response = await fetch(`${API_URL}/train-model`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ trigger: 'bundles' }),
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          try {
+            const payload = await response.json();
+            if (payload?.jobId) {
+              logger.info('Training job triggered for uploaded bundles', { jobId: payload.jobId });
+            }
+          } catch (parseError) {
+            logger.warn('Failed to parse training job response', parseError as Error);
+          }
+        } catch (triggerError) {
+          logger.warn('Training job trigger failed after bundle upload', triggerError as Error);
+        }
+      } else {
+        logger.warn('Skipping training job trigger: missing API token');
+      }
+
       await refreshDgsModel(profile.id);
     }
     const remaining = await listQueuedTrainingBundles(profile.id);
