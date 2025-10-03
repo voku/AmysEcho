@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { ensureDataDir, DATA_DIR, TRAINING_MANIFEST_PATH } from '../constants/modelPaths.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
+import { logger } from './logger.js';
 
 interface TrainingBundleManifestEntry {
   id: string;
@@ -109,10 +110,11 @@ function normalizeLandmarks(raw: unknown): number[][] | null {
   if (coords.length === 0) {
     return null;
   }
-  while (coords.length < MAX_LANDMARK_POINTS) {
-    coords.push([0, 0, 0]);
+  const paddingNeeded = MAX_LANDMARK_POINTS - coords.length;
+  if (paddingNeeded > 0) {
+    coords.push(...Array.from({ length: paddingNeeded }, () => [0, 0, 0]));
   }
-  return coords.slice(0, MAX_LANDMARK_POINTS);
+  return coords;
 }
 
 async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<number[][][]> {
@@ -210,7 +212,13 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: nu
     let appended = 0;
 
     for (const entry of manifestEntries) {
-      const frames = await readLandmarks(entry).catch(() => []);
+      const frames = await readLandmarks(entry).catch((error) => {
+        logger.warn('Failed to read landmarks for training bundle', {
+          error,
+          bundleId: entry.id,
+        });
+        return [] as number[][][];
+      });
       if (frames.length === 0) continue;
       frames.forEach((landmarks, index) => {
         const key = `${entry.id}:${index}`;

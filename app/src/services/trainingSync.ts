@@ -109,24 +109,34 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     if (processed > 0) {
       if (token) {
         try {
-          const response = await fetch(`${API_URL}/train-model`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ trigger: 'bundles' }),
-          });
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
+          const controller =
+            typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+          const timeoutId = controller ? setTimeout(() => controller.abort(), 30000) : undefined;
           try {
-            const payload = await response.json();
-            if (payload?.jobId) {
-              logger.info('Training job triggered for uploaded bundles', { jobId: payload.jobId });
+            const response = await fetch(`${API_URL}/train-model`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ trigger: 'bundles' }),
+              ...(controller ? { signal: controller.signal } : {}),
+            });
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
             }
-          } catch (parseError) {
-            logger.warn('Failed to parse training job response', parseError as Error);
+            try {
+              const payload = await response.json();
+              if (payload?.jobId) {
+                logger.info('Training job triggered for uploaded bundles', { jobId: payload.jobId });
+              }
+            } catch (parseError) {
+              logger.warn('Failed to parse training job response', parseError as Error);
+            }
+          } finally {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
           }
         } catch (triggerError) {
           logger.warn('Training job trigger failed after bundle upload', triggerError as Error);
