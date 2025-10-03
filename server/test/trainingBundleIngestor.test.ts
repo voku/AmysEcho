@@ -83,6 +83,16 @@ describe('ingestTrainingBundlesIntoDataset', () => {
       sourceBundleId: 'bundle-1',
       frameIndex: 0,
     });
+    expect(dataset.samples[1]).toMatchObject({
+      label: 'HALLO',
+      profileId: 'p-123',
+      sourceBundleId: 'bundle-1',
+      frameIndex: 1,
+    });
+    expect(dataset.samples[0].landmarks).toHaveLength(42);
+    expect(dataset.samples[1].landmarks).toHaveLength(42);
+    expect(dataset.samples[0].landmarks[0]).toEqual([0, 0, 0]);
+    expect(dataset.samples[1].landmarks[1]).toEqual([0.05, 0.06, 0.07]);
 
     const secondRun = await ingestTrainingBundlesIntoDataset();
     expect(secondRun.appended).toBe(0);
