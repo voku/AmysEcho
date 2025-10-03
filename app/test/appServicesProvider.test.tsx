@@ -91,12 +91,14 @@ const audioServiceMock = {
 };
 
 const refreshDgsModelMock = jest.fn().mockResolvedValue('mlp');
+const checkForModelUpdateMock = jest.fn().mockResolvedValue(true);
 
 const mockServices = {
   ...actualServices,
   audioService: audioServiceMock,
   uploadTelemetry: createResolvedMock(),
   refreshDgsModel: refreshDgsModelMock,
+  checkForModelUpdate: checkForModelUpdateMock,
   syncTrainingData: createResolvedMock(),
   mlService: {
     ...(actualServices.mlService ?? {}),
@@ -187,6 +189,7 @@ describe('AppServicesProvider', () => {
     audioServiceMock.initialize.mockReset().mockResolvedValue(undefined);
     audioServiceMock.dispose.mockReset().mockResolvedValue(undefined);
     refreshDgsModelMock.mockReset().mockResolvedValue('mlp');
+    checkForModelUpdateMock.mockReset().mockResolvedValue(true);
     mockServices.syncTrainingData.mockReset().mockResolvedValue(undefined);
     mockServices.uploadTelemetry.mockReset().mockResolvedValue(undefined);
     mockDailyJobs.runDailyJobs.mockReset().mockResolvedValue(undefined);

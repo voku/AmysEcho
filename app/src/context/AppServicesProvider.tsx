@@ -3,7 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
 import React, { ReactNode, useEffect, useState } from 'react';
-import { audioService, backupService, syncTrainingData, gestureDataProtector, gdprService, refreshDgsModel } from '../services';
+import {
+  audioService,
+  backupService,
+  syncTrainingData,
+  gestureDataProtector,
+  gdprService,
+  checkForModelUpdate,
+} from '../services';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -37,9 +44,9 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     async function runModelRefresh() {
       try {
         const pid = await loadActiveProfileId().catch(() => null);
-        await refreshDgsModel(pid ?? undefined);
+        await checkForModelUpdate(pid ?? undefined);
       } catch (e) {
-        logger.warn('Failed to run model update check', e);
+        logger.warn('Failed to run model refresh', e);
       }
     }
     async function initializeServices(): Promise<(() => void) | undefined> {

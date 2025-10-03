@@ -1,3 +1,4 @@
+import NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system/legacy';
 import { saveCustomModelHash } from '../storage';
 import { CUSTOM_GESTURE_MODEL_PATH } from '../constants';
@@ -6,16 +7,23 @@ import { fetchCentroids, fetchMlpModel } from './dgsModelClient';
 
 export async function checkForModelUpdate(profileId?: string): Promise<boolean> {
   try {
-    const mlp = await fetchMlpModel(profileId);
-    if (mlp) {
-      return true;
-    }
-  } catch (error) {
-    logger.warn('model update failed', error);
-  }
+    const net = await NetInfo.fetch();
+    const allowCellular = process.env['EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES'] === 'true';
 
-  const refreshed = await refreshDgsModel(profileId);
-  return refreshed !== null;
+    if (!net.isConnected || net.isInternetReachable !== true) {
+      return false;
+    }
+
+    if (!allowCellular && net.type !== 'wifi') {
+      return false;
+    }
+
+    const refreshed = await refreshDgsModel(profileId);
+    return refreshed !== null;
+  } catch (error) {
+    logger.warn('model refresh failed', error);
+    return false;
+  }
 }
 
 // Validate model integrity after update
