@@ -454,7 +454,7 @@ describe('AppServicesProvider', () => {
 
   it('skips model refresh when connectivity disallows downloads', async () => {
     audioServiceMock.initialize.mockResolvedValueOnce();
-    shouldAllowModelRefreshMock.mockResolvedValueOnce(false);
+    shouldAllowModelRefreshMock.mockResolvedValue(false);
 
     const component = await renderProvider();
     await expectChildRendered(component);
