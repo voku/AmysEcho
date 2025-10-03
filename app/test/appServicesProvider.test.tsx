@@ -54,7 +54,7 @@ jest.mock('../src/services/adaptiveLearningService', () => ({
   adaptiveLearningService: {},
 }));
 
-const mockLoadModels = jest.fn().mockRejectedValue(new Error('init fail'));
+const mockLoadModels = jest.fn().mockResolvedValue(undefined);
 
 const AsyncStorage = require('@react-native-async-storage/async-storage');
 const storage = require('../src/storage');
@@ -64,6 +64,17 @@ const mockTelemetry = {
 jest.mock('../src/telemetry/recorder', () => ({ telemetry: mockTelemetry }));
 
 const createResolvedMock = () => jest.fn().mockResolvedValue(undefined);
+
+const listeners = new Set<() => void>();
+const mockOnMlpModelUpdated = jest.fn((listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+});
+jest.mock('../src/services/dgsModelClient', () => ({
+  onMlpModelUpdated: mockOnMlpModelUpdated,
+}));
 
 const mockDailyJobs = {
   runDailyJobs: createResolvedMock(),
@@ -79,11 +90,15 @@ const audioServiceMock = {
   dispose: createResolvedMock(),
 };
 
+const checkForModelUpdateMock = jest.fn().mockResolvedValue(true);
+const shouldAllowModelRefreshMock = jest.fn().mockResolvedValue(true);
+
 const mockServices = {
   ...actualServices,
   audioService: audioServiceMock,
   uploadTelemetry: createResolvedMock(),
-  checkForModelUpdate: createResolvedMock(),
+  checkForModelUpdate: checkForModelUpdateMock,
+  shouldAllowModelRefresh: shouldAllowModelRefreshMock,
   syncTrainingData: createResolvedMock(),
   mlService: {
     ...(actualServices.mlService ?? {}),
@@ -170,15 +185,19 @@ describe('AppServicesProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockLoadModels.mockReset().mockRejectedValue(new Error('init fail'));
+    mockLoadModels.mockReset().mockResolvedValue(undefined);
     audioServiceMock.initialize.mockReset().mockResolvedValue(undefined);
     audioServiceMock.dispose.mockReset().mockResolvedValue(undefined);
-    mockServices.checkForModelUpdate.mockReset().mockResolvedValue(undefined);
+    checkForModelUpdateMock.mockReset().mockResolvedValue(true);
+    shouldAllowModelRefreshMock.mockReset().mockResolvedValue(true);
     mockServices.syncTrainingData.mockReset().mockResolvedValue(undefined);
     mockServices.uploadTelemetry.mockReset().mockResolvedValue(undefined);
     mockDailyJobs.runDailyJobs.mockReset().mockResolvedValue(undefined);
     mockDailyJobs.checkAllGesturesForDecliningAccuracy.mockReset();
     mockDailyJobs.checkPracticeRecommendations.mockReset();
+
+    mockOnMlpModelUpdated.mockClear();
+    listeners.clear();
 
     AsyncStorage.getItem.mockReset().mockResolvedValue(null);
     AsyncStorage.setItem.mockReset().mockResolvedValue(undefined);
@@ -281,7 +300,7 @@ describe('AppServicesProvider', () => {
 
     expectNoErrorMessage(component);
     await expectEventually(() => {
-      expect(logger.warn).toHaveBeenCalledWith('Failed to run model update check', expect.any(Error));
+      expect(logger.warn).toHaveBeenCalledWith('Failed to upload telemetry batch', expect.any(Error));
     });
     expect(logger.error).not.toHaveBeenCalled();
   });
@@ -307,7 +326,7 @@ describe('AppServicesProvider', () => {
 
     expectNoErrorMessage(component);
     await expectEventually(() => {
-      expect(logger.warn).toHaveBeenCalledWith('Failed to run model update check', expect.any(Error));
+      expect(logger.warn).toHaveBeenCalledWith('Failed to upload telemetry batch', expect.any(Error));
     });
     expect(logger.error).not.toHaveBeenCalled();
   });
@@ -348,6 +367,109 @@ describe('AppServicesProvider', () => {
     });
   });
 
+  it('refreshes models when an update event is emitted', async () => {
+    audioServiceMock.initialize.mockResolvedValueOnce();
+
+    const component = await renderProvider();
+    await expectChildRendered(component);
+
+    await expectEventually(() => {
+      expect(mockOnMlpModelUpdated).toHaveBeenCalled();
+    });
+
+    await expectEventually(() => {
+      expect(checkForModelUpdateMock).toHaveBeenCalled();
+    });
+    await expectEventually(() => {
+      expect(shouldAllowModelRefreshMock).toHaveBeenCalled();
+    });
+    await expectEventually(() => {
+      expect(mockLoadModels).toHaveBeenCalled();
+    });
+    checkForModelUpdateMock.mockClear();
+    mockLoadModels.mockClear();
+
+    const listener = mockOnMlpModelUpdated.mock.calls.at(-1)?.[0];
+    expect(listener).toBeDefined();
+    await act(async () => {
+      listener?.();
+      await Promise.resolve();
+    });
+
+    await expectEventually(() => {
+      expect(checkForModelUpdateMock).toHaveBeenCalled();
+    });
+    await expectEventually(() => {
+      expect(mockLoadModels).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      component.unmount();
+    });
+  });
+
+  it('queues model refresh requests when an event arrives during an active refresh', async () => {
+    audioServiceMock.initialize.mockResolvedValueOnce();
+
+    let resolveFirstRefresh: (() => void) | undefined;
+    checkForModelUpdateMock
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirstRefresh = resolve;
+          }),
+      )
+      .mockResolvedValue(true);
+
+    const component = await renderProvider();
+    await expectChildRendered(component);
+
+    await expectEventually(() => {
+      expect(checkForModelUpdateMock).toHaveBeenCalled();
+    });
+
+    const initialCalls = checkForModelUpdateMock.mock.calls.length;
+
+    const listener = mockOnMlpModelUpdated.mock.calls.at(-1)?.[0];
+    expect(listener).toBeDefined();
+
+    await act(async () => {
+      listener?.();
+    });
+
+    expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls);
+
+    await act(async () => {
+      resolveFirstRefresh?.();
+    });
+
+    await expectEventually(() => {
+      expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls + 1);
+    });
+
+    await act(async () => {
+      component.unmount();
+    });
+  });
+
+  it('skips model refresh when connectivity disallows downloads', async () => {
+    audioServiceMock.initialize.mockResolvedValueOnce();
+    shouldAllowModelRefreshMock.mockResolvedValueOnce(false);
+
+    const component = await renderProvider();
+    await expectChildRendered(component);
+
+    await expectEventually(() => {
+      expect(shouldAllowModelRefreshMock).toHaveBeenCalled();
+    });
+    expect(checkForModelUpdateMock).not.toHaveBeenCalled();
+    expect(mockLoadModels).not.toHaveBeenCalled();
+
+    await act(async () => {
+      component.unmount();
+    });
+  });
+
   it('provides initialized services through context', async () => {
     audioServiceMock.initialize.mockResolvedValueOnce();
 
@@ -367,6 +489,22 @@ describe('AppServicesProvider', () => {
         (node) => node.props['data-audio-service-ready'] === true,
       );
       expect(nodes.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('logs when ML service reload fails after refresh', async () => {
+    audioServiceMock.initialize.mockResolvedValueOnce();
+    mockLoadModels.mockRejectedValueOnce(new Error('reload failed'));
+
+    const component = await renderProvider();
+    await expectChildRendered(component);
+
+    await expectEventually(() => {
+      expect(logger.warn).toHaveBeenCalledWith('Failed to reload ML models after refresh', expect.any(Error));
+    });
+
+    await act(async () => {
+      component.unmount();
     });
   });
 });

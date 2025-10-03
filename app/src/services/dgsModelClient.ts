@@ -8,6 +8,8 @@ const getApiToken = () => process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
 const KEY = 'dgsCentroids';
 const MLP_KEY = 'dgsMlpModel';
 const MLP_META_KEY = 'dgsMlpModelMeta';
+const MLP_BACKUP_KEY = 'dgsMlpModelBackup';
+const MLP_BACKUP_META_KEY = 'dgsMlpModelBackupMeta';
 
 type MlpModelListener = () => void;
 const mlpModelListeners = new Set<MlpModelListener>();
@@ -85,6 +87,9 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
   const storage = await getStorage();
   const cacheKey = `${MLP_KEY}:${profileId || 'global'}`;
   const metaKey = `${MLP_META_KEY}:${profileId || 'global'}`;
+  const backupKey = `${MLP_BACKUP_KEY}:${profileId || 'global'}`;
+  const metaBackupKey = `${MLP_BACKUP_META_KEY}:${profileId || 'global'}`;
+  const prevModel = await storage.getItem(cacheKey);
   const prevMetaRaw = await storage.getItem(metaKey);
   let prevMeta: MlpMeta | null = null;
   try {
@@ -165,6 +170,13 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
     meta.version = version;
   }
 
+  if (prevModel) {
+    await storage.setItem(backupKey, prevModel);
+  }
+  if (prevMetaRaw) {
+    await storage.setItem(metaBackupKey, prevMetaRaw);
+  }
+
   await storage.setItem(cacheKey, b64);
   await storage.setItem(metaKey, JSON.stringify(meta));
   emitMlpModelUpdated();
@@ -193,6 +205,39 @@ export async function getCachedMlpMeta(profileId?: string): Promise<MlpMeta | nu
   } catch {
     return null;
   }
+}
+
+export async function restoreMlpModelBackup(profileId?: string): Promise<boolean> {
+  const storage = await getStorage();
+  const cacheKey = `${MLP_KEY}:${profileId || 'global'}`;
+  const metaKey = `${MLP_META_KEY}:${profileId || 'global'}`;
+  const backupKey = `${MLP_BACKUP_KEY}:${profileId || 'global'}`;
+  const metaBackupKey = `${MLP_BACKUP_META_KEY}:${profileId || 'global'}`;
+
+  const backup = await storage.getItem(backupKey);
+  if (!backup) {
+    return false;
+  }
+
+  await storage.setItem(cacheKey, backup);
+  const metaBackup = await storage.getItem(metaBackupKey);
+  if (metaBackup) {
+    await storage.setItem(metaKey, metaBackup);
+  } else {
+    await storage.setItem(metaKey, '');
+  }
+
+  emitMlpModelUpdated();
+  return true;
+}
+
+export async function clearMlpModelBackup(profileId?: string): Promise<void> {
+  const storage = await getStorage();
+  const backupKey = `${MLP_BACKUP_KEY}:${profileId || 'global'}`;
+  const metaBackupKey = `${MLP_BACKUP_META_KEY}:${profileId || 'global'}`;
+
+  await storage.setItem(backupKey, '');
+  await storage.setItem(metaBackupKey, '');
 }
 
 /**

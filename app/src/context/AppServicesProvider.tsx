@@ -3,7 +3,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
 import React, { ReactNode, useEffect, useState } from 'react';
-import { audioService, backupService, checkForModelUpdate, syncTrainingData, gestureDataProtector, gdprService } from '../services';
+import {
+  audioService,
+  backupService,
+  syncTrainingData,
+  gestureDataProtector,
+  gdprService,
+  checkForModelUpdate,
+  shouldAllowModelRefresh,
+} from '../services';
+import { onMlpModelUpdated } from '../services/dgsModelClient';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { useMessage } from './MessageContext';
@@ -33,15 +42,60 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let cancelled = false;
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
-    async function runModelUpdate() {
-      try {
-        const pid = await loadActiveProfileId().catch(() => null);
-        await checkForModelUpdate(pid ?? undefined);
-      } catch (e) {
-        logger.warn('Failed to run model update check', e);
+    let modelRefreshPromise: Promise<void> | null = null;
+    let pendingModelRefresh = false;
+    const runModelRefresh = (): Promise<void> => {
+      if (modelRefreshPromise) {
+        pendingModelRefresh = true;
+        return modelRefreshPromise;
       }
-    }
-    async function initializeServices() {
+
+      const execute = async () => {
+        try {
+          const allowed = await shouldAllowModelRefresh();
+          if (!allowed) {
+            logger.info('Skipping model refresh due to connectivity restrictions');
+            return;
+          }
+
+          const pid = await loadActiveProfileId().catch(() => null);
+          const updated = await checkForModelUpdate(pid ?? undefined, {
+            skipNetworkCheck: true,
+          });
+
+          if (updated) {
+            try {
+              const { mlService } = require('../services');
+              const loader = mlService?.loadModels;
+              if (loader) {
+                await Promise.resolve(loader.call(mlService));
+                logger.info('Reloaded ML models after refresh');
+              }
+            } catch (loadError) {
+              logger.warn('Failed to reload ML models after refresh', loadError as Error);
+            }
+          }
+        } catch (e) {
+          logger.warn('Failed to run model refresh', e as Error);
+        }
+      };
+
+      modelRefreshPromise = execute().finally(() => {
+        modelRefreshPromise = null;
+        const shouldRunQueued = pendingModelRefresh && !cancelled;
+        pendingModelRefresh = false;
+
+        if (shouldRunQueued) {
+          runModelRefresh().catch((queuedError) => {
+            logger.warn('Failed to run queued model refresh', queuedError);
+          });
+        }
+      });
+
+      return modelRefreshPromise;
+    };
+    async function initializeServices(): Promise<(() => void) | undefined> {
+      let unsubscribeModelUpdates: (() => void) | undefined;
       try {
         // WebView + server path: no native TensorFlow model loading here.
         await audioService.initialize();
@@ -54,7 +108,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
               await ut(firstEvents);
             }
           } catch (e) {
-            logger.warn('Failed to run model update check', e as Error);
+            logger.warn('Failed to upload telemetry batch', e as Error);
           }
 
           const now = new Date().toISOString().slice(0, 10);
@@ -74,13 +128,20 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             })
             .catch(() => {});
 
+          unsubscribeModelUpdates = onMlpModelUpdated(() => {
+            logger.info('MLP model update event received');
+            runModelRefresh().catch((eventError) => {
+              logger.warn('Failed to refresh model after update event', eventError);
+            });
+          });
+
           interval = setInterval(() => {
             syncTrainingData().catch(() => {});
-            runModelUpdate().catch(() => {});
+            runModelRefresh().catch(() => {});
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          runModelUpdate().catch(() => {});
+          runModelRefresh().catch(() => {});
 
           // Lightweight periodic telemetry upload
           const runPeriodicTelemetryUpload = async () => {
@@ -91,10 +152,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
                 await ut(events);
               }
             } catch (e) {
-              // Maintain historical logging message expected by tests
-              logger.warn('Failed to run model update check', e as Error);
+              logger.warn('Failed to upload telemetry batch', e as Error);
             } finally {
-              telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
+              if (!cancelled) {
+                telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
+              }
             }
           };
           runPeriodicTelemetryUpload();
@@ -110,9 +172,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           setIsReady(true);
         }
       }
+
+      return unsubscribeModelUpdates;
     }
 
-    initializeServices();
+    const cleanupPromise = initializeServices();
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
@@ -122,6 +186,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         Promise.resolve((audioService as any).dispose?.()).catch(() => {});
       } catch {}
+      cleanupPromise
+        .then((cleanup) => {
+          if (typeof cleanup === 'function') cleanup();
+        })
+        .catch(() => {});
     };
   }, [offline, setMessage]);
 

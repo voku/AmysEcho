@@ -1,142 +1,109 @@
-import * as FileSystem from 'expo-file-system/legacy';
 import NetInfo from '@react-native-community/netinfo';
-import { loadBackendApiToken, saveCustomModelUri, loadCustomModelHash, saveCustomModelHash } from '../storage';
-import { CUSTOM_GESTURE_MODEL_PATH } from '../constants';
-import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
-import { fetchCentroids, fetchMlpModel } from './dgsModelClient';
+import {
+  fetchCentroids,
+  fetchMlpModel,
+  getCachedMlpModel,
+  restoreMlpModelBackup,
+} from './dgsModelClient';
 
-export async function checkForModelUpdate(profileId?: string): Promise<boolean> {
+export async function shouldAllowModelRefresh(): Promise<boolean> {
   const net = await NetInfo.fetch();
   const allowCellular =
     process.env['EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES'] === 'true';
-  if (
-    !net.isConnected ||
-    net.isInternetReachable !== true ||
-    (!allowCellular && net.type !== 'wifi')
-  )
+
+  if (!net.isConnected || net.isInternetReachable !== true) {
     return false;
+  }
+
+  if (!allowCellular && net.type !== 'wifi') {
+    return false;
+  }
+
+  return true;
+}
+
+type CheckOptions = {
+  skipNetworkCheck?: boolean;
+};
+
+export async function checkForModelUpdate(
+  profileId?: string,
+  options?: CheckOptions,
+): Promise<boolean> {
   try {
-    const token = await loadBackendApiToken();
-    const qs = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
-    const metaRes = await fetch(`${API_URL}/model-metadata${qs}`, {
-      headers: { Authorization: `Bearer ${token || ''}` },
-    });
-    if (!metaRes.ok) {
-      logger.warn('model metadata request failed', { status: metaRes.status });
-      return false;
-    }
-    const meta = await metaRes.json();
-    if (!meta || typeof meta.sha256 !== 'string' || meta.sha256.length === 0) {
-      logger.warn('invalid model metadata payload', meta);
-      return false;
-    }
-    const currentHash = (await loadCustomModelHash()) || '';
-    if (currentHash === meta.sha256) {
-      return false; // up to date
+    if (!options?.skipNetworkCheck) {
+      const allowed = await shouldAllowModelRefresh();
+      if (!allowed) {
+        return false;
+      }
     }
 
-    // Create backup of current working model for instant rollback
-    const currentUri = await FileSystem.getInfoAsync(CUSTOM_GESTURE_MODEL_PATH);
-    if (currentUri.exists) {
-      const backupUri = `${CUSTOM_GESTURE_MODEL_PATH}.backup`;
-      await FileSystem.copyAsync({
-        from: CUSTOM_GESTURE_MODEL_PATH,
-        to: backupUri
-      });
-      logger.info('Created model backup for rollback protection');
-    }
-
-    const uri = CUSTOM_GESTURE_MODEL_PATH;
-    const res = await FileSystem.downloadAsync(
-      `${API_URL}/latest-model${qs}`,
-      uri,
-      { headers: { Authorization: `Bearer ${token || ''}` } }
-    );
-
-    // Validate the downloaded model before committing
-    const isValid = await validateModelUpdate();
-    if (!isValid) {
-      logger.warn('Downloaded model failed validation, rolling back');
-      await rollbackModelUpdate();
-      return false;
-    }
-
-    await saveCustomModelUri(res.uri);
-    await saveCustomModelHash(meta.sha256);
-    return true;
-  } catch (e) {
-    logger.warn('model update failed', e);
-    // Attempt instant rollback if update failed
-    await rollbackModelUpdate();
+    const refreshed = await refreshDgsModel(profileId);
+    return refreshed !== null;
+  } catch (error) {
+    logger.warn('model refresh failed', error);
     return false;
   }
 }
 
 // Validate model integrity after update
-export async function validateModelUpdate(): Promise<boolean> {
+export async function validateModelUpdate(profileId?: string): Promise<boolean> {
   try {
-    const modelInfo = await FileSystem.getInfoAsync(CUSTOM_GESTURE_MODEL_PATH);
-    if (!modelInfo.exists || modelInfo.size === 0) {
-      logger.warn('Model file missing or empty after update');
+    const cached = await getCachedMlpModel(profileId);
+    if (!cached) {
+      logger.warn('MLP model missing after update', {
+        profileId: profileId ?? 'global',
+      });
       return false;
     }
 
-    // Basic validation - check if file is readable and has reasonable size
-    if (modelInfo.size < 1000) { // Models should be at least 1KB
-      logger.warn('Model file suspiciously small after update');
+    if (cached.length < 1000) {
+      logger.warn('MLP model suspiciously small after update', {
+        profileId: profileId ?? 'global',
+        size: cached.length,
+      });
       return false;
     }
 
-    logger.info('Model validation passed');
+    logger.info('Model validation passed', {
+      profileId: profileId ?? 'global',
+      size: cached.length,
+    });
     return true;
-  } catch (e) {
-    logger.error('Model validation failed', e);
+  } catch (error) {
+    logger.error('Model validation failed', error);
     return false;
   }
 }
 
 // Instant rollback to previous working model
-export async function rollbackModelUpdate(): Promise<boolean> {
+export async function rollbackModelUpdate(profileId?: string): Promise<boolean> {
   try {
-    const backupUri = `${CUSTOM_GESTURE_MODEL_PATH}.backup`;
-    const backupInfo = await FileSystem.getInfoAsync(backupUri);
-
-    if (!backupInfo.exists) {
-      logger.warn('No backup model available for rollback');
+    const restored = await restoreMlpModelBackup(profileId);
+    if (!restored) {
+      logger.warn('No backup model available for rollback', {
+        profileId: profileId ?? 'global',
+      });
       return false;
     }
 
-    // Restore backup as the active model
-    await FileSystem.copyAsync({
-      from: backupUri,
-      to: CUSTOM_GESTURE_MODEL_PATH
+    logger.info('Successfully rolled back to previous model', {
+      profileId: profileId ?? 'global',
     });
-
-    // Clear the hash to force re-validation on next update check
-    await saveCustomModelHash('');
-
-    logger.info('Successfully rolled back to previous model');
     return true;
-  } catch (e) {
-    logger.error('Failed to rollback model update', e);
+  } catch (error) {
+    logger.error('Failed to rollback model update', error);
     return false;
   }
 }
 
 // Emergency rollback triggered by recognition failures
-export async function emergencyRollback(): Promise<boolean> {
-  logger.warn('Emergency rollback triggered due to recognition failures');
-  const success = await rollbackModelUpdate();
-  if (success) {
-    // Clean up backup after successful emergency rollback
-    try {
-      const backupUri = `${CUSTOM_GESTURE_MODEL_PATH}.backup`;
-      await FileSystem.deleteAsync(backupUri, { idempotent: true });
-    } catch (e) {
-      logger.warn('Failed to clean up backup after emergency rollback', e);
-    }
-  }
+export async function emergencyRollback(profileId?: string): Promise<boolean> {
+  logger.warn('Emergency rollback triggered due to recognition failures', {
+    profileId: profileId ?? 'global',
+  });
+  const success = await rollbackModelUpdate(profileId);
   return success;
 }
 
