@@ -13,6 +13,8 @@ import { refreshDgsModel } from './modelUpdate';
 import { uploadTrainingBundle } from './trainingBundleService';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from './trainingBundleQueue';
 
+const TRAINING_JOB_TRIGGER_TIMEOUT_MS = 30_000;
+
 let fetchNetOverride: (() => Promise<NetInfoState | undefined>) | undefined;
 
 export function __setNetInfoFetchOverride(
@@ -107,6 +109,46 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     }
 
     if (processed > 0) {
+      if (token) {
+        try {
+          const controller =
+            typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+          const timeoutId = controller
+            ? setTimeout(() => controller.abort(), TRAINING_JOB_TRIGGER_TIMEOUT_MS)
+            : undefined;
+          try {
+            const response = await fetch(`${API_URL}/train-model`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ trigger: 'bundles' }),
+              ...(controller ? { signal: controller.signal } : {}),
+            });
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            try {
+              const payload = await response.json();
+              if (payload?.jobId) {
+                logger.info('Training job triggered for uploaded bundles', { jobId: payload.jobId });
+              }
+            } catch (parseError) {
+              logger.warn('Failed to parse training job response', { error: parseError });
+            }
+          } finally {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+          }
+        } catch (triggerError) {
+          logger.warn('Training job trigger failed after bundle upload', { error: triggerError });
+        }
+      } else {
+        logger.warn('Skipping training job trigger: missing API token');
+      }
+
       await refreshDgsModel(profile.id);
     }
     const remaining = await listQueuedTrainingBundles(profile.id);

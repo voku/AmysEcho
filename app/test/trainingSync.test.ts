@@ -32,7 +32,17 @@ jest.mock('../src/services/modelUpdate', () => ({
 }));
 
 jest.mock('expo-file-system', () => ({
+  __esModule: true,
   deleteAsync: jest.fn(async () => {}),
+  readAsStringAsync: jest.fn(),
+  writeAsStringAsync: jest.fn(),
+  uploadAsync: jest.fn(),
+  FileSystemUploadType: { BINARY_CONTENT: 'BINARY_CONTENT' },
+  EncodingType: { Base64: 'base64' },
+  Paths: {
+    document: { uri: 'file://document/' },
+    cache: { uri: 'file://cache/' },
+  },
 }));
 
 jest.mock('../src/utils/logger', () => ({
@@ -42,11 +52,26 @@ jest.mock('../src/utils/logger', () => ({
 const { loadProfile, updateTrainingSample } = require('../src/storage');
 const { listQueuedTrainingBundles, removeQueuedTrainingBundle } = require('../src/services/trainingBundleQueue');
 const { uploadTrainingBundle } = require('../src/services/trainingBundleService');
+const { API_URL } = require('../src/constants');
 const fs = require('expo-file-system');
+const { logger } = require('../src/utils/logger');
+const { loadBackendApiToken } = require('../src/storage');
 
 describe('syncTrainingData', () => {
+  let fetchSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    (loadBackendApiToken as jest.Mock).mockResolvedValue('token');
+    (listQueuedTrainingBundles as jest.Mock).mockResolvedValue([]);
+    (uploadTrainingBundle as jest.Mock).mockResolvedValue({ status: 'queued', id: 'bundle' });
+    fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ jobId: 'job-1' }) } as any);
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
+    fetchSpy.mockRestore();
   });
 
   it('returns early when user lacks consent', async () => {
@@ -54,6 +79,7 @@ describe('syncTrainingData', () => {
     const result = await syncTrainingData();
     expect(uploadTrainingBundle).not.toHaveBeenCalled();
     expect(result).toEqual({ uploaded: 0, remaining: 0 });
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('uploads queued bundles when conditions are met', async () => {
@@ -76,6 +102,7 @@ describe('syncTrainingData', () => {
     const onProgress = jest.fn();
     const result = await syncTrainingData({ onProgress });
 
+
     expect(listQueuedTrainingBundles).toHaveBeenCalledWith('amy');
     expect(uploadTrainingBundle).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -95,6 +122,14 @@ describe('syncTrainingData', () => {
     expect(fs.deleteAsync).toHaveBeenCalledWith('file://cache/clip.mp4', { idempotent: true });
     expect(onProgress).toHaveBeenCalledWith(100);
     expect(result).toEqual({ uploaded: 1, remaining: 0 });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `${API_URL}/train-model`,
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      'Training job triggered for uploaded bundles',
+      expect.objectContaining({ jobId: 'job-1' }),
+    );
   });
 
 });

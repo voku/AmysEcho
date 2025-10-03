@@ -9,7 +9,6 @@ export { default as gestureSuggester } from './gestureSuggester';
 
 export * from "./trainingSync";
 export * from "./modelUpdate";
-export * from "./syncService";
 export * from './feedbackService';
 export * from './accessibilityService';
 export * from './backupService';

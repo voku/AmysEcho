@@ -2,6 +2,7 @@ import { syncTrainingData, __setNetInfoFetchOverride } from '../../src/services/
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from '../../src/services/trainingBundleQueue';
 import { uploadTrainingBundle } from '../../src/services/trainingBundleService';
 import { loadProfile, loadBackendApiToken, updateTrainingSample } from '../../src/storage';
+import { API_URL } from '../../src/constants';
 import * as NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
 
@@ -9,7 +10,19 @@ jest.mock('../../src/services/trainingBundleQueue');
 jest.mock('../../src/services/trainingBundleService');
 jest.mock('../../src/storage');
 jest.mock('@react-native-community/netinfo');
-jest.mock('expo-file-system');
+jest.mock('expo-file-system', () => ({
+  __esModule: true,
+  deleteAsync: jest.fn(async () => {}),
+  readAsStringAsync: jest.fn(),
+  writeAsStringAsync: jest.fn(),
+  uploadAsync: jest.fn(),
+  FileSystemUploadType: { BINARY_CONTENT: 'BINARY_CONTENT' },
+  EncodingType: { Base64: 'base64' },
+  Paths: {
+    document: { uri: 'file://document/' },
+    cache: { uri: 'file://cache/' },
+  },
+}));
 jest.mock('../../src/services/modelUpdate', () => ({
   refreshDgsModel: jest.fn().mockResolvedValue(undefined),
 }));
@@ -27,6 +40,14 @@ describe('syncTrainingData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     __setNetInfoFetchOverride();
+    (global.fetch as jest.Mock | undefined) = jest
+      .fn()
+      .mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ jobId: 'job-1' }) });
+  });
+
+  afterEach(() => {
+    // @ts-expect-error - cleanup test stub
+    delete global.fetch;
   });
 
   it('should not upload if user has not consented', async () => {
@@ -34,6 +55,7 @@ describe('syncTrainingData', () => {
     const result = await syncTrainingData();
     expect(result.uploaded).toBe(0);
     expect(mockedListQueuedTrainingBundles).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('should not upload if there are no bundles', async () => {
@@ -41,6 +63,7 @@ describe('syncTrainingData', () => {
     mockedListQueuedTrainingBundles.mockResolvedValue([]);
     const result = await syncTrainingData();
     expect(result.uploaded).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('should not upload if not on wifi', async () => {
@@ -75,5 +98,10 @@ describe('syncTrainingData', () => {
     expect(mockedRemoveQueuedTrainingBundle).toHaveBeenCalledTimes(2);
     expect(mockedUpdateTrainingSample).toHaveBeenCalledTimes(2);
     expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(2);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [endpoint, options] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(endpoint).toBe(`${API_URL}/train-model`);
+    expect(options).toMatchObject({ method: 'POST' });
+    expect(JSON.parse(options.body)).toEqual({ trigger: 'bundles' });
   });
 });

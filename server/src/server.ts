@@ -66,6 +66,7 @@ import caregiverPortalApiRouter from './caregiverPortalApi.js';
 import { appendCrashReports, CrashReport } from './services/crashService.js';
 import { AuthService } from './services/authService.js';
 import logger from './services/logger.js';
+import { ingestTrainingBundlesIntoDataset } from './services/trainingBundleIngestor.js';
 
 export const app = express();
 
@@ -840,7 +841,10 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
         message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1]',
       }),
   });
-  const BodySchema = z.object({ samples: z.array(SampleSchema) });
+  const BodySchema = z.object({
+    samples: z.array(SampleSchema).optional(),
+    trigger: z.enum(['bundles']).optional(),
+  });
   const parsed = BodySchema.safeParse(req.body);
   if (!parsed.success) {
     return res
@@ -848,7 +852,8 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
       .json({ error: 'Invalid samples payload.', details: parsed.error.flatten() });
   }
   type Sample = z.infer<typeof SampleSchema>;
-  const samples: Sample[] = parsed.data.samples;
+  const samples: Sample[] = parsed.data.samples ?? [];
+  const triggeredByBundles = parsed.data.trigger === 'bundles';
 
   const id = genId();
   const job: TrainingJob = { id, status: 'running', progress: 0, startedAt: Date.now() };
@@ -865,19 +870,35 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
       landmarks: s.landmarkData,
       ts: Date.now(),
     }));
-    await withFileLock(dataPath, async () => {
-      let data: any = { samples: [] };
-      try {
-        const raw = await fs.readFile(dataPath, 'utf8');
-        data = JSON.parse(raw);
-        if (!Array.isArray(data.samples)) data.samples = [];
-      } catch {}
-      data.samples.push(...toAdd);
-      const tmp = `${dataPath}.tmp`;
-      await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-      await fs.rename(tmp, dataPath);
-    });
-    await logTraining(`job ${id}: samples appended (${toAdd.length})`);
+    if (toAdd.length > 0) {
+      await withFileLock(dataPath, async () => {
+        let data: any = { samples: [] };
+        try {
+          const raw = await fs.readFile(dataPath, 'utf8');
+          data = JSON.parse(raw);
+          if (!Array.isArray(data.samples)) data.samples = [];
+        } catch {}
+        data.samples.push(...toAdd);
+        const tmp = `${dataPath}.tmp`;
+        await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+        await fs.rename(tmp, dataPath);
+      });
+      await logTraining(`job ${id}: samples appended (${toAdd.length})`);
+    } else if (triggeredByBundles) {
+      await logTraining(`job ${id}: triggered by bundle manifest with no inline samples`);
+    }
+
+    let bundleFrames = 0;
+    try {
+      const result = await ingestTrainingBundlesIntoDataset();
+      bundleFrames = result.appended;
+      if (bundleFrames > 0) {
+        await logTraining(`job ${id}: ingested ${bundleFrames} frames from training bundles`);
+      }
+    } catch (err) {
+      logger.error(`job ${id}: failed to ingest training bundles`, { error: err });
+      await logTraining(`job ${id}: failed to ingest training bundles`);
+    }
 
     let { centroids, counts } = await getCentroids();
     if (Object.keys(centroids).length === 0 && toAdd.length > 0) {
