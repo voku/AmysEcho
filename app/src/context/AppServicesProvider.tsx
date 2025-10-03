@@ -82,13 +82,13 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
 
       modelRefreshPromise = execute().finally(() => {
         modelRefreshPromise = null;
-        if (pendingModelRefresh && !cancelled) {
-          pendingModelRefresh = false;
+        const shouldRunQueued = pendingModelRefresh && !cancelled;
+        pendingModelRefresh = false;
+
+        if (shouldRunQueued) {
           runModelRefresh().catch((queuedError) => {
             logger.warn('Failed to run queued model refresh', queuedError);
           });
-        } else {
-          pendingModelRefresh = false;
         }
       });
 
