@@ -21,7 +21,6 @@ jest.mock('expo-asset', () => ({
   },
 }));
 
-jest.mock('../../src/assets/dgs_model.npz', () => 'mock-mlp-asset', { virtual: true });
 jest.mock('../../assets/dgs_model.npz', () => 'mock-mlp-asset', { virtual: true });
 
 jest.mock('../../src/utils/logger', () => ({
