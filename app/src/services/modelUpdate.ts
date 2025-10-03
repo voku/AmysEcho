@@ -7,17 +7,36 @@ import {
   restoreMlpModelBackup,
 } from './dgsModelClient';
 
-export async function checkForModelUpdate(profileId?: string): Promise<boolean> {
+export async function shouldAllowModelRefresh(): Promise<boolean> {
+  const net = await NetInfo.fetch();
+  const allowCellular =
+    process.env['EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES'] === 'true';
+
+  if (!net.isConnected || net.isInternetReachable !== true) {
+    return false;
+  }
+
+  if (!allowCellular && net.type !== 'wifi') {
+    return false;
+  }
+
+  return true;
+}
+
+type CheckOptions = {
+  skipNetworkCheck?: boolean;
+};
+
+export async function checkForModelUpdate(
+  profileId?: string,
+  options?: CheckOptions,
+): Promise<boolean> {
   try {
-    const net = await NetInfo.fetch();
-    const allowCellular = process.env['EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES'] === 'true';
-
-    if (!net.isConnected || net.isInternetReachable !== true) {
-      return false;
-    }
-
-    if (!allowCellular && net.type !== 'wifi') {
-      return false;
+    if (!options?.skipNetworkCheck) {
+      const allowed = await shouldAllowModelRefresh();
+      if (!allowed) {
+        return false;
+      }
     }
 
     const refreshed = await refreshDgsModel(profileId);

@@ -34,7 +34,57 @@ const {
   rollbackModelUpdate,
   emergencyRollback,
   validateModelUpdate,
+  shouldAllowModelRefresh,
 } = require('../src/services/modelUpdate');
+
+describe('shouldAllowModelRefresh', () => {
+  const netFetch = NetInfo.fetch as jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    delete process.env.EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES;
+  });
+
+  it('returns false when offline', async () => {
+    netFetch.mockResolvedValueOnce({
+      isConnected: false,
+      isInternetReachable: false,
+      type: 'cellular',
+    });
+
+    await expect(shouldAllowModelRefresh()).resolves.toBe(false);
+  });
+
+  it('returns true on wifi', async () => {
+    netFetch.mockResolvedValueOnce({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    });
+
+    await expect(shouldAllowModelRefresh()).resolves.toBe(true);
+  });
+
+  it('respects cellular opt-out flag', async () => {
+    netFetch.mockResolvedValueOnce({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'cellular',
+    });
+
+    await expect(shouldAllowModelRefresh()).resolves.toBe(false);
+
+    process.env.EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES = 'true';
+    netFetch.mockResolvedValueOnce({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'cellular',
+    });
+
+    await expect(shouldAllowModelRefresh()).resolves.toBe(true);
+    delete process.env.EXPO_PUBLIC_ALLOW_CELLULAR_MODEL_UPDATES;
+  });
+});
 
 describe('checkForModelUpdate', () => {
   const netFetch = NetInfo.fetch as jest.Mock;
@@ -70,6 +120,19 @@ describe('checkForModelUpdate', () => {
 
     expect(fetchMlpModel).toHaveBeenCalledWith('profile-1');
     expect(result).toBe(true);
+  });
+
+  it('skips network check when instructed', async () => {
+    netFetch.mockReset();
+    netFetch.mockImplementation(() => {
+      throw new Error('network check should be skipped');
+    });
+    (fetchMlpModel as jest.Mock).mockResolvedValue('base64-model');
+
+    const result = await checkForModelUpdate('profile-1', { skipNetworkCheck: true });
+
+    expect(result).toBe(true);
+    expect(fetchMlpModel).toHaveBeenCalledWith('profile-1');
   });
 
   it('falls back to centroid when MLP unavailable', async () => {

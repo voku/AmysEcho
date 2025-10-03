@@ -10,6 +10,7 @@ import {
   gestureDataProtector,
   gdprService,
   checkForModelUpdate,
+  shouldAllowModelRefresh,
 } from '../services';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
@@ -41,29 +42,58 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let cancelled = false;
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
-    let modelRefreshInFlight = false;
+    let modelRefreshPromise: Promise<void> | null = null;
     let pendingModelRefresh = false;
-    async function runModelRefresh(): Promise<void> {
-      if (modelRefreshInFlight) {
+    const runModelRefresh = (): Promise<void> => {
+      if (modelRefreshPromise) {
         pendingModelRefresh = true;
-        return;
+        return modelRefreshPromise;
       }
-      modelRefreshInFlight = true;
-      try {
-        const pid = await loadActiveProfileId().catch(() => null);
-        await checkForModelUpdate(pid ?? undefined);
-      } catch (e) {
-        logger.warn('Failed to run model refresh', e);
-      } finally {
-        modelRefreshInFlight = false;
-        if (pendingModelRefresh) {
+
+      const execute = async () => {
+        try {
+          const allowed = await shouldAllowModelRefresh();
+          if (!allowed) {
+            logger.info('Skipping model refresh due to connectivity restrictions');
+            return;
+          }
+
+          const pid = await loadActiveProfileId().catch(() => null);
+          const updated = await checkForModelUpdate(pid ?? undefined, {
+            skipNetworkCheck: true,
+          });
+
+          if (updated) {
+            try {
+              const { mlService } = require('../services');
+              const loader = mlService?.loadModels;
+              if (loader) {
+                await Promise.resolve(loader.call(mlService));
+                logger.info('Reloaded ML models after refresh');
+              }
+            } catch (loadError) {
+              logger.warn('Failed to reload ML models after refresh', loadError as Error);
+            }
+          }
+        } catch (e) {
+          logger.warn('Failed to run model refresh', e as Error);
+        }
+      };
+
+      modelRefreshPromise = execute().finally(() => {
+        modelRefreshPromise = null;
+        if (pendingModelRefresh && !cancelled) {
           pendingModelRefresh = false;
           runModelRefresh().catch((queuedError) => {
             logger.warn('Failed to run queued model refresh', queuedError);
           });
+        } else {
+          pendingModelRefresh = false;
         }
-      }
-    }
+      });
+
+      return modelRefreshPromise;
+    };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;
       try {
@@ -78,7 +108,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
               await ut(firstEvents);
             }
           } catch (e) {
-            logger.warn('Failed to run model update check', e as Error);
+            logger.warn('Failed to upload telemetry batch', e as Error);
           }
 
           const now = new Date().toISOString().slice(0, 10);
@@ -122,8 +152,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
                 await ut(events);
               }
             } catch (e) {
-              // Maintain historical logging message expected by tests
-              logger.warn('Failed to run model update check', e as Error);
+              logger.warn('Failed to upload telemetry batch', e as Error);
             } finally {
               if (!cancelled) {
                 telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
