@@ -152,8 +152,8 @@ export default function AdminScreen({ navigation }: any) {
 
   const handleDownloadModel = async () => {
     try {
-      const profileId = await loadActiveProfileId().catch(() => undefined);
-      const model = await fetchMlpModel(profileId);
+      const profileId = await loadActiveProfileId().catch(() => null);
+      const model = await fetchMlpModel(profileId ?? undefined);
       if (model) {
         Alert.alert('Modell heruntergeladen');
         return;

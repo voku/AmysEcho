@@ -42,7 +42,8 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         logger.warn('Failed to run model update check', e);
       }
     }
-    async function initializeServices() {
+    async function initializeServices(): Promise<(() => void) | undefined> {
+      let unsubscribeModelUpdates: (() => void) | undefined;
       try {
         // WebView + server path: no native TensorFlow model loading here.
         await audioService.initialize();
@@ -75,7 +76,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             })
             .catch(() => {});
 
-          const unsubscribeModelUpdates = onMlpModelUpdated(() => {
+          unsubscribeModelUpdates = onMlpModelUpdated(() => {
             logger.info('MLP model update event received');
           });
 
@@ -99,13 +100,12 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
               // Maintain historical logging message expected by tests
               logger.warn('Failed to run model update check', e as Error);
             } finally {
-              telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
+              if (!cancelled) {
+                telemetryTimeout = setTimeout(runPeriodicTelemetryUpload, 30 * 1000);
+              }
             }
           };
           runPeriodicTelemetryUpload();
-          return () => {
-            unsubscribeModelUpdates();
-          };
         } else {
           logger.info('Starting in offline mode; skipping cloud sync');
         }
@@ -118,6 +118,8 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           setIsReady(true);
         }
       }
+
+      return unsubscribeModelUpdates;
     }
 
     const cleanupPromise = initializeServices();
