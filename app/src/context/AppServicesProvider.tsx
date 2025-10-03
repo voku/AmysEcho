@@ -41,12 +41,27 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let cancelled = false;
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
-    async function runModelRefresh() {
+    let modelRefreshInFlight = false;
+    let pendingModelRefresh = false;
+    async function runModelRefresh(): Promise<void> {
+      if (modelRefreshInFlight) {
+        pendingModelRefresh = true;
+        return;
+      }
+      modelRefreshInFlight = true;
       try {
         const pid = await loadActiveProfileId().catch(() => null);
         await checkForModelUpdate(pid ?? undefined);
       } catch (e) {
         logger.warn('Failed to run model refresh', e);
+      } finally {
+        modelRefreshInFlight = false;
+        if (pendingModelRefresh) {
+          pendingModelRefresh = false;
+          runModelRefresh().catch((queuedError) => {
+            logger.warn('Failed to run queued model refresh', queuedError);
+          });
+        }
       }
     }
     async function initializeServices(): Promise<(() => void) | undefined> {
@@ -83,20 +98,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             })
             .catch(() => {});
 
-          let eventRefreshInFlight = false;
           unsubscribeModelUpdates = onMlpModelUpdated(() => {
             logger.info('MLP model update event received');
-            if (eventRefreshInFlight) {
-              return;
-            }
-            eventRefreshInFlight = true;
-            runModelRefresh()
-              .catch((eventError) => {
-                logger.warn('Failed to refresh model after update event', eventError);
-              })
-              .finally(() => {
-                eventRefreshInFlight = false;
-              });
+            runModelRefresh().catch((eventError) => {
+              logger.warn('Failed to refresh model after update event', eventError);
+            });
           });
 
           interval = setInterval(() => {

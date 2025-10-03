@@ -393,6 +393,50 @@ describe('AppServicesProvider', () => {
     });
   });
 
+  it('queues model refresh requests when an event arrives during an active refresh', async () => {
+    audioServiceMock.initialize.mockResolvedValueOnce();
+
+    let resolveFirstRefresh: (() => void) | undefined;
+    checkForModelUpdateMock
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirstRefresh = resolve;
+          }),
+      )
+      .mockResolvedValue(true);
+
+    const component = await renderProvider();
+    await expectChildRendered(component);
+
+    await expectEventually(() => {
+      expect(checkForModelUpdateMock).toHaveBeenCalled();
+    });
+
+    const initialCalls = checkForModelUpdateMock.mock.calls.length;
+
+    const listener = mockOnMlpModelUpdated.mock.calls.at(-1)?.[0];
+    expect(listener).toBeDefined();
+
+    await act(async () => {
+      listener?.();
+    });
+
+    expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls);
+
+    await act(async () => {
+      resolveFirstRefresh?.();
+    });
+
+    await expectEventually(() => {
+      expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls + 1);
+    });
+
+    await act(async () => {
+      component.unmount();
+    });
+  });
+
   it('provides initialized services through context', async () => {
     audioServiceMock.initialize.mockResolvedValueOnce();
 

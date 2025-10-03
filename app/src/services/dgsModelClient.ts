@@ -223,6 +223,8 @@ export async function restoreMlpModelBackup(profileId?: string): Promise<boolean
   const metaBackup = await storage.getItem(metaBackupKey);
   if (metaBackup) {
     await storage.setItem(metaKey, metaBackup);
+  } else {
+    await storage.setItem(metaKey, '');
   }
 
   emitMlpModelUpdated();
