@@ -65,12 +65,8 @@ jest.mock('../src/telemetry/recorder', () => ({ telemetry: mockTelemetry }));
 
 const createResolvedMock = () => jest.fn().mockResolvedValue(undefined);
 
-const modelUpdateListeners = new Set<() => void>();
 const mockOnMlpModelUpdated = jest.fn((listener: () => void) => {
-  modelUpdateListeners.add(listener);
-  return () => {
-    modelUpdateListeners.delete(listener);
-  };
+  return () => {};
 });
 jest.mock('../src/services/dgsModelClient', () => ({
   onMlpModelUpdated: mockOnMlpModelUpdated,
@@ -197,7 +193,6 @@ describe('AppServicesProvider', () => {
     mockDailyJobs.checkPracticeRecommendations.mockReset();
 
     mockOnMlpModelUpdated.mockClear();
-    modelUpdateListeners.clear();
 
     AsyncStorage.getItem.mockReset().mockResolvedValue(null);
     AsyncStorage.setItem.mockReset().mockResolvedValue(undefined);
@@ -364,6 +359,37 @@ describe('AppServicesProvider', () => {
 
     await expectEventually(() => {
       expect(audioServiceMock.dispose).toHaveBeenCalled();
+    });
+  });
+
+  it('refreshes models when an update event is emitted', async () => {
+    audioServiceMock.initialize.mockResolvedValueOnce();
+
+    const component = await renderProvider();
+    await expectChildRendered(component);
+
+    await expectEventually(() => {
+      expect(mockOnMlpModelUpdated).toHaveBeenCalled();
+    });
+
+    await expectEventually(() => {
+      expect(checkForModelUpdateMock).toHaveBeenCalled();
+    });
+    checkForModelUpdateMock.mockClear();
+
+    const listener = mockOnMlpModelUpdated.mock.calls.at(-1)?.[0];
+    expect(listener).toBeDefined();
+    await act(async () => {
+      listener?.();
+      await Promise.resolve();
+    });
+
+    await expectEventually(() => {
+      expect(checkForModelUpdateMock).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      component.unmount();
     });
   });
 

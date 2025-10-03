@@ -1,7 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
 import { logger } from '../utils/logger';
 import {
-  clearMlpModelBackup,
   fetchCentroids,
   fetchMlpModel,
   getCachedMlpModel,
@@ -86,13 +85,6 @@ export async function emergencyRollback(profileId?: string): Promise<boolean> {
     profileId: profileId ?? 'global',
   });
   const success = await rollbackModelUpdate(profileId);
-  if (success) {
-    try {
-      await clearMlpModelBackup(profileId);
-    } catch (error) {
-      logger.warn('Failed to clean up backup after emergency rollback', error);
-    }
-  }
   return success;
 }
 

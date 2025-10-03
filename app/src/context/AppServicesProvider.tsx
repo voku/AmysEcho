@@ -83,8 +83,20 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
             })
             .catch(() => {});
 
+          let eventRefreshInFlight = false;
           unsubscribeModelUpdates = onMlpModelUpdated(() => {
             logger.info('MLP model update event received');
+            if (eventRefreshInFlight) {
+              return;
+            }
+            eventRefreshInFlight = true;
+            runModelRefresh()
+              .catch((eventError) => {
+                logger.warn('Failed to refresh model after update event', eventError);
+              })
+              .finally(() => {
+                eventRefreshInFlight = false;
+              });
           });
 
           interval = setInterval(() => {

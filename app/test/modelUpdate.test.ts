@@ -241,16 +241,16 @@ describe('emergencyRollback', () => {
     jest.clearAllMocks();
   });
 
-  it('cleans up backup when rollback succeeds', async () => {
+  it('logs event when rollback succeeds', async () => {
     (restoreMlpModelBackup as jest.Mock).mockResolvedValue(true);
 
     const result = await emergencyRollback('profile-5');
 
     expect(result).toBe(true);
-    expect(clearMlpModelBackup).toHaveBeenCalledWith('profile-5');
     expect(logger.warn).toHaveBeenCalledWith('Emergency rollback triggered due to recognition failures', {
       profileId: 'profile-5',
     });
+    expect(clearMlpModelBackup).not.toHaveBeenCalled();
   });
 
   it('skips cleanup when rollback fails', async () => {
