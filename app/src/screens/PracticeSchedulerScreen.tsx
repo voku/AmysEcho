@@ -324,7 +324,7 @@ export default function PracticeSchedulerScreen({ navigation }: any) {
           </Pressable>
         </View>
       </ScreenBackground>
-      {profile && <BottomNav active="schedule" profileId={profile.id} />}
+      {profile && <BottomNav active="parent" profileId={profile.id} />}
     </View>
   );
 }

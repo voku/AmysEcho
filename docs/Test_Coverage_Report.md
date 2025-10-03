@@ -12,16 +12,10 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 **Source Files with No Corresponding Test File:**
 
 *   `app/src/screens/TeachScreen.tsx`
-*   `app/src/screens/ScheduleScreen.tsx`
 *   `app/src/screens/ProfileManagerScreen.tsx`
-*   `app/src/screens/PrivacySettingsScreen.tsx`
 *   `app/src/screens/OnboardingScreen.tsx`
-*   `app/src/screens/DailySuccessScreen.tsx`
 *   `app/src/screens/CommunicationInsightsScreen.tsx`
-*   `app/src/components/VisualSchedule.tsx`
-*   `app/src/components/DailySuccessSummary.tsx`
 *   `app/src/components/CommunicationInsights.tsx`
-*   `app/src/components/PrivacySettings.tsx`
 *   `app/src/components/CorrectionPanel.tsx`
 *   `app/src/components/PulsingCircle.tsx`
 *   `app/src/navigation/types.ts`

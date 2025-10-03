@@ -104,11 +104,10 @@ describe('BottomNav', () => {
     const navPressables = pressables.filter(p =>
       p.props.accessibilityLabel === 'Zurück zur Gestenerkennung' ||
       p.props.accessibilityLabel === 'Zuhören' ||
-      p.props.accessibilityLabel === 'Tagesplan' ||
       p.props.accessibilityLabel === 'Lernen' ||
       p.props.accessibilityLabel === 'Menü'
     );
-    expect(navPressables).toHaveLength(5); // Home button + 4 nav buttons
+    expect(navPressables).toHaveLength(4); // Home button + 3 nav buttons
     const expected = [
       {
         label: 'Zurück zur Gestenerkennung',
@@ -117,10 +116,6 @@ describe('BottomNav', () => {
       {
         label: 'Zuhören',
         hint: 'Zurück zur Gestenerkennung',
-      },
-      {
-        label: 'Tagesplan',
-        hint: 'Tagesplan mit Übungen anzeigen',
       },
       {
         label: 'Lernen',
@@ -139,7 +134,7 @@ describe('BottomNav', () => {
   });
 
   it('handles different active states', () => {
-    const activeStates: Array<'recognition' | 'training' | 'parent' | 'schedule'> = ['recognition', 'training', 'parent', 'schedule'];
+    const activeStates: Array<'recognition' | 'training' | 'parent'> = ['recognition', 'training', 'parent'];
 
     activeStates.forEach(active => {
       let component: renderer.ReactTestRenderer;
@@ -194,26 +189,19 @@ describe('BottomNav', () => {
     const navPressables = pressables.filter(p =>
       p.props.accessibilityLabel === 'Zurück zur Gestenerkennung' ||
       p.props.accessibilityLabel === 'Zuhören' ||
-      p.props.accessibilityLabel === 'Tagesplan' ||
       p.props.accessibilityLabel === 'Lernen' ||
       p.props.accessibilityLabel === 'Menü'
     );
 
-    // Test Schedule navigation (index 2 in filtered array)
+    // Test Training navigation (index 2 in filtered array)
     act(() => {
       navPressables[2].props.onPress();
     });
-    expect(mockNavigate).toHaveBeenCalledWith('Schedule');
+    expect(mockNavigate).toHaveBeenCalledWith('Training', {});
 
-    // Test Training navigation (index 3 in filtered array)
+    // Test ProfileSelect navigation (index 3 in filtered array)
     act(() => {
       navPressables[3].props.onPress();
-    });
-    expect(mockNavigate).toHaveBeenCalledWith('Training', { gestureLabel: undefined });
-
-    // Test ProfileSelect navigation (index 4 in filtered array)
-    act(() => {
-      navPressables[4].props.onPress();
     });
     expect(mockNavigate).toHaveBeenCalledWith('ProfileSelect');
   });

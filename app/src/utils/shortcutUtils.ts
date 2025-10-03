@@ -8,7 +8,6 @@ export const getShortcutMessage = (action: string): string => {
       'profile_screen': '👤 Öffne Profile',
       'dashboard_screen': '📊 Öffne Auswertung',
       'progress_screen': '📈 Öffne Fortschritt',
-      'schedule_screen': '📅 Öffne Tagesplan',
 
       // Celebration and success shortcuts
       'celebration_mode': '🎉 Super gemacht! Du bist toll!',
@@ -53,9 +52,6 @@ export const getShortcutAction = (gesture: string): string | null => {
       'statistik': 'dashboard_screen',
       'progress': 'progress_screen',
       'fortschritt': 'progress_screen',
-      'schedule': 'schedule_screen',
-      'plan': 'schedule_screen',
-      'tagesplan': 'schedule_screen',
 
       // Action shortcuts
       'celebration': 'celebration_mode',
@@ -100,7 +96,6 @@ export const getShortcutDisplayName = (action: string): string => {
       'profile_screen': 'Profile',
       'dashboard_screen': 'Auswertung',
       'progress_screen': 'Fortschritt',
-      'schedule_screen': 'Tagesplan',
       'celebration_mode': 'Feiermodus',
       'home_screen': 'Startseite',
       'confirm_action': 'Bestätigung',

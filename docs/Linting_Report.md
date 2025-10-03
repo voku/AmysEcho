@@ -18,10 +18,6 @@ The linter now runs successfully without parsing errors. All critical `react-hoo
 ### `app/src/screens/RecognitionScreen.tsx`
 *   `101:9` warning: `_lastErrorFeedbackAtRef` is assigned a value but never used
 
-### `app/src/screens/ScheduleScreen.tsx`
-*   `6:10` warning: `loadProfile` is defined but never used
-*   `14:32` warning: `activity` is defined but never used
-
 ### `app/src/screens/TeachScreen.tsx`
 *   `2:10` warning: `View` is defined but never used
 *   `8:11` warning: `largeText` is assigned a value but never used

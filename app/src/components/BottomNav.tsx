@@ -6,7 +6,7 @@ import { View, Pressable, Text, StyleSheet, FlatList } from 'react-native';
 
 // Third-party imports
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
 
 // Local imports
 import { COLORS, SPACING } from '../constants/ui';
@@ -21,7 +21,7 @@ import type { NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/types';
 
 interface BottomNavProps {
-  active: 'recognition' | 'training' | 'parent' | 'schedule';
+  active: 'recognition' | 'training' | 'parent';
   profileId: string;
 }
 
@@ -38,11 +38,6 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
     navigation.navigate('Recognition', { profileId });
   }, [navigation, profileId]);
 
-  const navigateToSchedule = useCallback(() => {
-    void childHaptic();
-    navigation.navigate('Schedule');
-  }, [navigation]);
-
   const navigateToTraining = useCallback(() => {
     void childHaptic();
     navigation.navigate('Training', {});
@@ -58,7 +53,6 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
     const screenNames: Record<string, string> = {
       'Recognition': '🏠 Zuhören',
       'Training': '🎯 Lernen',
-      'Schedule': '📅 Tagesplan',
       'Practice': '✨ Üben',
       'Help': '❓ Hilfe',
       'Dashboard': '📊 Auswertung',
@@ -169,58 +163,24 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
       <View style={styles.navContainer}>
         <Pressable
           onPress={navigateToRecognition}
-         style={({ pressed }) => [
-           childFriendlyStyles.minTouchTarget,
-           styles.item,
-           active === 'recognition' && styles.homeButton,
-           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-         ]}
-         accessibilityLabel="Zuhören"
-         accessibilityRole="button"
-         accessibilityHint="Zurück zur Gestenerkennung"
-       >
-         <HandIcon
-           size={24}
-           color={
-             highContrast
-               ? active === 'recognition'
-                 ? COLORS.highContrastText
-                 : COLORS.highContrastPressed
-               : active === 'recognition'
-               ? theme.colors.primary
-               : theme.colors.secondary
-           }
-           style={styles.icon}
-         />
-          <Text
-            style={[
-              styles.label,
-              highContrast && styles.labelHC,
-              active === 'recognition' && (highContrast ? styles.activeHC : styles.active),
-            ]}
-          >
-            Zuhören
-          </Text>
-       </Pressable>
-        <Pressable
-         onPress={navigateToSchedule}
-         style={({ pressed }) => [
-           childFriendlyStyles.minTouchTarget,
-           styles.item,
-           pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-         ]}
-         accessibilityLabel="Tagesplan"
-         accessibilityRole="button"
-         accessibilityHint="Tagesplan mit Übungen anzeigen"
-       >
-          <CalendarIcon
+          style={({ pressed }) => [
+            childFriendlyStyles.minTouchTarget,
+            styles.item,
+            active === 'recognition' && styles.homeButton,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          accessibilityLabel="Zuhören"
+          accessibilityRole="button"
+          accessibilityHint="Zurück zur Gestenerkennung"
+        >
+          <HandIcon
             size={24}
             color={
               highContrast
-                ? active === 'schedule'
+                ? active === 'recognition'
                   ? COLORS.highContrastText
                   : COLORS.highContrastPressed
-                : active === 'schedule'
+                : active === 'recognition'
                 ? theme.colors.primary
                 : theme.colors.secondary
             }
@@ -230,80 +190,80 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
             style={[
               styles.label,
               highContrast && styles.labelHC,
-              active === 'schedule' && (highContrast ? styles.activeHC : styles.active),
+              active === 'recognition' && (highContrast ? styles.activeHC : styles.active),
             ]}
           >
-            Plan
+            Zuhören
           </Text>
-       </Pressable>
-       <Pressable
-         onPress={navigateToTraining}
-        style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
-          styles.item,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
-        accessibilityLabel="Lernen"
-        accessibilityRole="button"
-        accessibilityHint="Gesten aufnehmen oder üben"
-      >
-         <BookIcon
-           size={24}
-           color={
-             highContrast
-               ? active === 'training'
-                 ? COLORS.highContrastText
-                 : COLORS.highContrastPressed
-               : active === 'training'
-               ? theme.colors.primary
-               : theme.colors.secondary
-           }
-           style={styles.icon}
-         />
-         <Text
-           style={[
-             styles.label,
-             highContrast && styles.labelHC,
-             active === 'training' && (highContrast ? styles.activeHC : styles.active),
-           ]}
-         >
-           Lernen
-         </Text>
-      </Pressable>
-       <Pressable
-         onPress={navigateToProfileSelect}
-        style={({ pressed }) => [
-          childFriendlyStyles.minTouchTarget,
-          styles.item,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
-        accessibilityLabel="Menü"
-        accessibilityRole="button"
-        accessibilityHint="Profil- und Einstellungsmenü öffnen"
-      >
-         <SettingsIcon
-           size={24}
-           color={
-             highContrast
-               ? active === 'parent'
-                 ? COLORS.highContrastText
-                 : COLORS.highContrastPressed
-               : active === 'parent'
-               ? theme.colors.primary
-               : theme.colors.secondary
-           }
-           style={styles.icon}
-         />
-         <Text
-           style={[
-             styles.label,
-             highContrast && styles.labelHC,
-             active === 'parent' && (highContrast ? styles.activeHC : styles.active),
-           ]}
-         >
-           Menü
-         </Text>
-      </Pressable>
+        </Pressable>
+        <Pressable
+          onPress={navigateToTraining}
+          style={({ pressed }) => [
+            childFriendlyStyles.minTouchTarget,
+            styles.item,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          accessibilityLabel="Lernen"
+          accessibilityRole="button"
+          accessibilityHint="Gesten aufnehmen oder üben"
+        >
+          <BookIcon
+            size={24}
+            color={
+              highContrast
+                ? active === 'training'
+                  ? COLORS.highContrastText
+                  : COLORS.highContrastPressed
+                : active === 'training'
+                ? theme.colors.primary
+                : theme.colors.secondary
+            }
+            style={styles.icon}
+          />
+          <Text
+            style={[
+              styles.label,
+              highContrast && styles.labelHC,
+              active === 'training' && (highContrast ? styles.activeHC : styles.active),
+            ]}
+          >
+            Lernen
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={navigateToProfileSelect}
+          style={({ pressed }) => [
+            childFriendlyStyles.minTouchTarget,
+            styles.item,
+            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+          ]}
+          accessibilityLabel="Menü"
+          accessibilityRole="button"
+          accessibilityHint="Profil- und Einstellungsmenü öffnen"
+        >
+          <SettingsIcon
+            size={24}
+            color={
+              highContrast
+                ? active === 'parent'
+                  ? COLORS.highContrastText
+                  : COLORS.highContrastPressed
+                : active === 'parent'
+                ? theme.colors.primary
+                : theme.colors.secondary
+            }
+            style={styles.icon}
+          />
+          <Text
+            style={[
+              styles.label,
+              highContrast && styles.labelHC,
+              active === 'parent' && (highContrast ? styles.activeHC : styles.active),
+            ]}
+          >
+            Menü
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -497,21 +457,3 @@ function SettingsIcon({ size, color, style }: IconProps) {
   );
 }
 
-function CalendarIcon({ size, color, style }: IconProps) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={style}
-    >
-      <Rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <Path d="M16 2v4M8 2v4M3 10h18" />
-    </Svg>
-  );
-}

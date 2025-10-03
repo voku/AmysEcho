@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import CommunicationInsights from '../components/CommunicationInsights';
 import BottomNav from '../components/BottomNav';
 import ScreenBackground from '../components/ScreenBackground';
+import { loadProfile, Profile } from '../storage';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -12,6 +13,12 @@ export default function CommunicationInsightsScreen({
 }: {
   navigation: NavigationProp<RootStackParamList, 'CommunicationInsights'>;
 }) {
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    loadProfile().then(setProfile);
+  }, []);
+
   const handleClose = () => {
     navigation.goBack();
   };
@@ -21,7 +28,7 @@ export default function CommunicationInsightsScreen({
       <ScreenBackground style={styles.container} testID="communication-insights-screen">
         <CommunicationInsights onClose={handleClose} />
       </ScreenBackground>
-      <BottomNav active="parent" profileId="default" />
+      {profile && <BottomNav active="parent" profileId={profile.id} />}
     </>
   );
 }

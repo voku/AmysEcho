@@ -31,10 +31,7 @@ const ProgressScreen = lazyScreen(() => import('../screens/ProgressScreen'));
 const ProgressChartScreen = lazyScreen(() => import('../screens/ProgressChartScreen'));
 const PracticeSchedulerScreen = lazyScreen(() => import('../screens/PracticeSchedulerScreen'));
 const CaregiverReportScreen = lazyScreen(() => import('../screens/CaregiverReportScreen'));
-const ScheduleScreen = lazyScreen(() => import('../screens/ScheduleScreen'));
-const DailySuccessScreen = lazyScreen(() => import('../screens/DailySuccessScreen'));
 const CommunicationInsightsScreen = lazyScreen(() => import('../screens/CommunicationInsightsScreen'));
-const PrivacySettingsScreen = lazyScreen(() => import('../screens/PrivacySettingsScreen'));
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -52,122 +49,107 @@ const RootNavigator = () => {
   return (
     <Suspense fallback={<LoadingIndicator />}>
       <Stack.Navigator initialRouteName={initialRoute}>
-      <Stack.Screen
-        name="Onboarding"
-        component={OnboardingScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Tutorial"
-        component={GestureTutorialScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="ProfileSelect"
-        component={ProfileSelectScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Recognition"
-        component={RecognitionScreen}
-        options={{ headerShown: false }}
-      />
-       <Stack.Screen
-         name="Practice"
-         component={PracticeScreen}
-         options={{ headerShown: false }}
-       />
-       <Stack.Screen
-         name="GesturePractice"
-         component={GesturePracticeScreen}
-         options={{ headerShown: false }}
-       />
-       <Stack.Screen
-         name="Teach"
-         component={TeachScreen}
-         options={{ headerShown: false }}
-       />
-      <Stack.Screen
-        name="Teaching"
-        component={TeachingScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Training"
-        component={TrainingScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Parent"
-        component={ParentScreen}
-        options={{ presentation: 'modal', title: 'Elternbereich' }}
-      />
-      <Stack.Screen
-        name="ProfileManager"
-        component={ProfileManagerScreen}
-        options={{ title: 'Profile' }}
-      />
-      <Stack.Screen
-        name="ParentalGate"
-        component={ParentalGateScreen}
-        options={{ title: 'Zugangsprüfung' }}
-      />
-      <Stack.Screen
-        name="Admin"
-        component={AdminScreen}
-        options={{ title: 'Verwaltung' }}
-      />
-      <Stack.Screen
-        name="Dashboard"
-        component={DashboardScreen}
-        options={{ title: 'Auswertung' }}
-      />
-      <Stack.Screen
-        name="Progress"
-        component={ProgressScreen}
-        options={{ title: 'Fortschritt' }}
-      />
-      <Stack.Screen
-        name="ProgressChart"
-        component={ProgressChartScreen}
-        options={{ title: 'Fortschrittsdiagramm' }}
-      />
-      <Stack.Screen
-        name="Help"
-        component={HelpScreen}
-        options={{ title: 'Hilfe' }}
-      />
-      <Stack.Screen
-        name="PracticeScheduler"
-        component={PracticeSchedulerScreen}
-        options={{ title: 'Übungsplaner' }}
-      />
-       <Stack.Screen
-         name="CaregiverReport"
-         component={CaregiverReportScreen}
-         options={{ title: 'Lernfortschritt' }}
-       />
-       <Stack.Screen
-         name="Schedule"
-         component={ScheduleScreen}
-         options={{ title: 'Tagesplan' }}
-       />
-       <Stack.Screen
-         name="DailySuccess"
-         component={DailySuccessScreen}
-         options={{ title: 'Tägliche Erfolge' }}
-       />
-       <Stack.Screen
-         name="CommunicationInsights"
-         component={CommunicationInsightsScreen}
-         options={{ title: 'Kommunikationsmuster' }}
-       />
-       <Stack.Screen
-         name="PrivacySettings"
-         component={PrivacySettingsScreen}
-         options={{ title: 'Datenschutz' }}
-       />
-       </Stack.Navigator>
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Tutorial"
+          component={GestureTutorialScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ProfileSelect"
+          component={ProfileSelectScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Recognition"
+          component={RecognitionScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Practice"
+          component={PracticeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GesturePractice"
+          component={GesturePracticeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Teach"
+          component={TeachScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Teaching"
+          component={TeachingScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Training"
+          component={TrainingScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Parent"
+          component={ParentScreen}
+          options={{ presentation: 'modal', title: 'Elternbereich' }}
+        />
+        <Stack.Screen
+          name="ProfileManager"
+          component={ProfileManagerScreen}
+          options={{ title: 'Profile' }}
+        />
+        <Stack.Screen
+          name="ParentalGate"
+          component={ParentalGateScreen}
+          options={{ title: 'Zugangsprüfung' }}
+        />
+        <Stack.Screen
+          name="Admin"
+          component={AdminScreen}
+          options={{ title: 'Verwaltung' }}
+        />
+        <Stack.Screen
+          name="Dashboard"
+          component={DashboardScreen}
+          options={{ title: 'Auswertung' }}
+        />
+        <Stack.Screen
+          name="Progress"
+          component={ProgressScreen}
+          options={{ title: 'Fortschritt' }}
+        />
+        <Stack.Screen
+          name="ProgressChart"
+          component={ProgressChartScreen}
+          options={{ title: 'Fortschrittsdiagramm' }}
+        />
+        <Stack.Screen
+          name="Help"
+          component={HelpScreen}
+          options={{ title: 'Hilfe' }}
+        />
+        <Stack.Screen
+          name="PracticeScheduler"
+          component={PracticeSchedulerScreen}
+          options={{ title: 'Übungsplaner' }}
+        />
+        <Stack.Screen
+          name="CaregiverReport"
+          component={CaregiverReportScreen}
+          options={{ title: 'Lernfortschritt' }}
+        />
+        <Stack.Screen
+          name="CommunicationInsights"
+          component={CommunicationInsightsScreen}
+          options={{ title: 'Kommunikationsmuster' }}
+        />
+      </Stack.Navigator>
     </Suspense>
   );
 };
