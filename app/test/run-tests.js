@@ -24,6 +24,8 @@ function ensureWebviewBundle() {
 
 ensureWebviewBundle();
 
+// Allow running specific test files: node run-tests.js path/to/test1.test.ts path/to/test2.test.ts
+// Or run all tests by providing no arguments
 const rawArgs = process.argv.slice(2).filter((arg) => arg !== '--');
 
 let files = rawArgs;
