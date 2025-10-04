@@ -24,17 +24,23 @@ function ensureWebviewBundle() {
 
 ensureWebviewBundle();
 
-// Get list of test files from Jest
-const list = spawnSync('npx', ['jest', '--listTests'], {
-  cwd: appDir,
-  encoding: 'utf8',
-  env: { ...process.env, CI: '1' },
-});
-if (list.status !== 0) {
-  console.error(list.stderr);
-  process.exit(list.status);
+const rawArgs = process.argv.slice(2).filter((arg) => arg !== '--');
+
+let files = rawArgs;
+
+if (files.length === 0) {
+  // Get list of test files from Jest
+  const list = spawnSync('npx', ['jest', '--listTests'], {
+    cwd: appDir,
+    encoding: 'utf8',
+    env: { ...process.env, CI: '1' },
+  });
+  if (list.status !== 0) {
+    console.error(list.stderr);
+    process.exit(list.status);
+  }
+  files = list.stdout.trim().split('\n').filter(Boolean);
 }
-const files = list.stdout.trim().split('\n').filter(Boolean);
 
 for (const file of files) {
   console.log('Running', file);
