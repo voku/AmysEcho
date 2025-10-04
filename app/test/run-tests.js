@@ -39,7 +39,6 @@ const optionArgsWithValue = new Set([
   '--maxWorkers',
   '--projects',
   '--outputFile',
-  '--json',
   '--reporters',
 ]);
 
@@ -91,7 +90,10 @@ if (shouldRunSequentially) {
       console.error(list.stderr);
       process.exit(list.status);
     }
-    files = list.stdout.trim().split('\n').filter(Boolean);
+    files = list.stdout
+      .split('\n')
+      .map((file) => file.trim())
+      .filter(Boolean);
   }
 
   for (const file of files) {
