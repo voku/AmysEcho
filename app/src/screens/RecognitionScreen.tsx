@@ -72,33 +72,19 @@ const toGestureImageCapture = (
     return null;
   }
 
-  let base64: string | undefined;
-  let uri: string | undefined;
-  let width: number | undefined;
-  let height: number | undefined;
+  const partial =
+    typeof frameCapture === 'string'
+      ? frameCapture.startsWith('data:image/')
+        ? { uri: frameCapture }
+        : { base64: frameCapture }
+      : frameCapture;
 
-  if (typeof frameCapture === 'string') {
-    if (frameCapture.startsWith('data:image/')) {
-      uri = frameCapture;
-      base64 = frameCapture.split(',')[1] ?? '';
-    } else {
-      base64 = frameCapture;
-    }
-  } else {
-    const { base64: inputBase64, uri: inputUri, width: inputWidth, height: inputHeight } = frameCapture;
-    if (typeof inputBase64 === 'string' && inputBase64.length > 0) {
-      base64 = inputBase64;
-    }
-    if (typeof inputUri === 'string' && inputUri.length > 0) {
-      uri = inputUri;
-    }
-    if (typeof inputWidth === 'number') {
-      width = inputWidth;
-    }
-    if (typeof inputHeight === 'number') {
-      height = inputHeight;
-    }
-  }
+  let { base64, uri, width, height } = partial as {
+    base64?: string;
+    uri?: string;
+    width?: number;
+    height?: number;
+  };
 
   if ((!base64 || base64.length === 0) && typeof uri === 'string' && uri.startsWith('data:image/')) {
     base64 = uri.split(',')[1] ?? '';
@@ -108,7 +94,7 @@ const toGestureImageCapture = (
     return null;
   }
 
-  if (typeof uri !== 'string' || uri.length === 0 || !uri.startsWith('data:image/')) {
+  if (typeof uri !== 'string' || !uri.startsWith('data:image/')) {
     uri = `data:image/jpeg;base64,${base64}`;
   }
 
@@ -444,6 +430,8 @@ export default function RecognitionScreen({
         const normalizedCapture = toGestureImageCapture(frameCapture, timestamp);
         if (normalizedCapture) {
           latestFrameRef.current = normalizedCapture;
+        } else {
+          latestFrameRef.current = null;
         }
       } else {
         latestFrameRef.current = null;
