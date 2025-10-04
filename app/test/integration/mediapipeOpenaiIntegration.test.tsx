@@ -142,6 +142,7 @@ describe('MediaPipeGestureDetector (WebView integration)', () => {
       });
     });
 
+    expect(onGestureDetected).toHaveBeenCalledTimes(1);
     expect(onGestureDetected).toHaveBeenCalledWith(
       'hello',
       0.82,
