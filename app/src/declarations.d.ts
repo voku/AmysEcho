@@ -8,6 +8,24 @@ declare module 'expo-file-system' {
   }
 }
 
+declare module 'expo-file-system/build/legacy/FileSystem.types' {
+  interface InfoOptions {
+    size?: boolean;
+  }
+}
+
+declare module 'expo-file-system/legacy' {
+  import type {
+    FileInfo,
+    InfoOptions,
+  } from 'expo-file-system/build/legacy/FileSystem.types';
+
+  export function getInfoAsync(
+    fileUri: string,
+    options?: InfoOptions & { size?: boolean },
+  ): Promise<FileInfo>;
+}
+
 import type { unzip, unzipSync } from 'fflate';
 
 export {};
