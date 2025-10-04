@@ -123,26 +123,29 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           return capture;
         }
         if (capture && typeof capture === 'object') {
-          const record = capture as Record<string, unknown>;
-          const base64Value = record['base64'];
-          const uriValue = record['uri'];
-          const hasBase64 = typeof base64Value === 'string' && base64Value.length > 0;
-          const hasUri = typeof uriValue === 'string' && uriValue.length > 0;
+          const { base64, uri, width, height } = capture as {
+            base64?: unknown;
+            uri?: unknown;
+            width?: unknown;
+            height?: unknown;
+          };
+
+          const hasBase64 = typeof base64 === 'string' && base64.length > 0;
+          const hasUri = typeof uri === 'string' && uri.length > 0;
+
           if (hasBase64 || hasUri) {
             const sanitized: { base64?: string; uri?: string; width?: number; height?: number } = {};
             if (hasBase64) {
-              sanitized.base64 = base64Value as string;
+              sanitized.base64 = base64 as string;
             }
             if (hasUri) {
-              sanitized.uri = uriValue as string;
+              sanitized.uri = uri as string;
             }
-            const widthValue = record['width'];
-            if (typeof widthValue === 'number') {
-              sanitized.width = widthValue;
+            if (typeof width === 'number') {
+              sanitized.width = width;
             }
-            const heightValue = record['height'];
-            if (typeof heightValue === 'number') {
-              sanitized.height = heightValue;
+            if (typeof height === 'number') {
+              sanitized.height = height;
             }
             return sanitized;
           }

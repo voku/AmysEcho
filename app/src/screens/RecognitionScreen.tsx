@@ -72,44 +72,49 @@ const toGestureImageCapture = (
     return null;
   }
 
+  let base64: string | undefined;
+  let uri: string | undefined;
+  let width: number | undefined;
+  let height: number | undefined;
+
   if (typeof frameCapture === 'string') {
-    const input = frameCapture;
-    const isDataUrl = input.startsWith('data:image/');
-    const base64FromString = isDataUrl ? input.split(',')[1] ?? '' : input;
-    if (!base64FromString) {
-      return null;
+    if (frameCapture.startsWith('data:image/')) {
+      uri = frameCapture;
+      base64 = frameCapture.split(',')[1] ?? '';
+    } else {
+      base64 = frameCapture;
     }
-    const uri = isDataUrl ? input : `data:image/jpeg;base64,${base64FromString}`;
-    return {
-      uri,
-      base64: base64FromString,
-      width: DEFAULT_FRAME_WIDTH,
-      height: DEFAULT_FRAME_HEIGHT,
-      timestamp,
-    };
+  } else {
+    const { base64: inputBase64, uri: inputUri, width: inputWidth, height: inputHeight } = frameCapture;
+    if (typeof inputBase64 === 'string' && inputBase64.length > 0) {
+      base64 = inputBase64;
+    }
+    if (typeof inputUri === 'string' && inputUri.length > 0) {
+      uri = inputUri;
+    }
+    if (typeof inputWidth === 'number') {
+      width = inputWidth;
+    }
+    if (typeof inputHeight === 'number') {
+      height = inputHeight;
+    }
   }
 
-  const { base64: inputBase64, uri: inputUri, width, height } = frameCapture;
-
-  let derivedBase64: string | undefined;
-  if (typeof inputBase64 === 'string' && inputBase64.length > 0) {
-    derivedBase64 = inputBase64;
-  } else if (typeof inputUri === 'string' && inputUri.startsWith('data:image/')) {
-    derivedBase64 = inputUri.split(',')[1] ?? '';
+  if ((!base64 || base64.length === 0) && typeof uri === 'string' && uri.startsWith('data:image/')) {
+    base64 = uri.split(',')[1] ?? '';
   }
 
-  if (!derivedBase64) {
+  if (!base64 || base64.length === 0) {
     return null;
   }
 
-  const derivedUri =
-    typeof inputUri === 'string' && inputUri.length > 0
-      ? inputUri
-      : `data:image/jpeg;base64,${derivedBase64}`;
+  if (typeof uri !== 'string' || uri.length === 0 || !uri.startsWith('data:image/')) {
+    uri = `data:image/jpeg;base64,${base64}`;
+  }
 
   return {
-    uri: derivedUri,
-    base64: derivedBase64,
+    uri,
+    base64,
     width: typeof width === 'number' && width > 0 ? width : DEFAULT_FRAME_WIDTH,
     height: typeof height === 'number' && height > 0 ? height : DEFAULT_FRAME_HEIGHT,
     timestamp,

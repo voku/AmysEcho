@@ -1,14 +1,17 @@
-import { useCallback } from 'react';
+import { Dispatch, SetStateAction, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import { parallelGestureProcessor } from '../services/parallelGestureProcessor';
 import { twoHandGestureService } from '../services/twoHandGestureService';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
+import type { FrameCapturePayload } from '../types/frames';
+import type { GestureResult } from '../services/parallelGestureProcessor';
+import type { OnGestureDetected, OpenAIValidationResult } from './useOpenAIValidation';
 
 export const useParallelProcessing = (
-  onGestureDetected: any,
-  onMergedResult: any,
-  setOpenaiValidationResult: any,
-  setShowOpenaiFeedback: any,
+  onGestureDetected: OnGestureDetected,
+  onMergedResult: ((result: GestureResult) => void) | undefined,
+  setOpenaiValidationResult: Dispatch<SetStateAction<OpenAIValidationResult | null>>,
+  setShowOpenaiFeedback: Dispatch<SetStateAction<boolean>>,
 ) => {
   const handleParallelProcessing = useCallback(async (
     gesture: string | null,
@@ -16,7 +19,7 @@ export const useParallelProcessing = (
     landmarks: number[][][],
     handednesses: string[],
     emergency?: boolean,
-    capturedFrame?: any
+    capturedFrame?: FrameCapturePayload | null
   ) => {
     const frameStartTime = Date.now();
 
