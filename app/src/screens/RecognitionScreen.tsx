@@ -24,6 +24,7 @@ import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap, Point } from '../services/dgsModelClient';
 import type { GestureImageCapture } from '../services/openaiGestureValidationService';
+import type { FrameCapturePayload } from '../types/frames';
 import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
 import { logHIPEvent } from '../services/hipEvents';
@@ -60,16 +61,6 @@ import {
 } from '../utils/landmarkUtils';
 import OpenAIGestureFeedback from '../components/OpenAIGestureFeedback';
 
-type FrameCapturePayload =
-  | string
-  | {
-      base64?: string;
-      uri?: string;
-      width?: number;
-      height?: number;
-    }
-  | null;
-
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
 
@@ -82,42 +73,43 @@ const toGestureImageCapture = (
   }
 
   if (typeof frameCapture === 'string') {
-    const isDataUrl = frameCapture.startsWith('data:image/');
-    const base64 = isDataUrl ? frameCapture.split(',')[1] ?? '' : frameCapture;
-    if (!base64) {
+    const input = frameCapture;
+    const isDataUrl = input.startsWith('data:image/');
+    const base64FromString = isDataUrl ? input.split(',')[1] ?? '' : input;
+    if (!base64FromString) {
       return null;
     }
-    const uri = isDataUrl ? frameCapture : `data:image/jpeg;base64,${base64}`;
+    const uri = isDataUrl ? input : `data:image/jpeg;base64,${base64FromString}`;
     return {
       uri,
-      base64,
+      base64: base64FromString,
       width: DEFAULT_FRAME_WIDTH,
       height: DEFAULT_FRAME_HEIGHT,
       timestamp,
     };
   }
 
-  const { base64, uri, width, height } = frameCapture;
-  const normalizedUri =
-    typeof uri === 'string' && uri.length > 0
-      ? uri
-      : typeof base64 === 'string' && base64.length > 0
-      ? `data:image/jpeg;base64,${base64}`
-      : undefined;
-  const normalizedBase64 =
-    typeof base64 === 'string' && base64.length > 0
-      ? base64
-      : normalizedUri && normalizedUri.includes(',')
-      ? normalizedUri.split(',')[1] ?? ''
-      : undefined;
+  const { base64: inputBase64, uri: inputUri, width, height } = frameCapture;
 
-  if (!normalizedBase64) {
+  let derivedBase64: string | undefined;
+  if (typeof inputBase64 === 'string' && inputBase64.length > 0) {
+    derivedBase64 = inputBase64;
+  } else if (typeof inputUri === 'string' && inputUri.startsWith('data:image/')) {
+    derivedBase64 = inputUri.split(',')[1] ?? '';
+  }
+
+  if (!derivedBase64) {
     return null;
   }
 
+  const derivedUri =
+    typeof inputUri === 'string' && inputUri.length > 0
+      ? inputUri
+      : `data:image/jpeg;base64,${derivedBase64}`;
+
   return {
-    uri: normalizedUri ?? `data:image/jpeg;base64,${normalizedBase64}`,
-    base64: normalizedBase64,
+    uri: derivedUri,
+    base64: derivedBase64,
     width: typeof width === 'number' && width > 0 ? width : DEFAULT_FRAME_WIDTH,
     height: typeof height === 'number' && height > 0 ? height : DEFAULT_FRAME_HEIGHT,
     timestamp,
@@ -431,7 +423,6 @@ export default function RecognitionScreen({
     undefined,
     setOpenaiValidationResult,
     setShowOpenaiFeedback,
-    handleOpenAIValidation,
   );
 
   const processGesture = useCallback(

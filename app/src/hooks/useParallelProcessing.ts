@@ -4,7 +4,12 @@ import { parallelGestureProcessor } from '../services/parallelGestureProcessor';
 import { twoHandGestureService } from '../services/twoHandGestureService';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
 
-export const useParallelProcessing = (onGestureDetected: any, onMergedResult: any, setOpenaiValidationResult: any, setShowOpenaiFeedback: any, handleOpenAIValidation: any) => {
+export const useParallelProcessing = (
+  onGestureDetected: any,
+  onMergedResult: any,
+  setOpenaiValidationResult: any,
+  setShowOpenaiFeedback: any,
+) => {
   const handleParallelProcessing = useCallback(async (
     gesture: string | null,
     confidence: number,
@@ -121,7 +126,7 @@ export const useParallelProcessing = (onGestureDetected: any, onMergedResult: an
         : gesture;
       onGestureDetected(fallbackGesture, confidence, landmarks, handednesses, emergency);
     }
-  }, [onGestureDetected, onMergedResult, setOpenaiValidationResult, setShowOpenaiFeedback, handleOpenAIValidation]);
+  }, [onGestureDetected, onMergedResult, setOpenaiValidationResult, setShowOpenaiFeedback]);
 
   return { handleParallelProcessing };
 };

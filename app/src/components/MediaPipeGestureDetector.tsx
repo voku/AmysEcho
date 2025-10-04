@@ -22,7 +22,7 @@ import { logger } from '../utils/logger';
 import { useModelInjection } from '../hooks/useModelInjection';
 import { fetchMlpModel, getCachedMlpModel, getCachedMlpMeta } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
-import type { ClipReadyPayload, FrameBatchPayload } from '../types/frames';
+import type { ClipReadyPayload, FrameBatchPayload, FrameCapturePayload } from '../types/frames';
 
 const MAX_ERROR_PAYLOAD_SNIPPET_LENGTH = 200;
 
@@ -38,16 +38,6 @@ type ClipRequestState = {
   reject?: (error: Error) => void;
   timeout?: ReturnType<typeof setTimeout> | null;
 };
-
-type FrameCapturePayload =
-  | string
-  | {
-      base64?: string;
-      uri?: string;
-      width?: number;
-      height?: number;
-    }
-  | null;
 
 interface Props {
   onGestureDetected: (
