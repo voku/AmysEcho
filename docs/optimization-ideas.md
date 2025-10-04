@@ -10,7 +10,7 @@
 6. **Database Query Optimization:** Analyze and optimize WatermelonDB queries, especially for frequently accessed data like gesture definitions, user profiles, and correction logs, to ensure fast retrieval and storage.
 7. **Image/Video Asset Optimization:** Implement automatic compression and resolution scaling for DGS demonstration videos and other visual assets to reduce app size and improve loading times.
 8. **Lazy Loading of UI Components (Implemented):** Implement lazy loading for less frequently used UI components and screens to reduce initial app load time and memory footprint.
-9. **Background Data Pre-fetching:** Pre-fetch necessary data (e.g., common gesture models, user-specific data) in the background when the app is idle or on Wi-Fi to improve responsiveness when the user actively uses the app.
+9. **Background Data Pre-fetching (Deferred):** Plan to pre-fetch necessary data (e.g., common gesture models, user-specific data) in the background when the app is idle or on Wi-Fi, but defer implementation until a production-ready AppState-driven approach can enable it without impacting startup or battery life.
 10. **Reduced Logging Verbosity (Implemented):** Implement configurable logging levels to reduce verbose logging in production builds, which can impact performance and storage.
 
 ## II. User Experience & Accessibility
