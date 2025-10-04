@@ -31,7 +31,6 @@ import type { RecognitionPath } from '../utils/recognitionState';
 import { performanceOptimizationService } from '../services/performanceOptimizationService';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
-import { backgroundPrefetchService } from '../services/backgroundPrefetchService';
 import { usePreloadComponents } from '../components/LazyComponent';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
 import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
@@ -419,7 +418,6 @@ export default function RecognitionScreen({
       clearInterval(performanceInterval);
       // Cleanup services on unmount
       performanceOptimizationService.cleanup();
-      backgroundPrefetchService.cleanup();
     };
   }, []);
 
