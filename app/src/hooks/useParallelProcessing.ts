@@ -12,6 +12,7 @@ export const useParallelProcessing = (
   onMergedResult: ((result: GestureResult) => void) | undefined,
   setOpenaiValidationResult: Dispatch<SetStateAction<OpenAIValidationResult | null>>,
   setShowOpenaiFeedback: Dispatch<SetStateAction<boolean>>,
+  runSequentialValidation?: OnGestureDetected,
 ) => {
   const handleParallelProcessing = useCallback(async (
     gesture: string | null,
@@ -103,18 +104,36 @@ export const useParallelProcessing = (
         });
 
         setShowOpenaiFeedback(true);
+        if (onMergedResult && result.source === 'combined') {
+          onMergedResult(result);
+        }
+        onGestureDetected(
+          result.gesture || '',
+          result.confidence,
+          result.landmarks || landmarks,
+          result.handedness || handednesses,
+          result.emergency || emergency
+        );
+        return;
       }
 
-      if (onMergedResult && result.source === 'combined') {
-        onMergedResult(result);
+      if (runSequentialValidation) {
+        await runSequentialValidation(
+          result.gesture || gestureString,
+          result.confidence,
+          result.landmarks || landmarks,
+          result.handedness || handednesses,
+          result.emergency ?? emergency
+        );
+        return;
       }
 
       onGestureDetected(
-        result.gesture || '',
+        result.gesture || gestureString,
         result.confidence,
         result.landmarks || landmarks,
         result.handedness || handednesses,
-        result.emergency || emergency
+        result.emergency ?? emergency
       );
 
     } catch (error) {
@@ -127,9 +146,26 @@ export const useParallelProcessing = (
       const fallbackGesture = gesture && isTwoHandGesture(gesture)
         ? `${gesture.left}+${gesture.right}`
         : gesture;
+      if (runSequentialValidation) {
+        await runSequentialValidation(
+          fallbackGesture,
+          confidence,
+          landmarks,
+          handednesses,
+          emergency
+        );
+        return;
+      }
+
       onGestureDetected(fallbackGesture, confidence, landmarks, handednesses, emergency);
     }
-  }, [onGestureDetected, onMergedResult, setOpenaiValidationResult, setShowOpenaiFeedback]);
+  }, [
+    onGestureDetected,
+    onMergedResult,
+    runSequentialValidation,
+    setOpenaiValidationResult,
+    setShowOpenaiFeedback,
+  ]);
 
   return { handleParallelProcessing };
 };

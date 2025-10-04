@@ -410,10 +410,11 @@ export default function RecognitionScreen({
   } = useOpenAIValidation(handleGestureDetected, captureImage);
 
   const { handleParallelProcessing } = useParallelProcessing(
-    handleOpenAIValidation,
+    handleGestureDetected,
     undefined,
     setOpenaiValidationResult,
     setShowOpenaiFeedback,
+    handleOpenAIValidation,
   );
 
   const processGesture = useCallback(
@@ -449,9 +450,9 @@ export default function RecognitionScreen({
     [handleParallelProcessing],
   );
 
-  const handleApplyOpenAISuggestion = useCallback(
+  const handleAcknowledgeOpenAISuggestion = useCallback(
     (suggestion: string) => {
-      logger.info('OpenAI suggestion applied', { suggestion });
+      logger.info('OpenAI suggestion acknowledged', { suggestion });
       setShowOpenaiFeedback(false);
     },
     [setShowOpenaiFeedback],
@@ -1027,7 +1028,7 @@ export default function RecognitionScreen({
         isVisible={showOpenaiFeedback}
         validationResult={openaiValidationResult}
         onDismiss={() => setShowOpenaiFeedback(false)}
-        onApplySuggestion={handleApplyOpenAISuggestion}
+        onApplySuggestion={handleAcknowledgeOpenAISuggestion}
       />
     )}
   </>
