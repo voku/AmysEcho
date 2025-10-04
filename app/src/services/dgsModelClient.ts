@@ -250,6 +250,7 @@ export async function loadLocalMlpModel(): Promise<string | null> {
   try {
     const documentModel = await loadDocumentDirectoryModel();
     if (documentModel) {
+      logger.info('Loaded local MLP model from document directory');
       return documentModel;
     }
 
@@ -277,20 +278,22 @@ async function loadDocumentDirectoryModel(): Promise<string | null> {
     return null;
   }
 
-  const modelUri = `${documentDirectory}${LOCAL_MODEL_FILE}`;
+  const normalizedDirectory = documentDirectory.endsWith('/')
+    ? documentDirectory
+    : `${documentDirectory}/`;
+  const modelUri = `${normalizedDirectory}${LOCAL_MODEL_FILE}`;
   try {
-    const info = await FileSystem.getInfoAsync(modelUri, { size: true });
+    const info = await FileSystem.getInfoAsync(modelUri);
     if (!info.exists || info.isDirectory) {
       return null;
     }
-    if (info.size === 0) {
+    if (typeof info.size === 'number' && info.size === 0) {
       return null;
     }
     const data = await FileSystem.readAsStringAsync(modelUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
     if (data && data.length > 0) {
-      logger.info('Loaded local MLP model from document directory');
       return data;
     }
   } catch (error) {

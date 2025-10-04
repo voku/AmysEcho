@@ -1,29 +1,14 @@
 declare module 'crypto-js';
 declare module 'react-native-webview';
-declare module '*.npz';
+declare module '*.npz' {
+  const value: number;
+  export default value;
+}
 declare module 'expo-file-system' {
   export enum FileSystemUploadType {
     BINARY_CONTENT = 0,
     MULTIPART = 1,
   }
-}
-
-declare module 'expo-file-system/build/legacy/FileSystem.types' {
-  interface InfoOptions {
-    size?: boolean;
-  }
-}
-
-declare module 'expo-file-system/legacy' {
-  import type {
-    FileInfo,
-    InfoOptions,
-  } from 'expo-file-system/build/legacy/FileSystem.types';
-
-  export function getInfoAsync(
-    fileUri: string,
-    options?: InfoOptions & { size?: boolean },
-  ): Promise<FileInfo>;
 }
 
 import type { unzip, unzipSync } from 'fflate';

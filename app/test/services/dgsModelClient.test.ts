@@ -3,7 +3,7 @@ import { fetchMlpModel, loadLocalMlpModel } from '../../src/services/dgsModelCli
 const mockGetInfoAsync = jest.fn();
 const mockReadAsStringAsync = jest.fn();
 const mockFromModule = jest.fn();
-let mockDocumentDirectoryValue: string | null = 'file:///documents/';
+let mockDocumentDirectoryValue: string | null = 'file:///documents';
 
 jest.mock('expo-file-system/legacy', () => ({
   __esModule: true,
@@ -35,7 +35,7 @@ jest.mock('../../src/utils/logger', () => ({
 const originalFetch = global.fetch;
 
 beforeEach(() => {
-  mockDocumentDirectoryValue = 'file:///documents/';
+  mockDocumentDirectoryValue = 'file:///documents';
   mockGetInfoAsync.mockReset();
   mockReadAsStringAsync.mockReset();
   mockFromModule.mockReset();
@@ -57,7 +57,7 @@ describe('dgsModelClient local fallback', () => {
     mockFromModule.mockReturnValue(asset);
 
     mockGetInfoAsync.mockImplementation(async (uri: string) => {
-      if (uri.startsWith('file:///documents/')) {
+      if (uri.startsWith('file:///documents')) {
         return { exists: false } as const;
       }
       return { exists: true } as const;
@@ -76,7 +76,7 @@ describe('dgsModelClient local fallback', () => {
     const result = await fetchMlpModel();
 
     expect(fetchMock).toHaveBeenCalled();
-    expect(mockGetInfoAsync).toHaveBeenCalledWith('file:///documents/dgs_model.npz', { size: true });
+    expect(mockGetInfoAsync).toHaveBeenCalledWith('file:///documents/dgs_model.npz');
     expect(mockFromModule).toHaveBeenCalled();
     expect(mockReadAsStringAsync).toHaveBeenCalledWith(asset.localUri, {
       encoding: 'base64',
