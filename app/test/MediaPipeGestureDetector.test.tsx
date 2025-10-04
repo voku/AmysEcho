@@ -211,8 +211,16 @@ describe('MediaPipeGestureDetector', () => {
       webview.props.onMessage({ nativeEvent: { data: JSON.stringify(batchPayload) } });
     });
 
-    expect(onGestureDetected).toHaveBeenNthCalledWith(1, 'hallo', 0.82, [[[0, 0, 0]]], []);
-    expect(onGestureDetected).toHaveBeenNthCalledWith(2, 'hilfe', 0.41, [], []);
+    expect(onGestureDetected).toHaveBeenNthCalledWith(
+      1,
+      'hallo',
+      0.82,
+      [[[0, 0, 0]]],
+      [],
+      false,
+      null,
+    );
+    expect(onGestureDetected).toHaveBeenNthCalledWith(2, 'hilfe', 0.41, [], [], false, null);
     expect(onWebViewEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'telemetry',
@@ -250,7 +258,77 @@ describe('MediaPipeGestureDetector', () => {
       webview.props.onMessage({ nativeEvent: { data: JSON.stringify(payload) } });
     });
 
-    expect(onGestureDetected).toHaveBeenCalledWith('thumbs_up', 0.9, [[[0.1, 0.2, 0.0]]], ['Left']);
+    expect(onGestureDetected).toHaveBeenCalledWith(
+      'thumbs_up',
+      0.9,
+      [[[0.1, 0.2, 0.0]]],
+      ['Left'],
+      false,
+      null,
+    );
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('forwards frame capture payloads for OpenAI fallback handling', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const payload = {
+      type: 'gesture',
+      gesture: 'hilfe',
+      confidence: 0.42,
+      landmarks: [],
+      handednesses: [],
+      frameCapture: 'data:image/jpeg;base64,ZmFrZUJhc2U2NA==',
+    };
+
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify(payload) } });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith(
+      'hilfe',
+      0.42,
+      [],
+      [],
+      false,
+      'data:image/jpeg;base64,ZmFrZUJhc2U2NA==',
+    );
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('marks emergency detections when provided by the WebView payload', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const payload = {
+      type: 'gesture',
+      gesture: 'notruf',
+      confidence: 0.95,
+      landmarks: [],
+      handednesses: [],
+      emergency: { detected: true },
+    };
+
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify(payload) } });
+    });
+
+    expect(onGestureDetected).toHaveBeenCalledWith('notruf', 0.95, [], [], true, null);
     expect(onError).not.toHaveBeenCalled();
   });
 

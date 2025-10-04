@@ -39,13 +39,25 @@ type ClipRequestState = {
   timeout?: ReturnType<typeof setTimeout> | null;
 };
 
+type FrameCapturePayload =
+  | string
+  | {
+      base64?: string;
+      uri?: string;
+      width?: number;
+      height?: number;
+    }
+  | null;
+
 interface Props {
   onGestureDetected: (
     gesture: string | null,
     confidence: number,
     landmarks: number[][][],
     handedness: string[],
-  ) => void;
+    emergency?: boolean,
+    frameCapture?: FrameCapturePayload,
+  ) => void | Promise<void>;
   onLandmarks?: (
     landmarks: number[][][],
     handedness: string[],
@@ -113,7 +125,42 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           )
         : [];
 
-      onGestureDetected(gesture, confidence, landmarks, handedness);
+      const emergencyDetected = Boolean(message?.emergency?.detected ?? message?.emergency === true);
+
+      const frameCapture: FrameCapturePayload = (() => {
+        const capture = message?.frameCapture;
+        if (typeof capture === 'string') {
+          return capture;
+        }
+        if (capture && typeof capture === 'object') {
+          const record = capture as Record<string, unknown>;
+          const base64Value = record['base64'];
+          const uriValue = record['uri'];
+          const hasBase64 = typeof base64Value === 'string' && base64Value.length > 0;
+          const hasUri = typeof uriValue === 'string' && uriValue.length > 0;
+          if (hasBase64 || hasUri) {
+            const sanitized: { base64?: string; uri?: string; width?: number; height?: number } = {};
+            if (hasBase64) {
+              sanitized.base64 = base64Value as string;
+            }
+            if (hasUri) {
+              sanitized.uri = uriValue as string;
+            }
+            const widthValue = record['width'];
+            if (typeof widthValue === 'number') {
+              sanitized.width = widthValue;
+            }
+            const heightValue = record['height'];
+            if (typeof heightValue === 'number') {
+              sanitized.height = heightValue;
+            }
+            return sanitized;
+          }
+        }
+        return null;
+      })();
+
+      void onGestureDetected(gesture, confidence, landmarks, handedness, emergencyDetected, frameCapture);
       return true;
     },
     [onGestureDetected],
