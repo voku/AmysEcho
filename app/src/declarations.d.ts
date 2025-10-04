@@ -1,5 +1,6 @@
 declare module 'crypto-js';
 declare module 'react-native-webview';
+declare module '*.npz';
 declare module 'expo-file-system' {
   export enum FileSystemUploadType {
     BINARY_CONTENT = 0,

@@ -10,7 +10,7 @@ jest.mock('expo-file-system/legacy', () => ({
   get documentDirectory() {
     return mockDocumentDirectoryValue;
   },
-  getInfoAsync: (...args: unknown[]) => mockGetInfoAsync(...(args as [string])),
+  getInfoAsync: (...args: unknown[]) => mockGetInfoAsync(...args),
   readAsStringAsync: (...args: unknown[]) => mockReadAsStringAsync(...args),
   EncodingType: { Base64: 'base64' },
 }));
@@ -76,6 +76,7 @@ describe('dgsModelClient local fallback', () => {
     const result = await fetchMlpModel();
 
     expect(fetchMock).toHaveBeenCalled();
+    expect(mockGetInfoAsync).toHaveBeenCalledWith('file:///documents/dgs_model.npz', { size: true });
     expect(mockFromModule).toHaveBeenCalled();
     expect(mockReadAsStringAsync).toHaveBeenCalledWith(asset.localUri, {
       encoding: 'base64',
@@ -94,5 +95,6 @@ describe('dgsModelClient local fallback', () => {
     const result = await loadLocalMlpModel();
 
     expect(result).toBeNull();
+    expect(mockGetInfoAsync).not.toHaveBeenCalled();
   });
 });
