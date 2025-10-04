@@ -279,7 +279,7 @@ async function loadDocumentDirectoryModel(): Promise<string | null> {
 
   const modelUri = `${documentDirectory}${LOCAL_MODEL_FILE}`;
   try {
-    const info = await FileSystem.getInfoAsync(modelUri);
+    const info = await FileSystem.getInfoAsync(modelUri, { size: true });
     if (!info.exists || info.isDirectory) {
       return null;
     }
