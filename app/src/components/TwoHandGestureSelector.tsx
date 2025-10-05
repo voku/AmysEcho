@@ -27,7 +27,6 @@ export default function TwoHandGestureSelector({
     { key: 'communication', label: 'Kommunikation' },
     { key: 'emotional', label: 'Emotional' },
     { key: 'playful', label: 'Spielerisch' },
-    { key: 'emergency', label: 'Notfall' },
   ];
 
   const filteredGestures = selectedCategory === 'all'

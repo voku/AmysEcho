@@ -220,8 +220,8 @@ describe('TwoHandGestureService', () => {
       }
     });
 
-    it('should boost confidence for emergency gestures', async () => {
-      const emergencyResult = await twoHandGestureService.processTwoHandGesture(
+    it('should process help gestures as communication gestures', async () => {
+      const helpResult = await twoHandGestureService.processTwoHandGesture(
         'Pointing_Up',
         'Pointing_Up',
         0.7,
@@ -230,9 +230,8 @@ describe('TwoHandGestureService', () => {
         [[[0, 0, 0]], [[0, 0, 0]]]
       );
 
-      expect(emergencyResult).not.toBeNull();
-      expect(emergencyResult?.gesture.category).toBe('emergency');
-      expect(emergencyResult?.confidence).toBeGreaterThan(0.6); // Should be boosted
+      expect(helpResult).not.toBeNull();
+      expect(helpResult?.gesture.category).toBe('communication');
     });
 
     it('should reject gestures below confidence threshold', async () => {
@@ -291,7 +290,7 @@ describe('TwoHandGestureService', () => {
       );
 
       expect(emergencyResult).not.toBeNull();
-      expect(emergencyResult?.accessibilityHints).toContain('Notfall-Geste erkannt - Hilfe wird geleistet');
+      expect(emergencyResult?.accessibilityHints).toContain('Kommunikations-Geste erfolgreich');
     });
   });
 
@@ -404,18 +403,18 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should filter gestures by category', () => {
-      const emergencyGestures = twoHandGestureService.getGesturesByCategory('emergency');
       const communicationGestures = twoHandGestureService.getGesturesByCategory('communication');
+      const emotionalGestures = twoHandGestureService.getGesturesByCategory('emotional');
 
-      expect(emergencyGestures.length).toBeGreaterThan(0);
       expect(communicationGestures.length).toBeGreaterThan(0);
-
-      emergencyGestures.forEach(gesture => {
-        expect(gesture.category).toBe('emergency');
-      });
+      expect(emotionalGestures.length).toBeGreaterThan(0);
 
       communicationGestures.forEach(gesture => {
         expect(gesture.category).toBe('communication');
+      });
+
+      emotionalGestures.forEach(gesture => {
+        expect(gesture.category).toBe('emotional');
       });
     });
 
