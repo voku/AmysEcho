@@ -451,8 +451,8 @@ export default function RecognitionScreen({
   );
 
   const handleAcknowledgeOpenAISuggestion = useCallback(
-    (suggestion: string) => {
-      logger.info('OpenAI suggestion acknowledged', { suggestion });
+    () => {
+      logger.info('OpenAI suggestion acknowledged');
       setShowOpenaiFeedback(false);
     },
     [setShowOpenaiFeedback],
