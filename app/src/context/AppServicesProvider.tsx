@@ -2,7 +2,7 @@ import { runDailyJobs, checkAllGesturesForDecliningAccuracy, checkPracticeRecomm
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DAILY_JOB_KEY = 'lastDailyJob';
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import {
   audioService,
   backupService,
@@ -37,20 +37,39 @@ const defaultServices: Services = {
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
   const { setMessage } = useMessage();
   const [isReady, setIsReady] = useState(false);
+  const initializedRef = useRef(false);
+  const refreshStateRef = useRef({
+    queue: Promise.resolve() as Promise<void>,
+    running: false,
+    queued: false,
+    pendingCalls: false,
+  });
 
   useEffect(() => {
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
+
     let cancelled = false;
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
-    let modelRefreshPromise: Promise<void> | null = null;
-    let pendingModelRefresh = false;
+    const refreshState = refreshStateRef.current;
     const runModelRefresh = (): Promise<void> => {
-      if (modelRefreshPromise) {
-        pendingModelRefresh = true;
-        return modelRefreshPromise;
+      if (refreshState.running || refreshState.queued) {
+        refreshState.pendingCalls = true;
+        return refreshState.queue;
       }
 
-      const execute = async () => {
+      refreshState.queued = true;
+      refreshState.queue = refreshState.queue.finally(async () => {
+        if (cancelled) {
+          refreshState.queued = false;
+          refreshState.pendingCalls = false;
+          return;
+        }
+
+        refreshState.running = true;
         try {
           const allowed = await shouldAllowModelRefresh();
           if (!allowed) {
@@ -77,22 +96,19 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           }
         } catch (e) {
           logger.warn('Failed to run model refresh', e as Error);
-        }
-      };
-
-      modelRefreshPromise = execute().finally(() => {
-        modelRefreshPromise = null;
-        const shouldRunQueued = pendingModelRefresh && !cancelled;
-        pendingModelRefresh = false;
-
-        if (shouldRunQueued) {
-          runModelRefresh().catch((queuedError) => {
-            logger.warn('Failed to run queued model refresh', queuedError);
-          });
+        } finally {
+          refreshState.running = false;
+          refreshState.queued = false;
+          if (!cancelled && refreshState.pendingCalls) {
+            refreshState.pendingCalls = false;
+            runModelRefresh().catch((queuedError) => {
+              logger.warn('Failed to run queued model refresh', queuedError);
+            });
+          }
         }
       });
 
-      return modelRefreshPromise;
+      return refreshState.queue;
     };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;
@@ -141,7 +157,9 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          runModelRefresh().catch(() => {});
+          if (!refreshState.running && !refreshState.queued) {
+            runModelRefresh().catch(() => {});
+          }
 
           // Lightweight periodic telemetry upload
           const runPeriodicTelemetryUpload = async () => {
@@ -179,6 +197,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     const cleanupPromise = initializeServices();
     return () => {
       cancelled = true;
+      initializedRef.current = false;
       if (interval) clearInterval(interval);
       if (telemetryTimeout) clearTimeout(telemetryTimeout);
       try {
