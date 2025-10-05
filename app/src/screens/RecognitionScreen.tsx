@@ -74,27 +74,21 @@ const toGestureImageCapture = (
 
   const partial =
     typeof frameCapture === 'string'
-      ? frameCapture.startsWith('data:image/')
-        ? { uri: frameCapture }
-        : { base64: frameCapture }
+      ? { [frameCapture.startsWith('data:image/') ? 'uri' : 'base64']: frameCapture }
       : frameCapture;
 
-  let { base64, uri, width, height } = partial as {
-    base64?: string;
-    uri?: string;
-    width?: number;
-    height?: number;
-  };
+  const { width, height } = partial as { width?: number; height?: number };
+  let { base64, uri } = partial as { base64?: string; uri?: string };
 
-  if ((!base64 || base64.length === 0) && typeof uri === 'string' && uri.startsWith('data:image/')) {
+  if (!base64 && typeof uri === 'string' && uri.startsWith('data:image/')) {
     base64 = uri.split(',')[1] ?? '';
   }
 
-  if (!base64 || base64.length === 0) {
+  if (!base64) {
     return null;
   }
 
-  if (typeof uri !== 'string' || !uri.startsWith('data:image/')) {
+  if (!uri || !uri.startsWith('data:image/')) {
     uri = `data:image/jpeg;base64,${base64}`;
   }
 
