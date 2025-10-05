@@ -26,6 +26,45 @@ import type { ClipReadyPayload, FrameBatchPayload, FrameCapturePayload } from '.
 
 const MAX_ERROR_PAYLOAD_SNIPPET_LENGTH = 200;
 
+const parseFrameCapturePayload = (capture: unknown): FrameCapturePayload => {
+  if (typeof capture === 'string') {
+    return capture;
+  }
+
+  if (capture && typeof capture === 'object') {
+    const { base64, uri, width, height } = capture as {
+      base64?: unknown;
+      uri?: unknown;
+      width?: unknown;
+      height?: unknown;
+    };
+
+    const sanitized: { base64?: string; uri?: string; width?: number; height?: number } = {};
+
+    if (typeof base64 === 'string' && base64.length > 0) {
+      sanitized.base64 = base64;
+    }
+
+    if (typeof uri === 'string' && uri.length > 0) {
+      sanitized.uri = uri;
+    }
+
+    if (typeof width === 'number') {
+      sanitized.width = width;
+    }
+
+    if (typeof height === 'number') {
+      sanitized.height = height;
+    }
+
+    if (sanitized.base64 || sanitized.uri) {
+      return sanitized;
+    }
+  }
+
+  return null;
+};
+
 export interface MediaPipeGestureDetectorHandle {
   startClipCapture: () => Promise<string>;
   stopClipCapture: () => Promise<ClipReadyPayload>;
@@ -117,41 +156,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
 
       const emergencyDetected = Boolean(message?.emergency?.detected ?? message?.emergency === true);
 
-      const frameCapture: FrameCapturePayload = (() => {
-        const capture = message?.frameCapture;
-        if (typeof capture === 'string') {
-          return capture;
-        }
-        if (capture && typeof capture === 'object') {
-          const { base64, uri, width, height } = capture as {
-            base64?: unknown;
-            uri?: unknown;
-            width?: unknown;
-            height?: unknown;
-          };
-
-          const hasBase64 = typeof base64 === 'string' && base64.length > 0;
-          const hasUri = typeof uri === 'string' && uri.length > 0;
-
-          if (hasBase64 || hasUri) {
-            const sanitized: { base64?: string; uri?: string; width?: number; height?: number } = {};
-            if (hasBase64) {
-              sanitized.base64 = base64 as string;
-            }
-            if (hasUri) {
-              sanitized.uri = uri as string;
-            }
-            if (typeof width === 'number') {
-              sanitized.width = width;
-            }
-            if (typeof height === 'number') {
-              sanitized.height = height;
-            }
-            return sanitized;
-          }
-        }
-        return null;
-      })();
+      const frameCapture: FrameCapturePayload = parseFrameCapturePayload(message?.frameCapture);
 
       void onGestureDetected(gesture, confidence, landmarks, handedness, emergencyDetected, frameCapture);
       return true;

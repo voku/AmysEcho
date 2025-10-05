@@ -130,7 +130,7 @@ export const useParallelProcessing = (
           onMergedResult(result);
         }
         onGestureDetected(
-          result.gesture || '',
+          result.gesture || gestureString,
           result.confidence,
           result.landmarks || landmarks,
           result.handedness || handednesses,

@@ -55,17 +55,13 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     const refreshState = refreshStateRef.current;
-    const runModelRefresh = (): Promise<void> => {
-      if (refreshState.running || refreshState.queued) {
-        refreshState.pendingCalls = true;
-        return refreshState.queue;
-      }
-
+    const startRefreshWork = (): Promise<void> => {
       refreshState.queued = true;
       refreshState.queue = refreshState.queue.finally(async () => {
+        refreshState.queued = false;
+        refreshState.pendingCalls = false;
+
         if (cancelled) {
-          refreshState.queued = false;
-          refreshState.pendingCalls = false;
           return;
         }
 
@@ -98,17 +94,23 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           logger.warn('Failed to run model refresh', e as Error);
         } finally {
           refreshState.running = false;
-          refreshState.queued = false;
-          if (!cancelled && refreshState.pendingCalls) {
-            refreshState.pendingCalls = false;
-            runModelRefresh().catch((queuedError) => {
-              logger.warn('Failed to run queued model refresh', queuedError);
-            });
-          }
         }
       });
 
       return refreshState.queue;
+    };
+
+    const runModelRefresh = (): Promise<void> => {
+      if (refreshState.running || refreshState.queued) {
+        if (!refreshState.pendingCalls) {
+          refreshState.pendingCalls = true;
+          return startRefreshWork();
+        }
+        return refreshState.queue;
+      }
+
+      refreshState.pendingCalls = false;
+      return startRefreshWork();
     };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;
