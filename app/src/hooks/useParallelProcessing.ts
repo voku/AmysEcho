@@ -139,7 +139,10 @@ export const useParallelProcessing = (
         return;
       }
 
-      if (runSequentialValidation) {
+      const openaiAttemptedAndFailed =
+        result.openaiAttempted === true && result.openaiSuccess === false;
+
+      if (runSequentialValidation && !openaiAttemptedAndFailed) {
         await runSequentialValidation(
           result.gesture || gestureString,
           result.confidence,

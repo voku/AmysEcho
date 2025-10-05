@@ -43,6 +43,9 @@ export interface GestureResult {
   feedback?: string;
   quality_score?: number;
   suggestions?: string[];
+  openaiAttempted?: boolean;
+  openaiSuccess?: boolean;
+  openaiError?: string;
 }
 
 export interface ParallelProcessingOptions {
@@ -159,6 +162,7 @@ class ParallelGestureProcessor {
       source: 'mediapipe',
       processingTime: Date.now() - startTime,
       timestamp: startTime,
+      openaiAttempted: false,
     };
 
     if (typeof emergency === 'boolean') {
@@ -166,6 +170,9 @@ class ParallelGestureProcessor {
     }
 
     let finalResult: GestureResult = mediapipeResult;
+    let openaiAttempted = false;
+    let openaiSuccess = false;
+    let openaiErrorMessage: string | undefined;
 
     // Always count MediaPipe results
     this.stats.mediapipeResults++;
@@ -178,6 +185,7 @@ class ParallelGestureProcessor {
     );
 
     if (shouldProcessParallel && capturedFrame && this.options.enableParallelProcessing) {
+      openaiAttempted = true;
       try {
         const openaiResult = await this.processWithOpenAIAsync(
           capturedFrame,
@@ -203,9 +211,12 @@ class ParallelGestureProcessor {
 
           finalResult = normalizedOpenAIResult;
         }
+        openaiSuccess = true;
       } catch (error) {
         logger.warn('Parallel OpenAI processing failed', error);
         this.stats.errors++;
+        openaiSuccess = false;
+        openaiErrorMessage = error instanceof Error ? error.message : String(error);
       }
     }
 
@@ -237,6 +248,18 @@ class ParallelGestureProcessor {
     if (landmarks && landmarks.length > 0) {
       const landmarkCount = landmarks.reduce((total, hand) => total + hand.length, 0);
       this.logLandmarkProcessingMetrics(processingTime, landmarkCount, mediapipeResult.processingTime < 100);
+    }
+
+    if (openaiAttempted || mediapipeResult.openaiAttempted) {
+      finalResult.openaiAttempted = true;
+      finalResult.openaiSuccess = openaiSuccess;
+      if (!openaiSuccess && openaiErrorMessage) {
+        finalResult.openaiError = openaiErrorMessage;
+      }
+    } else {
+      finalResult.openaiAttempted = false;
+      delete finalResult.openaiSuccess;
+      delete finalResult.openaiError;
     }
 
     // Clear context before returning
