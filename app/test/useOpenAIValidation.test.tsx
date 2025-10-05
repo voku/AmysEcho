@@ -9,7 +9,8 @@ type HookRef = {
     confidence: number,
     landmarks: number[][][],
     handednesses: string[],
-    emergency?: boolean
+    emergency?: boolean,
+    capturedFrame?: any,
   ) => Promise<void>;
   openaiValidationResult: any;
   showOpenaiFeedback: boolean;
@@ -80,6 +81,42 @@ describe('useOpenAIValidation', () => {
       quality_score: 9.1,
     });
     expect(ref.current!.showOpenaiFeedback).toBe(true);
+  });
+
+  it('uses provided captured frame without invoking captureImage', async () => {
+    const onDetected = jest.fn();
+    jest.spyOn(ValidationSvc, 'shouldTriggerOpenAIValidation').mockReturnValue(true);
+    const validateSpy = jest
+      .spyOn(ValidationSvc, 'validateGestureWithFallback')
+      .mockResolvedValue({
+        finalGesture: 'hilfe',
+        finalConfidence: 0.7,
+        validationSource: 'openai',
+        quality_score: 8.4,
+      });
+    const captureImage = jest.fn().mockResolvedValue({ uri: 'unused', base64: 'unused' });
+    const ref = React.createRef<HookRef>();
+    render(<TestHook ref={ref} onGestureDetected={onDetected} captureImage={captureImage} />);
+
+    const providedCapture = {
+      uri: 'data:image/jpeg;base64,abc',
+      base64: 'abc',
+      width: 320,
+      height: 240,
+      timestamp: 123,
+    };
+
+    await act(async () => {
+      await ref.current!.handleOpenAIValidation('hilfe', 0.4, [], [], false, providedCapture);
+    });
+
+    expect(captureImage).not.toHaveBeenCalled();
+    expect(validateSpy).toHaveBeenCalledWith(
+      { gesture: 'hilfe', confidence: 0.4, landmarks: [] },
+      providedCapture,
+      expect.objectContaining({ session_id: expect.any(String) }),
+    );
+    expect(onDetected).toHaveBeenCalledWith('hilfe', 0.7, [], [], false);
   });
 
   it('falls back on validation error', async () => {

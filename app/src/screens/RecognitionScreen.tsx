@@ -427,16 +427,15 @@ export default function RecognitionScreen({
       frameCapture?: FrameCapturePayload | null,
     ) => {
       const timestamp = Date.now();
+      let normalizedCapture: GestureImageCapture | null = null;
       if (frameCapture) {
-        const normalizedCapture = toGestureImageCapture(frameCapture, timestamp);
-        if (normalizedCapture) {
-          latestFrameRef.current = normalizedCapture;
-        } else {
-          latestFrameRef.current = null;
-        }
+        normalizedCapture = toGestureImageCapture(frameCapture, timestamp);
+        latestFrameRef.current = normalizedCapture;
       } else {
         latestFrameRef.current = null;
       }
+
+      const capturedFrameForProcessing = normalizedCapture ?? frameCapture ?? null;
 
       void handleParallelProcessing(
         gesture,
@@ -444,7 +443,7 @@ export default function RecognitionScreen({
         landmarks,
         handedness,
         emergency,
-        frameCapture ?? null,
+        capturedFrameForProcessing,
       );
     },
     [handleParallelProcessing],

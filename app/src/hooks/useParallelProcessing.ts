@@ -5,7 +5,25 @@ import { twoHandGestureService } from '../services/twoHandGestureService';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
 import type { FrameCapturePayload } from '../types/frames';
 import type { GestureResult } from '../services/parallelGestureProcessor';
-import type { OnGestureDetected, OpenAIValidationResult } from './useOpenAIValidation';
+import type {
+  OnGestureDetected,
+  OpenAIValidationResult,
+} from './useOpenAIValidation';
+import type { GestureImageCapture } from '../services/openaiGestureValidationService';
+
+const isGestureImageCapture = (
+  frame: FrameCapturePayload | GestureImageCapture | null | undefined,
+): frame is GestureImageCapture =>
+  Boolean(
+    frame &&
+      typeof frame === 'object' &&
+      typeof (frame as GestureImageCapture).base64 === 'string' &&
+      (frame as GestureImageCapture).base64.length > 0 &&
+      typeof (frame as GestureImageCapture).uri === 'string' &&
+      (frame as GestureImageCapture).uri.length > 0 &&
+      typeof (frame as GestureImageCapture).width === 'number' &&
+      typeof (frame as GestureImageCapture).height === 'number',
+  );
 
 export const useParallelProcessing = (
   onGestureDetected: OnGestureDetected,
@@ -20,9 +38,13 @@ export const useParallelProcessing = (
     landmarks: number[][][],
     handednesses: string[],
     emergency?: boolean,
-    capturedFrame?: FrameCapturePayload | null
+    capturedFrame?: FrameCapturePayload | GestureImageCapture | null
   ) => {
     const frameStartTime = Date.now();
+
+    const sequentialFrame = isGestureImageCapture(capturedFrame)
+      ? capturedFrame
+      : null;
 
     try {
       if (typeof confidence !== 'number' || confidence < 0 || confidence > 1) {
@@ -112,7 +134,7 @@ export const useParallelProcessing = (
           result.confidence,
           result.landmarks || landmarks,
           result.handedness || handednesses,
-          result.emergency || emergency
+          result.emergency || emergency,
         );
         return;
       }
@@ -123,7 +145,8 @@ export const useParallelProcessing = (
           result.confidence,
           result.landmarks || landmarks,
           result.handedness || handednesses,
-          result.emergency ?? emergency
+          result.emergency ?? emergency,
+          sequentialFrame,
         );
         return;
       }
@@ -133,7 +156,7 @@ export const useParallelProcessing = (
         result.confidence,
         result.landmarks || landmarks,
         result.handedness || handednesses,
-        result.emergency ?? emergency
+        result.emergency ?? emergency,
       );
 
     } catch (error) {
@@ -152,7 +175,8 @@ export const useParallelProcessing = (
           confidence,
           landmarks,
           handednesses,
-          emergency
+          emergency,
+          sequentialFrame,
         );
         return;
       }

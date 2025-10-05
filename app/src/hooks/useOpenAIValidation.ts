@@ -22,7 +22,8 @@ export type OnGestureDetected = (
   confidence: number,
   landmarks: Landmarks,
   handednesses: Handednesses,
-  emergency?: boolean
+  emergency?: boolean,
+  capturedFrame?: GestureImageCapture | null,
 ) => void;
 
 const IMAGE_CAPTURE_TIMEOUT_MS = 3000;
@@ -58,7 +59,8 @@ export const useOpenAIValidation = (
       confidence: number,
       landmarks: Landmarks,
       handednesses: Handednesses,
-      emergency?: boolean
+      emergency?: boolean,
+      capturedFrame?: GestureImageCapture | null,
     ) => {
       if (!gesture) {
         onGestureDetected(null, confidence, landmarks, handednesses, emergency);
@@ -73,9 +75,8 @@ export const useOpenAIValidation = (
       }
 
       try {
-        const imageCapture = captureImage
-          ? await withTimeout(captureImage())
-          : null;
+        const imageCapture =
+          capturedFrame ?? (captureImage ? await withTimeout(captureImage()) : null);
 
         if (!imageCapture) {
           onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
