@@ -80,10 +80,6 @@ export interface RecognitionFeedbackState {
   >;
   shortcutActivated: string | null;
   setShortcutActivated: Dispatch<SetStateAction<string | null>>;
-  showPipGuidance: boolean;
-  setShowPipGuidance: Dispatch<SetStateAction<boolean>>;
-  pipGuidanceGesture: GestureModelEntry | null;
-  setPipGuidanceGesture: Dispatch<SetStateAction<GestureModelEntry | null>>;
   showPracticeSuggestion: boolean;
   setShowPracticeSuggestion: Dispatch<SetStateAction<boolean>>;
   showAdaptiveLearning: boolean;
@@ -151,8 +147,6 @@ export const useRecognitionState = (): RecognitionState => {
     timestamp: number;
   } | null>(null);
   const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
-  const [showPipGuidance, setShowPipGuidance] = useState(false);
-  const [pipGuidanceGesture, setPipGuidanceGesture] = useState<GestureModelEntry | null>(null);
   const [showPracticeSuggestion, setShowPracticeSuggestion] = useState(false);
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
   const [contextInsights, setContextInsights] = useState<any>(null);
@@ -216,10 +210,6 @@ export const useRecognitionState = (): RecognitionState => {
     setComparisonAttempt,
     shortcutActivated,
     setShortcutActivated,
-    showPipGuidance,
-    setShowPipGuidance,
-    pipGuidanceGesture,
-    setPipGuidanceGesture,
     showPracticeSuggestion,
     setShowPracticeSuggestion,
     showAdaptiveLearning,

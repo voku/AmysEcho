@@ -27,7 +27,6 @@ import type { GestureImageCapture } from '../services/openaiGestureValidationSer
 import type { FrameCapturePayload } from '../types/frames';
 import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
-import { logHIPEvent } from '../services/hipEvents';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import type { RecognitionPath } from '../utils/recognitionState';
 import { performanceOptimizationService } from '../services/performanceOptimizationService';
@@ -35,7 +34,6 @@ import { optimizedGestureService } from '../services/optimizedGestureService';
 
 import { usePreloadComponents } from '../components/LazyComponent';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
-import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
@@ -104,8 +102,6 @@ const toGestureImageCapture = (
 const RECOGNITION_TEXT = {
   showDgsVideoLabel: 'DGS-Video anzeigen',
   toggleDgsVideo: 'DGS-Video umschalten',
-  showPipGuidanceLabel: 'Gestenhilfe anzeigen',
-  togglePipGuidance: 'Gestenhilfe umschalten',
 };
 
 export default function RecognitionScreen({
@@ -159,9 +155,6 @@ export default function RecognitionScreen({
     setShowGestureComparison,
     comparisonAttempt,
     shortcutActivated,
-    showPipGuidance,
-    setShowPipGuidance,
-    pipGuidanceGesture,
     showPracticeSuggestion,
     showAdaptiveLearning,
     setShowAdaptiveLearning,
@@ -172,11 +165,6 @@ export default function RecognitionScreen({
     currentHandedness,
     setCurrentHandedness,
   } = state;
-
-  // Simple stub functions for adaptive PiP positioning
-  const getAdaptivePipPosition = (): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' => 'top-right';
-  const getAdaptivePipSize = (): 'small' | 'medium' | 'large' => 'medium';
-  const getAdaptivePlaybackMode = () => 'once' as const;
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -507,7 +495,6 @@ export default function RecognitionScreen({
     'GestureComparison',
     'PracticeSuggestion',
     'AdaptiveLearningPanel',
-    'PictureInPictureGuidance',
     'TwoHandGestureDisplay'
   ]);
 
@@ -838,32 +825,6 @@ export default function RecognitionScreen({
               )}
             </View>
 
-            <PictureInPictureGuidance
-              gestureId={pipGuidanceGesture?.id}
-              videoUri={pipGuidanceGesture?.dgsVideoUri}
-              isVisible={showPipGuidance}
-              onClose={() => setShowPipGuidance(false)}
-              position={getAdaptivePipPosition()}
-              size={getAdaptivePipSize()}
-              autoPlay
-              showControls={false}
-              playbackMode={getAdaptivePlaybackMode()}
-              confidence={gestureConfidence}
-              onPlaybackComplete={() => {
-                if (pipGuidanceGesture?.id) {
-                  void logHIPEvent('HIP_1', 'pip_guidance_completed', {
-                    gestureId: pipGuidanceGesture.id,
-                    confidence: gestureConfidence,
-                    context: contextInsights
-                      ? {
-                          timeOfDay: contextInsights.timeOfDay,
-                          patternMatch: contextInsights.patternMatch,
-                        }
-                      : undefined,
-                  });
-                }
-              }}
-            />
           </View>
 
           {!error && !showCorrection && lastRecognizedGesture && (

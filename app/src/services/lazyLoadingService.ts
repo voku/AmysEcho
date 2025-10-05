@@ -70,8 +70,6 @@ export class LazyLoadingService {
           return (await import('../components/ScreenFlash')).default;
         case 'TwoHandGestureDisplay':
           return (await import('../components/TwoHandGestureDisplay')).default;
-        case 'PictureInPictureGuidance':
-          return (await import('../components/PictureInPictureGuidance')).default;
         case 'DgsVideoPlayer':
           return (await import('../components/DgsVideoPlayer')).default;
         case 'OpenAIGestureFeedback':
@@ -141,7 +139,7 @@ export class LazyLoadingService {
 
     // Activity-based preloading
     if (context.userActivity === 'learning') {
-      componentsToPreload.push('PictureInPictureGuidance', 'TwoHandGestureDisplay');
+      componentsToPreload.push('TwoHandGestureDisplay');
     }
 
     // Preload the components

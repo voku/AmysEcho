@@ -108,8 +108,6 @@ export const useRecognitionCallbacks = ({
     setShowScreenFlash,
     setScreenFlashPattern,
     setShortcutActivated,
-    setShowPipGuidance,
-    setPipGuidanceGesture,
     setCurrentLandmarks,
     setCurrentHandedness,
     setModelUpdateStatus,
@@ -121,7 +119,6 @@ export const useRecognitionCallbacks = ({
     successSound,
     contextInsights,
     screenReaderEnabled,
-    showPipGuidance,
     gestureConfidence,
     dialogContext,
     lastRecognizedGesture,
@@ -188,18 +185,10 @@ export const useRecognitionCallbacks = ({
         logger.debug('Detection haptic feedback failed', error),
       );
       if (smoothedConfidence > threshold - LOW_CONFIDENCE_MARGIN) {
-        void partialGestureHapticFeedback(smoothedConfidence).catch((error) =>
-          logger.debug('Partial haptic feedback failed', error),
-        );
-      }
-
-      if (!showPipGuidance) {
-        const suggestion = optimizedGestureService.getGestureById(gesture);
-        if (suggestion) {
-          setPipGuidanceGesture(suggestion);
-          setShowPipGuidance(true);
-        }
-      }
+      void partialGestureHapticFeedback(smoothedConfidence).catch((error) =>
+        logger.debug('Partial haptic feedback failed', error),
+      );
+    }
 
       schedulePracticeSuggestion();
 
@@ -228,9 +217,6 @@ export const useRecognitionCallbacks = ({
       setShowScreenFlash,
       setScreenFlashPattern,
       setStatus,
-      setPipGuidanceGesture,
-      setShowPipGuidance,
-      showPipGuidance,
       lastRecognizedGesture,
       setShowPracticeSuggestion,
     ],
@@ -549,9 +535,6 @@ export const useRecognitionCallbacks = ({
       setShowVisualRipple,
       setPendingGesture,
       setStatus,
-      showPipGuidance,
-      setShowPipGuidance,
-      setPipGuidanceGesture,
       helpers,
       setRecognitionPath,
       setLastRecognizedGesture,
