@@ -440,8 +440,12 @@ export default function RecognitionScreen({
   );
 
   const handleAcknowledgeOpenAISuggestion = useCallback(
-    () => {
-      logger.info('OpenAI suggestion acknowledged');
+    (suggestion?: string) => {
+      if (suggestion) {
+        logger.info('OpenAI suggestion angewendet', { suggestion });
+      } else {
+        logger.info('OpenAI-Vorschlag bestätigt');
+      }
       setShowOpenaiFeedback(false);
     },
     [setShowOpenaiFeedback],
