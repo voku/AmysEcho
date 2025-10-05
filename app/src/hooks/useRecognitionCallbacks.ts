@@ -18,7 +18,6 @@ import {
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
 import { zeroDowntimeModelService } from '../services/zeroDowntimeModelService';
-import { emergencyPriorityService } from '../services/emergencyPriorityService';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 import { logHIPEvent } from '../services/hipEvents';
 import { emergencyRollback } from '../services/modelUpdate';
@@ -287,12 +286,11 @@ export const useRecognitionCallbacks = ({
       gesture: string,
       label: string,
       smoothedConfidence: number,
-      emergency: boolean,
     ) => {
       await Promise.all([
         multiSensoryFeedback(gesture, smoothedConfidence, {
           ...contextInsights,
-          isEmergency: emergency,
+          isEmergency: false,
         }),
         triggerSpeakAndShow(label, smoothedConfidence, helpers.startFeedbackAnimation),
         (async () => {
@@ -315,17 +313,12 @@ export const useRecognitionCallbacks = ({
       smoothedConfidence: number,
       landmarks: number[][][],
       handedness: string[],
-      emergency: boolean,
     ) => {
       void logHIPEvent('HIP_1', 'gesture_recognized', {
         gesture,
         confidence: smoothedConfidence,
-        emergency,
+        emergency: false,
       }).catch((error) => logger.warn('Failed to log HIP event', error));
-
-      if (emergency) {
-        emergencyPriorityService.addEmergencyGesture(gesture, smoothedConfidence);
-      }
 
       activeLearningService.recordPracticeResults(gesture, smoothedConfidence);
 
@@ -382,7 +375,6 @@ export const useRecognitionCallbacks = ({
       smoothedConfidence: number,
       landmarks: number[][][],
       handedness: string[],
-      emergency: boolean,
       recognitionSource: RecognitionPath,
     ) => {
       setPendingGesture(null);
@@ -450,9 +442,9 @@ export const useRecognitionCallbacks = ({
         processedBy: recognitionSource,
       }).catch((error) => logger.debug('Failed to log successful gesture', error));
 
-      await runRecognitionFeedback(gesture, label, smoothedConfidence, emergency);
+      await runRecognitionFeedback(gesture, label, smoothedConfidence);
 
-      handlePostRecognitionFollowups(gesture, smoothedConfidence, landmarks, handedness, emergency);
+      handlePostRecognitionFollowups(gesture, smoothedConfidence, landmarks, handedness);
     },
     [
       handlePostRecognitionFollowups,
@@ -474,7 +466,6 @@ export const useRecognitionCallbacks = ({
       confidence: number,
       landmarks: number[][][],
       handedness: string[],
-      emergency = false,
       recognitionSource: RecognitionPath = 'local',
     ) => {
       try {
@@ -514,7 +505,7 @@ export const useRecognitionCallbacks = ({
         setContextInsights(contextAwareRecognitionService.getInsights());
 
         const thresholdInfo = personalizedConfidenceService.getPersonalizedThreshold(gesture, smoothedConfidence);
-        const meetsThreshold = emergency || smoothedConfidence >= thresholdInfo.threshold;
+        const meetsThreshold = smoothedConfidence >= thresholdInfo.threshold;
 
         if (!meetsThreshold) {
           setDetectedTwoHandGesture(null);
@@ -539,7 +530,6 @@ export const useRecognitionCallbacks = ({
           smoothedConfidence,
           landmarks,
           handedness,
-          emergency,
           recognitionSource,
         );
       } catch (error) {

@@ -238,6 +238,9 @@ npm test -- --testPathPattern="(communication|emergency)" --passWithNoTests
 npm run lint:amy-first
 ```
 
+> ℹ️ **Schneller Fokuslauf:** Verwende `npm test -- <relativer/pfad/zur/datei.test.tsx>` innerhalb des `app/`-Ordners, um gezielt
+> eine einzelne Testdatei mit dem optimierten Runner auszuführen.
+
 ## 📊 Test Reporting
 
 ### Coverage Reports

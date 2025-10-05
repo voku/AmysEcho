@@ -9,7 +9,7 @@ type HookRef = {
     confidence: number,
     landmarks: number[][][],
     handednesses: string[],
-    emergency?: boolean
+    capturedFrame?: any,
   ) => Promise<void>;
   openaiValidationResult: any;
   showOpenaiFeedback: boolean;
@@ -35,7 +35,7 @@ describe('useOpenAIValidation', () => {
     await act(async () => {
       await ref.current!.handleOpenAIValidation(null, 0.8, [], []);
     });
-    expect(onDetected).toHaveBeenCalledWith(null, 0.8, [], [], undefined);
+    expect(onDetected).toHaveBeenCalledWith(null, 0.8, [], []);
   });
 
   it('bypasses validation when trigger is false', async () => {
@@ -46,7 +46,7 @@ describe('useOpenAIValidation', () => {
     await act(async () => {
       await ref.current!.handleOpenAIValidation('winken', 0.8, [], []);
     });
-    expect(onDetected).toHaveBeenCalledWith('winken', 0.8, [], [], undefined);
+    expect(onDetected).toHaveBeenCalledWith('winken', 0.8, [], []);
     expect(ValidationSvc.shouldTriggerOpenAIValidation).toHaveBeenCalledWith(0.8, 'winken');
   });
 
@@ -72,7 +72,7 @@ describe('useOpenAIValidation', () => {
       { uri: 'x', base64: 'y' },
       expect.objectContaining({ session_id: expect.any(String), environment: 'home' })
     );
-    expect(onDetected).toHaveBeenCalledWith('winken', 0.95, [], [], undefined);
+    expect(onDetected).toHaveBeenCalledWith('winken', 0.95, [], []);
     expect(ref.current!.openaiValidationResult).toMatchObject({
       gesture: 'winken',
       confidence: 0.95,
@@ -80,6 +80,42 @@ describe('useOpenAIValidation', () => {
       quality_score: 9.1,
     });
     expect(ref.current!.showOpenaiFeedback).toBe(true);
+  });
+
+  it('uses provided captured frame without invoking captureImage', async () => {
+    const onDetected = jest.fn();
+    jest.spyOn(ValidationSvc, 'shouldTriggerOpenAIValidation').mockReturnValue(true);
+    const validateSpy = jest
+      .spyOn(ValidationSvc, 'validateGestureWithFallback')
+      .mockResolvedValue({
+        finalGesture: 'hilfe',
+        finalConfidence: 0.7,
+        validationSource: 'openai',
+        quality_score: 8.4,
+      });
+    const captureImage = jest.fn().mockResolvedValue({ uri: 'unused', base64: 'unused' });
+    const ref = React.createRef<HookRef>();
+    render(<TestHook ref={ref} onGestureDetected={onDetected} captureImage={captureImage} />);
+
+    const providedCapture = {
+      uri: 'data:image/jpeg;base64,abc',
+      base64: 'abc',
+      width: 320,
+      height: 240,
+      timestamp: 123,
+    };
+
+    await act(async () => {
+      await ref.current!.handleOpenAIValidation('hilfe', 0.4, [], [], providedCapture);
+    });
+
+    expect(captureImage).not.toHaveBeenCalled();
+    expect(validateSpy).toHaveBeenCalledWith(
+      { gesture: 'hilfe', confidence: 0.4, landmarks: [] },
+      providedCapture,
+      expect.objectContaining({ session_id: expect.any(String) }),
+    );
+    expect(onDetected).toHaveBeenCalledWith('hilfe', 0.7, [], []);
   });
 
   it('falls back on validation error', async () => {
@@ -92,7 +128,7 @@ describe('useOpenAIValidation', () => {
     await act(async () => {
       await ref.current!.handleOpenAIValidation('winken', 0.8, [], []);
     });
-    expect(onDetected).toHaveBeenCalledWith('winken', 0.8, [], [], undefined);
+    expect(onDetected).toHaveBeenCalledWith('winken', 0.8, [], []);
     expect(ref.current!.openaiValidationResult).toBe(null);
   });
 });

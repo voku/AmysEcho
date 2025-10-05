@@ -317,9 +317,6 @@ export class TwoHandGestureService {
    * Get gesture-specific confidence multiplier
    */
   private getGestureConfidenceMultiplier(gesture: TwoHandGestureDefinition): number {
-    // Emergency gestures get higher confidence
-    if (gesture.category === 'emergency') return 1.1;
-
     // Communication gestures get standard confidence
     if (gesture.category === 'communication') return 1.0;
 
@@ -357,9 +354,6 @@ export class TwoHandGestureService {
 
     // Add category-specific hints
     switch (gesture.category) {
-      case 'emergency':
-        hints.push('Notfall-Geste erkannt - Hilfe wird geleistet');
-        break;
       case 'communication':
         hints.push('Kommunikations-Geste erfolgreich');
         break;

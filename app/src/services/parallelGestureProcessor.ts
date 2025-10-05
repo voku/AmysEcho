@@ -39,9 +39,12 @@ export interface GestureResult {
   source: 'mediapipe' | 'openai' | 'combined';
   processingTime: number;
   timestamp: number;
-  emergency?: boolean;
   feedback?: string;
   quality_score?: number;
+  suggestions?: string[];
+  openaiAttempted?: boolean;
+  openaiSuccess?: boolean;
+  openaiError?: string;
 }
 
 export interface ParallelProcessingOptions {
@@ -104,7 +107,6 @@ class ParallelGestureProcessor {
      confidence: number,
      landmarks: number[][][],
      handedness: string[],
-     emergency?: boolean,
      capturedFrame?: any
    ): Promise<GestureResult> {
      const startTime = Date.now();
@@ -158,11 +160,13 @@ class ParallelGestureProcessor {
       source: 'mediapipe',
       processingTime: Date.now() - startTime,
       timestamp: startTime,
+      openaiAttempted: false,
     };
 
-    if (typeof emergency === 'boolean') {
-      mediapipeResult.emergency = emergency;
-    }
+    let finalResult: GestureResult = mediapipeResult;
+    let openaiAttempted = false;
+    let openaiSuccess = false;
+    let openaiErrorMessage: string | undefined;
 
     // Always count MediaPipe results
     this.stats.mediapipeResults++;
@@ -170,30 +174,42 @@ class ParallelGestureProcessor {
     // Check if we should trigger parallel OpenAI processing
     const shouldProcessParallel = this.shouldTriggerParallelProcessing(
       gesture,
-      confidence,
-      emergency
+      confidence
     );
 
     if (shouldProcessParallel && capturedFrame && this.options.enableParallelProcessing) {
-      const p = this.processWithOpenAIAsync(capturedFrame, gesture, startTime, landmarks, confidence)
-        .then(openaiResult => {
-          this.handleOpenAIResult(openaiResult, mediapipeResult);
-        })
-        .catch(error => {
-          logger.warn('Parallel OpenAI processing failed', error);
-          this.stats.errors++;
-        });
-      // In test environment, yield to event loop (macro-task) so background promise can run
-      if (process.env.NODE_ENV === 'test') {
-        if (typeof setImmediate === 'function') {
-          await new Promise<void>((r) => setImmediate(() => r()));
+      openaiAttempted = true;
+      try {
+        const openaiResult = await this.processWithOpenAIAsync(
+          capturedFrame,
+          gesture,
+          startTime,
+          landmarks,
+          confidence
+        );
+
+        const mergedResult = this.handleOpenAIResult(openaiResult, mediapipeResult);
+
+        if (mergedResult) {
+          finalResult = mergedResult;
         } else {
-          await Promise.resolve();
+          const normalizedOpenAIResult: GestureResult = {
+            ...openaiResult,
+            gesture: openaiResult.gesture ?? mediapipeResult.gesture ?? null,
+            processingTime: Math.max(openaiResult.processingTime, mediapipeResult.processingTime),
+            timestamp: Math.max(openaiResult.timestamp, mediapipeResult.timestamp),
+          };
+
+          this.mergeOptionalResultFields(normalizedOpenAIResult, mediapipeResult, openaiResult);
+
+          finalResult = normalizedOpenAIResult;
         }
-        // If a custom concurrency limit is set, await completion to reflect throttling in total time
-        if (this.options.maxConcurrentRequests !== 2) {
-          try { await p; } catch {}
-        }
+        openaiSuccess = true;
+      } catch (error) {
+        logger.warn('Parallel OpenAI processing failed', error);
+        this.stats.errors++;
+        openaiSuccess = false;
+        openaiErrorMessage = error instanceof Error ? error.message : String(error);
       }
     }
 
@@ -204,17 +220,11 @@ class ParallelGestureProcessor {
     const processingTime = Date.now() - startTime;
     performanceMonitor.recordGestureProcessing(
       processingTime,
-      gesture,
-      confidence,
-      emergency || false,
+      finalResult.gesture ?? gesture,
+      finalResult.confidence ?? confidence,
       mediapipeResult.processingTime < 100, // Consider successful if under 100ms
       undefined
     );
-
-    // Enhanced performance monitoring for emergency gestures
-    if (emergency) {
-      this.logEmergencyPerformance(processingTime, gesture, confidence, mediapipeResult.processingTime < 100);
-    }
 
     // Track landmark processing complexity
     if (landmarks && landmarks.length > 0) {
@@ -222,11 +232,23 @@ class ParallelGestureProcessor {
       this.logLandmarkProcessingMetrics(processingTime, landmarkCount, mediapipeResult.processingTime < 100);
     }
 
+    if (openaiAttempted || mediapipeResult.openaiAttempted) {
+      finalResult.openaiAttempted = true;
+      finalResult.openaiSuccess = openaiSuccess;
+      if (!openaiSuccess && openaiErrorMessage) {
+        finalResult.openaiError = openaiErrorMessage;
+      }
+    } else {
+      finalResult.openaiAttempted = false;
+      delete finalResult.openaiSuccess;
+      delete finalResult.openaiError;
+    }
+
     // Clear context before returning
     logger.clearContext();
 
-    // Return MediaPipe result immediately for responsiveness
-    return mediapipeResult;
+    // Return the best available result
+    return finalResult;
   }
 
   /**
@@ -234,12 +256,8 @@ class ParallelGestureProcessor {
    */
   private shouldTriggerParallelProcessing(
     gesture: string | null,
-    confidence: number,
-    emergency?: boolean
+    confidence: number
   ): boolean {
-    // Always process emergency gestures
-    if (emergency) return true;
-
     // Process based on confidence threshold
     if (confidence < this.options.confidenceThreshold) return true;
 
@@ -350,42 +368,44 @@ class ParallelGestureProcessor {
         openaiResult.quality_score = validationResult.quality_score;
       }
 
-        this.stats.openaiResults++;
-
-        // Enhanced OpenAI processing performance monitoring
-        const processingTime = Date.now() - startTime;
-        const openaiSuccess = validationResult.success && processingTime < 3000; // 3 second timeout
-
-        performanceMonitor.recordGestureProcessing(
-          processingTime,
-          validationResult.gesture ?? null,
-          validationResult.confidence || 0,
-          false, // OpenAI processing is not emergency
-          openaiSuccess,
-          validationResult.error
-        );
-
-        // Log OpenAI-specific performance metrics
-        this.logOpenAIPerformance(processingTime, validationResult, expectedGesture, openaiSuccess);
-
-        return openaiResult;
-
-     } catch (error) {
-        logger.warn('OpenAI validation error', error);
-
-        // Record failed OpenAI processing
-        const processingTime = Date.now() - startTime;
-        performanceMonitor.recordGestureProcessing(
-          processingTime,
-          expectedGesture,
-          0,
-          false,
-          false,
-          error instanceof Error ? error.message : String(error)
-        );
-
-        throw error;
+      if (Array.isArray(validationResult.suggestions) && validationResult.suggestions.length > 0) {
+        openaiResult.suggestions = [...validationResult.suggestions];
       }
+
+      this.stats.openaiResults++;
+
+      // Enhanced OpenAI processing performance monitoring
+      const processingTime = Date.now() - startTime;
+      const openaiSuccess = validationResult.success && processingTime < 3000; // 3 second timeout
+
+      performanceMonitor.recordGestureProcessing(
+        processingTime,
+        validationResult.gesture ?? null,
+        validationResult.confidence || 0,
+        openaiSuccess,
+        validationResult.error
+      );
+
+      // Log OpenAI-specific performance metrics
+      this.logOpenAIPerformance(processingTime, validationResult, expectedGesture, openaiSuccess);
+
+      return openaiResult;
+
+    } catch (error) {
+      logger.warn('OpenAI validation error', error);
+
+      // Record failed OpenAI processing
+      const processingTime = Date.now() - startTime;
+      performanceMonitor.recordGestureProcessing(
+        processingTime,
+        expectedGesture,
+        0,
+        false,
+        error instanceof Error ? error.message : String(error)
+      );
+
+      throw error;
+    }
   }
 
   /**
@@ -458,7 +478,7 @@ class ParallelGestureProcessor {
   private handleOpenAIResult(
     openaiResult: GestureResult,
     mediapipeResult: GestureResult
-  ): void {
+  ): GestureResult | null {
     // Cache the result for potential future use
     const cacheKey = `gesture_${mediapipeResult.timestamp}`;
     this.resultCache.set(cacheKey, openaiResult);
@@ -473,8 +493,10 @@ class ParallelGestureProcessor {
 
     // If smart merging is enabled, we could emit combined results
     if (this.options.enableSmartMerging) {
-      this.attemptResultMerging(mediapipeResult, openaiResult);
+      return this.attemptResultMerging(mediapipeResult, openaiResult);
     }
+
+    return null;
   }
 
   private mergeOptionalResultFields(
@@ -490,10 +512,6 @@ class ParallelGestureProcessor {
       target.handedness = mediapipeResult.handedness;
     }
 
-    if (mediapipeResult.emergency !== undefined) {
-      target.emergency = mediapipeResult.emergency;
-    }
-
     const feedback = openaiResult.feedback ?? mediapipeResult.feedback;
     if (feedback) {
       target.feedback = feedback;
@@ -501,6 +519,10 @@ class ParallelGestureProcessor {
 
     if (openaiResult.quality_score !== undefined) {
       target.quality_score = openaiResult.quality_score;
+    }
+
+    if (Array.isArray(openaiResult.suggestions) && openaiResult.suggestions.length > 0) {
+      target.suggestions = [...openaiResult.suggestions];
     }
   }
 
@@ -555,48 +577,14 @@ class ParallelGestureProcessor {
      logger.info('Merged gesture result', result);
 
      // Enhanced performance monitoring for merged results
-     performanceMonitor.recordGestureProcessing(
-       result.processingTime,
-       result.gesture,
-       result.confidence,
-       result.emergency || false,
-       true, // Merged results are considered successful
-       undefined
-     );
+    performanceMonitor.recordGestureProcessing(
+      result.processingTime,
+      result.gesture,
+      result.confidence,
+      true, // Merged results are considered successful
+      undefined
+    );
    }
-
-  /**
-   * Log emergency gesture performance metrics
-   */
-  private logEmergencyPerformance(
-    processingTime: number,
-    gesture: string | null,
-    confidence: number,
-    success: boolean
-  ): void {
-    const emergencyMetrics = {
-      processingTime,
-      gesture: gesture || 'unknown',
-      confidence,
-      success,
-      timestamp: Date.now(),
-      isWithinTarget: processingTime < 50, // Amy First target: <50ms for emergencies
-    };
-
-    logger.performanceMetric('emergency_gesture_processing', processingTime, emergencyMetrics);
-
-    // Log warnings for slow emergency processing
-    if (processingTime > 50) {
-      logger.warn(`Slow emergency gesture processing: ${processingTime}ms for ${gesture}`, emergencyMetrics);
-    }
-
-    // Track emergency success rate
-    if (success) {
-      logger.info('Emergency gesture processed successfully', emergencyMetrics);
-    } else {
-      logger.error('Emergency gesture processing failed', emergencyMetrics);
-    }
-  }
 
   /**
    * Log landmark processing performance metrics
@@ -670,29 +658,29 @@ class ParallelGestureProcessor {
   private attemptResultMerging(
     mediapipeResult: GestureResult,
     openaiResult: GestureResult
-  ): void {
+  ): GestureResult | null {
     const mergeStartTime = Date.now();
 
     // Only merge if results are reasonably close in time
     const timeDiff = Math.abs(openaiResult.timestamp - mediapipeResult.timestamp);
     if (timeDiff > 1000) {
       logger.debug('Skipping merge: results too far apart in time', { timeDiff });
-      return; // Don't merge if more than 1 second apart
+      return null; // Don't merge if more than 1 second apart
     }
 
     // Determine if merging makes sense
-      const shouldMerge = this.shouldMergeResults(mediapipeResult, openaiResult);
+    const shouldMerge = this.shouldMergeResults(mediapipeResult, openaiResult);
 
-      if (shouldMerge) {
-        const mergedResult: GestureResult = {
-          gesture: this.selectBestGesture(mediapipeResult, openaiResult),
+    if (shouldMerge) {
+      const mergedResult: GestureResult = {
+        gesture: this.selectBestGesture(mediapipeResult, openaiResult),
         confidence: Math.max(mediapipeResult.confidence, openaiResult.confidence),
         source: 'combined',
-          processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
-          timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
-        };
+        processingTime: Math.max(mediapipeResult.processingTime, openaiResult.processingTime),
+        timestamp: Math.max(mediapipeResult.timestamp, openaiResult.timestamp),
+      };
 
-        this.mergeOptionalResultFields(mergedResult, mediapipeResult, openaiResult);
+      this.mergeOptionalResultFields(mergedResult, mediapipeResult, openaiResult);
 
       this.stats.combinedResults++;
 
@@ -708,14 +696,17 @@ class ParallelGestureProcessor {
 
       // Emit merged result
       this.emitMergedResult(mergedResult);
-    } else {
-      logger.debug('Skipping merge: results not suitable for merging', {
-        mediapipeGesture: mediapipeResult.gesture,
-        openaiGesture: openaiResult.gesture,
-        mediapipeConfidence: mediapipeResult.confidence,
-        openaiConfidence: openaiResult.confidence,
-      });
+      return mergedResult;
     }
+
+    logger.debug('Skipping merge: results not suitable for merging', {
+      mediapipeGesture: mediapipeResult.gesture,
+      openaiGesture: openaiResult.gesture,
+      mediapipeConfidence: mediapipeResult.confidence,
+      openaiConfidence: openaiResult.confidence,
+    });
+
+    return null;
   }
 
   /**
@@ -769,7 +760,6 @@ class ParallelGestureProcessor {
     basic: ProcessingStats;
     systemHealth: {
       averageProcessingTime: number;
-      emergencyResponseTime: number;
       cacheEfficiency: number;
       errorRate: number;
       concurrentLoad: number;
@@ -780,7 +770,6 @@ class ParallelGestureProcessor {
     const performanceReport = performanceMonitor.getPerformanceReport();
 
     // Calculate enhanced metrics
-    const emergencyResponseTime = performanceReport.metrics.emergencyResponseTime;
     const cacheEfficiency = basic.cacheHits / Math.max(basic.mediapipeResults + basic.openaiResults, 1);
     const errorRate = basic.errors / Math.max(basic.mediapipeResults + basic.openaiResults, 1);
     const concurrentLoad = this.processingQueue.size;
@@ -790,10 +779,6 @@ class ParallelGestureProcessor {
 
     if (performanceReport.metrics.averageProcessingTime > 50) {
       recommendations.push('Erwägen Sie, die Verarbeitungslast zu reduzieren oder die MediaPipe-Konfiguration zu optimieren');
-    }
-
-    if (emergencyResponseTime > 30) {
-      recommendations.push('Die Notfall-Reaktionszeit überschreitet das Amy‑First‑Ziel von 30 ms');
     }
 
     if (errorRate > 0.1) {
@@ -812,7 +797,6 @@ class ParallelGestureProcessor {
       basic,
       systemHealth: {
         averageProcessingTime: performanceReport.metrics.averageProcessingTime,
-        emergencyResponseTime,
         cacheEfficiency,
         errorRate,
         concurrentLoad,

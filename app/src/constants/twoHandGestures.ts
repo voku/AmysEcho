@@ -11,7 +11,7 @@ export interface TwoHandGestureDefinition {
   description: string;
   leftGesture: string;
   rightGesture: string;
-  category: 'communication' | 'emotional' | 'playful' | 'emergency';
+  category: 'communication' | 'emotional' | 'playful';
   difficulty: 'easy' | 'medium' | 'hard';
   examples: string[];
 }
@@ -41,7 +41,7 @@ export const TWO_HAND_GESTURES: TwoHandGestureDefinition[] = [
     description: 'Hilfe-Signal mit beiden Händen für Notfälle',
     leftGesture: 'Pointing_Up', // Help gesture with left hand
     rightGesture: 'Pointing_Up', // Help gesture with right hand
-    category: 'emergency',
+    category: 'communication',
     difficulty: 'easy',
     examples: [
       'Sofortige Hilfe benötigt',

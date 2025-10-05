@@ -22,7 +22,7 @@ export type OnGestureDetected = (
   confidence: number,
   landmarks: Landmarks,
   handednesses: Handednesses,
-  emergency?: boolean
+  capturedFrame?: GestureImageCapture | null,
 ) => void;
 
 const IMAGE_CAPTURE_TIMEOUT_MS = 3000;
@@ -58,27 +58,26 @@ export const useOpenAIValidation = (
       confidence: number,
       landmarks: Landmarks,
       handednesses: Handednesses,
-      emergency?: boolean
+      capturedFrame?: GestureImageCapture | null,
     ) => {
       if (!gesture) {
-        onGestureDetected(null, confidence, landmarks, handednesses, emergency);
+        onGestureDetected(null, confidence, landmarks, handednesses);
         return;
       }
 
       const shouldValidate = shouldTriggerOpenAIValidation(confidence, gesture);
 
       if (!shouldValidate) {
-        onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+        onGestureDetected(gesture, confidence, landmarks, handednesses);
         return;
       }
 
       try {
-        const imageCapture = captureImage
-          ? await withTimeout(captureImage())
-          : null;
+        const imageCapture =
+          capturedFrame ?? (captureImage ? await withTimeout(captureImage()) : null);
 
         if (!imageCapture) {
-          onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+          onGestureDetected(gesture, confidence, landmarks, handednesses);
           return;
         }
 
@@ -114,15 +113,13 @@ export const useOpenAIValidation = (
           validationResult.finalConfidence,
           landmarks,
           handednesses,
-          emergency
         );
       } catch (error) {
         logger.warn('OpenAI validation failed, using MediaPipe result', error, {
           gesture,
           confidence,
-          emergency,
         });
-        onGestureDetected(gesture, confidence, landmarks, handednesses, emergency);
+        onGestureDetected(gesture, confidence, landmarks, handednesses);
       }
     },
     [onGestureDetected, captureImage]

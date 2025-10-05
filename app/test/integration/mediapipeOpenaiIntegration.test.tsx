@@ -18,10 +18,12 @@ jest.mock('../../src/hooks/useModelInjection', () => ({
 
 const mockGetCachedMlpModel = jest.fn();
 const mockFetchMlpModel = jest.fn();
+const mockGetCachedMlpMeta = jest.fn();
 
 jest.mock('../../src/services/dgsModelClient', () => ({
   getCachedMlpModel: (...args: any[]) => mockGetCachedMlpModel(...args),
   fetchMlpModel: (...args: any[]) => mockFetchMlpModel(...args),
+  getCachedMlpMeta: (...args: any[]) => mockGetCachedMlpMeta(...args),
 }));
 
 const mockLoadActiveProfileId = jest.fn();
@@ -90,6 +92,7 @@ describe('MediaPipeGestureDetector (WebView integration)', () => {
     mockLoadActiveProfileId.mockResolvedValue(null);
     mockOnActiveProfileChange.mockReturnValue(() => {});
     mockGetCachedMlpModel.mockResolvedValue(null);
+    mockGetCachedMlpMeta.mockResolvedValue(null);
     mockFetchMlpModel.mockResolvedValue(null);
   });
 
@@ -139,7 +142,14 @@ describe('MediaPipeGestureDetector (WebView integration)', () => {
       });
     });
 
-    expect(onGestureDetected).toHaveBeenCalledWith('hello', 0.82, [[[0.1, 0.2, 0.3]]], []);
+    expect(onGestureDetected).toHaveBeenCalledTimes(1);
+    expect(onGestureDetected).toHaveBeenCalledWith(
+      'hello',
+      0.82,
+      [[[0.1, 0.2, 0.3]]],
+      [],
+      null,
+    );
   });
 
   it('injects pending models once the WebView reports mlp readiness', async () => {

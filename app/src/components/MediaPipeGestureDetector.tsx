@@ -22,9 +22,48 @@ import { logger } from '../utils/logger';
 import { useModelInjection } from '../hooks/useModelInjection';
 import { fetchMlpModel, getCachedMlpModel, getCachedMlpMeta } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
-import type { ClipReadyPayload, FrameBatchPayload } from '../types/frames';
+import type { ClipReadyPayload, FrameBatchPayload, FrameCapturePayload } from '../types/frames';
 
 const MAX_ERROR_PAYLOAD_SNIPPET_LENGTH = 200;
+
+const parseFrameCapturePayload = (capture: unknown): FrameCapturePayload => {
+  if (typeof capture === 'string') {
+    return capture;
+  }
+
+  if (capture && typeof capture === 'object') {
+    const { base64, uri, width, height } = capture as {
+      base64?: unknown;
+      uri?: unknown;
+      width?: unknown;
+      height?: unknown;
+    };
+
+    const sanitized: { base64?: string; uri?: string; width?: number; height?: number } = {};
+
+    if (typeof base64 === 'string' && base64.length > 0) {
+      sanitized.base64 = base64;
+    }
+
+    if (typeof uri === 'string' && uri.length > 0) {
+      sanitized.uri = uri;
+    }
+
+    if (typeof width === 'number') {
+      sanitized.width = width;
+    }
+
+    if (typeof height === 'number') {
+      sanitized.height = height;
+    }
+
+    if (sanitized.base64 || sanitized.uri) {
+      return sanitized;
+    }
+  }
+
+  return null;
+};
 
 export interface MediaPipeGestureDetectorHandle {
   startClipCapture: () => Promise<string>;
@@ -45,7 +84,8 @@ interface Props {
     confidence: number,
     landmarks: number[][][],
     handedness: string[],
-  ) => void;
+    frameCapture?: FrameCapturePayload,
+  ) => void | Promise<void>;
   onLandmarks?: (
     landmarks: number[][][],
     handedness: string[],
@@ -113,7 +153,9 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           )
         : [];
 
-      onGestureDetected(gesture, confidence, landmarks, handedness);
+      const frameCapture: FrameCapturePayload = parseFrameCapturePayload(message?.frameCapture);
+
+      void onGestureDetected(gesture, confidence, landmarks, handedness, frameCapture);
       return true;
     },
     [onGestureDetected],

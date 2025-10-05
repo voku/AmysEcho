@@ -131,7 +131,7 @@ describe('Service Integration Tests', () => {
           rightHand: 'please'
         }),
         getSupportedGestures: jest.fn().mockReturnValue([
-          'communication', 'emotional', 'playful', 'emergency'
+          'communication', 'emotional', 'playful'
         ])
       };
 
@@ -150,7 +150,6 @@ describe('Service Integration Tests', () => {
       // Check supported gestures
       const supported = mockTwoHandService.getSupportedGestures();
       expect(supported).toContain('communication');
-      expect(supported).toContain('emergency');
     });
   });
 

@@ -1,19 +1,57 @@
-import { useCallback } from 'react';
+import { Dispatch, SetStateAction, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import { parallelGestureProcessor } from '../services/parallelGestureProcessor';
 import { twoHandGestureService } from '../services/twoHandGestureService';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
+import { DEFAULT_OPENAI_FEEDBACK_MESSAGE, DEFAULT_OPENAI_QUALITY_SCORE } from '../constants';
+import type { FrameCapturePayload } from '../types/frames';
+import type { GestureResult } from '../services/parallelGestureProcessor';
+import type {
+  OnGestureDetected,
+  OpenAIValidationResult,
+} from './useOpenAIValidation';
+import type { GestureImageCapture } from '../services/openaiGestureValidationService';
 
-export const useParallelProcessing = (onGestureDetected: any, onMergedResult: any, setOpenaiValidationResult: any, setShowOpenaiFeedback: any, handleOpenAIValidation: any) => {
+const isGestureImageCapture = (
+  frame: FrameCapturePayload | GestureImageCapture | null | undefined,
+): frame is GestureImageCapture => {
+  if (!frame || typeof frame !== 'object') {
+    return false;
+  }
+
+  const candidate = frame as Partial<GestureImageCapture>;
+
+  return (
+    typeof candidate.base64 === 'string' &&
+    candidate.base64.length > 0 &&
+    typeof candidate.uri === 'string' &&
+    candidate.uri.length > 0 &&
+    typeof candidate.width === 'number' &&
+    candidate.width > 0 &&
+    typeof candidate.height === 'number' &&
+    candidate.height > 0 &&
+    typeof candidate.timestamp === 'number' &&
+    candidate.timestamp > 0
+  );
+};
+
+export const useParallelProcessing = (
+  onGestureDetected: OnGestureDetected,
+  onMergedResult: ((result: GestureResult) => void) | undefined,
+  setOpenaiValidationResult: Dispatch<SetStateAction<OpenAIValidationResult | null>>,
+  setShowOpenaiFeedback: Dispatch<SetStateAction<boolean>>,
+  runSequentialValidation?: OnGestureDetected,
+) => {
   const handleParallelProcessing = useCallback(async (
     gesture: string | null,
     confidence: number,
     landmarks: number[][][],
     handednesses: string[],
-    emergency?: boolean,
-    capturedFrame?: any
+    capturedFrame?: FrameCapturePayload | GestureImageCapture | null
   ) => {
-    const frameStartTime = Date.now();
+    const sequentialFrame = isGestureImageCapture(capturedFrame)
+      ? capturedFrame
+      : null;
 
     try {
       if (typeof confidence !== 'number' || confidence < 0 || confidence > 1) {
@@ -60,7 +98,7 @@ export const useParallelProcessing = (onGestureDetected: any, onMergedResult: an
             twoHandResult.confidence,
             twoHandResult.landmarks,
             twoHandResult.handedness,
-            emergency
+            sequentialFrame,
           );
 
           if (twoHandResult.accessibilityHints.length > 0) {
@@ -80,48 +118,90 @@ export const useParallelProcessing = (onGestureDetected: any, onMergedResult: an
         confidence,
         landmarks,
         handednesses,
-        emergency,
         capturedFrame
       );
 
       if (result.source === 'openai' || result.source === 'combined') {
         setOpenaiValidationResult({
-          gesture: result.gesture || '',
+          gesture: result.gesture || gestureString || '',
           confidence: result.confidence,
-          feedback: result.feedback || 'Gesture processed',
-          quality_score: result.quality_score || 7.0,
-          suggestions: [],
+          feedback: result.feedback || DEFAULT_OPENAI_FEEDBACK_MESSAGE,
+          quality_score: result.quality_score ?? DEFAULT_OPENAI_QUALITY_SCORE,
+          suggestions: result.suggestions ?? [],
           validation_source: result.source,
         });
 
         setShowOpenaiFeedback(true);
+        if (onMergedResult && result.source === 'combined') {
+          onMergedResult(result);
+        }
+        onGestureDetected(
+          result.gesture || gestureString,
+          result.confidence,
+          result.landmarks || landmarks,
+          result.handedness || handednesses,
+          sequentialFrame,
+        );
+        return;
       }
 
-      if (onMergedResult && result.source === 'combined') {
-        onMergedResult(result);
+      const openaiAttemptedAndFailed =
+        result.openaiAttempted === true && result.openaiSuccess === false;
+
+      if (runSequentialValidation && !openaiAttemptedAndFailed) {
+        await runSequentialValidation(
+          result.gesture || gestureString,
+          result.confidence,
+          result.landmarks || landmarks,
+          result.handedness || handednesses,
+          sequentialFrame,
+        );
+        return;
       }
 
       onGestureDetected(
-        result.gesture || '',
+        result.gesture || gestureString,
         result.confidence,
         result.landmarks || landmarks,
         result.handedness || handednesses,
-        result.emergency || emergency
+        sequentialFrame,
       );
 
     } catch (error) {
       logger.error('Enhanced gesture detection failed, using MediaPipe result', error, {
         gesture,
         confidence,
-        emergency,
       });
 
       const fallbackGesture = gesture && isTwoHandGesture(gesture)
         ? `${gesture.left}+${gesture.right}`
         : gesture;
-      onGestureDetected(fallbackGesture, confidence, landmarks, handednesses, emergency);
+      if (runSequentialValidation) {
+        await runSequentialValidation(
+          fallbackGesture,
+          confidence,
+          landmarks,
+          handednesses,
+          sequentialFrame,
+        );
+        return;
+      }
+
+      onGestureDetected(
+        fallbackGesture,
+        confidence,
+        landmarks,
+        handednesses,
+        sequentialFrame,
+      );
     }
-  }, [onGestureDetected, onMergedResult, setOpenaiValidationResult, setShowOpenaiFeedback, handleOpenAIValidation]);
+  }, [
+    onGestureDetected,
+    onMergedResult,
+    runSequentialValidation,
+    setOpenaiValidationResult,
+    setShowOpenaiFeedback,
+  ]);
 
   return { handleParallelProcessing };
 };

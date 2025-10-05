@@ -23,6 +23,8 @@ import { loadProfile, Profile } from '../storage';
 import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap, Point } from '../services/dgsModelClient';
+import type { GestureImageCapture } from '../services/openaiGestureValidationService';
+import type { FrameCapturePayload } from '../types/frames';
 import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
 import { logHIPEvent } from '../services/hipEvents';
@@ -49,12 +51,55 @@ import type { RootStackParamList } from '../navigation/types';
 import { getShortcutMessage } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
+import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
+import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import HandLandmarkPreview from '../components/HandLandmarkPreview';
 import {
   cloneLandmarks,
   adjustHandednessForMirror,
   createHandLandmarkStabilizer,
 } from '../utils/landmarkUtils';
+import OpenAIGestureFeedback from '../components/OpenAIGestureFeedback';
+
+const DEFAULT_FRAME_WIDTH = 640;
+const DEFAULT_FRAME_HEIGHT = 480;
+
+const toGestureImageCapture = (
+  frameCapture: FrameCapturePayload,
+  timestamp: number,
+): GestureImageCapture | null => {
+  if (!frameCapture) {
+    return null;
+  }
+
+  const partial =
+    typeof frameCapture === 'string'
+      ? { [frameCapture.startsWith('data:image/') ? 'uri' : 'base64']: frameCapture }
+      : frameCapture;
+
+  const { width, height } = partial as { width?: number; height?: number };
+  let { base64, uri } = partial as { base64?: string; uri?: string };
+
+  if (!base64 && typeof uri === 'string' && uri.startsWith('data:image/')) {
+    base64 = uri.split(',')[1] ?? '';
+  }
+
+  if (!base64) {
+    return null;
+  }
+
+  if (!uri || !uri.startsWith('data:image/')) {
+    uri = `data:image/jpeg;base64,${base64}`;
+  }
+
+  return {
+    uri,
+    base64,
+    width: typeof width === 'number' && width > 0 ? width : DEFAULT_FRAME_WIDTH,
+    height: typeof height === 'number' && height > 0 ? height : DEFAULT_FRAME_HEIGHT,
+    timestamp,
+  };
+};
 
 const RECOGNITION_TEXT = {
   showDgsVideoLabel: 'DGS-Video anzeigen',
@@ -144,6 +189,7 @@ export default function RecognitionScreen({
   const lastModelUpdateTimeRef = useRef<number>(0);
   const lastOfflineClassifyAtRef = useRef<number>(0);
   const handStabilizerRef = useRef(createHandLandmarkStabilizer({ ttlMs: 300, maxHands: 2 }));
+  const latestFrameRef = useRef<GestureImageCapture | null>(null);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -194,6 +240,14 @@ export default function RecognitionScreen({
   }, [setMessage]);
 
   const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const captureImage = useCallback(async () => {
+    const latest = latestFrameRef.current;
+    if (!latest) {
+      return null;
+    }
+    return { ...latest };
+  }, []);
 
   const startFeedbackAnimation = useCallback(() => {
     fadeAnim.setValue(0);
@@ -275,7 +329,6 @@ export default function RecognitionScreen({
       confidence: number,
       landmarks: number[][][],
       handedness: string[],
-      emergency = false,
     ) => {
       const mirrored = facingMode === 'user';
       const safeLandmarks = cloneLandmarks(landmarks);
@@ -332,13 +385,70 @@ export default function RecognitionScreen({
         processedConfidence,
         stabilized.landmarks,
         stabilized.handedness,
-        emergency,
         recognitionSource,
       );
 
       return resultPromise;
     },
     [baseHandleGestureDetected, facingMode],
+  );
+
+  const {
+    openaiValidationResult,
+    setOpenaiValidationResult,
+    showOpenaiFeedback,
+    setShowOpenaiFeedback,
+    handleOpenAIValidation,
+  } = useOpenAIValidation(handleGestureDetected, captureImage);
+
+  const { handleParallelProcessing } = useParallelProcessing(
+    handleGestureDetected,
+    undefined,
+    setOpenaiValidationResult,
+    setShowOpenaiFeedback,
+    handleOpenAIValidation,
+  );
+
+  const processGesture = useCallback(
+    (
+      gesture: string | null,
+      confidence: number,
+      landmarks: number[][][],
+      handedness: string[],
+      frameCapture?: FrameCapturePayload | null,
+    ) => {
+      const timestamp = Date.now();
+      let normalizedCapture: GestureImageCapture | null = null;
+      if (frameCapture) {
+        normalizedCapture = toGestureImageCapture(frameCapture, timestamp);
+        latestFrameRef.current = normalizedCapture;
+      } else {
+        latestFrameRef.current = null;
+      }
+
+      const capturedFrameForProcessing = normalizedCapture ?? frameCapture ?? null;
+
+      void handleParallelProcessing(
+        gesture,
+        confidence,
+        landmarks,
+        handedness,
+        capturedFrameForProcessing,
+      );
+    },
+    [handleParallelProcessing],
+  );
+
+  const handleAcknowledgeOpenAISuggestion = useCallback(
+    (suggestion?: string) => {
+      if (suggestion) {
+        logger.info('OpenAI suggestion angewendet', { suggestion });
+      } else {
+        logger.info('OpenAI-Vorschlag bestätigt');
+      }
+      setShowOpenaiFeedback(false);
+    },
+    [setShowOpenaiFeedback],
   );
 
   useEffect(() => {
@@ -683,7 +793,7 @@ export default function RecognitionScreen({
           <View style={[styles.card, styles.cameraCard, highContrast && styles.cardHC]}>
             <View style={styles.cameraSurface}>
               <MediaPipeGestureDetector
-                onGestureDetected={handleGestureDetected}
+                onGestureDetected={processGesture}
                 onLandmarks={(landmarks, handedness) => {
                   handleGestureDetected(null, 0, landmarks, handedness);
                 }}
@@ -906,6 +1016,14 @@ export default function RecognitionScreen({
       />
     </ScreenBackground>
     <BottomNav active="recognition" profileId={profile?.id || 'default'} />
+    {openaiValidationResult && (
+      <OpenAIGestureFeedback
+        isVisible={showOpenaiFeedback}
+        validationResult={openaiValidationResult}
+        onDismiss={() => setShowOpenaiFeedback(false)}
+        onApplySuggestion={handleAcknowledgeOpenAISuggestion}
+      />
+    )}
   </>
 );
 }

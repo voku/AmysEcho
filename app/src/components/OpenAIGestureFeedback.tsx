@@ -21,7 +21,7 @@ interface OpenAIGestureFeedbackProps {
     validation_source: 'mediapipe' | 'openai' | 'combined';
   };
   onDismiss?: () => void;
-  onApplySuggestion?: (suggestion: string) => void;
+  onApplySuggestion?: (suggestion?: string) => void;
 }
 
 export default function OpenAIGestureFeedback({
