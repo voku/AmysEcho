@@ -38,7 +38,6 @@ export const useParallelProcessing = (
     confidence: number,
     landmarks: number[][][],
     handednesses: string[],
-    emergency?: boolean,
     capturedFrame?: FrameCapturePayload | GestureImageCapture | null
   ) => {
     const frameStartTime = Date.now();
@@ -92,7 +91,6 @@ export const useParallelProcessing = (
             twoHandResult.confidence,
             twoHandResult.landmarks,
             twoHandResult.handedness,
-            emergency
           );
 
           if (twoHandResult.accessibilityHints.length > 0) {
@@ -112,7 +110,6 @@ export const useParallelProcessing = (
         confidence,
         landmarks,
         handednesses,
-        emergency,
         capturedFrame
       );
 
@@ -135,7 +132,6 @@ export const useParallelProcessing = (
           result.confidence,
           result.landmarks || landmarks,
           result.handedness || handednesses,
-          result.emergency || emergency,
         );
         return;
       }
@@ -149,7 +145,6 @@ export const useParallelProcessing = (
           result.confidence,
           result.landmarks || landmarks,
           result.handedness || handednesses,
-          result.emergency ?? emergency,
           sequentialFrame,
         );
         return;
@@ -160,14 +155,12 @@ export const useParallelProcessing = (
         result.confidence,
         result.landmarks || landmarks,
         result.handedness || handednesses,
-        result.emergency ?? emergency,
       );
 
     } catch (error) {
       logger.error('Enhanced gesture detection failed, using MediaPipe result', error, {
         gesture,
         confidence,
-        emergency,
       });
 
       const fallbackGesture = gesture && isTwoHandGesture(gesture)
@@ -179,13 +172,12 @@ export const useParallelProcessing = (
           confidence,
           landmarks,
           handednesses,
-          emergency,
           sequentialFrame,
         );
         return;
       }
 
-      onGestureDetected(fallbackGesture, confidence, landmarks, handednesses, emergency);
+      onGestureDetected(fallbackGesture, confidence, landmarks, handednesses);
     }
   }, [
     onGestureDetected,

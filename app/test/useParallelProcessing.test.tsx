@@ -78,7 +78,7 @@ describe('useParallelProcessing', () => {
     const handler = await renderHookHarness();
 
     await act(async () => {
-      await handler('wave', 0.4, [[[0]]], ['Left'], false, null);
+      await handler('wave', 0.4, [[[0]]], ['Left'], null);
     });
 
     expect(runSequentialValidation).toHaveBeenCalledTimes(1);
@@ -101,7 +101,7 @@ describe('useParallelProcessing', () => {
     const handler = await renderHookHarness();
 
     await act(async () => {
-      await handler('wave', 0.3, [[[0]]], ['Left'], false, null);
+      await handler('wave', 0.3, [[[0]]], ['Left'], null);
     });
 
     expect(runSequentialValidation).not.toHaveBeenCalled();

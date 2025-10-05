@@ -31,9 +31,8 @@ describe('OpenAI Gesture Validation Service', () => {
   });
 
   describe('shouldTriggerOpenAIValidation', () => {
-    it('should validate emergency gestures regardless of confidence', () => {
+    it('should validate prioritized gestures regardless of confidence', () => {
       expect(shouldTriggerOpenAIValidation(0.9, 'help')).toBe(true);
-      expect(shouldTriggerOpenAIValidation(0.1, 'emergency')).toBe(true);
       expect(shouldTriggerOpenAIValidation(0.8, 'stop')).toBe(true);
     });
 

@@ -84,7 +84,6 @@ interface Props {
     confidence: number,
     landmarks: number[][][],
     handedness: string[],
-    emergency?: boolean,
     frameCapture?: FrameCapturePayload,
   ) => void | Promise<void>;
   onLandmarks?: (
@@ -154,14 +153,9 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           )
         : [];
 
-      const emergencyDetected =
-        typeof message?.emergency === 'boolean'
-          ? message.emergency
-          : Boolean(message?.emergency?.detected);
-
       const frameCapture: FrameCapturePayload = parseFrameCapturePayload(message?.frameCapture);
 
-      void onGestureDetected(gesture, confidence, landmarks, handedness, emergencyDetected, frameCapture);
+      void onGestureDetected(gesture, confidence, landmarks, handedness, frameCapture);
       return true;
     },
     [onGestureDetected],

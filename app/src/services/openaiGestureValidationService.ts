@@ -309,7 +309,6 @@ export function shouldTriggerOpenAIValidation(
   options?: {
     lowConfidenceThreshold?: number;
     alwaysValidateGestures?: string[];
-    emergencyGestures?: string[];
     enableSmartValidation?: boolean;
     validationHistory?: Array<{
       gesture: string;
@@ -321,16 +320,10 @@ export function shouldTriggerOpenAIValidation(
 ): boolean {
   const {
     lowConfidenceThreshold = 0.6,
-    alwaysValidateGestures = ['emergency', 'help', 'stop'],
-    emergencyGestures = ['emergency', 'help', 'stop'],
+    alwaysValidateGestures = ['help', 'stop'],
     enableSmartValidation = true,
     validationHistory = [],
   } = options || {};
-
-  // Always validate emergency gestures for safety
-  if (emergencyGestures.some(emergency => gesture.toLowerCase().includes(emergency))) {
-    return true;
-  }
 
   // Always validate specific gestures that benefit from AI analysis
   if (alwaysValidateGestures.some(validateGesture => gesture.toLowerCase().includes(validateGesture))) {

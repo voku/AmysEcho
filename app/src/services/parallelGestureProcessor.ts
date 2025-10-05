@@ -39,7 +39,6 @@ export interface GestureResult {
   source: 'mediapipe' | 'openai' | 'combined';
   processingTime: number;
   timestamp: number;
-  emergency?: boolean;
   feedback?: string;
   quality_score?: number;
   suggestions?: string[];
@@ -108,7 +107,6 @@ class ParallelGestureProcessor {
      confidence: number,
      landmarks: number[][][],
      handedness: string[],
-     emergency?: boolean,
      capturedFrame?: any
    ): Promise<GestureResult> {
      const startTime = Date.now();
@@ -165,10 +163,6 @@ class ParallelGestureProcessor {
       openaiAttempted: false,
     };
 
-    if (typeof emergency === 'boolean') {
-      mediapipeResult.emergency = emergency;
-    }
-
     let finalResult: GestureResult = mediapipeResult;
     let openaiAttempted = false;
     let openaiSuccess = false;
@@ -180,8 +174,7 @@ class ParallelGestureProcessor {
     // Check if we should trigger parallel OpenAI processing
     const shouldProcessParallel = this.shouldTriggerParallelProcessing(
       gesture,
-      confidence,
-      emergency
+      confidence
     );
 
     if (shouldProcessParallel && capturedFrame && this.options.enableParallelProcessing) {
@@ -229,20 +222,10 @@ class ParallelGestureProcessor {
       processingTime,
       finalResult.gesture ?? gesture,
       finalResult.confidence ?? confidence,
-      finalResult.emergency ?? emergency ?? false,
+      false,
       mediapipeResult.processingTime < 100, // Consider successful if under 100ms
       undefined
     );
-
-    // Enhanced performance monitoring for emergency gestures
-    if (finalResult.emergency ?? emergency) {
-      this.logEmergencyPerformance(
-        processingTime,
-        finalResult.gesture ?? gesture,
-        finalResult.confidence ?? confidence,
-        mediapipeResult.processingTime < 100,
-      );
-    }
 
     // Track landmark processing complexity
     if (landmarks && landmarks.length > 0) {
@@ -274,12 +257,8 @@ class ParallelGestureProcessor {
    */
   private shouldTriggerParallelProcessing(
     gesture: string | null,
-    confidence: number,
-    emergency?: boolean
+    confidence: number
   ): boolean {
-    // Always process emergency gestures
-    if (emergency) return true;
-
     // Process based on confidence threshold
     if (confidence < this.options.confidenceThreshold) return true;
 
@@ -536,10 +515,6 @@ class ParallelGestureProcessor {
       target.handedness = mediapipeResult.handedness;
     }
 
-    if (mediapipeResult.emergency !== undefined) {
-      target.emergency = mediapipeResult.emergency;
-    }
-
     const feedback = openaiResult.feedback ?? mediapipeResult.feedback;
     if (feedback) {
       target.feedback = feedback;
@@ -605,48 +580,15 @@ class ParallelGestureProcessor {
      logger.info('Merged gesture result', result);
 
      // Enhanced performance monitoring for merged results
-     performanceMonitor.recordGestureProcessing(
-       result.processingTime,
-       result.gesture,
-       result.confidence,
-       result.emergency || false,
-       true, // Merged results are considered successful
-       undefined
-     );
+    performanceMonitor.recordGestureProcessing(
+      result.processingTime,
+      result.gesture,
+      result.confidence,
+      false,
+      true, // Merged results are considered successful
+      undefined
+    );
    }
-
-  /**
-   * Log emergency gesture performance metrics
-   */
-  private logEmergencyPerformance(
-    processingTime: number,
-    gesture: string | null,
-    confidence: number,
-    success: boolean
-  ): void {
-    const emergencyMetrics = {
-      processingTime,
-      gesture: gesture || 'unknown',
-      confidence,
-      success,
-      timestamp: Date.now(),
-      isWithinTarget: processingTime < 50, // Amy First target: <50ms for emergencies
-    };
-
-    logger.performanceMetric('emergency_gesture_processing', processingTime, emergencyMetrics);
-
-    // Log warnings for slow emergency processing
-    if (processingTime > 50) {
-      logger.warn(`Slow emergency gesture processing: ${processingTime}ms for ${gesture}`, emergencyMetrics);
-    }
-
-    // Track emergency success rate
-    if (success) {
-      logger.info('Emergency gesture processed successfully', emergencyMetrics);
-    } else {
-      logger.error('Emergency gesture processing failed', emergencyMetrics);
-    }
-  }
 
   /**
    * Log landmark processing performance metrics

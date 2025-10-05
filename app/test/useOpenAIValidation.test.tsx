@@ -9,7 +9,6 @@ type HookRef = {
     confidence: number,
     landmarks: number[][][],
     handednesses: string[],
-    emergency?: boolean,
     capturedFrame?: any,
   ) => Promise<void>;
   openaiValidationResult: any;
@@ -36,7 +35,7 @@ describe('useOpenAIValidation', () => {
     await act(async () => {
       await ref.current!.handleOpenAIValidation(null, 0.8, [], []);
     });
-    expect(onDetected).toHaveBeenCalledWith(null, 0.8, [], [], undefined);
+    expect(onDetected).toHaveBeenCalledWith(null, 0.8, [], []);
   });
 
   it('bypasses validation when trigger is false', async () => {
@@ -47,7 +46,7 @@ describe('useOpenAIValidation', () => {
     await act(async () => {
       await ref.current!.handleOpenAIValidation('winken', 0.8, [], []);
     });
-    expect(onDetected).toHaveBeenCalledWith('winken', 0.8, [], [], undefined);
+    expect(onDetected).toHaveBeenCalledWith('winken', 0.8, [], []);
     expect(ValidationSvc.shouldTriggerOpenAIValidation).toHaveBeenCalledWith(0.8, 'winken');
   });
 
@@ -73,7 +72,7 @@ describe('useOpenAIValidation', () => {
       { uri: 'x', base64: 'y' },
       expect.objectContaining({ session_id: expect.any(String), environment: 'home' })
     );
-    expect(onDetected).toHaveBeenCalledWith('winken', 0.95, [], [], undefined);
+    expect(onDetected).toHaveBeenCalledWith('winken', 0.95, [], []);
     expect(ref.current!.openaiValidationResult).toMatchObject({
       gesture: 'winken',
       confidence: 0.95,
@@ -107,7 +106,7 @@ describe('useOpenAIValidation', () => {
     };
 
     await act(async () => {
-      await ref.current!.handleOpenAIValidation('hilfe', 0.4, [], [], false, providedCapture);
+      await ref.current!.handleOpenAIValidation('hilfe', 0.4, [], [], providedCapture);
     });
 
     expect(captureImage).not.toHaveBeenCalled();
@@ -116,7 +115,7 @@ describe('useOpenAIValidation', () => {
       providedCapture,
       expect.objectContaining({ session_id: expect.any(String) }),
     );
-    expect(onDetected).toHaveBeenCalledWith('hilfe', 0.7, [], [], false);
+    expect(onDetected).toHaveBeenCalledWith('hilfe', 0.7, [], []);
   });
 
   it('falls back on validation error', async () => {
@@ -129,7 +128,7 @@ describe('useOpenAIValidation', () => {
     await act(async () => {
       await ref.current!.handleOpenAIValidation('winken', 0.8, [], []);
     });
-    expect(onDetected).toHaveBeenCalledWith('winken', 0.8, [], [], undefined);
+    expect(onDetected).toHaveBeenCalledWith('winken', 0.8, [], []);
     expect(ref.current!.openaiValidationResult).toBe(null);
   });
 });

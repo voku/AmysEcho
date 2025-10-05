@@ -148,7 +148,6 @@ describe('MediaPipeGestureDetector (WebView integration)', () => {
       0.82,
       [[[0.1, 0.2, 0.3]]],
       [],
-      false,
       null,
     );
   });

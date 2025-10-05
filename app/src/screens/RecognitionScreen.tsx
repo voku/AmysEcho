@@ -329,7 +329,6 @@ export default function RecognitionScreen({
       confidence: number,
       landmarks: number[][][],
       handedness: string[],
-      emergency = false,
     ) => {
       const mirrored = facingMode === 'user';
       const safeLandmarks = cloneLandmarks(landmarks);
@@ -386,7 +385,6 @@ export default function RecognitionScreen({
         processedConfidence,
         stabilized.landmarks,
         stabilized.handedness,
-        emergency,
         recognitionSource,
       );
 
@@ -417,7 +415,6 @@ export default function RecognitionScreen({
       confidence: number,
       landmarks: number[][][],
       handedness: string[],
-      emergency = false,
       frameCapture?: FrameCapturePayload | null,
     ) => {
       const timestamp = Date.now();
@@ -436,7 +433,6 @@ export default function RecognitionScreen({
         confidence,
         landmarks,
         handedness,
-        emergency,
         capturedFrameForProcessing,
       );
     },
