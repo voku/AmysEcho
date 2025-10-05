@@ -23,7 +23,11 @@ const isGestureImageCapture = (
       typeof (frame as GestureImageCapture).uri === 'string' &&
       (frame as GestureImageCapture).uri.length > 0 &&
       typeof (frame as GestureImageCapture).width === 'number' &&
-      typeof (frame as GestureImageCapture).height === 'number',
+      (frame as GestureImageCapture).width > 0 &&
+      typeof (frame as GestureImageCapture).height === 'number' &&
+      (frame as GestureImageCapture).height > 0 &&
+      typeof (frame as GestureImageCapture).timestamp === 'number' &&
+      (frame as GestureImageCapture).timestamp > 0,
   );
 
 export const useParallelProcessing = (
