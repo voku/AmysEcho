@@ -222,7 +222,6 @@ class ParallelGestureProcessor {
       processingTime,
       finalResult.gesture ?? gesture,
       finalResult.confidence ?? confidence,
-      false,
       mediapipeResult.processingTime < 100, // Consider successful if under 100ms
       undefined
     );
@@ -383,7 +382,6 @@ class ParallelGestureProcessor {
         processingTime,
         validationResult.gesture ?? null,
         validationResult.confidence || 0,
-        false, // OpenAI processing is not emergency
         openaiSuccess,
         validationResult.error
       );
@@ -402,7 +400,6 @@ class ParallelGestureProcessor {
         processingTime,
         expectedGesture,
         0,
-        false,
         false,
         error instanceof Error ? error.message : String(error)
       );
@@ -584,7 +581,6 @@ class ParallelGestureProcessor {
       result.processingTime,
       result.gesture,
       result.confidence,
-      false,
       true, // Merged results are considered successful
       undefined
     );
@@ -764,7 +760,6 @@ class ParallelGestureProcessor {
     basic: ProcessingStats;
     systemHealth: {
       averageProcessingTime: number;
-      emergencyResponseTime: number;
       cacheEfficiency: number;
       errorRate: number;
       concurrentLoad: number;
@@ -775,7 +770,6 @@ class ParallelGestureProcessor {
     const performanceReport = performanceMonitor.getPerformanceReport();
 
     // Calculate enhanced metrics
-    const emergencyResponseTime = performanceReport.metrics.emergencyResponseTime;
     const cacheEfficiency = basic.cacheHits / Math.max(basic.mediapipeResults + basic.openaiResults, 1);
     const errorRate = basic.errors / Math.max(basic.mediapipeResults + basic.openaiResults, 1);
     const concurrentLoad = this.processingQueue.size;
@@ -785,10 +779,6 @@ class ParallelGestureProcessor {
 
     if (performanceReport.metrics.averageProcessingTime > 50) {
       recommendations.push('Erwägen Sie, die Verarbeitungslast zu reduzieren oder die MediaPipe-Konfiguration zu optimieren');
-    }
-
-    if (emergencyResponseTime > 30) {
-      recommendations.push('Die Notfall-Reaktionszeit überschreitet das Amy‑First‑Ziel von 30 ms');
     }
 
     if (errorRate > 0.1) {
@@ -807,7 +797,6 @@ class ParallelGestureProcessor {
       basic,
       systemHealth: {
         averageProcessingTime: performanceReport.metrics.averageProcessingTime,
-        emergencyResponseTime,
         cacheEfficiency,
         errorRate,
         concurrentLoad,

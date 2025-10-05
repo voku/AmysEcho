@@ -2,7 +2,7 @@
  * Performance Monitor Service - Amy First
  *
  * Comprehensive performance monitoring for gesture detection system.
- * Tracks latency, accuracy, emergency response times, and system health.
+ * Tracks latency, accuracy, and system health.
  */
 
 import { logger } from '../utils/logger';
@@ -20,11 +20,6 @@ export interface PerformanceMetrics {
   falsePositiveRate: number;
   falseNegativeRate: number;
 
-  // Emergency metrics
-  emergencyResponseTime: number;
-  emergencySuccessRate: number;
-  emergencyDetectionRate: number;
-
   // System health
   frameRate: number;
   memoryUsage: number;
@@ -41,7 +36,6 @@ export interface PerformanceSample {
   processingTime: number;
   gesture?: string;
   confidence: number;
-  isEmergency: boolean;
   success: boolean;
   error?: string;
 }
@@ -84,7 +78,6 @@ class PerformanceMonitor {
     processingTime: number,
     gesture: string | null,
     confidence: number,
-    isEmergency: boolean,
     success: boolean,
     error?: string
   ): void {
@@ -92,7 +85,6 @@ class PerformanceMonitor {
       timestamp: Date.now(),
       processingTime,
       confidence,
-      isEmergency,
       success,
     };
 
@@ -116,9 +108,6 @@ class PerformanceMonitor {
       logger.warn(`Slow gesture processing: ${processingTime}ms for ${gesture}`);
     }
 
-    if (isEmergency && processingTime > 50) {
-      logger.error(`Slow emergency response: ${processingTime}ms for ${gesture}`);
-    }
   }
 
   /**
@@ -137,7 +126,6 @@ class PerformanceMonitor {
    */
   getMetrics(): PerformanceMetrics {
     const recentSamples = this.getRecentSamples();
-    const emergencySamples = recentSamples.filter(s => s.isEmergency);
     const successfulSamples = recentSamples.filter(s => s.success);
 
     // Calculate latency metrics
@@ -152,11 +140,6 @@ class PerformanceMonitor {
     const gestureAccuracy = this.calculateGestureAccuracy(recentSamples);
     const falsePositiveRate = this.calculateFalsePositiveRate(recentSamples);
     const falseNegativeRate = this.calculateFalseNegativeRate(recentSamples);
-
-    // Calculate emergency metrics
-    const emergencyResponseTime = this.calculateAverage(emergencySamples.map(s => s.processingTime));
-    const emergencySuccessRate = emergencySamples.filter(s => s.success).length / Math.max(emergencySamples.length, 1);
-    const emergencyDetectionRate = emergencySamples.length / Math.max(recentSamples.length, 1);
 
     // Calculate system health
     const frameRate = this.calculateFrameRate();
@@ -178,9 +161,6 @@ class PerformanceMonitor {
       gestureAccuracy,
       falsePositiveRate,
       falseNegativeRate,
-      emergencyResponseTime,
-      emergencySuccessRate,
-      emergencyDetectionRate,
       frameRate,
       memoryUsage,
       errorRate,
@@ -198,7 +178,6 @@ class PerformanceMonitor {
 
     return `Performance: ${metrics.averageProcessingTime.toFixed(1)}ms avg, ` +
            `${(metrics.overallAccuracy * 100).toFixed(1)}% accuracy, ` +
-           `${metrics.emergencyResponseTime.toFixed(1)}ms emergency, ` +
            `${metrics.frameRate.toFixed(1)} fps`;
   }
 
@@ -211,7 +190,6 @@ class PerformanceMonitor {
     return (
       metrics.averageProcessingTime < 50 && // < 50ms average
       metrics.overallAccuracy > 0.8 && // > 80% accuracy
-      metrics.emergencyResponseTime < 30 && // < 30ms for emergencies
       metrics.frameRate > 20 && // > 20 fps
       metrics.errorRate < 0.1 // < 10% error rate
     );
@@ -250,10 +228,6 @@ class PerformanceMonitor {
 
     if (metrics.overallAccuracy < 0.7) {
       alerts.push(`Low accuracy: ${(metrics.overallAccuracy * 100).toFixed(1)}%`);
-    }
-
-    if (metrics.emergencyResponseTime > 50) {
-      alerts.push(`Slow emergency response: ${metrics.emergencyResponseTime.toFixed(1)}ms`);
     }
 
     if (metrics.frameRate < 15) {
