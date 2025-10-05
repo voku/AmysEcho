@@ -3,6 +3,7 @@ import { logger } from '../utils/logger';
 import { parallelGestureProcessor } from '../services/parallelGestureProcessor';
 import { twoHandGestureService } from '../services/twoHandGestureService';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
+import { DEFAULT_OPENAI_FEEDBACK_MESSAGE } from '../constants';
 import type { FrameCapturePayload } from '../types/frames';
 import type { GestureResult } from '../services/parallelGestureProcessor';
 import type {
@@ -119,7 +120,7 @@ export const useParallelProcessing = (
         setOpenaiValidationResult({
           gesture: result.gesture || gestureString || '',
           confidence: result.confidence,
-          feedback: result.feedback || 'Geste verarbeitet',
+          feedback: result.feedback || DEFAULT_OPENAI_FEEDBACK_MESSAGE,
           quality_score: result.quality_score || 7.0,
           suggestions: result.suggestions ?? [],
           validation_source: result.source,
