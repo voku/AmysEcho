@@ -154,7 +154,10 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           )
         : [];
 
-      const emergencyDetected = Boolean(message?.emergency?.detected ?? message?.emergency === true);
+      const emergencyDetected =
+        typeof message?.emergency === 'boolean'
+          ? message.emergency
+          : Boolean(message?.emergency?.detected);
 
       const frameCapture: FrameCapturePayload = parseFrameCapturePayload(message?.frameCapture);
 

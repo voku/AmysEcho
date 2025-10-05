@@ -117,11 +117,11 @@ export const useParallelProcessing = (
 
       if (result.source === 'openai' || result.source === 'combined') {
         setOpenaiValidationResult({
-          gesture: result.gesture || '',
+          gesture: result.gesture || gestureString || '',
           confidence: result.confidence,
-          feedback: result.feedback || 'Gesture processed',
+          feedback: result.feedback || 'Geste verarbeitet',
           quality_score: result.quality_score || 7.0,
-          suggestions: [],
+          suggestions: result.suggestions ?? [],
           validation_source: result.source,
         });
 
