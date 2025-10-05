@@ -14,21 +14,26 @@ import type { GestureImageCapture } from '../services/openaiGestureValidationSer
 
 const isGestureImageCapture = (
   frame: FrameCapturePayload | GestureImageCapture | null | undefined,
-): frame is GestureImageCapture =>
-  Boolean(
-    frame &&
-      typeof frame === 'object' &&
-      typeof (frame as GestureImageCapture).base64 === 'string' &&
-      (frame as GestureImageCapture).base64.length > 0 &&
-      typeof (frame as GestureImageCapture).uri === 'string' &&
-      (frame as GestureImageCapture).uri.length > 0 &&
-      typeof (frame as GestureImageCapture).width === 'number' &&
-      (frame as GestureImageCapture).width > 0 &&
-      typeof (frame as GestureImageCapture).height === 'number' &&
-      (frame as GestureImageCapture).height > 0 &&
-      typeof (frame as GestureImageCapture).timestamp === 'number' &&
-      (frame as GestureImageCapture).timestamp > 0,
+): frame is GestureImageCapture => {
+  if (!frame || typeof frame !== 'object') {
+    return false;
+  }
+
+  const candidate = frame as Partial<GestureImageCapture>;
+
+  return (
+    typeof candidate.base64 === 'string' &&
+    candidate.base64.length > 0 &&
+    typeof candidate.uri === 'string' &&
+    candidate.uri.length > 0 &&
+    typeof candidate.width === 'number' &&
+    candidate.width > 0 &&
+    typeof candidate.height === 'number' &&
+    candidate.height > 0 &&
+    typeof candidate.timestamp === 'number' &&
+    candidate.timestamp > 0
   );
+};
 
 export const useParallelProcessing = (
   onGestureDetected: OnGestureDetected,
@@ -44,8 +49,6 @@ export const useParallelProcessing = (
     handednesses: string[],
     capturedFrame?: FrameCapturePayload | GestureImageCapture | null
   ) => {
-    const frameStartTime = Date.now();
-
     const sequentialFrame = isGestureImageCapture(capturedFrame)
       ? capturedFrame
       : null;
@@ -95,6 +98,7 @@ export const useParallelProcessing = (
             twoHandResult.confidence,
             twoHandResult.landmarks,
             twoHandResult.handedness,
+            sequentialFrame,
           );
 
           if (twoHandResult.accessibilityHints.length > 0) {
@@ -122,7 +126,7 @@ export const useParallelProcessing = (
           gesture: result.gesture || gestureString || '',
           confidence: result.confidence,
           feedback: result.feedback || DEFAULT_OPENAI_FEEDBACK_MESSAGE,
-          quality_score: result.quality_score || DEFAULT_OPENAI_QUALITY_SCORE,
+          quality_score: result.quality_score ?? DEFAULT_OPENAI_QUALITY_SCORE,
           suggestions: result.suggestions ?? [],
           validation_source: result.source,
         });
@@ -136,6 +140,7 @@ export const useParallelProcessing = (
           result.confidence,
           result.landmarks || landmarks,
           result.handedness || handednesses,
+          sequentialFrame,
         );
         return;
       }
@@ -159,6 +164,7 @@ export const useParallelProcessing = (
         result.confidence,
         result.landmarks || landmarks,
         result.handedness || handednesses,
+        sequentialFrame,
       );
 
     } catch (error) {
@@ -181,7 +187,13 @@ export const useParallelProcessing = (
         return;
       }
 
-      onGestureDetected(fallbackGesture, confidence, landmarks, handednesses);
+      onGestureDetected(
+        fallbackGesture,
+        confidence,
+        landmarks,
+        handednesses,
+        sequentialFrame,
+      );
     }
   }, [
     onGestureDetected,
