@@ -50,6 +50,20 @@ scripts/adb-reverse.sh 5000 && EXPO_PUBLIC_API_URL=http://localhost:5000 ./scrip
 
 The server defaults to port `5000`. `scripts/dev-run.sh` wraps Expo's development launcher, so you can pass `--android` or `--ios` to target the appropriate platform.
 
+### Supplying the OpenAI API key
+
+OpenAI validation is disabled until the server (and optional integration tests) receive an API key. You can provide it in one of three ways:
+
+- Export an environment variable before starting any processes that use OpenAI:
+  ```bash
+  export OPENAI_API_KEY="sk-your-key"
+  npm start --prefix server
+  ```
+- Create a `.openai-key` file at the repository root that contains only the key. The server reads this file automatically when the environment variable is missing.
+- Enter the key once through the mobile app's Admin screen; it is stored securely on the device via Expo `SecureStore`.
+
+For CI or production environments prefer secret managers or environment variables so the key never touches source control.
+
 ## Integration Tests
 
 Integration tests verify that the Node server and app API clients work together correctly. From the repository root run:
