@@ -2,7 +2,13 @@
  * Two-Hand Gesture Display Component - Phase 3.1
  *
  * Enhanced display for two-hand gestures with visual indicators
- * and special formatting to show both hands are involved
+ * and special formatting to show both hands are involved.
+ *
+ * The recognition screen renders this component whenever the
+ * parallel/two-hand detection pipeline reports a combined gesture.
+ * That makes it easier for Amy (and observers) to understand
+ * which coordinated movement was recognised without conflating it
+ * with the standard single-hand emoji view.
  */
 
 import React from 'react';
