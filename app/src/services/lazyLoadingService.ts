@@ -130,11 +130,6 @@ export class LazyLoadingService {
       componentsToPreload.push('DgsVideoPlayer');
     }
 
-    // Screen-based preloading
-    if (context.recentScreens.includes('Recognition')) {
-      componentsToPreload.push('CorrectionPanel');
-    }
-
     // Activity-based preloading
     if (context.userActivity === 'learning') {
       componentsToPreload.push('GestureMeaningDisplay');
