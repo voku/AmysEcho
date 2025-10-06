@@ -11,11 +11,20 @@
  * with the standard single-hand emoji view.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
-import { isTwoHandGestureString, parseTwoHandGestureString, getTwoHandGestureById } from '../constants/twoHandGestures';
+import {
+  isTwoHandGestureString,
+  parseTwoHandGestureString,
+  getTwoHandGestureById,
+  findTwoHandGestureByHands,
+  type TwoHandGestureDefinition,
+} from '../constants/twoHandGestures';
+import type { GestureModelEntry } from '../model';
+import type { OpenAIValidationResult } from '../hooks/useOpenAIValidation';
+import { optimizedGestureService } from '../services/optimizedGestureService';
 
 const CONFIDENCE_LABEL = 'Sicherheit';
 const DEFAULT_TWO_HAND_EMOJI = '👐';
@@ -25,28 +34,98 @@ interface TwoHandGestureDisplayProps {
   confidence: number;
   showDetails?: boolean;
   size?: 'small' | 'medium' | 'large';
+  twoHandDefinition?: TwoHandGestureDefinition | null;
+  gestureMeta?: GestureModelEntry | null;
+  openaiValidationResult?: OpenAIValidationResult | null;
 }
 
 export default function TwoHandGestureDisplay({
   gestureString,
   confidence,
   showDetails = true,
-  size = 'medium'
+  size = 'medium',
+  twoHandDefinition,
+  gestureMeta,
+  openaiValidationResult,
 }: TwoHandGestureDisplayProps) {
   const { largeText, highContrast } = useAccessibility();
 
-  // Check if this is a two-hand gesture
-  if (!isTwoHandGestureString(gestureString)) {
-    return null; // Not a two-hand gesture, let normal display handle it
-  }
+  const parsed = useMemo(() => {
+    if (isTwoHandGestureString(gestureString)) {
+      return parseTwoHandGestureString(gestureString);
+    }
 
-  const parsed = parseTwoHandGestureString(gestureString);
+    if (twoHandDefinition) {
+      return {
+        left: twoHandDefinition.leftGesture,
+        right: twoHandDefinition.rightGesture,
+      };
+    }
+
+    const fallbackDef = getTwoHandGestureById(gestureString);
+    if (fallbackDef) {
+      return {
+        left: fallbackDef.leftGesture,
+        right: fallbackDef.rightGesture,
+      };
+    }
+
+    return null;
+  }, [gestureString, twoHandDefinition]);
+
   if (!parsed) {
-    return null; // Invalid format
+    return null;
   }
 
-  // Try to find the gesture definition
-  const gestureDef = getTwoHandGestureById(gestureString);
+  const gestureDef = useMemo(() => {
+    if (twoHandDefinition) {
+      return twoHandDefinition;
+    }
+
+    if (isTwoHandGestureString(gestureString)) {
+      const fromId = getTwoHandGestureById(gestureString);
+      if (fromId) {
+        return fromId;
+      }
+    }
+
+    return findTwoHandGestureByHands(parsed.left, parsed.right) ?? null;
+  }, [gestureString, parsed.left, parsed.right, twoHandDefinition]);
+
+  const openAiGestureMeta = useMemo(() => {
+    if (!openaiValidationResult?.gesture) {
+      return null;
+    }
+    return optimizedGestureService.getGestureById(openaiValidationResult.gesture);
+  }, [openaiValidationResult?.gesture]);
+
+  const fallbackGestureMeta = useMemo(() => {
+    if (gestureMeta) {
+      return gestureMeta;
+    }
+    if (gestureDef) {
+      return optimizedGestureService.getGestureById(gestureDef.id);
+    }
+    return null;
+  }, [gestureDef, gestureMeta]);
+
+  const leftMeta = useMemo(
+    () => optimizedGestureService.getGestureById(parsed.left),
+    [parsed.left],
+  );
+  const rightMeta = useMemo(
+    () => optimizedGestureService.getGestureById(parsed.right),
+    [parsed.right],
+  );
+
+  const combinedEmoji =
+    openAiGestureMeta?.emoji ||
+    fallbackGestureMeta?.emoji ||
+    gestureDef?.emoji ||
+    (leftMeta?.emoji && leftMeta.emoji === rightMeta?.emoji ? leftMeta.emoji : DEFAULT_TWO_HAND_EMOJI);
+
+  const openAiLabel = openAiGestureMeta?.label || openaiValidationResult?.gesture || null;
+  const openAiFeedback = openaiValidationResult?.feedback;
 
   const getSizeStyles = () => {
     switch (size) {
@@ -155,9 +234,29 @@ export default function TwoHandGestureDisplay({
       fontWeight: 'bold',
       textAlign: 'center',
     },
+    openAiDetails: {
+      backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.08)',
+      borderRadius: DEFAULT_RADIUS,
+      padding: SPACING.xs,
+      marginTop: SPACING.xs,
+      borderWidth: highContrast ? 1 : 0,
+      borderColor: highContrast ? COLORS.highContrastText : 'transparent',
+      width: '100%',
+    },
+    openAiTitle: {
+      fontSize: largeText ? 12 : 10,
+      fontWeight: 'bold',
+      color: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      textAlign: 'center',
+      marginBottom: SPACING.xs / 2,
+    },
+    openAiText: {
+      fontSize: largeText ? 12 : 10,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      textAlign: 'center',
+      marginBottom: SPACING.xs / 2,
+    },
   });
-
-  const combinedEmoji = gestureDef?.emoji ?? DEFAULT_TWO_HAND_EMOJI;
 
   return (
     <View style={styles.container}>
@@ -179,23 +278,35 @@ export default function TwoHandGestureDisplay({
 
       {/* Additional details */}
       {showDetails && (
-        gestureDef ? (
-          <View style={styles.detailsContainer}>
-            <Text style={styles.detailsText}>
-              {gestureDef.description}
-            </Text>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>
-                {gestureDef.category.toUpperCase()}
+        <>
+          {gestureDef ? (
+            <View style={styles.detailsContainer}>
+              <Text style={styles.detailsText}>{gestureDef.description}</Text>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>{gestureDef.category.toUpperCase()}</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.fallbackDetails}>
+              <Text style={styles.fallbackText}>
+                Linke Hand: {leftMeta?.emoji ? `${leftMeta.emoji} ` : ''}{parsed.left}
+              </Text>
+              <Text style={styles.fallbackText}>
+                Rechte Hand: {rightMeta?.emoji ? `${rightMeta.emoji} ` : ''}{parsed.right}
               </Text>
             </View>
-          </View>
-        ) : (
-          <View style={styles.fallbackDetails}>
-            <Text style={styles.fallbackText}>Linke Hand: {parsed.left}</Text>
-            <Text style={styles.fallbackText}>Rechte Hand: {parsed.right}</Text>
-          </View>
-        )
+          )}
+
+          {openAiLabel && (
+            <View style={styles.openAiDetails}>
+              <Text style={styles.openAiTitle}>OpenAI-Bestätigung</Text>
+              <Text style={styles.openAiText}>{openAiLabel}</Text>
+              {openAiFeedback ? (
+                <Text style={styles.openAiText}>{openAiFeedback}</Text>
+              ) : null}
+            </View>
+          )}
+        </>
       )}
     </View>
   );

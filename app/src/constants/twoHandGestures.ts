@@ -137,6 +137,26 @@ export function getTwoHandGestureById(id: string): TwoHandGestureDefinition | un
 }
 
 /**
+ * Find a two-hand gesture by the underlying left/right gestures
+ */
+export function findTwoHandGestureByHands(
+  leftGesture: string,
+  rightGesture: string,
+): TwoHandGestureDefinition | undefined {
+  const directMatch = TWO_HAND_GESTURES.find(
+    (gesture) => gesture.leftGesture === leftGesture && gesture.rightGesture === rightGesture,
+  );
+
+  if (directMatch) {
+    return directMatch;
+  }
+
+  return TWO_HAND_GESTURES.find(
+    (gesture) => gesture.leftGesture === rightGesture && gesture.rightGesture === leftGesture,
+  );
+}
+
+/**
  * Get two-hand gestures by category
  */
 export function getTwoHandGesturesByCategory(category: TwoHandGestureDefinition['category']): TwoHandGestureDefinition[] {

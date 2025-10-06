@@ -843,6 +843,9 @@ export default function RecognitionScreen({
                   confidence={detectedTwoHandGesture.confidence}
                   showDetails
                   size="large"
+                  twoHandDefinition={detectedTwoHandGesture.gesture}
+                  gestureMeta={lastRecognizedGesture}
+                  openaiValidationResult={openaiValidationResult}
                 />
               ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
                 <TwoHandGestureDisplay
@@ -850,6 +853,8 @@ export default function RecognitionScreen({
                   confidence={gestureConfidence}
                   showDetails
                   size="large"
+                  gestureMeta={lastRecognizedGesture}
+                  openaiValidationResult={openaiValidationResult}
                 />
               ) : (
                 <>
