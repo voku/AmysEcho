@@ -3,6 +3,8 @@ import type { GestureModelEntry } from '../model';
 import type { LLMSuggestionResponse } from '../services/dialogEngine';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { DetectedGestureMeaning } from '../services/gestureMeaningService';
+import type { SequenceGestureMeaningDefinition } from '../constants/gestureMeanings';
+import type { SequenceMatch } from '../services/gestureCombinationService';
 import type { Profile } from '../storage';
 
 export enum ScreenFlashPattern {
@@ -55,6 +57,10 @@ export interface RecognitionGestureState {
   setContextInsights: Dispatch<SetStateAction<any>>;
   detectedGestureMeaning: DetectedGestureMeaning | null;
   setDetectedGestureMeaning: Dispatch<SetStateAction<DetectedGestureMeaning | null>>;
+  sequenceMeaning: SequenceGestureMeaningDefinition | null;
+  setSequenceMeaning: Dispatch<SetStateAction<SequenceGestureMeaningDefinition | null>>;
+  sequenceMatch: SequenceMatch | null;
+  setSequenceMatch: Dispatch<SetStateAction<SequenceMatch | null>>;
   currentLandmarks: number[][][];
   setCurrentLandmarks: Dispatch<SetStateAction<number[][][]>>;
   currentHandedness: string[];
@@ -151,6 +157,8 @@ export const useRecognitionState = (): RecognitionState => {
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
   const [contextInsights, setContextInsights] = useState<any>(null);
   const [detectedGestureMeaning, setDetectedGestureMeaning] = useState<DetectedGestureMeaning | null>(null);
+  const [sequenceMeaning, setSequenceMeaning] = useState<SequenceGestureMeaningDefinition | null>(null);
+  const [sequenceMatch, setSequenceMatch] = useState<SequenceMatch | null>(null);
   const [currentLandmarks, setCurrentLandmarks] = useState<number[][][]>([]);
   const [currentHandedness, setCurrentHandedness] = useState<string[]>([]);
 
@@ -218,6 +226,10 @@ export const useRecognitionState = (): RecognitionState => {
     setContextInsights,
     detectedGestureMeaning,
     setDetectedGestureMeaning,
+    sequenceMeaning,
+    setSequenceMeaning,
+    sequenceMatch,
+    setSequenceMatch,
     currentLandmarks,
     setCurrentLandmarks,
     currentHandedness,

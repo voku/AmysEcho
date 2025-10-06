@@ -117,8 +117,8 @@ describe('GestureMeaningService', () => {
   describe('Gesture Matching', () => {
     it('should match exact coordinated gesture meanings', async () => {
       const result = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou', // Please gesture
-        'ILoveYou', // Please gesture
+        'help',
+        'help',
         0.9,
         0.9,
         ['Left', 'Right'],
@@ -126,29 +126,28 @@ describe('GestureMeaningService', () => {
       );
 
       expect(result).not.toBeNull();
-      expect(result?.gesture.id).toBe('please-both-hands');
+      expect(result?.gesture.id).toBe('hilfe-beide-haende');
       expect(result?.confidence).toBeGreaterThan(0.8);
     });
 
     it('should match gestures with reversed handedness', async () => {
       const result = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.9,
         0.9,
-        ['Right', 'Left'], // Reversed handedness
+        ['Right', 'Left'],
         [[[0, 0, 0]], [[0, 0, 0]]]
       );
 
       expect(result).not.toBeNull();
-      expect(result?.gesture.id).toBe('please-both-hands');
+      expect(result?.gesture.id).toBe('hilfe-beide-haende');
     });
 
-    it('should handle fuzzy matching for similar gestures', async () => {
-      // Test with gestures that don't have exact matches but are similar
+    it('should resolve weitere koordinierte Bedeutungen', async () => {
       const result = await gestureMeaningService.processGestureMeaning(
-        'Thumb_Up',
-        'Thumb_Up',
+        'hello',
+        'hello',
         0.9,
         0.9,
         ['Left', 'Right'],
@@ -156,7 +155,7 @@ describe('GestureMeaningService', () => {
       );
 
       expect(result).not.toBeNull();
-      expect(result?.gesture.id).toBe('happy-both-hands');
+      expect(result?.gesture.id).toBe('hallo-beide-haende');
     });
 
     it('should return null for unmatched gesture combinations', async () => {
@@ -176,8 +175,8 @@ describe('GestureMeaningService', () => {
   describe('Confidence Calculation', () => {
     it('should calculate confidence using geometric mean', async () => {
       const result = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.8,
         0.6,
         ['Left', 'Right'],
@@ -190,20 +189,18 @@ describe('GestureMeaningService', () => {
     });
 
     it('should apply difficulty multipliers', async () => {
-      // Test easy gesture
       const easyResult = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.8,
         0.8,
         ['Left', 'Right'],
         [[[0, 0, 0]], [[0, 0, 0]]]
       );
 
-      // Test medium difficulty gesture
       const mediumResult = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'Thumb_Up',
+        'no',
+        'no',
         0.8,
         0.8,
         ['Left', 'Right'],
@@ -213,16 +210,16 @@ describe('GestureMeaningService', () => {
       expect(easyResult).not.toBeNull();
       expect(mediumResult).not.toBeNull();
 
-      // Easy gesture should have higher confidence
       if (easyResult && mediumResult) {
-        expect(easyResult.confidence).toBeGreaterThanOrEqual(mediumResult.confidence);
+        expect(easyResult.confidence).toBeGreaterThan(mediumResult.confidence);
+        expect(mediumResult.gesture.id).toBe('stopp-beide-haende');
       }
     });
 
     it('should process help gestures as communication gestures', async () => {
       const helpResult = await gestureMeaningService.processGestureMeaning(
-        'Pointing_Up',
-        'Pointing_Up',
+        'help',
+        'help',
         0.7,
         0.7,
         ['Left', 'Right'],
@@ -235,24 +232,22 @@ describe('GestureMeaningService', () => {
 
     it('should reject gestures below confidence threshold', async () => {
       const result = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.5,
         0.5,
         ['Left', 'Right'],
         [[[0, 0, 0]], [[0, 0, 0]]]
       );
 
-      // Geometric mean is sqrt(0.5 * 0.5) = 0.5, below threshold
       expect(result).toBeNull();
     });
   });
-
   describe('Accessibility Features', () => {
     it('should generate appropriate accessibility hints', async () => {
       const result = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.9,
         0.9,
         ['Left', 'Right'],
@@ -260,14 +255,14 @@ describe('GestureMeaningService', () => {
       );
 
       expect(result).not.toBeNull();
-      expect(result?.accessibilityHints).toContain('Beide Hände: Bitte (beide Hände)');
+      expect(result?.accessibilityHints).toContain('Beide Hände: Hilfe (beide Hände)');
       expect(result?.accessibilityHints.length).toBeGreaterThan(1);
     });
 
     it('should provide confidence-based accessibility feedback', async () => {
       const highConfidenceResult = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.95,
         0.95,
         ['Left', 'Right'],
@@ -280,8 +275,8 @@ describe('GestureMeaningService', () => {
 
     it('should provide category-specific accessibility hints', async () => {
       const emergencyResult = await gestureMeaningService.processGestureMeaning(
-        'Pointing_Up',
-        'Pointing_Up',
+        'hello',
+        'hello',
         0.9,
         0.9,
         ['Left', 'Right'],
@@ -295,12 +290,12 @@ describe('GestureMeaningService', () => {
 
   describe('Caching', () => {
     it('should cache successful gesture detections', async () => {
-      const cacheKey = 'ILoveYou_ILoveYou_Left_Right';
+      const cacheKey = 'help_help_Left_Right';
 
       // First detection
       const result1 = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.9,
         0.9,
         ['Left', 'Right'],
@@ -311,8 +306,8 @@ describe('GestureMeaningService', () => {
 
       // Check cache
       const cached = gestureMeaningService.getCachedGesture(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         ['Left', 'Right']
       );
 
@@ -323,8 +318,8 @@ describe('GestureMeaningService', () => {
     it('should clear cache when requested', async () => {
       // Add something to cache
       await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.9,
         0.9,
         ['Left', 'Right'],
@@ -336,8 +331,8 @@ describe('GestureMeaningService', () => {
 
       // Check cache is empty
       const cached = gestureMeaningService.getCachedGesture(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         ['Left', 'Right']
       );
 
@@ -348,8 +343,8 @@ describe('GestureMeaningService', () => {
   describe('Performance Monitoring', () => {
     it('should track processing time', async () => {
       const result = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.9,
         0.9,
         ['Left', 'Right'],
@@ -377,8 +372,8 @@ describe('GestureMeaningService', () => {
     it('should handle processing errors gracefully', async () => {
       // Test with invalid landmarks that might cause errors
       const result = await gestureMeaningService.processGestureMeaning(
-        'ILoveYou',
-        'ILoveYou',
+        'help',
+        'help',
         0.9,
         0.9,
         ['Left', 'Right'],
@@ -406,14 +401,10 @@ describe('GestureMeaningService', () => {
       const emotionalGestures = gestureMeaningService.getGesturesByCategory('emotional');
 
       expect(communicationGestures.length).toBeGreaterThan(0);
-      expect(emotionalGestures.length).toBeGreaterThan(0);
+      expect(emotionalGestures.length).toBe(0);
 
       communicationGestures.forEach(gesture => {
         expect(gesture.category).toBe('communication');
-      });
-
-      emotionalGestures.forEach(gesture => {
-        expect(gesture.category).toBe('emotional');
       });
     });
 

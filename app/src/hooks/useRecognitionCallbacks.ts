@@ -31,7 +31,12 @@ import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { RootStackParamList } from '../navigation/types';
-import { isCoordinatedGestureString, parseCoordinatedGestureString } from '../constants/gestureMeanings';
+import {
+  isCoordinatedGestureString,
+  parseCoordinatedGestureString,
+  getGestureMeaningBySequenceId,
+  findSequenceGestureMeaningByGestures,
+} from '../constants/gestureMeanings';
 import { shouldPromptPractice } from '../services/healthScore';
 import { logInteractionEvent } from '../services/analytics';
 
@@ -113,6 +118,8 @@ export const useRecognitionCallbacks = ({
     setModelUpdateStatus,
     setContextInsights,
     setDetectedGestureMeaning,
+    setSequenceMeaning,
+    setSequenceMatch,
   } = state;
 
   const {
@@ -123,6 +130,8 @@ export const useRecognitionCallbacks = ({
     dialogContext,
     lastRecognizedGesture,
     profile,
+    sequenceMeaning,
+    sequenceMatch,
   } = state;
 
   const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -310,7 +319,23 @@ export const useRecognitionCallbacks = ({
 
       const sequence = gestureCombinationService.processGesture(gesture, smoothedConfidence);
       if (sequence?.sequence) {
+        setSequenceMatch(sequence);
         setStatus(`✨ ${sequence.sequence.combinedMeaning}`);
+
+        if (sequence.remainingGestures.length === 0) {
+          const resolvedSequence =
+            getGestureMeaningBySequenceId(sequence.sequenceId) ??
+            findSequenceGestureMeaningByGestures(sequence.sequence.gestures);
+
+          if (resolvedSequence) {
+            setSequenceMeaning(resolvedSequence);
+          }
+        } else {
+          setSequenceMeaning(null);
+        }
+      } else {
+        setSequenceMatch(null);
+        setSequenceMeaning(null);
       }
 
       const adaptiveRecommendations = adaptiveLearningService.getAdaptiveRecommendations(
@@ -347,6 +372,8 @@ export const useRecognitionCallbacks = ({
     [
       refs.labelHistoryRef,
       setGestureSuggestions,
+      setSequenceMatch,
+      setSequenceMeaning,
       setShortcutActivated,
       setShowAdaptiveLearning,
       setShowCorrection,

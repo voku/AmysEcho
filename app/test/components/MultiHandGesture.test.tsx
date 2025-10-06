@@ -114,18 +114,19 @@ describe('Multi-Hand Gesture Detection', () => {
   describe('Gesture String Parsing', () => {
     it('should identify two-hand gesture strings', () => {
       const { isCoordinatedGestureString } = require('../../src/constants/gestureMeanings');
-      expect(isCoordinatedGestureString('ILoveYou+ILoveYou')).toBe(true);
+      expect(isCoordinatedGestureString('help+help')).toBe(true);
       expect(isCoordinatedGestureString('Thumb_Up')).toBe(false);
     });
 
     it('should parse two-hand gesture strings correctly', () => {
       const { parseCoordinatedGestureString } = require('../../src/constants/gestureMeanings');
-      const result = parseCoordinatedGestureString('ILoveYou+Thumb_Up');
-      expect(result).toEqual({ left: 'ILoveYou', right: 'Thumb_Up' });
+      const result = parseCoordinatedGestureString('help+help');
+      expect(result).toEqual({ left: 'help', right: 'help' });
     });
 
     it('should return null for invalid gesture strings', () => {
       const { parseCoordinatedGestureString } = require('../../src/constants/gestureMeanings');
+      expect(parseCoordinatedGestureString('help+hello')).toBe(null);
       expect(parseCoordinatedGestureString('Thumb_Up')).toBe(null);
       expect(parseCoordinatedGestureString('')).toBe(null);
     });

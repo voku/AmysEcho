@@ -2,9 +2,9 @@
  * Gesture Meaning Definitions - Amy First
  *
  * Central registry that describes the meanings Amy sees after a
- * gesture has been recognised. It unifies single-hand and
- * coordinated gestures so that the UI can always explain the
- * combined idea instead of splitting by hand count.
+ * gesture has been recognised. It unifies single-hand, coordinated,
+ * and sequential gesture meanings so the UI can always explain the
+ * combined Idee statt einzelne Hände zu trennen.
  */
 
 export type GestureMeaningCategory = 'communication' | 'emotional' | 'playful';
@@ -35,40 +35,68 @@ export interface CoordinatedGestureMeaningDefinition {
   rightGesture: string;
 }
 
+export interface SequenceGestureMeaningDefinition {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  category: GestureMeaningCategory;
+  difficulty: GestureMeaningDifficulty;
+  examples: string[];
+  composition: 'sequence';
+  gestures: string[];
+}
+
 export type GestureMeaningDefinition =
   | SingleGestureMeaningDefinition
-  | CoordinatedGestureMeaningDefinition;
+  | CoordinatedGestureMeaningDefinition
+  | SequenceGestureMeaningDefinition;
 
 export const GESTURE_MEANINGS: GestureMeaningDefinition[] = [
   {
-    id: 'ich-liebe-dich',
-    name: 'Ich liebe dich',
-    description: 'Herzliches Zeichen mit einer Hand für liebevolle Botschaften.',
-    emoji: '🤟',
-    category: 'emotional',
-    difficulty: 'easy',
-    examples: [
-      'Zuneigung gegenüber Eltern zeigen',
-      'Bedanken nach Hilfe',
-      'Freude teilen'
-    ],
-    composition: 'single',
-    gesture: 'ILoveYou',
-  },
-  {
-    id: 'hilfe-eine-hand',
-    name: 'Hilfe',
-    description: 'Deutliches Hilfesignal mit einer Hand.',
-    emoji: '🆘',
+    id: 'hallo-eine-hand',
+    name: 'Hallo',
+    description: 'Freundlicher Gruß mit einer Hand.',
+    emoji: '👋',
     category: 'communication',
     difficulty: 'easy',
     examples: [
-      'Um Unterstützung bitten',
-      'Notfall melden',
-      'Aufmerksamkeit erlangen'
+      'Freund*innen begrüßen',
+      'Morgendliche Runde starten',
+      'Aufmerksamkeit holen',
     ],
     composition: 'single',
-    gesture: 'Pointing_Up',
+    gesture: 'hello',
+  },
+  {
+    id: 'danke-eine-hand',
+    name: 'Danke',
+    description: 'Herzliches Dankeschön mit einer Hand.',
+    emoji: '🙏',
+    category: 'communication',
+    difficulty: 'easy',
+    examples: [
+      'Nach Hilfe bedanken',
+      'Dank im Morgenkreis',
+      'Freundliche Rückmeldung geben',
+    ],
+    composition: 'single',
+    gesture: 'thank_you',
+  },
+  {
+    id: 'bitte-eine-hand',
+    name: 'Bitte',
+    description: 'Höfliche Bitte mit einer Hand.',
+    emoji: '🥺',
+    category: 'communication',
+    difficulty: 'easy',
+    examples: [
+      'Um ein Spielzeug bitten',
+      'Mehr Saft erfragen',
+      'Höfliches Nachfragen',
+    ],
+    composition: 'single',
+    gesture: 'please',
   },
   {
     id: 'mehr-eine-hand',
@@ -80,122 +108,163 @@ export const GESTURE_MEANINGS: GestureMeaningDefinition[] = [
     examples: [
       'Mehr trinken',
       'Weiter spielen',
-      'Mehr Musik hören'
+      'Noch ein Lied hören',
     ],
     composition: 'single',
-    gesture: 'Thumb_Up',
+    gesture: 'more',
   },
   {
-    id: 'please-both-hands',
-    name: 'Bitte (beide Hände)',
-    description: 'Bitte mit beiden Händen für stärkere Betonung.',
-    emoji: '🙏',
-    category: 'communication',
-    difficulty: 'easy',
-    examples: [
-      'Bitte um Hilfe bei schwierigen Aufgaben',
-      'Höfliche Verstärkung einer Bitte',
-      'Ausdruck starker Bedürfnisse'
-    ],
-    composition: 'coordinated',
-    leftGesture: 'ILoveYou',
-    rightGesture: 'ILoveYou',
-  },
-  {
-    id: 'help-both-hands',
-    name: 'Hilfe (beide Hände)',
-    description: 'Hilfe-Signal mit beiden Händen für Notfälle.',
+    id: 'hilfe-eine-hand',
+    name: 'Hilfe',
+    description: 'Deutliches Hilfesignal mit einer Hand.',
     emoji: '🆘',
     category: 'communication',
     difficulty: 'easy',
     examples: [
-      'Sofortige Hilfe benötigt',
-      'Medizinische Notfälle',
-      'Sicherheitsbedenken'
+      'Um Unterstützung bitten',
+      'Notfall melden',
+      'Aufmerksamkeit erlangen',
     ],
-    composition: 'coordinated',
-    leftGesture: 'Pointing_Up',
-    rightGesture: 'Pointing_Up',
+    composition: 'single',
+    gesture: 'help',
   },
   {
-    id: 'play-both-hands',
-    name: 'Spielen (beide Hände)',
-    description: 'Spielen-Signal mit beiden Händen.',
+    id: 'trinken-eine-hand',
+    name: 'Trinken',
+    description: 'Signal für Durst oder Trinkpause.',
+    emoji: '🥤',
+    category: 'communication',
+    difficulty: 'easy',
+    examples: [
+      'Nach einem Becher fragen',
+      'Durst melden',
+      'Pause im Morgenkreis anregen',
+    ],
+    composition: 'single',
+    gesture: 'trinken',
+  },
+  {
+    id: 'spielen-eine-hand',
+    name: 'Spielen',
+    description: 'Einladung zum gemeinsamen Spiel.',
     emoji: '🎮',
     category: 'playful',
     difficulty: 'easy',
     examples: [
-      'Spielen vorschlagen',
-      'Freude ausdrücken',
-      'Spaß haben'
+      'Mit Freund*innen spielen',
+      'Spielecke öffnen',
+      'Spielidee vorschlagen',
     ],
-    composition: 'coordinated',
-    leftGesture: 'Victory',
-    rightGesture: 'Victory',
+    composition: 'single',
+    gesture: 'spielen',
   },
   {
-    id: 'happy-both-hands',
-    name: 'Glücklich (beide Hände)',
-    description: 'Glückliche Stimmung mit beiden Händen zeigen.',
-    emoji: '😊',
-    category: 'emotional',
+    id: 'hilfe-beide-haende',
+    name: 'Hilfe (beide Hände)',
+    description: 'Hilfe-Signal mit beiden Händen für dringende Situationen.',
+    emoji: '🆘',
+    category: 'communication',
     difficulty: 'easy',
     examples: [
-      'Zufriedenheit ausdrücken',
-      'Positive Verstärkung',
-      'Freude teilen'
+      'Schnell Unterstützung anfordern',
+      'Gefahr melden',
+      'Auf sich aufmerksam machen',
     ],
     composition: 'coordinated',
-    leftGesture: 'Thumb_Up',
-    rightGesture: 'Thumb_Up',
+    leftGesture: 'help',
+    rightGesture: 'help',
   },
   {
-    id: 'hello-goodbye-both',
-    name: 'Hallo/Tschüss (beide Hände)',
-    description: 'Begrüßung oder Verabschiedung mit beiden Händen.',
+    id: 'hallo-beide-haende',
+    name: 'Hallo (beide Hände)',
+    description: 'Großer Gruß mit beiden Händen.',
     emoji: '👋',
     category: 'communication',
     difficulty: 'easy',
     examples: [
-      'Jemanden begrüßen',
-      'Sich verabschieden',
-      'Aufmerksamkeit erregen'
+      'Freund*innen begrüßen',
+      'Eltern verabschieden',
+      'Gruppe sammeln',
     ],
     composition: 'coordinated',
-    leftGesture: 'Open_Palm',
-    rightGesture: 'Open_Palm',
+    leftGesture: 'hello',
+    rightGesture: 'hello',
   },
   {
-    id: 'more-both-hands',
-    name: 'Mehr (beide Hände)',
-    description: 'Mehr von etwas wollen mit beiden Händen.',
-    emoji: '➕',
+    id: 'stopp-beide-haende',
+    name: 'Stopp (beide Hände)',
+    description: 'Klare Grenze setzen mit beiden Händen.',
+    emoji: '✋',
     category: 'communication',
     difficulty: 'medium',
     examples: [
-      'Mehr Essen wollen',
-      'Mehr spielen wollen',
-      'Mehr Zeit für Aktivität'
+      'Spiel kurz stoppen',
+      'Sicherheit einfordern',
+      'Pause anmelden',
     ],
     composition: 'coordinated',
-    leftGesture: 'ILoveYou',
-    rightGesture: 'Thumb_Up',
+    leftGesture: 'no',
+    rightGesture: 'no',
   },
   {
-    id: 'stop-both-hands',
-    name: 'Stopp (beide Hände)',
-    description: 'Stopp-Signal mit beiden Händen für klare Kommunikation.',
-    emoji: '✋',
+    id: 'danke-und-bitte',
+    name: 'Danke und Bitte',
+    description: 'Freundliche Abfolge für gemeinsames Arbeiten.',
+    emoji: '🤝',
     category: 'communication',
     difficulty: 'easy',
     examples: [
-      'Etwas stoppen wollen',
-      'Aufhören mit Aktivität',
-      'Grenzen setzen'
+      'Material weitergeben',
+      'Beim Basteln helfen',
+      'Gemeinsame Rituale begleiten',
     ],
-    composition: 'coordinated',
-    leftGesture: 'Closed_Fist',
-    rightGesture: 'Closed_Fist',
+    composition: 'sequence',
+    gestures: ['thank_you', 'please'],
+  },
+  {
+    id: 'ich-brauche-trinken',
+    name: 'Ich brauche etwas zu trinken',
+    description: 'Amy bittet um Hilfe beim Trinken.',
+    emoji: '🥤',
+    category: 'communication',
+    difficulty: 'medium',
+    examples: [
+      'Erinnerung an Trinkpausen',
+      'Nachfüllen der Trinkflasche',
+      'Unterstützung beim Becher halten',
+    ],
+    composition: 'sequence',
+    gestures: ['help', 'trinken'],
+  },
+  {
+    id: 'nochmal-spielen',
+    name: 'Nochmal spielen',
+    description: 'Amy möchte das Spiel wiederholen.',
+    emoji: '🔄',
+    category: 'playful',
+    difficulty: 'easy',
+    examples: [
+      'Rutsche noch einmal nutzen',
+      'Lieblingslied wiederholen',
+      'Spielrunde verlängern',
+    ],
+    composition: 'sequence',
+    gestures: ['nochmal', 'spielen'],
+  },
+  {
+    id: 'ich-hab-dich-lieb',
+    name: 'Ich hab dich lieb',
+    description: 'Warme Liebesbotschaft als kleine Sequenz.',
+    emoji: '❤️',
+    category: 'emotional',
+    difficulty: 'medium',
+    examples: [
+      'Vertrauensmoment mit Bezugsperson',
+      'Abschied im Kindergarten',
+      'Danke für Unterstützung sagen',
+    ],
+    composition: 'sequence',
+    gestures: ['ich', 'liebe', 'dich'],
   },
 ];
 
@@ -208,7 +277,17 @@ export function getGestureMeaningByGestureId(gestureId: string): GestureMeaningD
     (meaning) =>
       (meaning.composition === 'single' && meaning.gesture === gestureId) ||
       (meaning.composition === 'coordinated' &&
-        `${meaning.leftGesture}+${meaning.rightGesture}` === gestureId),
+        `${meaning.leftGesture}+${meaning.rightGesture}` === gestureId) ||
+      (meaning.composition === 'sequence' && meaning.id === gestureId),
+  );
+}
+
+export function getGestureMeaningBySequenceId(
+  sequenceId: string,
+): SequenceGestureMeaningDefinition | undefined {
+  return GESTURE_MEANINGS.find(
+    (meaning): meaning is SequenceGestureMeaningDefinition =>
+      meaning.composition === 'sequence' && meaning.id === sequenceId,
   );
 }
 
@@ -235,6 +314,17 @@ export function findCoordinatedGestureMeaningByHands(
   );
 }
 
+export function findSequenceGestureMeaningByGestures(
+  gestures: string[],
+): SequenceGestureMeaningDefinition | undefined {
+  return GESTURE_MEANINGS.find(
+    (meaning): meaning is SequenceGestureMeaningDefinition =>
+      meaning.composition === 'sequence' &&
+      meaning.gestures.length === gestures.length &&
+      meaning.gestures.every((gesture, index) => gesture === gestures[index]),
+  );
+}
+
 export function getGestureMeaningsByCategory(
   category: GestureMeaningCategory,
 ): GestureMeaningDefinition[] {
@@ -251,17 +341,24 @@ export function formatGestureMeaning(meaning: GestureMeaningDefinition): string 
   if (meaning.composition === 'single') {
     return meaning.gesture;
   }
+  if (meaning.composition === 'sequence') {
+    return meaning.gestures.join('>');
+  }
   return `${meaning.leftGesture}+${meaning.rightGesture}`;
 }
 
 export function isCoordinatedGestureString(gestureString: string): boolean {
-  return gestureString.includes('+');
+  if (!gestureString.includes('+')) {
+    return false;
+  }
+  const parsed = parseCoordinatedGestureString(gestureString);
+  return Boolean(parsed);
 }
 
 export function parseCoordinatedGestureString(
   gestureString: string,
 ): { left: string; right: string } | null {
-  if (!isCoordinatedGestureString(gestureString)) {
+  if (!gestureString.includes('+')) {
     return null;
   }
 
@@ -275,5 +372,10 @@ export function parseCoordinatedGestureString(
     return null;
   }
 
-  return { left, right };
+  const match = findCoordinatedGestureMeaningByHands(left, right);
+  if (!match) {
+    return null;
+  }
+
+  return { left: match.leftGesture, right: match.rightGesture };
 }

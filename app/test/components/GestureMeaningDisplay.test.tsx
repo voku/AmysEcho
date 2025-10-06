@@ -19,7 +19,7 @@ describe('GestureMeaningDisplay', () => {
     jest.restoreAllMocks();
   });
 
-  it('prioritises OpenAI metadata when selecting the combined emoji', () => {
+  it('prioritises OpenAI metadata when selecting die kombinierte Darstellung', () => {
     const createGesture = (id: string, emoji: string): GestureModelEntry => ({
       id,
       label: `${emoji} ${id}`,
@@ -32,10 +32,8 @@ describe('GestureMeaningDisplay', () => {
         switch (gestureId) {
           case 'openai-gesture':
             return createGesture('openai-gesture', '✨');
-          case 'ILoveYou':
-            return createGesture('ILoveYou', '🤟');
-          case 'Thumb_Up':
-            return createGesture('Thumb_Up', '👍');
+          case 'help':
+            return createGesture('help', '🆘');
           default:
             return null;
         }
@@ -43,7 +41,7 @@ describe('GestureMeaningDisplay', () => {
 
     const { getByText } = renderWithAccessibility(
       <GestureMeaningDisplay
-        gestureId="ILoveYou+Thumb_Up"
+        gestureId="help+help"
         confidence={0.82}
         openaiValidationResult={{
           gesture: 'openai-gesture',
@@ -82,7 +80,40 @@ describe('GestureMeaningDisplay', () => {
 
     expect(getByText('👋')).toBeTruthy();
     expect(getByText('👋 Hallo')).toBeTruthy();
-    expect(getByText('Kategorie: greeting')).toBeTruthy();
+    expect(getByText('COMMUNICATION')).toBeTruthy();
     expect(getByText('DGS-Video verfügbar')).toBeTruthy();
+  });
+
+  it('zeigt die Gestenfolge inklusive Schritte', () => {
+    const ich: GestureModelEntry = { id: 'ich', label: '👉 Ich', emoji: '👉' };
+    const liebe: GestureModelEntry = { id: 'liebe', label: '❤️ Liebe', emoji: '❤️' };
+    const dich: GestureModelEntry = { id: 'dich', label: '🫵 Dich', emoji: '🫵' };
+
+    jest.spyOn(optimizedGestureService, 'getGestureById').mockImplementation((gestureId: string) => {
+      switch (gestureId) {
+        case 'ich':
+          return ich;
+        case 'liebe':
+          return liebe;
+        case 'dich':
+          return dich;
+        default:
+          return null;
+      }
+    });
+
+    const { getByText } = renderWithAccessibility(
+      <GestureMeaningDisplay
+        gestureId="ich-hab-dich-lieb"
+        confidence={0.91}
+        sequenceGestures={['ich', 'liebe', 'dich']}
+      />,
+    );
+
+    expect(getByText('Gestenfolge erkannt')).toBeTruthy();
+    expect(getByText('Ich hab dich lieb')).toBeTruthy();
+    expect(getByText(/👉 Ich/)).toBeTruthy();
+    expect(getByText(/❤️ Liebe/)).toBeTruthy();
+    expect(getByText(/🫵 Dich/)).toBeTruthy();
   });
 });

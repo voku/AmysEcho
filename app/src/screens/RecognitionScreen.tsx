@@ -159,6 +159,8 @@ export default function RecognitionScreen({
     setShowAdaptiveLearning,
     contextInsights,
     detectedGestureMeaning,
+    sequenceMeaning,
+    sequenceMatch,
     currentLandmarks,
     setCurrentLandmarks,
     currentHandedness,
@@ -828,7 +830,7 @@ export default function RecognitionScreen({
 
           {!error &&
             !showCorrection &&
-            (lastRecognizedGesture || detectedGestureMeaning) && (
+            (lastRecognizedGesture || detectedGestureMeaning || sequenceMeaning) && (
             <Animated.View
               style={[
                 styles.card,
@@ -842,7 +844,12 @@ export default function RecognitionScreen({
                 const fallbackCombinationId = detectedGestureMeaning
                   ? `${detectedGestureMeaning.leftHandGesture}+${detectedGestureMeaning.rightHandGesture}`
                   : null;
+
+                const gestureDefinitionForDisplay =
+                  sequenceMeaning || detectedGestureMeaning?.gesture || null;
+
                 const gestureIdForDisplay =
+                  sequenceMeaning?.id ||
                   detectedGestureMeaning?.gesture.id ||
                   lastRecognizedGesture?.id ||
                   fallbackCombinationId ||
@@ -858,13 +865,16 @@ export default function RecognitionScreen({
                     <GestureMeaningDisplay
                       gestureId={gestureIdForDisplay}
                       confidence={
-                        detectedGestureMeaning?.confidence ?? gestureConfidence
+                        sequenceMeaning
+                          ? sequenceMatch?.matchConfidence ?? gestureConfidence
+                          : detectedGestureMeaning?.confidence ?? gestureConfidence
                       }
                       showDetails
                       size="large"
-                      gestureDefinition={detectedGestureMeaning?.gesture ?? null}
+                      gestureDefinition={gestureDefinitionForDisplay}
                       gestureMeta={lastRecognizedGesture}
                       openaiValidationResult={openaiValidationResult}
+                      sequenceGestures={sequenceMatch?.sequence?.gestures ?? sequenceMeaning?.gestures ?? null}
                     />
                     <Text
                       style={[

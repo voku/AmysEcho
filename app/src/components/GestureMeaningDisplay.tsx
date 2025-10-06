@@ -20,6 +20,8 @@ import {
   getGestureMeaningById,
   findCoordinatedGestureMeaningByHands,
   getGestureMeaningByGestureId,
+  getGestureMeaningBySequenceId,
+  findSequenceGestureMeaningByGestures,
   type GestureMeaningDefinition,
 } from '../constants/gestureMeanings';
 import type { GestureModelEntry } from '../model';
@@ -38,6 +40,7 @@ interface GestureMeaningDisplayProps {
   gestureDefinition?: GestureMeaningDefinition | null;
   gestureMeta?: GestureModelEntry | null;
   openaiValidationResult?: OpenAIValidationResult | null;
+  sequenceGestures?: string[] | null;
 }
 
 export default function GestureMeaningDisplay({
@@ -48,11 +51,33 @@ export default function GestureMeaningDisplay({
   gestureDefinition,
   gestureMeta,
   openaiValidationResult,
+  sequenceGestures,
 }: GestureMeaningDisplayProps) {
   const { largeText, highContrast } = useAccessibility();
   const normalizedId = gestureId.trim();
 
+  const sequenceDefinition = useMemo(() => {
+    if (gestureDefinition?.composition === 'sequence') {
+      return gestureDefinition;
+    }
+
+    if (sequenceGestures && sequenceGestures.length > 0) {
+      const matched = findSequenceGestureMeaningByGestures(sequenceGestures);
+      if (matched) {
+        return matched;
+      }
+    }
+
+    return getGestureMeaningBySequenceId(normalizedId) ?? null;
+  }, [gestureDefinition, normalizedId, sequenceGestures]);
+
+  const isSequence = Boolean(sequenceDefinition);
+
   const parsedCombination = useMemo(() => {
+    if (gestureDefinition?.composition === 'sequence') {
+      return null;
+    }
+
     if (gestureDefinition?.composition === 'coordinated') {
       return {
         left: gestureDefinition.leftGesture,
@@ -108,12 +133,22 @@ export default function GestureMeaningDisplay({
       return byGesture;
     }
 
+    if (sequenceDefinition) {
+      return sequenceDefinition;
+    }
+
     if (!isCombination) {
       return getGestureMeaningById(normalizedId) ?? null;
     }
 
     return coordinatedDefinition;
-  }, [coordinatedDefinition, gestureDefinition, isCombination, normalizedId]);
+  }, [
+    coordinatedDefinition,
+    gestureDefinition,
+    isCombination,
+    normalizedId,
+    sequenceDefinition,
+  ]);
   const openAiGestureMeta = useMemo(() => {
     if (!openaiValidationResult?.gesture) {
       return null;
@@ -155,6 +190,16 @@ export default function GestureMeaningDisplay({
     return optimizedGestureService.getGestureById(parsedCombination.right);
   }, [parsedCombination]);
 
+  const sequenceStepsMeta = useMemo(() => {
+    if (!sequenceDefinition) {
+      return [] as GestureModelEntry[];
+    }
+
+    return sequenceDefinition.gestures
+      .map((id) => optimizedGestureService.getGestureById(id))
+      .filter((meta): meta is GestureModelEntry => Boolean(meta));
+  }, [sequenceDefinition]);
+
   const combinedEmoji = useMemo(() => {
     if (openAiGestureMeta?.emoji) {
       return openAiGestureMeta.emoji;
@@ -162,6 +207,10 @@ export default function GestureMeaningDisplay({
 
     if (resolvedGestureMeta?.emoji) {
       return resolvedGestureMeta.emoji;
+    }
+
+    if (sequenceDefinition?.emoji) {
+      return sequenceDefinition.emoji;
     }
 
     if (activeDefinition?.emoji) {
@@ -186,6 +235,7 @@ export default function GestureMeaningDisplay({
     openAiGestureMeta?.emoji,
     resolvedGestureMeta?.emoji,
     rightMeta?.emoji,
+    sequenceDefinition?.emoji,
   ]);
 
   const openAiLabel = openAiGestureMeta?.label || openaiValidationResult?.gesture || null;
@@ -363,7 +413,11 @@ export default function GestureMeaningDisplay({
       </View>
 
       <Text style={styles.metaText}>
-        {isCombination ? 'Koordinierte Geste erkannt' : 'Erkannte Geste'}
+        {isSequence
+          ? 'Gestenfolge erkannt'
+          : isCombination
+            ? 'Koordinierte Geste erkannt'
+            : 'Erkannte Geste'}
       </Text>
 
       <Text style={styles.gestureName}>{displayName}</Text>
@@ -380,6 +434,23 @@ export default function GestureMeaningDisplay({
               <View style={styles.categoryBadge}>
                 <Text style={styles.categoryText}>{activeDefinition.category.toUpperCase()}</Text>
               </View>
+              {activeDefinition.composition === 'sequence' ? (
+                <>
+                  <Text style={styles.detailsText}>Schritte:</Text>
+                  {sequenceStepsMeta.length
+                    ? sequenceStepsMeta.map((meta) => (
+                        <Text key={meta.id} style={styles.detailsText}>
+                          {meta.emoji ? `${meta.emoji} ` : ''}
+                          {meta.label || meta.id}
+                        </Text>
+                      ))
+                    : activeDefinition.gestures.map((step) => (
+                        <Text key={step} style={styles.detailsText}>
+                          {step}
+                        </Text>
+                      ))}
+                </>
+              ) : null}
               {resolvedGestureMeta?.dgsVideoUri ? (
                 <Text style={styles.detailsText}>DGS-Video verfügbar</Text>
               ) : null}

@@ -72,6 +72,9 @@ export const gestureModel = {
     { id: 'spielen', label: '🎮 Spielen', emoji: '🎮', category: 'activity', dgsVideoUri: 'spielen.mp4' },
     { id: 'schwester', label: '👩 Schwester', emoji: '👩', category: 'family', dgsVideoUri: 'schwester.mp4' },
     { id: 'nochmal', label: '🔄 Nochmal', emoji: '🔄', category: 'action', dgsVideoUri: 'nochmal.mp4' },
+    { id: 'ich', label: '👉 Ich', emoji: '👉', category: 'pronoun' },
+    { id: 'liebe', label: '❤️ Liebe', emoji: '❤️', category: 'emotion' },
+    { id: 'dich', label: '🫵 Dich', emoji: '🫵', category: 'pronoun' },
     { id: 'fertig', label: '✅ Fertig', emoji: '✅', category: 'status', dgsVideoUri: 'fertig.mp4' }
   ] as GestureModelEntry[]
 };

@@ -302,18 +302,18 @@ class GestureCombinationService {
 
     const defaultSequences: Omit<GestureSequence, 'usageCount' | 'lastUsed'>[] = [
       {
-        id: 'help_me_drink',
-        name: 'Hilf mir trinken',
+        id: 'ich-brauche-trinken',
+        name: 'Ich brauche etwas zu trinken',
         description: 'Kombination für Trinkhilfe',
-        gestures: ['help', 'drink'],
+        gestures: ['help', 'trinken'],
         combinedMeaning: 'Ich brauche Hilfe beim Trinken',
         timeWindow: 3000,
         minConfidence: 0.6,
         enabled: true
       },
       {
-        id: 'thank_you_please',
-        name: 'Danke bitte',
+        id: 'danke-und-bitte',
+        name: 'Danke und Bitte',
         description: 'Höfliche Dankesformel',
         gestures: ['thank_you', 'please'],
         combinedMeaning: 'Vielen Dank, bitte',
@@ -322,21 +322,21 @@ class GestureCombinationService {
         enabled: true
       },
       {
-        id: 'good_morning',
-        name: 'Guten Morgen',
-        description: 'Morgengruß',
-        gestures: ['good', 'morning'],
-        combinedMeaning: 'Guten Morgen!',
+        id: 'nochmal-spielen',
+        name: 'Nochmal spielen',
+        description: 'Spiel wiederholen',
+        gestures: ['nochmal', 'spielen'],
+        combinedMeaning: 'Lass uns nochmal spielen',
         timeWindow: 2500,
         minConfidence: 0.5,
         enabled: true
       },
       {
-        id: 'i_love_you',
-        name: 'Ich liebe dich',
-        description: 'Liebeserklärung',
-        gestures: ['i', 'love', 'you'],
-        combinedMeaning: 'Ich liebe dich',
+        id: 'ich-hab-dich-lieb',
+        name: 'Ich hab dich lieb',
+        description: 'Liebeserklärung als kurze Sequenz',
+        gestures: ['ich', 'liebe', 'dich'],
+        combinedMeaning: 'Ich hab dich lieb',
         timeWindow: 4000,
         minConfidence: 0.5,
         enabled: true
