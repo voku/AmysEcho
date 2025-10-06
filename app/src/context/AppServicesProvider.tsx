@@ -41,8 +41,8 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
   const refreshStateRef = useRef({
     queue: Promise.resolve() as Promise<void>,
     running: false,
-    queued: false,
-    pendingCalls: false,
+    processing: false,
+    pendingRequests: 0,
   });
 
   useEffect(() => {
@@ -55,53 +55,65 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     const refreshState = refreshStateRef.current;
-    const startRefreshWork = (): Promise<void> => {
-      refreshState.queued = true;
-      refreshState.queue = refreshState.queue.finally(async () => {
-        refreshState.queued = false;
-        refreshState.pendingCalls = false;
+    const runPendingRefreshes = async () => {
+      if (refreshState.processing) {
+        return;
+      }
 
-        if (cancelled) {
-          return;
-        }
+      refreshState.processing = true;
 
-        refreshState.running = true;
-        try {
-          const allowed = await shouldAllowModelRefresh();
-          if (!allowed) {
-            logger.info('Skipping model refresh due to connectivity restrictions');
-            return;
+      try {
+        while (!cancelled && refreshState.pendingRequests > 0) {
+          refreshState.pendingRequests -= 1;
+          refreshState.running = true;
+
+          try {
+            if (cancelled) {
+              break;
+            }
+
+            const allowed = await shouldAllowModelRefresh();
+            if (!allowed) {
+              logger.info('Skipping model refresh due to connectivity restrictions');
+              continue;
+            }
+
+            if (cancelled) {
+              break;
+            }
+
+            const pid = await loadActiveProfileId().catch(() => null);
+
+            if (cancelled) {
+              break;
+            }
+
+            const updated = await checkForModelUpdate(pid ?? undefined, {
+              skipNetworkCheck: true,
+            });
+
+            if (updated) {
+              logger.info('Model refresh finished');
+            }
+          } catch (e) {
+            logger.warn('Failed to run model refresh', e as Error);
+          } finally {
+            refreshState.running = false;
           }
-
-          const pid = await loadActiveProfileId().catch(() => null);
-          const updated = await checkForModelUpdate(pid ?? undefined, {
-            skipNetworkCheck: true,
-          });
-
-          if (updated) {
-            logger.info('Model refresh finished');
-          }
-        } catch (e) {
-          logger.warn('Failed to run model refresh', e as Error);
-        } finally {
-          refreshState.running = false;
         }
-      });
-
-      return refreshState.queue;
+      } finally {
+        refreshState.processing = false;
+      }
     };
 
     const runModelRefresh = (): Promise<void> => {
-      if (refreshState.running || refreshState.queued) {
-        if (!refreshState.pendingCalls) {
-          refreshState.pendingCalls = true;
-          return startRefreshWork();
-        }
-        return refreshState.queue;
+      refreshState.pendingRequests += 1;
+
+      if (!refreshState.processing) {
+        refreshState.queue = refreshState.queue.then(runPendingRefreshes, runPendingRefreshes);
       }
 
-      refreshState.pendingCalls = false;
-      return startRefreshWork();
+      return refreshState.queue;
     };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;
@@ -150,7 +162,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          if (!refreshState.running && !refreshState.queued) {
+          if (!refreshState.running && !refreshState.processing && refreshState.pendingRequests === 0) {
             runModelRefresh().catch(() => {});
           }
 
