@@ -8,7 +8,7 @@ import { audioService } from '../../src/services/audioService';
 import { gestureHistoryService } from '../../src/services/gestureHistoryService';
 import { positiveTelemetryService } from '../../src/services/positiveTelemetryService';
 import { adaptiveLearningService } from '../../src/services/adaptiveLearningService';
-import { twoHandGestureService } from '../../src/services/twoHandGestureService';
+import { gestureMeaningService } from '../../src/services/gestureMeaningService';
 import { emergencyPriorityService } from '../../src/services/emergencyPriorityService';
 
 describe('Core Communication Workflows', () => {
@@ -114,12 +114,12 @@ describe('Core Communication Workflows', () => {
         rightHand: 'please'
       });
 
-      (twoHandGestureService.processTwoHandGesture as jest.Mock) = mockProcessTwoHand;
+      (gestureMeaningService.processGestureMeaning as jest.Mock) = mockProcessTwoHand;
 
       const leftHandLandmarks = [[[0.3, 0.5, 0.8]]];
       const rightHandLandmarks = [[[0.7, 0.5, 0.8]]];
 
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         leftHandLandmarks,
         rightHandLandmarks
       );

@@ -24,9 +24,9 @@ import { syncTrainingData } from '../services';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { createButtonStyles } from '../styles/buttonStyles';
 import { hapticFeedback } from '../utils/hapticUtils';
-import TwoHandGestureSelector from '../components/TwoHandGestureSelector';
-import { TwoHandGestureDefinition, parseTwoHandGestureString } from '../constants/twoHandGestures';
-import { twoHandGestureService } from '../services/twoHandGestureService';
+import GestureMeaningSelector from '../components/GestureMeaningSelector';
+import { GestureMeaningDefinition, parseCoordinatedGestureString } from '../constants/gestureMeanings';
+import { gestureMeaningService } from '../services/gestureMeaningService';
 import VisualFeedback from '../components/VisualFeedback';
 import ProgressTracker from '../components/ProgressTracker';
 import GestureValidationFeedback from '../components/GestureValidationFeedback';
@@ -34,6 +34,12 @@ import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtil
 import ScreenBackground from '../components/ScreenBackground';
 
 const PREVIEW_SIZE = 240;
+
+const formatGestureId = (gestureId: string): string =>
+  gestureId
+    .split('_')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
 
 export default function TeachingScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -44,9 +50,10 @@ export default function TeachingScreen({ navigation }: any) {
   const [isRecording, setIsRecording] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [isTwoHandMode, setIsTwoHandMode] = useState(false);
-  const [showTwoHandSelector, setShowTwoHandSelector] = useState(false);
-  const [selectedTwoHandGesture, setSelectedTwoHandGesture] = useState<TwoHandGestureDefinition | null>(null);
+  const [teachingMode, setTeachingMode] = useState<'custom' | 'library'>('custom');
+  const [showMeaningSelector, setShowMeaningSelector] = useState(false);
+  const [selectedGestureMeaning, setSelectedGestureMeaning] = useState<GestureMeaningDefinition | null>(null);
+  const [sequenceProgress, setSequenceProgress] = useState<{ completed: string[]; remaining: string[] } | null>(null);
 
   const [showVisualFeedback, setShowVisualFeedback] = useState(false);
   const [validationFeedback, setValidationFeedback] = useState<{
@@ -86,6 +93,14 @@ export default function TeachingScreen({ navigation }: any) {
       });
   }, []);
 
+  useEffect(() => {
+    if (teachingMode === 'library' && selectedGestureMeaning?.composition === 'sequence') {
+      setSequenceProgress({ completed: [], remaining: [...selectedGestureMeaning.gestures] });
+    } else {
+      setSequenceProgress(null);
+    }
+  }, [teachingMode, selectedGestureMeaning]);
+
   const handleGestureDetected = useCallback(
     async (
       gesture: string | null,
@@ -100,54 +115,108 @@ export default function TeachingScreen({ navigation }: any) {
       landmarksRef.current = safeLandmarks;
       handednessRef.current = adjustedHandedness;
 
-      // Enhanced feedback for teaching mode
       if (gesture && confidence > 0.3) {
-        // Show visual feedback for detected gestures
         setShowVisualFeedback(true);
         setTimeout(() => setShowVisualFeedback(false), 1000);
 
-        // Update gesture quality metrics
         setCurrentGestureQuality({
           confidence,
-          stability: Math.min(1, safeLandmarks.length / 2), // Rough stability based on landmark count
+          stability: Math.min(1, safeLandmarks.length / 2),
           clarity: confidence > 0.7 ? 1 : confidence > 0.5 ? 0.7 : 0.4
         });
 
-        // Enhanced two-hand gesture validation and feedback
-        if (isTwoHandMode && selectedTwoHandGesture && safeLandmarks.length >= 2) {
-          const parsed = parseTwoHandGestureString(gesture);
-          if (parsed) {
-            const twoHandResult = await twoHandGestureService.processTwoHandGesture(
-              parsed.left,
-              parsed.right,
-              confidence,
-              confidence,
-              adjustedHandedness,
-              safeLandmarks
-            );
+        if (teachingMode === 'library' && selectedGestureMeaning) {
+          if (selectedGestureMeaning.composition === 'coordinated' && safeLandmarks.length >= 2) {
+            const parsed = parseCoordinatedGestureString(gesture);
+            if (parsed) {
+              const result = await gestureMeaningService.processGestureMeaning(
+                parsed.left,
+                parsed.right,
+                confidence,
+                confidence,
+                adjustedHandedness,
+                safeLandmarks
+              );
 
-            if (twoHandResult) {
-              setSelectedTwoHandGesture(twoHandResult.gesture);
+              if (result && result.gesture.id === selectedGestureMeaning.id) {
+                const validationMessage = result.confidence > 0.8
+                  ? `Fantastisch! ${selectedGestureMeaning.name} sitzt perfekt.`
+                  : result.confidence > 0.6
+                  ? `Sehr gut! Noch ein kleines Stück, dann passt es.`
+                  : `Guter Anfang! Koordiniere beide Hände noch einmal.`;
 
-              // Provide validation feedback
-              const validationMessage = twoHandResult.confidence > 0.8
-                ? 'Perfekt! Das sieht sehr gut aus!'
-                : twoHandResult.confidence > 0.6
-                ? 'Gut gemacht! Fast perfekt.'
-                : 'Das ist ein guter Anfang. Versuche es nochmal.';
+                setValidationFeedback({
+                  isValid: result.confidence > 0.6,
+                  message: validationMessage,
+                  suggestions: result.accessibilityHints.slice(0, 2),
+                });
+
+                setTimeout(() => setValidationFeedback(null), 3000);
+              }
+            }
+          } else if (selectedGestureMeaning.composition === 'sequence') {
+            const currentProgress =
+              sequenceProgress ?? {
+                completed: [],
+                remaining: [...selectedGestureMeaning.gestures],
+              };
+
+            const expectedGesture = currentProgress.remaining[0] ?? selectedGestureMeaning.gestures[0];
+
+            if (gesture === expectedGesture) {
+              const updatedCompleted = [...currentProgress.completed, expectedGesture];
+              const updatedRemaining = currentProgress.remaining.slice(1);
+              setSequenceProgress({ completed: updatedCompleted, remaining: updatedRemaining });
+
+              const sequenceFinished = updatedRemaining.length === 0;
+              const nextStep = updatedRemaining[0];
+              const nextStepLabel = nextStep ? formatGestureId(nextStep) : 'den nächsten Schritt';
 
               setValidationFeedback({
-                isValid: twoHandResult.confidence > 0.6,
-                message: validationMessage,
-                suggestions: twoHandResult.accessibilityHints.slice(0, 2)
+                isValid: sequenceFinished,
+                message: sequenceFinished
+                  ? `Wunderbar! ${selectedGestureMeaning.name} ist vollständig.`
+                  : `Prima! Weiter mit ${nextStepLabel}.`,
+                suggestions: sequenceFinished
+                  ? []
+                  : [`Als nächstes ${nextStepLabel} zeigen.`],
               });
 
-              // Clear validation feedback after a delay
-              setTimeout(() => setValidationFeedback(null), 3000);
+              if (sequenceFinished) {
+                setTimeout(() => setValidationFeedback(null), 3500);
+              }
+            } else if (gesture === selectedGestureMeaning.gestures[0]) {
+              const remaining = selectedGestureMeaning.gestures.slice(1);
+              setSequenceProgress({ completed: [selectedGestureMeaning.gestures[0]], remaining });
+
+              const nextRemainingStep = remaining[0];
+              if (nextRemainingStep) {
+                const nextLabel = formatGestureId(nextRemainingStep);
+                setValidationFeedback({
+                  isValid: false,
+                  message: `Toller Start! Weiter geht es mit ${nextLabel}.`,
+                  suggestions: [`Als nächstes ${nextLabel} üben.`],
+                });
+              }
             }
+          } else if (selectedGestureMeaning.composition === 'single') {
+            const message = confidence > 0.8
+              ? `Perfekt! ${selectedGestureMeaning.name} ist klar erkennbar.`
+              : confidence > 0.6
+              ? `Sehr gut! Halte die Hand noch etwas ruhiger.`
+              : `Das ist ein guter Versuch. Probiere ${selectedGestureMeaning.name} gleich nochmal.`;
+
+            setValidationFeedback({
+              isValid: confidence > 0.5,
+              message,
+              suggestions: confidence < 0.7
+                ? ['Hand etwas stabiler halten.', 'Auf die Handposition achten.']
+                : [],
+            });
+
+            setTimeout(() => setValidationFeedback(null), 2500);
           }
-        } else if (!isTwoHandMode) {
-          // Single-hand gesture feedback
+        } else {
           const feedbackMessage = confidence > 0.8
             ? 'Ausgezeichnet! Das sieht perfekt aus!'
             : confidence > 0.6
@@ -163,12 +232,11 @@ export default function TeachingScreen({ navigation }: any) {
           setTimeout(() => setValidationFeedback(null), 2500);
         }
       } else {
-        // Clear feedback when no gesture detected
         setCurrentGestureQuality(null);
         setValidationFeedback(null);
       }
     },
-    [isTwoHandMode, selectedTwoHandGesture]
+    [facingMode, teachingMode, selectedGestureMeaning, sequenceProgress]
   );
 
   const startSampleCaptureAnimation = useCallback(() => {
@@ -272,23 +340,22 @@ export default function TeachingScreen({ navigation }: any) {
     audioService.speak(`Versuchen wir "${gestureLabel}" noch einmal.`);
   };
 
-  const handleTwoHandGestureSelected = (gesture: TwoHandGestureDefinition) => {
-    setSelectedTwoHandGesture(gesture);
-    setGestureLabel(gesture.name);
-    setShowTwoHandSelector(false);
-    audioService.speak(`Okay, lass uns die zweihändige Geste "${gesture.name}" lernen.`);
+  const handleGestureMeaningSelected = (meaning: GestureMeaningDefinition) => {
+    setSelectedGestureMeaning(meaning);
+    setGestureLabel(meaning.name);
+    setShowMeaningSelector(false);
+    setTeachingMode('library');
+    audioService.speak(`Okay, lass uns "${meaning.name}" gemeinsam üben.`);
   };
 
-  const handleTwoHandModeToggle = () => {
-    if (isTwoHandMode) {
-      // Switching from two-hand to single-hand mode
-      setIsTwoHandMode(false);
-      setSelectedTwoHandGesture(null);
+  const handleTeachingModeToggle = () => {
+    if (teachingMode === 'library') {
+      setTeachingMode('custom');
+      setSelectedGestureMeaning(null);
       setGestureLabel('');
     } else {
-      // Switching to two-hand mode
-      setIsTwoHandMode(true);
-      setShowTwoHandSelector(true);
+      setTeachingMode('library');
+      setShowMeaningSelector(true);
     }
   };
 
@@ -322,123 +389,145 @@ export default function TeachingScreen({ navigation }: any) {
         <View style={styles.container}>
       <Text style={styles.title}>Neue Geste beibringen</Text>
       {!isSessionActive ? (
-       <View style={styles.inputContainer}>
-           {/* Two-hand mode toggle */}
-           <View style={styles.modeToggleContainer}>
-             <Text style={styles.modeToggleLabel}>
-               {isTwoHandMode ? '🤲 Zweihändige Geste' : '✋ Einzelhändige Geste'}
-             </Text>
-             <Pressable
-               style={({ pressed }) => [
-                 styles.modeToggle,
-                 isTwoHandMode && styles.modeToggleActive,
-                 pressed && styles.modeTogglePressed,
-               ]}
-               onPress={handleTwoHandModeToggle}
-               accessibilityRole="button"
-               accessibilityLabel={isTwoHandMode ? 'Zu einzelhändigen Gesten wechseln' : 'Zu zweihändigen Gesten wechseln'}
-             >
-               <Text style={styles.modeToggleText}>
-                 {isTwoHandMode ? '🤲' : '✋'}
-               </Text>
-             </Pressable>
-           </View>
+        <View style={styles.inputContainer}>
+          <View style={styles.modeToggleContainer}>
+            <Text style={styles.modeToggleLabel}>
+              {teachingMode === 'library' ? '📚 Bibliotheksbedeutung' : '✋ Eigene neue Geste'}
+            </Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.modeToggle,
+                teachingMode === 'library' && styles.modeToggleActive,
+                pressed && styles.modeTogglePressed,
+              ]}
+              onPress={handleTeachingModeToggle}
+              accessibilityRole="button"
+              accessibilityLabel={
+                teachingMode === 'library'
+                  ? 'Zu eigenen Gesten wechseln'
+                  : 'Eine Bedeutung aus Amys Bibliothek auswählen'
+              }
+            >
+              <Text style={styles.modeToggleText}>
+                {teachingMode === 'library' ? '📚' : '✋'}
+              </Text>
+            </Pressable>
+          </View>
 
-           {isTwoHandMode ? (
-             selectedTwoHandGesture ? (
-               <View style={styles.selectedGestureContainer}>
-                 <Text style={styles.selectedGestureTitle}>
-                   Ausgewählte Geste:
-                 </Text>
-                 <Text style={styles.selectedGestureName}>
-                   {selectedTwoHandGesture.name}
-                 </Text>
-                 <Text style={styles.selectedGestureDescription}>
-                   {selectedTwoHandGesture.description}
-                 </Text>
-                 <View style={styles.gestureHandsContainer}>
-                   <Text style={styles.handEmoji}>🤲</Text>
-                   <Text style={styles.plusSign}>+</Text>
-                   <Text style={styles.handEmoji}>🤲</Text>
-                 </View>
-                 <Pressable
-                   style={({ pressed }) => [
-                     childFriendlyStyles.minTouchTarget,
-                     styles.button,
-                     highContrast && styles.buttonHC,
-                     pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                   ]}
-                    onPress={() => {
-                      void hapticFeedback.light();
-                      startSession();
-                    }}
-                   accessibilityRole="button"
-                   accessibilityLabel="Training für zweihändige Geste starten"
-                 >
-                   <Text style={[
-                     styles.buttonText,
-                     largeText && styles.buttonTextLarge,
-                     highContrast && styles.buttonTextHC,
-                   ]}>
-                     Training starten
-                   </Text>
-                 </Pressable>
-               </View>
-             ) : (
-               <Pressable
-                 style={({ pressed }) => [
-                   childFriendlyStyles.minTouchTarget,
-                   styles.button,
-                   highContrast && styles.buttonHC,
-                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                 ]}
-                 onPress={() => setShowTwoHandSelector(true)}
-                 accessibilityRole="button"
-                 accessibilityLabel="Zweihändige Geste auswählen"
-               >
-                 <Text style={[
-                   styles.buttonText,
-                   largeText && styles.buttonTextLarge,
-                   highContrast && styles.buttonTextHC,
-                 ]}>
-                   🤲 Geste auswählen
-                 </Text>
-               </Pressable>
-             )
-           ) : (
-             <>
-               <TextInput
-                 style={styles.input}
-                 placeholder="Name der neuen Geste"
-                 value={gestureLabel}
-                 onChangeText={setGestureLabel}
-                 accessibilityLabel="Name der neuen Geste"
-               />
-               <Pressable
-                 style={({ pressed }) => [
-                   childFriendlyStyles.minTouchTarget,
-                   styles.button,
-                   highContrast && styles.buttonHC,
-                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                 ]}
+          {teachingMode === 'library' ? (
+            selectedGestureMeaning ? (
+              <View style={styles.selectedGestureContainer}>
+                <Text style={styles.selectedGestureEmoji}>{selectedGestureMeaning.emoji}</Text>
+                <Text style={styles.selectedGestureName}>{selectedGestureMeaning.name}</Text>
+                <Text style={styles.selectedGestureDescription}>{selectedGestureMeaning.description}</Text>
+                {selectedGestureMeaning.composition === 'coordinated' && (
+                  <Text style={styles.selectedGestureMeta}>
+                    Linke Hand: {selectedGestureMeaning.leftGesture} • Rechte Hand: {selectedGestureMeaning.rightGesture}
+                  </Text>
+                )}
+                {selectedGestureMeaning.composition === 'sequence' && (
+                  <Text style={styles.selectedGestureMeta}>
+                    Schritte: {selectedGestureMeaning.gestures.map(formatGestureId).join(' → ')}
+                  </Text>
+                )}
+                <Pressable
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.secondaryButton,
+                    pressed && styles.secondaryButtonPressed,
+                  ]}
+                  onPress={() => setShowMeaningSelector(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Andere Bedeutung auswählen"
+                >
+                  <Text style={[styles.secondaryButtonText, largeText && styles.buttonTextLarge]}>
+                    Bedeutung wechseln
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.button,
+                    highContrast && styles.buttonHC,
+                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                  ]}
                   onPress={() => {
                     void hapticFeedback.light();
                     startSession();
                   }}
-                 accessibilityRole="button"
-                 accessibilityLabel="Training starten"
-               >
-                 <Text style={[
-                   styles.buttonText,
-                   largeText && styles.buttonTextLarge,
-                   highContrast && styles.buttonTextHC,
-                 ]}>
-                   Training starten
-                 </Text>
-               </Pressable>
-             </>
-           )}
-         </View>
+                  accessibilityRole="button"
+                  accessibilityLabel="Training für die gewählte Bedeutung starten"
+                >
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      largeText && styles.buttonTextLarge,
+                      highContrast && styles.buttonTextHC,
+                    ]}
+                  >
+                    Training starten
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => setShowMeaningSelector(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Bedeutung auswählen"
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  📚 Bedeutung auswählen
+                </Text>
+              </Pressable>
+            )
+          ) : (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Name der neuen Geste"
+                value={gestureLabel}
+                onChangeText={setGestureLabel}
+                accessibilityLabel="Name der neuen Geste"
+              />
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void hapticFeedback.light();
+                  startSession();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Training starten"
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  Training starten
+                </Text>
+              </Pressable>
+            </>
+          )}
+        </View>
       ) : (
          <View style={styles.recordingContainer}>
            <View style={styles.camera}>
@@ -488,11 +577,29 @@ export default function TeachingScreen({ navigation }: any) {
            />
 
            <Text style={styles.prompt}>
-             {isTwoHandMode && selectedTwoHandGesture
-               ? `Zeige: ${selectedTwoHandGesture.name}`
+             {teachingMode === 'library' && selectedGestureMeaning
+               ? selectedGestureMeaning.composition === 'sequence'
+                 ? `Sequenz üben: ${selectedGestureMeaning.name}`
+                 : `Zeige: ${selectedGestureMeaning.name}`
                : `Zeige die Geste "${gestureLabel}"`
              }
            </Text>
+
+           {teachingMode === 'library' &&
+            selectedGestureMeaning?.composition === 'sequence' &&
+            sequenceProgress && (
+              <View style={styles.sequenceProgressContainer}>
+                <Text style={styles.sequenceProgressTitle}>Schritte:</Text>
+                <Text style={styles.sequenceProgressText}>
+                  {sequenceProgress.completed.length > 0
+                    ? sequenceProgress.completed.map(formatGestureId).join(' → ')
+                    : 'Noch kein Schritt'}
+                  {sequenceProgress.remaining[0]
+                    ? ` → (${formatGestureId(sequenceProgress.remaining[0])} als nächstes)`
+                    : ''}
+                </Text>
+              </View>
+           )}
 
            {/* Gesture quality indicators */}
            {currentGestureQuality && (
@@ -621,12 +728,13 @@ export default function TeachingScreen({ navigation }: any) {
         accessibilityLabel="Zurück"
       />
 
-      {/* Two-Hand Gesture Selector Overlay */}
-      {showTwoHandSelector && (
+      {/* Gesture Meaning Selector Overlay */}
+      {showMeaningSelector && (
         <View style={styles.overlay}>
-          <TwoHandGestureSelector
-            onGestureSelected={handleTwoHandGestureSelected}
-            onCancel={() => setShowTwoHandSelector(false)}
+          <GestureMeaningSelector
+            onMeaningSelected={handleGestureMeaningSelected}
+            onCancel={() => setShowMeaningSelector(false)}
+            selectedMeaningId={selectedGestureMeaning?.id ?? null}
           />
         </View>
       )}
@@ -681,7 +789,6 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       fontWeight: 'bold',
     },
     ...buttonStyles,
-    // Two-hand gesture mode styles
     modeToggleContainer: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -723,11 +830,11 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       padding: SPACING.md,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      alignItems: 'center',
+      gap: SPACING.sm,
     },
-    selectedGestureTitle: {
-      fontSize: largeText ? 16 : 14,
-      fontWeight: 'bold',
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    selectedGestureEmoji: {
+      fontSize: largeText ? 48 : 40,
       marginBottom: SPACING.xs,
     },
     selectedGestureName: {
@@ -741,20 +848,27 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
       marginBottom: SPACING.sm,
       lineHeight: largeText ? 18 : 16,
+      textAlign: 'center',
     },
-    gestureHandsContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: SPACING.md,
-    },
-    handEmoji: {
-      fontSize: largeText ? 32 : 28,
-      marginHorizontal: SPACING.xs,
-    },
-    plusSign: {
-      fontSize: largeText ? 20 : 18,
+    selectedGestureMeta: {
+      fontSize: largeText ? 14 : 12,
       color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      textAlign: 'center',
+    },
+    secondaryButton: {
+      marginBottom: SPACING.sm,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundStart,
+    },
+    secondaryButtonPressed: {
+      opacity: 0.8,
+    },
+    secondaryButtonText: {
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
       fontWeight: 'bold',
     },
     overlay: {
@@ -807,5 +921,24 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       height: '100%',
       backgroundColor: COLORS.success,
       borderRadius: 4,
+    },
+    sequenceProgressContainer: {
+      marginBottom: SPACING.sm,
+      padding: SPACING.sm,
+      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      width: '100%',
+    },
+    sequenceProgressTitle: {
+      fontSize: largeText ? 16 : 14,
+      fontWeight: 'bold',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      marginBottom: SPACING.xs,
+    },
+    sequenceProgressText: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
   });

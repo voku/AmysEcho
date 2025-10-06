@@ -2,7 +2,9 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { GestureModelEntry } from '../model';
 import type { LLMSuggestionResponse } from '../services/dialogEngine';
 import type { RecognitionPath } from '../utils/recognitionState';
-import type { DetectedTwoHandGesture } from '../services/twoHandGestureService';
+import type { DetectedGestureMeaning } from '../services/gestureMeaningService';
+import type { SequenceGestureMeaningDefinition } from '../constants/gestureMeanings';
+import type { SequenceMatch } from '../services/gestureCombinationService';
 import type { Profile } from '../storage';
 
 export enum ScreenFlashPattern {
@@ -53,8 +55,12 @@ export interface RecognitionGestureState {
   setGestureSizeTolerance: Dispatch<SetStateAction<number>>;
   contextInsights: any;
   setContextInsights: Dispatch<SetStateAction<any>>;
-  detectedTwoHandGesture: DetectedTwoHandGesture | null;
-  setDetectedTwoHandGesture: Dispatch<SetStateAction<DetectedTwoHandGesture | null>>;
+  detectedGestureMeaning: DetectedGestureMeaning | null;
+  setDetectedGestureMeaning: Dispatch<SetStateAction<DetectedGestureMeaning | null>>;
+  sequenceMeaning: SequenceGestureMeaningDefinition | null;
+  setSequenceMeaning: Dispatch<SetStateAction<SequenceGestureMeaningDefinition | null>>;
+  sequenceMatch: SequenceMatch | null;
+  setSequenceMatch: Dispatch<SetStateAction<SequenceMatch | null>>;
   currentLandmarks: number[][][];
   setCurrentLandmarks: Dispatch<SetStateAction<number[][][]>>;
   currentHandedness: string[];
@@ -80,10 +86,6 @@ export interface RecognitionFeedbackState {
   >;
   shortcutActivated: string | null;
   setShortcutActivated: Dispatch<SetStateAction<string | null>>;
-  showPipGuidance: boolean;
-  setShowPipGuidance: Dispatch<SetStateAction<boolean>>;
-  pipGuidanceGesture: GestureModelEntry | null;
-  setPipGuidanceGesture: Dispatch<SetStateAction<GestureModelEntry | null>>;
   showPracticeSuggestion: boolean;
   setShowPracticeSuggestion: Dispatch<SetStateAction<boolean>>;
   showAdaptiveLearning: boolean;
@@ -151,12 +153,12 @@ export const useRecognitionState = (): RecognitionState => {
     timestamp: number;
   } | null>(null);
   const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
-  const [showPipGuidance, setShowPipGuidance] = useState(false);
-  const [pipGuidanceGesture, setPipGuidanceGesture] = useState<GestureModelEntry | null>(null);
   const [showPracticeSuggestion, setShowPracticeSuggestion] = useState(false);
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
   const [contextInsights, setContextInsights] = useState<any>(null);
-  const [detectedTwoHandGesture, setDetectedTwoHandGesture] = useState<DetectedTwoHandGesture | null>(null);
+  const [detectedGestureMeaning, setDetectedGestureMeaning] = useState<DetectedGestureMeaning | null>(null);
+  const [sequenceMeaning, setSequenceMeaning] = useState<SequenceGestureMeaningDefinition | null>(null);
+  const [sequenceMatch, setSequenceMatch] = useState<SequenceMatch | null>(null);
   const [currentLandmarks, setCurrentLandmarks] = useState<number[][][]>([]);
   const [currentHandedness, setCurrentHandedness] = useState<string[]>([]);
 
@@ -216,18 +218,18 @@ export const useRecognitionState = (): RecognitionState => {
     setComparisonAttempt,
     shortcutActivated,
     setShortcutActivated,
-    showPipGuidance,
-    setShowPipGuidance,
-    pipGuidanceGesture,
-    setPipGuidanceGesture,
     showPracticeSuggestion,
     setShowPracticeSuggestion,
     showAdaptiveLearning,
     setShowAdaptiveLearning,
     contextInsights,
     setContextInsights,
-    detectedTwoHandGesture,
-    setDetectedTwoHandGesture,
+    detectedGestureMeaning,
+    setDetectedGestureMeaning,
+    sequenceMeaning,
+    setSequenceMeaning,
+    sequenceMatch,
+    setSequenceMatch,
     currentLandmarks,
     setCurrentLandmarks,
     currentHandedness,

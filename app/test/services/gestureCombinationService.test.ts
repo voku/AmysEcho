@@ -506,10 +506,10 @@ describe('GestureCombinationService', () => {
 
       // Check for expected default sequences
       const sequenceIds = sequences.map(s => s.id);
-      expect(sequenceIds).toContain('help_me_drink');
-      expect(sequenceIds).toContain('thank_you_please');
-      expect(sequenceIds).toContain('good_morning');
-      expect(sequenceIds).toContain('i_love_you');
+      expect(sequenceIds).toContain('ich-brauche-trinken');
+      expect(sequenceIds).toContain('danke-und-bitte');
+      expect(sequenceIds).toContain('nochmal-spielen');
+      expect(sequenceIds).toContain('ich-hab-dich-lieb');
     });
 
     it('should not reinitialize if sequences already exist', () => {

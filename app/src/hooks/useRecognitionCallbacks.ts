@@ -11,7 +11,7 @@ import {
   personalizedConfidenceService,
   gestureCombinationService,
   correctionService,
-  twoHandGestureService,
+  gestureMeaningService,
   dialogEngine,
   LanguageManager,
 } from '../services';
@@ -31,7 +31,12 @@ import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { RootStackParamList } from '../navigation/types';
-import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
+import {
+  isCoordinatedGestureString,
+  parseCoordinatedGestureString,
+  getGestureMeaningBySequenceId,
+  findSequenceGestureMeaningByGestures,
+} from '../constants/gestureMeanings';
 import { shouldPromptPractice } from '../services/healthScore';
 import { logInteractionEvent } from '../services/analytics';
 
@@ -108,24 +113,25 @@ export const useRecognitionCallbacks = ({
     setShowScreenFlash,
     setScreenFlashPattern,
     setShortcutActivated,
-    setShowPipGuidance,
-    setPipGuidanceGesture,
     setCurrentLandmarks,
     setCurrentHandedness,
     setModelUpdateStatus,
     setContextInsights,
-    setDetectedTwoHandGesture,
+    setDetectedGestureMeaning,
+    setSequenceMeaning,
+    setSequenceMatch,
   } = state;
 
   const {
     successSound,
     contextInsights,
     screenReaderEnabled,
-    showPipGuidance,
     gestureConfidence,
     dialogContext,
     lastRecognizedGesture,
     profile,
+    sequenceMeaning,
+    sequenceMatch,
   } = state;
 
   const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -188,18 +194,10 @@ export const useRecognitionCallbacks = ({
         logger.debug('Detection haptic feedback failed', error),
       );
       if (smoothedConfidence > threshold - LOW_CONFIDENCE_MARGIN) {
-        void partialGestureHapticFeedback(smoothedConfidence).catch((error) =>
-          logger.debug('Partial haptic feedback failed', error),
-        );
-      }
-
-      if (!showPipGuidance) {
-        const suggestion = optimizedGestureService.getGestureById(gesture);
-        if (suggestion) {
-          setPipGuidanceGesture(suggestion);
-          setShowPipGuidance(true);
-        }
-      }
+      void partialGestureHapticFeedback(smoothedConfidence).catch((error) =>
+        logger.debug('Partial haptic feedback failed', error),
+      );
+    }
 
       schedulePracticeSuggestion();
 
@@ -228,9 +226,6 @@ export const useRecognitionCallbacks = ({
       setShowScreenFlash,
       setScreenFlashPattern,
       setStatus,
-      setPipGuidanceGesture,
-      setShowPipGuidance,
-      showPipGuidance,
       lastRecognizedGesture,
       setShowPracticeSuggestion,
     ],
@@ -324,7 +319,25 @@ export const useRecognitionCallbacks = ({
 
       const sequence = gestureCombinationService.processGesture(gesture, smoothedConfidence);
       if (sequence?.sequence) {
+        setSequenceMatch(sequence);
         setStatus(`✨ ${sequence.sequence.combinedMeaning}`);
+
+        if (sequence.remainingGestures.length === 0) {
+          const resolvedSequence =
+            getGestureMeaningBySequenceId(sequence.sequenceId) ??
+            findSequenceGestureMeaningByGestures(sequence.sequence.gestures);
+
+          if (resolvedSequence) {
+            setSequenceMeaning(resolvedSequence);
+          } else {
+            setSequenceMeaning(null);
+          }
+        } else {
+          setSequenceMeaning(null);
+        }
+      } else {
+        setSequenceMatch(null);
+        setSequenceMeaning(null);
       }
 
       const adaptiveRecommendations = adaptiveLearningService.getAdaptiveRecommendations(
@@ -361,6 +374,8 @@ export const useRecognitionCallbacks = ({
     [
       refs.labelHistoryRef,
       setGestureSuggestions,
+      setSequenceMatch,
+      setSequenceMeaning,
       setShortcutActivated,
       setShowAdaptiveLearning,
       setShowCorrection,
@@ -384,10 +399,10 @@ export const useRecognitionCallbacks = ({
       const label = gestureMeta?.label || gesture;
       const emoji = gestureMeta?.emoji || '🤟';
 
-      if (isTwoHandGestureString(gesture)) {
-        const parsed = parseTwoHandGestureString(gesture);
+      if (isCoordinatedGestureString(gesture)) {
+        const parsed = parseCoordinatedGestureString(gesture);
         if (parsed) {
-          const twoHandResult = await twoHandGestureService.processTwoHandGesture(
+          const twoHandResult = await gestureMeaningService.processGestureMeaning(
             parsed.left,
             parsed.right,
             smoothedConfidence,
@@ -396,12 +411,12 @@ export const useRecognitionCallbacks = ({
             landmarks,
           );
 
-          setDetectedTwoHandGesture(twoHandResult);
+          setDetectedGestureMeaning(twoHandResult);
         } else {
-          setDetectedTwoHandGesture(null);
+          setDetectedGestureMeaning(null);
         }
       } else {
-        setDetectedTwoHandGesture(null);
+        setDetectedGestureMeaning(null);
       }
 
       showSuccessfulGestureUi(
@@ -451,7 +466,7 @@ export const useRecognitionCallbacks = ({
       runRecognitionFeedback,
       setPendingGesture,
       setShowVisualRipple,
-      setDetectedTwoHandGesture,
+      setDetectedGestureMeaning,
       setSuggestions,
       setDialogContext,
       dialogContext,
@@ -488,7 +503,7 @@ export const useRecognitionCallbacks = ({
         const gesture = normalizeGestureId(rawGesture);
         if (!gesture) {
           setPendingGesture(null);
-          setDetectedTwoHandGesture(null);
+          setDetectedGestureMeaning(null);
           if (smoothedConfidence < WAITING_CONFIDENCE_THRESHOLD) {
             setStatus(WAITING_STATUS);
           }
@@ -508,7 +523,7 @@ export const useRecognitionCallbacks = ({
         const meetsThreshold = smoothedConfidence >= thresholdInfo.threshold;
 
         if (!meetsThreshold) {
-          setDetectedTwoHandGesture(null);
+          setDetectedGestureMeaning(null);
           handleLowConfidenceGesture(gesture, smoothedConfidence, thresholdInfo.threshold, landmarks);
           return;
         }
@@ -549,14 +564,11 @@ export const useRecognitionCallbacks = ({
       setShowVisualRipple,
       setPendingGesture,
       setStatus,
-      showPipGuidance,
-      setShowPipGuidance,
-      setPipGuidanceGesture,
       helpers,
       setRecognitionPath,
       setLastRecognizedGesture,
       setContextInsights,
-      setDetectedTwoHandGesture,
+      setDetectedGestureMeaning,
       setGestureSuggestions,
       setShowAdaptiveLearning,
       setShortcutActivated,

@@ -27,7 +27,6 @@ import type { GestureImageCapture } from '../services/openaiGestureValidationSer
 import type { FrameCapturePayload } from '../types/frames';
 import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
-import { logHIPEvent } from '../services/hipEvents';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import type { RecognitionPath } from '../utils/recognitionState';
 import { performanceOptimizationService } from '../services/performanceOptimizationService';
@@ -35,7 +34,6 @@ import { optimizedGestureService } from '../services/optimizedGestureService';
 
 import { usePreloadComponents } from '../components/LazyComponent';
 import DgsVideoPlayer from '../components/DgsVideoPlayer';
-import PictureInPictureGuidance from '../components/PictureInPictureGuidance';
 import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
@@ -44,8 +42,7 @@ import { useThemeMessages } from '../utils/themeMessages';
 import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
 import GestureComparison from '../components/GestureComparison';
-import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
-import { isTwoHandGestureString } from '../constants/twoHandGestures';
+import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
 import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
 import { getShortcutMessage } from '../utils/shortcutUtils';
@@ -104,8 +101,6 @@ const toGestureImageCapture = (
 const RECOGNITION_TEXT = {
   showDgsVideoLabel: 'DGS-Video anzeigen',
   toggleDgsVideo: 'DGS-Video umschalten',
-  showPipGuidanceLabel: 'Gestenhilfe anzeigen',
-  togglePipGuidance: 'Gestenhilfe umschalten',
 };
 
 export default function RecognitionScreen({
@@ -159,24 +154,18 @@ export default function RecognitionScreen({
     setShowGestureComparison,
     comparisonAttempt,
     shortcutActivated,
-    showPipGuidance,
-    setShowPipGuidance,
-    pipGuidanceGesture,
     showPracticeSuggestion,
     showAdaptiveLearning,
     setShowAdaptiveLearning,
     contextInsights,
-    detectedTwoHandGesture,
+    detectedGestureMeaning,
+    sequenceMeaning,
+    sequenceMatch,
     currentLandmarks,
     setCurrentLandmarks,
     currentHandedness,
     setCurrentHandedness,
   } = state;
-
-  // Simple stub functions for adaptive PiP positioning
-  const getAdaptivePipPosition = (): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' => 'top-right';
-  const getAdaptivePipSize = (): 'small' | 'medium' | 'large' => 'medium';
-  const getAdaptivePlaybackMode = () => 'once' as const;
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const symbolScaleAnim = useRef(new Animated.Value(0)).current;
@@ -507,8 +496,7 @@ export default function RecognitionScreen({
     'GestureComparison',
     'PracticeSuggestion',
     'AdaptiveLearningPanel',
-    'PictureInPictureGuidance',
-    'TwoHandGestureDisplay'
+    'GestureMeaningDisplay'
   ]);
 
   // Performance and battery monitoring
@@ -719,6 +707,51 @@ export default function RecognitionScreen({
     [highContrast, largeText],
   );
 
+  const gestureMeaningDisplayProps = useMemo(() => {
+    if (!lastRecognizedGesture && !detectedGestureMeaning && !sequenceMeaning) {
+      return null;
+    }
+
+    const fallbackCombinationId = detectedGestureMeaning
+      ? `${detectedGestureMeaning.leftHandGesture}+${detectedGestureMeaning.rightHandGesture}`
+      : null;
+
+    const gestureDefinitionForDisplay = sequenceMeaning || detectedGestureMeaning?.gesture || null;
+
+    const gestureIdForDisplay =
+      sequenceMeaning?.id ||
+      detectedGestureMeaning?.gesture.id ||
+      lastRecognizedGesture?.id ||
+      fallbackCombinationId ||
+      lastRecognizedGesture?.label ||
+      '';
+
+    if (!gestureIdForDisplay) {
+      return null;
+    }
+
+    const confidence = sequenceMeaning
+      ? sequenceMatch?.matchConfidence ?? gestureConfidence
+      : detectedGestureMeaning?.confidence ?? gestureConfidence;
+
+    const sequenceGestures =
+      sequenceMatch?.sequence?.gestures ??
+      (sequenceMeaning?.composition === 'sequence' ? sequenceMeaning.gestures : null);
+
+    return {
+      gestureId: gestureIdForDisplay,
+      confidence,
+      gestureDefinition: gestureDefinitionForDisplay,
+      sequenceGestures,
+    };
+  }, [
+    detectedGestureMeaning,
+    gestureConfidence,
+    lastRecognizedGesture,
+    sequenceMatch,
+    sequenceMeaning,
+  ]);
+
   const normalizedStatus = status === 'none' ? 'Ich höre zu…' : status;
   const displayStatus = normalizedStatus;
 
@@ -838,35 +871,11 @@ export default function RecognitionScreen({
               )}
             </View>
 
-            <PictureInPictureGuidance
-              gestureId={pipGuidanceGesture?.id}
-              videoUri={pipGuidanceGesture?.dgsVideoUri}
-              isVisible={showPipGuidance}
-              onClose={() => setShowPipGuidance(false)}
-              position={getAdaptivePipPosition()}
-              size={getAdaptivePipSize()}
-              autoPlay
-              showControls={false}
-              playbackMode={getAdaptivePlaybackMode()}
-              confidence={gestureConfidence}
-              onPlaybackComplete={() => {
-                if (pipGuidanceGesture?.id) {
-                  void logHIPEvent('HIP_1', 'pip_guidance_completed', {
-                    gestureId: pipGuidanceGesture.id,
-                    confidence: gestureConfidence,
-                    context: contextInsights
-                      ? {
-                          timeOfDay: contextInsights.timeOfDay,
-                          patternMatch: contextInsights.patternMatch,
-                        }
-                      : undefined,
-                  });
-                }
-              }}
-            />
           </View>
 
-          {!error && !showCorrection && lastRecognizedGesture && (
+          {!error &&
+            !showCorrection &&
+            (lastRecognizedGesture || detectedGestureMeaning || sequenceMeaning) && (
             <Animated.View
               style={[
                 styles.card,
@@ -875,41 +884,19 @@ export default function RecognitionScreen({
                 { opacity: fadeAnim },
               ]}
             >
-              {isTwoHandGestureString(lastRecognizedGesture.label) && detectedTwoHandGesture ? (
-                <TwoHandGestureDisplay
-                  gestureString={detectedTwoHandGesture.gesture.id}
-                  confidence={detectedTwoHandGesture.confidence}
-                  showDetails
-                  size="large"
-                />
-              ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
-                <TwoHandGestureDisplay
-                  gestureString={lastRecognizedGesture.label}
-                  confidence={gestureConfidence}
-                  showDetails
-                  size="large"
-                />
-              ) : (
+              {/* Zeige immer die zusammengefasste Bedeutung, egal ob eine oder beide Hände beteiligt waren. */}
+              {gestureMeaningDisplayProps && (
                 <>
-                  <Animated.Text
-                    style={[
-                      styles.symbolDisplay,
-                      highContrast && styles.symbolDisplayHC,
-                      largeText && styles.symbolDisplayLarge,
-                      { transform: [{ scale: symbolScaleAnim }] },
-                    ]}
-                    >
-                      {lastRecognizedGesture.label}
-                    </Animated.Text>
-                  <Text
-                    style={[
-                      styles.gestureText,
-                      largeText && styles.gestureTextLarge,
-                      highContrast && styles.gestureTextHC,
-                    ]}
-                  >
-                    {(gestureConfidence * 100).toFixed(0)}%
-                  </Text>
+                  <GestureMeaningDisplay
+                    gestureId={gestureMeaningDisplayProps.gestureId}
+                    confidence={gestureMeaningDisplayProps.confidence}
+                    showDetails
+                    size="large"
+                    gestureDefinition={gestureMeaningDisplayProps.gestureDefinition}
+                    gestureMeta={lastRecognizedGesture}
+                    openaiValidationResult={openaiValidationResult}
+                    sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
+                  />
                   <Text
                     style={[
                       styles.confidenceText,
