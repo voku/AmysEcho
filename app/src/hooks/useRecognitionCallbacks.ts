@@ -329,6 +329,8 @@ export const useRecognitionCallbacks = ({
 
           if (resolvedSequence) {
             setSequenceMeaning(resolvedSequence);
+          } else {
+            setSequenceMeaning(null);
           }
         } else {
           setSequenceMeaning(null);

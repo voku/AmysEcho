@@ -874,7 +874,12 @@ export default function RecognitionScreen({
                       gestureDefinition={gestureDefinitionForDisplay}
                       gestureMeta={lastRecognizedGesture}
                       openaiValidationResult={openaiValidationResult}
-                      sequenceGestures={sequenceMatch?.sequence?.gestures ?? sequenceMeaning?.gestures ?? null}
+                      sequenceGestures={
+                        sequenceMatch?.sequence?.gestures ??
+                        (sequenceMeaning?.composition === 'sequence'
+                          ? sequenceMeaning.gestures
+                          : null)
+                      }
                     />
                     <Text
                       style={[

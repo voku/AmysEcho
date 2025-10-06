@@ -126,8 +126,9 @@ describe('Multi-Hand Gesture Detection', () => {
 
     it('should return null for invalid gesture strings', () => {
       const { parseCoordinatedGestureString } = require('../../src/constants/gestureMeanings');
-      expect(parseCoordinatedGestureString('help+hello')).toBe(null);
+      expect(parseCoordinatedGestureString('help+unbekannt')).toBe(null);
       expect(parseCoordinatedGestureString('Thumb_Up')).toBe(null);
+      expect(parseCoordinatedGestureString('help+nochmal+spielen')).toBe(null);
       expect(parseCoordinatedGestureString('')).toBe(null);
     });
   });
