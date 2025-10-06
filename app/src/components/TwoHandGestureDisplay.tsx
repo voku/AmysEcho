@@ -18,6 +18,7 @@ import { useAccessibility } from './AccessibilityContext';
 import { isTwoHandGestureString, parseTwoHandGestureString, getTwoHandGestureById } from '../constants/twoHandGestures';
 
 const CONFIDENCE_LABEL = 'Sicherheit';
+const DEFAULT_TWO_HAND_EMOJI = '👐';
 
 interface TwoHandGestureDisplayProps {
   gestureString: string;
@@ -81,21 +82,24 @@ export default function TwoHandGestureDisplay({
       borderWidth: highContrast ? 2 : 0,
       borderColor: highContrast ? COLORS.highContrastText : 'transparent',
     },
-    handsContainer: {
-      flexDirection: 'row',
+    symbolBadge: {
+      width: sizes.symbolSize + SPACING.lg,
+      height: sizes.symbolSize + SPACING.lg,
+      borderRadius: (sizes.symbolSize + SPACING.lg) / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: showDetails ? SPACING.xs : 0,
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.surface,
+      marginBottom: SPACING.xs,
     },
-    handSymbol: {
+    symbol: {
       fontSize: sizes.symbolSize,
-      marginHorizontal: SPACING.xs,
+      color: highContrast ? COLORS.highContrastBackground : COLORS.text,
     },
-    leftHand: {
-      color: highContrast ? COLORS.highContrastText : '#4A90E2', // Blue for left
-    },
-    rightHand: {
-      color: highContrast ? COLORS.highContrastText : '#E94B3C', // Red for right
+    metaText: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      textAlign: 'center',
+      marginBottom: SPACING.xs,
     },
     gestureName: {
       fontSize: sizes.textSize,
@@ -108,6 +112,21 @@ export default function TwoHandGestureDisplay({
       fontSize: sizes.confidenceSize,
       color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
       textAlign: 'center',
+    },
+    fallbackDetails: {
+      backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.08)',
+      borderRadius: DEFAULT_RADIUS,
+      padding: SPACING.xs,
+      marginTop: SPACING.xs,
+      borderWidth: highContrast ? 1 : 0,
+      borderColor: highContrast ? COLORS.highContrastText : 'transparent',
+      width: '100%',
+    },
+    fallbackText: {
+      fontSize: largeText ? 12 : 10,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      textAlign: 'center',
+      marginBottom: SPACING.xs / 2,
     },
     detailsContainer: {
       backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.1)',
@@ -138,14 +157,15 @@ export default function TwoHandGestureDisplay({
     },
   });
 
+  const combinedEmoji = gestureDef?.emoji ?? DEFAULT_TWO_HAND_EMOJI;
+
   return (
     <View style={styles.container}>
-      {/* Two-hand visual indicator */}
-      <View style={styles.handsContainer}>
-        <Text style={[styles.handSymbol, styles.leftHand]}>🤲</Text>
-        <Text style={styles.handSymbol}>+</Text>
-        <Text style={[styles.handSymbol, styles.rightHand]}>🤲</Text>
+      <View style={styles.symbolBadge}>
+        <Text style={styles.symbol}>{combinedEmoji}</Text>
       </View>
+
+      <Text style={styles.metaText}>Koordinierte Zwei-Hand-Geste</Text>
 
       {/* Gesture name */}
       <Text style={styles.gestureName}>
@@ -158,17 +178,24 @@ export default function TwoHandGestureDisplay({
       </Text>
 
       {/* Additional details */}
-      {showDetails && gestureDef && (
-        <View style={styles.detailsContainer}>
-          <Text style={styles.detailsText}>
-            {gestureDef.description}
-          </Text>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>
-              {gestureDef.category.toUpperCase()}
+      {showDetails && (
+        gestureDef ? (
+          <View style={styles.detailsContainer}>
+            <Text style={styles.detailsText}>
+              {gestureDef.description}
             </Text>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>
+                {gestureDef.category.toUpperCase()}
+              </Text>
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.fallbackDetails}>
+            <Text style={styles.fallbackText}>Linke Hand: {parsed.left}</Text>
+            <Text style={styles.fallbackText}>Rechte Hand: {parsed.right}</Text>
+          </View>
+        )
       )}
     </View>
   );

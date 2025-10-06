@@ -836,7 +836,7 @@ export default function RecognitionScreen({
                 { opacity: fadeAnim },
               ]}
             >
-              {/* Show the dedicated two-hand overlay when we receive a combined result. */}
+              {/* Show the dedicated two-hand overlay when we receive a combined result so Amy sees eine koordinierte Bedeutung, nicht zwei einzelne Emojis. */}
               {isTwoHandGestureString(lastRecognizedGesture.label) && detectedTwoHandGesture ? (
                 <TwoHandGestureDisplay
                   gestureString={detectedTwoHandGesture.gesture.id}

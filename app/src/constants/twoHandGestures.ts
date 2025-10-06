@@ -9,6 +9,7 @@ export interface TwoHandGestureDefinition {
   id: string;
   name: string;
   description: string;
+  emoji: string;
   leftGesture: string;
   rightGesture: string;
   category: 'communication' | 'emotional' | 'playful';
@@ -25,6 +26,7 @@ export const TWO_HAND_GESTURES: TwoHandGestureDefinition[] = [
     id: 'please-both-hands',
     name: 'Bitte (beide Hände)',
     description: 'Bitte mit beiden Händen für stärkere Betonung',
+    emoji: '🙏',
     leftGesture: 'ILoveYou', // Please gesture with left hand
     rightGesture: 'ILoveYou', // Please gesture with right hand
     category: 'communication',
@@ -39,6 +41,7 @@ export const TWO_HAND_GESTURES: TwoHandGestureDefinition[] = [
     id: 'help-both-hands',
     name: 'Hilfe (beide Hände)',
     description: 'Hilfe-Signal mit beiden Händen für Notfälle',
+    emoji: '🆘',
     leftGesture: 'Pointing_Up', // Help gesture with left hand
     rightGesture: 'Pointing_Up', // Help gesture with right hand
     category: 'communication',
@@ -53,6 +56,7 @@ export const TWO_HAND_GESTURES: TwoHandGestureDefinition[] = [
     id: 'play-both-hands',
     name: 'Spielen (beide Hände)',
     description: 'Spielen-Signal mit beiden Händen',
+    emoji: '🎮',
     leftGesture: 'Victory', // Play gesture with left hand
     rightGesture: 'Victory', // Play gesture with right hand
     category: 'playful',
@@ -67,6 +71,7 @@ export const TWO_HAND_GESTURES: TwoHandGestureDefinition[] = [
     id: 'happy-both-hands',
     name: 'Glücklich (beide Hände)',
     description: 'Glückliche Stimmung mit beiden Händen zeigen',
+    emoji: '😊',
     leftGesture: 'Thumb_Up', // Positive gesture with left hand
     rightGesture: 'Thumb_Up', // Positive gesture with right hand
     category: 'emotional',
@@ -81,6 +86,7 @@ export const TWO_HAND_GESTURES: TwoHandGestureDefinition[] = [
     id: 'hello-goodbye-both',
     name: 'Hallo/Tschüss (beide Hände)',
     description: 'Begrüßung oder Verabschiedung mit beiden Händen',
+    emoji: '👋',
     leftGesture: 'Open_Palm', // Hello gesture with left hand
     rightGesture: 'Open_Palm', // Hello gesture with right hand
     category: 'communication',
@@ -95,6 +101,7 @@ export const TWO_HAND_GESTURES: TwoHandGestureDefinition[] = [
     id: 'more-both-hands',
     name: 'Mehr (beide Hände)',
     description: 'Mehr von etwas wollen mit beiden Händen',
+    emoji: '➕',
     leftGesture: 'ILoveYou', // Please/more with left hand
     rightGesture: 'Thumb_Up', // Positive reinforcement with right hand
     category: 'communication',
@@ -109,6 +116,7 @@ export const TWO_HAND_GESTURES: TwoHandGestureDefinition[] = [
     id: 'stop-both-hands',
     name: 'Stopp (beide Hände)',
     description: 'Stopp-Signal mit beiden Händen für klare Kommunikation',
+    emoji: '✋',
     leftGesture: 'Closed_Fist', // Stop with left hand
     rightGesture: 'Closed_Fist', // Stop with right hand
     category: 'communication',
