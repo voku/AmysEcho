@@ -39,7 +39,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
   const [isReady, setIsReady] = useState(false);
   const initializedRef = useRef(false);
   const refreshStateRef = useRef({
-    queue: Promise.resolve() as Promise<void>,
+    promise: Promise.resolve() as Promise<void>,
     running: false,
     processing: false,
     pendingRequests: 0,
@@ -55,67 +55,67 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     const refreshState = refreshStateRef.current;
-    const runPendingRefreshes = async () => {
-      try {
-        while (!cancelled && refreshState.pendingRequests > 0) {
-          refreshState.pendingRequests -= 1;
-          refreshState.running = true;
 
-          try {
-            if (cancelled) {
-              break;
-            }
-
-            const allowed = await shouldAllowModelRefresh();
-            if (!allowed) {
-              logger.info('Skipping model refresh due to connectivity restrictions');
-              continue;
-            }
-
-            if (cancelled) {
-              break;
-            }
-
-            const pid = await loadActiveProfileId().catch(() => null);
-
-            if (cancelled) {
-              break;
-            }
-
-            const updated = await checkForModelUpdate(pid ?? undefined, {
-              skipNetworkCheck: true,
-            });
-
-            if (updated) {
-              logger.info('Model refresh finished');
-            }
-          } catch (e) {
-            logger.warn('Failed to run model refresh', e as Error);
-          } finally {
-            refreshState.running = false;
-          }
-        }
-      } finally {
-        refreshState.processing = false;
-        if (!cancelled && refreshState.pendingRequests > 0) {
-          scheduleProcessing();
-        }
-      }
-    };
-
-    const scheduleProcessing = () => {
-      if (refreshState.processing) {
-        return;
+    const startProcessing = (): Promise<void> => {
+      if (refreshState.processing || cancelled) {
+        return refreshState.promise;
       }
 
       refreshState.processing = true;
-      refreshState.queue = refreshState.queue.then(runPendingRefreshes, runPendingRefreshes);
+      refreshState.promise = (async () => {
+        try {
+          while (!cancelled && refreshState.pendingRequests > 0) {
+            refreshState.pendingRequests -= 1;
+            refreshState.running = true;
+
+            try {
+              if (cancelled) {
+                break;
+              }
+
+              const allowed = await shouldAllowModelRefresh();
+              if (!allowed) {
+                logger.info('Skipping model refresh due to connectivity restrictions');
+                continue;
+              }
+
+              if (cancelled) {
+                break;
+              }
+
+              const pid = await loadActiveProfileId().catch(() => null);
+
+              if (cancelled) {
+                break;
+              }
+
+              const updated = await checkForModelUpdate(pid ?? undefined, {
+                skipNetworkCheck: true,
+              });
+
+              if (updated) {
+                logger.info('Model refresh finished');
+              }
+            } catch (e) {
+              logger.warn('Failed to run model refresh', e as Error);
+            } finally {
+              refreshState.running = false;
+            }
+          }
+        } finally {
+          refreshState.processing = false;
+          if (!cancelled && refreshState.pendingRequests > 0) {
+            await startProcessing();
+          }
+        }
+      })();
+
+      return refreshState.promise;
     };
 
     const runModelRefresh = (): Promise<void> => {
       refreshState.pendingRequests += 1;
-      scheduleProcessing();
-      return refreshState.queue;
+      return startProcessing();
     };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;
