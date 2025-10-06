@@ -41,7 +41,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
 import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
-import GestureComparison from '../components/GestureComparison';
 import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
 import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
@@ -150,9 +149,6 @@ export default function RecognitionScreen({
     setSuccessSound,
     showScreenFlash,
     screenFlashPattern,
-    showGestureComparison,
-    setShowGestureComparison,
-    comparisonAttempt,
     shortcutActivated,
     showPracticeSuggestion,
     showAdaptiveLearning,
@@ -299,12 +295,10 @@ export default function RecognitionScreen({
     handleModelUpdateStatus,
     handleGestureError,
     handleSelectCorrection,
-    handleCloseComparison,
     handleAcceptPractice,
     handleDeclinePractice,
     handleLaterPractice,
     handleStartAdaptiveRecommendation,
-    handleTryAgainFromComparison,
   } = useRecognitionCallbacks({
     navigation,
     state,
@@ -493,7 +487,6 @@ export default function RecognitionScreen({
   // Preload components that might be needed during recognition
   usePreloadComponents([
     'CorrectionPanel',
-    'GestureComparison',
     'PracticeSuggestion',
     'AdaptiveLearningPanel',
     'GestureMeaningDisplay'
@@ -969,23 +962,6 @@ export default function RecognitionScreen({
           />
         )}
 
-        {showGestureComparison && comparisonAttempt && (
-          <GestureComparison
-            userAttempt={comparisonAttempt}
-            correctGesture={(() => {
-              const referenceGesture = optimizedGestureService.getGestureById(pendingGesture || '');
-              return {
-                id: pendingGesture || '',
-                label: referenceGesture?.label ?? 'Unbekannte Geste',
-                ...(referenceGesture?.dgsVideoUri
-                  ? { dgsVideoUri: referenceGesture.dgsVideoUri }
-                  : {}),
-              };
-            })()}
-            onClose={handleCloseComparison}
-            onTryAgain={handleTryAgainFromComparison}
-          />
-        )}
       </View>
 
       <PracticeSuggestion

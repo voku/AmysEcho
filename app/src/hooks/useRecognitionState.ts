@@ -78,12 +78,6 @@ export interface RecognitionFeedbackState {
   setShowScreenFlash: Dispatch<SetStateAction<boolean>>;
   screenFlashPattern: ScreenFlashPattern;
   setScreenFlashPattern: Dispatch<SetStateAction<ScreenFlashPattern>>;
-  showGestureComparison: boolean;
-  setShowGestureComparison: Dispatch<SetStateAction<boolean>>;
-  comparisonAttempt: { id: string; label: string; confidence: number; timestamp: number } | null;
-  setComparisonAttempt: Dispatch<
-    SetStateAction<{ id: string; label: string; confidence: number; timestamp: number } | null>
-  >;
   shortcutActivated: string | null;
   setShortcutActivated: Dispatch<SetStateAction<string | null>>;
   showPracticeSuggestion: boolean;
@@ -145,13 +139,6 @@ export const useRecognitionState = (): RecognitionState => {
   const [screenFlashPattern, setScreenFlashPattern] = useState<ScreenFlashPattern>(
     ScreenFlashPattern.Single,
   );
-  const [showGestureComparison, setShowGestureComparison] = useState(false);
-  const [comparisonAttempt, setComparisonAttempt] = useState<{
-    id: string;
-    label: string;
-    confidence: number;
-    timestamp: number;
-  } | null>(null);
   const [shortcutActivated, setShortcutActivated] = useState<string | null>(null);
   const [showPracticeSuggestion, setShowPracticeSuggestion] = useState(false);
   const [showAdaptiveLearning, setShowAdaptiveLearning] = useState(false);
@@ -212,10 +199,6 @@ export const useRecognitionState = (): RecognitionState => {
     setShowScreenFlash,
     screenFlashPattern,
     setScreenFlashPattern,
-    showGestureComparison,
-    setShowGestureComparison,
-    comparisonAttempt,
-    setComparisonAttempt,
     shortcutActivated,
     setShortcutActivated,
     showPracticeSuggestion,
