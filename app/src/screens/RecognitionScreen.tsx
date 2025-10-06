@@ -42,8 +42,7 @@ import { useThemeMessages } from '../utils/themeMessages';
 import VisualRipple from '../components/VisualRipple';
 import ScreenFlash from '../components/ScreenFlash';
 import GestureComparison from '../components/GestureComparison';
-import TwoHandGestureDisplay from '../components/TwoHandGestureDisplay';
-import { isTwoHandGestureString } from '../constants/twoHandGestures';
+import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
 import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
 import { getShortcutMessage } from '../utils/shortcutUtils';
@@ -495,7 +494,7 @@ export default function RecognitionScreen({
     'GestureComparison',
     'PracticeSuggestion',
     'AdaptiveLearningPanel',
-    'TwoHandGestureDisplay'
+    'GestureMeaningDisplay'
   ]);
 
   // Performance and battery monitoring
@@ -827,7 +826,9 @@ export default function RecognitionScreen({
 
           </View>
 
-          {!error && !showCorrection && lastRecognizedGesture && (
+          {!error &&
+            !showCorrection &&
+            (lastRecognizedGesture || detectedTwoHandGesture) && (
             <Animated.View
               style={[
                 styles.card,
@@ -836,59 +837,48 @@ export default function RecognitionScreen({
                 { opacity: fadeAnim },
               ]}
             >
-              {/* Show the dedicated two-hand overlay when we receive a combined result so Amy sees eine koordinierte Bedeutung, nicht zwei einzelne Emojis. */}
-              {isTwoHandGestureString(lastRecognizedGesture.label) && detectedTwoHandGesture ? (
-                <TwoHandGestureDisplay
-                  gestureString={detectedTwoHandGesture.gesture.id}
-                  confidence={detectedTwoHandGesture.confidence}
-                  showDetails
-                  size="large"
-                  twoHandDefinition={detectedTwoHandGesture.gesture}
-                  gestureMeta={lastRecognizedGesture}
-                  openaiValidationResult={openaiValidationResult}
-                />
-              ) : isTwoHandGestureString(lastRecognizedGesture.label) ? (
-                <TwoHandGestureDisplay
-                  gestureString={lastRecognizedGesture.label}
-                  confidence={gestureConfidence}
-                  showDetails
-                  size="large"
-                  gestureMeta={lastRecognizedGesture}
-                  openaiValidationResult={openaiValidationResult}
-                />
-              ) : (
-                <>
-                  <Animated.Text
-                    style={[
-                      styles.symbolDisplay,
-                      highContrast && styles.symbolDisplayHC,
-                      largeText && styles.symbolDisplayLarge,
-                      { transform: [{ scale: symbolScaleAnim }] },
-                    ]}
+              {/* Zeige immer die zusammengefasste Bedeutung, egal ob eine oder beide Hände beteiligt waren. */}
+              {(() => {
+                const fallbackCombinationId = detectedTwoHandGesture
+                  ? `${detectedTwoHandGesture.leftHandGesture}+${detectedTwoHandGesture.rightHandGesture}`
+                  : null;
+                const gestureIdForDisplay =
+                  detectedTwoHandGesture?.gesture.id ||
+                  lastRecognizedGesture?.id ||
+                  fallbackCombinationId ||
+                  lastRecognizedGesture?.label ||
+                  '';
+
+                if (!gestureIdForDisplay) {
+                  return null;
+                }
+
+                return (
+                  <>
+                    <GestureMeaningDisplay
+                      gestureId={gestureIdForDisplay}
+                      confidence={
+                        detectedTwoHandGesture?.confidence ?? gestureConfidence
+                      }
+                      showDetails
+                      size="large"
+                      twoHandDefinition={detectedTwoHandGesture?.gesture ?? null}
+                      gestureMeta={lastRecognizedGesture}
+                      openaiValidationResult={openaiValidationResult}
+                    />
+                    <Text
+                      style={[
+                        styles.confidenceText,
+                        largeText && styles.confidenceTextLarge,
+                        highContrast && styles.confidenceTextHC,
+                      ]}
+                      testID="recognition-path"
                     >
-                      {lastRecognizedGesture.label}
-                    </Animated.Text>
-                  <Text
-                    style={[
-                      styles.gestureText,
-                      largeText && styles.gestureTextLarge,
-                      highContrast && styles.gestureTextHC,
-                    ]}
-                  >
-                    {(gestureConfidence * 100).toFixed(0)}%
-                  </Text>
-                  <Text
-                    style={[
-                      styles.confidenceText,
-                      largeText && styles.confidenceTextLarge,
-                      highContrast && styles.confidenceTextHC,
-                    ]}
-                    testID="recognition-path"
-                  >
-                    über {recognitionPath}
-                  </Text>
-                </>
-              )}
+                      über {recognitionPath}
+                    </Text>
+                  </>
+                );
+              })()}
             </Animated.View>
           )}
 

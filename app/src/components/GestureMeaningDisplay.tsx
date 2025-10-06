@@ -1,14 +1,13 @@
 /**
- * Two-Hand Gesture Display Component - Phase 3.1
+ * Gesture Meaning Display Component - Phase 3.2
  *
- * Enhanced display for two-hand gestures with visual indicators
- * and special formatting to show both hands are involved.
+ * Shows a unified overlay for Amy that highlights the recognised
+ * meaning of a gesture, regardless of whether it came from a
+ * single-hand or coordinated multi-hand detection.
  *
- * The recognition screen renders this component whenever the
- * parallel/two-hand detection pipeline reports a combined gesture.
- * That makes it easier for Amy (and observers) to understand
- * which coordinated movement was recognised without conflating it
- * with the standard single-hand emoji view.
+ * The component prefers metadata coming from OpenAI validation
+ * and recognition results, falling back to predefined gesture
+ * combinations when necessary so Amy always sees one clear idea.
  */
 
 import React, { useMemo } from 'react';
@@ -27,10 +26,11 @@ import type { OpenAIValidationResult } from '../hooks/useOpenAIValidation';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
 const CONFIDENCE_LABEL = 'Sicherheit';
-const DEFAULT_TWO_HAND_EMOJI = '👐';
+const DEFAULT_MULTI_EMOJI = '👐';
+const DEFAULT_SINGLE_EMOJI = '🤟';
 
-interface TwoHandGestureDisplayProps {
-  gestureString: string;
+interface GestureMeaningDisplayProps {
+  gestureId: string;
   confidence: number;
   showDetails?: boolean;
   size?: 'small' | 'medium' | 'large';
@@ -39,22 +39,19 @@ interface TwoHandGestureDisplayProps {
   openaiValidationResult?: OpenAIValidationResult | null;
 }
 
-export default function TwoHandGestureDisplay({
-  gestureString,
+export default function GestureMeaningDisplay({
+  gestureId,
   confidence,
   showDetails = true,
   size = 'medium',
   twoHandDefinition,
   gestureMeta,
   openaiValidationResult,
-}: TwoHandGestureDisplayProps) {
+}: GestureMeaningDisplayProps) {
   const { largeText, highContrast } = useAccessibility();
+  const normalizedId = gestureId.trim();
 
-  const parsed = useMemo(() => {
-    if (isTwoHandGestureString(gestureString)) {
-      return parseTwoHandGestureString(gestureString);
-    }
-
+  const parsedCombination = useMemo(() => {
     if (twoHandDefinition) {
       return {
         left: twoHandDefinition.leftGesture,
@@ -62,35 +59,41 @@ export default function TwoHandGestureDisplay({
       };
     }
 
-    const fallbackDef = getTwoHandGestureById(gestureString);
-    if (fallbackDef) {
+    if (isTwoHandGestureString(normalizedId)) {
+      return parseTwoHandGestureString(normalizedId);
+    }
+
+    const fallback = getTwoHandGestureById(normalizedId);
+    if (fallback) {
       return {
-        left: fallbackDef.leftGesture,
-        right: fallbackDef.rightGesture,
+        left: fallback.leftGesture,
+        right: fallback.rightGesture,
       };
     }
 
     return null;
-  }, [gestureString, twoHandDefinition]);
+  }, [normalizedId, twoHandDefinition]);
 
-  if (!parsed) {
-    return null;
-  }
+  const isCombination = Boolean(parsedCombination);
 
-  const gestureDef = useMemo(() => {
+  const gestureDefinition = useMemo(() => {
     if (twoHandDefinition) {
       return twoHandDefinition;
     }
 
-    if (isTwoHandGestureString(gestureString)) {
-      const fromId = getTwoHandGestureById(gestureString);
-      if (fromId) {
-        return fromId;
+    if (!parsedCombination) {
+      return null;
+    }
+
+    if (!isTwoHandGestureString(normalizedId)) {
+      const byId = getTwoHandGestureById(normalizedId);
+      if (byId) {
+        return byId;
       }
     }
 
-    return findTwoHandGestureByHands(parsed.left, parsed.right) ?? null;
-  }, [gestureString, parsed.left, parsed.right, twoHandDefinition]);
+    return findTwoHandGestureByHands(parsedCombination.left, parsedCombination.right) ?? null;
+  }, [normalizedId, parsedCombination, twoHandDefinition]);
 
   const openAiGestureMeta = useMemo(() => {
     if (!openaiValidationResult?.gesture) {
@@ -99,33 +102,97 @@ export default function TwoHandGestureDisplay({
     return optimizedGestureService.getGestureById(openaiValidationResult.gesture);
   }, [openaiValidationResult?.gesture]);
 
-  const fallbackGestureMeta = useMemo(() => {
+  const resolvedGestureMeta = useMemo(() => {
     if (gestureMeta) {
       return gestureMeta;
     }
-    if (gestureDef) {
-      return optimizedGestureService.getGestureById(gestureDef.id);
+
+    if (isCombination) {
+      if (gestureDefinition) {
+        return optimizedGestureService.getGestureById(gestureDefinition.id) ?? null;
+      }
+      return null;
     }
-    return null;
-  }, [gestureDef, gestureMeta]);
 
-  const leftMeta = useMemo(
-    () => optimizedGestureService.getGestureById(parsed.left),
-    [parsed.left],
-  );
-  const rightMeta = useMemo(
-    () => optimizedGestureService.getGestureById(parsed.right),
-    [parsed.right],
-  );
+    return optimizedGestureService.getGestureById(normalizedId) ?? null;
+  }, [gestureDefinition, gestureMeta, isCombination, normalizedId]);
 
-  const combinedEmoji =
-    openAiGestureMeta?.emoji ||
-    fallbackGestureMeta?.emoji ||
-    gestureDef?.emoji ||
-    (leftMeta?.emoji && leftMeta.emoji === rightMeta?.emoji ? leftMeta.emoji : DEFAULT_TWO_HAND_EMOJI);
+  const leftMeta = useMemo(() => {
+    if (!parsedCombination) {
+      return null;
+    }
+    return optimizedGestureService.getGestureById(parsedCombination.left);
+  }, [parsedCombination]);
+
+  const rightMeta = useMemo(() => {
+    if (!parsedCombination) {
+      return null;
+    }
+    return optimizedGestureService.getGestureById(parsedCombination.right);
+  }, [parsedCombination]);
+
+  const combinedEmoji = useMemo(() => {
+    if (openAiGestureMeta?.emoji) {
+      return openAiGestureMeta.emoji;
+    }
+
+    if (resolvedGestureMeta?.emoji) {
+      return resolvedGestureMeta.emoji;
+    }
+
+    if (gestureDefinition?.emoji) {
+      return gestureDefinition.emoji;
+    }
+
+    if (isCombination) {
+      if (leftMeta?.emoji && rightMeta?.emoji && leftMeta.emoji === rightMeta.emoji) {
+        return leftMeta.emoji;
+      }
+      if (leftMeta?.emoji && rightMeta?.emoji) {
+        return `${leftMeta.emoji}${rightMeta.emoji}`;
+      }
+      return DEFAULT_MULTI_EMOJI;
+    }
+
+    return leftMeta?.emoji || rightMeta?.emoji || DEFAULT_SINGLE_EMOJI;
+  }, [
+    gestureDefinition?.emoji,
+    isCombination,
+    leftMeta?.emoji,
+    openAiGestureMeta?.emoji,
+    resolvedGestureMeta?.emoji,
+    rightMeta?.emoji,
+  ]);
 
   const openAiLabel = openAiGestureMeta?.label || openaiValidationResult?.gesture || null;
   const openAiFeedback = openaiValidationResult?.feedback;
+
+  const displayName = useMemo(() => {
+    if (openAiLabel) {
+      return openAiLabel;
+    }
+
+    if (resolvedGestureMeta?.label) {
+      return resolvedGestureMeta.label;
+    }
+
+    if (gestureDefinition?.name) {
+      return gestureDefinition.name;
+    }
+
+    if (isCombination && parsedCombination) {
+      return `${parsedCombination.left} + ${parsedCombination.right}`;
+    }
+
+    return normalizedId;
+  }, [
+    gestureDefinition?.name,
+    isCombination,
+    normalizedId,
+    openAiLabel,
+    parsedCombination,
+    resolvedGestureMeta?.label,
+  ]);
 
   const getSizeStyles = () => {
     switch (size) {
@@ -141,7 +208,7 @@ export default function TwoHandGestureDisplay({
           textSize: largeText ? 24 : 20,
           confidenceSize: largeText ? 18 : 16,
         };
-      default: // medium
+      default:
         return {
           symbolSize: largeText ? 48 : 36,
           textSize: largeText ? 20 : 18,
@@ -192,6 +259,21 @@ export default function TwoHandGestureDisplay({
       color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
       textAlign: 'center',
     },
+    detailsContainer: {
+      backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.1)',
+      borderRadius: DEFAULT_RADIUS,
+      padding: SPACING.xs,
+      marginTop: SPACING.xs,
+      borderWidth: highContrast ? 1 : 0,
+      borderColor: highContrast ? COLORS.highContrastText : 'transparent',
+      width: '100%',
+    },
+    detailsText: {
+      fontSize: largeText ? 12 : 10,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      textAlign: 'center',
+      lineHeight: largeText ? 16 : 14,
+    },
     fallbackDetails: {
       backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.08)',
       borderRadius: DEFAULT_RADIUS,
@@ -207,26 +289,13 @@ export default function TwoHandGestureDisplay({
       textAlign: 'center',
       marginBottom: SPACING.xs / 2,
     },
-    detailsContainer: {
-      backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.1)',
-      borderRadius: DEFAULT_RADIUS,
-      padding: SPACING.xs,
-      marginTop: SPACING.xs,
-      borderWidth: highContrast ? 1 : 0,
-      borderColor: highContrast ? COLORS.highContrastText : 'transparent',
-    },
-    detailsText: {
-      fontSize: largeText ? 12 : 10,
-      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
-      textAlign: 'center',
-      lineHeight: largeText ? 16 : 14,
-    },
     categoryBadge: {
       backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
       borderRadius: DEFAULT_RADIUS,
       paddingHorizontal: SPACING.xs,
       paddingVertical: 2,
       marginTop: SPACING.xs,
+      alignSelf: 'center',
     },
     categoryText: {
       fontSize: largeText ? 10 : 8,
@@ -264,38 +333,46 @@ export default function TwoHandGestureDisplay({
         <Text style={styles.symbol}>{combinedEmoji}</Text>
       </View>
 
-      <Text style={styles.metaText}>Koordinierte Zwei-Hand-Geste</Text>
-
-      {/* Gesture name */}
-      <Text style={styles.gestureName}>
-        {gestureDef ? gestureDef.name : `${parsed.left} + ${parsed.right}`}
+      <Text style={styles.metaText}>
+        {isCombination ? 'Koordinierte Geste erkannt' : 'Erkannte Geste'}
       </Text>
 
-      {/* Confidence */}
+      <Text style={styles.gestureName}>{displayName}</Text>
+
       <Text style={styles.confidenceText}>
         {Math.round(confidence * 100)}% {CONFIDENCE_LABEL}
       </Text>
 
-      {/* Additional details */}
       {showDetails && (
         <>
-          {gestureDef ? (
+          {gestureDefinition ? (
             <View style={styles.detailsContainer}>
-              <Text style={styles.detailsText}>{gestureDef.description}</Text>
+              <Text style={styles.detailsText}>{gestureDefinition.description}</Text>
               <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{gestureDef.category.toUpperCase()}</Text>
+                <Text style={styles.categoryText}>{gestureDefinition.category.toUpperCase()}</Text>
               </View>
             </View>
-          ) : (
+          ) : isCombination && parsedCombination ? (
             <View style={styles.fallbackDetails}>
               <Text style={styles.fallbackText}>
-                Linke Hand: {leftMeta?.emoji ? `${leftMeta.emoji} ` : ''}{parsed.left}
+                Linke Hand: {leftMeta?.emoji ? `${leftMeta.emoji} ` : ''}{parsedCombination.left}
               </Text>
               <Text style={styles.fallbackText}>
-                Rechte Hand: {rightMeta?.emoji ? `${rightMeta.emoji} ` : ''}{parsed.right}
+                Rechte Hand: {rightMeta?.emoji ? `${rightMeta.emoji} ` : ''}{parsedCombination.right}
               </Text>
             </View>
-          )}
+          ) : resolvedGestureMeta ? (
+            <View style={styles.detailsContainer}>
+              <Text style={styles.detailsText}>
+                {resolvedGestureMeta.category
+                  ? `Kategorie: ${resolvedGestureMeta.category}`
+                  : 'Individuelle Bedeutung'}
+              </Text>
+              {resolvedGestureMeta.dgsVideoUri ? (
+                <Text style={styles.detailsText}>DGS-Video verfügbar</Text>
+              ) : null}
+            </View>
+          ) : null}
 
           {openAiLabel && (
             <View style={styles.openAiDetails}>
