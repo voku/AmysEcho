@@ -56,12 +56,6 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     const refreshState = refreshStateRef.current;
     const runPendingRefreshes = async () => {
-      if (refreshState.processing) {
-        return;
-      }
-
-      refreshState.processing = true;
-
       try {
         while (!cancelled && refreshState.pendingRequests > 0) {
           refreshState.pendingRequests -= 1;
@@ -103,16 +97,24 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         }
       } finally {
         refreshState.processing = false;
+        if (!cancelled && refreshState.pendingRequests > 0) {
+          scheduleProcessing();
+        }
       }
+    };
+
+    const scheduleProcessing = () => {
+      if (refreshState.processing) {
+        return;
+      }
+
+      refreshState.processing = true;
+      refreshState.queue = refreshState.queue.then(runPendingRefreshes, runPendingRefreshes);
     };
 
     const runModelRefresh = (): Promise<void> => {
       refreshState.pendingRequests += 1;
-
-      if (!refreshState.processing) {
-        refreshState.queue = refreshState.queue.then(runPendingRefreshes, runPendingRefreshes);
-      }
-
+      scheduleProcessing();
       return refreshState.queue;
     };
     async function initializeServices(): Promise<(() => void) | undefined> {
