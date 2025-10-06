@@ -707,6 +707,51 @@ export default function RecognitionScreen({
     [highContrast, largeText],
   );
 
+  const gestureMeaningDisplayProps = useMemo(() => {
+    if (!lastRecognizedGesture && !detectedGestureMeaning && !sequenceMeaning) {
+      return null;
+    }
+
+    const fallbackCombinationId = detectedGestureMeaning
+      ? `${detectedGestureMeaning.leftHandGesture}+${detectedGestureMeaning.rightHandGesture}`
+      : null;
+
+    const gestureDefinitionForDisplay = sequenceMeaning || detectedGestureMeaning?.gesture || null;
+
+    const gestureIdForDisplay =
+      sequenceMeaning?.id ||
+      detectedGestureMeaning?.gesture.id ||
+      lastRecognizedGesture?.id ||
+      fallbackCombinationId ||
+      lastRecognizedGesture?.label ||
+      '';
+
+    if (!gestureIdForDisplay) {
+      return null;
+    }
+
+    const confidence = sequenceMeaning
+      ? sequenceMatch?.matchConfidence ?? gestureConfidence
+      : detectedGestureMeaning?.confidence ?? gestureConfidence;
+
+    const sequenceGestures =
+      sequenceMatch?.sequence?.gestures ??
+      (sequenceMeaning?.composition === 'sequence' ? sequenceMeaning.gestures : null);
+
+    return {
+      gestureId: gestureIdForDisplay,
+      confidence,
+      gestureDefinition: gestureDefinitionForDisplay,
+      sequenceGestures,
+    };
+  }, [
+    detectedGestureMeaning,
+    gestureConfidence,
+    lastRecognizedGesture,
+    sequenceMatch,
+    sequenceMeaning,
+  ]);
+
   const normalizedStatus = status === 'none' ? 'Ich höre zu…' : status;
   const displayStatus = normalizedStatus;
 
@@ -840,60 +885,30 @@ export default function RecognitionScreen({
               ]}
             >
               {/* Zeige immer die zusammengefasste Bedeutung, egal ob eine oder beide Hände beteiligt waren. */}
-              {(() => {
-                const fallbackCombinationId = detectedGestureMeaning
-                  ? `${detectedGestureMeaning.leftHandGesture}+${detectedGestureMeaning.rightHandGesture}`
-                  : null;
-
-                const gestureDefinitionForDisplay =
-                  sequenceMeaning || detectedGestureMeaning?.gesture || null;
-
-                const gestureIdForDisplay =
-                  sequenceMeaning?.id ||
-                  detectedGestureMeaning?.gesture.id ||
-                  lastRecognizedGesture?.id ||
-                  fallbackCombinationId ||
-                  lastRecognizedGesture?.label ||
-                  '';
-
-                if (!gestureIdForDisplay) {
-                  return null;
-                }
-
-                return (
-                  <>
-                    <GestureMeaningDisplay
-                      gestureId={gestureIdForDisplay}
-                      confidence={
-                        sequenceMeaning
-                          ? sequenceMatch?.matchConfidence ?? gestureConfidence
-                          : detectedGestureMeaning?.confidence ?? gestureConfidence
-                      }
-                      showDetails
-                      size="large"
-                      gestureDefinition={gestureDefinitionForDisplay}
-                      gestureMeta={lastRecognizedGesture}
-                      openaiValidationResult={openaiValidationResult}
-                      sequenceGestures={
-                        sequenceMatch?.sequence?.gestures ??
-                        (sequenceMeaning?.composition === 'sequence'
-                          ? sequenceMeaning.gestures
-                          : null)
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.confidenceText,
-                        largeText && styles.confidenceTextLarge,
-                        highContrast && styles.confidenceTextHC,
-                      ]}
-                      testID="recognition-path"
-                    >
-                      über {recognitionPath}
-                    </Text>
-                  </>
-                );
-              })()}
+              {gestureMeaningDisplayProps && (
+                <>
+                  <GestureMeaningDisplay
+                    gestureId={gestureMeaningDisplayProps.gestureId}
+                    confidence={gestureMeaningDisplayProps.confidence}
+                    showDetails
+                    size="large"
+                    gestureDefinition={gestureMeaningDisplayProps.gestureDefinition}
+                    gestureMeta={lastRecognizedGesture}
+                    openaiValidationResult={openaiValidationResult}
+                    sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
+                  />
+                  <Text
+                    style={[
+                      styles.confidenceText,
+                      largeText && styles.confidenceTextLarge,
+                      highContrast && styles.confidenceTextHC,
+                    ]}
+                    testID="recognition-path"
+                  >
+                    über {recognitionPath}
+                  </Text>
+                </>
+              )}
             </Animated.View>
           )}
 

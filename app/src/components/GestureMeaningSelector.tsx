@@ -60,7 +60,10 @@ export function GestureMeaningSelector({
     });
   }, [categoryFilter, compositionFilter]);
 
-  const styles = createStyles(largeText, highContrast);
+  const styles = useMemo(
+    () => createStyles(largeText, highContrast),
+    [largeText, highContrast],
+  );
 
   const renderFilterButton = (
     label: string,
