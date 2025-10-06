@@ -79,16 +79,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           });
 
           if (updated) {
-            try {
-              const { mlService } = require('../services');
-              const loader = mlService?.loadModels;
-              if (loader) {
-                await Promise.resolve(loader.call(mlService));
-                logger.info('Reloaded ML models after refresh');
-              }
-            } catch (loadError) {
-              logger.warn('Failed to reload ML models after refresh', loadError as Error);
-            }
+            logger.info('Model refresh finished');
           }
         } catch (e) {
           logger.warn('Failed to run model refresh', e as Error);
