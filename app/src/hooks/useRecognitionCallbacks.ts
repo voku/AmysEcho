@@ -11,7 +11,7 @@ import {
   personalizedConfidenceService,
   gestureCombinationService,
   correctionService,
-  twoHandGestureService,
+  gestureMeaningService,
   dialogEngine,
   LanguageManager,
 } from '../services';
@@ -31,7 +31,7 @@ import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { RootStackParamList } from '../navigation/types';
-import { isTwoHandGestureString, parseTwoHandGestureString } from '../constants/twoHandGestures';
+import { isCoordinatedGestureString, parseCoordinatedGestureString } from '../constants/gestureMeanings';
 import { shouldPromptPractice } from '../services/healthScore';
 import { logInteractionEvent } from '../services/analytics';
 
@@ -112,7 +112,7 @@ export const useRecognitionCallbacks = ({
     setCurrentHandedness,
     setModelUpdateStatus,
     setContextInsights,
-    setDetectedTwoHandGesture,
+    setDetectedGestureMeaning,
   } = state;
 
   const {
@@ -370,10 +370,10 @@ export const useRecognitionCallbacks = ({
       const label = gestureMeta?.label || gesture;
       const emoji = gestureMeta?.emoji || '🤟';
 
-      if (isTwoHandGestureString(gesture)) {
-        const parsed = parseTwoHandGestureString(gesture);
+      if (isCoordinatedGestureString(gesture)) {
+        const parsed = parseCoordinatedGestureString(gesture);
         if (parsed) {
-          const twoHandResult = await twoHandGestureService.processTwoHandGesture(
+          const twoHandResult = await gestureMeaningService.processGestureMeaning(
             parsed.left,
             parsed.right,
             smoothedConfidence,
@@ -382,12 +382,12 @@ export const useRecognitionCallbacks = ({
             landmarks,
           );
 
-          setDetectedTwoHandGesture(twoHandResult);
+          setDetectedGestureMeaning(twoHandResult);
         } else {
-          setDetectedTwoHandGesture(null);
+          setDetectedGestureMeaning(null);
         }
       } else {
-        setDetectedTwoHandGesture(null);
+        setDetectedGestureMeaning(null);
       }
 
       showSuccessfulGestureUi(
@@ -437,7 +437,7 @@ export const useRecognitionCallbacks = ({
       runRecognitionFeedback,
       setPendingGesture,
       setShowVisualRipple,
-      setDetectedTwoHandGesture,
+      setDetectedGestureMeaning,
       setSuggestions,
       setDialogContext,
       dialogContext,
@@ -474,7 +474,7 @@ export const useRecognitionCallbacks = ({
         const gesture = normalizeGestureId(rawGesture);
         if (!gesture) {
           setPendingGesture(null);
-          setDetectedTwoHandGesture(null);
+          setDetectedGestureMeaning(null);
           if (smoothedConfidence < WAITING_CONFIDENCE_THRESHOLD) {
             setStatus(WAITING_STATUS);
           }
@@ -494,7 +494,7 @@ export const useRecognitionCallbacks = ({
         const meetsThreshold = smoothedConfidence >= thresholdInfo.threshold;
 
         if (!meetsThreshold) {
-          setDetectedTwoHandGesture(null);
+          setDetectedGestureMeaning(null);
           handleLowConfidenceGesture(gesture, smoothedConfidence, thresholdInfo.threshold, landmarks);
           return;
         }
@@ -539,7 +539,7 @@ export const useRecognitionCallbacks = ({
       setRecognitionPath,
       setLastRecognizedGesture,
       setContextInsights,
-      setDetectedTwoHandGesture,
+      setDetectedGestureMeaning,
       setGestureSuggestions,
       setShowAdaptiveLearning,
       setShortcutActivated,

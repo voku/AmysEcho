@@ -25,8 +25,8 @@ import { childFriendlyStyles } from '../styles/touchTargets';
 import { createButtonStyles } from '../styles/buttonStyles';
 import { hapticFeedback } from '../utils/hapticUtils';
 import TwoHandGestureSelector from '../components/TwoHandGestureSelector';
-import { TwoHandGestureDefinition, parseTwoHandGestureString } from '../constants/twoHandGestures';
-import { twoHandGestureService } from '../services/twoHandGestureService';
+import { CoordinatedGestureMeaningDefinition, parseCoordinatedGestureString } from '../constants/gestureMeanings';
+import { gestureMeaningService } from '../services/gestureMeaningService';
 import VisualFeedback from '../components/VisualFeedback';
 import ProgressTracker from '../components/ProgressTracker';
 import GestureValidationFeedback from '../components/GestureValidationFeedback';
@@ -46,7 +46,7 @@ export default function TeachingScreen({ navigation }: any) {
   const [progress, setProgress] = useState(0);
   const [isTwoHandMode, setIsTwoHandMode] = useState(false);
   const [showTwoHandSelector, setShowTwoHandSelector] = useState(false);
-  const [selectedTwoHandGesture, setSelectedTwoHandGesture] = useState<TwoHandGestureDefinition | null>(null);
+  const [selectedTwoHandGesture, setSelectedTwoHandGesture] = useState<CoordinatedGestureMeaningDefinition | null>(null);
 
   const [showVisualFeedback, setShowVisualFeedback] = useState(false);
   const [validationFeedback, setValidationFeedback] = useState<{
@@ -115,9 +115,9 @@ export default function TeachingScreen({ navigation }: any) {
 
         // Enhanced two-hand gesture validation and feedback
         if (isTwoHandMode && selectedTwoHandGesture && safeLandmarks.length >= 2) {
-          const parsed = parseTwoHandGestureString(gesture);
+          const parsed = parseCoordinatedGestureString(gesture);
           if (parsed) {
-            const twoHandResult = await twoHandGestureService.processTwoHandGesture(
+            const twoHandResult = await gestureMeaningService.processGestureMeaning(
               parsed.left,
               parsed.right,
               confidence,
@@ -272,7 +272,7 @@ export default function TeachingScreen({ navigation }: any) {
     audioService.speak(`Versuchen wir "${gestureLabel}" noch einmal.`);
   };
 
-  const handleTwoHandGestureSelected = (gesture: TwoHandGestureDefinition) => {
+  const handleTwoHandGestureSelected = (gesture: CoordinatedGestureMeaningDefinition) => {
     setSelectedTwoHandGesture(gesture);
     setGestureLabel(gesture.name);
     setShowTwoHandSelector(false);

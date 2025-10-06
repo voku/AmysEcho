@@ -124,7 +124,7 @@ describe('Service Integration Tests', () => {
   describe('Two-Hand Gesture Processing', () => {
     it('should process two-hand gestures with proper coordination', () => {
       const mockTwoHandService = {
-        processTwoHandGesture: jest.fn().mockResolvedValue({
+        processGestureMeaning: jest.fn().mockResolvedValue({
           gesture: 'communication',
           confidence: 0.92,
           leftHand: 'hello',
@@ -139,10 +139,10 @@ describe('Service Integration Tests', () => {
       const rightHandLandmarks = [[[0.7, 0.5, 0.8]]];
 
       // Process two-hand gesture
-      mockTwoHandService.processTwoHandGesture(leftHandLandmarks, rightHandLandmarks);
+      mockTwoHandService.processGestureMeaning(leftHandLandmarks, rightHandLandmarks);
 
       // Verify processing
-      expect(mockTwoHandService.processTwoHandGesture).toHaveBeenCalledWith(
+      expect(mockTwoHandService.processGestureMeaning).toHaveBeenCalledWith(
         leftHandLandmarks,
         rightHandLandmarks
       );

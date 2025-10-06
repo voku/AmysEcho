@@ -10,9 +10,9 @@ jest.mock('../src/services/parallelGestureProcessor', () => ({
   },
 }));
 
-jest.mock('../src/services/twoHandGestureService', () => ({
-  twoHandGestureService: {
-    processTwoHandGesture: jest.fn().mockResolvedValue(null),
+jest.mock('../src/services/gestureMeaningService', () => ({
+  gestureMeaningService: {
+    processGestureMeaning: jest.fn().mockResolvedValue(null),
   },
 }));
 

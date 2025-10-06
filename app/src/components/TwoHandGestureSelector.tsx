@@ -8,10 +8,13 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
-import { TWO_HAND_GESTURES, TwoHandGestureDefinition } from '../constants/twoHandGestures';
+import {
+  GESTURE_MEANINGS,
+  CoordinatedGestureMeaningDefinition,
+} from '../constants/gestureMeanings';
 
 interface TwoHandGestureSelectorProps {
-  onGestureSelected: (gesture: TwoHandGestureDefinition) => void;
+  onGestureSelected: (gesture: CoordinatedGestureMeaningDefinition) => void;
   onCancel: () => void;
 }
 
@@ -19,10 +22,11 @@ export default function TwoHandGestureSelector({
   onGestureSelected,
   onCancel
 }: TwoHandGestureSelectorProps) {
+  const coordinatedGestures = GESTURE_MEANINGS.filter((gesture): gesture is CoordinatedGestureMeaningDefinition => gesture.composition === 'coordinated');
   const { largeText, highContrast } = useAccessibility();
-  const [selectedCategory, setSelectedCategory] = useState<TwoHandGestureDefinition['category'] | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<CoordinatedGestureMeaningDefinition['category'] | 'all'>('all');
 
-  const categories: Array<{ key: TwoHandGestureDefinition['category'] | 'all'; label: string }> = [
+  const categories: Array<{ key: CoordinatedGestureMeaningDefinition['category'] | 'all'; label: string }> = [
     { key: 'all', label: 'Alle' },
     { key: 'communication', label: 'Kommunikation' },
     { key: 'emotional', label: 'Emotional' },
@@ -30,8 +34,8 @@ export default function TwoHandGestureSelector({
   ];
 
   const filteredGestures = selectedCategory === 'all'
-    ? TWO_HAND_GESTURES
-    : TWO_HAND_GESTURES.filter(g => g.category === selectedCategory);
+    ? coordinatedGestures
+    : coordinatedGestures.filter(g => g.category === selectedCategory);
 
   const styles = StyleSheet.create({
     container: {
@@ -185,7 +189,7 @@ export default function TwoHandGestureSelector({
     },
   });
 
-  const getDifficultyColor = (difficulty: TwoHandGestureDefinition['difficulty']) => {
+  const getDifficultyColor = (difficulty: CoordinatedGestureMeaningDefinition['difficulty']) => {
     switch (difficulty) {
       case 'easy':
         return highContrast ? COLORS.highContrastText : '#4CAF50'; // Green

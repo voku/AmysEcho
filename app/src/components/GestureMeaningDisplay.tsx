@@ -15,12 +15,13 @@ import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import {
-  isTwoHandGestureString,
-  parseTwoHandGestureString,
-  getTwoHandGestureById,
-  findTwoHandGestureByHands,
-  type TwoHandGestureDefinition,
-} from '../constants/twoHandGestures';
+  isCoordinatedGestureString,
+  parseCoordinatedGestureString,
+  getGestureMeaningById,
+  findCoordinatedGestureMeaningByHands,
+  getGestureMeaningByGestureId,
+  type GestureMeaningDefinition,
+} from '../constants/gestureMeanings';
 import type { GestureModelEntry } from '../model';
 import type { OpenAIValidationResult } from '../hooks/useOpenAIValidation';
 import { optimizedGestureService } from '../services/optimizedGestureService';
@@ -34,7 +35,7 @@ interface GestureMeaningDisplayProps {
   confidence: number;
   showDetails?: boolean;
   size?: 'small' | 'medium' | 'large';
-  twoHandDefinition?: TwoHandGestureDefinition | null;
+  gestureDefinition?: GestureMeaningDefinition | null;
   gestureMeta?: GestureModelEntry | null;
   openaiValidationResult?: OpenAIValidationResult | null;
 }
@@ -44,7 +45,7 @@ export default function GestureMeaningDisplay({
   confidence,
   showDetails = true,
   size = 'medium',
-  twoHandDefinition,
+  gestureDefinition,
   gestureMeta,
   openaiValidationResult,
 }: GestureMeaningDisplayProps) {
@@ -52,49 +53,67 @@ export default function GestureMeaningDisplay({
   const normalizedId = gestureId.trim();
 
   const parsedCombination = useMemo(() => {
-    if (twoHandDefinition) {
+    if (gestureDefinition?.composition === 'coordinated') {
       return {
-        left: twoHandDefinition.leftGesture,
-        right: twoHandDefinition.rightGesture,
+        left: gestureDefinition.leftGesture,
+        right: gestureDefinition.rightGesture,
       };
     }
 
-    if (isTwoHandGestureString(normalizedId)) {
-      return parseTwoHandGestureString(normalizedId);
+    if (isCoordinatedGestureString(normalizedId)) {
+      return parseCoordinatedGestureString(normalizedId);
     }
 
-    const fallback = getTwoHandGestureById(normalizedId);
-    if (fallback) {
-      return {
-        left: fallback.leftGesture,
-        right: fallback.rightGesture,
-      };
+    const fallbackByGesture = getGestureMeaningByGestureId(normalizedId);
+    if (fallbackByGesture?.composition === 'coordinated') {
+      return { left: fallbackByGesture.leftGesture, right: fallbackByGesture.rightGesture };
+    }
+
+    const fallbackById = getGestureMeaningById(normalizedId);
+    if (fallbackById?.composition === 'coordinated') {
+      return { left: fallbackById.leftGesture, right: fallbackById.rightGesture };
     }
 
     return null;
-  }, [normalizedId, twoHandDefinition]);
+  }, [gestureDefinition, normalizedId]);
 
   const isCombination = Boolean(parsedCombination);
 
-  const gestureDefinition = useMemo(() => {
-    if (twoHandDefinition) {
-      return twoHandDefinition;
+  const coordinatedDefinition = useMemo(() => {
+    if (gestureDefinition?.composition === 'coordinated') {
+      return gestureDefinition;
     }
 
     if (!parsedCombination) {
       return null;
     }
 
-    if (!isTwoHandGestureString(normalizedId)) {
-      const byId = getTwoHandGestureById(normalizedId);
-      if (byId) {
+    if (!isCoordinatedGestureString(normalizedId)) {
+      const byId = getGestureMeaningById(normalizedId);
+      if (byId?.composition === 'coordinated') {
         return byId;
       }
     }
 
-    return findTwoHandGestureByHands(parsedCombination.left, parsedCombination.right) ?? null;
-  }, [normalizedId, parsedCombination, twoHandDefinition]);
+    return findCoordinatedGestureMeaningByHands(parsedCombination.left, parsedCombination.right) ?? null;
+  }, [gestureDefinition, normalizedId, parsedCombination]);
 
+  const activeDefinition = useMemo(() => {
+    if (gestureDefinition) {
+      return gestureDefinition;
+    }
+
+    const byGesture = getGestureMeaningByGestureId(normalizedId);
+    if (byGesture) {
+      return byGesture;
+    }
+
+    if (!isCombination) {
+      return getGestureMeaningById(normalizedId) ?? null;
+    }
+
+    return coordinatedDefinition;
+  }, [coordinatedDefinition, gestureDefinition, isCombination, normalizedId]);
   const openAiGestureMeta = useMemo(() => {
     if (!openaiValidationResult?.gesture) {
       return null;
@@ -107,15 +126,20 @@ export default function GestureMeaningDisplay({
       return gestureMeta;
     }
 
-    if (isCombination) {
-      if (gestureDefinition) {
-        return optimizedGestureService.getGestureById(gestureDefinition.id) ?? null;
-      }
-      return null;
+    if (activeDefinition?.composition === 'coordinated') {
+      return (
+        optimizedGestureService.getGestureById(activeDefinition.id) ??
+        optimizedGestureService.getGestureById(`${activeDefinition.leftGesture}+${activeDefinition.rightGesture}`) ??
+        null
+      );
+    }
+
+    if (activeDefinition?.composition === 'single') {
+      return optimizedGestureService.getGestureById(activeDefinition.gesture) ?? null;
     }
 
     return optimizedGestureService.getGestureById(normalizedId) ?? null;
-  }, [gestureDefinition, gestureMeta, isCombination, normalizedId]);
+  }, [activeDefinition, gestureMeta, normalizedId]);
 
   const leftMeta = useMemo(() => {
     if (!parsedCombination) {
@@ -140,8 +164,8 @@ export default function GestureMeaningDisplay({
       return resolvedGestureMeta.emoji;
     }
 
-    if (gestureDefinition?.emoji) {
-      return gestureDefinition.emoji;
+    if (activeDefinition?.emoji) {
+      return activeDefinition.emoji;
     }
 
     if (isCombination) {
@@ -154,9 +178,9 @@ export default function GestureMeaningDisplay({
       return DEFAULT_MULTI_EMOJI;
     }
 
-    return leftMeta?.emoji || rightMeta?.emoji || DEFAULT_SINGLE_EMOJI;
+    return activeDefinition?.emoji || DEFAULT_SINGLE_EMOJI;
   }, [
-    gestureDefinition?.emoji,
+    activeDefinition?.emoji,
     isCombination,
     leftMeta?.emoji,
     openAiGestureMeta?.emoji,
@@ -176,8 +200,12 @@ export default function GestureMeaningDisplay({
       return resolvedGestureMeta.label;
     }
 
-    if (gestureDefinition?.name) {
-      return gestureDefinition.name;
+    if (activeDefinition?.name) {
+      return activeDefinition.name;
+    }
+
+    if (coordinatedDefinition?.name) {
+      return coordinatedDefinition.name;
     }
 
     if (isCombination && parsedCombination) {
@@ -186,7 +214,8 @@ export default function GestureMeaningDisplay({
 
     return normalizedId;
   }, [
-    gestureDefinition?.name,
+    activeDefinition?.name,
+    coordinatedDefinition?.name,
     isCombination,
     normalizedId,
     openAiLabel,
@@ -345,12 +374,15 @@ export default function GestureMeaningDisplay({
 
       {showDetails && (
         <>
-          {gestureDefinition ? (
+          {activeDefinition ? (
             <View style={styles.detailsContainer}>
-              <Text style={styles.detailsText}>{gestureDefinition.description}</Text>
+              <Text style={styles.detailsText}>{activeDefinition.description}</Text>
               <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{gestureDefinition.category.toUpperCase()}</Text>
+                <Text style={styles.categoryText}>{activeDefinition.category.toUpperCase()}</Text>
               </View>
+              {resolvedGestureMeta?.dgsVideoUri ? (
+                <Text style={styles.detailsText}>DGS-Video verfügbar</Text>
+              ) : null}
             </View>
           ) : isCombination && parsedCombination ? (
             <View style={styles.fallbackDetails}>

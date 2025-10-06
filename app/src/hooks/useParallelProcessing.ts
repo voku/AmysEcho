@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import { parallelGestureProcessor } from '../services/parallelGestureProcessor';
-import { twoHandGestureService } from '../services/twoHandGestureService';
+import { gestureMeaningService } from '../services/gestureMeaningService';
 import { isTwoHandGesture } from '../../webview/types/MediaPipeTypes';
 import { DEFAULT_OPENAI_FEEDBACK_MESSAGE, DEFAULT_OPENAI_QUALITY_SCORE } from '../constants';
 import type { FrameCapturePayload } from '../types/frames';
@@ -77,7 +77,7 @@ export const useParallelProcessing = (
         : gesture;
 
       if (hasTwoHands && isTwoHandGestureObj) {
-        const twoHandResult = await twoHandGestureService.processTwoHandGesture(
+        const twoHandResult = await gestureMeaningService.processGestureMeaning(
           gesture.left,
           gesture.right,
           confidence,

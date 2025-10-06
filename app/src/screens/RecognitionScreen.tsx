@@ -158,7 +158,7 @@ export default function RecognitionScreen({
     showAdaptiveLearning,
     setShowAdaptiveLearning,
     contextInsights,
-    detectedTwoHandGesture,
+    detectedGestureMeaning,
     currentLandmarks,
     setCurrentLandmarks,
     currentHandedness,
@@ -828,7 +828,7 @@ export default function RecognitionScreen({
 
           {!error &&
             !showCorrection &&
-            (lastRecognizedGesture || detectedTwoHandGesture) && (
+            (lastRecognizedGesture || detectedGestureMeaning) && (
             <Animated.View
               style={[
                 styles.card,
@@ -839,11 +839,11 @@ export default function RecognitionScreen({
             >
               {/* Zeige immer die zusammengefasste Bedeutung, egal ob eine oder beide Hände beteiligt waren. */}
               {(() => {
-                const fallbackCombinationId = detectedTwoHandGesture
-                  ? `${detectedTwoHandGesture.leftHandGesture}+${detectedTwoHandGesture.rightHandGesture}`
+                const fallbackCombinationId = detectedGestureMeaning
+                  ? `${detectedGestureMeaning.leftHandGesture}+${detectedGestureMeaning.rightHandGesture}`
                   : null;
                 const gestureIdForDisplay =
-                  detectedTwoHandGesture?.gesture.id ||
+                  detectedGestureMeaning?.gesture.id ||
                   lastRecognizedGesture?.id ||
                   fallbackCombinationId ||
                   lastRecognizedGesture?.label ||
@@ -858,11 +858,11 @@ export default function RecognitionScreen({
                     <GestureMeaningDisplay
                       gestureId={gestureIdForDisplay}
                       confidence={
-                        detectedTwoHandGesture?.confidence ?? gestureConfidence
+                        detectedGestureMeaning?.confidence ?? gestureConfidence
                       }
                       showDetails
                       size="large"
-                      twoHandDefinition={detectedTwoHandGesture?.gesture ?? null}
+                      gestureDefinition={detectedGestureMeaning?.gesture ?? null}
                       gestureMeta={lastRecognizedGesture}
                       openaiValidationResult={openaiValidationResult}
                     />

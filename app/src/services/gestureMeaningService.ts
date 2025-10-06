@@ -1,7 +1,7 @@
 /**
- * Two-Hand Gesture Service - Amy First
+ * Gesture Meaning Service - Amy First
  *
- * Advanced service for recognizing and processing two-hand gestures with best practices:
+ * Advanced service for recognising and processing coordinated gesture meanings with best practices:
  * - Intelligent gesture mapping and validation
  * - Confidence scoring optimized for multi-hand scenarios
  * - Accessibility support for visual and haptic feedback
@@ -9,12 +9,18 @@
  * - Emergency gesture priority handling
  */
 
-import { TWO_HAND_GESTURES, TwoHandGestureDefinition } from '../constants/twoHandGestures';
+import {
+  GESTURE_MEANINGS,
+  GestureMeaningDefinition,
+  CoordinatedGestureMeaningDefinition,
+} from '../constants/gestureMeanings';
 import { logger } from '../utils/logger';
 import { performanceMonitor } from './performanceMonitor';
 
-export interface DetectedTwoHandGesture {
-  gesture: TwoHandGestureDefinition;
+const COORDINATED_MEANINGS = GESTURE_MEANINGS.filter((meaning): meaning is CoordinatedGestureMeaningDefinition => meaning.composition === 'coordinated');
+
+export interface DetectedGestureMeaning {
+  gesture: CoordinatedGestureMeaningDefinition;
   confidence: number;
   leftHandGesture: string;
   rightHandGesture: string;
@@ -25,7 +31,7 @@ export interface DetectedTwoHandGesture {
   accessibilityHints: string[];
 }
 
-export interface TwoHandValidationResult {
+export interface GestureMeaningValidationResult {
   isValid: boolean;
   confidence: number;
   issues: string[];
@@ -33,46 +39,46 @@ export interface TwoHandValidationResult {
   accessibilityScore: number;
 }
 
-export class TwoHandGestureService {
-  private static instance: TwoHandGestureService;
-  private gestureCache = new Map<string, DetectedTwoHandGesture>();
-  private readonly CONFIDENCE_THRESHOLD = 0.6; // Higher threshold for two-hand gestures
+export class GestureMeaningService {
+  private static instance: GestureMeaningService;
+  private gestureCache = new Map<string, DetectedGestureMeaning>();
+  private readonly CONFIDENCE_THRESHOLD = 0.6; // Higher threshold for coordinated gestures
   private readonly MIN_INDIVIDUAL_CONFIDENCE = 0.4; // Minimum confidence for each hand
   private readonly MAX_PROCESSING_TIME = 100; // Max processing time in ms
 
   private constructor() {
     // Initialize performance monitoring
-    performanceMonitor.recordMetric('two_hand_service_initialized', 1);
+    performanceMonitor.recordMetric('gesture_meaning_service_initialized', 1);
   }
 
-  static getInstance(): TwoHandGestureService {
-    if (!TwoHandGestureService.instance) {
-      TwoHandGestureService.instance = new TwoHandGestureService();
+  static getInstance(): GestureMeaningService {
+    if (!GestureMeaningService.instance) {
+      GestureMeaningService.instance = new GestureMeaningService();
     }
-    return TwoHandGestureService.instance;
+    return GestureMeaningService.instance;
   }
 
   /**
-   * Process detected two-hand gesture with comprehensive validation
+   * Process detected coordinated gesture with comprehensive validation
    */
-  async processTwoHandGesture(
+  async processGestureMeaning(
     leftGesture: string,
     rightGesture: string,
     leftConfidence: number,
     rightConfidence: number,
     handedness: string[],
     landmarks: number[][][]
-  ): Promise<DetectedTwoHandGesture | null> {
+  ): Promise<DetectedGestureMeaning | null> {
     const startTime = performance.now();
 
     try {
       // Validate input parameters
-      const validation = this.validateTwoHandInput(
+      const validation = this.validateCoordinatedInput(
         leftGesture, rightGesture, leftConfidence, rightConfidence, handedness, landmarks
       );
 
       if (!validation.isValid) {
-        logger.warn('Two-hand gesture validation failed', {
+        logger.warn('Coordinated gesture validation failed', {
           issues: validation.issues,
           leftGesture, rightGesture,
           leftConfidence, rightConfidence
@@ -84,20 +90,20 @@ export class TwoHandGestureService {
       const matchedGesture = this.findMatchingGesture(leftGesture, rightGesture);
 
       if (!matchedGesture) {
-        logger.debug('No matching two-hand gesture found', {
+        logger.debug('No matching coordinated gesture found', {
           leftGesture, rightGesture,
-          availableGestures: TWO_HAND_GESTURES.length
+          availableGestures: COORDINATED_MEANINGS.length
         });
         return null;
       }
 
       // Calculate comprehensive confidence score
-      const confidence = this.calculateTwoHandConfidence(
+      const confidence = this.calculateCoordinatedConfidence(
         leftConfidence, rightConfidence, matchedGesture, validation
       );
 
       if (confidence < this.CONFIDENCE_THRESHOLD) {
-        logger.debug('Two-hand gesture confidence too low', {
+        logger.debug('Coordinated gesture confidence too low', {
           confidence,
           threshold: this.CONFIDENCE_THRESHOLD,
           gesture: matchedGesture.id
@@ -109,7 +115,7 @@ export class TwoHandGestureService {
       const accessibilityHints = this.generateAccessibilityHints(matchedGesture, confidence);
 
       // Create detected gesture object
-      const detectedGesture: DetectedTwoHandGesture = {
+      const detectedGesture: DetectedGestureMeaning = {
         gesture: matchedGesture,
         confidence,
         leftHandGesture: leftGesture,
@@ -126,10 +132,10 @@ export class TwoHandGestureService {
       this.gestureCache.set(cacheKey, detectedGesture);
 
       // Record performance metrics
-      performanceMonitor.recordMetric('two_hand_gesture_processed', 1);
-      performanceMonitor.recordMetric('two_hand_processing_time', detectedGesture.processingTime);
+      performanceMonitor.recordMetric('gesture_meaning_gesture_processed', 1);
+      performanceMonitor.recordMetric('gesture_meaning_processing_time', detectedGesture.processingTime);
 
-      logger.info('Two-hand gesture successfully processed', {
+      logger.info('Coordinated gesture successfully processed', {
         gestureId: matchedGesture.id,
         confidence,
         processingTime: detectedGesture.processingTime
@@ -138,7 +144,7 @@ export class TwoHandGestureService {
       return detectedGesture;
 
     } catch (error) {
-      logger.error('Error processing two-hand gesture', error, {
+      logger.error('Error processing coordinated gesture', error, {
         leftGesture, rightGesture,
         processingTime: performance.now() - startTime
       });
@@ -147,16 +153,16 @@ export class TwoHandGestureService {
   }
 
   /**
-   * Validate two-hand gesture input parameters
+   * Validate coordinated gesture input parameters
    */
-  private validateTwoHandInput(
+  private validateCoordinatedInput(
     leftGesture: string,
     rightGesture: string,
     leftConfidence: number,
     rightConfidence: number,
     handedness: string[],
     landmarks: number[][][]
-  ): TwoHandValidationResult {
+  ): GestureMeaningValidationResult {
     const issues: string[] = [];
     const suggestions: string[] = [];
     let accessibilityScore = 1.0;
@@ -188,19 +194,19 @@ export class TwoHandGestureService {
 
     // Validate landmarks
     if (!landmarks || landmarks.length < 2) {
-      issues.push('Insufficient landmark data for two-hand gesture');
+      issues.push('Insufficient landmark data for coordinated gesture');
       accessibilityScore *= 0.6;
     }
 
     // Check for gesture symmetry/complementarity
     if (leftGesture === rightGesture) {
       // Same gesture on both hands - check if it's appropriate
-      const matchingGestures = TWO_HAND_GESTURES.filter(g =>
+      const matchingGestures = COORDINATED_MEANINGS.filter(g =>
         g.leftGesture === leftGesture && g.rightGesture === rightGesture
       );
 
       if (matchingGestures.length === 0) {
-        issues.push('Identical gestures on both hands may not be intended for two-hand recognition');
+        issues.push('Identical gestures on both hands may not be intended for coordinated gesture recognition');
         suggestions.push('Try different gestures on each hand or use single-hand recognition');
         accessibilityScore *= 0.9;
       }
@@ -216,18 +222,18 @@ export class TwoHandGestureService {
   }
 
   /**
-   * Find matching predefined two-hand gesture
+   * Find matching predefined coordinated gesture
    */
-  private findMatchingGesture(leftGesture: string, rightGesture: string): TwoHandGestureDefinition | null {
+  private findMatchingGesture(leftGesture: string, rightGesture: string): CoordinatedGestureMeaningDefinition | null {
     // First try exact match
-    let match = TWO_HAND_GESTURES.find(g =>
+    let match = COORDINATED_MEANINGS.find(g =>
       g.leftGesture === leftGesture && g.rightGesture === rightGesture
     );
 
     if (match) return match;
 
     // Try reverse order (in case handedness detection was swapped)
-    match = TWO_HAND_GESTURES.find(g =>
+    match = COORDINATED_MEANINGS.find(g =>
       g.leftGesture === rightGesture && g.rightGesture === leftGesture
     );
 
@@ -247,17 +253,17 @@ export class TwoHandGestureService {
   /**
    * Find fuzzy match for similar gestures
    */
-  private findFuzzyMatch(leftGesture: string, rightGesture: string): TwoHandGestureDefinition | null {
+  private findFuzzyMatch(leftGesture: string, rightGesture: string): CoordinatedGestureMeaningDefinition | null {
     const gestureSimilarity = (a: string, b: string): number => {
       // Simple similarity based on common substrings
       const commonChars = [...new Set(a.split('').filter(char => b.includes(char)))].length;
       return commonChars / Math.max(a.length, b.length);
     };
 
-    let bestMatch: TwoHandGestureDefinition | null = null;
+    let bestMatch: CoordinatedGestureMeaningDefinition | null = null;
     let bestSimilarity = 0;
 
-    for (const gesture of TWO_HAND_GESTURES) {
+    for (const gesture of COORDINATED_MEANINGS) {
       const leftSimilarity = gestureSimilarity(leftGesture, gesture.leftGesture);
       const rightSimilarity = gestureSimilarity(rightGesture, gesture.rightGesture);
       const avgSimilarity = (leftSimilarity + rightSimilarity) / 2;
@@ -269,7 +275,7 @@ export class TwoHandGestureService {
     }
 
     if (bestMatch) {
-      logger.debug('Found fuzzy match for two-hand gesture', {
+      logger.debug('Found fuzzy match for coordinated gesture', {
         detected: `${leftGesture}+${rightGesture}`,
         matched: `${bestMatch.leftGesture}+${bestMatch.rightGesture}`,
         similarity: bestSimilarity,
@@ -281,13 +287,13 @@ export class TwoHandGestureService {
   }
 
   /**
-   * Calculate comprehensive confidence score for two-hand gestures
+   * Calculate comprehensive confidence score for coordinated gestures
    */
-  private calculateTwoHandConfidence(
+  private calculateCoordinatedConfidence(
     leftConfidence: number,
     rightConfidence: number,
-    gesture: TwoHandGestureDefinition,
-    validation: TwoHandValidationResult
+    gesture: CoordinatedGestureMeaningDefinition,
+    validation: GestureMeaningValidationResult
   ): number {
     // Base confidence is geometric mean (conservative approach)
     const baseConfidence = Math.sqrt(leftConfidence * rightConfidence);
@@ -304,7 +310,7 @@ export class TwoHandGestureService {
 
     const finalConfidence = baseConfidence * difficultyMultiplier * validationMultiplier * gestureMultiplier;
 
-    logger.debug('Two-hand confidence calculation', {
+    logger.debug('Gesture meaning confidence calculation', {
       leftConfidence, rightConfidence, baseConfidence,
       difficultyMultiplier, validationMultiplier, gestureMultiplier,
       finalConfidence, gestureId: gesture.id
@@ -316,7 +322,7 @@ export class TwoHandGestureService {
   /**
    * Get gesture-specific confidence multiplier
    */
-  private getGestureConfidenceMultiplier(gesture: TwoHandGestureDefinition): number {
+  private getGestureConfidenceMultiplier(gesture: CoordinatedGestureMeaningDefinition): number {
     // Communication gestures get standard confidence
     if (gesture.category === 'communication') return 1.0;
 
@@ -330,9 +336,9 @@ export class TwoHandGestureService {
   }
 
   /**
-   * Generate accessibility hints for two-hand gestures
+   * Generate accessibility hints for coordinated gestures
    */
-  private generateAccessibilityHints(gesture: TwoHandGestureDefinition, confidence: number): string[] {
+  private generateAccessibilityHints(gesture: CoordinatedGestureMeaningDefinition, confidence: number): string[] {
     const hints: string[] = [];
 
     // Add gesture-specific hints
@@ -378,7 +384,7 @@ export class TwoHandGestureService {
   /**
    * Get cached gesture if available
    */
-  getCachedGesture(leftGesture: string, rightGesture: string, handedness: string[]): DetectedTwoHandGesture | null {
+  getCachedGesture(leftGesture: string, rightGesture: string, handedness: string[]): DetectedGestureMeaning | null {
     const cacheKey = this.generateCacheKey(leftGesture, rightGesture, handedness);
     return this.gestureCache.get(cacheKey) || null;
   }
@@ -388,7 +394,7 @@ export class TwoHandGestureService {
    */
   clearCache(): void {
     this.gestureCache.clear();
-    logger.info('Two-hand gesture cache cleared');
+    logger.info('Coordinated gesture cache cleared');
   }
 
   /**
@@ -413,26 +419,26 @@ export class TwoHandGestureService {
   }
 
   /**
-   * Get all available two-hand gestures
+   * Get all available coordinated gestures
    */
-  getAvailableGestures(): TwoHandGestureDefinition[] {
-    return [...TWO_HAND_GESTURES];
+  getAvailableGestures(): CoordinatedGestureMeaningDefinition[] {
+    return [...COORDINATED_MEANINGS];
   }
 
   /**
    * Get gestures by category
    */
-  getGesturesByCategory(category: TwoHandGestureDefinition['category']): TwoHandGestureDefinition[] {
-    return TWO_HAND_GESTURES.filter(g => g.category === category);
+  getGesturesByCategory(category: CoordinatedGestureMeaningDefinition['category']): CoordinatedGestureMeaningDefinition[] {
+    return COORDINATED_MEANINGS.filter(g => g.category === category);
   }
 
   /**
    * Get gestures by difficulty
    */
-  getGesturesByDifficulty(difficulty: TwoHandGestureDefinition['difficulty']): TwoHandGestureDefinition[] {
-    return TWO_HAND_GESTURES.filter(g => g.difficulty === difficulty);
+  getGesturesByDifficulty(difficulty: CoordinatedGestureMeaningDefinition['difficulty']): CoordinatedGestureMeaningDefinition[] {
+    return COORDINATED_MEANINGS.filter(g => g.difficulty === difficulty);
   }
 }
 
 // Export singleton instance
-export const twoHandGestureService = TwoHandGestureService.getInstance();
+export const gestureMeaningService = GestureMeaningService.getInstance();

@@ -87,24 +87,25 @@ describe('Multi-Hand Gesture Detection', () => {
 
   describe('Two-Hand Gesture Definitions', () => {
     it('should have predefined two-hand gestures', () => {
-      const { TWO_HAND_GESTURES } = require('../../src/constants/twoHandGestures');
-      expect(TWO_HAND_GESTURES.length).toBeGreaterThan(0);
-      expect(TWO_HAND_GESTURES[0]).toHaveProperty('id');
-      expect(TWO_HAND_GESTURES[0]).toHaveProperty('name');
-      expect(TWO_HAND_GESTURES[0]).toHaveProperty('leftGesture');
-      expect(TWO_HAND_GESTURES[0]).toHaveProperty('rightGesture');
+      const { GESTURE_MEANINGS } = require('../../src/constants/gestureMeanings');
+      const coordinated = GESTURE_MEANINGS.filter((meaning: any) => meaning.composition === 'coordinated');
+      expect(coordinated.length).toBeGreaterThan(0);
+      expect(coordinated[0]).toHaveProperty('id');
+      expect(coordinated[0]).toHaveProperty('name');
+      expect(coordinated[0]).toHaveProperty('leftGesture');
+      expect(coordinated[0]).toHaveProperty('rightGesture');
     });
 
     it('should categorize gestures correctly', () => {
-      const { getTwoHandGesturesByCategory } = require('../../src/constants/twoHandGestures');
-      const communicationGestures = getTwoHandGesturesByCategory('communication');
+      const { getGestureMeaningsByCategory } = require('../../src/constants/gestureMeanings');
+      const communicationGestures = getGestureMeaningsByCategory('communication').filter((meaning: any) => meaning.composition === 'coordinated');
       expect(communicationGestures.length).toBeGreaterThan(0);
       expect(communicationGestures[0].category).toBe('communication');
     });
 
     it('should filter gestures by difficulty', () => {
-      const { getTwoHandGesturesByDifficulty } = require('../../src/constants/twoHandGestures');
-      const easyGestures = getTwoHandGesturesByDifficulty('easy');
+      const { getGestureMeaningsByDifficulty } = require('../../src/constants/gestureMeanings');
+      const easyGestures = getGestureMeaningsByDifficulty('easy').filter((meaning: any) => meaning.composition === 'coordinated');
       expect(easyGestures.length).toBeGreaterThan(0);
       expect(easyGestures[0].difficulty).toBe('easy');
     });
@@ -112,21 +113,21 @@ describe('Multi-Hand Gesture Detection', () => {
 
   describe('Gesture String Parsing', () => {
     it('should identify two-hand gesture strings', () => {
-      const { isTwoHandGestureString } = require('../../src/constants/twoHandGestures');
-      expect(isTwoHandGestureString('ILoveYou+ILoveYou')).toBe(true);
-      expect(isTwoHandGestureString('Thumb_Up')).toBe(false);
+      const { isCoordinatedGestureString } = require('../../src/constants/gestureMeanings');
+      expect(isCoordinatedGestureString('ILoveYou+ILoveYou')).toBe(true);
+      expect(isCoordinatedGestureString('Thumb_Up')).toBe(false);
     });
 
     it('should parse two-hand gesture strings correctly', () => {
-      const { parseTwoHandGestureString } = require('../../src/constants/twoHandGestures');
-      const result = parseTwoHandGestureString('ILoveYou+Thumb_Up');
+      const { parseCoordinatedGestureString } = require('../../src/constants/gestureMeanings');
+      const result = parseCoordinatedGestureString('ILoveYou+Thumb_Up');
       expect(result).toEqual({ left: 'ILoveYou', right: 'Thumb_Up' });
     });
 
     it('should return null for invalid gesture strings', () => {
-      const { parseTwoHandGestureString } = require('../../src/constants/twoHandGestures');
-      expect(parseTwoHandGestureString('Thumb_Up')).toBe(null);
-      expect(parseTwoHandGestureString('')).toBe(null);
+      const { parseCoordinatedGestureString } = require('../../src/constants/gestureMeanings');
+      expect(parseCoordinatedGestureString('Thumb_Up')).toBe(null);
+      expect(parseCoordinatedGestureString('')).toBe(null);
     });
   });
 });

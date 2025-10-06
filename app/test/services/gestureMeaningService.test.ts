@@ -1,7 +1,7 @@
 /**
- * Two-Hand Gesture Service Tests - Amy First
+ * Gesture Meaning Service Tests - Amy First
  *
- * Comprehensive tests for two-hand gesture recognition with best practices:
+ * Comprehensive tests for coordinated gesture meaning recognition with best practices:
  * - Validation testing for edge cases
  * - Confidence scoring accuracy
  * - Performance monitoring
@@ -27,13 +27,12 @@ jest.mock('../../src/services/performanceMonitor', () => ({
   },
 }));
 
-import { twoHandGestureService, TwoHandGestureService } from '../../src/services/twoHandGestureService';
-import { TWO_HAND_GESTURES } from '../../src/constants/twoHandGestures';
+import { gestureMeaningService, GestureMeaningService } from '../../src/services/gestureMeaningService';
 
-describe('TwoHandGestureService', () => {
+describe('GestureMeaningService', () => {
   beforeEach(() => {
     // Clear any cached gestures
-    twoHandGestureService.clearCache();
+    gestureMeaningService.clearCache();
     jest.clearAllMocks();
 
     // Mock performance.now for consistent timing
@@ -50,20 +49,20 @@ describe('TwoHandGestureService', () => {
 
   describe('Singleton Pattern', () => {
     it('should return the same instance', () => {
-      const instance1 = TwoHandGestureService.getInstance();
-      const instance2 = TwoHandGestureService.getInstance();
+      const instance1 = GestureMeaningService.getInstance();
+      const instance2 = GestureMeaningService.getInstance();
       expect(instance1).toBe(instance2);
     });
 
     it('should return the exported singleton', () => {
-      const instance = TwoHandGestureService.getInstance();
-      expect(instance).toBe(twoHandGestureService);
+      const instance = GestureMeaningService.getInstance();
+      expect(instance).toBe(gestureMeaningService);
     });
   });
 
   describe('Input Validation', () => {
     it('should reject gestures with insufficient confidence', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'Thumb_Up',
         'Open_Palm',
         0.3, // Below minimum threshold
@@ -76,7 +75,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should reject gestures with missing handedness data', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'Thumb_Up',
         'Open_Palm',
         0.8,
@@ -89,7 +88,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should reject gestures with insufficient landmark data', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'Thumb_Up',
         'Open_Palm',
         0.8,
@@ -102,7 +101,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should handle empty gesture strings gracefully', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         '',
         'Open_Palm',
         0.8,
@@ -116,8 +115,8 @@ describe('TwoHandGestureService', () => {
   });
 
   describe('Gesture Matching', () => {
-    it('should match exact two-hand gestures', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+    it('should match exact coordinated gesture meanings', async () => {
+      const result = await gestureMeaningService.processGestureMeaning(
         'ILoveYou', // Please gesture
         'ILoveYou', // Please gesture
         0.9,
@@ -132,7 +131,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should match gestures with reversed handedness', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.9,
@@ -147,7 +146,7 @@ describe('TwoHandGestureService', () => {
 
     it('should handle fuzzy matching for similar gestures', async () => {
       // Test with gestures that don't have exact matches but are similar
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'Thumb_Up',
         'Thumb_Up',
         0.9,
@@ -161,7 +160,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should return null for unmatched gesture combinations', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'Unknown_Gesture_1',
         'Unknown_Gesture_2',
         0.9,
@@ -176,7 +175,7 @@ describe('TwoHandGestureService', () => {
 
   describe('Confidence Calculation', () => {
     it('should calculate confidence using geometric mean', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.8,
@@ -192,7 +191,7 @@ describe('TwoHandGestureService', () => {
 
     it('should apply difficulty multipliers', async () => {
       // Test easy gesture
-      const easyResult = await twoHandGestureService.processTwoHandGesture(
+      const easyResult = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.8,
@@ -202,7 +201,7 @@ describe('TwoHandGestureService', () => {
       );
 
       // Test medium difficulty gesture
-      const mediumResult = await twoHandGestureService.processTwoHandGesture(
+      const mediumResult = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'Thumb_Up',
         0.8,
@@ -221,7 +220,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should process help gestures as communication gestures', async () => {
-      const helpResult = await twoHandGestureService.processTwoHandGesture(
+      const helpResult = await gestureMeaningService.processGestureMeaning(
         'Pointing_Up',
         'Pointing_Up',
         0.7,
@@ -235,7 +234,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should reject gestures below confidence threshold', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.5,
@@ -251,7 +250,7 @@ describe('TwoHandGestureService', () => {
 
   describe('Accessibility Features', () => {
     it('should generate appropriate accessibility hints', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.9,
@@ -266,7 +265,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should provide confidence-based accessibility feedback', async () => {
-      const highConfidenceResult = await twoHandGestureService.processTwoHandGesture(
+      const highConfidenceResult = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.95,
@@ -280,7 +279,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should provide category-specific accessibility hints', async () => {
-      const emergencyResult = await twoHandGestureService.processTwoHandGesture(
+      const emergencyResult = await gestureMeaningService.processGestureMeaning(
         'Pointing_Up',
         'Pointing_Up',
         0.9,
@@ -299,7 +298,7 @@ describe('TwoHandGestureService', () => {
       const cacheKey = 'ILoveYou_ILoveYou_Left_Right';
 
       // First detection
-      const result1 = await twoHandGestureService.processTwoHandGesture(
+      const result1 = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.9,
@@ -311,7 +310,7 @@ describe('TwoHandGestureService', () => {
       expect(result1).not.toBeNull();
 
       // Check cache
-      const cached = twoHandGestureService.getCachedGesture(
+      const cached = gestureMeaningService.getCachedGesture(
         'ILoveYou',
         'ILoveYou',
         ['Left', 'Right']
@@ -323,7 +322,7 @@ describe('TwoHandGestureService', () => {
 
     it('should clear cache when requested', async () => {
       // Add something to cache
-      await twoHandGestureService.processTwoHandGesture(
+      await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.9,
@@ -333,10 +332,10 @@ describe('TwoHandGestureService', () => {
       );
 
       // Clear cache
-      twoHandGestureService.clearCache();
+      gestureMeaningService.clearCache();
 
       // Check cache is empty
-      const cached = twoHandGestureService.getCachedGesture(
+      const cached = gestureMeaningService.getCachedGesture(
         'ILoveYou',
         'ILoveYou',
         ['Left', 'Right']
@@ -348,7 +347,7 @@ describe('TwoHandGestureService', () => {
 
   describe('Performance Monitoring', () => {
     it('should track processing time', async () => {
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.9,
@@ -363,7 +362,7 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should provide performance metrics', () => {
-      const metrics = twoHandGestureService.getPerformanceMetrics();
+      const metrics = gestureMeaningService.getPerformanceMetrics();
 
       expect(metrics).toHaveProperty('cacheSize');
       expect(metrics).toHaveProperty('averageProcessingTime');
@@ -377,7 +376,7 @@ describe('TwoHandGestureService', () => {
   describe('Error Handling', () => {
     it('should handle processing errors gracefully', async () => {
       // Test with invalid landmarks that might cause errors
-      const result = await twoHandGestureService.processTwoHandGesture(
+      const result = await gestureMeaningService.processGestureMeaning(
         'ILoveYou',
         'ILoveYou',
         0.9,
@@ -393,7 +392,7 @@ describe('TwoHandGestureService', () => {
 
   describe('Gesture Library Access', () => {
     it('should provide access to all available gestures', () => {
-      const gestures = twoHandGestureService.getAvailableGestures();
+      const gestures = gestureMeaningService.getAvailableGestures();
 
       expect(Array.isArray(gestures)).toBe(true);
       expect(gestures.length).toBeGreaterThan(0);
@@ -403,8 +402,8 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should filter gestures by category', () => {
-      const communicationGestures = twoHandGestureService.getGesturesByCategory('communication');
-      const emotionalGestures = twoHandGestureService.getGesturesByCategory('emotional');
+      const communicationGestures = gestureMeaningService.getGesturesByCategory('communication');
+      const emotionalGestures = gestureMeaningService.getGesturesByCategory('emotional');
 
       expect(communicationGestures.length).toBeGreaterThan(0);
       expect(emotionalGestures.length).toBeGreaterThan(0);
@@ -419,8 +418,8 @@ describe('TwoHandGestureService', () => {
     });
 
     it('should filter gestures by difficulty', () => {
-      const easyGestures = twoHandGestureService.getGesturesByDifficulty('easy');
-      const mediumGestures = twoHandGestureService.getGesturesByDifficulty('medium');
+      const easyGestures = gestureMeaningService.getGesturesByDifficulty('easy');
+      const mediumGestures = gestureMeaningService.getGesturesByDifficulty('medium');
 
       expect(easyGestures.length).toBeGreaterThan(0);
 
