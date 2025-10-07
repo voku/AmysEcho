@@ -99,6 +99,7 @@ const toGestureImageCapture = (
 
 const RECOGNITION_TEXT = {
   showDgsVideoLabel: 'DGS-Video anzeigen',
+  hideDgsVideoLabel: 'DGS-Video ausblenden',
   toggleDgsVideo: 'DGS-Video umschalten',
 };
 
@@ -786,7 +787,11 @@ export default function RecognitionScreen({
                 {lastRecognizedGesture?.dgsVideoUri ? (
                   <View style={styles.controlButton}>
                     <Button
-                      title={RECOGNITION_TEXT.showDgsVideoLabel}
+                      title={
+                        showDgsVideo
+                          ? RECOGNITION_TEXT.hideDgsVideoLabel
+                          : RECOGNITION_TEXT.showDgsVideoLabel
+                      }
                       accessibilityLabel={RECOGNITION_TEXT.toggleDgsVideo}
                       onPress={() => setShowDgsVideo((prev) => !prev)}
                     />
