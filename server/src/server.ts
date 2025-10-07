@@ -58,6 +58,7 @@ import {
   saveTelemetry,
   TelemetryEvent,
   computeAnalyticsInsights,
+  computeLearningAnalytics,
 } from './services/analyticsService.js';
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine.js';
 import portalRouter from './portal/index.js';
@@ -1329,23 +1330,19 @@ app.get('/model-metadata', legacyAuth, async (req: Request, res: Response) => {
   }
 });
 
-app.post('/analytics', legacyAuth, async (req: Request, res: Response) => {
-  const { successRate7d, improvementTrend } = req.body || {};
-  if (typeof successRate7d !== 'number' || typeof improvementTrend !== 'number') {
-    res.status(400).json({ error: 'Invalid analytics' });
-    return;
-  }
+app.post('/analytics', legacyAuth, async (_req: Request, res: Response) => {
   try {
-    await saveAnalyticsToFile({
-      id: 'default',
-      gestureDefinitionId: 'default', // Placeholder
-      successRate24h: 0, // Placeholder
-      successRate7d,
-      avgConfidenceScore: 0, // Placeholder
-      improvementTrend,
-      lastCalculated: Date.now(), // Placeholder
-    });
-    res.json({ status: 'ok' });
+    const analytics = computeLearningAnalytics(dbInstance);
+    const existingIndex = dbInstance.learningAnalytics.findIndex(
+      (entry) => entry.id === analytics.id,
+    );
+    if (existingIndex >= 0) {
+      dbInstance.learningAnalytics[existingIndex] = analytics;
+    } else {
+      dbInstance.learningAnalytics.push(analytics);
+    }
+    await saveAnalyticsToFile(analytics);
+    res.json(analytics);
   } catch (err) {
     console.error('Save analytics failed:', err);
     res.status(500).json({ error: 'Failed to save analytics' });

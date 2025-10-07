@@ -140,6 +140,26 @@ Return aggregated metrics such as correction rate, uncertainty ratio, median lat
 }
 ```
 
+#### POST /analytics
+Trigger a server-side refresh of learning analytics. The server recalculates success rates and trends directly from stored interaction logs, ignoring any client-provided metrics.
+
+**Body**
+
+No body required.
+
+**Response**
+```json
+{
+  "id": "default",
+  "gestureDefinitionId": "overall",
+  "successRate24h": 1,
+  "successRate7d": 0.92,
+  "avgConfidenceScore": 0.88,
+  "improvementTrend": 0.12,
+  "lastCalculated": 1700000000000
+}
+```
+
 #### POST /api/telemetry
 Submit telemetry events recording gesture processing metrics and fallback usage. Accepts a single event object or an array of events. Returns `202 Accepted`.
 

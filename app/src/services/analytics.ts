@@ -82,17 +82,14 @@ export async function getGestureStats(): Promise<GestureStats[]> {
   }));
 }
 
-export async function uploadAnalytics(
-  analytics: LearningAnalytics,
-): Promise<void> {
+// Trigger a server-side analytics refresh using stored interaction logs.
+export async function uploadAnalytics(): Promise<void> {
   try {
     await fetch(ANALYTICS_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         Authorization: `Bearer ${API_TOKEN}`,
       },
-      body: JSON.stringify(analytics),
     });
   } catch {
     // best-effort; ignore errors
