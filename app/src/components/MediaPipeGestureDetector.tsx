@@ -105,6 +105,7 @@ const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versu
 const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
 const GESTURE_PROCESSING_ERROR_TEXT = 'Das hat nicht geklappt. Probier\'s einfach nochmal!';
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
+const DEFAULT_GESTURE_SIZE_TOLERANCE = 0.3;
 
 const escapeJs = (value: string) =>
   value
@@ -123,7 +124,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     onModelUpdateStatus,
     onFrameBatch,
     facingMode = 'user',
-    gestureSizeTolerance = 0.3,
+    gestureSizeTolerance = DEFAULT_GESTURE_SIZE_TOLERANCE,
   },
   ref,
 ) => {
@@ -348,7 +349,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
 
   const sanitizedGestureSizeTolerance = useMemo(() => {
     if (typeof gestureSizeTolerance !== 'number' || !Number.isFinite(gestureSizeTolerance)) {
-      return 0.3;
+      return DEFAULT_GESTURE_SIZE_TOLERANCE;
     }
 
     if (gestureSizeTolerance < 0) {
@@ -423,28 +424,31 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
   }, [facingMode, inlineGestureDetectorSource, sanitizedGestureSizeTolerance]);
 
   useEffect(() => {
-    const tolerance = sanitizedGestureSizeTolerance;
-
-    if (!webviewRef.current || typeof webviewRef.current.injectJavaScript !== 'function') {
+    if (!webviewRef.current?.injectJavaScript) {
       return;
     }
 
     try {
-      webviewRef.current.injectJavaScript(
-        `(() => {
-          var value = ${tolerance};
+      const script = `
+        (() => {
+          const value = ${sanitizedGestureSizeTolerance};
           window.__gestureSizeTolerance = value;
-          try {
-            if (window.__gestureOrchestrator && typeof window.__gestureOrchestrator.updateGestureSizeTolerance === 'function') {
-              window.__gestureOrchestrator.updateGestureSizeTolerance(value);
-            } else if (window.__gestureOrchestrator && typeof window.__gestureOrchestrator.setGestureTolerance === 'function') {
-              window.__gestureOrchestrator.setGestureTolerance(value);
+          if (window.__gestureOrchestrator) {
+            try {
+              if (typeof window.__gestureOrchestrator.updateGestureSizeTolerance === "function") {
+                window.__gestureOrchestrator.updateGestureSizeTolerance(value);
+              } else if (typeof window.__gestureOrchestrator.setGestureTolerance === "function") {
+                window.__gestureOrchestrator.setGestureTolerance(value);
+              }
+            } catch (error) {
+              console.warn("Failed to apply gesture size tolerance", error);
             }
-          } catch (error) {
-            console.warn('Failed to apply gesture size tolerance', error);
           }
-        })(); true;`,
-      );
+        })();
+        true;
+      `;
+
+      webviewRef.current.injectJavaScript(script);
     } catch (err) {
       logger.warn('Failed to inject gesture size tolerance update', err);
     }
