@@ -6,74 +6,83 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: SPACING.lg,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  titleLarge: {
+    fontSize: 28,
+  },
+  titleHC: {
+    color: COLORS.highContrastText,
+  },
+  infoContainer: {
+    width: '90%',
+    marginBottom: SPACING.lg,
+    backgroundColor: COLORS.surface,
+    borderRadius: DEFAULT_RADIUS,
+    padding: SPACING.md,
+  },
+  infoContainerHC: {
+    backgroundColor: COLORS.highContrastBackground,
+  },
+  infoText: {
+    fontSize: 16,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  infoTextLarge: {
+    fontSize: 18,
+  },
+  infoTextHC: {
+    color: COLORS.highContrastText,
+  },
+  buttonContainer: {
+    width: '90%',
+    marginBottom: SPACING.sm,
+  },
+  button: {
+    backgroundColor: COLORS.primaryAccent,
+    padding: SPACING.md,
+    borderRadius: DEFAULT_RADIUS,
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  buttonHC: {
+    backgroundColor: COLORS.highContrastText,
+  },
+  buttonPressed: {
+    backgroundColor: COLORS.pressed,
+  },
+  buttonPressedHC: {
+    backgroundColor: COLORS.highContrastPressed,
+  },
+  buttonText: {
+    color: COLORS.highContrastText,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  buttonTextLarge: {
+    fontSize: 20,
+  },
+  buttonTextHC: {
+    color: COLORS.highContrastBackground,
+  },
+});
+
 export default function ParentScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   useServices();
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'transparent',
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginBottom: SPACING.lg,
-      color: COLORS.text,
-      textAlign: 'center',
-    },
-    titleLarge: {
-      fontSize: 28,
-    },
-    titleHC: {
-      color: COLORS.highContrastText,
-    },
-    infoContainer: {
-      width: '90%',
-      marginBottom: SPACING.lg,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderRadius: DEFAULT_RADIUS,
-      padding: SPACING.md,
-    },
-    infoText: {
-      fontSize: largeText ? 18 : 16,
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
-      textAlign: 'center',
-    },
-    buttonContainer: {
-      width: '90%',
-      marginBottom: SPACING.sm,
-    },
-    button: {
-      backgroundColor: COLORS.primaryAccent,
-      padding: SPACING.md,
-      borderRadius: DEFAULT_RADIUS,
-      alignItems: 'center',
-      minHeight: 48,
-    },
-    buttonHC: {
-      backgroundColor: COLORS.highContrastText,
-    },
-    buttonPressed: {
-      backgroundColor: COLORS.pressed,
-    },
-    buttonPressedHC: {
-      backgroundColor: COLORS.highContrastPressed,
-    },
-    buttonText: {
-      color: COLORS.highContrastText,
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    buttonTextLarge: {
-      fontSize: 20,
-    },
-    buttonTextHC: {
-      color: COLORS.highContrastBackground,
-    },
-  });
 
   const ButtonComponent = ({
     title,
@@ -121,8 +130,14 @@ export default function ParentScreen({ navigation }: any) {
       <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
         Elternbereich
       </Text>
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
+      <View style={[styles.infoContainer, highContrast && styles.infoContainerHC]}>
+        <Text
+          style={[
+            styles.infoText,
+            largeText && styles.infoTextLarge,
+            highContrast && styles.infoTextHC,
+          ]}
+        >
           Alle wichtigen Einstellungen werden automatisch für Amy optimiert. Nutze die Bereiche unten, um
           Unterstützung, Berichte und Verwaltung schnell zu erreichen.
         </Text>
