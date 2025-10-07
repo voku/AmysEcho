@@ -6,6 +6,7 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
+import { logger } from '../utils/logger';
 
 const styles = StyleSheet.create({
   container: {
@@ -92,7 +93,9 @@ export default function ParentScreen({ navigation }: any) {
       .then((loadedProfile) => {
         if (isMounted) setProfile(loadedProfile);
       })
-      .catch(() => {});
+      .catch((error) => {
+        logger.error('Failed to load profile', error);
+      });
     return () => {
       isMounted = false;
     };

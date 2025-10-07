@@ -9,6 +9,10 @@ jest.mock('../../src/services/feedbackService', () => ({
   childHaptic: jest.fn(),
 }));
 
+jest.mock('../../src/utils/logger', () => ({
+  logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
+}));
+
 jest.mock('../../src/storage', () => {
   const actual = jest.requireActual('../../src/storage');
   return {
