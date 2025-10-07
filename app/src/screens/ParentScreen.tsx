@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import { loadProfile, type Profile } from '../storage';
 
 const styles = StyleSheet.create({
   container: {
@@ -82,7 +83,23 @@ const styles = StyleSheet.create({
 
 export default function ParentScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
+  const [profile, setProfile] = useState<Profile | null>(null);
   useServices();
+
+  useEffect(() => {
+    let isMounted = true;
+    loadProfile()
+      .then((loadedProfile) => {
+        if (isMounted) setProfile(loadedProfile);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const profileName = profile?.name?.trim();
+  const optimizedFor = profileName && profileName.length > 0 ? profileName : 'dein Kind';
 
   const ButtonComponent = ({
     title,
@@ -138,8 +155,7 @@ export default function ParentScreen({ navigation }: any) {
             highContrast && styles.infoTextHC,
           ]}
         >
-          Alle wichtigen Einstellungen werden automatisch für Amy optimiert. Nutze die Bereiche unten, um
-          Unterstützung, Berichte und Verwaltung schnell zu erreichen.
+          {`Alle wichtigen Einstellungen werden automatisch für ${optimizedFor} optimiert. Nutze die Bereiche unten, um Unterstützung, Berichte und Verwaltung schnell zu erreichen.`}
         </Text>
       </View>
       <ButtonComponent
