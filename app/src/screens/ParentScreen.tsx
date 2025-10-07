@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
+import React from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
@@ -9,8 +9,6 @@ import ScreenBackground from '../components/ScreenBackground';
 export default function ParentScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
   useServices();
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [useDgs, setUseDgs] = useState(false);
 
   const styles = StyleSheet.create({
     container: {
@@ -32,18 +30,17 @@ export default function ParentScreen({ navigation }: any) {
     titleHC: {
       color: COLORS.highContrastText,
     },
-    toggleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: SPACING.sm,
+    infoContainer: {
       width: '90%',
-      paddingHorizontal: SPACING.md,
+      marginBottom: SPACING.lg,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      borderRadius: DEFAULT_RADIUS,
+      padding: SPACING.md,
     },
-    toggleLabel: {
+    infoText: {
       fontSize: largeText ? 18 : 16,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
-      flex: 1,
+      textAlign: 'center',
     },
     buttonContainer: {
       width: '90%',
@@ -124,21 +121,11 @@ export default function ParentScreen({ navigation }: any) {
       <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
         Elternbereich
       </Text>
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Kamera aktiv</Text>
-        <Switch
-          value={isCameraActive}
-          onValueChange={(value) => setIsCameraActive(value)}
-          accessibilityLabel="Kamera umschalten"
-        />
-      </View>
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>DGS-Video anzeigen</Text>
-        <Switch
-          value={useDgs}
-          onValueChange={setUseDgs}
-          accessibilityLabel="DGS-Video zeigen"
-        />
+      <View style={styles.infoContainer}>
+        <Text style={styles.infoText}>
+          Alle wichtigen Einstellungen werden automatisch für Amy optimiert. Nutze die Bereiche unten, um
+          Unterstützung, Berichte und Verwaltung schnell zu erreichen.
+        </Text>
       </View>
       <ButtonComponent
         title="Profilverwaltung"
