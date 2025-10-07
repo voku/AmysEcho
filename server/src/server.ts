@@ -144,6 +144,13 @@ const analyticsPostLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const modelMetadataLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Serve static files from the portal directory
 if (portalAvailable) {
   app.use('/portal', express.static(portalPath));
@@ -360,6 +367,7 @@ const genId = () =>
 let dbInstance: Database;
 try {
   dbInstance = await setupDatabase(DB_FILE_PATH);
+  app.locals.dbInstance = dbInstance;
 } catch (err) {
   console.error('Database setup failed:', err);
   process.exit(1); // Exit if database setup fails
@@ -367,7 +375,7 @@ try {
 
 // Middleware to attach dbInstance to req
 app.use((req: Request, res: Response, next: Function) => {
-  (req as any).db = dbInstance;
+  req.db = dbInstance;
   next();
 });
 
@@ -1317,7 +1325,11 @@ app.get('/latest-mlp-model', legacyAuth, async (req: Request, res: Response) => 
 });
 
 // Model metadata: version, size, sha256
-app.get('/model-metadata', legacyAuth, async (req: Request, res: Response) => {
+app.get(
+  '/model-metadata',
+  legacyAuth,
+  modelMetadataLimiter,
+  async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
   const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
@@ -1333,7 +1345,8 @@ app.get('/model-metadata', legacyAuth, async (req: Request, res: Response) => {
     console.error('Failed to read model metadata:', err);
     res.status(404).json({ error: 'Model not found' });
   }
-});
+  },
+);
 
 app.post(
   '/analytics',
