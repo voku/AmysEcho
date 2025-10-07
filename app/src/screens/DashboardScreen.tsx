@@ -31,7 +31,7 @@ export default function DashboardScreen({ navigation }: any) {
   useEffect(() => {
     loadAnalytics().then((d) => {
       setData(d);
-      uploadAnalytics(d);
+      uploadAnalytics();
     });
     loadProfile().then(setProfile);
     // Fetch server analytics summary and insights for caregivers

@@ -51,13 +51,12 @@ import {
   CentroidModel,
 } from './types.js';
 import {
-  saveAnalyticsToFile,
-  loadAnalyticsFromFile,
   computeSummaryMetrics,
   loadTelemetry,
   saveTelemetry,
   TelemetryEvent,
   computeAnalyticsInsights,
+  computeLearningAnalytics,
 } from './services/analyticsService.js';
 import { getLLMSuggestions, LLMRequest } from './services/dialogEngine.js';
 import portalRouter from './portal/index.js';
@@ -134,6 +133,20 @@ const dialogLimiter = rateLimit({
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: config.apiLimit,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const analyticsPostLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const modelMetadataLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -354,6 +367,7 @@ const genId = () =>
 let dbInstance: Database;
 try {
   dbInstance = await setupDatabase(DB_FILE_PATH);
+  app.locals.dbInstance = dbInstance;
 } catch (err) {
   console.error('Database setup failed:', err);
   process.exit(1); // Exit if database setup fails
@@ -361,7 +375,7 @@ try {
 
 // Middleware to attach dbInstance to req
 app.use((req: Request, res: Response, next: Function) => {
-  (req as any).db = dbInstance;
+  req.db = dbInstance;
   next();
 });
 
@@ -1311,7 +1325,11 @@ app.get('/latest-mlp-model', legacyAuth, async (req: Request, res: Response) => 
 });
 
 // Model metadata: version, size, sha256
-app.get('/model-metadata', legacyAuth, async (req: Request, res: Response) => {
+app.get(
+  '/model-metadata',
+  legacyAuth,
+  modelMetadataLimiter,
+  async (req: Request, res: Response) => {
   const profileId =
     typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
   const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
@@ -1327,38 +1345,42 @@ app.get('/model-metadata', legacyAuth, async (req: Request, res: Response) => {
     console.error('Failed to read model metadata:', err);
     res.status(404).json({ error: 'Model not found' });
   }
-});
+  },
+);
 
-app.post('/analytics', legacyAuth, async (req: Request, res: Response) => {
-  const { successRate7d, improvementTrend } = req.body || {};
-  if (typeof successRate7d !== 'number' || typeof improvementTrend !== 'number') {
-    res.status(400).json({ error: 'Invalid analytics' });
-    return;
-  }
-  try {
-    await saveAnalyticsToFile({
-      id: 'default',
-      gestureDefinitionId: 'default', // Placeholder
-      successRate24h: 0, // Placeholder
-      successRate7d,
-      avgConfidenceScore: 0, // Placeholder
-      improvementTrend,
-      lastCalculated: Date.now(), // Placeholder
-    });
-    res.json({ status: 'ok' });
-  } catch (err) {
-    console.error('Save analytics failed:', err);
-    res.status(500).json({ error: 'Failed to save analytics' });
-  }
-});
+app.post(
+  '/analytics',
+  legacyAuth,
+  analyticsPostLimiter,
+  async (_req: Request, res: Response) => {
+    try {
+      const analytics = computeLearningAnalytics(dbInstance);
+      const existingIndex = dbInstance.learningAnalytics.findIndex(
+        (entry) => entry.id === analytics.id,
+      );
+      if (existingIndex >= 0) {
+        dbInstance.learningAnalytics[existingIndex] = analytics;
+      } else {
+        dbInstance.learningAnalytics.push(analytics);
+      }
+      await withFileLock(DB_FILE_PATH, async () => {
+        await saveDatabase(dbInstance, DB_FILE_PATH);
+      });
+      res.json(analytics);
+    } catch (err) {
+      console.error('Save analytics failed:', err);
+      res.status(500).json({ error: 'Failed to save analytics' });
+    }
+  },
+);
 
 app.get('/analytics', legacyAuth, async (_req: Request, res: Response) => {
-  const data = await loadAnalyticsFromFile();
-  if (!data) {
+  const analytics = dbInstance.learningAnalytics.find((entry) => entry.id === 'default');
+  if (!analytics) {
     res.status(404).json({ error: 'Analytics not found' });
     return;
   }
-  res.json(data);
+  res.json(analytics);
 });
 
 // Add error handling middleware

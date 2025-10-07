@@ -1,6 +1,5 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { loadAnalyticsFromFile } from '../services/analyticsService.js';
 import {
   TRAINED_MODEL_PATH,
   TRAINING_MANIFEST_PATH,
@@ -15,6 +14,7 @@ import {
   getGestureTrainingDataById,
   updateGestureTrainingData,
 } from '../db.js';
+import type { Database } from '../db.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -34,6 +34,7 @@ type TrainingManifestEntry = {
 declare module 'express-serve-static-core' {
   interface Request {
     trainingBundleEntry?: TrainingManifestEntry;
+    db?: Database;
   }
 }
 
@@ -156,8 +157,13 @@ router.get('/', (_req, res) => {
   `);
 });
 
-router.get('/analytics', limiter, async (_req, res) => {
-  const analytics = await loadAnalyticsFromFile();
+router.get('/analytics', limiter, async (req, res) => {
+  const db = req.db ?? (req.app?.locals?.dbInstance as Database | undefined);
+  if (!db) {
+    res.status(500).send('Datenbank nicht initialisiert');
+    return;
+  }
+  const analytics = db.learningAnalytics.find((entry) => entry.id === 'default');
   if (!analytics) {
     res.status(404).send('No analytics available');
     return;
