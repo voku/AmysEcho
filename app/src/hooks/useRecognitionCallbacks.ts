@@ -97,8 +97,6 @@ export const useRecognitionCallbacks = ({
     setPendingGesture,
     setGestureSuggestions,
     setShowCorrection,
-    setComparisonAttempt,
-    setShowGestureComparison,
     setShowPracticeSuggestion,
     setShowAdaptiveLearning,
     setWebviewRetries,
@@ -677,11 +675,6 @@ export const useRecognitionCallbacks = ({
     [gestureConfidence, navigation, refs, setShowCorrection, setStatus],
   );
 
-  const handleCloseComparison = useCallback(() => {
-    setShowGestureComparison(false);
-    setComparisonAttempt(null);
-  }, [setComparisonAttempt, setShowGestureComparison]);
-
   const handleAcceptPractice = useCallback(() => {
     setShowPracticeSuggestion(false);
     navigation.navigate('Teaching');
@@ -707,12 +700,6 @@ export const useRecognitionCallbacks = ({
     [navigation, setShowAdaptiveLearning, setStatus],
   );
 
-  const handleTryAgainFromComparison = useCallback(() => {
-    setShowGestureComparison(false);
-    setComparisonAttempt(null);
-    setStatus("Versuch's nochmal! Du schaffst das!");
-  }, [setComparisonAttempt, setShowGestureComparison, setStatus]);
-
   return {
     handleGestureDetected,
     handleModelUpdateStatus,
@@ -720,12 +707,10 @@ export const useRecognitionCallbacks = ({
     handleStabilityFeedback,
     handleGestureError,
     handleSelectCorrection,
-    handleCloseComparison,
     handleAcceptPractice,
     handleDeclinePractice,
     handleLaterPractice,
     handleStartAdaptiveRecommendation,
-    handleTryAgainFromComparison,
   };
 };
 

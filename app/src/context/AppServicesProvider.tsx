@@ -39,10 +39,10 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
   const [isReady, setIsReady] = useState(false);
   const initializedRef = useRef(false);
   const refreshStateRef = useRef({
-    queue: Promise.resolve() as Promise<void>,
+    promise: Promise.resolve() as Promise<void>,
     running: false,
-    queued: false,
-    pendingCalls: false,
+    processing: false,
+    pendingRequests: 0,
   });
 
   useEffect(() => {
@@ -55,53 +55,67 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let interval: ReturnType<typeof setInterval>;
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     const refreshState = refreshStateRef.current;
-    const startRefreshWork = (): Promise<void> => {
-      refreshState.queued = true;
-      refreshState.queue = refreshState.queue.finally(async () => {
-        refreshState.queued = false;
-        refreshState.pendingCalls = false;
 
-        if (cancelled) {
-          return;
-        }
+    const startProcessing = (): Promise<void> => {
+      if (refreshState.processing || cancelled) {
+        return refreshState.promise;
+      }
 
-        refreshState.running = true;
+      refreshState.processing = true;
+      refreshState.promise = (async () => {
         try {
-          const allowed = await shouldAllowModelRefresh();
-          if (!allowed) {
-            logger.info('Skipping model refresh due to connectivity restrictions');
-            return;
-          }
+          while (!cancelled && refreshState.pendingRequests > 0) {
+            refreshState.pendingRequests -= 1;
+            refreshState.running = true;
 
-          const pid = await loadActiveProfileId().catch(() => null);
-          const updated = await checkForModelUpdate(pid ?? undefined, {
-            skipNetworkCheck: true,
-          });
+            try {
+              if (cancelled) {
+                break;
+              }
 
-          if (updated) {
-            logger.info('Model refresh finished');
+              const allowed = await shouldAllowModelRefresh();
+              if (!allowed) {
+                logger.info('Skipping model refresh due to connectivity restrictions');
+                continue;
+              }
+
+              if (cancelled) {
+                break;
+              }
+
+              const pid = await loadActiveProfileId().catch(() => null);
+
+              if (cancelled) {
+                break;
+              }
+
+              const updated = await checkForModelUpdate(pid ?? undefined, {
+                skipNetworkCheck: true,
+              });
+
+              if (updated) {
+                logger.info('Model refresh finished');
+              }
+            } catch (e) {
+              logger.warn('Failed to run model refresh', e as Error);
+            } finally {
+              refreshState.running = false;
+            }
           }
-        } catch (e) {
-          logger.warn('Failed to run model refresh', e as Error);
         } finally {
-          refreshState.running = false;
+          refreshState.processing = false;
+          if (!cancelled && refreshState.pendingRequests > 0) {
+            await startProcessing();
+          }
         }
-      });
+      })();
 
-      return refreshState.queue;
+      return refreshState.promise;
     };
 
     const runModelRefresh = (): Promise<void> => {
-      if (refreshState.running || refreshState.queued) {
-        if (!refreshState.pendingCalls) {
-          refreshState.pendingCalls = true;
-          return startRefreshWork();
-        }
-        return refreshState.queue;
-      }
-
-      refreshState.pendingCalls = false;
-      return startRefreshWork();
+      refreshState.pendingRequests += 1;
+      return startProcessing();
     };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;
@@ -150,7 +164,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          if (!refreshState.running && !refreshState.queued) {
+          if (!refreshState.running && !refreshState.processing && refreshState.pendingRequests === 0) {
             runModelRefresh().catch(() => {});
           }
 

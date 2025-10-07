@@ -64,8 +64,6 @@ export class LazyLoadingService {
           return (await import('../components/PracticeSuggestion')).default;
         case 'AdaptiveLearningPanel':
           return (await import('../components/AdaptiveLearningPanel')).default;
-        case 'GestureComparison':
-          return (await import('../components/GestureComparison')).default;
         case 'ScreenFlash':
           return (await import('../components/ScreenFlash')).default;
         case 'GestureMeaningDisplay':
@@ -130,11 +128,6 @@ export class LazyLoadingService {
       componentsToPreload.push('PracticeSuggestion', 'AdaptiveLearningPanel');
     } else if (context.timeOfDay === 'afternoon') {
       componentsToPreload.push('DgsVideoPlayer');
-    }
-
-    // Screen-based preloading
-    if (context.recentScreens.includes('Recognition')) {
-      componentsToPreload.push('CorrectionPanel', 'GestureComparison');
     }
 
     // Activity-based preloading
