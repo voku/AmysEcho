@@ -130,3 +130,38 @@ def test_server_computes_analytics(analytics_seed, seeded_server, base_url):
     expected = compute_expected(analytics_seed["db_path"], body["lastCalculated"])
 
     assert body == saved == expected
+
+
+def test_server_allows_metric_overrides(analytics_seed, seeded_server, base_url):
+    payload = {"successRate7d": 0.42, "improvementTrend": 0.13}
+    req = urllib.request.Request(
+        f"{base_url}/analytics",
+        method="POST",
+        headers={
+            "Authorization": "Bearer testtoken",
+            "Content-Type": "application/json",
+        },
+        data=json.dumps(payload).encode(),
+    )
+
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        assert resp.getcode() == 200
+        body = json.loads(resp.read())
+
+    saved_db = json.loads(DB_PATH.read_text())
+    saved = next(
+        (entry for entry in saved_db.get("learningAnalytics", []) if entry.get("id") == "default"),
+        None,
+    )
+
+    assert saved is not None
+
+    expected = compute_expected(analytics_seed["db_path"], body["lastCalculated"])
+
+    # Server keeps computed defaults for untouched fields.
+    assert body["successRate24h"] == expected["successRate24h"]
+    assert body["avgConfidenceScore"] == expected["avgConfidenceScore"]
+
+    for key, value in payload.items():
+        assert body[key] == value
+        assert saved[key] == value

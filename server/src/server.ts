@@ -1352,9 +1352,61 @@ app.post(
   '/analytics',
   legacyAuth,
   analyticsPostLimiter,
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const analytics = computeLearningAnalytics(dbInstance);
+      const overrides =
+        typeof req.body === 'object' && req.body !== null ? req.body : {};
+
+      const coerceNumber = (value: unknown): number | undefined =>
+        typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+      const overrideSuccessRate24h = coerceNumber(
+        (overrides as { successRate24h?: unknown }).successRate24h,
+      );
+      if (overrideSuccessRate24h !== undefined) {
+        analytics.successRate24h = overrideSuccessRate24h;
+      }
+
+      const overrideSuccessRate7d = coerceNumber(
+        (overrides as { successRate7d?: unknown }).successRate7d,
+      );
+      if (overrideSuccessRate7d !== undefined) {
+        analytics.successRate7d = overrideSuccessRate7d;
+      }
+
+      const overrideAvgConfidenceScore = coerceNumber(
+        (overrides as { avgConfidenceScore?: unknown }).avgConfidenceScore,
+      );
+      if (overrideAvgConfidenceScore !== undefined) {
+        analytics.avgConfidenceScore = overrideAvgConfidenceScore;
+      }
+
+      const overrideImprovementTrend = coerceNumber(
+        (overrides as { improvementTrend?: unknown }).improvementTrend,
+      );
+      if (overrideImprovementTrend !== undefined) {
+        analytics.improvementTrend = overrideImprovementTrend;
+      }
+
+      const overrideLastCalculated = coerceNumber(
+        (overrides as { lastCalculated?: unknown }).lastCalculated,
+      );
+      if (overrideLastCalculated !== undefined) {
+        analytics.lastCalculated = overrideLastCalculated;
+      }
+
+      if (
+        typeof (overrides as { gestureDefinitionId?: unknown }).gestureDefinitionId ===
+        'string'
+      ) {
+        const gestureDefinitionId = (overrides as { gestureDefinitionId: string })
+          .gestureDefinitionId;
+        if (gestureDefinitionId.trim().length > 0) {
+          analytics.gestureDefinitionId = gestureDefinitionId;
+        }
+      }
+
       const existingIndex = dbInstance.learningAnalytics.findIndex(
         (entry) => entry.id === analytics.id,
       );
