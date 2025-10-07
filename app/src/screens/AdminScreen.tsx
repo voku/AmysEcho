@@ -442,7 +442,7 @@ export default function AdminScreen({ navigation }: any) {
       />
       <Button
         title="Übungspläne"
-        onPress={() => navigation.navigate('PracticeSchedule')}
+        onPress={() => navigation.navigate('PracticeScheduler')}
         accessibilityLabel="Übungspläne öffnen"
       />
       <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />

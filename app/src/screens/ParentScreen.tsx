@@ -1,82 +1,108 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import { loadProfile, type Profile } from '../storage';
+import { logger } from '../utils/logger';
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: SPACING.lg,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  titleLarge: {
+    fontSize: 28,
+  },
+  titleHC: {
+    color: COLORS.highContrastText,
+  },
+  infoContainer: {
+    width: '90%',
+    marginBottom: SPACING.lg,
+    backgroundColor: COLORS.surface,
+    borderRadius: DEFAULT_RADIUS,
+    padding: SPACING.md,
+  },
+  infoContainerHC: {
+    backgroundColor: COLORS.highContrastBackground,
+  },
+  infoText: {
+    fontSize: 16,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  infoTextLarge: {
+    fontSize: 18,
+  },
+  infoTextHC: {
+    color: COLORS.highContrastText,
+  },
+  buttonContainer: {
+    width: '90%',
+    marginBottom: SPACING.sm,
+  },
+  button: {
+    backgroundColor: COLORS.primaryAccent,
+    padding: SPACING.md,
+    borderRadius: DEFAULT_RADIUS,
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  buttonHC: {
+    backgroundColor: COLORS.highContrastText,
+  },
+  buttonPressed: {
+    backgroundColor: COLORS.pressed,
+  },
+  buttonPressedHC: {
+    backgroundColor: COLORS.highContrastPressed,
+  },
+  buttonText: {
+    color: COLORS.highContrastText,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  buttonTextLarge: {
+    fontSize: 20,
+  },
+  buttonTextHC: {
+    color: COLORS.highContrastBackground,
+  },
+});
 
 export default function ParentScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
+  const [profile, setProfile] = useState<Profile | null>(null);
   useServices();
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [useDgs, setUseDgs] = useState(false);
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'transparent',
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginBottom: SPACING.lg,
-      color: COLORS.text,
-      textAlign: 'center',
-    },
-    titleLarge: {
-      fontSize: 28,
-    },
-    titleHC: {
-      color: COLORS.highContrastText,
-    },
-    toggleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: SPACING.sm,
-      width: '90%',
-      paddingHorizontal: SPACING.md,
-    },
-    toggleLabel: {
-      fontSize: largeText ? 18 : 16,
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
-      flex: 1,
-    },
-    buttonContainer: {
-      width: '90%',
-      marginBottom: SPACING.sm,
-    },
-    button: {
-      backgroundColor: COLORS.primaryAccent,
-      padding: SPACING.md,
-      borderRadius: DEFAULT_RADIUS,
-      alignItems: 'center',
-      minHeight: 48,
-    },
-    buttonHC: {
-      backgroundColor: COLORS.highContrastText,
-    },
-    buttonPressed: {
-      backgroundColor: COLORS.pressed,
-    },
-    buttonPressedHC: {
-      backgroundColor: COLORS.highContrastPressed,
-    },
-    buttonText: {
-      color: COLORS.highContrastText,
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    buttonTextLarge: {
-      fontSize: 20,
-    },
-    buttonTextHC: {
-      color: COLORS.highContrastBackground,
-    },
-  });
+  useEffect(() => {
+    let isMounted = true;
+    loadProfile()
+      .then((loadedProfile) => {
+        if (isMounted) setProfile(loadedProfile);
+      })
+      .catch((error) => {
+        logger.error('Failed to load profile', error);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const profileName = profile?.name?.trim();
+  const optimizedFor = profileName && profileName.length > 0 ? profileName : 'dein Kind';
 
   const ButtonComponent = ({
     title,
@@ -124,21 +150,16 @@ export default function ParentScreen({ navigation }: any) {
       <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
         Elternbereich
       </Text>
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Kamera aktiv</Text>
-        <Switch
-          value={isCameraActive}
-          onValueChange={(value) => setIsCameraActive(value)}
-          accessibilityLabel="Kamera umschalten"
-        />
-      </View>
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>DGS-Video anzeigen</Text>
-        <Switch
-          value={useDgs}
-          onValueChange={setUseDgs}
-          accessibilityLabel="DGS-Video zeigen"
-        />
+      <View style={[styles.infoContainer, highContrast && styles.infoContainerHC]}>
+        <Text
+          style={[
+            styles.infoText,
+            largeText && styles.infoTextLarge,
+            highContrast && styles.infoTextHC,
+          ]}
+        >
+          {`Alle wichtigen Einstellungen werden automatisch für ${optimizedFor} optimiert. Nutze die Bereiche unten, um Unterstützung, Berichte und Verwaltung schnell zu erreichen.`}
+        </Text>
       </View>
       <ButtonComponent
         title="Profilverwaltung"

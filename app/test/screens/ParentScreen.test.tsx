@@ -9,6 +9,18 @@ jest.mock('../../src/services/feedbackService', () => ({
   childHaptic: jest.fn(),
 }));
 
+jest.mock('../../src/utils/logger', () => ({
+  logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
+}));
+
+jest.mock('../../src/storage', () => {
+  const actual = jest.requireActual('../../src/storage');
+  return {
+    ...actual,
+    loadProfile: jest.fn(() => Promise.resolve({ id: 'profile-1', name: 'Amy' })),
+  };
+});
+
 import ParentScreen from '../../src/screens/ParentScreen';
 import { ServicesContext, type Services } from '../../src/context/ServicesContext';
 
@@ -27,6 +39,13 @@ describe('ParentScreen interactions', () => {
         <ParentScreen navigation={navigation} />
       </ServicesContext.Provider>,
     );
+
+  const loadProfileMock = require('../../src/storage').loadProfile as jest.Mock;
+
+  beforeEach(() => {
+    loadProfileMock.mockReset();
+    loadProfileMock.mockResolvedValue({ id: 'profile-1', name: 'Amy' });
+  });
 
   it('navigates to admin management area', async () => {
     const navigate = jest.fn();
@@ -74,5 +93,24 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(goBack).toHaveBeenCalled();
+  });
+
+  it('personalizes caregiver guidance with the active profile name', async () => {
+    loadProfileMock.mockResolvedValueOnce({ id: 'p1', name: 'Mila' });
+    const navigate = jest.fn();
+    let component!: renderer.ReactTestRenderer;
+
+    await act(async () => {
+      component = renderWithServices({ navigate, goBack: jest.fn() });
+      await Promise.resolve();
+    });
+
+    const guidanceCopyNodes = component.root.findAll(
+      (node) =>
+        typeof node.props?.children === 'string' &&
+        node.props.children.includes('Mila'),
+    );
+
+    expect(guidanceCopyNodes).not.toHaveLength(0);
   });
 });
