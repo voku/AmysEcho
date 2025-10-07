@@ -4290,6 +4290,8 @@
   // webview/core/GestureRecognitionOrchestrator.ts
   var FALLBACK_CONFIDENCE_THRESHOLD = typeof window.__fallbackThreshold === "number" ? window.__fallbackThreshold : 0.35;
   var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.05;
+  var DEFAULT_GESTURE_SIZE_TOLERANCE = 0.3;
+  var DEFAULT_PARTIAL_THRESHOLD = 0.6;
   var FRAME_BATCH_INTERVAL_MS = 400;
   var FRAME_BUFFER_LIMIT = 24;
   var GestureRecognitionOrchestrator = class {
@@ -4324,8 +4326,8 @@
       this.emergencySystem = new EmergencyGestureSystem();
       this.handStabilityAssistant = new HandStabilityAssistant();
       this.batteryMonitor = new BatteryMonitor();
-      this.sizeNormalizer.setTolerance(this.config.processing?.sizeTolerance ?? 0.3);
-      this.partialDetector.setThreshold(this.config.processing?.partialThreshold ?? 0.6);
+      this.applyGestureSizeTolerance(this.config.gestures?.sizeTolerance);
+      this.applyPartialThreshold(this.config.gestures?.partialThreshold);
     }
     /**
      * Set up the processing pipeline with all necessary steps
@@ -4816,6 +4818,38 @@
       messageBatcher.forceFlush();
       setFrameCaptureEnabled(false);
       this.memoryOptimizer.performCleanup();
+    }
+    sanitizeGestureSizeTolerance(value, fallback) {
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        return fallback;
+      }
+      return Math.max(0, value);
+    }
+    applyGestureSizeTolerance(value) {
+      const currentTolerance = this.config.gestures?.sizeTolerance ?? DEFAULT_GESTURE_SIZE_TOLERANCE;
+      const sanitized = this.sanitizeGestureSizeTolerance(value, currentTolerance);
+      this.config.gestures.sizeTolerance = sanitized;
+      this.sizeNormalizer.setTolerance(sanitized);
+    }
+    applyPartialThreshold(value) {
+      const fallback = this.config.gestures?.partialThreshold ?? DEFAULT_PARTIAL_THRESHOLD;
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        this.partialDetector.setThreshold(fallback);
+        this.config.gestures.partialThreshold = fallback;
+        return;
+      }
+      const clamped = Math.max(0, Math.min(1, value));
+      this.partialDetector.setThreshold(clamped);
+      this.config.gestures.partialThreshold = clamped;
+    }
+    setGestureSizeTolerance(tolerance) {
+      this.applyGestureSizeTolerance(tolerance);
+    }
+    updateGestureSizeTolerance(tolerance) {
+      this.applyGestureSizeTolerance(tolerance);
+    }
+    setGestureTolerance(tolerance) {
+      this.applyGestureSizeTolerance(tolerance);
     }
   };
   var LandmarkPreprocessingStep = class {

@@ -31,6 +31,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD =
 const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 
+const DEFAULT_GESTURE_SIZE_TOLERANCE = 0.3;
+const DEFAULT_PARTIAL_THRESHOLD = 0.6;
+
 interface GestureMessagePayload {
   type: 'gesture';
   gesture?: string;
@@ -132,8 +135,8 @@ export class GestureRecognitionOrchestrator {
     this.batteryMonitor = new BatteryMonitor();
 
     // Configure components
-    this.sizeNormalizer.setTolerance(this.config.processing?.sizeTolerance ?? 0.3);
-    this.partialDetector.setThreshold(this.config.processing?.partialThreshold ?? 0.6);
+    this.applyGestureSizeTolerance(this.config.gestures?.sizeTolerance);
+    this.applyPartialThreshold(this.config.gestures?.partialThreshold);
   }
 
   /**
@@ -746,6 +749,47 @@ export class GestureRecognitionOrchestrator {
     messageBatcher.forceFlush();
     setFrameCaptureEnabled(false);
     this.memoryOptimizer.performCleanup();
+  }
+
+  private sanitizeGestureSizeTolerance(value: unknown, fallback: number): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return fallback;
+    }
+
+    return Math.max(0, value);
+  }
+
+  private applyGestureSizeTolerance(value: unknown): void {
+    const currentTolerance = this.config.gestures?.sizeTolerance ?? DEFAULT_GESTURE_SIZE_TOLERANCE;
+    const sanitized = this.sanitizeGestureSizeTolerance(value, currentTolerance);
+
+    this.config.gestures.sizeTolerance = sanitized;
+    this.sizeNormalizer.setTolerance(sanitized);
+  }
+
+  private applyPartialThreshold(value: unknown): void {
+    const fallback = this.config.gestures?.partialThreshold ?? DEFAULT_PARTIAL_THRESHOLD;
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      this.partialDetector.setThreshold(fallback);
+      this.config.gestures.partialThreshold = fallback;
+      return;
+    }
+
+    const clamped = Math.max(0, Math.min(1, value));
+    this.partialDetector.setThreshold(clamped);
+    this.config.gestures.partialThreshold = clamped;
+  }
+
+  setGestureSizeTolerance(tolerance: number): void {
+    this.applyGestureSizeTolerance(tolerance);
+  }
+
+  updateGestureSizeTolerance(tolerance: number): void {
+    this.applyGestureSizeTolerance(tolerance);
+  }
+
+  setGestureTolerance(tolerance: number): void {
+    this.applyGestureSizeTolerance(tolerance);
   }
 }
 
