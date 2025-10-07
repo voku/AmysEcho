@@ -769,25 +769,29 @@ export class GestureRecognitionOrchestrator {
 
   private applyPartialThreshold(value: unknown): void {
     const fallback = this.config.gestures?.partialThreshold ?? DEFAULT_PARTIAL_THRESHOLD;
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      this.partialDetector.setThreshold(fallback);
-      this.config.gestures.partialThreshold = fallback;
-      return;
-    }
+    const sanitized =
+      typeof value === 'number' && Number.isFinite(value)
+        ? Math.max(0, Math.min(1, value))
+        : fallback;
 
-    const clamped = Math.max(0, Math.min(1, value));
-    this.partialDetector.setThreshold(clamped);
-    this.config.gestures.partialThreshold = clamped;
+    this.partialDetector.setThreshold(sanitized);
+    this.config.gestures.partialThreshold = sanitized;
   }
 
   setGestureSizeTolerance(tolerance: number): void {
     this.applyGestureSizeTolerance(tolerance);
   }
 
+  /**
+   * @deprecated Use `setGestureSizeTolerance` instead. This legacy alias will be removed in a future release.
+   */
   updateGestureSizeTolerance(tolerance: number): void {
     this.applyGestureSizeTolerance(tolerance);
   }
 
+  /**
+   * @deprecated Use `setGestureSizeTolerance` instead. This legacy alias will be removed in a future release.
+   */
   setGestureTolerance(tolerance: number): void {
     this.applyGestureSizeTolerance(tolerance);
   }

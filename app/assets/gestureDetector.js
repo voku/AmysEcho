@@ -4833,21 +4833,22 @@
     }
     applyPartialThreshold(value) {
       const fallback = this.config.gestures?.partialThreshold ?? DEFAULT_PARTIAL_THRESHOLD;
-      if (typeof value !== "number" || !Number.isFinite(value)) {
-        this.partialDetector.setThreshold(fallback);
-        this.config.gestures.partialThreshold = fallback;
-        return;
-      }
-      const clamped = Math.max(0, Math.min(1, value));
-      this.partialDetector.setThreshold(clamped);
-      this.config.gestures.partialThreshold = clamped;
+      const sanitized = typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : fallback;
+      this.partialDetector.setThreshold(sanitized);
+      this.config.gestures.partialThreshold = sanitized;
     }
     setGestureSizeTolerance(tolerance) {
       this.applyGestureSizeTolerance(tolerance);
     }
+    /**
+     * @deprecated Use `setGestureSizeTolerance` instead. This legacy alias will be removed in a future release.
+     */
     updateGestureSizeTolerance(tolerance) {
       this.applyGestureSizeTolerance(tolerance);
     }
+    /**
+     * @deprecated Use `setGestureSizeTolerance` instead. This legacy alias will be removed in a future release.
+     */
     setGestureTolerance(tolerance) {
       this.applyGestureSizeTolerance(tolerance);
     }
