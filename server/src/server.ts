@@ -51,8 +51,6 @@ import {
   CentroidModel,
 } from './types.js';
 import {
-  saveAnalyticsToFile,
-  loadAnalyticsFromFile,
   computeSummaryMetrics,
   loadTelemetry,
   saveTelemetry,
@@ -135,6 +133,13 @@ const dialogLimiter = rateLimit({
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: config.apiLimit,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const analyticsPostLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -1330,32 +1335,39 @@ app.get('/model-metadata', legacyAuth, async (req: Request, res: Response) => {
   }
 });
 
-app.post('/analytics', legacyAuth, async (_req: Request, res: Response) => {
-  try {
-    const analytics = computeLearningAnalytics(dbInstance);
-    const existingIndex = dbInstance.learningAnalytics.findIndex(
-      (entry) => entry.id === analytics.id,
-    );
-    if (existingIndex >= 0) {
-      dbInstance.learningAnalytics[existingIndex] = analytics;
-    } else {
-      dbInstance.learningAnalytics.push(analytics);
+app.post(
+  '/analytics',
+  legacyAuth,
+  analyticsPostLimiter,
+  async (_req: Request, res: Response) => {
+    try {
+      const analytics = computeLearningAnalytics(dbInstance);
+      const existingIndex = dbInstance.learningAnalytics.findIndex(
+        (entry) => entry.id === analytics.id,
+      );
+      if (existingIndex >= 0) {
+        dbInstance.learningAnalytics[existingIndex] = analytics;
+      } else {
+        dbInstance.learningAnalytics.push(analytics);
+      }
+      await withFileLock(DB_FILE_PATH, async () => {
+        await saveDatabase(dbInstance, DB_FILE_PATH);
+      });
+      res.json(analytics);
+    } catch (err) {
+      console.error('Save analytics failed:', err);
+      res.status(500).json({ error: 'Failed to save analytics' });
     }
-    await saveAnalyticsToFile(analytics);
-    res.json(analytics);
-  } catch (err) {
-    console.error('Save analytics failed:', err);
-    res.status(500).json({ error: 'Failed to save analytics' });
-  }
-});
+  },
+);
 
 app.get('/analytics', legacyAuth, async (_req: Request, res: Response) => {
-  const data = await loadAnalyticsFromFile();
-  if (!data) {
+  const analytics = dbInstance.learningAnalytics.find((entry) => entry.id === 'default');
+  if (!analytics) {
     res.status(404).json({ error: 'Analytics not found' });
     return;
   }
-  res.json(data);
+  res.json(analytics);
 });
 
 // Add error handling middleware

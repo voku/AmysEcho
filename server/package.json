@@ -39,6 +39,7 @@
   "scripts": {
     "test": "npm run test:ts && npm run test:py",
     "test:ts": "jest",
+    "pretest:py": "npm run build",
     "test:py": "PYTHONPATH=./src:./ pytest -q",
     "train:mlp": "python3 src/amyserver_tools/train_mlp.py",
     "type-check": "tsc --noEmit --project tsconfig.json",

@@ -9,13 +9,11 @@ import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 DB_PATH = SERVER_DIR / "db.json"
-ANALYTICS_PATH = SERVER_DIR / "analytics.json"
 
 
 @pytest.fixture
 def analytics_seed():
     original_db = DB_PATH.read_text() if DB_PATH.exists() else None
-    original_analytics = ANALYTICS_PATH.read_text() if ANALYTICS_PATH.exists() else None
 
     now = int(time.time() * 1000)
     week = 7 * 24 * 60 * 60 * 1000
@@ -69,12 +67,8 @@ def analytics_seed():
     }
 
     DB_PATH.write_text(json.dumps(seeded, indent=2))
-    if ANALYTICS_PATH.exists():
-        ANALYTICS_PATH.unlink()
-
     yield {
         "db_path": DB_PATH,
-        "analytics_path": ANALYTICS_PATH,
     }
 
     if original_db is not None:
@@ -82,10 +76,6 @@ def analytics_seed():
     else:
         DB_PATH.unlink(missing_ok=True)
 
-    if original_analytics is not None:
-        ANALYTICS_PATH.write_text(original_analytics)
-    else:
-        ANALYTICS_PATH.unlink(missing_ok=True)
 
 
 @pytest.fixture
@@ -121,19 +111,22 @@ def test_server_computes_analytics(analytics_seed, seeded_server, base_url):
         method="POST",
         headers={
             "Authorization": "Bearer testtoken",
-            "Content-Type": "application/json",
         },
-        data=json.dumps({}).encode(),
+        data=b"",
     )
 
     with urllib.request.urlopen(req, timeout=5) as resp:
         assert resp.getcode() == 200
         body = json.loads(resp.read())
 
-    assert ANALYTICS_PATH.exists()
-    saved = json.loads(ANALYTICS_PATH.read_text())
+    saved_db = json.loads(DB_PATH.read_text())
+    saved = next(
+        (entry for entry in saved_db.get("learningAnalytics", []) if entry.get("id") == "default"),
+        None,
+    )
 
-    expected = compute_expected(analytics_seed["db_path"], saved["lastCalculated"])
+    assert saved is not None
 
-    assert body == saved
-    assert saved == expected
+    expected = compute_expected(analytics_seed["db_path"], body["lastCalculated"])
+
+    assert body == saved == expected

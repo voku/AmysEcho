@@ -1,6 +1,5 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { loadAnalyticsFromFile } from '../services/analyticsService.js';
 import {
   TRAINED_MODEL_PATH,
   TRAINING_MANIFEST_PATH,
@@ -157,7 +156,8 @@ router.get('/', (_req, res) => {
 });
 
 router.get('/analytics', limiter, async (_req, res) => {
-  const analytics = await loadAnalyticsFromFile();
+  const db = await loadDatabase(DB_FILE_PATH);
+  const analytics = db.learningAnalytics.find((entry) => entry.id === 'default');
   if (!analytics) {
     res.status(404).send('No analytics available');
     return;

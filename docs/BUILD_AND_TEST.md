@@ -29,6 +29,16 @@ npm test
 
 If all tests pass, you should see a success message in the console. This indicates that the core functionality of the application is working as expected.
 
+## Testing the Server
+
+The backend relies on both Jest (TypeScript) and Pytest (Python). Make sure Node.js 18 or newer is installed so the compiled server bundle is available to the Python suite. Before running the Python tests, compile the TypeScript sources so `dist/services/analyticsService.js` exists:
+
+```bash
+npm run build --prefix server
+```
+
+Running `npm test --prefix server` automatically builds the server before invoking Pytest, so the manual build step is only necessary when executing `npm run test:py --prefix server` directly.
+
 ## Running the Server and App
 
 To exercise the full training and recognition flow, start both the Node server and the Expo client from the repository root:
