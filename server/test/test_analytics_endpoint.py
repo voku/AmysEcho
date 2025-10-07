@@ -165,3 +165,34 @@ def test_server_allows_metric_overrides(analytics_seed, seeded_server, base_url)
     for key, value in payload.items():
         assert body[key] == value
         assert saved[key] == value
+
+
+def test_server_accepts_string_metrics(analytics_seed, seeded_server, base_url):
+    payload = {"successRate24h": "0.25", "avgConfidenceScore": "0.33"}
+    req = urllib.request.Request(
+        f"{base_url}/analytics",
+        method="POST",
+        headers={
+            "Authorization": "Bearer testtoken",
+            "Content-Type": "application/json",
+        },
+        data=json.dumps(payload).encode(),
+    )
+
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        assert resp.getcode() == 200
+        body = json.loads(resp.read())
+
+    saved_db = json.loads(DB_PATH.read_text())
+    saved = next(
+        (entry for entry in saved_db.get("learningAnalytics", []) if entry.get("id") == "default"),
+        None,
+    )
+
+    assert saved is not None
+
+    # Values are coerced to floats with two decimal precision.
+    assert body["successRate24h"] == pytest.approx(0.25)
+    assert body["avgConfidenceScore"] == pytest.approx(0.33)
+    assert saved["successRate24h"] == pytest.approx(0.25)
+    assert saved["avgConfidenceScore"] == pytest.approx(0.33)

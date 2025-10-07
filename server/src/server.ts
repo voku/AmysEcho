@@ -1354,35 +1354,72 @@ app.post(
   analyticsPostLimiter,
   async (req: Request, res: Response) => {
     try {
-      const analytics = computeLearningAnalytics(dbInstance);
+      const computedAnalytics = computeLearningAnalytics(dbInstance);
+      const existingEntry = dbInstance.learningAnalytics.find(
+        (entry) => entry.id === computedAnalytics.id,
+      );
+      const analytics: LearningAnalytics = {
+        ...(existingEntry ?? {}),
+        ...computedAnalytics,
+      };
+
       const overrides =
         typeof req.body === 'object' && req.body !== null ? req.body : {};
 
-      const coerceNumber = (value: unknown): number | undefined =>
-        typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+      const coerceDecimal = (value: unknown): number | undefined => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          return Number(value.toFixed(2));
+        }
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if (trimmed.length === 0) {
+            return undefined;
+          }
+          const parsed = Number.parseFloat(trimmed);
+          if (Number.isFinite(parsed)) {
+            return Number(parsed.toFixed(2));
+          }
+        }
+        return undefined;
+      };
 
-      const overrideSuccessRate24h = coerceNumber(
+      const coerceNumber = (value: unknown): number | undefined => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          return value;
+        }
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if (trimmed.length === 0) {
+            return undefined;
+          }
+          const parsed = Number.parseFloat(trimmed);
+          return Number.isFinite(parsed) ? parsed : undefined;
+        }
+        return undefined;
+      };
+
+      const overrideSuccessRate24h = coerceDecimal(
         (overrides as { successRate24h?: unknown }).successRate24h,
       );
       if (overrideSuccessRate24h !== undefined) {
         analytics.successRate24h = overrideSuccessRate24h;
       }
 
-      const overrideSuccessRate7d = coerceNumber(
+      const overrideSuccessRate7d = coerceDecimal(
         (overrides as { successRate7d?: unknown }).successRate7d,
       );
       if (overrideSuccessRate7d !== undefined) {
         analytics.successRate7d = overrideSuccessRate7d;
       }
 
-      const overrideAvgConfidenceScore = coerceNumber(
+      const overrideAvgConfidenceScore = coerceDecimal(
         (overrides as { avgConfidenceScore?: unknown }).avgConfidenceScore,
       );
       if (overrideAvgConfidenceScore !== undefined) {
         analytics.avgConfidenceScore = overrideAvgConfidenceScore;
       }
 
-      const overrideImprovementTrend = coerceNumber(
+      const overrideImprovementTrend = coerceDecimal(
         (overrides as { improvementTrend?: unknown }).improvementTrend,
       );
       if (overrideImprovementTrend !== undefined) {
@@ -1401,8 +1438,8 @@ app.post(
         'string'
       ) {
         const gestureDefinitionId = (overrides as { gestureDefinitionId: string })
-          .gestureDefinitionId;
-        if (gestureDefinitionId.trim().length > 0) {
+          .gestureDefinitionId.trim();
+        if (gestureDefinitionId.length > 0) {
           analytics.gestureDefinitionId = gestureDefinitionId;
         }
       }
