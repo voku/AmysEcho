@@ -829,6 +829,7 @@ export default function RecognitionScreen({
                 }}
                 onModelUpdateStatus={handleModelUpdateStatus}
                 facingMode={facingMode}
+                gestureSizeTolerance={gestureSizeTolerance}
               />
 
               <View style={StyleSheet.absoluteFillObject} pointerEvents="none">

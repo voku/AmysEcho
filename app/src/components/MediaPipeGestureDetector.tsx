@@ -95,6 +95,7 @@ interface Props {
   onModelUpdateStatus?: (status: 'idle' | 'updating' | 'complete' | 'error') => void;
   facingMode?: 'user' | 'environment';
   onFrameBatch?: (payload: FrameBatchPayload) => void;
+  gestureSizeTolerance?: number;
 }
 
 const WEBVIEW_UNAVAILABLE_TEXT = 'Ich brauche einen Moment. Lass uns gleich weitermachen!';
@@ -122,6 +123,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     onModelUpdateStatus,
     onFrameBatch,
     facingMode = 'user',
+    gestureSizeTolerance = 0.3,
   },
   ref,
 ) => {
@@ -344,6 +346,18 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     [],
   );
 
+  const sanitizedGestureSizeTolerance = useMemo(() => {
+    if (typeof gestureSizeTolerance !== 'number' || !Number.isFinite(gestureSizeTolerance)) {
+      return 0.3;
+    }
+
+    if (gestureSizeTolerance < 0) {
+      return 0;
+    }
+
+    return gestureSizeTolerance;
+  }, [gestureSizeTolerance]);
+
   const htmlContent = useMemo(() => {
     const tapToStart = escapeJs(TAP_TO_START_TEXT);
     const recognizerFailed = escapeJs(RECOGNIZER_INIT_FAILED_TEXT);
@@ -363,7 +377,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     window.__fallbackThreshold = ${FALLBACK_CONFIDENCE_THRESHOLD};
     window.__facingMode = '${escapeJs(facingMode)}';
     window.__mirrorOverlay = ${facingMode === 'user'};
-    window.__gestureSizeTolerance = 0.3;
+    window.__gestureSizeTolerance = ${sanitizedGestureSizeTolerance};
     window.__autostartCamera = false;
   </script>
   <script>
@@ -406,7 +420,35 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
 </head>
 <body></body>
 </html>`;
-  }, [facingMode, inlineGestureDetectorSource]);
+  }, [facingMode, inlineGestureDetectorSource, sanitizedGestureSizeTolerance]);
+
+  useEffect(() => {
+    const tolerance = sanitizedGestureSizeTolerance;
+
+    if (!webviewRef.current || typeof webviewRef.current.injectJavaScript !== 'function') {
+      return;
+    }
+
+    try {
+      webviewRef.current.injectJavaScript(
+        `(() => {
+          var value = ${tolerance};
+          window.__gestureSizeTolerance = value;
+          try {
+            if (window.__gestureOrchestrator && typeof window.__gestureOrchestrator.updateGestureSizeTolerance === 'function') {
+              window.__gestureOrchestrator.updateGestureSizeTolerance(value);
+            } else if (window.__gestureOrchestrator && typeof window.__gestureOrchestrator.setGestureTolerance === 'function') {
+              window.__gestureOrchestrator.setGestureTolerance(value);
+            }
+          } catch (error) {
+            console.warn('Failed to apply gesture size tolerance', error);
+          }
+        })(); true;`,
+      );
+    } catch (err) {
+      logger.warn('Failed to inject gesture size tolerance update', err);
+    }
+  }, [sanitizedGestureSizeTolerance]);
 
   const handlePermissionRequest = useCallback((event: WebViewPermissionRequestEvent) => {
     try {

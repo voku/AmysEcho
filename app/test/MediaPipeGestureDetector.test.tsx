@@ -161,6 +161,50 @@ describe('MediaPipeGestureDetector', () => {
     debugSpy.mockRestore();
   });
 
+  it('applies gesture size tolerance to the WebView and updates when the prop changes', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          gestureSizeTolerance={0.45}
+        />,
+      );
+    });
+
+    const initialWebview = component!.root.findByType('mock-webview');
+    const initialInject = initialWebview.props.injectJavaScript as jest.Mock;
+
+    expect(initialWebview.props.htmlContent).toContain('window.__gestureSizeTolerance = 0.45;');
+    expect(initialInject).toHaveBeenCalledWith(expect.stringContaining('0.45'));
+
+    act(() => {
+      component!.update(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          gestureSizeTolerance={0.6}
+        />,
+      );
+    });
+
+    const updatedWebview = component!.root.findByType('mock-webview');
+    const updatedInject = updatedWebview.props.injectJavaScript as jest.Mock;
+
+    expect(updatedWebview.props.htmlContent).toContain('window.__gestureSizeTolerance = 0.6;');
+    expect(updatedInject).toHaveBeenCalledWith(expect.stringContaining('0.6'));
+
+    if (updatedInject === initialInject) {
+      expect(updatedInject).toHaveBeenCalledTimes(2);
+    } else {
+      expect(initialInject).toHaveBeenCalledTimes(1);
+      expect(updatedInject).toHaveBeenCalledTimes(1);
+    }
+  });
+
   it('calls onError when the message data is invalid JSON', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
