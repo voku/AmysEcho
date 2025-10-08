@@ -111,7 +111,7 @@ assert((mode & 0o022) === 0, 'Insecure file permissions');
 - **Keyboard Navigation**: Tests keyboard-only gesture triggering
 - **High Contrast Support**: Ensures visibility in high contrast modes
 - **Focus Management**: Validates proper focus indicators
-- **Screen Reader Support**: *Alpha-Scope Hinweis – derzeit ausgesetzt*
+- **Screen Reader Support**: *Note: Out of scope for Alpha release*
 
 **Accessibility Requirements**:
 ```typescript
