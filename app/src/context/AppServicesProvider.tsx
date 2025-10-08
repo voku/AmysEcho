@@ -1,7 +1,3 @@
-import { runDailyJobs, checkAllGesturesForDecliningAccuracy, checkPracticeRecommendations } from '../services/dailyJobs';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const LAST_DAILY_JOB_KEY = 'lastDailyJob';
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import {
   audioService,
@@ -133,23 +129,6 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           } catch (e) {
             logger.warn('Failed to upload telemetry batch', e as Error);
           }
-
-          const now = new Date().toISOString().slice(0, 10);
-          AsyncStorage.getItem(LAST_DAILY_JOB_KEY)
-            .then(lastRun => {
-              if (lastRun !== now) {
-                runDailyJobs()
-                  .then(() => {
-                    return AsyncStorage.setItem(LAST_DAILY_JOB_KEY, now).catch(() => {});
-                  })
-                  .then(() => {
-                    checkAllGesturesForDecliningAccuracy();
-                    checkPracticeRecommendations();
-                  })
-                  .catch(() => {});
-              }
-            })
-            .catch(() => {});
 
           unsubscribeModelUpdates = onMlpModelUpdated(() => {
             logger.info('MLP model update event received');

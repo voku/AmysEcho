@@ -5,11 +5,6 @@ jest.mock('../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false }),
 }));
 
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn().mockResolvedValue(null),
-  setItem: jest.fn().mockResolvedValue(undefined),
-}));
-
 jest.mock('expo-asset', () => ({
   Asset: {
     fromModule: () => ({
@@ -54,7 +49,6 @@ jest.mock('../src/services/adaptiveLearningService', () => ({
   adaptiveLearningService: {},
 }));
 
-const AsyncStorage = require('@react-native-async-storage/async-storage');
 const storage = require('../src/storage');
 const mockTelemetry = {
   dump: jest.fn().mockResolvedValue([]),
@@ -74,12 +68,6 @@ jest.mock('../src/services/dgsModelClient', () => ({
   onMlpModelUpdated: mockOnMlpModelUpdated,
 }));
 
-const mockDailyJobs = {
-  runDailyJobs: createResolvedMock(),
-  checkAllGesturesForDecliningAccuracy: jest.fn(),
-  checkPracticeRecommendations: jest.fn(),
-};
-
 const actualServices = jest.requireActual('../src/services');
 
 const audioServiceMock = {
@@ -98,22 +86,11 @@ const mockServices = {
   checkForModelUpdate: checkForModelUpdateMock,
   shouldAllowModelRefresh: shouldAllowModelRefreshMock,
   syncTrainingData: createResolvedMock(),
-  runDailyJobs: mockDailyJobs.runDailyJobs,
-  checkAllGesturesForDecliningAccuracy: mockDailyJobs.checkAllGesturesForDecliningAccuracy,
-  checkPracticeRecommendations: mockDailyJobs.checkPracticeRecommendations,
 };
 
 jest.mock('../src/services', () => ({ __esModule: true, ...mockServices }));
 jest.mock('../src/services/index', () => ({ __esModule: true, ...mockServices }));
 jest.mock('../services', () => ({ __esModule: true, ...mockServices }));
-jest.mock('../src/services/dailyJobs', () => ({
-  __esModule: true,
-  runDailyJobs: mockDailyJobs.runDailyJobs,
-  checkAllGesturesForDecliningAccuracy: mockDailyJobs.checkAllGesturesForDecliningAccuracy,
-  checkPracticeRecommendations: mockDailyJobs.checkPracticeRecommendations,
-}));
-
-
 const { AppServicesProvider } = require('../src/context/AppServicesProvider');
 const { useServices } = require('../src/context/ServicesContext');
 const ErrorMessage = require('../src/components/ErrorMessage').default;
@@ -187,15 +164,9 @@ describe('AppServicesProvider', () => {
     shouldAllowModelRefreshMock.mockReset().mockResolvedValue(true);
     mockServices.syncTrainingData.mockReset().mockResolvedValue(undefined);
     mockServices.uploadTelemetry.mockReset().mockResolvedValue(undefined);
-    mockDailyJobs.runDailyJobs.mockReset().mockResolvedValue(undefined);
-    mockDailyJobs.checkAllGesturesForDecliningAccuracy.mockReset();
-    mockDailyJobs.checkPracticeRecommendations.mockReset();
 
     mockOnMlpModelUpdated.mockClear();
     listeners.clear();
-
-    AsyncStorage.getItem.mockReset().mockResolvedValue(null);
-    AsyncStorage.setItem.mockReset().mockResolvedValue(undefined);
 
     storage.loadActiveProfileId.mockReset().mockResolvedValue(null);
     storage.loadCustomModelUri.mockReset().mockResolvedValue(null);
@@ -251,34 +222,6 @@ describe('AppServicesProvider', () => {
     await expectChildRendered(component);
   });
 
-  it('runs daily jobs when not run today', async () => {
-    // This test covers the branch for checking if daily jobs should run
-    audioServiceMock.initialize.mockResolvedValueOnce();
-
-    const component = await renderProvider();
-
-    await expectChildRendered(component);
-
-    await expectEventually(() => {
-      expect(mockDailyJobs.runDailyJobs).toHaveBeenCalled();
-    });
-  });
-
-  it('skips daily jobs when already run today', async () => {
-    audioServiceMock.initialize.mockResolvedValueOnce();
-
-    // Mock AsyncStorage to return today's date
-    const today = new Date().toISOString().slice(0, 10);
-    AsyncStorage.getItem.mockResolvedValueOnce(today);
-
-    const component = await renderProvider();
-
-    await expectChildRendered(component);
-
-    await flushAsync();
-    expect(mockDailyJobs.runDailyJobs).not.toHaveBeenCalled();
-  });
-
   it('handles telemetry dump failures gracefully', async () => {
     audioServiceMock.initialize.mockResolvedValueOnce();
 
@@ -322,24 +265,6 @@ describe('AppServicesProvider', () => {
     expectNoErrorMessage(component);
     await expectEventually(() => {
       expect(logger.warn).toHaveBeenCalledWith('Failed to upload telemetry batch', expect.any(Error));
-    });
-    expect(logger.error).not.toHaveBeenCalled();
-  });
-
-  it('handles AsyncStorage failures gracefully', async () => {
-    audioServiceMock.initialize.mockResolvedValueOnce();
-
-    // Mock AsyncStorage to fail
-    AsyncStorage.getItem.mockRejectedValue(new Error('Storage failed'));
-    AsyncStorage.setItem.mockRejectedValue(new Error('Storage failed'));
-
-    const component = await renderProvider();
-
-    await expectChildRendered(component);
-
-    expectNoErrorMessage(component);
-    await expectEventually(() => {
-      expect(AsyncStorage.getItem).toHaveBeenCalled();
     });
     expect(logger.error).not.toHaveBeenCalled();
   });
