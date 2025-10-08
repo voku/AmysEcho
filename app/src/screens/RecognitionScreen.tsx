@@ -756,7 +756,7 @@ export default function RecognitionScreen({
     if (!lastRecognizedGesture?.dgsVideoUri && showDgsVideo) {
       setShowDgsVideo(false);
     }
-  }, [lastRecognizedGesture, setShowDgsVideo, showDgsVideo]);
+  }, [lastRecognizedGesture, showDgsVideo]);
 
   return (
     <>
