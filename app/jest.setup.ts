@@ -9,7 +9,10 @@ console.error = (...args: any[]) => {
   const msg = args[0];
   if (typeof msg === 'string') {
     if (msg.includes('react-test-renderer is deprecated')) return;
-    if (msg.startsWith('[ERROR]')) return; // logger error in tests
+    const normalized = msg.trimStart();
+    if (normalized.startsWith('[ERROR]') || normalized.includes(' [ERROR]')) {
+      return; // suppress logger error output (timestamps prefix lines in tests)
+    }
   }
   originalConsoleError(...args);
 };
@@ -18,7 +21,11 @@ const originalConsoleWarn = console.warn;
 console.warn = (...args: any[]) => {
   const msg = args[0];
   if (typeof msg === 'string') {
-    if (msg.startsWith('[🍉]') || msg.startsWith('[WARN]')) return; // Suppress WatermelonDB and logger warnings
+    const normalized = msg.trimStart();
+    if (normalized.startsWith('[🍉]')) return; // Suppress WatermelonDB noise
+    if (normalized.startsWith('[WARN]') || normalized.includes(' [WARN]')) {
+      return; // Suppress logger warnings that include timestamps
+    }
   }
   originalConsoleWarn(...args);
 };
