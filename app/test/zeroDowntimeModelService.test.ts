@@ -62,7 +62,7 @@ const mockCreateDownloadResumable = jest.fn(
   },
 );
 
-jest.mock('expo-file-system', () => ({
+jest.mock('expo-file-system/legacy', () => ({
   __esModule: true,
   cacheDirectory: '/mock-cache/',
   documentDirectory: '/mock-docs/',
@@ -91,7 +91,7 @@ jest.mock('../src/utils/logger', () => ({
 }));
 
 import { Buffer } from 'buffer';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import {
   zeroDowntimeModelService,

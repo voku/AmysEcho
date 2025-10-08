@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import type { FileSystemDownloadResult } from 'expo-file-system/legacy';
 
 import { logger } from '../utils/logger';
 
@@ -54,7 +55,7 @@ class ZeroDowntimeModelService {
   }
 
   private constructor() {
-    this.loadCurrentModel().catch(error => {
+    this.loadCurrentModel().catch((error: unknown) => {
       logger.warn('Failed to load stored models during initialization:', error);
     });
   }
@@ -162,7 +163,7 @@ class ZeroDowntimeModelService {
       // Clean up old model in background (don't block)
       if (oldModel) {
         setTimeout(() => {
-          this.cleanupOldModel(oldModel).catch(error =>
+          this.cleanupOldModel(oldModel).catch((error: unknown) =>
             logger.warn('Failed to cleanup old model:', error)
           );
         }, 1000);
@@ -238,7 +239,7 @@ class ZeroDowntimeModelService {
 
     this.abortController?.abort();
     if (this.currentDownloadTask) {
-      void this.currentDownloadTask.cancelAsync().catch(error => {
+      void this.currentDownloadTask.cancelAsync().catch((error: unknown) => {
         logger.warn('Failed to cancel download task:', error);
       });
     }
@@ -302,8 +303,7 @@ class ZeroDowntimeModelService {
           this.updateStatus = {
             status: 'downloading',
             progress: 0,
-            message: 'Downloading...',
-            estimatedTimeRemaining: undefined
+            message: 'Downloading...'
           };
         }
 
@@ -317,14 +317,14 @@ class ZeroDowntimeModelService {
     const abortSignal = this.abortController?.signal ?? null;
     const handleAbort = () => {
       abortError = new DownloadAbortedError();
-      void downloadResumable.cancelAsync().catch(error => {
+      void downloadResumable.cancelAsync().catch((error: unknown) => {
         logger.warn('Failed to cancel download task during abort:', error);
       });
     };
 
     abortSignal?.addEventListener('abort', handleAbort, { once: true });
 
-    let downloadResult: FileSystem.FileSystemDownloadResult | null = null;
+    let downloadResult: FileSystemDownloadResult | undefined;
 
     try {
       downloadResult = await downloadResumable.downloadAsync();
@@ -448,7 +448,7 @@ class ZeroDowntimeModelService {
     this.updateCallbacks.forEach(callback => {
       try {
         callback(this.updateStatus);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.warn('Update callback failed:', error);
       }
     });
@@ -463,7 +463,7 @@ class ZeroDowntimeModelService {
     try {
       const data = JSON.stringify(this.currentModel);
       await AsyncStorage.setItem(this.STORAGE_KEYS.current, data);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('Failed to save current model:', error);
     }
   }
@@ -480,7 +480,7 @@ class ZeroDowntimeModelService {
 
       this.currentModel = currentData ? JSON.parse(currentData) : null;
       this.pendingModel = pendingData ? JSON.parse(pendingData) : null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('Failed to load current model:', error);
       this.currentModel = null;
       this.pendingModel = null;
@@ -494,7 +494,7 @@ class ZeroDowntimeModelService {
     try {
       const data = await AsyncStorage.getItem(this.STORAGE_KEYS.backup);
       return data ? JSON.parse(data) : null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('Failed to load backup model:', error);
     }
     return null;
@@ -513,7 +513,7 @@ class ZeroDowntimeModelService {
       try {
         const data = JSON.stringify(this.currentModel);
         await AsyncStorage.setItem(this.STORAGE_KEYS.backup, data);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.warn('Failed to save backup model:', error);
       }
     }
@@ -525,7 +525,7 @@ class ZeroDowntimeModelService {
     try {
       const data = JSON.stringify(this.pendingModel);
       await AsyncStorage.setItem(this.STORAGE_KEYS.pending, data);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('Failed to save pending model:', error);
     }
   }
@@ -533,14 +533,14 @@ class ZeroDowntimeModelService {
   private async clearPendingModel(): Promise<void> {
     try {
       await AsyncStorage.removeItem(this.STORAGE_KEYS.pending);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('Failed to clear pending model:', error);
     }
   }
 
   private base64ToArrayBuffer(base64: string): ArrayBuffer {
     const globalObj = globalThis as Record<string, unknown>;
-    const BufferCtor = globalObj.Buffer as | undefined | {
+    const BufferCtor = globalObj['Buffer'] as | undefined | {
       from: (input: string, encoding: string) => {
         buffer: ArrayBuffer;
         byteOffset: number;
@@ -553,7 +553,7 @@ class ZeroDowntimeModelService {
       return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     }
 
-    const atobFn = globalObj.atob as ((input: string) => string) | undefined;
+    const atobFn = globalObj['atob'] as ((input: string) => string) | undefined;
     if (typeof atobFn === 'function') {
       const binaryString = atobFn(base64);
       const len = binaryString.length;
