@@ -11,10 +11,10 @@ export interface PerformanceMetrics {
   lastUpdated: number;
 }
 
-class PerformanceOptimizationService {
+export class PerformanceOptimizationService {
   private static instance: PerformanceOptimizationService;
 
-  private metrics: PerformanceMetrics;
+  private metrics!: PerformanceMetrics;
 
   private constructor() {
     this.reset();
@@ -67,4 +67,3 @@ class PerformanceOptimizationService {
 }
 
 export const performanceOptimizationService = PerformanceOptimizationService.getInstance();
-export { PerformanceOptimizationService };
