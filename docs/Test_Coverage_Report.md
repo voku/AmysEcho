@@ -41,7 +41,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/screens/ParentalGateScreen.tsx`
 *   `app/src/screens/ParentScreen.tsx`
 *   `app/src/screens/PracticeSchedulerScreen.tsx`
-*   `app/src/screens/PracticeScreen.tsx`
 *   `app/src/screens/ProfileSelectScreen.tsx`
 *   `app/src/screens/ProgressChartScreen.tsx`
 *   `app/src/screens/TeachingScreen.tsx`

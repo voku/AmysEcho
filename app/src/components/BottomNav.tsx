@@ -53,7 +53,6 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
     const screenNames: Record<string, string> = {
       'Recognition': '🏠 Zuhören',
       'Training': '🎯 Lernen',
-      'Practice': '✨ Üben',
       'Help': '❓ Hilfe',
       'Dashboard': '📊 Auswertung',
       'Progress': '📈 Fortschritt',
