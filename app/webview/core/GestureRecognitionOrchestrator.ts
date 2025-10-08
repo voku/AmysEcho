@@ -31,6 +31,9 @@ const FALLBACK_CONFIDENCE_THRESHOLD =
 const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 
+const DEFAULT_GESTURE_SIZE_TOLERANCE = 0.3;
+const DEFAULT_PARTIAL_THRESHOLD = 0.6;
+
 interface GestureMessagePayload {
   type: 'gesture';
   gesture?: string;
@@ -132,8 +135,8 @@ export class GestureRecognitionOrchestrator {
     this.batteryMonitor = new BatteryMonitor();
 
     // Configure components
-    this.sizeNormalizer.setTolerance(this.config.processing?.sizeTolerance ?? 0.3);
-    this.partialDetector.setThreshold(this.config.processing?.partialThreshold ?? 0.6);
+    this.applyGestureSizeTolerance(this.config.gestures?.sizeTolerance);
+    this.applyPartialThreshold(this.config.gestures?.partialThreshold);
   }
 
   /**
@@ -746,6 +749,56 @@ export class GestureRecognitionOrchestrator {
     messageBatcher.forceFlush();
     setFrameCaptureEnabled(false);
     this.memoryOptimizer.performCleanup();
+  }
+
+  private sanitizeGestureSizeTolerance(value: unknown, fallback: number): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return fallback;
+    }
+
+    return Math.max(0, value);
+  }
+
+  private applyGestureSizeTolerance(value: unknown): void {
+    const currentTolerance = this.config.gestures?.sizeTolerance ?? DEFAULT_GESTURE_SIZE_TOLERANCE;
+    const sanitized = this.sanitizeGestureSizeTolerance(value, currentTolerance);
+
+    this.sizeNormalizer.setTolerance(sanitized);
+    this.config.gestures.sizeTolerance = sanitized;
+  }
+
+  private sanitizePartialThreshold(value: unknown, fallback: number): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return fallback;
+    }
+
+    return Math.max(0, Math.min(1, value));
+  }
+
+  private applyPartialThreshold(value: unknown): void {
+    const fallback = this.config.gestures?.partialThreshold ?? DEFAULT_PARTIAL_THRESHOLD;
+    const sanitized = this.sanitizePartialThreshold(value, fallback);
+
+    this.partialDetector.setThreshold(sanitized);
+    this.config.gestures.partialThreshold = sanitized;
+  }
+
+  setGestureSizeTolerance(tolerance: number): void {
+    this.applyGestureSizeTolerance(tolerance);
+  }
+
+  /**
+   * @deprecated Use `setGestureSizeTolerance` instead. This legacy alias will be removed in a future release.
+   */
+  updateGestureSizeTolerance(tolerance: number): void {
+    this.applyGestureSizeTolerance(tolerance);
+  }
+
+  /**
+   * @deprecated Use `setGestureSizeTolerance` instead. This legacy alias will be removed in a future release.
+   */
+  setGestureTolerance(tolerance: number): void {
+    this.applyGestureSizeTolerance(tolerance);
   }
 }
 

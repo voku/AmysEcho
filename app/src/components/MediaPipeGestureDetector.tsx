@@ -435,7 +435,9 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           window.__gestureSizeTolerance = value;
           if (window.__gestureOrchestrator) {
             try {
-              if (typeof window.__gestureOrchestrator.updateGestureSizeTolerance === "function") {
+              if (typeof window.__gestureOrchestrator.setGestureSizeTolerance === "function") {
+                window.__gestureOrchestrator.setGestureSizeTolerance(value);
+              } else if (typeof window.__gestureOrchestrator.updateGestureSizeTolerance === "function") {
                 window.__gestureOrchestrator.updateGestureSizeTolerance(value);
               } else if (typeof window.__gestureOrchestrator.setGestureTolerance === "function") {
                 window.__gestureOrchestrator.setGestureTolerance(value);

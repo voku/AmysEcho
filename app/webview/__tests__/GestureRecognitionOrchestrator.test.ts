@@ -91,6 +91,7 @@ import { messageBatcher } from '../utils/MessageBatcher';
 import { MemoryOptimizer } from '../utils/MemoryOptimizer';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
 import * as FrameCaptureManager from '../utils/FrameCaptureManager';
+import { GestureSizeNormalizer, PartialGestureDetector } from '../gestureProcessing';
 
 const mockVideo = document.createElement('video');
 const mockOverlay = document.createElement('canvas');
@@ -118,6 +119,8 @@ describe('GestureRecognitionOrchestrator', () => {
   let captureSpy: jest.SpyInstance;
   let toggleCaptureSpy: jest.SpyInstance;
   let errorRecoveryManager: ErrorRecoveryManager;
+  let toleranceSpy: jest.SpyInstance;
+  let partialThresholdSpy: jest.SpyInstance;
 
   beforeAll(() => {
     window.ReactNativeWebView = { postMessage: jest.fn() };
@@ -131,6 +134,8 @@ describe('GestureRecognitionOrchestrator', () => {
       .mockImplementation(() => {});
     captureSpy = jest.spyOn(FrameCaptureManager, 'getLastCapturedFrame').mockReturnValue(null);
     toggleCaptureSpy = jest.spyOn(FrameCaptureManager, 'setFrameCaptureEnabled');
+    toleranceSpy = jest.spyOn(GestureSizeNormalizer.prototype, 'setTolerance');
+    partialThresholdSpy = jest.spyOn(PartialGestureDetector.prototype, 'setThreshold');
 
     (MemoryOptimizer as unknown as { instance?: MemoryOptimizer }).instance = undefined;
 
@@ -154,6 +159,8 @@ describe('GestureRecognitionOrchestrator', () => {
       wasmBase: 'mock-wasm-base',
     }));
 
+    (window as any).__gestureSizeTolerance = 0.45;
+
     errorRecoveryManager = new ErrorRecoveryManager();
     orchestrator = new GestureRecognitionOrchestrator(mockVideo, mockOverlay, {
       errorRecoveryManager,
@@ -167,8 +174,11 @@ describe('GestureRecognitionOrchestrator', () => {
     startMonitoringSpy.mockRestore();
     captureSpy.mockRestore();
     toggleCaptureSpy.mockRestore();
+    toleranceSpy.mockRestore();
+    partialThresholdSpy.mockRestore();
     (MemoryOptimizer as unknown as { instance?: MemoryOptimizer }).instance = undefined;
     (window.ReactNativeWebView!.postMessage as jest.Mock).mockReset();
+    delete (window as any).__gestureSizeTolerance;
   });
 
   describe('initialization', () => {
@@ -191,6 +201,16 @@ describe('GestureRecognitionOrchestrator', () => {
         'fallback_processing',
         'result_processing',
       ]);
+    });
+
+    it('applies gesture size tolerance from window configuration', () => {
+      expect(toleranceSpy).toHaveBeenCalledWith(0.45);
+      expect((orchestrator as any).config.gestures.sizeTolerance).toBe(0.45);
+    });
+
+    it('applies the partial gesture threshold from configuration defaults', () => {
+      expect(partialThresholdSpy).toHaveBeenCalledWith(0.6);
+      expect((orchestrator as any).config.gestures.partialThreshold).toBe(0.6);
     });
 
     it('propagates initialization failures from the gesture detector', async () => {
@@ -293,6 +313,42 @@ describe('GestureRecognitionOrchestrator', () => {
       const gestureCall = queueSpy.mock.calls.find(([payload]) => payload.type === 'gesture');
       expect(gestureCall?.[0]).toEqual(expect.objectContaining({ frameCapture: 'frame-data' }));
       expect(gestureCall?.[1]).toEqual({ flushImmediately: true });
+    });
+  });
+
+  describe('gesture size tolerance updates', () => {
+    beforeEach(async () => {
+      await orchestrator.initialize();
+    });
+
+    it('updates the tolerance at runtime', () => {
+      toleranceSpy.mockClear();
+
+      orchestrator.setGestureSizeTolerance(0.6);
+
+      expect(toleranceSpy).toHaveBeenCalledWith(0.6);
+      expect((orchestrator as any).config.gestures.sizeTolerance).toBe(0.6);
+    });
+
+    it('keeps the previous tolerance when provided value is invalid', () => {
+      toleranceSpy.mockClear();
+      orchestrator.setGestureSizeTolerance(0.5);
+      toleranceSpy.mockClear();
+
+      orchestrator.setGestureSizeTolerance(Number.NaN as any);
+
+      expect(toleranceSpy).toHaveBeenCalledWith(0.5);
+      expect((orchestrator as any).config.gestures.sizeTolerance).toBe(0.5);
+    });
+
+    it('supports legacy update method names exposed to the webview', () => {
+      toleranceSpy.mockClear();
+
+      orchestrator.updateGestureSizeTolerance(0.55);
+      orchestrator.setGestureTolerance(0.4);
+
+      expect(toleranceSpy).toHaveBeenNthCalledWith(1, 0.55);
+      expect(toleranceSpy).toHaveBeenNthCalledWith(2, 0.4);
     });
   });
 
