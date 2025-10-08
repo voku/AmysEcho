@@ -47,17 +47,9 @@ jest.mock('../src/services/contextAwareRecognitionService', () => ({
 
 jest.mock('../src/services/performanceOptimizationService', () => ({
   performanceOptimizationService: {
-    getOptimizedProcessingParams: jest.fn(() => ({ compressionEnabled: false })),
-    compressLandmarks: jest.fn(),
-    addWebViewMessage: jest.fn(),
-    registerWebView: jest.fn(),
-    unregisterWebView: jest.fn(),
-  },
-}));
-
-jest.mock('../src/services/frameRateOptimizationService', () => ({
-  frameRateOptimizationService: {
-    getFrameRateStats: jest.fn(() => ({})),
+    updateMetrics: jest.fn(),
+    getMetrics: jest.fn(() => ({ gestureProcessingTime: 0, lastUpdated: Date.now() })),
+    cleanup: jest.fn(),
   },
 }));
 

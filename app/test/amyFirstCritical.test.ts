@@ -9,7 +9,6 @@ import { gestureHistoryService } from '../src/services/gestureHistoryService';
 import { automaticRecoveryService } from '../src/services/automaticRecoveryService';
 import { zeroDowntimeModelService } from '../src/services/zeroDowntimeModelService';
 import { emergencyPriorityService } from '../src/services/emergencyPriorityService';
-import { preCachedResponseService } from '../src/services/preCachedResponseService';
 
 describe('Amy First Critical Communication Tests', () => {
   beforeEach(() => {
@@ -190,41 +189,6 @@ describe('Amy First Critical Communication Tests', () => {
     });
   });
 
-  describe('Pre-Cached Response Service - Instant Feedback', () => {
-    it('should cache responses for common gestures', async () => {
-      const cached = await preCachedResponseService.cacheResponse('hallo', 'Hallo! Schön dich zu sehen!');
-      expect(cached).toBe(true);
-
-      const response = preCachedResponseService.getCachedResponse('hallo');
-      expect(response?.response).toBe('Hallo! Schön dich zu sehen!');
-    });
-
-    it('should provide instant responses for cached gestures', () => {
-      const response = preCachedResponseService.getCachedResponse('hallo');
-      expect(response?.gesture).toBe('hallo');
-      expect(response?.response).toBeTruthy();
-    });
-
-    it('should pre-cache common gestures on initialization', () => {
-      const cachedGestures = preCachedResponseService.getCachedGestures();
-      expect(cachedGestures.length).toBeGreaterThan(0);
-    });
-
-    it('should track cache performance statistics', () => {
-      const stats = preCachedResponseService.getCacheStats();
-      expect(stats).toHaveProperty('totalResponses');
-      expect(stats).toHaveProperty('cacheHitRate');
-      expect(stats).toHaveProperty('totalSize');
-    });
-
-    it('should generate default responses for unknown gestures', () => {
-      const response = preCachedResponseService.getCachedResponse('unknown_gesture');
-      expect(response).toBeNull(); // Not cached
-
-      // But should be able to generate a default response
-      expect(typeof response === 'object' || response === null).toBe(true);
-    });
-  });
 
   describe('Integration Tests - Complete Communication Pipeline', () => {
     it('should handle emergency gesture from detection to response', async () => {
@@ -263,15 +227,6 @@ describe('Amy First Critical Communication Tests', () => {
       expect(added).toBe(true);
     });
 
-    it('should provide instant responses for cached gestures', () => {
-      // Pre-cache a response
-      preCachedResponseService.cacheResponse('danke', 'Bitte! Gern geschehen!');
-
-      // Verify instant access
-      const response = preCachedResponseService.getCachedResponse('danke');
-      expect(response?.response).toBe('Bitte! Gern geschehen!');
-      expect(response?.useCount).toBeGreaterThan(0);
-    });
   });
 
   describe('Performance Tests - Amy First Performance Guarantees', () => {
@@ -283,17 +238,6 @@ describe('Amy First Critical Communication Tests', () => {
 
       const processingTime = Date.now() - startTime;
       expect(processingTime).toBeLessThan(150); // Allow more margin for test environment
-    });
-
-    it('should provide instant cache responses', () => {
-      preCachedResponseService.cacheResponse('hallo', 'Hallo!');
-
-      const startTime = Date.now();
-      const response = preCachedResponseService.getCachedResponse('hallo');
-      const responseTime = Date.now() - startTime;
-
-      expect(response?.response).toBe('Hallo!');
-      expect(responseTime).toBeLessThan(10); // Should be instant
     });
 
     it('should maintain stable memory usage', () => {
@@ -317,16 +261,13 @@ describe('Amy First Critical Communication Tests', () => {
  */
 export const createAmyFirstTestScenario = () => ({
   emergencyGesture: () => emergencyPriorityService.addEmergencyGesture('hilfe', 0.95),
-  cacheCommonGestures: () => preCachedResponseService.preCacheCommonResponses(),
   simulateSystemFailure: () => automaticRecoveryService.attemptRecovery('System failure', 'test'),
   verifyCommunicationPipeline: () => {
     const history = gestureHistoryService.getRecentHistory();
-    const cacheStats = preCachedResponseService.getCacheStats();
     const emergencyStatus = emergencyPriorityService.getQueueStatus();
 
     return {
       hasRecentCommunication: history.length > 0,
-      hasCachedResponses: cacheStats.totalResponses > 0,
       emergencySystemReady: emergencyStatus.queueLength >= 0
     };
   }
