@@ -1,9 +1,3 @@
-let mockAsyncStorage: {
-  setItem: jest.Mock;
-  getItem: jest.Mock;
-  removeItem: jest.Mock;
-};
-
 function mockCreateAsyncStorage() {
   return {
     setItem: jest.fn(),
@@ -11,6 +5,10 @@ function mockCreateAsyncStorage() {
     removeItem: jest.fn(),
   };
 }
+
+type MockAsyncStorage = ReturnType<typeof mockCreateAsyncStorage>;
+
+let mockAsyncStorage: MockAsyncStorage | undefined;
 
 function mockEnsureAsyncStorage() {
   if (!mockAsyncStorage) {
@@ -24,7 +22,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   get default() {
     return mockEnsureAsyncStorage();
   },
-  set default(value: typeof mockAsyncStorage) {
+  set default(value: MockAsyncStorage) {
     mockAsyncStorage = value;
   },
   get setItem() {

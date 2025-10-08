@@ -241,7 +241,7 @@ class ZeroDowntimeModelService {
    * Cancel ongoing update
    */
   cancelUpdate(): void {
-    if (!this.abortController && !this.currentDownloadTask) {
+    if (!this.isUpdating) {
       return;
     }
 
@@ -251,6 +251,11 @@ class ZeroDowntimeModelService {
         logger.warn('Failed to cancel download task:', error);
       });
     }
+
+    this.isUpdating = false;
+    this.abortController = null;
+    this.currentDownloadTask = null;
+    this.downloadStartTime = null;
 
     this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled', estimatedTimeRemaining: 0 };
     this.notifyCallbacks();
