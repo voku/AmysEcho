@@ -1,3 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
+
 import { logger } from '../utils/logger';
 
 export class DownloadAbortedError extends Error {
@@ -34,6 +37,14 @@ class ZeroDowntimeModelService {
   private updateCallbacks: ((status: ModelUpdateStatus) => void)[] = [];
   private isUpdating = false;
   private abortController: AbortController | null = null;
+  private downloadStartTime: number | null = null;
+  private currentDownloadTask: FileSystem.DownloadResumable | null = null;
+
+  private readonly STORAGE_KEYS = {
+    current: 'amys_echo_current_model',
+    pending: 'amys_echo_pending_model',
+    backup: 'amys_echo_backup_model',
+  } as const;
 
   static getInstance(): ZeroDowntimeModelService {
     if (!ZeroDowntimeModelService.instance) {
@@ -43,7 +54,9 @@ class ZeroDowntimeModelService {
   }
 
   private constructor() {
-    this.loadCurrentModel();
+    this.loadCurrentModel().catch(error => {
+      logger.warn('Failed to load stored models during initialization:', error);
+    });
   }
 
   /**
@@ -58,13 +71,15 @@ class ZeroDowntimeModelService {
     this.isUpdating = true;
     this.abortController = new AbortController();
     const startTime = Date.now();
+    this.downloadStartTime = startTime;
 
     try {
-      this.updateStatus = { status: 'downloading', progress: 0, message: 'Downloading new model...' };
+      this.updateStatus = { status: 'downloading', progress: 0, message: 'Downloading new model...', estimatedTimeRemaining: 0 };
       this.notifyCallbacks();
 
       // Download model in background
       const modelData = await this.downloadModel(modelUrl, expectedSize);
+      this.downloadStartTime = null;
 
       this.updateStatus = { status: 'validating', progress: 75, message: 'Validating model...' };
       this.notifyCallbacks();
@@ -80,7 +95,7 @@ class ZeroDowntimeModelService {
       const newModel: ModelVersion = {
         id: `model_${Date.now()}`,
         timestamp: Date.now(),
-        size: expectedSize || 0, // Use expected size or 0 if not available
+        size: modelData.byteLength,
         hash: await this.calculateHash(modelData),
       };
 
@@ -89,6 +104,7 @@ class ZeroDowntimeModelService {
       }
 
       this.pendingModel = newModel;
+      await this.savePendingModel();
 
       this.updateStatus = {
         status: 'ready',
@@ -106,7 +122,7 @@ class ZeroDowntimeModelService {
     } catch (error) {
       logger.error('Model update failed:', error);
       if (error instanceof DownloadAbortedError) {
-        this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled' };
+        this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled', estimatedTimeRemaining: 0 };
       } else {
         this.updateStatus = {
           status: 'failed',
@@ -119,6 +135,8 @@ class ZeroDowntimeModelService {
     } finally {
       this.isUpdating = false;
       this.abortController = null;
+      this.downloadStartTime = null;
+      this.currentDownloadTask = null;
     }
   }
 
@@ -139,6 +157,7 @@ class ZeroDowntimeModelService {
 
       // Save the new model as current
       await this.saveCurrentModel();
+      await this.clearPendingModel();
 
       // Clean up old model in background (don't block)
       if (oldModel) {
@@ -176,6 +195,7 @@ class ZeroDowntimeModelService {
       this.pendingModel = null;
 
       await this.saveCurrentModel();
+      await this.clearPendingModel();
 
       logger.info(`Model rolled back to: ${backupModel.id}`);
       return true;
@@ -212,13 +232,22 @@ class ZeroDowntimeModelService {
    * Cancel ongoing update
    */
   cancelUpdate(): void {
-    if (this.abortController) {
-      this.abortController.abort();
-      this.isUpdating = false;
-      this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled' };
-      this.notifyCallbacks();
-      logger.info('Model update cancelled');
+    if (!this.abortController && !this.currentDownloadTask) {
+      return;
     }
+
+    this.abortController?.abort();
+    if (this.currentDownloadTask) {
+      void this.currentDownloadTask.cancelAsync().catch(error => {
+        logger.warn('Failed to cancel download task:', error);
+      });
+    }
+
+    this.isUpdating = false;
+    this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled', estimatedTimeRemaining: 0 };
+    this.downloadStartTime = null;
+    this.notifyCallbacks();
+    logger.info('Model update cancelled');
   }
 
   /**
@@ -246,65 +275,92 @@ class ZeroDowntimeModelService {
    * Download model with progress tracking
    */
   private async downloadModel(url: string, expectedSize?: number): Promise<ArrayBuffer> {
-    const requestOptions: RequestInit = {};
-    const abortSignal = this.abortController?.signal ?? null;
-    if (abortSignal) {
-      requestOptions.signal = abortSignal;
+    const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+    if (!directory) {
+      throw new Error('No writable directory available for downloads');
     }
 
-    const response = await fetch(url, requestOptions);
+    const normalizedDirectory = directory.endsWith('/') ? directory : `${directory}/`;
+    const fileUri = `${normalizedDirectory}model_${Date.now()}`;
 
-    if (!response.ok) {
-      throw new Error(`Download failed: ${response.status}`);
-    }
+    const downloadResumable = FileSystem.createDownloadResumable(
+      url,
+      fileUri,
+      {},
+      ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
+        const total = totalBytesExpectedToWrite || expectedSize || 0;
 
-    const contentLength = expectedSize || parseInt(response.headers.get('content-length') || '0');
-    const reader = response.body?.getReader();
+        if (total > 0) {
+          const progress = (totalBytesWritten / total) * 75;
+          this.updateStatus = {
+            status: 'downloading',
+            progress: Math.min(progress, 75),
+            message: `Downloading... ${Math.round(progress)}%`,
+            estimatedTimeRemaining: this.estimateTimeRemaining(totalBytesWritten, total)
+          };
+        } else {
+          this.updateStatus = {
+            status: 'downloading',
+            progress: 0,
+            message: 'Downloading...',
+            estimatedTimeRemaining: undefined
+          };
+        }
 
-    if (!reader) {
-      throw new Error('Failed to get response reader');
-    }
-
-    const chunks: Uint8Array[] = [];
-    let receivedLength = 0;
-
-    while (true) {
-      // Abort early if the operation was cancelled
-      if (this.abortController?.signal.aborted) {
-        throw new DownloadAbortedError();
-      }
-
-      const { done, value } = await reader.read();
-
-      if (done) break;
-
-      chunks.push(value);
-      receivedLength += value.length;
-
-      // Update progress
-      if (contentLength > 0) {
-        const progress = (receivedLength / contentLength) * 75; // 75% for download phase
-        this.updateStatus = {
-          status: 'downloading',
-          progress: Math.min(progress, 75),
-          message: `Downloading... ${Math.round(progress)}%`,
-          estimatedTimeRemaining: this.estimateTimeRemaining(receivedLength, contentLength)
-        };
         this.notifyCallbacks();
       }
+    );
+
+    this.currentDownloadTask = downloadResumable;
+
+    let abortError: DownloadAbortedError | null = null;
+    const abortSignal = this.abortController?.signal ?? null;
+    const handleAbort = () => {
+      abortError = new DownloadAbortedError();
+      void downloadResumable.cancelAsync().catch(error => {
+        logger.warn('Failed to cancel download task during abort:', error);
+      });
+    };
+
+    abortSignal?.addEventListener('abort', handleAbort, { once: true });
+
+    let downloadResult: FileSystem.FileSystemDownloadResult | null = null;
+
+    try {
+      downloadResult = await downloadResumable.downloadAsync();
+
+      if (!downloadResult) {
+        throw new Error('Download failed to produce a result');
+      }
+
+      if (abortError) {
+        throw abortError;
+      }
+
+      const info = await FileSystem.getInfoAsync(downloadResult.uri);
+      if (!info.exists) {
+        throw new Error('Downloaded file not found');
+      }
+
+      const base64 = await FileSystem.readAsStringAsync(downloadResult.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const buffer = this.base64ToArrayBuffer(base64);
+
+      await FileSystem.deleteAsync(downloadResult.uri, { idempotent: true });
+
+      return buffer;
+    } catch (error) {
+      if (abortError) {
+        throw abortError;
+      }
+
+      await FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => undefined);
+      throw error;
+    } finally {
+      abortSignal?.removeEventListener('abort', handleAbort);
+      this.currentDownloadTask = null;
     }
-
-    // Combine chunks
-    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    const result = new Uint8Array(totalLength);
-    let offset = 0;
-
-    for (const chunk of chunks) {
-      result.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    return result.buffer;
   }
 
   /**
@@ -364,12 +420,25 @@ class ZeroDowntimeModelService {
    * Estimate time remaining for download
    */
   private estimateTimeRemaining(received: number, total: number): number {
-    if (received === 0) return 0;
+    if (received === 0 || total === 0) return 0;
+    if (!this.downloadStartTime) return 0;
 
-    const elapsed = Date.now() - (this.updateStatus as any).startTime || 0;
+    const elapsed = Date.now() - this.downloadStartTime;
+    if (elapsed <= 0) {
+      return 0;
+    }
+
     const rate = received / elapsed; // bytes per ms
+    if (rate <= 0) {
+      return 0;
+    }
+
     const remaining = total - received;
-    return Math.round(remaining / rate);
+    if (remaining <= 0) {
+      return 0;
+    }
+
+    return Math.max(0, Math.round(remaining / rate));
   }
 
   /**
@@ -393,9 +462,7 @@ class ZeroDowntimeModelService {
 
     try {
       const data = JSON.stringify(this.currentModel);
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem('amys_echo_current_model', data);
-      }
+      await AsyncStorage.setItem(this.STORAGE_KEYS.current, data);
     } catch (error) {
       logger.warn('Failed to save current model:', error);
     }
@@ -406,15 +473,17 @@ class ZeroDowntimeModelService {
    */
   private async loadCurrentModel(): Promise<void> {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const data = window.localStorage.getItem('amys_echo_current_model');
-        if (data) {
-          this.currentModel = JSON.parse(data);
-        }
-      }
+      const [currentData, pendingData] = await Promise.all([
+        AsyncStorage.getItem(this.STORAGE_KEYS.current),
+        AsyncStorage.getItem(this.STORAGE_KEYS.pending),
+      ]);
+
+      this.currentModel = currentData ? JSON.parse(currentData) : null;
+      this.pendingModel = pendingData ? JSON.parse(pendingData) : null;
     } catch (error) {
       logger.warn('Failed to load current model:', error);
       this.currentModel = null;
+      this.pendingModel = null;
     }
   }
 
@@ -423,10 +492,8 @@ class ZeroDowntimeModelService {
    */
   private async loadBackupModel(): Promise<ModelVersion | null> {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const data = window.localStorage.getItem('amys_echo_backup_model');
-        return data ? JSON.parse(data) : null;
-      }
+      const data = await AsyncStorage.getItem(this.STORAGE_KEYS.backup);
+      return data ? JSON.parse(data) : null;
     } catch (error) {
       logger.warn('Failed to load backup model:', error);
     }
@@ -445,13 +512,59 @@ class ZeroDowntimeModelService {
     if (this.currentModel) {
       try {
         const data = JSON.stringify(this.currentModel);
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem('amys_echo_backup_model', data);
-        }
+        await AsyncStorage.setItem(this.STORAGE_KEYS.backup, data);
       } catch (error) {
         logger.warn('Failed to save backup model:', error);
       }
     }
+  }
+
+  private async savePendingModel(): Promise<void> {
+    if (!this.pendingModel) return;
+
+    try {
+      const data = JSON.stringify(this.pendingModel);
+      await AsyncStorage.setItem(this.STORAGE_KEYS.pending, data);
+    } catch (error) {
+      logger.warn('Failed to save pending model:', error);
+    }
+  }
+
+  private async clearPendingModel(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(this.STORAGE_KEYS.pending);
+    } catch (error) {
+      logger.warn('Failed to clear pending model:', error);
+    }
+  }
+
+  private base64ToArrayBuffer(base64: string): ArrayBuffer {
+    const globalObj = globalThis as Record<string, unknown>;
+    const BufferCtor = globalObj.Buffer as | undefined | {
+      from: (input: string, encoding: string) => {
+        buffer: ArrayBuffer;
+        byteOffset: number;
+        byteLength: number;
+      };
+    };
+
+    if (BufferCtor) {
+      const buffer = BufferCtor.from(base64, 'base64');
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    }
+
+    const atobFn = globalObj.atob as ((input: string) => string) | undefined;
+    if (typeof atobFn === 'function') {
+      const binaryString = atobFn(base64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i += 1) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+
+    throw new Error('No base64 decoder available in this environment');
   }
 }
 
