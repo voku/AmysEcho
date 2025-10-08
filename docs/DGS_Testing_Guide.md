@@ -108,19 +108,19 @@ assert((mode & 0o022) === 0, 'Insecure file permissions');
 **Purpose**: Ensures the DGS integration meets accessibility standards for users with disabilities.
 
 **Test Cases**:
-- **Screen Reader Support**: Validates gesture announcements
 - **Keyboard Navigation**: Tests keyboard-only gesture triggering
 - **High Contrast Support**: Ensures visibility in high contrast modes
 - **Focus Management**: Validates proper focus indicators
+- **Screen Reader Support**: *Note: Out of scope for Alpha release*
 
 **Accessibility Requirements**:
 ```typescript
 const ACCESSIBILITY_CHECKS = {
-  screenReader: true,
   keyboardNavigation: true,
   highContrast: true,
   focusManagement: true,
-  ariaLabels: true
+  ariaLabels: true,
+  screenReader: false // Alpha release excludes screen reader verification
 };
 ```
 
@@ -288,8 +288,8 @@ npm test --prefix integration -- --coverage --grep "dgs"
   },
   "accessibility": {
     "wcagLevel": "AA",
-    "screenReader": "supported",
-    "keyboardNav": "enabled"
+    "keyboardNavigation": "enabled",
+    "screenReader": "out_of_scope"
   }
 }
 ```
