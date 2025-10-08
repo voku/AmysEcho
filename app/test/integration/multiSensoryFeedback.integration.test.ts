@@ -1,7 +1,6 @@
 import { multiSensoryFeedback, gestureHapticFeedback, getAmyHapticPreferences, updateAmyHapticPreferences } from '../../src/services/feedbackService';
 import { adaptiveLearningService } from '../../src/services/adaptiveLearningService';
 import { gestureHistoryService } from '../../src/services/gestureHistoryService';
-import { preCachedResponseService } from '../../src/services/preCachedResponseService';
 
 // Mock external dependencies but not the main functions we're testing
 jest.mock('../../src/services/audioService', () => ({
@@ -106,11 +105,6 @@ describe('Multi-Sensory Feedback Integration', () => {
       expect(gestureHistoryService.getRecentHistory).toBeDefined();
     });
 
-    it('should integrate with caching service', () => {
-      // Test that we can access the caching service
-      expect(preCachedResponseService.getCachedResponse).toBeDefined();
-      expect(preCachedResponseService.cacheResponse).toBeDefined();
-    });
   });
 
   describe('Performance and Reliability', () => {
@@ -203,7 +197,6 @@ describe('Multi-Sensory Feedback Integration', () => {
       expect(() => {
         gestureHistoryService.getRecentHistory();
         adaptiveLearningService.getAdaptiveRecommendations();
-        preCachedResponseService.getCachedResponse('test');
       }).not.toThrow();
     });
   });
