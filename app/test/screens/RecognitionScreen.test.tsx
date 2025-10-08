@@ -157,8 +157,6 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
       setShowCelebration: jest.fn(),
       celebrationKey: 0,
       setCelebrationKey: jest.fn(),
-      screenReaderEnabled: false,
-      setScreenReaderEnabled: jest.fn(),
       modelUpdateStatus: 'idle',
       setModelUpdateStatus: jest.fn(),
       gestureSizeTolerance: 0.3,

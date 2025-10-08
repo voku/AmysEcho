@@ -324,7 +324,6 @@ describe('Service Integration Tests', () => {
           hapticFeedback: true,
           audioFeedback: true,
           visualFeedback: true,
-          screenReader: true,
           emergencyAccess: true
         },
 

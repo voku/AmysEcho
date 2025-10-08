@@ -123,7 +123,6 @@ export const useRecognitionCallbacks = ({
   const {
     successSound,
     contextInsights,
-    screenReaderEnabled,
     gestureConfidence,
     dialogContext,
     lastRecognizedGesture,
@@ -615,7 +614,7 @@ export const useRecognitionCallbacks = ({
         logger.debug('Optional success feedback failed', error),
       );
     },
-    [screenReaderEnabled, setPendingGesture, setStatus],
+    [setPendingGesture, setStatus],
   );
 
   const handleStabilityFeedback = useCallback(

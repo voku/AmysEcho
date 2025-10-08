@@ -29,8 +29,6 @@ export interface RecognitionProfileState {
   setError: Dispatch<SetStateAction<string | null>>;
   facingMode: 'user' | 'environment';
   setFacingMode: Dispatch<SetStateAction<'user' | 'environment'>>;
-  screenReaderEnabled: boolean;
-  setScreenReaderEnabled: Dispatch<SetStateAction<boolean>>;
   modelUpdateStatus: 'idle' | 'updating' | 'complete' | 'error';
   setModelUpdateStatus: Dispatch<SetStateAction<'idle' | 'updating' | 'complete' | 'error'>>;
 }
@@ -127,7 +125,6 @@ export const useRecognitionState = (): RecognitionState => {
   const [showDgsVideo, setShowDgsVideo] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationKey, setCelebrationKey] = useState(0);
-  const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
   const [modelUpdateStatus, setModelUpdateStatus] = useState<'idle' | 'updating' | 'complete' | 'error'>('idle');
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const [showVisualRipple, setShowVisualRipple] = useState(false);
@@ -180,8 +177,6 @@ export const useRecognitionState = (): RecognitionState => {
     setShowCelebration,
     celebrationKey,
     setCelebrationKey,
-    screenReaderEnabled,
-    setScreenReaderEnabled,
     modelUpdateStatus,
     setModelUpdateStatus,
     gestureSizeTolerance,

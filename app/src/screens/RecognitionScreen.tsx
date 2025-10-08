@@ -7,7 +7,6 @@ import {
   Animated,
   Easing,
   Button,
-  AccessibilityInfo,
   ScrollView,
 } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
@@ -139,8 +138,6 @@ export default function RecognitionScreen({
     setShowCelebration,
     celebrationKey,
     setCelebrationKey,
-    screenReaderEnabled,
-    setScreenReaderEnabled,
     modelUpdateStatus,
     gestureSizeTolerance,
     setGestureSizeTolerance,
@@ -433,23 +430,6 @@ export default function RecognitionScreen({
     },
     [setShowOpenaiFeedback],
   );
-
-  useEffect(() => {
-    // Track screen reader to avoid overlapping TTS and accessibility announcements
-    const checkScreenReader = AccessibilityInfo?.isScreenReaderEnabled;
-    if (typeof checkScreenReader === 'function') {
-      checkScreenReader()
-        .then(setScreenReaderEnabled)
-        .catch((error) =>
-          logger.warn('Failed to check if screen reader is enabled:', error),
-        );
-    }
-    const sub = AccessibilityInfo?.addEventListener?.(
-      'screenReaderChanged',
-      setScreenReaderEnabled,
-    );
-    return () => sub?.remove?.();
-  }, []);
 
   useEffect(() => {
     const loadGestureSizeTolerance = async () => {
