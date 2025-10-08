@@ -40,7 +40,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/screens/GestureTutorialScreen.tsx`
 *   `app/src/screens/ParentalGateScreen.tsx`
 *   `app/src/screens/ParentScreen.tsx`
-*   `app/src/screens/PracticeSchedulerScreen.tsx`
 *   `app/src/screens/ProfileSelectScreen.tsx`
 *   `app/src/screens/ProgressChartScreen.tsx`
 *   `app/src/screens/TeachingScreen.tsx`
@@ -61,7 +60,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/services/hipEvents.ts`
 *   `app/src/services/localCentroids.ts`
 *   `app/src/services/OneEuroFilter.ts`
-*   `app/src/services/practiceScheduler.ts`
 *   `app/src/services/secureConfig.ts`
 *   `app/src/services/TrainingDataValidator.ts`
 *   `app/src/services/usageTracker.ts`

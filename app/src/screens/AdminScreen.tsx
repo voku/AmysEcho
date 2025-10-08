@@ -440,11 +440,6 @@ export default function AdminScreen({ navigation }: any) {
         onPress={() => navigation.navigate('Dashboard')}
         accessibilityLabel="Analytics-Dashboard öffnen"
       />
-      <Button
-        title="Übungspläne"
-        onPress={() => navigation.navigate('PracticeScheduler')}
-        accessibilityLabel="Übungspläne öffnen"
-      />
       <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
 
       <View style={{ marginTop: SPACING.lg }}>

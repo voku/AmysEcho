@@ -27,7 +27,6 @@ const DashboardScreen = lazyScreen(() => import('../screens/DashboardScreen'));
 const HelpScreen = lazyScreen(() => import('../screens/HelpScreen'));
 const ProgressScreen = lazyScreen(() => import('../screens/ProgressScreen'));
 const ProgressChartScreen = lazyScreen(() => import('../screens/ProgressChartScreen'));
-const PracticeSchedulerScreen = lazyScreen(() => import('../screens/PracticeSchedulerScreen'));
 const CaregiverReportScreen = lazyScreen(() => import('../screens/CaregiverReportScreen'));
 const CommunicationInsightsScreen = lazyScreen(() => import('../screens/CommunicationInsightsScreen'));
 
@@ -121,11 +120,6 @@ const RootNavigator = () => {
           name="Help"
           component={HelpScreen}
           options={{ title: 'Hilfe' }}
-        />
-        <Stack.Screen
-          name="PracticeScheduler"
-          component={PracticeSchedulerScreen}
-          options={{ title: 'Übungsplaner' }}
         />
         <Stack.Screen
           name="CaregiverReport"

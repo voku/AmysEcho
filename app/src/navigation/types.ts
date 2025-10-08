@@ -16,5 +16,4 @@ export type RootStackParamList = {
   CaregiverReport: undefined;
   CommunicationInsights: undefined;
   Help: undefined;
-  PracticeScheduler: undefined;
 };
