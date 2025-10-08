@@ -28,7 +28,6 @@ import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import type { RecognitionPath } from '../utils/recognitionState';
-import { performanceOptimizationService } from '../services/performanceOptimizationService';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
 import { usePreloadComponents } from '../components/LazyComponent';
@@ -461,27 +460,6 @@ export default function RecognitionScreen({
     'AdaptiveLearningPanel',
     'GestureMeaningDisplay'
   ]);
-
-  // Performance and battery monitoring
-  useEffect(() => {
-    // Update performance metrics when gesture is detected
-    const updatePerformanceMetrics = () => {
-      performanceOptimizationService.updateMetrics({
-        gestureProcessingTime: Date.now() - lastFrameTimeRef.current,
-        lastUpdated: Date.now()
-      });
-    };
-
-    // Monitor performance every 5 seconds
-    const performanceInterval = setInterval(updatePerformanceMetrics, 5000);
-
-    return () => {
-      clearInterval(performanceInterval);
-      // Cleanup services on unmount
-      performanceOptimizationService.cleanup();
-    };
-  }, []);
-
 
   const styles = useMemo(
     () =>
