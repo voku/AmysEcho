@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
 
-export interface PerformanceMetrics {
+export interface PerformanceOptimizationMetrics {
   /**
    * Rolling gesture processing time in milliseconds.
    */
@@ -14,7 +14,7 @@ export interface PerformanceMetrics {
 export class PerformanceOptimizationService {
   private static instance: PerformanceOptimizationService;
 
-  private metrics!: PerformanceMetrics;
+  private metrics!: PerformanceOptimizationMetrics;
 
   private constructor() {
     this.reset();
@@ -28,7 +28,7 @@ export class PerformanceOptimizationService {
     return PerformanceOptimizationService.instance;
   }
 
-  public updateMetrics(updates: Partial<PerformanceMetrics>): void {
+  public updateMetrics(updates: Partial<PerformanceOptimizationMetrics>): void {
     if (!updates || typeof updates !== 'object') {
       return;
     }
@@ -49,7 +49,7 @@ export class PerformanceOptimizationService {
     }
   }
 
-  public getMetrics(): PerformanceMetrics {
+  public getMetrics(): PerformanceOptimizationMetrics {
     return { ...this.metrics };
   }
 
