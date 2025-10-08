@@ -345,9 +345,9 @@ class ZeroDowntimeModelService {
         throw new Error('Download failed to produce a result');
       }
 
-      const statusCode = typeof downloadResult === 'object' ? (downloadResult as { status?: number }).status : undefined;
-      if (typeof statusCode === 'number' && (statusCode < 200 || statusCode >= 300)) {
-        await FileSystem.deleteAsync(downloadResult.uri, { idempotent: true }).catch(() => undefined);
+      const { status: statusCode, uri } = downloadResult;
+      if (statusCode < 200 || statusCode >= 300) {
+        await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
         throw new Error(`Download failed with status ${statusCode}`);
       }
 
@@ -498,10 +498,23 @@ class ZeroDowntimeModelService {
         AsyncStorage.getItem(this.STORAGE_KEYS.pending),
       ]);
 
-      this.currentModel = currentData ? JSON.parse(currentData) : null;
-      this.pendingModel = pendingData ? JSON.parse(pendingData) : null;
+      const parseModel = (data: string | null, label: 'current' | 'pending'): ModelVersion | null => {
+        if (!data) {
+          return null;
+        }
+
+        try {
+          return JSON.parse(data) as ModelVersion;
+        } catch (parseError: unknown) {
+          logger.warn(`Failed to parse ${label} model data:`, parseError);
+          return null;
+        }
+      };
+
+      this.currentModel = parseModel(currentData, 'current');
+      this.pendingModel = parseModel(pendingData, 'pending');
     } catch (error: unknown) {
-      logger.warn('Failed to load current model:', error);
+      logger.warn('Failed to load models from storage:', error);
       this.currentModel = null;
       this.pendingModel = null;
     }
