@@ -77,4 +77,4 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 
 It is highly recommended to write unit tests for these files to improve code quality, prevent regressions, and ensure the reliability of the application. Prioritize critical business logic and complex components/services.
 
-> Hinweis: Die veralteten Services `sequenceRecognizer`, `symbolService` und `trainingDataService` wurden im Rahmen der Alpha-Bereinigung entfernt, da sie nicht mehr von der App genutzt werden.
+> Hinweis: Die veralteten Services `sequenceRecognizer`, `symbolService`, `trainingDataService`, `TrainingSessionManager`, `adaptivePracticeTimingService` und `emergencyPriorityService` wurden im Rahmen der Alpha-Bereinigung entfernt, da sie nicht mehr von der App genutzt werden.

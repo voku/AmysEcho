@@ -9,7 +9,6 @@ import { gestureHistoryService } from '../../src/services/gestureHistoryService'
 import { positiveTelemetryService } from '../../src/services/positiveTelemetryService';
 import { adaptiveLearningService } from '../../src/services/adaptiveLearningService';
 import { gestureMeaningService } from '../../src/services/gestureMeaningService';
-import { emergencyPriorityService } from '../../src/services/emergencyPriorityService';
 
 describe('Core Communication Workflows', () => {
   beforeEach(() => {
@@ -80,29 +79,6 @@ describe('Core Communication Workflows', () => {
       expect(mockPlaySound).toHaveBeenCalledWith('thinking');
     });
 
-    it('should prioritize emergency gestures', async () => {
-      const mockEmergencyResponse = jest.fn().mockResolvedValue(undefined);
-      const mockPlaySound = jest.fn().mockResolvedValue(undefined);
-
-      (audioService.playSound as jest.Mock) = mockPlaySound;
-
-      const emergencyGesture = {
-        id: 'help',
-        label: 'Hilfe',
-        confidence: 0.98,
-        emoji: '🚨',
-        timestamp: Date.now(),
-        landmarks: [[[0.5, 0.5, 0.9]]],
-      };
-
-      // Process emergency gesture
-      gestureHistoryService.addGesture(emergencyGesture);
-
-      // Emergency should trigger immediate priority response
-      await audioService.playSound('emergency');
-
-      expect(mockPlaySound).toHaveBeenCalledWith('emergency');
-    });
   });
 
   describe('Two-Hand Gesture Processing', () => {
@@ -215,24 +191,6 @@ describe('Core Communication Workflows', () => {
       expect(insights).toHaveProperty('topGestures');
       expect(insights).toHaveProperty('weeklyProgress');
       expect(insights.weeklyProgress.improvementTrend).toBe('improving');
-    });
-  });
-
-  describe('Emergency Priority System', () => {
-    it('should handle emergency gesture priority', () => {
-      const mockHandleEmergency = jest.fn().mockReturnValue(true);
-      (emergencyPriorityService.handleEmergencyGesture as jest.Mock) = mockHandleEmergency;
-
-      const emergencyGesture = {
-        id: 'emergency_stop',
-        confidence: 0.99,
-        priority: 'critical' as const
-      };
-
-      const result = emergencyPriorityService.handleEmergencyGesture(emergencyGesture);
-
-      expect(mockHandleEmergency).toHaveBeenCalledWith(emergencyGesture);
-      expect(result).toBe(true);
     });
   });
 
