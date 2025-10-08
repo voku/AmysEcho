@@ -161,8 +161,6 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
       setScreenReaderEnabled: jest.fn(),
       modelUpdateStatus: 'idle',
       setModelUpdateStatus: jest.fn(),
-      bullyingProtectionActive: false,
-      setBullyingProtectionActive: jest.fn(),
       gestureSizeTolerance: 0.3,
       setGestureSizeTolerance: jest.fn(),
       showVisualRipple: false,

@@ -97,8 +97,6 @@ export interface RecognitionSessionState {
   setShowCelebration: Dispatch<SetStateAction<boolean>>;
   celebrationKey: number;
   setCelebrationKey: Dispatch<SetStateAction<number>>;
-  bullyingProtectionActive: boolean;
-  setBullyingProtectionActive: Dispatch<SetStateAction<boolean>>;
 }
 
 export interface RecognitionState
@@ -131,7 +129,6 @@ export const useRecognitionState = (): RecognitionState => {
   const [celebrationKey, setCelebrationKey] = useState(0);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
   const [modelUpdateStatus, setModelUpdateStatus] = useState<'idle' | 'updating' | 'complete' | 'error'>('idle');
-  const [bullyingProtectionActive, setBullyingProtectionActive] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const [showVisualRipple, setShowVisualRipple] = useState(false);
   const [successSound, setSuccessSound] = useState('success');
@@ -187,8 +184,6 @@ export const useRecognitionState = (): RecognitionState => {
     setScreenReaderEnabled,
     modelUpdateStatus,
     setModelUpdateStatus,
-    bullyingProtectionActive,
-    setBullyingProtectionActive,
     gestureSizeTolerance,
     setGestureSizeTolerance,
     showVisualRipple,

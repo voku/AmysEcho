@@ -58,17 +58,13 @@ describe('ProfileManagerScreen accessibility', () => {
     });
     const texts = comp.root.findAll((n) => n.type === 'Text').map((n) => n.props.children);
     expect(texts).toContain('Vertrauenswürdiges Gerät');
-    expect(texts).toContain('Mobbing-Schutz');
     expect(texts).toContain('Gestengrößen-Toleranz');
 
     const pressables = comp.root.findAll((n) => n.type === 'Pressable');
     expect(pressables.length).toBeGreaterThan(0);
     const labels = pressables.map((p) => p.props.accessibilityLabel).filter(Boolean);
     expect(labels).toEqual(
-      expect.arrayContaining([
-        'Gerät als vertrauenswürdig einrichten',
-        expect.stringContaining('Mobbing-Schutz'),
-      ]),
+      expect.arrayContaining(['Gerät als vertrauenswürdig einrichten']),
     );
     pressables.forEach((p) => expect(p.props.accessibilityRole).toBe('button'));
   });
