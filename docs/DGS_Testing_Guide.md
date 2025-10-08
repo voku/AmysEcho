@@ -288,7 +288,7 @@ npm test --prefix integration -- --coverage --grep "dgs"
   },
   "accessibility": {
     "wcagLevel": "AA",
-    "keyboardNav": "enabled",
+    "keyboardNavigation": "enabled",
     "screenReader": "out_of_scope"
   }
 }
