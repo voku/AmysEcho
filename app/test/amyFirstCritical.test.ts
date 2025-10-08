@@ -8,7 +8,6 @@
 import { gestureHistoryService } from '../src/services/gestureHistoryService';
 import { automaticRecoveryService } from '../src/services/automaticRecoveryService';
 import { zeroDowntimeModelService } from '../src/services/zeroDowntimeModelService';
-import { emergencyPriorityService } from '../src/services/emergencyPriorityService';
 
 describe('Amy First Critical Communication Tests', () => {
   beforeEach(() => {
@@ -153,65 +152,7 @@ describe('Amy First Critical Communication Tests', () => {
     });
   });
 
-  describe('Emergency Priority Service - Critical Communication', () => {
-    it('should identify emergency gestures', () => {
-      expect(emergencyPriorityService.isEmergencyGesture('hilfe')).toBe(true);
-      expect(emergencyPriorityService.isEmergencyGesture('help')).toBe(true);
-      expect(emergencyPriorityService.isEmergencyGesture('hallo')).toBe(false);
-    });
-
-    it('should add emergency gestures to priority queue', () => {
-      const added = emergencyPriorityService.addEmergencyGesture('hilfe', 0.9);
-      expect(added).toBe(true);
-
-      const status = emergencyPriorityService.getQueueStatus();
-      expect(status.queueLength).toBeGreaterThan(0);
-    });
-
-    it('should provide appropriate emergency responses', () => {
-      const response = emergencyPriorityService.getEmergencyResponse('hilfe');
-      expect(response.message).toContain('Hilfe');
-      expect(response.priority).toBe('critical');
-      expect(response.action).toBe('call_help');
-    });
-
-    it('should process emergency gestures with priority', async () => {
-      emergencyPriorityService.addEmergencyGesture('hilfe', 0.95);
-      const processed = await emergencyPriorityService.processNextEmergency();
-      expect(processed?.gesture).toBe('hilfe');
-    });
-
-    it('should track queue statistics', () => {
-      const stats = emergencyPriorityService.getStats();
-      expect(stats).toHaveProperty('queueLength');
-      expect(stats).toHaveProperty('criticalCount');
-      expect(stats).toHaveProperty('processingRate');
-    });
-  });
-
-
   describe('Integration Tests - Complete Communication Pipeline', () => {
-    it('should handle emergency gesture from detection to response', async () => {
-      // Simulate emergency gesture detection
-      const added = emergencyPriorityService.addEmergencyGesture('hilfe', 0.95);
-      expect(added).toBe(true);
-
-      // Process emergency
-      const processed = await emergencyPriorityService.processNextEmergency();
-      expect(processed?.gesture).toBe('hilfe');
-
-      // Store in history
-      gestureHistoryService.addGesture({
-        id: 'hilfe',
-        label: 'Hilfe',
-        confidence: 0.95
-      });
-
-      // Verify history
-      const lastGesture = gestureHistoryService.getLastGesture();
-      expect(lastGesture?.id).toBe('hilfe');
-    });
-
     it('should maintain communication during simulated failures', async () => {
       // Simulate a system error
       const recoveryAttempted = await automaticRecoveryService.attemptRecovery(
@@ -223,18 +164,27 @@ describe('Amy First Critical Communication Tests', () => {
       expect(typeof recoveryAttempted).toBe('boolean');
 
       // System should still be able to process gestures
-      const added = emergencyPriorityService.addEmergencyGesture('help', 0.9);
-      expect(added).toBe(true);
+      gestureHistoryService.addGesture({
+        id: 'hilfe',
+        label: 'Hilfe',
+        confidence: 0.95
+      });
+
+      const lastGesture = gestureHistoryService.getLastGesture();
+      expect(lastGesture?.id).toBe('hilfe');
     });
 
   });
 
   describe('Performance Tests - Amy First Performance Guarantees', () => {
-    it('should process emergency gestures within 50ms', async () => {
+    it('should process gesture logging within 150ms', async () => {
       const startTime = Date.now();
 
-      emergencyPriorityService.addEmergencyGesture('hilfe', 0.95);
-      await emergencyPriorityService.processNextEmergency();
+      gestureHistoryService.addGesture({
+        id: 'hilfe',
+        label: 'Hilfe',
+        confidence: 0.95
+      });
 
       const processingTime = Date.now() - startTime;
       expect(processingTime).toBeLessThan(150); // Allow more margin for test environment
@@ -260,15 +210,19 @@ describe('Amy First Critical Communication Tests', () => {
  * Amy First Test Utilities
  */
 export const createAmyFirstTestScenario = () => ({
-  emergencyGesture: () => emergencyPriorityService.addEmergencyGesture('hilfe', 0.95),
+  logCommunicationGesture: () => gestureHistoryService.addGesture({
+    id: 'hilfe',
+    label: 'Hilfe',
+    confidence: 0.95
+  }),
   simulateSystemFailure: () => automaticRecoveryService.attemptRecovery('System failure', 'test'),
   verifyCommunicationPipeline: () => {
     const history = gestureHistoryService.getRecentHistory();
-    const emergencyStatus = emergencyPriorityService.getQueueStatus();
+    const recoveryStats = automaticRecoveryService.getRecoveryStats();
 
     return {
       hasRecentCommunication: history.length > 0,
-      emergencySystemReady: emergencyStatus.queueLength >= 0
+      recoveryAttempts: recoveryStats.totalAttempts
     };
   }
 });

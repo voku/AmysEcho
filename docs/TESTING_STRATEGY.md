@@ -250,7 +250,6 @@ export const generateAmyFirstReport = (coverageData) => {
   const criticalPaths = [
     'services/gestureHistoryService',
     'services/automaticRecoveryService',
-    'services/emergencyPriorityService',
     'services/zeroDowntimeModelService'
   ];
 

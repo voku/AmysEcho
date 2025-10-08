@@ -182,11 +182,6 @@ export default function ParentScreen({ navigation }: any) {
         accessibilityLabel="Analysen ansehen"
       />
       <ButtonComponent
-        title="Übungsplaner"
-        onPress={() => navigation.navigate('PracticeScheduler')}
-        accessibilityLabel="Übungsplaner"
-      />
-      <ButtonComponent
         title="Lernfortschritt"
         onPress={() => navigation.navigate('CaregiverReport')}
         accessibilityLabel="Lernfortschritt ansehen"

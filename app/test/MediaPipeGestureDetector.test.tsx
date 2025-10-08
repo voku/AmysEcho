@@ -45,14 +45,6 @@ jest.mock('../src/services/contextAwareRecognitionService', () => ({
   },
 }));
 
-jest.mock('../src/services/performanceOptimizationService', () => ({
-  performanceOptimizationService: {
-    updateMetrics: jest.fn(),
-    getMetrics: jest.fn(() => ({ gestureProcessingTime: 0, lastUpdated: Date.now() })),
-    cleanup: jest.fn(),
-  },
-}));
-
 jest.mock('../src/hooks/useModelInjection', () => ({
   useModelInjection: () => ({
     injectModel: jest.fn(),

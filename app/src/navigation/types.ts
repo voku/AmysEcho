@@ -4,8 +4,6 @@ export type RootStackParamList = {
   ProfileSelect: undefined;
   Recognition: { profileId: string; simulateLowConfidence?: boolean };
   Training: { gestureLabel?: string; isPractice?: boolean };
-  Practice: undefined;
-  GesturePractice: undefined;
   Teach: undefined;
   Teaching: { gestureId?: string } | undefined;
   Parent: undefined;
@@ -18,5 +16,4 @@ export type RootStackParamList = {
   CaregiverReport: undefined;
   CommunicationInsights: undefined;
   Help: undefined;
-  PracticeScheduler: undefined;
 };

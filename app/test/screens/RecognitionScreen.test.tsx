@@ -55,13 +55,6 @@ jest.mock('../../src/components/DgsVideoPlayer', () => {
   };
 });
 
-jest.mock('../../src/services/performanceOptimizationService', () => ({
-  performanceOptimizationService: {
-    updateMetrics: jest.fn(),
-    cleanup: jest.fn(),
-  },
-}));
-
 jest.mock('../../src/services/optimizedGestureService', () => ({
   optimizedGestureService: {
     getGestureById: jest.fn(() => ({ emoji: '👋' })),
