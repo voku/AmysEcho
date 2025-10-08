@@ -21,7 +21,6 @@ import ScreenBackground from '../components/ScreenBackground';
 export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isTrustedDevice, setIsTrustedDevice] = useState(false);
-  const [bullyingProtectionEnabled, setBullyingProtectionEnabled] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const [selectedSuccessSound, setSelectedSuccessSound] = useState('success');
   const { largeText, highContrast, update } = useAccessibility();
@@ -120,10 +119,6 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       const deviceId = await AsyncStorage.getItem('trustedDeviceId');
       setIsTrustedDevice(!!deviceId);
 
-      // Check bullying protection status
-      const protectionEnabled = await AsyncStorage.getItem('bullyingProtectionEnabled');
-      setBullyingProtectionEnabled(protectionEnabled === 'true');
-
       // Check gesture size tolerance
       const toleranceStr = await AsyncStorage.getItem('gestureSizeTolerance');
       if (toleranceStr) {
@@ -174,29 +169,6 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
         },
       ],
     );
-  };
-
-  const toggleBullyingProtection = async (enabled: boolean) => {
-    try {
-      await AsyncStorage.setItem('bullyingProtectionEnabled', enabled.toString());
-      setBullyingProtectionEnabled(enabled);
-
-      if (enabled) {
-        Alert.alert(
-          'Mobbing-Schutz aktiviert',
-          "Das Gerät ist jetzt vor unbefugter Nutzung geschützt. Nur vertrauenswürdige Benutzer können Amy's App verwenden.",
-          [{ text: 'OK' }],
-        );
-      } else {
-        Alert.alert(
-          'Mobbing-Schutz deaktiviert',
-          'Der Schutz wurde deaktiviert. Stelle sicher, dass das Gerät sicher verwendet wird.',
-          [{ text: 'OK' }],
-        );
-      }
-    } catch (error) {
-      logger.error('Failed to toggle bullying protection:', error);
-    }
   };
 
   const saveGestureSizeTolerance = async (tolerance: number) => {
@@ -469,47 +441,6 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
               </Pressable>
             </View>
           )}
-        </View>
-
-        {/* Bullying Protection Section */}
-        <View style={styles.trustedDeviceSection}>
-          <Text style={styles.sectionTitle}>Mobbing-Schutz</Text>
-          <View style={styles.protectionInfo}>
-            <Text style={styles.trustedDeviceText}>
-              {bullyingProtectionEnabled
-                ? '🛡️ Mobbing-Schutz ist aktiviert'
-                : '⚠️ Mobbing-Schutz ist deaktiviert'}
-            </Text>
-            <Text style={styles.protectionDescription}>
-              Schützt Amy vor unbefugter Nutzung auf geteilten Geräten
-            </Text>
-            <View style={styles.buttonRow}>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void childHaptic();
-                  toggleBullyingProtection(!bullyingProtectionEnabled);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Mobbing-Schutz ${bullyingProtectionEnabled ? 'deaktivieren' : 'aktivieren'}`}
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  {bullyingProtectionEnabled ? 'Deaktivieren' : 'Aktivieren'}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
         </View>
 
         {/* Gesture Size Tolerance Section */}

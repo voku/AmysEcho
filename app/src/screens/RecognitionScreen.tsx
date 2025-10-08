@@ -142,8 +142,6 @@ export default function RecognitionScreen({
     screenReaderEnabled,
     setScreenReaderEnabled,
     modelUpdateStatus,
-    bullyingProtectionActive,
-    setBullyingProtectionActive,
     gestureSizeTolerance,
     setGestureSizeTolerance,
     showVisualRipple,
@@ -454,30 +452,18 @@ export default function RecognitionScreen({
   }, []);
 
   useEffect(() => {
-    // Check bullying protection status
-    const checkBullyingProtection = async () => {
+    const loadGestureSizeTolerance = async () => {
       try {
-        const protectionEnabled = await AsyncStorage.getItem('bullyingProtectionEnabled');
-        const isTrustedDevice = await AsyncStorage.getItem('trustedDeviceId');
-
-        if (protectionEnabled === 'true' && !isTrustedDevice) {
-          setBullyingProtectionActive(true);
-          setStatus('🔒 Gerät ist nicht vertrauenswürdig. Bitte wende dich an einen Betreuer.');
-        } else {
-          setBullyingProtectionActive(false);
-        }
-
-        // Load gesture size tolerance
         const toleranceStr = await AsyncStorage.getItem('gestureSizeTolerance');
         if (toleranceStr) {
           setGestureSizeTolerance(parseFloat(toleranceStr));
         }
       } catch (error) {
-        logger.warn('Failed to check bullying protection:', error);
+        logger.warn('Failed to load gesture size tolerance:', error);
       }
     };
 
-    checkBullyingProtection();
+    loadGestureSizeTolerance();
   }, []);
 
   useEffect(() => {
