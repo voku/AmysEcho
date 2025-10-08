@@ -168,7 +168,7 @@ describe('ZeroDowntimeModelService (React Native implementation)', () => {
       _url: string,
       _fileUri: string,
       _options: unknown,
-      callback: { totalBytesWritten: number; totalBytesExpectedToWrite: number },
+      callback: (progress: { totalBytesWritten: number; totalBytesExpectedToWrite: number }) => void,
     ) => {
       downloadProgressCallback = callback;
       return {
@@ -197,7 +197,7 @@ describe('ZeroDowntimeModelService (React Native implementation)', () => {
         if (downloadProgressCallback) {
           downloadProgressCallback({ totalBytesWritten: totalBytes, totalBytesExpectedToWrite: totalBytes });
         }
-        return { uri: 'file://mock-model' } as any;
+        return { uri: 'file://mock-model', status: 200 } as any;
       });
 
       mockReadAsStringAsync.mockResolvedValue(toBase64(bytes));
@@ -232,7 +232,7 @@ describe('ZeroDowntimeModelService (React Native implementation)', () => {
 
       mockDownloadAsync.mockImplementationOnce(async () => {
         await new Promise(resolve => setTimeout(resolve, 10));
-        return { uri: 'file://mock-model' } as any;
+        return { uri: 'file://mock-model', status: 200 } as any;
       });
 
       const first = service.startBackgroundUpdate('http://example.com/model');
@@ -253,6 +253,18 @@ describe('ZeroDowntimeModelService (React Native implementation)', () => {
       expect(service.getUpdateStatus().message).toContain('network error');
     });
 
+    it('rejects non-successful HTTP responses', async () => {
+      mockDownloadAsync.mockResolvedValue({ uri: 'file://mock-model', status: 404 } as any);
+
+      const result = await service.startBackgroundUpdate('http://example.com/model');
+
+      expect(result).toBe(false);
+      expect(service.getUpdateStatus().status).toBe('failed');
+      expect(service.getUpdateStatus().message).toContain('status 404');
+      expect(mockReadAsStringAsync).not.toHaveBeenCalled();
+      expect(mockDeleteAsync).toHaveBeenCalledWith('file://mock-model', { idempotent: true });
+    });
+
     it('handles validation failures', async () => {
       mockDownloadSuccess({ bytes: new Array(512).fill(0) });
 
@@ -268,7 +280,7 @@ describe('ZeroDowntimeModelService (React Native implementation)', () => {
         if (downloadProgressCallback) {
           downloadProgressCallback({ totalBytesWritten: 512, totalBytesExpectedToWrite: 1024 });
         }
-        return { uri: 'file://mock-model' } as any;
+        return { uri: 'file://mock-model', status: 200 } as any;
       });
       mockReadAsStringAsync.mockResolvedValue(toBase64(new Array(1024).fill(1)));
 
@@ -434,7 +446,7 @@ describe('ZeroDowntimeModelService (React Native implementation)', () => {
         if (downloadProgressCallback) {
           downloadProgressCallback({ totalBytesWritten: 4, totalBytesExpectedToWrite: 4 });
         }
-        return { uri: 'file://mock-model' } as any;
+        return { uri: 'file://mock-model', status: 200 } as any;
       });
       mockReadAsStringAsync.mockResolvedValue(toBase64(bytes));
 

@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import type { FileSystemDownloadResult } from 'expo-file-system/legacy';
+
+type DownloadTask = ReturnType<typeof FileSystem.createDownloadResumable>;
+type DownloadResult = Awaited<ReturnType<DownloadTask['downloadAsync']>>;
 
 import { logger } from '../utils/logger';
 
@@ -39,7 +41,7 @@ class ZeroDowntimeModelService {
   private isUpdating = false;
   private abortController: AbortController | null = null;
   private downloadStartTime: number | null = null;
-  private currentDownloadTask: FileSystem.DownloadResumable | null = null;
+  private currentDownloadTask: DownloadTask | null = null;
 
   private readonly STORAGE_KEYS = {
     current: 'amys_echo_current_model',
@@ -71,6 +73,7 @@ class ZeroDowntimeModelService {
 
     this.isUpdating = true;
     this.abortController = new AbortController();
+    const updateAbortController = this.abortController;
     const startTime = Date.now();
     this.downloadStartTime = startTime;
 
@@ -80,7 +83,9 @@ class ZeroDowntimeModelService {
 
       // Download model in background
       const modelData = await this.downloadModel(modelUrl, expectedSize);
-      this.downloadStartTime = null;
+      if (this.downloadStartTime === startTime) {
+        this.downloadStartTime = null;
+      }
 
       this.updateStatus = { status: 'validating', progress: 75, message: 'Validating model...' };
       this.notifyCallbacks();
@@ -134,10 +139,13 @@ class ZeroDowntimeModelService {
       this.notifyCallbacks();
       return false;
     } finally {
-      this.isUpdating = false;
-      this.abortController = null;
-      this.downloadStartTime = null;
-      this.currentDownloadTask = null;
+      if (this.abortController === updateAbortController) {
+        this.isUpdating = false;
+        this.abortController = null;
+      }
+      if (this.downloadStartTime === startTime) {
+        this.downloadStartTime = null;
+      }
     }
   }
 
@@ -244,9 +252,7 @@ class ZeroDowntimeModelService {
       });
     }
 
-    this.isUpdating = false;
     this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled', estimatedTimeRemaining: 0 };
-    this.downloadStartTime = null;
     this.notifyCallbacks();
     logger.info('Model update cancelled');
   }
@@ -303,7 +309,8 @@ class ZeroDowntimeModelService {
           this.updateStatus = {
             status: 'downloading',
             progress: 0,
-            message: 'Downloading...'
+            message: 'Downloading...',
+            estimatedTimeRemaining: 0
           };
         }
 
@@ -324,13 +331,19 @@ class ZeroDowntimeModelService {
 
     abortSignal?.addEventListener('abort', handleAbort, { once: true });
 
-    let downloadResult: FileSystemDownloadResult | undefined;
+    let downloadResult: DownloadResult | undefined;
 
     try {
       downloadResult = await downloadResumable.downloadAsync();
 
       if (!downloadResult) {
         throw new Error('Download failed to produce a result');
+      }
+
+      const statusCode = typeof downloadResult === 'object' ? (downloadResult as { status?: number }).status : undefined;
+      if (typeof statusCode === 'number' && (statusCode < 200 || statusCode >= 300)) {
+        await FileSystem.deleteAsync(downloadResult.uri, { idempotent: true }).catch(() => undefined);
+        throw new Error(`Download failed with status ${statusCode}`);
       }
 
       if (abortError) {
@@ -359,7 +372,9 @@ class ZeroDowntimeModelService {
       throw error;
     } finally {
       abortSignal?.removeEventListener('abort', handleAbort);
-      this.currentDownloadTask = null;
+      if (this.currentDownloadTask === downloadResumable) {
+        this.currentDownloadTask = null;
+      }
     }
   }
 
