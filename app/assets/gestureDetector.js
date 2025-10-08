@@ -4828,12 +4828,18 @@
     applyGestureSizeTolerance(value) {
       const currentTolerance = this.config.gestures?.sizeTolerance ?? DEFAULT_GESTURE_SIZE_TOLERANCE;
       const sanitized = this.sanitizeGestureSizeTolerance(value, currentTolerance);
-      this.config.gestures.sizeTolerance = sanitized;
       this.sizeNormalizer.setTolerance(sanitized);
+      this.config.gestures.sizeTolerance = sanitized;
+    }
+    sanitizePartialThreshold(value, fallback) {
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        return fallback;
+      }
+      return Math.max(0, Math.min(1, value));
     }
     applyPartialThreshold(value) {
       const fallback = this.config.gestures?.partialThreshold ?? DEFAULT_PARTIAL_THRESHOLD;
-      const sanitized = typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : fallback;
+      const sanitized = this.sanitizePartialThreshold(value, fallback);
       this.partialDetector.setThreshold(sanitized);
       this.config.gestures.partialThreshold = sanitized;
     }
