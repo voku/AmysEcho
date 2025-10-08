@@ -99,6 +99,7 @@ const toGestureImageCapture = (
 
 const RECOGNITION_TEXT = {
   showDgsVideoLabel: 'DGS-Video anzeigen',
+  hideDgsVideoLabel: 'DGS-Video ausblenden',
   toggleDgsVideo: 'DGS-Video umschalten',
 };
 
@@ -133,6 +134,7 @@ export default function RecognitionScreen({
     setWebviewKey,
     recognitionPath,
     showDgsVideo,
+    setShowDgsVideo,
     showCelebration,
     setShowCelebration,
     celebrationKey,
@@ -436,13 +438,15 @@ export default function RecognitionScreen({
 
   useEffect(() => {
     // Track screen reader to avoid overlapping TTS and accessibility announcements
-    AccessibilityInfo.isScreenReaderEnabled
-      ?.()
-      .then(setScreenReaderEnabled)
-      .catch((error) =>
-        logger.warn('Failed to check if screen reader is enabled:', error),
-      );
-    const sub = AccessibilityInfo.addEventListener?.(
+    const checkScreenReader = AccessibilityInfo?.isScreenReaderEnabled;
+    if (typeof checkScreenReader === 'function') {
+      checkScreenReader()
+        .then(setScreenReaderEnabled)
+        .catch((error) =>
+          logger.warn('Failed to check if screen reader is enabled:', error),
+        );
+    }
+    const sub = AccessibilityInfo?.addEventListener?.(
       'screenReaderChanged',
       setScreenReaderEnabled,
     );
@@ -748,6 +752,12 @@ export default function RecognitionScreen({
   const normalizedStatus = status === 'none' ? 'Ich höre zu…' : status;
   const displayStatus = normalizedStatus;
 
+  useEffect(() => {
+    if (!lastRecognizedGesture?.dgsVideoUri && showDgsVideo) {
+      setShowDgsVideo(false);
+    }
+  }, [lastRecognizedGesture, showDgsVideo]);
+
   return (
     <>
       <ScreenBackground style={styles.container}>
@@ -774,6 +784,19 @@ export default function RecognitionScreen({
                     accessibilityLabel="Kamera wechseln"
                   />
                 </View>
+                {lastRecognizedGesture?.dgsVideoUri ? (
+                  <View style={styles.controlButton}>
+                    <Button
+                      title={
+                        showDgsVideo
+                          ? RECOGNITION_TEXT.hideDgsVideoLabel
+                          : RECOGNITION_TEXT.showDgsVideoLabel
+                      }
+                      accessibilityLabel={RECOGNITION_TEXT.toggleDgsVideo}
+                      onPress={() => setShowDgsVideo((prev) => !prev)}
+                    />
+                  </View>
+                ) : null}
               </View>
             </View>
           )}
