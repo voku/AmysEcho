@@ -17,10 +17,7 @@ class PerformanceOptimizationService {
   private metrics: PerformanceMetrics;
 
   private constructor() {
-    this.metrics = {
-      gestureProcessingTime: 0,
-      lastUpdated: Date.now(),
-    };
+    this.reset();
   }
 
   public static getInstance(): PerformanceOptimizationService {
@@ -38,13 +35,16 @@ class PerformanceOptimizationService {
 
     const { gestureProcessingTime, lastUpdated } = updates;
 
+    let gestureTimeUpdated = false;
+
     if (typeof gestureProcessingTime === 'number' && Number.isFinite(gestureProcessingTime)) {
       this.metrics.gestureProcessingTime = Math.max(gestureProcessingTime, 0);
+      gestureTimeUpdated = true;
     }
 
     if (typeof lastUpdated === 'number' && Number.isFinite(lastUpdated)) {
       this.metrics.lastUpdated = lastUpdated;
-    } else if (gestureProcessingTime !== undefined) {
+    } else if (gestureTimeUpdated) {
       this.metrics.lastUpdated = Date.now();
     }
   }
