@@ -34,6 +34,7 @@ describe('AdaptiveLearningService', () => {
     // Clear all performance metrics before each test
     enhancedAdaptiveLearningService['performanceMetrics'].clear();
     enhancedAdaptiveLearningService['learningPaths'].clear();
+    enhancedAdaptiveLearningService['practiceSessions'] = [];
 
     // Reset mocks
     (database.get as jest.Mock).mockReset();
@@ -140,6 +141,87 @@ describe('AdaptiveLearningService', () => {
     });
   });
 
+  describe('practice session tracking', () => {
+    it('should track start and completion of practice sessions', () => {
+      const nowSpy = jest.spyOn(Date, 'now');
+      nowSpy.mockReturnValueOnce(1_000);
+      adaptiveLearningService.startPracticeSession('hello');
+      nowSpy.mockReturnValueOnce(1_000 + 60_000);
+      adaptiveLearningService.completePracticeSession('hello');
+
+      const sessions = adaptiveLearningService.getPracticeSessions();
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]).toMatchObject({
+        gestureId: 'hello',
+        startedAt: 1_000,
+        completedAt: 1_000 + 60_000,
+        durationMs: 60_000,
+      });
+      nowSpy.mockRestore();
+    });
+
+    it('should trim stored sessions to max limit', () => {
+      const nowSpy = jest.spyOn(Date, 'now');
+      let current = 5_000;
+      nowSpy.mockImplementation(() => current);
+
+      for (let i = 0; i < 45; i++) {
+        current += 1_000;
+        adaptiveLearningService.startPracticeSession(`gesture-${i}`);
+        current += 500;
+        adaptiveLearningService.completePracticeSession(`gesture-${i}`);
+      }
+
+      const sessions = adaptiveLearningService.getPracticeSessions();
+      expect(sessions.length).toBeLessThanOrEqual(40);
+      expect(sessions[0].gestureId).toBe('gesture-5');
+      nowSpy.mockRestore();
+    });
+
+    it('should suggest a break after multiple recent sessions', () => {
+      const nowSpy = jest.spyOn(Date, 'now');
+      const base = 1_000_000;
+      let current = base;
+      nowSpy.mockImplementation(() => current);
+
+      const createSession = (gesture: string, startOffsetMinutes: number) => {
+        current = base + startOffsetMinutes * 60_000;
+        adaptiveLearningService.startPracticeSession(gesture);
+        current += 3 * 60_000;
+        adaptiveLearningService.completePracticeSession(gesture);
+      };
+
+      createSession('one', 0);
+      createSession('two', 7);
+      createSession('three', 15);
+
+      current = base + 15 * 60_000 + (3 * 60_000) + 60_000;
+      expect(adaptiveLearningService.shouldSuggestBreak()).toBe(true);
+
+      nowSpy.mockRestore();
+    });
+
+    it('should not suggest a break when sessions are spread out', () => {
+      const nowSpy = jest.spyOn(Date, 'now');
+      const base = 2_000_000;
+      let current = base;
+      nowSpy.mockImplementation(() => current);
+
+      adaptiveLearningService.startPracticeSession('one');
+      current += 60_000;
+      adaptiveLearningService.completePracticeSession('one');
+
+      current = base + 2 * 60 * 60 * 1000;
+      adaptiveLearningService.startPracticeSession('two');
+      current += 60_000;
+      adaptiveLearningService.completePracticeSession('two');
+
+      expect(adaptiveLearningService.shouldSuggestBreak()).toBe(false);
+
+      nowSpy.mockRestore();
+    });
+  });
+
   describe('getAdaptiveRecommendations', () => {
     beforeEach(() => {
       // Set up some test data
@@ -226,6 +308,9 @@ describe('AdaptiveLearningService', () => {
       expect(progress.masteredGestures).toBe(1); // gesture2 should be master
       expect(progress.averageConfidence).toBeGreaterThan(0);
       expect(progress.activePaths).toBeDefined();
+      expect(progress.totalPracticeSessions).toBe(0);
+      expect(progress.averageSessionDuration).toBe(0);
+      expect(progress.recentPracticeSessions).toEqual([]);
     });
 
     it('should handle empty performance metrics', () => {
@@ -235,6 +320,9 @@ describe('AdaptiveLearningService', () => {
       expect(progress.masteredGestures).toBe(0);
       expect(progress.averageConfidence).toBe(0);
       expect(progress.learningRate).toBe(0);
+      expect(progress.totalPracticeSessions).toBe(0);
+      expect(progress.averageSessionDuration).toBe(0);
+      expect(progress.recentPracticeSessions).toEqual([]);
     });
   });
 

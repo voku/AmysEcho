@@ -45,10 +45,29 @@ export interface AdaptiveRecommendation {
   confidence: number;
 }
 
+export interface PracticeSession {
+  gestureId: string | null;
+  startedAt: number;
+  completedAt?: number;
+  durationMs?: number;
+}
+
+export interface LearningProgressSummary {
+  totalGesturesPracticed: number;
+  masteredGestures: number;
+  averageConfidence: number;
+  learningRate: number;
+  activePaths: LearningPath[];
+  totalPracticeSessions: number;
+  averageSessionDuration: number;
+  recentPracticeSessions: PracticeSession[];
+}
+
 // Enhanced Adaptive Learning Service
 class EnhancedAdaptiveLearningService {
   private performanceMetrics: Map<string, PerformanceMetrics> = new Map();
   private learningPaths: Map<string, LearningPath> = new Map();
+  private practiceSessions: PracticeSession[] = [];
 
   // Difficulty thresholds
   private readonly DIFFICULTY_THRESHOLDS = {
@@ -57,6 +76,12 @@ class EnhancedAdaptiveLearningService {
     advanced: { minConfidence: 0.7, maxConfidence: 0.9, minAttempts: 25 },
     master: { minConfidence: 0.9, maxConfidence: 1.0, minAttempts: 50 }
   };
+
+  private readonly MAX_SESSIONS = 40;
+  private readonly BREAK_SESSION_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+  private readonly BREAK_RECENT_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+  private readonly MIN_RECENT_SESSIONS_FOR_BREAK = 3;
+  private readonly MIN_RECENT_DURATION_MS = 5 * 60 * 1000; // 5 minutes total
 
   // Learning path templates
   private readonly LEARNING_PATH_TEMPLATES = {
@@ -143,6 +168,97 @@ class EnhancedAdaptiveLearningService {
     this.performanceMetrics.set(gesture, metrics);
   }
 
+  startPracticeSession(gestureId: string | null = null): PracticeSession {
+    const startedAt = Date.now();
+    const session: PracticeSession = {
+      gestureId,
+      startedAt,
+    };
+    this.practiceSessions.push(session);
+    this.trimPracticeSessions();
+    return session;
+  }
+
+  completePracticeSession(gestureId: string | null = null): PracticeSession {
+    const now = Date.now();
+    const openSession = [...this.practiceSessions]
+      .reverse()
+      .find((session) => {
+        if (session.completedAt) return false;
+        if (!gestureId) return true;
+        return session.gestureId === gestureId;
+      });
+
+    if (openSession) {
+      openSession.completedAt = now;
+      openSession.durationMs = Math.max(0, now - openSession.startedAt);
+      return openSession;
+    }
+
+    const completed: PracticeSession = {
+      gestureId,
+      startedAt: now,
+      completedAt: now,
+      durationMs: 0,
+    };
+    this.practiceSessions.push(completed);
+    this.trimPracticeSessions();
+    return completed;
+  }
+
+  getPracticeSessions(): PracticeSession[] {
+    return [...this.practiceSessions];
+  }
+
+  shouldSuggestBreak(): boolean {
+    const now = Date.now();
+    const completedSessions = this.practiceSessions.filter(
+      (session) => session.completedAt && session.completedAt <= now,
+    );
+
+    if (completedSessions.length < this.MIN_RECENT_SESSIONS_FOR_BREAK) {
+      return false;
+    }
+
+    const recentSessions = completedSessions
+      .filter((session) =>
+        now - (session.completedAt ?? session.startedAt) <= this.BREAK_SESSION_WINDOW_MS,
+      )
+      .sort(
+        (a, b) =>
+          (a.completedAt ?? a.startedAt) - (b.completedAt ?? b.startedAt),
+      );
+
+    if (recentSessions.length < this.MIN_RECENT_SESSIONS_FOR_BREAK) {
+      return false;
+    }
+
+    const lastSessions = recentSessions.slice(-this.MIN_RECENT_SESSIONS_FOR_BREAK);
+    if (lastSessions.length === 0) {
+      return false;
+    }
+
+    const firstSession = lastSessions[0];
+    const lastSession = lastSessions[lastSessions.length - 1];
+    if (!firstSession || !lastSession) {
+      return false;
+    }
+    const cumulativeDuration = lastSessions.reduce(
+      (sum, session) =>
+        sum + (session.durationMs ?? Math.max(0, (session.completedAt ?? session.startedAt) - session.startedAt)),
+      0,
+    );
+
+    const span = (lastSession.completedAt ?? lastSession.startedAt) - firstSession.startedAt;
+    const lastCompletedAt = lastSession.completedAt ?? lastSession.startedAt;
+
+    const withinWindow = span <= this.BREAK_SESSION_WINDOW_MS;
+    const recentlyFinished = now - lastCompletedAt <= this.BREAK_RECENT_THRESHOLD_MS;
+    const enoughPracticeTime = cumulativeDuration >= this.MIN_RECENT_DURATION_MS;
+
+    return withinWindow && recentlyFinished && enoughPracticeTime;
+  }
+
   /**
    * Get or create performance metrics for a gesture
    */
@@ -198,6 +314,12 @@ class EnhancedAdaptiveLearningService {
 
     const estimatedAdditionalAttempts = remainingToMastery / Math.max(metrics.learningRate, 0.01);
     return Math.min(estimatedAdditionalAttempts, 100);
+  }
+
+  private trimPracticeSessions(): void {
+    if (this.practiceSessions.length > this.MAX_SESSIONS) {
+      this.practiceSessions = this.practiceSessions.slice(-this.MAX_SESSIONS);
+    }
   }
 
   /**
@@ -316,31 +438,53 @@ class EnhancedAdaptiveLearningService {
   /**
    * Get learning progress summary
    */
-  getLearningProgress(): {
-    totalGesturesPracticed: number;
-    masteredGestures: number;
-    averageConfidence: number;
-    learningRate: number;
-    activePaths: LearningPath[];
-  } {
+  getLearningProgress(): LearningProgressSummary {
+    const completedSessions = this.practiceSessions.filter((session) => session.completedAt);
+    const uniqueGestures = new Set(
+      completedSessions
+        .map((session) => session.gestureId)
+        .filter((gestureId): gestureId is string => Boolean(gestureId)),
+    );
+    const totalPracticeSessions = completedSessions.length;
+    const totalPracticeDuration = completedSessions.reduce(
+      (sum, session) => sum + (session.durationMs ?? Math.max(0, (session.completedAt ?? session.startedAt) - session.startedAt)),
+      0,
+    );
+
     const allMetrics = Array.from(this.performanceMetrics.values());
-    const masteredGestures = allMetrics.filter(m => m.difficultyLevel === 'master').length;
+    const masteredGestures = allMetrics.filter((m) => m.difficultyLevel === 'master').length;
     const averageConfidence = allMetrics.length > 0
       ? allMetrics.reduce((sum, m) => sum + m.averageConfidence, 0) / allMetrics.length
       : 0;
 
-    const learningRate = allMetrics.length > 0
-      ? allMetrics.reduce((sum, m) => sum + m.learningRate, 0) / allMetrics.length
-      : 0;
+    let learningRate = 0;
+    if (totalPracticeSessions >= 2) {
+      const sortedSessions = [...completedSessions].sort(
+        (a, b) => (a.completedAt ?? a.startedAt) - (b.completedAt ?? b.startedAt),
+      );
+      const first = sortedSessions[0];
+      const last = sortedSessions[sortedSessions.length - 1];
+      if (first && last) {
+        const spanMs = (last.completedAt ?? last.startedAt) - first.startedAt;
+        if (spanMs > 0) {
+          learningRate = (totalPracticeSessions / (spanMs / (60 * 60 * 1000)));
+        }
+      }
+    }
 
-    const activePaths = Array.from(this.learningPaths.values()).filter(p => p.isActive);
+    const activePaths = Array.from(this.learningPaths.values()).filter((p) => p.isActive);
 
     return {
-      totalGesturesPracticed: allMetrics.length,
+      totalGesturesPracticed: uniqueGestures.size || allMetrics.length,
       masteredGestures,
       averageConfidence,
       learningRate,
-      activePaths
+      activePaths,
+      totalPracticeSessions,
+      averageSessionDuration: totalPracticeSessions > 0
+        ? totalPracticeDuration / totalPracticeSessions
+        : 0,
+      recentPracticeSessions: completedSessions.slice(-5),
     };
   }
 
@@ -391,6 +535,10 @@ export const adaptiveLearningService = {
   recordPracticeAttempt: enhancedAdaptiveLearningService.recordPracticeAttempt.bind(enhancedAdaptiveLearningService),
   getAdaptiveRecommendations: enhancedAdaptiveLearningService.getAdaptiveRecommendations.bind(enhancedAdaptiveLearningService),
   getLearningProgress: enhancedAdaptiveLearningService.getLearningProgress.bind(enhancedAdaptiveLearningService),
+  startPracticeSession: enhancedAdaptiveLearningService.startPracticeSession.bind(enhancedAdaptiveLearningService),
+  completePracticeSession: enhancedAdaptiveLearningService.completePracticeSession.bind(enhancedAdaptiveLearningService),
+  getPracticeSessions: enhancedAdaptiveLearningService.getPracticeSessions.bind(enhancedAdaptiveLearningService),
+  shouldSuggestBreak: enhancedAdaptiveLearningService.shouldSuggestBreak.bind(enhancedAdaptiveLearningService),
 
   // Legacy methods
   getSuggestions: enhancedAdaptiveLearningService.getSuggestions.bind(enhancedAdaptiveLearningService),
