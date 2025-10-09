@@ -139,22 +139,7 @@ export const defaultConfig: GestureDetectorConfig = {
  * Load configuration from window object with fallbacks
  */
 export function loadConfig(): GestureDetectorConfig {
-  const config: GestureDetectorConfig = {
-    performance: { ...defaultConfig.performance },
-    thresholds: { ...defaultConfig.thresholds },
-    camera: { ...defaultConfig.camera },
-    gestures: { ...defaultConfig.gestures },
-    timing: { ...defaultConfig.timing },
-    processing: defaultConfig.processing ? { ...defaultConfig.processing } : undefined,
-    amyPreferences: { ...defaultConfig.amyPreferences },
-    adaptiveSettings: {
-      morningMode: { ...defaultConfig.adaptiveSettings.morningMode },
-      afternoonMode: { ...defaultConfig.adaptiveSettings.afternoonMode },
-      eveningMode: { ...defaultConfig.adaptiveSettings.eveningMode },
-      highActivityMode: { ...defaultConfig.adaptiveSettings.highActivityMode },
-      lowActivityMode: { ...defaultConfig.adaptiveSettings.lowActivityMode },
-    },
-  };
+  const config: GestureDetectorConfig = structuredClone(defaultConfig);
 
   const windowOverrides: GestureConfigOverrides = {};
 
