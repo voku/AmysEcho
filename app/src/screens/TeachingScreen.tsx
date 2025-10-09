@@ -83,6 +83,16 @@ export default function TeachingScreen({ navigation }: any) {
   const practiceSessionActiveRef = useRef(false);
   const practiceGestureRef = useRef<string | null>(null);
 
+  const completeActivePracticeSession = useCallback(() => {
+    if (!practiceSessionActiveRef.current) {
+      return;
+    }
+
+    adaptiveLearningService.completePracticeSession(practiceGestureRef.current);
+    practiceSessionActiveRef.current = false;
+    practiceGestureRef.current = null;
+  }, []);
+
   const normalizedGestureId = useMemo(() => {
     const trimmed = gestureLabel.trim();
     if (!trimmed) {
@@ -118,8 +128,8 @@ export default function TeachingScreen({ navigation }: any) {
   useEffect(() => {
     if (isSessionActive && normalizedGestureId) {
       if (!practiceSessionActiveRef.current || practiceGestureRef.current !== normalizedGestureId) {
-        if (practiceSessionActiveRef.current && practiceGestureRef.current) {
-          adaptiveLearningService.completePracticeSession(practiceGestureRef.current);
+        if (practiceSessionActiveRef.current) {
+          completeActivePracticeSession();
         }
         adaptiveLearningService.startPracticeSession(normalizedGestureId);
         practiceSessionActiveRef.current = true;
@@ -128,20 +138,12 @@ export default function TeachingScreen({ navigation }: any) {
       return;
     }
 
-    if (practiceSessionActiveRef.current) {
-      adaptiveLearningService.completePracticeSession(practiceGestureRef.current);
-      practiceSessionActiveRef.current = false;
-      practiceGestureRef.current = null;
-    }
-  }, [isSessionActive, normalizedGestureId]);
+    completeActivePracticeSession();
+  }, [isSessionActive, normalizedGestureId, completeActivePracticeSession]);
 
   useEffect(() => () => {
-    if (practiceSessionActiveRef.current) {
-      adaptiveLearningService.completePracticeSession(practiceGestureRef.current);
-      practiceSessionActiveRef.current = false;
-      practiceGestureRef.current = null;
-    }
-  }, []);
+    completeActivePracticeSession();
+  }, [completeActivePracticeSession]);
 
   const handleGestureDetected = useCallback(
     async (

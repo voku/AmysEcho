@@ -187,7 +187,7 @@ class EnhancedAdaptiveLearningService {
       if (!session || session.completedAt) {
         continue;
       }
-      if (gestureId && session.gestureId && session.gestureId !== gestureId) {
+      if (gestureId && session.gestureId !== gestureId) {
         continue;
       }
 
