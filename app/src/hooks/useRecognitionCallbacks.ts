@@ -692,8 +692,6 @@ export const useRecognitionCallbacks = ({
       setShowAdaptiveLearning(false);
       if (recommendation?.gesture) {
         navigation.navigate('Teaching', { gestureId: recommendation.gesture });
-      } else if (recommendation?.type === 'break') {
-        setStatus('Nimm dir kurz Zeit – ich bleibe bereit.');
       }
     },
     [navigation, setShowAdaptiveLearning, setStatus],

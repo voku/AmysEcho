@@ -80,8 +80,6 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
         return '🔄';
       case 'challenge':
         return '🚀';
-      case 'break':
-        return '☕';
       default:
         return '📚';
     }
@@ -335,7 +333,7 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
                         {getRecommendationIcon(rec.type)}
                       </Text>
                       <Text style={styles.recommendationTitle}>
-                        {rec.gesture || rec.type === 'break' ? 'Pause' : 'Aktivität'}
+                        {rec.gesture ?? 'Aktivität'}
                       </Text>
                       <View
                         style={[

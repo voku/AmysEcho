@@ -33,7 +33,6 @@ describe('AdaptiveLearningService', () => {
   beforeEach(() => {
     // Clear all performance metrics before each test
     enhancedAdaptiveLearningService['performanceMetrics'].clear();
-    enhancedAdaptiveLearningService['practiceSessions'] = [];
     enhancedAdaptiveLearningService['learningPaths'].clear();
 
     // Reset mocks
@@ -190,30 +189,6 @@ describe('AdaptiveLearningService', () => {
       expect(challengeRec?.priority).toBe('medium');
     });
 
-    it('should suggest breaks when there are many recent sessions', () => {
-      // Add multiple recent sessions
-      for (let i = 0; i < 4; i++) {
-        enhancedAdaptiveLearningService['practiceSessions'].push({
-          id: `session_${i}`,
-          gesture: 'test',
-          difficulty: 'easy',
-          startTime: Date.now() - (i * 10 * 60 * 1000), // Within last hour
-          attempts: 5,
-          successes: 4,
-          averageConfidence: 0.8,
-          feedback: [],
-          duration: 300,
-          completed: true
-        });
-      }
-
-      const recommendations = adaptiveLearningService.getAdaptiveRecommendations();
-
-      const breakRec = recommendations.find(r => r.type === 'break');
-      expect(breakRec).toBeDefined();
-      expect(breakRec?.reason).toContain('Pause');
-    });
-
     it('should respect available time limit', () => {
       const recommendations = adaptiveLearningService.getAdaptiveRecommendations([], 2);
 
@@ -250,7 +225,6 @@ describe('AdaptiveLearningService', () => {
       expect(progress.totalGesturesPracticed).toBe(2);
       expect(progress.masteredGestures).toBe(1); // gesture2 should be master
       expect(progress.averageConfidence).toBeGreaterThan(0);
-      expect(progress.recentSessions).toBeDefined();
       expect(progress.activePaths).toBeDefined();
     });
 
@@ -600,48 +574,5 @@ describe('AdaptiveLearningService', () => {
       });
     });
 
-    describe('shouldSuggestBreak', () => {
-      it('should suggest break when there are many recent sessions', () => {
-        // Add multiple recent sessions
-        for (let i = 0; i < 4; i++) {
-          enhancedAdaptiveLearningService['practiceSessions'].push({
-            id: `session_${i}`,
-            gesture: 'test',
-            difficulty: 'easy',
-            startTime: Date.now() - (i * 10 * 60 * 1000), // Within last hour
-            attempts: 5,
-            successes: 4,
-            averageConfidence: 0.8,
-            feedback: [],
-            duration: 300,
-            completed: true
-          });
-        }
-
-        const shouldBreak = enhancedAdaptiveLearningService['shouldSuggestBreak']([]);
-        expect(shouldBreak).toBe(true);
-      });
-
-      it('should not suggest break when sessions are not recent', () => {
-        // Add old sessions
-        for (let i = 0; i < 4; i++) {
-          enhancedAdaptiveLearningService['practiceSessions'].push({
-            id: `session_${i}`,
-            gesture: 'test',
-            difficulty: 'easy',
-            startTime: Date.now() - (i * 3 * 60 * 60 * 1000), // 3, 6, 9, 12 hours ago
-            attempts: 5,
-            successes: 4,
-            averageConfidence: 0.8,
-            feedback: [],
-            duration: 300,
-            completed: true
-          });
-        }
-
-        const shouldBreak = enhancedAdaptiveLearningService['shouldSuggestBreak']([]);
-        expect(shouldBreak).toBe(false);
-      });
-    });
   });
 });
