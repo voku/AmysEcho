@@ -230,15 +230,8 @@ class EnhancedAdaptiveLearningService {
     }
 
     const lastSessions = recentSessions.slice(-this.MIN_RECENT_SESSIONS_FOR_BREAK);
-    if (lastSessions.length === 0) {
-      return false;
-    }
-
-    const firstSession = lastSessions[0];
-    const lastSession = lastSessions[lastSessions.length - 1];
-    if (!firstSession || !lastSession) {
-      return false;
-    }
+    const firstSession = lastSessions[0]!;
+    const lastSession = lastSessions[lastSessions.length - 1]!;
     const cumulativeDuration = lastSessions.reduce(
       (sum, session) =>
         sum + (session.durationMs ?? Math.max(0, session.completedAt! - session.startedAt)),
@@ -458,13 +451,11 @@ class EnhancedAdaptiveLearningService {
       const sortedSessions = [...completedSessions].sort(
         (a, b) => a.completedAt! - b.completedAt!,
       );
-      const first = sortedSessions[0];
-      const last = sortedSessions[sortedSessions.length - 1];
-      if (first && last) {
-        const spanMs = last.completedAt! - first.startedAt;
-        if (spanMs > 0) {
-          learningRate = (totalPracticeSessions / (spanMs / (60 * 60 * 1000)));
-        }
+      const first = sortedSessions[0]!;
+      const last = sortedSessions[sortedSessions.length - 1]!;
+      const spanMs = last.completedAt! - first.startedAt;
+      if (spanMs > 0) {
+        learningRate = (totalPracticeSessions / (spanMs / (60 * 60 * 1000)));
       }
     }
 
