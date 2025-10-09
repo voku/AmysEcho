@@ -1,8 +1,10 @@
+import type { WebViewMessagePayload } from '../types/MediaPipeTypes';
+
 export const BATCH_INTERVAL_MS = 50;
 export const MAX_BATCH_SIZE = 5;
 export const FRAME_LATENCY_SAMPLE_INTERVAL = 10;
 
-type BridgePayload = Record<string, unknown>;
+type BridgePayload = Record<string, unknown> | WebViewMessagePayload;
 
 type QueueOptions = {
   flushImmediately?: boolean;

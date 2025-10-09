@@ -63,7 +63,7 @@ export class LandmarkPool {
   /**
    * Get a landmark array from the pool
    */
-  acquire(): number[][][] {
+  acquire(): number[][] {
     const landmarks = this.pool.pop();
     if (landmarks) {
       // Clear the array but keep structure
@@ -76,7 +76,7 @@ export class LandmarkPool {
   /**
    * Return landmark array to pool
    */
-  release(landmarks: number[][][]): void {
+  release(landmarks: number[][]): void {
     if (this.pool.length < this.maxSize && landmarks.length <= 10) { // Reasonable size limit
       // Clear contents but keep reference
       landmarks.length = 0;

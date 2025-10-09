@@ -1,3 +1,10 @@
+type GestureFeedbackKey = 'thumbs_up' | 'point' | 'open_palm' | 'fist' | 'emergency';
+
+interface GestureFeedbackCopy {
+  encouragement: string;
+  tip: string;
+}
+
 export interface FeedbackAttempt {
   gesture: string;
   effort: number;
@@ -38,7 +45,7 @@ export class FeedbackSystem {
   };
 
   // Gesture-specific feedback
-  private gestureSpecificFeedback = {
+  private gestureSpecificFeedback: Record<GestureFeedbackKey, GestureFeedbackCopy> = {
     thumbs_up: {
       encouragement: 'Daumen hoch ist ein wichtiges Zeichen!',
       tip: 'Streck deinen Daumen gerade nach oben'
@@ -90,8 +97,12 @@ export class FeedbackSystem {
     const primaryMessage = moodFeedback[Math.floor(Math.random() * moodFeedback.length)];
 
     // Add gesture-specific encouragement
-    const gestureFeedback = this.gestureSpecificFeedback[attemptResult.gesture] ||
-                           this.gestureSpecificFeedback[attemptResult.gestureType === 'emergency' ? 'emergency' : 'thumbs_up'];
+    const fallbackKey: GestureFeedbackKey =
+      attemptResult.gestureType === 'emergency' ? 'emergency' : 'thumbs_up';
+    const gestureKey = this.isGestureFeedbackKey(attemptResult.gesture)
+      ? attemptResult.gesture
+      : fallbackKey;
+    const gestureFeedback = this.gestureSpecificFeedback[gestureKey];
 
     // Generate secondary message based on context
     let secondaryMessage = gestureFeedback.encouragement;
@@ -126,6 +137,10 @@ export class FeedbackSystem {
       showBreakSuggestion,
       encouragement
     };
+  }
+
+  private isGestureFeedbackKey(gesture: string): gesture is GestureFeedbackKey {
+    return gesture in this.gestureSpecificFeedback;
   }
 
   private detectMood(attempt: FeedbackAttempt): 'calm' | 'frustrated' | 'excited' | 'tired' {

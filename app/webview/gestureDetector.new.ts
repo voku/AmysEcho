@@ -69,14 +69,6 @@ import { unzip, unzipSync } from 'fflate';
 import { installMlp } from '../src/webview/installMlp';
 import { GestureRecognitionOrchestrator } from './core/GestureRecognitionOrchestrator';
 
-declare global {
-  interface Window {
-    __startClipCapture?: (id: string) => void;
-    __stopClipCapture?: (id: string) => void;
-    __gestureOrchestrator?: GestureRecognitionOrchestrator | null;
-  }
-}
-
 // Initialize configuration
 const tapToStartText = window.__tapToStart || '';
 const recognizerInitFailed =
@@ -268,6 +260,24 @@ function initDom() {
 
   document.body.appendChild(tap);
 
+  if (
+    window.__autostartCamera === true &&
+    (navigator.userActivation?.hasBeenActive ?? false)
+  ) {
+    const startPromise = orchestrator.start();
+    startPromise
+      .then(() => {
+        tap.classList.add('hidden');
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: 'telemetry', event: 'tap_start_autostart' }),
+        );
+      })
+      .catch((err: unknown) => {
+        console.warn('Camera autostart failed:', err);
+        tap.classList.remove('hidden');
+      });
+  }
+
   window.ReactNativeWebView?.postMessage?.(
     JSON.stringify({ type: 'telemetry', event: 'dom_ready' }),
   );
@@ -278,21 +288,6 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initDom);
 } else {
   initDom();
-}
-
-// Auto-start camera if enabled
-if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
-  orchestrator?.start()
-    .then(() => {
-      document.getElementById('tapToStart')?.classList.add('hidden');
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: 'telemetry', event: 'tap_start_autostart' }),
-      );
-    })
-    .catch((err) => {
-      console.warn('Camera autostart failed:', err);
-      document.getElementById('tapToStart')?.classList.remove('hidden');
-    });
 }
 
 // Page visibility handling

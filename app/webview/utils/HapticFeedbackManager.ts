@@ -37,105 +37,105 @@ export class HapticFeedbackManager {
   };
 
   // Predefined haptic patterns for different events
-  private readonly patterns = {
+  private readonly patterns: Record<string, HapticPattern> = {
     // Hand detection and movement
     hand_detected: {
-      type: 'light' as const,
+      type: 'light',
       intensity: 0.3,
       duration: 50
     },
     hand_moved: {
-      type: 'light' as const,
+      type: 'light',
       intensity: 0.2,
       duration: 30
     },
     hand_stable: {
-      type: 'light' as const,
+      type: 'light',
       intensity: 0.4,
       duration: 40
     },
 
     // Gesture detection stages
     gesture_start: {
-      type: 'light' as const,
+      type: 'light',
       intensity: 0.5,
       duration: 60
     },
     gesture_progress: {
-      type: 'light' as const,
+      type: 'light',
       intensity: 0.3,
       duration: 40,
       repeat: 2,
       interval: 50
     },
     gesture_complete: {
-      type: 'medium' as const,
+      type: 'medium',
       intensity: 0.7,
       duration: 80
     },
 
     // Success and recognition
     gesture_recognized: {
-      type: 'success' as const,
+      type: 'success',
       intensity: 0.8,
       duration: 100
     },
     high_confidence: {
-      type: 'success' as const,
+      type: 'success',
       intensity: 0.9,
       duration: 120
     },
 
     // Errors and corrections
     gesture_failed: {
-      type: 'error' as const,
+      type: 'error',
       intensity: 0.6,
       duration: 70,
       repeat: 2,
       interval: 100
     },
     low_confidence: {
-      type: 'light' as const,
+      type: 'light',
       intensity: 0.4,
       duration: 50
     },
 
     // Special events
     emergency_detected: {
-      type: 'heavy' as const,
+      type: 'heavy',
       intensity: 1.0,
       duration: 150,
       repeat: 3,
       interval: 100
     },
     combination_start: {
-      type: 'medium' as const,
+      type: 'medium',
       intensity: 0.6,
       duration: 60,
       repeat: 2,
       interval: 80
     },
     combination_complete: {
-      type: 'success' as const,
+      type: 'success',
       intensity: 1.0,
       duration: 200
     },
 
     // Learning and practice
     practice_start: {
-      type: 'light' as const,
+      type: 'light',
       intensity: 0.4,
       duration: 50,
       repeat: 3,
       interval: 150
     },
     practice_success: {
-      type: 'success' as const,
+      type: 'success',
       intensity: 0.7,
       duration: 100
     },
     practice_hint: {
-      type: 'light' as const,
+      type: 'light',
       intensity: 0.3,
       duration: 40,
       repeat: 2,
@@ -321,7 +321,7 @@ export class HapticFeedbackManager {
       return null;
     }
 
-    const adaptedPattern = { ...basePattern };
+    const adaptedPattern: HapticPattern = { ...basePattern };
 
     // Adjust intensity based on preferences
     if (this.preferences.intensity === 'gentle') {

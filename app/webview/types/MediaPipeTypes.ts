@@ -130,8 +130,8 @@ export type WebViewMessagePayload =
 declare global {
   interface Window {
     // MediaPipe and related
-    fileset_resolver?: any;
-    vision?: any;
+    fileset_resolver?: { FilesetResolver: any };
+    vision?: { GestureRecognizer: any };
 
     // Custom gesture detector properties
     __tapToStart?: string;
@@ -150,7 +150,10 @@ declare global {
     __gestureSizeTolerance?: number;
 
     // MLP prediction function
-    __mlpPredict?: ((landmarks: number[][][], handednesses: unknown) => { label: string; score: number; } | null) | undefined;
+    __mlpPredict?: (
+      landmarks: number[][][],
+      handednesses: unknown,
+    ) => { label: string; score: number } | null;
 
     // React Native WebView
     ReactNativeWebView?: {

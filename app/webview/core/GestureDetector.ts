@@ -9,7 +9,7 @@ import { OverlayRenderer } from './OverlayRenderer';
 import { ResourceManager } from '../utils/ResourceManager';
 import { HealthMonitor } from '../utils/HealthMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
-import { GestureRecognizerLike, MediaPipeGestureResult } from '../types/MediaPipeTypes';
+import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark } from '../types/MediaPipeTypes';
 import {
   initializeFrameCapture,
   captureFrameForOpenAI,
@@ -190,11 +190,14 @@ export class GestureDetector {
         }
 
         if (results?.landmarks) {
+          const normalizedLandmarks: number[][][] = results.landmarks.map((hand: HandLandmark[]) =>
+            hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]),
+          );
           // Optimize overlay updates - only redraw when necessary
           const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
           if (shouldRedraw) {
             this.overlayRenderer.clear();
-            this.overlayRenderer.drawHandLandmarks(results.landmarks, this.config.camera.mirrorOverlay);
+            this.overlayRenderer.drawHandLandmarks(normalizedLandmarks, this.config.camera.mirrorOverlay);
           }
           const captureInterval = frameCaptureState.frameCaptureInterval;
           if (frameStart - this.lastCaptureAttempt >= captureInterval) {
