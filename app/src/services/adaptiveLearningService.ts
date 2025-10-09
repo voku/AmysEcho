@@ -181,29 +181,30 @@ class EnhancedAdaptiveLearningService {
 
   completePracticeSession(gestureId: string | null = null): PracticeSession {
     const now = Date.now();
-    const openSession = [...this.practiceSessions]
-      .reverse()
-      .find((session) => {
-        if (session.completedAt) return false;
-        if (!gestureId) return true;
-        return session.gestureId === gestureId;
-      });
 
-    if (openSession) {
-      openSession.completedAt = now;
-      openSession.durationMs = Math.max(0, now - openSession.startedAt);
-      return openSession;
+    for (let index = this.practiceSessions.length - 1; index >= 0; index--) {
+      const session = this.practiceSessions[index];
+      if (!session) {
+        continue;
+      }
+      if (session.completedAt) {
+        continue;
+      }
+      if (gestureId && session.gestureId !== gestureId) {
+        continue;
+      }
+
+      session.completedAt = now;
+      session.durationMs = Math.max(0, now - session.startedAt);
+      return session;
     }
 
-    const completed: PracticeSession = {
+    return {
       gestureId,
       startedAt: now,
       completedAt: now,
       durationMs: 0,
     };
-    this.practiceSessions.push(completed);
-    this.trimPracticeSessions();
-    return completed;
   }
 
   getPracticeSessions(): PracticeSession[] {
@@ -221,13 +222,8 @@ class EnhancedAdaptiveLearningService {
     }
 
     const recentSessions = completedSessions
-      .filter((session) =>
-        now - (session.completedAt ?? session.startedAt) <= this.BREAK_SESSION_WINDOW_MS,
-      )
-      .sort(
-        (a, b) =>
-          (a.completedAt ?? a.startedAt) - (b.completedAt ?? b.startedAt),
-      );
+      .filter((session) => now - session.completedAt! <= this.BREAK_SESSION_WINDOW_MS)
+      .sort((a, b) => a.completedAt! - b.completedAt!);
 
     if (recentSessions.length < this.MIN_RECENT_SESSIONS_FOR_BREAK) {
       return false;
@@ -245,12 +241,12 @@ class EnhancedAdaptiveLearningService {
     }
     const cumulativeDuration = lastSessions.reduce(
       (sum, session) =>
-        sum + (session.durationMs ?? Math.max(0, (session.completedAt ?? session.startedAt) - session.startedAt)),
+        sum + (session.durationMs ?? Math.max(0, session.completedAt! - session.startedAt)),
       0,
     );
 
-    const span = (lastSession.completedAt ?? lastSession.startedAt) - firstSession.startedAt;
-    const lastCompletedAt = lastSession.completedAt ?? lastSession.startedAt;
+    const span = lastSession.completedAt! - firstSession.startedAt;
+    const lastCompletedAt = lastSession.completedAt!;
 
     const withinWindow = span <= this.BREAK_SESSION_WINDOW_MS;
     const recentlyFinished = now - lastCompletedAt <= this.BREAK_RECENT_THRESHOLD_MS;
@@ -447,7 +443,7 @@ class EnhancedAdaptiveLearningService {
     );
     const totalPracticeSessions = completedSessions.length;
     const totalPracticeDuration = completedSessions.reduce(
-      (sum, session) => sum + (session.durationMs ?? Math.max(0, (session.completedAt ?? session.startedAt) - session.startedAt)),
+      (sum, session) => sum + (session.durationMs ?? Math.max(0, session.completedAt! - session.startedAt)),
       0,
     );
 
@@ -460,12 +456,12 @@ class EnhancedAdaptiveLearningService {
     let learningRate = 0;
     if (totalPracticeSessions >= 2) {
       const sortedSessions = [...completedSessions].sort(
-        (a, b) => (a.completedAt ?? a.startedAt) - (b.completedAt ?? b.startedAt),
+        (a, b) => a.completedAt! - b.completedAt!,
       );
       const first = sortedSessions[0];
       const last = sortedSessions[sortedSessions.length - 1];
       if (first && last) {
-        const spanMs = (last.completedAt ?? last.startedAt) - first.startedAt;
+        const spanMs = last.completedAt! - first.startedAt;
         if (spanMs > 0) {
           learningRate = (totalPracticeSessions / (spanMs / (60 * 60 * 1000)));
         }
@@ -484,7 +480,9 @@ class EnhancedAdaptiveLearningService {
       averageSessionDuration: totalPracticeSessions > 0
         ? totalPracticeDuration / totalPracticeSessions
         : 0,
-      recentPracticeSessions: completedSessions.slice(-5),
+      recentPracticeSessions: [...completedSessions]
+        .sort((a, b) => b.completedAt! - a.completedAt!)
+        .slice(0, 5),
     };
   }
 

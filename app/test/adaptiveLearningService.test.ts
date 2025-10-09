@@ -178,6 +178,17 @@ describe('AdaptiveLearningService', () => {
       nowSpy.mockRestore();
     });
 
+    it('should not persist a completion when no session was started', () => {
+      const nowSpy = jest.spyOn(Date, 'now');
+      nowSpy.mockReturnValueOnce(10_000);
+
+      const completed = adaptiveLearningService.completePracticeSession('ghost');
+      expect(completed.durationMs).toBe(0);
+      expect(adaptiveLearningService.getPracticeSessions()).toHaveLength(0);
+
+      nowSpy.mockRestore();
+    });
+
     it('should suggest a break after multiple recent sessions', () => {
       const nowSpy = jest.spyOn(Date, 'now');
       const base = 1_000_000;
@@ -323,6 +334,27 @@ describe('AdaptiveLearningService', () => {
       expect(progress.totalPracticeSessions).toBe(0);
       expect(progress.averageSessionDuration).toBe(0);
       expect(progress.recentPracticeSessions).toEqual([]);
+    });
+
+    it('should report recent practice sessions ordered by completion time', () => {
+      const nowSpy = jest.spyOn(Date, 'now');
+      let current = 100_000;
+      nowSpy.mockImplementation(() => current);
+
+      adaptiveLearningService.startPracticeSession('first');
+      current += 1_000;
+      adaptiveLearningService.startPracticeSession('second');
+      current += 2_000;
+      adaptiveLearningService.completePracticeSession('second');
+      current += 2_000;
+      adaptiveLearningService.completePracticeSession('first');
+
+      const progress = adaptiveLearningService.getLearningProgress();
+      expect(progress.recentPracticeSessions).toHaveLength(2);
+      expect(progress.recentPracticeSessions[0].gestureId).toBe('first');
+      expect(progress.recentPracticeSessions[1].gestureId).toBe('second');
+
+      nowSpy.mockRestore();
     });
   });
 

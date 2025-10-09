@@ -237,19 +237,6 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   const startRecording = useCallback(async () => {
-    if (practiceMode) {
-      if (!gestureId) {
-        completePracticeSession();
-      } else {
-        if (practiceSessionActiveRef.current && activePracticeGestureRef.current !== gestureId) {
-          completePracticeSession();
-        }
-        if (!practiceSessionActiveRef.current) {
-          startPracticeSession(gestureId);
-        }
-      }
-    }
-
     if (!gestureId) return;
     setError(null);
     setRecordedFrames([]);
@@ -282,9 +269,6 @@ export default function TrainingScreen({ navigation, route }: any) {
     cleanupClipFile,
     gestureId,
     isPractice,
-    practiceMode,
-    startPracticeSession,
-    completePracticeSession,
   ]);
 
   const stopRecording = useCallback(async () => {
