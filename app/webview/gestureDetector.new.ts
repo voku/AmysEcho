@@ -280,7 +280,7 @@ if (
   (navigator.userActivation?.hasBeenActive ?? false) &&
   activeOrchestrator
 ) {
-  const startPromise = (activeOrchestrator as GestureRecognitionOrchestrator).start();
+  const startPromise = activeOrchestrator.start();
   startPromise
     .then(() => {
       document.getElementById('tapToStart')?.classList.add('hidden');

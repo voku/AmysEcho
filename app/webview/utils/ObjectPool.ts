@@ -70,7 +70,7 @@ export class LandmarkPool {
       landmarks.length = 0;
       return landmarks;
     }
-    return [] as number[][];
+    return [];
   }
 
   /**
