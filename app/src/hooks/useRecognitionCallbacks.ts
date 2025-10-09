@@ -694,7 +694,7 @@ export const useRecognitionCallbacks = ({
         navigation.navigate('Teaching', { gestureId: recommendation.gesture });
       }
     },
-    [navigation, setShowAdaptiveLearning, setStatus],
+    [navigation, setShowAdaptiveLearning],
   );
 
   return {
