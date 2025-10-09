@@ -19,6 +19,20 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useTheme } from '../context/ThemeContext';
 import { adaptiveLearningService, AdaptiveRecommendation } from '../services/adaptiveLearningService';
 
+export const getRecommendationLabel = (rec: AdaptiveRecommendation) => {
+  const gestureLabel = rec.gesture?.trim();
+  if (gestureLabel) {
+    return rec.gesture;
+  }
+
+  const recommendationType = (rec as { type?: string }).type;
+  if (recommendationType === 'break') {
+    return 'Pause';
+  }
+
+  return 'Aktivität';
+};
+
 interface AdaptiveLearningPanelProps {
   visible: boolean;
   onClose: () => void;
@@ -333,7 +347,7 @@ const AdaptiveLearningPanel: React.FC<AdaptiveLearningPanelProps> = ({
                         {getRecommendationIcon(rec.type)}
                       </Text>
                       <Text style={styles.recommendationTitle}>
-                        {rec.gesture ?? 'Aktivität'}
+                        {getRecommendationLabel(rec)}
                       </Text>
                       <View
                         style={[
