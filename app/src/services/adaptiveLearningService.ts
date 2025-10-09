@@ -35,22 +35,8 @@ export interface LearningPath {
   completedAt?: number;
 }
 
-export interface PracticeSession {
-  id: string;
-  gesture: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  startTime: number;
-  endTime?: number;
-  attempts: number;
-  successes: number;
-  averageConfidence: number;
-  feedback: string[];
-  duration: number;
-  completed: boolean;
-}
-
 export interface AdaptiveRecommendation {
-  type: 'practice' | 'review' | 'challenge' | 'break';
+  type: 'practice' | 'review' | 'challenge';
   gesture?: string;
   reason: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -63,8 +49,6 @@ export interface AdaptiveRecommendation {
 class EnhancedAdaptiveLearningService {
   private performanceMetrics: Map<string, PerformanceMetrics> = new Map();
   private learningPaths: Map<string, LearningPath> = new Map();
-  private practiceSessions: PracticeSession[] = [];
-  private readonly MAX_SESSIONS = 100;
 
   // Difficulty thresholds
   private readonly DIFFICULTY_THRESHOLDS = {
@@ -269,18 +253,6 @@ class EnhancedAdaptiveLearningService {
       });
     }
 
-    // 4. Suggest break if overworked
-    if (this.shouldSuggestBreak()) {
-      recommendations.push({
-        type: 'break',
-        reason: 'Kurze Pause für bessere Konzentration',
-        priority: 'medium',
-        estimatedTime: 2,
-        expectedDifficulty: 'easy',
-        confidence: 0.9
-      });
-    }
-
     return recommendations
       .sort((a: AdaptiveRecommendation, b: AdaptiveRecommendation) => this.getPriorityWeight(b) - this.getPriorityWeight(a))
       .filter(rec => rec.estimatedTime <= availableTime)
@@ -334,17 +306,6 @@ class EnhancedAdaptiveLearningService {
   }
 
   /**
-   * Check if Amy should take a break
-   */
-  private shouldSuggestBreak(): boolean {
-    const now = Date.now();
-    const recentSessions = this.practiceSessions.filter(session =>
-      session.startTime > (now - (60 * 60 * 1000))
-    );
-    return recentSessions.length >= 3;
-  }
-
-  /**
    * Get priority weight for sorting recommendations
    */
   private getPriorityWeight(rec: AdaptiveRecommendation): number {
@@ -361,7 +322,6 @@ class EnhancedAdaptiveLearningService {
     averageConfidence: number;
     learningRate: number;
     activePaths: LearningPath[];
-    recentSessions: PracticeSession[];
   } {
     const allMetrics = Array.from(this.performanceMetrics.values());
     const masteredGestures = allMetrics.filter(m => m.difficultyLevel === 'master').length;
@@ -374,15 +334,13 @@ class EnhancedAdaptiveLearningService {
       : 0;
 
     const activePaths = Array.from(this.learningPaths.values()).filter(p => p.isActive);
-    const recentSessions = this.practiceSessions.slice(-5);
 
     return {
       totalGesturesPracticed: allMetrics.length,
       masteredGestures,
       averageConfidence,
       learningRate,
-      activePaths,
-      recentSessions
+      activePaths
     };
   }
 
