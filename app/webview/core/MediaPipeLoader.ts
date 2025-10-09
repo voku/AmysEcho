@@ -10,17 +10,31 @@ export interface MediaPipeComponents {
   wasmBase: string;
 }
 
-// Global references for MediaPipe (populated after loading)
-declare global {
-  interface Window {
-    fileset_resolver?: { FilesetResolver: any };
-    vision?: { GestureRecognizer: any };
-  }
-}
-
 /**
  * Dynamically load MediaPipe Tasks Vision from CDN
  */
+function describeError(error: unknown): { message: string; name?: string; stack?: string } {
+  if (error && typeof error === 'object') {
+    const withProps = error as { message?: unknown; name?: unknown; stack?: unknown };
+    return {
+      message: typeof withProps.message === 'string' ? withProps.message : String(error),
+      name: typeof withProps.name === 'string' ? withProps.name : undefined,
+      stack: typeof withProps.stack === 'string' ? withProps.stack : undefined,
+    };
+  }
+  return { message: String(error) };
+}
+
+function errorMessage(error: unknown): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error && typeof (error as { message?: unknown }).message === 'string') {
+    return (error as { message: string }).message;
+  }
+  return String(error);
+}
+
 export async function loadTasksVision(): Promise<MediaPipeComponents> {
   // Resolve a pinned version from host config if provided
   async function resolvePinnedBase() {
@@ -127,7 +141,7 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
     wasm: 'https://unpkg.com/@mediapipe/tasks-vision/wasm',
   });
 
-  let lastError = null;
+  let lastError: unknown = null;
   let attemptCount = 0;
 
   for (const c of candidates) {
@@ -148,7 +162,7 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
         }
       } catch (e) {
         console.warn(`ESM import failed for ${c.esm}:`, e);
-        lastError = e;
+    lastError = e;
       }
 
       // Try UMD as fallback
@@ -168,7 +182,7 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
       }
     } catch (e) {
       console.warn(`MediaPipe load attempt ${attemptCount} failed:`, e);
-      lastError = e;
+    lastError = e;
     }
   }
 
@@ -176,11 +190,7 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
   const errorDetails = {
     attempts: attemptCount,
     candidates: candidates.map(c => ({ umd: c.umd, esm: c.esm })),
-    lastError: lastError ? {
-      message: lastError.message,
-      name: lastError.name,
-      stack: lastError.stack
-    } : null,
+    lastError: lastError ? describeError(lastError) : null,
     userAgent: navigator.userAgent,
     hasFetch: typeof fetch !== 'undefined',
     isSecureContext: window.isSecureContext,
@@ -190,6 +200,6 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
 
   throw new Error(
     'Tasks Vision globals not available after ' + attemptCount + ' attempts' +
-      (lastError ? ': ' + (lastError.message || lastError) : ''),
+      (lastError ? ': ' + errorMessage(lastError) : ''),
   );
 }

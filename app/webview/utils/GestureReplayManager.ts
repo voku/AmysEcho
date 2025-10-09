@@ -17,6 +17,15 @@ export interface GestureRecording {
   };
 }
 
+interface InProgressRecording {
+  gesture: string;
+  confidence: number;
+  timestamp: number;
+  landmarkSequence: number[][][];
+  handedness: string[];
+  metadata: GestureRecording['metadata'];
+}
+
 export interface ReplayOptions {
   speed: number; // 0.25 = quarter speed, 1.0 = normal speed, 2.0 = double speed
   loop: boolean;
@@ -36,7 +45,7 @@ export interface ReplaySession {
 export class GestureReplayManager {
   private recordings: GestureRecording[] = [];
   private readonly MAX_RECORDINGS = 20; // Keep last 20 successful gestures
-  private currentRecording: Partial<GestureRecording> | null = null;
+  private currentRecording: InProgressRecording | null = null;
   private recordingStartTime = 0;
   private readonly RECORDING_DURATION = 2000; // Record 2 seconds of gesture data
 
@@ -75,8 +84,8 @@ export class GestureReplayManager {
     }
 
     // Convert landmarks to serializable format
-    const frameLandmarks = landmarks.map(hand =>
-      hand.map(lm => [lm[0], lm[1], lm[2] || 0])
+    const frameLandmarks: number[][] = landmarks.flatMap((hand: number[][]) =>
+      hand.map((lm: number[]) => [lm[0], lm[1], lm[2] ?? 0]),
     );
 
     this.currentRecording.landmarkSequence.push(frameLandmarks);
@@ -92,15 +101,19 @@ export class GestureReplayManager {
       return null;
     }
 
+    const base = this.currentRecording;
     const recording: GestureRecording = {
-      ...this.currentRecording,
-      duration: Date.now() - this.recordingStartTime,
+      gesture: base.gesture,
       confidence: finalConfidence,
+      timestamp: base.timestamp,
+      duration: Date.now() - this.recordingStartTime,
+      landmarkSequence: base.landmarkSequence.map(frame => frame.map(point => [...point])),
+      handedness: [...base.handedness],
       metadata: {
-        ...this.currentRecording.metadata,
+        ...base.metadata,
         success
       }
-    } as GestureRecording;
+    };
 
     this.currentRecording = null;
     this.recordingStartTime = 0;
@@ -180,7 +193,7 @@ export class GestureReplayManager {
   /**
    * Get current replay frame
    */
-  getCurrentReplayFrame(): { frame: number[][][]; progress: number; isComplete: boolean } | null {
+  getCurrentReplayFrame(): { frame: number[][]; progress: number; isComplete: boolean } | null {
     if (!this.activeReplay) {
       return null;
     }
@@ -189,7 +202,7 @@ export class GestureReplayManager {
     const progress = currentFrame / recording.landmarkSequence.length;
 
     return {
-      frame: recording.landmarkSequence[currentFrame] || [],
+      frame: recording.landmarkSequence[currentFrame] ?? [],
       progress,
       isComplete: currentFrame >= recording.landmarkSequence.length - 1
     };

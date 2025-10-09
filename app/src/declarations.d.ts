@@ -41,8 +41,8 @@ declare module 'react-native' {
 declare global {
   interface Window {
     ReactNativeWebView?: { postMessage?: (msg: string) => void };
-    fileset_resolver?: any;
-    vision?: any;
+    fileset_resolver?: { FilesetResolver: any };
+    vision?: { GestureRecognizer: any };
     __mlpPredict?: (
       landmarks: number[][][],
       handednesses: unknown,
@@ -55,6 +55,10 @@ declare global {
     __mirrorOverlay?: boolean;
     __mlpThreshold?: number;
     __fallbackThreshold?: number;
+    __gestureSizeTolerance?: number;
+    __amyIntensity?: 'gentle' | 'normal' | 'strong';
+    __amyTimeBased?: boolean;
+    __amyContextAware?: boolean;
     __autostartCamera?: boolean;
     __visionBundleSri?: string;
     __visionBundleNonce?: string;

@@ -15,18 +15,20 @@ export interface ProcessingContext {
   processingStep: string;
   skipExpensiveSteps: boolean;
   rawResults?: MediaPipeGestureResult;
+  rawLandmarks?: number[][][];
   handednesses?: string[];
   normalizedResults?: NormalizedMediaPipeResult;
 }
 
 export interface ProcessingResult {
-  gesture?: string;
+  gesture?: string | null;
   confidence: number;
   landmarks: number[][][];
   processingTime: number;
   stepsExecuted: string[];
   skippedSteps: string[];
   timestamp?: number;
+  systemHealth?: Record<string, unknown>;
   preprocessing?: {
     sizeNormalized?: boolean;
     tremorCompensated?: boolean;

@@ -8,6 +8,7 @@ export interface GestureDetectorConfig {
     telemetrySampleRate: number;
     messageThrottleMs: number;
     confidenceChangeThreshold: number;
+    targetFrameRate?: number;
   };
   thresholds: {
     mlpConfidence: number;
@@ -30,6 +31,11 @@ export interface GestureDetectorConfig {
     emergencyCooldownMs: number;
     frameLatencySampleInterval: number;
   };
+  processing?: {
+    sizeTolerance: number;
+    partialThreshold: number;
+    landmarkChangeThreshold: number;
+  };
   // Amy First: Context-aware and adaptive configuration
   amyPreferences: {
     intensity: 'gentle' | 'normal' | 'strong';
@@ -39,13 +45,19 @@ export interface GestureDetectorConfig {
     challengingGestures: string[];
   };
   adaptiveSettings: {
-    morningMode: Partial<GestureDetectorConfig>;
-    afternoonMode: Partial<GestureDetectorConfig>;
-    eveningMode: Partial<GestureDetectorConfig>;
-    highActivityMode: Partial<GestureDetectorConfig>;
-    lowActivityMode: Partial<GestureDetectorConfig>;
+    morningMode: GestureConfigOverrides;
+    afternoonMode: GestureConfigOverrides;
+    eveningMode: GestureConfigOverrides;
+    highActivityMode: GestureConfigOverrides;
+    lowActivityMode: GestureConfigOverrides;
   };
 }
+
+type GestureConfigOverrides = {
+  [K in keyof GestureDetectorConfig]?: GestureDetectorConfig[K] extends object
+    ? Partial<GestureDetectorConfig[K]>
+    : GestureDetectorConfig[K];
+};
 
 /**
  * Default configuration values
@@ -55,6 +67,7 @@ export const defaultConfig: GestureDetectorConfig = {
     telemetrySampleRate: 30, // Sample every 30 frames
     messageThrottleMs: 100, // Throttle messages to 100ms
     confidenceChangeThreshold: 0.05, // 5% confidence change threshold
+    targetFrameRate: 30,
   },
   thresholds: {
     mlpConfidence: 0.4,
@@ -76,6 +89,11 @@ export const defaultConfig: GestureDetectorConfig = {
     loadTimeoutMs: 8000,
     emergencyCooldownMs: 1000,
     frameLatencySampleInterval: 90,
+  },
+  processing: {
+    sizeTolerance: 0.3,
+    partialThreshold: 0.6,
+    landmarkChangeThreshold: 0.01,
   },
   // Amy First: Default preferences and adaptive settings
   amyPreferences: {
@@ -121,27 +139,38 @@ export const defaultConfig: GestureDetectorConfig = {
  * Load configuration from window object with fallbacks
  */
 export function loadConfig(): GestureDetectorConfig {
-  const config = { ...defaultConfig };
+  const config: GestureDetectorConfig = {
+    ...defaultConfig,
+    performance: { ...defaultConfig.performance },
+    thresholds: { ...defaultConfig.thresholds },
+    camera: { ...defaultConfig.camera },
+    gestures: { ...defaultConfig.gestures },
+    timing: { ...defaultConfig.timing },
+    processing: defaultConfig.processing ? { ...defaultConfig.processing } : undefined,
+    amyPreferences: { ...defaultConfig.amyPreferences },
+    adaptiveSettings: {
+      morningMode: { ...defaultConfig.adaptiveSettings.morningMode },
+      afternoonMode: { ...defaultConfig.adaptiveSettings.afternoonMode },
+      eveningMode: { ...defaultConfig.adaptiveSettings.eveningMode },
+      highActivityMode: { ...defaultConfig.adaptiveSettings.highActivityMode },
+      lowActivityMode: { ...defaultConfig.adaptiveSettings.lowActivityMode },
+    },
+  };
 
-  // Load from window object if available
-  const windowConfig = (window as any);
-  if (windowConfig) {
-    config.thresholds.mlpConfidence = windowConfig.__mlpThreshold ?? config.thresholds.mlpConfidence;
-    config.thresholds.fallbackConfidence = windowConfig.__fallbackThreshold ?? config.thresholds.fallbackConfidence;
-    config.camera.facingMode = windowConfig.__facingMode ?? config.camera.facingMode;
-    config.camera.mirrorOverlay = windowConfig.__mirrorOverlay ?? config.camera.mirrorOverlay;
-    config.gestures.sizeTolerance = windowConfig.__gestureSizeTolerance ?? config.gestures.sizeTolerance;
+  config.thresholds.mlpConfidence = window.__mlpThreshold ?? config.thresholds.mlpConfidence;
+  config.thresholds.fallbackConfidence = window.__fallbackThreshold ?? config.thresholds.fallbackConfidence;
+  config.camera.facingMode = window.__facingMode ?? config.camera.facingMode;
+  config.camera.mirrorOverlay = window.__mirrorOverlay ?? config.camera.mirrorOverlay;
+  config.gestures.sizeTolerance = window.__gestureSizeTolerance ?? config.gestures.sizeTolerance;
 
-    // Load Amy's preferences if available
-    if (windowConfig.__amyIntensity) {
-      config.amyPreferences.intensity = windowConfig.__amyIntensity;
-    }
-    if (windowConfig.__amyTimeBased !== undefined) {
-      config.amyPreferences.timeBasedAdjustments = windowConfig.__amyTimeBased;
-    }
-    if (windowConfig.__amyContextAware !== undefined) {
-      config.amyPreferences.contextAwareness = windowConfig.__amyContextAware;
-    }
+  if (window.__amyIntensity) {
+    config.amyPreferences.intensity = window.__amyIntensity;
+  }
+  if (window.__amyTimeBased !== undefined) {
+    config.amyPreferences.timeBasedAdjustments = window.__amyTimeBased;
+  }
+  if (window.__amyContextAware !== undefined) {
+    config.amyPreferences.contextAwareness = window.__amyContextAware;
   }
 
   return config;
@@ -202,18 +231,24 @@ export function getAdaptiveConfig(
 /**
  * Apply partial configuration updates
  */
-function applyPartialConfig(target: GestureDetectorConfig, source: Partial<GestureDetectorConfig>): void {
-  // Deep merge partial configuration
-  Object.keys(source).forEach(key => {
-    const sourceValue = (source as any)[key];
-    const targetValue = (target as any)[key];
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
-    if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
-      // Recursively merge nested objects
+function applyPartialConfig(target: GestureDetectorConfig, source: GestureConfigOverrides): void {
+  Object.entries(source).forEach(([key, sourceValue]) => {
+    if (sourceValue === undefined) {
+      return;
+    }
+
+    const typedKey = key as keyof GestureDetectorConfig;
+    const targetValue = target[typedKey];
+    const targetRecord = target as Record<keyof GestureDetectorConfig, unknown>;
+
+    if (isRecord(targetValue) && isRecord(sourceValue)) {
       Object.assign(targetValue, sourceValue);
-    } else if (sourceValue !== undefined) {
-      // Direct assignment for primitives and arrays
-      (target as any)[key] = sourceValue;
+    } else {
+      targetRecord[typedKey] = sourceValue as unknown;
     }
   });
 }

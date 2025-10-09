@@ -33,7 +33,7 @@ const MLP_CONFIDENCE_THRESHOLD =
 
 interface GestureMessagePayload {
   type: 'gesture';
-  gesture?: string;
+  gesture?: string | TwoHandGesture | null;
   confidence: number;
   landmarks: number[][][];
   handednesses: string[];
@@ -80,14 +80,14 @@ export class GestureRecognitionOrchestrator {
   private performanceOptimizer: PerformanceOptimizer;
   private memoryOptimizer: MemoryOptimizer;
   private processingPipeline: ProcessingPipeline;
-  private tremorCompensator: OptimizedTremorCompensator;
-  private sizeNormalizer: GestureSizeNormalizer;
-  private partialDetector: PartialGestureDetector;
+  private tremorCompensator!: OptimizedTremorCompensator;
+  private sizeNormalizer!: GestureSizeNormalizer;
+  private partialDetector!: PartialGestureDetector;
   private errorRecoveryManager: ErrorRecoveryManager;
-  private fallbackDetector: FallbackGestureDetector;
-  private emergencySystem: EmergencyGestureSystem;
-  private handStabilityAssistant: HandStabilityAssistant;
-  private batteryMonitor: BatteryMonitor;
+  private fallbackDetector!: FallbackGestureDetector;
+  private emergencySystem!: EmergencyGestureSystem;
+  private handStabilityAssistant!: HandStabilityAssistant;
+  private batteryMonitor!: BatteryMonitor;
   private config: GestureDetectorConfig;
 
   private isInitialized = false;
@@ -233,6 +233,7 @@ export class GestureRecognitionOrchestrator {
         processingStep: 'gesture_results',
         skipExpensiveSteps: this.shouldSkipExpensiveSteps(),
         rawResults: results,
+        rawLandmarks: normalized.landmarks,
         handednesses: normalized.handednesses,
         normalizedResults: normalized
       };
@@ -420,8 +421,9 @@ export class GestureRecognitionOrchestrator {
       }
     };
 
-    recorder.onerror = (event: MediaRecorderErrorEvent) => {
-      this.sendClipError(requestId, 'recorder_error', event?.error);
+    recorder.onerror = (event: Event) => {
+      const error = (event as { error?: unknown }).error;
+      this.sendClipError(requestId, 'recorder_error', error);
       this.resetClipCapture(true);
     };
 
@@ -666,9 +668,11 @@ export class GestureRecognitionOrchestrator {
         }) ??
         [];
 
+      const gestureLabel = processingResult.gesture ?? undefined;
+
       const payload: GestureMessagePayload = {
         type: 'gesture',
-        gesture: processingResult.gesture,
+        gesture: gestureLabel,
         confidence: processingResult.confidence,
         landmarks: processingResult.landmarks,
         handednesses: handednessLabels,
