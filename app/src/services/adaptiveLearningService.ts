@@ -184,10 +184,7 @@ class EnhancedAdaptiveLearningService {
 
     for (let index = this.practiceSessions.length - 1; index >= 0; index--) {
       const session = this.practiceSessions[index];
-      if (!session) {
-        continue;
-      }
-      if (session.completedAt) {
+      if (!session || session.completedAt) {
         continue;
       }
       if (gestureId && session.gestureId !== gestureId) {
@@ -196,6 +193,7 @@ class EnhancedAdaptiveLearningService {
 
       session.completedAt = now;
       session.durationMs = Math.max(0, now - session.startedAt);
+      this.trimPracticeSessions();
       return session;
     }
 
@@ -213,33 +211,39 @@ class EnhancedAdaptiveLearningService {
 
   shouldSuggestBreak(): boolean {
     const now = Date.now();
-    const completedSessions = this.practiceSessions.filter(
-      (session) => session.completedAt && session.completedAt <= now,
-    );
+    const completedSessions = this.practiceSessions
+      .filter(
+        (session): session is PracticeSession & { completedAt: number } =>
+          typeof session.completedAt === 'number' && session.completedAt <= now,
+      )
+      .sort((a, b) => a.completedAt - b.completedAt);
 
     if (completedSessions.length < this.MIN_RECENT_SESSIONS_FOR_BREAK) {
       return false;
     }
 
-    const recentSessions = completedSessions
-      .filter((session) => now - session.completedAt! <= this.BREAK_SESSION_WINDOW_MS)
-      .sort((a, b) => a.completedAt! - b.completedAt!);
+    const recentSessions = completedSessions.filter(
+      (session) => now - session.completedAt <= this.BREAK_SESSION_WINDOW_MS,
+    );
 
     if (recentSessions.length < this.MIN_RECENT_SESSIONS_FOR_BREAK) {
       return false;
     }
 
     const lastSessions = recentSessions.slice(-this.MIN_RECENT_SESSIONS_FOR_BREAK);
-    const firstSession = lastSessions[0]!;
-    const lastSession = lastSessions[lastSessions.length - 1]!;
+    const firstSession = lastSessions[0];
+    const lastSession = lastSessions[lastSessions.length - 1];
+    if (!firstSession || !lastSession) {
+      return false;
+    }
     const cumulativeDuration = lastSessions.reduce(
       (sum, session) =>
-        sum + (session.durationMs ?? Math.max(0, session.completedAt! - session.startedAt)),
+        sum + (session.durationMs ?? Math.max(0, session.completedAt - session.startedAt)),
       0,
     );
 
-    const span = lastSession.completedAt! - firstSession.startedAt;
-    const lastCompletedAt = lastSession.completedAt!;
+    const span = lastSession.completedAt - firstSession.startedAt;
+    const lastCompletedAt = lastSession.completedAt;
 
     const withinWindow = span <= this.BREAK_SESSION_WINDOW_MS;
     const recentlyFinished = now - lastCompletedAt <= this.BREAK_RECENT_THRESHOLD_MS;
@@ -428,7 +432,12 @@ class EnhancedAdaptiveLearningService {
    * Get learning progress summary
    */
   getLearningProgress(): LearningProgressSummary {
-    const completedSessions = this.practiceSessions.filter((session) => session.completedAt);
+    const completedSessions = this.practiceSessions
+      .filter(
+        (session): session is PracticeSession & { completedAt: number } =>
+          typeof session.completedAt === 'number',
+      )
+      .sort((a, b) => a.completedAt - b.completedAt);
     const uniqueGestures = new Set(
       completedSessions
         .map((session) => session.gestureId)
@@ -436,7 +445,8 @@ class EnhancedAdaptiveLearningService {
     );
     const totalPracticeSessions = completedSessions.length;
     const totalPracticeDuration = completedSessions.reduce(
-      (sum, session) => sum + (session.durationMs ?? Math.max(0, session.completedAt! - session.startedAt)),
+      (sum, session) =>
+        sum + (session.durationMs ?? Math.max(0, session.completedAt - session.startedAt)),
       0,
     );
 
@@ -448,12 +458,9 @@ class EnhancedAdaptiveLearningService {
 
     let learningRate = 0;
     if (totalPracticeSessions >= 2) {
-      const sortedSessions = [...completedSessions].sort(
-        (a, b) => a.completedAt! - b.completedAt!,
-      );
-      const first = sortedSessions[0]!;
-      const last = sortedSessions[sortedSessions.length - 1]!;
-      const spanMs = last.completedAt! - first.startedAt;
+      const first = completedSessions[0]!;
+      const last = completedSessions[completedSessions.length - 1]!;
+      const spanMs = last.completedAt - first.startedAt;
       if (spanMs > 0) {
         learningRate = (totalPracticeSessions / (spanMs / (60 * 60 * 1000)));
       }
@@ -471,9 +478,7 @@ class EnhancedAdaptiveLearningService {
       averageSessionDuration: totalPracticeSessions > 0
         ? totalPracticeDuration / totalPracticeSessions
         : 0,
-      recentPracticeSessions: [...completedSessions]
-        .sort((a, b) => b.completedAt! - a.completedAt!)
-        .slice(0, 5),
+      recentPracticeSessions: completedSessions.slice(-5).reverse(),
     };
   }
 

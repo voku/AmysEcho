@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, TextInput, Animated, Easing, Button } from 'react-native';
 // Camera handled inside WebView detector
 // mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
+import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import {
   saveTrainingSample,
   loadProfile,
@@ -34,6 +35,9 @@ import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtil
 import ScreenBackground from '../components/ScreenBackground';
 
 const PREVIEW_SIZE = 240;
+
+const normalizeGestureLabel = (label: string): string =>
+  label.trim().toLowerCase().replace(/\s+/g, '_');
 
 const formatGestureId = (gestureId: string): string =>
   gestureId
@@ -76,6 +80,26 @@ export default function TeachingScreen({ navigation }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { setMessage } = useMessage();
+  const practiceSessionActiveRef = useRef(false);
+  const practiceGestureRef = useRef<string | null>(null);
+
+  const completeActivePracticeSession = useCallback(() => {
+    if (!practiceSessionActiveRef.current) {
+      return;
+    }
+
+    adaptiveLearningService.completePracticeSession(practiceGestureRef.current);
+    practiceSessionActiveRef.current = false;
+    practiceGestureRef.current = null;
+  }, []);
+
+  const normalizedGestureId = useMemo(() => {
+    const trimmed = gestureLabel.trim();
+    if (!trimmed) {
+      return null;
+    }
+    return normalizeGestureLabel(trimmed);
+  }, [gestureLabel]);
 
   useEffect(() => {
     setMessage(error);
@@ -100,6 +124,26 @@ export default function TeachingScreen({ navigation }: any) {
       setSequenceProgress(null);
     }
   }, [teachingMode, selectedGestureMeaning]);
+
+  useEffect(() => {
+    if (isSessionActive && normalizedGestureId) {
+      if (!practiceSessionActiveRef.current || practiceGestureRef.current !== normalizedGestureId) {
+        if (practiceSessionActiveRef.current) {
+          completeActivePracticeSession();
+        }
+        adaptiveLearningService.startPracticeSession(normalizedGestureId);
+        practiceSessionActiveRef.current = true;
+        practiceGestureRef.current = normalizedGestureId;
+      }
+      return;
+    }
+
+    completeActivePracticeSession();
+  }, [isSessionActive, normalizedGestureId, completeActivePracticeSession]);
+
+  useEffect(() => () => {
+    completeActivePracticeSession();
+  }, [completeActivePracticeSession]);
 
   const handleGestureDetected = useCallback(
     async (
@@ -311,7 +355,7 @@ export default function TeachingScreen({ navigation }: any) {
     audioService.speak(`Super! Ich habe "${gestureLabel}" gelernt.`);
     Alert.alert('Erfolg', `Die neue Geste "${gestureLabel}" wurde mit ${SAMPLES_NEEDED} Beispielen trainiert.`);
     sessionId.current = null;
-    const id = gestureLabel.trim().toLowerCase().replace(/\s+/g, '_');
+    const id = normalizeGestureLabel(gestureLabel);
     try {
       await saveCustomGesture({ id, label: gestureLabel });
       addGesture({ id, label: gestureLabel });
