@@ -4,6 +4,10 @@ declare module '*.npz' {
   const value: number;
   export default value;
 }
+declare module '*.txt' {
+  const value: number;
+  export default value;
+}
 declare module 'expo-file-system' {
   export enum FileSystemUploadType {
     BINARY_CONTENT = 0,

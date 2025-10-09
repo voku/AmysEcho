@@ -12,7 +12,7 @@ jest.mock('expo-file-system/legacy', () => ({
   },
   getInfoAsync: (...args: unknown[]) => mockGetInfoAsync(...args),
   readAsStringAsync: (...args: unknown[]) => mockReadAsStringAsync(...args),
-  EncodingType: { Base64: 'base64' },
+  EncodingType: { Base64: 'base64', UTF8: 'utf8' },
 }));
 
 jest.mock('expo-asset', () => ({
@@ -21,7 +21,10 @@ jest.mock('expo-asset', () => ({
   },
 }));
 
-jest.mock('../../assets/dgs_model.npz', () => 'mock-mlp-asset', { virtual: true });
+jest.mock('../../assets/amy_model.npz', () => 'mock-mlp-asset', { virtual: true });
+jest.mock('../../assets/amy_model_base64.txt', () => 'mock-mlp-asset-base64', {
+  virtual: true,
+});
 
 jest.mock('../../src/utils/logger', () => ({
   logger: {
@@ -47,14 +50,19 @@ afterAll(() => {
 });
 
 describe('dgsModelClient local fallback', () => {
-  it('loads the bundled fallback model when the API is unreachable', async () => {
+  it('loads the bundled base64 fallback model when the API is unreachable', async () => {
     const bundledModel = 'YmFzZTY0LW1vZGVs';
-    const asset = {
-      localUri: 'file:///bundled/dgs_model.npz',
+    const base64Asset = {
+      localUri: 'file:///bundled/amy_model_base64.txt',
       downloadAsync: jest.fn().mockResolvedValue(undefined),
     };
 
-    mockFromModule.mockReturnValue(asset);
+    mockFromModule.mockImplementation((moduleId: unknown) => {
+      if (moduleId === 'mock-mlp-asset-base64') {
+        return base64Asset;
+      }
+      throw new Error(`Unexpected module request: ${String(moduleId)}`);
+    });
 
     mockGetInfoAsync.mockImplementation(async (uri: string) => {
       if (uri.startsWith('file:///documents')) {
@@ -63,9 +71,10 @@ describe('dgsModelClient local fallback', () => {
       return { exists: true } as const;
     });
 
-    mockReadAsStringAsync.mockImplementation(async (uri: string) => {
-      if (uri === asset.localUri) {
-        return bundledModel;
+    mockReadAsStringAsync.mockImplementation(async (uri: string, options?: any) => {
+      if (uri === base64Asset.localUri) {
+        expect(options).toEqual({ encoding: 'utf8' });
+        return ` ${bundledModel}\n`;
       }
       throw new Error(`Unexpected read for ${uri}`);
     });
@@ -76,9 +85,52 @@ describe('dgsModelClient local fallback', () => {
     const result = await fetchMlpModel();
 
     expect(fetchMock).toHaveBeenCalled();
-    expect(mockGetInfoAsync).toHaveBeenCalledWith('file:///documents/dgs_model.npz');
-    expect(mockFromModule).toHaveBeenCalled();
-    expect(mockReadAsStringAsync).toHaveBeenCalledWith(asset.localUri, {
+    expect(mockGetInfoAsync).toHaveBeenCalledWith('file:///documents/amy_model.npz');
+    expect(mockFromModule).toHaveBeenCalledWith('mock-mlp-asset-base64');
+    expect(mockReadAsStringAsync).toHaveBeenCalledWith(base64Asset.localUri, {
+      encoding: 'utf8',
+    });
+    expect(result).toBe(bundledModel);
+  });
+
+  it('falls back to the binary bundled model when the base64 asset is unavailable', async () => {
+    const bundledModel = 'YmFzZTY0LW1vZGVs';
+    const binaryAsset = {
+      localUri: 'file:///bundled/amy_model.npz',
+      downloadAsync: jest.fn().mockResolvedValue(undefined),
+    };
+
+    mockFromModule.mockImplementation((moduleId: unknown) => {
+      if (moduleId === 'mock-mlp-asset-base64') {
+        throw new Error('missing base64 asset');
+      }
+      if (moduleId === 'mock-mlp-asset') {
+        return binaryAsset;
+      }
+      throw new Error(`Unexpected module request: ${String(moduleId)}`);
+    });
+
+    mockGetInfoAsync.mockImplementation(async (uri: string) => {
+      if (uri.startsWith('file:///documents')) {
+        return { exists: false } as const;
+      }
+      return { exists: true } as const;
+    });
+
+    mockReadAsStringAsync.mockImplementation(async (uri: string, options?: any) => {
+      if (uri === binaryAsset.localUri) {
+        expect(options).toEqual({ encoding: 'base64' });
+        return bundledModel;
+      }
+      throw new Error(`Unexpected read for ${uri}`);
+    });
+
+    const result = await loadLocalMlpModel();
+
+    expect(mockGetInfoAsync).toHaveBeenCalledWith('file:///documents/amy_model.npz');
+    expect(mockFromModule).toHaveBeenCalledWith('mock-mlp-asset-base64');
+    expect(mockFromModule).toHaveBeenCalledWith('mock-mlp-asset');
+    expect(mockReadAsStringAsync).toHaveBeenCalledWith(binaryAsset.localUri, {
       encoding: 'base64',
     });
     expect(result).toBe(bundledModel);

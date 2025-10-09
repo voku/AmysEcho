@@ -369,7 +369,7 @@ def deploy_model(model_path: str, app_assets_dir: str) -> bool:
         return False
 
     # Update base64 encoding for WebView consumers
-    if run_command("base64 -w 0 amy_model.npz > dgs_model_base64.txt", cwd=app_assets_dir):
+    if run_command("base64 -w 0 amy_model.npz > amy_model_base64.txt", cwd=app_assets_dir):
         print("Updated base64 encoding")
     else:
         return False

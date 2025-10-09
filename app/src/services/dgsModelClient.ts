@@ -270,7 +270,8 @@ export async function loadLocalMlpModel(): Promise<string | null> {
   }
 }
 
-const LOCAL_MODEL_FILE = 'dgs_model.npz';
+const LOCAL_MODEL_FILE = 'amy_model.npz';
+const BUNDLED_MODEL_BASE64_FILE = 'amy_model_base64.txt';
 
 async function loadDocumentDirectoryModel(): Promise<string | null> {
   const { documentDirectory } = FileSystem;
@@ -303,12 +304,41 @@ async function loadDocumentDirectoryModel(): Promise<string | null> {
 
 async function loadBundledFallbackModel(): Promise<string | null> {
   try {
-    const asset = Asset.fromModule(require('../../assets/dgs_model.npz'));
-    if (!asset.localUri) {
-      await asset.downloadAsync();
+    const base64Asset = Asset.fromModule(
+      require('../../assets/amy_model_base64.txt'),
+    );
+    if (!base64Asset.localUri) {
+      await base64Asset.downloadAsync();
     }
 
-    const uri = asset.localUri;
+    const base64Uri = base64Asset.localUri;
+    if (base64Uri) {
+      const raw = await FileSystem.readAsStringAsync(base64Uri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      const normalized = raw.replace(/\s+/g, '');
+      if (normalized.length > 0) {
+        return normalized;
+      }
+
+      logger.warn('Bundled base64 MLP asset was empty', {
+        asset: BUNDLED_MODEL_BASE64_FILE,
+      });
+    }
+  } catch (error) {
+    logger.warn('Failed to load bundled base64 MLP asset', {
+      asset: BUNDLED_MODEL_BASE64_FILE,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  try {
+    const binaryAsset = Asset.fromModule(require('../../assets/amy_model.npz'));
+    if (!binaryAsset.localUri) {
+      await binaryAsset.downloadAsync();
+    }
+
+    const uri = binaryAsset.localUri;
     if (!uri) {
       return null;
     }
