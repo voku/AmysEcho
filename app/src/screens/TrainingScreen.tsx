@@ -12,7 +12,7 @@ import {
 } from '../storage';
 import { gestureModel } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
-import { audioService } from '../services';
+import { audioService, adaptiveLearningService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
 // Local landmark detection removed; relies on server fallback below.
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
@@ -72,6 +72,8 @@ export default function TrainingScreen({ navigation, route }: any) {
     sessionDuration: number;
   } | null>(null);
   const [practiceMode, setPracticeMode] = useState(false);
+  const practiceSessionActiveRef = useRef(false);
+  const activePracticeGestureRef = useRef<string | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
   const clipRequestIdRef = useRef<string | null>(null);
@@ -102,6 +104,26 @@ export default function TrainingScreen({ navigation, route }: any) {
     }
   }, []);
 
+  const completePracticeSession = useCallback(() => {
+    if (!practiceSessionActiveRef.current) {
+      return;
+    }
+
+    adaptiveLearningService.completePracticeSession(activePracticeGestureRef.current);
+    practiceSessionActiveRef.current = false;
+    activePracticeGestureRef.current = null;
+  }, []);
+
+  const startPracticeSession = useCallback((gesture: string | null) => {
+    if (!gesture || practiceSessionActiveRef.current) {
+      return;
+    }
+
+    adaptiveLearningService.startPracticeSession(gesture);
+    practiceSessionActiveRef.current = true;
+    activePracticeGestureRef.current = gesture;
+  }, []);
+
   useEffect(() => {
     setMessage(error);
   }, [error, setMessage]);
@@ -111,6 +133,28 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, [isRecording]);
 
   // No-op: local landmark model removed.
+
+  useEffect(() => {
+    if (!practiceMode) {
+      completePracticeSession();
+      return;
+    }
+
+    if (!gestureId) {
+      completePracticeSession();
+      return;
+    }
+
+    if (practiceSessionActiveRef.current && activePracticeGestureRef.current !== gestureId) {
+      completePracticeSession();
+    }
+
+    startPracticeSession(gestureId);
+  }, [practiceMode, gestureId, startPracticeSession, completePracticeSession]);
+
+  useEffect(() => () => {
+    completePracticeSession();
+  }, [completePracticeSession]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 500);
@@ -221,7 +265,11 @@ export default function TrainingScreen({ navigation, route }: any) {
 
     // HIP 2 or 4: sample start
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
-  }, [cleanupClipFile, gestureId, isPractice]);
+  }, [
+    cleanupClipFile,
+    gestureId,
+    isPractice,
+  ]);
 
   const stopRecording = useCallback(async () => {
     const endTime = Date.now();
@@ -332,6 +380,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   ]);
 
   const handleFinish = () => {
+    completePracticeSession();
     navigation.goBack();
   };
 
@@ -795,6 +844,7 @@ export default function TrainingScreen({ navigation, route }: any) {
             currentProgress={count}
             targetSamples={TARGET_SAMPLES}
             onSessionComplete={() => {
+              completePracticeSession();
               setMessage('🎉 Übungssession abgeschlossen! Gut gemacht!');
             }}
           />
