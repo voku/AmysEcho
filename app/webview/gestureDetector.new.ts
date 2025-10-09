@@ -260,6 +260,24 @@ function initDom() {
 
   document.body.appendChild(tap);
 
+  if (
+    window.__autostartCamera === true &&
+    (navigator.userActivation?.hasBeenActive ?? false)
+  ) {
+    const startPromise = orchestrator.start();
+    startPromise
+      .then(() => {
+        tap.classList.add('hidden');
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: 'telemetry', event: 'tap_start_autostart' }),
+        );
+      })
+      .catch((err: unknown) => {
+        console.warn('Camera autostart failed:', err);
+        tap.classList.remove('hidden');
+      });
+  }
+
   window.ReactNativeWebView?.postMessage?.(
     JSON.stringify({ type: 'telemetry', event: 'dom_ready' }),
   );
@@ -270,28 +288,6 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initDom);
 } else {
   initDom();
-}
-
-// Auto-start camera if enabled
-const activeOrchestrator: GestureRecognitionOrchestrator | null = orchestrator;
-
-if (
-  window.__autostartCamera === true &&
-  (navigator.userActivation?.hasBeenActive ?? false) &&
-  activeOrchestrator
-) {
-  const startPromise = activeOrchestrator.start();
-  startPromise
-    .then(() => {
-      document.getElementById('tapToStart')?.classList.add('hidden');
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: 'telemetry', event: 'tap_start_autostart' }),
-      );
-    })
-    .catch((err: unknown) => {
-      console.warn('Camera autostart failed:', err);
-      document.getElementById('tapToStart')?.classList.remove('hidden');
-    });
 }
 
 // Page visibility handling

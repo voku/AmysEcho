@@ -140,7 +140,6 @@ export const defaultConfig: GestureDetectorConfig = {
  */
 export function loadConfig(): GestureDetectorConfig {
   const config: GestureDetectorConfig = {
-    ...defaultConfig,
     performance: { ...defaultConfig.performance },
     thresholds: { ...defaultConfig.thresholds },
     camera: { ...defaultConfig.camera },
@@ -157,20 +156,67 @@ export function loadConfig(): GestureDetectorConfig {
     },
   };
 
-  config.thresholds.mlpConfidence = window.__mlpThreshold ?? config.thresholds.mlpConfidence;
-  config.thresholds.fallbackConfidence = window.__fallbackThreshold ?? config.thresholds.fallbackConfidence;
-  config.camera.facingMode = window.__facingMode ?? config.camera.facingMode;
-  config.camera.mirrorOverlay = window.__mirrorOverlay ?? config.camera.mirrorOverlay;
-  config.gestures.sizeTolerance = window.__gestureSizeTolerance ?? config.gestures.sizeTolerance;
+  const windowOverrides: GestureConfigOverrides = {};
 
-  if (window.__amyIntensity) {
-    config.amyPreferences.intensity = window.__amyIntensity;
+  if (typeof window.__mlpThreshold === 'number') {
+    windowOverrides.thresholds = {
+      ...(windowOverrides.thresholds ?? {}),
+      mlpConfidence: window.__mlpThreshold,
+    };
   }
+
+  if (typeof window.__fallbackThreshold === 'number') {
+    windowOverrides.thresholds = {
+      ...(windowOverrides.thresholds ?? {}),
+      fallbackConfidence: window.__fallbackThreshold,
+    };
+  }
+
+  if (typeof window.__facingMode === 'string') {
+    windowOverrides.camera = {
+      ...(windowOverrides.camera ?? {}),
+      facingMode: window.__facingMode,
+    };
+  }
+
+  if (typeof window.__mirrorOverlay === 'boolean') {
+    windowOverrides.camera = {
+      ...(windowOverrides.camera ?? {}),
+      mirrorOverlay: window.__mirrorOverlay,
+    };
+  }
+
+  if (typeof window.__gestureSizeTolerance === 'number') {
+    windowOverrides.gestures = {
+      ...(windowOverrides.gestures ?? {}),
+      sizeTolerance: window.__gestureSizeTolerance,
+    };
+  }
+
+  const amyIntensity = window.__amyIntensity;
+  if (amyIntensity) {
+    windowOverrides.amyPreferences = {
+      ...(windowOverrides.amyPreferences ?? {}),
+      intensity: amyIntensity,
+    };
+  }
+
   if (window.__amyTimeBased !== undefined) {
-    config.amyPreferences.timeBasedAdjustments = window.__amyTimeBased;
+    windowOverrides.amyPreferences = {
+      ...(windowOverrides.amyPreferences ?? {}),
+      timeBasedAdjustments: window.__amyTimeBased,
+    };
   }
+
   if (window.__amyContextAware !== undefined) {
-    config.amyPreferences.contextAwareness = window.__amyContextAware;
+    windowOverrides.amyPreferences = {
+      ...(windowOverrides.amyPreferences ?? {}),
+      contextAwareness: window.__amyContextAware,
+    };
+  }
+
+  if (Object.keys(windowOverrides).length > 0) {
+    applyPartialConfig(config, windowOverrides);
   }
 
   return config;
@@ -236,6 +282,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function applyPartialConfig(target: GestureDetectorConfig, source: GestureConfigOverrides): void {
+  const gesturesOverride = source.gestures as Partial<GestureDetectorConfig['gestures']> | undefined;
+  const processingOverride =
+    source.processing as Partial<NonNullable<GestureDetectorConfig['processing']>> | undefined;
+
   Object.entries(source).forEach(([key, sourceValue]) => {
     if (sourceValue === undefined) {
       return;
@@ -251,6 +301,19 @@ function applyPartialConfig(target: GestureDetectorConfig, source: GestureConfig
       targetRecord[typedKey] = sourceValue as unknown;
     }
   });
+
+  if (gesturesOverride && target.processing) {
+    if (processingOverride?.sizeTolerance === undefined && typeof gesturesOverride.sizeTolerance === 'number') {
+      target.processing.sizeTolerance = gesturesOverride.sizeTolerance;
+    }
+
+    if (
+      processingOverride?.partialThreshold === undefined &&
+      typeof gesturesOverride.partialThreshold === 'number'
+    ) {
+      target.processing.partialThreshold = gesturesOverride.partialThreshold;
+    }
+  }
 }
 
 /**
