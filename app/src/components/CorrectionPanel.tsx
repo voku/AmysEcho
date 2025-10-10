@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import Svg, { Path, Circle } from 'react-native-svg';

@@ -290,7 +290,7 @@ jest.mock('./db', () => ({ database: { get: jest.fn(), write: jest.fn() } }));
 jest.mock('./db/models', () => ({}));
 // Note: NetInfo is mocked per-test where needed to avoid shape conflicts
 jest.mock('./src/services/accessibilityService', () => ({ announce: jest.fn() }));
-jest.mock('expo-haptics', () => ({
+jest.mock('./src/utils/haptics', () => ({
   impactAsync: jest.fn(),
   notificationAsync: jest.fn(),
   ImpactFeedbackStyle: {

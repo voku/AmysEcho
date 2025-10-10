@@ -19,7 +19,7 @@ jest.mock('expo-speech', () => ({
   stop: jest.fn(),
 }));
 
-jest.mock('expo-haptics', () => ({
+jest.mock('../src/utils/haptics', () => ({
   notificationAsync: jest.fn().mockResolvedValue(undefined),
   impactAsync: jest.fn().mockResolvedValue(undefined),
   NotificationFeedbackType: { Success: 'success', Error: 'error' },
@@ -52,7 +52,7 @@ jest.mock('../db', () => ({
 
 import { audioService } from '../src/services';
 import { AudioService } from '../src/services/audioService';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../src/utils/haptics';
 import * as Speech from 'expo-speech';
 import * as FileSystem from 'expo-file-system';
 import { database } from '../db';

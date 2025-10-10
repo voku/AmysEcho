@@ -12,7 +12,7 @@ import {
   Modal,
   Animated,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import { useAccessibility } from './AccessibilityContext';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';

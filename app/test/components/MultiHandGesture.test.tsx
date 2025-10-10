@@ -13,8 +13,8 @@ jest.mock('react-native-webview', () => ({
   WebView: 'WebView',
 }));
 
-// Mock expo-haptics
-jest.mock('expo-haptics', () => ({
+// Mock haptics shim
+jest.mock('../../src/utils/haptics', () => ({
   ImpactFeedbackStyle: {
     Light: 'light',
   },

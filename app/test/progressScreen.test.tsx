@@ -50,7 +50,7 @@ jest.mock('expo-speech', () => ({
   speak: jest.fn(),
   stop: jest.fn(),
 }));
-jest.mock('expo-haptics', () => ({
+jest.mock('../src/utils/haptics', () => ({
   notificationAsync: jest.fn(),
   impactAsync: jest.fn(),
   ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },

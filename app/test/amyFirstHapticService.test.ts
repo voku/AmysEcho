@@ -6,7 +6,7 @@
  */
 
 // Mock Haptics for testing
-jest.mock('expo-haptics', () => ({
+jest.mock('../src/utils/haptics', () => ({
   ImpactFeedbackStyle: {
     Light: 'light',
     Medium: 'medium',
@@ -33,7 +33,7 @@ jest.mock('../src/services/audioService', () => ({
   },
 }));
 
-const haptics = require('expo-haptics');
+const haptics = require('../src/utils/haptics');
 const { amyFirstHapticService } = require('../src/services/feedbackService');
 
 describe('AmyFirstHapticService', () => {

@@ -11,7 +11,7 @@ import { COLORS, SPACING } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import { audioService } from '../services';
 import { childFriendlyStyles } from '../styles/touchTargets';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 
 interface SoundSelectorProps {
   selectedSound: string;
