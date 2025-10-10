@@ -1,11 +1,5 @@
-// React Navigation relies on the gesture handler being initialized before any
-// navigation components mount. Keep this side-effect import at the very top so
-// the native gesture handler package is registered on app startup and our
-// GestureHandlerRootView wrapper can register touch responders correctly.
-import 'react-native-gesture-handler';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, AccessibilityInfo, LogBox } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -163,20 +157,15 @@ function AppContent() {
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <AppContent />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     justifyContent: 'center',
