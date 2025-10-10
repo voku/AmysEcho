@@ -126,12 +126,11 @@ function AppContent() {
   }
 
   return (
-    <SafeAreaProvider>
-      <MessageProvider>
-        <MoodProvider>
-          <LocationProvider>
-            <PerformanceProvider>
-              <AppServicesProvider offline={isOffline}>
+    <MessageProvider>
+      <MoodProvider>
+        <LocationProvider>
+          <PerformanceProvider>
+            <AppServicesProvider offline={isOffline}>
               <AccessibilityContext.Provider
                 value={{
                   ...accessibility,
@@ -151,9 +150,8 @@ function AppContent() {
             </AppServicesProvider>
           </PerformanceProvider>
         </LocationProvider>
-        </MoodProvider>
-      </MessageProvider>
-    </SafeAreaProvider>
+      </MoodProvider>
+    </MessageProvider>
   );
 }
 
