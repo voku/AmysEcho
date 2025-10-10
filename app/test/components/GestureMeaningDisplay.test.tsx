@@ -5,10 +5,13 @@ import { optimizedGestureService } from '../../src/services/optimizedGestureServ
 import type { GestureModelEntry } from '../../src/model';
 import { AccessibilityContext } from '../../src/components/AccessibilityContext';
 
-const renderWithAccessibility = (ui: React.ReactElement) =>
+const renderWithAccessibility = (
+  ui: React.ReactElement,
+  overrides: Partial<React.ContextType<typeof AccessibilityContext>> = {},
+) =>
   render(
     <AccessibilityContext.Provider
-      value={{ largeText: false, highContrast: false, update: jest.fn() }}
+      value={{ largeText: false, highContrast: false, update: jest.fn(), ...overrides }}
     >
       {ui}
     </AccessibilityContext.Provider>,
@@ -115,5 +118,50 @@ describe('GestureMeaningDisplay', () => {
     expect(getByText(/👉 Ich/)).toBeTruthy();
     expect(getByText(/❤️ Liebe/)).toBeTruthy();
     expect(getByText(/🫵 Dich/)).toBeTruthy();
+  });
+
+  it('rendert die Overlay-Stile im Standardmodus visuell konsistent', () => {
+    const { toJSON } = renderWithAccessibility(
+      <GestureMeaningDisplay
+        gestureId="hilfe-eine-hand"
+        confidence={0.78}
+        gestureDefinition={{
+          id: 'hilfe-eine-hand',
+          name: 'Hilfe',
+          description: 'Deutliches Hilfesignal mit einer Hand.',
+          emoji: '🆘',
+          category: 'communication',
+          difficulty: 'easy',
+          examples: ['Beispiel 1'],
+          composition: 'single',
+          gesture: 'help',
+        }}
+      />,
+    );
+
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it('rendert die Overlay-Stile im High-Contrast-Modus visuell konsistent', () => {
+    const { toJSON } = renderWithAccessibility(
+      <GestureMeaningDisplay
+        gestureId="hilfe-eine-hand"
+        confidence={0.78}
+        gestureDefinition={{
+          id: 'hilfe-eine-hand',
+          name: 'Hilfe',
+          description: 'Deutliches Hilfesignal mit einer Hand.',
+          emoji: '🆘',
+          category: 'communication',
+          difficulty: 'easy',
+          examples: ['Beispiel 1'],
+          composition: 'single',
+          gesture: 'help',
+        }}
+      />,
+      { highContrast: true },
+    );
+
+    expect(toJSON()).toMatchSnapshot();
   });
 });
