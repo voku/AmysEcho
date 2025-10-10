@@ -6,7 +6,7 @@ import { amyFirstHapticService, getHapticPatternForConfidence, getHapticPatternF
 const { audioService } = require('../src/services/audioService');
 const { logger } = require('../src/utils/logger');
 
-// Mock expo-haptics
+// Mock haptics
 jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: {
     Light: 'light',

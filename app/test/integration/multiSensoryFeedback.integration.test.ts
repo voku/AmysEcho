@@ -9,7 +9,7 @@ jest.mock('../../src/services/audioService', () => ({
   },
 }));
 
-// Mock expo-haptics for the haptic service
+// Mock haptics shim for the haptic service
 jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: {
     Light: 'light',

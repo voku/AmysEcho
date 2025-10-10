@@ -88,7 +88,6 @@ jest.mock('../src/utils/logger', () => ({
   },
 }));
 
-import { Buffer } from 'buffer';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import {
@@ -97,8 +96,9 @@ import {
   ModelVersion,
   DownloadAbortedError,
 } from '../src/services/zeroDowntimeModelService';
+import { uint8ArrayToBase64 } from '../src/utils/base64';
 
-const toBase64 = (bytes: number[]) => Buffer.from(bytes).toString('base64');
+const toBase64 = (bytes: number[]) => uint8ArrayToBase64(Uint8Array.from(bytes));
 
 const flushPromises = async () => new Promise(resolve => setTimeout(resolve, 0));
 

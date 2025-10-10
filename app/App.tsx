@@ -3,8 +3,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, AccessibilityInfo, LogBox } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { setupDatabase } from './db';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { MessageProvider } from './src/context/MessageContext';
 import { MoodProvider } from './src/context/MoodContext';
@@ -106,7 +107,7 @@ function AppContent() {
   }, []);
 
   // Use theme-based colors, fallback to accessibility colors
-  const getGradientColors = () => {
+  const getGradientColors = (): [string, string] => {
     if (accessibility.highContrast) {
       return [COLORS.highContrastBackground, COLORS.highContrastBackground];
     }
@@ -125,12 +126,11 @@ function AppContent() {
   }
 
   return (
-    <SafeAreaProvider>
-      <MessageProvider>
-        <MoodProvider>
-          <LocationProvider>
-            <PerformanceProvider>
-              <AppServicesProvider offline={isOffline}>
+    <MessageProvider>
+      <MoodProvider>
+        <LocationProvider>
+          <PerformanceProvider>
+            <AppServicesProvider offline={isOffline}>
               <AccessibilityContext.Provider
                 value={{
                   ...accessibility,
@@ -150,23 +150,27 @@ function AppContent() {
             </AppServicesProvider>
           </PerformanceProvider>
         </LocationProvider>
-        </MoodProvider>
-      </MessageProvider>
-    </SafeAreaProvider>
+      </MoodProvider>
+    </MessageProvider>
   );
 }
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.gestureRoot}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',

@@ -227,6 +227,23 @@ jest.mock('expo-linear-gradient', () => {
 
   return { LinearGradient };
 });
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const Svg = ({ children, ...props }: any) =>
+    React.createElement(View, props, children);
+
+  return {
+    __esModule: true,
+    default: Svg,
+    Svg,
+    Defs: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    LinearGradient: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    Rect: ({ children, ...props }: any) => React.createElement('Rect', props, children),
+    Stop: () => null,
+  };
+});
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
 
