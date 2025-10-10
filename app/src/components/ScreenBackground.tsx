@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAccessibility } from './AccessibilityContext';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS, SPACING } from '../constants/ui';
+import GradientBackground from './GradientBackground';
 
 export interface ScreenBackgroundProps {
   children: React.ReactNode;
@@ -208,7 +208,7 @@ export default function ScreenBackground({
 
   if (scrollable) {
     return (
-      <LinearGradient colors={gradientColors} style={styles.gradient}>
+      <GradientBackground colors={gradientColors} style={styles.gradient}>
         <ScrollView
           style={scrollViewStyle}
           contentContainerStyle={contentStyle}
@@ -217,16 +217,16 @@ export default function ScreenBackground({
         >
           {children}
         </ScrollView>
-      </LinearGradient>
+      </GradientBackground>
     );
   }
 
   return (
-    <LinearGradient colors={gradientColors} style={styles.gradient}>
+    <GradientBackground colors={gradientColors} style={styles.gradient}>
       <View style={containerStyle} testID={testID}>
         {children}
       </View>
-    </LinearGradient>
+    </GradientBackground>
   );
 }
 

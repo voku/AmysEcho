@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, AccessibilityInfo, LogBox } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { setupDatabase } from './db';
 
 import { MessageProvider } from './src/context/MessageContext';
@@ -14,6 +13,7 @@ import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/stor
 import { initGestureModel } from './src/model';
 import RootNavigator from './src/navigation/RootNavigator';
 import { COLORS } from './src/constants/ui';
+import GradientBackground from './src/components/GradientBackground';
 import { logger } from './src/utils/logger';
 
 import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashReporting';
@@ -105,7 +105,7 @@ function AppContent() {
   }, []);
 
   // Use theme-based colors, fallback to accessibility colors
-  const getGradientColors = () => {
+  const getGradientColors = (): [string, string] => {
     if (accessibility.highContrast) {
       return [COLORS.highContrastBackground, COLORS.highContrastBackground];
     }
@@ -117,9 +117,9 @@ function AppContent() {
 
   if (!isReady) {
     return (
-      <LinearGradient colors={gradientColors} style={styles.container}>
+      <GradientBackground colors={gradientColors} style={styles.container}>
         <LoadingIndicator label="Amy's Echo wird geladen" />
-      </LinearGradient>
+      </GradientBackground>
     );
   }
 
@@ -138,12 +138,12 @@ function AppContent() {
                 }}
               >
                 <ChildErrorBoundary>
-                  <LinearGradient colors={gradientColors} style={styles.gradient}>
+                  <GradientBackground colors={gradientColors} style={styles.gradient}>
                     <OfflineBanner visible={isOffline} />
                     <NavigationContainer>
                       <RootNavigator />
                     </NavigationContainer>
-                  </LinearGradient>
+                  </GradientBackground>
                 </ChildErrorBoundary>
               </AccessibilityContext.Provider>
             </AppServicesProvider>

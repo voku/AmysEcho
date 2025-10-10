@@ -8,8 +8,9 @@ import { createProfile } from '../../src/storage';
 
 import OnboardingScreen from '../../src/screens/OnboardingScreen';
 
-jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: any) => children,
+jest.mock('../../src/components/GradientBackground', () => ({
+  __esModule: true,
+  default: ({ children }: any) => children,
 }));
 jest.mock('../../src/model', () => ({
   availableVocabularySets: [{ id: 'basic', label: 'Basic' }],

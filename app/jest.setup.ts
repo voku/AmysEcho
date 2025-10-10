@@ -218,14 +218,26 @@ jest.mock('./src/context/ThemeContext', () => ({
     availableThemes: {},
   }),
 }));
-jest.mock('expo-linear-gradient', () => {
+jest.mock('react-native-svg', () => {
   const React = require('react');
   const { View } = require('react-native');
 
-  const LinearGradient = ({ children, style, ...rest }: any) =>
-    React.createElement(View, { ...rest, style }, children);
+  const Svg = ({ children, ...props }: any) =>
+    React.createElement(View, props, children);
+  const PassThrough = ({ children, ...props }: any) =>
+    React.createElement(React.Fragment, props, children);
 
-  return { LinearGradient };
+  const Stop = () => null;
+
+  return {
+    __esModule: true,
+    default: Svg,
+    Svg,
+    Defs: PassThrough,
+    LinearGradient: PassThrough,
+    Rect: PassThrough,
+    Stop,
+  };
 });
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
