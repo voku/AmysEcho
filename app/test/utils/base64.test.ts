@@ -27,6 +27,10 @@ describe('base64 utilities', () => {
   });
 
   it('rejects invalid characters', () => {
-    expect(() => base64ToUint8Array('@@@')).toThrow('Invalid character in base64 string.');
+    expect(() => base64ToUint8Array('@@@')).toThrow('Ungültiges Zeichen in Base64-Zeichenkette.');
+  });
+
+  it('rejects invalid lengths', () => {
+    expect(() => base64ToUint8Array('abcde')).toThrow('Ungültige Base64-Eingabelänge.');
   });
 });

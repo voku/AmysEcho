@@ -38,6 +38,8 @@ const NOTIFICATION_PATTERNS: PatternMap<NotificationFeedbackType> = {
 const isVibrationSupported =
   typeof Vibration !== 'undefined' && typeof Vibration.vibrate === 'function';
 
+let hapticsEnabled = true;
+
 function totalDuration(pattern: VibrationPattern): number {
   if (Array.isArray(pattern)) {
     return pattern.reduce((sum, value) => sum + Math.max(0, value), 0);
@@ -46,8 +48,13 @@ function totalDuration(pattern: VibrationPattern): number {
 }
 
 function vibrate(pattern: VibrationPattern): void {
+  if (!hapticsEnabled) {
+    logger.debug('Haptics: Vibration ist derzeit deaktiviert.');
+    return;
+  }
+
   if (!isVibrationSupported) {
-    logger.debug('Haptics: Vibration API not available on this platform');
+    logger.debug('Haptics: Vibration-API auf dieser Plattform nicht verfügbar.');
     return;
   }
 
@@ -58,12 +65,13 @@ function vibrate(pattern: VibrationPattern): void {
       Vibration.vibrate(pattern);
     }
   } catch (error) {
-    logger.warn('Haptics vibration failed', error);
+    logger.warn('Haptics-Vibration fehlgeschlagen.', error);
   }
 }
 
 function wait(duration: number): Promise<void> {
-  const timeout = Math.min(Math.max(duration, 0), 400);
+  // Begrenze die Wartezeit, um aufeinanderfolgende Feedbacks nicht unnötig zu verzögern.
+  const timeout = Math.min(Math.max(duration, 0), 1000);
   return new Promise((resolve) => setTimeout(resolve, timeout));
 }
 
@@ -82,18 +90,23 @@ export async function notificationAsync(
   await wait(totalDuration(pattern));
 }
 
-export function selectionAsync(): Promise<void> {
+export async function selectionAsync(): Promise<void> {
   const duration = IMPACT_PATTERNS[ImpactFeedbackStyle.Light];
   vibrate(duration);
-  return wait(totalDuration(duration));
+  await wait(totalDuration(duration));
 }
 
 export function setNotificationHandler(): void {
-  logger.debug('Haptics: setNotificationHandler is a no-op in the shim');
+  logger.debug('Haptics: setNotificationHandler hat im Shim keine Wirkung.');
 }
 
-export function setHapticEnabled(_: boolean): void {
-  logger.debug('Haptics: setHapticEnabled is a no-op in the shim');
+export function setHapticEnabled(enabled: boolean): void {
+  hapticsEnabled = Boolean(enabled);
+  logger.debug(
+    hapticsEnabled
+      ? 'Haptisches Feedback wurde aktiviert.'
+      : 'Haptisches Feedback wurde deaktiviert.',
+  );
 }
 
 export default {

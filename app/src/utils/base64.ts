@@ -26,7 +26,7 @@ export function base64ToUint8Array(base64: string): Uint8Array {
   }
 
   if (sanitized.length % 4 === 1) {
-    throw new Error('Invalid base64 input length.');
+    throw new Error('Ungültige Base64-Eingabelänge.');
   }
 
   const padding = (sanitized.endsWith('==') ? 2 : sanitized.endsWith('=') ? 1 : 0);
@@ -43,13 +43,9 @@ export function base64ToUint8Array(base64: string): Uint8Array {
       break;
     }
 
-    if (char >= BASE64_LOOKUP.length) {
-      throw new Error('Invalid character in base64 string.');
-    }
-
-    const value = BASE64_LOOKUP[char];
-    if (value === undefined || value === 255) {
-      throw new Error('Invalid character in base64 string.');
+    const value = BASE64_LOOKUP[char] ?? 255;
+    if (value === 255) {
+      throw new Error('Ungültiges Zeichen in Base64-Zeichenkette.');
     }
 
     buffer = (buffer << 6) | value;
@@ -63,7 +59,7 @@ export function base64ToUint8Array(base64: string): Uint8Array {
   }
 
   if (index !== outputLength) {
-    return output.slice(0, index);
+    throw new Error('Unerwartete Byteanzahl nach Base64-Dekodierung.');
   }
 
   return output;
