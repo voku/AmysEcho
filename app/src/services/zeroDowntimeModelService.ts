@@ -5,6 +5,7 @@ type DownloadTask = ReturnType<typeof FileSystem.createDownloadResumable>;
 type DownloadResult = Awaited<ReturnType<DownloadTask['downloadAsync']>>;
 
 import { logger } from '../utils/logger';
+import { base64ToArrayBuffer } from '../utils/base64';
 
 export class DownloadAbortedError extends Error {
   constructor(message = 'Download aborted') {
@@ -363,7 +364,7 @@ class ZeroDowntimeModelService {
       const base64 = await FileSystem.readAsStringAsync(downloadResult.uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      const buffer = this.base64ToArrayBuffer(base64);
+      const buffer = base64ToArrayBuffer(base64);
 
       await FileSystem.deleteAsync(downloadResult.uri, { idempotent: true });
 
@@ -571,34 +572,6 @@ class ZeroDowntimeModelService {
     }
   }
 
-  private base64ToArrayBuffer(base64: string): ArrayBuffer {
-    const globalObj = globalThis as Record<string, unknown>;
-    const BufferCtor = globalObj['Buffer'] as | undefined | {
-      from: (input: string, encoding: string) => {
-        buffer: ArrayBuffer;
-        byteOffset: number;
-        byteLength: number;
-      };
-    };
-
-    if (BufferCtor) {
-      const buffer = BufferCtor.from(base64, 'base64');
-      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-    }
-
-    const atobFn = globalObj['atob'] as ((input: string) => string) | undefined;
-    if (typeof atobFn === 'function') {
-      const binaryString = atobFn(base64);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i += 1) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      return bytes.buffer;
-    }
-
-    throw new Error('No base64 decoder available in this environment');
-  }
 }
 
 export const zeroDowntimeModelService = ZeroDowntimeModelService.getInstance();

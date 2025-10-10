@@ -26,7 +26,6 @@
     "@react-native-community/netinfo": "11.4.1",
     "@react-navigation/native": "6.1.18",
     "@react-navigation/stack": "6.4.1",
-    "buffer": "^6.0.3",
     "crypto-js": "4.2.0",
     "expo": "54.0.13",
     "expo-asset": "~12.0.9",

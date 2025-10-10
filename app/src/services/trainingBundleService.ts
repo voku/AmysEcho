@@ -1,10 +1,10 @@
 import * as FileSystem from 'expo-file-system';
-import { Buffer } from 'buffer';
 import { zipSync, strToU8 } from 'fflate';
 import { API_URL } from '../constants';
 import { loadBackendApiToken, TrainingFrame } from '../storage';
 import { flattenHandsWithHandedness } from './handUtils';
 import { logger } from '../utils/logger';
+import { base64ToUint8Array, uint8ArrayToBase64 } from '../utils/base64';
 
 export interface TrainingBundlePayload {
   label: string;
@@ -205,19 +205,19 @@ export async function uploadTrainingBundle(
     const clipBase64 = await FileSystem.readAsStringAsync(payload.clipUri, {
       encoding: (legacyFs.EncodingType?.Base64 ?? 'base64') as any,
     });
-    const clipBinary = Buffer.from(clipBase64, 'base64');
+    const clipBinary = base64ToUint8Array(clipBase64);
 
     const zipped = zipSync({
       'metadata.json': strToU8(metadataContent),
       'landmarks.json': strToU8(landmarksContent),
       // Store MP4 without extra compression (level: 0) to reduce CPU and time
       'clip.mp4': [
-        clipBinary instanceof Uint8Array ? clipBinary : Uint8Array.from(clipBinary),
+        clipBinary,
         { level: 0 },
       ],
     });
 
-    const base64Zip = Buffer.from(zipped.buffer, zipped.byteOffset, zipped.byteLength).toString('base64');
+    const base64Zip = uint8ArrayToBase64(zipped);
     await FileSystem.writeAsStringAsync(zipPath, base64Zip, {
       encoding: (legacyFs.EncodingType?.Base64 ?? 'base64') as any,
     });
