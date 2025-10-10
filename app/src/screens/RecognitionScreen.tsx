@@ -8,6 +8,7 @@ import {
   Easing,
   Button,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -54,6 +55,7 @@ import {
   createHandLandmarkStabilizer,
 } from '../utils/landmarkUtils';
 import OpenAIGestureFeedback from '../components/OpenAIGestureFeedback';
+import { childFriendlyStyles } from '../styles/touchTargets';
 
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
@@ -111,7 +113,6 @@ export default function RecognitionScreen({
   const { getSuccessMessage } = useThemeMessages();
 
   const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
-  const [showTopControls, setShowTopControls] = useState(false);
 
   const state = useRecognitionState();
   const {
@@ -491,24 +492,6 @@ export default function RecognitionScreen({
       shadowOpacity: 0,
       elevation: 0,
     },
-    sectionSpacing: {
-      marginBottom: SPACING.lg,
-    },
-    controlRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-    },
-    controlButton: {
-      flexBasis: '32%',
-      marginBottom: SPACING.sm,
-    },
-    controlColumn: {
-      alignItems: 'center',
-    },
-    controlSpacer: {
-      height: SPACING.sm,
-    },
     statusLabel: {
       fontSize: 16,
       fontWeight: '600',
@@ -557,6 +540,61 @@ export default function RecognitionScreen({
       aspectRatio: 3 / 4,
       backgroundColor: '#000',
       position: 'relative',
+    },
+    cameraToolbarContainer: {
+      position: 'absolute',
+      top: SPACING.sm,
+      left: SPACING.sm,
+      zIndex: 5,
+    },
+    cameraToolbar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      flexWrap: 'wrap',
+    },
+    toolbarButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.45)',
+      borderRadius: DEFAULT_RADIUS,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+      marginRight: SPACING.sm,
+      marginBottom: SPACING.xs,
+    },
+    toolbarButtonHC: {
+      backgroundColor: COLORS.highContrastBackground,
+      borderWidth: 2,
+      borderColor: COLORS.highContrastText,
+    },
+    toolbarButtonPressed: {
+      opacity: 0.8,
+    },
+    toolbarButtonPressedHC: {
+      backgroundColor: COLORS.highContrastPressed,
+    },
+    toolbarButtonText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 14,
+      marginLeft: SPACING.xs,
+    },
+    toolbarButtonTextLarge: {
+      fontSize: 16,
+    },
+    toolbarButtonTextHC: {
+      color: COLORS.highContrastText,
+    },
+    toolbarIcon: {
+      fontSize: 18,
+      color: '#fff',
+    },
+    toolbarIconLarge: {
+      fontSize: 20,
+    },
+    toolbarIconHC: {
+      color: COLORS.highContrastText,
     },
     videoOverlay: {
       position: 'absolute',
@@ -710,41 +748,6 @@ export default function RecognitionScreen({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {showTopControls && (
-            <View style={styles.sectionSpacing}>
-              <View style={[styles.card, styles.controlRow, highContrast && styles.cardHC]}>
-                <View style={styles.controlButton}>
-                  <Button
-                    title={
-                      facingMode === 'user'
-                        ? 'Hintere Kamera verwenden'
-                        : 'Vordere Kamera verwenden'
-                    }
-                    onPress={() => {
-                      const m = facingMode === 'user' ? 'environment' : 'user';
-                      setFacingMode(m);
-                      setWebviewKey((k) => k + 1);
-                    }}
-                    accessibilityLabel="Kamera wechseln"
-                  />
-                </View>
-                {lastRecognizedGesture?.dgsVideoUri ? (
-                  <View style={styles.controlButton}>
-                    <Button
-                      title={
-                        showDgsVideo
-                          ? RECOGNITION_TEXT.hideDgsVideoLabel
-                          : RECOGNITION_TEXT.showDgsVideoLabel
-                      }
-                      accessibilityLabel={RECOGNITION_TEXT.toggleDgsVideo}
-                      onPress={() => setShowDgsVideo((prev) => !prev)}
-                    />
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          )}
-
           <View style={[styles.card, highContrast && styles.cardHC]}>
             <Text
               style={[
@@ -798,6 +801,86 @@ export default function RecognitionScreen({
                 facingMode={facingMode}
                 gestureSizeTolerance={gestureSizeTolerance}
               />
+
+              <View style={styles.cameraToolbarContainer} pointerEvents="box-none">
+                <View style={styles.cameraToolbar}>
+                  <Pressable
+                    onPress={() => {
+                      const nextMode = facingMode === 'user' ? 'environment' : 'user';
+                      setFacingMode(nextMode);
+                      setWebviewKey((k) => k + 1);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Kamera wechseln"
+                    accessibilityHint="Zwischen Vorder- und Rückkamera umschalten"
+                    style={({ pressed }) => [
+                      childFriendlyStyles.minTouchTarget,
+                      styles.toolbarButton,
+                      highContrast && styles.toolbarButtonHC,
+                      pressed &&
+                        (highContrast ? styles.toolbarButtonPressedHC : styles.toolbarButtonPressed),
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.toolbarIcon,
+                        largeText && styles.toolbarIconLarge,
+                        highContrast && styles.toolbarIconHC,
+                      ]}
+                    >
+                      {facingMode === 'user' ? '📷' : '🤳'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.toolbarButtonText,
+                        largeText && styles.toolbarButtonTextLarge,
+                        highContrast && styles.toolbarButtonTextHC,
+                      ]}
+                    >
+                      {facingMode === 'user' ? 'Zur Rückkamera' : 'Zur Frontkamera'}
+                    </Text>
+                  </Pressable>
+
+                  {lastRecognizedGesture?.dgsVideoUri ? (
+                    <Pressable
+                      onPress={() => setShowDgsVideo((prev) => !prev)}
+                      accessibilityRole="button"
+                      accessibilityLabel={RECOGNITION_TEXT.toggleDgsVideo}
+                      accessibilityHint="DGS-Video ein- oder ausblenden"
+                      style={({ pressed }) => [
+                        childFriendlyStyles.minTouchTarget,
+                        styles.toolbarButton,
+                        highContrast && styles.toolbarButtonHC,
+                        pressed &&
+                          (highContrast
+                            ? styles.toolbarButtonPressedHC
+                            : styles.toolbarButtonPressed),
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.toolbarIcon,
+                          largeText && styles.toolbarIconLarge,
+                          highContrast && styles.toolbarIconHC,
+                        ]}
+                      >
+                        {showDgsVideo ? '🙈' : '🎬'}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.toolbarButtonText,
+                          largeText && styles.toolbarButtonTextLarge,
+                          highContrast && styles.toolbarButtonTextHC,
+                        ]}
+                      >
+                        {showDgsVideo
+                          ? RECOGNITION_TEXT.hideDgsVideoLabel
+                          : RECOGNITION_TEXT.showDgsVideoLabel}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
 
               <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
                 <HandLandmarkPreview
@@ -902,13 +985,6 @@ export default function RecognitionScreen({
                 title="Neue Geste beibringen"
                 accessibilityLabel="Neue Geste beibringen"
                 onPress={() => navigation.navigate('Teaching')}
-              />
-            </View>
-            <View style={styles.actionButton}>
-              <Button
-                title="Einstellungen"
-                accessibilityLabel="Einstellungen anzeigen/verstecken"
-                onPress={() => setShowTopControls(!showTopControls)}
               />
             </View>
           </View>
