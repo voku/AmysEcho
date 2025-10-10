@@ -43,8 +43,12 @@ export function base64ToUint8Array(base64: string): Uint8Array {
       break;
     }
 
+    if (char >= BASE64_LOOKUP.length) {
+      throw new Error('Invalid character in base64 string.');
+    }
+
     const value = BASE64_LOOKUP[char];
-    if (value === 255) {
+    if (value === undefined || value === 255) {
       throw new Error('Invalid character in base64 string.');
     }
 
@@ -66,7 +70,10 @@ export function base64ToUint8Array(base64: string): Uint8Array {
 }
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  return base64ToUint8Array(base64).buffer;
+  const bytes = base64ToUint8Array(base64);
+  const output = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(output).set(bytes);
+  return output;
 }
 
 export function uint8ArrayToBase64(data: ArrayBuffer | ArrayBufferView): string {
@@ -78,9 +85,9 @@ export function uint8ArrayToBase64(data: ArrayBuffer | ArrayBufferView): string 
   let base64 = '';
 
   for (let i = 0; i < bytes.length; i += 3) {
-    const byte1 = bytes[i];
-    const byte2 = i + 1 < bytes.length ? bytes[i + 1] : 0;
-    const byte3 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+    const byte1 = bytes[i]!;
+    const byte2 = i + 1 < bytes.length ? bytes[i + 1]! : 0;
+    const byte3 = i + 2 < bytes.length ? bytes[i + 2]! : 0;
 
     const triplet = (byte1 << 16) | (byte2 << 8) | byte3;
 
@@ -90,10 +97,10 @@ export function uint8ArrayToBase64(data: ArrayBuffer | ArrayBufferView): string 
     const enc4 = triplet & 63;
 
     base64 +=
-      BASE64_ALPHABET[enc1] +
-      BASE64_ALPHABET[enc2] +
-      (i + 1 < bytes.length ? BASE64_ALPHABET[enc3] : '=') +
-      (i + 2 < bytes.length ? BASE64_ALPHABET[enc4] : '=');
+      BASE64_ALPHABET.charAt(enc1) +
+      BASE64_ALPHABET.charAt(enc2) +
+      (i + 1 < bytes.length ? BASE64_ALPHABET.charAt(enc3) : '=') +
+      (i + 2 < bytes.length ? BASE64_ALPHABET.charAt(enc4) : '=');
   }
 
   return base64;
