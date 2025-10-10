@@ -15,6 +15,3 @@ declare module 'expo-audio' {
 declare module 'expo-device' {
   export function getThermalStateAsync(): Promise<number>;
 }
-declare module 'expo-camera' {
-  export const Camera: any;
-}
