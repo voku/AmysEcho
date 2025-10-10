@@ -1,3 +1,6 @@
+// React Navigation relies on the gesture handler being initialized before any
+// navigation components mount. Keep this side-effect import at the very top so
+// the native gesture handler package is registered on app startup.
 import 'react-native-gesture-handler';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, AccessibilityInfo, LogBox } from 'react-native';
