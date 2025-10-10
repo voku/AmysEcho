@@ -1,8 +1,10 @@
+import 'react-native-gesture-handler';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, AccessibilityInfo, LogBox } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { setupDatabase } from './db';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { MessageProvider } from './src/context/MessageContext';
 import { MoodProvider } from './src/context/MoodContext';
@@ -157,15 +159,20 @@ function AppContent() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.gestureRoot}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
