@@ -218,25 +218,30 @@ jest.mock('./src/context/ThemeContext', () => ({
     availableThemes: {},
   }),
 }));
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const LinearGradient = ({ children, style, ...rest }: any) =>
+    React.createElement(View, { ...rest, style }, children);
+
+  return { LinearGradient };
+});
 jest.mock('react-native-svg', () => {
   const React = require('react');
   const { View } = require('react-native');
 
   const Svg = ({ children, ...props }: any) =>
     React.createElement(View, props, children);
-  const PassThrough = ({ children, ...props }: any) =>
-    React.createElement(React.Fragment, props, children);
-
-  const Stop = () => null;
 
   return {
     __esModule: true,
     default: Svg,
     Svg,
-    Defs: PassThrough,
-    LinearGradient: PassThrough,
-    Rect: PassThrough,
-    Stop,
+    Defs: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    LinearGradient: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    Rect: ({ children, ...props }: any) => React.createElement('Rect', props, children),
+    Stop: () => null,
   };
 });
 jest.mock('react-native-safe-area-context', () => {
@@ -302,7 +307,7 @@ jest.mock('./db', () => ({ database: { get: jest.fn(), write: jest.fn() } }));
 jest.mock('./db/models', () => ({}));
 // Note: NetInfo is mocked per-test where needed to avoid shape conflicts
 jest.mock('./src/services/accessibilityService', () => ({ announce: jest.fn() }));
-jest.mock('./src/utils/haptics', () => ({
+jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
   notificationAsync: jest.fn(),
   ImpactFeedbackStyle: {

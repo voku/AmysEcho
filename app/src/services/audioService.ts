@@ -7,7 +7,7 @@ import {
   RecordingPresets,
 } from 'expo-audio';
 import * as Speech from 'expo-speech';
-import * as Haptics from '../utils/haptics';
+import * as Haptics from 'expo-haptics';
 import { Paths, getInfoAsync } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 

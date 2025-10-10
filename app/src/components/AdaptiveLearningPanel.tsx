@@ -13,7 +13,7 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
-import * as Haptics from '../utils/haptics';
+import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useTheme } from '../context/ThemeContext';

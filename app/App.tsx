@@ -5,6 +5,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { setupDatabase } from './db';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { MessageProvider } from './src/context/MessageContext';
 import { MoodProvider } from './src/context/MoodContext';
@@ -15,7 +16,6 @@ import { loadProfile, loadActiveProfileId, setActiveProfileId } from './src/stor
 import { initGestureModel } from './src/model';
 import RootNavigator from './src/navigation/RootNavigator';
 import { COLORS } from './src/constants/ui';
-import GradientBackground from './src/components/GradientBackground';
 import { logger } from './src/utils/logger';
 
 import { initCrashReporting, onAppStartCrashFlush } from './src/services/crashReporting';
@@ -119,9 +119,9 @@ function AppContent() {
 
   if (!isReady) {
     return (
-      <GradientBackground colors={gradientColors} style={styles.container}>
+      <LinearGradient colors={gradientColors} style={styles.container}>
         <LoadingIndicator label="Amy's Echo wird geladen" />
-      </GradientBackground>
+      </LinearGradient>
     );
   }
 
@@ -140,12 +140,12 @@ function AppContent() {
                 }}
               >
                 <ChildErrorBoundary>
-                  <GradientBackground colors={gradientColors} style={styles.gradient}>
+                  <LinearGradient colors={gradientColors} style={styles.gradient}>
                     <OfflineBanner visible={isOffline} />
                     <NavigationContainer>
                       <RootNavigator />
                     </NavigationContainer>
-                  </GradientBackground>
+                  </LinearGradient>
                 </ChildErrorBoundary>
               </AccessibilityContext.Provider>
             </AppServicesProvider>

@@ -7,9 +7,8 @@ jest.mock('../../src/services/feedbackService', () => ({
   childHaptic: jest.fn(),
 }));
 
-jest.mock('../../src/components/GradientBackground', () => ({
-  __esModule: true,
-  default: ({ children }: any) => children,
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: ({ children }: any) => children,
 }));
 jest.mock('expo-audio', () => ({
   requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true })),
@@ -27,7 +26,7 @@ jest.mock('expo-speech', () => ({
   speak: jest.fn(),
   stop: jest.fn(),
 }));
-jest.mock('../../src/utils/haptics', () => ({
+jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(),
   impactAsync: jest.fn(),
   ImpactFeedbackStyle: { Light: 'light' },

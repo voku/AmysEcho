@@ -25,7 +25,7 @@ import { contextAwareRecognitionService } from '../services/contextAwareRecognit
 import { activeLearningService } from '../services/activeLearningService';
 import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import gestureSuggester from '../services/gestureSuggester';
-import * as Haptics from '../utils/haptics';
+import * as Haptics from 'expo-haptics';
 import { logger } from '../utils/logger';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';

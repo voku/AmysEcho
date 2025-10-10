@@ -1,4 +1,4 @@
-jest.mock('../src/utils/haptics', () => ({
+jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn().mockResolvedValue(undefined),
   NotificationFeedbackType: { Success: 'success' },
   ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
@@ -10,7 +10,7 @@ jest.mock('../src/services/audioService', () => ({
 }));
 
 import { triggerSpeakAndShow, audioService } from '../src/services';
-import * as Haptics from '../src/utils/haptics';
+import * as Haptics from 'expo-haptics';
 
 describe('triggerSpeakAndShow', () => {
   beforeEach(() => {

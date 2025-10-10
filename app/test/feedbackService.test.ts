@@ -1,4 +1,4 @@
-import * as Haptics from '../src/utils/haptics';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { amyFirstHapticService, getHapticPatternForConfidence, getHapticPatternForGesture, gestureHapticFeedback, multiSensoryFeedback, getAmyHapticPreferences, updateAmyHapticPreferences, detectionHapticFeedback, partialGestureHapticFeedback, learningProgressHapticFeedback, streakAchievementHapticFeedback, encouragementHapticFeedback, triggerSpeakAndShow, childHaptic } from '../src/services/feedbackService';
 
@@ -6,8 +6,8 @@ import { amyFirstHapticService, getHapticPatternForConfidence, getHapticPatternF
 const { audioService } = require('../src/services/audioService');
 const { logger } = require('../src/utils/logger');
 
-// Mock haptics shim
-jest.mock('../src/utils/haptics', () => ({
+// Mock haptics
+jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: {
     Light: 'light',
     Medium: 'medium',
