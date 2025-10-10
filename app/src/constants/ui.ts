@@ -23,6 +23,14 @@ export const COLORS = {
   highContrastPressed: '#555555',
   highContrastBackground: '#000000',
   highContrastText: '#FFFFFF',
+  overlayBackdrop: 'rgba(15, 23, 42, 0.85)',
+  overlaySurface: 'rgba(255, 255, 255, 0.28)',
+  overlaySurfaceMuted: 'rgba(255, 255, 255, 0.18)',
+  overlayBorder: 'rgba(255, 255, 255, 0.35)',
+  overlayText: '#F9FAFB',
+  overlayTextMuted: '#E2E8F0',
+  overlayBadgeBackground: 'rgba(255, 255, 255, 0.85)',
+  overlayBadgeText: '#0F172A',
 } as const;
 
 export const SPACING = {
