@@ -13,7 +13,7 @@ This guide explains how to evaluate the onboarding flow with caregivers or educa
 
 ## Test Script
 1. Ask the participant to open the app.
-2. Observe wie sie die vier Onboarding-Schritte erleben (Name, Zugänglichkeit, Einverständnis, Vokabular).
+2. Beobachte, wie sie die vier Onboarding-Schritte erleben (Name, Zugänglichkeit, Einverständnis, Vokabular).
 3. Achte darauf, ob die erklärenden Emojis und Texte Sicherheit vermitteln.
 4. Lasse sie ohne Hilfe zum Ende navigieren und notiere die benötigte Zeit.
 5. Halte fest, bei welchem Schritt sie unsicher wirken oder nachfragen.

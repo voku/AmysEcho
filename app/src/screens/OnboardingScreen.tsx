@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Switch, StyleSheet, TextInput } from 'react-native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { createProfile } from '../storage';
 import {
   availableVocabularySets,
@@ -11,6 +12,7 @@ import { logHIPEvent } from '../services/hipEvents';
 import ScreenBackground from '../components/ScreenBackground';
 import PrimaryButton from '../components/PrimaryButton';
 import { announceAccessibilityMessage } from '../services/accessibilityService';
+import { RootStackParamList } from '../navigation/types';
 
 type StepKey = 'name' | 'accessibility' | 'consent' | 'vocabulary';
 
@@ -25,9 +27,9 @@ const STEPS: WizardStep[] = [
   {
     key: 'name',
     emoji: '👋',
-    title: 'Wie darf ich euch vorstellen?',
+    title: 'Wie darf ich dich nennen?',
     description:
-      'Sag mir den Namen, den ich klar und liebevoll sprechen soll. Wenn du keinen Namen eingibst, bleibe ich bei „Amy“. ',
+      'Sag mir den Namen, den ich klar und liebevoll sprechen soll. Wenn du keinen Namen eingibst, bleibe ich bei „Amy“.',
   },
   {
     key: 'accessibility',
@@ -51,6 +53,17 @@ const STEPS: WizardStep[] = [
       'Wähle das Set, das am besten zu euren ersten Gesprächen passt. Du kannst später jederzeit mehr hinzufügen.',
   },
 ];
+
+const FALLBACK_STEP = STEPS[0]!;
+
+type OnboardingScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Onboarding'
+>;
+
+type OnboardingScreenProps = {
+  navigation: OnboardingScreenNavigationProp;
+};
 
 const createStyles = (largeText: boolean, highContrast: boolean) =>
   StyleSheet.create({
@@ -131,7 +144,7 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
     },
   });
 
-export default function OnboardingScreen({ navigation }: any) {
+export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   const [name, setName] = useState('');
   const [consentDataUpload, setConsentDataUpload] = useState(false);
   const [consentHelpMeGetSmarter, setConsentHelpMeGetSmarter] = useState(false);
@@ -142,14 +155,13 @@ export default function OnboardingScreen({ navigation }: any) {
   const { update } = useAccessibility();
 
   const totalSteps = STEPS.length;
-  const fallbackStep = STEPS[0]!;
   const activeStep = React.useMemo<WizardStep>(() => {
     const step = STEPS[currentStep];
     if (!step) {
-      return fallbackStep;
+      return FALLBACK_STEP;
     }
     return step;
-  }, [currentStep, fallbackStep]);
+  }, [currentStep]);
 
   const styles = useMemo(
     () => createStyles(largeText, highContrast),

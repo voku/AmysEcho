@@ -6,13 +6,13 @@ jest.mock('../../src/storage', () => ({
 }));
 import { createProfile } from '../../src/storage';
 
-jest.mock('../../src/model', () => ({
-  availableVocabularySets: [
-    { id: 'basic', label: 'Basis' },
-    { id: 'feelings', label: 'Gefühle' },
-  ],
-  setActiveVocabularySet: jest.fn(),
-}));
+jest.mock('../../src/model', () => {
+  const actual = jest.requireActual('../../src/model');
+  return {
+    ...actual,
+    setActiveVocabularySet: jest.fn(),
+  };
+});
 import { setActiveVocabularySet } from '../../src/model';
 
 jest.mock('../../src/components/AccessibilityContext', () => ({
@@ -78,7 +78,7 @@ describe('OnboardingScreen', () => {
     });
 
     await act(async () => {
-      component.root.findByProps({ testID: 'vocab-feelings' }).props.onPress();
+      component.root.findByProps({ testID: 'vocab-emotions' }).props.onPress();
     });
 
     await act(async () => {
@@ -89,15 +89,15 @@ describe('OnboardingScreen', () => {
       name: 'Lena',
       consentDataUpload: true,
       consentHelpMeGetSmarter: true,
-      vocabularySetId: 'feelings',
+      vocabularySetId: 'emotions',
       largeText: true,
       highContrast: true,
     });
-    expect(setActiveVocabularySet).toHaveBeenCalledWith('feelings');
+    expect(setActiveVocabularySet).toHaveBeenCalledWith('emotions');
     expect(logHIPEvent).toHaveBeenCalledWith('HIP_1', 'onboarding_completed', {
       consentDataUpload: true,
       consentHelpMeGetSmarter: true,
-      vocabularySetId: 'feelings',
+      vocabularySetId: 'emotions',
     });
     expect(replace).toHaveBeenCalledWith('Tutorial');
   });
