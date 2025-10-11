@@ -29,3 +29,6 @@ logs/
 app/coverage/
 coverage/
 server/coverage/
+
+.gemini/
+gha-creds-*.json

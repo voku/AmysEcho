@@ -2,6 +2,7 @@
  * Generated from app/webview/gestureDetector.ts
  * Run scripts/update-webview-base64.js after modifying gestureDetector.ts.
  */
+"use strict";
 (() => {
   // node_modules/fflate/esm/browser.js
   var ch2 = {};
@@ -1154,6 +1155,26 @@
   }
 
   // webview/core/MediaPipeLoader.ts
+  function describeError(error) {
+    if (error && typeof error === "object") {
+      const withProps = error;
+      return {
+        message: typeof withProps.message === "string" ? withProps.message : String(error),
+        name: typeof withProps.name === "string" ? withProps.name : void 0,
+        stack: typeof withProps.stack === "string" ? withProps.stack : void 0
+      };
+    }
+    return { message: String(error) };
+  }
+  function errorMessage(error) {
+    if (typeof error === "string") {
+      return error;
+    }
+    if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+      return error.message;
+    }
+    return String(error);
+  }
   async function loadTasksVision() {
     async function resolvePinnedBase() {
       const pinnedVersion = window.__mediapipeVersion;
@@ -1293,18 +1314,14 @@
     const errorDetails = {
       attempts: attemptCount,
       candidates: candidates.map((c) => ({ umd: c.umd, esm: c.esm })),
-      lastError: lastError ? {
-        message: lastError.message,
-        name: lastError.name,
-        stack: lastError.stack
-      } : null,
+      lastError: lastError ? describeError(lastError) : null,
       userAgent: navigator.userAgent,
       hasFetch: typeof fetch !== "undefined",
       isSecureContext: window.isSecureContext
     };
     console.error("All MediaPipe loading attempts failed:", errorDetails);
     throw new Error(
-      "Tasks Vision globals not available after " + attemptCount + " attempts" + (lastError ? ": " + (lastError.message || lastError) : "")
+      "Tasks Vision globals not available after " + attemptCount + " attempts" + (lastError ? ": " + errorMessage(lastError) : "")
     );
   }
 
@@ -1349,15 +1366,15 @@
           console.warn("Failed to send 'camera_started' telemetry event:", err2);
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error("Camera access failed:", errorMessage);
+        const errorMessage2 = error instanceof Error ? error.message : String(error);
+        console.error("Camera access failed:", errorMessage2);
         try {
           window.ReactNativeWebView?.postMessage?.(
             JSON.stringify({
               type: "error",
               message: "CAMERA_ERROR",
               details: {
-                reason: errorMessage,
+                reason: errorMessage2,
                 facingMode: facingMode2,
                 userAgent: navigator.userAgent,
                 hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia
@@ -1836,8 +1853,9 @@
       // Sample every 30 frames
       messageThrottleMs: 100,
       // Throttle messages to 100ms
-      confidenceChangeThreshold: 0.05
+      confidenceChangeThreshold: 0.05,
       // 5% confidence change threshold
+      targetFrameRate: 30
     },
     thresholds: {
       mlpConfidence: 0.4,
@@ -1859,6 +1877,11 @@
       loadTimeoutMs: 8e3,
       emergencyCooldownMs: 1e3,
       frameLatencySampleInterval: 90
+    },
+    processing: {
+      sizeTolerance: 0.3,
+      partialThreshold: 0.6,
+      landmarkChangeThreshold: 0.01
     },
     // Amy First: Default preferences and adaptive settings
     amyPreferences: {
@@ -1908,25 +1931,89 @@
     }
   };
   function loadConfig() {
-    const config = { ...defaultConfig };
-    const windowConfig = window;
-    if (windowConfig) {
-      config.thresholds.mlpConfidence = windowConfig.__mlpThreshold ?? config.thresholds.mlpConfidence;
-      config.thresholds.fallbackConfidence = windowConfig.__fallbackThreshold ?? config.thresholds.fallbackConfidence;
-      config.camera.facingMode = windowConfig.__facingMode ?? config.camera.facingMode;
-      config.camera.mirrorOverlay = windowConfig.__mirrorOverlay ?? config.camera.mirrorOverlay;
-      config.gestures.sizeTolerance = windowConfig.__gestureSizeTolerance ?? config.gestures.sizeTolerance;
-      if (windowConfig.__amyIntensity) {
-        config.amyPreferences.intensity = windowConfig.__amyIntensity;
-      }
-      if (windowConfig.__amyTimeBased !== void 0) {
-        config.amyPreferences.timeBasedAdjustments = windowConfig.__amyTimeBased;
-      }
-      if (windowConfig.__amyContextAware !== void 0) {
-        config.amyPreferences.contextAwareness = windowConfig.__amyContextAware;
-      }
+    const config = structuredClone(defaultConfig);
+    const windowOverrides = {};
+    if (typeof window.__mlpThreshold === "number") {
+      windowOverrides.thresholds = {
+        ...windowOverrides.thresholds ?? {},
+        mlpConfidence: window.__mlpThreshold
+      };
+    }
+    if (typeof window.__fallbackThreshold === "number") {
+      windowOverrides.thresholds = {
+        ...windowOverrides.thresholds ?? {},
+        fallbackConfidence: window.__fallbackThreshold
+      };
+    }
+    if (typeof window.__facingMode === "string") {
+      windowOverrides.camera = {
+        ...windowOverrides.camera ?? {},
+        facingMode: window.__facingMode
+      };
+    }
+    if (typeof window.__mirrorOverlay === "boolean") {
+      windowOverrides.camera = {
+        ...windowOverrides.camera ?? {},
+        mirrorOverlay: window.__mirrorOverlay
+      };
+    }
+    if (typeof window.__gestureSizeTolerance === "number") {
+      windowOverrides.gestures = {
+        ...windowOverrides.gestures ?? {},
+        sizeTolerance: window.__gestureSizeTolerance
+      };
+    }
+    const amyIntensity = window.__amyIntensity;
+    if (amyIntensity) {
+      windowOverrides.amyPreferences = {
+        ...windowOverrides.amyPreferences ?? {},
+        intensity: amyIntensity
+      };
+    }
+    if (window.__amyTimeBased !== void 0) {
+      windowOverrides.amyPreferences = {
+        ...windowOverrides.amyPreferences ?? {},
+        timeBasedAdjustments: window.__amyTimeBased
+      };
+    }
+    if (window.__amyContextAware !== void 0) {
+      windowOverrides.amyPreferences = {
+        ...windowOverrides.amyPreferences ?? {},
+        contextAwareness: window.__amyContextAware
+      };
+    }
+    if (Object.keys(windowOverrides).length > 0) {
+      applyPartialConfig(config, windowOverrides);
     }
     return config;
+  }
+  function isRecord(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  function applyPartialConfig(target, source) {
+    const gesturesOverride = source.gestures;
+    const processingOverride = source.processing;
+    Object.entries(source).forEach(([key, sourceValue]) => {
+      if (sourceValue === void 0) {
+        return;
+      }
+      const typedKey = key;
+      const targetValue = target[typedKey];
+      const targetRecord = target;
+      if (isRecord(targetValue) && isRecord(sourceValue)) {
+        Object.assign(targetValue, sourceValue);
+      } else {
+        targetRecord[typedKey] = sourceValue;
+      }
+    });
+    if (gesturesOverride && target.processing) {
+      if (processingOverride?.sizeTolerance === void 0 && typeof gesturesOverride.sizeTolerance === "number") {
+        target.processing.sizeTolerance = gesturesOverride.sizeTolerance;
+      }
+      if (processingOverride?.partialThreshold === void 0 && typeof gesturesOverride.partialThreshold === "number") {
+        target.processing.partialThreshold = gesturesOverride.partialThreshold;
+      }
+    }
   }
 
   // webview/utils/FrameCaptureManager.ts
@@ -2166,10 +2253,13 @@
             this.resultCallback(results, frameStart);
           }
           if (results?.landmarks) {
+            const normalizedLandmarks = results.landmarks.map(
+              (hand) => hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0])
+            );
             const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
             if (shouldRedraw) {
               this.overlayRenderer.clear();
-              this.overlayRenderer.drawHandLandmarks(results.landmarks, this.config.camera.mirrorOverlay);
+              this.overlayRenderer.drawHandLandmarks(normalizedLandmarks, this.config.camera.mirrorOverlay);
             }
             const captureInterval = frameCaptureState.frameCaptureInterval;
             if (frameStart - this.lastCaptureAttempt >= captureInterval) {
@@ -3397,8 +3487,8 @@
     }
     // 5 seconds between recovery attempts
     getErrorInfo(error, context) {
-      const errorMessage = error.message.toLowerCase();
-      if (context.includes("emergency") || errorMessage.includes("emergency")) {
+      const errorMessage2 = error.message.toLowerCase();
+      if (context.includes("emergency") || errorMessage2.includes("emergency")) {
         return {
           message: "Emergency gesture detection failed",
           code: "EMERGENCY_ERROR",
@@ -3408,7 +3498,7 @@
           userMessage: "Notfall-Erkennung wird wiederhergestellt..."
         };
       }
-      if (errorMessage.includes("network") || errorMessage.includes("fetch") || errorMessage.includes("timeout")) {
+      if (errorMessage2.includes("network") || errorMessage2.includes("fetch") || errorMessage2.includes("timeout")) {
         return {
           message: "Network connectivity issue detected",
           code: "NETWORK_ERROR",
@@ -3418,7 +3508,7 @@
           userMessage: "Verbindungsproblem erkannt, versuche Wiederherstellung..."
         };
       }
-      if (errorMessage.includes("camera") || errorMessage.includes("media") || errorMessage.includes("permission")) {
+      if (errorMessage2.includes("camera") || errorMessage2.includes("media") || errorMessage2.includes("permission")) {
         return {
           message: "Camera access issue detected",
           code: "CAMERA_ERROR",
@@ -3428,7 +3518,7 @@
           userMessage: "Kamera-Zugriff wird \xFCberpr\xFCft..."
         };
       }
-      if (errorMessage.includes("mediapipe") || errorMessage.includes("wasm") || errorMessage.includes("webgl")) {
+      if (errorMessage2.includes("mediapipe") || errorMessage2.includes("wasm") || errorMessage2.includes("webgl")) {
         return {
           message: "Gesture recognition system issue detected",
           code: "MEDIAPIPE_ERROR",
@@ -3438,7 +3528,7 @@
           userMessage: "Gestenerkennung wird neu gestartet..."
         };
       }
-      if (errorMessage.includes("memory") || errorMessage.includes("out of memory")) {
+      if (errorMessage2.includes("memory") || errorMessage2.includes("out of memory")) {
         return {
           message: "Memory issue detected",
           code: "MEMORY_ERROR",
@@ -3448,7 +3538,7 @@
           userMessage: "Speicher wird optimiert..."
         };
       }
-      if (errorMessage.includes("performance") || errorMessage.includes("slow") || errorMessage.includes("timeout")) {
+      if (errorMessage2.includes("performance") || errorMessage2.includes("slow") || errorMessage2.includes("timeout")) {
         return {
           message: "Performance issue detected",
           code: "PERFORMANCE_ERROR",
@@ -4401,6 +4491,7 @@
           processingStep: "gesture_results",
           skipExpensiveSteps: this.shouldSkipExpensiveSteps(),
           rawResults: results,
+          rawLandmarks: normalized.landmarks,
           handednesses: normalized.handednesses,
           normalizedResults: normalized
         };
@@ -4544,7 +4635,8 @@
         }
       };
       recorder.onerror = (event) => {
-        this.sendClipError(requestId, "recorder_error", event?.error);
+        const error = event.error;
+        this.sendClipError(requestId, "recorder_error", error);
         this.resetClipCapture(true);
       };
       recorder.onstop = () => {
@@ -4754,9 +4846,10 @@
           const category = hand?.[0]?.categoryName;
           return typeof category === "string" ? category : "unknown";
         }) ?? [];
+        const gestureLabel = processingResult.gesture ?? void 0;
         const payload = {
           type: "gesture",
-          gesture: processingResult.gesture,
+          gesture: gestureLabel,
           confidence: processingResult.confidence,
           landmarks: processingResult.landmarks,
           handednesses: handednessLabels,
@@ -5324,6 +5417,18 @@
     });
     tap.classList.add("gesture-detector-tap");
     document.body.appendChild(tap);
+    if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+      const startPromise = orchestrator.start();
+      startPromise.then(() => {
+        tap.classList.add("hidden");
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "tap_start_autostart" })
+        );
+      }).catch((err2) => {
+        console.warn("Camera autostart failed:", err2);
+        tap.classList.remove("hidden");
+      });
+    }
     window.ReactNativeWebView?.postMessage?.(
       JSON.stringify({ type: "telemetry", event: "dom_ready" })
     );
@@ -5332,17 +5437,6 @@
     document.addEventListener("DOMContentLoaded", initDom);
   } else {
     initDom();
-  }
-  if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
-    orchestrator?.start().then(() => {
-      document.getElementById("tapToStart")?.classList.add("hidden");
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: "telemetry", event: "tap_start_autostart" })
-      );
-    }).catch((err2) => {
-      console.warn("Camera autostart failed:", err2);
-      document.getElementById("tapToStart")?.classList.remove("hidden");
-    });
   }
   var onVisibilityChange = () => {
     if (document.hidden) {
