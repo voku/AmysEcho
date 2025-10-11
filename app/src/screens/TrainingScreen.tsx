@@ -18,6 +18,7 @@ import { validateLandmarkSequence } from '../services/TrainingDataValidator';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
+import type { ToastRequest } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import {
   MediaPipeGestureDetector,
@@ -46,6 +47,31 @@ type ExpoFileSystemCompat = typeof FileSystem & {
 
 const expoFs = FileSystem as ExpoFileSystemCompat;
 
+type ThrottledToastOptions = Omit<ToastRequest, 'message'>;
+
+function useThrottledToast(
+  showToast: (request: ToastRequest) => string,
+  minIntervalMs: number,
+) {
+  const lastToastRef = useRef<{ message: string; timestamp: number } | null>(null);
+
+  return useCallback(
+    (message: string, options: ThrottledToastOptions = {}) => {
+      const now = Date.now();
+      const lastToast = lastToastRef.current;
+      if (
+        !lastToast ||
+        now - lastToast.timestamp > minIntervalMs ||
+        lastToast.message !== message
+      ) {
+        showToast({ message, ...options });
+        lastToastRef.current = { message, timestamp: now };
+      }
+    },
+    [minIntervalMs, showToast],
+  );
+}
+
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const PREVIEW_SIZE = 200;
@@ -62,7 +88,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [landmarks, setLandmarks] = useState<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { setMessage } = useMessage();
+  const { showToast } = useMessage();
   const [showPerformanceAnalytics, setShowPerformanceAnalytics] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [performanceMetrics, setPerformanceMetrics] = useState<{
@@ -74,6 +100,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [practiceMode, setPracticeMode] = useState(false);
   const practiceSessionActiveRef = useRef(false);
   const activePracticeGestureRef = useRef<string | null>(null);
+  const showThrottledPracticeToast = useThrottledToast(showToast, 1500);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
   const clipRequestIdRef = useRef<string | null>(null);
@@ -125,8 +152,11 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   useEffect(() => {
-    setMessage(error);
-  }, [error, setMessage]);
+    if (!error) {
+      return;
+    }
+    showToast({ message: error, tone: 'error' });
+  }, [error, showToast]);
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -286,7 +316,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       } catch (error) {
         logger.warn('Failed to stop clip capture', error);
         detectorRef.current.cancelClipCapture();
-        setMessage(CLIP_RECORDING_ERROR_TEXT);
+        showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
       } finally {
         clipRequestIdRef.current = null;
       }
@@ -296,7 +326,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     }
 
     if (!clipUri) {
-      setMessage(CLIP_RECORDING_ERROR_TEXT);
+      showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
       return;
     }
 
@@ -358,7 +388,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       logger.error('Failed to save training sample', e);
       // Amy First: Show encouraging message instead of technical error
       setError(null); // Don't show technical errors
-      setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+      showToast({ message: 'Das hat nicht geklappt. Lass es uns nochmal versuchen!', tone: 'warning' });
       // Log for caregiver analytics
       void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'training_save_failed', {
         error: String(e).substring(0, 100),
@@ -376,7 +406,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     profile?.id,
     recordedFrames,
     sessionStartTime,
-    setMessage,
+    showToast,
   ]);
 
   const handleFinish = () => {
@@ -650,18 +680,23 @@ export default function TrainingScreen({ navigation, route }: any) {
 
                     // Enhanced feedback for practice mode
                     if (practiceMode && gesture && confidence > 0.5) {
-                      // Provide real-time feedback during practice
-                      if (confidence > 0.8) {
-                        setMessage('🎉 Perfekt! Das sieht sehr gut aus!');
-                      } else if (confidence > 0.6) {
-                        setMessage('👍 Gut gemacht! Fast richtig.');
-                      }
+                      const message =
+                        confidence > 0.8
+                          ? '🎉 Perfekt! Das sieht sehr gut aus!'
+                          : '👍 Gut gemacht! Fast richtig.';
+                      showThrottledPracticeToast(message, {
+                        tone: confidence > 0.8 ? 'success' : 'info',
+                        durationMs: 2500,
+                      });
                     }
                   }}
                   onError={(m) => {
                     logger.warn('TrainingScreen detector error:', m);
                     // Amy First: Show encouraging message instead of technical error
-                    setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+                    showThrottledPracticeToast('Das hat nicht geklappt. Lass es uns nochmal versuchen!', {
+                      tone: 'warning',
+                      durationMs: 3000,
+                    });
                   }}
                   facingMode={facingMode}
                 />
@@ -845,7 +880,11 @@ export default function TrainingScreen({ navigation, route }: any) {
             targetSamples={TARGET_SAMPLES}
             onSessionComplete={() => {
               completePracticeSession();
-              setMessage('🎉 Übungssession abgeschlossen! Gut gemacht!');
+              showToast({
+                message: '🎉 Übungssession abgeschlossen! Gut gemacht!',
+                tone: 'success',
+                durationMs: 4000,
+              });
             }}
           />
         )}

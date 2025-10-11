@@ -31,7 +31,7 @@ const defaultServices: Services = {
 };
 
 export const AppServicesProvider = ({ children, offline = false }: ProviderProps) => {
-  const { setMessage } = useMessage();
+  const { showToast } = useMessage();
   const [isReady, setIsReady] = useState(false);
   const initializedRef = useRef(false);
   const refreshStateRef = useRef({
@@ -170,7 +170,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
 
       } catch (e) {
         logger.error('Dienste konnten nicht initialisiert werden:', e);
-        setMessage('Dienste konnten nicht gestartet werden. Bitte Internetverbindung prüfen und erneut versuchen.');
+        showToast({
+          tone: 'error',
+          message: 'Dienste konnten nicht gestartet werden. Bitte Internetverbindung prüfen und erneut versuchen.',
+          durationMs: 8000,
+        });
       } finally {
         if (!cancelled) {
           setIsReady(true);
@@ -197,7 +201,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         })
         .catch(() => {});
     };
-  }, [offline, setMessage]);
+  }, [offline, showToast]);
 
   if (!isReady) {
     return <LoadingIndicator />;

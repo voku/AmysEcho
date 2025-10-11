@@ -1,7 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-const SETTINGS_TOGGLE_LABEL = 'Einstellungen anzeigen/verstecken';
 const TOGGLE_DGS_VIDEO_LABEL = 'DGS-Video umschalten';
 const HIDE_DGS_VIDEO_LABEL = 'DGS-Video ausblenden';
 
@@ -22,7 +21,7 @@ jest.mock('../../src/components/AccessibilityContext', () => ({
 }));
 
 jest.mock('../../src/context/MessageContext', () => ({
-  useMessage: () => ({ setMessage: jest.fn() }),
+  useMessage: () => ({ showToast: jest.fn() }),
 }));
 
 jest.mock('../../src/utils/themeMessages', () => ({
@@ -214,33 +213,30 @@ describe('RecognitionScreen DGS video toggle', () => {
       );
     });
 
-    act(() => {
-      const settingsButton = component.root.findByProps({
-        accessibilityLabel: SETTINGS_TOGGLE_LABEL,
-      });
-      settingsButton.props.onPress();
-    });
-
     const findToggleButton = () =>
       component.root.findByProps({ accessibilityLabel: TOGGLE_DGS_VIDEO_LABEL });
     const findVideoPlayer = () => component.root.findAllByType('DgsVideoPlayer');
 
     expect(findVideoPlayer()).toHaveLength(0);
-    expect(findToggleButton().props.title).toBe('DGS-Video anzeigen');
+    const getLabelText = () =>
+      findToggleButton()
+        .findAll((node) => node.type === 'Text')
+        .pop()?.props.children;
+    expect(getLabelText()).toBe('DGS-Video anzeigen');
 
     act(() => {
       findToggleButton().props.onPress();
     });
 
     expect(findVideoPlayer()).toHaveLength(1);
-    expect(findToggleButton().props.title).toBe(HIDE_DGS_VIDEO_LABEL);
+    expect(getLabelText()).toBe(HIDE_DGS_VIDEO_LABEL);
 
     act(() => {
       findToggleButton().props.onPress();
     });
 
     expect(findVideoPlayer()).toHaveLength(0);
-    expect(findToggleButton().props.title).toBe('DGS-Video anzeigen');
+    expect(getLabelText()).toBe('DGS-Video anzeigen');
   });
 
   it('hides the overlay when the next gesture lacks a DGS video', async () => {
@@ -257,24 +253,17 @@ describe('RecognitionScreen DGS video toggle', () => {
       );
     });
 
-    act(() => {
-      const settingsButton = component.root.findByProps({
-        accessibilityLabel: SETTINGS_TOGGLE_LABEL,
-      });
-      settingsButton.props.onPress();
-    });
-
     const findToggleButtons = () =>
       component.root.findAll(
-        (node) =>
-          node.props?.accessibilityLabel === TOGGLE_DGS_VIDEO_LABEL && node.type === 'Button',
+        (node) => node.props?.accessibilityLabel === TOGGLE_DGS_VIDEO_LABEL,
       );
+    const getFirstToggle = () => findToggleButtons()[0];
     const findVideoPlayer = () => component.root.findAllByType('DgsVideoPlayer');
 
-    expect(findToggleButtons()).toHaveLength(1);
+    expect(getFirstToggle()).toBeDefined();
 
     act(() => {
-      findToggleButtons()[0].props.onPress();
+      getFirstToggle()?.props.onPress();
     });
 
     expect(findVideoPlayer()).toHaveLength(1);

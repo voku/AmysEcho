@@ -147,7 +147,7 @@ const expectNoErrorMessage = (component: renderer.ReactTestRenderer) => {
     return;
   }
   errorComponents.forEach((err) => {
-    expect(err.props.message).toBeNull();
+    expect(err.props.toasts).toHaveLength(0);
   });
 };
 
@@ -181,9 +181,11 @@ describe('AppServicesProvider', () => {
     await act(async () => {});
     await act(async () => {});
     const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
-    expect(error.props.message).toBe(
+    expect(error.props.toasts).toHaveLength(1);
+    expect(error.props.toasts[0].message).toBe(
       'Dienste konnten nicht gestartet werden. Bitte Internetverbindung prüfen und erneut versuchen.',
     );
+    expect(error.props.toasts[0].tone).toBe('error');
     expect(logger.error).toHaveBeenCalledWith(
       'Dienste konnten nicht initialisiert werden:',
       expect.any(Error),

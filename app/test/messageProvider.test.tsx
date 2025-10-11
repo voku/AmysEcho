@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import renderer, { act } from 'react-test-renderer';
 
 jest.mock('../src/components/AccessibilityContext', () => ({
@@ -9,76 +10,93 @@ import { MessageProvider, useMessage } from '../src/context/MessageContext';
 import ErrorMessage from '../src/components/ErrorMessage';
 
 describe('MessageProvider', () => {
-  let warnSpy: jest.SpyInstance;
-  let errorSpy: jest.SpyInstance;
-
-  beforeEach(() => {
-    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-  it('displays console warnings', () => {
-    let component: renderer.ReactTestRenderer;
-    act(() => {
-      component = renderer.create(
-        <MessageProvider>
-          <></>
-        </MessageProvider>
-      );
-    });
-    act(() => {
-      console.warn('warn to display');
-    });
-    const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
-    expect(error.props.message).toBe('warn to display');
-    (component as renderer.ReactTestRenderer).unmount();
-  });
-
-  it('appends multiple console messages', () => {
-    let component: renderer.ReactTestRenderer;
-    act(() => {
-      component = renderer.create(
-        <MessageProvider>
-          <></>
-        </MessageProvider>
-      );
-    });
-    act(() => {
-      console.warn('first');
-    });
-    act(() => {
-      console.error('second');
-    });
-    const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
-    expect(error.props.message).toBe('first\nsecond');
-    (component as renderer.ReactTestRenderer).unmount();
-  });
-
-  it('ignores logs triggered during re-render', () => {
-    const Child = () => {
-      const { message } = useMessage();
-      if (message && !message.includes('child')) {
-        console.warn('child');
-      }
+  it('queues structured toasts', () => {
+    const TestChild = () => {
+      const { showToast } = useMessage();
+      React.useEffect(() => {
+        showToast({ message: 'Erste Meldung', tone: 'info', durationMs: 0 });
+        showToast({ message: 'Zweite Meldung', tone: 'warning', durationMs: 0 });
+      }, [showToast]);
       return null;
     };
 
-    let component: renderer.ReactTestRenderer;
+    let component!: renderer.ReactTestRenderer;
     act(() => {
       component = renderer.create(
         <MessageProvider>
-          <Child />
-        </MessageProvider>
+          <TestChild />
+        </MessageProvider>,
       );
     });
+
+    const error = component.root.findByType(ErrorMessage as any);
+    expect(error.props.toasts).toHaveLength(2);
+    expect(error.props.toasts[0].message).toBe('Erste Meldung');
+    expect(error.props.toasts[1].tone).toBe('warning');
     act(() => {
-      console.warn('parent');
+      component.unmount();
     });
-    const error = (component as renderer.ReactTestRenderer).root.findByType(ErrorMessage as any);
-    expect(error.props.message).toBe('parent');
-    (component as renderer.ReactTestRenderer).unmount();
+  });
+
+  it('auto-dismisses toasts after their duration', () => {
+    jest.useFakeTimers();
+    const TestChild = () => {
+      const { showToast } = useMessage();
+      React.useEffect(() => {
+        showToast({ message: 'Kurzlebig', tone: 'info', durationMs: 1000 });
+      }, [showToast]);
+      return null;
+    };
+
+    let component!: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MessageProvider>
+          <TestChild />
+        </MessageProvider>,
+      );
+    });
+
+    const getToasts = () => component.root.findByType(ErrorMessage as any).props.toasts as any[];
+    expect(getToasts()).toHaveLength(1);
+
+    act(() => {
+      jest.advanceTimersByTime(1100);
+    });
+
+    expect(getToasts()).toHaveLength(0);
+    jest.useRealTimers();
+    act(() => {
+      component.unmount();
+    });
+  });
+
+  it('exposes debug log entries and toggle', () => {
+    const TestChild = () => {
+      const { showToast, toggleDebug, logEntries, isDebugVisible } = useMessage();
+      React.useEffect(() => {
+        showToast({ message: 'Debug', tone: 'error', durationMs: 0 });
+        toggleDebug();
+      }, [showToast, toggleDebug]);
+      return <Text testID="debug-state">{`${isDebugVisible}:${logEntries.length}`}</Text>;
+    };
+
+    let component!: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <MessageProvider>
+          <TestChild />
+        </MessageProvider>,
+      );
+    });
+
+    const debugState = component.root.findByProps({ testID: 'debug-state' });
+    expect(debugState.props.children).toBe('true:1');
+    const error = component.root.findByType(ErrorMessage as any);
+    expect(error.props.isDebugVisible).toBe(true);
+    expect(error.props.logEntries).toHaveLength(1);
+    act(() => {
+      component.unmount();
+    });
   });
 });

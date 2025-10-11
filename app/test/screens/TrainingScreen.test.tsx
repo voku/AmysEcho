@@ -20,7 +20,7 @@ jest.mock('../../src/context/ThemeContext', () => {
 });
 
 jest.mock('../../src/context/MessageContext', () => ({
-  useMessage: () => ({ setMessage: jest.fn() }),
+  useMessage: () => ({ showToast: jest.fn() }),
 }));
 
 jest.mock('@react-navigation/native', () => ({ useIsFocused: () => true }));
