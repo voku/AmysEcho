@@ -56,7 +56,10 @@ export default function ErrorMessage({
 
   React.useEffect(() => {
     if (toasts.length > 0 && Platform.OS === 'web') {
-      AccessibilityInfo.announceForAccessibility?.(toasts[toasts.length - 1].message);
+      const lastToast = toasts[toasts.length - 1];
+      if (lastToast) {
+        AccessibilityInfo.announceForAccessibility?.(lastToast.message);
+      }
     }
   }, [toasts]);
 

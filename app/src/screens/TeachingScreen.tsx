@@ -106,7 +106,8 @@ export default function TeachingScreen({ navigation }: any) {
       return;
     }
     showToast({ message: error, tone: 'error' });
-  }, [error, showToast]);
+    setError(null);
+  }, [error, showToast, setError]);
   // WebView will indicate camera issues via onError
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;

@@ -18,6 +18,7 @@ import { validateLandmarkSequence } from '../services/TrainingDataValidator';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
+import type { ToastRequest } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import {
   MediaPipeGestureDetector,
@@ -45,6 +46,31 @@ type ExpoFileSystemCompat = typeof FileSystem & {
 };
 
 const expoFs = FileSystem as ExpoFileSystemCompat;
+
+type ThrottledToastOptions = Omit<ToastRequest, 'message'>;
+
+function useThrottledToast(
+  showToast: (request: ToastRequest) => string,
+  minIntervalMs: number,
+) {
+  const lastToastRef = useRef<{ message: string; timestamp: number } | null>(null);
+
+  return useCallback(
+    (message: string, options: ThrottledToastOptions = {}) => {
+      const now = Date.now();
+      const lastToast = lastToastRef.current;
+      if (
+        !lastToast ||
+        now - lastToast.timestamp > minIntervalMs ||
+        lastToast.message !== message
+      ) {
+        showToast({ message, ...options });
+        lastToastRef.current = { message, timestamp: now };
+      }
+    },
+    [minIntervalMs, showToast],
+  );
+}
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -74,7 +100,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [practiceMode, setPracticeMode] = useState(false);
   const practiceSessionActiveRef = useRef(false);
   const activePracticeGestureRef = useRef<string | null>(null);
-  const lastPracticeToastRef = useRef<{ message: string; timestamp: number } | null>(null);
+  const showThrottledPracticeToast = useThrottledToast(showToast, 1500);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
   const clipRequestIdRef = useRef<string | null>(null);
@@ -654,49 +680,23 @@ export default function TrainingScreen({ navigation, route }: any) {
 
                     // Enhanced feedback for practice mode
                     if (practiceMode && gesture && confidence > 0.5) {
-                      const now = Date.now();
-                      const minInterval = 1500;
-                      if (
-                        !lastPracticeToastRef.current ||
-                        now - lastPracticeToastRef.current.timestamp > minInterval ||
-                        lastPracticeToastRef.current.message !==
-                          (confidence > 0.8
-                            ? '🎉 Perfekt! Das sieht sehr gut aus!'
-                            : '👍 Gut gemacht! Fast richtig.')
-                      ) {
-                        const message =
-                          confidence > 0.8
-                            ? '🎉 Perfekt! Das sieht sehr gut aus!'
-                            : '👍 Gut gemacht! Fast richtig.';
-                        showToast({
-                          message,
-                          tone: confidence > 0.8 ? 'success' : 'info',
-                          durationMs: 2500,
-                        });
-                        lastPracticeToastRef.current = { message, timestamp: now };
-                      }
+                      const message =
+                        confidence > 0.8
+                          ? '🎉 Perfekt! Das sieht sehr gut aus!'
+                          : '👍 Gut gemacht! Fast richtig.';
+                      showThrottledPracticeToast(message, {
+                        tone: confidence > 0.8 ? 'success' : 'info',
+                        durationMs: 2500,
+                      });
                     }
                   }}
                   onError={(m) => {
                     logger.warn('TrainingScreen detector error:', m);
                     // Amy First: Show encouraging message instead of technical error
-                    const now = Date.now();
-                    const minInterval = 1500;
-                    if (
-                      !lastPracticeToastRef.current ||
-                      now - lastPracticeToastRef.current.timestamp > minInterval ||
-                      lastPracticeToastRef.current.message !== 'Das hat nicht geklappt. Lass es uns nochmal versuchen!'
-                    ) {
-                      showToast({
-                        message: 'Das hat nicht geklappt. Lass es uns nochmal versuchen!',
-                        tone: 'warning',
-                        durationMs: 3000,
-                      });
-                      lastPracticeToastRef.current = {
-                        message: 'Das hat nicht geklappt. Lass es uns nochmal versuchen!',
-                        timestamp: now,
-                      };
-                    }
+                    showThrottledPracticeToast('Das hat nicht geklappt. Lass es uns nochmal versuchen!', {
+                      tone: 'warning',
+                      durationMs: 3000,
+                    });
                   }}
                   facingMode={facingMode}
                 />
