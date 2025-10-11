@@ -8,7 +8,7 @@ import typography from '../constants/typography';
 
 const ROUTE_LABELS: Record<string, string> = {
   Recognition: 'Kamera',
-  History: 'History',
+  History: 'Verlauf',
   Lernen: 'Lernen',
 };
 

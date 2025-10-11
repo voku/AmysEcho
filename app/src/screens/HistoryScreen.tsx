@@ -70,7 +70,7 @@ const HistoryScreen: React.FC = () => {
 
   return (
     <LinearGradient colors={['#EFF6FF', '#F3F4F6']} style={styles.container}>
-      <Text style={styles.screenTitle}>History</Text>
+      <Text style={styles.screenTitle}>Verlauf</Text>
       <Text style={styles.subtitle}>Letzte Gesten von Amy auf einen Blick.</Text>
       <FlatList
         data={historyItems}

@@ -1,13 +1,20 @@
 
-export type RootStackParamList = {
-  Hero: undefined;
-  App: undefined;
-  Onboarding: undefined;
-  Tutorial: undefined;
-  ProfileSelect: undefined;
+import type { CompositeNavigationProp, NavigatorScreenParams } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+export type AppTabsParamList = {
   Recognition: { profileId?: string; simulateLowConfidence?: boolean } | undefined;
   History: undefined;
   Lernen: { gestureId?: string; gestureLabel?: string } | undefined;
+};
+
+export type RootStackParamList = {
+  Hero: undefined;
+  App: NavigatorScreenParams<AppTabsParamList> | undefined;
+  Onboarding: undefined;
+  Tutorial: undefined;
+  ProfileSelect: undefined;
   Recording: { gestureId?: string; gestureLabel?: string } | undefined;
   Training: { gestureLabel?: string; isPractice?: boolean } | undefined;
   Teach: undefined;
@@ -24,8 +31,7 @@ export type RootStackParamList = {
   Help: undefined;
 };
 
-export type AppTabsParamList = {
-  Recognition: undefined;
-  History: undefined;
-  Lernen: undefined;
-};
+export type TabNavigationProp<RouteName extends keyof AppTabsParamList> = CompositeNavigationProp<
+  BottomTabNavigationProp<AppTabsParamList, RouteName>,
+  StackNavigationProp<RootStackParamList>
+>;

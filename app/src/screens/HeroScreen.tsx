@@ -7,9 +7,11 @@ import PrimaryButton from '../components/PrimaryButton';
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { RootStackParamList } from '../navigation/types';
 
 type HeroScreenProps = {
-  navigation: any;
+  navigation: StackNavigationProp<RootStackParamList, 'Hero'>;
 };
 
 const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
@@ -33,14 +35,14 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
         <View style={styles.ctaRow}>
           <PrimaryButton
             label="Zur Gestenkamera"
-            onPress={() => navigation.replace('App')}
+            onPress={() => navigation.replace('App', { screen: 'Recognition' })}
             accessibilityLabel="Zur Gestenkamera wechseln"
             testID="hero-start"
             style={styles.ctaButton}
           />
           <PrimaryButton
             label="Training öffnen"
-            onPress={() => navigation.navigate('Lernen')}
+            onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"
             testID="hero-train"
@@ -71,13 +73,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     color: Colors.inverseText,
     fontSize: typography.sizes.caption,
-    fontWeight: typography.weights.semibold as any,
+    fontWeight: typography.weights.semibold,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   title: {
     fontSize: typography.sizes.display,
-    fontWeight: typography.weights.extrabold as any,
+    fontWeight: typography.weights.extrabold,
     color: Colors.text,
     textAlign: 'center',
     textTransform: 'uppercase',

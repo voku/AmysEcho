@@ -1,16 +1,15 @@
 import React, { useCallback } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { NavigationProp } from '@react-navigation/native';
 import { gestureModel } from '../model';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import Colors from '../constants/colors';
 import ActionButton from '../components/ActionButton';
-import type { RootStackParamList } from '../navigation/types';
+import type { TabNavigationProp } from '../navigation/types';
 
 type LernenScreenProps = {
-  navigation: NavigationProp<RootStackParamList, 'Lernen'>;
+  navigation: TabNavigationProp<'Lernen'>;
 };
 
 type GestureListItem = {
