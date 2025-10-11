@@ -9,8 +9,8 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  Modal,
   Animated,
+  AccessibilityInfo,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAccessibility } from './AccessibilityContext';
@@ -34,7 +34,8 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
   const { largeText, highContrast } = useAccessibility();
   const { theme } = useTheme();
   const [suggestion, setSuggestion] = useState<PracticeSuggestionType | null>(null);
-  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(120));
+  const [isRendered, setIsRendered] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -42,27 +43,43 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
       const practiceSuggestion = activeLearningService.getPracticeSuggestion(
         'normal'
       );
-      setSuggestion(practiceSuggestion);
-
-      // Animate in
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      if (practiceSuggestion?.shouldSuggest) {
+        setSuggestion(practiceSuggestion);
+        setIsRendered(true);
+        slideAnim.setValue(120);
+        // Animate in from bottom
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+        void AccessibilityInfo.announceForAccessibility(
+          `Neuer Übungsvorschlag: ${practiceSuggestion.gesture}. ${practiceSuggestion.reason}`,
+        );
+      } else {
+        setSuggestion(null);
+        setIsRendered(false);
+      }
     } else {
       // Animate out
-      Animated.timing(fadeAnim, {
-        toValue: 0,
+      Animated.timing(slideAnim, {
+        toValue: 120,
         duration: 200,
         useNativeDriver: true,
-      }).start();
+      }).start(({ finished }) => {
+        if (finished) {
+          setIsRendered(false);
+          setSuggestion(null);
+        }
+      });
     }
-  }, [visible, fadeAnim]);
+  }, [visible, slideAnim]);
 
-  if (!visible || !suggestion || !suggestion.shouldSuggest) {
+  if (!isRendered || !suggestion) {
     return null;
   }
+
+  const improvementPercent = Math.round(suggestion.expectedImprovement * 100);
 
   const handleAccept = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -98,42 +115,56 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
 
 
   const styles = StyleSheet.create({
-    modal: {
-      flex: 1,
-      backgroundColor: `${COLORS.highContrastBackground}CC`,
-      justifyContent: 'center',
-      alignItems: 'center',
+    wrapper: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      paddingHorizontal: SPACING.lg,
+      paddingBottom: SPACING.lg,
     },
-    container: {
+    card: {
       backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
       borderRadius: DEFAULT_RADIUS * 2,
       padding: SPACING.lg,
-      margin: SPACING.lg,
-      maxWidth: '85%',
       borderWidth: highContrast ? 2 : 0,
       borderColor: highContrast ? COLORS.highContrastText : 'transparent',
-      elevation: 5,
+      elevation: 6,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.25,
-      shadowRadius: 4,
+      shadowRadius: 8,
     },
     header: {
       flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: SPACING.sm,
     },
     urgencyIndicator: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
+      width: 14,
+      height: 14,
+      borderRadius: 7,
       marginRight: SPACING.sm,
     },
     title: {
-      fontSize: largeText ? 24 : 20,
-      fontWeight: 'bold',
+      fontSize: largeText ? 22 : 18,
+      fontWeight: '700',
       color: highContrast ? COLORS.highContrastText : COLORS.text,
-      flex: 1,
+    },
+    closeButton: {
+      padding: SPACING.xs,
+      marginLeft: SPACING.xs,
+    },
+    closeButtonLabel: {
+      fontSize: largeText ? 18 : 16,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
     },
     message: {
       fontSize: largeText ? 18 : 16,
@@ -141,28 +172,32 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
       marginBottom: SPACING.md,
       lineHeight: largeText ? 24 : 22,
     },
-    benefits: {
-      backgroundColor: highContrast ? COLORS.textMuted : COLORS.backgroundEnd,
-      borderRadius: DEFAULT_RADIUS,
-      padding: SPACING.md,
+    improvement: {
+      fontSize: largeText ? 16 : 14,
+      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
       marginBottom: SPACING.md,
     },
-    benefitTitle: {
-      fontSize: largeText ? 16 : 14,
-      fontWeight: 'bold',
-      color: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
-      marginBottom: SPACING.sm,
+    metaRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.md,
     },
-    benefitText: {
-      fontSize: largeText ? 14 : 12,
-      color: highContrast ? COLORS.border : COLORS.textMuted,
-      lineHeight: largeText ? 18 : 16,
+    gesturePill: {
+      backgroundColor: highContrast ? COLORS.textMuted : COLORS.primaryAccent,
+      borderRadius: DEFAULT_RADIUS,
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.md,
+    },
+    gesturePillText: {
+      color: highContrast ? COLORS.highContrastText : COLORS.highContrastText,
+      fontWeight: '700',
+      fontSize: largeText ? 16 : 14,
     },
     timeEstimate: {
-      fontSize: largeText ? 14 : 12,
+      fontSize: largeText ? 16 : 14,
       color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
       fontStyle: 'italic',
-      marginBottom: SPACING.md,
     },
     buttons: {
       flexDirection: 'row',
@@ -171,7 +206,6 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
     button: {
       flex: 1,
       paddingVertical: SPACING.md,
-      paddingHorizontal: SPACING.sm,
       borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
       marginHorizontal: SPACING.xs,
@@ -188,11 +222,9 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
     },
     buttonText: {
-      fontSize: largeText ? 16 : 14,
-      fontWeight: 'bold',
-    },
-    acceptButtonText: {
-      color: COLORS.highContrastText,
+      fontSize: largeText ? 18 : 16,
+      fontWeight: '700',
+      color: highContrast ? COLORS.highContrastText : COLORS.highContrastText,
     },
     laterButtonText: {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
@@ -203,73 +235,85 @@ const PracticeSuggestion: React.FC<PracticeSuggestionProps> = ({
   });
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="none"
-      onRequestClose={handleLater}
+    <Animated.View
+      pointerEvents="box-none"
+      style={[
+        styles.wrapper,
+        {
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
     >
-      <Animated.View style={[styles.modal, { opacity: fadeAnim }]}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <View style={[styles.urgencyIndicator, { backgroundColor: getUrgencyColor() }]} />
-            <Text style={styles.title}>Übungsvorschlag</Text>
-          </View>
-
-          <Text style={styles.message}>
-            {suggestion.reason}
-          </Text>
-
-          <View style={styles.benefits}>
-            <Text style={styles.benefitTitle}>Warum das hilft:</Text>
-            <Text style={styles.benefitText}>
-              • Verbessert die Erkennung um ca. {Math.round(suggestion.expectedImprovement * 100)}%
-              {'\n'}• Hilft Amy, sich sicherer zu fühlen
-              {'\n'}• Lernt aus echten Beispielen
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View
+              style={[styles.urgencyIndicator, { backgroundColor: getUrgencyColor() }]}
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={`Dringlichkeit: ${suggestion.urgency}`}
+            />
+            <Text style={styles.title} accessibilityRole="header">
+              Lass uns {suggestion.gesture} üben
             </Text>
           </View>
-
-          <Text style={styles.timeEstimate}>
-            Geschätzte Zeit: {suggestion.timeEstimate} Minuten
-          </Text>
-
-          <View style={styles.buttons}>
-            <Pressable
-              style={[styles.button, styles.acceptButton]}
-              onPress={handleAccept}
-              accessibilityRole="button"
-              accessibilityLabel={`Ja, ${suggestion.gesture} üben`}
-            >
-              <Text style={[styles.buttonText, styles.acceptButtonText]}>
-                Ja, üben!
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.button, styles.laterButton]}
-              onPress={handleLater}
-              accessibilityRole="button"
-              accessibilityLabel="Später üben"
-            >
-              <Text style={[styles.buttonText, styles.laterButtonText]}>
-                Später
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.button, styles.declineButton]}
-              onPress={handleDecline}
-              accessibilityRole="button"
-              accessibilityLabel="Übung ablehnen"
-            >
-              <Text style={[styles.buttonText, styles.declineButtonText]}>
-                Nein
-              </Text>
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={handleLater}
+            accessibilityRole="button"
+            accessibilityLabel="Vorschlag schließen"
+            style={styles.closeButton}
+          >
+            <Text style={styles.closeButtonLabel}>×</Text>
+          </Pressable>
         </View>
-      </Animated.View>
-    </Modal>
+
+        <Text style={styles.message} accessibilityLiveRegion="polite">
+          {suggestion.reason}
+        </Text>
+
+        <Text style={styles.improvement}>
+          So wird die Erkennung um etwa {improvementPercent}% besser.
+        </Text>
+
+        <View style={styles.metaRow}>
+          <View style={styles.gesturePill}>
+            <Text style={styles.gesturePillText}>{suggestion.gesture}</Text>
+          </View>
+          <Text style={styles.timeEstimate}>
+            {suggestion.timeEstimate} Minuten
+          </Text>
+        </View>
+
+        <View style={styles.buttons}>
+          <Pressable
+            style={[styles.button, styles.acceptButton]}
+            onPress={handleAccept}
+            accessibilityRole="button"
+            accessibilityLabel={`Ja, ${suggestion.gesture} jetzt üben`}
+          >
+            <Text style={styles.buttonText}>Ja</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.button, styles.laterButton]}
+            onPress={handleLater}
+            accessibilityRole="button"
+            accessibilityLabel="Später üben"
+          >
+            <Text style={[styles.buttonText, styles.laterButtonText]}>Später</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.button, styles.declineButton]}
+            onPress={handleDecline}
+            accessibilityRole="button"
+            accessibilityLabel="Übung ablehnen"
+          >
+            <Text style={[styles.buttonText, styles.declineButtonText]}>Nein</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Animated.View>
   );
 };
 
