@@ -1,6 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Video } from 'expo-video';
+import { StyleSheet, Text, View } from 'react-native';
+import ScreenBackground from '../components/ScreenBackground';
+import { AmyLoopTimeline } from '../components/AmyLoopTimeline';
+import { AmyFirstCommitments } from '../components/AmyFirstCommitments';
+import PrimaryButton from '../components/PrimaryButton';
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
@@ -11,76 +14,90 @@ type HeroScreenProps = {
 
 const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
   return (
-    <View style={styles.container}>
-      <Video
-        source={{ uri: 'http://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4' }}
-        rate={1.0}
-        volume={1.0}
-        isMuted
-        shouldPlay
-        isLooping
-        resizeMode="cover"
-        style={styles.video}
-      />
-      <View style={styles.overlay}>
-        <Text style={styles.title}>Amy&apos;s Echo</Text>
-        <Text style={styles.subtitle}>Gesten. Verstanden. Ohne Unterbrechung.</Text>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.replace('App')}
-          accessibilityRole="button"
-          accessibilityLabel="Zur Kamera wechseln"
-        >
-          <Text style={styles.buttonText}>Los geht&apos;s</Text>
-        </TouchableOpacity>
+    <ScreenBackground testID="hero-screen">
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.pill}>Amy First</Text>
+          <Text style={styles.title}>Amy&apos;s Echo</Text>
+          <Text style={styles.subtitle}>
+            Jede Gebärde wird sofort verstanden – gesprochen, angezeigt und gesichert.
+          </Text>
+        </View>
+
+        <View style={styles.timelineWrapper}>
+          <AmyLoopTimeline activeStage="see" />
+        </View>
+
+        <AmyFirstCommitments />
+
+        <View style={styles.ctaRow}>
+          <PrimaryButton
+            label="Zur Gestenkamera"
+            onPress={() => navigation.replace('App')}
+            accessibilityLabel="Zur Gestenkamera wechseln"
+            testID="hero-start"
+            style={styles.ctaButton}
+          />
+          <PrimaryButton
+            label="Training öffnen"
+            onPress={() => navigation.navigate('Lernen')}
+            variant="secondary"
+            accessibilityLabel="Zum Trainingsbereich wechseln"
+            testID="hero-train"
+            style={styles.ctaButton}
+          />
+        </View>
       </View>
-    </View>
+    </ScreenBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-  },
-  video: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: '100%',
+    gap: spacing['2xl'],
     justifyContent: 'center',
+    alignItems: 'stretch',
+  },
+  header: {
     alignItems: 'center',
-    paddingHorizontal: spacing['2xl'],
+    gap: spacing.lg,
+  },
+  pill: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    backgroundColor: Colors.primary,
+    color: Colors.inverseText,
+    fontSize: typography.sizes.caption,
+    fontWeight: typography.weights.semibold as any,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   title: {
-    fontSize: typography.sizes.titleLg,
+    fontSize: typography.sizes.display,
     fontWeight: typography.weights.extrabold as any,
-    color: Colors.inverseText,
-    marginBottom: spacing.md,
+    color: Colors.text,
     textAlign: 'center',
+    textTransform: 'uppercase',
   },
   subtitle: {
     fontSize: typography.sizes.subtitle,
-    color: Colors.inverseText,
-    marginBottom: spacing['2xl'],
+    color: Colors.text,
     textAlign: 'center',
+    maxWidth: 520,
   },
-  button: {
-    backgroundColor: Colors.primary,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    borderRadius: 32,
-    shadowColor: Colors.shadow,
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+  timelineWrapper: {
+    width: '100%',
   },
-  buttonText: {
-    color: Colors.inverseText,
-    fontSize: typography.sizes.subtitle,
-    fontWeight: typography.weights.semibold as any,
+  ctaRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  ctaButton: {
+    flex: 1,
   },
 });
 

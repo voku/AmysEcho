@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
@@ -36,6 +36,7 @@ import PracticeSessionManager from '../components/PracticeSessionManager';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 import type { ClipReadyPayload, FrameBatchPayload } from '../types/frames';
 import ScreenBackground from '../components/ScreenBackground';
+import { AmyLoopTimeline, type LoopStageKey } from '../components/AmyLoopTimeline';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
@@ -201,6 +202,25 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   const detectionActive = now - lastDetection < 1000;
+
+  const trainingLoopStage = useMemo<LoopStageKey>(() => {
+    if (error) {
+      return 'think';
+    }
+    if (!gestureId) {
+      return 'see';
+    }
+    if (isRecording) {
+      return 'see';
+    }
+    if (framesCaptured > 0 && !isRecording) {
+      return 'confirm';
+    }
+    if (count > 0) {
+      return 'learn';
+    }
+    return 'speak';
+  }, [count, error, framesCaptured, gestureId, isRecording]);
 
   // Local frame processor removed; remote fallback below now drives landmark updates.
 
@@ -421,6 +441,10 @@ export default function TrainingScreen({ navigation, route }: any) {
       flex: 1,
       backgroundColor: 'transparent',
     },
+    loopWrapper: {
+      width: '100%',
+      marginBottom: SPACING.lg,
+    },
     content: {
       flex: 1,
       justifyContent: 'center',
@@ -580,6 +604,9 @@ export default function TrainingScreen({ navigation, route }: any) {
   return (
     <View style={styles.screen}>
       <ScreenBackground style={styles.container}>
+        <View style={styles.loopWrapper}>
+          <AmyLoopTimeline activeStage={trainingLoopStage} />
+        </View>
         <View style={styles.content}>
           <Text style={styles.title}>
             {isPractice

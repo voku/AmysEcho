@@ -20,35 +20,43 @@ const ROUTE_ICONS: Record<string, string> = {
 
 const TAB_BAR_HEIGHT = 76;
 
+type TabRoute = BottomTabBarProps['state']['routes'][number];
+
+interface TabItem {
+  route: TabRoute;
+  label: string;
+  icon: string;
+  isFocused: boolean;
+  onPress: () => void;
+}
+
 const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
-  const items = useMemo(
-    () =>
-      state.routes.map((route, index) => {
-        const isFocused = state.index === index;
-        const options = descriptors[route.key]?.options ?? {};
-        const label =
-          options.tabBarLabel?.toString() ??
-          options.title ??
-          ROUTE_LABELS[route.name] ??
-          route.name;
-        const icon = ROUTE_ICONS[route.name] ?? '⬤';
+  const items = useMemo<TabItem[]>(() => {
+    return state.routes.map((route, index) => {
+      const isFocused = state.index === index;
+      const options = descriptors[route.key]?.options ?? {};
+      const label =
+        options.tabBarLabel?.toString() ??
+        options.title ??
+        ROUTE_LABELS[route.name] ??
+        route.name;
+      const icon = ROUTE_ICONS[route.name] ?? '⬤';
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
+      const onPress = () => {
+        const event = navigation.emit({
+          type: 'tabPress',
+          target: route.key,
+          canPreventDefault: true,
+        });
 
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
+        if (!isFocused && !event.defaultPrevented) {
+          navigation.navigate(route.name);
+        }
+      };
 
-        return { route, label, icon, isFocused, onPress };
-      }),
-    [descriptors, navigation, state.index, state.routes],
-  );
+      return { route, label, icon, isFocused, onPress } satisfies TabItem;
+    });
+  }, [descriptors, navigation, state]);
 
   return (
     <View style={styles.container}>

@@ -10,28 +10,37 @@ This guide is a living document. Please update it with any new patterns or compo
 *   **Warm over Sterile:** Use soft colors, rounded corners, and friendly illustrations.
 *   **Clarity over Density:** Every screen should have a single, clear purpose.
 *   **Guidance over Error:** Failures should lead to gentle recovery paths, not technical errors.
+*   **Amy First:** Reinforce the See → Think → Speak/Show → Confirm → Learn loop and surface the six commitments wherever we teach workflows.
 
 ## 2. General Style
 
-*   **Corners:** Use a border radius of `8px` for most components to create a soft, friendly look.
-*   **Shadows:** Apply subtle shadows to create depth and lift components from the background.
-*   **Background:** The default background is a subtle linear gradient from `#EFF6FF` to `#F3F4F6`.
-*   **Text:** Default text color is `#333333`. Muted text for secondary information is `#666666`.
+*   **Corners:** Rounded elements should feel friendly. Default radius is `8px`, with hero panels using `16px` or `20px`.
+*   **Shadows:** Use soft shadows (opacity ≤ 0.18) to lift interactive elements without overwhelming the calm UI.
+*   **Background:** `ScreenBackground` renders a gentle gradient from `#D1FAE5` to `#F0FDFA`. High-contrast mode swaps to pure black.
+*   **Text:** Primary copy uses `#0F172A`. Secondary copy uses `#475569`. On dark overlays use the `overlayText` palette values.
 
 ## 3. Color Palette
 
-| Color Name          | Hex Code  | Usage                                     |
-| ------------------- | --------- | ----------------------------------------- |
-| **Primary Accent**  | `#3B82F6` | Active elements, buttons, links.          |
-| **Secondary Accent**| `#6B7280` | Inactive icons, borders, secondary text.  |
-| **Success**         | `#10B981` | Confirmation messages, success indicators.|
-| **Warning**         | `#F59E0B` | Gentle warnings or prompts.               |
-| **Error**           | `#EF4444` | (Use sparingly) For critical errors that need attention. |
-| **Pastel Drink**    | `#AEDFF7` | Vocabulary category for "drink".        |
-| **Pastel Eat**      | `#F7C5A8` | Vocabulary category for "eat".          |
-| **Pastel Play**     | `#A8F7A8` | Vocabulary category for "play".         |
-| **High Contrast BG**| `#000000` | Background in high-contrast mode.         |
-| **High Contrast FG**| `#FFFFFF` | Foreground (text, icons) in high-contrast mode. |
+All values are defined in `app/src/constants/colors.ts` and surfaced via `COLORS`.
+
+| Color Token            | Hex Code  | Usage                                                           |
+| ---------------------- | --------- | --------------------------------------------------------------- |
+| **primary**            | `#14B8A6` | Primary actions, hero pills, confirmation badges.               |
+| **accent**             | `#EAB308` | Accent CTAs and alternative actions.                            |
+| **success**            | `#10B981` | Positive confirmations (e.g. gesture gefunden).                 |
+| **warning**            | `#F59E0B` | Encouraging warnings (e.g. Aufnahme braucht Ruhe).              |
+| **error**              | `#EF4444` | Critical errors only; soften copy when surfacing.               |
+| **backgroundStart**    | `#D1FAE5` | Gradient start in `ScreenBackground`.                           |
+| **backgroundEnd**      | `#F0FDFA` | Gradient end in `ScreenBackground`.                             |
+| **surface**            | `#FFFFFF` | Cards, hero panels, Amy-First commitment list.                  |
+| **surfaceMuted**       | `#F1F5F9` | Secondary panels or inactive states.                            |
+| **text**               | `#0F172A` | Primary typography color.                                       |
+| **textMuted**          | `#475569` | Secondary body text and helper hints.                           |
+| **inverseText**        | `#F8FAFC` | Text on primary buttons or dark overlays.                       |
+| **overlaySurface**     | `rgba(255,255,255,0.28)` | Recognition overlay backgrounds.               |
+| **overlayBadgeBackground** | `rgba(255,255,255,0.85)` | Active overlay badges (timeline + chips). |
+| **highContrastBackground** | `#000000` | Background when high-contrast mode enabled.          |
+| **highContrastText**   | `#FFFFFF` | Foreground text/icons in high-contrast mode.                    |
 
 ## 4. Typography
 
@@ -53,6 +62,30 @@ Layouts should be center-aligned when possible to create a sense of balance and 
 ## 6. Components
 
 Reusable components are located in `app/src/components/`. They should be built with accessibility and the style guide in mind.
+
+### AmyLoopTimeline
+
+The `AmyLoopTimeline` component visualises the mission-critical communication loop: *Sehen → Denken → Sprechen/Zeigen → Bestätigen → Lernen*. Use it whenever a screen guides the caregiver or child through that flow (hero, onboarding, training, recognition).
+
+```tsx
+<AmyLoopTimeline activeStage="see" />
+<AmyLoopTimeline activeStage="confirm" compact hideDescriptions mode="overlay" />
+```
+
+*   **Active Stage:** Highlights with `COLORS.primary` to reinforce the current focus.
+*   **Compact Variant:** Use `compact hideDescriptions` inside tight overlays (e.g. recognition overlay).
+*   **Accessibility:** The component exposes `list` semantics and honours the global accessibility settings.
+
+### AmyFirstCommitments
+
+`AmyFirstCommitments` lists the six Amy-First promises (No interruption, confusion, delay, failure, judgment, compromise). Place it inside onboarding, hero, or caregiver education flows to remind collaborators of the mission.
+
+```tsx
+<AmyFirstCommitments />
+```
+
+* Wrap it inside padded containers; it already includes soft borders and badges.
+* The component reacts to large-text and high-contrast modes out of the box.
 
 ### SymbolButton
 

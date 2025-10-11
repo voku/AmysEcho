@@ -1,6 +1,7 @@
 
 import React, { Suspense } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { AppTabsParamList, RootStackParamList } from './types';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -27,7 +28,7 @@ const AppTabs = () => (
     screenOptions={{
       headerShown: false,
     }}
-    tabBar={(props) => <NewBottomNav {...props} />}
+    tabBar={(props: BottomTabBarProps) => <NewBottomNav {...props} />}
   >
     <Tab.Screen
       name="Recognition"
