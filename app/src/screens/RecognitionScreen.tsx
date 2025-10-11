@@ -109,7 +109,7 @@ export default function RecognitionScreen({
   navigation: NavigationProp<RootStackParamList, 'Recognition'>;
 }) {
   const { largeText, highContrast } = useAccessibility();
-  const { setMessage } = useMessage();
+  const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
   const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
@@ -208,18 +208,13 @@ export default function RecognitionScreen({
   }, [facingMode]);
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const unsub = onMlpModelUpdated(() => {
-      setMessage('Neues Modell geladen');
-      timeoutId = setTimeout(() => setMessage(null), 2000);
+      showToast({ message: 'Neues Modell geladen', tone: 'success', durationMs: 2000 });
     });
     return () => {
       unsub();
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
     };
-  }, [setMessage]);
+  }, [showToast]);
 
   const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

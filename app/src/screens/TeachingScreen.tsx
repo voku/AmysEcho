@@ -79,7 +79,7 @@ export default function TeachingScreen({ navigation }: any) {
   const handednessRef = useRef<string[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { setMessage } = useMessage();
+  const { showToast } = useMessage();
   const practiceSessionActiveRef = useRef(false);
   const practiceGestureRef = useRef<string | null>(null);
 
@@ -102,8 +102,11 @@ export default function TeachingScreen({ navigation }: any) {
   }, [gestureLabel]);
 
   useEffect(() => {
-    setMessage(error);
-  }, [error, setMessage]);
+    if (!error) {
+      return;
+    }
+    showToast({ message: error, tone: 'error' });
+  }, [error, showToast]);
   // WebView will indicate camera issues via onError
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;

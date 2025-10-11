@@ -62,7 +62,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [landmarks, setLandmarks] = useState<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { setMessage } = useMessage();
+  const { showToast } = useMessage();
   const [showPerformanceAnalytics, setShowPerformanceAnalytics] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [performanceMetrics, setPerformanceMetrics] = useState<{
@@ -74,6 +74,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [practiceMode, setPracticeMode] = useState(false);
   const practiceSessionActiveRef = useRef(false);
   const activePracticeGestureRef = useRef<string | null>(null);
+  const lastPracticeToastRef = useRef<{ message: string; timestamp: number } | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
   const clipRequestIdRef = useRef<string | null>(null);
@@ -125,8 +126,11 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   useEffect(() => {
-    setMessage(error);
-  }, [error, setMessage]);
+    if (!error) {
+      return;
+    }
+    showToast({ message: error, tone: 'error' });
+  }, [error, showToast]);
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -286,7 +290,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       } catch (error) {
         logger.warn('Failed to stop clip capture', error);
         detectorRef.current.cancelClipCapture();
-        setMessage(CLIP_RECORDING_ERROR_TEXT);
+        showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
       } finally {
         clipRequestIdRef.current = null;
       }
@@ -296,7 +300,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     }
 
     if (!clipUri) {
-      setMessage(CLIP_RECORDING_ERROR_TEXT);
+      showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
       return;
     }
 
@@ -358,7 +362,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       logger.error('Failed to save training sample', e);
       // Amy First: Show encouraging message instead of technical error
       setError(null); // Don't show technical errors
-      setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+      showToast({ message: 'Das hat nicht geklappt. Lass es uns nochmal versuchen!', tone: 'warning' });
       // Log for caregiver analytics
       void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'training_save_failed', {
         error: String(e).substring(0, 100),
@@ -376,7 +380,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     profile?.id,
     recordedFrames,
     sessionStartTime,
-    setMessage,
+    showToast,
   ]);
 
   const handleFinish = () => {
@@ -650,18 +654,49 @@ export default function TrainingScreen({ navigation, route }: any) {
 
                     // Enhanced feedback for practice mode
                     if (practiceMode && gesture && confidence > 0.5) {
-                      // Provide real-time feedback during practice
-                      if (confidence > 0.8) {
-                        setMessage('🎉 Perfekt! Das sieht sehr gut aus!');
-                      } else if (confidence > 0.6) {
-                        setMessage('👍 Gut gemacht! Fast richtig.');
+                      const now = Date.now();
+                      const minInterval = 1500;
+                      if (
+                        !lastPracticeToastRef.current ||
+                        now - lastPracticeToastRef.current.timestamp > minInterval ||
+                        lastPracticeToastRef.current.message !==
+                          (confidence > 0.8
+                            ? '🎉 Perfekt! Das sieht sehr gut aus!'
+                            : '👍 Gut gemacht! Fast richtig.')
+                      ) {
+                        const message =
+                          confidence > 0.8
+                            ? '🎉 Perfekt! Das sieht sehr gut aus!'
+                            : '👍 Gut gemacht! Fast richtig.';
+                        showToast({
+                          message,
+                          tone: confidence > 0.8 ? 'success' : 'info',
+                          durationMs: 2500,
+                        });
+                        lastPracticeToastRef.current = { message, timestamp: now };
                       }
                     }
                   }}
                   onError={(m) => {
                     logger.warn('TrainingScreen detector error:', m);
                     // Amy First: Show encouraging message instead of technical error
-                    setMessage('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+                    const now = Date.now();
+                    const minInterval = 1500;
+                    if (
+                      !lastPracticeToastRef.current ||
+                      now - lastPracticeToastRef.current.timestamp > minInterval ||
+                      lastPracticeToastRef.current.message !== 'Das hat nicht geklappt. Lass es uns nochmal versuchen!'
+                    ) {
+                      showToast({
+                        message: 'Das hat nicht geklappt. Lass es uns nochmal versuchen!',
+                        tone: 'warning',
+                        durationMs: 3000,
+                      });
+                      lastPracticeToastRef.current = {
+                        message: 'Das hat nicht geklappt. Lass es uns nochmal versuchen!',
+                        timestamp: now,
+                      };
+                    }
                   }}
                   facingMode={facingMode}
                 />
@@ -845,7 +880,11 @@ export default function TrainingScreen({ navigation, route }: any) {
             targetSamples={TARGET_SAMPLES}
             onSessionComplete={() => {
               completePracticeSession();
-              setMessage('🎉 Übungssession abgeschlossen! Gut gemacht!');
+              showToast({
+                message: '🎉 Übungssession abgeschlossen! Gut gemacht!',
+                tone: 'success',
+                durationMs: 4000,
+              });
             }}
           />
         )}
