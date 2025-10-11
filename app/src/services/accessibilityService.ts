@@ -15,6 +15,14 @@ export function announceGestureRecognition(name: string, confidence: number): vo
   }
 }
 
+export function announceAccessibilityMessage(message: string): void {
+  try {
+    AccessibilityInfo?.announceForAccessibility?.(message);
+  } catch {
+    // ignore errors so onboarding never blocks screen readers
+  }
+}
+
 /**
  * Builds a descriptive accessibility label for a gesture.
  * @param gesture Gesture name
