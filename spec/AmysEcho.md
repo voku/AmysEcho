@@ -160,7 +160,77 @@ The system’s memory is a diary of attempts to understand. Everything stored mu
  * Parent: Caregiver hub showing camera/DGS toggles and navigation buttons to admin, analytics, and help areas.
  * Parental Gate: Multiplication challenge with numeric input that guards access to caregiver-only areas.
  * Admin: Maintenance dashboard listing training, model download, audio recording, analytics, and other tools in large button rows.
- * Recognition (Default State): A large, rounded camera view with a gentle pulsing border when listening. A single line of large text communicates the current status. On success, a large emoji animates in. On failure, a calm "Help Me" button appears.
+ * Recognition (Default State):
+   **Amy’s Echo – Kamera Screen UI/UX Spec (Visual Transfer Layout)**
+   1. **Allgemeines Layout**
+      * Ausrichtung: Hochformat, Referenz 1152×768 Mockup (mobiles Seitenverhältnis).
+      * Konzept: Warm, menschenzentriert, ruhige Farbwelt (Türkis, Creme, sanfter Kontrast).
+      * Primäre Aktionszone: Unten zentriert.
+      * Fokus: Live-Kamera mit Hand-Overlay zur Gestenerfassung (70–80 % der Bildschirmfläche).
+   2. **Vertikale Bildschirmzonen**
+      * **A – Status-Header:** Abgerundetes Kapsel-Label oben mittig, Text „Hört zu…“, Hintergrund weiches Türkis (#25706F), Schriftfarbe Weiß, dezenter Schatten.
+      * **B – Kamera-Rahmen:** Vollbild-Videohintergrund mit transparentem Overlay und vier weißen Eckmarkern als Erfassungsrahmen, Handzielbereich im Zentrum.
+      * **C – Hinweislabel:** Zentriert über der Aktionsleiste, Text „Hand im Rahmen halten“, Weiß, mittlere Stärke.
+      * **D – Erkennungsbanner:** Cremefarbene (≈#E5E0CF) abgerundete Box, horizontal zentriert, zeigt erkannten Text (z. B. „Hallo“) in dunklem Türkis (#002C2C), große Semibold-Schrift.
+      * **E – Aktionsbutton-Reihe:** Drei gleichmäßig verteilte Pillen-Buttons: „Stimmt“ (primär), „Lernen“ (sekundär), „Alternativen“ (tertiär). Höhe 48–56 dp, Abstände 12–16 dp, konsistente Typografie.
+      * **F – Bottom-Navigation:** Feste Leiste mit dunkel-türkisem Hintergrund (#1A3A3A), Tabs: 📷 Kamera (aktiv), 🕒 History, 🎓 Lernen. Symbole + Labels in Weiß, aktive Registerkarte heller hervorgehoben, obere Ecken ~20 dp.
+   3. **Farb-Tokens**
+      * `primary` #146C6E – primäre UI-Elemente (Status-Kapsel, Button „Stimmt“).
+      * `accent` #E5E0CF – Bannerhintergründe, sekundäre Buttons.
+      * `background` #1C4A4B – Kamera-Overlay-Tönung und Navigationsleiste.
+      * `text.primary` #0D1B1B – Dunkler Text auf hellen Flächen.
+      * `text.inverse` #FFFFFF – Text auf dunklen Bereichen.
+      * `button.secondary.bg` #F8F4E3 – Hintergrund „Lernen“ und „Alternativen“.
+      * `button.primary.bg` #25706F – Hintergrund „Stimmt“.
+      * `nav.bg` #0F3A3B und `nav.text` #FFFFFF – Navigation.
+   4. **Typografie**
+      * Status „Hört zu…“: ~16–18 dp, Semibold, Satzschrift, zentriert.
+      * Hinweis „Hand im Rahmen halten“: ~14 dp, Medium, zentriert.
+      * Erkennung „Hallo“: ~22–26 dp, Semibold, zentriert.
+      * Button-Labels: ~16 dp, Semibold, Satzschrift, zentriert.
+      * Tab-Labels: ~12–14 dp, Medium, Satzschrift, zentriert.
+      * Schriftfamilie: System-Sans (SF Pro / Roboto), Zeilenhöhe 1.2–1.3.
+   5. **Abstände & Geometrie**
+      * Außenabstände 16–24 dp, konsistente Rundungen 12–16 dp.
+      * Abstand Buttons untereinander 12–16 dp; Abstand Bottom-Navigation zu Buttons ~12 dp.
+      * Abstand Hinweis → Banner ~8 dp; Status-Kapsel 24–32 dp vom oberen Rand.
+      * Erfassungsrahmen mit ca. 12 % Seitenrand; Bannerhöhe ~64 dp, Breite ~80 %.
+      * Schatten nur subtil auf Overlays.
+   6. **Interaktionsmodell**
+      * Standardzustand: Header zeigt „Bereit.“; bei aktiver Erkennung wechselt zu „Hört zu…“ (Puls-Animation 200–300 ms).
+      * Hand erkannt → Zustand „Listening“; Gestenerkennung → Banner mit Text, Status bleibt sichtbar.
+      * Tap „Stimmt“ → Spielt TTS, protokolliert `camera.detected` & `user.confirmed`, kehrt zu Idle.
+      * Tap „Lernen“ → Öffnet `/learn` (Training) mit Übergang (Fade/Slide 200–300 ms).
+      * Tap „Alternativen“ → Öffnet `/alternatives` Bottom-Sheet mit Vorschlägen.
+      * Bottom-Navigation wechselt zwischen `/camera`, `/history`, `/learn`; aktive Registerkarte visuell hervorgehoben.
+   7. **Barrierefreiheit**
+      * Mindest-Touch-Fläche 48×48 dp, Kontrast ≥ 4.5:1.
+      * ARIA-/Accessibility-Rollen: `button`, `navigation`, `status`.
+      * VoiceOver-Beispiele: „Kamera aktiv – Hand im Rahmen halten.“ / „Erkannte Geste: Hallo. Bestätigen oder lernen?“
+   8. **ASCII-Struktur für LLMs**
+      ```
+      ╔══════════════════════════════════╗
+      ║        [ Kapsel: Hört zu… ]      ║
+      ║ ┌──────────────────────────────┐ ║
+      ║ │      [ Kamera-Feed ]        │ ║
+      ║ │ ┌───────┐        ┌───────┐  │ ║
+      ║ │ │       │        │       │  │ ║
+      ║ │ │  🖐 Hand im Rahmen halten │ │
+      ║ │ └───────┘        └───────┘  │ ║
+      ║ └──────────────────────────────┘ ║
+      ║ [ Banner: Hallo ]                ║
+      ║ [ Stimmt ] [ Lernen ] [ Alternativen ]
+      ╚══════════════════════════════════╝
+         📷 Kamera   🕒 History   🎓 Lernen
+      ```
+   9. **Umsetzungsdirektive für Redesigns**
+      * Kopfbereich = Status-Kapsel, Hauptbereich = Kamera-Feed mit Eckmarkern.
+      * Aktionsleiste muss Buttons „Stimmt“, „Lernen“, „Alternativen“ anzeigen.
+      * Bottom-Navigation mit Tabs „Kamera“, „History“, „Lernen“ ist verpflichtend.
+      * Keine versteckten Gesten oder blockierenden Modals; Übergänge ruhig (Fade/Pulse/Slide).
+   10. **Akzeptanzkriterien**
+       * Kamera bleibt kontinuierlich sichtbar; Standardtext „Hört zu…“ außer bei Idle „Bereit.“
+       * Alle Interaktionen sind einhändig erreichbar, Screenreader-beschriftet, offline-fähig.
  * Correction Panel (HIP 3): A semi-transparent bottom slide-up panel with a 2x2 grid of large, tappable symbol choices.
  * Training Flow (HIP 2): A step-by-step guided flow with a progress bar and clear confirmation states.
  * Teaching Screen: Camera-driven capture of multiple samples with progress feedback and optional audio cues.
