@@ -35,12 +35,12 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateToRecognition = useCallback(() => {
     void childHaptic();
-    navigation.navigate('Recognition', { profileId });
+    navigation.navigate('App', { screen: 'Recognition', params: { profileId } });
   }, [navigation, profileId]);
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigation.navigate('Lernen', {} as never);
+    navigation.navigate('App', { screen: 'Lernen' });
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {
@@ -51,7 +51,8 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   // Enhanced breadcrumb system - show navigation path
   const getCurrentScreenName = useCallback(() => {
     const screenNames: Record<string, string> = {
-      'Recognition': '🏠 Zuhören',
+      App: '🏠 Zuhören',
+      Recognition: '🏠 Zuhören',
       'Lernen': '🎯 Lernen',
       'Help': '❓ Hilfe',
       'Dashboard': '📊 Auswertung',

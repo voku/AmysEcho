@@ -1,4 +1,5 @@
 import React from 'react';
+import { Pressable } from 'react-native';
 import renderer, { act } from 'react-test-renderer';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import NewBottomNav from '../src/components/NewBottomNav';
@@ -31,7 +32,12 @@ const buildProps = (activeIndex = 0): BuildResult => {
       {
         navigation,
         options: {
-          tabBarLabel: route.name === 'Recognition' ? 'Kamera' : route.name,
+          tabBarLabel:
+            route.name === 'Recognition'
+              ? 'Kamera'
+              : route.name === 'History'
+              ? 'Verlauf'
+              : route.name,
         },
         route,
       },
@@ -62,11 +68,11 @@ describe('NewBottomNav', () => {
     act(() => {
       component = renderer.create(<NewBottomNav {...props} />);
     });
-    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType('Pressable');
+    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType(Pressable);
 
     expect(pressables).toHaveLength(3);
     const labels = pressables.map(p => p.props.accessibilityLabel);
-    expect(labels).toEqual(['Kamera', 'History', 'Lernen']);
+    expect(labels).toEqual(['Kamera', 'Verlauf', 'Lernen']);
 
     const selectedStates = pressables.map(p => p.props.accessibilityState?.selected ?? false);
     expect(selectedStates).toEqual([true, false, false]);
@@ -78,7 +84,7 @@ describe('NewBottomNav', () => {
     act(() => {
       component = renderer.create(<NewBottomNav {...props} />);
     });
-    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType('Pressable');
+    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType(Pressable);
 
     act(() => {
       pressables[1].props.onPress();
@@ -96,7 +102,7 @@ describe('NewBottomNav', () => {
     act(() => {
       component = renderer.create(<NewBottomNav {...props} />);
     });
-    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType('Pressable');
+    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType(Pressable);
 
     act(() => {
       pressables[2].props.onPress();

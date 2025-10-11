@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
-import type { NavigationProp } from '@react-navigation/native';
 import {
   audioService,
   triggerSpeakAndShow,
@@ -30,7 +29,7 @@ import { logger } from '../utils/logger';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
 import type { RecognitionPath } from '../utils/recognitionState';
-import type { RootStackParamList } from '../navigation/types';
+import type { TabNavigationProp } from '../navigation/types';
 import {
   isCoordinatedGestureString,
   parseCoordinatedGestureString,
@@ -43,7 +42,7 @@ import { logInteractionEvent } from '../services/analytics';
 const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
 const RECOVERING_CAMERA_TEXT = 'Ups! Ich starte die Kamera neu…';
 
-type Navigation = NavigationProp<RootStackParamList, 'Recognition'>;
+type Navigation = TabNavigationProp<'Recognition'>;
 
 interface RecognitionRefs {
   confidenceFilterRef: MutableRefObject<OneEuroFilter>;

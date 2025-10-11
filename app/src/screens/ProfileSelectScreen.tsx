@@ -128,13 +128,15 @@ export default function ProfileSelectScreen({ navigation }: any) {
       <View style={styles.row}>
         <ButtonComponent
           title="Zuhören"
-          onPress={() => profile && navigation.navigate('Recognition', { profileId: profile.id })}
+          onPress={() =>
+            profile && navigation.navigate('App', { screen: 'Recognition', params: { profileId: profile.id } })
+          }
           accessibilityLabel="Zum Erkennungsmodus"
           disabled={!profile}
         />
         <ButtonComponent
           title="Lernen"
-          onPress={() => navigation.navigate('Lernen', {})}
+          onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
           accessibilityLabel="Zum Lernmodus"
         />
       </View>

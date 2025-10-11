@@ -341,7 +341,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           <PrimaryButton
             label="Später einrichten"
             accessibilityLabel="Onboarding überspringen"
-            onPress={() => navigation.replace('Recognition')}
+            onPress={() => navigation.replace('App', { screen: 'Recognition' })}
             variant="secondary"
             testID="btn-skip"
             style={{ marginTop: SPACING.md }}

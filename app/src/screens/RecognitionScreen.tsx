@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import type { NavigationProp } from '@react-navigation/native';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
@@ -24,7 +23,7 @@ import { onMlpModelUpdated } from '../services/dgsModelClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
 import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
-import type { RootStackParamList } from '../navigation/types';
+import type { TabNavigationProp } from '../navigation/types';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
@@ -105,7 +104,7 @@ const toGestureImageCapture = (
 export default function RecognitionScreen({
   navigation,
 }: {
-  navigation: NavigationProp<RootStackParamList, 'Recognition'>;
+  navigation: TabNavigationProp<'Recognition'>;
 }) {
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();

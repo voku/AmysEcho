@@ -21,7 +21,7 @@ This guide is a living document. Please update it with any new patterns or compo
 
 ## 3. Color Palette
 
-All values are defined in `app/src/constants/colors.ts` and surfaced via `COLORS`.
+All values originate in `app/src/constants/colors.ts` and are re-exported for components via `COLORS` in `app/src/constants/ui.ts`.
 
 | Color Token            | Hex Code  | Usage                                                           |
 | ---------------------- | --------- | --------------------------------------------------------------- |
@@ -38,7 +38,12 @@ All values are defined in `app/src/constants/colors.ts` and surfaced via `COLORS
 | **textMuted**          | `#475569` | Secondary body text and helper hints.                           |
 | **inverseText**        | `#F8FAFC` | Text on primary buttons or dark overlays.                       |
 | **overlaySurface**     | `rgba(255,255,255,0.28)` | Recognition overlay backgrounds.               |
+| **overlaySurfaceMuted** | `rgba(255,255,255,0.18)` | Subtle overlay cards or inactive overlay panels. |
+| **overlayBorder**      | `rgba(255,255,255,0.35)` | Divider lines and outlines on overlays.         |
 | **overlayBadgeBackground** | `rgba(255,255,255,0.85)` | Active overlay badges (timeline + chips). |
+| **overlayBadgeText**   | `#0F172A` | Text/icon color on overlay badges.                           |
+| **overlayText**        | `#F9FAFB` | Primary text rendered over camera overlays.                  |
+| **overlayTextMuted**   | `#E2E8F0` | Secondary copy on overlays (e.g. hints).                     |
 | **highContrastBackground** | `#000000` | Background when high-contrast mode enabled.          |
 | **highContrastText**   | `#FFFFFF` | Foreground text/icons in high-contrast mode.                    |
 

@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   stageTitle: {
     fontSize: TYPOGRAPHY.sizes.body,
-    fontWeight: TYPOGRAPHY.weights.semibold as any,
+    fontWeight: TYPOGRAPHY.weights.semibold,
     textAlign: 'center',
   },
   stageTitleLarge: {
