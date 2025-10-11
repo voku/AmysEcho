@@ -3,8 +3,10 @@ export const typography = {
     caption: 14,
     body: 16,
     subtitle: 18,
+    titleSm: 24,
     title: 36,
     titleLg: 40,
+    display: 48,
   },
   weights: {
     regular: '400',

@@ -1,9 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
-const TOGGLE_DGS_VIDEO_LABEL = 'DGS-Video umschalten';
-const HIDE_DGS_VIDEO_LABEL = 'DGS-Video ausblenden';
-
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
   return {
@@ -46,13 +43,6 @@ jest.mock('../../src/components/Celebration', () => () => null);
 jest.mock('../../src/components/MediaPipeGestureDetector', () => ({
   MediaPipeGestureDetector: () => null,
 }));
-
-jest.mock('../../src/components/DgsVideoPlayer', () => {
-  const React = require('react');
-  return function MockDgsVideoPlayer(props: any) {
-    return React.createElement('DgsVideoPlayer', props, null);
-  };
-});
 
 jest.mock('../../src/services/optimizedGestureService', () => ({
   optimizedGestureService: {
@@ -103,18 +93,16 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
 
   let setLastRecognizedGestureMock: ((gesture: any) => void) | null = null;
 
-  const initialGesture = {
+  const recognizedGestureTemplate = {
     id: 'hallo',
     label: 'Hallo',
     emoji: '👋',
     category: 'greeting',
-    dgsVideoUri: 'dgs/hallo.mp4',
   };
 
   const useRecognitionState = () => {
-    const [showDgsVideo, setShowDgsVideo] = React.useState(false);
     const [lastRecognizedGesture, setLastRecognizedGesture] =
-      React.useState(initialGesture);
+      React.useState<any>(null);
 
     setLastRecognizedGestureMock = setLastRecognizedGesture;
 
@@ -143,8 +131,6 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
       setWebviewRetries: jest.fn(),
       recognitionPath: 'local',
       setRecognitionPath: jest.fn(),
-      showDgsVideo,
-      setShowDgsVideo,
       showCelebration: false,
       setShowCelebration: jest.fn(),
       celebrationKey: 0,
@@ -186,7 +172,7 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
     ...actual,
     useRecognitionState,
     __setMockLastRecognizedGesture: (gesture: any) => {
-      setLastRecognizedGestureMock?.(gesture);
+      setLastRecognizedGestureMock?.(gesture ?? recognizedGestureTemplate);
     },
   };
 });
@@ -197,13 +183,15 @@ const localCentroids = require('../../src/services/localCentroids') as typeof im
 const recognitionStateModule = require('../../src/hooks/useRecognitionState') as {
   __setMockLastRecognizedGesture?: (gesture: any) => void;
 };
+const { AmyLoopTimeline } = require('../../src/components/AmyLoopTimeline');
+const ActionButtonComponent = require('../../src/components/ActionButton').default;
 
-describe('RecognitionScreen DGS video toggle', () => {
+describe('RecognitionScreen Amy-first overlay', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it('toggles the DGS video overlay when pressed', async () => {
+  const renderRecognitionScreen = async () => {
     jest.spyOn(localCentroids, 'buildLocalCentroids').mockResolvedValue({});
     let component!: renderer.ReactTestRenderer;
 
@@ -213,71 +201,41 @@ describe('RecognitionScreen DGS video toggle', () => {
       );
     });
 
-    const findToggleButton = () =>
-      component.root.findByProps({ accessibilityLabel: TOGGLE_DGS_VIDEO_LABEL });
-    const findVideoPlayer = () => component.root.findAllByType('DgsVideoPlayer');
+    return component;
+  };
 
-    expect(findVideoPlayer()).toHaveLength(0);
-    const getLabelText = () =>
-      findToggleButton()
-        .findAll((node) => node.type === 'Text')
-        .pop()?.props.children;
-    expect(getLabelText()).toBe('DGS-Video anzeigen');
-
-    act(() => {
-      findToggleButton().props.onPress();
-    });
-
-    expect(findVideoPlayer()).toHaveLength(1);
-    expect(getLabelText()).toBe(HIDE_DGS_VIDEO_LABEL);
-
-    act(() => {
-      findToggleButton().props.onPress();
-    });
-
-    expect(findVideoPlayer()).toHaveLength(0);
-    expect(getLabelText()).toBe('DGS-Video anzeigen');
-  });
-
-  it('hides the overlay when the next gesture lacks a DGS video', async () => {
-    const setLastRecognizedGesture = recognitionStateModule.__setMockLastRecognizedGesture;
-    expect(typeof setLastRecognizedGesture).toBe('function');
-
-    jest.spyOn(localCentroids, 'buildLocalCentroids').mockResolvedValue({});
-
-    let component!: renderer.ReactTestRenderer;
+  it('renders the loop timeline and advances stages as gestures resolve', async () => {
+    const component = await renderRecognitionScreen();
+    const timeline = component.root.findByType(AmyLoopTimeline);
+    expect(timeline.props.activeStage).toBe('see');
 
     await act(async () => {
-      component = renderer.create(
-        <RecognitionScreen navigation={{ navigate: jest.fn() }} />,
-      );
-    });
-
-    const findToggleButtons = () =>
-      component.root.findAll(
-        (node) => node.props?.accessibilityLabel === TOGGLE_DGS_VIDEO_LABEL,
-      );
-    const getFirstToggle = () => findToggleButtons()[0];
-    const findVideoPlayer = () => component.root.findAllByType('DgsVideoPlayer');
-
-    expect(getFirstToggle()).toBeDefined();
-
-    act(() => {
-      getFirstToggle()?.props.onPress();
-    });
-
-    expect(findVideoPlayer()).toHaveLength(1);
-
-    await act(async () => {
-      setLastRecognizedGesture?.({
-        id: 'bitte',
-        label: 'Bitte',
-        emoji: '🙏',
-        category: 'manners',
+      recognitionStateModule.__setMockLastRecognizedGesture?.({
+        id: 'hallo',
+        label: 'Hallo',
+        emoji: '👋',
+        category: 'greeting',
       });
     });
 
-    expect(findVideoPlayer()).toHaveLength(0);
-    expect(findToggleButtons()).toHaveLength(0);
+    const updatedTimeline = component.root.findByType(AmyLoopTimeline);
+    expect(updatedTimeline.props.activeStage).toBe('confirm');
+  });
+
+  it('displays Amy-first action buttons for confirmation, learning, and alternatives', async () => {
+    const component = await renderRecognitionScreen();
+    const actionButtons = component.root.findAllByType(ActionButtonComponent);
+
+    const labels = actionButtons.map((button) => button.props.label);
+    expect(labels).toEqual(['Stimmt', 'Lernen', 'Alternativen']);
+
+    const accessibilityLabels = actionButtons.map(
+      (button) => button.props.accessibilityLabel,
+    );
+    expect(accessibilityLabels).toEqual([
+      'Gestenerkennung bestätigen',
+      'Lernmodus öffnen',
+      'Alternativen anzeigen',
+    ]);
   });
 });

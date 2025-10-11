@@ -11,10 +11,12 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logHIPEvent } from '../services/hipEvents';
 import ScreenBackground from '../components/ScreenBackground';
 import PrimaryButton from '../components/PrimaryButton';
+import { AmyFirstCommitments } from '../components/AmyFirstCommitments';
+import { AmyLoopTimeline } from '../components/AmyLoopTimeline';
 import { announceAccessibilityMessage } from '../services/accessibilityService';
 import { RootStackParamList } from '../navigation/types';
 
-type StepKey = 'name' | 'accessibility' | 'consent' | 'vocabulary';
+type StepKey = 'mission' | 'name' | 'accessibility' | 'consent' | 'vocabulary';
 
 type WizardStep = {
   key: StepKey;
@@ -24,6 +26,13 @@ type WizardStep = {
 };
 
 const STEPS: WizardStep[] = [
+  {
+    key: 'mission',
+    emoji: '❤️',
+    title: 'Amy zuerst – immer.',
+    description:
+      'Ich folge dem Amy-First-Versprechen: Sehen → Denken → Sprechen oder Zeigen → Bestätigen → Lernen. So bleibt jedes Gespräch offen und sicher.',
+  },
   {
     key: 'name',
     emoji: '👋',
@@ -71,6 +80,10 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       flex: 1,
       padding: SPACING.xl,
       justifyContent: 'space-between',
+    },
+    missionContent: {
+      width: '100%',
+      gap: SPACING.lg,
     },
     headlineArea: {
       alignItems: 'center',
@@ -206,6 +219,13 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
   const renderStepContent = () => {
     switch (activeStep.key) {
+      case 'mission':
+        return (
+          <View style={styles.missionContent}>
+            <AmyLoopTimeline activeStage="see" />
+            <AmyFirstCommitments />
+          </View>
+        );
       case 'name':
         return (
           <TextInput

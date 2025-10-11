@@ -61,6 +61,10 @@ describe('OnboardingScreen', () => {
     });
 
     await act(async () => {
+      component.root.findByProps({ testID: 'btn-next' }).props.onPress();
+    });
+
+    await act(async () => {
       component.root.findByProps({ accessibilityLabel: 'Profilname' }).props.onChangeText('Lena');
       component.root.findByProps({ testID: 'btn-next' }).props.onPress();
     });
@@ -111,12 +115,12 @@ describe('OnboardingScreen', () => {
       component = renderer.create(<OnboardingScreen navigation={{ replace }} />);
     });
 
-    expect(announceMock).toHaveBeenCalledWith(expect.stringContaining('Schritt 1 von 4'));
+    expect(announceMock).toHaveBeenCalledWith(expect.stringContaining('Schritt 1 von 5'));
 
     act(() => {
       component.root.findByProps({ testID: 'btn-next' }).props.onPress();
     });
 
-    expect(announceMock).toHaveBeenCalledWith(expect.stringContaining('Schritt 2 von 4'));
+    expect(announceMock).toHaveBeenCalledWith(expect.stringContaining('Schritt 2 von 5'));
   });
 });

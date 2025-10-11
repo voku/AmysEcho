@@ -18,11 +18,11 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus 
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderRadius": 30,
-        "height": 60,
+        "borderRadius": 26,
+        "height": 52,
         "justifyContent": "center",
         "marginBottom": 4,
-        "width": 60,
+        "width": 52,
       }
     }
   >
@@ -147,11 +147,11 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im Standardmodus visuel
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderRadius": 30,
-        "height": 60,
+        "borderRadius": 26,
+        "height": 52,
         "justifyContent": "center",
         "marginBottom": 4,
-        "width": 60,
+        "width": 52,
       }
     }
   >

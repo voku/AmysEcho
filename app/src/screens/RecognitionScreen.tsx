@@ -40,6 +40,8 @@ import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import { triggerSpeakAndShow } from '../services/feedbackService';
+import { AmyLoopTimeline, type LoopStageKey } from '../components/AmyLoopTimeline';
+import { OneEuroFilter } from '../services/OneEuroFilter';
 
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
@@ -134,6 +136,8 @@ export default function RecognitionScreen({
   } = state;
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
+  const labelHistoryRef = useRef<string[]>([]);
   const lastSuccessAtRef = useRef<number>(0);
   const lastGestureIdRef = useRef<string | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
@@ -203,6 +207,8 @@ export default function RecognitionScreen({
 
   const recognitionRefs = useMemo(
     () => ({
+      confidenceFilterRef,
+      labelHistoryRef,
       lastGestureIdRef,
       lastSuccessAtRef,
       lastFrameTimeRef,
@@ -441,6 +447,8 @@ export default function RecognitionScreen({
     sequenceMeaning,
   ]);
 
+  const normalizedStatus = (status ?? '').toLowerCase();
+
   const statusCategory = useMemo<RecognitionStatusCategory>(() => {
     if (error) {
       return 'error';
@@ -458,7 +466,6 @@ export default function RecognitionScreen({
     ) {
       return 'recognized';
     }
-    const normalizedStatus = status.toLowerCase();
     if (
       normalizedStatus.includes('höre') ||
       normalizedStatus.includes('suche') ||
@@ -470,7 +477,14 @@ export default function RecognitionScreen({
       return 'listening';
     }
     return 'idle';
-  }, [error, gestureMeaningDisplayProps, modelUpdateStatus, showCelebration, status]);
+  }, [
+    error,
+    gestureMeaningDisplayProps,
+    modelUpdateStatus,
+    normalizedStatus,
+    showCelebration,
+    status,
+  ]);
 
   const statusLabel = useMemo(() => {
     switch (statusCategory) {
@@ -504,6 +518,37 @@ export default function RecognitionScreen({
   }, [error, statusCategory]);
 
   const bannerVisible = Boolean(bannerMessage);
+
+  const loopStage = useMemo<LoopStageKey>(() => {
+    if (modelUpdateStatus === 'updating' || normalizedStatus.includes('lerne')) {
+      return 'learn';
+    }
+    if (normalizedStatus.includes('modell einsatzbereit')) {
+      return 'learn';
+    }
+    if (showCelebration) {
+      return 'speak';
+    }
+    if (gestureMeaningDisplayProps) {
+      return showOpenaiFeedback ? 'think' : 'confirm';
+    }
+    if (
+      showOpenaiFeedback ||
+      normalizedStatus.includes('fokussiere') ||
+      normalizedStatus.includes('suche') ||
+      normalizedStatus.includes('warte') ||
+      normalizedStatus.includes('prüfe')
+    ) {
+      return 'think';
+    }
+    return 'see';
+  }, [
+    gestureMeaningDisplayProps,
+    modelUpdateStatus,
+    normalizedStatus,
+    showCelebration,
+    showOpenaiFeedback,
+  ]);
 
   const handleConfirmGesture = useCallback(() => {
     if (!gestureMeaningDisplayProps) {
@@ -568,6 +613,14 @@ export default function RecognitionScreen({
                 >
                   {status?.trim().length ? status : statusLabel}
                 </Text>
+              </View>
+              <View style={styles.loopWrapper}>
+                <AmyLoopTimeline
+                  activeStage={loopStage}
+                  mode="overlay"
+                  compact
+                  hideDescriptions
+                />
               </View>
               {bannerVisible ? (
                 <View style={styles.bannerWrapper}>
@@ -674,6 +727,10 @@ const styles = StyleSheet.create({
   topSection: {
     width: '100%',
     alignItems: 'center',
+  },
+  loopWrapper: {
+    width: '100%',
+    marginBottom: spacing.md,
   },
   statusChip: {
     paddingHorizontal: spacing.xl,
