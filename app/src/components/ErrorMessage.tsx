@@ -87,7 +87,7 @@ export default function ErrorMessage({
                 onPress={() => onDismissToast(toast.id)}
                 style={styles.dismissButton}
               >
-                <Text style={[styles.dismissText, { fontSize }]}>&times;</Text>
+                <Text style={[styles.dismissText, { fontSize }]}>×</Text>
               </Pressable>
             </View>
           );
