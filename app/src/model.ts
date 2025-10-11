@@ -20,27 +20,27 @@ export interface VocabularySet {
 export const availableVocabularySets: VocabularySet[] = [
   {
     id: 'basic',
-    label: 'Basic Needs',
+    label: 'Grundbedürfnisse',
     gestures: ['hello', 'thank_you', 'please', 'more', 'finished', 'water', 'eat', 'help', 'essen', 'trinken', 'satt', 'fertig']
   },
   {
     id: 'emotions',
-    label: 'Feelings',
+    label: 'Gefühle',
     gestures: ['happy', 'sad', 'angry', 'excited', 'tired', 'scared']
   },
   {
     id: 'activities',
-    label: 'Activities',
+    label: 'Aktivitäten',
     gestures: ['play', 'read', 'music', 'outside', 'sleep', 'bath', 'spielen', 'nochmal']
   },
   {
     id: 'colors',
-    label: 'Colors',
+    label: 'Farben',
     gestures: ['rot', 'blau', 'gelb', 'gruen']
   },
   {
     id: 'family',
-    label: 'Family',
+    label: 'Familie',
     gestures: ['schwester', 'alle']
   }
 ];

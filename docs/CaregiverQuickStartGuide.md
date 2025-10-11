@@ -22,12 +22,17 @@ This guide helps caregivers get Amy's Echo running and begin supporting a child'
 ## 2. First Launch
 1. On the device, open **Amy's Echo**.
 2. Grant camera and microphone permissions when prompted.
-3. Follow the onboarding steps to learn how the gesture system works.
+3. Folge dem vierstufigen Onboarding:
+   1. **Name festlegen** – gib den Namen ein, den Amy’s Echo sprechen soll.
+   2. **Zugänglichkeit wählen** – entscheide dich für große Schrift und/oder hohen Kontrast.
+   3. **Freigaben bestätigen** – bestimme, ob anonymisierte Daten zur Verbesserung beitragen dürfen.
+   4. **Vokabular wählen** – starte mit dem Wortfeld, das dein Kind sofort benötigt.
+   Amy’s Echo erklärt jeden Schritt beruhigend mit Emojis, damit du weißt, wie die App dein Kind unterstützt.
 
 ## 3. Communicating
 1. Point the camera at the child's hands.
 2. The app speaks and shows a symbol when it recognizes a gesture.
-3. Tap **Help Me** if the gesture was misunderstood – this stores a correction for future learning.
+3. Tippe auf **Hilfe**, wenn eine Geste falsch erkannt wurde – so speicherst du eine Korrektur für zukünftiges Lernen.
 
 ## 4. Teaching New Gestures
 1. Open the **Admin Panel** and choose **Training**.

@@ -2,7 +2,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Tutorial: undefined;
   ProfileSelect: undefined;
-  Recognition: { profileId: string; simulateLowConfidence?: boolean };
+  Recognition: { profileId: string; simulateLowConfidence?: boolean } | undefined;
   Training: { gestureLabel?: string; isPractice?: boolean };
   Teach: undefined;
   Teaching: { gestureId?: string } | undefined;
