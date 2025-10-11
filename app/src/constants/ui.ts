@@ -1,26 +1,22 @@
+import Colors from './colors';
+import { spacing } from './spacing';
+import typography from './typography';
+
 export const COLORS = {
-  backgroundStart: '#EFF6FF',
-  backgroundEnd: '#F3F4F6',
-  background: '#F8FAFC',
-  surface: '#FFFFFF',
-  text: '#333333',
-  textMuted: '#666666',
-  textSecondary: '#6B7280',
-  primary: '#3B82F6',
-  secondary: '#6B7280',
-  primaryAccent: '#3B82F6',
-  secondaryAccent: '#6B7280',
-  vocabDrink: '#AEDFF7',
-  vocabEat: '#F7C5A8',
-  vocabPlay: '#A8F7A8',
-  success: '#4CAF50',
-  warning: '#FFD700',
-  error: '#EF4444',
-  warningBackground: '#FDE68A',
-  border: '#E5E7EB',
-  borderDark: '#888888',
-  pressed: '#E0E0E0',
-  highContrastPressed: '#555555',
+  ...Colors,
+  primaryAccent: Colors.primary,
+  secondaryAccent: Colors.accent,
+  secondary: Colors.accent,
+  background: Colors.background,
+  surface: Colors.surface,
+  backgroundStart: '#D1FAE5',
+  backgroundEnd: '#F0FDFA',
+  textMuted: '#475569',
+  textSecondary: '#334155',
+  border: '#E2E8F0',
+  borderDark: '#94A3B8',
+  pressed: '#0F766E',
+  highContrastPressed: '#1F2937',
   highContrastBackground: '#000000',
   highContrastText: '#FFFFFF',
   overlayBackdrop: 'rgba(15, 23, 42, 0.85)',
@@ -34,12 +30,14 @@ export const COLORS = {
 } as const;
 
 export const SPACING = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  ...spacing,
+  md: spacing.md,
+  lg: spacing.lg,
+  xl: spacing.xl,
+  xxl: spacing['2xl'],
 } as const;
+
+export const TYPOGRAPHY = typography;
 
 // Default radius (md) with size shortcuts attached.
 export const RADIUS = {

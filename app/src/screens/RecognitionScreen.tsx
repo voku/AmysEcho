@@ -1,25 +1,12 @@
-
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Easing,
-  Button,
-  ScrollView,
-  Pressable,
-} from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { NavigationProp } from '@react-navigation/native';
-import { useAccessibility } from '../components/AccessibilityContext';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
-import BottomNav from '../components/BottomNav';
-import CorrectionPanel from '../components/CorrectionPanel';
-import PracticeSuggestion from '../components/PracticeSuggestion';
-import AdaptiveLearningPanel from '../components/AdaptiveLearningPanel';
-import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
+import ActionButton from '../components/ActionButton';
+import FeedbackBanner from '../components/FeedbackBanner';
 import { logger } from '../utils/logger';
-import { loadProfile, Profile } from '../storage';
+import { loadProfile } from '../storage';
 import { buildLocalCentroids } from '../services/localCentroids';
 import { classifyWithCentroids } from '../services/offlineClassifier';
 import type { CentroidMap, Point } from '../services/dgsModelClient';
@@ -27,23 +14,17 @@ import type { GestureImageCapture } from '../services/openaiGestureValidationSer
 import type { FrameCapturePayload } from '../types/frames';
 import { flattenHandsWithHandedness } from '../services/handUtils';
 import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
-import { OneEuroFilter } from '../services/OneEuroFilter';
 import type { RecognitionPath } from '../utils/recognitionState';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
 import { usePreloadComponents } from '../components/LazyComponent';
-import DgsVideoPlayer from '../components/DgsVideoPlayer';
-import Celebration, { CELEBRATION_DURATION_MS } from '../components/Celebration';
+import Celebration from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
 import { onMlpModelUpdated } from '../services/dgsModelClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
-import VisualRipple from '../components/VisualRipple';
-import ScreenFlash from '../components/ScreenFlash';
 import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
-import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
-import { getShortcutMessage } from '../utils/shortcutUtils';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
@@ -55,10 +36,32 @@ import {
   createHandLandmarkStabilizer,
 } from '../utils/landmarkUtils';
 import OpenAIGestureFeedback from '../components/OpenAIGestureFeedback';
-import { childFriendlyStyles } from '../styles/touchTargets';
+import Colors from '../constants/colors';
+import { spacing } from '../constants/spacing';
+import typography from '../constants/typography';
+import { triggerSpeakAndShow } from '../services/feedbackService';
 
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
+const CAPTURE_PULSE_SIZE = spacing['2xl'] * 5;
+
+type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating' | 'error';
+
+const STATUS_CHIP_BACKGROUND: Record<RecognitionStatusCategory, string> = {
+  idle: Colors.surfaceMuted,
+  listening: Colors.primary,
+  recognized: Colors.success,
+  updating: Colors.accent,
+  error: Colors.error,
+};
+
+const STATUS_CHIP_TEXT: Record<RecognitionStatusCategory, string> = {
+  idle: Colors.text,
+  listening: Colors.inverseText,
+  recognized: Colors.inverseText,
+  updating: Colors.text,
+  error: Colors.inverseText,
+};
 
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
@@ -97,60 +100,28 @@ const toGestureImageCapture = (
   };
 };
 
-const RECOGNITION_TEXT = {
-  showDgsVideoLabel: 'DGS-Video anzeigen',
-  hideDgsVideoLabel: 'DGS-Video ausblenden',
-  toggleDgsVideo: 'DGS-Video umschalten',
-};
-
 export default function RecognitionScreen({
   navigation,
 }: {
   navigation: NavigationProp<RootStackParamList, 'Recognition'>;
 }) {
-  const { largeText, highContrast } = useAccessibility();
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
-  const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
-
   const state = useRecognitionState();
   const {
-    profile,
     setProfile,
     status,
-    setStatus,
-    gestureConfidence,
     error,
-    showCorrection,
-    setShowCorrection,
-    gestureSuggestions,
-    pendingGesture,
+    gestureConfidence,
     lastRecognizedGesture,
     facingMode,
     setFacingMode,
-    webviewKey,
-    setWebviewKey,
-    recognitionPath,
-    showDgsVideo,
-    setShowDgsVideo,
     showCelebration,
-    setShowCelebration,
     celebrationKey,
-    setCelebrationKey,
-    modelUpdateStatus,
     gestureSizeTolerance,
     setGestureSizeTolerance,
-    showVisualRipple,
-    successSound,
     setSuccessSound,
-    showScreenFlash,
-    screenFlashPattern,
-    shortcutActivated,
-    showPracticeSuggestion,
-    showAdaptiveLearning,
-    setShowAdaptiveLearning,
-    contextInsights,
     detectedGestureMeaning,
     sequenceMeaning,
     sequenceMatch,
@@ -158,12 +129,11 @@ export default function RecognitionScreen({
     setCurrentLandmarks,
     currentHandedness,
     setCurrentHandedness,
+    modelUpdateStatus,
+    recognitionPath,
   } = state;
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const symbolScaleAnim = useRef(new Animated.Value(0)).current;
-  const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
-  const labelHistoryRef = useRef<string[]>([]);
   const lastSuccessAtRef = useRef<number>(0);
   const lastGestureIdRef = useRef<string | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
@@ -178,7 +148,6 @@ export default function RecognitionScreen({
   }, []);
 
   useEffect(() => {
-    // Load Amy's selected success sound
     const loadSuccessSound = async () => {
       try {
         const sound = await AsyncStorage.getItem('selectedSuccessSound');
@@ -211,73 +180,45 @@ export default function RecognitionScreen({
     const unsub = onMlpModelUpdated(() => {
       showToast({ message: 'Neues Modell geladen', tone: 'success', durationMs: 2000 });
     });
-    return () => {
-      unsub();
-    };
+    return () => unsub();
   }, [showToast]);
 
-  const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const capturePulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoopRef = useRef<ReturnType<typeof Animated.loop> | null>(null);
 
   const captureImage = useCallback(async () => {
     const latest = latestFrameRef.current;
-    if (!latest) {
-      return null;
-    }
-    return { ...latest };
+    return latest ? { ...latest } : null;
   }, []);
 
   const startFeedbackAnimation = useCallback(() => {
-    fadeAnim.setValue(0);
+    fadeAnim.setValue(0.6);
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
       easing: Easing.out(Easing.ease),
       useNativeDriver: true,
     }).start();
-
-    symbolScaleAnim.setValue(0);
-    Animated.spring(symbolScaleAnim, {
-      toValue: 1,
-      friction: 5,
-      tension: 80,
-      useNativeDriver: true,
-    }).start();
-
-    setCelebrationKey((k) => k + 1);
-    setShowCelebration(true);
-    if (celebrationTimeoutRef.current) {
-      clearTimeout(celebrationTimeoutRef.current);
-    }
-    celebrationTimeoutRef.current = setTimeout(() => setShowCelebration(false), CELEBRATION_DURATION_MS);
-  }, [fadeAnim, symbolScaleAnim]);
+  }, [fadeAnim]);
 
   const recognitionRefs = useMemo(
     () => ({
-      confidenceFilterRef,
-      labelHistoryRef,
       lastGestureIdRef,
       lastSuccessAtRef,
       lastFrameTimeRef,
       lastModelUpdateTimeRef,
     }),
-    [
-      confidenceFilterRef,
-      labelHistoryRef,
-      lastGestureIdRef,
-      lastSuccessAtRef,
-      lastFrameTimeRef,
-      lastModelUpdateTimeRef,
-    ],
+    [],
   );
 
   const recognitionHelpers = useMemo(
     () => ({
-      startFeedbackAnimation,
       getSuccessMessage: (gestureId: string) => {
         const base = getSuccessMessage();
         const meta = optimizedGestureService.getGestureById(gestureId);
         return meta ? `${base} ${meta.emoji ?? ''}`.trim() : base;
       },
+      startFeedbackAnimation,
     }),
     [getSuccessMessage, startFeedbackAnimation],
   );
@@ -286,11 +227,6 @@ export default function RecognitionScreen({
     handleGestureDetected: baseHandleGestureDetected,
     handleModelUpdateStatus,
     handleGestureError,
-    handleSelectCorrection,
-    handleAcceptPractice,
-    handleDeclinePractice,
-    handleLaterPractice,
-    handleStartAdaptiveRecommendation,
   } = useRecognitionCallbacks({
     navigation,
     state,
@@ -327,16 +263,11 @@ export default function RecognitionScreen({
               stabilized.landmarks,
               stabilized.handedness,
             );
-            const flattenedPoints: Point[] = [];
-            for (const coords of flattened) {
-              if (!Array.isArray(coords)) {
-                flattenedPoints.push([0, 0, 0]);
-                continue;
-              }
+            const flattenedPoints: Point[] = flattened.map(coords => {
+              if (!Array.isArray(coords)) return [0,0,0];
               const [x = 0, y = 0, z = 0] = coords;
-              const point: Point = [x, y, z];
-              flattenedPoints.push(point);
-            }
+              return [x, y, z];
+            });
             const centroidResult = classifyWithCentroids(flattenedPoints, centroidsRef.current);
             if (
               centroidResult &&
@@ -350,20 +281,18 @@ export default function RecognitionScreen({
               recognitionSource = 'centroid';
             }
           }
-        } catch (error) {
-          logger.warn('Failed to classify with local centroids', error);
+        } catch (err) {
+          logger.warn('Failed to classify with local centroids', err);
         }
       }
 
-      const resultPromise = baseHandleGestureDetected(
+      return baseHandleGestureDetected(
         processedGesture,
         processedConfidence,
         stabilized.landmarks,
         stabilized.handedness,
         recognitionSource,
       );
-
-      return resultPromise;
     },
     [baseHandleGestureDetected, facingMode],
   );
@@ -393,34 +322,32 @@ export default function RecognitionScreen({
       frameCapture?: FrameCapturePayload | null,
     ) => {
       const timestamp = Date.now();
-      let normalizedCapture: GestureImageCapture | null = null;
-      if (frameCapture) {
-        normalizedCapture = toGestureImageCapture(frameCapture, timestamp);
+      if (typeof frameCapture === 'string' && frameCapture.startsWith('data:image')) {
+        const normalizedCapture = toGestureImageCapture(frameCapture, timestamp);
         latestFrameRef.current = normalizedCapture;
+        void handleParallelProcessing(
+          gesture,
+          confidence,
+          landmarks,
+          handedness,
+          normalizedCapture ?? frameCapture ?? null,
+        );
       } else {
-        latestFrameRef.current = null;
+        void handleParallelProcessing(
+          gesture,
+          confidence,
+          landmarks,
+          handedness,
+          frameCapture ?? null,
+        );
       }
-
-      const capturedFrameForProcessing = normalizedCapture ?? frameCapture ?? null;
-
-      void handleParallelProcessing(
-        gesture,
-        confidence,
-        landmarks,
-        handedness,
-        capturedFrameForProcessing,
-      );
     },
     [handleParallelProcessing],
   );
 
   const handleAcknowledgeOpenAISuggestion = useCallback(
     (suggestion?: string) => {
-      if (suggestion) {
-        logger.info('OpenAI suggestion angewendet', { suggestion });
-      } else {
-        logger.info('OpenAI-Vorschlag bestätigt');
-      }
+      logger.info(suggestion ? 'OpenAI suggestion angewendet' : 'OpenAI-Vorschlag bestätigt', { suggestion });
       setShowOpenaiFeedback(false);
     },
     [setShowOpenaiFeedback],
@@ -437,249 +364,37 @@ export default function RecognitionScreen({
         logger.warn('Failed to load gesture size tolerance:', error);
       }
     };
-
     loadGestureSizeTolerance();
   }, []);
 
   useEffect(() => {
+    if (typeof Animated.loop !== 'function') {
+      return undefined;
+    }
+    pulseLoopRef.current?.stop();
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(capturePulseAnim, {
+          toValue: 1.08,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(capturePulseAnim, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    pulseLoopRef.current = animation;
+    animation.start();
     return () => {
-      if (celebrationTimeoutRef.current) {
-        clearTimeout(celebrationTimeoutRef.current);
-      }
+      animation.stop();
+      pulseLoopRef.current = null;
     };
-  }, []);
+  }, [capturePulseAnim]);
 
-  // Preload components that might be needed during recognition
-  usePreloadComponents([
-    'CorrectionPanel',
-    'PracticeSuggestion',
-    'AdaptiveLearningPanel',
-    'GestureMeaningDisplay'
-  ]);
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    contentWrapper: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingBottom: SPACING.xl * 2,
-    },
-    card: {
-      backgroundColor: COLORS.surface,
-      borderRadius: DEFAULT_RADIUS,
-      padding: SPACING.md,
-      marginBottom: SPACING.lg,
-      shadowColor: '#000',
-      shadowOpacity: 0.05,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 6 },
-      elevation: 3,
-    },
-    cardHC: {
-      backgroundColor: COLORS.highContrastBackground,
-      borderWidth: 2,
-      borderColor: COLORS.highContrastText,
-      shadowOpacity: 0,
-      elevation: 0,
-    },
-    statusLabel: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: COLORS.text,
-      textAlign: 'center',
-    },
-    statusLabelLarge: {
-      fontSize: 18,
-    },
-    statusLabelHC: {
-      color: COLORS.highContrastText,
-    },
-    statusSubtle: {
-      marginTop: SPACING.xs,
-      fontSize: 14,
-      color: COLORS.textMuted,
-      textAlign: 'center',
-    },
-    statusSubtleLarge: {
-      fontSize: 16,
-    },
-    statusSubtleHC: {
-      color: COLORS.highContrastText,
-    },
-    shortcutCard: {
-      alignItems: 'center',
-      backgroundColor: '#E0ECFF',
-    },
-    shortcutText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: COLORS.primaryAccent,
-    },
-    shortcutTextLarge: {
-      fontSize: 18,
-    },
-    shortcutTextHC: {
-      color: COLORS.highContrastText,
-    },
-    cameraCard: {
-      padding: 0,
-      overflow: 'hidden',
-    },
-    cameraSurface: {
-      width: '100%',
-      aspectRatio: 3 / 4,
-      backgroundColor: '#000',
-      position: 'relative',
-    },
-    cameraToolbarContainer: {
-      position: 'absolute',
-      top: SPACING.sm,
-      left: SPACING.sm,
-      zIndex: 5,
-    },
-    cameraToolbar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      flexWrap: 'wrap',
-    },
-    toolbarButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.45)',
-      borderRadius: DEFAULT_RADIUS,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.xs,
-      marginRight: SPACING.sm,
-      marginBottom: SPACING.xs,
-    },
-    toolbarButtonHC: {
-      backgroundColor: COLORS.highContrastBackground,
-      borderWidth: 2,
-      borderColor: COLORS.highContrastText,
-    },
-    toolbarButtonPressed: {
-      opacity: 0.8,
-    },
-    toolbarButtonPressedHC: {
-      backgroundColor: COLORS.highContrastPressed,
-    },
-    toolbarButtonText: {
-      color: '#fff',
-      fontWeight: '700',
-      fontSize: 14,
-      marginLeft: SPACING.xs,
-    },
-    toolbarButtonTextLarge: {
-      fontSize: 16,
-    },
-    toolbarButtonTextHC: {
-      color: COLORS.highContrastText,
-    },
-    toolbarIcon: {
-      fontSize: 18,
-      color: '#fff',
-    },
-    toolbarIconLarge: {
-      fontSize: 20,
-    },
-    toolbarIconHC: {
-      color: COLORS.highContrastText,
-    },
-    videoOverlay: {
-      position: 'absolute',
-      top: SPACING.md,
-      right: SPACING.md,
-      width: SPACING.xl * 4,
-      height: SPACING.xl * 4,
-      borderRadius: DEFAULT_RADIUS,
-      overflow: 'hidden',
-    },
-    gestureCard: {
-      alignItems: 'center',
-    },
-    symbolDisplay: {
-      fontSize: 36,
-      fontWeight: '700',
-      color: COLORS.text,
-      marginBottom: SPACING.sm,
-    },
-    symbolDisplayHC: {
-      color: COLORS.highContrastText,
-    },
-    symbolDisplayLarge: {
-      fontSize: 44,
-    },
-    gestureText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: COLORS.text,
-    },
-    gestureTextHC: {
-      color: COLORS.highContrastText,
-    },
-    gestureTextLarge: {
-      fontSize: 20,
-    },
-    confidenceText: {
-      fontSize: 14,
-      color: COLORS.textMuted,
-      marginTop: SPACING.xs,
-    },
-    confidenceTextHC: {
-      color: COLORS.highContrastText,
-    },
-    confidenceTextLarge: {
-      fontSize: 16,
-    },
-    encouragementText: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: COLORS.success,
-      marginTop: SPACING.sm,
-    },
-    encouragementTextLarge: {
-      fontSize: 20,
-    },
-    errorCard: {
-      backgroundColor: '#FEE2E2',
-      borderWidth: 1,
-      borderColor: '#FCA5A5',
-    },
-    errorCardHC: {
-      backgroundColor: COLORS.highContrastBackground,
-      borderWidth: 2,
-      borderColor: COLORS.error,
-    },
-    errorText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: COLORS.error,
-      textAlign: 'center',
-    },
-    errorTextLarge: {
-      fontSize: 18,
-    },
-    errorTextHC: {
-      color: COLORS.highContrastText,
-    },
-    actionRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-    },
-    actionButton: {
-      flexBasis: '48%',
-      marginBottom: SPACING.sm,
-    },
-      }),
-    [highContrast, largeText],
-  );
+  usePreloadComponents(['GestureMeaningDisplay']);
 
   const gestureMeaningDisplayProps = useMemo(() => {
     if (!lastRecognizedGesture && !detectedGestureMeaning && !sequenceMeaning) {
@@ -726,206 +441,163 @@ export default function RecognitionScreen({
     sequenceMeaning,
   ]);
 
-  const normalizedStatus = status === 'none' ? 'Ich höre zu…' : status;
-  const displayStatus = normalizedStatus;
-
-  useEffect(() => {
-    if (!lastRecognizedGesture?.dgsVideoUri && showDgsVideo) {
-      setShowDgsVideo(false);
+  const statusCategory = useMemo<RecognitionStatusCategory>(() => {
+    if (error) {
+      return 'error';
     }
-  }, [lastRecognizedGesture, showDgsVideo]);
+    if (modelUpdateStatus === 'updating') {
+      return 'updating';
+    }
+    if (
+      showCelebration ||
+      gestureMeaningDisplayProps ||
+      status.startsWith('✅') ||
+      status.startsWith('✨') ||
+      status.toLowerCase().includes('danke') ||
+      status.toLowerCase().includes('modell einsatzbereit')
+    ) {
+      return 'recognized';
+    }
+    const normalizedStatus = status.toLowerCase();
+    if (
+      normalizedStatus.includes('höre') ||
+      normalizedStatus.includes('suche') ||
+      normalizedStatus.includes('fokussiere') ||
+      normalizedStatus.includes('fast') ||
+      normalizedStatus.includes('warte') ||
+      normalizedStatus.includes('lade ein neues modell')
+    ) {
+      return 'listening';
+    }
+    return 'idle';
+  }, [error, gestureMeaningDisplayProps, modelUpdateStatus, showCelebration, status]);
+
+  const statusLabel = useMemo(() => {
+    switch (statusCategory) {
+      case 'recognized':
+        return 'Gefunden';
+      case 'listening':
+      case 'updating':
+        return 'Hört zu…';
+      case 'error':
+        return 'Fehler';
+      default:
+        return 'Bereit';
+    }
+  }, [statusCategory]);
+
+  const bannerMessage = useMemo(() => {
+    if (error) {
+      return error;
+    }
+    if (statusCategory === 'recognized' || statusCategory === 'updating') {
+      return status?.trim().length ? status : statusLabel;
+    }
+    return null;
+  }, [error, status, statusCategory, statusLabel]);
+
+  const bannerTone: 'info' | 'success' | 'warning' | 'error' = useMemo(() => {
+    if (error) return 'error';
+    if (statusCategory === 'recognized') return 'success';
+    if (statusCategory === 'updating') return 'warning';
+    return 'info';
+  }, [error, statusCategory]);
+
+  const bannerVisible = Boolean(bannerMessage);
+
+  const handleConfirmGesture = useCallback(() => {
+    if (!gestureMeaningDisplayProps) {
+      logger.info('Confirm pressed without active gesture');
+      return;
+    }
+    const { gestureId, confidence } = gestureMeaningDisplayProps;
+    logger.info('Gesture confirmed', {
+      label: gestureId,
+      path: recognitionPath,
+      confidence,
+    });
+    startFeedbackAnimation();
+    void triggerSpeakAndShow(gestureId, confidence ?? 0, startFeedbackAnimation);
+  }, [gestureMeaningDisplayProps, recognitionPath, startFeedbackAnimation]);
+
+  const handleLearnPress = useCallback(() => {
+    const gestureId = gestureMeaningDisplayProps?.gestureId;
+    logger.info('Open learn flow', { gestureId });
+    navigation.navigate('Lernen', gestureId ? { gestureId } : undefined);
+  }, [gestureMeaningDisplayProps, navigation]);
+
+  const handleAlternativesPress = useCallback(() => {
+    logger.info('Alternativen geöffnet');
+    navigation.navigate('Lernen', undefined);
+  }, [navigation]);
 
   return (
     <>
-      <ScreenBackground style={styles.container}>
-        <View style={styles.contentWrapper}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.card, highContrast && styles.cardHC]}>
-            <Text
-              style={[
-                styles.statusLabel,
-                largeText && styles.statusLabelLarge,
-                highContrast && styles.statusLabelHC,
-              ]}
-              accessibilityRole="text"
-            >
-              {displayStatus}
-            </Text>
-            {modelUpdateStatus === 'updating' && (
-              <Text
+      <LinearGradient colors={['#EFF6FF', '#F3F4F6']} style={styles.container}>
+        <MediaPipeGestureDetector
+          onGestureDetected={processGesture}
+          onLandmarks={(landmarks, handedness) => handleGestureDetected(null, 0, landmarks, handedness)}
+          onError={handleGestureError}
+          onWebViewEvent={(telemetry) => logger.info('WebView telemetry:', telemetry)}
+          onModelUpdateStatus={handleModelUpdateStatus}
+          facingMode={facingMode}
+          gestureSizeTolerance={gestureSizeTolerance}
+        />
+
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <HandLandmarkPreview
+            landmarks={currentLandmarks}
+            handedness={currentHandedness}
+            mirror={facingMode === 'user'}
+            confidence={gestureConfidence}
+          />
+
+          <View style={styles.overlay}>
+            <View style={styles.topSection}>
+              <View
                 style={[
-                  styles.statusSubtle,
-                  largeText && styles.statusSubtleLarge,
-                  highContrast && styles.statusSubtleHC,
+                  styles.statusChip,
+                  { backgroundColor: STATUS_CHIP_BACKGROUND[statusCategory] },
                 ]}
               >
-                🔄 Modell wird aktualisiert …
-              </Text>
-            )}
-          </View>
-
-          {shortcutActivated && (
-            <View style={[styles.card, styles.shortcutCard, highContrast && styles.cardHC]}>
-              <Text
-                style={[
-                  styles.shortcutText,
-                  largeText && styles.shortcutTextLarge,
-                  highContrast && styles.shortcutTextHC,
-                ]}
-              >
-                ⚡ {getShortcutMessage(shortcutActivated)}
-              </Text>
-            </View>
-          )}
-
-          <View style={[styles.card, styles.cameraCard, highContrast && styles.cardHC]}>
-            <View style={styles.cameraSurface}>
-              <MediaPipeGestureDetector
-                onGestureDetected={processGesture}
-                onLandmarks={(landmarks, handedness) => {
-                  handleGestureDetected(null, 0, landmarks, handedness);
-                }}
-                onError={handleGestureError}
-                onWebViewEvent={(telemetry) => {
-                  logger.info('WebView telemetry:', telemetry);
-                }}
-                onModelUpdateStatus={handleModelUpdateStatus}
-                facingMode={facingMode}
-                gestureSizeTolerance={gestureSizeTolerance}
-              />
-
-              <View style={styles.cameraToolbarContainer} pointerEvents="box-none">
-                <View style={styles.cameraToolbar}>
-                  <Pressable
-                    onPress={() => {
-                      const nextMode = facingMode === 'user' ? 'environment' : 'user';
-                      setFacingMode(nextMode);
-                      setWebviewKey((k) => k + 1);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Kamera wechseln"
-                    accessibilityHint="Zwischen Vorder- und Rückkamera umschalten"
-                    style={({ pressed }) => [
-                      childFriendlyStyles.minTouchTarget,
-                      styles.toolbarButton,
-                      highContrast && styles.toolbarButtonHC,
-                      pressed &&
-                        (highContrast ? styles.toolbarButtonPressedHC : styles.toolbarButtonPressed),
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.toolbarIcon,
-                        largeText && styles.toolbarIconLarge,
-                        highContrast && styles.toolbarIconHC,
-                      ]}
-                    >
-                      {facingMode === 'user' ? '📷' : '🤳'}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.toolbarButtonText,
-                        largeText && styles.toolbarButtonTextLarge,
-                        highContrast && styles.toolbarButtonTextHC,
-                      ]}
-                    >
-                      {facingMode === 'user' ? 'Zur Rückkamera' : 'Zur Frontkamera'}
-                    </Text>
-                  </Pressable>
-
-                  {lastRecognizedGesture?.dgsVideoUri ? (
-                    <Pressable
-                      onPress={() => setShowDgsVideo((prev) => !prev)}
-                      accessibilityRole="button"
-                      accessibilityLabel={RECOGNITION_TEXT.toggleDgsVideo}
-                      accessibilityHint="DGS-Video ein- oder ausblenden"
-                      style={({ pressed }) => [
-                        childFriendlyStyles.minTouchTarget,
-                        styles.toolbarButton,
-                        highContrast && styles.toolbarButtonHC,
-                        pressed &&
-                          (highContrast
-                            ? styles.toolbarButtonPressedHC
-                            : styles.toolbarButtonPressed),
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.toolbarIcon,
-                          largeText && styles.toolbarIconLarge,
-                          highContrast && styles.toolbarIconHC,
-                        ]}
-                      >
-                        {showDgsVideo ? '🙈' : '🎬'}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.toolbarButtonText,
-                          largeText && styles.toolbarButtonTextLarge,
-                          highContrast && styles.toolbarButtonTextHC,
-                        ]}
-                      >
-                        {showDgsVideo
-                          ? RECOGNITION_TEXT.hideDgsVideoLabel
-                          : RECOGNITION_TEXT.showDgsVideoLabel}
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                </View>
+                <Text
+                  style={[
+                    styles.statusText,
+                    { color: STATUS_CHIP_TEXT[statusCategory] },
+                  ]}
+                >
+                  {status?.trim().length ? status : statusLabel}
+                </Text>
               </View>
+              {bannerVisible ? (
+                <View style={styles.bannerWrapper}>
+                  <FeedbackBanner visible={bannerVisible} message={bannerMessage!} tone={bannerTone} />
+                </View>
+              ) : null}
+            </View>
 
-              <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-                <HandLandmarkPreview
-                  landmarks={currentLandmarks}
-                  handedness={currentHandedness}
-                  mirror={facingMode === 'user'}
-                  confidence={gestureConfidence}
+            <View style={styles.cameraZone}>
+              <View style={styles.cameraFrame}>
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.capturePulse,
+                    {
+                      transform: [{ scale: capturePulseAnim }],
+                    },
+                  ]}
                 />
+                <View style={[styles.corner, styles.cornerTopLeft]} />
+                <View style={[styles.corner, styles.cornerTopRight]} />
+                <View style={[styles.corner, styles.cornerBottomLeft]} />
+                <View style={[styles.corner, styles.cornerBottomRight]} />
               </View>
-
-              <VisualRipple
-                isActive={showVisualRipple}
-                duration={800}
-                color={COLORS.primaryAccent}
-                size={300}
-              />
-
-              <ScreenFlash
-                isActive={showScreenFlash}
-                pattern={screenFlashPattern}
-                color={COLORS.success}
-                duration={300}
-              />
-
-              {showDgsVideo && lastRecognizedGesture?.dgsVideoUri && (
-                <View style={styles.videoOverlay}>
-                  <DgsVideoPlayer
-                    videoSource={{ uri: lastRecognizedGesture.dgsVideoUri }}
-                    shouldPlay
-                  />
-                </View>
-              )}
+              <Text style={styles.cameraHint}>Hand im Rahmen halten.</Text>
             </View>
 
-          </View>
-
-          {!error &&
-            !showCorrection &&
-            (lastRecognizedGesture || detectedGestureMeaning || sequenceMeaning) && (
-            <Animated.View
-              style={[
-                styles.card,
-                styles.gestureCard,
-                highContrast && styles.cardHC,
-                { opacity: fadeAnim },
-              ]}
-            >
-              {/* Zeige immer die zusammengefasste Bedeutung, egal ob eine oder beide Hände beteiligt waren. */}
-              {gestureMeaningDisplayProps && (
-                <>
+            <View style={styles.bottomSection}>
+              {gestureMeaningDisplayProps ? (
+                <Animated.View style={[styles.predictionCard, { opacity: fadeAnim }]}>
                   <GestureMeaningDisplay
                     gestureId={gestureMeaningDisplayProps.gestureId}
                     confidence={gestureMeaningDisplayProps.confidence}
@@ -936,96 +608,178 @@ export default function RecognitionScreen({
                     openaiValidationResult={openaiValidationResult}
                     sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
                   />
-                  <Text
-                    style={[
-                      styles.confidenceText,
-                      largeText && styles.confidenceTextLarge,
-                      highContrast && styles.confidenceTextHC,
-                    ]}
-                    testID="recognition-path"
-                  >
-                    über {recognitionPath}
-                  </Text>
-                </>
-              )}
-            </Animated.View>
-          )}
+                </Animated.View>
+              ) : null}
 
-          {error && (
-            <View style={[styles.card, styles.errorCard, highContrast && styles.errorCardHC]}>
-              <Text
-                style={[
-                  styles.errorText,
-                  largeText && styles.errorTextLarge,
-                  highContrast && styles.errorTextHC,
-                ]}
-              >
-                {error}
-              </Text>
-            </View>
-          )}
-
-          <View style={[styles.card, styles.actionRow, highContrast && styles.cardHC]}>
-            <View style={styles.actionButton}>
-              <Button
-                testID="btn-adaptive-learning"
-                title="Lernfortschritt"
-                accessibilityLabel="Persönliches Lernen öffnen"
-                onPress={() => setShowAdaptiveLearning(true)}
-              />
-            </View>
-            <View style={styles.actionButton}>
-              <Button
-                testID="btn-teach"
-                title="Neue Geste beibringen"
-                accessibilityLabel="Neue Geste beibringen"
-                onPress={() => navigation.navigate('Teaching')}
-              />
+              <View style={styles.actionsRow}>
+                <View style={styles.actionWrapper}>
+                  <ActionButton
+                    label="Stimmt"
+                    accessibilityLabel="Gestenerkennung bestätigen"
+                    onPress={handleConfirmGesture}
+                    variant="primary"
+                    style={styles.actionButton}
+                  />
+                </View>
+                <View style={styles.actionWrapper}>
+                  <ActionButton
+                    label="Lernen"
+                    accessibilityLabel="Lernmodus öffnen"
+                    onPress={handleLearnPress}
+                    variant="secondary"
+                    style={styles.actionButton}
+                  />
+                </View>
+                <View style={styles.actionWrapper}>
+                  <ActionButton
+                    label="Alternativen"
+                    accessibilityLabel="Alternativen anzeigen"
+                    onPress={handleAlternativesPress}
+                    variant="accent"
+                    style={styles.actionButton}
+                  />
+                </View>
+              </View>
             </View>
           </View>
-        </ScrollView>
+        </View>
 
         {showCelebration && <Celebration key={celebrationKey} />}
+      </LinearGradient>
 
-        {showCorrection && (
-          <CorrectionPanel
-            onSelect={handleSelectCorrection}
-            onAddNew={() => {
-              setShowCorrection(false);
-              navigation.navigate('Teaching');
-            }}
-            onCancel={() => setShowCorrection(false)}
-            suggestions={gestureSuggestions}
-            gestureModel={optimizedGestureService}
-            showPictures
-          />
-        )}
-
-      </View>
-
-      <PracticeSuggestion
-        visible={showPracticeSuggestion}
-        onAccept={handleAcceptPractice}
-        onDecline={handleDeclinePractice}
-        onLater={handleLaterPractice}
-      />
-
-      <AdaptiveLearningPanel
-        visible={showAdaptiveLearning}
-        onClose={() => setShowAdaptiveLearning(false)}
-        onStartRecommendation={handleStartAdaptiveRecommendation}
-        availableTime={10}
-      />
-    </ScreenBackground>
-    <BottomNav active="recognition" profileId={profile?.id || 'default'} />
-    {openaiValidationResult && (
-      <OpenAIGestureFeedback
-        isVisible={showOpenaiFeedback}
-        validationResult={openaiValidationResult}
-        onDismiss={() => setShowOpenaiFeedback(false)}
-        onApplySuggestion={handleAcknowledgeOpenAISuggestion}
-      />
-    )}
-  </>
-);
+      {openaiValidationResult && (
+        <OpenAIGestureFeedback
+          isVisible={showOpenaiFeedback}
+          validationResult={openaiValidationResult}
+          onDismiss={() => setShowOpenaiFeedback(false)}
+          onApplySuggestion={handleAcknowledgeOpenAISuggestion}
+        />
+      )}
+    </>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  topSection: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  statusChip: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  statusText: {
+    fontSize: typography.sizes.subtitle,
+    fontWeight: typography.weights.semibold as any,
+  },
+  bannerWrapper: {
+    width: '100%',
+  },
+  cameraZone: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraFrame: {
+    width: '88%',
+    aspectRatio: 3 / 4,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    backgroundColor: 'transparent',
+  },
+  capturePulse: {
+    position: 'absolute',
+    width: CAPTURE_PULSE_SIZE,
+    height: CAPTURE_PULSE_SIZE,
+    borderRadius: CAPTURE_PULSE_SIZE / 2,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    opacity: 0.35,
+  },
+  corner: {
+    position: 'absolute',
+    width: spacing['2xl'],
+    height: spacing['2xl'],
+    borderColor: Colors.cameraFrame,
+    borderWidth: spacing.xs,
+  },
+  cornerTopLeft: {
+    top: spacing.lg,
+    left: spacing.lg,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  cornerTopRight: {
+    top: spacing.lg,
+    right: spacing.lg,
+    borderLeftWidth: 0,
+    borderBottomWidth: 0,
+  },
+  cornerBottomLeft: {
+    bottom: spacing.lg,
+    left: spacing.lg,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+  },
+  cornerBottomRight: {
+    bottom: spacing.lg,
+    right: spacing.lg,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+  },
+  cameraHint: {
+    marginTop: spacing.lg,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium as any,
+    color: Colors.textSecondary,
+  },
+  bottomSection: {
+    paddingBottom: spacing['2xl'],
+  },
+  predictionCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.lg,
+  },
+  actionWrapper: {
+    flex: 1,
+    marginHorizontal: spacing.xs,
+  },
+  actionButton: {
+    width: '100%',
+  },
+});

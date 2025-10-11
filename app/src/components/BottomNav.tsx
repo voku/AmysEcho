@@ -40,7 +40,7 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigation.navigate('Training', {});
+    navigation.navigate('Lernen', {} as never);
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {
@@ -52,7 +52,7 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   const getCurrentScreenName = useCallback(() => {
     const screenNames: Record<string, string> = {
       'Recognition': '🏠 Zuhören',
-      'Training': '🎯 Lernen',
+      'Lernen': '🎯 Lernen',
       'Help': '❓ Hilfe',
       'Dashboard': '📊 Auswertung',
       'Progress': '📈 Fortschritt',
@@ -455,4 +455,3 @@ function SettingsIcon({ size, color, style }: IconProps) {
     </Svg>
   );
 }
-

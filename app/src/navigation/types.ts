@@ -1,9 +1,15 @@
+
 export type RootStackParamList = {
+  Hero: undefined;
+  App: undefined;
   Onboarding: undefined;
   Tutorial: undefined;
   ProfileSelect: undefined;
-  Recognition: { profileId: string; simulateLowConfidence?: boolean } | undefined;
-  Training: { gestureLabel?: string; isPractice?: boolean };
+  Recognition: { profileId?: string; simulateLowConfidence?: boolean } | undefined;
+  History: undefined;
+  Lernen: { gestureId?: string; gestureLabel?: string } | undefined;
+  Recording: { gestureId?: string; gestureLabel?: string } | undefined;
+  Training: { gestureLabel?: string; isPractice?: boolean } | undefined;
   Teach: undefined;
   Teaching: { gestureId?: string } | undefined;
   Parent: undefined;
@@ -16,4 +22,10 @@ export type RootStackParamList = {
   CaregiverReport: undefined;
   CommunicationInsights: undefined;
   Help: undefined;
+};
+
+export type AppTabsParamList = {
+  Recognition: undefined;
+  History: undefined;
+  Lernen: undefined;
 };

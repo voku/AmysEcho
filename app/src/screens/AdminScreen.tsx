@@ -432,7 +432,7 @@ export default function AdminScreen({ navigation }: any) {
       <Button title="Symbol hinzufügen" onPress={openAdd} accessibilityLabel="Symbol hinzufügen" />
       <Button
         title="Training"
-        onPress={() => navigation.navigate('Training')}
+        onPress={() => navigation.navigate('Lernen')}
         accessibilityLabel="Trainingsmodus öffnen"
       />
       <Button

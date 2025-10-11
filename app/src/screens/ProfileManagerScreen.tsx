@@ -671,7 +671,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
               onGestureSelect={(gesture) => {
                 // Could navigate to practice this specific gesture
                 setShowGestureHistory(false);
-                navigation.navigate('Training', { gestureLabel: gesture.id });
+                navigation.navigate('Recording', { gestureId: gesture.id, gestureLabel: gesture.label });
               }}
             />
           </View>

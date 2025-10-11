@@ -134,7 +134,7 @@ export default function ProfileSelectScreen({ navigation }: any) {
         />
         <ButtonComponent
           title="Lernen"
-          onPress={() => navigation.navigate('Training', { gestureLabel: undefined })}
+          onPress={() => navigation.navigate('Lernen', {})}
           accessibilityLabel="Zum Lernmodus"
         />
       </View>
