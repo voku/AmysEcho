@@ -3,11 +3,11 @@
 This document outlines the main user stories for Amy's Echo and how the screens in `app/src/screens` connect to fulfil them. Each section highlights an existing workflow in the current codebase.
 
 ## 1. Onboarding & Profile Creation (HIP&nbsp;1)
-- **Story**: As a caregiver, I want to set up Amy's profile and preferences the first time we open the app.
+- **Story**: As a caregiver, I want to set up the profile and preferences for Amy’s Echo the first time we open the app.
 - **Flow**:
-  1. Launching the app shows **Onboarding**.
-  2. The caregiver enters a name, chooses a vocabulary set and toggles consent options.
-  3. After confirming, the app navigates to **ProfileManager** where the new profile is stored.
+  1. Launching the app shows the four-step **Onboarding** wizard (Name → Zugänglichkeit → Einverständnis → Vokabular).
+  2. Jede Stufe bestätigt Amy’s Echo per Emoji und erklärt, wie sich die Auswahl auf die Erfahrung des Kindes auswirkt.
+  3. Nach Abschluss wird das Profil gespeichert und die App navigiert zur **ProfileManager**- bzw. **Tutorial**-Sequenz.
 
 ## 2. Selecting a Profile
 - **Story**: As Amy or her caregiver, I want to choose who is using the app.
