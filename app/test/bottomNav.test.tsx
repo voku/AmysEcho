@@ -4,7 +4,11 @@ import renderer, { act } from 'react-test-renderer';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import NewBottomNav from '../src/components/NewBottomNav';
 import { COLORS } from '../src/constants/ui';
-import { getWorkflowStepMeta, isWorkflowRouteName } from '../src/constants/workflow';
+import {
+  type WorkflowRouteName,
+  getWorkflowStepMeta,
+  isWorkflowRouteName,
+} from '../src/constants/workflow';
 
 type RouteParams = Partial<Record<'Recognition' | 'History' | 'Lernen', Record<string, unknown>>>;
 
@@ -77,14 +81,13 @@ describe('NewBottomNav', () => {
 
     expect(pressables).toHaveLength(3);
     const labels = pressables.map(p => p.props.accessibilityLabel);
-    expect(labels).toEqual(['Zur Gestenkamera wechseln', 'Verlauf und Einblicke ansehen', 'Trainings- und Lernbereich öffnen']);
-
     const hints = pressables.map(p => p.props.accessibilityHint);
-    expect(hints).toEqual([
-      'Gesten mit der Kamera aufnehmen, damit Amy sie versteht.',
-      'Letzte Gesten prüfen und Vertrauen einordnen.',
-      'Gesten trainieren und neue Beispiele aufnehmen.',
-    ]);
+
+    const workflowRoutes: WorkflowRouteName[] = ['Recognition', 'History', 'Lernen'];
+    const workflowMeta = workflowRoutes.map(route => getWorkflowStepMeta(route));
+
+    expect(labels).toEqual(workflowMeta.map(meta => meta.accessibilityLabel));
+    expect(hints).toEqual(workflowMeta.map(meta => meta.accessibilityHint));
 
     const selectedStates = pressables.map(p => p.props.accessibilityState?.selected ?? false);
     expect(selectedStates).toEqual([true, false, false]);
