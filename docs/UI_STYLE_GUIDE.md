@@ -81,6 +81,19 @@ The `AmyLoopTimeline` component visualises the mission-critical communication lo
 *   **Compact Variant:** Use `compact hideDescriptions` inside tight Overlays wie Onboarding-Karten.
 *   **Accessibility:** The component exposes `list` semantics and honours the global accessibility settings.
 
+### WorkflowStageHeader
+
+`WorkflowStageHeader` bündelt das aktuelle Stadium der Schleife samt Kontexttext in einem ruhigen Block. Seit der Vereinfachung verzichtet die Komponente auf zusätzliche Weiter/Zurück-Aktionen und zeigt stattdessen optional eine kompakte `AmyLoopTimeline`, damit die drei Schritte als visuelle Leitplanke präsent bleiben.
+
+```tsx
+<WorkflowStageHeader route="History" tone="dark" />
+<WorkflowStageHeader route="Lernen" align="center" showTimeline={false} />
+```
+
+*   **Timeline optional:** Über `showTimeline` lässt sich die kompakte Schleifen-Visualisierung je nach Layout ein- oder ausblenden.
+*   **Tonvarianten:** `tone="dark"` nutzt die Overlay-Farben für Verlauf/Lernen, `tone="light"` die Kartenfarben.
+*   **Ausrichtung:** `align="center"` richtet Badge, Titel und Beschreibung mittig aus – ideal für Hero-Abschnitte oder Modale.
+
 ### Kamera-Aktionsbuttons
 
 Im Kamera-Overlay führen drei Buttons („Stimmt“, „Lernen“, „Alternativen“) durch die Schleife. Die Farben kommen aus `colors.ts` (`cameraActionConfirm*`, `cameraActionLearn*`, `cameraActionAlternatives*`). Sie kombinieren warme Töne (#E5E0CF) für Bestätigen mit tiefem Petrol (#25706F, #1C4A4B) für Lernpfade, um das Mockup widerzuspiegeln.

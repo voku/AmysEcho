@@ -1,21 +1,11 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { CompositeNavigationProp } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { StackNavigationProp } from '@react-navigation/stack';
-import ActionButton from './ActionButton';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
-import {
-  getNextWorkflowRoute,
-  getPreviousWorkflowRoute,
-  getWorkflowStepMeta,
-  type WorkflowRouteName,
-} from '../constants/workflow';
-import type { AppTabsParamList, RootStackParamList } from '../navigation/types';
+import { getWorkflowStepMeta, type WorkflowRouteName } from '../constants/workflow';
+import { AmyLoopTimeline } from './AmyLoopTimeline';
 
 export type WorkflowStageHeaderTone = 'light' | 'dark';
 
@@ -24,29 +14,18 @@ export interface WorkflowStageHeaderProps {
   tone?: WorkflowStageHeaderTone;
   align?: 'left' | 'center';
   style?: StyleProp<ViewStyle>;
-  showNavigation?: boolean;
+  showTimeline?: boolean;
 }
-
-type Navigation = CompositeNavigationProp<
-  BottomTabNavigationProp<AppTabsParamList>,
-  StackNavigationProp<RootStackParamList>
->;
 
 const WorkflowStageHeader: React.FC<WorkflowStageHeaderProps> = ({
   route,
   tone = 'light',
   align = 'left',
   style,
-  showNavigation = true,
+  showTimeline = true,
 }) => {
-  const navigation = useNavigation<Navigation>();
   const { highContrast, largeText } = useAccessibility();
-
   const meta = useMemo(() => getWorkflowStepMeta(route), [route]);
-  const nextRoute = useMemo(() => getNextWorkflowRoute(route), [route]);
-  const previousRoute = useMemo(() => getPreviousWorkflowRoute(route), [route]);
-  const nextMeta = nextRoute ? getWorkflowStepMeta(nextRoute) : undefined;
-  const previousMeta = previousRoute ? getWorkflowStepMeta(previousRoute) : undefined;
 
   const containerAlignment = align === 'center' ? styles.alignCenter : styles.alignLeft;
 
@@ -70,11 +49,12 @@ const WorkflowStageHeader: React.FC<WorkflowStageHeaderProps> = ({
       ? Colors.overlayText
       : Colors.textSecondary;
 
-  const secondaryLinkColor = highContrast
-    ? Colors.highContrastText
-    : tone === 'dark'
-      ? Colors.overlayText
-      : Colors.text;
+  const timelineMode = tone === 'dark' ? 'overlay' : 'surface';
+  const timelineWrapperStyles: StyleProp<ViewStyle> = [
+    styles.timelineWrapper,
+    align === 'center' ? styles.timelineWrapperCentered : styles.timelineWrapperLeft,
+    highContrast ? styles.timelineWrapperHighContrast : null,
+  ];
 
   return (
     <View
@@ -120,36 +100,14 @@ const WorkflowStageHeader: React.FC<WorkflowStageHeaderProps> = ({
         {meta.description}
       </Text>
 
-      {showNavigation && (nextMeta || previousMeta) ? (
-        <View style={styles.navigationRow} accessibilityRole="menu">
-          {previousMeta ? (
-            <Pressable
-              onPress={() => navigation.navigate(previousRoute!)}
-              accessibilityRole="button"
-              accessibilityLabel={`Zurück zu ${previousMeta.label}`}
-              style={({ pressed }) => [styles.secondaryLink, pressed && styles.secondaryLinkPressed]}
-            >
-              <Text
-                style={[
-                  styles.secondaryLinkText,
-                  { color: secondaryLinkColor },
-                  largeText && styles.secondaryLinkTextLarge,
-                ]}
-              >
-                ← Zurück zu {previousMeta.label}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {nextMeta ? (
-            <ActionButton
-              label={`Weiter zu ${nextMeta.label}`}
-              accessibilityLabel={`Weiter zu ${nextMeta.label}`}
-              onPress={() => navigation.navigate(nextRoute!)}
-              variant="secondary"
-              style={styles.nextButton}
-            />
-          ) : null}
+      {showTimeline ? (
+        <View style={timelineWrapperStyles}>
+          <AmyLoopTimeline
+            activeStage={route}
+            mode={timelineMode}
+            compact
+            hideDescriptions
+          />
         </View>
       ) : null}
     </View>
@@ -198,29 +156,21 @@ const styles = StyleSheet.create({
   descriptionLarge: {
     fontSize: typography.sizes.bodyLg,
   },
-  navigationRow: {
+  timelineWrapper: {
     width: '100%',
     marginTop: spacing.md,
-    flexDirection: 'row',
+  },
+  timelineWrapperLeft: {
+    alignItems: 'flex-start',
+  },
+  timelineWrapperCentered: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
   },
-  nextButton: {
-    flexShrink: 0,
-  },
-  secondaryLink: {
-    paddingVertical: spacing.xs,
-  },
-  secondaryLinkPressed: {
-    opacity: 0.8,
-  },
-  secondaryLinkText: {
-    fontSize: typography.sizes.caption,
-    textDecorationLine: 'underline',
-  },
-  secondaryLinkTextLarge: {
-    fontSize: typography.sizes.body,
+  timelineWrapperHighContrast: {
+    borderRadius: 24,
+    padding: spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.highContrastText,
   },
 });
 
