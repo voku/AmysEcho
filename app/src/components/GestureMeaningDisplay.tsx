@@ -10,7 +10,7 @@
  * combinations when necessary so Amy always sees one clear idea.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
@@ -87,10 +87,6 @@ export default function GestureMeaningDisplay({
   const { largeText, highContrast } = useAccessibility();
   const normalizedId = gestureId.trim();
   const [detailsExpanded, setDetailsExpanded] = useState(!detailsStartCollapsed);
-
-  useEffect(() => {
-    setDetailsExpanded(!detailsStartCollapsed);
-  }, [detailsStartCollapsed]);
 
   const sequenceDefinition = useMemo(() => {
     if (gestureDefinition?.composition === 'sequence') {
@@ -440,6 +436,7 @@ export default function GestureMeaningDisplay({
         detailBorderColor: COLORS.highContrastText,
         detailBorderWidth: 1,
         detailText: COLORS.highContrastText,
+        togglePressed: COLORS.highContrastPressed,
       }
     : isCameraTone
       ? {
@@ -455,6 +452,7 @@ export default function GestureMeaningDisplay({
           detailBorderColor: CAMERA_CARD_TONE.border,
           detailBorderWidth: 1,
           detailText: CAMERA_CARD_TONE.primaryText,
+          togglePressed: 'rgba(0, 44, 44, 0.12)',
         }
       : {
           container: COLORS.overlayBackdrop,
@@ -469,6 +467,7 @@ export default function GestureMeaningDisplay({
           detailBorderColor: COLORS.overlayBorder,
           detailBorderWidth: 1,
           detailText: COLORS.overlayText,
+          togglePressed: COLORS.overlaySurfaceMuted,
         };
 
   const styles = StyleSheet.create({
@@ -540,7 +539,7 @@ export default function GestureMeaningDisplay({
       borderRadius: DEFAULT_RADIUS,
     },
     toggleButtonPressed: {
-      backgroundColor: highContrast ? COLORS.highContrastPressed : 'rgba(0, 0, 0, 0.08)',
+      backgroundColor: palette.togglePressed,
     },
     toggleText: {
       fontSize: largeText ? 16 : 14,
