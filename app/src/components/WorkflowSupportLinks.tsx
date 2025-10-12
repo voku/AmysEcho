@@ -30,7 +30,7 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
     style,
   ];
 
-  const descriptionColor = highContrast
+  const secondaryTextColor = highContrast
     ? COLORS.highContrastText
     : tone === 'dark'
       ? COLORS.overlayText
@@ -50,7 +50,7 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
   );
 
   return (
-    <View style={containerStyles} accessibilityRole="menu" accessibilityLabel="Weitere Bereiche">
+    <View style={containerStyles} accessibilityRole="menu" accessibilityLabel="Schnellzugriff">
       <Text
         style={[
           styles.heading,
@@ -58,26 +58,26 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
           largeText && styles.headingLarge,
         ]}
       >
-        Weitere Bereiche
+        Schnellzugriff
       </Text>
       <Text
         style={[
           styles.subtitle,
-          { color: descriptionColor },
+          { color: secondaryTextColor },
           largeText && styles.subtitleLarge,
         ]}
       >
-        Direkt zum Familienbereich, zu Einstellungen, Admin oder Support springen.
+        Wichtige Bereiche direkt öffnen.
       </Text>
       <View style={styles.linksWrapper}>
         {WORKFLOW_SUPPORT_DESTINATIONS.map((destination) => (
           <Pressable
             key={destination.key}
             style={({ pressed }) => [
-              styles.link,
-              tone === 'dark' ? styles.linkDark : styles.linkLight,
-              highContrast && styles.linkHighContrast,
-              pressed && (highContrast ? styles.linkPressedHighContrast : styles.linkPressed),
+              styles.chip,
+              tone === 'dark' ? styles.chipDark : styles.chipLight,
+              highContrast && styles.chipHighContrast,
+              pressed && (highContrast ? styles.chipPressedHighContrast : styles.chipPressed),
             ]}
             android_ripple={{ color: highContrast ? COLORS.highContrastText : COLORS.overlaySurfaceMuted }}
             accessibilityRole="button"
@@ -85,29 +85,24 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
             accessibilityHint={destination.accessibilityHint}
             onPress={() => handleNavigate(destination)}
           >
-            <View style={styles.linkIconWrapper}>
-              <Text style={[styles.icon, largeText && styles.iconLarge]}>{destination.icon}</Text>
-            </View>
-            <View style={styles.linkTextWrapper}>
-              <Text
-                style={[
-                  styles.linkTitle,
-                  { color: highContrast ? COLORS.highContrastText : COLORS.neutral },
-                  largeText && styles.linkTitleLarge,
-                ]}
-              >
-                {destination.title}
-              </Text>
-              <Text
-                style={[
-                  styles.linkDescription,
-                  { color: descriptionColor },
-                  largeText && styles.linkDescriptionLarge,
-                ]}
-              >
-                {destination.description}
-              </Text>
-            </View>
+            <Text
+              style={[
+                styles.icon,
+                largeText && styles.iconLarge,
+                { color: highContrast ? COLORS.highContrastText : COLORS.primaryAccent },
+              ]}
+            >
+              {destination.icon}
+            </Text>
+            <Text
+              style={[
+                styles.chipLabel,
+                largeText && styles.chipLabelLarge,
+                { color: highContrast ? COLORS.highContrastText : COLORS.neutral },
+              ]}
+            >
+              {destination.title}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -155,63 +150,47 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.body,
   },
   linksWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  link: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
-    paddingVertical: spacing.md,
+    borderRadius: 999,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.xs,
   },
-  linkLight: {
+  chipLight: {
     backgroundColor: COLORS.overlaySurfaceSoft,
   },
-  linkDark: {
+  chipDark: {
     backgroundColor: COLORS.overlaySurfaceMuted,
   },
-  linkHighContrast: {
+  chipHighContrast: {
     backgroundColor: COLORS.highContrastBackground,
     borderWidth: 1,
     borderColor: COLORS.highContrastText,
   },
-  linkPressed: {
+  chipPressed: {
     opacity: 0.9,
   },
-  linkPressedHighContrast: {
+  chipPressedHighContrast: {
     opacity: 0.85,
   },
-  linkIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
   icon: {
-    fontSize: typography.sizes.titleSm,
+    fontSize: typography.sizes.subtitle,
   },
   iconLarge: {
     fontSize: typography.sizes.title,
   },
-  linkTextWrapper: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  linkTitle: {
+  chipLabel: {
     fontSize: typography.sizes.body,
     fontWeight: typography.weights.semibold as any,
   },
-  linkTitleLarge: {
-    fontSize: typography.sizes.bodyLg,
-  },
-  linkDescription: {
-    fontSize: typography.sizes.caption,
-  },
-  linkDescriptionLarge: {
-    fontSize: typography.sizes.body,
+  chipLabelLarge: {
+    fontSize: typography.sizes.subtitle,
   },
 });
 
