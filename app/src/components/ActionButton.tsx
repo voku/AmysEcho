@@ -1,5 +1,13 @@
 import React, { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
@@ -15,6 +23,10 @@ type ActionButtonProps = {
   disabled?: boolean;
   testID?: string;
   style?: StyleProp<ViewStyle>;
+  backgroundColor?: string;
+  pressedBackgroundColor?: string;
+  textColor?: string;
+  labelStyle?: StyleProp<TextStyle>;
 };
 
 const variantBackground: Record<ActionButtonVariant, string> = {
@@ -38,7 +50,15 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   disabled = false,
   testID,
   style,
+  backgroundColor,
+  pressedBackgroundColor,
+  textColor,
+  labelStyle,
 }) => {
+  const resolvedBackground = backgroundColor ?? variantBackground[variant];
+  const resolvedPressedBackground = pressedBackgroundColor ?? resolvedBackground;
+  const resolvedTextColor = textColor ?? variantText[variant];
+
   return (
     <Pressable
       onPress={onPress}
@@ -48,7 +68,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       accessibilityState={{ disabled }}
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: variantBackground[variant] },
+        { backgroundColor: pressed ? resolvedPressedBackground : resolvedBackground },
         pressed && styles.pressed,
         disabled && styles.disabled,
         variant === 'secondary' && styles.secondaryBorder,
@@ -59,7 +79,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
     >
       <View style={styles.content}>
         {icon ? <View style={styles.icon}>{icon}</View> : null}
-        <Text style={[styles.label, { color: variantText[variant] }]}>{label}</Text>
+        <Text style={[styles.label, { color: resolvedTextColor }, labelStyle]}>{label}</Text>
       </View>
     </Pressable>
   );

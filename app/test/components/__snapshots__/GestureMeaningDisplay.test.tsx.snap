@@ -1,5 +1,134 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`GestureMeaningDisplay rendert die Kamerakarten-Tonart mit warmer Kontrastpalette 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "#E5E0CF",
+      "borderColor": "rgba(0, 44, 44, 0.18)",
+      "borderRadius": 8,
+      "borderWidth": 1,
+      "padding": 8,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#1C4A4B",
+        "borderRadius": 26,
+        "height": 52,
+        "justifyContent": "center",
+        "marginBottom": 4,
+        "width": 52,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#E5E0CF",
+          "fontSize": 36,
+        }
+      }
+    >
+      🆘
+    </Text>
+  </View>
+  <Text
+    style={
+      {
+        "color": "rgba(0, 44, 44, 0.7)",
+        "fontSize": 12,
+        "marginBottom": 4,
+        "textAlign": "center",
+      }
+    }
+  >
+    Erkannte Geste
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#002C2C",
+        "fontSize": 18,
+        "fontWeight": "bold",
+        "marginBottom": 4,
+        "textAlign": "center",
+      }
+    }
+  >
+    🆘 Hilfe
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#1C4A4B",
+        "fontSize": 14,
+        "textAlign": "center",
+      }
+    }
+  >
+    78
+    % 
+    Sicherheit
+  </Text>
+  <View
+    style={
+      {
+        "backgroundColor": "#F4EDDB",
+        "borderColor": "rgba(0, 44, 44, 0.18)",
+        "borderRadius": 8,
+        "borderWidth": 1,
+        "marginTop": 4,
+        "padding": 4,
+        "width": "100%",
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#002C2C",
+          "fontSize": 10,
+          "lineHeight": 14,
+          "textAlign": "center",
+        }
+      }
+    >
+      Deutliches Hilfesignal mit einer Hand.
+    </Text>
+    <View
+      style={
+        {
+          "alignSelf": "center",
+          "backgroundColor": "#25706F",
+          "borderRadius": 8,
+          "marginTop": 4,
+          "paddingHorizontal": 4,
+          "paddingVertical": 2,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#E5E0CF",
+            "fontSize": 8,
+            "fontWeight": "bold",
+            "textAlign": "center",
+          }
+        }
+      >
+        COMMUNICATION
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
 exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus visuell konsistent 1`] = `
 <View
   style={
