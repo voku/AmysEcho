@@ -252,6 +252,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
   const styles = StyleSheet.create({
     screen: { flex: 1 },
     container: { flex: 1, padding: SPACING.lg, backgroundColor: 'transparent' },
+    content: { flexGrow: 1 },
     title: {
       fontSize: largeText ? 28 : 24,
       marginBottom: SPACING.lg,
@@ -393,7 +394,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
 
   return (
     <View style={styles.screen}>
-      <ScreenBackground style={styles.container}>
+      <ScreenBackground scrollable style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Profile</Text>
 
         <View style={styles.listSection}>
@@ -592,9 +593,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
             </View>
           </View>
 
-          <View style={styles.sectionSpacing}>
-            <SoundSelector selectedSound={selectedSuccessSound} onSoundSelect={handleSoundSelect} />
-          </View>
+          <SoundSelector selectedSound={selectedSuccessSound} onSoundSelect={handleSoundSelect} />
 
           <View style={styles.settingsCard}>
             <Text style={styles.sectionTitle}>Barrierefreiheit</Text>
