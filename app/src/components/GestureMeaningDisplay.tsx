@@ -10,8 +10,8 @@
  * combinations when necessary so Amy always sees one clear idea.
  */
 
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import {
@@ -69,6 +69,7 @@ interface GestureMeaningDisplayProps {
   openaiValidationResult?: OpenAIValidationResult | null;
   sequenceGestures?: string[] | null;
   tone?: 'overlay' | 'camera';
+  detailsStartCollapsed?: boolean;
 }
 
 export default function GestureMeaningDisplay({
@@ -81,9 +82,11 @@ export default function GestureMeaningDisplay({
   openaiValidationResult,
   sequenceGestures,
   tone = 'overlay',
+  detailsStartCollapsed = false,
 }: GestureMeaningDisplayProps) {
   const { largeText, highContrast } = useAccessibility();
   const normalizedId = gestureId.trim();
+  const [detailsExpanded, setDetailsExpanded] = useState(!detailsStartCollapsed);
 
   const sequenceDefinition = useMemo(() => {
     if (gestureDefinition?.composition === 'sequence') {
@@ -340,7 +343,7 @@ export default function GestureMeaningDisplay({
     return [`Linke Hand: ${leftLabel}`, `Rechte Hand: ${rightLabel}`];
   }, [leftMeta, parsedCombination, rightMeta]);
 
-  const detailLines = useMemo(() => {
+  const fullDetailLines = useMemo(() => {
     if (!showDetails) {
       return [] as string[];
     }
@@ -387,6 +390,11 @@ export default function GestureMeaningDisplay({
     showDetails,
   ]);
 
+  const shouldShowToggle = detailsStartCollapsed && fullDetailLines.length > 0;
+  const shouldRenderDetails =
+    fullDetailLines.length > 0 && (!shouldShowToggle || detailsExpanded);
+  const detailLines = shouldRenderDetails ? fullDetailLines : ([] as string[]);
+
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
@@ -428,6 +436,7 @@ export default function GestureMeaningDisplay({
         detailBorderColor: COLORS.highContrastText,
         detailBorderWidth: 1,
         detailText: COLORS.highContrastText,
+        togglePressed: COLORS.highContrastPressed,
       }
     : isCameraTone
       ? {
@@ -443,6 +452,7 @@ export default function GestureMeaningDisplay({
           detailBorderColor: CAMERA_CARD_TONE.border,
           detailBorderWidth: 1,
           detailText: CAMERA_CARD_TONE.primaryText,
+          togglePressed: 'rgba(0, 44, 44, 0.12)',
         }
       : {
           container: COLORS.overlayBackdrop,
@@ -457,6 +467,7 @@ export default function GestureMeaningDisplay({
           detailBorderColor: COLORS.overlayBorder,
           detailBorderWidth: 1,
           detailText: COLORS.overlayText,
+          togglePressed: COLORS.overlaySurfaceMuted,
         };
 
   const styles = StyleSheet.create({
@@ -520,6 +531,23 @@ export default function GestureMeaningDisplay({
     detailsTextLast: {
       marginBottom: 0,
     },
+    toggleButton: {
+      alignSelf: 'stretch',
+      marginTop: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.sm,
+      borderRadius: DEFAULT_RADIUS,
+    },
+    toggleButtonPressed: {
+      backgroundColor: palette.togglePressed,
+    },
+    toggleText: {
+      fontSize: largeText ? 16 : 14,
+      fontWeight: '600',
+      color: highContrast ? COLORS.highContrastText : palette.textSecondary,
+      textAlign: 'center',
+      textDecorationLine: 'underline',
+    },
   });
 
   const metaLabel = isSequence
@@ -541,6 +569,26 @@ export default function GestureMeaningDisplay({
       <Text style={styles.confidenceText}>
         {Math.round(confidence * 100)}% {CONFIDENCE_LABEL}
       </Text>
+
+      {shouldShowToggle ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.toggleButton,
+            pressed && styles.toggleButtonPressed,
+          ]}
+          onPress={() => setDetailsExpanded((prev) => !prev)}
+          accessibilityRole="button"
+          accessibilityLabel={
+            detailsExpanded
+              ? 'Details zur Geste ausblenden'
+              : 'Details zur Geste anzeigen'
+          }
+        >
+          <Text style={styles.toggleText}>
+            {detailsExpanded ? 'Weniger Details' : 'Mehr Details'}
+          </Text>
+        </Pressable>
+      ) : null}
 
       {detailLines.length > 0 ? (
         <View style={styles.detailsContainer}>

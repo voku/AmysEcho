@@ -283,6 +283,7 @@ describe('RecognitionScreen Amy-first overlay', () => {
       mockGestureMeaningDisplay.mock.calls[mockGestureMeaningDisplay.mock.calls.length - 1];
     const lastCallProps = lastCall?.[0];
     expect(lastCallProps?.tone).toBe('camera');
+    expect(lastCallProps?.detailsStartCollapsed).toBe(true);
 
     const encouragementNodes = component.root.findAll(
       (node) =>
