@@ -9,7 +9,8 @@ exports[`GestureMeaningDisplay rendert die Kamerakarten-Tonart mit warmer Kontra
       "borderColor": "rgba(0, 44, 44, 0.18)",
       "borderRadius": 8,
       "borderWidth": 1,
-      "padding": 8,
+      "paddingHorizontal": 12,
+      "paddingVertical": 8,
     }
   }
 >
@@ -18,11 +19,11 @@ exports[`GestureMeaningDisplay rendert die Kamerakarten-Tonart mit warmer Kontra
       {
         "alignItems": "center",
         "backgroundColor": "#1C4A4B",
-        "borderRadius": 26,
-        "height": 52,
+        "borderRadius": 24,
+        "height": 48,
         "justifyContent": "center",
         "marginBottom": 4,
-        "width": 52,
+        "width": 48,
       }
     }
   >
@@ -42,7 +43,7 @@ exports[`GestureMeaningDisplay rendert die Kamerakarten-Tonart mit warmer Kontra
       {
         "color": "rgba(0, 44, 44, 0.7)",
         "fontSize": 12,
-        "marginBottom": 4,
+        "marginBottom": 2,
         "textAlign": "center",
       }
     }
@@ -55,7 +56,6 @@ exports[`GestureMeaningDisplay rendert die Kamerakarten-Tonart mit warmer Kontra
         "color": "#002C2C",
         "fontSize": 18,
         "fontWeight": "bold",
-        "marginBottom": 4,
         "textAlign": "center",
       }
     }
@@ -67,6 +67,7 @@ exports[`GestureMeaningDisplay rendert die Kamerakarten-Tonart mit warmer Kontra
       {
         "color": "#1C4A4B",
         "fontSize": 14,
+        "marginTop": 4,
         "textAlign": "center",
       }
     }
@@ -78,53 +79,51 @@ exports[`GestureMeaningDisplay rendert die Kamerakarten-Tonart mit warmer Kontra
   <View
     style={
       {
+        "alignSelf": "stretch",
         "backgroundColor": "#F4EDDB",
         "borderColor": "rgba(0, 44, 44, 0.18)",
         "borderRadius": 8,
         "borderWidth": 1,
-        "marginTop": 4,
-        "padding": 4,
-        "width": "100%",
+        "marginTop": 8,
+        "paddingHorizontal": 12,
+        "paddingVertical": 8,
       }
     }
   >
     <Text
       style={
-        {
-          "color": "#002C2C",
-          "fontSize": 10,
-          "lineHeight": 14,
-          "textAlign": "center",
-        }
+        [
+          {
+            "color": "#002C2C",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          false,
+        ]
       }
     >
       Deutliches Hilfesignal mit einer Hand.
     </Text>
-    <View
+    <Text
       style={
-        {
-          "alignSelf": "center",
-          "backgroundColor": "#25706F",
-          "borderRadius": 8,
-          "marginTop": 4,
-          "paddingHorizontal": 4,
-          "paddingVertical": 2,
-        }
+        [
+          {
+            "color": "#002C2C",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          {
+            "marginBottom": 0,
+          },
+        ]
       }
     >
-      <Text
-        style={
-          {
-            "color": "#E5E0CF",
-            "fontSize": 8,
-            "fontWeight": "bold",
-            "textAlign": "center",
-          }
-        }
-      >
-        COMMUNICATION
-      </Text>
-    </View>
+      Kategorie: COMMUNICATION
+    </Text>
   </View>
 </View>
 `;
@@ -138,7 +137,8 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus 
       "borderColor": "#FFFFFF",
       "borderRadius": 8,
       "borderWidth": 2,
-      "padding": 8,
+      "paddingHorizontal": 12,
+      "paddingVertical": 8,
     }
   }
 >
@@ -147,11 +147,11 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus 
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderRadius": 26,
-        "height": 52,
+        "borderRadius": 24,
+        "height": 48,
         "justifyContent": "center",
         "marginBottom": 4,
-        "width": 52,
+        "width": 48,
       }
     }
   >
@@ -171,7 +171,7 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus 
       {
         "color": "#FFFFFF",
         "fontSize": 12,
-        "marginBottom": 4,
+        "marginBottom": 2,
         "textAlign": "center",
       }
     }
@@ -184,7 +184,6 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus 
         "color": "#FFFFFF",
         "fontSize": 18,
         "fontWeight": "bold",
-        "marginBottom": 4,
         "textAlign": "center",
       }
     }
@@ -196,6 +195,7 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus 
       {
         "color": "#FFFFFF",
         "fontSize": 14,
+        "marginTop": 4,
         "textAlign": "center",
       }
     }
@@ -207,53 +207,51 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus 
   <View
     style={
       {
+        "alignSelf": "stretch",
         "backgroundColor": "#FFFFFF",
         "borderColor": "#FFFFFF",
         "borderRadius": 8,
         "borderWidth": 1,
-        "marginTop": 4,
-        "padding": 4,
-        "width": "100%",
+        "marginTop": 8,
+        "paddingHorizontal": 12,
+        "paddingVertical": 8,
       }
     }
   >
     <Text
       style={
-        {
-          "color": "#000000",
-          "fontSize": 10,
-          "lineHeight": 14,
-          "textAlign": "center",
-        }
+        [
+          {
+            "color": "#FFFFFF",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          false,
+        ]
       }
     >
       Deutliches Hilfesignal mit einer Hand.
     </Text>
-    <View
+    <Text
       style={
-        {
-          "alignSelf": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 8,
-          "marginTop": 4,
-          "paddingHorizontal": 4,
-          "paddingVertical": 2,
-        }
+        [
+          {
+            "color": "#FFFFFF",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          {
+            "marginBottom": 0,
+          },
+        ]
       }
     >
-      <Text
-        style={
-          {
-            "color": "#000000",
-            "fontSize": 8,
-            "fontWeight": "bold",
-            "textAlign": "center",
-          }
-        }
-      >
-        COMMUNICATION
-      </Text>
-    </View>
+      Kategorie: COMMUNICATION
+    </Text>
   </View>
 </View>
 `;
@@ -264,10 +262,11 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im Standardmodus visuel
     {
       "alignItems": "center",
       "backgroundColor": "rgba(12, 56, 60, 0.85)",
-      "borderColor": "transparent",
+      "borderColor": "rgba(255, 255, 255, 0.28)",
       "borderRadius": 8,
       "borderWidth": 0,
-      "padding": 8,
+      "paddingHorizontal": 12,
+      "paddingVertical": 8,
     }
   }
 >
@@ -276,11 +275,11 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im Standardmodus visuel
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderRadius": 26,
-        "height": 52,
+        "borderRadius": 24,
+        "height": 48,
         "justifyContent": "center",
         "marginBottom": 4,
-        "width": 52,
+        "width": 48,
       }
     }
   >
@@ -300,7 +299,7 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im Standardmodus visuel
       {
         "color": "#C7DFE1",
         "fontSize": 12,
-        "marginBottom": 4,
+        "marginBottom": 2,
         "textAlign": "center",
       }
     }
@@ -313,7 +312,6 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im Standardmodus visuel
         "color": "#F2FAFA",
         "fontSize": 18,
         "fontWeight": "bold",
-        "marginBottom": 4,
         "textAlign": "center",
       }
     }
@@ -325,6 +323,7 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im Standardmodus visuel
       {
         "color": "#C7DFE1",
         "fontSize": 14,
+        "marginTop": 4,
         "textAlign": "center",
       }
     }
@@ -336,53 +335,51 @@ exports[`GestureMeaningDisplay rendert die Overlay-Stile im Standardmodus visuel
   <View
     style={
       {
+        "alignSelf": "stretch",
         "backgroundColor": "rgba(255, 255, 255, 0.22)",
         "borderColor": "rgba(255, 255, 255, 0.28)",
         "borderRadius": 8,
         "borderWidth": 1,
-        "marginTop": 4,
-        "padding": 4,
-        "width": "100%",
+        "marginTop": 8,
+        "paddingHorizontal": 12,
+        "paddingVertical": 8,
       }
     }
   >
     <Text
       style={
-        {
-          "color": "#F2FAFA",
-          "fontSize": 10,
-          "lineHeight": 14,
-          "textAlign": "center",
-        }
+        [
+          {
+            "color": "#F2FAFA",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          false,
+        ]
       }
     >
       Deutliches Hilfesignal mit einer Hand.
     </Text>
-    <View
+    <Text
       style={
-        {
-          "alignSelf": "center",
-          "backgroundColor": "rgba(255, 255, 255, 0.88)",
-          "borderRadius": 8,
-          "marginTop": 4,
-          "paddingHorizontal": 4,
-          "paddingVertical": 2,
-        }
+        [
+          {
+            "color": "#F2FAFA",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          {
+            "marginBottom": 0,
+          },
+        ]
       }
     >
-      <Text
-        style={
-          {
-            "color": "#13464C",
-            "fontSize": 8,
-            "fontWeight": "bold",
-            "textAlign": "center",
-          }
-        }
-      >
-        COMMUNICATION
-      </Text>
-    </View>
+      Kategorie: COMMUNICATION
+    </Text>
   </View>
 </View>
 `;
