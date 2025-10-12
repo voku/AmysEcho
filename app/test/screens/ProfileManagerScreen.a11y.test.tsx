@@ -56,9 +56,26 @@ describe('ProfileManagerScreen accessibility', () => {
       comp = renderer.create(<ProfileManagerScreen navigation={{ navigate: jest.fn() }} />);
       await Promise.resolve();
     });
-    const texts = comp.root.findAll((n) => n.type === 'Text').map((n) => n.props.children);
-    expect(texts).toContain('Vertrauenswürdiges Gerät');
-    expect(texts).toContain('Gestengrößen-Toleranz');
+    const toggleButtons = comp.root
+      .findAll((n) => n.type === 'Pressable' && typeof n.props.accessibilityLabel === 'string')
+      .filter((n) =>
+        n.props.accessibilityLabel.includes('Fortgeschrittene Betreuungstools'),
+      );
+
+    expect(toggleButtons.length).toBeGreaterThanOrEqual(2);
+
+    await act(async () => {
+      toggleButtons.forEach((btn) => {
+        btn.props.onPress?.();
+      });
+    });
+
+    const texts = comp.root
+      .findAll((n) => n.type === 'Text')
+      .map((n) => React.Children.toArray(n.props.children).join(''));
+    expect(texts).toEqual(expect.arrayContaining(['Vertrauenswürdiges Gerät']));
+    expect(texts).toEqual(expect.arrayContaining(['Gestengrößen-Toleranz']));
+    expect(texts).toEqual(expect.arrayContaining(['Gestenverlauf & Analyse']));
 
     const pressables = comp.root.findAll((n) => n.type === 'Pressable');
     expect(pressables.length).toBeGreaterThan(0);

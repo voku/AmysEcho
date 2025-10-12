@@ -15,6 +15,7 @@ import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
 import GestureHistoryViewer from '../components/GestureHistoryViewer';
 import ProfileAnalytics from '../components/ProfileAnalytics';
+import CollapsibleSettingsSection from '../components/settings/CollapsibleSettingsSection';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
 
@@ -257,18 +258,29 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       textAlign: 'center',
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
-    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
+    listSection: {
+      marginBottom: SPACING.lg,
+    },
+    profileListContent: {
+      paddingBottom: SPACING.sm,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
+    },
     name: {
       fontSize: largeText ? 22 : 18,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
-    trustedDeviceSection: {
+    settingsCard: {
       backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
       padding: SPACING.md,
       borderRadius: 8,
-      marginBottom: SPACING.lg,
       borderWidth: highContrast ? 2 : 1,
       borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      marginBottom: SPACING.md,
     },
     sectionTitle: {
       fontSize: largeText ? 20 : 18,
@@ -299,7 +311,6 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       textAlign: 'center',
       marginBottom: SPACING.md,
     },
-
     accessibilityRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -349,6 +360,12 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       justifyContent: 'center',
       marginTop: SPACING.sm,
     },
+    sectionSpacing: {
+      marginBottom: SPACING.md,
+    },
+    lastItem: {
+      marginBottom: 0,
+    },
     statsSummary: {
       marginTop: SPACING.sm,
       padding: SPACING.sm,
@@ -379,84 +396,16 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       <ScreenBackground style={styles.container}>
         <Text style={styles.title}>Profile</Text>
 
-        {/* Trusted Device Section */}
-        <View style={styles.trustedDeviceSection}>
-          <Text style={styles.sectionTitle}>Vertrauenswürdiges Gerät</Text>
-          {isTrustedDevice ? (
-            <View style={styles.trustedDeviceInfo}>
-              <Text style={styles.trustedDeviceText}>✅ Dieses Gerät ist vertrauenswürdig</Text>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void childHaptic();
-                  removeTrustedDevice();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Vertrauenswürdiges Gerät entfernen"
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  Entfernen
-                </Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.trustedDeviceSetup}>
-              <Text style={styles.trustedDeviceText}>
-                Richte dieses Gerät als vertrauenswürdig ein für einfacheren Zugriff
-              </Text>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void childHaptic();
-                  setupTrustedDevice();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Gerät als vertrauenswürdig einrichten"
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  Als vertrauenswürdig einrichten
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-
-        {/* Gesture Size Tolerance Section */}
-        <View style={styles.trustedDeviceSection}>
-          <Text style={styles.sectionTitle}>Gestengrößen-Toleranz</Text>
-          <View style={styles.protectionInfo}>
-            <Text style={styles.trustedDeviceText}>
-              Aktuell: {Math.round(gestureSizeTolerance * 100)}%
-            </Text>
-            <Text style={styles.protectionDescription}>
-              Wie viel Größenunterschied bei Gesten erlaubt ist
-            </Text>
-            <View style={styles.toleranceButtons}>
-              {[0.1, 0.2, 0.3, 0.4, 0.5].map((tolerance) => (
+        <View style={styles.listSection}>
+          <FlatList
+            data={profiles}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            contentContainerStyle={styles.profileListContent}
+            renderItem={({ item }) => (
+              <View style={styles.row}>
+                <Text style={styles.name}>{item.name}</Text>
                 <Pressable
-                  key={tolerance}
                   style={({ pressed }) => [
                     childFriendlyStyles.minTouchTarget,
                     styles.button,
@@ -465,10 +414,10 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
                   ]}
                   onPress={() => {
                     void childHaptic();
-                    saveGestureSizeTolerance(tolerance);
+                    handleSelect(item.id);
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Toleranz auf ${Math.round(tolerance * 100)}% setzen`}
+                  accessibilityLabel={`Profil ${item.name} auswählen`}
                 >
                   <Text
                     style={[
@@ -477,190 +426,273 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
                       highContrast && styles.buttonTextHC,
                     ]}
                   >
-                    {`${Math.round(tolerance * 100)}%`}
+                    Auswählen
                   </Text>
                 </Pressable>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        {/* Success Sound Selection Section */}
-        <SoundSelector selectedSound={selectedSuccessSound} onSoundSelect={handleSoundSelect} />
-
-        {/* Accessibility Settings Section */}
-        <View style={styles.trustedDeviceSection}>
-          <Text style={styles.sectionTitle}>Barrierefreiheit</Text>
-          <View style={styles.accessibilityRow}>
-            <Text style={styles.accessibilityLabel}>Großer Text</Text>
-            <Switch
-              value={localLargeText}
-              onValueChange={toggleLargeText}
-              accessibilityLabel="Großen Text ein-/ausschalten"
-              accessibilityHint="Macht Text und Symbole größer für bessere Lesbarkeit"
-            />
-          </View>
-          <View style={styles.accessibilityRow}>
-            <Text style={styles.accessibilityLabel}>Hoher Kontrast</Text>
-            <Switch
-              value={localHighContrast}
-              onValueChange={toggleHighContrast}
-              accessibilityLabel="Hohen Kontrast ein-/ausschalten"
-              accessibilityHint="Erhöht den Kontrast für bessere Sichtbarkeit"
-            />
-          </View>
-        </View>
-
-        {/* Theme Selection Section */}
-        <ThemeSelector />
-
-        {/* Gesture History Section */}
-        <View style={styles.trustedDeviceSection}>
-          <Text style={styles.sectionTitle}>Gestenverlauf</Text>
-          <View style={styles.buttonRow}>
-            <Pressable
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.button,
-                highContrast && styles.buttonHC,
-                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-              ]}
-              onPress={() => {
-                void childHaptic();
-                setShowGestureHistory(true);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Gestenverlauf anzeigen"
-            >
-              <Text
-                style={[
-                  styles.buttonText,
-                  largeText && styles.buttonTextLarge,
-                  highContrast && styles.buttonTextHC,
-                ]}
-              >
-                📚 Verlauf anzeigen
-              </Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.button,
-                highContrast && styles.buttonHC,
-                pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-              ]}
-              onPress={() => {
-                void childHaptic();
-                setShowProfileAnalytics(true);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Leistungsanalyse anzeigen"
-            >
-              <Text
-                style={[
-                  styles.buttonText,
-                  largeText && styles.buttonTextLarge,
-                  highContrast && styles.buttonTextHC,
-                ]}
-              >
-                📊 Analyse
-              </Text>
-            </Pressable>
-          </View>
-          {profileStats && (
-            <View style={styles.statsSummary}>
-              <Text style={styles.statsText}>Gesamt: {profileStats.totalGestures} Gesten</Text>
-              <Text style={styles.statsText}>
-                Einzigartig: {profileStats.uniqueGestures} Gesten
-              </Text>
-              <Text style={styles.statsText}>
-                Ø Sicherheit: {Math.round(profileStats.averageConfidence * 100)}%
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <FlatList
-          data={profiles}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void childHaptic();
-                  handleSelect(item.id);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Profil ${item.name} auswählen`}
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
+                <Pressable
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.button,
+                    highContrast && styles.buttonHC,
+                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                   ]}
+                  onPress={() => {
+                    void childHaptic();
+                    handleDelete(item.id);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Profil ${item.name} löschen`}
                 >
-                  Auswählen
-                </Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void childHaptic();
-                  handleDelete(item.id);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Profil ${item.name} löschen`}
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  Löschen
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        />
-        <Pressable
-          style={({ pressed }) => [
-            childFriendlyStyles.minTouchTarget,
-            styles.button,
-            highContrast && styles.buttonHC,
-            pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-          ]}
-          onPress={() => {
-            void childHaptic();
-            navigation.navigate('Onboarding');
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Neues Profil anlegen"
-        >
-          <Text
-            style={[
-              styles.buttonText,
-              largeText && styles.buttonTextLarge,
-              highContrast && styles.buttonTextHC,
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      largeText && styles.buttonTextLarge,
+                      highContrast && styles.buttonTextHC,
+                    ]}
+                  >
+                    Löschen
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          />
+
+          <Pressable
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.button,
+              highContrast && styles.buttonHC,
+              pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
             ]}
+            onPress={() => {
+              void childHaptic();
+              navigation.navigate('Onboarding');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Neues Profil anlegen"
           >
-            Neues Profil
-          </Text>
-        </Pressable>
+            <Text
+              style={[
+                styles.buttonText,
+                largeText && styles.buttonTextLarge,
+                highContrast && styles.buttonTextHC,
+              ]}
+            >
+              Neues Profil
+            </Text>
+          </Pressable>
+        </View>
+
+        <CollapsibleSettingsSection
+          title="Fortgeschrittene Betreuungstools – Sicherheit & Anpassung"
+          highContrast={highContrast}
+          largeText={largeText}
+        >
+          <View style={styles.settingsCard}>
+            <Text style={styles.sectionTitle}>Vertrauenswürdiges Gerät</Text>
+            {isTrustedDevice ? (
+              <View style={styles.trustedDeviceInfo}>
+                <Text style={styles.trustedDeviceText}>✅ Dieses Gerät ist vertrauenswürdig</Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.button,
+                    highContrast && styles.buttonHC,
+                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                  ]}
+                  onPress={() => {
+                    void childHaptic();
+                    removeTrustedDevice();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Vertrauenswürdiges Gerät entfernen"
+                >
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      largeText && styles.buttonTextLarge,
+                      highContrast && styles.buttonTextHC,
+                    ]}
+                  >
+                    Entfernen
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.trustedDeviceSetup}>
+                <Text style={styles.trustedDeviceText}>
+                  Richte dieses Gerät als vertrauenswürdig ein für einfacheren Zugriff
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.button,
+                    highContrast && styles.buttonHC,
+                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                  ]}
+                  onPress={() => {
+                    void childHaptic();
+                    setupTrustedDevice();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Gerät als vertrauenswürdig einrichten"
+                >
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      largeText && styles.buttonTextLarge,
+                      highContrast && styles.buttonTextHC,
+                    ]}
+                  >
+                    Als vertrauenswürdig einrichten
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.settingsCard}>
+            <Text style={styles.sectionTitle}>Gestengrößen-Toleranz</Text>
+            <View style={styles.protectionInfo}>
+              <Text style={styles.trustedDeviceText}>
+                Aktuell: {Math.round(gestureSizeTolerance * 100)}%
+              </Text>
+              <Text style={styles.protectionDescription}>
+                Wie viel Größenunterschied bei Gesten erlaubt ist
+              </Text>
+              <View style={styles.toleranceButtons}>
+                {[0.1, 0.2, 0.3, 0.4, 0.5].map((tolerance) => (
+                  <Pressable
+                    key={tolerance}
+                    style={({ pressed }) => [
+                      childFriendlyStyles.minTouchTarget,
+                      styles.button,
+                      highContrast && styles.buttonHC,
+                      pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                    ]}
+                    onPress={() => {
+                      void childHaptic();
+                      saveGestureSizeTolerance(tolerance);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Toleranz auf ${Math.round(tolerance * 100)}% setzen`}
+                  >
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        largeText && styles.buttonTextLarge,
+                        highContrast && styles.buttonTextHC,
+                      ]}
+                    >
+                      {`${Math.round(tolerance * 100)}%`}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.sectionSpacing}>
+            <SoundSelector selectedSound={selectedSuccessSound} onSoundSelect={handleSoundSelect} />
+          </View>
+
+          <View style={styles.settingsCard}>
+            <Text style={styles.sectionTitle}>Barrierefreiheit</Text>
+            <View style={styles.accessibilityRow}>
+              <Text style={styles.accessibilityLabel}>Großer Text</Text>
+              <Switch
+                value={localLargeText}
+                onValueChange={toggleLargeText}
+                accessibilityLabel="Großen Text ein-/ausschalten"
+                accessibilityHint="Macht Text und Symbole größer für bessere Lesbarkeit"
+              />
+            </View>
+            <View style={styles.accessibilityRow}>
+              <Text style={styles.accessibilityLabel}>Hoher Kontrast</Text>
+              <Switch
+                value={localHighContrast}
+                onValueChange={toggleHighContrast}
+                accessibilityLabel="Hohen Kontrast ein-/ausschalten"
+                accessibilityHint="Erhöht den Kontrast für bessere Sichtbarkeit"
+              />
+            </View>
+          </View>
+
+          <View style={[styles.sectionSpacing, styles.lastItem]}>
+            <ThemeSelector />
+          </View>
+        </CollapsibleSettingsSection>
+
+        <CollapsibleSettingsSection
+          title="Fortgeschrittene Betreuungstools – Verlauf & Analysen"
+          highContrast={highContrast}
+          largeText={largeText}
+        >
+          <View style={[styles.settingsCard, styles.lastItem]}>
+            <Text style={styles.sectionTitle}>Gestenverlauf & Analyse</Text>
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void childHaptic();
+                  setShowGestureHistory(true);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Gestenverlauf anzeigen"
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  📚 Verlauf anzeigen
+                </Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.button,
+                  highContrast && styles.buttonHC,
+                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                ]}
+                onPress={() => {
+                  void childHaptic();
+                  setShowProfileAnalytics(true);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Leistungsanalyse anzeigen"
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    largeText && styles.buttonTextLarge,
+                    highContrast && styles.buttonTextHC,
+                  ]}
+                >
+                  📊 Analyse
+                </Text>
+              </Pressable>
+            </View>
+            {profileStats && (
+              <View style={styles.statsSummary}>
+                <Text style={styles.statsText}>Gesamt: {profileStats.totalGestures} Gesten</Text>
+                <Text style={styles.statsText}>
+                  Einzigartig: {profileStats.uniqueGestures} Gesten
+                </Text>
+                <Text style={styles.statsText}>
+                  Ø Sicherheit: {Math.round(profileStats.averageConfidence * 100)}%
+                </Text>
+              </View>
+            )}
+          </View>
+        </CollapsibleSettingsSection>
 
         {/* Gesture History Overlay */}
         {showGestureHistory && (
