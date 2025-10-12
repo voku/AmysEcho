@@ -3,7 +3,6 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import ActionButton from '../components/ActionButton';
-import FeedbackBanner from '../components/FeedbackBanner';
 import CameraFrame from '../components/CameraFrame';
 import { logger } from '../utils/logger';
 import { loadProfile } from '../storage';
@@ -88,23 +87,10 @@ const CAMERA_THEME = {
   },
 } as const;
 
-const STATUS_CHIP_BACKGROUND: Record<RecognitionStatusCategory, string> = {
-  idle: CAMERA_THEME.statusBackground.idle,
-  listening: CAMERA_THEME.statusBackground.listening,
-  recognized: CAMERA_THEME.statusBackground.recognized,
-  updating: CAMERA_THEME.statusBackground.updating,
-  error: CAMERA_THEME.statusBackground.error,
-};
-
-const STATUS_CHIP_TEXT: Record<RecognitionStatusCategory, string> = {
-  idle: CAMERA_THEME.statusText.idle,
-  listening: CAMERA_THEME.statusText.listening,
-  recognized: CAMERA_THEME.statusText.recognized,
-  updating: CAMERA_THEME.statusText.updating,
-  error: CAMERA_THEME.statusText.error,
-};
-
-const STATUS_COPY: Record<RecognitionStatusCategory, { label: string; description: string }> = {
+const STATUS_COPY: Record<
+  RecognitionStatusCategory,
+  { label: string; description: string; encouragement?: string }
+> = {
   idle: {
     label: 'Bereit',
     description: 'Halte deine Hand ruhig im Rahmen.',
@@ -115,7 +101,8 @@ const STATUS_COPY: Record<RecognitionStatusCategory, { label: string; descriptio
   },
   recognized: {
     label: 'Selbstentdeckung',
-    description: 'Amy bereitet die passende Antwort vor.',
+    description: 'Amy bereitet deine Antwort vor.',
+    encouragement: 'Tolle Geste – gleich klingt deine Stimme.',
   },
   updating: {
     label: 'Lernt gerade',
@@ -163,9 +150,6 @@ const toGestureImageCapture = (
     timestamp,
   };
 };
-
-const SELF_DISCOVERY_MESSAGE =
-  'Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Geste gleich als Stimme und Symbol zurück.';
 
 export default function RecognitionScreen({
   navigation,
@@ -553,29 +537,25 @@ export default function RecognitionScreen({
 
   const statusCopy = useMemo(() => STATUS_COPY[statusCategory], [statusCategory]);
   const statusLabel = statusCopy.label;
-  const statusDescription = status?.trim().length ? status : statusCopy.description;
-
-  const showStatusSubtitle =
-    statusDescription.length > 0 && statusCategory !== 'listening';
-
-  const bannerMessage = useMemo(() => {
-    if (error) {
-      return error;
+  const statusDetail = useMemo(() => {
+    const trimmedError = error?.trim();
+    if (trimmedError) {
+      return trimmedError;
     }
-    if (statusCategory === 'recognized' || statusCategory === 'updating') {
-      return statusDescription;
+
+    const trimmedStatus = status?.trim();
+    if (trimmedStatus && trimmedStatus.length > 0) {
+      return trimmedStatus;
     }
-    return null;
-  }, [error, statusCategory, statusDescription]);
 
-  const bannerTone: 'info' | 'success' | 'warning' | 'error' = useMemo(() => {
-    if (error) return 'error';
-    if (statusCategory === 'recognized') return 'success';
-    if (statusCategory === 'updating') return 'warning';
-    return 'info';
-  }, [error, statusCategory]);
+    return statusCopy.description;
+  }, [error, status, statusCopy]);
 
-  const bannerVisible = Boolean(bannerMessage);
+  const encouragement =
+    statusCategory === 'recognized' ? statusCopy.encouragement ?? null : null;
+
+  const statusCardBackground = CAMERA_THEME.statusBackground[statusCategory];
+  const statusCardText = CAMERA_THEME.statusText[statusCategory];
 
   const handleConfirmGesture = useCallback(() => {
     if (!gestureMeaningDisplayProps) {
@@ -628,45 +608,27 @@ export default function RecognitionScreen({
             <View style={styles.topSection}>
               <View
                 style={[
-                  styles.statusChip,
-                  { backgroundColor: STATUS_CHIP_BACKGROUND[statusCategory] },
+                  styles.statusCard,
+                  {
+                    backgroundColor: statusCardBackground,
+                    borderColor: statusCardBackground,
+                  },
                 ]}
+                accessibilityRole="text"
               >
-                <Text
-                  style={[
-                    styles.statusText,
-                    { color: STATUS_CHIP_TEXT[statusCategory] },
-                  ]}
-                >
-                  {statusLabel}
-                </Text>
+                <Text style={[styles.statusLabel, { color: statusCardText }]}>{statusLabel}</Text>
+                {statusDetail ? (
+                  <Text style={[styles.statusDetail, { color: statusCardText }]}>{statusDetail}</Text>
+                ) : null}
+                {encouragement ? (
+                  <Text style={[styles.statusEncouragement, { color: statusCardText }]}>{encouragement}</Text>
+                ) : null}
               </View>
-              {showStatusSubtitle ? (
-                <Text
-                  style={[
-                    styles.statusSubtitle,
-                    { color: STATUS_CHIP_TEXT[statusCategory] },
-                  ]}
-                >
-                  {statusDescription}
-                </Text>
-              ) : null}
-              {statusCategory === 'recognized' ? (
-                <View style={styles.selfDiscoveryPanel} accessibilityRole="text">
-                  <Text style={styles.selfDiscoveryLabel}>Amy&apos;s Echo</Text>
-                  <Text style={styles.selfDiscoveryMessage}>{SELF_DISCOVERY_MESSAGE}</Text>
-                </View>
-              ) : null}
-              {bannerVisible ? (
-                <View style={styles.bannerWrapper}>
-                  <FeedbackBanner visible={bannerVisible} message={bannerMessage!} tone={bannerTone} />
-                </View>
-              ) : null}
             </View>
 
             <View style={styles.cameraZone}>
               <CameraFrame capturePulseAnim={capturePulseAnim} pulseOpacity={CAMERA_THEME.capturePulseOpacity} />
-              <Text style={styles.cameraHint}>Selbstentdeckung beginnt im Rahmen – Hand ruhig halten</Text>
+              <Text style={styles.cameraHint}>Hand ruhig im Rahmen halten.</Text>
             </View>
 
             <View style={styles.bottomSection}>
@@ -759,65 +721,40 @@ const styles = StyleSheet.create({
   },
   topSection: {
     width: '100%',
-    alignItems: 'center',
-    gap: spacing.sm,
+    alignItems: 'stretch',
   },
-  statusChip: {
-    paddingHorizontal: spacing['2xl'],
-    paddingVertical: spacing.sm,
+  statusCard: {
+    width: '100%',
     borderRadius: 28,
-    minHeight: 48,
-    justifyContent: 'center',
+    paddingVertical: spacing['2xl'],
+    paddingHorizontal: spacing['2xl'],
+    gap: spacing.sm,
     alignItems: 'center',
     shadowColor: Colors.shadow,
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.18,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
     borderWidth: 1,
-    borderColor: Colors.overlayBorder,
   },
-  statusText: {
-    fontSize: typography.sizes.subtitle,
+  statusLabel: {
+    fontSize: typography.sizes.titleSm,
     fontWeight: typography.weights.semibold as any,
     letterSpacing: 0.5,
-  },
-  statusSubtitle: {
-    fontSize: typography.sizes.body,
     textAlign: 'center',
-    maxWidth: 420,
   },
-  selfDiscoveryPanel: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing['2xl'],
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: Colors.overlayBorder,
-    backgroundColor: Colors.overlaySurfaceMuted,
-    gap: spacing.xs,
-    alignItems: 'center',
-    shadowColor: Colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  selfDiscoveryLabel: {
-    fontSize: typography.sizes.caption,
-    fontWeight: typography.weights.semibold as any,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: Colors.overlayTextMuted,
-  },
-  selfDiscoveryMessage: {
+  statusDetail: {
     fontSize: typography.sizes.body,
-    color: Colors.overlayText,
-    textAlign: 'center',
     lineHeight: typography.lineHeights.relaxed,
+    textAlign: 'center',
+    opacity: 0.88,
   },
-  bannerWrapper: {
-    width: '100%',
+  statusEncouragement: {
+    fontSize: typography.sizes.caption,
+    fontWeight: typography.weights.medium as any,
+    letterSpacing: 0.4,
+    textAlign: 'center',
+    opacity: 0.75,
   },
   cameraZone: {
     flex: 1,
