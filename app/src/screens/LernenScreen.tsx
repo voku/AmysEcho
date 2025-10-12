@@ -7,6 +7,7 @@ import typography from '../constants/typography';
 import Colors from '../constants/colors';
 import ActionButton from '../components/ActionButton';
 import type { TabNavigationProp } from '../navigation/types';
+import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 
 type LernenScreenProps = {
   navigation: TabNavigationProp<'Lernen'>;
@@ -68,6 +69,7 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
             </Text>
           </View>
         }
+        ListFooterComponent={<WorkflowSupportLinks style={styles.supportLinks} />}
       />
     </LinearGradient>
   );
@@ -93,6 +95,9 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: spacing['2xl'],
     gap: spacing.lg,
+  },
+  supportLinks: {
+    marginTop: spacing['2xl'],
   },
   card: {
     padding: spacing.xl,

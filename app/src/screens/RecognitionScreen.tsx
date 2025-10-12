@@ -30,6 +30,7 @@ import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
 import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import HandLandmarkPreview from '../components/HandLandmarkPreview';
+import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import {
   cloneLandmarks,
   adjustHandednessForMirror,
@@ -749,6 +750,8 @@ export default function RecognitionScreen({
                   />
                 </View>
               </View>
+
+              <WorkflowSupportLinks tone="dark" />
             </View>
           </View>
         </View>

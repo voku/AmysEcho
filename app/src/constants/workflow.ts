@@ -1,4 +1,4 @@
-import type { AppTabsParamList } from '../navigation/types';
+import type { AppTabsParamList, RootStackParamList } from '../navigation/types';
 
 export type WorkflowRouteName = keyof AppTabsParamList;
 
@@ -21,6 +21,24 @@ export interface WorkflowStepMeta {
   accessibilityHint: string;
   order: number;
 }
+
+export type WorkflowSupportRoute = 'ParentalGate' | 'Help';
+
+interface BaseSupportDestination<RouteName extends WorkflowSupportRoute> {
+  key: string;
+  title: string;
+  description: string;
+  icon: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  navigationTarget: { route: RouteName; params?: RootStackParamList[RouteName] };
+}
+
+export type WorkflowSupportDestination =
+  | (BaseSupportDestination<'ParentalGate'> & {
+      navigationTarget: { route: 'ParentalGate'; params: RootStackParamList['ParentalGate'] };
+    })
+  | BaseSupportDestination<'Help'>;
 
 const WORKFLOW_STEPS: WorkflowStepMeta[] = [
   {
@@ -52,6 +70,36 @@ const WORKFLOW_STEPS: WorkflowStepMeta[] = [
     accessibilityLabel: 'Trainings- und Lernbereich öffnen',
     accessibilityHint: 'Gesten trainieren und neue Beispiele aufnehmen.',
     order: 3,
+  },
+];
+
+export const WORKFLOW_SUPPORT_DESTINATIONS: WorkflowSupportDestination[] = [
+  {
+    key: 'care',
+    title: 'Betreuerbereich',
+    description: 'Profile, Berichte und Trainingsziele verwalten.',
+    icon: '👨‍👩‍👧',
+    navigationTarget: { route: 'ParentalGate', params: { target: 'Parent' } },
+    accessibilityLabel: 'Betreuerbereich öffnen',
+    accessibilityHint: 'Elternzugang mit Sicherheitsfrage öffnen.',
+  },
+  {
+    key: 'admin',
+    title: 'Verwaltung & Modelle',
+    description: 'Gesten-Daten prüfen und Modelle pflegen.',
+    icon: '🛠️',
+    navigationTarget: { route: 'ParentalGate', params: { target: 'Admin' } },
+    accessibilityLabel: 'Verwaltung und Modelle öffnen',
+    accessibilityHint: 'Sicherheitsfrage beantworten, um den Adminbereich zu öffnen.',
+  },
+  {
+    key: 'help',
+    title: 'Hilfe & Support',
+    description: 'Kontakt und Antworten auf häufige Fragen.',
+    icon: '🆘',
+    navigationTarget: { route: 'Help' },
+    accessibilityLabel: 'Hilfe und Support öffnen',
+    accessibilityHint: 'Informationen und Unterstützung abrufen.',
   },
 ];
 
