@@ -50,7 +50,7 @@ describe('OnboardingScreen', () => {
     act(() => {
       component.root.findByProps({ testID: 'btn-skip' }).props.onPress();
     });
-    expect(replace).toHaveBeenCalledWith('Recognition');
+    expect(replace).toHaveBeenCalledWith('App', { screen: 'Recognition' });
   });
 
   it('completes the wizard and creates a profile with chosen settings', async () => {
