@@ -8,10 +8,8 @@ import typography from '../constants/typography';
 import { useAccessibility } from './AccessibilityContext';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { useTheme } from '../context/ThemeContext';
-import {
-  WORKFLOW_STEP_BY_ROUTE,
-  type WorkflowRouteName,
-} from '../constants/workflow';
+import { DEFAULT_THEME, THEMES } from '../constants/themes';
+import { getWorkflowStepMeta, isWorkflowRouteName } from '../constants/workflow';
 
 const TAB_BAR_HEIGHT = 76;
 
@@ -29,12 +27,23 @@ interface TabItem {
 
 const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const { highContrast, largeText } = useAccessibility();
-  const { theme } = useTheme();
+  const fallbackTheme = THEMES[DEFAULT_THEME] ?? Object.values(THEMES)[0];
+  if (!fallbackTheme) {
+    throw new Error('Kein Theme konfiguriert');
+  }
+
+  let theme = fallbackTheme;
+  try {
+    const context = useTheme();
+    theme = context.theme ?? fallbackTheme;
+  } catch {
+    theme = fallbackTheme;
+  }
 
   const themeColors = theme.colors;
   const containerBackground = highContrast
     ? COLORS.highContrastBackground
-    : themeColors.themePrimary ?? COLORS.neutral;
+    : themeColors.themePrimary ?? themeColors.primary ?? COLORS.neutral;
   const activeBackground = highContrast
     ? COLORS.highContrastText
     : themeColors.themeSecondary ?? COLORS.actionSecondaryBackground;
@@ -60,7 +69,9 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
     return state.routes.map((route, index) => {
       const isFocused = state.index === index;
       const options = descriptors[route.key]?.options ?? {};
-      const workflowMeta = WORKFLOW_STEP_BY_ROUTE[route.name as WorkflowRouteName];
+      const workflowMeta = isWorkflowRouteName(route.name)
+        ? getWorkflowStepMeta(route.name)
+        : undefined;
       const label =
         options.tabBarLabel?.toString() ??
         options.title ??

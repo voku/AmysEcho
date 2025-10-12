@@ -1,5 +1,7 @@
 import type { AppTabsParamList, RootStackParamList } from '../navigation/types';
 
+declare const __DEV__: boolean | undefined;
+
 export type WorkflowRouteName = keyof AppTabsParamList;
 
 export type WorkflowStage = 'Hören' | 'Verstehen' | 'Lernen';
@@ -103,17 +105,30 @@ export const WORKFLOW_SUPPORT_DESTINATIONS: WorkflowSupportDestination[] = [
   },
 ];
 
-export const WORKFLOW_STEP_BY_ROUTE: Record<WorkflowRouteName, WorkflowStepMeta> = WORKFLOW_STEPS.reduce(
+const REQUIRED_WORKFLOW_ROUTES: WorkflowRouteName[] = ['Recognition', 'History', 'Lernen'];
+
+export const WORKFLOW_STEP_BY_ROUTE = WORKFLOW_STEPS.reduce(
   (acc, step) => {
     acc[step.route] = step;
     return acc;
   },
   {} as Record<WorkflowRouteName, WorkflowStepMeta>,
-);
+) satisfies Record<WorkflowRouteName, WorkflowStepMeta>;
+
+if (__DEV__) {
+  REQUIRED_WORKFLOW_ROUTES.forEach((route) => {
+    if (!WORKFLOW_STEP_BY_ROUTE[route]) {
+      console.warn(`Missing workflow metadata for route: ${route}`);
+    }
+  });
+}
 
 export const ORDERED_WORKFLOW_STEPS = [...WORKFLOW_STEPS].sort((a, b) => a.order - b.order);
 
-export const getWorkflowStepMeta = (routeName: string): WorkflowStepMeta | undefined =>
-  WORKFLOW_STEP_BY_ROUTE[routeName as WorkflowRouteName];
+export const getWorkflowStepMeta = (routeName: WorkflowRouteName): WorkflowStepMeta =>
+  WORKFLOW_STEP_BY_ROUTE[routeName];
+
+export const isWorkflowRouteName = (routeName: string): routeName is WorkflowRouteName =>
+  routeName in WORKFLOW_STEP_BY_ROUTE;
 
 export default WORKFLOW_STEPS;

@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import renderer, { act } from 'react-test-renderer';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import NewBottomNav from '../src/components/NewBottomNav';
+import { COLORS } from '../src/constants/ui';
+import { getWorkflowStepMeta, isWorkflowRouteName } from '../src/constants/workflow';
 
 type RouteParams = Partial<Record<'Recognition' | 'History' | 'Lernen', Record<string, unknown>>>;
 
@@ -29,21 +31,22 @@ const buildProps = (activeIndex = 0, params: RouteParams = {}): BuildResult => {
   } as unknown as TestNavigation;
 
   const descriptors = Object.fromEntries(
-    routes.map(route => [
-      route.key,
-      {
-        navigation,
-        options: {
-          tabBarLabel:
-            route.name === 'Recognition'
-              ? 'Kamera'
-              : route.name === 'History'
-              ? 'Verlauf'
-              : route.name,
+    routes.map(route => {
+      const workflowMeta = isWorkflowRouteName(route.name)
+        ? getWorkflowStepMeta(route.name)
+        : undefined;
+      return [
+        route.key,
+        {
+          navigation,
+          options: {
+            tabBarLabel: workflowMeta?.label,
+            tabBarAccessibilityLabel: workflowMeta?.accessibilityLabel,
+          },
+          route,
         },
-        route,
-      },
-    ]),
+      ];
+    }),
   );
 
   const props: BottomTabBarProps = {
@@ -74,13 +77,13 @@ describe('NewBottomNav', () => {
 
     expect(pressables).toHaveLength(3);
     const labels = pressables.map(p => p.props.accessibilityLabel);
-    expect(labels).toEqual(['Kamera', 'Verlauf', 'Lernen']);
+    expect(labels).toEqual(['Zur Gestenkamera wechseln', 'Verlauf und Einblicke ansehen', 'Trainings- und Lernbereich öffnen']);
 
     const hints = pressables.map(p => p.props.accessibilityHint);
     expect(hints).toEqual([
-      'Zurück zur Gestenerkennung',
-      'Gestenverlauf und Ereignisse ansehen',
-      'Gesten aufnehmen oder üben',
+      'Gesten mit der Kamera aufnehmen, damit Amy sie versteht.',
+      'Letzte Gesten prüfen und Vertrauen einordnen.',
+      'Gesten trainieren und neue Beispiele aufnehmen.',
     ]);
 
     const selectedStates = pressables.map(p => p.props.accessibilityState?.selected ?? false);
@@ -147,21 +150,21 @@ describe('NewBottomNav', () => {
 
     const view = (component as renderer.ReactTestRenderer).root.findByType(View);
     const containerStyle = StyleSheet.flatten(view.props.style);
-    expect(containerStyle?.backgroundColor).toBe('#0F3A3B');
+    expect(containerStyle?.backgroundColor).toBe(COLORS.neutral);
 
     const pressables = (component as renderer.ReactTestRenderer).root.findAllByType(Pressable);
     const inactiveTabStyle = StyleSheet.flatten(pressables[0].props.style({ pressed: false }));
     expect(inactiveTabStyle?.backgroundColor).toBeUndefined();
 
     const activeTabStyle = StyleSheet.flatten(pressables[1].props.style({ pressed: false }));
-    expect(activeTabStyle?.backgroundColor).toBe('#25706F');
+    expect(activeTabStyle?.backgroundColor).toBe(COLORS.actionSecondaryBackground);
 
     const inactiveIconStyle = StyleSheet.flatten(pressables[0].findAllByType(Text)[0].props.style);
-    expect(inactiveIconStyle?.color).toBe('#FFFFFF');
+    expect(inactiveIconStyle?.color).toBe('rgba(255, 255, 255, 0.68)');
 
     const inactiveLabelStyle = StyleSheet.flatten(pressables[0].findAllByType(Text)[1].props.style);
-    expect(inactiveLabelStyle?.color).toBe('#FFFFFF');
+    expect(inactiveLabelStyle?.color).toBe('rgba(255, 255, 255, 0.68)');
 
-    expect(pressables[0].props.android_ripple?.color).toBe('rgba(255, 255, 255, 0.16)');
+    expect(pressables[0].props.android_ripple?.color).toBe('rgba(255, 255, 255, 0.22)');
   });
 });

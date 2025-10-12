@@ -44,11 +44,10 @@ const Tab = createBottomTabNavigator<AppTabsParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
 const workflowOptions = <RouteName extends keyof AppTabsParamList>(routeName: RouteName) => {
-  const meta = getWorkflowStepMeta(routeName as string);
+  const meta = getWorkflowStepMeta(routeName);
   return {
-    tabBarLabel: meta?.label ?? routeName,
-    tabBarAccessibilityLabel:
-      meta?.accessibilityLabel ?? meta?.accessibilityHint ?? (routeName as string),
+    tabBarLabel: meta.label,
+    tabBarAccessibilityLabel: meta.accessibilityLabel ?? meta.accessibilityHint ?? routeName,
   };
 };
 
