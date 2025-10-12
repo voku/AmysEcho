@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import renderer, { act } from 'react-test-renderer';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import NewBottomNav from '../src/components/NewBottomNav';
@@ -136,5 +136,32 @@ describe('NewBottomNav', () => {
     });
 
     expect(navigation.navigate).toHaveBeenCalledWith('Recognition', routeParams.Recognition);
+  });
+
+  it('uses the dark teal palette in standard contrast mode', () => {
+    const { props } = buildProps(1);
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(<NewBottomNav {...props} />);
+    });
+
+    const view = (component as renderer.ReactTestRenderer).root.findByType(View);
+    const containerStyle = StyleSheet.flatten(view.props.style);
+    expect(containerStyle?.backgroundColor).toBe('#0F3A3B');
+
+    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType(Pressable);
+    const inactiveTabStyle = StyleSheet.flatten(pressables[0].props.style({ pressed: false }));
+    expect(inactiveTabStyle?.backgroundColor).toBeUndefined();
+
+    const activeTabStyle = StyleSheet.flatten(pressables[1].props.style({ pressed: false }));
+    expect(activeTabStyle?.backgroundColor).toBe('#25706F');
+
+    const inactiveIconStyle = StyleSheet.flatten(pressables[0].findAllByType(Text)[0].props.style);
+    expect(inactiveIconStyle?.color).toBe('#FFFFFF');
+
+    const inactiveLabelStyle = StyleSheet.flatten(pressables[0].findAllByType(Text)[1].props.style);
+    expect(inactiveLabelStyle?.color).toBe('#FFFFFF');
+
+    expect(pressables[0].props.android_ripple?.color).toBe('rgba(255, 255, 255, 0.16)');
   });
 });
