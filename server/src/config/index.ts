@@ -1,7 +1,7 @@
 import path from 'path';
+import { SERVER_DIR } from '../constants/modelPaths.js';
 
-const currentDir = path.join(process.cwd(), 'src');
-const serverDir = path.join(process.cwd(), 'server');
+const srcDir = path.join(SERVER_DIR, 'src');
 
 export interface ServerConfig {
   port: number;
@@ -45,13 +45,13 @@ export const config: ServerConfig = {
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
   dialogLimit: getEnvVarAsNumber('DIALOG_LIMIT', 60),
   apiLimit: getEnvVarAsNumber('API_LIMIT', 120),
-  mlpScript: getEnvVar('MLP_SCRIPT', path.join(serverDir, 'amyserver_tools', 'train_mlp.py')),
+  mlpScript: getEnvVar('MLP_SCRIPT', path.join(srcDir, 'amyserver_tools', 'train_mlp.py')),
   backupSecret: getEnvVar('BACKUP_SECRET', 'default-secret-password'),
-  trainScript: getEnvVar('TRAIN_SCRIPT', path.join(serverDir, 'amyserver_tools', 'train_mlp.py')),
-  dbPath: getEnvVar('DB_PATH', path.join(serverDir, 'db.json')),
+  trainScript: getEnvVar('TRAIN_SCRIPT', path.join(srcDir, 'amyserver_tools', 'train_mlp.py')),
+  dbPath: getEnvVar('DB_PATH', path.join(srcDir, 'db.json')),
   openaiApiKey: process.env.OPENAI_API_KEY,
   cloudApiUrl: getEnvVar('CLOUD_API_URL', 'http://localhost:4000/classify'),
-  offlineModelPath: getEnvVar('OFFLINE_MODEL_PATH', path.join(serverDir, 'offlineModel.json')),
+  offlineModelPath: getEnvVar('OFFLINE_MODEL_PATH', path.join(srcDir, 'offlineModel.json')),
   gestureTaskUrl: getEnvVar('GESTURE_TASK_URL', 'https://api.github.com/repos/sst/dgs/contents/tasks'),
   jwtSecret: getEnvVar('JWT_SECRET', 'your-super-secret-jwt-key-change-in-production'),
   jwtRefreshSecret: getEnvVar('JWT_REFRESH_SECRET', 'your-super-secret-refresh-key-change-in-production'),
