@@ -2,14 +2,22 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import Colors from '../constants/colors';
+import { COLORS } from '../constants/ui';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
+import { useAccessibility } from './AccessibilityContext';
+import { childFriendlyStyles } from '../styles/touchTargets';
 
 const ROUTE_LABELS: Record<string, string> = {
   Recognition: 'Kamera',
   History: 'Verlauf',
   Lernen: 'Lernen',
+};
+
+const ROUTE_HINTS: Record<string, string> = {
+  Recognition: 'Zurück zur Gestenerkennung',
+  History: 'Gestenverlauf und Ereignisse ansehen',
+  Lernen: 'Gesten aufnehmen oder üben',
 };
 
 const ROUTE_ICONS: Record<string, string> = {
@@ -28,9 +36,26 @@ interface TabItem {
   icon: string;
   isFocused: boolean;
   onPress: () => void;
+  hint: string | undefined;
 }
 
 const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
+  const { highContrast, largeText } = useAccessibility();
+
+  const containerStyle = [
+    styles.container,
+    {
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      borderColor: highContrast ? COLORS.highContrastText : 'transparent',
+      shadowColor: highContrast ? COLORS.highContrastText : COLORS.shadow,
+    },
+  ];
+
+  const inactiveColor = highContrast ? COLORS.highContrastText : COLORS.text;
+  const activeColor = highContrast ? COLORS.highContrastBackground : COLORS.inverseText;
+  const activeBackground = highContrast ? COLORS.highContrastText : COLORS.primary;
+  const rippleColor = highContrast ? COLORS.highContrastText : COLORS.overlay;
+
   const items = useMemo<TabItem[]>(() => {
     return state.routes.map((route, index) => {
       const isFocused = state.index === index;
@@ -41,6 +66,8 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
         ROUTE_LABELS[route.name] ??
         route.name;
       const icon = ROUTE_ICONS[route.name] ?? '⬤';
+      const hint = ROUTE_HINTS[route.name];
+      const params = state.routes[index]?.params;
 
       const onPress = () => {
         const event = navigation.emit({
@@ -50,32 +77,51 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
         });
 
         if (!isFocused && !event.defaultPrevented) {
-          navigation.navigate(route.name);
+          navigation.navigate(route.name, params);
         }
       };
 
-      return { route, label, icon, isFocused, onPress } satisfies TabItem;
+      return { route, label, icon, isFocused, onPress, hint } satisfies TabItem;
     });
   }, [descriptors, navigation, state]);
 
   return (
-    <View style={styles.container}>
-      {items.map(({ route, label, icon, isFocused, onPress }) => (
+    <View style={containerStyle}>
+      {items.map(({ route, label, icon, isFocused, onPress, hint }) => (
         <Pressable
           key={route.key}
           onPress={onPress}
           style={({ pressed }) => [
+            childFriendlyStyles.minTouchTarget,
             styles.tab,
-            isFocused && styles.tabActive,
+            isFocused && [styles.tabActive, { backgroundColor: activeBackground }],
             pressed && styles.tabPressed,
           ]}
           accessibilityRole="tab"
           accessibilityLabel={label}
+          accessibilityHint={hint}
           accessibilityState={{ selected: isFocused }}
-          android_ripple={{ color: Colors.overlay }}
+          android_ripple={{ color: rippleColor }}
         >
-          <Text style={[styles.icon, isFocused && styles.iconActive]}>{icon}</Text>
-          <Text style={[styles.label, isFocused && styles.labelActive]}>{label}</Text>
+          <Text
+            style={[
+              styles.icon,
+              { color: isFocused ? activeColor : inactiveColor },
+              largeText && styles.iconLarge,
+            ]}
+          >
+            {icon}
+          </Text>
+          <Text
+            style={[
+              styles.label,
+              largeText && styles.labelLarge,
+              { color: isFocused ? activeColor : inactiveColor },
+              isFocused && styles.labelActive,
+            ]}
+          >
+            {label}
+          </Text>
         </Pressable>
       ))}
     </View>
@@ -89,10 +135,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: COLORS.surface,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    shadowColor: Colors.shadow,
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.16,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -2 },
@@ -107,27 +153,28 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   tabActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: COLORS.primary,
   },
   tabPressed: {
     opacity: 0.85,
   },
   icon: {
     fontSize: typography.sizes.subtitle,
-    color: Colors.text,
     marginBottom: spacing.xs,
-  },
-  iconActive: {
-    color: Colors.inverseText,
   },
   label: {
     fontSize: typography.sizes.caption,
-    fontWeight: typography.weights.medium as any,
-    color: Colors.text,
+    fontWeight: typography.weights.medium,
+    color: COLORS.text,
+  },
+  labelLarge: {
+    fontSize: typography.sizes.body,
+  },
+  iconLarge: {
+    fontSize: typography.sizes.titleSm,
   },
   labelActive: {
-    color: Colors.inverseText,
-    fontWeight: typography.weights.semibold as any,
+    fontWeight: typography.weights.semibold,
   },
 });
 
