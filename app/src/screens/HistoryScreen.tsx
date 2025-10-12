@@ -1,6 +1,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { gestureHistoryService, type GestureHistoryEntry } from '../services/gestureHistoryService';
@@ -10,6 +10,7 @@ import typography from '../constants/typography';
 import type { TabNavigationProp } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import WorkflowStageHeader from '../components/WorkflowStageHeader';
+import ActionButton from '../components/ActionButton';
 
 const CONFIDENCE_THRESHOLD_STRONG = 0.75;
 const CONFIDENCE_THRESHOLD_MEDIUM = 0.5;
@@ -33,8 +34,10 @@ const getConfidenceMeta = (confidence: number) => {
   if (confidence >= CONFIDENCE_THRESHOLD_STRONG) {
     return {
       color: Colors.historyBadgeHigh,
-      label: 'Sehr sicher',
+      label: 'Selbstentdeckung bestätigt',
       detail: `${percent}% Vertrauen`,
+      narrative:
+        'Amy hat diesen Moment als Stimme gespeichert – ihr könnt ihn sofort noch einmal erleben.',
     };
   }
 
@@ -43,6 +46,8 @@ const getConfidenceMeta = (confidence: number) => {
       color: Colors.historyBadgeMedium,
       label: 'Noch unsicher',
       detail: `${percent}% Vertrauen`,
+      narrative:
+        'Dieser Eintrag braucht vielleicht noch eine Bestätigung oder Übung, bevor er sicher sitzt.',
     };
   }
 
@@ -50,6 +55,8 @@ const getConfidenceMeta = (confidence: number) => {
     color: Colors.historyBadgeLow,
     label: 'Bitte prüfen',
     detail: `${percent}% Vertrauen`,
+    narrative:
+      'Amy war sich hier nicht sicher – überprüfe die Geste oder nimm neue Beispiele in Lernen auf.',
   };
 };
 
@@ -72,6 +79,10 @@ const HistoryScreen: React.FC = () => {
   );
 
   const historyItems = useMemo(() => history, [history]);
+  const latestDiscovery = useMemo(
+    () => history.find((entry) => (entry.confidence ?? 0) >= CONFIDENCE_THRESHOLD_STRONG),
+    [history],
+  );
 
   const handleQuickLearn = useCallback(
     (entry: GestureHistoryEntry) => {
@@ -82,6 +93,10 @@ const HistoryScreen: React.FC = () => {
     },
     [navigation],
   );
+
+  const navigateToCamera = useCallback(() => {
+    navigation.navigate('Recognition');
+  }, [navigation]);
 
   const renderItem = ({ item }: { item: GestureHistoryEntry }) => {
     const meta = getConfidenceMeta(item.confidence ?? 0);
@@ -97,7 +112,8 @@ const HistoryScreen: React.FC = () => {
             <Text style={styles.cardTitle}>{item.label}</Text>
             <Text style={styles.cardTimestamp}>{timestamp}</Text>
           </View>
-          <View style={[styles.confidenceBadge, { backgroundColor: meta.color }]}
+          <View
+            style={[styles.confidenceBadge, { backgroundColor: meta.color }]}
             accessibilityLabel={`Vertrauen: ${meta.detail}`}
           >
             <Text style={styles.confidenceLabel}>{meta.label}</Text>
@@ -105,15 +121,18 @@ const HistoryScreen: React.FC = () => {
           </View>
         </View>
         <View style={styles.cardFooter}>
-          <Text style={styles.cardCategory}>{category}</Text>
-          <Pressable
-            onPress={() => handleQuickLearn(item)}
-            accessibilityRole="button"
+          <View style={styles.cardFooterText}>
+            <Text style={styles.cardCategory}>{category}</Text>
+            <Text style={styles.cardNarrative}>{meta.narrative}</Text>
+          </View>
+          <ActionButton
+            label="Jetzt üben"
             accessibilityLabel={`Gestentraining für ${item.label} öffnen`}
+            onPress={() => handleQuickLearn(item)}
+            variant="secondary"
             style={styles.quickLearnButton}
-          >
-            <Text style={styles.quickLearnText}>Jetzt üben</Text>
-          </Pressable>
+            testID={`history-quick-learn-${item.id}`}
+          />
         </View>
       </View>
     );
@@ -122,6 +141,39 @@ const HistoryScreen: React.FC = () => {
   return (
     <LinearGradient colors={[Colors.backgroundStart, Colors.backgroundEnd]} style={styles.container}>
       <WorkflowStageHeader route="History" tone="dark" style={styles.stageHeader} />
+      {latestDiscovery ? (
+        <View style={styles.highlightWrapper}>
+          <View style={styles.highlightCard} accessibilityRole="summary">
+            <View style={styles.highlightBadge}>
+              <Text style={styles.highlightBadgeText}>Selbstentdeckung gesichert</Text>
+            </View>
+            <Text style={styles.highlightTitle}>{latestDiscovery.label}</Text>
+            <Text style={styles.highlightSubtitle}>
+              Amy hat diese Geste gerade als Stimme gespiegelt. Möchtest du den Moment wiederholen oder direkt weiterlernen?
+            </Text>
+            <View style={styles.highlightActions}>
+              <ActionButton
+                label="Zur Kamera"
+                accessibilityLabel="Zur Kamera zurückkehren"
+                onPress={navigateToCamera}
+                backgroundColor={Colors.cameraActionConfirmBackground}
+                pressedBackgroundColor={Colors.cameraActionConfirmPressed}
+                textColor={Colors.cameraActionConfirmText}
+                style={styles.highlightPrimaryAction}
+                testID="history-highlight-camera"
+              />
+              <ActionButton
+                label="Im Lernmodus vertiefen"
+                accessibilityLabel={`Gestentraining für ${latestDiscovery.label} öffnen`}
+                onPress={() => handleQuickLearn(latestDiscovery)}
+                variant="secondary"
+                style={styles.highlightSecondaryAction}
+                testID="history-highlight-learn"
+              />
+            </View>
+          </View>
+        </View>
+      ) : null}
       <FlatList
         data={historyItems}
         renderItem={renderItem}
@@ -130,7 +182,9 @@ const HistoryScreen: React.FC = () => {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📭</Text>
-            <Text style={styles.emptyText}>Noch keine Einträge. Sobald Amy gestikuliert, siehst du es hier.</Text>
+            <Text style={styles.emptyText}>
+              Noch keine Selbstentdeckungen. Sobald Amy eine Geste zeigt, landet ihr Moment hier im Verlauf.
+            </Text>
           </View>
         }
         ListFooterComponent={<WorkflowSupportLinks style={styles.supportLinks} />}
@@ -154,6 +208,56 @@ const styles = StyleSheet.create({
   },
   supportLinks: {
     marginTop: spacing['2xl'],
+  },
+  highlightWrapper: {
+    marginBottom: spacing['2xl'],
+  },
+  highlightCard: {
+    backgroundColor: Colors.historyHighlightBackground,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: Colors.historyHighlightBorder,
+    padding: spacing['2xl'],
+    gap: spacing.md,
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
+  },
+  highlightBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xs,
+    backgroundColor: Colors.historyHighlightBadge,
+  },
+  highlightBadgeText: {
+    fontSize: typography.sizes.caption,
+    fontWeight: typography.weights.semibold as any,
+    color: Colors.historyHighlightText,
+    letterSpacing: 0.6,
+  },
+  highlightTitle: {
+    fontSize: typography.sizes.title,
+    fontWeight: typography.weights.extrabold as any,
+    color: Colors.historyHighlightText,
+  },
+  highlightSubtitle: {
+    fontSize: typography.sizes.body,
+    color: Colors.historyHighlightMuted,
+    lineHeight: typography.lineHeights.relaxed,
+  },
+  highlightActions: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    flexWrap: 'wrap',
+  },
+  highlightPrimaryAction: {
+    minWidth: 160,
+  },
+  highlightSecondaryAction: {
+    minWidth: 200,
   },
   card: {
     backgroundColor: Colors.overlayBadgeBackground,
@@ -220,22 +324,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.lg,
+  },
+  cardFooterText: {
+    flex: 1,
+    gap: spacing.xs,
   },
   cardCategory: {
     fontSize: typography.sizes.caption,
     letterSpacing: 1.1,
     color: Colors.textMuted,
   },
-  quickLearnButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
-    borderRadius: 999,
-    backgroundColor: Colors.actionSecondaryBackgroundMuted,
+  cardNarrative: {
+    fontSize: typography.sizes.body,
+    color: Colors.overlayText,
+    lineHeight: typography.lineHeights.relaxed,
   },
-  quickLearnText: {
-    fontSize: typography.sizes.caption,
-    fontWeight: typography.weights.semibold as any,
-    color: Colors.actionSecondaryBackground,
+  quickLearnButton: {
+    minWidth: 160,
   },
   emptyState: {
     marginTop: spacing['2xl'],

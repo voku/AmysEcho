@@ -31,7 +31,7 @@ const STEPS: WizardStep[] = [
     emoji: '❤️',
     title: 'Amy zuerst – immer.',
     description:
-      'Der neue Amy-Loop bedeutet: Hören → Verstehen → Antworten → Lernen. Jede Geste landet sofort als Stimme, Symbol und Insight.',
+      'Der neue Amy-Loop bedeutet: Kamera → Verlauf → Lernen. Jede Geste landet sofort als Stimme, Symbol und Insight.',
   },
   {
     key: 'name',
@@ -223,7 +223,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       case 'mission':
         return (
           <View style={styles.missionContent}>
-            <AmyLoopTimeline activeStage="see" />
+            <AmyLoopTimeline activeStage="Recognition" />
             <AmyFirstCommitments />
           </View>
         );

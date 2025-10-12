@@ -1,13 +1,12 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '../constants/ui';
+import { ORDERED_WORKFLOW_STEPS, type WorkflowRouteName } from '../constants/workflow';
 import { useAccessibility } from './AccessibilityContext';
 
-type LoopStageKey = 'see' | 'think' | 'speak' | 'confirm' | 'learn';
-
 type AmyLoopTimelineProps = {
-  /** Currently highlighted stage in the See → Think → Speak/Show → Confirm → Learn loop. */
-  activeStage: LoopStageKey;
+  /** Currently highlighted stage in the Kamera → Verlauf → Lernen Schleife. */
+  activeStage: WorkflowRouteName;
   /**
    * Choose the visual context. `surface` is optimised for light backgrounds,
    * while `overlay` keeps high contrast when rendered on top of the camera feed.
@@ -19,45 +18,12 @@ type AmyLoopTimelineProps = {
   hideDescriptions?: boolean;
 };
 
-type StageDefinition = {
-  key: LoopStageKey;
-  emoji: string;
-  title: string;
-  description: string;
-};
-
-const STAGES: StageDefinition[] = [
-  {
-    key: 'see',
-    emoji: '👀',
-    title: 'Sehen',
-    description: 'Hände ruhig im Blickfeld halten.',
-  },
-  {
-    key: 'think',
-    emoji: '🧠',
-    title: 'Denken',
-    description: 'Gesten werden geprüft und verglichen.',
-  },
-  {
-    key: 'speak',
-    emoji: '🗣️',
-    title: 'Sprechen/Zeigen',
-    description: 'Amy antwortet sofort mit Stimme und Symbol.',
-  },
-  {
-    key: 'confirm',
-    emoji: '🤝',
-    title: 'Bestätigen',
-    description: 'Gemeinsam bestätigen oder korrigieren.',
-  },
-  {
-    key: 'learn',
-    emoji: '🌱',
-    title: 'Lernen',
-    description: 'Jede Rückmeldung stärkt das Modell.',
-  },
-];
+const STAGES = ORDERED_WORKFLOW_STEPS.map((step) => ({
+  key: step.route,
+  emoji: step.icon,
+  title: step.label,
+  description: step.timelineSummary,
+}));
 
 const MODE_STYLES = {
   surface: {
@@ -110,13 +76,14 @@ export function AmyLoopTimeline({
   return (
     <View
       accessibilityRole="list"
-      accessibilityLabel="Kommunikationsschritte: Sehen, Denken, Sprechen oder Zeigen, Bestätigen, Lernen"
+      accessibilityLabel={`Kommunikationsschritte: ${STAGES.map((stage) => stage.title).join(', ')}`}
       style={containerStyle}
     >
       {STAGES.map((stage, index) => {
         const stageIndex = STAGES.findIndex((item) => item.key === activeStage);
+        const resolvedStageIndex = stageIndex === -1 ? 0 : stageIndex;
         const isActive = stage.key === activeStage;
-        const isComplete = index < stageIndex;
+        const isComplete = index < resolvedStageIndex;
         const badgeBackground = isActive
           ? modeColors.badgeBackground
           : isComplete
@@ -259,5 +226,3 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
 });
-
-export type { LoopStageKey };

@@ -4,7 +4,7 @@ declare const __DEV__: boolean | undefined;
 
 export type WorkflowRouteName = keyof AppTabsParamList;
 
-export type WorkflowStage = 'Hören' | 'Verstehen' | 'Lernen';
+export type WorkflowStage = 'Kamera' | 'Verlauf' | 'Lernen';
 
 export interface WorkflowStepMeta {
   route: WorkflowRouteName;
@@ -19,6 +19,11 @@ export interface WorkflowStepMeta {
    * Short explanation of the step for tooltips or future helper copy.
    */
   description: string;
+  /**
+   * Compact copy for timeline and loop components that highlight the three-step
+   * Kamera → Verlauf → Lernen UX.
+   */
+  timelineSummary: string;
   accessibilityLabel: string;
   accessibilityHint: string;
   order: number;
@@ -45,22 +50,24 @@ export type WorkflowSupportDestination =
 const WORKFLOW_STEPS: WorkflowStepMeta[] = [
   {
     route: 'Recognition',
-    stage: 'Hören',
+    stage: 'Kamera',
     label: 'Kamera',
     icon: '🖐️',
     description: 'Gesten live aufnehmen – Amy hört sofort zu.',
+    timelineSummary: 'Gesten erfassen und Amy zuhören lassen.',
     accessibilityLabel: 'Zur Gestenkamera wechseln',
     accessibilityHint: 'Gesten mit der Kamera aufnehmen, damit Amy sie versteht.',
     order: 1,
   },
   {
     route: 'History',
-    stage: 'Verstehen',
-    label: 'Verstehen',
-    icon: '💬',
-    description: 'Einblicke in Amys zuletzt verstandene Gesten.',
-    accessibilityLabel: 'Verlauf und Einblicke ansehen',
-    accessibilityHint: 'Letzte Gesten prüfen und Vertrauen einordnen.',
+    stage: 'Verlauf',
+    label: 'Verlauf',
+    icon: '🗂️',
+    description: 'Alle erkannten Gesten mit Vertrauen & Kontext nachschlagen.',
+    timelineSummary: 'Letzte Gesten prüfen und Rückmeldungen geben.',
+    accessibilityLabel: 'Gestenverlauf ansehen',
+    accessibilityHint: 'Letzte Gesten prüfen, Feedback geben und Vertrauen einordnen.',
     order: 2,
   },
   {
@@ -69,6 +76,7 @@ const WORKFLOW_STEPS: WorkflowStepMeta[] = [
     label: 'Lernen',
     icon: '🧠',
     description: 'Gesten trainieren oder neue Beispiele hinzufügen.',
+    timelineSummary: 'Neue Beispiele aufnehmen und das Modell stärken.',
     accessibilityLabel: 'Trainings- und Lernbereich öffnen',
     accessibilityHint: 'Gesten trainieren und neue Beispiele aufnehmen.',
     order: 3,
@@ -77,18 +85,18 @@ const WORKFLOW_STEPS: WorkflowStepMeta[] = [
 
 export const WORKFLOW_SUPPORT_DESTINATIONS: WorkflowSupportDestination[] = [
   {
-    key: 'care',
-    title: 'Betreuerbereich',
-    description: 'Profile, Berichte und Trainingsziele verwalten.',
+    key: 'family',
+    title: 'Familie & Berichte',
+    description: 'Elternbereich mit Verlauf, Lernzielen und Moderation.',
     icon: '👨‍👩‍👧',
     navigationTarget: { route: 'ParentalGate', params: { target: 'Parent' } },
-    accessibilityLabel: 'Betreuerbereich öffnen',
+    accessibilityLabel: 'Familienbereich öffnen',
     accessibilityHint: 'Elternzugang mit Sicherheitsfrage öffnen.',
   },
   {
-    key: 'profiles',
-    title: 'Profile & Einstellungen',
-    description: 'Nutzerprofile, Sprache und Geräte verwalten.',
+    key: 'settings',
+    title: 'Einstellungen & Profile',
+    description: 'Profile, Geräte und Sprache an einem Ort verwalten.',
     icon: '⚙️',
     navigationTarget: { route: 'ParentalGate', params: { target: 'ProfileManager' } },
     accessibilityLabel: 'Profile und Einstellungen öffnen',

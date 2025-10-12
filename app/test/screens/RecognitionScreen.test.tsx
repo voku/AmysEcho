@@ -186,6 +186,7 @@ const recognitionStateModule = require('../../src/hooks/useRecognitionState') as
 };
 const { AmyLoopTimeline } = require('../../src/components/AmyLoopTimeline');
 const ActionButtonComponent = require('../../src/components/ActionButton').default;
+const { Text } = require('react-native');
 
 describe('RecognitionScreen Amy-first overlay', () => {
   afterEach(() => {
@@ -206,22 +207,20 @@ describe('RecognitionScreen Amy-first overlay', () => {
     return component;
   };
 
-  it('renders the loop timeline and advances stages as gestures resolve', async () => {
+  it('zeigt den reduzierten Kopfbereich ohne Timeline, aber mit Statuschip', async () => {
     const component = await renderRecognitionScreen();
-    const timeline = component.root.findByType(AmyLoopTimeline);
-    expect(timeline.props.activeStage).toBe('see');
+    const timelines = component.root.findAllByType(AmyLoopTimeline);
+    expect(timelines).toHaveLength(0);
 
-    await act(async () => {
-      recognitionStateModule.__setMockLastRecognizedGesture?.({
-        id: 'hallo',
-        label: 'Hallo',
-        emoji: '👋',
-        category: 'greeting',
-      });
-    });
+    const statusLabelNodes = component.root.findAll(
+      (node) => node.type === Text && node.props.children === 'Hört zu…',
+    );
+    expect(statusLabelNodes.length).toBeGreaterThan(0);
 
-    const updatedTimeline = component.root.findByType(AmyLoopTimeline);
-    expect(updatedTimeline.props.activeStage).toBe('confirm');
+    const subtitleNodes = component.root.findAll(
+      (node) => node.type === Text && node.props.children === 'Ich höre zu…',
+    );
+    expect(subtitleNodes).toHaveLength(0);
   });
 
   it('displays Amy-first action buttons for confirmation, learning, and alternatives', async () => {
@@ -268,5 +267,23 @@ describe('RecognitionScreen Amy-first overlay', () => {
       mockGestureMeaningDisplay.mock.calls[mockGestureMeaningDisplay.mock.calls.length - 1];
     const lastCallProps = lastCall?.[0];
     expect(lastCallProps?.tone).toBe('camera');
+
+    const selfDiscoveryMessageNodes = component.root.findAll(
+      (node) =>
+        node.type === Text &&
+        node.props.children ===
+          'Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Geste gleich als Stimme und Symbol zurück.',
+    );
+    expect(selfDiscoveryMessageNodes.length).toBeGreaterThan(0);
+
+    const statusChipNodes = component.root.findAll(
+      (node) => node.type === Text && node.props.children === 'Selbstentdeckung',
+    );
+    expect(statusChipNodes.length).toBeGreaterThan(0);
+
+    const ribbonLabelNodes = component.root.findAll(
+      (node) => node.type === Text && node.props.children === "Amy's Echo",
+    );
+    expect(ribbonLabelNodes.length).toBeGreaterThan(0);
   });
 });

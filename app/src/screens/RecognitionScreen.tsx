@@ -30,7 +30,6 @@ import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
 import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import HandLandmarkPreview from '../components/HandLandmarkPreview';
-import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import {
   cloneLandmarks,
   adjustHandednessForMirror,
@@ -41,7 +40,6 @@ import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import { triggerSpeakAndShow } from '../services/feedbackService';
-import { AmyLoopTimeline, type LoopStageKey } from '../components/AmyLoopTimeline';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 
 const DEFAULT_FRAME_WIDTH = 640;
@@ -68,24 +66,24 @@ const CAMERA_THEME = {
   capturePulseOpacity: 0.55,
   cameraHint: Colors.cameraGuideText,
   cameraHintMuted: Colors.cameraGuideTextMuted,
-  predictionCardBackground: Colors.overlayBadgeBackground,
+  predictionCardBackground: 'rgba(255, 255, 255, 0.92)',
   predictionCardBorder: Colors.overlayBadgeBorder,
   predictionCardText: Colors.neutral,
   actionButtons: {
     confirm: {
-      background: Colors.actionPrimaryBackground,
-      pressed: Colors.actionPrimaryPressed,
-      text: Colors.actionPrimaryText,
+      background: Colors.cameraActionConfirmBackground,
+      pressed: Colors.cameraActionConfirmPressed,
+      text: Colors.cameraActionConfirmText,
     },
     learn: {
-      background: Colors.actionSecondaryBackground,
-      pressed: Colors.actionSecondaryPressed,
-      text: Colors.actionSecondaryText,
+      background: Colors.cameraActionLearnBackground,
+      pressed: Colors.cameraActionLearnPressed,
+      text: Colors.cameraActionLearnText,
     },
     alternatives: {
-      background: Colors.actionTertiaryBackground,
-      pressed: Colors.actionTertiaryPressed,
-      text: Colors.actionTertiaryText,
+      background: Colors.cameraActionAlternativesBackground,
+      pressed: Colors.cameraActionAlternativesPressed,
+      text: Colors.cameraActionAlternativesText,
     },
   },
 } as const;
@@ -113,10 +111,10 @@ const STATUS_COPY: Record<RecognitionStatusCategory, { label: string; descriptio
   },
   listening: {
     label: 'Hört zu…',
-    description: 'Amy fokussiert deine Handgeste.',
+    description: '',
   },
   recognized: {
-    label: 'Versteht dich',
+    label: 'Selbstentdeckung',
     description: 'Amy bereitet die passende Antwort vor.',
   },
   updating: {
@@ -165,6 +163,9 @@ const toGestureImageCapture = (
     timestamp,
   };
 };
+
+const SELF_DISCOVERY_MESSAGE =
+  'Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Geste gleich als Stimme und Symbol zurück.';
 
 export default function RecognitionScreen({
   navigation,
@@ -554,6 +555,9 @@ export default function RecognitionScreen({
   const statusLabel = statusCopy.label;
   const statusDescription = status?.trim().length ? status : statusCopy.description;
 
+  const showStatusSubtitle =
+    statusDescription.length > 0 && statusCategory !== 'listening';
+
   const bannerMessage = useMemo(() => {
     if (error) {
       return error;
@@ -572,37 +576,6 @@ export default function RecognitionScreen({
   }, [error, statusCategory]);
 
   const bannerVisible = Boolean(bannerMessage);
-
-  const loopStage = useMemo<LoopStageKey>(() => {
-    if (modelUpdateStatus === 'updating' || normalizedStatus.includes('lerne')) {
-      return 'learn';
-    }
-    if (normalizedStatus.includes('modell einsatzbereit')) {
-      return 'learn';
-    }
-    if (showCelebration) {
-      return 'speak';
-    }
-    if (gestureMeaningDisplayProps) {
-      return showOpenaiFeedback ? 'think' : 'confirm';
-    }
-    if (
-      showOpenaiFeedback ||
-      normalizedStatus.includes('fokussiere') ||
-      normalizedStatus.includes('suche') ||
-      normalizedStatus.includes('warte') ||
-      normalizedStatus.includes('prüfe')
-    ) {
-      return 'think';
-    }
-    return 'see';
-  }, [
-    gestureMeaningDisplayProps,
-    modelUpdateStatus,
-    normalizedStatus,
-    showCelebration,
-    showOpenaiFeedback,
-  ]);
 
   const handleConfirmGesture = useCallback(() => {
     if (!gestureMeaningDisplayProps) {
@@ -668,22 +641,22 @@ export default function RecognitionScreen({
                   {statusLabel}
                 </Text>
               </View>
-              <Text
-                style={[
-                  styles.statusSubtitle,
-                  { color: STATUS_CHIP_TEXT[statusCategory] },
-                ]}
-              >
-                {statusDescription}
-              </Text>
-              <View style={styles.loopWrapper}>
-                <AmyLoopTimeline
-                  activeStage={loopStage}
-                  mode="overlay"
-                  compact
-                  hideDescriptions
-                />
-              </View>
+              {showStatusSubtitle ? (
+                <Text
+                  style={[
+                    styles.statusSubtitle,
+                    { color: STATUS_CHIP_TEXT[statusCategory] },
+                  ]}
+                >
+                  {statusDescription}
+                </Text>
+              ) : null}
+              {statusCategory === 'recognized' ? (
+                <View style={styles.selfDiscoveryPanel} accessibilityRole="text">
+                  <Text style={styles.selfDiscoveryLabel}>Amy&apos;s Echo</Text>
+                  <Text style={styles.selfDiscoveryMessage}>{SELF_DISCOVERY_MESSAGE}</Text>
+                </View>
+              ) : null}
               {bannerVisible ? (
                 <View style={styles.bannerWrapper}>
                   <FeedbackBanner visible={bannerVisible} message={bannerMessage!} tone={bannerTone} />
@@ -693,8 +666,7 @@ export default function RecognitionScreen({
 
             <View style={styles.cameraZone}>
               <CameraFrame capturePulseAnim={capturePulseAnim} pulseOpacity={CAMERA_THEME.capturePulseOpacity} />
-              <Text style={styles.cameraHint}>Hand im Rahmen halten</Text>
-              <Text style={styles.cameraHintSecondary}>Amy reagiert sofort auf deine Geste.</Text>
+              <Text style={styles.cameraHint}>Selbstentdeckung beginnt im Rahmen – Hand ruhig halten</Text>
             </View>
 
             <View style={styles.bottomSection}>
@@ -716,7 +688,7 @@ export default function RecognitionScreen({
                 <View style={styles.predictionPlaceholder}>
                   <Text style={styles.predictionPlaceholderTitle}>Zeig Amy deine Geste</Text>
                   <Text style={styles.predictionPlaceholderSubtitle}>
-                    Sobald Amy dich versteht, erscheint hier die passende Antwort.
+                    Sobald Amy dich entdeckt, erscheint hier deine Stimme.
                   </Text>
                 </View>
               )}
@@ -727,7 +699,9 @@ export default function RecognitionScreen({
                     label="Stimmt"
                     accessibilityLabel="Gestenerkennung bestätigen"
                     onPress={handleConfirmGesture}
-                    variant="primary"
+                    backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
+                    pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
+                    textColor={CAMERA_THEME.actionButtons.confirm.text}
                     style={styles.actionButton}
                   />
                 </View>
@@ -736,7 +710,9 @@ export default function RecognitionScreen({
                     label="Lernen"
                     accessibilityLabel="Lernmodus öffnen"
                     onPress={handleLearnPress}
-                    variant="secondary"
+                    backgroundColor={CAMERA_THEME.actionButtons.learn.background}
+                    pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
+                    textColor={CAMERA_THEME.actionButtons.learn.text}
                     style={styles.actionButton}
                   />
                 </View>
@@ -745,13 +721,13 @@ export default function RecognitionScreen({
                     label="Alternativen"
                     accessibilityLabel="Alternativen anzeigen"
                     onPress={handleAlternativesPress}
-                    variant="accent"
+                    backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
+                    pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
+                    textColor={CAMERA_THEME.actionButtons.alternatives.text}
                     style={styles.actionButton}
                   />
                 </View>
               </View>
-
-              <WorkflowSupportLinks tone="dark" />
             </View>
           </View>
         </View>
@@ -788,16 +764,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  loopWrapper: {
-    width: '100%',
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-  },
   statusChip: {
     paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.sm,
-    borderRadius: 999,
-    minHeight: 52,
+    borderRadius: 28,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: Colors.shadow,
@@ -818,6 +789,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 420,
   },
+  selfDiscoveryPanel: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing['2xl'],
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: Colors.overlayBorder,
+    backgroundColor: Colors.overlaySurfaceMuted,
+    gap: spacing.xs,
+    alignItems: 'center',
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  selfDiscoveryLabel: {
+    fontSize: typography.sizes.caption,
+    fontWeight: typography.weights.semibold as any,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: Colors.overlayTextMuted,
+  },
+  selfDiscoveryMessage: {
+    fontSize: typography.sizes.body,
+    color: Colors.overlayText,
+    textAlign: 'center',
+    lineHeight: typography.lineHeights.relaxed,
+  },
   bannerWrapper: {
     width: '100%',
   },
@@ -832,11 +832,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.bodyLg,
     fontWeight: typography.weights.semibold as any,
     color: CAMERA_THEME.cameraHint,
-    textAlign: 'center',
-  },
-  cameraHintSecondary: {
-    fontSize: typography.sizes.caption,
-    color: CAMERA_THEME.cameraHintMuted,
     textAlign: 'center',
   },
   bottomSection: {

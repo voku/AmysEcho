@@ -65,6 +65,15 @@ const colors = {
   actionTertiaryPressed: '#0D2729',
   actionTertiaryText: '#F2E7DC',
   actionDisabledBackground: 'rgba(20, 54, 58, 0.32)',
+  cameraActionConfirmBackground: '#E5E0CF',
+  cameraActionConfirmPressed: '#D9D2BD',
+  cameraActionConfirmText: '#002C2C',
+  cameraActionLearnBackground: '#25706F',
+  cameraActionLearnPressed: '#1E5B5B',
+  cameraActionLearnText: '#E5E0CF',
+  cameraActionAlternativesBackground: '#1C4A4B',
+  cameraActionAlternativesPressed: '#143637',
+  cameraActionAlternativesText: '#E5E0CF',
 
   /**
    * Status styling for the listening loop
@@ -91,6 +100,11 @@ const colors = {
   historyBadgeHigh: '#0F915E',
   historyBadgeMedium: '#CC8A29',
   historyBadgeLow: '#D95141',
+  historyHighlightBackground: 'rgba(255, 255, 255, 0.95)',
+  historyHighlightBorder: 'rgba(253, 241, 221, 0.48)',
+  historyHighlightBadge: 'rgba(253, 241, 221, 0.72)',
+  historyHighlightText: '#0D3A3D',
+  historyHighlightMuted: '#355F63',
 } as const;
 
 export type ColorName = keyof typeof colors;

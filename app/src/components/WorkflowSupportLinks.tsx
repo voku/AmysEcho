@@ -67,7 +67,7 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
           largeText && styles.subtitleLarge,
         ]}
       >
-        Direkt zum Elternbereich, zu Einstellungen oder zum Support springen.
+        Direkt zum Familienbereich, zu Einstellungen, Admin oder Support springen.
       </Text>
       <View style={styles.linksWrapper}>
         {WORKFLOW_SUPPORT_DESTINATIONS.map((destination) => (

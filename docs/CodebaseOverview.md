@@ -9,8 +9,10 @@ This document summarizes the repository in key areas with concrete file referenc
 - Navigation and screens are in `app/src/screens/`
 - Services and hooks are in `app/src/services/` and `app/src/hooks/`
 - Global state management is handled by React Contexts in `app/src/context/`
-- Brand theming is centralised in `app/src/constants/colors.ts`, `typography.ts` and `themes.ts`; the default `amyEcho` theme powers the rebranded Kamera → Verstehen → Lernen loop (die einzigen Tabs in der App: `Kamera`, `Verstehen`, `Lernen`).
-- Workflow metadata for the Kamera → Verstehen → Lernen loop now lives in `app/src/constants/workflow.ts`, providing navigation labels, hints, and icon choices alongside the caregiver/support destinations consumed by `WorkflowSupportLinks` and the stage copy surfaced by `WorkflowStageHeader`.
+- Brand theming is centralised in `app/src/constants/colors.ts`, `typography.ts` and `themes.ts`; the default `amyEcho` theme powers die Kamera → Verlauf → Lernen-Schleife (die einzigen Tabs in der App: `Kamera`, `Verlauf`, `Lernen`).
+- Workflow metadata for the Kamera → Verlauf → Lernen-Schleife now lives in `app/src/constants/workflow.ts`, providing navigation labels, hints, and icon choices alongside the caregiver/support destinations consumed by `WorkflowSupportLinks` und den Textbausteinen für `WorkflowStageHeader`.
+- Die Kameraschleife selbst wird in `app/src/screens/RecognitionScreen.tsx` inzwischen als reduziertes Overlay dargestellt: Statuschip + Kamera-Rahmen + drei Handlungsbuttons („Stimmt“, „Lernen“, „Alternativen“). Im Erfolgsfall blendet ein `Selbstentdeckung`-Ribbon den narrativen Moment ein, während die detaillierte Timeline für erklärende Flächen wie Hero und Onboarding reserviert bleibt.
+- `app/src/screens/HistoryScreen.tsx` erweitert den Verlauf um eine "Selbstentdeckung gesichert"-Highlight-Karte, die den zuletzt sicher erkannten Moment feiert und direkte Aktionen zurück zur Kamera oder in den Lernmodus anbietet. Karten im Verlauf nutzen das gleiche Vokabular („Selbstentdeckung bestätigt“, „Noch unsicher“, „Bitte prüfen“) und erzählen zu jedem Eintrag eine kurze Folgehandlung.
 
 ## 2. Gesture Recognition Pipeline
 - `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.

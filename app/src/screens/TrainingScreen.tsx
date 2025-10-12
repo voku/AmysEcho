@@ -36,7 +36,8 @@ import PracticeSessionManager from '../components/PracticeSessionManager';
 import { positiveTelemetryService } from '../services/positiveTelemetryService';
 import type { ClipReadyPayload, FrameBatchPayload } from '../types/frames';
 import ScreenBackground from '../components/ScreenBackground';
-import { AmyLoopTimeline, type LoopStageKey } from '../components/AmyLoopTimeline';
+import { AmyLoopTimeline } from '../components/AmyLoopTimeline';
+import type { WorkflowRouteName } from '../constants/workflow';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
@@ -203,23 +204,23 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const detectionActive = now - lastDetection < 1000;
 
-  const trainingLoopStage = useMemo<LoopStageKey>(() => {
+  const trainingLoopStage = useMemo<WorkflowRouteName>(() => {
     if (error) {
-      return 'think';
+      return 'Recognition';
     }
     if (!gestureId) {
-      return 'see';
+      return 'Lernen';
     }
     if (isRecording) {
-      return 'see';
+      return 'Recognition';
     }
     if (framesCaptured > 0 && !isRecording) {
-      return 'confirm';
+      return 'History';
     }
     if (count > 0) {
-      return 'learn';
+      return 'Lernen';
     }
-    return 'speak';
+    return 'Recognition';
   }, [count, error, framesCaptured, gestureId, isRecording]);
 
   // Local frame processor removed; remote fallback below now drives landmark updates.
