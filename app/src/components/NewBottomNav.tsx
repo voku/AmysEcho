@@ -7,24 +7,9 @@ import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import { useAccessibility } from './AccessibilityContext';
 import { childFriendlyStyles } from '../styles/touchTargets';
-
-const ROUTE_LABELS: Record<string, string> = {
-  Recognition: 'Kamera',
-  History: 'Verstehen',
-  Lernen: 'Lernen',
-};
-
-const ROUTE_HINTS: Record<string, string> = {
-  Recognition: 'Zur Gestenkamera wechseln',
-  History: 'Letzte Gesten und Einblicke prüfen',
-  Lernen: 'Trainings- und Lernbereich öffnen',
-};
-
-const ROUTE_ICONS: Record<string, string> = {
-  Recognition: '🖐️',
-  History: '💬',
-  Lernen: '🧠',
-};
+import { useTheme } from '../context/ThemeContext';
+import { DEFAULT_THEME, THEMES } from '../constants/themes';
+import { getWorkflowStepMeta, isWorkflowRouteName } from '../constants/workflow';
 
 const TAB_BAR_HEIGHT = 76;
 
@@ -37,38 +22,67 @@ interface TabItem {
   isFocused: boolean;
   onPress: () => void;
   hint: string | undefined;
+  accessibilityLabel: string;
 }
 
 const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const { highContrast, largeText } = useAccessibility();
+  const fallbackTheme = THEMES[DEFAULT_THEME] ?? Object.values(THEMES)[0];
+  if (!fallbackTheme) {
+    throw new Error('Kein Theme konfiguriert');
+  }
+
+  let theme = fallbackTheme;
+  try {
+    const context = useTheme();
+    theme = context.theme ?? fallbackTheme;
+  } catch {
+    theme = fallbackTheme;
+  }
+
+  const themeColors = theme.colors;
+  const containerBackground = highContrast
+    ? COLORS.highContrastBackground
+    : themeColors.themePrimary ?? themeColors.primary ?? COLORS.neutral;
+  const activeBackground = highContrast
+    ? COLORS.highContrastText
+    : themeColors.themeSecondary ?? COLORS.actionSecondaryBackground;
+  const activeColor = highContrast
+    ? COLORS.highContrastBackground
+    : themeColors.surface ?? COLORS.actionPrimaryBackground;
+  const indicatorColor = highContrast
+    ? COLORS.highContrastBackground
+    : themeColors.themeAccent ?? COLORS.actionPrimaryBackground;
+  const inactiveColor = highContrast ? COLORS.highContrastText : COLORS.overlayTextSoft;
+  const rippleColor = highContrast ? COLORS.highContrastText : COLORS.overlaySurface;
 
   const containerStyle = [
     styles.container,
     {
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.neutral,
+      backgroundColor: containerBackground,
       borderColor: highContrast ? COLORS.highContrastText : 'transparent',
       shadowColor: highContrast ? COLORS.highContrastText : COLORS.shadow,
     },
   ];
 
-  const inactiveColor = highContrast ? COLORS.highContrastText : COLORS.overlayTextSoft;
-  const activeColor = highContrast
-    ? COLORS.highContrastBackground
-    : COLORS.actionPrimaryBackground;
-  const activeBackground = highContrast ? COLORS.highContrastText : COLORS.actionSecondaryBackground;
-  const rippleColor = highContrast ? COLORS.highContrastText : COLORS.overlaySurface;
-
   const items = useMemo<TabItem[]>(() => {
     return state.routes.map((route, index) => {
       const isFocused = state.index === index;
       const options = descriptors[route.key]?.options ?? {};
+      const workflowMeta = isWorkflowRouteName(route.name)
+        ? getWorkflowStepMeta(route.name)
+        : undefined;
       const label =
         options.tabBarLabel?.toString() ??
         options.title ??
-        ROUTE_LABELS[route.name] ??
+        workflowMeta?.label ??
         route.name;
-      const icon = ROUTE_ICONS[route.name] ?? '⬤';
-      const hint = ROUTE_HINTS[route.name];
+      const icon = workflowMeta?.icon ?? '⬤';
+      const hint = workflowMeta?.accessibilityHint;
+      const accessibilityLabel =
+        options.tabBarAccessibilityLabel?.toString() ??
+        workflowMeta?.accessibilityLabel ??
+        label;
       const params = state.routes[index]?.params;
 
       const onPress = () => {
@@ -83,13 +97,13 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
         }
       };
 
-      return { route, label, icon, isFocused, onPress, hint } satisfies TabItem;
+      return { route, label, icon, isFocused, onPress, hint, accessibilityLabel } satisfies TabItem;
     });
   }, [descriptors, navigation, state]);
 
   return (
     <View style={containerStyle}>
-      {items.map(({ route, label, icon, isFocused, onPress, hint }) => (
+      {items.map(({ route, label, icon, isFocused, onPress, hint, accessibilityLabel }) => (
         <Pressable
           key={route.key}
           onPress={onPress}
@@ -100,7 +114,7 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
             pressed && (highContrast ? styles.tabPressedHighContrast : styles.tabPressed),
           ]}
           accessibilityRole="tab"
-          accessibilityLabel={label}
+          accessibilityLabel={accessibilityLabel}
           accessibilityHint={hint}
           accessibilityState={{ selected: isFocused }}
           android_ripple={{ color: rippleColor }}
@@ -124,7 +138,7 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
           >
             {label}
           </Text>
-          {isFocused ? <View style={styles.activeIndicator} /> : null}
+          {isFocused ? <View style={[styles.activeIndicator, { backgroundColor: indicatorColor }]} /> : null}
         </Pressable>
       ))}
     </View>

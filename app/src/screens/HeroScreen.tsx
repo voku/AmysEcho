@@ -9,6 +9,7 @@ import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
+import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 
 type HeroScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'Hero'>;
@@ -50,6 +51,8 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
             style={styles.ctaButton}
           />
         </View>
+
+        <WorkflowSupportLinks style={styles.supportLinks} />
       </View>
     </ScreenBackground>
   );
@@ -101,6 +104,9 @@ const styles = StyleSheet.create({
   },
   ctaButton: {
     flex: 1,
+  },
+  supportLinks: {
+    marginTop: spacing['2xl'],
   },
 });
 

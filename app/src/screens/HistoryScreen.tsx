@@ -8,6 +8,7 @@ import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { TabNavigationProp } from '../navigation/types';
+import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 
 const CONFIDENCE_THRESHOLD_STRONG = 0.75;
 const CONFIDENCE_THRESHOLD_MEDIUM = 0.5;
@@ -132,6 +133,7 @@ const HistoryScreen: React.FC = () => {
             <Text style={styles.emptyText}>Noch keine Einträge. Sobald Amy gestikuliert, siehst du es hier.</Text>
           </View>
         }
+        ListFooterComponent={<WorkflowSupportLinks style={styles.supportLinks} />}
       />
     </LinearGradient>
   );
@@ -157,6 +159,9 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: spacing['2xl'],
     gap: spacing.lg,
+  },
+  supportLinks: {
+    marginTop: spacing['2xl'],
   },
   card: {
     backgroundColor: Colors.overlayBadgeBackground,

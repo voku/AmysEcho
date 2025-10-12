@@ -7,6 +7,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { AppTabsParamList, RootStackParamList } from './types';
 import LoadingIndicator from '../components/LoadingIndicator';
 import NewBottomNav from '../components/NewBottomNav';
+import { getWorkflowStepMeta } from '../constants/workflow';
 
 const lazyScreen = (
   factory: () => Promise<any>,
@@ -42,6 +43,14 @@ const HelpScreen = lazyScreen(() => import('../screens/HelpScreen'));
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
+const workflowOptions = <RouteName extends keyof AppTabsParamList>(routeName: RouteName) => {
+  const meta = getWorkflowStepMeta(routeName);
+  return {
+    tabBarLabel: meta.label,
+    tabBarAccessibilityLabel: meta.accessibilityLabel ?? meta.accessibilityHint ?? routeName,
+  };
+};
+
 const AppTabs = ({
   route,
 }: {
@@ -60,26 +69,17 @@ const AppTabs = ({
       <Tab.Screen
         name="Recognition"
         component={RecognitionScreen}
-        options={{
-          tabBarLabel: 'Kamera',
-          tabBarAccessibilityLabel: 'Zur Gestenkamera wechseln',
-        }}
+        options={workflowOptions('Recognition')}
       />
       <Tab.Screen
         name="History"
         component={HistoryScreen}
-        options={{
-          tabBarLabel: 'Verstehen',
-          tabBarAccessibilityLabel: 'Verlauf und Einblicke ansehen',
-        }}
+        options={workflowOptions('History')}
       />
       <Tab.Screen
         name="Lernen"
         component={LernenScreen}
-        options={{
-          tabBarLabel: 'Lernen',
-          tabBarAccessibilityLabel: 'Trainings- und Lernbereich öffnen',
-        }}
+        options={workflowOptions('Lernen')}
       />
     </Tab.Navigator>
   );
