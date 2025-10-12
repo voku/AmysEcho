@@ -58,6 +58,7 @@ describe('GestureMeaningDisplay', () => {
 
     expect(getByText('✨')).toBeTruthy();
     expect(getGestureByIdSpy).toHaveBeenCalledWith('openai-gesture');
+    expect(getByText('Feedback: Sehr klar ausgeführt')).toBeTruthy();
   });
 
   it('shows single-hand metadata when available', () => {
@@ -83,7 +84,7 @@ describe('GestureMeaningDisplay', () => {
 
     expect(getByText('👋')).toBeTruthy();
     expect(getByText('👋 Hallo')).toBeTruthy();
-    expect(getByText('COMMUNICATION')).toBeTruthy();
+    expect(getByText('Kategorie: COMMUNICATION')).toBeTruthy();
     expect(getByText('DGS-Video verfügbar')).toBeTruthy();
   });
 
@@ -115,9 +116,9 @@ describe('GestureMeaningDisplay', () => {
 
     expect(getByText('Gestenfolge erkannt')).toBeTruthy();
     expect(getByText('Ich hab dich lieb')).toBeTruthy();
-    expect(getByText(/👉 Ich/)).toBeTruthy();
-    expect(getByText(/❤️ Liebe/)).toBeTruthy();
-    expect(getByText(/🫵 Dich/)).toBeTruthy();
+    expect(
+      getByText('Schritte: 👉 Ich → ❤️ Liebe → 🫵 Dich'),
+    ).toBeTruthy();
   });
 
   it('rendert die Overlay-Stile im Standardmodus visuell konsistent', () => {
