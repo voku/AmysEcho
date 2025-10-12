@@ -4,6 +4,8 @@ import renderer, { act } from 'react-test-renderer';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import NewBottomNav from '../src/components/NewBottomNav';
 
+type RouteParams = Partial<Record<'Recognition' | 'History' | 'Lernen', Record<string, unknown>>>;
+
 type TestNavigation = {
   emit: jest.Mock<[{ defaultPrevented: boolean }?, any?], any>;
   navigate: jest.Mock;
@@ -14,11 +16,11 @@ type BuildResult = {
   navigation: TestNavigation;
 };
 
-const buildProps = (activeIndex = 0): BuildResult => {
+const buildProps = (activeIndex = 0, params: RouteParams = {}): BuildResult => {
   const routes = [
-    { key: 'Recognition', name: 'Recognition' as const },
-    { key: 'History', name: 'History' as const },
-    { key: 'Lernen', name: 'Lernen' as const },
+    { key: 'Recognition', name: 'Recognition' as const, params: params.Recognition },
+    { key: 'History', name: 'History' as const, params: params.History },
+    { key: 'Lernen', name: 'Lernen' as const, params: params.Lernen },
   ];
 
   const navigation: TestNavigation = {
@@ -74,6 +76,13 @@ describe('NewBottomNav', () => {
     const labels = pressables.map(p => p.props.accessibilityLabel);
     expect(labels).toEqual(['Kamera', 'Verlauf', 'Lernen']);
 
+    const hints = pressables.map(p => p.props.accessibilityHint);
+    expect(hints).toEqual([
+      'Zurück zur Gestenerkennung',
+      'Gestenverlauf und Ereignisse ansehen',
+      'Gesten aufnehmen oder üben',
+    ]);
+
     const selectedStates = pressables.map(p => p.props.accessibilityState?.selected ?? false);
     expect(selectedStates).toEqual([true, false, false]);
   });
@@ -93,7 +102,7 @@ describe('NewBottomNav', () => {
     expect(navigation.emit).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'tabPress', target: 'History' }),
     );
-    expect(navigation.navigate).toHaveBeenCalledWith('History');
+    expect(navigation.navigate).toHaveBeenCalledWith('History', undefined);
   });
 
   it('does not navigate when the tab is already focused', () => {
@@ -109,5 +118,23 @@ describe('NewBottomNav', () => {
     });
 
     expect(navigation.navigate).not.toHaveBeenCalled();
+  });
+
+  it('preserves route params when navigating between tabs', () => {
+    const routeParams: RouteParams = {
+      Recognition: { profileId: 'amy', simulateLowConfidence: true },
+    };
+    const { props, navigation } = buildProps(1, routeParams);
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(<NewBottomNav {...props} />);
+    });
+    const pressables = (component as renderer.ReactTestRenderer).root.findAllByType(Pressable);
+
+    act(() => {
+      pressables[0].props.onPress();
+    });
+
+    expect(navigation.navigate).toHaveBeenCalledWith('Recognition', routeParams.Recognition);
   });
 });
