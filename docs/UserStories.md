@@ -17,6 +17,7 @@ Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen-Sch
   1. From **ProfileManager** oder **ProfileSelect** ein bestehendes Profil auswählen.
   2. Die barrierefreien Einstellungen werden geladen und die App landet im Tab **Kamera** (Recognition).
   3. Weitere Optionen wie Familienbereich, Einstellungen oder Admin werden über die `WorkflowSupportLinks` nach dem Sicherheitsgate geöffnet.
+  4. Fortgeschrittene Betreuungstools (vertrauenswürdiges Gerät, Gestengrößen-Toleranz, Erfolgsfeedback, Gestenverlauf) sind in aufklappbaren Abschnitten gebündelt, damit die Profilübersicht jederzeit sichtbar bleibt.
 
 ## 3. Amy Communicates a Sign
 - **Story**: As Amy, I want my gesture to be recognised quickly so I can express myself.
