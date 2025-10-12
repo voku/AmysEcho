@@ -31,7 +31,7 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
   );
 
   const renderItem = ({ item }: { item: GestureListItem }) => (
-    <View style={styles.card} accessible>
+    <View style={styles.card}>
       <View style={styles.cardInfo}>
         <Text style={styles.cardEmoji}>{item.emoji ?? '🤲'}</Text>
         <View style={styles.cardText}>
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 5,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.22)',
+    borderColor: Colors.overlaySurface,
   },
   cardInfo: {
     flexDirection: 'row',

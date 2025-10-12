@@ -70,7 +70,7 @@ const AppTabs = ({
         component={HistoryScreen}
         options={{
           tabBarLabel: 'Verstehen',
-          tabBarAccessibilityLabel: 'Verlauf und Insights ansehen',
+          tabBarAccessibilityLabel: 'Verlauf und Einblicke ansehen',
         }}
       />
       <Tab.Screen

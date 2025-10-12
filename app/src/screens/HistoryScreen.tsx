@@ -86,7 +86,7 @@ const HistoryScreen: React.FC = () => {
     const timestamp = formatTimestamp(item.timestamp);
     const category = item.category?.toUpperCase() ?? 'GESTE';
     return (
-      <View style={styles.card} accessible accessibilityRole="summary">
+      <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.emojiBubble}>
             <Text style={styles.emoji}>{item.emoji || '✋'}</Text>
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 5,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.28)',
+    borderColor: Colors.overlayBorder,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: Colors.overlaySurfaceSoft,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.lg,
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
     borderRadius: 999,
-    backgroundColor: 'rgba(15, 82, 87, 0.16)',
+    backgroundColor: Colors.actionSecondaryBackgroundMuted,
   },
   quickLearnText: {
     fontSize: typography.sizes.caption,

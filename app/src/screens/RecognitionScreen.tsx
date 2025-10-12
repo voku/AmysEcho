@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import ActionButton from '../components/ActionButton';
 import FeedbackBanner from '../components/FeedbackBanner';
+import CameraFrame from '../components/CameraFrame';
 import { logger } from '../utils/logger';
 import { loadProfile } from '../storage';
 import { buildLocalCentroids } from '../services/localCentroids';
@@ -44,8 +45,6 @@ import { OneEuroFilter } from '../services/OneEuroFilter';
 
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
-const CAPTURE_PULSE_SIZE = spacing['2xl'] * 5;
-
 type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating' | 'error';
 
 const CAMERA_THEME = {
@@ -65,13 +64,11 @@ const CAMERA_THEME = {
     updating: Colors.statusLearningText,
     error: Colors.statusErrorText,
   } satisfies Record<RecognitionStatusCategory, string>,
-  capturePulseBorder: Colors.capturePulseBorder,
   capturePulseOpacity: 0.55,
-  frameCorner: Colors.frameCorner,
   cameraHint: Colors.cameraGuideText,
   cameraHintMuted: Colors.cameraGuideTextMuted,
   predictionCardBackground: Colors.overlayBadgeBackground,
-  predictionCardBorder: 'rgba(19, 70, 76, 0.16)',
+  predictionCardBorder: Colors.overlayBadgeBorder,
   predictionCardText: Colors.neutral,
   actionButtons: {
     confirm: {
@@ -694,7 +691,7 @@ export default function RecognitionScreen({
             </View>
 
             <View style={styles.cameraZone}>
-              <CameraFrame capturePulseAnim={capturePulseAnim} />
+              <CameraFrame capturePulseAnim={capturePulseAnim} pulseOpacity={CAMERA_THEME.capturePulseOpacity} />
               <Text style={styles.cameraHint}>Hand im Rahmen halten</Text>
               <Text style={styles.cameraHintSecondary}>Amy reagiert sofort auf deine Geste.</Text>
             </View>
@@ -771,28 +768,6 @@ export default function RecognitionScreen({
   );
 }
 
-type CameraFrameProps = {
-  capturePulseAnim: Animated.Value;
-};
-
-const CameraFrame = React.memo(({ capturePulseAnim }: CameraFrameProps) => (
-  <View style={styles.cameraFrame}>
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.capturePulse,
-        {
-          transform: [{ scale: capturePulseAnim }],
-        },
-      ]}
-    />
-    <View style={[styles.corner, styles.cornerTopLeft]} />
-    <View style={[styles.corner, styles.cornerTopRight]} />
-    <View style={[styles.corner, styles.cornerBottomLeft]} />
-    <View style={[styles.corner, styles.cornerBottomRight]} />
-  </View>
-));
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -849,58 +824,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  cameraFrame: {
-    width: '88%',
-    aspectRatio: 3 / 4,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: 'rgba(253, 241, 221, 0.35)',
-    overflow: 'hidden',
-  },
-  capturePulse: {
-    position: 'absolute',
-    width: CAPTURE_PULSE_SIZE,
-    height: CAPTURE_PULSE_SIZE,
-    borderRadius: CAPTURE_PULSE_SIZE / 2,
-    borderWidth: 2,
-    borderColor: CAMERA_THEME.capturePulseBorder,
-    opacity: CAMERA_THEME.capturePulseOpacity,
-  },
-  corner: {
-    position: 'absolute',
-    width: spacing['2xl'],
-    height: spacing['2xl'],
-    borderColor: CAMERA_THEME.frameCorner,
-    borderWidth: spacing.xs,
-  },
-  cornerTopLeft: {
-    top: spacing.lg,
-    left: spacing.lg,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-  },
-  cornerTopRight: {
-    top: spacing.lg,
-    right: spacing.lg,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-  },
-  cornerBottomLeft: {
-    bottom: spacing.lg,
-    left: spacing.lg,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-  },
-  cornerBottomRight: {
-    bottom: spacing.lg,
-    right: spacing.lg,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-  },
   cameraHint: {
     marginTop: spacing.lg,
     fontSize: typography.sizes.bodyLg,
@@ -932,12 +855,12 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   predictionPlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.overlayPlaceholderBackground,
     borderRadius: 24,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing['2xl'],
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.24)',
+    borderColor: Colors.overlayPlaceholderBorder,
     alignItems: 'center',
     gap: spacing.sm,
   },

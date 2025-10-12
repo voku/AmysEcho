@@ -16,7 +16,7 @@ const ROUTE_LABELS: Record<string, string> = {
 
 const ROUTE_HINTS: Record<string, string> = {
   Recognition: 'Zur Gestenkamera wechseln',
-  History: 'Letzte Gesten und Insights prüfen',
+  History: 'Letzte Gesten und Einblicke prüfen',
   Lernen: 'Trainings- und Lernbereich öffnen',
 };
 
@@ -51,14 +51,12 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
     },
   ];
 
-  const inactiveColor = highContrast
-    ? COLORS.highContrastText
-    : 'rgba(255, 255, 255, 0.68)';
+  const inactiveColor = highContrast ? COLORS.highContrastText : COLORS.overlayTextSoft;
   const activeColor = highContrast
     ? COLORS.highContrastBackground
     : COLORS.actionPrimaryBackground;
   const activeBackground = highContrast ? COLORS.highContrastText : COLORS.actionSecondaryBackground;
-  const rippleColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.22)';
+  const rippleColor = highContrast ? COLORS.highContrastText : COLORS.overlaySurface;
 
   const items = useMemo<TabItem[]>(() => {
     return state.routes.map((route, index) => {

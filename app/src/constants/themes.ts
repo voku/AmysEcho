@@ -63,7 +63,7 @@ export const AMY_ECHO_THEME: Theme = {
     border: Colors.outline,
     borderLight: Colors.outlineMuted,
     pressed: Colors.actionSecondaryPressed,
-    disabled: 'rgba(20, 54, 58, 0.32)',
+    disabled: Colors.actionDisabledBackground,
     gradientStart: Colors.backgroundStart,
     gradientEnd: Colors.backgroundEnd,
     themePrimary: Colors.primary,

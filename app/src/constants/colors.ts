@@ -34,9 +34,14 @@ const colors = {
   overlay: 'rgba(12, 56, 60, 0.28)',
   overlaySurface: 'rgba(255, 255, 255, 0.22)',
   overlaySurfaceMuted: 'rgba(255, 255, 255, 0.12)',
+  overlaySurfaceSoft: 'rgba(255, 255, 255, 0.18)',
   overlayBorder: 'rgba(255, 255, 255, 0.28)',
+  overlayBadgeBorder: 'rgba(19, 70, 76, 0.16)',
   overlayText: '#F2FAFA',
   overlayTextMuted: '#C7DFE1',
+  overlayTextSoft: 'rgba(255, 255, 255, 0.68)',
+  overlayPlaceholderBackground: 'rgba(255, 255, 255, 0.1)',
+  overlayPlaceholderBorder: 'rgba(255, 255, 255, 0.24)',
   overlayBadgeBackground: 'rgba(255, 255, 255, 0.88)',
   overlayBadgeText: '#13464C',
 
@@ -48,15 +53,18 @@ const colors = {
   cameraGuideTextMuted: '#E6D8C6',
   capturePulseBorder: '#FDF1DD',
   frameCorner: '#FDF1DD',
+  cameraFrameBorder: 'rgba(253, 241, 221, 0.35)',
   actionPrimaryBackground: '#FDF1DD',
   actionPrimaryPressed: '#F1E0C2',
   actionPrimaryText: '#0D3A3D',
   actionSecondaryBackground: '#0F5257',
   actionSecondaryPressed: '#0C4144',
   actionSecondaryText: '#FDF7ED',
+  actionSecondaryBackgroundMuted: 'rgba(15, 82, 87, 0.16)',
   actionTertiaryBackground: '#14363A',
   actionTertiaryPressed: '#0D2729',
   actionTertiaryText: '#F2E7DC',
+  actionDisabledBackground: 'rgba(20, 54, 58, 0.32)',
 
   /**
    * Status styling for the listening loop
