@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Pressable, StyleSheet, Text } from 'react-native';
+import { View, Pressable, StyleSheet, Text, ScrollView } from 'react-native';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import { useAccessibility } from '../components/AccessibilityContext';
@@ -17,15 +17,21 @@ export default function ProfileSelectScreen({ navigation }: any) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
+      padding: SPACING.xl,
+    },
+    scrollContainer: {
+      flexGrow: 1,
       justifyContent: 'center',
+      gap: SPACING.xl,
+      paddingVertical: SPACING.xl,
+    },
+    titleWrapper: {
       alignItems: 'center',
-      padding: SPACING.lg,
-      backgroundColor: 'transparent',
+      gap: SPACING.sm,
     },
     title: {
       fontSize: 24,
       fontWeight: 'bold',
-      marginBottom: SPACING.lg,
       color: COLORS.text,
       textAlign: 'center',
     },
@@ -35,21 +41,40 @@ export default function ProfileSelectScreen({ navigation }: any) {
     titleHC: {
       color: COLORS.highContrastText,
     },
-    row: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
+    subtitle: {
+      fontSize: 16,
+      color: COLORS.textSecondary,
+      textAlign: 'center',
+    },
+    subtitleLarge: {
+      fontSize: 18,
+    },
+    subtitleHC: {
+      color: COLORS.highContrastText,
+    },
+    buttonColumn: {
       gap: SPACING.md,
-      marginBottom: SPACING.lg,
     },
-    button: {
+    primaryButton: {
       backgroundColor: COLORS.primaryAccent,
-      padding: SPACING.md,
+      paddingVertical: SPACING.lg,
+      paddingHorizontal: SPACING.lg,
       borderRadius: DEFAULT_RADIUS,
-      minWidth: 120,
-      alignItems: 'center',
+      alignItems: 'flex-start',
+      gap: SPACING.xs,
     },
-    buttonHC: {
+    primaryButtonHC: {
+      backgroundColor: COLORS.highContrastText,
+    },
+    secondaryButton: {
+      backgroundColor: COLORS.secondaryAccent,
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.lg,
+      borderRadius: DEFAULT_RADIUS,
+      alignItems: 'flex-start',
+      gap: SPACING.xs,
+    },
+    secondaryButtonHC: {
       backgroundColor: COLORS.highContrastText,
     },
     buttonPressed: {
@@ -59,104 +84,167 @@ export default function ProfileSelectScreen({ navigation }: any) {
       backgroundColor: COLORS.highContrastPressed,
     },
     buttonDisabled: {
-      backgroundColor: COLORS.secondaryAccent,
       opacity: 0.6,
     },
-    buttonText: {
+    buttonTitle: {
       color: COLORS.highContrastText,
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: 'bold',
     },
-    buttonTextLarge: {
-      fontSize: 20,
+    buttonTitleLarge: {
+      fontSize: 22,
     },
-    buttonTextHC: {
+    buttonTitleHC: {
       color: COLORS.highContrastBackground,
+    },
+    buttonDescription: {
+      color: COLORS.highContrastText,
+      fontSize: 14,
+    },
+    buttonDescriptionLarge: {
+      fontSize: 16,
+    },
+    buttonDescriptionHC: {
+      color: COLORS.highContrastBackground,
+    },
+    infoText: {
+      textAlign: 'center',
+      color: COLORS.textSecondary,
+    },
+    infoTextLarge: {
+      fontSize: 16,
+    },
+    infoTextHC: {
+      color: COLORS.highContrastText,
     },
   });
 
   const ButtonComponent = ({
     title,
+    description,
     onPress,
     accessibilityLabel,
-    disabled = false
+    disabled = false,
+    variant = 'primary',
   }: {
     title: string;
+    description?: string;
     onPress: () => void;
     accessibilityLabel: string;
     disabled?: boolean;
-  }) => (
-    <Pressable
-      style={({ pressed }) => [
-          {
-            minWidth: 60,
-            minHeight: 60,
-            padding: SPACING.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-        styles.button,
-        highContrast && styles.buttonHC,
-        disabled && styles.buttonDisabled,
-        pressed && !disabled && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-      ]}
-      onPress={() => {
-        if (!disabled) {
-          void childHaptic();
-          onPress();
-        }
-      }}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      disabled={disabled}
-    >
-      <Text style={[
-        styles.buttonText,
-        largeText && styles.buttonTextLarge,
-        highContrast && styles.buttonTextHC,
-      ]}>
-        {title}
-      </Text>
-    </Pressable>
-  );
+    variant?: 'primary' | 'secondary';
+  }) => {
+    const isPrimary = variant === 'primary';
+
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          isPrimary ? styles.primaryButton : styles.secondaryButton,
+          highContrast && (isPrimary ? styles.primaryButtonHC : styles.secondaryButtonHC),
+          disabled && styles.buttonDisabled,
+          pressed && !disabled && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+        ]}
+        onPress={() => {
+          if (!disabled) {
+            void childHaptic();
+            onPress();
+          }
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        disabled={disabled}
+      >
+        <Text
+          style={[
+            styles.buttonTitle,
+            largeText && styles.buttonTitleLarge,
+            highContrast && styles.buttonTitleHC,
+          ]}
+        >
+          {title}
+        </Text>
+        {description ? (
+          <Text
+            style={[
+              styles.buttonDescription,
+              largeText && styles.buttonDescriptionLarge,
+              highContrast && styles.buttonDescriptionHC,
+            ]}
+          >
+            {description}
+          </Text>
+        ) : null}
+      </Pressable>
+    );
+  };
 
   return (
     <ScreenBackground style={styles.container}>
-      <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
-        Was möchtest du tun?
-      </Text>
-      <View style={styles.row}>
-        <ButtonComponent
-          title="Zuhören"
-          onPress={() =>
-            profile && navigation.navigate('App', { screen: 'Recognition', params: { profileId: profile.id } })
-          }
-          accessibilityLabel="Zum Erkennungsmodus"
-          disabled={!profile}
-        />
-        <ButtonComponent
-          title="Lernen"
-          onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
-          accessibilityLabel="Zum Lernmodus"
-        />
-      </View>
-      <View style={styles.row}>
-        <ButtonComponent
-          title="Eltern"
-          onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
-          accessibilityLabel="Elternprofil"
-        />
-        <ButtonComponent
-          title="Admin"
-          onPress={() => navigation.navigate('ParentalGate', { target: 'Admin' })}
-          accessibilityLabel="Adminbereich"
-        />
-        <ButtonComponent
-          title="Profile verwalten"
-          onPress={() => navigation.navigate('ProfileManager')}
-          accessibilityLabel="Profile verwalten"
-        />
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.titleWrapper}>
+          <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
+            Wohin möchtest du als Nächstes?
+          </Text>
+          <Text style={[styles.subtitle, largeText && styles.subtitleLarge, highContrast && styles.subtitleHC]}>
+            Wähle den Bereich aus, der jetzt am besten hilft.
+          </Text>
+        </View>
+        <View style={styles.buttonColumn}>
+          <ButtonComponent
+            title="Zuhören"
+            description={
+              profile
+                ? 'Starte den Erkennungsmodus und lass Amy sofort verstanden werden.'
+                : 'Lege zuerst ein Profil an, damit wir wissen, wen wir begleiten.'
+            }
+            onPress={() =>
+              profile && navigation.navigate('App', { screen: 'Recognition', params: { profileId: profile.id } })
+            }
+            accessibilityLabel="Zum Erkennungsmodus"
+            disabled={!profile}
+          />
+          <ButtonComponent
+            title="Lernen"
+            description="Übe Gesten gemeinsam und sammle neue Trainingsbeispiele."
+            onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
+            accessibilityLabel="Zum Lernmodus"
+          />
+        </View>
+        <View style={styles.buttonColumn}>
+          <ButtonComponent
+            title="Elternbereich"
+            description="Öffne den Elternbereich für Einstellungen und Unterstützung."
+            onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
+            accessibilityLabel="Elternbereich öffnen"
+            variant="secondary"
+          />
+          <ButtonComponent
+            title="Admin"
+            description="Verwalte Modelle und technische Details."
+            onPress={() => navigation.navigate('ParentalGate', { target: 'Admin' })}
+            accessibilityLabel="Adminbereich öffnen"
+            variant="secondary"
+          />
+          <ButtonComponent
+            title="Profile verwalten"
+            description="Bearbeite oder lege Profile für Kinder an."
+            onPress={() => navigation.navigate('ProfileManager')}
+            accessibilityLabel="Profile verwalten"
+            variant="secondary"
+          />
+        </View>
+        {!profile ? (
+          <Text
+            style={[
+              styles.infoText,
+              largeText && styles.infoTextLarge,
+              highContrast && styles.infoTextHC,
+            ]}
+          >
+            Kein Profil gefunden. Lege zuerst ein Profil an, damit Amy begleitet wird.
+          </Text>
+        ) : null}
+      </ScrollView>
     </ScreenBackground>
   );
 }
