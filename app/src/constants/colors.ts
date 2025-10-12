@@ -1,41 +1,88 @@
 const colors = {
-  primary: '#14B8A6',
-  accent: '#EAB308',
-  success: '#10B981',
-  warning: '#F59E0B',
-  warningBackground: '#FEF3C7',
-  error: '#EF4444',
-  background: '#F7F7F5',
-  backgroundStart: '#D1FAE5',
-  backgroundEnd: '#F0FDFA',
+  /**
+   * Core brand palette
+   */
+  primary: '#0F5257',
+  primaryBright: '#1A6F73',
+  secondary: '#F2E7DC',
+  accent: '#FF8A5B',
+  neutral: '#0D3A3D',
+  background: '#F5F1EB',
+  backgroundStart: '#0D4A56',
+  backgroundEnd: '#1A6F73',
   surface: '#FFFFFF',
-  surfaceMuted: '#F1F5F9',
-  text: '#0F172A',
-  textSecondary: '#334155',
-  textMuted: '#475569',
-  inverseText: '#F8FAFC',
-  overlay: 'rgba(0,0,0,0.25)',
-  overlaySurface: 'rgba(255, 255, 255, 0.28)',
-  overlaySurfaceMuted: 'rgba(255, 255, 255, 0.18)',
-  overlayBorder: 'rgba(255, 255, 255, 0.35)',
-  overlayText: '#F9FAFB',
-  overlayTextMuted: '#E2E8F0',
-  overlayBadgeBackground: 'rgba(255, 255, 255, 0.85)',
-  overlayBadgeText: '#0F172A',
-  outline: '#CBD5E1',
-  outlineMuted: '#E2E8F0',
-  cameraFrame: '#FFFFFF',
-  cameraGuideText: '#1E293B',
-  shadow: 'rgba(15, 23, 42, 0.16)',
+  surfaceMuted: '#E3ECEC',
+  inverseText: '#FCFEFE',
+  text: '#14363A',
+  textSecondary: '#366166',
+  textMuted: '#5A8A8E',
+
+  /**
+   * Semantic tokens
+   */
+  success: '#46C49D',
+  warning: '#E3B13C',
+  warningBackground: '#FCF4DF',
+  error: '#DC5B57',
+  info: '#2F8EA2',
+  outline: '#9CC9C9',
+  outlineMuted: '#CBE1E1',
+
+  /**
+   * Overlay + scrim system
+   */
+  overlay: 'rgba(12, 56, 60, 0.28)',
+  overlaySurface: 'rgba(255, 255, 255, 0.22)',
+  overlaySurfaceMuted: 'rgba(255, 255, 255, 0.12)',
+  overlayBorder: 'rgba(255, 255, 255, 0.28)',
+  overlayText: '#F2FAFA',
+  overlayTextMuted: '#C7DFE1',
+  overlayBadgeBackground: 'rgba(255, 255, 255, 0.88)',
+  overlayBadgeText: '#13464C',
+
+  /**
+   * Camera + CTA specifics
+   */
+  cameraFrame: '#F4D6AB',
+  cameraGuideText: '#FDF7ED',
+  cameraGuideTextMuted: '#E6D8C6',
+  capturePulseBorder: '#FDF1DD',
+  frameCorner: '#FDF1DD',
+  actionPrimaryBackground: '#FDF1DD',
+  actionPrimaryPressed: '#F1E0C2',
+  actionPrimaryText: '#0D3A3D',
+  actionSecondaryBackground: '#0F5257',
+  actionSecondaryPressed: '#0C4144',
+  actionSecondaryText: '#FDF7ED',
+  actionTertiaryBackground: '#14363A',
+  actionTertiaryPressed: '#0D2729',
+  actionTertiaryText: '#F2E7DC',
+
+  /**
+   * Status styling for the listening loop
+   */
+  statusListeningBackground: '#114B4E',
+  statusListeningText: '#F6FBFB',
+  statusRecognisingBackground: '#1A6F73',
+  statusRecognisingText: '#FFFFFF',
+  statusLearningBackground: '#F2E7DC',
+  statusLearningText: '#10363A',
+  statusErrorBackground: '#FFEDEA',
+  statusErrorText: '#B42318',
+
+  /**
+   * Miscellaneous shared tokens
+   */
+  shadow: 'rgba(13, 58, 61, 0.18)',
   highContrastBackground: '#000000',
   highContrastText: '#FFFFFF',
   highContrastPressed: '#1F2937',
-  vocabDrink: '#CFFAFE',
-  vocabEat: '#FDE68A',
-  vocabPlay: '#FBCFE8',
-  historyBadgeHigh: '#15803D',
-  historyBadgeMedium: '#CA8A04',
-  historyBadgeLow: '#DC2626',
+  vocabDrink: '#D0F2F2',
+  vocabEat: '#F7E0B2',
+  vocabPlay: '#F9C5D1',
+  historyBadgeHigh: '#0F915E',
+  historyBadgeMedium: '#CC8A29',
+  historyBadgeLow: '#D95141',
 } as const;
 
 export type ColorName = keyof typeof colors;

@@ -1,12 +1,13 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { gestureHistoryService, type GestureHistoryEntry } from '../services/gestureHistoryService';
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
+import type { TabNavigationProp } from '../navigation/types';
 
 const CONFIDENCE_THRESHOLD_STRONG = 0.75;
 const CONFIDENCE_THRESHOLD_MEDIUM = 0.5;
@@ -24,14 +25,35 @@ const formatTimestamp = (timestamp: number) => {
   }
 };
 
-const getConfidenceColor = (confidence: number) => {
-  if (confidence >= CONFIDENCE_THRESHOLD_STRONG) return Colors.historyBadgeHigh;
-  if (confidence >= CONFIDENCE_THRESHOLD_MEDIUM) return Colors.historyBadgeMedium;
-  return Colors.historyBadgeLow;
+const getConfidenceMeta = (confidence: number) => {
+  const percent = Math.round(confidence * 100);
+
+  if (confidence >= CONFIDENCE_THRESHOLD_STRONG) {
+    return {
+      color: Colors.historyBadgeHigh,
+      label: 'Sehr sicher',
+      detail: `${percent}% Vertrauen`,
+    };
+  }
+
+  if (confidence >= CONFIDENCE_THRESHOLD_MEDIUM) {
+    return {
+      color: Colors.historyBadgeMedium,
+      label: 'Noch unsicher',
+      detail: `${percent}% Vertrauen`,
+    };
+  }
+
+  return {
+    color: Colors.historyBadgeLow,
+    label: 'Bitte prüfen',
+    detail: `${percent}% Vertrauen`,
+  };
 };
 
 const HistoryScreen: React.FC = () => {
   const [history, setHistory] = useState<GestureHistoryEntry[]>([]);
+  const navigation = useNavigation<TabNavigationProp<'History'>>();
 
   const loadHistory = useCallback(() => {
     setHistory(gestureHistoryService.getRecentHistory());
@@ -49,35 +71,61 @@ const HistoryScreen: React.FC = () => {
 
   const historyItems = useMemo(() => history, [history]);
 
+  const handleQuickLearn = useCallback(
+    (entry: GestureHistoryEntry) => {
+      navigation.navigate('Lernen', {
+        gestureId: entry.id,
+        gestureLabel: entry.label,
+      });
+    },
+    [navigation],
+  );
+
   const renderItem = ({ item }: { item: GestureHistoryEntry }) => {
-    const confidencePercent = Math.round((item.confidence ?? 0) * 100);
-    const badgeColor = getConfidenceColor(item.confidence ?? 0);
+    const meta = getConfidenceMeta(item.confidence ?? 0);
+    const timestamp = formatTimestamp(item.timestamp);
+    const category = item.category?.toUpperCase() ?? 'GESTE';
     return (
-      <View style={styles.card} accessible accessibilityRole="text">
-        <View style={styles.emojiBubble}>
-          <Text style={styles.emoji}>{item.emoji || '✋'}</Text>
+      <View style={styles.card} accessible accessibilityRole="summary">
+        <View style={styles.cardHeader}>
+          <View style={styles.emojiBubble}>
+            <Text style={styles.emoji}>{item.emoji || '✋'}</Text>
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>{item.label}</Text>
+            <Text style={styles.cardTimestamp}>{timestamp}</Text>
+          </View>
+          <View style={[styles.confidenceBadge, { backgroundColor: meta.color }]}
+            accessibilityLabel={`Vertrauen: ${meta.detail}`}
+          >
+            <Text style={styles.confidenceLabel}>{meta.label}</Text>
+            <Text style={styles.confidenceDetail}>{meta.detail}</Text>
+          </View>
         </View>
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{item.label}</Text>
-          <Text style={styles.cardTimestamp}>{formatTimestamp(item.timestamp)}</Text>
-        </View>
-        <View style={[styles.confidenceBadge, { backgroundColor: badgeColor }]}>
-          <Text style={styles.confidenceText}>{`${confidencePercent}%`}</Text>
+        <View style={styles.cardFooter}>
+          <Text style={styles.cardCategory}>{category}</Text>
+          <Pressable
+            onPress={() => handleQuickLearn(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`Gestentraining für ${item.label} öffnen`}
+            style={styles.quickLearnButton}
+          >
+            <Text style={styles.quickLearnText}>Jetzt üben</Text>
+          </Pressable>
         </View>
       </View>
     );
   };
 
   return (
-    <LinearGradient colors={['#EFF6FF', '#F3F4F6']} style={styles.container}>
-      <Text style={styles.screenTitle}>Verlauf</Text>
-      <Text style={styles.subtitle}>Letzte Gesten von Amy auf einen Blick.</Text>
+    <LinearGradient colors={[Colors.backgroundStart, Colors.backgroundEnd]} style={styles.container}>
+      <Text style={styles.screenTitle}>Verstehen</Text>
+      <Text style={styles.subtitle}>Hier siehst du, wie sicher Amy deine Gesten verstanden hat.</Text>
       <FlatList
         data={historyItems}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📭</Text>
@@ -98,38 +146,41 @@ const styles = StyleSheet.create({
   screenTitle: {
     fontSize: typography.sizes.title,
     fontWeight: typography.weights.extrabold as any,
-    color: Colors.text,
+    color: Colors.inverseText,
   },
   subtitle: {
     marginTop: spacing.sm,
     fontSize: typography.sizes.body,
-    color: Colors.textSecondary,
-    marginBottom: spacing.xl,
+    color: Colors.overlayText,
+    marginBottom: spacing['2xl'],
   },
   listContent: {
     paddingBottom: spacing['2xl'],
-  },
-  separator: {
-    height: spacing.md,
+    gap: spacing.lg,
   },
   card: {
+    backgroundColor: Colors.overlayBadgeBackground,
+    borderRadius: 24,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    gap: spacing.lg,
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    shadowColor: Colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
   },
   emojiBubble: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.surfaceMuted,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.lg,
@@ -139,29 +190,55 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    gap: spacing.xs,
   },
   cardTitle: {
     fontSize: typography.sizes.subtitle,
     fontWeight: typography.weights.semibold as any,
-    color: Colors.text,
+    color: Colors.neutral,
   },
   cardTimestamp: {
-    marginTop: spacing.xs,
     fontSize: typography.sizes.caption,
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
   },
   confidenceBadge: {
-    minWidth: 64,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: 20,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    minWidth: 120,
+    gap: 4,
   },
-  confidenceText: {
+  confidenceLabel: {
     color: Colors.inverseText,
     fontSize: typography.sizes.caption,
-    fontWeight: typography.weights.bold as any,
+    fontWeight: typography.weights.semibold as any,
+  },
+  confidenceDetail: {
+    color: Colors.inverseText,
+    fontSize: typography.sizes.micro,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardCategory: {
+    fontSize: typography.sizes.caption,
+    letterSpacing: 1.1,
+    color: Colors.textMuted,
+  },
+  quickLearnButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15, 82, 87, 0.16)',
+  },
+  quickLearnText: {
+    fontSize: typography.sizes.caption,
+    fontWeight: typography.weights.semibold as any,
+    color: Colors.actionSecondaryBackground,
   },
   emptyState: {
     marginTop: spacing['2xl'],
@@ -175,7 +252,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: typography.sizes.body,
     textAlign: 'center',
-    color: Colors.textSecondary,
+    color: Colors.overlayText,
   },
 });
 

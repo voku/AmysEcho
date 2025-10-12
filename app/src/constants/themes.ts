@@ -42,7 +42,49 @@ export interface Theme {
   };
 }
 
+import Colors from './colors';
 import { PAW_PATROL_ASSETS } from './pawPatrolAssets';
+
+export const AMY_ECHO_THEME: Theme = {
+  name: 'amyEcho',
+  displayName: "Amy's Echo",
+  colors: {
+    primary: Colors.primary,
+    secondary: Colors.secondary,
+    accent: Colors.accent,
+    background: Colors.background,
+    surface: Colors.surface,
+    text: Colors.text,
+    textMuted: Colors.textMuted,
+    success: Colors.success,
+    warning: Colors.warning,
+    error: Colors.error,
+    info: Colors.info,
+    border: Colors.outline,
+    borderLight: Colors.outlineMuted,
+    pressed: Colors.actionSecondaryPressed,
+    disabled: 'rgba(20, 54, 58, 0.32)',
+    gradientStart: Colors.backgroundStart,
+    gradientEnd: Colors.backgroundEnd,
+    themePrimary: Colors.primary,
+    themeSecondary: Colors.secondary,
+    themeAccent: Colors.accent,
+  },
+  patterns: {
+    backgroundPattern: 'grain-soft',
+    buttonPattern: 'rounded-slab',
+  },
+  assets: {
+    logo: '🖐️',
+    icons: {
+      home: '🎥',
+      learn: '📚',
+      schedule: '🌀',
+      menu: '🧭',
+      success: '✨',
+    },
+  },
+};
 
 export const PAW_PATROL_THEME: Theme = {
   name: 'pawPatrol',
@@ -245,14 +287,20 @@ export const CLASSIC_THEME: Theme = {
   },
 };
 
+/**
+ * `amyEcho` is the default rebranded experience. The legacy themes remain opt-in for
+ * caregivers that previously selected them and are intentionally excluded from the
+ * default selector UI.
+ */
 export const THEMES: Record<string, Theme> = {
+  amyEcho: AMY_ECHO_THEME,
+  classic: CLASSIC_THEME,
   pawPatrol: PAW_PATROL_THEME,
   rainbow: RAINBOW_THEME,
   ocean: OCEAN_THEME,
   forest: FOREST_THEME,
-  classic: CLASSIC_THEME,
 };
 
-export const DEFAULT_THEME = 'classic';
+export const DEFAULT_THEME = 'amyEcho';
 
 export type ThemeName = keyof typeof THEMES;

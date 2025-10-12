@@ -11,6 +11,7 @@ import {
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
+import { useAccessibility } from './AccessibilityContext';
 
 type ActionButtonVariant = 'primary' | 'accent' | 'secondary';
 
@@ -30,15 +31,21 @@ type ActionButtonProps = {
 };
 
 const variantBackground: Record<ActionButtonVariant, string> = {
-  primary: Colors.primary,
-  accent: Colors.accent,
-  secondary: Colors.surface,
+  primary: Colors.actionPrimaryBackground,
+  accent: Colors.actionTertiaryBackground,
+  secondary: Colors.actionSecondaryBackground,
+};
+
+const variantPressedBackground: Record<ActionButtonVariant, string> = {
+  primary: Colors.actionPrimaryPressed,
+  accent: Colors.actionTertiaryPressed,
+  secondary: Colors.actionSecondaryPressed,
 };
 
 const variantText: Record<ActionButtonVariant, string> = {
-  primary: Colors.inverseText,
-  accent: Colors.text,
-  secondary: Colors.text,
+  primary: Colors.actionPrimaryText,
+  accent: Colors.actionTertiaryText,
+  secondary: Colors.actionSecondaryText,
 };
 
 const ActionButton: React.FC<ActionButtonProps> = ({
@@ -55,8 +62,11 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   textColor,
   labelStyle,
 }) => {
+  const { highContrast } = useAccessibility();
+
   const resolvedBackground = backgroundColor ?? variantBackground[variant];
-  const resolvedPressedBackground = pressedBackgroundColor ?? resolvedBackground;
+  const resolvedPressedBackground =
+    pressedBackgroundColor ?? variantPressedBackground[variant];
   const resolvedTextColor = textColor ?? variantText[variant];
 
   return (
@@ -68,13 +78,16 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       accessibilityState={{ disabled }}
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: pressed ? resolvedPressedBackground : resolvedBackground },
+        {
+          backgroundColor: pressed ? resolvedPressedBackground : resolvedBackground,
+          borderColor: variant === 'primary' ? Colors.outline : 'transparent',
+        },
         pressed && styles.pressed,
         disabled && styles.disabled,
-        variant === 'secondary' && styles.secondaryBorder,
+        variant === 'accent' && styles.accentBorder,
         style,
       ]}
-      android_ripple={{ color: Colors.overlay }}
+      android_ripple={{ color: highContrast ? Colors.highContrastText : Colors.overlay }}
       testID={testID}
     >
       <View style={styles.content}>
@@ -88,17 +101,18 @@ const ActionButton: React.FC<ActionButtonProps> = ({
 const styles = StyleSheet.create({
   base: {
     minHeight: 56,
-    borderRadius: 28,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
     shadowColor: Colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   content: {
     flexDirection: 'row',
@@ -106,11 +120,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   icon: {
-    marginRight: spacing.sm,
+    marginRight: spacing.md,
   },
   label: {
-    fontSize: typography.sizes.subtitle,
+    fontSize: typography.sizes.label,
     fontWeight: typography.weights.semibold as any,
+    letterSpacing: 0.2,
   },
   pressed: {
     transform: [{ scale: 0.98 }],
@@ -119,9 +134,9 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.5,
   },
-  secondaryBorder: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
+  accentBorder: {
+    borderWidth: 1,
+    borderColor: Colors.overlaySurface,
   },
 });
 

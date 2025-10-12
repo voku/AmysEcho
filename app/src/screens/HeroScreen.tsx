@@ -19,10 +19,11 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
     <ScreenBackground testID="hero-screen">
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.pill}>Amy First</Text>
-          <Text style={styles.title}>Amy&apos;s Echo</Text>
+          <Text style={styles.pill}>Amy hört zu</Text>
+          <Text style={styles.title}>Willkommen bei Amy&apos;s Echo</Text>
           <Text style={styles.subtitle}>
-            Jede Gebärde wird sofort verstanden – gesprochen, angezeigt und gesichert.
+            Die Gestenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
+            So bleibt Amys Gespräch nie stehen.
           </Text>
         </View>
 
@@ -41,7 +42,7 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
             style={styles.ctaButton}
           />
           <PrimaryButton
-            label="Training öffnen"
+            label="Lernen entdecken"
             onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"
@@ -64,31 +65,31 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   pill: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.xs,
     borderRadius: 999,
-    backgroundColor: Colors.primary,
-    color: Colors.inverseText,
+    backgroundColor: Colors.secondary,
+    color: Colors.neutral,
     fontSize: typography.sizes.caption,
     fontWeight: typography.weights.semibold,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
   },
   title: {
-    fontSize: typography.sizes.display,
+    fontSize: typography.sizes.titleLg,
     fontWeight: typography.weights.extrabold,
-    color: Colors.text,
+    color: Colors.primary,
     textAlign: 'center',
-    textTransform: 'uppercase',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: typography.sizes.subtitle,
-    color: Colors.text,
+    fontSize: typography.sizes.bodyLg,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    maxWidth: 520,
+    maxWidth: 560,
+    lineHeight: typography.lineHeights.relaxed,
   },
   timelineWrapper: {
     width: '100%',

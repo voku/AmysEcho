@@ -1,12 +1,15 @@
 export const typography = {
   sizes: {
-    caption: 14,
-    body: 16,
-    subtitle: 18,
-    titleSm: 24,
-    title: 36,
-    titleLg: 40,
-    display: 48,
+    micro: 12,
+    caption: 13,
+    body: 17,
+    bodyLg: 19,
+    label: 18,
+    subtitle: 21,
+    titleSm: 26,
+    title: 34,
+    titleLg: 42,
+    display: 50,
   },
   weights: {
     regular: '400',
@@ -18,8 +21,8 @@ export const typography = {
   lineHeights: {
     compact: 18,
     default: 24,
-    relaxed: 32,
-    hero: 40,
+    relaxed: 30,
+    hero: 48,
   },
 } as const;
 

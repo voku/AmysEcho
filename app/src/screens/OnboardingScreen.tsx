@@ -31,35 +31,35 @@ const STEPS: WizardStep[] = [
     emoji: '❤️',
     title: 'Amy zuerst – immer.',
     description:
-      'Ich folge dem Amy-First-Versprechen: Sehen → Denken → Sprechen oder Zeigen → Bestätigen → Lernen. So bleibt jedes Gespräch offen und sicher.',
+      'Der neue Amy-Loop bedeutet: Hören → Verstehen → Antworten → Lernen. Jede Geste landet sofort als Stimme, Symbol und Insight.',
   },
   {
     key: 'name',
     emoji: '👋',
     title: 'Wie darf ich dich nennen?',
     description:
-      'Sag mir den Namen, den ich klar und liebevoll sprechen soll. Wenn du keinen Namen eingibst, bleibe ich bei „Amy“.',
+      'Ich spreche deinen Namen klar und freundlich aus – lass ihn leer, wenn du bei „Amy“ bleiben möchtest.',
   },
   {
     key: 'accessibility',
     emoji: '🫶',
-    title: 'Soll der Text größer oder kontrastreicher sein?',
+    title: 'Brauchen wir größere Schrift oder mehr Kontrast?',
     description:
-      'Damit du jede Geste sofort erkennst, kann ich größere Schrift oder stärkeren Kontrast nutzen.',
+      'Passe Schriftgröße und Kontrast an, damit die neue Kameraoberfläche überall klar erkennbar bleibt.',
   },
   {
     key: 'consent',
     emoji: '🛡️',
     title: 'Darf Amy’s Echo anonym beim Lernen helfen?',
     description:
-      'Wir teilen nie persönliche Daten. Freigaben helfen nur dabei, dass meine Erkennung für dein Kind und andere klarer wird.',
+      'Mit deiner Freigabe trainieren wir die Modelle anonym weiter – nie persönliche Daten, nur bessere Gesten für alle.',
   },
   {
     key: 'vocabulary',
     emoji: '💬',
-    title: 'Welches Wortfeld braucht dein Kind zuerst?',
+    title: 'Welches Wortfeld braucht ihr zuerst?',
     description:
-      'Wähle das Set, das am besten zu euren ersten Gesprächen passt. Du kannst später jederzeit mehr hinzufügen.',
+      'Starte mit dem Vokabular, das euren Alltag sofort erleichtert. Weitere Sets lassen sich jederzeit ergänzen.',
   },
 ];
 
@@ -80,6 +80,7 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       flex: 1,
       padding: SPACING.xl,
       justifyContent: 'space-between',
+      gap: SPACING['2xl'],
     },
     missionContent: {
       width: '100%',
@@ -95,27 +96,27 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
     },
     progressText: {
       fontSize: largeText ? 22 : 16,
-      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      color: highContrast ? COLORS.highContrastText : COLORS.overlayText,
       marginBottom: SPACING.sm,
       textAlign: 'center',
     },
     title: {
       fontSize: largeText ? 34 : 26,
       textAlign: 'center',
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      color: highContrast ? COLORS.highContrastText : COLORS.primary,
       marginBottom: SPACING.md,
     },
     description: {
       fontSize: largeText ? 20 : 16,
       textAlign: 'center',
-      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
+      color: highContrast ? COLORS.highContrastText : COLORS.overlayText,
     },
     input: {
       borderWidth: 2,
       padding: largeText ? SPACING.lg : SPACING.md,
       marginTop: SPACING.xl,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-      borderColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.overlayBadgeBackground,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.actionSecondaryBackground,
       borderRadius: DEFAULT_RADIUS,
       fontSize: largeText ? 22 : 18,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
@@ -129,13 +130,13 @@ const createStyles = (largeText: boolean, highContrast: boolean) =>
       paddingHorizontal: SPACING.lg,
       marginTop: SPACING.lg,
       borderRadius: DEFAULT_RADIUS,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.overlayBadgeBackground,
       borderWidth: 1,
-      borderColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.actionSecondaryBackground,
     },
     label: {
       fontSize: largeText ? 22 : 18,
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      color: highContrast ? COLORS.highContrastText : COLORS.neutral,
       flexShrink: 1,
       paddingRight: SPACING.md,
     },

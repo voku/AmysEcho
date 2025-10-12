@@ -49,43 +49,45 @@ const CAPTURE_PULSE_SIZE = spacing['2xl'] * 5;
 type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating' | 'error';
 
 const CAMERA_THEME = {
-  gradient: ['#0F3A3B', '#1C4A4B'] as const,
-  overlayScrim: 'rgba(15, 58, 59, 0.55)',
+  gradient: [Colors.backgroundStart, Colors.backgroundEnd] as const,
+  overlayScrim: 'rgba(13, 58, 61, 0.58)',
   statusBackground: {
-    idle: '#25706F',
-    listening: '#2C7E7E',
-    recognized: '#2E9A92',
-    updating: '#25706F',
-    error: '#8F3C3A',
+    idle: Colors.statusListeningBackground,
+    listening: Colors.statusListeningBackground,
+    recognized: Colors.statusRecognisingBackground,
+    updating: Colors.statusLearningBackground,
+    error: Colors.statusErrorBackground,
   } satisfies Record<RecognitionStatusCategory, string>,
   statusText: {
-    idle: '#E5E0CF',
-    listening: '#E5E0CF',
-    recognized: '#E5E0CF',
-    updating: '#E5E0CF',
-    error: '#FBEFEB',
+    idle: Colors.statusListeningText,
+    listening: Colors.statusListeningText,
+    recognized: Colors.statusRecognisingText,
+    updating: Colors.statusLearningText,
+    error: Colors.statusErrorText,
   } satisfies Record<RecognitionStatusCategory, string>,
-  capturePulseBorder: '#E5E0CF',
-  capturePulseOpacity: 0.45,
-  frameCorner: '#E5E0CF',
-  cameraHint: '#FFFFFF',
-  predictionCardBackground: '#E5E0CF',
-  predictionCardBorder: 'rgba(0, 44, 44, 0.12)',
+  capturePulseBorder: Colors.capturePulseBorder,
+  capturePulseOpacity: 0.55,
+  frameCorner: Colors.frameCorner,
+  cameraHint: Colors.cameraGuideText,
+  cameraHintMuted: Colors.cameraGuideTextMuted,
+  predictionCardBackground: Colors.overlayBadgeBackground,
+  predictionCardBorder: 'rgba(19, 70, 76, 0.16)',
+  predictionCardText: Colors.neutral,
   actionButtons: {
     confirm: {
-      background: '#E5E0CF',
-      pressed: '#D9D2BE',
-      text: '#002C2C',
+      background: Colors.actionPrimaryBackground,
+      pressed: Colors.actionPrimaryPressed,
+      text: Colors.actionPrimaryText,
     },
     learn: {
-      background: '#25706F',
-      pressed: '#1F5E5E',
-      text: '#E5E0CF',
+      background: Colors.actionSecondaryBackground,
+      pressed: Colors.actionSecondaryPressed,
+      text: Colors.actionSecondaryText,
     },
     alternatives: {
-      background: '#1C4A4B',
-      pressed: '#163C3D',
-      text: '#E5E0CF',
+      background: Colors.actionTertiaryBackground,
+      pressed: Colors.actionTertiaryPressed,
+      text: Colors.actionTertiaryText,
     },
   },
 } as const;
@@ -104,6 +106,29 @@ const STATUS_CHIP_TEXT: Record<RecognitionStatusCategory, string> = {
   recognized: CAMERA_THEME.statusText.recognized,
   updating: CAMERA_THEME.statusText.updating,
   error: CAMERA_THEME.statusText.error,
+};
+
+const STATUS_COPY: Record<RecognitionStatusCategory, { label: string; description: string }> = {
+  idle: {
+    label: 'Bereit',
+    description: 'Halte deine Hand ruhig im Rahmen.',
+  },
+  listening: {
+    label: 'Hört zu…',
+    description: 'Amy fokussiert deine Handgeste.',
+  },
+  recognized: {
+    label: 'Versteht dich',
+    description: 'Amy bereitet die passende Antwort vor.',
+  },
+  updating: {
+    label: 'Lernt gerade',
+    description: 'Dein Beitrag stärkt Amys Wörterbuch.',
+  },
+  error: {
+    label: 'Bitte nochmal',
+    description: 'Etwas ist schiefgelaufen. Probier es erneut.',
+  },
 };
 
 const toGestureImageCapture = (
@@ -527,29 +552,19 @@ export default function RecognitionScreen({
     status,
   ]);
 
-  const statusLabel = useMemo(() => {
-    switch (statusCategory) {
-      case 'recognized':
-        return 'Gefunden';
-      case 'listening':
-      case 'updating':
-        return 'Hört zu…';
-      case 'error':
-        return 'Fehler';
-      default:
-        return 'Bereit';
-    }
-  }, [statusCategory]);
+  const statusCopy = useMemo(() => STATUS_COPY[statusCategory], [statusCategory]);
+  const statusLabel = statusCopy.label;
+  const statusDescription = status?.trim().length ? status : statusCopy.description;
 
   const bannerMessage = useMemo(() => {
     if (error) {
       return error;
     }
     if (statusCategory === 'recognized' || statusCategory === 'updating') {
-      return status?.trim().length ? status : statusLabel;
+      return statusDescription;
     }
     return null;
-  }, [error, status, statusCategory, statusLabel]);
+  }, [error, statusCategory, statusDescription]);
 
   const bannerTone: 'info' | 'success' | 'warning' | 'error' = useMemo(() => {
     if (error) return 'error';
@@ -652,9 +667,17 @@ export default function RecognitionScreen({
                     { color: STATUS_CHIP_TEXT[statusCategory] },
                   ]}
                 >
-                  {status?.trim().length ? status : statusLabel}
+                  {statusLabel}
                 </Text>
               </View>
+              <Text
+                style={[
+                  styles.statusSubtitle,
+                  { color: STATUS_CHIP_TEXT[statusCategory] },
+                ]}
+              >
+                {statusDescription}
+              </Text>
               <View style={styles.loopWrapper}>
                 <AmyLoopTimeline
                   activeStage={loopStage}
@@ -671,22 +694,9 @@ export default function RecognitionScreen({
             </View>
 
             <View style={styles.cameraZone}>
-              <View style={styles.cameraFrame}>
-                <Animated.View
-                  pointerEvents="none"
-                  style={[
-                    styles.capturePulse,
-                    {
-                      transform: [{ scale: capturePulseAnim }],
-                    },
-                  ]}
-                />
-                <View style={[styles.corner, styles.cornerTopLeft]} />
-                <View style={[styles.corner, styles.cornerTopRight]} />
-                <View style={[styles.corner, styles.cornerBottomLeft]} />
-                <View style={[styles.corner, styles.cornerBottomRight]} />
-              </View>
-              <Text style={styles.cameraHint}>Hand im Rahmen halten.</Text>
+              <CameraFrame capturePulseAnim={capturePulseAnim} />
+              <Text style={styles.cameraHint}>Hand im Rahmen halten</Text>
+              <Text style={styles.cameraHintSecondary}>Amy reagiert sofort auf deine Geste.</Text>
             </View>
 
             <View style={styles.bottomSection}>
@@ -704,7 +714,14 @@ export default function RecognitionScreen({
                     tone="camera"
                   />
                 </Animated.View>
-              ) : null}
+              ) : (
+                <View style={styles.predictionPlaceholder}>
+                  <Text style={styles.predictionPlaceholderTitle}>Zeig Amy deine Geste</Text>
+                  <Text style={styles.predictionPlaceholderSubtitle}>
+                    Sobald Amy dich versteht, erscheint hier die passende Antwort.
+                  </Text>
+                </View>
+              )}
 
               <View style={styles.actionsRow}>
                 <View style={styles.actionWrapper}>
@@ -714,9 +731,6 @@ export default function RecognitionScreen({
                     onPress={handleConfirmGesture}
                     variant="primary"
                     style={styles.actionButton}
-                    backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
-                    pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
-                    textColor={CAMERA_THEME.actionButtons.confirm.text}
                   />
                 </View>
                 <View style={styles.actionWrapper}>
@@ -726,9 +740,6 @@ export default function RecognitionScreen({
                     onPress={handleLearnPress}
                     variant="secondary"
                     style={styles.actionButton}
-                    backgroundColor={CAMERA_THEME.actionButtons.learn.background}
-                    pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
-                    textColor={CAMERA_THEME.actionButtons.learn.text}
                   />
                 </View>
                 <View style={styles.actionWrapper}>
@@ -738,9 +749,6 @@ export default function RecognitionScreen({
                     onPress={handleAlternativesPress}
                     variant="accent"
                     style={styles.actionButton}
-                    backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
-                    pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
-                    textColor={CAMERA_THEME.actionButtons.alternatives.text}
                   />
                 </View>
               </View>
@@ -763,6 +771,28 @@ export default function RecognitionScreen({
   );
 }
 
+type CameraFrameProps = {
+  capturePulseAnim: Animated.Value;
+};
+
+const CameraFrame = React.memo(({ capturePulseAnim }: CameraFrameProps) => (
+  <View style={styles.cameraFrame}>
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.capturePulse,
+        {
+          transform: [{ scale: capturePulseAnim }],
+        },
+      ]}
+    />
+    <View style={[styles.corner, styles.cornerTopLeft]} />
+    <View style={[styles.corner, styles.cornerTopRight]} />
+    <View style={[styles.corner, styles.cornerBottomLeft]} />
+    <View style={[styles.corner, styles.cornerBottomRight]} />
+  </View>
+));
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -770,36 +800,45 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing['2xl'],
     paddingTop: spacing['2xl'],
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xl,
     backgroundColor: CAMERA_THEME.overlayScrim,
   },
   topSection: {
     width: '100%',
     alignItems: 'center',
+    gap: spacing.sm,
   },
   loopWrapper: {
     width: '100%',
+    marginTop: spacing.md,
     marginBottom: spacing.md,
   },
   statusChip: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.sm,
     borderRadius: 999,
-    minHeight: 48,
+    minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
     shadowColor: Colors.shadow,
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: Colors.overlayBorder,
   },
   statusText: {
     fontSize: typography.sizes.subtitle,
     fontWeight: typography.weights.semibold as any,
+    letterSpacing: 0.5,
+  },
+  statusSubtitle: {
+    fontSize: typography.sizes.body,
+    textAlign: 'center',
+    maxWidth: 420,
   },
   bannerWrapper: {
     width: '100%',
@@ -808,15 +847,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.sm,
   },
   cameraFrame: {
     width: '88%',
     aspectRatio: 3 / 4,
-    borderRadius: 24,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
     backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: 'rgba(253, 241, 221, 0.35)',
+    overflow: 'hidden',
   },
   capturePulse: {
     position: 'absolute',
@@ -860,18 +903,26 @@ const styles = StyleSheet.create({
   },
   cameraHint: {
     marginTop: spacing.lg,
-    fontSize: typography.sizes.body,
-    fontWeight: typography.weights.medium as any,
+    fontSize: typography.sizes.bodyLg,
+    fontWeight: typography.weights.semibold as any,
     color: CAMERA_THEME.cameraHint,
+    textAlign: 'center',
+  },
+  cameraHintSecondary: {
+    fontSize: typography.sizes.caption,
+    color: CAMERA_THEME.cameraHintMuted,
+    textAlign: 'center',
   },
   bottomSection: {
     paddingBottom: spacing['2xl'],
+    width: '100%',
+    gap: spacing.lg,
   },
   predictionCard: {
     backgroundColor: CAMERA_THEME.predictionCardBackground,
-    borderRadius: 16,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.xl,
+    borderRadius: 24,
+    paddingVertical: spacing['2xl'],
+    paddingHorizontal: spacing['2xl'],
     borderWidth: 1,
     borderColor: CAMERA_THEME.predictionCardBorder,
     shadowColor: Colors.shadow,
@@ -880,10 +931,32 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
+  predictionPlaceholder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing['2xl'],
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.24)',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  predictionPlaceholderTitle: {
+    fontSize: typography.sizes.titleSm,
+    fontWeight: typography.weights.semibold as any,
+    color: CAMERA_THEME.cameraHint,
+    textAlign: 'center',
+  },
+  predictionPlaceholderSubtitle: {
+    fontSize: typography.sizes.body,
+    color: CAMERA_THEME.cameraHintMuted,
+    textAlign: 'center',
+  },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
+    gap: spacing.sm,
   },
   actionWrapper: {
     flex: 1,
