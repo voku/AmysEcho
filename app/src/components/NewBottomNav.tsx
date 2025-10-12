@@ -45,16 +45,16 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
   const containerStyle = [
     styles.container,
     {
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : '#0F3A3B',
       borderColor: highContrast ? COLORS.highContrastText : 'transparent',
       shadowColor: highContrast ? COLORS.highContrastText : COLORS.shadow,
     },
   ];
 
-  const inactiveColor = highContrast ? COLORS.highContrastText : COLORS.text;
-  const activeColor = highContrast ? COLORS.highContrastBackground : COLORS.inverseText;
-  const activeBackground = highContrast ? COLORS.highContrastText : COLORS.primary;
-  const rippleColor = highContrast ? COLORS.highContrastText : COLORS.overlay;
+  const inactiveColor = highContrast ? COLORS.highContrastText : '#FFFFFF';
+  const activeColor = highContrast ? COLORS.highContrastBackground : '#FFFFFF';
+  const activeBackground = highContrast ? COLORS.highContrastText : '#25706F';
+  const rippleColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.16)';
 
   const items = useMemo<TabItem[]>(() => {
     return state.routes.map((route, index) => {
@@ -95,7 +95,7 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
             childFriendlyStyles.minTouchTarget,
             styles.tab,
             isFocused && [styles.tabActive, { backgroundColor: activeBackground }],
-            pressed && styles.tabPressed,
+            pressed && (highContrast ? styles.tabPressedHighContrast : styles.tabPressed),
           ]}
           accessibilityRole="tab"
           accessibilityLabel={label}
@@ -135,7 +135,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: COLORS.surface,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     shadowColor: COLORS.shadow,
@@ -153,9 +152,12 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   tabActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#25706F',
   },
   tabPressed: {
+    opacity: 0.92,
+  },
+  tabPressedHighContrast: {
     opacity: 0.85,
   },
   icon: {
