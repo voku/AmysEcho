@@ -30,10 +30,13 @@ const resolveComponent = async () => {
 };
 
 const flattenText = (node: ReactNode): string[] => {
-  if (typeof node === 'string' || typeof node === 'number') {
+  if (typeof node === 'string') {
+    return node ? [node] : [];
+  }
+  if (typeof node === 'number') {
     return [String(node)];
   }
-  if (!node) {
+  if (!node || typeof node === 'boolean') {
     return [];
   }
   if (Array.isArray(node)) {
@@ -103,7 +106,18 @@ describe('ProfileSelectScreen accessibility', () => {
 
     expect(labels).toEqual(
       expect.arrayContaining([
+        'Wohin möchtest du als Nächstes?',
+        'Wähle den Bereich aus, der jetzt am besten hilft.',
+        'Zuhören',
         'Lege zuerst ein Profil an, damit wir wissen, wen wir begleiten.',
+        'Lernen',
+        'Übe Gesten gemeinsam und sammle neue Trainingsbeispiele.',
+        'Elternbereich',
+        'Öffne den Elternbereich für Einstellungen und Unterstützung.',
+        'Admin',
+        'Verwalte Modelle und technische Details.',
+        'Profile verwalten',
+        'Bearbeite oder lege Profile für Kinder an.',
         'Kein Profil gefunden. Lege zuerst ein Profil an, damit Amy begleitet wird.',
       ]),
     );
