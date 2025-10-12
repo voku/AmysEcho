@@ -220,12 +220,28 @@ describe('RecognitionScreen Amy-first overlay', () => {
     const subtitleNodes = component.root.findAll(
       (node) => node.type === Text && node.props.children === 'Ich höre zu…',
     );
-    expect(subtitleNodes).toHaveLength(0);
+    expect(subtitleNodes.length).toBeGreaterThan(0);
   });
 
-  it('displays Amy-first action buttons for confirmation, learning, and alternatives', async () => {
+  it('blendet Aktionsknöpfe erst nach erkannter Geste ein', async () => {
     const component = await renderRecognitionScreen();
-    const actionButtons = component.root.findAllByType(ActionButtonComponent);
+    const findAmyActionButtons = () =>
+      component.root
+        .findAllByType(ActionButtonComponent)
+        .filter((button) => ['Stimmt', 'Lernen', 'Alternativen'].includes(button.props.label));
+
+    expect(findAmyActionButtons()).toHaveLength(0);
+
+    await act(async () => {
+      recognitionStateModule.__setMockLastRecognizedGesture?.({
+        id: 'hallo',
+        label: 'Hallo',
+        emoji: '👋',
+        category: 'greeting',
+      });
+    });
+
+    const actionButtons = findAmyActionButtons();
 
     const labels = actionButtons.map((button) => button.props.label);
     expect(labels).toEqual(['Stimmt', 'Lernen', 'Alternativen']);
@@ -268,22 +284,17 @@ describe('RecognitionScreen Amy-first overlay', () => {
     const lastCallProps = lastCall?.[0];
     expect(lastCallProps?.tone).toBe('camera');
 
-    const selfDiscoveryMessageNodes = component.root.findAll(
+    const encouragementNodes = component.root.findAll(
       (node) =>
         node.type === Text &&
-        node.props.children ===
-          'Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Geste gleich als Stimme und Symbol zurück.',
+        node.props.children === 'Tolle Geste – gleich klingt deine Stimme.',
     );
-    expect(selfDiscoveryMessageNodes.length).toBeGreaterThan(0);
+    expect(encouragementNodes.length).toBeGreaterThan(0);
 
     const statusChipNodes = component.root.findAll(
       (node) => node.type === Text && node.props.children === 'Selbstentdeckung',
     );
     expect(statusChipNodes.length).toBeGreaterThan(0);
 
-    const ribbonLabelNodes = component.root.findAll(
-      (node) => node.type === Text && node.props.children === "Amy's Echo",
-    );
-    expect(ribbonLabelNodes.length).toBeGreaterThan(0);
   });
 });

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
@@ -185,6 +185,10 @@ export default function RecognitionScreen({
   } = state;
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const actionsFadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const hasActiveGestureRef = useRef(false);
+  const [renderActions, setRenderActions] = useState(false);
   const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
   const labelHistoryRef = useRef<string[]>([]);
   const lastSuccessAtRef = useRef<number>(0);
@@ -497,6 +501,56 @@ export default function RecognitionScreen({
   ]);
 
   const normalizedStatus = (status ?? '').toLowerCase();
+  const hasActiveGesture = Boolean(gestureMeaningDisplayProps);
+
+  useEffect(() => {
+    hasActiveGestureRef.current = hasActiveGesture;
+  }, [hasActiveGesture]);
+
+  useEffect(() => {
+    if (fadeAnimationRef.current) {
+      fadeAnimationRef.current.stop();
+      fadeAnimationRef.current = null;
+    }
+
+    if (hasActiveGesture) {
+      setRenderActions(true);
+      const fadeInAnimation = Animated.timing(actionsFadeAnim, {
+        toValue: 1,
+        duration: 250,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      });
+      fadeAnimationRef.current = fadeInAnimation;
+      fadeInAnimation.start(({ finished }) => {
+        if (!finished) {
+          return;
+        }
+        fadeAnimationRef.current = null;
+      });
+    } else {
+      const fadeOutAnimation = Animated.timing(actionsFadeAnim, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      });
+      fadeAnimationRef.current = fadeOutAnimation;
+      fadeOutAnimation.start(({ finished }) => {
+        if (finished && !hasActiveGestureRef.current) {
+          setRenderActions(false);
+        }
+        fadeAnimationRef.current = null;
+      });
+    }
+
+    return () => {
+      if (fadeAnimationRef.current) {
+        fadeAnimationRef.current.stop();
+        fadeAnimationRef.current = null;
+      }
+    };
+  }, [actionsFadeAnim, hasActiveGesture]);
 
   const statusCategory = useMemo<RecognitionStatusCategory>(() => {
     if (error) {
@@ -655,39 +709,41 @@ export default function RecognitionScreen({
                 </View>
               )}
 
-              <View style={styles.actionsContainer}>
-                <View style={styles.primaryActionWrapper}>
-                  <ActionButton
-                    label="Stimmt"
-                    accessibilityLabel="Gestenerkennung bestätigen"
-                    onPress={handleConfirmGesture}
-                    backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
-                    pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
-                    textColor={CAMERA_THEME.actionButtons.confirm.text}
-                    style={styles.primaryActionButton}
-                  />
-                </View>
-                <View style={styles.secondaryActionsRow}>
-                  <ActionButton
-                    label="Lernen"
-                    accessibilityLabel="Lernmodus öffnen"
-                    onPress={handleLearnPress}
-                    backgroundColor={CAMERA_THEME.actionButtons.learn.background}
-                    pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
-                    textColor={CAMERA_THEME.actionButtons.learn.text}
-                    style={styles.secondaryActionButton}
-                  />
-                  <ActionButton
-                    label="Alternativen"
-                    accessibilityLabel="Alternativen anzeigen"
-                    onPress={handleAlternativesPress}
-                    backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
-                    pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
-                    textColor={CAMERA_THEME.actionButtons.alternatives.text}
-                    style={styles.secondaryActionButton}
-                  />
-                </View>
-              </View>
+              {renderActions ? (
+                <Animated.View style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}> 
+                  <View style={styles.primaryActionWrapper}>
+                    <ActionButton
+                      label="Stimmt"
+                      accessibilityLabel="Gestenerkennung bestätigen"
+                      onPress={handleConfirmGesture}
+                      backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
+                      pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
+                      textColor={CAMERA_THEME.actionButtons.confirm.text}
+                      style={styles.primaryActionButton}
+                    />
+                  </View>
+                  <View style={styles.secondaryActionsRow}>
+                    <ActionButton
+                      label="Lernen"
+                      accessibilityLabel="Lernmodus öffnen"
+                      onPress={handleLearnPress}
+                      backgroundColor={CAMERA_THEME.actionButtons.learn.background}
+                      pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
+                      textColor={CAMERA_THEME.actionButtons.learn.text}
+                      style={styles.secondaryActionButton}
+                    />
+                    <ActionButton
+                      label="Alternativen"
+                      accessibilityLabel="Alternativen anzeigen"
+                      onPress={handleAlternativesPress}
+                      backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
+                      pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
+                      textColor={CAMERA_THEME.actionButtons.alternatives.text}
+                      style={styles.secondaryActionButton}
+                    />
+                  </View>
+                </Animated.View>
+              ) : null}
             </View>
           </View>
         </View>
