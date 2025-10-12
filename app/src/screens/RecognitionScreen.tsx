@@ -693,8 +693,8 @@ export default function RecognitionScreen({
                 </View>
               )}
 
-              <View style={styles.actionsRow}>
-                <View style={styles.actionWrapper}>
+              <View style={styles.actionsContainer}>
+                <View style={styles.primaryActionWrapper}>
                   <ActionButton
                     label="Stimmt"
                     accessibilityLabel="Gestenerkennung bestätigen"
@@ -702,10 +702,10 @@ export default function RecognitionScreen({
                     backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
                     pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
                     textColor={CAMERA_THEME.actionButtons.confirm.text}
-                    style={styles.actionButton}
+                    style={styles.primaryActionButton}
                   />
                 </View>
-                <View style={styles.actionWrapper}>
+                <View style={styles.secondaryActionsRow}>
                   <ActionButton
                     label="Lernen"
                     accessibilityLabel="Lernmodus öffnen"
@@ -713,10 +713,8 @@ export default function RecognitionScreen({
                     backgroundColor={CAMERA_THEME.actionButtons.learn.background}
                     pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
                     textColor={CAMERA_THEME.actionButtons.learn.text}
-                    style={styles.actionButton}
+                    style={styles.secondaryActionButton}
                   />
-                </View>
-                <View style={styles.actionWrapper}>
                   <ActionButton
                     label="Alternativen"
                     accessibilityLabel="Alternativen anzeigen"
@@ -724,7 +722,7 @@ export default function RecognitionScreen({
                     backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
                     pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
                     textColor={CAMERA_THEME.actionButtons.alternatives.text}
-                    style={styles.actionButton}
+                    style={styles.secondaryActionButton}
                   />
                 </View>
               </View>
@@ -873,17 +871,24 @@ const styles = StyleSheet.create({
     color: CAMERA_THEME.cameraHintMuted,
     textAlign: 'center',
   },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
+  actionsContainer: {
     gap: spacing.sm,
-  },
-  actionWrapper: {
-    flex: 1,
-    marginHorizontal: spacing.xs,
-  },
-  actionButton: {
+    marginTop: spacing.md,
     width: '100%',
+  },
+  primaryActionWrapper: {
+    width: '100%',
+  },
+  primaryActionButton: {
+    width: '100%',
+  },
+  secondaryActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    width: '100%',
+  },
+  secondaryActionButton: {
+    flex: 1,
   },
 });
