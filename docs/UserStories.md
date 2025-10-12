@@ -2,6 +2,8 @@
 
 This document outlines the main user stories for Amy's Echo and how the screens in `app/src/screens` connect to fulfil them. Each section highlights an existing workflow in the current codebase.
 
+Der zentrale Navigationsrahmen besteht aus der Kamera → Verstehen → Lernen-Schleife. Die gleichnamigen Tabs sind die einzigen Einträge der unteren Navigation; alle weiteren Bereiche (Betreuer, Profile, Admin, Hilfe) werden über `WorkflowSupportLinks` oder kontextuelle Aktionen geöffnet.
+
 ## 1. Onboarding & Profile Creation (HIP&nbsp;1)
 - **Story**: As a caregiver, I want to set up the profile and preferences for Amy’s Echo the first time we open the app.
 - **Flow**:
@@ -12,9 +14,9 @@ This document outlines the main user stories for Amy's Echo and how the screens 
 ## 2. Selecting a Profile
 - **Story**: As Amy or her caregiver, I want to choose who is using the app.
 - **Flow**:
-  1. From **ProfileManager** or **ProfileSelect**, tap an existing profile.
-  2. The profile's accessibility settings are loaded and the app navigates to **Recognition**.
-  3. Additional options allow navigating to **Admin** or creating a new profile.
+  1. From **ProfileManager** oder **ProfileSelect** ein bestehendes Profil auswählen.
+  2. Die barrierefreien Einstellungen werden geladen und die App landet im Tab **Kamera** (Recognition).
+  3. Weitere Optionen wie Betreuerbereich, Einstellungen oder Admin werden über die `WorkflowSupportLinks` nach dem Sicherheitsgate geöffnet.
 
 ## 3. Amy Communicates a Sign
 - **Story**: As Amy, I want my gesture to be recognised quickly so I can express myself.
@@ -32,9 +34,9 @@ This document outlines the main user stories for Amy's Echo and how the screens 
 ## 5. Caregiver Teaches a New Sign (HIP&nbsp;2)
 - **Story**: As a caregiver, I want to record samples so the app learns a new gesture.
 - **Flow**:
-  1. From **Admin**, choose **Training** for the guided flow or **LegacyTraining** for the older interface.
-  2. Five examples are recorded with the camera and saved as training data.
-  3. After completion, the caregiver returns to **Admin** or **Recognition**.
+  1. Im Tab **Lernen** führt jede Karte über „Jetzt aufnehmen“ direkt zum **Recording**- bzw. **Training**-Flow.
+  2. Der Flow zeichnet fünf Beispiele auf und speichert sie als Trainingsdaten.
+  3. Nach Abschluss kehrt die App zum Tab **Lernen** zurück; über `WorkflowSupportLinks` gelangt man bei Bedarf in den Admin- oder Betreuerbereich.
 
 ## 6. Proactive Maintenance (HIP&nbsp;4)
 - **Story**: As Amy's gestures drift over time, I want the app to gently ask for practice when accuracy drops.
@@ -45,10 +47,10 @@ This document outlines the main user stories for Amy's Echo and how the screens 
 ## 7. Reviewing Progress
 - **Story**: As a caregiver, I want to see analytics about Amy's learning progress.
 - **Flow**:
-  1. From **Recognition** or **Admin**, open **Dashboard** to view success rates and trends.
+  1. Über die `WorkflowSupportLinks` (z. B. auf **Kamera**, **Verstehen** oder **Lernen**) den Admin- oder Dashboard-Bereich nach dem Sicherheitsgate öffnen.
   2. Analytics are loaded from local storage and uploaded to the server when online.
 
 ## Screen Linking Overview
-- `App.tsx` registriert alle aktiven Screens, inklusive **LegacyTraining**.
-- `AdminScreen` bietet Buttons für **Training**, **LegacyTraining**, **Dashboard** und weitere Admin-Werkzeuge.
-- `RecognitionScreen` has a **Menu** button that opens **ProfileSelect** for switching profiles or entering the parent/admin areas.
+- `RootNavigator` definiert den Stack mit **Hero**, dem drei-Tab-Navigator (`Kamera`, `Verstehen`, `Lernen`) und allen sekundären Bereichen wie **Parent**, **Admin**, **ProfileManager** oder **Help**.
+- `WorkflowStageHeader` stellt auf den Tabs das passende Wording sowie Navigation zum vorigen/nächsten Schritt der Schleife bereit.
+- `WorkflowSupportLinks` sammelt Betreuer-, Einstellungs- und Hilfseinträge und führt über das Parental-Gate zu **Parent**, **ProfileManager**, **Admin** oder **Help**.
