@@ -164,4 +164,27 @@ describe('GestureMeaningDisplay', () => {
 
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it('rendert die Kamerakarten-Tonart mit warmer Kontrastpalette', () => {
+    const { toJSON } = renderWithAccessibility(
+      <GestureMeaningDisplay
+        gestureId="hilfe-eine-hand"
+        confidence={0.78}
+        gestureDefinition={{
+          id: 'hilfe-eine-hand',
+          name: 'Hilfe',
+          description: 'Deutliches Hilfesignal mit einer Hand.',
+          emoji: '🆘',
+          category: 'communication',
+          difficulty: 'easy',
+          examples: ['Beispiel 1'],
+          composition: 'single',
+          gesture: 'help',
+        }}
+        tone="camera"
+      />,
+    );
+
+    expect(toJSON()).toMatchSnapshot();
+  });
 });

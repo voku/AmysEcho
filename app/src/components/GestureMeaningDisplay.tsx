@@ -32,6 +32,20 @@ const CONFIDENCE_LABEL = 'Sicherheit';
 const DEFAULT_MULTI_EMOJI = '👐';
 const DEFAULT_SINGLE_EMOJI = '🤟';
 
+const CAMERA_CARD_TONE = {
+  background: '#E5E0CF',
+  border: 'rgba(0, 44, 44, 0.18)',
+  symbolBadge: '#1C4A4B',
+  symbol: '#E5E0CF',
+  primaryText: '#002C2C',
+  secondaryText: '#1C4A4B',
+  mutedText: 'rgba(0, 44, 44, 0.7)',
+  panelBackground: '#F4EDDB',
+  mutedPanelBackground: '#EDE6D0',
+  badgeBackground: '#25706F',
+  badgeText: '#E5E0CF',
+} as const;
+
 interface GestureMeaningDisplayProps {
   gestureId: string;
   confidence: number;
@@ -41,6 +55,7 @@ interface GestureMeaningDisplayProps {
   gestureMeta?: GestureModelEntry | null;
   openaiValidationResult?: OpenAIValidationResult | null;
   sequenceGestures?: string[] | null;
+  tone?: 'overlay' | 'camera';
 }
 
 export default function GestureMeaningDisplay({
@@ -52,6 +67,7 @@ export default function GestureMeaningDisplay({
   gestureMeta,
   openaiValidationResult,
   sequenceGestures,
+  tone = 'overlay',
 }: GestureMeaningDisplayProps) {
   const { largeText, highContrast } = useAccessibility();
   const normalizedId = gestureId.trim();
@@ -298,14 +314,24 @@ export default function GestureMeaningDisplay({
 
   const sizes = getSizeStyles();
 
+  const isCameraTone = !highContrast && tone === 'camera';
+
   const styles = StyleSheet.create({
     container: {
       alignItems: 'center',
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.overlayBackdrop,
+      backgroundColor: highContrast
+        ? COLORS.highContrastBackground
+        : isCameraTone
+          ? CAMERA_CARD_TONE.background
+          : COLORS.overlayBackdrop,
       borderRadius: DEFAULT_RADIUS,
       padding: SPACING.sm,
-      borderWidth: highContrast ? 2 : 0,
-      borderColor: highContrast ? COLORS.highContrastText : 'transparent',
+      borderWidth: highContrast ? 2 : isCameraTone ? 1 : 0,
+      borderColor: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.border
+          : 'transparent',
     },
     symbolBadge: {
       width: sizes.symbolSize + SPACING.lg,
@@ -313,63 +339,111 @@ export default function GestureMeaningDisplay({
       borderRadius: (sizes.symbolSize + SPACING.lg) / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.surface,
+      backgroundColor: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.symbolBadge
+          : COLORS.surface,
       marginBottom: SPACING.xs,
     },
     symbol: {
       fontSize: sizes.symbolSize,
-      color: highContrast ? COLORS.highContrastBackground : COLORS.overlayText,
+      color: highContrast
+        ? COLORS.highContrastBackground
+        : isCameraTone
+          ? CAMERA_CARD_TONE.symbol
+          : COLORS.overlayText,
     },
     metaText: {
       fontSize: largeText ? 14 : 12,
-      color: highContrast ? COLORS.highContrastText : COLORS.overlayTextMuted,
+      color: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.mutedText
+          : COLORS.overlayTextMuted,
       textAlign: 'center',
       marginBottom: SPACING.xs,
     },
     gestureName: {
       fontSize: sizes.textSize,
       fontWeight: 'bold',
-      color: highContrast ? COLORS.highContrastText : COLORS.overlayText,
+      color: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.primaryText
+          : COLORS.overlayText,
       textAlign: 'center',
       marginBottom: showDetails ? SPACING.xs : 0,
     },
     confidenceText: {
       fontSize: sizes.confidenceSize,
-      color: highContrast ? COLORS.highContrastText : COLORS.overlayTextMuted,
+      color: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.secondaryText
+          : COLORS.overlayTextMuted,
       textAlign: 'center',
     },
     detailsContainer: {
-      backgroundColor: highContrast ? COLORS.surface : COLORS.overlaySurface,
+      backgroundColor: highContrast
+        ? COLORS.surface
+        : isCameraTone
+          ? CAMERA_CARD_TONE.panelBackground
+          : COLORS.overlaySurface,
       borderRadius: DEFAULT_RADIUS,
       padding: SPACING.xs,
       marginTop: SPACING.xs,
-      borderWidth: highContrast ? 1 : 1,
-      borderColor: highContrast ? COLORS.highContrastText : COLORS.overlayBorder,
+      borderWidth: 1,
+      borderColor: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.border
+          : COLORS.overlayBorder,
       width: '100%',
     },
     detailsText: {
       fontSize: largeText ? 12 : 10,
-      color: highContrast ? COLORS.highContrastBackground : COLORS.overlayText,
+      color: highContrast
+        ? COLORS.highContrastBackground
+        : isCameraTone
+          ? CAMERA_CARD_TONE.primaryText
+          : COLORS.overlayText,
       textAlign: 'center',
       lineHeight: largeText ? 16 : 14,
     },
     fallbackDetails: {
-      backgroundColor: highContrast ? COLORS.surface : COLORS.overlaySurfaceMuted,
+      backgroundColor: highContrast
+        ? COLORS.surface
+        : isCameraTone
+          ? CAMERA_CARD_TONE.mutedPanelBackground
+          : COLORS.overlaySurfaceMuted,
       borderRadius: DEFAULT_RADIUS,
       padding: SPACING.xs,
       marginTop: SPACING.xs,
-      borderWidth: highContrast ? 1 : 1,
-      borderColor: highContrast ? COLORS.highContrastText : COLORS.overlayBorder,
+      borderWidth: 1,
+      borderColor: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.border
+          : COLORS.overlayBorder,
       width: '100%',
     },
     fallbackText: {
       fontSize: largeText ? 12 : 10,
-      color: highContrast ? COLORS.highContrastBackground : COLORS.overlayText,
+      color: highContrast
+        ? COLORS.highContrastBackground
+        : isCameraTone
+          ? CAMERA_CARD_TONE.primaryText
+          : COLORS.overlayText,
       textAlign: 'center',
       marginBottom: SPACING.xs / 2,
     },
     categoryBadge: {
-      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.overlayBadgeBackground,
+      backgroundColor: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.badgeBackground
+          : COLORS.overlayBadgeBackground,
       borderRadius: DEFAULT_RADIUS,
       paddingHorizontal: SPACING.xs,
       paddingVertical: 2,
@@ -378,29 +452,49 @@ export default function GestureMeaningDisplay({
     },
     categoryText: {
       fontSize: largeText ? 10 : 8,
-      color: highContrast ? COLORS.highContrastBackground : COLORS.overlayBadgeText,
+      color: highContrast
+        ? COLORS.highContrastBackground
+        : isCameraTone
+          ? CAMERA_CARD_TONE.badgeText
+          : COLORS.overlayBadgeText,
       fontWeight: 'bold',
       textAlign: 'center',
     },
     openAiDetails: {
-      backgroundColor: highContrast ? COLORS.surface : COLORS.overlaySurfaceMuted,
+      backgroundColor: highContrast
+        ? COLORS.surface
+        : isCameraTone
+          ? CAMERA_CARD_TONE.mutedPanelBackground
+          : COLORS.overlaySurfaceMuted,
       borderRadius: DEFAULT_RADIUS,
       padding: SPACING.xs,
       marginTop: SPACING.xs,
-      borderWidth: highContrast ? 1 : 1,
-      borderColor: highContrast ? COLORS.highContrastText : COLORS.overlayBorder,
+      borderWidth: 1,
+      borderColor: highContrast
+        ? COLORS.highContrastText
+        : isCameraTone
+          ? CAMERA_CARD_TONE.border
+          : COLORS.overlayBorder,
       width: '100%',
     },
     openAiTitle: {
       fontSize: largeText ? 12 : 10,
       fontWeight: 'bold',
-      color: highContrast ? COLORS.highContrastBackground : COLORS.overlayText,
+      color: highContrast
+        ? COLORS.highContrastBackground
+        : isCameraTone
+          ? CAMERA_CARD_TONE.primaryText
+          : COLORS.overlayText,
       textAlign: 'center',
       marginBottom: SPACING.xs / 2,
     },
     openAiText: {
       fontSize: largeText ? 12 : 10,
-      color: highContrast ? COLORS.highContrastBackground : COLORS.overlayTextMuted,
+      color: highContrast
+        ? COLORS.highContrastBackground
+        : isCameraTone
+          ? CAMERA_CARD_TONE.mutedText
+          : COLORS.overlayTextMuted,
       textAlign: 'center',
       marginBottom: SPACING.xs / 2,
     },

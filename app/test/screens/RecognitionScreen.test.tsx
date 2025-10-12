@@ -35,7 +35,8 @@ jest.mock('../../src/components/PracticeSuggestion', () => () => null);
 jest.mock('../../src/components/AdaptiveLearningPanel', () => () => null);
 jest.mock('../../src/components/VisualRipple', () => () => null);
 jest.mock('../../src/components/ScreenFlash', () => () => null);
-jest.mock('../../src/components/GestureMeaningDisplay', () => () => null);
+const mockGestureMeaningDisplay = jest.fn(() => null);
+jest.mock('../../src/components/GestureMeaningDisplay', () => mockGestureMeaningDisplay);
 jest.mock('../../src/components/ScreenBackground', () => ({ children }: any) => children);
 jest.mock('../../src/components/HandLandmarkPreview', () => () => null);
 jest.mock('../../src/components/Celebration', () => () => null);
@@ -189,6 +190,7 @@ const ActionButtonComponent = require('../../src/components/ActionButton').defau
 describe('RecognitionScreen Amy-first overlay', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    mockGestureMeaningDisplay.mockClear();
   });
 
   const renderRecognitionScreen = async () => {
@@ -237,5 +239,34 @@ describe('RecognitionScreen Amy-first overlay', () => {
       'Lernmodus öffnen',
       'Alternativen anzeigen',
     ]);
+
+    expect(actionButtons[0].props.backgroundColor).toBe('#E5E0CF');
+    expect(actionButtons[0].props.textColor).toBe('#002C2C');
+    expect(actionButtons[1].props.backgroundColor).toBe('#25706F');
+    expect(actionButtons[1].props.textColor).toBe('#E5E0CF');
+    expect(actionButtons[2].props.backgroundColor).toBe('#1C4A4B');
+    expect(actionButtons[2].props.textColor).toBe('#E5E0CF');
+  });
+
+  it('zeigt die neue Kamerakarten-Tonart für Bedeutungsanzeigen', async () => {
+    const component = await renderRecognitionScreen();
+    expect(component).toBeTruthy();
+
+    mockGestureMeaningDisplay.mockClear();
+
+    await act(async () => {
+      recognitionStateModule.__setMockLastRecognizedGesture?.({
+        id: 'hallo',
+        label: 'Hallo',
+        emoji: '👋',
+        category: 'greeting',
+      });
+    });
+
+    expect(mockGestureMeaningDisplay).toHaveBeenCalled();
+    const lastCall =
+      mockGestureMeaningDisplay.mock.calls[mockGestureMeaningDisplay.mock.calls.length - 1];
+    const lastCallProps = lastCall?.[0];
+    expect(lastCallProps?.tone).toBe('camera');
   });
 });

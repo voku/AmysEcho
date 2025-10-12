@@ -48,20 +48,62 @@ const CAPTURE_PULSE_SIZE = spacing['2xl'] * 5;
 
 type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating' | 'error';
 
+const CAMERA_THEME = {
+  gradient: ['#0F3A3B', '#1C4A4B'] as const,
+  overlayScrim: 'rgba(15, 58, 59, 0.55)',
+  statusBackground: {
+    idle: '#25706F',
+    listening: '#2C7E7E',
+    recognized: '#2E9A92',
+    updating: '#25706F',
+    error: '#8F3C3A',
+  } satisfies Record<RecognitionStatusCategory, string>,
+  statusText: {
+    idle: '#E5E0CF',
+    listening: '#E5E0CF',
+    recognized: '#E5E0CF',
+    updating: '#E5E0CF',
+    error: '#FBEFEB',
+  } satisfies Record<RecognitionStatusCategory, string>,
+  capturePulseBorder: '#E5E0CF',
+  capturePulseOpacity: 0.45,
+  frameCorner: '#E5E0CF',
+  cameraHint: '#FFFFFF',
+  predictionCardBackground: '#E5E0CF',
+  predictionCardBorder: 'rgba(0, 44, 44, 0.12)',
+  actionButtons: {
+    confirm: {
+      background: '#E5E0CF',
+      pressed: '#D9D2BE',
+      text: '#002C2C',
+    },
+    learn: {
+      background: '#25706F',
+      pressed: '#1F5E5E',
+      text: '#E5E0CF',
+    },
+    alternatives: {
+      background: '#1C4A4B',
+      pressed: '#163C3D',
+      text: '#E5E0CF',
+    },
+  },
+} as const;
+
 const STATUS_CHIP_BACKGROUND: Record<RecognitionStatusCategory, string> = {
-  idle: Colors.surfaceMuted,
-  listening: Colors.primary,
-  recognized: Colors.success,
-  updating: Colors.accent,
-  error: Colors.error,
+  idle: CAMERA_THEME.statusBackground.idle,
+  listening: CAMERA_THEME.statusBackground.listening,
+  recognized: CAMERA_THEME.statusBackground.recognized,
+  updating: CAMERA_THEME.statusBackground.updating,
+  error: CAMERA_THEME.statusBackground.error,
 };
 
 const STATUS_CHIP_TEXT: Record<RecognitionStatusCategory, string> = {
-  idle: Colors.text,
-  listening: Colors.inverseText,
-  recognized: Colors.inverseText,
-  updating: Colors.text,
-  error: Colors.inverseText,
+  idle: CAMERA_THEME.statusText.idle,
+  listening: CAMERA_THEME.statusText.listening,
+  recognized: CAMERA_THEME.statusText.recognized,
+  updating: CAMERA_THEME.statusText.updating,
+  error: CAMERA_THEME.statusText.error,
 };
 
 const toGestureImageCapture = (
@@ -577,7 +619,7 @@ export default function RecognitionScreen({
 
   return (
     <>
-      <LinearGradient colors={['#EFF6FF', '#F3F4F6']} style={styles.container}>
+      <LinearGradient colors={CAMERA_THEME.gradient} style={styles.container}>
         <MediaPipeGestureDetector
           onGestureDetected={processGesture}
           onLandmarks={(landmarks, handedness) => handleGestureDetected(null, 0, landmarks, handedness)}
@@ -659,6 +701,7 @@ export default function RecognitionScreen({
                     gestureMeta={lastRecognizedGesture}
                     openaiValidationResult={openaiValidationResult}
                     sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
+                    tone="camera"
                   />
                 </Animated.View>
               ) : null}
@@ -671,6 +714,9 @@ export default function RecognitionScreen({
                     onPress={handleConfirmGesture}
                     variant="primary"
                     style={styles.actionButton}
+                    backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
+                    pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
+                    textColor={CAMERA_THEME.actionButtons.confirm.text}
                   />
                 </View>
                 <View style={styles.actionWrapper}>
@@ -680,6 +726,9 @@ export default function RecognitionScreen({
                     onPress={handleLearnPress}
                     variant="secondary"
                     style={styles.actionButton}
+                    backgroundColor={CAMERA_THEME.actionButtons.learn.background}
+                    pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
+                    textColor={CAMERA_THEME.actionButtons.learn.text}
                   />
                 </View>
                 <View style={styles.actionWrapper}>
@@ -689,6 +738,9 @@ export default function RecognitionScreen({
                     onPress={handleAlternativesPress}
                     variant="accent"
                     style={styles.actionButton}
+                    backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
+                    pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
+                    textColor={CAMERA_THEME.actionButtons.alternatives.text}
                   />
                 </View>
               </View>
@@ -721,7 +773,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing['2xl'],
     paddingBottom: spacing.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: CAMERA_THEME.overlayScrim,
   },
   topSection: {
     width: '100%',
@@ -772,14 +824,14 @@ const styles = StyleSheet.create({
     height: CAPTURE_PULSE_SIZE,
     borderRadius: CAPTURE_PULSE_SIZE / 2,
     borderWidth: 2,
-    borderColor: Colors.primary,
-    opacity: 0.35,
+    borderColor: CAMERA_THEME.capturePulseBorder,
+    opacity: CAMERA_THEME.capturePulseOpacity,
   },
   corner: {
     position: 'absolute',
     width: spacing['2xl'],
     height: spacing['2xl'],
-    borderColor: Colors.cameraFrame,
+    borderColor: CAMERA_THEME.frameCorner,
     borderWidth: spacing.xs,
   },
   cornerTopLeft: {
@@ -810,16 +862,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     fontSize: typography.sizes.body,
     fontWeight: typography.weights.medium as any,
-    color: Colors.textSecondary,
+    color: CAMERA_THEME.cameraHint,
   },
   bottomSection: {
     paddingBottom: spacing['2xl'],
   },
   predictionCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: CAMERA_THEME.predictionCardBackground,
     borderRadius: 16,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.xl,
+    borderWidth: 1,
+    borderColor: CAMERA_THEME.predictionCardBorder,
     shadowColor: Colors.shadow,
     shadowOpacity: 0.15,
     shadowRadius: 12,
