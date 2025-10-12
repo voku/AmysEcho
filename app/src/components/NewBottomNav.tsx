@@ -10,20 +10,20 @@ import { childFriendlyStyles } from '../styles/touchTargets';
 
 const ROUTE_LABELS: Record<string, string> = {
   Recognition: 'Kamera',
-  History: 'Verlauf',
+  History: 'Verstehen',
   Lernen: 'Lernen',
 };
 
 const ROUTE_HINTS: Record<string, string> = {
-  Recognition: 'Zurück zur Gestenerkennung',
-  History: 'Gestenverlauf und Ereignisse ansehen',
-  Lernen: 'Gesten aufnehmen oder üben',
+  Recognition: 'Zur Gestenkamera wechseln',
+  History: 'Letzte Gesten und Einblicke prüfen',
+  Lernen: 'Trainings- und Lernbereich öffnen',
 };
 
 const ROUTE_ICONS: Record<string, string> = {
-  Recognition: '📷',
-  History: '🕒',
-  Lernen: '🎓',
+  Recognition: '🖐️',
+  History: '💬',
+  Lernen: '🧠',
 };
 
 const TAB_BAR_HEIGHT = 76;
@@ -45,16 +45,18 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
   const containerStyle = [
     styles.container,
     {
-      backgroundColor: highContrast ? COLORS.highContrastBackground : '#0F3A3B',
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.neutral,
       borderColor: highContrast ? COLORS.highContrastText : 'transparent',
       shadowColor: highContrast ? COLORS.highContrastText : COLORS.shadow,
     },
   ];
 
-  const inactiveColor = highContrast ? COLORS.highContrastText : '#FFFFFF';
-  const activeColor = highContrast ? COLORS.highContrastBackground : '#FFFFFF';
-  const activeBackground = highContrast ? COLORS.highContrastText : '#25706F';
-  const rippleColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.16)';
+  const inactiveColor = highContrast ? COLORS.highContrastText : COLORS.overlayTextSoft;
+  const activeColor = highContrast
+    ? COLORS.highContrastBackground
+    : COLORS.actionPrimaryBackground;
+  const activeBackground = highContrast ? COLORS.highContrastText : COLORS.actionSecondaryBackground;
+  const rippleColor = highContrast ? COLORS.highContrastText : COLORS.overlaySurface;
 
   const items = useMemo<TabItem[]>(() => {
     return state.routes.map((route, index) => {
@@ -122,6 +124,7 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
           >
             {label}
           </Text>
+          {isFocused ? <View style={styles.activeIndicator} /> : null}
         </Pressable>
       ))}
     </View>
@@ -149,10 +152,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.sm,
     borderRadius: 24,
-    minHeight: 48,
+    minHeight: 56,
+    position: 'relative',
   },
   tabActive: {
-    backgroundColor: '#25706F',
+    backgroundColor: COLORS.actionSecondaryBackground,
   },
   tabPressed: {
     opacity: 0.92,
@@ -161,7 +165,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   icon: {
-    fontSize: typography.sizes.subtitle,
+    fontSize: typography.sizes.titleSm,
     marginBottom: spacing.xs,
   },
   label: {
@@ -173,10 +177,18 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.body,
   },
   iconLarge: {
-    fontSize: typography.sizes.titleSm,
+    fontSize: typography.sizes.title,
   },
   labelActive: {
     fontWeight: typography.weights.semibold,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: spacing.xs,
+    width: 18,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: COLORS.actionPrimaryBackground,
   },
 });
 

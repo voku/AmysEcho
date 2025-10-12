@@ -60,17 +60,26 @@ const AppTabs = ({
       <Tab.Screen
         name="Recognition"
         component={RecognitionScreen}
-        options={{ tabBarLabel: 'Kamera' }}
+        options={{
+          tabBarLabel: 'Kamera',
+          tabBarAccessibilityLabel: 'Zur Gestenkamera wechseln',
+        }}
       />
       <Tab.Screen
         name="History"
         component={HistoryScreen}
-        options={{ tabBarLabel: 'Verlauf' }}
+        options={{
+          tabBarLabel: 'Verstehen',
+          tabBarAccessibilityLabel: 'Verlauf und Einblicke ansehen',
+        }}
       />
       <Tab.Screen
         name="Lernen"
         component={LernenScreen}
-        options={{ tabBarLabel: 'Lernen' }}
+        options={{
+          tabBarLabel: 'Lernen',
+          tabBarAccessibilityLabel: 'Trainings- und Lernbereich öffnen',
+        }}
       />
     </Tab.Navigator>
   );

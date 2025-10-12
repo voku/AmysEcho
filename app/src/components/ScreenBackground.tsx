@@ -40,7 +40,7 @@ export default function ScreenBackground({
   const insets = useSafeAreaInsets();
   const { highContrast } = useAccessibility();
   const { theme } = useTheme();
-  const { gradientStart, gradientEnd } = theme.colors;
+  const { gradientStart, gradientEnd, background } = theme.colors;
 
   const gradientColors = React.useMemo(
     () =>
@@ -55,10 +55,10 @@ export default function ScreenBackground({
 
   const safeAreaPadding = React.useMemo(
     () => ({
-      top: insets.top + SPACING.lg,
-      bottom: insets.bottom + SPACING.lg,
-      left: SPACING.lg,
-      right: SPACING.lg,
+      top: insets.top + SPACING.xl,
+      bottom: insets.bottom + SPACING.xl,
+      left: SPACING.xl,
+      right: SPACING.xl,
     }),
     [insets.bottom, insets.top],
   );
@@ -208,7 +208,12 @@ export default function ScreenBackground({
 
   if (scrollable) {
     return (
-      <LinearGradient colors={gradientColors} style={styles.gradient}>
+      <LinearGradient
+        colors={gradientColors}
+        style={[styles.gradient, { backgroundColor: background }]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+      >
         <ScrollView
           style={scrollViewStyle}
           contentContainerStyle={contentStyle}
@@ -222,7 +227,12 @@ export default function ScreenBackground({
   }
 
   return (
-    <LinearGradient colors={gradientColors} style={styles.gradient}>
+    <LinearGradient
+      colors={gradientColors}
+      style={[styles.gradient, { backgroundColor: background }]}
+      start={{ x: 0.2, y: 0 }}
+      end={{ x: 0.9, y: 1 }}
+    >
       <View style={containerStyle} testID={testID}>
         {children}
       </View>
@@ -233,6 +243,7 @@ export default function ScreenBackground({
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
+    paddingHorizontal: 0,
   },
   flex: {
     flex: 1,

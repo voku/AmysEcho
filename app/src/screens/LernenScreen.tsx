@@ -31,36 +31,35 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
   );
 
   const renderItem = ({ item }: { item: GestureListItem }) => (
-    <View style={styles.card} accessible>
+    <View style={styles.card}>
       <View style={styles.cardInfo}>
         <Text style={styles.cardEmoji}>{item.emoji ?? '🤲'}</Text>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>{item.label}</Text>
-          <Text style={styles.cardSubtitle}>5 Beispiele • ca. 1 Minute</Text>
+          <Text style={styles.cardSubtitle}>Empfohlen: 5 Beispiele · ca. 1 Minute</Text>
         </View>
       </View>
       <ActionButton
-        label="Trainieren"
+        label="Jetzt aufnehmen"
         accessibilityLabel={`Gestentraining für ${item.label} starten`}
         onPress={() => handleTrain(item.id, item.label)}
-        variant="primary"
+        variant="secondary"
         style={styles.cardAction}
       />
     </View>
   );
 
   return (
-    <LinearGradient colors={['#EFF6FF', '#F3F4F6']} style={styles.container}>
-      <Text style={styles.title}>Lernen</Text>
+    <LinearGradient colors={[Colors.backgroundStart, Colors.backgroundEnd]} style={styles.container}>
+      <Text style={styles.title}>Lernen &amp; Trainieren</Text>
       <Text style={styles.subtitle}>
-        Wähle eine Geste, um neue Beispiele aufzunehmen oder erneut zu üben.
+        Ergänze Amy&apos;s Wörterbuch mit neuen Beispielen oder frische bekannte Gesten auf.
       </Text>
       <FlatList
         data={gestures}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📝</Text>
@@ -83,32 +82,32 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes.title,
     fontWeight: typography.weights.extrabold as any,
-    color: Colors.text,
+    color: Colors.inverseText,
   },
   subtitle: {
     marginTop: spacing.sm,
     fontSize: typography.sizes.body,
-    color: Colors.textSecondary,
-    marginBottom: spacing.xl,
+    color: Colors.overlayText,
+    marginBottom: spacing['2xl'],
   },
   listContent: {
     paddingBottom: spacing['2xl'],
-  },
-  separator: {
-    height: spacing.md,
+    gap: spacing.lg,
   },
   card: {
-    padding: spacing.lg,
-    borderRadius: 16,
-    backgroundColor: Colors.surface,
+    padding: spacing.xl,
+    borderRadius: 24,
+    backgroundColor: Colors.overlayBadgeBackground,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: Colors.shadow,
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
     elevation: 5,
+    borderWidth: 1,
+    borderColor: Colors.overlaySurface,
   },
   cardInfo: {
     flexDirection: 'row',
@@ -116,21 +115,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardEmoji: {
-    fontSize: 36,
+    fontSize: 40,
     marginRight: spacing.lg,
   },
   cardText: {
     flex: 1,
+    gap: spacing.xs,
   },
   cardTitle: {
     fontSize: typography.sizes.subtitle,
     fontWeight: typography.weights.semibold as any,
-    color: Colors.text,
+    color: Colors.neutral,
   },
   cardSubtitle: {
-    marginTop: spacing.xs,
     fontSize: typography.sizes.caption,
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
   },
   cardAction: {
     minWidth: 140,
@@ -148,7 +147,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: typography.sizes.body,
     textAlign: 'center',
-    color: Colors.textSecondary,
+    color: Colors.overlayText,
   },
 });
 

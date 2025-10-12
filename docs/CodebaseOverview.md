@@ -9,6 +9,7 @@ This document summarizes the repository in key areas with concrete file referenc
 - Navigation and screens are in `app/src/screens/`
 - Services and hooks are in `app/src/services/` and `app/src/hooks/`
 - Global state management is handled by React Contexts in `app/src/context/`
+- Brand theming is centralised in `app/src/constants/colors.ts`, `typography.ts` and `themes.ts`; the default `amyEcho` theme powers the rebranded Kamera → Verstehen → Lernen loop.
 
 ## 2. Gesture Recognition Pipeline
 - `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.
