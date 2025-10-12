@@ -9,6 +9,7 @@ import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { TabNavigationProp } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
+import WorkflowStageHeader from '../components/WorkflowStageHeader';
 
 const CONFIDENCE_THRESHOLD_STRONG = 0.75;
 const CONFIDENCE_THRESHOLD_MEDIUM = 0.5;
@@ -120,8 +121,7 @@ const HistoryScreen: React.FC = () => {
 
   return (
     <LinearGradient colors={[Colors.backgroundStart, Colors.backgroundEnd]} style={styles.container}>
-      <Text style={styles.screenTitle}>Verstehen</Text>
-      <Text style={styles.subtitle}>Hier siehst du, wie sicher Amy deine Gesten verstanden hat.</Text>
+      <WorkflowStageHeader route="History" tone="dark" style={styles.stageHeader} />
       <FlatList
         data={historyItems}
         renderItem={renderItem}
@@ -145,15 +145,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing['2xl'],
   },
-  screenTitle: {
-    fontSize: typography.sizes.title,
-    fontWeight: typography.weights.extrabold as any,
-    color: Colors.inverseText,
-  },
-  subtitle: {
-    marginTop: spacing.sm,
-    fontSize: typography.sizes.body,
-    color: Colors.overlayText,
+  stageHeader: {
     marginBottom: spacing['2xl'],
   },
   listContent: {

@@ -86,6 +86,15 @@ export const WORKFLOW_SUPPORT_DESTINATIONS: WorkflowSupportDestination[] = [
     accessibilityHint: 'Elternzugang mit Sicherheitsfrage öffnen.',
   },
   {
+    key: 'profiles',
+    title: 'Profile & Einstellungen',
+    description: 'Nutzerprofile, Sprache und Geräte verwalten.',
+    icon: '⚙️',
+    navigationTarget: { route: 'ParentalGate', params: { target: 'ProfileManager' } },
+    accessibilityLabel: 'Profile und Einstellungen öffnen',
+    accessibilityHint: 'Sicherheitsfrage beantworten, um Profile und Einstellungen zu bearbeiten.',
+  },
+  {
     key: 'admin',
     title: 'Verwaltung & Modelle',
     description: 'Gesten-Daten prüfen und Modelle pflegen.',
@@ -115,6 +124,11 @@ export const WORKFLOW_STEP_BY_ROUTE = WORKFLOW_STEPS.reduce(
   {} as Record<WorkflowRouteName, WorkflowStepMeta>,
 ) satisfies Record<WorkflowRouteName, WorkflowStepMeta>;
 
+type WorkflowAdjacency = {
+  next?: WorkflowRouteName | undefined;
+  previous?: WorkflowRouteName | undefined;
+};
+
 if (__DEV__) {
   REQUIRED_WORKFLOW_ROUTES.forEach((route) => {
     if (!WORKFLOW_STEP_BY_ROUTE[route]) {
@@ -125,10 +139,30 @@ if (__DEV__) {
 
 export const ORDERED_WORKFLOW_STEPS = [...WORKFLOW_STEPS].sort((a, b) => a.order - b.order);
 
+const WORKFLOW_ADJACENCY: Record<WorkflowRouteName, WorkflowAdjacency> = ORDERED_WORKFLOW_STEPS.reduce(
+  (acc, step, index, array) => {
+    const previous = index > 0 ? array[index - 1] : undefined;
+    const next = index < array.length - 1 ? array[index + 1] : undefined;
+
+    acc[step.route] = {
+      previous: previous?.route,
+      next: next?.route,
+    };
+
+    return acc;
+  },
+  {} as Record<WorkflowRouteName, WorkflowAdjacency>,
+);
+
 export const getWorkflowStepMeta = (routeName: WorkflowRouteName): WorkflowStepMeta =>
   WORKFLOW_STEP_BY_ROUTE[routeName];
 
 export const isWorkflowRouteName = (routeName: string): routeName is WorkflowRouteName =>
   routeName in WORKFLOW_STEP_BY_ROUTE;
+
+export const getNextWorkflowRoute = (routeName: WorkflowRouteName) => WORKFLOW_ADJACENCY[routeName]?.next;
+
+export const getPreviousWorkflowRoute = (routeName: WorkflowRouteName) =>
+  WORKFLOW_ADJACENCY[routeName]?.previous;
 
 export default WORKFLOW_STEPS;

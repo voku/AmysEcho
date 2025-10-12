@@ -8,6 +8,7 @@ import Colors from '../constants/colors';
 import ActionButton from '../components/ActionButton';
 import type { TabNavigationProp } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
+import WorkflowStageHeader from '../components/WorkflowStageHeader';
 
 type LernenScreenProps = {
   navigation: TabNavigationProp<'Lernen'>;
@@ -52,10 +53,7 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
 
   return (
     <LinearGradient colors={[Colors.backgroundStart, Colors.backgroundEnd]} style={styles.container}>
-      <Text style={styles.title}>Lernen &amp; Trainieren</Text>
-      <Text style={styles.subtitle}>
-        Ergänze Amy&apos;s Wörterbuch mit neuen Beispielen oder frische bekannte Gesten auf.
-      </Text>
+      <WorkflowStageHeader route="Lernen" tone="dark" style={styles.stageHeader} />
       <FlatList
         data={gestures}
         renderItem={renderItem}
@@ -81,15 +79,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing['2xl'],
   },
-  title: {
-    fontSize: typography.sizes.title,
-    fontWeight: typography.weights.extrabold as any,
-    color: Colors.inverseText,
-  },
-  subtitle: {
-    marginTop: spacing.sm,
-    fontSize: typography.sizes.body,
-    color: Colors.overlayText,
+  stageHeader: {
     marginBottom: spacing['2xl'],
   },
   listContent: {
