@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import GestureMeaningDisplay from '../../src/components/GestureMeaningDisplay';
 import { optimizedGestureService } from '../../src/services/optimizedGestureService';
 import type { GestureModelEntry } from '../../src/model';
@@ -187,5 +187,34 @@ describe('GestureMeaningDisplay', () => {
     );
 
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it('klappt Detailinformationen auf Wunsch aus', () => {
+    const { queryByText, getByLabelText, getByText } = renderWithAccessibility(
+      <GestureMeaningDisplay
+        gestureId="hilfe-eine-hand"
+        confidence={0.78}
+        gestureDefinition={{
+          id: 'hilfe-eine-hand',
+          name: 'Hilfe',
+          description: 'Deutliches Hilfesignal mit einer Hand.',
+          emoji: '🆘',
+          category: 'communication',
+          difficulty: 'easy',
+          examples: ['Beispiel 1'],
+          composition: 'single',
+          gesture: 'help',
+        }}
+        detailsStartCollapsed
+      />,
+    );
+
+    expect(queryByText('Deutliches Hilfesignal mit einer Hand.')).toBeNull();
+
+    const expandToggle = getByLabelText('Details zur Geste anzeigen');
+    fireEvent.press(expandToggle);
+
+    expect(getByText('Deutliches Hilfesignal mit einer Hand.')).toBeTruthy();
+    expect(getByLabelText('Details zur Geste ausblenden')).toBeTruthy();
   });
 });

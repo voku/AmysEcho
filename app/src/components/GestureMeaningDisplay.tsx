@@ -10,8 +10,8 @@
  * combinations when necessary so Amy always sees one clear idea.
  */
 
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 import {
@@ -69,6 +69,7 @@ interface GestureMeaningDisplayProps {
   openaiValidationResult?: OpenAIValidationResult | null;
   sequenceGestures?: string[] | null;
   tone?: 'overlay' | 'camera';
+  detailsStartCollapsed?: boolean;
 }
 
 export default function GestureMeaningDisplay({
@@ -81,9 +82,15 @@ export default function GestureMeaningDisplay({
   openaiValidationResult,
   sequenceGestures,
   tone = 'overlay',
+  detailsStartCollapsed = false,
 }: GestureMeaningDisplayProps) {
   const { largeText, highContrast } = useAccessibility();
   const normalizedId = gestureId.trim();
+  const [detailsExpanded, setDetailsExpanded] = useState(!detailsStartCollapsed);
+
+  useEffect(() => {
+    setDetailsExpanded(!detailsStartCollapsed);
+  }, [detailsStartCollapsed]);
 
   const sequenceDefinition = useMemo(() => {
     if (gestureDefinition?.composition === 'sequence') {
@@ -340,7 +347,7 @@ export default function GestureMeaningDisplay({
     return [`Linke Hand: ${leftLabel}`, `Rechte Hand: ${rightLabel}`];
   }, [leftMeta, parsedCombination, rightMeta]);
 
-  const detailLines = useMemo(() => {
+  const fullDetailLines = useMemo(() => {
     if (!showDetails) {
       return [] as string[];
     }
@@ -386,6 +393,11 @@ export default function GestureMeaningDisplay({
     sequenceStepLabels,
     showDetails,
   ]);
+
+  const shouldShowToggle = detailsStartCollapsed && fullDetailLines.length > 0;
+  const shouldRenderDetails =
+    fullDetailLines.length > 0 && (!shouldShowToggle || detailsExpanded);
+  const detailLines = shouldRenderDetails ? fullDetailLines : ([] as string[]);
 
   const getSizeStyles = () => {
     switch (size) {
@@ -520,6 +532,23 @@ export default function GestureMeaningDisplay({
     detailsTextLast: {
       marginBottom: 0,
     },
+    toggleButton: {
+      alignSelf: 'stretch',
+      marginTop: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.sm,
+      borderRadius: DEFAULT_RADIUS,
+    },
+    toggleButtonPressed: {
+      backgroundColor: highContrast ? COLORS.highContrastPressed : 'rgba(0, 0, 0, 0.08)',
+    },
+    toggleText: {
+      fontSize: largeText ? 16 : 14,
+      fontWeight: '600',
+      color: highContrast ? COLORS.highContrastText : palette.textSecondary,
+      textAlign: 'center',
+      textDecorationLine: 'underline',
+    },
   });
 
   const metaLabel = isSequence
@@ -541,6 +570,26 @@ export default function GestureMeaningDisplay({
       <Text style={styles.confidenceText}>
         {Math.round(confidence * 100)}% {CONFIDENCE_LABEL}
       </Text>
+
+      {shouldShowToggle ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.toggleButton,
+            pressed && styles.toggleButtonPressed,
+          ]}
+          onPress={() => setDetailsExpanded((prev) => !prev)}
+          accessibilityRole="button"
+          accessibilityLabel={
+            detailsExpanded
+              ? 'Details zur Geste ausblenden'
+              : 'Details zur Geste anzeigen'
+          }
+        >
+          <Text style={styles.toggleText}>
+            {detailsExpanded ? 'Weniger Details' : 'Mehr Details'}
+          </Text>
+        </Pressable>
+      ) : null}
 
       {detailLines.length > 0 ? (
         <View style={styles.detailsContainer}>

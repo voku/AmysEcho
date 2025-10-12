@@ -692,6 +692,7 @@ export default function RecognitionScreen({
                     gestureId={gestureMeaningDisplayProps.gestureId}
                     confidence={gestureMeaningDisplayProps.confidence}
                     showDetails
+                    detailsStartCollapsed
                     size="large"
                     gestureDefinition={gestureMeaningDisplayProps.gestureDefinition}
                     gestureMeta={lastRecognizedGesture}
