@@ -70,16 +70,43 @@ Reusable components are located in `app/src/components/`. They should be built w
 
 ### AmyLoopTimeline
 
-The `AmyLoopTimeline` component visualises the mission-critical communication loop: *Sehen → Denken → Sprechen/Zeigen → Bestätigen → Lernen*. Use it whenever a screen guides the caregiver or child through that flow (hero, onboarding, training, recognition).
+The `AmyLoopTimeline` component visualises the mission-critical communication loop: *Kamera → Verlauf → Lernen*. Verwende es auf erklärenden Flächen wie Hero, Onboarding oder Trainingseinführungen. Das eigentliche Kamera-Overlay verzichtet bewusst auf die Timeline und zeigt nur den Statuschip, damit der Fokus komplett auf Amys Hand und die drei Aktionen bleibt.
 
 ```tsx
-<AmyLoopTimeline activeStage="see" />
-<AmyLoopTimeline activeStage="confirm" compact hideDescriptions mode="overlay" />
+<AmyLoopTimeline activeStage="Recognition" />
+<AmyLoopTimeline activeStage="History" compact hideDescriptions mode="overlay" />
 ```
 
 *   **Active Stage:** Highlights with `COLORS.primary` to reinforce the current focus.
-*   **Compact Variant:** Use `compact hideDescriptions` inside tight overlays (e.g. recognition overlay).
+*   **Compact Variant:** Use `compact hideDescriptions` inside tight Overlays wie Onboarding-Karten.
 *   **Accessibility:** The component exposes `list` semantics and honours the global accessibility settings.
+
+### Kamera-Aktionsbuttons
+
+Im Kamera-Overlay führen drei Buttons („Stimmt“, „Lernen“, „Alternativen“) durch die Schleife. Die Farben kommen aus `colors.ts` (`cameraActionConfirm*`, `cameraActionLearn*`, `cameraActionAlternatives*`). Sie kombinieren warme Töne (#E5E0CF) für Bestätigen mit tiefem Petrol (#25706F, #1C4A4B) für Lernpfade, um das Mockup widerzuspiegeln.
+
+### Selbstentdeckungs-Ribbon
+
+Sobald eine Geste sicher erkannt wurde, blendet das Overlay ein zentriertes Ribbon ein:
+
+* **Label:** `Amy's Echo` in Versalien mit `overlayTextMuted`, um den Absender zu markieren.
+* **Botschaft:** „Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Geste gleich als Stimme und Symbol zurück.“
+* **Layout:** Abgerundete Karte (`borderRadius: 28`) mit `overlaySurfaceMuted` und zartem Schatten (`shadowOpacity: 0.12`).
+* **Statuschip:** Der Hauptchip trägt jetzt das Label „Selbstentdeckung“, damit das Mockup-Narrativ direkt sichtbar wird.
+
+Nutze dieses Muster ausschließlich im Erfolgspfad des Kamera-Overlays. Erklärende Flächen (Hero, Onboarding, Lernen) verwenden weiterhin die `AmyLoopTimeline`.
+
+### Verlauf-Highlight „Selbstentdeckung gesichert“
+
+Der Tab **Verlauf** führt das Selbstentdeckungs-Narrativ fort:
+
+* **Highlight-Karte:** `historyHighlightBackground` + `historyHighlightBorder` bilden einen hellen Frame mit `borderRadius: 28` und großzügigem `padding: spacing['2xl']`.
+* **Badge:** Ein runder Chip mit `historyHighlightBadge` und der Aufschrift „Selbstentdeckung gesichert“ macht den gefeierten Moment klar.
+* **Text:** Titel in `typography.sizes.title` + `historyHighlightText`, Untertitel in `typography.sizes.body` + `historyHighlightMuted`.
+* **Aktionen:** Zwei Buttons – "Zur Kamera" nutzt die Kamera-CTA-Farben (`cameraActionConfirm*`), "Im Lernmodus vertiefen" setzt auf den sekundären Button. Beide Buttons sind mindestens 160 px breit und stehen nebeneinander (flex-wrap).
+* **Karten-Narrativ:** Jede Verlaufskarte ergänzt neben dem Vertrauens-Badge eine Folgehandlung („Selbstentdeckung bestätigt“, „Noch unsicher“, „Bitte prüfen“), um klarzumachen, was als nächstes passieren kann.
+
+Der leere Zustand referenziert ebenfalls Selbstentdeckungen („Noch keine Selbstentdeckungen…“) und bleibt damit konsistent mit Kamera und Lernen.
 
 ### AmyFirstCommitments
 

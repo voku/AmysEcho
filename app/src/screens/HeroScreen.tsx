@@ -29,7 +29,7 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
         </View>
 
         <View style={styles.timelineWrapper}>
-          <AmyLoopTimeline activeStage="see" />
+          <AmyLoopTimeline activeStage="Recognition" />
         </View>
 
         <AmyFirstCommitments />
