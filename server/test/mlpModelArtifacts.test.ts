@@ -60,7 +60,7 @@ describe('writeMinimalMlpModel', () => {
     const result = spawnSync('python3', ['-c', script, destination], { encoding: 'utf8' });
     expect(result.status).toBe(0);
     const parsed = JSON.parse(result.stdout) as { keys: string[]; shapes: Record<string, number[]> };
-    expect(parsed.keys).toEqual(expect.arrayContaining(['w1', 'b1', 'w2', 'b2', 'labels']));
+    expect(parsed.keys).toEqual(['b1', 'b2', 'counts', 'labels', 'w1', 'w2']);
     expect(parsed.shapes['w1'][0]).toBeGreaterThan(0);
     expect(parsed.shapes['w1'][1]).toBeGreaterThan(0);
     expect(parsed.shapes['b1'][0]).toBe(parsed.shapes['w1'][0]);
