@@ -24,7 +24,13 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
   }, []);
 
   const injectModel = useCallback((b64: string | null, context?: ModelContext) => {
-    if (!b64 || !webviewRef.current || !mlpReadyRef.current) return;
+    if (!b64) return;
+
+    if (!webviewRef.current || !mlpReadyRef.current) {
+      pendingModelRef.current = b64;
+      pendingModelContextRef.current = context ?? null;
+      return;
+    }
     if (modelTransferLock.current) {
       logger.warn('Model transfer in progress, queueing new model', {
         hasPendingModel: !!pendingModelRef.current,
@@ -104,5 +110,11 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
     pendingModelContextRef.current = null;
   }, [clearTransferWatchdog, injectModel]);
 
-  return { injectModel, mlpReadyRef, pendingModelRef, markTransferComplete };
+  return {
+    injectModel,
+    mlpReadyRef,
+    pendingModelRef,
+    pendingModelContextRef,
+    markTransferComplete,
+  };
 };
