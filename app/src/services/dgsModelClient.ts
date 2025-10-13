@@ -101,7 +101,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
     prevMeta = null;
   }
 
-  const url = new URL('/api/v1/dgs/mlp-model', getApiUrl());
+  const url = new URL('/latest-mlp-model', getApiUrl());
   if (profileId) url.searchParams.set('profileId', profileId);
   const headers: Record<string, string> = { Authorization: `Bearer ${getApiToken()}` };
   if (profileId) headers['X-Profile-Id'] = profileId;
