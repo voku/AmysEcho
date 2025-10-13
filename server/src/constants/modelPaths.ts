@@ -37,6 +37,7 @@ function resolveServerDir(): string {
 }
 
 export const SERVER_DIR = resolveServerDir();
+export const SRC_DIR = path.join(SERVER_DIR, 'src');
 export const DATA_DIR = explicitDataDir
   ? path.resolve(explicitDataDir)
   : path.join(SERVER_DIR, 'data');

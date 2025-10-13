@@ -20,6 +20,7 @@ import {
   getMlpModelPath,
   PROFILE_ID_PATTERN,
   SERVER_DIR,
+  SRC_DIR,
   BASELINE_MLP_MODEL_PATH,
   TRAINING_MANIFEST_PATH,
   MLP_MODELS_DIR,
@@ -65,7 +66,7 @@ import { ingestTrainingBundlesIntoDataset } from './services/trainingBundleInges
 
 export const app = express();
 
-const serverModuleDir = path.join(SERVER_DIR, 'src');
+const serverModuleDir = SRC_DIR;
 
 const portalPath = path.join(serverModuleDir, 'portal');
 let portalAvailable = true;
