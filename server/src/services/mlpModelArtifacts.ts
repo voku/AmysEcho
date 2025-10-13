@@ -63,12 +63,14 @@ export async function writeMinimalMlpModel(
   if (!hasCounts) {
     const seeded = await seedBaselineModel(filePath, {
       success: (dest) => `seeded MLP from baseline into ${dest}`,
-      failure: (dest, error) =>
-        `failed to copy baseline MLP (${String(error)}), falling back to minimal generation for ${dest}`,
+      failure: (dest, error) => `failed to copy baseline MLP into ${dest}: ${String(error)}`,
     }, logTraining);
-    if (seeded) {
-      return;
+    if (!seeded) {
+      throw new Error(
+        `Failed to seed baseline MLP model at ${filePath}. Add server/data/models/global/amy_model.npz using a non-Codex assistant or reviewer.`,
+      );
     }
+    return;
   }
 
   const entryLabels = entries.map(([label]) => label);

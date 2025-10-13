@@ -28,7 +28,7 @@ ASSUMPTIONS:
 
 OUTPUT:
 - data/amy_model.npz: Trained model
-- server/data/amy_model.npz: Baseline model consumed by the server
+- server/data/models/global/amy_model.npz: Baseline model consumed by the server
 - app/assets/gestureDetector.js: Updated WebView bundle
 - Console logs with training progress, evaluation metrics, and final accuracy
 

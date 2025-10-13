@@ -6,6 +6,8 @@ import express from 'express';
 import request from 'supertest';
 import type { Express, Request, Response, NextFunction } from 'express';
 
+import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel.js';
+
 function binaryParser(res: any, callback: (err: Error | null, data?: Buffer) => void) {
   const chunks: Buffer[] = [];
   res.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -48,78 +50,7 @@ describe('GET /latest-mlp-model', () => {
   let originalDataDir: string | undefined;
   let originalToken: string | undefined;
   let modelPaths: typeof import('../src/constants/modelPaths.js');
-
-  beforeAll(async () => {
-    dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-mlp-endpoint-'));
-    originalDataDir = process.env.AMY_ECHO_DATA_DIR;
-    originalToken = process.env.API_TOKEN;
-    process.env.AMY_ECHO_DATA_DIR = dataDir;
-    process.env.API_TOKEN = 'mlp-endpoint-token';
-    jest.resetModules();
-
-    const [
-      { createLatestMlpModelHandler },
-      modelPathsModule,
-      artifacts,
-      authUtils,
-    ] = await Promise.all([
-      import('../src/routes/latestMlpModelRoute.js'),
-      import('../src/constants/modelPaths.js'),
-      import('../src/services/mlpModelArtifacts.js'),
-      import('../src/utils/profileAuthorization.js'),
-    ]);
-
-    modelPaths = modelPathsModule;
-
-    const logTraining = async () => {};
-
-    app = express();
-    const legacyAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
-      const token = req.get('Authorization');
-      if (token !== 'Bearer mlp-endpoint-token') {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-      next();
-    };
-
-    const handler = createLatestMlpModelHandler({
-      getMlpModelPath: modelPaths.getMlpModelPath,
-      seedBaselineModel: artifacts.seedBaselineModel,
-      sendBinaryModel: artifacts.sendBinaryModel,
-      logTraining,
-      isProfileAuthorized: authUtils.isProfileAuthorized,
-    });
-
-    app.get('/latest-mlp-model', legacyAuthMiddleware, handler);
-  });
-
-  beforeEach(async () => {
-    await fs.rm(dataDir, { recursive: true, force: true });
-    await fs.mkdir(dataDir, { recursive: true });
-  });
-
-  afterAll(async () => {
-    await fs.rm(dataDir, { recursive: true, force: true });
-    if (originalDataDir) {
-      process.env.AMY_ECHO_DATA_DIR = originalDataDir;
-    } else {
-      delete process.env.AMY_ECHO_DATA_DIR;
-    }
-    if (originalToken) {
-      process.env.API_TOKEN = originalToken;
-    } else {
-      delete process.env.API_TOKEN;
-    }
-  });
-
-  it('seeds a baseline model when none exists and returns a valid NPZ bundle', async () => {
-    const response = await request(app)
-      .get('/latest-mlp-model')
-      .set('Authorization', 'Bearer mlp-endpoint-token')
-      .buffer(true)
-      .parse(binaryParser)
-      .expect(200);
-
+  async function expectValidModelResponse(response: request.Response) {
     const body: Buffer = response.body as Buffer;
     expect(Buffer.isBuffer(body)).toBe(true);
 
@@ -163,6 +94,81 @@ describe('GET /latest-mlp-model', () => {
     expect(response.headers['cache-control']).toBe('public, max-age=0, must-revalidate');
     expect(response.headers['cdn-cache-control']).toBe('max-age=3600');
     expect(response.headers['x-resolved-path']).toBe(storedModelPath);
+  }
+
+  beforeAll(async () => {
+    await ensureBaselineModelFixture();
+    dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-mlp-endpoint-'));
+    originalDataDir = process.env.AMY_ECHO_DATA_DIR;
+    originalToken = process.env.API_TOKEN;
+    process.env.AMY_ECHO_DATA_DIR = dataDir;
+    process.env.API_TOKEN = 'mlp-endpoint-token';
+    jest.resetModules();
+
+    const [
+      { createLatestMlpModelHandler },
+      modelPathsModule,
+      artifacts,
+      authUtils,
+    ] = await Promise.all([
+      import('../src/routes/latestMlpModelRoute.js'),
+      import('../src/constants/modelPaths.js'),
+      import('../src/services/mlpModelArtifacts.js'),
+      import('../src/utils/profileAuthorization.js'),
+    ]);
+
+    modelPaths = modelPathsModule;
+
+    const logTraining = async () => {};
+
+    app = express();
+    const legacyAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
+      const token = req.get('Authorization');
+      if (token !== 'Bearer mlp-endpoint-token') {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      next();
+    };
+
+    const handler = createLatestMlpModelHandler({
+      getMlpModelPath: modelPaths.getMlpModelPath,
+      seedBaselineModel: artifacts.seedBaselineModel,
+      sendBinaryModel: artifacts.sendBinaryModel,
+      logTraining,
+      isProfileAuthorized: authUtils.isProfileAuthorized,
+    });
+
+    app.get('/latest-mlp-model', legacyAuthMiddleware, handler);
+    app.get('/api/v1/dgs/mlp-model', legacyAuthMiddleware, handler);
+  });
+
+  beforeEach(async () => {
+    await fs.rm(dataDir, { recursive: true, force: true });
+    await fs.mkdir(dataDir, { recursive: true });
+  });
+
+  afterAll(async () => {
+    await fs.rm(dataDir, { recursive: true, force: true });
+    if (originalDataDir) {
+      process.env.AMY_ECHO_DATA_DIR = originalDataDir;
+    } else {
+      delete process.env.AMY_ECHO_DATA_DIR;
+    }
+    if (originalToken) {
+      process.env.API_TOKEN = originalToken;
+    } else {
+      delete process.env.API_TOKEN;
+    }
+  });
+
+  it('seeds a baseline model when none exists and returns a valid NPZ bundle', async () => {
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200);
+    await expectValidModelResponse(response);
   });
 
   it('returns 404 when baseline seeding fails', async () => {
@@ -170,6 +176,32 @@ describe('GET /latest-mlp-model', () => {
     try {
       const response = await request(app)
         .get('/latest-mlp-model')
+        .set('Authorization', 'Bearer mlp-endpoint-token')
+        .expect(404);
+
+      expect(response.body).toEqual({ error: 'Model not found' });
+      await expect(fs.stat(modelPaths.getMlpModelPath())).rejects.toHaveProperty('code', 'ENOENT');
+    } finally {
+      copySpy.mockRestore();
+    }
+  });
+
+  it('serves the same NPZ payload from the legacy /api/v1/dgs/mlp-model endpoint', async () => {
+    const response = await request(app)
+      .get('/api/v1/dgs/mlp-model')
+      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200);
+
+    await expectValidModelResponse(response);
+  });
+
+  it('returns 404 from the legacy endpoint when baseline seeding fails', async () => {
+    const copySpy = jest.spyOn(fs, 'copyFile').mockRejectedValue(new Error('missing baseline'));
+    try {
+      const response = await request(app)
+        .get('/api/v1/dgs/mlp-model')
         .set('Authorization', 'Bearer mlp-endpoint-token')
         .expect(404);
 

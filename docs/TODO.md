@@ -1,5 +1,8 @@
 # Amy's Echo Gesture Model — Next Training Sprint
 
+## Open Follow-ups
+- [ ] Provide the production-ready baseline `server/data/models/global/amy_model.npz` bundle. This binary must be added by a reviewer or a non-Codex assistant that can handle binary artifacts.
+
 We have MediaPipe capture working in the app and a Python MLP trainer on the server. The next sprint turns that flow into a repeatable loop so new caregiver recordings refresh the model (globally and per profile) without manual JSON hacks.
 
 ## 1. Capture Rich Samples in the App (`app/`)

@@ -16,7 +16,7 @@ The script will:
 2. Use fallback sample data if videos are not processed
 3. Train the model with optimized parameters
 4. Validate model performance
-5. Save the model to server/data/amy_model.npz
+5. Save the model to server/data/models/global/amy_model.npz
 """
 
 import json

@@ -122,7 +122,7 @@ If landmark extraction fails:
 
 The script creates several files:
 - `data/amy_model.npz`: Trained model weights and labels
-- `server/data/amy_model.npz`: Baseline model served to clients until personalized weights exist
+- `server/data/models/global/amy_model.npz`: Baseline model served to clients until personalized weights exist
 - `app/assets/gestureDetector.js`: Updated WebView bundle
 
 ## Testing the Model
