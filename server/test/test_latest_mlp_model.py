@@ -86,9 +86,12 @@ def test_latest_mlp_model_requires_authorization(model_file, running_server, bas
     status = fetch_latest_mlp_model(base_url, profile_id="p1")
     assert status == 403
 
-def test_latest_mlp_model_returns_404_when_missing(missing_data_dir, running_server, base_url):
+def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_server, base_url):
     status = fetch_latest_mlp_model(base_url)
-    assert status == 404
+    assert status == 200
+    seeded_path = missing_data_dir / "models" / "global" / "amy_model.npz"
+    assert seeded_path.exists()
+    assert seeded_path.stat().st_size > 0
 
 def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_server, base_url):
     status = fetch_latest_mlp_model(

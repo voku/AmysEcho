@@ -11,13 +11,13 @@ async function get(path: string, headers: Record<string, string> = {}) {
 }
 
 describe('Model endpoints authorization and headers', () => {
-  test('GET /api/v1/dgs/mlp-model requires matching X-Profile-Id when profileId is set', async () => {
+  test('GET /latest-mlp-model requires matching X-Profile-Id when profileId is set', async () => {
     // Expect 404 if no model exists yet
-    const res404 = await get(`/api/v1/dgs/mlp-model?profileId=p1`, { 'X-Profile-Id': 'p1' });
+    const res404 = await get(`/latest-mlp-model?profileId=p1`, { 'X-Profile-Id': 'p1' });
     assert([200, 404, 500].includes(res404.status));
 
     // Mismatch should be 403
-    const res403 = await get(`/api/v1/dgs/mlp-model?profileId=p1`, { 'X-Profile-Id': 'someone-else' });
+    const res403 = await get(`/latest-mlp-model?profileId=p1`, { 'X-Profile-Id': 'someone-else' });
     assert.equal(res403.status, 403);
   });
 

@@ -224,7 +224,7 @@ test('POST /analytics then GET returns same data', async () => {
   assert.strictEqual(data.improvementTrend, payload.improvementTrend);
 });
 
-test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
+test('GET /latest-mlp-model serves file and client caches it', async () => {
   const modelDir = join(serverDir, 'data', 'models', 'p1');
   await fs.mkdir(modelDir, { recursive: true });
   const buf = Buffer.from('mlp-model');
@@ -235,7 +235,7 @@ test('GET /api/v1/dgs/mlp-model serves file and client caches it', async () => {
     let status = 0;
     let out = Buffer.alloc(0);
     for (let i = 0; i < 3; i++) {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/dgs/mlp-model?profileId=p1`, {
+      const res = await fetch(`http://localhost:${PORT}/latest-mlp-model?profileId=p1`, {
         headers: { Authorization: 'Bearer testtoken', 'X-Profile-Id': 'p1' },
       });
       status = res.status;

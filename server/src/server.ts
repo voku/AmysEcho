@@ -8,6 +8,7 @@ import readline from 'readline';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
+import { createLatestMlpModelHandler } from './routes/latestMlpModelRoute.js';
 import { getCentroids, normalize } from './services/dgsModelService.js';
 import type { Point } from './services/dgsModelService.js';
 import { z } from 'zod';
@@ -21,7 +22,6 @@ import {
   PROFILE_ID_PATTERN,
   SERVER_DIR,
   SRC_DIR,
-  BASELINE_MLP_MODEL_PATH,
   TRAINING_MANIFEST_PATH,
   MLP_MODELS_DIR,
   TRAINED_MLP_GLOBAL_DIR,
@@ -38,6 +38,8 @@ import {
   deleteProfileData,
 } from './db.js';
 import auth, { legacyAuth } from './middleware/auth.js';
+import { seedBaselineModel, writeMinimalMlpModel, sendBinaryModel } from './services/mlpModelArtifacts.js';
+import { isProfileAuthorized } from './utils/profileAuthorization.js';
 import {
   Correction,
   UsageStat,
@@ -587,49 +589,14 @@ app.get('/api/v1/dgs/model', legacyAuth, async (req: any, res: any) => {
 });
 
 // Serve per-profile MLP models (NPZ) with containment checks
-app.get('/api/v1/dgs/mlp-model', legacyAuth, async (req: Request, res: Response) => {
-  try {
-    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-    if (profileId && !isProfileAuthorized(req, profileId)) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    const profiledPath = getMlpModelPath(profileId);
-    const globalPath = getMlpModelPath();
-    let chosen = profiledPath;
-    try {
-      await fs.stat(profiledPath);
-    } catch {
-      try {
-        await fs.stat(globalPath);
-        chosen = globalPath;
-      } catch {
-        const buf = Buffer.from('mlp-model');
-        res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader('Content-Length', String(buf.length));
-        res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-        res.setHeader('X-Resolved-Path', 'inline');
-        return res.end(buf);
-      }
-    }
-    try {
-      const buf = await fs.readFile(chosen);
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Length', String(buf.length));
-      res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-      res.setHeader('X-Resolved-Path', chosen);
-      return res.end(buf);
-    } catch {
-      const buf = Buffer.from('mlp-model');
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Length', String(buf.length));
-      res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-      res.setHeader('X-Resolved-Path', 'inline');
-      return res.end(buf);
-    }
-  } catch {
-    res.status(500).json({ error: 'Failed to load MLP model' });
-  }
+const latestMlpModelHandler = createLatestMlpModelHandler({
+  getMlpModelPath,
+  seedBaselineModel,
+  sendBinaryModel,
+  logTraining,
+  isProfileAuthorized,
 });
+app.get('/latest-mlp-model', legacyAuth, latestMlpModelHandler);
 
 registerTrainingBundleRoute(app, genId);
 
@@ -986,11 +953,11 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
 
     try {
       const baseModel = getMlpModelPath();
-      await writeMinimalMlpModel(baseModel, counts);
+      await writeMinimalMlpModel(baseModel, counts, logTraining);
       await logTraining(`job ${id}: seeded global MLP`);
       for (const pid of profileIds) {
         const dest = getMlpModelPath(pid);
-        await writeMinimalMlpModel(dest, perProfileCounts.get(pid) ?? counts);
+        await writeMinimalMlpModel(dest, perProfileCounts.get(pid) ?? counts, logTraining);
         await logTraining(`job ${id}: seeded MLP for ${pid}`);
       }
     } catch (e) {
@@ -1142,143 +1109,7 @@ async function resolveModelFile(
 }
 
 // Simple per-profile authorization: require matching X-Profile-Id header when requesting a profiled resource
-function isProfileAuthorized(req: Request, profileId: string): boolean {
-  const claimed = req.header('x-profile-id');
 
-  // Validate profileId format (should be a non-empty string)
-  if (!profileId || typeof profileId !== 'string' || profileId.trim() === '') {
-    return false;
-  }
-
-  // Check that claimed profile ID matches and is properly formatted
-  return typeof claimed === 'string' &&
-         claimed.trim() === profileId.trim() &&
-         claimed.length > 0;
-}
-
-const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
-
-async function writeMinimalMlpModel(filePath: string, gestureCounts: Record<string, number>): Promise<void> {
-  const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
-  const hasCounts = entries.some(([, count]) => count > 0);
-
-  if (!hasCounts) {
-    try {
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.copyFile(BASELINE_MLP_MODEL_PATH, filePath);
-      await fs.chmod(filePath, 0o640);
-      await logTraining(`seeded MLP from baseline into ${filePath}`);
-      return;
-    } catch (copyErr) {
-      await logTraining(`failed to copy baseline MLP (${String(copyErr)}), falling back to minimal generation`);
-    }
-  }
-
-  const labels = entries.map(([label]) => label);
-  const counts = entries.map(([, count]) => count);
-  const payload = JSON.stringify({ labels, counts });
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  const script = `import json, numpy as np, os, sys\n` +
-    `path = sys.argv[1]\n` +
-    `payload = json.loads(sys.argv[2])\n` +
-    `labels = np.array(payload.get('labels', []), dtype='<U64')\n` +
-    `counts = np.array(payload.get('counts', []), dtype=np.float32)\n` +
-    `tmp = path + '.tmp'\n` +
-    `os.makedirs(os.path.dirname(path) or '.', exist_ok=True)\n` +
-    `with open(tmp, 'wb') as f:\n` +
-    `    np.savez(f, labels=labels, counts=counts)\n` +
-    `os.replace(tmp, path)\n`;
-
-  await new Promise<void>((resolve, reject) => {
-    const proc = spawn('python3', ['-c', script, filePath, payload], {
-      cwd: path.join(serverModuleDir, '..'),
-      stdio: ['ignore', 'ignore', 'pipe'],
-    });
-    let stderr = '';
-    proc.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-    proc.on('error', reject);
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(stderr || `python exited with ${code}`));
-      }
-    });
-  });
-
-  await logTraining(`wrote minimal MLP model to ${filePath} (${labels.length} labels)`);
-
-  try {
-    await fs.chmod(filePath, 0o640);
-  } catch {}
-}
-
-async function sendBinaryModel(res: Response, filePath: string, downloadName: string) {
-  try {
-    const stat = await fs.stat(filePath);
-    // ETag & checksum
-    const buf = await fs.readFile(filePath);
-    const sha256 = createHash('sha256').update(buf).digest('hex');
-
-    // Range support
-    const range = (res.req.headers['range'] as string | undefined) || undefined;
-    res.setHeader('Accept-Ranges', 'bytes');
-    const baseName = path.basename(filePath);
-    let isProfileSpecific = baseName.startsWith('centroid_model_');
-    if (!isProfileSpecific) {
-      const modelsDirResolved = path.resolve(MLP_MODELS_DIR);
-      if (filePath.startsWith(modelsDirResolved)) {
-        const relDir = path.relative(modelsDirResolved, path.dirname(filePath));
-        const firstSegment = relDir.split(path.sep)[0];
-        if (firstSegment && firstSegment !== 'global' && firstSegment !== '.') {
-          isProfileSpecific = true;
-        }
-      }
-    }
-    if (isProfileSpecific) {
-      res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-    } else {
-      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-      res.setHeader(
-        'CDN-Cache-Control',
-        `max-age=${CDN_CACHE_MAX_AGE_SECONDS}`,
-      );
-    }
-    res.setHeader('Content-Type', 'application/octet-stream');
-    // Minimal diagnostic to aid integration: which path was served
-    res.setHeader('X-Resolved-Path', filePath);
-    res.setHeader('ETag', `"sha256-${sha256}"`);
-    res.setHeader('X-Checksum-SHA256', sha256);
-    res.setHeader('X-Model-Version', String(Math.floor(stat.mtimeMs)));
-    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
-
-    if (range && range.startsWith('bytes=')) {
-      const [startStr, endStr] = range.replace('bytes=', '').split('-');
-      let start = parseInt(startStr, 10);
-      let end = endStr ? parseInt(endStr, 10) : stat.size - 1;
-      if (Number.isNaN(start)) start = 0;
-      if (Number.isNaN(end) || end >= stat.size) end = stat.size - 1;
-      if (start > end || start < 0) {
-        res.status(416).setHeader('Content-Range', `bytes */${stat.size}`).end();
-        return;
-      }
-      const chunkSize = end - start + 1;
-      res.status(206);
-      res.setHeader('Content-Range', `bytes ${start}-${end}/${stat.size}`);
-      res.setHeader('Content-Length', String(chunkSize));
-      const stream = (await import('fs')).createReadStream(filePath, { start, end });
-      stream.pipe(res);
-      return;
-    }
-
-    res.setHeader('Content-Length', String(stat.size));
-    res.send(buf);
-  } catch {
-    res.status(404).json({ error: 'Model not found' });
-  }
-}
 
 app.get('/latest-model', legacyAuth, async (req: Request, res: Response) => {
   const profileId =
@@ -1286,41 +1117,6 @@ app.get('/latest-model', legacyAuth, async (req: Request, res: Response) => {
   const resolvedFile = await resolveModelFile(profileId, res, getTrainedModelPath);
   if (!resolvedFile) return;
   await sendBinaryModel(res, resolvedFile, profileId ? `centroid_model_${profileId}.json` : 'centroid_model.json');
-});
-
-app.get('/latest-mlp-model', legacyAuth, async (req: Request, res: Response) => {
-  const profileId =
-    typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-  if (profileId && !isProfileAuthorized(req, profileId)) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
-  // Prefer profiled file, fallback to global file, otherwise 404
-  const profiledPath = getMlpModelPath(profileId);
-  const globalPath = getMlpModelPath();
-  let chosen: string | undefined;
-  try {
-    await fs.stat(profiledPath);
-    chosen = profiledPath;
-    await logTraining(`latest-mlp-model resolved profile file ${profiledPath}`);
-  } catch {
-    try {
-      await fs.stat(globalPath);
-      chosen = globalPath;
-      await logTraining(`latest-mlp-model falling back to global file ${globalPath}`);
-    } catch {
-      // Neither exists — respond with 404 to match tests
-      await logTraining(`latest-mlp-model missing profile=${profileId ?? 'global'}`);
-      return res.status(404).json({ error: 'Model not found' });
-    }
-  }
-
-  await logTraining(`latest-mlp-model serving ${chosen}`);
-  await sendBinaryModel(
-    res,
-    chosen,
-    profileId ? `dgs_model_${profileId}.npz` : 'amy_model.npz',
-  );
 });
 
 // Model metadata: version, size, sha256
