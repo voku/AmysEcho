@@ -7,6 +7,15 @@ import { logger } from '../src/utils/logger';
 
 const GESTURE_PROCESSING_ERROR = 'gesture_processing_error';
 
+const injectModelMock = jest.fn();
+const markTransferCompleteMock = jest.fn();
+const mlpReadyRef = { current: false } as { current: boolean };
+const pendingModelRef = { current: null } as { current: string | null };
+const pendingModelContextRef = { current: null } as {
+  current: { profileId?: string | null; version?: string | null; source?: string; cached?: boolean } | null;
+};
+const mockUseModelInjection = jest.fn();
+
 jest.mock('expo-file-system', () => ({
   documentDirectory: '/mock/documents/',
   cacheDirectory: '/mock/cache/',
@@ -46,11 +55,7 @@ jest.mock('../src/services/contextAwareRecognitionService', () => ({
 }));
 
 jest.mock('../src/hooks/useModelInjection', () => ({
-  useModelInjection: () => ({
-    injectModel: jest.fn(),
-    mlpReadyRef: { current: false },
-    pendingModelRef: { current: null },
-  }),
+  useModelInjection: (...args: any[]) => mockUseModelInjection(...args),
 }));
 
 jest.mock('../src/hooks/useOpenAIValidation', () => ({
@@ -86,6 +91,18 @@ describe('MediaPipeGestureDetector', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     process.env.NODE_ENV = 'test';
+    injectModelMock.mockReset();
+    markTransferCompleteMock.mockReset();
+    mlpReadyRef.current = false;
+    pendingModelRef.current = null;
+    pendingModelContextRef.current = null;
+    mockUseModelInjection.mockReturnValue({
+      injectModel: injectModelMock,
+      mlpReadyRef,
+      pendingModelRef,
+      pendingModelContextRef,
+      markTransferComplete: markTransferCompleteMock,
+    });
   });
 
   afterEach(() => {
@@ -293,6 +310,40 @@ describe('MediaPipeGestureDetector', () => {
       null,
     );
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('injects a queued model once the WebView reports mlp_ready', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const queuedContext = {
+      profileId: 'profile-123',
+      version: '1.2.3',
+      source: 'prefetch',
+      cached: true,
+    };
+
+    pendingModelRef.current = 'queued-model-payload';
+    pendingModelContextRef.current = queuedContext;
+    mlpReadyRef.current = false;
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(mlpReadyRef.current).toBe(true);
+    expect(injectModelMock).toHaveBeenCalledWith('queued-model-payload', queuedContext);
+    expect(pendingModelRef.current).toBeNull();
+    expect(pendingModelContextRef.current).toBeNull();
   });
 
   it('forwards frame capture payloads for OpenAI fallback handling', () => {

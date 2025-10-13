@@ -132,7 +132,13 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
   const clipStateRef = useRef<ClipRequestState>({ id: null, timeout: null });
   const [webviewError, setWebviewError] = useState<string | null>(null);
 
-  const { injectModel, mlpReadyRef, pendingModelRef, markTransferComplete } = useModelInjection(
+  const {
+    injectModel,
+    mlpReadyRef,
+    pendingModelRef,
+    pendingModelContextRef,
+    markTransferComplete,
+  } = useModelInjection(
     webviewRef,
     onModelUpdateStatus,
   );
@@ -596,7 +602,11 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           if (eventName === 'mlp_ready') {
             mlpReadyRef.current = true;
             if (pendingModelRef.current) {
-              injectModel(pendingModelRef.current);
+              const queuedModel = pendingModelRef.current;
+              const queuedContext = pendingModelContextRef.current ?? undefined;
+              pendingModelRef.current = null;
+              pendingModelContextRef.current = null;
+              injectModel(queuedModel, queuedContext);
             }
           } else if (eventName === 'mlp_transfer_complete' || eventName === 'mlp_transfer_skipped') {
             markTransferComplete();
@@ -646,6 +656,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       onModelUpdateStatus,
       onWebViewEvent,
       pendingModelRef,
+      pendingModelContextRef,
     ],
   );
 
