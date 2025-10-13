@@ -361,7 +361,7 @@ def deploy_model(model_path: str, _app_assets_dir: str) -> bool:
     """Deploy the trained model to the server baseline and refresh the WebView bundle."""
     print("Deploying model to server baseline...")
 
-    baseline_dir = os.path.join("server", "data")
+    baseline_dir = os.path.join("server", "data", "models", "global")
     os.makedirs(baseline_dir, exist_ok=True)
     baseline_model = os.path.join(baseline_dir, "amy_model.npz")
     if run_command(f"cp {model_path} {baseline_model}"):

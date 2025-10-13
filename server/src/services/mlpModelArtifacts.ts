@@ -10,8 +10,8 @@ import {
   MLP_MODELS_DIR,
 } from '../constants/modelPaths.js';
 
-const DEFAULT_MLP_INPUT_SIZE = 126;
-const DEFAULT_MLP_HIDDEN_SIZE = 256;
+export const DEFAULT_MLP_INPUT_SIZE = 126;
+export const DEFAULT_MLP_HIDDEN_SIZE = 128;
 const DEFAULT_BASELINE_LABELS = Object.freeze([
   'alle',
   'blau',
@@ -67,7 +67,7 @@ export async function writeMinimalMlpModel(
     }, logTraining);
     if (!seeded) {
       throw new Error(
-        `Failed to seed baseline MLP model at ${filePath}. Add server/data/models/global/amy_model.npz using a non-Codex assistant or reviewer.`,
+        `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} using a non-Codex assistant or reviewer.`,
       );
     }
     return;

@@ -3,6 +3,10 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 
 import { BASELINE_MLP_MODEL_PATH } from '../../src/constants/modelPaths.js';
+import {
+  DEFAULT_MLP_HIDDEN_SIZE,
+  DEFAULT_MLP_INPUT_SIZE,
+} from '../../src/services/mlpModelArtifacts.js';
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -25,8 +29,8 @@ export async function ensureBaselineModelFixture(): Promise<void> {
     'dest = sys.argv[1]',
     "labels = np.array(['baseline'], dtype='<U64')",
     'counts = np.zeros((labels.shape[0],), dtype=np.float32)',
-    'hidden = 256',
-    'input_size = 126',
+    `hidden = ${DEFAULT_MLP_HIDDEN_SIZE}`,
+    `input_size = ${DEFAULT_MLP_INPUT_SIZE}`,
     'w1 = np.zeros((hidden, input_size), dtype=np.float32)',
     'b1 = np.zeros((hidden,), dtype=np.float32)',
     'w2 = np.zeros((labels.shape[0], hidden), dtype=np.float32)',

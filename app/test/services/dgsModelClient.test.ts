@@ -127,7 +127,5 @@ describe('dgsModelClient metadata handling', () => {
 
     const meta = await getCachedMlpMeta();
     expect(meta).toEqual({ etag, checksum, version });
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 });
