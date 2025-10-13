@@ -58,7 +58,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/services/gestureRecorder.ts`
 *   `app/src/services/healthScore.ts`
 *   `app/src/services/hipEvents.ts`
-*   `app/src/services/localCentroids.ts`
 *   `app/src/services/OneEuroFilter.ts`
 *   `app/src/services/secureConfig.ts`
 *   `app/src/services/TrainingDataValidator.ts`

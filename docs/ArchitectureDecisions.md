@@ -33,7 +33,7 @@ This document records the major architectural choices made for Amy's Echo.
 ## German Sign Language Integration
 - **Decision**: Implement DGS gesture recognition using MLP models served via REST API with WebView integration.
 - **Rationale**: Provides essential communication capabilities for non-verbal children while maintaining offline functionality and real-time performance.
-- **Consequences**: System supports 12 core DGS gestures with multi-layer fallback (MLP → Centroid → Rule-based) ensuring continuous operation.
+- **Consequences**: System supports 12 core DGS gestures with multi-layer fallback (MLP → Rule-based) ensuring continuous operation.
 
 ## Model Serving Architecture
 - **Decision**: Serve ML models via HTTP with strong ETags, range request support, and profile-based authorization.

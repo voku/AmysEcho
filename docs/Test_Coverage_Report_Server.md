@@ -29,7 +29,6 @@ This analysis highlights areas where dedicated test files are missing. While som
 *   `server/src/services/videoService.ts`
 *   `server/src/tools/autoRetrain.ts`
 *   `server/src/tools/getGestureTask.ts`
-*   `server/src/tools/retrainOfflineModel.ts`
 *   `server/src/tools/updateAnalytics.ts`
 *   `server/src/types.ts` (Type definitions - typically no direct tests needed)
 

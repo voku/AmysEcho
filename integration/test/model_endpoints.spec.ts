@@ -21,16 +21,8 @@ describe('Model endpoints authorization and headers', () => {
     assert.equal(res403.status, 403);
   });
 
-  test('GET /latest-model returns cache headers and never serves .tmp files', async () => {
-    const res = await get(`/latest-model`);
-    // When the model is not present yet, we may get 404. Otherwise, validate headers.
-    if (res.status === 200) {
-      const resolved = res.headers.get('x-resolved-path');
-      if (resolved) {
-        assert(!resolved.endsWith('.tmp'));
-      }
-    } else {
-      assert.equal(res.status, 404);
-    }
+  test('GET /model-metadata returns 404 when no MLP exists yet', async () => {
+    const res = await get(`/model-metadata`);
+    assert.equal(res.status, 404);
   });
 });

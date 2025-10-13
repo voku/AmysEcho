@@ -1,7 +1,7 @@
 // Utilities for normalizing hand landmarks before classification
 // Strategy: translate to wrist; scale all axes by max(|x| + |y| + |z|)
 
-import type { Point } from './dgsModelClient';
+export type Point = [number, number, number];
 
 const WRIST_INDEX = 0;
 const HAND_SIZE = 21;

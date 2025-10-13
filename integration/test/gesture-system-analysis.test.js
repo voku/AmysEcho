@@ -120,7 +120,7 @@ describe('Gesture Recognition System Integration Analysis', () => {
     it('should analyze model training pipeline efficiency', async () => {
       const trainingMetrics = {
         dataUpload: 100, // ms
-        centroidCalculation: 500, // ms
+        labelAggregation: 500, // ms
         modelSerialization: 200, // ms
         totalTrainingTime: 800, // ms
       };

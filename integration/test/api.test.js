@@ -136,15 +136,6 @@ test('POST /train-model processes samples and returns model', async () => {
     await delay(200);
   }
 
-  const modelRes = await fetch(`http://localhost:${PORT}/latest-model`, { headers });
-  assert.strictEqual(modelRes.status, 200);
-  const buf = Buffer.from(await modelRes.arrayBuffer());
-  assert.ok(buf.length > 0);
-  const json = JSON.parse(buf.toString('utf8'));
-  assert.strictEqual(json.type, 'centroid_model');
-  assert.ok(json.centroids && typeof json.centroids === 'object');
-  assert.ok(json.counts && typeof json.counts === 'object');
-
   const mlpRes = await fetch(`http://localhost:${PORT}/latest-mlp-model`, { headers });
   if (!((mlpRes.status >= 200 && mlpRes.status < 300) || mlpRes.status === 404)) {
     console.log('Skipping latest-mlp-model check - status:', mlpRes.status);
@@ -153,9 +144,7 @@ test('POST /train-model processes samples and returns model', async () => {
   assert.ok(mlpBuf.length > 0);
 
   const profileRes = await fetch(`http://localhost:${PORT}/api/v1/dgs/model?profileId=p1`, { headers });
-  assert.strictEqual(profileRes.status, 200);
-  const profileModel = await profileRes.json();
-  assert.ok(profileModel.counts.g1 >= 1);
+  assert.strictEqual(profileRes.status, 404);
 
   process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
   process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
@@ -183,23 +172,7 @@ test('GET /model-version returns version and path', async () => {
   assert.strictEqual(res.status, 200);
   const data = await res.json();
   assert.ok(typeof data.version === 'string');
-  assert.strictEqual(data.modelPath, 'latest-model');
-});
-
-test('GET /latest-model serves model file when present', async () => {
-  const filePath = join(serverDir, 'data', 'trained_model.json');
-  await fs.mkdir(join(serverDir, 'data'), { recursive: true });
-  await fs.writeFile(filePath, '{}');
-  try {
-    const res = await fetch(`http://localhost:${PORT}/latest-model`, {
-      headers: { Authorization: 'Bearer testtoken' },
-    });
-    assert.strictEqual(res.status, 200);
-    const buf = Buffer.from(await res.arrayBuffer());
-    assert.ok(buf.length > 0);
-  } finally {
-    await fs.unlink(filePath).catch(() => {});
-  }
+  assert.strictEqual(data.modelPath, 'latest-mlp-model');
 });
 
 test('POST /analytics then GET returns same data', async () => {
@@ -294,7 +267,7 @@ test('GET /latest-mlp-model serves file and client caches it', async () => {
   }
 });
 
-test('POST /api/v1/dgs/sample-bundles, then /train-model updates model', async () => {
+test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model', async () => {
   const bundlePath = join(serverDir, 'test', 'fixtures', 'trainingBundle.zip');
   const bundleBuffer = await fs.readFile(bundlePath);
 
@@ -307,31 +280,38 @@ test('POST /api/v1/dgs/sample-bundles, then /train-model updates model', async (
     body: bundleBuffer,
   });
   assert.strictEqual(uploadRes.status, 202);
+  const uploadBody = await uploadRes.json();
+  const trainingJobId = uploadBody.trainingJobId;
+  assert.strictEqual(typeof trainingJobId, 'string');
+  assert.ok(trainingJobId.length > 0);
 
-  const trainRes = await fetch(`http://localhost:${PORT}/train-model`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer testtoken',
-    },
-    body: JSON.stringify({ samples: [] }), // No samples, should train from manifest
-  });
-  assert.strictEqual(trainRes.status, 200);
-  const { jobId } = await trainRes.json();
-
-  const statusUrl = `http://localhost:${PORT}/train-status/${jobId || ''}`;
   const headers = { Authorization: 'Bearer testtoken' };
+  const statusUrl = `http://localhost:${PORT}/train-status/${trainingJobId}`;
   const start = Date.now();
-  const timeoutMs = 10000;
-  while (true) {
-    const s = await fetch(statusUrl, { headers }).catch(() => null);
-    if (!s) break;
-    let info = { status: 'completed' };
-    try { info = await s.json(); } catch {}
-    if (info.status === 'completed') break;
-    if (Date.now() - start > timeoutMs) break;
+  const timeoutMs = 15000;
+  let completed = false;
+  while (Date.now() - start <= timeoutMs) {
+    const statusResp = await fetch(statusUrl, { headers }).catch(() => null);
+    if (!statusResp) {
+      await delay(200);
+      continue;
+    }
+    if (statusResp.status !== 200) {
+      await delay(200);
+      continue;
+    }
+    const info = await statusResp.json();
+    if (info.status === 'failed') {
+      assert.fail(`Training job failed: ${info.error || 'unknown error'}`);
+    }
+    if (info.status === 'completed') {
+      completed = true;
+      break;
+    }
     await delay(200);
   }
+
+  assert.ok(completed, 'training job did not complete before timeout');
 
   const modelRes = await fetch(`http://localhost:${PORT}/latest-mlp-model`, { headers });
   assert.strictEqual(modelRes.status, 200);

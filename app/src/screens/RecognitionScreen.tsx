@@ -6,13 +6,9 @@ import ActionButton from '../components/ActionButton';
 import CameraFrame from '../components/CameraFrame';
 import { logger } from '../utils/logger';
 import { loadProfile } from '../storage';
-import { buildLocalCentroids } from '../services/localCentroids';
-import { classifyWithCentroids } from '../services/offlineClassifier';
-import type { CentroidMap, Point } from '../services/dgsModelClient';
 import type { GestureImageCapture } from '../services/openaiGestureValidationService';
 import type { FrameCapturePayload } from '../types/frames';
 import { flattenHandsWithHandedness } from '../services/handUtils';
-import { OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD } from '../constants/gesture';
 import type { RecognitionPath } from '../utils/recognitionState';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
@@ -194,9 +190,7 @@ export default function RecognitionScreen({
   const lastSuccessAtRef = useRef<number>(0);
   const lastGestureIdRef = useRef<string | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
-  const centroidsRef = useRef<CentroidMap>({});
   const lastModelUpdateTimeRef = useRef<number>(0);
-  const lastOfflineClassifyAtRef = useRef<number>(0);
   const handStabilizerRef = useRef(createHandLandmarkStabilizer({ ttlMs: 300, maxHands: 2 }));
   const latestFrameRef = useRef<GestureImageCapture | null>(null);
 
@@ -216,15 +210,6 @@ export default function RecognitionScreen({
       }
     };
     loadSuccessSound();
-  }, []);
-
-  useEffect(() => {
-    buildLocalCentroids()
-      .then((c) => {
-        logger.info(`Built ${Object.keys(c).length} local centroids`);
-        centroidsRef.current = c;
-      })
-      .catch((error) => { logger.warn('Failed to build local centroids:', error); });
   }, []);
 
   useEffect(() => {
@@ -307,50 +292,12 @@ export default function RecognitionScreen({
 
       let processedGesture = gesture;
       let processedConfidence = confidence;
-      let recognitionSource: RecognitionPath = 'local';
-
-      if (
-        (!processedGesture || processedConfidence < OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD) &&
-        centroidsRef.current &&
-        stabilized.landmarks.length > 0
-      ) {
-        try {
-          const now = Date.now();
-          if (now - lastOfflineClassifyAtRef.current > 150) {
-            lastOfflineClassifyAtRef.current = now;
-            const flattened = flattenHandsWithHandedness(
-              stabilized.landmarks,
-              stabilized.handedness,
-            );
-            const flattenedPoints: Point[] = flattened.map(coords => {
-              if (!Array.isArray(coords)) return [0,0,0];
-              const [x = 0, y = 0, z = 0] = coords;
-              return [x, y, z];
-            });
-            const centroidResult = classifyWithCentroids(flattenedPoints, centroidsRef.current);
-            if (
-              centroidResult &&
-              centroidResult.confidence >= Math.max(
-                OFFLINE_CLASSIFIER_TRIGGER_THRESHOLD,
-                processedConfidence,
-              )
-            ) {
-              processedGesture = centroidResult.label;
-              processedConfidence = centroidResult.confidence;
-              recognitionSource = 'centroid';
-            }
-          }
-        } catch (err) {
-          logger.warn('Failed to classify with local centroids', err);
-        }
-      }
-
       return baseHandleGestureDetected(
         processedGesture,
         processedConfidence,
         stabilized.landmarks,
         stabilized.handedness,
-        recognitionSource,
+        'local',
       );
     },
     [baseHandleGestureDetected, facingMode],

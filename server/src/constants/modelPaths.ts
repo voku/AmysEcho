@@ -42,8 +42,6 @@ export const DATA_DIR = explicitDataDir
   ? path.resolve(explicitDataDir)
   : path.join(SERVER_DIR, 'data');
 
-// Centroid-based model path (JSON)
-export const TRAINED_MODEL_PATH = path.join(DATA_DIR, 'trained_model.json');
 export const PROFILE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 function getProfiledPath(basePath: string, profileId?: string): string {
   if (profileId) {
@@ -55,10 +53,6 @@ function getProfiledPath(basePath: string, profileId?: string): string {
     return path.join(DATA_DIR, `${base}_${profileId}${ext}`);
   }
   return basePath;
-}
-
-export function getTrainedModelPath(profileId?: string): string {
-  return getProfiledPath(TRAINED_MODEL_PATH, profileId);
 }
 
 // MLP model path (.npz)

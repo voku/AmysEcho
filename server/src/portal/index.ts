@@ -1,10 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import {
-  TRAINED_MODEL_PATH,
-  TRAINING_MANIFEST_PATH,
-  DATA_DIR,
-} from '../constants/modelPaths.js';
+import { TRAINED_MLP_MODEL_PATH, TRAINING_MANIFEST_PATH, DATA_DIR } from '../constants/modelPaths.js';
 import { DB_FILE_PATH } from '../constants/dbPaths.js';
 import {
   loadDatabase,
@@ -150,7 +146,7 @@ router.get('/', (_req, res) => {
     <h1>Amy's Echo Portal</h1>
     <ul>
       <li><a href="/portal/analytics">View Analytics</a></li>
-      <li><a href="/portal/download-model">Download Personalized Model</a></li>
+      <li><a href="/portal/download-model">Download Personalized MLP</a></li>
       <li><a href="/portal/training-data">Manage Training Data</a></li>
       <li><a href="/portal/training-bundles">Training Bundles</a></li>
     </ul>
@@ -173,10 +169,10 @@ router.get('/analytics', limiter, async (req, res) => {
 
 router.get('/download-model', limiter, async (_req, res) => {
   try {
-    await fs.access(TRAINED_MODEL_PATH);
-    res.download(TRAINED_MODEL_PATH);
+    await fs.access(TRAINED_MLP_MODEL_PATH);
+    res.download(TRAINED_MLP_MODEL_PATH);
   } catch {
-    res.status(404).send('Model not found');
+    res.status(404).send('MLP model not found');
   }
 });
 

@@ -1,6 +1,6 @@
 # Amy's Echo – Expo-Compatible Hand Gesture Recognition Solutions
 
-`react-native-fast-tflite` proved unreliable inside Expo's custom development client. The project now uses a **centroid‑based on-device** pipeline: MediaPipe extracts landmarks in a WebView and classification occurs locally using cached centroids. The server is still used for training uploads and dialog suggestions.
+`react-native-fast-tflite` proved unreliable inside Expo's custom development client. The project now uses an on-device pipeline where MediaPipe extracts landmarks in a WebView and classification occurs locally using downloaded MLP weights cached on the device. The server remains responsible for training uploads and dialog suggestions.
 
 Below are four proven approaches for Expo projects. Each option includes code samples so future iterations can reuse or swap parts without digging through commit history.
 
@@ -8,7 +8,7 @@ Below are four proven approaches for Expo projects. Each option includes code sa
 
 ## 1. MediaPipe Tasks in WebView (recommended)
 
-MediaPipe Tasks Vision `GestureRecognizer` runs inside a `WebView` using WebAssembly. It detects hand landmarks (up to two hands) and recognizes gestures on-device; landmarks are optionally uploaded for training to refine centroids.
+MediaPipe Tasks Vision `GestureRecognizer` runs inside a `WebView` using WebAssembly. It detects hand landmarks (up to two hands) and recognizes gestures on-device; landmarks are optionally uploaded for training to refine the personalized MLP weights.
 
 ### Install
 ```bash

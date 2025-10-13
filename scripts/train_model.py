@@ -28,7 +28,7 @@ ASSUMPTIONS:
 
 OUTPUT:
 - data/amy_model.npz: Trained model
-- app/assets/amy_model.npz: Deployed model
+- server/data/amy_model.npz: Baseline model consumed by the server
 - app/assets/gestureDetector.js: Updated WebView bundle
 - Console logs with training progress, evaluation metrics, and final accuracy
 
@@ -357,24 +357,19 @@ def train_and_evaluate_model(X_train, y_train, X_test, y_test, label_to_idx, arg
     return mlp, train_acc, test_acc
 
 
-def deploy_model(model_path: str, app_assets_dir: str) -> bool:
-    """Deploy the trained model to the app"""
-    print("Deploying model to app...")
+def deploy_model(model_path: str, _app_assets_dir: str) -> bool:
+    """Deploy the trained model to the server baseline and refresh the WebView bundle."""
+    print("Deploying model to server baseline...")
 
-    # Copy model to app assets
-    assets_model = os.path.join(app_assets_dir, "amy_model.npz")
-    if run_command(f"cp {model_path} {assets_model}"):
-        print(f"Copied model to {assets_model}")
+    baseline_dir = os.path.join("server", "data")
+    os.makedirs(baseline_dir, exist_ok=True)
+    baseline_model = os.path.join(baseline_dir, "amy_model.npz")
+    if run_command(f"cp {model_path} {baseline_model}"):
+        print(f"Copied model to {baseline_model}")
     else:
         return False
 
-    # Update base64 encoding for WebView consumers
-    if run_command("base64 -w 0 amy_model.npz > amy_model_base64.txt", cwd=app_assets_dir):
-        print("Updated base64 encoding")
-    else:
-        return False
-
-    # Rebuild WebView bundle so the base64 string stays in sync
+    # Rebuild WebView bundle so the embedded detector stays in sync with training changes
     if run_command("npm run build:webview", cwd="app"):
         print("Rebuilt WebView bundle")
         return True

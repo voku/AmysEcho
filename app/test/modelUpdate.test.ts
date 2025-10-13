@@ -4,7 +4,6 @@ jest.mock('@react-native-community/netinfo', () => ({
 
 jest.mock('../src/services/dgsModelClient', () => ({
   fetchMlpModel: jest.fn(),
-  fetchCentroids: jest.fn(),
   getCachedMlpModel: jest.fn(),
   restoreMlpModelBackup: jest.fn(),
   clearMlpModelBackup: jest.fn(),
@@ -21,7 +20,6 @@ jest.mock('../src/utils/logger', () => ({
 const NetInfo = require('@react-native-community/netinfo');
 const {
   fetchMlpModel,
-  fetchCentroids,
   getCachedMlpModel,
   restoreMlpModelBackup,
   clearMlpModelBackup,
@@ -110,7 +108,6 @@ describe('checkForModelUpdate', () => {
 
     expect(result).toBe(false);
     expect(fetchMlpModel).not.toHaveBeenCalled();
-    expect(fetchCentroids).not.toHaveBeenCalled();
   });
 
   it('returns true when MLP refresh succeeds', async () => {
@@ -135,20 +132,8 @@ describe('checkForModelUpdate', () => {
     expect(fetchMlpModel).toHaveBeenCalledWith('profile-1');
   });
 
-  it('falls back to centroid when MLP unavailable', async () => {
-    (fetchMlpModel as jest.Mock).mockResolvedValue(null);
-    (fetchCentroids as jest.Mock).mockResolvedValue({ centroids: {}, counts: {} });
-
-    const result = await checkForModelUpdate('profile-1');
-
-    expect(fetchMlpModel).toHaveBeenCalledWith('profile-1');
-    expect(fetchCentroids).toHaveBeenCalledWith('profile-1');
-    expect(result).toBe(true);
-  });
-
   it('returns false when no model data is available', async () => {
     (fetchMlpModel as jest.Mock).mockResolvedValue(null);
-    (fetchCentroids as jest.Mock).mockResolvedValue(null);
 
     const result = await checkForModelUpdate();
 
@@ -162,13 +147,11 @@ describe('checkForModelUpdate', () => {
       isInternetReachable: true,
       type: 'cellular',
     });
-    (fetchMlpModel as jest.Mock).mockResolvedValue(null);
-    (fetchCentroids as jest.Mock).mockResolvedValue({ centroids: {}, counts: {} });
+    (fetchMlpModel as jest.Mock).mockResolvedValue('base64-model');
 
     const result = await checkForModelUpdate();
 
     expect(fetchMlpModel).toHaveBeenCalledWith(undefined);
-    expect(fetchCentroids).toHaveBeenCalledWith(undefined);
     expect(result).toBe(true);
   });
 
@@ -194,23 +177,10 @@ describe('refreshDgsModel', () => {
 
     expect(fetchMlpModel).toHaveBeenCalledWith(undefined);
     expect(result).toBe('mlp');
-    expect(fetchCentroids).not.toHaveBeenCalled();
-  });
-
-  it('falls back to centroid when MLP unavailable', async () => {
-    (fetchMlpModel as jest.Mock).mockResolvedValue(null);
-    (fetchCentroids as jest.Mock).mockResolvedValue({ centroids: {}, counts: {} });
-
-    const result = await refreshDgsModel('profile-1');
-
-    expect(fetchMlpModel).toHaveBeenCalledWith('profile-1');
-    expect(fetchCentroids).toHaveBeenCalledWith('profile-1');
-    expect(result).toBe('centroid');
   });
 
   it('returns null when no model data is available', async () => {
     (fetchMlpModel as jest.Mock).mockResolvedValue(null);
-    (fetchCentroids as jest.Mock).mockResolvedValue(null);
 
     const result = await refreshDgsModel();
 

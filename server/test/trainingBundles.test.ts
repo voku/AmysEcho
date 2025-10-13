@@ -39,6 +39,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let app: Express;
   let dataDir: string;
   let manifestPath: string;
+  let triggerCalls: Array<{ bundleId: string; profileId: string | null; label: string }>;
 
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-bundle-'));
@@ -48,13 +49,20 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const registerRoute: RegisterTrainingBundleRoute = mod.registerTrainingBundleRoute;
     app = express();
     let counter = 0;
-    registerRoute(app, () => `bundle-${++counter}`);
+    triggerCalls = [];
+    registerRoute(app, () => `bundle-${++counter}`, {
+      triggerTrainingJob: (context) => {
+        triggerCalls.push(context);
+        return `job-${triggerCalls.length}`;
+      },
+    });
     manifestPath = path.join(dataDir, 'datasets', 'training_manifest.json');
   });
 
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
+    triggerCalls.length = 0;
   });
 
   afterAll(async () => {
@@ -87,6 +95,11 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.body).toHaveProperty('status', 'queued');
     expect(typeof response.body.id).toBe('string');
+    expect(response.body.trainingJobId).toBe('job-1');
+
+    expect(triggerCalls).toEqual([
+      { bundleId: response.body.id, profileId: metadata.profileId, label: metadata.label },
+    ]);
 
     const manifestRaw = await fs.readFile(manifestPath, 'utf8');
     const manifest = JSON.parse(manifestRaw) as {

@@ -145,18 +145,11 @@ export async function sendBinaryModel(
 
     const range = (res.req.headers['range'] as string | undefined) || undefined;
     res.setHeader('Accept-Ranges', 'bytes');
-    const baseName = path.basename(filePath);
-    let isProfileSpecific = baseName.startsWith('centroid_model_');
-    if (!isProfileSpecific) {
-      const modelsDirResolved = path.resolve(MLP_MODELS_DIR);
-      if (filePath.startsWith(modelsDirResolved)) {
-        const relDir = path.relative(modelsDirResolved, path.dirname(filePath));
-        const firstSegment = relDir.split(path.sep)[0];
-        if (firstSegment && firstSegment !== 'global' && firstSegment !== '.') {
-          isProfileSpecific = true;
-        }
-      }
-    }
+    const modelsDirResolved = path.resolve(MLP_MODELS_DIR);
+    const relDir = path.relative(modelsDirResolved, path.dirname(filePath));
+    const firstSegment = relDir.split(path.sep)[0];
+    const isProfileSpecific =
+      !!firstSegment && firstSegment !== 'global' && firstSegment !== '.';
     if (isProfileSpecific) {
       res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     } else {

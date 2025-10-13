@@ -1,11 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
 import { logger } from '../utils/logger';
-import {
-  fetchCentroids,
-  fetchMlpModel,
-  getCachedMlpModel,
-  restoreMlpModelBackup,
-} from './dgsModelClient';
+import { fetchMlpModel, getCachedMlpModel, restoreMlpModelBackup } from './dgsModelClient';
 
 export async function shouldAllowModelRefresh(): Promise<boolean> {
   const net = await NetInfo.fetch();
@@ -107,10 +102,8 @@ export async function emergencyRollback(profileId?: string): Promise<boolean> {
   return success;
 }
 
-// Update local DGS recognition model, preferring MLP over centroid
-export async function refreshDgsModel(profileId?: string): Promise<'mlp' | 'centroid' | null> {
+// Update local DGS recognition model
+export async function refreshDgsModel(profileId?: string): Promise<'mlp' | null> {
   const mlp = await fetchMlpModel(profileId);
-  if (mlp) return 'mlp';
-  const centroid = await fetchCentroids(profileId);
-  return centroid ? 'centroid' : null;
+  return mlp ? 'mlp' : null;
 }

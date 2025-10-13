@@ -6,7 +6,7 @@ Amy is four years old. She was born with **22q11 Deletion Syndrome** and communi
 
 This project turns those gestures into speech and symbols so she can be heard anywhere.
 Each child profile receives a personalized gesture model trained from its own samples, making the system effective for 22q11 workflows in group settings like kindergartens.
-Runtime classification relies on centroid-based models cached on the device; no TFLite files remain in the project.
+Runtime classification relies on downloaded MLP weight bundles cached on the device; no TFLite files remain in the project.
 
 All app UI text and error messages are written in German to match Amy's language environment.
 
@@ -128,7 +128,7 @@ How to use it
 - Workflow:
    - Use Training screen to record a few samples for key DGS gestures (per child).
    - Use Recognition screen; when it’s wrong, correct it; the app uploads the sample for that child.
-   - Recognition runs locally; as training samples accumulate, centroids improve confidence.
+  - Recognition runs locally; as training samples accumulate, personalized MLP weights improve confidence.
 
 Run `npm run ios --prefix app` or `npm run android --prefix app` to launch the mobile app.
 
@@ -174,7 +174,7 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 ## 🗃️ Core Goals
 
 - **Turn gestures into speech and visuals**
-- **Reliable by default (hybrid)**: Gestures are classified on-device using cached centroids, while the server handles training and dialog suggestions.
+- **Reliable by default (hybrid)**: Gestures are classified on-device using cached MLP weights, while the server handles training and dialog suggestions.
 - **Handle uncertainty with grace, not silence**
 - **Log every correction to learn and adapt**
 - **Personalize models per child profile** so caregivers can train and deploy custom gestures for each 22q11 child
@@ -293,7 +293,7 @@ npm run build --prefix server
 ```
 
 - Uses `PORT=5000` and `API_TOKEN=demo-token` by default.
-- Stores centroid model at `server/data/trained_model.json` once training completes.
+- Stores the latest MLP model at `server/data/models/global/amy_model.npz` once training completes.
 
 2) Reverse port for USB device (Terminal B)
 
@@ -325,7 +325,7 @@ cd app && expo run:android
 
 5) Verify connectivity
 
-- Server logs show requests to `/latest-model` and `/api/*`.
+- Server logs show requests to `/latest-mlp-model` and `/api/*`.
 - App logs should not show “Network request failed”.
 
 ---

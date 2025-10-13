@@ -98,9 +98,3 @@ export interface NegativeSample {
   timestamp: number;
 }
 
-export interface CentroidModel {
-  type: 'centroid_model';
-  updatedAt: number;
-  centroids: Record<string, Array<[number, number, number]>>;
-  counts: Record<string, number>;
-}

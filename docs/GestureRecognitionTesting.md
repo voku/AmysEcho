@@ -33,7 +33,7 @@ Test each of these gestures 10 times and record results:
 
 ### Confidence Threshold Testing
 1. Perform each gesture with varying clarity (clear, partially occluded, fast movement)
-2. Note when centroid fallback triggers due to low confidence
+2. Note when the UI reports low confidence and whether the MLP still produces a stable classification
 3. Note when correction panel appears
 
 ### Network Variance Testing

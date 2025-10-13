@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Convert DGS samples to training data format for centroids
+Convert DGS samples to the normalized training format consumed by the MLP trainer
 """
 
 import json

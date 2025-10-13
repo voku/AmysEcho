@@ -180,7 +180,6 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
 
 const RecognitionScreen = require('../../src/screens/RecognitionScreen')
   .default as typeof import('../../src/screens/RecognitionScreen').default;
-const localCentroids = require('../../src/services/localCentroids') as typeof import('../../src/services/localCentroids');
 const recognitionStateModule = require('../../src/hooks/useRecognitionState') as {
   __setMockLastRecognizedGesture?: (gesture: any) => void;
 };
@@ -195,7 +194,6 @@ describe('RecognitionScreen Amy-first overlay', () => {
   });
 
   const renderRecognitionScreen = async () => {
-    jest.spyOn(localCentroids, 'buildLocalCentroids').mockResolvedValue({});
     let component!: renderer.ReactTestRenderer;
 
     await act(async () => {

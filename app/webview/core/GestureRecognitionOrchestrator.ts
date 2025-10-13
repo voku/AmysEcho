@@ -266,7 +266,7 @@ export class GestureRecognitionOrchestrator {
         console.log('Sending gesture result:', JSON.stringify(processingResult));
         this.sendGestureResult(processingResult, results);
       } else if (hasLandmarks) {
-        // Send landmark data for centroid classification even when no gesture is detected
+        // Send landmark data so the app can log uncertain frames and build training datasets
         this.sendGestureResult({
           gesture: null,
           confidence: 0,

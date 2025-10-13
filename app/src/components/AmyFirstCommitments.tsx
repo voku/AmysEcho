@@ -33,7 +33,7 @@ const COMMITMENTS: Commitment[] = [
     id: 'no-failure',
     emoji: '🛡️',
     title: 'Keine Ausfälle',
-    description: 'Cloud, Centroid und manuelle Bestätigung sichern jedes Gespräch.',
+    description: 'Cloud, MLP-Fallback und manuelle Bestätigung sichern jedes Gespräch.',
   },
   {
     id: 'no-judgement',
