@@ -5,13 +5,9 @@ import { atomicWriteJson, atomicWriteBuffer } from './utils/atomicFs.js';
 import { createHash } from 'crypto';
 import { spawn } from 'child_process';
 import readline from 'readline';
-import { fileURLToPath } from 'url';
-
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
-
-const serverModuleDir = path.dirname(fileURLToPath(import.meta.url));
 import { getCentroids, normalize } from './services/dgsModelService.js';
 import type { Point } from './services/dgsModelService.js';
 import { z } from 'zod';
@@ -24,6 +20,7 @@ import {
   getMlpModelPath,
   PROFILE_ID_PATTERN,
   SERVER_DIR,
+  SRC_DIR,
   BASELINE_MLP_MODEL_PATH,
   TRAINING_MANIFEST_PATH,
   MLP_MODELS_DIR,
@@ -68,6 +65,8 @@ import logger from './services/logger.js';
 import { ingestTrainingBundlesIntoDataset } from './services/trainingBundleIngestor.js';
 
 export const app = express();
+
+const serverModuleDir = SRC_DIR;
 
 const portalPath = path.join(serverModuleDir, 'portal');
 let portalAvailable = true;
