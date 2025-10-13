@@ -1,6 +1,11 @@
-import { promises as fs } from 'fs';
+import { promises as fs, createReadStream } from 'fs';
+import { createHash } from 'crypto';
 import type { Request, Response } from 'express';
-import type { BaselineSeedMessages } from '../services/mlpModelArtifacts.js';
+import type {
+  BaselineSeedMessages,
+  ModelResponseMetadata,
+  PrecomputedModelPayload,
+} from '../services/mlpModelArtifacts.js';
 
 type LatestMlpModelDeps = {
   getMlpModelPath: (profileId?: string) => string;
@@ -9,10 +14,37 @@ type LatestMlpModelDeps = {
     messages: BaselineSeedMessages,
     logTraining: (message: string) => Promise<void>,
   ) => Promise<boolean>;
-  sendBinaryModel: (res: Response, filePath: string, downloadName: string) => Promise<void>;
+  sendBinaryModel: (
+    res: Response,
+    filePath: string,
+    downloadName: string,
+    options?: { precomputed?: PrecomputedModelPayload; headersOnly?: boolean },
+  ) => Promise<void>;
+  applyModelHeaders: (
+    res: Response,
+    filePath: string,
+    downloadName: string,
+    metadata: ModelResponseMetadata,
+  ) => void;
   logTraining: (message: string) => Promise<void>;
   isProfileAuthorized: (req: Request, profileId: string) => boolean;
 };
+
+async function loadModelForResponse(filePath: string): Promise<PrecomputedModelPayload> {
+  const stat = await fs.stat(filePath);
+  const sha256 = await new Promise<string>((resolve, reject) => {
+    const hash = createHash('sha256');
+    const stream = createReadStream(filePath);
+    stream.on('error', reject);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+  });
+  return {
+    stat,
+    sha256,
+    etag: `"sha256-${sha256}"`,
+  };
+}
 
 export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
   return async function latestMlpModelHandler(req: Request, res: Response) {
@@ -61,11 +93,24 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
         return res.status(404).json({ error: 'Model not found' });
       }
 
-      await deps.sendBinaryModel(
-        res,
-        chosen,
-        profileId ? `dgs_model_${profileId}.npz` : 'amy_model.npz',
-      );
+      const downloadName = profileId ? `dgs_model_${profileId}.npz` : 'amy_model.npz';
+      const precomputed = await loadModelForResponse(chosen);
+      const ifNoneMatchHeader = req.headers['if-none-match'];
+      const candidates =
+        typeof ifNoneMatchHeader === 'string'
+          ? ifNoneMatchHeader
+              .split(',')
+              .map((value) => value.trim())
+              .filter((value) => value.length > 0)
+          : [];
+
+      if (candidates.includes('*') || candidates.includes(precomputed.etag)) {
+        deps.applyModelHeaders(res, chosen, downloadName, precomputed);
+        res.status(304).end();
+        return;
+      }
+
+      await deps.sendBinaryModel(res, chosen, downloadName, { precomputed });
     } catch (error) {
       await deps.logTraining(`latest-mlp-model handler error: ${String(error)}`);
       res.status(500).json({ error: 'Failed to load MLP model' });

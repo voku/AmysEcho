@@ -32,7 +32,12 @@ import {
   deleteProfileData,
 } from './db.js';
 import auth, { legacyAuth } from './middleware/auth.js';
-import { seedBaselineModel, writeMinimalMlpModel, sendBinaryModel } from './services/mlpModelArtifacts.js';
+import {
+  seedBaselineModel,
+  writeMinimalMlpModel,
+  sendBinaryModel,
+  applyModelResponseHeaders,
+} from './services/mlpModelArtifacts.js';
 import { isProfileAuthorized } from './utils/profileAuthorization.js';
 import { Correction, UsageStat, LearningAnalytics, Profile, SymbolRecord, NegativeSample } from './types.js';
 import {
@@ -771,6 +776,7 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
   getMlpModelPath,
   seedBaselineModel,
   sendBinaryModel,
+  applyModelHeaders: applyModelResponseHeaders,
   logTraining,
   isProfileAuthorized,
 });
