@@ -775,6 +775,7 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
   isProfileAuthorized,
 });
 app.get('/latest-mlp-model', legacyAuth, modelMetadataLimiter, latestMlpModelHandler);
+app.get('/api/v1/dgs/mlp-model', legacyAuth, modelMetadataLimiter, latestMlpModelHandler);
 
 registerTrainingBundleRoute(app, genId, {
   triggerTrainingJob: ({ bundleId }) => {

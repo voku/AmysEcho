@@ -10,8 +10,8 @@ import {
   MLP_MODELS_DIR,
 } from '../constants/modelPaths.js';
 
-const DEFAULT_MLP_INPUT_SIZE = 126;
-const DEFAULT_MLP_HIDDEN_SIZE = 256;
+export const DEFAULT_MLP_INPUT_SIZE = 126;
+export const DEFAULT_MLP_HIDDEN_SIZE = 256;
 const DEFAULT_BASELINE_LABELS = Object.freeze([
   'alle',
   'blau',
@@ -63,12 +63,14 @@ export async function writeMinimalMlpModel(
   if (!hasCounts) {
     const seeded = await seedBaselineModel(filePath, {
       success: (dest) => `seeded MLP from baseline into ${dest}`,
-      failure: (dest, error) =>
-        `failed to copy baseline MLP (${String(error)}), falling back to minimal generation for ${dest}`,
+      failure: (dest, error) => `failed to copy baseline MLP into ${dest}: ${String(error)}`,
     }, logTraining);
-    if (seeded) {
-      return;
+    if (!seeded) {
+      throw new Error(
+        `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} using a non-Codex assistant or reviewer.`,
+      );
     }
+    return;
   }
 
   const entryLabels = entries.map(([label]) => label);

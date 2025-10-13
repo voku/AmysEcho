@@ -1,5 +1,3 @@
-import { fetchMlpModel, loadLocalMlpModel } from '../../src/services/dgsModelClient';
-
 const mockGetInfoAsync = jest.fn();
 const mockReadAsStringAsync = jest.fn();
 const mockWriteAsStringAsync = jest.fn();
@@ -16,14 +14,21 @@ jest.mock('expo-file-system/legacy', () => ({
   EncodingType: { Base64: 'base64', UTF8: 'utf8' },
 }));
 
-jest.mock('../../src/utils/logger', () => ({
-  logger: {
+jest.mock('../../src/utils/logger', () => {
+  const loggerMock = {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  },
-}));
+  };
+  return {
+    __esModule: true,
+    logger: loggerMock,
+    default: loggerMock,
+  };
+});
+
+import { fetchMlpModel, loadLocalMlpModel, getCachedMlpMeta } from '../../src/services/dgsModelClient';
 
 const originalFetch = global.fetch;
 
@@ -33,6 +38,12 @@ beforeEach(() => {
   mockReadAsStringAsync.mockReset();
   mockWriteAsStringAsync.mockReset();
   global.fetch = originalFetch;
+  const { logger } = jest.requireMock('../../src/utils/logger');
+  Object.values(logger).forEach((fn) => {
+    if (typeof fn === 'function' && 'mockReset' in fn) {
+      (fn as jest.Mock).mockReset();
+    }
+  });
 });
 
 afterAll(() => {
@@ -81,5 +92,40 @@ describe('dgsModelClient local persistence', () => {
     mockDocumentDirectoryValue = null;
     const result = await loadLocalMlpModel();
     expect(result).toBeNull();
+  });
+});
+
+describe('dgsModelClient metadata handling', () => {
+  it('stores response metadata headers and logs the version', async () => {
+    const buffer = Buffer.from('npz-data');
+    const etag = '"sha256-deadbeef"';
+    const checksum = 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
+    const version = '1728000000000';
+
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => {
+          switch (name.toLowerCase()) {
+            case 'etag':
+              return etag;
+            case 'x-checksum-sha256':
+              return checksum;
+            case 'x-model-version':
+              return version;
+            default:
+              return null;
+          }
+        },
+      },
+      arrayBuffer: async () => buffer,
+    })) as unknown as typeof fetch;
+
+    const result = await fetchMlpModel();
+    expect(result).toBe(buffer.toString('base64'));
+
+    const meta = await getCachedMlpMeta();
+    expect(meta).toEqual({ etag, checksum, version });
   });
 });

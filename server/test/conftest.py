@@ -6,9 +6,33 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
+BASELINE_PATH = SERVER_DIR.parent / "data" / "amy_model.npz"
+DEFAULT_INPUT_SIZE = 126
+DEFAULT_HIDDEN_SIZE = 256
+
+
+def ensure_baseline_model() -> None:
+    if BASELINE_PATH.exists():
+        return
+
+    BASELINE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    labels = np.array(["baseline"], dtype="<U64")
+    counts = np.zeros(labels.shape[0], dtype=np.float32)
+    hidden = DEFAULT_HIDDEN_SIZE
+    input_size = DEFAULT_INPUT_SIZE
+    w1 = np.zeros((hidden, input_size), dtype=np.float32)
+    b1 = np.zeros((hidden,), dtype=np.float32)
+    w2 = np.zeros((labels.shape[0], hidden), dtype=np.float32)
+    b2 = np.zeros((labels.shape[0],), dtype=np.float32)
+
+    tmp_path = BASELINE_PATH.with_suffix(".tmp")
+    np.savez(tmp_path, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2)
+    tmp_path.replace(BASELINE_PATH)
 
 
 def _get_free_port() -> int:
@@ -23,6 +47,8 @@ BASE_URL = f"http://{HOST}:{PORT}"
 
 
 def start_server():
+    ensure_baseline_model()
+
     env = os.environ.copy()
     env.setdefault("API_TOKEN", "testtoken")
     env.setdefault("PORT", PORT)

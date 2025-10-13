@@ -24,6 +24,9 @@ server/telemetry.json
 server/training-debug.log
 logs/
 *.log
+server/data/models/global/amy_model.npz
+server/data/models/*/amy_model.npz
+data/amy_model.npz
 
 # code coverage
 app/coverage/
