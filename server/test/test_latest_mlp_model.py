@@ -10,6 +10,10 @@ import pytest
 SERVER_DIR = Path(__file__).resolve().parents[1]
 
 
+def get_global_mlp_model_path(data_dir: Path) -> Path:
+    return data_dir / "models" / "global" / "amy_model.npz"
+
+
 def fetch_latest_mlp_model(base_url, profile_id=None, extra_headers=None):
     url = f"{base_url}/latest-mlp-model"
     if profile_id:
@@ -71,7 +75,7 @@ def global_model_file():
         )
         shutil.move(str(data_dir), str(backup_dir))
     data_dir.mkdir()
-    model_path = data_dir / "models" / "global" / "amy_model.npz"
+    model_path = get_global_mlp_model_path(data_dir)
     model_path.parent.mkdir(parents=True, exist_ok=True)
     model_path.write_bytes(b"placeholder")
     try:
@@ -89,7 +93,7 @@ def test_latest_mlp_model_requires_authorization(model_file, running_server, bas
 def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_server, base_url):
     status = fetch_latest_mlp_model(base_url)
     assert status == 200
-    seeded_path = missing_data_dir / "models" / "global" / "amy_model.npz"
+    seeded_path = get_global_mlp_model_path(missing_data_dir)
     assert seeded_path.exists()
     assert seeded_path.stat().st_size > 0
 

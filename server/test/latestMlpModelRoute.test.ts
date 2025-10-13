@@ -47,6 +47,7 @@ describe('GET /latest-mlp-model', () => {
   let app: Express;
   let originalDataDir: string | undefined;
   let originalToken: string | undefined;
+  let modelPaths: typeof import('../src/constants/modelPaths.js');
 
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-mlp-endpoint-'));
@@ -58,7 +59,7 @@ describe('GET /latest-mlp-model', () => {
 
     const [
       { createLatestMlpModelHandler },
-      modelPaths,
+      modelPathsModule,
       artifacts,
       authUtils,
     ] = await Promise.all([
@@ -67,6 +68,8 @@ describe('GET /latest-mlp-model', () => {
       import('../src/services/mlpModelArtifacts.js'),
       import('../src/utils/profileAuthorization.js'),
     ]);
+
+    modelPaths = modelPathsModule;
 
     const logTraining = async () => {};
 
@@ -120,7 +123,7 @@ describe('GET /latest-mlp-model', () => {
     const body: Buffer = response.body as Buffer;
     expect(Buffer.isBuffer(body)).toBe(true);
 
-    const storedModelPath = path.join(dataDir, 'models', 'global', 'amy_model.npz');
+    const storedModelPath = modelPaths.getMlpModelPath();
     const storedStat = await fs.stat(storedModelPath);
     expect(storedStat.isFile()).toBe(true);
 
@@ -171,9 +174,7 @@ describe('GET /latest-mlp-model', () => {
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Model not found' });
-      await expect(
-        fs.stat(path.join(dataDir, 'models', 'global', 'amy_model.npz')),
-      ).rejects.toHaveProperty('code', 'ENOENT');
+      await expect(fs.stat(modelPaths.getMlpModelPath())).rejects.toHaveProperty('code', 'ENOENT');
     } finally {
       copySpy.mockRestore();
     }

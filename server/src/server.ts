@@ -596,7 +596,7 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
   logTraining,
   isProfileAuthorized,
 });
-app.get('/latest-mlp-model', legacyAuth, latestMlpModelHandler);
+app.get('/latest-mlp-model', legacyAuth, modelMetadataLimiter, latestMlpModelHandler);
 
 registerTrainingBundleRoute(app, genId);
 

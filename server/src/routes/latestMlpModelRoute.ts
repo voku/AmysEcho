@@ -26,13 +26,17 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
       const globalPath = deps.getMlpModelPath();
       let chosen: string | undefined;
 
-      try {
-        await fs.stat(profiledPath);
-        chosen = profiledPath;
-        if (profileId) {
+      if (profileId) {
+        try {
+          await fs.stat(profiledPath);
+          chosen = profiledPath;
           await deps.logTraining(`latest-mlp-model resolved profile file ${profiledPath}`);
+        } catch {
+          // fall through to global handling
         }
-      } catch {
+      }
+
+      if (!chosen) {
         let globalAvailable = false;
         try {
           await fs.stat(globalPath);
@@ -63,7 +67,7 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
         profileId ? `dgs_model_${profileId}.npz` : 'amy_model.npz',
       );
     } catch (error) {
-      console.error('Failed to load MLP model:', error);
+      await deps.logTraining(`latest-mlp-model handler error: ${String(error)}`);
       res.status(500).json({ error: 'Failed to load MLP model' });
     }
   };
