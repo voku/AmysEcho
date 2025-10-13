@@ -15,6 +15,8 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
   const modelTransferLock = useRef(false);
   const queuedModelRef = useRef(false);
   const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastModelRef = useRef<string | null>(null);
+  const lastModelContextRef = useRef<ModelContext | null>(null);
 
   const clearTransferWatchdog = useCallback(() => {
     if (transferWatchdogRef.current) {
@@ -25,6 +27,9 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
 
   const injectModel = useCallback((b64: string | null, context?: ModelContext) => {
     if (!b64) return;
+
+    lastModelRef.current = b64;
+    lastModelContextRef.current = context ?? null;
 
     if (!webviewRef.current || !mlpReadyRef.current) {
       pendingModelRef.current = b64;
@@ -91,6 +96,15 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
     }, 15000);
   }, [clearTransferWatchdog, onModelUpdateStatus]);
 
+  const requeueLastModel = useCallback(() => {
+    if (!lastModelRef.current) {
+      return false;
+    }
+
+    injectModel(lastModelRef.current, lastModelContextRef.current ?? undefined);
+    return true;
+  }, [injectModel]);
+
   const markTransferComplete = useCallback(() => {
     clearTransferWatchdog();
     modelTransferLock.current = false;
@@ -116,5 +130,6 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
     pendingModelRef,
     pendingModelContextRef,
     markTransferComplete,
+    requeueLastModel,
   };
 };

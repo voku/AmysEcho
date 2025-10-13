@@ -138,6 +138,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     pendingModelRef,
     pendingModelContextRef,
     markTransferComplete,
+    requeueLastModel,
   } = useModelInjection(
     webviewRef,
     onModelUpdateStatus,
@@ -613,6 +614,17 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
                 pendingModelContextRef.current = queuedContext;
                 throw error;
               }
+            } else {
+              try {
+                const replayed = requeueLastModel?.();
+                if (!replayed) {
+                  logger.debug('No stored MLP model available to replay after WebView reload');
+                } else {
+                  logger.info('Replaying stored MLP model after WebView reload');
+                }
+              } catch (error) {
+                throw error;
+              }
             }
           } else if (eventName === 'mlp_transfer_complete' || eventName === 'mlp_transfer_skipped') {
             markTransferComplete();
@@ -621,6 +633,8 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
             markTransferComplete();
             onModelUpdateStatus?.('error');
             setWebviewError(PREDICTION_ERROR_TEXT);
+          } else if (eventName === 'cleanup_done') {
+            mlpReadyRef.current = false;
           } else if (eventName === 'gesture_processing_error') {
             setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
           } else if (eventName === 'camera_started' || eventName === 'dom_ready') {
@@ -663,6 +677,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       onWebViewEvent,
       pendingModelRef,
       pendingModelContextRef,
+      requeueLastModel,
     ],
   );
 
