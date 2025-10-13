@@ -15,6 +15,7 @@ const pendingModelContextRef = { current: null } as {
   current: { profileId?: string | null; version?: string | null; source?: string; cached?: boolean } | null;
 };
 const requeueLastModelMock = jest.fn();
+const resetTransferStateMock = jest.fn();
 const mockUseModelInjection = jest.fn();
 
 jest.mock('expo-file-system', () => ({
@@ -96,6 +97,7 @@ describe('MediaPipeGestureDetector', () => {
     markTransferCompleteMock.mockReset();
     requeueLastModelMock.mockReset();
     requeueLastModelMock.mockReturnValue(false);
+    resetTransferStateMock.mockReset();
     mlpReadyRef.current = false;
     pendingModelRef.current = null;
     pendingModelContextRef.current = null;
@@ -106,6 +108,7 @@ describe('MediaPipeGestureDetector', () => {
       pendingModelContextRef,
       markTransferComplete: markTransferCompleteMock,
       requeueLastModel: requeueLastModelMock,
+      resetTransferState: resetTransferStateMock,
     });
   });
 
@@ -439,6 +442,7 @@ describe('MediaPipeGestureDetector', () => {
     });
 
     expect(mlpReadyRef.current).toBe(false);
+    expect(resetTransferStateMock).toHaveBeenCalledTimes(1);
   });
 
   it('replays the last model and completes transfer after a camera swap', () => {
@@ -494,6 +498,7 @@ describe('MediaPipeGestureDetector', () => {
     });
 
     expect(mlpReadyRef.current).toBe(false);
+    expect(resetTransferStateMock).toHaveBeenCalledTimes(1);
 
     requeueLastModelMock.mockImplementationOnce(() => {
       injectModelMock('initial-model', queuedContext);

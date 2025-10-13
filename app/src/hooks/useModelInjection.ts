@@ -101,9 +101,15 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
       return false;
     }
 
-    injectModel(lastModelRef.current, lastModelContextRef.current ?? undefined);
+    injectModel(lastModelRef.current, lastModelContextRef.current || undefined);
     return true;
   }, [injectModel]);
+
+  const resetTransferState = useCallback(() => {
+    clearTransferWatchdog();
+    modelTransferLock.current = false;
+    queuedModelRef.current = !!pendingModelRef.current;
+  }, [clearTransferWatchdog]);
 
   const markTransferComplete = useCallback(() => {
     clearTransferWatchdog();
@@ -131,5 +137,6 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
     pendingModelContextRef,
     markTransferComplete,
     requeueLastModel,
+    resetTransferState,
   };
 };
