@@ -135,6 +135,7 @@ describe('GET /latest-mlp-model', () => {
       getMlpModelPath: modelPaths.getMlpModelPath,
       seedBaselineModel: artifacts.seedBaselineModel,
       sendBinaryModel: artifacts.sendBinaryModel,
+      applyModelHeaders: artifacts.applyModelResponseHeaders,
       logTraining,
       isProfileAuthorized: authUtils.isProfileAuthorized,
     });
@@ -170,6 +171,34 @@ describe('GET /latest-mlp-model', () => {
       .parse(binaryParser)
       .expect(200);
     await expectValidModelResponse(response);
+  });
+
+  it('returns 304 for matching If-None-Match after a model upload', async () => {
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    const firstResponse = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200);
+
+    const etag = firstResponse.headers['etag'];
+    expect(typeof etag).toBe('string');
+
+    const secondResponse = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .set('If-None-Match', etag as string)
+      .expect(304);
+
+    expect(secondResponse.text ?? '').toBe('');
+    expect(secondResponse.headers['etag']).toBe(etag);
+    expect(secondResponse.headers['x-checksum-sha256']).toBe(firstResponse.headers['x-checksum-sha256']);
+    expect(secondResponse.headers['cache-control']).toBe(firstResponse.headers['cache-control']);
+    expect(secondResponse.headers['cdn-cache-control']).toBe(firstResponse.headers['cdn-cache-control']);
   });
 
   it('returns 404 when baseline seeding fails', async () => {
