@@ -14,6 +14,8 @@ const pendingModelRef = { current: null } as { current: string | null };
 const pendingModelContextRef = { current: null } as {
   current: { profileId?: string | null; version?: string | null; source?: string; cached?: boolean } | null;
 };
+const requeueLastModelMock = jest.fn();
+const resetTransferStateMock = jest.fn();
 const mockUseModelInjection = jest.fn();
 
 jest.mock('expo-file-system', () => ({
@@ -93,6 +95,9 @@ describe('MediaPipeGestureDetector', () => {
     process.env.NODE_ENV = 'test';
     injectModelMock.mockReset();
     markTransferCompleteMock.mockReset();
+    requeueLastModelMock.mockReset();
+    requeueLastModelMock.mockReturnValue(false);
+    resetTransferStateMock.mockReset();
     mlpReadyRef.current = false;
     pendingModelRef.current = null;
     pendingModelContextRef.current = null;
@@ -102,6 +107,8 @@ describe('MediaPipeGestureDetector', () => {
       pendingModelRef,
       pendingModelContextRef,
       markTransferComplete: markTransferCompleteMock,
+      requeueLastModel: requeueLastModelMock,
+      resetTransferState: resetTransferStateMock,
     });
   });
 
@@ -344,6 +351,7 @@ describe('MediaPipeGestureDetector', () => {
     expect(injectModelMock).toHaveBeenCalledWith('queued-model-payload', queuedContext);
     expect(pendingModelRef.current).toBeNull();
     expect(pendingModelContextRef.current).toBeNull();
+    expect(requeueLastModelMock).not.toHaveBeenCalled();
   });
 
   it('restores a queued model if injection fails after mlp_ready', () => {
@@ -383,6 +391,151 @@ describe('MediaPipeGestureDetector', () => {
     expect(pendingModelRef.current).toBe('queued-model-payload');
     expect(pendingModelContextRef.current).toEqual(queuedContext);
     expect(onError).toHaveBeenCalledWith(expect.stringContaining('inject failure'));
+  });
+
+  it('requeues the stored model when the WebView reloads without a pending payload', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+
+    requeueLastModelMock.mockImplementationOnce(() => {
+      injectModelMock('replayed-model', { source: 'replay' });
+      return true;
+    });
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(requeueLastModelMock).toHaveBeenCalledTimes(1);
+    expect(injectModelMock).toHaveBeenCalledWith('replayed-model', { source: 'replay' });
+    expect(logger.info).toHaveBeenCalledWith('Replaying stored MLP model after WebView reload');
+  });
+
+  it('resets readiness when the WebView reports cleanup_done', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    mlpReadyRef.current = true;
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }) },
+      });
+    });
+
+    expect(mlpReadyRef.current).toBe(false);
+    expect(resetTransferStateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('replays the last model and completes transfer after a camera swap', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onModelUpdateStatus = jest.fn();
+
+    const queuedContext = {
+      profileId: 'profile-queued',
+      version: '9.9.9',
+      source: 'initial',
+      cached: true,
+    };
+
+    pendingModelRef.current = 'initial-model';
+    pendingModelContextRef.current = queuedContext;
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onModelUpdateStatus={onModelUpdateStatus}
+          facingMode="user"
+        />,
+      );
+    });
+
+    let webview = component!.root.findByType('mock-webview');
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(injectModelMock).toHaveBeenCalledWith('initial-model', queuedContext);
+    expect(requeueLastModelMock).not.toHaveBeenCalled();
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_transfer_complete' }) },
+      });
+    });
+
+    expect(markTransferCompleteMock).toHaveBeenCalledTimes(1);
+    expect(onModelUpdateStatus).toHaveBeenLastCalledWith('complete');
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }) },
+      });
+    });
+
+    expect(mlpReadyRef.current).toBe(false);
+    expect(resetTransferStateMock).toHaveBeenCalledTimes(1);
+
+    requeueLastModelMock.mockImplementationOnce(() => {
+      injectModelMock('initial-model', queuedContext);
+      return true;
+    });
+
+    act(() => {
+      component!.update(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onModelUpdateStatus={onModelUpdateStatus}
+          facingMode="environment"
+        />,
+      );
+    });
+
+    webview = component!.root.findByType('mock-webview');
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(requeueLastModelMock).toHaveBeenCalledTimes(1);
+    expect(injectModelMock).toHaveBeenCalledWith('initial-model', queuedContext);
+    expect(logger.info).toHaveBeenCalledWith('Replaying stored MLP model after WebView reload');
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_transfer_complete' }) },
+      });
+    });
+
+    expect(markTransferCompleteMock).toHaveBeenCalledTimes(2);
+    expect(onModelUpdateStatus).toHaveBeenLastCalledWith('complete');
   });
 
   it('forwards frame capture payloads for OpenAI fallback handling', () => {
