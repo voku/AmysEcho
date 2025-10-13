@@ -10,8 +10,8 @@ export API_TOKEN="${API_TOKEN:-demo-token}"
 echo "=== Amy's Echo Server ==="
 echo "PORT=$PORT  API_TOKEN set (${#API_TOKEN} chars)"
 # Warn if no trained model present
-if [ ! -f trained_model.json ]; then
-  echo "Warning: server/trained_model.json missing; /latest-model will 404 until a model is trained or placed at server/trained_model.json"
+if [ ! -f data/models/global/amy_model.npz ]; then
+  echo "Warning: server/data/models/global/amy_model.npz missing; /latest-mlp-model will 404 until a model is trained or placed at that path"
 fi
 echo "Building TypeScript..."
 npm run build

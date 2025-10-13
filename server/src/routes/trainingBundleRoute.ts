@@ -18,6 +18,16 @@ import {
 import { legacyAuth } from '../middleware/auth.js';
 import { withFileLock } from '../utils/fileLock.js';
 
+interface TrainingJobTriggerContext {
+  bundleId: string;
+  profileId: string | null;
+  label: string;
+}
+
+interface TrainingBundleRouteDeps {
+  triggerTrainingJob?: (context: TrainingJobTriggerContext) => string | null | undefined;
+}
+
 interface TrainingBundleMetadata {
   label: string;
   profileId: string | null;
@@ -87,7 +97,11 @@ function isPathInside(target: string, root: string): boolean {
   return resolved === root || resolved.startsWith(normalizedRoot);
 }
 
-export function registerTrainingBundleRoute(app: Express, genId: () => string): void {
+export function registerTrainingBundleRoute(
+  app: Express,
+  genId: () => string,
+  deps: TrainingBundleRouteDeps = {},
+): void {
   app.post('/api/v1/dgs/sample-bundles', legacyAuth, trainingBundleUpload, async (req: Request, res: Response) => {
     try {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
@@ -240,7 +254,23 @@ export function registerTrainingBundleRoute(app: Express, genId: () => string): 
         await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
       });
 
-      res.status(202).json({ status: 'queued', id: bundleId });
+      let trainingJobId: string | null = null;
+      if (deps.triggerTrainingJob) {
+        try {
+          const maybe = deps.triggerTrainingJob({
+            bundleId,
+            profileId: profileIdRaw ?? null,
+            label,
+          });
+          if (typeof maybe === 'string' && maybe.trim().length > 0) {
+            trainingJobId = maybe;
+          }
+        } catch (error) {
+          console.error('Error scheduling training after bundle upload:', error);
+        }
+      }
+
+      res.status(202).json({ status: 'queued', id: bundleId, trainingJobId });
     } catch (error) {
       console.error('Error saving training bundle:', error);
       res.status(500).json({ error: 'Failed to save training bundle' });

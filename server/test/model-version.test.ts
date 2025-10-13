@@ -14,7 +14,7 @@ describe('Model Version Logic', () => {
   });
 
   it('should return correct model path', () => {
-    const modelPath = 'latest-model';
-    expect(modelPath).toBe('latest-model');
+    const modelPath = 'latest-mlp-model';
+    expect(modelPath).toBe('latest-mlp-model');
   });
 });

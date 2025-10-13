@@ -46,7 +46,7 @@ The DGS integration enables Amy's Echo to recognize 12 essential German Sign Lan
 3. **Model Training**: MLP with 128 hidden units, 12 output classes
 4. **Model Serving**: NPZ weights served via REST API with caching
 5. **App Integration**: WebView loads model, performs real-time inference
-6. **Fallback Chain**: MLP → Centroid → Rule-based → Emergency gestures
+6. **Fallback Chain**: MLP → Rule-based → Emergency gestures
 
 ## Data Collection & Processing
 
@@ -203,9 +203,8 @@ window.ReactNativeWebView.postMessage(JSON.stringify({
 Multi-layer fallback ensures continuous operation:
 
 1. **Primary**: MLP model inference
-2. **Secondary**: Centroid-based classification
-3. **Tertiary**: Rule-based gesture detection
-4. **Emergency**: Hardcoded critical gestures (always available)
+2. **Secondary**: Rule-based gesture detection
+3. **Emergency**: Hardcoded critical gestures (always available)
 
 ## Testing & Validation
 

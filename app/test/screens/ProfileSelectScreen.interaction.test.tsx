@@ -27,7 +27,7 @@ describe('ProfileSelectScreen interactions', () => {
     });
 
     act(() => {
-      component.root.findByProps({ accessibilityLabel: 'Elternprofil' }).props.onPress();
+      component.root.findByProps({ accessibilityLabel: 'Elternbereich öffnen' }).props.onPress();
     });
 
     expect(navigate).toHaveBeenCalledWith('ParentalGate', { target: 'Parent' });
@@ -43,7 +43,7 @@ describe('ProfileSelectScreen interactions', () => {
     });
 
     act(() => {
-      component.root.findByProps({ accessibilityLabel: 'Adminbereich' }).props.onPress();
+      component.root.findByProps({ accessibilityLabel: 'Adminbereich öffnen' }).props.onPress();
     });
 
     expect(navigate).toHaveBeenCalledWith('ParentalGate', { target: 'Admin' });

@@ -100,19 +100,6 @@ def test_train_endpoint(tmp_path):
         assert "accuracy" in final_info["metrics"]
         assert final_info.get("report", {}).get("global")
 
-        # ensure centroid model downloadable
-        model_req = urllib.request.Request(
-            f"http://localhost:{PORT}/latest-model",
-            headers={"Authorization": "Bearer testtoken"},
-        )
-        with urllib.request.urlopen(model_req) as mresp:
-            assert mresp.getcode() == 200
-            data = json.loads(mresp.read().decode())
-            assert data.get("type") == "centroid_model"
-            assert "g1" in data.get("centroids", {})
-            assert len(data["centroids"]["g1"]) == 42
-            assert data.get("counts", {}).get("g1") == 1
-
         # verify MLP model files created
         npz = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
         prof_npz = SERVER_DIR / "data" / "models" / "p1" / "amy_model.npz"

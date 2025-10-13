@@ -42,7 +42,7 @@ This document outlines potential scalability challenges and deployment considera
 
 ### 4. Model Distribution and Updates
 
-*   **Current State:** Models are served directly from the server's filesystem (`/latest-model`, `/latest-mlp-model`).
+*   **Current State:** Models are served directly from the server's filesystem (`/latest-mlp-model`).
 *   **Challenge:**
     *   **Caching:** Ensuring app clients efficiently cache and update models.
     *   **Global Distribution:** For a global user base, serving models from a single location can lead to high latency.

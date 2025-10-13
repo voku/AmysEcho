@@ -1,4 +1,3 @@
-import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import { logger } from '../utils/logger';
 import { arrayBufferToBase64 } from '../utils/base64';
@@ -6,11 +5,11 @@ import { arrayBufferToBase64 } from '../utils/base64';
 const getApiUrl = () => process.env['EXPO_PUBLIC_API_URL'] || 'http://localhost:5000';
 const getApiToken = () => process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
 
-const KEY = 'dgsCentroids';
 const MLP_KEY = 'dgsMlpModel';
 const MLP_META_KEY = 'dgsMlpModelMeta';
 const MLP_BACKUP_KEY = 'dgsMlpModelBackup';
 const MLP_BACKUP_META_KEY = 'dgsMlpModelBackupMeta';
+const LOCAL_MODEL_FILE_BASE = 'amy_model';
 
 type MlpModelListener = () => void;
 const mlpModelListeners = new Set<MlpModelListener>();
@@ -56,34 +55,6 @@ async function getStorage(): Promise<StorageLike> {
   }
 }
 
-export type Point = [number, number, number];
-export type CentroidMap = Record<string, Point[]>;
-
-export async function fetchCentroids(profileId?: string): Promise<{ centroids: CentroidMap; counts: Record<string, number> } | null> {
-  try {
-    const url = new URL('/api/v1/dgs/model', getApiUrl());
-    if (profileId) url.searchParams.set('profileId', profileId);
-    const resp = await fetch(url.toString(), { headers: { Authorization: `Bearer ${getApiToken()}` } });
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    const storage = await getStorage();
-    await storage.setItem(`${KEY}:${profileId || 'global'}`, JSON.stringify(data));
-    return data;
-  } catch (error) {
-    logger.error('Failed to fetch MLP model', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
-}
-
-export async function getCachedCentroids(profileId?: string): Promise<{ centroids: CentroidMap; counts: Record<string, number> } | null> {
-  const storage = await getStorage();
-  const raw = await storage.getItem(`${KEY}:${profileId || 'global'}`);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
-
 type MlpMeta = { etag?: string; checksum?: string; version?: string };
 
 export async function fetchMlpModel(profileId?: string): Promise<string | null> {
@@ -115,9 +86,9 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
       profileId: profileId ?? 'global',
       error: error instanceof Error ? error.message : String(error),
     });
-    const local = await loadLocalMlpModel();
+    const local = await loadLocalMlpModel(profileId);
     if (local) {
-      logger.info('Loaded local fallback MLP model');
+      logger.info('Loaded persisted fallback MLP model');
     }
     return local;
   }
@@ -152,7 +123,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
     });
     const local = await loadLocalMlpModel();
     if (local) {
-      logger.info('Loaded local fallback MLP model');
+      logger.info('Loaded persisted fallback MLP model');
     }
     return local;
   }
@@ -182,6 +153,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   await storage.setItem(cacheKey, b64);
   await storage.setItem(metaKey, JSON.stringify(meta));
+  await persistDocumentDirectoryModel(b64, profileId);
   emitMlpModelUpdated();
 
   logger.info('Fetched MLP model', {
@@ -246,112 +218,112 @@ export async function clearMlpModelBackup(profileId?: string): Promise<void> {
 /**
  * Load MLP model from local files as fallback when API is unavailable
  */
-export async function loadLocalMlpModel(): Promise<string | null> {
+export async function loadLocalMlpModel(profileId?: string | null): Promise<string | null> {
   try {
-    const documentModel = await loadDocumentDirectoryModel();
+    const documentModel = await loadDocumentDirectoryModel(profileId);
     if (documentModel) {
-      logger.info('Loaded local MLP model from document directory');
+      logger.info('Loaded local MLP model from document directory', {
+        profileId: profileId ?? 'global',
+      });
       return documentModel;
     }
 
-    const bundledModel = await loadBundledFallbackModel();
-    if (bundledModel) {
-      logger.info('Loaded bundled fallback MLP model');
-      return bundledModel;
+    if (profileId) {
+      const globalModel = await loadDocumentDirectoryModel();
+      if (globalModel) {
+        logger.info('Loaded global fallback MLP model from document directory', {
+          profileId,
+        });
+        return globalModel;
+      }
     }
 
-    logger.warn('No bundled MLP model fallback available');
+    logger.warn('No persisted MLP model available locally', {
+      profileId: profileId ?? 'global',
+    });
     return null;
   } catch (error) {
     logger.error('Failed to load local MLP model', {
+      profileId: profileId ?? 'global',
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
   }
 }
 
-const LOCAL_MODEL_FILE = 'amy_model.npz';
-const BUNDLED_MODEL_BASE64_FILE = 'amy_model_base64.txt';
+function sanitizeProfileIdForFile(profileId: string): string {
+  return profileId.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
 
-async function loadDocumentDirectoryModel(): Promise<string | null> {
+function getLocalModelFile(profileId?: string | null): string {
+  if (!profileId) {
+    return `${LOCAL_MODEL_FILE_BASE}.npz`;
+  }
+  return `${LOCAL_MODEL_FILE_BASE}_${sanitizeProfileIdForFile(profileId)}.npz`;
+}
+
+async function loadDocumentDirectoryModel(profileId?: string | null): Promise<string | null> {
   const { documentDirectory } = FileSystem;
   if (!documentDirectory) {
     return null;
   }
 
-  const modelUri = `${documentDirectory}/${LOCAL_MODEL_FILE}`;
-  try {
-    const info = await FileSystem.getInfoAsync(modelUri);
-    if (!info.exists || info.isDirectory) {
-      return null;
+  const candidates = profileId
+    ? [getLocalModelFile(profileId), getLocalModelFile(null)]
+    : [getLocalModelFile(null)];
+
+  for (const fileName of candidates) {
+    const modelUri = `${documentDirectory}/${fileName}`;
+    try {
+      const info = await FileSystem.getInfoAsync(modelUri);
+      if (!info.exists || info.isDirectory) {
+        continue;
+      }
+      if (typeof info.size === 'number' && info.size === 0) {
+        continue;
+      }
+      const data = await FileSystem.readAsStringAsync(modelUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      if (data && data.length > 0) {
+        return data;
+      }
+    } catch (error) {
+      logger.warn('Unable to read MLP model from document directory', {
+        profileId: profileId ?? 'global',
+        fileName,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
-    if (typeof info.size === 'number' && info.size === 0) {
-      return null;
-    }
-    const data = await FileSystem.readAsStringAsync(modelUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    if (data && data.length > 0) {
-      return data;
-    }
-  } catch (error) {
-    logger.warn('Unable to read MLP model from document directory', {
-      error: error instanceof Error ? error.message : String(error),
-    });
   }
+
   return null;
 }
 
-async function loadBundledFallbackModel(): Promise<string | null> {
-  try {
-    const base64Asset = Asset.fromModule(
-      require('../../assets/amy_model_base64.txt'),
-    );
-    if (!base64Asset.localUri) {
-      await base64Asset.downloadAsync();
-    }
-
-    const base64Uri = base64Asset.localUri;
-    if (base64Uri) {
-      const raw = await FileSystem.readAsStringAsync(base64Uri, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-      const normalized = raw.replace(/\s+/g, '');
-      if (normalized.length > 0) {
-        return normalized;
-      }
-
-      logger.warn('Bundled base64 MLP asset was empty', {
-        asset: BUNDLED_MODEL_BASE64_FILE,
-      });
-    }
-  } catch (error) {
-    logger.warn('Failed to load bundled base64 MLP asset', {
-      asset: BUNDLED_MODEL_BASE64_FILE,
-      error: error instanceof Error ? error.message : String(error),
-    });
+async function persistDocumentDirectoryModel(
+  data: string,
+  profileId?: string | null,
+): Promise<void> {
+  const { documentDirectory } = FileSystem;
+  if (!documentDirectory) {
+    return;
   }
 
+  const fileName = getLocalModelFile(profileId ?? null);
+  const target = `${documentDirectory}/${fileName}`;
   try {
-    const binaryAsset = Asset.fromModule(require('../../assets/amy_model.npz'));
-    if (!binaryAsset.localUri) {
-      await binaryAsset.downloadAsync();
-    }
-
-    const uri = binaryAsset.localUri;
-    if (!uri) {
-      return null;
-    }
-
-    const data = await FileSystem.readAsStringAsync(uri, {
+    await FileSystem.writeAsStringAsync(target, data, {
       encoding: FileSystem.EncodingType.Base64,
     });
-
-    return data && data.length > 0 ? data : null;
+    logger.debug('Persisted MLP model to document directory', {
+      profileId: profileId ?? 'global',
+      fileName,
+    });
   } catch (error) {
-    logger.error('Failed to load bundled fallback MLP model', {
+    logger.warn('Unable to persist MLP model to document directory', {
+      profileId: profileId ?? 'global',
+      fileName,
       error: error instanceof Error ? error.message : String(error),
     });
-    return null;
   }
 }

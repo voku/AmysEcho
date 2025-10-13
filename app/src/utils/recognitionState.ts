@@ -1,4 +1,4 @@
-export type RecognitionPath = 'local' | 'cloud' | 'centroid';
+export type RecognitionPath = 'local' | 'cloud';
 export type RecognitionState = 'listening' | 'thinking' | 'confident' | 'uncertain';
 
 export function determineRecognitionState(

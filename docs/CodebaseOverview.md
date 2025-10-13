@@ -17,15 +17,15 @@ This document summarizes the repository in key areas with concrete file referenc
 ## 2. Gesture Recognition Pipeline
 - `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.
 - `app/webview/gestureDetector.ts` compiles to `app/assets/gestureDetector.js`; a Jest test (`app/test/gestureDetectorBuild.test.ts`) keeps the bundle synced with its TypeScript source.
-- `app/src/screens/RecognitionScreen.tsx` hosts the detector, fuses results with cached centroids, and logs outcomes.
-- `app/src/services/offlineClassifier.ts` performs centroid-based fallback classification when confidence is low.
+- `app/src/screens/RecognitionScreen.tsx` hosts the detector, consumes cached MLP weights, and logs outcomes.
+- (removed) Centroid-based fallback classification has been retired in favor of MLP-only recognition.
 - The pipeline is enhanced with contextual awareness (`app/src/services/contextAwareRecognitionService.ts`) and predictive gestures (`app/src/services/gestureSuggester.ts`).
 
 ## 3. Training and Personalization
 - Sample collection UI in `app/src/screens/TeachingScreen.tsx`
-- Centroid summaries and refresh actions live in `app/src/screens/AdminScreen.tsx`
+- Model downloads and refresh actions live in `app/src/screens/AdminScreen.tsx`
 - `app/src/services/trainingSync.ts` uploads samples and polls `/train-status` for progress
-- Server recomputes centroids in `server/src/server.ts`, persisting data under `server/data/`
+- Server maintains personalized MLP bundles in `server/src/server.ts`, persisting data under `server/data/models/`
 
 ## 4. Dialog & OpenAI Integration
 - Client requests handled in `app/src/services/dialogEngine.ts`

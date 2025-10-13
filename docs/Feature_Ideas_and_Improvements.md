@@ -11,7 +11,7 @@ The current training data collection relies on manual corrections by the caregiv
 Implement an "Active Learning" loop where the system intelligently identifies signs or contexts where its confidence is low or where it frequently makes mistakes. The app could then proactively prompt the user (or caregiver) to provide more examples of these specific signs.
 
 **How it could work:**
-*   **Uncertainty Sampling:** When the `MediaPipeGestureDetector` or `offlineClassifier` reports a low confidence score for a recognized gesture, or when the confidence is below a certain threshold for all known gestures, the system flags this as an "uncertain" sample.
+*   **Uncertainty Sampling:** When the `MediaPipeGestureDetector` reports a low confidence score for a recognized gesture, or when the confidence is below a certain threshold for all known gestures, the system flags this as an "uncertain" sample.
 *   **Misclassification Detection:** When a caregiver provides a correction via the `CorrectionPanel`, the system learns that it made a mistake. This misclassified sample is highly valuable.
 *   **Proactive Prompting:**
     *   The app could periodically (e.g., after a few uncertain recognitions or corrections) suggest: "Amy, can you show me 'apple' again?" or "Let's practice 'red'!"
