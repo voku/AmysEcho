@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import { promises as fs, createReadStream } from 'fs';
 import { createHash } from 'crypto';
 import type { Request, Response } from 'express';
 import type {
@@ -32,11 +32,15 @@ type LatestMlpModelDeps = {
 
 async function loadModelForResponse(filePath: string): Promise<PrecomputedModelPayload> {
   const stat = await fs.stat(filePath);
-  const buffer = await fs.readFile(filePath);
-  const sha256 = createHash('sha256').update(buffer).digest('hex');
+  const sha256 = await new Promise<string>((resolve, reject) => {
+    const hash = createHash('sha256');
+    const stream = createReadStream(filePath);
+    stream.on('error', reject);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+  });
   return {
     stat,
-    buffer,
     sha256,
     etag: `"sha256-${sha256}"`,
   };

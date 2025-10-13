@@ -233,8 +233,12 @@ export async function sendBinaryModel(
       res.status(206);
       res.setHeader('Content-Range', `bytes ${start}-${end}/${metadata.stat.size}`);
       res.setHeader('Content-Length', String(chunkSize));
-      const stream = fsSync.createReadStream(filePath, { start, end });
-      stream.pipe(res);
+      if (buffer) {
+        res.send(buffer.subarray(start, end + 1));
+      } else {
+        const stream = fsSync.createReadStream(filePath, { start, end });
+        stream.pipe(res);
+      }
       return;
     }
 
