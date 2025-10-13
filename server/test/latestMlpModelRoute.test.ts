@@ -65,6 +65,7 @@ describe('GET /latest-mlp-model', () => {
     expect(entries.has('w2.npy')).toBe(true);
     expect(entries.has('b2.npy')).toBe(true);
     expect(entries.has('labels.npy')).toBe(true);
+    expect(entries.has('counts.npy')).toBe(true);
 
     const w1 = parseNpyHeader(entries.get('w1.npy')!);
     expect(w1.shape.length).toBe(2);
