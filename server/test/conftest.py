@@ -11,6 +11,8 @@ import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 BASELINE_PATH = SERVER_DIR.parent / "data" / "amy_model.npz"
+DEFAULT_INPUT_SIZE = 126
+DEFAULT_HIDDEN_SIZE = 256
 
 
 def ensure_baseline_model() -> None:
@@ -21,8 +23,8 @@ def ensure_baseline_model() -> None:
 
     labels = np.array(["baseline"], dtype="<U64")
     counts = np.zeros(labels.shape[0], dtype=np.float32)
-    hidden = 128
-    input_size = 126
+    hidden = DEFAULT_HIDDEN_SIZE
+    input_size = DEFAULT_INPUT_SIZE
     w1 = np.zeros((hidden, input_size), dtype=np.float32)
     b1 = np.zeros((hidden,), dtype=np.float32)
     w2 = np.zeros((labels.shape[0], hidden), dtype=np.float32)

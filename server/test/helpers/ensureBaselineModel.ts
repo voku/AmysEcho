@@ -24,23 +24,21 @@ export async function ensureBaselineModelFixture(): Promise<void> {
 
   await fs.mkdir(path.dirname(BASELINE_MLP_MODEL_PATH), { recursive: true });
 
-  const script = [
-    'import numpy as np, os, sys',
-    'dest = sys.argv[1]',
-    "labels = np.array(['baseline'], dtype='<U64')",
-    'counts = np.zeros((labels.shape[0],), dtype=np.float32)',
-    `hidden = ${DEFAULT_MLP_HIDDEN_SIZE}`,
-    `input_size = ${DEFAULT_MLP_INPUT_SIZE}`,
-    'w1 = np.zeros((hidden, input_size), dtype=np.float32)',
-    'b1 = np.zeros((hidden,), dtype=np.float32)',
-    'w2 = np.zeros((labels.shape[0], hidden), dtype=np.float32)',
-    'b2 = np.zeros((labels.shape[0],), dtype=np.float32)',
-    "tmp = dest + '.tmp'",
-    'os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)',
-    'with open(tmp, "wb") as fh:',
-    '    np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2)',
-    'os.replace(tmp, dest)',
-  ].join('\n');
+  const script = `import numpy as np, os, sys
+dest = sys.argv[1]
+labels = np.array(['baseline'], dtype='<U64')
+counts = np.zeros((labels.shape[0],), dtype=np.float32)
+hidden = ${DEFAULT_MLP_HIDDEN_SIZE}
+input_size = ${DEFAULT_MLP_INPUT_SIZE}
+w1 = np.zeros((hidden, input_size), dtype=np.float32)
+b1 = np.zeros((hidden,), dtype=np.float32)
+w2 = np.zeros((labels.shape[0], hidden), dtype=np.float32)
+b2 = np.zeros((labels.shape[0],), dtype=np.float32)
+tmp = dest + '.tmp'
+os.makedirs(os.path.dirname(dest) or '.', exist_ok=True)
+with open(tmp, 'wb') as fh:
+    np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2)
+os.replace(tmp, dest)`;
 
   const result = spawnSync('python3', ['-c', script, BASELINE_MLP_MODEL_PATH], {
     encoding: 'utf8',

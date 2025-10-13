@@ -11,7 +11,7 @@ import {
 } from '../constants/modelPaths.js';
 
 export const DEFAULT_MLP_INPUT_SIZE = 126;
-export const DEFAULT_MLP_HIDDEN_SIZE = 128;
+export const DEFAULT_MLP_HIDDEN_SIZE = 256;
 const DEFAULT_BASELINE_LABELS = Object.freeze([
   'alle',
   'blau',
