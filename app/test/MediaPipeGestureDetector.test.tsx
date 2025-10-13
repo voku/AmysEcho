@@ -346,6 +346,45 @@ describe('MediaPipeGestureDetector', () => {
     expect(pendingModelContextRef.current).toBeNull();
   });
 
+  it('restores a queued model if injection fails after mlp_ready', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const queuedContext = {
+      profileId: 'profile-123',
+      version: '1.2.3',
+      source: 'prefetch',
+      cached: true,
+    };
+
+    pendingModelRef.current = 'queued-model-payload';
+    pendingModelContextRef.current = queuedContext;
+    mlpReadyRef.current = false;
+
+    injectModelMock.mockImplementationOnce(() => {
+      throw new Error('inject failure');
+    });
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+
+    act(() => {
+      webview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(mlpReadyRef.current).toBe(true);
+    expect(injectModelMock).toHaveBeenCalledWith('queued-model-payload', queuedContext);
+    expect(pendingModelRef.current).toBe('queued-model-payload');
+    expect(pendingModelContextRef.current).toEqual(queuedContext);
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining('inject failure'));
+  });
+
   it('forwards frame capture payloads for OpenAI fallback handling', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();

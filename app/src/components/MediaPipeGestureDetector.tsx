@@ -603,10 +603,16 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
             mlpReadyRef.current = true;
             if (pendingModelRef.current) {
               const queuedModel = pendingModelRef.current;
-              const queuedContext = pendingModelContextRef.current ?? undefined;
+              const queuedContext = pendingModelContextRef.current;
               pendingModelRef.current = null;
               pendingModelContextRef.current = null;
-              injectModel(queuedModel, queuedContext);
+              try {
+                injectModel(queuedModel, queuedContext ?? undefined);
+              } catch (error) {
+                pendingModelRef.current = queuedModel;
+                pendingModelContextRef.current = queuedContext;
+                throw error;
+              }
             }
           } else if (eventName === 'mlp_transfer_complete' || eventName === 'mlp_transfer_skipped') {
             markTransferComplete();
