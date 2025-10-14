@@ -29,14 +29,13 @@ type TrainingJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 interface TriggerTrainingJobResult {
   jobId: string;
   status: TrainingJobStatus;
+  pollUrl?: string;
 }
-
-type TriggerTrainingJobReturn = TriggerTrainingJobResult | string;
 
 interface TrainingBundleRouteDeps {
   triggerTrainingJob?: (
     context: TrainingJobTriggerContext,
-  ) => TriggerTrainingJobReturn | null | undefined;
+  ) => TriggerTrainingJobResult | null | undefined;
 }
 
 interface TrainingBundleMetadata {
@@ -265,7 +264,6 @@ export function registerTrainingBundleRoute(
         await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
       });
 
-      let trainingJobId: string | null = null;
       let trainingJob: TriggerTrainingJobResult | null = null;
       if (deps.triggerTrainingJob) {
         try {
@@ -274,21 +272,29 @@ export function registerTrainingBundleRoute(
             profileId: profileIdRaw ?? null,
             label,
           });
-          if (typeof maybe === 'string') {
-            const trimmed = maybe.trim();
-            if (trimmed.length > 0) {
-              trainingJobId = trimmed;
-            }
-          } else if (maybe && typeof maybe.jobId === 'string') {
-            trainingJob = maybe;
-            trainingJobId = maybe.jobId;
+          if (
+            maybe &&
+            typeof maybe === 'object' &&
+            typeof maybe.jobId === 'string' &&
+            maybe.jobId.trim().length > 0 &&
+            typeof maybe.status === 'string'
+          ) {
+            const pollUrl =
+              typeof maybe.pollUrl === 'string' && maybe.pollUrl.trim().length > 0
+                ? maybe.pollUrl.trim()
+                : undefined;
+            trainingJob = {
+              jobId: maybe.jobId.trim(),
+              status: maybe.status,
+              ...(pollUrl ? { pollUrl } : {}),
+            };
           }
         } catch (error) {
           console.error('Error scheduling training after bundle upload:', error);
         }
       }
 
-      res.status(202).json({ status: 'queued', id: bundleId, trainingJobId, trainingJob });
+      res.status(202).json({ status: 'queued', id: bundleId, trainingJob });
     } catch (error) {
       console.error('Error saving training bundle:', error);
       res.status(500).json({ error: 'Failed to save training bundle' });

@@ -852,7 +852,7 @@ registerTrainingBundleRoute(app, genId, {
       void logTraining(
         `job ${jobId}: scheduled automatically from bundle ${bundleId} (status=${status})`,
       );
-      return { jobId, status };
+      return { jobId, status, pollUrl: `/train-status/${jobId}` };
     } catch (error) {
       console.error('Failed to schedule training after bundle upload:', error);
       return null;

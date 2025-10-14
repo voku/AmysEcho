@@ -20,10 +20,16 @@ export interface UploadTrainingBundleOptions {
   tokenOverride?: string;
 }
 
+export interface TrainingJobInfo {
+  jobId: string;
+  status: string;
+  pollUrl?: string;
+}
+
 export interface UploadTrainingBundleResponse {
   id: string;
   status: string;
-  trainingJobId?: string;
+  trainingJob?: TrainingJobInfo;
 }
 
 function ensureDirPrefix(uri: string): string {
@@ -143,7 +149,7 @@ function createBundleId(): string {
 function isUploadResponse(obj: unknown): obj is {
   id: string;
   status?: unknown;
-  trainingJobId?: unknown;
+  trainingJob?: unknown;
 } {
   return (
     typeof obj === 'object' &&
@@ -151,6 +157,29 @@ function isUploadResponse(obj: unknown): obj is {
     'id' in obj &&
     typeof (obj as { id: unknown }).id === 'string'
   );
+}
+
+function parseTrainingJob(value: unknown): TrainingJobInfo | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const jobIdRaw = (value as { jobId?: unknown }).jobId;
+  const statusRaw = (value as { status?: unknown }).status;
+  if (typeof jobIdRaw !== 'string' || jobIdRaw.trim().length === 0) {
+    return undefined;
+  }
+  if (typeof statusRaw !== 'string' || statusRaw.trim().length === 0) {
+    return undefined;
+  }
+  const pollUrlRaw = (value as { pollUrl?: unknown }).pollUrl;
+  const pollUrl =
+    typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? pollUrlRaw.trim() : undefined;
+
+  return {
+    jobId: jobIdRaw.trim(),
+    status: statusRaw,
+    ...(pollUrl ? { pollUrl } : {}),
+  };
 }
 
 export async function uploadTrainingBundle(
@@ -263,13 +292,12 @@ export async function uploadTrainingBundle(
       );
     }
 
-    const rawTrainingJobId =
-      typeof responseJson.trainingJobId === 'string' ? responseJson.trainingJobId.trim() : undefined;
+    const trainingJob = parseTrainingJob(responseJson.trainingJob);
 
     return {
       id: responseJson.id,
       status: typeof responseJson.status === 'string' ? responseJson.status : 'queued',
-      ...(rawTrainingJobId ? { trainingJobId: rawTrainingJobId } : {}),
+      ...(trainingJob ? { trainingJob } : {}),
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

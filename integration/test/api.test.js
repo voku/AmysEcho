@@ -116,10 +116,14 @@ test('POST /train-model processes samples and returns model', async () => {
     },
     body: JSON.stringify({ samples: [sample] }),
   });
-  assert.strictEqual(res.status, 200);
-  const { jobId } = await res.json();
-  // Be resilient: if jobId is missing, skip polling (server completes training optimistically)
-  const statusUrl = `http://localhost:${PORT}/train-status/${jobId || ''}`;
+  assert.ok(res.status === 200 || res.status === 202);
+  const payload = await res.json();
+  const jobId = typeof payload.jobId === 'string' ? payload.jobId : undefined;
+  assert.ok(jobId && jobId.length > 0);
+  const pollUrlRaw = typeof payload.pollUrl === 'string' ? payload.pollUrl : `/train-status/${jobId}`;
+  const statusUrl = pollUrlRaw.startsWith('http')
+    ? pollUrlRaw
+    : `http://localhost:${PORT}${pollUrlRaw.startsWith('/') ? '' : '/'}${pollUrlRaw}`;
   const headers = { Authorization: 'Bearer testtoken' };
   const start = Date.now();
   const timeoutMs = 5000; // keep integration fast and reliable
@@ -281,12 +285,19 @@ test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model',
   });
   assert.strictEqual(uploadRes.status, 202);
   const uploadBody = await uploadRes.json();
-  const trainingJobId = uploadBody.trainingJobId;
-  assert.strictEqual(typeof trainingJobId, 'string');
-  assert.ok(trainingJobId.length > 0);
+  const trainingJob = uploadBody.trainingJob;
+  assert.ok(trainingJob);
+  assert.strictEqual(typeof trainingJob.jobId, 'string');
+  assert.ok(trainingJob.jobId.length > 0);
+  const pollUrl =
+    typeof trainingJob.pollUrl === 'string' && trainingJob.pollUrl.length > 0
+      ? trainingJob.pollUrl
+      : `/train-status/${trainingJob.jobId}`;
 
   const headers = { Authorization: 'Bearer testtoken' };
-  const statusUrl = `http://localhost:${PORT}/train-status/${trainingJobId}`;
+  const statusUrl = pollUrl.startsWith('http')
+    ? pollUrl
+    : `http://localhost:${PORT}${pollUrl.startsWith('/') ? '' : '/'}${pollUrl}`;
   const start = Date.now();
   const timeoutMs = 15000;
   let completed = false;
