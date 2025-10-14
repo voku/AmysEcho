@@ -39,7 +39,10 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let app: Express;
   let dataDir: string;
   let manifestPath: string;
-  let triggerCalls: Array<{ bundleId: string; profileId: string | null; label: string }>;
+  type TriggerCall = { bundleId: string; profileId: string | null; label: string };
+  type TriggerResult = { jobId: string; status: string; pollUrl?: string };
+  let triggerCalls: TriggerCall[];
+  let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
 
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-bundle-'));
@@ -50,9 +53,13 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     app = express();
     let counter = 0;
     triggerCalls = [];
+    triggerOverride = null;
     registerRoute(app, () => `bundle-${++counter}`, {
       triggerTrainingJob: (context) => {
         triggerCalls.push(context);
+        if (triggerOverride) {
+          return triggerOverride(context);
+        }
         const jobId = `job-${triggerCalls.length}`;
         return { jobId, status: 'queued', pollUrl: `/train-status/${jobId}` };
       },
@@ -64,6 +71,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
     triggerCalls.length = 0;
+    triggerOverride = null;
   });
 
   afterAll(async () => {
@@ -145,6 +153,26 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const bundleZipPath = path.join(dataDir, entry.storage.bundle);
     const bundleStat = await fs.stat(bundleZipPath);
     expect(bundleStat.isFile()).toBe(true);
+  });
+
+  it('omits training job payload when trigger returns null but keeps queued status', async () => {
+    triggerOverride = () => null;
+    const metadata = { label: 'SPASS', profileId: 'p-legacy' };
+    const landmarks = await loadSampleLandmarks();
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
+    zip.addFile('bundle/clip.mp4', Buffer.from('fake-video-data'));
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', 'Bearer bundle-token')
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer())
+      .expect(202);
+
+    expect(response.body.status).toBe('queued');
+    expect(response.body.trainingJob).toBeNull();
   });
 
   it('rejects unauthenticated upload', async () => {

@@ -174,10 +174,11 @@ function parseTrainingJob(value: unknown): TrainingJobInfo | undefined {
   const pollUrlRaw = (value as { pollUrl?: unknown }).pollUrl;
   const pollUrl =
     typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? pollUrlRaw.trim() : undefined;
+  const normalizedStatus = statusRaw.trim();
 
   return {
     jobId: jobIdRaw.trim(),
-    status: statusRaw,
+    status: normalizedStatus,
     ...(pollUrl ? { pollUrl } : {}),
   };
 }

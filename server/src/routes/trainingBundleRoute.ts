@@ -272,22 +272,27 @@ export function registerTrainingBundleRoute(
             profileId: profileIdRaw ?? null,
             label,
           });
-          if (
-            maybe &&
-            typeof maybe === 'object' &&
-            typeof maybe.jobId === 'string' &&
-            maybe.jobId.trim().length > 0 &&
-            typeof maybe.status === 'string'
-          ) {
-            const pollUrl =
-              typeof maybe.pollUrl === 'string' && maybe.pollUrl.trim().length > 0
-                ? maybe.pollUrl.trim()
-                : undefined;
-            trainingJob = {
-              jobId: maybe.jobId.trim(),
-              status: maybe.status,
-              ...(pollUrl ? { pollUrl } : {}),
-            };
+          if (maybe && typeof maybe === 'object') {
+            const jobIdRaw = (maybe as TriggerTrainingJobResult).jobId;
+            const statusRaw = (maybe as TriggerTrainingJobResult).status;
+            const pollUrlRaw = (maybe as TriggerTrainingJobResult).pollUrl;
+            const jobId = typeof jobIdRaw === 'string' ? jobIdRaw.trim() : '';
+            const status = typeof statusRaw === 'string' ? statusRaw.trim() : '';
+            if (jobId.length > 0 && status.length > 0) {
+              const validStatuses: TrainingJobStatus[] = ['queued', 'running', 'completed', 'failed'];
+              const normalizedStatus = validStatuses.includes(status as TrainingJobStatus)
+                ? (status as TrainingJobStatus)
+                : 'queued';
+              const pollUrl =
+                typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0
+                  ? pollUrlRaw.trim()
+                  : undefined;
+              trainingJob = {
+                jobId,
+                status: normalizedStatus,
+                ...(pollUrl ? { pollUrl } : {}),
+              };
+            }
           }
         } catch (error) {
           console.error('Error scheduling training after bundle upload:', error);

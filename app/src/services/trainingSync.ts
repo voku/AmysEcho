@@ -160,7 +160,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
         }
       } else if (!token) {
         logger.warn('Skipping training job trigger: missing API token');
-      } else {
+      } else if (trainingJobScheduledByServer) {
         logger.info('Skipping additional training job trigger (already scheduled by server)', {
           jobId: trainingJobScheduledByServer.jobId,
           status: trainingJobScheduledByServer.status,

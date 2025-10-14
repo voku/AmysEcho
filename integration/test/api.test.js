@@ -121,9 +121,7 @@ test('POST /train-model processes samples and returns model', async () => {
   const jobId = typeof payload.jobId === 'string' ? payload.jobId : undefined;
   assert.ok(jobId && jobId.length > 0);
   const pollUrlRaw = typeof payload.pollUrl === 'string' ? payload.pollUrl : `/train-status/${jobId}`;
-  const statusUrl = pollUrlRaw.startsWith('http')
-    ? pollUrlRaw
-    : `http://localhost:${PORT}${pollUrlRaw.startsWith('/') ? '' : '/'}${pollUrlRaw}`;
+  const statusUrl = new URL(pollUrlRaw, `http://localhost:${PORT}`).href;
   const headers = { Authorization: 'Bearer testtoken' };
   const start = Date.now();
   const timeoutMs = 5000; // keep integration fast and reliable
@@ -295,9 +293,7 @@ test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model',
       : `/train-status/${trainingJob.jobId}`;
 
   const headers = { Authorization: 'Bearer testtoken' };
-  const statusUrl = pollUrl.startsWith('http')
-    ? pollUrl
-    : `http://localhost:${PORT}${pollUrl.startsWith('/') ? '' : '/'}${pollUrl}`;
+  const statusUrl = new URL(pollUrl, `http://localhost:${PORT}`).href;
   const start = Date.now();
   const timeoutMs = 15000;
   let completed = false;

@@ -408,16 +408,18 @@ async function processTrainingQueue(): Promise<void> {
     }
   } finally {
     isProcessingTrainingQueue = false;
+    // If new entries arrived while winding down, restart processing so they do not stall.
+    if (trainingQueue.length > 0) {
+      void processTrainingQueue();
+    }
   }
 }
 
 async function executeTrainingQueueEntry(entry: TrainingQueueEntry): Promise<void> {
   const { job } = entry;
-  if (job.status !== 'running') {
-    job.status = 'running';
-    job.startedAt = Date.now();
-    trainingJobs.set(job.id, job);
-  }
+  job.status = 'running';
+  job.startedAt = Date.now();
+  trainingJobs.set(job.id, job);
 
   try {
     await runTrainingWorkflow(job.id, job, entry.samples, entry.triggeredByBundles);
@@ -673,7 +675,6 @@ function startTrainingJob(
     id,
     status: initialStatus,
     progress: 0,
-    ...(initialStatus === 'running' ? { startedAt: Date.now() } : {}),
   };
   trainingJobs.set(id, job);
 
