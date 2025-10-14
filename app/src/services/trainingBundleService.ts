@@ -263,13 +263,13 @@ export async function uploadTrainingBundle(
       );
     }
 
+    const rawTrainingJobId =
+      typeof responseJson.trainingJobId === 'string' ? responseJson.trainingJobId.trim() : undefined;
+
     return {
       id: responseJson.id,
       status: typeof responseJson.status === 'string' ? responseJson.status : 'queued',
-      trainingJobId:
-        typeof responseJson.trainingJobId === 'string' && responseJson.trainingJobId.trim().length > 0
-          ? responseJson.trainingJobId
-          : undefined,
+      ...(rawTrainingJobId ? { trainingJobId: rawTrainingJobId } : {}),
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
