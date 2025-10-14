@@ -23,6 +23,7 @@ export interface UploadTrainingBundleOptions {
 export interface UploadTrainingBundleResponse {
   id: string;
   status: string;
+  trainingJobId?: string;
 }
 
 function ensureDirPrefix(uri: string): string {
@@ -139,7 +140,11 @@ function createBundleId(): string {
   return `training-bundle-${timestamp}-${random}`;
 }
 
-function isUploadResponse(obj: unknown): obj is { id: string; status?: unknown } {
+function isUploadResponse(obj: unknown): obj is {
+  id: string;
+  status?: unknown;
+  trainingJobId?: unknown;
+} {
   return (
     typeof obj === 'object' &&
     obj !== null &&
@@ -261,6 +266,10 @@ export async function uploadTrainingBundle(
     return {
       id: responseJson.id,
       status: typeof responseJson.status === 'string' ? responseJson.status : 'queued',
+      trainingJobId:
+        typeof responseJson.trainingJobId === 'string' && responseJson.trainingJobId.trim().length > 0
+          ? responseJson.trainingJobId
+          : undefined,
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

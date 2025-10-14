@@ -86,7 +86,7 @@ describe('syncTrainingData', () => {
     mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
     __setNetInfoFetchOverride(mockedNetInfo.fetch);
     mockedLoadBackendApiToken.mockResolvedValue('token');
-    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'success' });
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'success', trainingJobId: 'job-123' });
     mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
 
 
@@ -98,6 +98,24 @@ describe('syncTrainingData', () => {
     expect(mockedRemoveQueuedTrainingBundle).toHaveBeenCalledTimes(2);
     expect(mockedUpdateTrainingSample).toHaveBeenCalledTimes(2);
     expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(2);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('falls back to manual training trigger when server does not schedule a job', async () => {
+    const profile = { id: 'profile1', consentHelpMeGetSmarter: true };
+    const bundles = [
+      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+    ];
+    mockedLoadProfile.mockResolvedValue(profile);
+    mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
+    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
+    __setNetInfoFetchOverride(mockedNetInfo.fetch);
+    mockedLoadBackendApiToken.mockResolvedValue('token');
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued' });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const [endpoint, options] = (global.fetch as jest.Mock).mock.calls[0];
     expect(endpoint).toBe(`${API_URL}/train-model`);
