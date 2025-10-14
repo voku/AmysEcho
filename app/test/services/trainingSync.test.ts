@@ -37,12 +37,19 @@ const mockedNetInfo = NetInfo as { fetch: jest.Mock };
 const mockedFileSystem = FileSystem as { deleteAsync: jest.Mock };
 
 describe('syncTrainingData', () => {
+  const defaultProfile = { id: 'profile1', consentHelpMeGetSmarter: true };
+  const wifiConnection = { isConnected: true, isInternetReachable: true, type: 'wifi' as const };
+
   beforeEach(() => {
     jest.clearAllMocks();
     __setNetInfoFetchOverride();
     (global.fetch as jest.Mock | undefined) = jest
       .fn()
       .mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ jobId: 'job-1' }) });
+    mockedLoadProfile.mockResolvedValue(defaultProfile);
+    mockedNetInfo.fetch.mockResolvedValue(wifiConnection);
+    __setNetInfoFetchOverride(mockedNetInfo.fetch);
+    mockedLoadBackendApiToken.mockResolvedValue('token');
   });
 
   afterEach(() => {
@@ -76,17 +83,12 @@ describe('syncTrainingData', () => {
   });
 
   it('should upload bundles and clean up', async () => {
-    const profile = { id: 'profile1', consentHelpMeGetSmarter: true };
     const bundles = [
       { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
       { key: 'bundle2', sampleId: 'sample2', profileId: 'profile1', clipUri: 'uri2', frames: [], label: 'test', capturedAt: 'date' },
     ];
-    mockedLoadProfile.mockResolvedValue(profile);
     mockedListQueuedTrainingBundles.mockResolvedValue(bundles);
-    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
-    __setNetInfoFetchOverride(mockedNetInfo.fetch);
-    mockedLoadBackendApiToken.mockResolvedValue('token');
-    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'success' });
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'success', trainingJobId: 'job-123' });
     mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
 
 
@@ -98,10 +100,60 @@ describe('syncTrainingData', () => {
     expect(mockedRemoveQueuedTrainingBundle).toHaveBeenCalledTimes(2);
     expect(mockedUpdateTrainingSample).toHaveBeenCalledTimes(2);
     expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(2);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('falls back to manual training trigger when server does not schedule a job', async () => {
+    const bundles = [
+      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+    ];
+    mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued' });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const [endpoint, options] = (global.fetch as jest.Mock).mock.calls[0];
     expect(endpoint).toBe(`${API_URL}/train-model`);
     expect(options).toMatchObject({ method: 'POST' });
     expect(JSON.parse(options.body)).toEqual({ trigger: 'bundles' });
+  });
+
+  it('skips manual trigger if a later upload schedules the job', async () => {
+    const bundles = [
+      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+      { key: 'bundle2', sampleId: 'sample2', profileId: 'profile1', clipUri: 'uri2', frames: [], label: 'test', capturedAt: 'date' },
+    ];
+
+    mockedListQueuedTrainingBundles
+      .mockResolvedValueOnce(bundles)
+      .mockResolvedValueOnce([]);
+    mockedUploadTrainingBundle
+      .mockResolvedValueOnce({ id: 'upload1', status: 'queued' })
+      .mockResolvedValueOnce({ id: 'upload2', status: 'queued', trainingJobId: 'job-789' });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(2);
+    expect(result.remaining).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('skips manual trigger when server provides a job ID', async () => {
+    const bundles = [
+      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+    ];
+
+    mockedListQueuedTrainingBundles
+      .mockResolvedValueOnce(bundles)
+      .mockResolvedValueOnce([]);
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued', trainingJobId: 'job-999' });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(1);
+    expect(result.remaining).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

@@ -71,10 +71,11 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
   try {
     const token = await loadBackendApiToken();
     let processed = 0;
+    let trainingJobScheduledByServer = false;
     for (const bundle of bundles) {
       try {
         const uploadOptions = token ? { tokenOverride: token } : {};
-        await uploadTrainingBundle(
+        const uploadResult = await uploadTrainingBundle(
           {
             label: bundle.label,
             profileId: bundle.profileId,
@@ -85,6 +86,15 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
           },
           uploadOptions,
         );
+
+        const serverScheduledJobId = uploadResult?.trainingJobId;
+
+        if (!trainingJobScheduledByServer && serverScheduledJobId) {
+          trainingJobScheduledByServer = true;
+          logger.info('Server scheduled training job after upload', {
+            jobId: serverScheduledJobId,
+          });
+        }
 
         await removeQueuedTrainingBundle(bundle.key);
         await updateTrainingSample(bundle.sampleId, bundle.profileId, {
@@ -109,7 +119,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     }
 
     if (processed > 0) {
-      if (token) {
+      if (token && !trainingJobScheduledByServer) {
         try {
           const controller =
             typeof AbortController !== 'undefined' ? new AbortController() : undefined;
@@ -145,8 +155,10 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
         } catch (triggerError) {
           logger.warn('Training job trigger failed after bundle upload', { error: triggerError });
         }
-      } else {
+      } else if (!token) {
         logger.warn('Skipping training job trigger: missing API token');
+      } else {
+        logger.info('Skipping additional training job trigger (already scheduled by server)');
       }
 
       await refreshDgsModel(profile.id);
