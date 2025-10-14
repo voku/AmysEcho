@@ -169,6 +169,52 @@ describe('MediaPipeGestureDetector', () => {
     debugSpy.mockRestore();
   });
 
+  it('replays the last injected model after a facing mode change triggers a WebView reload', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    requeueLastModelMock.mockReturnValue(true);
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          facingMode="user"
+        />
+      );
+    });
+
+    const initialWebview = component!.root.findByType('mock-webview');
+
+    act(() => {
+      initialWebview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }) },
+      });
+    });
+
+    expect(mlpReadyRef.current).toBe(false);
+
+    act(() => {
+      component!.update(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          facingMode="environment"
+        />
+      );
+    });
+
+    const reloadedWebview = component!.root.findByType('mock-webview');
+
+    act(() => {
+      reloadedWebview.props.onMessage({
+        nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }) },
+      });
+    });
+
+    expect(requeueLastModelMock).toHaveBeenCalledTimes(1);
+  });
+
   it('applies gesture size tolerance to the WebView and updates when the prop changes', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();

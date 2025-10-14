@@ -15,7 +15,8 @@ export const useModelInjection = (webviewRef: any, onModelUpdateStatus: any) => 
   const modelTransferLock = useRef(false);
   const queuedModelRef = useRef(false);
   const transferWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastModelInfoRef = useRef<{ model: string; context: ModelContext | null } | null>(null);
+  const lastModelRef = useRef<string | null>(null);
+  const lastModelContextRef = useRef<ModelContext | null>(null);
 
   const clearTransferWatchdog = useCallback(() => {
     if (transferWatchdogRef.current) {
