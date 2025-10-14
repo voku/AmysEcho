@@ -122,4 +122,51 @@ describe('syncTrainingData', () => {
     expect(options).toMatchObject({ method: 'POST' });
     expect(JSON.parse(options.body)).toEqual({ trigger: 'bundles' });
   });
+
+  it('skips manual trigger if a later upload schedules the job', async () => {
+    const profile = { id: 'profile1', consentHelpMeGetSmarter: true };
+    const bundles = [
+      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+      { key: 'bundle2', sampleId: 'sample2', profileId: 'profile1', clipUri: 'uri2', frames: [], label: 'test', capturedAt: 'date' },
+    ];
+
+    mockedLoadProfile.mockResolvedValue(profile);
+    mockedListQueuedTrainingBundles
+      .mockResolvedValueOnce(bundles)
+      .mockResolvedValueOnce([]);
+    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
+    __setNetInfoFetchOverride(mockedNetInfo.fetch);
+    mockedLoadBackendApiToken.mockResolvedValue('token');
+    mockedUploadTrainingBundle
+      .mockResolvedValueOnce({ id: 'upload1', status: 'queued' })
+      .mockResolvedValueOnce({ id: 'upload2', status: 'queued', trainingJobId: 'job-789' });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(2);
+    expect(result.remaining).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('normalizes job identifiers returned by the server before logging and skipping fallback', async () => {
+    const profile = { id: 'profile1', consentHelpMeGetSmarter: true };
+    const bundles = [
+      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+    ];
+
+    mockedLoadProfile.mockResolvedValue(profile);
+    mockedListQueuedTrainingBundles
+      .mockResolvedValueOnce(bundles)
+      .mockResolvedValueOnce([]);
+    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
+    __setNetInfoFetchOverride(mockedNetInfo.fetch);
+    mockedLoadBackendApiToken.mockResolvedValue('token');
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued', trainingJobId: ' job-999 ' });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(1);
+    expect(result.remaining).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
 });

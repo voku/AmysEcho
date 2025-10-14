@@ -87,10 +87,15 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
           uploadOptions,
         );
 
-        if (!trainingJobScheduledByServer && uploadResult?.trainingJobId) {
+        const serverScheduledJobId =
+          typeof uploadResult?.trainingJobId === 'string'
+            ? uploadResult.trainingJobId.trim()
+            : undefined;
+
+        if (!trainingJobScheduledByServer && serverScheduledJobId) {
           trainingJobScheduledByServer = true;
           logger.info('Server hat den Trainingsjob nach dem Upload ausgelöst', {
-            jobId: uploadResult.trainingJobId,
+            jobId: serverScheduledJobId,
           });
         }
 
