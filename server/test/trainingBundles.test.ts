@@ -53,7 +53,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     registerRoute(app, () => `bundle-${++counter}`, {
       triggerTrainingJob: (context) => {
         triggerCalls.push(context);
-        return `job-${triggerCalls.length}`;
+        return { jobId: `job-${triggerCalls.length}`, status: 'queued' };
       },
     });
     manifestPath = path.join(dataDir, 'datasets', 'training_manifest.json');
@@ -95,7 +95,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.body).toHaveProperty('status', 'queued');
     expect(typeof response.body.id).toBe('string');
-    expect(response.body.trainingJobId).toBe('job-1');
+    expect(response.body.trainingJob).toEqual({ jobId: 'job-1', status: 'queued' });
 
     expect(triggerCalls).toEqual([
       { bundleId: response.body.id, profileId: metadata.profileId, label: metadata.label },

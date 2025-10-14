@@ -379,6 +379,84 @@ type TrainingSample = {
 };
 const trainingJobs = new Map<string, TrainingJob>();
 
+class AsyncMutex {
+  private current: Promise<void> = Promise.resolve();
+
+  async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    let release!: () => void;
+    const previous = this.current;
+    this.current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  }
+}
+
+const trainingWorkflowMutex = new AsyncMutex();
+
+interface TrainingQueueEntry {
+  job: TrainingJob;
+  samples: TrainingSample[];
+  triggeredByBundles: boolean;
+  resolve: (job: TrainingJob) => void;
+}
+
+const trainingQueue: TrainingQueueEntry[] = [];
+let isProcessingTrainingQueue = false;
+
+async function processTrainingQueue(): Promise<void> {
+  if (isProcessingTrainingQueue) {
+    return;
+  }
+  isProcessingTrainingQueue = true;
+  try {
+    while (trainingQueue.length > 0) {
+      const entry = trainingQueue.shift();
+      if (!entry) {
+        continue;
+      }
+      try {
+        await executeTrainingQueueEntry(entry);
+      } catch (error) {
+        console.error('Training queue execution failed', error);
+      }
+    }
+  } finally {
+    isProcessingTrainingQueue = false;
+  }
+}
+
+async function executeTrainingQueueEntry(entry: TrainingQueueEntry): Promise<void> {
+  const { job } = entry;
+  if (job.status !== 'running') {
+    job.status = 'running';
+    job.startedAt = Date.now();
+    trainingJobs.set(job.id, job);
+  } else if (job.startedAt === undefined) {
+    job.startedAt = Date.now();
+    trainingJobs.set(job.id, job);
+  }
+
+  try {
+    await runTrainingWorkflow(job.id, job, entry.samples, entry.triggeredByBundles);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    job.status = 'failed';
+    job.error = message;
+    job.endedAt = Date.now();
+    console.error(`Training job ${job.id} failed:`, error);
+    await logTraining(`job ${job.id}: failed ${message}`);
+  } finally {
+    trainingJobs.set(job.id, job);
+    entry.resolve(job);
+  }
+}
+
 export function buildTrainingStatusResponse(
   jobStore: Map<string, TrainingJob>,
   id: string,
@@ -610,29 +688,36 @@ app.post('/api/telemetry', legacyAuth, async (req: Request, res: Response) => {
 function startTrainingJob(
   samples: TrainingSample[],
   trigger: 'bundles' | null = null,
-): { jobId: string; completion: Promise<TrainingJob> } {
+): { jobId: string; status: TrainStatus; completion: Promise<TrainingJob> } {
+  const isQueueIdle = !isProcessingTrainingQueue && trainingQueue.length === 0;
   const id = genId();
-  const job: TrainingJob = { id, status: 'running', progress: 0, startedAt: Date.now() };
+  const initialStatus: TrainStatus = isQueueIdle ? 'running' : 'queued';
+  const job: TrainingJob = {
+    id,
+    status: initialStatus,
+    progress: 0,
+    ...(initialStatus === 'running' ? { startedAt: Date.now() } : {}),
+  };
   trainingJobs.set(id, job);
 
-  const completion = (async () => {
-    try {
-      await runTrainingWorkflow(id, job, samples, trigger === 'bundles');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      job.status = 'failed';
-      job.error = message;
-      job.endedAt = Date.now();
-      console.error(`Training job ${id} failed:`, error);
-      await logTraining(`job ${id}: failed ${message}`);
-    } finally {
-      trainingJobs.set(id, job);
-    }
+  let resolveCompletion: (job: TrainingJob) => void = () => {};
+  const completion = new Promise<TrainingJob>((resolve) => {
+    resolveCompletion = resolve;
+  });
 
-    return job;
-  })();
+  trainingQueue.push({
+    job,
+    samples,
+    triggeredByBundles: trigger === 'bundles',
+    resolve: resolveCompletion,
+  });
+  void processTrainingQueue();
 
-  return { jobId: id, completion };
+  if (initialStatus === 'queued') {
+    void logTraining(`job ${id}: queued (trigger=${trigger ?? 'manual'})`);
+  }
+
+  return { jobId: id, status: initialStatus, completion };
 }
 
 async function runTrainingWorkflow(
@@ -641,134 +726,136 @@ async function runTrainingWorkflow(
   samples: TrainingSample[],
   triggeredByBundles: boolean,
 ): Promise<void> {
-  await ensureDataDir();
-  await logTraining(`job ${id}: data dir ready at ${DATA_DIR}`);
-  const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
+  await trainingWorkflowMutex.runExclusive(async () => {
+    await ensureDataDir();
+    await logTraining(`job ${id}: data dir ready at ${DATA_DIR}`);
+    const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
 
-  const toAdd = samples.map((s) => ({
-    id: genId(),
-    label: s.gestureDefinitionId,
-    profileId: s.profileId ?? undefined,
-    landmarks: s.landmarkData,
-    ts: Date.now(),
-  }));
+    const toAdd = samples.map((s) => ({
+      id: genId(),
+      label: s.gestureDefinitionId,
+      profileId: s.profileId ?? undefined,
+      landmarks: s.landmarkData,
+      ts: Date.now(),
+    }));
 
-  if (toAdd.length > 0) {
-    await withFileLock(dataPath, async () => {
-      let data: any = { samples: [] };
-      try {
-        const raw = await fs.readFile(dataPath, 'utf8');
-        data = JSON.parse(raw);
-        if (!Array.isArray(data.samples)) data.samples = [];
-      } catch {}
-      data.samples.push(...toAdd);
-      const tmp = `${dataPath}.tmp`;
-      await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-      await fs.rename(tmp, dataPath);
-    });
-    await logTraining(`job ${id}: samples appended (${toAdd.length})`);
-  } else if (triggeredByBundles) {
-    await logTraining(`job ${id}: triggered by bundle manifest with no inline samples`);
-  }
-
-  let bundleFrames = 0;
-  try {
-    const result = await ingestTrainingBundlesIntoDataset();
-    bundleFrames = result.appended;
-    if (bundleFrames > 0) {
-      await logTraining(`job ${id}: ingested ${bundleFrames} frames from training bundles`);
+    if (toAdd.length > 0) {
+      await withFileLock(dataPath, async () => {
+        let data: any = { samples: [] };
+        try {
+          const raw = await fs.readFile(dataPath, 'utf8');
+          data = JSON.parse(raw);
+          if (!Array.isArray(data.samples)) data.samples = [];
+        } catch {}
+        data.samples.push(...toAdd);
+        const tmp = `${dataPath}.tmp`;
+        await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+        await fs.rename(tmp, dataPath);
+      });
+      await logTraining(`job ${id}: samples appended (${toAdd.length})`);
+    } else if (triggeredByBundles) {
+      await logTraining(`job ${id}: triggered by bundle manifest with no inline samples`);
     }
-  } catch (err) {
-    logger.error(`job ${id}: failed to ingest training bundles`, { error: err });
-    await logTraining(`job ${id}: failed to ingest training bundles`);
-  }
 
-  const { globalCounts, profileCounts } = await collectLabelCounts();
-  await logTraining(`job ${id}: label counts computed global=${Object.keys(globalCounts).length}`);
-
-  const profileIdSet = new Set<string>();
-  for (const pid of profileCounts.keys()) {
-    profileIdSet.add(pid);
-  }
-  for (const pid of samples
-    .map((s) => s.profileId)
-    .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p))) {
-    profileIdSet.add(pid);
-  }
-  const profileIds = Array.from(profileIdSet);
-
-  try {
-    const baseModel = getMlpModelPath();
-    await writeMinimalMlpModel(baseModel, globalCounts, logTraining);
-    await logTraining(`job ${id}: seeded global MLP`);
-    for (const pid of profileIds) {
-      const dest = getMlpModelPath(pid);
-      const counts = profileCounts.get(pid) ?? globalCounts;
-      await writeMinimalMlpModel(dest, counts, logTraining);
-      await logTraining(`job ${id}: seeded MLP for ${pid}`);
-    }
-  } catch (e) {
-    console.error('Failed to prepare early MLP model:', e);
-    await logTraining(`job ${id}: minimal MLP failed ${String(e)}`);
-  }
-
-  const scriptPath = config.mlpScript;
-  const serverRoot = SERVER_DIR;
-  const scriptArgs = [
-    path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath),
-    '--manifest',
-    TRAINING_MANIFEST_PATH,
-    '--data-dir',
-    DATA_DIR,
-  ];
-
-  const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-    const proc = spawn('python3', scriptArgs, {
-      cwd: serverRoot,
-    });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout?.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString();
-    });
-    proc.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
-    proc.on('error', reject);
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve({ stdout, stderr });
-      } else {
-        reject(new Error(stderr || `train_mlp exited with code ${code}`));
-      }
-    });
-  });
-
-  if (runReport.stderr.trim().length > 0) {
-    await logTraining(`job ${id}: train_mlp stderr ${runReport.stderr.trim()}`);
-  }
-
-  let parsedReport: Record<string, unknown> = {};
-  const stdoutText = runReport.stdout.trim();
-  if (stdoutText.length > 0) {
+    let bundleFrames = 0;
     try {
-      const lines = stdoutText.split(/\r?\n/).filter(Boolean);
-      parsedReport = JSON.parse(lines[lines.length - 1]);
+      const result = await ingestTrainingBundlesIntoDataset();
+      bundleFrames = result.appended;
+      if (bundleFrames > 0) {
+        await logTraining(`job ${id}: ingested ${bundleFrames} frames from training bundles`);
+      }
     } catch (err) {
-      await logTraining(`job ${id}: failed to parse training report (${String(err)})`);
+      logger.error(`job ${id}: failed to ingest training bundles`, { error: err });
+      await logTraining(`job ${id}: failed to ingest training bundles`);
     }
-  }
 
-  job.progress = 100;
-  job.status = 'completed';
-  job.endedAt = Date.now();
-  job.metrics = {
-    accuracy: (parsedReport as any)?.global?.accuracy ?? 0,
-    samples: (parsedReport as any)?.global?.samples ?? 0,
-  };
-  job.report = parsedReport;
-  job.message = 'Dein Modell ist jetzt aktualisiert';
-  await logTraining(`job ${id}: completed synchronously`);
+    const { globalCounts, profileCounts } = await collectLabelCounts();
+    await logTraining(`job ${id}: label counts computed global=${Object.keys(globalCounts).length}`);
+
+    const profileIdSet = new Set<string>();
+    for (const pid of profileCounts.keys()) {
+      profileIdSet.add(pid);
+    }
+    for (const pid of samples
+      .map((s) => s.profileId)
+      .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p))) {
+      profileIdSet.add(pid);
+    }
+    const profileIds = Array.from(profileIdSet);
+
+    try {
+      const baseModel = getMlpModelPath();
+      await writeMinimalMlpModel(baseModel, globalCounts, logTraining);
+      await logTraining(`job ${id}: seeded global MLP`);
+      for (const pid of profileIds) {
+        const dest = getMlpModelPath(pid);
+        const counts = profileCounts.get(pid) ?? globalCounts;
+        await writeMinimalMlpModel(dest, counts, logTraining);
+        await logTraining(`job ${id}: seeded MLP for ${pid}`);
+      }
+    } catch (e) {
+      console.error('Failed to prepare early MLP model:', e);
+      await logTraining(`job ${id}: minimal MLP failed ${String(e)}`);
+    }
+
+    const scriptPath = config.mlpScript;
+    const serverRoot = SERVER_DIR;
+    const scriptArgs = [
+      path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath),
+      '--manifest',
+      TRAINING_MANIFEST_PATH,
+      '--data-dir',
+      DATA_DIR,
+    ];
+
+    const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      const proc = spawn('python3', scriptArgs, {
+        cwd: serverRoot,
+      });
+      let stdout = '';
+      let stderr = '';
+      proc.stdout?.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+      proc.stderr?.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+      proc.on('error', reject);
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve({ stdout, stderr });
+        } else {
+          reject(new Error(stderr || `train_mlp exited with code ${code}`));
+        }
+      });
+    });
+
+    if (runReport.stderr.trim().length > 0) {
+      await logTraining(`job ${id}: train_mlp stderr ${runReport.stderr.trim()}`);
+    }
+
+    let parsedReport: Record<string, unknown> = {};
+    const stdoutText = runReport.stdout.trim();
+    if (stdoutText.length > 0) {
+      try {
+        const lines = stdoutText.split(/\r?\n/).filter(Boolean);
+        parsedReport = JSON.parse(lines[lines.length - 1]);
+      } catch (err) {
+        await logTraining(`job ${id}: failed to parse training report (${String(err)})`);
+      }
+    }
+
+    job.progress = 100;
+    job.status = 'completed';
+    job.endedAt = Date.now();
+    job.metrics = {
+      accuracy: (parsedReport as any)?.global?.accuracy ?? 0,
+      samples: (parsedReport as any)?.global?.samples ?? 0,
+    };
+    job.report = parsedReport;
+    job.message = 'Dein Modell ist jetzt aktualisiert';
+    await logTraining(`job ${id}: completed synchronously`);
+  });
 }
 
 // Serve per-profile MLP models (NPZ) with containment checks
@@ -786,10 +873,11 @@ app.get('/api/v1/dgs/mlp-model', legacyAuth, modelMetadataLimiter, latestMlpMode
 registerTrainingBundleRoute(app, genId, {
   triggerTrainingJob: ({ bundleId }) => {
     try {
-      const { jobId, completion } = startTrainingJob([], 'bundles');
-      void completion;
-      void logTraining(`job ${jobId}: scheduled automatically from bundle ${bundleId}`);
-      return jobId;
+      const { jobId, status } = startTrainingJob([], 'bundles');
+      void logTraining(
+        `job ${jobId}: scheduled automatically from bundle ${bundleId} (status=${status})`,
+      );
+      return { jobId, status };
     } catch (error) {
       console.error('Failed to schedule training after bundle upload:', error);
       return null;
@@ -1037,23 +1125,21 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
     landmarkData: sample.landmarkData,
   }));
 
-  const { jobId, completion } = startTrainingJob(
+  const { jobId, status } = startTrainingJob(
     trainingSamples,
     triggeredByBundles ? 'bundles' : null,
   );
 
-  const job = await completion;
+  const message =
+    status === 'queued'
+      ? 'Trainingsauftrag wurde in die Warteschlange gestellt'
+      : 'Trainingsauftrag gestartet';
 
-  if (job.status === 'failed') {
-    return res.status(500).json({ status: job.status, jobId, error: job.error });
-  }
-
-  res.status(200).json({
-    status: job.status,
+  res.status(202).json({
+    status,
     jobId,
-    report: job.report ?? {},
-    message: job.message ?? 'Dein Modell ist jetzt aktualisiert',
-    metrics: job.metrics ?? {},
+    pollUrl: `/train-status/${jobId}`,
+    message,
   });
 });
 
