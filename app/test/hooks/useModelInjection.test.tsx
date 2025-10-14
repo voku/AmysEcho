@@ -77,8 +77,10 @@ describe('useModelInjection', () => {
     pendingModelRef.current = null;
     mlpReadyRef.current = true;
 
-    const replayed = requeueLastModel();
-
+    let replayed;
+    act(() => {
+      replayed = requeueLastModel();
+    });
     expect(replayed).toBe(true);
     expect(injectJavaScript).toHaveBeenCalledTimes(3);
     expect(statusMock).toHaveBeenCalledWith('updating');
