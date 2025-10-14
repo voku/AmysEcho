@@ -87,14 +87,11 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
           uploadOptions,
         );
 
-        const serverScheduledJobId =
-          typeof uploadResult?.trainingJobId === 'string'
-            ? uploadResult.trainingJobId.trim()
-            : undefined;
+        const serverScheduledJobId = uploadResult?.trainingJobId;
 
         if (!trainingJobScheduledByServer && serverScheduledJobId) {
           trainingJobScheduledByServer = true;
-          logger.info('Server hat den Trainingsjob nach dem Upload ausgelöst', {
+          logger.info('Server scheduled training job after upload', {
             jobId: serverScheduledJobId,
           });
         }
@@ -161,7 +158,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
       } else if (!token) {
         logger.warn('Skipping training job trigger: missing API token');
       } else {
-        logger.info('Kein zusätzlicher Trainingsjob-Trigger notwendig (Server hat bereits geplant)');
+        logger.info('Skipping additional training job trigger (already scheduled by server)');
       }
 
       await refreshDgsModel(profile.id);

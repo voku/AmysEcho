@@ -148,7 +148,7 @@ describe('syncTrainingData', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('normalizes job identifiers returned by the server before logging and skipping fallback', async () => {
+  it('skips manual trigger when server provides a job ID', async () => {
     const profile = { id: 'profile1', consentHelpMeGetSmarter: true };
     const bundles = [
       { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
@@ -161,7 +161,7 @@ describe('syncTrainingData', () => {
     mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'wifi' });
     __setNetInfoFetchOverride(mockedNetInfo.fetch);
     mockedLoadBackendApiToken.mockResolvedValue('token');
-    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued', trainingJobId: ' job-999 ' });
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued', trainingJobId: 'job-999' });
 
     const result = await syncTrainingData();
 
