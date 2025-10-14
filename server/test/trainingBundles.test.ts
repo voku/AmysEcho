@@ -95,6 +95,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.body).toHaveProperty('status', 'queued');
     expect(typeof response.body.id).toBe('string');
+    expect(response.body.trainingJobId).toBe('job-1');
     expect(response.body.trainingJob).toEqual({ jobId: 'job-1', status: 'queued' });
 
     expect(triggerCalls).toEqual([
@@ -140,6 +141,28 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const bundleZipPath = path.join(dataDir, entry.storage.bundle);
     const bundleStat = await fs.stat(bundleZipPath);
     expect(bundleStat.isFile()).toBe(true);
+  });
+
+  it('still returns trainingJobId when trigger returns a legacy string id', async () => {
+    const localApp = express();
+    const mod = await import('../src/routes/trainingBundleRoute.js');
+    const registerRoute: RegisterTrainingBundleRoute = mod.registerTrainingBundleRoute;
+    registerRoute(localApp, () => 'bundle-legacy', {
+      triggerTrainingJob: () => 'legacy-job-123',
+    });
+
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify({ label: 'HALLO' }, null, 2)));
+
+    const response = await request(localApp)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', 'Bearer bundle-token')
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer())
+      .expect(202);
+
+    expect(response.body.trainingJobId).toBe('legacy-job-123');
+    expect(response.body.trainingJob).toBeNull();
   });
 
   it('rejects unauthenticated upload', async () => {

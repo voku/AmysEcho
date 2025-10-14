@@ -31,10 +31,12 @@ interface TriggerTrainingJobResult {
   status: TrainingJobStatus;
 }
 
+type TriggerTrainingJobReturn = TriggerTrainingJobResult | string;
+
 interface TrainingBundleRouteDeps {
   triggerTrainingJob?: (
     context: TrainingJobTriggerContext,
-  ) => TriggerTrainingJobResult | null | undefined;
+  ) => TriggerTrainingJobReturn | null | undefined;
 }
 
 interface TrainingBundleMetadata {
@@ -263,6 +265,7 @@ export function registerTrainingBundleRoute(
         await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
       });
 
+      let trainingJobId: string | null = null;
       let trainingJob: TriggerTrainingJobResult | null = null;
       if (deps.triggerTrainingJob) {
         try {
@@ -271,15 +274,21 @@ export function registerTrainingBundleRoute(
             profileId: profileIdRaw ?? null,
             label,
           });
-          if (maybe && typeof maybe.jobId === 'string') {
+          if (typeof maybe === 'string') {
+            const trimmed = maybe.trim();
+            if (trimmed.length > 0) {
+              trainingJobId = trimmed;
+            }
+          } else if (maybe && typeof maybe.jobId === 'string') {
             trainingJob = maybe;
+            trainingJobId = maybe.jobId;
           }
         } catch (error) {
           console.error('Error scheduling training after bundle upload:', error);
         }
       }
 
-      res.status(202).json({ status: 'queued', id: bundleId, trainingJob });
+      res.status(202).json({ status: 'queued', id: bundleId, trainingJobId, trainingJob });
     } catch (error) {
       console.error('Error saving training bundle:', error);
       res.status(500).json({ error: 'Failed to save training bundle' });

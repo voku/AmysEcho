@@ -379,26 +379,6 @@ type TrainingSample = {
 };
 const trainingJobs = new Map<string, TrainingJob>();
 
-class AsyncMutex {
-  private current: Promise<void> = Promise.resolve();
-
-  async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
-    let release!: () => void;
-    const previous = this.current;
-    this.current = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await previous;
-    try {
-      return await fn();
-    } finally {
-      release();
-    }
-  }
-}
-
-const trainingWorkflowMutex = new AsyncMutex();
-
 interface TrainingQueueEntry {
   job: TrainingJob;
   samples: TrainingSample[];
@@ -435,9 +415,6 @@ async function executeTrainingQueueEntry(entry: TrainingQueueEntry): Promise<voi
   const { job } = entry;
   if (job.status !== 'running') {
     job.status = 'running';
-    job.startedAt = Date.now();
-    trainingJobs.set(job.id, job);
-  } else if (job.startedAt === undefined) {
     job.startedAt = Date.now();
     trainingJobs.set(job.id, job);
   }
@@ -726,136 +703,134 @@ async function runTrainingWorkflow(
   samples: TrainingSample[],
   triggeredByBundles: boolean,
 ): Promise<void> {
-  await trainingWorkflowMutex.runExclusive(async () => {
-    await ensureDataDir();
-    await logTraining(`job ${id}: data dir ready at ${DATA_DIR}`);
-    const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
+  await ensureDataDir();
+  await logTraining(`job ${id}: data dir ready at ${DATA_DIR}`);
+  const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
 
-    const toAdd = samples.map((s) => ({
-      id: genId(),
-      label: s.gestureDefinitionId,
-      profileId: s.profileId ?? undefined,
-      landmarks: s.landmarkData,
-      ts: Date.now(),
-    }));
+  const toAdd = samples.map((s) => ({
+    id: genId(),
+    label: s.gestureDefinitionId,
+    profileId: s.profileId ?? undefined,
+    landmarks: s.landmarkData,
+    ts: Date.now(),
+  }));
 
-    if (toAdd.length > 0) {
-      await withFileLock(dataPath, async () => {
-        let data: any = { samples: [] };
-        try {
-          const raw = await fs.readFile(dataPath, 'utf8');
-          data = JSON.parse(raw);
-          if (!Array.isArray(data.samples)) data.samples = [];
-        } catch {}
-        data.samples.push(...toAdd);
-        const tmp = `${dataPath}.tmp`;
-        await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-        await fs.rename(tmp, dataPath);
-      });
-      await logTraining(`job ${id}: samples appended (${toAdd.length})`);
-    } else if (triggeredByBundles) {
-      await logTraining(`job ${id}: triggered by bundle manifest with no inline samples`);
-    }
-
-    let bundleFrames = 0;
-    try {
-      const result = await ingestTrainingBundlesIntoDataset();
-      bundleFrames = result.appended;
-      if (bundleFrames > 0) {
-        await logTraining(`job ${id}: ingested ${bundleFrames} frames from training bundles`);
-      }
-    } catch (err) {
-      logger.error(`job ${id}: failed to ingest training bundles`, { error: err });
-      await logTraining(`job ${id}: failed to ingest training bundles`);
-    }
-
-    const { globalCounts, profileCounts } = await collectLabelCounts();
-    await logTraining(`job ${id}: label counts computed global=${Object.keys(globalCounts).length}`);
-
-    const profileIdSet = new Set<string>();
-    for (const pid of profileCounts.keys()) {
-      profileIdSet.add(pid);
-    }
-    for (const pid of samples
-      .map((s) => s.profileId)
-      .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p))) {
-      profileIdSet.add(pid);
-    }
-    const profileIds = Array.from(profileIdSet);
-
-    try {
-      const baseModel = getMlpModelPath();
-      await writeMinimalMlpModel(baseModel, globalCounts, logTraining);
-      await logTraining(`job ${id}: seeded global MLP`);
-      for (const pid of profileIds) {
-        const dest = getMlpModelPath(pid);
-        const counts = profileCounts.get(pid) ?? globalCounts;
-        await writeMinimalMlpModel(dest, counts, logTraining);
-        await logTraining(`job ${id}: seeded MLP for ${pid}`);
-      }
-    } catch (e) {
-      console.error('Failed to prepare early MLP model:', e);
-      await logTraining(`job ${id}: minimal MLP failed ${String(e)}`);
-    }
-
-    const scriptPath = config.mlpScript;
-    const serverRoot = SERVER_DIR;
-    const scriptArgs = [
-      path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath),
-      '--manifest',
-      TRAINING_MANIFEST_PATH,
-      '--data-dir',
-      DATA_DIR,
-    ];
-
-    const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-      const proc = spawn('python3', scriptArgs, {
-        cwd: serverRoot,
-      });
-      let stdout = '';
-      let stderr = '';
-      proc.stdout?.on('data', (chunk: Buffer) => {
-        stdout += chunk.toString();
-      });
-      proc.stderr?.on('data', (chunk: Buffer) => {
-        stderr += chunk.toString();
-      });
-      proc.on('error', reject);
-      proc.on('close', (code) => {
-        if (code === 0) {
-          resolve({ stdout, stderr });
-        } else {
-          reject(new Error(stderr || `train_mlp exited with code ${code}`));
-        }
-      });
-    });
-
-    if (runReport.stderr.trim().length > 0) {
-      await logTraining(`job ${id}: train_mlp stderr ${runReport.stderr.trim()}`);
-    }
-
-    let parsedReport: Record<string, unknown> = {};
-    const stdoutText = runReport.stdout.trim();
-    if (stdoutText.length > 0) {
+  if (toAdd.length > 0) {
+    await withFileLock(dataPath, async () => {
+      let data: any = { samples: [] };
       try {
-        const lines = stdoutText.split(/\r?\n/).filter(Boolean);
-        parsedReport = JSON.parse(lines[lines.length - 1]);
-      } catch (err) {
-        await logTraining(`job ${id}: failed to parse training report (${String(err)})`);
-      }
-    }
+        const raw = await fs.readFile(dataPath, 'utf8');
+        data = JSON.parse(raw);
+        if (!Array.isArray(data.samples)) data.samples = [];
+      } catch {}
+      data.samples.push(...toAdd);
+      const tmp = `${dataPath}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+      await fs.rename(tmp, dataPath);
+    });
+    await logTraining(`job ${id}: samples appended (${toAdd.length})`);
+  } else if (triggeredByBundles) {
+    await logTraining(`job ${id}: triggered by bundle manifest with no inline samples`);
+  }
 
-    job.progress = 100;
-    job.status = 'completed';
-    job.endedAt = Date.now();
-    job.metrics = {
-      accuracy: (parsedReport as any)?.global?.accuracy ?? 0,
-      samples: (parsedReport as any)?.global?.samples ?? 0,
-    };
-    job.report = parsedReport;
-    job.message = 'Dein Modell ist jetzt aktualisiert';
-    await logTraining(`job ${id}: completed synchronously`);
+  let bundleFrames = 0;
+  try {
+    const result = await ingestTrainingBundlesIntoDataset();
+    bundleFrames = result.appended;
+    if (bundleFrames > 0) {
+      await logTraining(`job ${id}: ingested ${bundleFrames} frames from training bundles`);
+    }
+  } catch (err) {
+    logger.error(`job ${id}: failed to ingest training bundles`, { error: err });
+    await logTraining(`job ${id}: failed to ingest training bundles`);
+  }
+
+  const { globalCounts, profileCounts } = await collectLabelCounts();
+  await logTraining(`job ${id}: label counts computed global=${Object.keys(globalCounts).length}`);
+
+  const profileIdSet = new Set<string>();
+  for (const pid of profileCounts.keys()) {
+    profileIdSet.add(pid);
+  }
+  for (const pid of samples
+    .map((s) => s.profileId)
+    .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p))) {
+    profileIdSet.add(pid);
+  }
+  const profileIds = Array.from(profileIdSet);
+
+  try {
+    const baseModel = getMlpModelPath();
+    await writeMinimalMlpModel(baseModel, globalCounts, logTraining);
+    await logTraining(`job ${id}: seeded global MLP`);
+    for (const pid of profileIds) {
+      const dest = getMlpModelPath(pid);
+      const counts = profileCounts.get(pid) ?? globalCounts;
+      await writeMinimalMlpModel(dest, counts, logTraining);
+      await logTraining(`job ${id}: seeded MLP for ${pid}`);
+    }
+  } catch (e) {
+    console.error('Failed to prepare early MLP model:', e);
+    await logTraining(`job ${id}: minimal MLP failed ${String(e)}`);
+  }
+
+  const scriptPath = config.mlpScript;
+  const serverRoot = SERVER_DIR;
+  const scriptArgs = [
+    path.isAbsolute(scriptPath) ? scriptPath : path.join(serverRoot, scriptPath),
+    '--manifest',
+    TRAINING_MANIFEST_PATH,
+    '--data-dir',
+    DATA_DIR,
+  ];
+
+  const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+    const proc = spawn('python3', scriptArgs, {
+      cwd: serverRoot,
+    });
+    let stdout = '';
+    let stderr = '';
+    proc.stdout?.on('data', (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    proc.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    proc.on('error', reject);
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+      } else {
+        reject(new Error(stderr || `train_mlp exited with code ${code}`));
+      }
+    });
   });
+
+  if (runReport.stderr.trim().length > 0) {
+    await logTraining(`job ${id}: train_mlp stderr ${runReport.stderr.trim()}`);
+  }
+
+  let parsedReport: Record<string, unknown> = {};
+  const stdoutText = runReport.stdout.trim();
+  if (stdoutText.length > 0) {
+    try {
+      const lines = stdoutText.split(/\r?\n/).filter(Boolean);
+      parsedReport = JSON.parse(lines[lines.length - 1]);
+    } catch (err) {
+      await logTraining(`job ${id}: failed to parse training report (${String(err)})`);
+    }
+  }
+
+  job.progress = 100;
+  job.status = 'completed';
+  job.endedAt = Date.now();
+  job.metrics = {
+    accuracy: (parsedReport as any)?.global?.accuracy ?? 0,
+    samples: (parsedReport as any)?.global?.samples ?? 0,
+  };
+  job.report = parsedReport;
+  job.message = 'Dein Modell ist jetzt aktualisiert';
+  await logTraining(`job ${id}: completed synchronously`);
 }
 
 // Serve per-profile MLP models (NPZ) with containment checks
