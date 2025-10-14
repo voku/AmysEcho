@@ -24,13 +24,12 @@ interface TrainingJobTriggerContext {
   label: string;
 }
 
-type TrainingJobStatus = 'queued' | 'running' | 'completed' | 'failed';
-
-interface TriggerTrainingJobResult {
-  jobId: string;
-  status: TrainingJobStatus;
-  pollUrl?: string;
-}
+const TriggerTrainingJobResultSchema = z.object({
+  jobId: z.string().trim().min(1),
+  status: z.enum(['queued', 'running', 'completed', 'failed']),
+  pollUrl: z.string().trim().min(1).optional(),
+});
+type TriggerTrainingJobResult = z.infer<typeof TriggerTrainingJobResultSchema>;
 
 interface TrainingBundleRouteDeps {
   triggerTrainingJob?: (
@@ -273,25 +272,9 @@ export function registerTrainingBundleRoute(
             label,
           });
           if (maybe && typeof maybe === 'object') {
-            const jobIdRaw = (maybe as TriggerTrainingJobResult).jobId;
-            const statusRaw = (maybe as TriggerTrainingJobResult).status;
-            const pollUrlRaw = (maybe as TriggerTrainingJobResult).pollUrl;
-            const jobId = typeof jobIdRaw === 'string' ? jobIdRaw.trim() : '';
-            const status = typeof statusRaw === 'string' ? statusRaw.trim() : '';
-            if (jobId.length > 0 && status.length > 0) {
-              const validStatuses: TrainingJobStatus[] = ['queued', 'running', 'completed', 'failed'];
-              const normalizedStatus = validStatuses.includes(status as TrainingJobStatus)
-                ? (status as TrainingJobStatus)
-                : 'queued';
-              const pollUrl =
-                typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0
-                  ? pollUrlRaw.trim()
-                  : undefined;
-              trainingJob = {
-                jobId,
-                status: normalizedStatus,
-                ...(pollUrl ? { pollUrl } : {}),
-              };
+            const result = TriggerTrainingJobResultSchema.safeParse(maybe);
+            if (result.success) {
+              trainingJob = result.data;
             }
           }
         } catch (error) {

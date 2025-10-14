@@ -20,15 +20,18 @@ export interface UploadTrainingBundleOptions {
   tokenOverride?: string;
 }
 
+const TRAINING_JOB_STATUSES = ['queued', 'running', 'completed', 'failed'] as const;
+export type TrainingJobStatus = (typeof TRAINING_JOB_STATUSES)[number];
+
 export interface TrainingJobInfo {
   jobId: string;
-  status: string;
+  status: TrainingJobStatus;
   pollUrl?: string;
 }
 
 export interface UploadTrainingBundleResponse {
   id: string;
-  status: string;
+  status: TrainingJobStatus;
   trainingJob?: TrainingJobInfo;
 }
 
@@ -159,6 +162,23 @@ function isUploadResponse(obj: unknown): obj is {
   );
 }
 
+function isTrainingJobStatus(value: string): value is TrainingJobStatus {
+  return (TRAINING_JOB_STATUSES as readonly string[]).includes(value);
+}
+
+function normalizeTrainingJobStatus(
+  value: unknown,
+  fallback: TrainingJobStatus = 'queued',
+): TrainingJobStatus {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.length > 0 && isTrainingJobStatus(trimmed)) {
+      return trimmed;
+    }
+  }
+  return fallback;
+}
+
 function parseTrainingJob(value: unknown): TrainingJobInfo | undefined {
   if (!value || typeof value !== 'object') {
     return undefined;
@@ -168,13 +188,10 @@ function parseTrainingJob(value: unknown): TrainingJobInfo | undefined {
   if (typeof jobIdRaw !== 'string' || jobIdRaw.trim().length === 0) {
     return undefined;
   }
-  if (typeof statusRaw !== 'string' || statusRaw.trim().length === 0) {
-    return undefined;
-  }
   const pollUrlRaw = (value as { pollUrl?: unknown }).pollUrl;
   const pollUrl =
     typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? pollUrlRaw.trim() : undefined;
-  const normalizedStatus = statusRaw.trim();
+  const normalizedStatus = normalizeTrainingJobStatus(statusRaw);
 
   return {
     jobId: jobIdRaw.trim(),
@@ -297,7 +314,7 @@ export async function uploadTrainingBundle(
 
     return {
       id: responseJson.id,
-      status: typeof responseJson.status === 'string' ? responseJson.status : 'queued',
+      status: normalizeTrainingJobStatus(responseJson.status),
       ...(trainingJob ? { trainingJob } : {}),
     };
   } catch (error) {
