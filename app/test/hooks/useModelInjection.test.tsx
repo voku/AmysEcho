@@ -87,8 +87,10 @@ describe('useModelInjection', () => {
   it('returns false from requeueLastModel when no model has been injected', async () => {
     const { requeueLastModel, injectJavaScript, statusMock } = await renderHarness();
 
-    const replayed = requeueLastModel();
-
+    let replayed;
+    act(() => {
+      replayed = requeueLastModel();
+    });
     expect(replayed).toBe(false);
     expect(injectJavaScript).not.toHaveBeenCalled();
     expect(statusMock).not.toHaveBeenCalled();
