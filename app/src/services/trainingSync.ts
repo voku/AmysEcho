@@ -171,7 +171,8 @@ async function waitForTrainingJobCompletion(
         payload = undefined;
       }
 
-      const nextStatus = extractTrainingJobStatus(payload) ?? lastStatus;
+      const extractedStatus = extractTrainingJobStatus(payload);
+      const nextStatus: TrainingJobInfo['status'] = extractedStatus ?? lastStatus;
       lastStatus = nextStatus;
 
       if (nextStatus === 'completed') {
@@ -211,7 +212,11 @@ export interface SyncResult {
 
 export async function syncTrainingData(opts?: SyncProgressOptions): Promise<SyncResult> {
   const profile = await loadProfile();
-  if (!profile?.consentHelpMeGetSmarter) {
+  if (!profile) {
+    return { uploaded: 0, remaining: 0 };
+  }
+
+  if (!profile.consentHelpMeGetSmarter) {
     return { uploaded: 0, remaining: 0 };
   }
 
@@ -246,7 +251,8 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     return { uploaded: 0, remaining: bundles.length };
 
   try {
-    const token = await loadBackendApiToken();
+    const tokenRaw = await loadBackendApiToken();
+    const token = tokenRaw ?? undefined;
     let processed = 0;
     let trainingJobToMonitor: TrainingJobInfo | null = null;
     for (const bundle of bundles) {
