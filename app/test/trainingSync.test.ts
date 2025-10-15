@@ -1,4 +1,4 @@
-import { syncTrainingData } from '../src/services/trainingSync';
+import { syncTrainingData, __setTrainingJobPollWaitOverride } from '../src/services/trainingSync';
 
 jest.mock('../src/storage', () => ({
   __esModule: true,
@@ -61,17 +61,32 @@ describe('syncTrainingData', () => {
   let fetchSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    __setTrainingJobPollWaitOverride(async () => {});
     (loadBackendApiToken as jest.Mock).mockResolvedValue('token');
     (listQueuedTrainingBundles as jest.Mock).mockResolvedValue([]);
     (uploadTrainingBundle as jest.Mock).mockResolvedValue({ status: 'queued', id: 'bundle' });
-    fetchSpy = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ jobId: 'job-1' }) } as any);
+    fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation((input: RequestInfo) => {
+      const href = typeof input === 'string' ? input : (input as { url?: string }).url ?? '';
+      if (href === `${API_URL}/train-model`) {
+        return Promise.resolve({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ jobId: 'job-1', status: 'queued' }),
+        } as any);
+      }
+      if (href === `${API_URL}/api/training-status/job-1`) {
+        return Promise.resolve({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ status: 'completed', jobId: 'job-1' }),
+        } as any);
+      }
+      return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({}) } as any);
+    });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
     fetchSpy.mockRestore();
+    __setTrainingJobPollWaitOverride();
   });
 
   it('returns early when user lacks consent', async () => {

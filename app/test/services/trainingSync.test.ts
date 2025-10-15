@@ -1,10 +1,15 @@
-import { syncTrainingData, __setNetInfoFetchOverride } from '../../src/services/trainingSync';
+import {
+  syncTrainingData,
+  __setNetInfoFetchOverride,
+  __setTrainingJobPollWaitOverride,
+} from '../../src/services/trainingSync';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from '../../src/services/trainingBundleQueue';
 import { uploadTrainingBundle } from '../../src/services/trainingBundleService';
 import { loadProfile, loadBackendApiToken, updateTrainingSample } from '../../src/storage';
 import { API_URL } from '../../src/constants';
 import * as NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
+import { refreshDgsModel } from '../../src/services/modelUpdate';
 
 jest.mock('../../src/services/trainingBundleQueue');
 jest.mock('../../src/services/trainingBundleService');
@@ -35,6 +40,14 @@ const mockedLoadBackendApiToken = loadBackendApiToken as jest.Mock;
 const mockedUpdateTrainingSample = updateTrainingSample as jest.Mock;
 const mockedNetInfo = NetInfo as { fetch: jest.Mock };
 const mockedFileSystem = FileSystem as { deleteAsync: jest.Mock };
+const mockedRefreshDgsModel = refreshDgsModel as jest.Mock;
+
+function createFetchResponse(body: unknown) {
+  return {
+    ok: true,
+    json: jest.fn().mockResolvedValue(body),
+  };
+}
 
 describe('syncTrainingData', () => {
   const defaultProfile = { id: 'profile1', consentHelpMeGetSmarter: true };
@@ -43,9 +56,17 @@ describe('syncTrainingData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     __setNetInfoFetchOverride();
-    (global.fetch as jest.Mock | undefined) = jest
-      .fn()
-      .mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ jobId: 'job-1' }) });
+    __setTrainingJobPollWaitOverride(async () => {});
+    (global.fetch as jest.Mock | undefined) = jest.fn((url: RequestInfo) => {
+      const href = typeof url === 'string' ? url : '';
+      if (href.includes('/train-model')) {
+        return Promise.resolve(createFetchResponse({ jobId: 'job-1', status: 'queued' }));
+      }
+      if (href.includes('training-status')) {
+        return Promise.resolve(createFetchResponse({ status: 'completed', jobId: 'job-1' }));
+      }
+      return Promise.resolve(createFetchResponse({ status: 'completed' }));
+    });
     mockedLoadProfile.mockResolvedValue(defaultProfile);
     mockedNetInfo.fetch.mockResolvedValue(wifiConnection);
     __setNetInfoFetchOverride(mockedNetInfo.fetch);
@@ -55,6 +76,7 @@ describe('syncTrainingData', () => {
   afterEach(() => {
     // @ts-expect-error - cleanup test stub
     delete global.fetch;
+    __setTrainingJobPollWaitOverride();
   });
 
   it('should not upload if user has not consented', async () => {
@@ -95,7 +117,6 @@ describe('syncTrainingData', () => {
     });
     mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
 
-
     const result = await syncTrainingData();
 
     expect(result.uploaded).toBe(2);
@@ -104,7 +125,10 @@ describe('syncTrainingData', () => {
     expect(mockedRemoveQueuedTrainingBundle).toHaveBeenCalledTimes(2);
     expect(mockedUpdateTrainingSample).toHaveBeenCalledTimes(2);
     expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(2);
-    expect(global.fetch).not.toHaveBeenCalled();
+    const trainModelCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      ([url]) => url === `${API_URL}/train-model`,
+    );
+    expect(trainModelCalls).toHaveLength(0);
   });
 
   it('falls back to manual training trigger when server does not schedule a job', async () => {
@@ -114,10 +138,23 @@ describe('syncTrainingData', () => {
     mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
     mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued' });
 
+    const pollResponses = [{ status: 'running' }, { status: 'completed' }];
+    (global.fetch as jest.Mock).mockImplementation((url: RequestInfo) => {
+      const href = typeof url === 'string' ? url : '';
+      if (href === `${API_URL}/train-model`) {
+        return Promise.resolve(createFetchResponse({ jobId: 'job-1', status: 'queued' }));
+      }
+      if (href === `${API_URL}/api/training-status/job-1`) {
+        const next = pollResponses.shift() ?? { status: 'completed' };
+        return Promise.resolve(createFetchResponse(next));
+      }
+      return Promise.resolve(createFetchResponse({ status: 'completed' }));
+    });
+
     const result = await syncTrainingData();
 
     expect(result.uploaded).toBe(1);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(3);
     const [endpoint, options] = (global.fetch as jest.Mock).mock.calls[0];
     expect(endpoint).toBe(`${API_URL}/train-model`);
     expect(options).toMatchObject({ method: 'POST' });
@@ -145,7 +182,10 @@ describe('syncTrainingData', () => {
 
     expect(result.uploaded).toBe(2);
     expect(result.remaining).toBe(0);
-    expect(global.fetch).not.toHaveBeenCalled();
+    const trainModelCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      ([url]) => url === `${API_URL}/train-model`,
+    );
+    expect(trainModelCalls).toHaveLength(0);
   });
 
   it('skips manual trigger when server provides a job ID', async () => {
@@ -166,6 +206,77 @@ describe('syncTrainingData', () => {
 
     expect(result.uploaded).toBe(1);
     expect(result.remaining).toBe(0);
-    expect(global.fetch).not.toHaveBeenCalled();
+    const trainModelCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      ([url]) => url === `${API_URL}/train-model`,
+    );
+    expect(trainModelCalls).toHaveLength(0);
+  });
+
+  it('polls training job until completion before refreshing model', async () => {
+    const bundle = {
+      key: 'bundle1',
+      sampleId: 'sample1',
+      profileId: 'profile1',
+      clipUri: 'uri1',
+      frames: [],
+      label: 'test',
+      capturedAt: 'date',
+    };
+    mockedListQueuedTrainingBundles.mockResolvedValueOnce([bundle]).mockResolvedValueOnce([]);
+    mockedUploadTrainingBundle.mockResolvedValue({
+      id: 'upload1',
+      status: 'queued',
+      trainingJob: {
+        jobId: 'job-123',
+        status: 'queued',
+        pollUrl: '/api/training-status/job-123',
+      },
+    });
+
+    const pollEndpoint = `${API_URL}/api/training-status/job-123`;
+    const pollResolvers: Array<(status: 'running' | 'completed') => void> = [];
+
+    (global.fetch as jest.Mock).mockImplementation((url: RequestInfo) => {
+      const href = typeof url === 'string' ? url : '';
+      if (href === pollEndpoint) {
+        return new Promise((resolve) => {
+          pollResolvers.push((status) =>
+            resolve(createFetchResponse({ status, jobId: 'job-123' })),
+          );
+        });
+      }
+      return Promise.resolve(createFetchResponse({ status: 'queued', jobId: 'job-123' }));
+    });
+
+    const syncPromise = syncTrainingData();
+
+    await Promise.resolve();
+
+    for (let i = 0; i < 20 && pollResolvers.length === 0; i += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await Promise.resolve();
+    }
+
+    expect(pollResolvers.length).toBeGreaterThan(0);
+    pollResolvers.shift()?.('running');
+
+    await Promise.resolve();
+    expect(mockedRefreshDgsModel).not.toHaveBeenCalled();
+
+    for (let i = 0; i < 20 && pollResolvers.length === 0; i += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await Promise.resolve();
+    }
+
+    expect(pollResolvers.length).toBeGreaterThan(0);
+    pollResolvers.shift()?.('completed');
+
+    await syncPromise;
+
+    expect(mockedRefreshDgsModel).toHaveBeenCalledWith('profile1');
+    const pollCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      ([url]) => url === pollEndpoint,
+    );
+    expect(pollCalls).toHaveLength(2);
   });
 });
