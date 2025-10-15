@@ -1,11 +1,13 @@
 import time
 import urllib.request
+import urllib.error
 import subprocess
 import os
 import json
 import shutil
 from pathlib import Path
 import numpy as np
+import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
@@ -191,6 +193,61 @@ def test_train_requests_are_serialized(tmp_path):
         assert final_first.get("endedAt") is not None
         assert final_second.get("startedAt") is not None
         assert final_second["startedAt"] >= final_first["endedAt"]
+    finally:
+        stop_server(proc)
+        data_dir = SERVER_DIR / "data"
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
+
+
+def test_train_model_rejects_out_of_range_landmarks(tmp_path):
+    proc = start_server()
+    try:
+        url = f"http://localhost:{PORT}/train-model"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer testtoken",
+        }
+
+        invalid_landmarks = [[-0.1, 0.5, 0.0] for _ in range(21)]
+        invalid_payload = json.dumps(
+            {
+                "samples": [
+                    {
+                        "gestureDefinitionId": "g1",
+                        "landmarkData": invalid_landmarks,
+                    }
+                ]
+            }
+        ).encode("utf-8")
+
+        invalid_req = urllib.request.Request(
+            url, data=invalid_payload, headers=headers
+        )
+
+        with pytest.raises(urllib.error.HTTPError) as excinfo:
+            urllib.request.urlopen(invalid_req)
+
+        assert excinfo.value.code == 400
+
+        valid_landmarks = [[i * 0.01, 0.1, 0.1] for i in range(21)]
+        valid_payload = json.dumps(
+            {
+                "samples": [
+                    {
+                        "gestureDefinitionId": "g1",
+                        "profileId": "p1",
+                        "landmarkData": valid_landmarks,
+                    }
+                ]
+            }
+        ).encode("utf-8")
+
+        valid_req = urllib.request.Request(url, data=valid_payload, headers=headers)
+        with urllib.request.urlopen(valid_req) as resp:
+            assert resp.getcode() == 202
+            body = json.loads(resp.read().decode())
+            assert body.get("jobId")
     finally:
         stop_server(proc)
         data_dir = SERVER_DIR / "data"

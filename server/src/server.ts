@@ -1073,11 +1073,19 @@ app.post('/dialog', legacyAuth, dialogLimiter, async (req: Request, res: Respons
 });
 
 app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
+  const LandmarkTupleSchema = z
+    .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+    .refine(
+      ([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1,
+      {
+        message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1]',
+      },
+    );
   const SampleSchema = z.object({
     gestureDefinitionId: z.string().min(1),
     profileId: z.string().optional(),
     landmarkData: z
-      .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
+      .array(LandmarkTupleSchema)
       .refine((arr) => arr.length === 21 || arr.length === 42, {
         message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1]',
       }),
