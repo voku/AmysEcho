@@ -179,23 +179,27 @@ class AmyFirstHapticService {
     return adjusted;
   }
 
+  private stepUp(intensity: 'light' | 'medium' | 'heavy'): 'medium' | 'heavy' {
+    return intensity === 'light' ? 'medium' : 'heavy';
+  }
+
+  private stepDown(intensity: 'light' | 'medium' | 'heavy'): 'light' | 'medium' {
+    return intensity === 'heavy' ? 'medium' : 'light';
+  }
+
   private applyContextAdjustments(pattern: HapticPattern, context: any): HapticPattern {
     const adjusted = { ...pattern };
 
     // Pattern match bonus (from context-aware recognition)
     if (context.patternMatch) {
       adjusted.repeat = Math.min((adjusted.repeat || 1) + 1, 4);
-      if (adjusted.intensity === 'light') {
-        adjusted.intensity = 'medium';
-      } else if (adjusted.intensity === 'medium') {
-        adjusted.intensity = 'heavy';
-      }
+      adjusted.intensity = this.stepUp(adjusted.intensity);
     }
 
     // Recent activity consideration
     if (context.recentActivity && context.recentActivity > 10) {
       // Amy has been very active - use gentler feedback to avoid overwhelming
-      if (adjusted.intensity === 'heavy') adjusted.intensity = 'medium';
+      adjusted.intensity = this.stepDown(adjusted.intensity);
     }
 
     return adjusted;
@@ -206,7 +210,7 @@ class AmyFirstHapticService {
 
     // Morning: More gentle to not startle
     if (timeOfDay === 'morning') {
-      if (adjusted.intensity === 'heavy') adjusted.intensity = 'medium';
+      adjusted.intensity = this.stepDown(adjusted.intensity);
       adjusted.repeat = Math.max((adjusted.repeat || 1) - 1, 1);
     }
 
