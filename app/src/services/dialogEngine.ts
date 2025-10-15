@@ -213,7 +213,7 @@ class DialogEngine {
    */
   public async getAdaptiveSuggestions(
     vocabulary: Symbol[],
-    profileId: string,
+    _profileId: string,
     lastSymbol?: Symbol,
   ): Promise<Symbol[]> {
     try {

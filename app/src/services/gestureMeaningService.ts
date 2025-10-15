@@ -11,7 +11,6 @@
 
 import {
   GESTURE_MEANINGS,
-  GestureMeaningDefinition,
   CoordinatedGestureMeaningDefinition,
 } from '../constants/gestureMeanings';
 import { logger } from '../utils/logger';
@@ -114,6 +113,16 @@ export class GestureMeaningService {
       // Generate accessibility hints
       const accessibilityHints = this.generateAccessibilityHints(matchedGesture, confidence);
 
+      const processingTime = performance.now() - startTime;
+
+      if (processingTime > this.MAX_PROCESSING_TIME) {
+        logger.warn('Coordinated gesture processing exceeded budget', {
+          processingTime,
+          threshold: this.MAX_PROCESSING_TIME,
+          gestureId: matchedGesture.id,
+        });
+      }
+
       // Create detected gesture object
       const detectedGesture: DetectedGestureMeaning = {
         gesture: matchedGesture,
@@ -122,7 +131,7 @@ export class GestureMeaningService {
         rightHandGesture: rightGesture,
         handedness,
         landmarks,
-        processingTime: performance.now() - startTime,
+        processingTime,
         validationScore: validation.accessibilityScore,
         accessibilityHints
       };

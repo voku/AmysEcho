@@ -285,15 +285,25 @@ class EnhancedAdaptiveLearningService {
     const successRate = metrics.successfulAttempts / Math.max(metrics.totalAttempts, 1);
     const avgConfidence = metrics.averageConfidence;
 
-    if (avgConfidence >= 0.9 && successRate >= 0.9 && metrics.totalAttempts >= 50) {
-      return 'master';
-    } else if (avgConfidence >= 0.7 && successRate >= 0.7 && metrics.totalAttempts >= 25) {
-      return 'advanced';
-    } else if (avgConfidence >= 0.4 && metrics.totalAttempts >= 10) {
-      return 'intermediate';
-    } else {
-      return 'beginner';
+    const orderedThresholds = Object.entries(this.DIFFICULTY_THRESHOLDS)
+      .map(([level, threshold]) => ({
+        level: level as 'beginner' | 'intermediate' | 'advanced' | 'master',
+        threshold,
+      }))
+      .sort((a, b) => b.threshold.minConfidence - a.threshold.minConfidence);
+
+    for (const { level, threshold } of orderedThresholds) {
+      if (
+        avgConfidence >= threshold.minConfidence &&
+        avgConfidence < threshold.maxConfidence + Number.EPSILON &&
+        metrics.totalAttempts >= threshold.minAttempts &&
+        (level === 'master' ? successRate >= 0.9 : true)
+      ) {
+        return level;
+      }
     }
+
+    return 'beginner';
   }
 
   /**
@@ -323,18 +333,27 @@ class EnhancedAdaptiveLearningService {
     availableTime: number = 10
   ): AdaptiveRecommendation[] {
     const recommendations: AdaptiveRecommendation[] = [];
+    const toExpectedDifficulty = (
+      level: 'beginner' | 'intermediate' | 'advanced' | 'master',
+    ): 'easy' | 'medium' | 'hard' =>
+      level === 'beginner' ? 'easy' : level === 'intermediate' ? 'medium' : 'hard';
 
     // 1. Practice struggling gestures
     const strugglingGestures = this.getStrugglingGestures();
     for (const gesture of strugglingGestures.slice(0, 2)) {
+      if (recentActivity.includes(gesture)) {
+        continue;
+      }
+      const metrics = this.performanceMetrics.get(gesture);
+      const level = metrics ? this.calculateDifficultyLevel(metrics) : 'beginner';
       recommendations.push({
         type: 'practice',
         gesture,
         reason: `${gesture} braucht noch etwas Übung`,
         priority: 'high',
         estimatedTime: 3,
-        expectedDifficulty: 'easy',
-        confidence: 0.8
+        expectedDifficulty: toExpectedDifficulty(level),
+        confidence: Math.min(0.9, (metrics?.averageConfidence ?? 0.6) + 0.2)
       });
     }
 
@@ -342,14 +361,16 @@ class EnhancedAdaptiveLearningService {
     const reviewCandidates = this.getReviewCandidates();
     const [firstReview] = reviewCandidates;
     if (firstReview && recommendations.length < 3) {
+      const reviewMetrics = this.performanceMetrics.get(firstReview);
+      const level = reviewMetrics ? this.calculateDifficultyLevel(reviewMetrics) : 'intermediate';
       recommendations.push({
         type: 'review',
         gesture: firstReview,
         reason: `${firstReview} wiederholen zur Festigung`,
         priority: 'medium',
         estimatedTime: 2,
-        expectedDifficulty: 'easy',
-        confidence: 0.7
+        expectedDifficulty: toExpectedDifficulty(level),
+        confidence: Math.max(0.6, reviewMetrics?.averageConfidence ?? 0.6)
       });
     }
 
@@ -357,15 +378,44 @@ class EnhancedAdaptiveLearningService {
     const challengeCandidates = this.getChallengeCandidates();
     const [firstChallenge] = challengeCandidates;
     if (firstChallenge && recommendations.length < 4) {
+      const challengeMetrics = this.performanceMetrics.get(firstChallenge);
+      const level = challengeMetrics ? this.calculateDifficultyLevel(challengeMetrics) : 'advanced';
       recommendations.push({
         type: 'challenge',
         gesture: firstChallenge,
         reason: `${firstChallenge} als neue Herausforderung`,
         priority: 'medium',
         estimatedTime: 5,
-        expectedDifficulty: 'medium',
-        confidence: 0.6
+        expectedDifficulty: toExpectedDifficulty(level),
+        confidence: Math.max(0.5, challengeMetrics?.averageConfidence ?? 0.6)
       });
+    }
+
+    if (recommendations.length < 3) {
+      const pathTemplates = Object.values(this.LEARNING_PATH_TEMPLATES);
+      for (const template of pathTemplates) {
+        if (template.estimatedDuration > availableTime) {
+          continue;
+        }
+        const nextGesture = template.targetGestures.find(gesture => !recentActivity.includes(gesture));
+        if (!nextGesture) {
+          continue;
+        }
+        const metrics = this.performanceMetrics.get(nextGesture);
+        const level = metrics ? this.calculateDifficultyLevel(metrics) : 'beginner';
+        recommendations.push({
+          type: 'practice',
+          gesture: nextGesture,
+          reason: `${template.name}: ${template.description}`,
+          priority: 'medium',
+          estimatedTime: template.estimatedDuration,
+          expectedDifficulty: toExpectedDifficulty(level),
+          confidence: Math.max(0.5, metrics?.averageConfidence ?? 0.5),
+        });
+        if (recommendations.length >= 3) {
+          break;
+        }
+      }
     }
 
     return recommendations

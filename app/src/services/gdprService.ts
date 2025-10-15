@@ -29,7 +29,7 @@ async function request(url: string, options: RequestInit = {}): Promise<Response
 }
 
 export const gdprService = {
-  async exportProfile(profileId: string, reason: 'parent_request' | 'school_transfer' | 'legal_requirement' | 'maintenance' = 'parent_request'): Promise<ExportedProfileData | null> {
+  async exportProfile(profileId: string, _reason: 'parent_request' | 'school_transfer' | 'legal_requirement' | 'maintenance' = 'parent_request'): Promise<ExportedProfileData | null> {
     const resp = await request(`${API_URL}/api/profiles/${profileId}/export`);
     if (!resp) return null;
     try {

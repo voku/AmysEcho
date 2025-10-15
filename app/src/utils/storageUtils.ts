@@ -9,7 +9,6 @@ import { withErrorHandling, safeJsonParse, safeJsonStringify } from './errorUtil
 
 export interface StorageOptions {
   prefix?: string;
-  encrypt?: boolean;
 }
 
 /**
@@ -17,11 +16,9 @@ export interface StorageOptions {
  */
 export class StorageManager {
   private prefix: string;
-  private encrypt: boolean;
 
   constructor(options: StorageOptions = {}) {
     this.prefix = options.prefix || 'amys_echo';
-    this.encrypt = options.encrypt || false;
   }
 
   private getKey(key: string): string {

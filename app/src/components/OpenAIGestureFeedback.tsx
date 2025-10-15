@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { COLORS, SPACING, FONT_SIZES, RADIUS, DEFAULT_RADIUS } from '../constants/ui';
+import { COLORS, SPACING, FONT_SIZES, RADIUS } from '../constants/ui';
 import { useAccessibility } from './AccessibilityContext';
 
 interface OpenAIGestureFeedbackProps {

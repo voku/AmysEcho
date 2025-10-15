@@ -101,9 +101,6 @@ class AmyFirstHapticService {
   ): Promise<void> {
     try {
       // Determine a simple base intensity from confidence (Amy First: predictable & gentle)
-      const stepUp = (i: 'light' | 'medium' | 'heavy'): 'medium' | 'heavy' => (i === 'light' ? 'medium' : 'heavy');
-      const stepDown = (i: 'light' | 'medium' | 'heavy'): 'light' | 'medium' => (i === 'heavy' ? 'medium' : 'light');
-
       let intensity: 'light' | 'medium' | 'heavy' = confidence >= 0.8 ? 'medium' : confidence >= 0.4 ? 'light' : 'light';
       let repeat = 1;
 
@@ -119,21 +116,23 @@ class AmyFirstHapticService {
         repeat = 2;
       }
 
-      // Apply context adjustments
-      if (this.preferences.contextAwareness && context) {
-        if (context.patternMatch) intensity = stepUp(intensity);
-        if (context.recentActivity && context.recentActivity > 10) intensity = stepDown(intensity);
-      }
-
-      if (this.preferences.timeBasedAdjustments && context?.timeOfDay === 'morning') {
-        intensity = stepDown(intensity);
-      }
-
       // Map intensity to platform style
       const toStyle = (i: 'light' | 'medium' | 'heavy') =>
         i === 'light' ? Haptics.ImpactFeedbackStyle.Light : i === 'medium' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Heavy;
 
-      const pattern: HapticPattern = { style: toStyle(intensity), intensity, repeat } as HapticPattern;
+      let pattern: HapticPattern = { style: toStyle(intensity), intensity, repeat } as HapticPattern;
+
+      if (this.preferences.contextAwareness && context) {
+        pattern = this.applyContextAdjustments(pattern, context);
+        intensity = pattern.intensity;
+        repeat = pattern.repeat ?? repeat;
+      }
+
+      if (this.preferences.timeBasedAdjustments && context?.timeOfDay) {
+        pattern = this.applyTimeAdjustments(pattern, context.timeOfDay);
+        intensity = pattern.intensity;
+        repeat = pattern.repeat ?? repeat;
+      }
       (pattern as any)._allowRepeat = context?.isEmergency || ['hilfe', 'help'].includes(gestureId) || positive.includes(gestureId);
       const adjusted = this.adjustForPreferences(pattern);
       const allowRepeat = (pattern as any)._allowRepeat === true;
@@ -186,6 +185,11 @@ class AmyFirstHapticService {
     // Pattern match bonus (from context-aware recognition)
     if (context.patternMatch) {
       adjusted.repeat = Math.min((adjusted.repeat || 1) + 1, 4);
+      if (adjusted.intensity === 'light') {
+        adjusted.intensity = 'medium';
+      } else if (adjusted.intensity === 'medium') {
+        adjusted.intensity = 'heavy';
+      }
     }
 
     // Recent activity consideration

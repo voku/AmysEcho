@@ -76,14 +76,15 @@ class GestureCombinationService {
 
         // Check time window
         const timeSinceLastGesture = now - active.lastGestureTime;
-        if (timeSinceLastGesture <= sequence.timeWindow) {
+        const timeWindow = sequence.timeWindow || this.SEQUENCE_TIMEOUT;
+        if (timeSinceLastGesture <= timeWindow) {
           // Add gesture to progress
           active.progress.push(gestureId);
           active.lastGestureTime = now;
 
           // Calculate match confidence
           const progressRatio = active.progress.length / sequence.gestures.length;
-          const timeRatio = Math.max(0, 1 - (timeSinceLastGesture / sequence.timeWindow));
+          const timeRatio = Math.max(0, 1 - (timeSinceLastGesture / timeWindow));
           const matchConfidence = (progressRatio * 0.7) + (timeRatio * 0.3);
 
           // Check if sequence is complete
@@ -209,7 +210,8 @@ class GestureCombinationService {
     const active: Array<{sequence: GestureSequence; progress: string[]; timeRemaining: number}> = [];
 
     for (const activeSeq of this.activeSequences.values()) {
-      const timeRemaining = activeSeq.sequence.timeWindow - (now - activeSeq.lastGestureTime);
+      const timeWindow = activeSeq.sequence.timeWindow || this.SEQUENCE_TIMEOUT;
+      const timeRemaining = timeWindow - (now - activeSeq.lastGestureTime);
       if (timeRemaining > 0) {
         active.push({
           sequence: activeSeq.sequence,
@@ -350,7 +352,8 @@ class GestureCombinationService {
   private cleanupExpiredSequences(now: number): void {
     for (const [sequenceId, active] of this.activeSequences) {
       const timeSinceLastGesture = now - active.lastGestureTime;
-      if (timeSinceLastGesture > active.sequence.timeWindow) {
+      const timeWindow = active.sequence.timeWindow || this.SEQUENCE_TIMEOUT;
+      if (timeSinceLastGesture > timeWindow) {
         this.activeSequences.delete(sequenceId);
       }
     }

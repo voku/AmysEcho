@@ -123,8 +123,7 @@ class GestureSuggester {
    */
   private getSimilarityBasedSuggestions(
     landmarks: number[][][],
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    handedness: string[]
+    _handedness: string[]
   ): GestureSuggestion[] {
     const suggestions: GestureSuggestion[] = [];
 
