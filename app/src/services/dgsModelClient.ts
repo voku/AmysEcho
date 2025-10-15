@@ -192,7 +192,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   const arrayBuffer = await resp.arrayBuffer();
   const b64 = arrayBufferToBase64(arrayBuffer);
-  const meta = parseMetaFromResponse(resp, profileId ? { profileId } : {});
+  const meta = parseMetaFromResponse(resp, { profileId });
 
   if (prevModel) {
     await storage.setItem(backupKey, prevModel);
