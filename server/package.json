@@ -37,7 +37,7 @@
     "typescript": "5.8.3"
   },
   "scripts": {
-    "test": "npm run test:ts && npm run test:py",
+    "test": "sh -c 'npm run test:ts -- \"$@\" && npm run test:py' sh",
     "test:ts": "jest",
     "pretest:py": "npm run build",
     "test:py": "PYTHONPATH=./src:./ pytest -q",
