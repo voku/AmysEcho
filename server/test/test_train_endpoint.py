@@ -1,11 +1,13 @@
 import time
 import urllib.request
+import urllib.error
 import subprocess
 import os
 import json
 import shutil
 from pathlib import Path
 import numpy as np
+import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
@@ -191,6 +193,49 @@ def test_train_requests_are_serialized(tmp_path):
         assert final_first.get("endedAt") is not None
         assert final_second.get("startedAt") is not None
         assert final_second["startedAt"] >= final_first["endedAt"]
+    finally:
+        stop_server(proc)
+        data_dir = SERVER_DIR / "data"
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
+
+
+def test_train_model_rejects_out_of_range_landmarks(tmp_path):
+    proc = start_server()
+    try:
+        url = f"http://localhost:{PORT}/train-model"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer testtoken",
+        }
+
+        invalid_landmark_cases = [
+            [[-0.1, 0.5, 0.0]] * 21,  # x < 0
+            [[1.1, 0.5, 0.0]] * 21,   # x > 1
+            [[0.5, -0.1, 0.0]] * 21,  # y < 0
+            [[0.5, 1.1, 0.0]] * 21,   # y > 1
+        ]
+
+        for invalid_landmarks in invalid_landmark_cases:
+            invalid_payload = json.dumps(
+                {
+                    "samples": [
+                        {
+                            "gestureDefinitionId": "g1",
+                            "landmarkData": invalid_landmarks,
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+
+            invalid_req = urllib.request.Request(
+                url, data=invalid_payload, headers=headers
+            )
+
+            with pytest.raises(urllib.error.HTTPError) as excinfo:
+                urllib.request.urlopen(invalid_req)
+
+            assert excinfo.value.code == 400
     finally:
         stop_server(proc)
         data_dir = SERVER_DIR / "data"
