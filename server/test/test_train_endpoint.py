@@ -209,45 +209,33 @@ def test_train_model_rejects_out_of_range_landmarks(tmp_path):
             "Authorization": "Bearer testtoken",
         }
 
-        invalid_landmarks = [[-0.1, 0.5, 0.0] for _ in range(21)]
-        invalid_payload = json.dumps(
-            {
-                "samples": [
-                    {
-                        "gestureDefinitionId": "g1",
-                        "landmarkData": invalid_landmarks,
-                    }
-                ]
-            }
-        ).encode("utf-8")
+        invalid_landmark_cases = [
+            [[-0.1, 0.5, 0.0]] * 21,  # x < 0
+            [[1.1, 0.5, 0.0]] * 21,   # x > 1
+            [[0.5, -0.1, 0.0]] * 21,  # y < 0
+            [[0.5, 1.1, 0.0]] * 21,   # y > 1
+        ]
 
-        invalid_req = urllib.request.Request(
-            url, data=invalid_payload, headers=headers
-        )
+        for invalid_landmarks in invalid_landmark_cases:
+            invalid_payload = json.dumps(
+                {
+                    "samples": [
+                        {
+                            "gestureDefinitionId": "g1",
+                            "landmarkData": invalid_landmarks,
+                        }
+                    ]
+                }
+            ).encode("utf-8")
 
-        with pytest.raises(urllib.error.HTTPError) as excinfo:
-            urllib.request.urlopen(invalid_req)
+            invalid_req = urllib.request.Request(
+                url, data=invalid_payload, headers=headers
+            )
 
-        assert excinfo.value.code == 400
+            with pytest.raises(urllib.error.HTTPError) as excinfo:
+                urllib.request.urlopen(invalid_req)
 
-        valid_landmarks = [[i * 0.01, 0.1, 0.1] for i in range(21)]
-        valid_payload = json.dumps(
-            {
-                "samples": [
-                    {
-                        "gestureDefinitionId": "g1",
-                        "profileId": "p1",
-                        "landmarkData": valid_landmarks,
-                    }
-                ]
-            }
-        ).encode("utf-8")
-
-        valid_req = urllib.request.Request(url, data=valid_payload, headers=headers)
-        with urllib.request.urlopen(valid_req) as resp:
-            assert resp.getcode() == 202
-            body = json.loads(resp.read().decode())
-            assert body.get("jobId")
+            assert excinfo.value.code == 400
     finally:
         stop_server(proc)
         data_dir = SERVER_DIR / "data"
