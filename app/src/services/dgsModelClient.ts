@@ -35,7 +35,22 @@ type StorageLike = {
 };
 
 let memoryStore: Map<string, string> | null = null;
+let testStorageOverride: StorageLike | null = null;
+
+/**
+ * Test-only hook for overriding the storage implementation.
+ */
+export function __setDgsModelClientStorageForTests(storage: StorageLike | null): void {
+  testStorageOverride = storage;
+  if (storage === null) {
+    memoryStore = null;
+  }
+}
+
 async function getStorage(): Promise<StorageLike> {
+  if (testStorageOverride) {
+    return testStorageOverride;
+  }
   try {
     if (typeof (globalThis as any).window === 'undefined') {
       throw new Error('no window');
@@ -96,14 +111,14 @@ function parseMetaFromResponse(
     if (normalized === 'profile' || normalized === 'global') {
       meta.source = normalized;
     }
-  } else if (profileId) {
+  } else if (!meta.source && profileId) {
     meta.source = 'profile';
   }
 
   const profileHeader = resp.headers.get('X-Model-Profile');
   if (typeof profileHeader === 'string' && profileHeader.trim().length > 0) {
     meta.profileId = profileHeader.trim();
-  } else if (meta.source === 'profile' && profileId) {
+  } else if (meta.source === 'profile' && profileId && !meta.profileId) {
     meta.profileId = profileId;
   }
 
@@ -148,7 +163,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   if (resp.status === 304) {
     const meta = parseMetaFromResponse(resp, {
-      profileId,
+      ...(profileId ? { profileId } : {}),
       fallbackMeta: prevMeta,
     });
     const metaString = JSON.stringify(meta);
@@ -192,7 +207,12 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   const arrayBuffer = await resp.arrayBuffer();
   const b64 = arrayBufferToBase64(arrayBuffer);
-  const meta = parseMetaFromResponse(resp, { profileId });
+  const meta = parseMetaFromResponse(
+    resp,
+    {
+      ...(profileId ? { profileId } : {}),
+    },
+  );
 
   if (prevModel) {
     await storage.setItem(backupKey, prevModel);
@@ -250,7 +270,7 @@ export async function restoreMlpModelBackup(profileId?: string): Promise<boolean
   if (metaBackup) {
     await storage.setItem(metaKey, metaBackup);
   } else {
-    await storage.setItem(metaKey, '');
+    await storage.setItem(metaKey, JSON.stringify({}));
   }
 
   emitMlpModelUpdated();
