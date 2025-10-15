@@ -152,8 +152,6 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
     if (prevMetaRaw !== metaString) {
       await storage.setItem(metaKey, metaString);
       emitMlpModelUpdated();
-    } else if (prevMetaRaw === null) {
-      await storage.setItem(metaKey, metaString);
     }
     const cached = await storage.getItem(cacheKey);
     if (cached) {

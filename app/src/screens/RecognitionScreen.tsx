@@ -231,9 +231,8 @@ export default function RecognitionScreen({
           }
           let message = 'Neues Modell geladen';
           if (meta?.source === 'profile') {
-            if (!meta.profileId || !activeProfileId || meta.profileId === activeProfileId) {
-              message = 'Danke! Dein persönliches Modell wurde gerade aktualisiert.';
-            } else {
+            message = 'Danke! Dein persönliches Modell wurde gerade aktualisiert.';
+            if (meta.profileId && activeProfileId && meta.profileId !== activeProfileId) {
               message = 'Personalisierte Modellversion wurde geladen.';
             }
           } else if (meta?.source === 'global') {
