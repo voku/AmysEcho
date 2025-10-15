@@ -55,7 +55,13 @@ async function getStorage(): Promise<StorageLike> {
   }
 }
 
-type MlpMeta = { etag?: string; checksum?: string; version?: string };
+type MlpMeta = {
+  etag?: string;
+  checksum?: string;
+  version?: string;
+  source?: 'global' | 'profile';
+  profileId?: string | null;
+};
 
 export async function fetchMlpModel(profileId?: string): Promise<string | null> {
   const storage = await getStorage();
@@ -142,6 +148,21 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
   const version = resp.headers.get('X-Model-Version');
   if (version) {
     meta.version = version;
+  }
+  const sourceHeader = resp.headers.get('X-Model-Source');
+  if (typeof sourceHeader === 'string') {
+    const normalized = sourceHeader.trim().toLowerCase();
+    if (normalized === 'profile' || normalized === 'global') {
+      meta.source = normalized;
+    }
+  } else if (profileId) {
+    meta.source = 'profile';
+  }
+  const profileHeader = resp.headers.get('X-Model-Profile');
+  if (typeof profileHeader === 'string' && profileHeader.trim().length > 0) {
+    meta.profileId = profileHeader.trim();
+  } else if (meta.source === 'profile' && profileId) {
+    meta.profileId = profileId;
   }
 
   if (prevModel) {

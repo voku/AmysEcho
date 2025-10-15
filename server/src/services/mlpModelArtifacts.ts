@@ -173,6 +173,7 @@ export function applyModelResponseHeaders(
   const relDir = path.relative(modelsDirResolved, path.dirname(filePath));
   const firstSegment = relDir.split(path.sep)[0];
   const isProfileSpecific = !!firstSegment && firstSegment !== 'global' && firstSegment !== '.';
+  const profileId = isProfileSpecific ? firstSegment : null;
   if (isProfileSpecific) {
     res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     res.removeHeader('CDN-Cache-Control');
@@ -185,6 +186,10 @@ export function applyModelResponseHeaders(
   res.setHeader('ETag', metadata.etag);
   res.setHeader('X-Checksum-SHA256', metadata.sha256);
   res.setHeader('X-Model-Version', String(Math.floor(metadata.stat.mtimeMs)));
+  res.setHeader('X-Model-Source', profileId ? 'profile' : 'global');
+  if (profileId) {
+    res.setHeader('X-Model-Profile', profileId);
+  }
   res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
 }
 

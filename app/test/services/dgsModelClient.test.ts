@@ -114,6 +114,8 @@ describe('dgsModelClient metadata handling', () => {
               return checksum;
             case 'x-model-version':
               return version;
+            case 'x-model-source':
+              return 'global';
             default:
               return null;
           }
@@ -126,6 +128,43 @@ describe('dgsModelClient metadata handling', () => {
     expect(result).toBe(buffer.toString('base64'));
 
     const meta = await getCachedMlpMeta();
-    expect(meta).toEqual({ etag, checksum, version });
+    expect(meta).toEqual({ etag, checksum, version, source: 'global' });
+  });
+
+  it('tracks profile metadata when provided by the API', async () => {
+    const buffer = Buffer.from('npz-data');
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => {
+          switch (name.toLowerCase()) {
+            case 'etag':
+              return '"sha256-abc"';
+            case 'x-checksum-sha256':
+              return 'abc';
+            case 'x-model-version':
+              return '99';
+            case 'x-model-source':
+              return 'profile';
+            case 'x-model-profile':
+              return 'p123';
+            default:
+              return null;
+          }
+        },
+      },
+      arrayBuffer: async () => buffer,
+    })) as unknown as typeof fetch;
+
+    await fetchMlpModel('p123');
+    const meta = await getCachedMlpMeta('p123');
+    expect(meta).toEqual({
+      etag: '"sha256-abc"',
+      checksum: 'abc',
+      version: '99',
+      source: 'profile',
+      profileId: 'p123',
+    });
   });
 });

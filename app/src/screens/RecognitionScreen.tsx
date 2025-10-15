@@ -15,7 +15,7 @@ import { optimizedGestureService } from '../services/optimizedGestureService';
 import { usePreloadComponents } from '../components/LazyComponent';
 import Celebration from '../components/Celebration';
 import { useMessage } from '../context/MessageContext';
-import { onMlpModelUpdated } from '../services/dgsModelClient';
+import { getCachedMlpMeta, onMlpModelUpdated } from '../services/dgsModelClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
 import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
@@ -220,10 +220,29 @@ export default function RecognitionScreen({
 
   useEffect(() => {
     const unsub = onMlpModelUpdated(() => {
-      showToast({ message: 'Neues Modell geladen', tone: 'success', durationMs: 2000 });
+      const activeProfileId = profile?.id;
+      void (async () => {
+        try {
+          const meta = await getCachedMlpMeta(activeProfileId);
+          let message = 'Neues Modell geladen';
+          if (meta?.source === 'profile') {
+            if (!meta.profileId || !activeProfileId || meta.profileId === activeProfileId) {
+              message = 'Danke! Dein persönliches Modell wurde gerade aktualisiert.';
+            } else {
+              message = 'Personalisierte Modellversion wurde geladen.';
+            }
+          } else if (meta?.source === 'global') {
+            message = 'Gemeinsames Modell aktualisiert – danke fürs Mitmachen!';
+          }
+          showToast({ message, tone: 'success', durationMs: 2000 });
+        } catch (error) {
+          logger.warn('Konnte Modell-Metadaten nach Update nicht laden', error);
+          showToast({ message: 'Neues Modell geladen', tone: 'success', durationMs: 2000 });
+        }
+      })();
     });
     return () => unsub();
-  }, [showToast]);
+  }, [profile?.id, showToast]);
 
   const capturePulseAnim = useRef(new Animated.Value(1)).current;
   const pulseLoopRef = useRef<ReturnType<typeof Animated.loop> | null>(null);
