@@ -11,6 +11,7 @@ import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
 import { refreshDgsModel } from './modelUpdate';
 import { uploadTrainingBundle } from './trainingBundleService';
+import type { TrainingJobInfo } from './trainingBundleService';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from './trainingBundleQueue';
 
 const TRAINING_JOB_TRIGGER_TIMEOUT_MS = 30_000;
@@ -71,7 +72,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
   try {
     const token = await loadBackendApiToken();
     let processed = 0;
-    let trainingJobScheduledByServer = false;
+    let trainingJobScheduledByServer: TrainingJobInfo | null = null;
     for (const bundle of bundles) {
       try {
         const uploadOptions = token ? { tokenOverride: token } : {};
@@ -87,12 +88,14 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
           uploadOptions,
         );
 
-        const serverScheduledJobId = uploadResult?.trainingJobId;
+        const serverScheduledJob = uploadResult?.trainingJob;
 
-        if (!trainingJobScheduledByServer && serverScheduledJobId) {
-          trainingJobScheduledByServer = true;
+        if (!trainingJobScheduledByServer && serverScheduledJob?.jobId) {
+          trainingJobScheduledByServer = serverScheduledJob;
           logger.info('Server scheduled training job after upload', {
-            jobId: serverScheduledJobId,
+            jobId: serverScheduledJob.jobId,
+            status: serverScheduledJob.status,
+            pollUrl: serverScheduledJob.pollUrl ?? null,
           });
         }
 
@@ -157,8 +160,12 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
         }
       } else if (!token) {
         logger.warn('Skipping training job trigger: missing API token');
-      } else {
-        logger.info('Skipping additional training job trigger (already scheduled by server)');
+      } else if (trainingJobScheduledByServer) {
+        logger.info('Skipping additional training job trigger (already scheduled by server)', {
+          jobId: trainingJobScheduledByServer.jobId,
+          status: trainingJobScheduledByServer.status,
+          pollUrl: trainingJobScheduledByServer.pollUrl ?? null,
+        });
       }
 
       await refreshDgsModel(profile.id);

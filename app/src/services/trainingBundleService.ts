@@ -20,10 +20,19 @@ export interface UploadTrainingBundleOptions {
   tokenOverride?: string;
 }
 
+const TRAINING_JOB_STATUSES = ['queued', 'running', 'completed', 'failed'] as const;
+export type TrainingJobStatus = (typeof TRAINING_JOB_STATUSES)[number];
+
+export interface TrainingJobInfo {
+  jobId: string;
+  status: TrainingJobStatus;
+  pollUrl?: string;
+}
+
 export interface UploadTrainingBundleResponse {
   id: string;
-  status: string;
-  trainingJobId?: string;
+  status: TrainingJobStatus;
+  trainingJob?: TrainingJobInfo;
 }
 
 function ensureDirPrefix(uri: string): string {
@@ -143,7 +152,7 @@ function createBundleId(): string {
 function isUploadResponse(obj: unknown): obj is {
   id: string;
   status?: unknown;
-  trainingJobId?: unknown;
+  trainingJob?: unknown;
 } {
   return (
     typeof obj === 'object' &&
@@ -151,6 +160,44 @@ function isUploadResponse(obj: unknown): obj is {
     'id' in obj &&
     typeof (obj as { id: unknown }).id === 'string'
   );
+}
+
+function isTrainingJobStatus(value: string): value is TrainingJobStatus {
+  return (TRAINING_JOB_STATUSES as readonly string[]).includes(value);
+}
+
+function normalizeTrainingJobStatus(
+  value: unknown,
+  fallback: TrainingJobStatus = 'queued',
+): TrainingJobStatus {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.length > 0 && isTrainingJobStatus(trimmed)) {
+      return trimmed;
+    }
+  }
+  return fallback;
+}
+
+function parseTrainingJob(value: unknown): TrainingJobInfo | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const jobIdRaw = (value as { jobId?: unknown }).jobId;
+  const statusRaw = (value as { status?: unknown }).status;
+  if (typeof jobIdRaw !== 'string' || jobIdRaw.trim().length === 0) {
+    return undefined;
+  }
+  const pollUrlRaw = (value as { pollUrl?: unknown }).pollUrl;
+  const pollUrl =
+    typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? pollUrlRaw.trim() : undefined;
+  const normalizedStatus = normalizeTrainingJobStatus(statusRaw);
+
+  return {
+    jobId: jobIdRaw.trim(),
+    status: normalizedStatus,
+    ...(pollUrl ? { pollUrl } : {}),
+  };
 }
 
 export async function uploadTrainingBundle(
@@ -263,13 +310,12 @@ export async function uploadTrainingBundle(
       );
     }
 
-    const rawTrainingJobId =
-      typeof responseJson.trainingJobId === 'string' ? responseJson.trainingJobId.trim() : undefined;
+    const trainingJob = parseTrainingJob(responseJson.trainingJob);
 
     return {
       id: responseJson.id,
-      status: typeof responseJson.status === 'string' ? responseJson.status : 'queued',
-      ...(rawTrainingJobId ? { trainingJobId: rawTrainingJobId } : {}),
+      status: normalizeTrainingJobStatus(responseJson.status),
+      ...(trainingJob ? { trainingJob } : {}),
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

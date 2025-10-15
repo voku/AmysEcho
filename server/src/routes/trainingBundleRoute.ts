@@ -24,8 +24,17 @@ interface TrainingJobTriggerContext {
   label: string;
 }
 
+const TriggerTrainingJobResultSchema = z.object({
+  jobId: z.string().trim().min(1),
+  status: z.enum(['queued', 'running', 'completed', 'failed']),
+  pollUrl: z.string().trim().min(1).optional(),
+});
+type TriggerTrainingJobResult = z.infer<typeof TriggerTrainingJobResultSchema>;
+
 interface TrainingBundleRouteDeps {
-  triggerTrainingJob?: (context: TrainingJobTriggerContext) => string | null | undefined;
+  triggerTrainingJob?: (
+    context: TrainingJobTriggerContext,
+  ) => TriggerTrainingJobResult | null | undefined;
 }
 
 interface TrainingBundleMetadata {
@@ -254,7 +263,7 @@ export function registerTrainingBundleRoute(
         await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
       });
 
-      let trainingJobId: string | null = null;
+      let trainingJob: TriggerTrainingJobResult | null = null;
       if (deps.triggerTrainingJob) {
         try {
           const maybe = deps.triggerTrainingJob({
@@ -262,15 +271,18 @@ export function registerTrainingBundleRoute(
             profileId: profileIdRaw ?? null,
             label,
           });
-          if (typeof maybe === 'string' && maybe.trim().length > 0) {
-            trainingJobId = maybe;
+          if (maybe && typeof maybe === 'object') {
+            const result = TriggerTrainingJobResultSchema.safeParse(maybe);
+            if (result.success) {
+              trainingJob = result.data;
+            }
           }
         } catch (error) {
           console.error('Error scheduling training after bundle upload:', error);
         }
       }
 
-      res.status(202).json({ status: 'queued', id: bundleId, trainingJobId });
+      res.status(202).json({ status: 'queued', id: bundleId, trainingJob });
     } catch (error) {
       console.error('Error saving training bundle:', error);
       res.status(500).json({ error: 'Failed to save training bundle' });

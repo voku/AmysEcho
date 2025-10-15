@@ -101,13 +101,27 @@ describe('MediaPipeGestureDetector (WebView integration)', () => {
     const markTransferComplete = jest.fn();
     const mlpReadyRef = { current: false };
     const pendingModelRef = { current: null as string | null };
+    const pendingModelContextRef = { current: null as any };
+    const requeueLastModel = jest.fn().mockReturnValue(false);
+    const resetTransferState = jest.fn();
     mockUseModelInjection.mockReturnValue({
       injectModel,
       markTransferComplete,
       mlpReadyRef,
       pendingModelRef,
+      pendingModelContextRef,
+      requeueLastModel,
+      resetTransferState,
     });
-    return { injectModel, markTransferComplete, mlpReadyRef, pendingModelRef };
+    return {
+      injectModel,
+      markTransferComplete,
+      mlpReadyRef,
+      pendingModelRef,
+      pendingModelContextRef,
+      requeueLastModel,
+      resetTransferState,
+    };
   };
 
   it('forwards gesture payloads from the WebView to the callback', async () => {
@@ -176,7 +190,7 @@ describe('MediaPipeGestureDetector (WebView integration)', () => {
     });
 
     expect(mlpReadyRef.current).toBe(true);
-    expect(injectModel).toHaveBeenCalledWith('b64-model');
+    expect(injectModel).toHaveBeenCalledWith('b64-model', undefined);
   });
 
   it('marks transfers complete when the WebView confirms success', async () => {

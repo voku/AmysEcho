@@ -63,6 +63,22 @@ def stop_server(proc):
         proc.kill()
 
 
+def wait_for_training_completion(job_id: str, *, timeout: float = 180.0):
+    status_url = f"http://localhost:{PORT}/train-status/{job_id}"
+    headers = {"Authorization": "Bearer testtoken"}
+    start = time.time()
+    while True:
+        req = urllib.request.Request(status_url, headers=headers)
+        with urllib.request.urlopen(req) as resp:
+            payload = json.loads(resp.read().decode())
+        status = payload.get("status")
+        if status in {"completed", "failed"}:
+            return payload
+        if time.time() - start > timeout:
+            raise AssertionError(f"training job {job_id} did not finish in time")
+        time.sleep(1)
+
+
 def test_train_endpoint(tmp_path):
     proc = start_server()
     try:
@@ -83,22 +99,19 @@ def test_train_endpoint(tmp_path):
         }
         req = urllib.request.Request(url, data=data, headers=headers)
         with urllib.request.urlopen(req) as resp:
-            assert resp.getcode() == 200
+            assert resp.getcode() == 202
             resp_data = json.loads(resp.read().decode())
             job_id = resp_data["jobId"]
-            report = resp_data.get("report", {})
-            assert report.get("global", {}).get("samples", 0) >= 1
+            assert resp_data["status"] in ("running", "queued")
+            assert resp_data.get("pollUrl") == f"/train-status/{job_id}"
 
-        status_url = f"http://localhost:{PORT}/train-status/{job_id}"
-        status_req = urllib.request.Request(
-            status_url, headers={"Authorization": "Bearer testtoken"}
-        )
-        with urllib.request.urlopen(status_req) as sresp:
-            final_info = json.loads(sresp.read().decode())
+        final_info = wait_for_training_completion(job_id)
         assert final_info.get("status") == "completed"
         assert "metrics" in final_info
         assert "accuracy" in final_info["metrics"]
         assert final_info.get("report", {}).get("global")
+        report = final_info.get("report", {})
+        assert report.get("global", {}).get("samples", 0) >= 1
 
         # verify MLP model files created
         npz = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
@@ -133,6 +146,53 @@ def test_train_endpoint(tmp_path):
     finally:
         stop_server(proc)
         # cleanup produced model files
+        data_dir = SERVER_DIR / "data"
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
+
+
+def test_train_requests_are_serialized(tmp_path):
+    proc = start_server()
+    try:
+        url = f"http://localhost:{PORT}/train-model"
+        landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
+        samples = [
+            {
+                "gestureDefinitionId": "g1",
+                "profileId": "p1",
+                "landmarkData": landmarks_one_hand,
+            }
+        ]
+        payload = json.dumps({"samples": samples}).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer testtoken",
+        }
+
+        first_req = urllib.request.Request(url, data=payload, headers=headers)
+        with urllib.request.urlopen(first_req) as first_resp:
+            assert first_resp.getcode() == 202
+            first_data = json.loads(first_resp.read().decode())
+        second_req = urllib.request.Request(url, data=payload, headers=headers)
+        with urllib.request.urlopen(second_req) as second_resp:
+            assert second_resp.getcode() == 202
+            second_data = json.loads(second_resp.read().decode())
+
+        job1 = first_data["jobId"]
+        job2 = second_data["jobId"]
+        assert first_data["status"] in ("running", "queued")
+        assert second_data["status"] == "queued"
+
+        final_first = wait_for_training_completion(job1)
+        final_second = wait_for_training_completion(job2)
+
+        assert final_first.get("status") == "completed"
+        assert final_second.get("status") == "completed"
+        assert final_first.get("endedAt") is not None
+        assert final_second.get("startedAt") is not None
+        assert final_second["startedAt"] >= final_first["endedAt"]
+    finally:
+        stop_server(proc)
         data_dir = SERVER_DIR / "data"
         if data_dir.exists():
             shutil.rmtree(data_dir)

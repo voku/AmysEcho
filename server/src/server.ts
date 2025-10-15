@@ -379,6 +379,63 @@ type TrainingSample = {
 };
 const trainingJobs = new Map<string, TrainingJob>();
 
+interface TrainingQueueEntry {
+  job: TrainingJob;
+  samples: TrainingSample[];
+  triggeredByBundles: boolean;
+  resolve: (job: TrainingJob) => void;
+}
+
+const trainingQueue: TrainingQueueEntry[] = [];
+let isProcessingTrainingQueue = false;
+
+async function processTrainingQueue(): Promise<void> {
+  if (isProcessingTrainingQueue) {
+    return;
+  }
+  isProcessingTrainingQueue = true;
+  try {
+    while (trainingQueue.length > 0) {
+      const entry = trainingQueue.shift();
+      if (!entry) {
+        continue;
+      }
+      try {
+        await executeTrainingQueueEntry(entry);
+      } catch (error) {
+        console.error('Training queue execution failed', error);
+      }
+    }
+  } finally {
+    isProcessingTrainingQueue = false;
+    // If new entries arrived while winding down, restart processing so they do not stall.
+    if (trainingQueue.length > 0) {
+      void processTrainingQueue();
+    }
+  }
+}
+
+async function executeTrainingQueueEntry(entry: TrainingQueueEntry): Promise<void> {
+  const { job } = entry;
+  job.status = 'running';
+  job.startedAt = Date.now();
+  trainingJobs.set(job.id, job);
+
+  try {
+    await runTrainingWorkflow(job.id, job, entry.samples, entry.triggeredByBundles);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    job.status = 'failed';
+    job.error = message;
+    job.endedAt = Date.now();
+    console.error(`Training job ${job.id} failed:`, error);
+    await logTraining(`job ${job.id}: failed ${message}`);
+  } finally {
+    trainingJobs.set(job.id, job);
+    entry.resolve(job);
+  }
+}
+
 export function buildTrainingStatusResponse(
   jobStore: Map<string, TrainingJob>,
   id: string,
@@ -610,29 +667,35 @@ app.post('/api/telemetry', legacyAuth, async (req: Request, res: Response) => {
 function startTrainingJob(
   samples: TrainingSample[],
   trigger: 'bundles' | null = null,
-): { jobId: string; completion: Promise<TrainingJob> } {
+): { jobId: string; status: TrainStatus; completion: Promise<TrainingJob> } {
+  const isQueueIdle = !isProcessingTrainingQueue && trainingQueue.length === 0;
   const id = genId();
-  const job: TrainingJob = { id, status: 'running', progress: 0, startedAt: Date.now() };
+  const initialStatus: TrainStatus = isQueueIdle ? 'running' : 'queued';
+  const job: TrainingJob = {
+    id,
+    status: initialStatus,
+    progress: 0,
+  };
   trainingJobs.set(id, job);
 
-  const completion = (async () => {
-    try {
-      await runTrainingWorkflow(id, job, samples, trigger === 'bundles');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      job.status = 'failed';
-      job.error = message;
-      job.endedAt = Date.now();
-      console.error(`Training job ${id} failed:`, error);
-      await logTraining(`job ${id}: failed ${message}`);
-    } finally {
-      trainingJobs.set(id, job);
-    }
+  let resolveCompletion: (job: TrainingJob) => void = () => {};
+  const completion = new Promise<TrainingJob>((resolve) => {
+    resolveCompletion = resolve;
+  });
 
-    return job;
-  })();
+  trainingQueue.push({
+    job,
+    samples,
+    triggeredByBundles: trigger === 'bundles',
+    resolve: resolveCompletion,
+  });
+  void processTrainingQueue();
 
-  return { jobId: id, completion };
+  if (initialStatus === 'queued') {
+    void logTraining(`job ${id}: queued (trigger=${trigger ?? 'manual'})`);
+  }
+
+  return { jobId: id, status: initialStatus, completion };
 }
 
 async function runTrainingWorkflow(
@@ -786,10 +849,11 @@ app.get('/api/v1/dgs/mlp-model', legacyAuth, modelMetadataLimiter, latestMlpMode
 registerTrainingBundleRoute(app, genId, {
   triggerTrainingJob: ({ bundleId }) => {
     try {
-      const { jobId, completion } = startTrainingJob([], 'bundles');
-      void completion;
-      void logTraining(`job ${jobId}: scheduled automatically from bundle ${bundleId}`);
-      return jobId;
+      const { jobId, status } = startTrainingJob([], 'bundles');
+      void logTraining(
+        `job ${jobId}: scheduled automatically from bundle ${bundleId} (status=${status})`,
+      );
+      return { jobId, status, pollUrl: `/train-status/${jobId}` };
     } catch (error) {
       console.error('Failed to schedule training after bundle upload:', error);
       return null;
@@ -1037,23 +1101,21 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
     landmarkData: sample.landmarkData,
   }));
 
-  const { jobId, completion } = startTrainingJob(
+  const { jobId, status } = startTrainingJob(
     trainingSamples,
     triggeredByBundles ? 'bundles' : null,
   );
 
-  const job = await completion;
+  const message =
+    status === 'queued'
+      ? 'Trainingsauftrag wurde in die Warteschlange gestellt'
+      : 'Trainingsauftrag gestartet';
 
-  if (job.status === 'failed') {
-    return res.status(500).json({ status: job.status, jobId, error: job.error });
-  }
-
-  res.status(200).json({
-    status: job.status,
+  res.status(202).json({
+    status,
     jobId,
-    report: job.report ?? {},
-    message: job.message ?? 'Dein Modell ist jetzt aktualisiert',
-    metrics: job.metrics ?? {},
+    pollUrl: `/train-status/${jobId}`,
+    message,
   });
 });
 

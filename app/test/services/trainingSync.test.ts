@@ -88,7 +88,11 @@ describe('syncTrainingData', () => {
       { key: 'bundle2', sampleId: 'sample2', profileId: 'profile1', clipUri: 'uri2', frames: [], label: 'test', capturedAt: 'date' },
     ];
     mockedListQueuedTrainingBundles.mockResolvedValue(bundles);
-    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'success', trainingJobId: 'job-123' });
+    mockedUploadTrainingBundle.mockResolvedValue({
+      id: 'upload1',
+      status: 'success',
+      trainingJob: { jobId: 'job-123', status: 'queued' },
+    });
     mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
 
 
@@ -131,7 +135,11 @@ describe('syncTrainingData', () => {
       .mockResolvedValueOnce([]);
     mockedUploadTrainingBundle
       .mockResolvedValueOnce({ id: 'upload1', status: 'queued' })
-      .mockResolvedValueOnce({ id: 'upload2', status: 'queued', trainingJobId: 'job-789' });
+      .mockResolvedValueOnce({
+        id: 'upload2',
+        status: 'queued',
+        trainingJob: { jobId: 'job-789', status: 'queued' },
+      });
 
     const result = await syncTrainingData();
 
@@ -148,7 +156,11 @@ describe('syncTrainingData', () => {
     mockedListQueuedTrainingBundles
       .mockResolvedValueOnce(bundles)
       .mockResolvedValueOnce([]);
-    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued', trainingJobId: 'job-999' });
+    mockedUploadTrainingBundle.mockResolvedValue({
+      id: 'upload1',
+      status: 'queued',
+      trainingJob: { jobId: 'job-999', status: 'queued' },
+    });
 
     const result = await syncTrainingData();
 
