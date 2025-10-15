@@ -148,7 +148,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   if (resp.status === 304) {
     const meta = parseMetaFromResponse(resp, {
-      ...(profileId ? { profileId } : {}),
+      profileId,
       fallbackMeta: prevMeta,
     });
     const metaString = JSON.stringify(meta);
