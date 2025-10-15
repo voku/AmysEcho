@@ -222,30 +222,29 @@ export default function RecognitionScreen({
   useEffect(() => {
     let isCancelled = false;
     const unsub = onMlpModelUpdated(() => {
-      const defaultMessage = 'Neues Modell geladen';
-      showToast({ message: defaultMessage, tone: 'success', durationMs: 2000 });
       const activeProfileId = profile?.id;
       void (async () => {
+        let message = 'Neues Modell geladen';
         try {
           const meta = await getCachedMlpMeta(activeProfileId);
           if (isCancelled) {
             return;
           }
-          let message = defaultMessage;
           if (meta?.source === 'profile') {
-            message = 'Danke! Dein persönliches Modell wurde gerade aktualisiert.';
-            if (meta.profileId && activeProfileId && meta.profileId !== activeProfileId) {
-              message = 'Personalisierte Modellversion wurde geladen.';
-            }
+            message =
+              meta.profileId && activeProfileId && meta.profileId !== activeProfileId
+                ? 'Personalisierte Modellversion wurde geladen.'
+                : 'Danke! Dein persönliches Modell wurde gerade aktualisiert.';
           } else if (meta?.source === 'global') {
             message = 'Gemeinsames Modell aktualisiert – danke fürs Mitmachen!';
-          }
-          if (message !== defaultMessage) {
-            showToast({ message, tone: 'success', durationMs: 2000 });
           }
         } catch (error) {
           if (!isCancelled) {
             logger.warn('Konnte Modell-Metadaten nach Update nicht laden', error);
+          }
+        } finally {
+          if (!isCancelled) {
+            showToast({ message, tone: 'success', durationMs: 2000 });
           }
         }
       })();

@@ -147,7 +147,10 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
   }
 
   if (resp.status === 304) {
-    const meta = parseMetaFromResponse(resp, { profileId, fallbackMeta: prevMeta });
+    const meta = parseMetaFromResponse(resp, {
+      ...(profileId ? { profileId } : {}),
+      fallbackMeta: prevMeta,
+    });
     const metaString = JSON.stringify(meta);
     if (prevMetaRaw !== metaString) {
       await storage.setItem(metaKey, metaString);
@@ -189,7 +192,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   const arrayBuffer = await resp.arrayBuffer();
   const b64 = arrayBufferToBase64(arrayBuffer);
-  const meta = parseMetaFromResponse(resp, { profileId });
+  const meta = parseMetaFromResponse(resp, profileId ? { profileId } : {});
 
   if (prevModel) {
     await storage.setItem(backupKey, prevModel);
