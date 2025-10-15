@@ -1,5 +1,12 @@
-const storageMap = new Map<string, string>();
-const mockAsyncStorage = {
+let storageMap = new Map<string, string>();
+
+type MockAsyncStorage = {
+  setItem: jest.Mock<Promise<void>, [string, string]>;
+  getItem: jest.Mock<Promise<string | null>, [string]>;
+  removeItem: jest.Mock<Promise<void>, [string]>;
+};
+
+const createMockAsyncStorage = (): MockAsyncStorage => ({
   setItem: jest.fn(async (key: string, value: string) => {
     storageMap.set(key, value);
   }),
@@ -9,11 +16,15 @@ const mockAsyncStorage = {
   removeItem: jest.fn(async (key: string) => {
     storageMap.delete(key);
   }),
-};
+});
+
+let mockAsyncStorage = createMockAsyncStorage();
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
-  default: mockAsyncStorage,
+  get default() {
+    return mockAsyncStorage;
+  },
 }));
 
 const mockGetInfoAsync = jest.fn();
@@ -57,19 +68,8 @@ let restoreMlpModelBackup: DgsModelClientModule['restoreMlpModelBackup'];
 const originalFetch = global.fetch;
 beforeEach(async () => {
   jest.resetModules();
-  storageMap.clear();
-  mockAsyncStorage.setItem.mockClear();
-  mockAsyncStorage.getItem.mockClear();
-  mockAsyncStorage.removeItem.mockClear();
-  mockAsyncStorage.setItem.mockImplementation(async (key: string, value: string) => {
-    storageMap.set(key, value);
-  });
-  mockAsyncStorage.getItem.mockImplementation(async (key: string) => {
-    return storageMap.has(key) ? storageMap.get(key)! : null;
-  });
-  mockAsyncStorage.removeItem.mockImplementation(async (key: string) => {
-    storageMap.delete(key);
-  });
+  storageMap = new Map<string, string>();
+  mockAsyncStorage = createMockAsyncStorage();
   mockDocumentDirectoryValue = 'file:///documents';
   mockGetInfoAsync.mockReset();
   mockReadAsStringAsync.mockReset();
