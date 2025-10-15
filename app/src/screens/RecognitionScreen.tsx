@@ -157,6 +157,7 @@ export default function RecognitionScreen({
 
   const state = useRecognitionState();
   const {
+    profile,
     setProfile,
     status,
     error,
@@ -219,11 +220,15 @@ export default function RecognitionScreen({
   }, [facingMode]);
 
   useEffect(() => {
+    let isCancelled = false;
     const unsub = onMlpModelUpdated(() => {
       const activeProfileId = profile?.id;
       void (async () => {
         try {
           const meta = await getCachedMlpMeta(activeProfileId);
+          if (isCancelled) {
+            return;
+          }
           let message = 'Neues Modell geladen';
           if (meta?.source === 'profile') {
             if (!meta.profileId || !activeProfileId || meta.profileId === activeProfileId) {
@@ -236,12 +241,17 @@ export default function RecognitionScreen({
           }
           showToast({ message, tone: 'success', durationMs: 2000 });
         } catch (error) {
-          logger.warn('Konnte Modell-Metadaten nach Update nicht laden', error);
-          showToast({ message: 'Neues Modell geladen', tone: 'success', durationMs: 2000 });
+          if (!isCancelled) {
+            logger.warn('Konnte Modell-Metadaten nach Update nicht laden', error);
+            showToast({ message: 'Neues Modell geladen', tone: 'success', durationMs: 2000 });
+          }
         }
       })();
     });
-    return () => unsub();
+    return () => {
+      isCancelled = true;
+      unsub();
+    };
   }, [profile?.id, showToast]);
 
   const capturePulseAnim = useRef(new Animated.Value(1)).current;
