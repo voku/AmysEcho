@@ -55,7 +55,60 @@ async function getStorage(): Promise<StorageLike> {
   }
 }
 
-type MlpMeta = { etag?: string; checksum?: string; version?: string };
+type MlpMeta = {
+  etag?: string;
+  checksum?: string;
+  version?: string;
+  source?: 'global' | 'profile';
+  profileId?: string | null;
+};
+
+function parseMetaFromResponse(
+  resp: Response,
+  {
+    profileId,
+    fallbackMeta,
+  }: {
+    profileId?: string;
+    fallbackMeta?: MlpMeta | null;
+  },
+): MlpMeta {
+  const meta: MlpMeta = { ...(fallbackMeta ?? {}) };
+
+  const etag = resp.headers.get('ETag');
+  if (etag) {
+    meta.etag = etag;
+  }
+
+  const checksum = resp.headers.get('X-Checksum-SHA256');
+  if (checksum) {
+    meta.checksum = checksum;
+  }
+
+  const version = resp.headers.get('X-Model-Version');
+  if (version) {
+    meta.version = version;
+  }
+
+  const sourceHeader = resp.headers.get('X-Model-Source');
+  if (typeof sourceHeader === 'string') {
+    const normalized = sourceHeader.trim().toLowerCase();
+    if (normalized === 'profile' || normalized === 'global') {
+      meta.source = normalized;
+    }
+  } else if (profileId) {
+    meta.source = 'profile';
+  }
+
+  const profileHeader = resp.headers.get('X-Model-Profile');
+  if (typeof profileHeader === 'string' && profileHeader.trim().length > 0) {
+    meta.profileId = profileHeader.trim();
+  } else if (meta.source === 'profile' && profileId) {
+    meta.profileId = profileId;
+  }
+
+  return meta;
+}
 
 export async function fetchMlpModel(profileId?: string): Promise<string | null> {
   const storage = await getStorage();
@@ -94,12 +147,21 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
   }
 
   if (resp.status === 304) {
+    const meta = parseMetaFromResponse(resp, {
+      profileId,
+      fallbackMeta: prevMeta,
+    });
+    const metaString = JSON.stringify(meta);
+    if (prevMetaRaw !== metaString) {
+      await storage.setItem(metaKey, metaString);
+      emitMlpModelUpdated();
+    }
     const cached = await storage.getItem(cacheKey);
     if (cached) {
       logger.info('Using cached MLP model', {
         profileId: profileId ?? 'global',
-        version: prevMeta?.version ?? null,
-        source: profileId ? 'profile' : 'global',
+        version: meta.version ?? null,
+        source: meta.source ?? (profileId ? 'profile' : 'global'),
       });
       return cached;
     }
@@ -130,19 +192,7 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   const arrayBuffer = await resp.arrayBuffer();
   const b64 = arrayBufferToBase64(arrayBuffer);
-  const meta: MlpMeta = {};
-  const etag = resp.headers.get('ETag');
-  if (etag) {
-    meta.etag = etag;
-  }
-  const checksum = resp.headers.get('X-Checksum-SHA256');
-  if (checksum) {
-    meta.checksum = checksum;
-  }
-  const version = resp.headers.get('X-Model-Version');
-  if (version) {
-    meta.version = version;
-  }
+  const meta = parseMetaFromResponse(resp, { profileId });
 
   if (prevModel) {
     await storage.setItem(backupKey, prevModel);
@@ -152,14 +202,15 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
   }
 
   await storage.setItem(cacheKey, b64);
-  await storage.setItem(metaKey, JSON.stringify(meta));
+  const metaString = JSON.stringify(meta);
+  await storage.setItem(metaKey, metaString);
   await persistDocumentDirectoryModel(b64, profileId);
   emitMlpModelUpdated();
 
   logger.info('Fetched MLP model', {
     profileId: profileId ?? 'global',
     version: meta.version ?? null,
-    source: profileId ? 'profile' : 'global',
+    source: meta.source ?? (profileId ? 'profile' : 'global'),
     status: resp.status,
   });
 

@@ -95,6 +95,8 @@ describe('GET /latest-mlp-model', () => {
     expect(response.headers['cache-control']).toBe('public, max-age=0, must-revalidate');
     expect(response.headers['cdn-cache-control']).toBe('max-age=3600');
     expect(response.headers['x-resolved-path']).toBe(storedModelPath);
+    expect(response.headers['x-model-source']).toBe('global');
+    expect(response.headers['x-model-profile']).toBeUndefined();
   }
 
   beforeAll(async () => {
@@ -243,6 +245,10 @@ describe('GET /latest-mlp-model', () => {
   });
 
   it('requires matching X-Profile-Id for profiled requests', async () => {
+    const profileModelPath = modelPaths.getMlpModelPath('p1');
+    await fs.mkdir(path.dirname(profileModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, profileModelPath);
+
     await request(app)
       .get('/latest-mlp-model?profileId=p1')
       .set('Authorization', 'Bearer mlp-endpoint-token')
@@ -254,6 +260,8 @@ describe('GET /latest-mlp-model', () => {
       .set('X-Profile-Id', 'p1')
       .buffer(true)
       .parse(binaryParser)
-      .expect(200);
+      .expect(200)
+      .expect('X-Model-Source', 'profile')
+      .expect('X-Model-Profile', 'p1');
   });
 });
