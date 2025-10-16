@@ -143,13 +143,6 @@ export class OptimizedGestureCombinationManager {
         const latestGesture = chronologicalSequence[chronologicalSequence.length - 1];
         const timeSpan = latestGesture.timestamp - earliestGesture.timestamp;
 
-        // Check if within time window
-        const sequenceEndTime = latestGesture.timestamp;
-
-        if (sequenceEndTime < currentTime - timeWindow) {
-          continue;
-        }
-
         const sequenceStartTime = earliestGesture.timestamp;
 
         if (sequenceStartTime < currentTime - timeWindow) {

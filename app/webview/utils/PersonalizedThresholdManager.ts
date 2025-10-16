@@ -47,7 +47,14 @@ export class PersonalizedThresholdManager {
       };
     } else if (!Number.isFinite(performance.confidenceSum)) {
       // Normalize legacy records that predate the confidence sum field
-      performance.confidenceSum = performance.averageConfidence * performance.totalAttempts;
+      const normalizedAverage = Number.isFinite(performance.averageConfidence)
+        ? performance.averageConfidence
+        : 0;
+      const normalizedAttempts = Number.isFinite(performance.totalAttempts)
+        ? performance.totalAttempts
+        : 0;
+      const legacySum = normalizedAverage * normalizedAttempts;
+      performance.confidenceSum = Number.isFinite(legacySum) ? legacySum : 0;
     }
 
     // Update statistics
@@ -176,11 +183,23 @@ export class PersonalizedThresholdManager {
   importPerformanceData(data: Record<string, GesturePerformance>): void {
     this.gesturePerformance.clear();
     for (const [gesture, performance] of Object.entries(data)) {
+      const normalizedAverage = Number.isFinite(performance.averageConfidence)
+        ? performance.averageConfidence
+        : 0;
+      const normalizedAttempts = Number.isFinite(performance.totalAttempts)
+        ? performance.totalAttempts
+        : 0;
+      const normalizedConfidenceSum = Number.isFinite(performance.confidenceSum)
+        ? performance.confidenceSum
+        : normalizedAverage * normalizedAttempts;
+      const safeConfidenceSum = Number.isFinite(normalizedConfidenceSum)
+        ? normalizedConfidenceSum
+        : 0;
       const normalized: GesturePerformance = {
         ...performance,
-        confidenceSum: Number.isFinite(performance.confidenceSum)
-          ? performance.confidenceSum
-          : performance.averageConfidence * performance.totalAttempts
+        averageConfidence: normalizedAverage,
+        totalAttempts: normalizedAttempts,
+        confidenceSum: safeConfidenceSum
       };
       this.gesturePerformance.set(gesture, normalized);
     }
