@@ -2637,6 +2637,7 @@
           }
         }
       } catch (error) {
+        console.debug("Memory monitoring check failed, reverting to normal pressure state:", error);
         this.memoryPressureLevel = 0;
       }
     }
@@ -3477,6 +3478,7 @@
       this.recoveryAttempts = /* @__PURE__ */ new Map();
       this.lastRecoveryTime = 0;
       this.emergencyMode = false;
+      this.lastRecoveryAttemptByContext = /* @__PURE__ */ new Map();
       this.CIRCUIT_BREAKER_THRESHOLD = 5;
       this.CIRCUIT_BREAKER_TIMEOUT = 3e4;
       // 30 seconds
@@ -3484,8 +3486,10 @@
       // 1 minute
       this.MAX_RECOVERY_ATTEMPTS = 3;
       this.RECOVERY_COOLDOWN = 5e3;
+      // 5 seconds between recovery attempts
+      this.CONTEXT_RECOVERY_COOLDOWN = 1500;
     }
-    // 5 seconds between recovery attempts
+    // throttle repeated attempts per context
     getErrorInfo(error, context) {
       const errorMessage2 = error.message.toLowerCase();
       if (context.includes("emergency") || errorMessage2.includes("emergency")) {
@@ -3578,6 +3582,7 @@
       this.failureCount++;
       this.lastFailureTime = now;
       this.recoveryAttempts.set(recoveryKey, attempts + 1);
+      this.lastRecoveryAttemptByContext.set(context, now);
       if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD || isMediaPipeCtx && typeof process !== "undefined" && false) {
         this.circuitBreakerOpen = true;
         console.warn("Circuit breaker opened due to repeated failures");
@@ -3637,6 +3642,10 @@
       if (now - this.lastRecoveryTime < this.RECOVERY_COOLDOWN) {
         return false;
       }
+      const lastContextAttempt = this.lastRecoveryAttemptByContext.get(context) || 0;
+      if (now - lastContextAttempt < this.CONTEXT_RECOVERY_COOLDOWN) {
+        return false;
+      }
       if (this.isCircuitBreakerOpen()) {
         return false;
       }
@@ -3646,6 +3655,7 @@
       this.lastRecoveryTime = Date.now();
       const recoveryKey = `recovery_${context}`;
       this.recoveryAttempts.delete(recoveryKey);
+      this.lastRecoveryAttemptByContext.set(context, this.lastRecoveryTime);
       this.sendTelemetryEvent("recovery_successful", {
         context,
         timestamp: Date.now()
@@ -3672,6 +3682,7 @@
       this.emergencyMode = false;
       this.recoveryAttempts.clear();
       this.lastRecoveryTime = 0;
+      this.lastRecoveryAttemptByContext.clear();
     }
     getHealthStatus() {
       this.isCircuitBreakerOpen();
@@ -4000,7 +4011,7 @@
         };
       }
       this.lastEmergencyGestureTime = now;
-      this.sendEmergencyTelemetry(gesture, confidence);
+      this.sendEmergencyTelemetry(gesture, confidence, landmarks);
       return {
         shouldProcess: true,
         priority: "critical",
@@ -4029,13 +4040,17 @@
     /**
      * Send emergency telemetry to React Native
      */
-    sendEmergencyTelemetry(gesture, confidence) {
+    sendEmergencyTelemetry(gesture, confidence, landmarks) {
       const timestamp = Date.now();
+      const handCount = landmarks.length;
+      const pointsPerHand = handCount > 0 ? landmarks[0].length : 0;
       const basePayload = {
         gesture,
         confidence,
         timestamp,
-        systemHealth: "active"
+        systemHealth: "active",
+        handCount,
+        pointsPerHand
       };
       try {
         messageBatcher.queueMessage(
@@ -5029,6 +5044,20 @@
           }
         } catch (error) {
           console.warn("MLP prediction failed:", error);
+          const predictionPrefix = typeof window.__predictionError === "string" && window.__predictionError.length > 0 ? window.__predictionError : "MLP prediction failed: ";
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: "error",
+                message: `${predictionPrefix}${error instanceof Error ? error.message : String(error)}`,
+                _technical: {
+                  stack: error instanceof Error ? error.stack ?? null : null
+                }
+              })
+            );
+          } catch (postMessageError) {
+            console.debug("Failed to post MLP prediction error to React Native:", postMessageError);
+          }
         }
       }
       return {
@@ -5233,6 +5262,7 @@
         })
       );
     } catch (err2) {
+      console.debug("Failed to forward console.log message to React Native:", err2);
     }
     originalConsoleLog(...args);
   };
@@ -5257,7 +5287,7 @@
   window.addEventListener("unhandledrejection", onUnhandledRejection);
   var tapToStartText = window.__tapToStart || "";
   var recognizerInitFailed = window.__recognizerInitFailed || "Erkennung konnte nicht gestartet werden: ";
-  var predictionError = window.__predictionError || "Vorhersagefehler: ";
+  window.__predictionError = window.__predictionError || "Vorhersagefehler: ";
   var cameraError = window.__cameraError || "Kamerafehler: ";
   var facingMode = window.__facingMode || "user";
   var mirrorOverlay = window.__mirrorOverlay === true;

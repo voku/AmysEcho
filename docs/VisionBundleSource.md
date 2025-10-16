@@ -7,6 +7,8 @@ The WebView build checks in a local copy of the MediaPipe Tasks vision bundle be
 - **SHA-256:** `941bdfe7c2c10e113cfebca7825fcfa0de2f0c54e42f6e5d8cc5294e9028a277`
 - **Checksum file:** `app/webview/vision_bundle.sha256`
 
+> The `scripts/update-vision-bundle-doc.js` helper refreshes the date based on the bundle’s modification time (or an optional `--date` override) so reviewers can trust this metadata.
+
 ## Updating the bundle
 
 1. Download the new bundle (only update the version after the gesture team signs off):
@@ -17,7 +19,11 @@ The WebView build checks in a local copy of the MediaPipe Tasks vision bundle be
    ```bash
    sha256sum app/webview/vision_bundle.js | awk '{print $1}' > app/webview/vision_bundle.sha256
    ```
-3. Update this document with the version, date, and checksum you used.
+3. Refresh this document’s metadata with the helper script so the checksum and synchronization date stay consistent:
+   ```bash
+   node scripts/update-vision-bundle-doc.js --source "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@<version>/vision_bundle.js"
+   # Optional: override the detected date (UTC) with --date=YYYY-MM-DD
+   ```
 4. Run the Definition-of-Done quality checks:
    ```bash
    npm run lint --prefix app
@@ -28,7 +34,7 @@ The WebView build checks in a local copy of the MediaPipe Tasks vision bundle be
 
 ## Definition-of-Done checklist for updates
 
-- [ ] Document the new bundle version (source, date, hash).
+- [ ] Document the new bundle version (source, date, hash) via the update script.
 - [ ] Ensure `vision_bundle.sha256` matches the checked-in bundle.
 - [ ] Complete all app linting, type-checking, and test runs successfully.
 - [ ] Have a reviewer verify the checksum against an independent download.

@@ -907,7 +907,9 @@ export class GestureDetectionStep implements ProcessingStep {
         }
       } catch (error) {
         console.warn('MLP prediction failed:', error);
-        const predictionPrefix = window.__predictionError || 'Vorhersagefehler: ';
+        const predictionPrefix = typeof window.__predictionError === 'string' && window.__predictionError.length > 0
+          ? window.__predictionError
+          : 'MLP prediction failed: ';
         try {
           window.ReactNativeWebView?.postMessage?.(
             JSON.stringify({
