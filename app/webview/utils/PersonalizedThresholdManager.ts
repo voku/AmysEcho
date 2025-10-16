@@ -8,6 +8,8 @@ export interface GesturePerformance {
   totalAttempts: number;
   successfulAttempts: number;
   averageConfidence: number;
+  /** Running sum of recorded confidence values within the personalization window. */
+  confidenceSum: number;
   lastAttemptTime: number;
   successRate: number;
   personalizedThreshold: number;
@@ -26,44 +28,122 @@ export class PersonalizedThresholdManager {
   private readonly MIN_ATTEMPTS_FOR_PERSONALIZATION = 10;
   private readonly MAX_THRESHOLD_ADJUSTMENT = 0.3; // Max 30% adjustment
   private readonly LEARNING_RATE = 0.1; // How quickly thresholds adapt
+  private readonly BASE_THRESHOLD = 0.2; // Tuned for gentle onboarding of new gestures
 
   /**
    * Record a gesture attempt for personalization
    */
   recordAttempt(gesture: string, confidence: number, success: boolean): void {
-    const existing = this.gesturePerformance.get(gesture) || {
+    const performance = this.getOrCreatePerformance(gesture);
+
+    // Update statistics
+    performance.totalAttempts++;
+    if (success) {
+      performance.successfulAttempts++;
+    }
+
+    performance.confidenceSum += confidence;
+    performance.averageConfidence = performance.totalAttempts > 0
+      ? performance.confidenceSum / performance.totalAttempts
+      : 0;
+
+    performance.successRate = performance.totalAttempts > 0
+      ? performance.successfulAttempts / performance.totalAttempts
+      : 0;
+    performance.lastAttemptTime = Date.now();
+
+    // Calculate personalized threshold
+    performance.personalizedThreshold = this.calculatePersonalizedThreshold(performance);
+
+    this.gesturePerformance.set(gesture, performance);
+
+    // Limit history size
+    if (performance.totalAttempts > this.PERFORMANCE_WINDOW) {
+      this.trimHistory(gesture);
+    }
+  }
+
+  private getOrCreatePerformance(gesture: string): GesturePerformance {
+    const existing = this.gesturePerformance.get(gesture);
+
+    if (!existing) {
+      const created = this.createBasePerformance(gesture);
+      this.gesturePerformance.set(gesture, created);
+      return created;
+    }
+
+    const normalized = this.normalizePerformance(gesture, existing);
+    this.gesturePerformance.set(gesture, normalized);
+    return normalized;
+  }
+
+  private createBasePerformance(gesture: string): GesturePerformance {
+    const base: GesturePerformance = {
       gesture,
       totalAttempts: 0,
       successfulAttempts: 0,
       averageConfidence: 0,
+      confidenceSum: 0,
       lastAttemptTime: Date.now(),
       successRate: 0,
-      personalizedThreshold: 0.4 // Default MLP threshold
+      personalizedThreshold: this.BASE_THRESHOLD // Default MLP threshold tuned for onboarding
+    };
+    base.personalizedThreshold = this.calculatePersonalizedThreshold(base);
+    return base;
+  }
+
+  private normalizePerformance(
+    gesture: string,
+    data: Partial<GesturePerformance>
+  ): GesturePerformance {
+    const totalAttemptsRaw = Number.isFinite(data.totalAttempts)
+      ? (data.totalAttempts as number)
+      : 0;
+    const totalAttempts = Math.max(0, Math.round(totalAttemptsRaw));
+
+    const successfulAttemptsRaw = Number.isFinite(data.successfulAttempts)
+      ? (data.successfulAttempts as number)
+      : 0;
+    const successfulAttempts = Math.min(
+      Math.max(0, Math.round(successfulAttemptsRaw)),
+      totalAttempts
+    );
+
+    const confidenceSumRaw = Number.isFinite(data.confidenceSum)
+      ? (data.confidenceSum as number)
+      : (Number.isFinite(data.averageConfidence) ? (data.averageConfidence as number) : 0) * totalAttempts;
+    const confidenceSum = Number.isFinite(confidenceSumRaw)
+      ? Math.max(0, confidenceSumRaw)
+      : 0;
+
+    const averageConfidence = totalAttempts > 0
+      ? confidenceSum / totalAttempts
+      : 0;
+
+    const successRate = totalAttempts > 0
+      ? successfulAttempts / totalAttempts
+      : 0;
+
+    const lastAttemptTime = Number.isFinite(data.lastAttemptTime)
+      ? Math.max(0, data.lastAttemptTime as number)
+      : Date.now();
+
+    const normalized: GesturePerformance = {
+      gesture,
+      totalAttempts,
+      successfulAttempts,
+      averageConfidence,
+      confidenceSum,
+      lastAttemptTime,
+      successRate,
+      personalizedThreshold: Number.isFinite(data.personalizedThreshold)
+        ? (data.personalizedThreshold as number)
+        : this.BASE_THRESHOLD
     };
 
-    // Update statistics
-    existing.totalAttempts++;
-    if (success) {
-      existing.successfulAttempts++;
-    }
+    normalized.personalizedThreshold = this.calculatePersonalizedThreshold(normalized);
 
-    // Rolling average confidence
-    existing.averageConfidence = (
-      existing.averageConfidence * (existing.totalAttempts - 1) + confidence
-    ) / existing.totalAttempts;
-
-    existing.successRate = existing.successfulAttempts / existing.totalAttempts;
-    existing.lastAttemptTime = Date.now();
-
-    // Calculate personalized threshold
-    existing.personalizedThreshold = this.calculatePersonalizedThreshold(existing);
-
-    this.gesturePerformance.set(gesture, existing);
-
-    // Limit history size
-    if (existing.totalAttempts > this.PERFORMANCE_WINDOW) {
-      this.trimHistory(gesture);
-    }
+    return normalized;
   }
 
   /**
@@ -165,15 +245,16 @@ export class PersonalizedThresholdManager {
   importPerformanceData(data: Record<string, GesturePerformance>): void {
     this.gesturePerformance.clear();
     for (const [gesture, performance] of Object.entries(data)) {
-      this.gesturePerformance.set(gesture, { ...performance });
+      const normalized = this.normalizePerformance(gesture, performance);
+      this.gesturePerformance.set(gesture, normalized);
     }
   }
 
   private calculatePersonalizedThreshold(performance: GesturePerformance): number {
     const { successRate, averageConfidence, totalAttempts } = performance;
 
-    // Base threshold starts at 0.2 (default MLP threshold)
-    let threshold = 0.2;
+    // Base threshold starts at the onboarding-friendly default (matching MLP baseline)
+    let threshold = this.BASE_THRESHOLD;
 
     // Adjust based on success rate
     if (successRate > 0.8) {
@@ -197,7 +278,7 @@ export class PersonalizedThresholdManager {
     }
 
     // Ensure threshold stays within reasonable bounds
-    return Math.max(0.2, Math.min(0.6, threshold));
+    return Math.max(this.BASE_THRESHOLD, Math.min(0.6, threshold));
   }
 
   private getAdjustmentReason(performance: GesturePerformance): ThresholdAdjustment['reason'] {
@@ -211,7 +292,38 @@ export class PersonalizedThresholdManager {
   }
 
   private trimHistory(gesture: string): void {
-    // For now, we keep all history but could implement sliding window
-    // This is a placeholder for future optimization
+    // Approximate a sliding window by scaling aggregate statistics down to the configured window size
+    const performance = this.gesturePerformance.get(gesture);
+    if (!performance) {
+      return;
+    }
+
+    if (performance.totalAttempts <= this.PERFORMANCE_WINDOW) {
+      return;
+    }
+
+    const windowRatio = this.PERFORMANCE_WINDOW / performance.totalAttempts;
+
+    const totalAttempts = this.PERFORMANCE_WINDOW;
+    const successfulAttempts = Math.round(performance.successfulAttempts * windowRatio);
+    const clampedSuccessfulAttempts = Math.min(
+      Math.max(0, successfulAttempts),
+      totalAttempts
+    );
+    const confidenceSum = performance.confidenceSum * windowRatio;
+    const averageConfidence = totalAttempts > 0 ? confidenceSum / totalAttempts : 0;
+    const successRate = totalAttempts > 0 ? clampedSuccessfulAttempts / totalAttempts : 0;
+
+    const updatedPerformance: GesturePerformance = {
+      ...performance,
+      totalAttempts,
+      successfulAttempts: clampedSuccessfulAttempts,
+      confidenceSum,
+      averageConfidence,
+      successRate
+    };
+    updatedPerformance.personalizedThreshold = this.calculatePersonalizedThreshold(updatedPerformance);
+
+    this.gesturePerformance.set(gesture, updatedPerformance);
   }
 }

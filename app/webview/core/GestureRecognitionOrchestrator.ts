@@ -907,6 +907,22 @@ export class GestureDetectionStep implements ProcessingStep {
         }
       } catch (error) {
         console.warn('MLP prediction failed:', error);
+        const predictionPrefix = typeof window.__predictionError === 'string' && window.__predictionError.length > 0
+          ? window.__predictionError
+          : 'MLP prediction failed: ';
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: 'error',
+              message: `${predictionPrefix}${error instanceof Error ? error.message : String(error)}`,
+              _technical: {
+                stack: error instanceof Error ? error.stack ?? null : null,
+              }
+            })
+          );
+        } catch (postMessageError) {
+          console.debug('Failed to post MLP prediction error to React Native:', postMessageError);
+        }
       }
     }
 

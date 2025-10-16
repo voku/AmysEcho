@@ -194,7 +194,8 @@ export class MemoryOptimizer {
         }
       }
     } catch (error) {
-      // Memory monitoring failed, assume normal pressure
+      // Memory monitoring failed, assume normal pressure but log for diagnostics
+      console.debug('Memory monitoring check failed, reverting to normal pressure state:', error);
       this.memoryPressureLevel = 0;
     }
   }

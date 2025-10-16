@@ -40,7 +40,7 @@ console.log = (...args: any[]) => {
       }),
     );
   } catch (err) {
-    // Fallback to original if forwarding fails
+    console.debug('Failed to forward console.log message to React Native:', err);
   }
   originalConsoleLog(...args);
 };
@@ -73,7 +73,7 @@ import { GestureRecognitionOrchestrator } from './core/GestureRecognitionOrchest
 const tapToStartText = window.__tapToStart || '';
 const recognizerInitFailed =
   window.__recognizerInitFailed || 'Erkennung konnte nicht gestartet werden: ';
-const predictionError = window.__predictionError || 'Vorhersagefehler: ';
+window.__predictionError = window.__predictionError || 'Vorhersagefehler: ';
 const cameraError = window.__cameraError || 'Kamerafehler: ';
 const facingMode = window.__facingMode || 'user';
 const mirrorOverlay = window.__mirrorOverlay === true;

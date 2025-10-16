@@ -11,12 +11,14 @@ export class ErrorRecoveryManager {
   private recoveryAttempts = new Map<string, number>();
   private lastRecoveryTime = 0;
   private emergencyMode = false;
+  private lastRecoveryAttemptByContext = new Map<string, number>();
 
   private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
   private readonly CIRCUIT_BREAKER_TIMEOUT = 30000; // 30 seconds
   private readonly FAILURE_WINDOW = 60000; // 1 minute
   private readonly MAX_RECOVERY_ATTEMPTS = 3;
   private readonly RECOVERY_COOLDOWN = 5000; // 5 seconds between recovery attempts
+  private readonly CONTEXT_RECOVERY_COOLDOWN = 1500; // throttle repeated attempts per context
 
   getErrorInfo(error: Error, context: string): {
     message: string;
@@ -147,6 +149,7 @@ export class ErrorRecoveryManager {
     this.failureCount++;
     this.lastFailureTime = now;
     this.recoveryAttempts.set(recoveryKey, attempts + 1);
+    this.lastRecoveryAttemptByContext.set(context, now);
 
     // Open circuit breaker if threshold exceeded
     if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD || (isMediaPipeCtx && typeof process !== 'undefined' && process.env.NODE_ENV === 'test')) {
@@ -225,6 +228,11 @@ export class ErrorRecoveryManager {
       return false; // Too soon since last recovery attempt
     }
 
+    const lastContextAttempt = this.lastRecoveryAttemptByContext.get(context) || 0;
+    if (now - lastContextAttempt < this.CONTEXT_RECOVERY_COOLDOWN) {
+      return false; // Throttle repeated attempts for the same context
+    }
+
     if (this.isCircuitBreakerOpen()) {
       return false; // Circuit breaker is open
     }
@@ -236,6 +244,7 @@ export class ErrorRecoveryManager {
     this.lastRecoveryTime = Date.now();
     const recoveryKey = `recovery_${context}`;
     this.recoveryAttempts.delete(recoveryKey);
+    this.lastRecoveryAttemptByContext.set(context, this.lastRecoveryTime);
 
     this.sendTelemetryEvent('recovery_successful', {
       context,
@@ -265,6 +274,7 @@ export class ErrorRecoveryManager {
     this.emergencyMode = false;
     this.recoveryAttempts.clear();
     this.lastRecoveryTime = 0;
+    this.lastRecoveryAttemptByContext.clear();
   }
 
   getHealthStatus(): {

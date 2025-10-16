@@ -73,7 +73,7 @@ export class EmergencyGestureSystem {
     this.lastEmergencyGestureTime = now;
 
     // Send emergency telemetry
-    this.sendEmergencyTelemetry(gesture, confidence);
+    this.sendEmergencyTelemetry(gesture, confidence, landmarks);
 
     return {
       shouldProcess: true,
@@ -106,14 +106,24 @@ export class EmergencyGestureSystem {
   /**
    * Send emergency telemetry to React Native
    */
-  private sendEmergencyTelemetry(gesture: string, confidence: number): void {
+  private sendEmergencyTelemetry(
+    gesture: string,
+    confidence: number,
+    landmarks?: number[][][] | null
+  ): void {
     const timestamp = Date.now();
+    const normalizedLandmarks: number[][][] = landmarks ?? [];
+    const handCount = normalizedLandmarks.length;
+    const pointsPerHand =
+      handCount > 0 && Array.isArray(normalizedLandmarks[0]) ? normalizedLandmarks[0].length : 0;
 
     const basePayload = {
       gesture,
       confidence,
       timestamp,
       systemHealth: 'active' as const,
+      handCount,
+      pointsPerHand,
     };
 
     try {

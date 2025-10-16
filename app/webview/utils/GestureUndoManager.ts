@@ -32,6 +32,7 @@ export interface UndoSession {
   timestamp: number;
   confirmed: boolean;
   sessionId: string;
+  context?: unknown;
 }
 
 export class GestureUndoManager {
@@ -111,7 +112,7 @@ export class GestureUndoManager {
   checkUndoTrigger(
     gesture: string,
     confidence: number,
-    context?: any
+    context?: unknown
   ): UndoSession | null {
     // Find matching undo gesture
     const undoGesture = this.undoGestures.find(ug => ug.gesture === gesture);
@@ -157,7 +158,8 @@ export class GestureUndoManager {
       targetGesture,
       timestamp: now,
       confirmed: false,
-      sessionId
+      sessionId,
+      context
     };
 
     this.activeUndoSession = session;
@@ -338,7 +340,8 @@ export class GestureUndoManager {
           undoneGesture: session.targetGesture.gesture,
           undoGesture: session.undoGesture.gesture,
           feedback: session.undoGesture.feedback,
-          timestamp: session.timestamp
+          timestamp: session.timestamp,
+          context: session.context ?? null
         })
       );
     } catch (error) {

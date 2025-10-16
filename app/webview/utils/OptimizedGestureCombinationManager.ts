@@ -99,11 +99,10 @@ export class OptimizedGestureCombinationManager {
     if (!this.enabled || this.gestureHistory!.getSize() < 2) return null;
 
     const history = this.gestureHistory!.toArray();
-    const now = Date.now();
 
     // Check each custom sequence
     for (const [sequenceKey, sequence] of this.customSequences) {
-      const result = this.checkSequence(history, sequence, now);
+      const result = this.checkSequence(history, sequence);
       if (result) {
         return {
           combination: sequenceKey,
@@ -124,8 +123,7 @@ export class OptimizedGestureCombinationManager {
    */
   private checkSequence(
     history: Array<{gesture: string; confidence: number; timestamp: number}>,
-    sequence: GestureSequence,
-    currentTime: number
+    sequence: GestureSequence
   ): { confidence: number; matchedGestures: string[]; timeSpan: number } | null {
     const { gestures, timeWindow } = sequence;
 
@@ -135,15 +133,18 @@ export class OptimizedGestureCombinationManager {
     // Look for sequence match within time window
     for (let startIdx = 0; startIdx <= history.length - gestures.length; startIdx++) {
       const candidateSequence = history.slice(startIdx, startIdx + gestures.length);
+      const chronologicalSequence = [...candidateSequence].reverse();
 
       // Check if sequence matches
-      if (this.sequenceMatches(candidateSequence, gestures)) {
-        const timeSpan = candidateSequence[candidateSequence.length - 1].timestamp - candidateSequence[0].timestamp;
+      if (this.sequenceMatches(chronologicalSequence, gestures)) {
+        const earliestGesture = chronologicalSequence[0];
+        const latestGesture = chronologicalSequence[chronologicalSequence.length - 1];
+        const timeSpan = latestGesture.timestamp - earliestGesture.timestamp;
 
-        // Check if within time window
         if (timeSpan <= timeWindow) {
-          const avgConfidence = candidateSequence.reduce((sum, g) => sum + g.confidence, 0) / candidateSequence.length;
-          const matchedGestures = candidateSequence.map(g => g.gesture);
+          const avgConfidence = chronologicalSequence.reduce((sum, g) => sum + g.confidence, 0) /
+            chronologicalSequence.length;
+          const matchedGestures = chronologicalSequence.map(g => g.gesture);
 
           return {
             confidence: avgConfidence,

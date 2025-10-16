@@ -194,8 +194,6 @@ export class EnhancedContextAwareRecognizer {
     const newAvgConfidence = ((habit.averageConfidence * habit.totalAttempts) + pattern.confidence) / totalAttempts;
 
     // Update preferred time of day (weighted towards recent patterns)
-    const timeWeight = pattern.success ? 0.3 : 0.1;
-    const currentTimePreference = habit.preferredTimeOfDay;
     habit.preferredTimeOfDay = pattern.timeOfDay; // Simple update - could be more sophisticated
 
     // Update day preferences
@@ -287,6 +285,11 @@ export class EnhancedContextAwareRecognizer {
     const daysSinceLastUse = (Date.now() - habit.lastUsed) / (24 * 60 * 60 * 1000);
     const recencyStrength = Math.max(0, 1 - (daysSinceLastUse / 7)); // Decay over 7 days
     strength += recencyStrength * 0.2;
+
+    // Activity compatibility strength
+    if (this.isActivityCompatible(gesture, activityLevel)) {
+      strength += 0.1;
+    }
 
     return Math.min(1, strength);
   }

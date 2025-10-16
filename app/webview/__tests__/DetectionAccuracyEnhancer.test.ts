@@ -3,7 +3,7 @@
  * Tests conflict resolution and enhanced rule-based detection
  */
 
-import { DetectionAccuracyEnhancer, DetectionResult, ConflictResolutionResult } from '../utils/DetectionAccuracyEnhancer';
+import { DetectionAccuracyEnhancer, DetectionResult } from '../utils/DetectionAccuracyEnhancer';
 
 describe('DetectionAccuracyEnhancer', () => {
   let enhancer: DetectionAccuracyEnhancer;
