@@ -37,8 +37,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
   const refreshStateRef = useRef({
     promise: Promise.resolve() as Promise<void>,
     running: false,
-    processing: false,
-    pendingRequests: 0,
+    queued: 0,
   });
 
   useEffect(() => {
@@ -52,66 +51,80 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     const refreshState = refreshStateRef.current;
 
-    const startProcessing = (): Promise<void> => {
-      if (refreshState.processing || cancelled) {
-        return refreshState.promise;
+    const performRefresh = async (): Promise<void> => {
+      if (cancelled) {
+        return;
       }
 
-      refreshState.processing = true;
-      refreshState.promise = (async () => {
-        try {
-          while (!cancelled && refreshState.pendingRequests > 0) {
-            refreshState.pendingRequests -= 1;
-            refreshState.running = true;
-
-            try {
-              if (cancelled) {
-                break;
-              }
-
-              const allowed = await shouldAllowModelRefresh();
-              if (!allowed) {
-                logger.info('Skipping model refresh due to connectivity restrictions');
-                continue;
-              }
-
-              if (cancelled) {
-                break;
-              }
-
-              const pid = await loadActiveProfileId().catch(() => null);
-
-              if (cancelled) {
-                break;
-              }
-
-              const updated = await checkForModelUpdate(pid ?? undefined, {
-                skipNetworkCheck: true,
-              });
-
-              if (updated) {
-                logger.info('Model refresh finished');
-              }
-            } catch (e) {
-              logger.warn('Failed to run model refresh', e as Error);
-            } finally {
-              refreshState.running = false;
-            }
-          }
-        } finally {
-          refreshState.processing = false;
-          if (!cancelled && refreshState.pendingRequests > 0) {
-            await startProcessing();
-          }
+      try {
+        const allowed = await shouldAllowModelRefresh();
+        if (!allowed) {
+          logger.info('Modellaktualisierung aufgrund von Verbindungseinschränkungen übersprungen');
+          return;
         }
-      })();
 
-      return refreshState.promise;
+        if (cancelled) {
+          return;
+        }
+
+        const pid = await loadActiveProfileId().catch(() => null);
+
+        if (cancelled) {
+          return;
+        }
+
+        const updated = await checkForModelUpdate(pid ?? undefined, {
+          skipNetworkCheck: true,
+        });
+
+        if (updated) {
+          logger.info('Modellaktualisierung abgeschlossen');
+        }
+      } catch (e) {
+        logger.warn('Modellaktualisierung fehlgeschlagen', e as Error);
+      }
+    };
+
+    const startRefresh = async (): Promise<void> => {
+      if (cancelled) {
+        refreshState.queued = 0;
+        refreshState.promise = Promise.resolve();
+        refreshState.running = false;
+        return;
+      }
+
+      refreshState.running = true;
+
+      try {
+        await performRefresh();
+
+        while (!cancelled && refreshState.queued > 0) {
+          refreshState.queued -= 1;
+          await performRefresh();
+        }
+      } finally {
+        if (cancelled) {
+          refreshState.queued = 0;
+        }
+
+        refreshState.running = false;
+        refreshState.promise = Promise.resolve();
+      }
     };
 
     const runModelRefresh = (): Promise<void> => {
-      refreshState.pendingRequests += 1;
-      return startProcessing();
+      if (cancelled) {
+        return refreshState.promise;
+      }
+
+      if (refreshState.running) {
+        refreshState.queued += 1;
+        return refreshState.promise;
+      }
+
+      const promise = startRefresh();
+      refreshState.promise = promise;
+      return promise;
     };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;
@@ -143,7 +156,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          if (!refreshState.running && !refreshState.processing && refreshState.pendingRequests === 0) {
+          if (!refreshState.running) {
             runModelRefresh().catch(() => {});
           }
 
