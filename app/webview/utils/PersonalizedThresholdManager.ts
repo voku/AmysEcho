@@ -67,50 +67,83 @@ export class PersonalizedThresholdManager {
     const existing = this.gesturePerformance.get(gesture);
 
     if (!existing) {
-      const created: GesturePerformance = {
-        gesture,
-        totalAttempts: 0,
-        successfulAttempts: 0,
-        averageConfidence: 0,
-        confidenceSum: 0,
-        lastAttemptTime: Date.now(),
-        successRate: 0,
-        personalizedThreshold: this.BASE_THRESHOLD // Default MLP threshold tuned for onboarding
-      };
+      const created = this.createBasePerformance(gesture);
       this.gesturePerformance.set(gesture, created);
       return created;
     }
 
-    if (!Number.isFinite(existing.confidenceSum)) {
-      const normalizedAverage = Number.isFinite(existing.averageConfidence)
-        ? existing.averageConfidence
-        : 0;
-      const normalizedAttempts = Number.isFinite(existing.totalAttempts)
-        ? existing.totalAttempts
-        : 0;
-      const legacySum = normalizedAverage * normalizedAttempts;
-      existing.confidenceSum = Number.isFinite(legacySum) ? legacySum : 0;
-    }
+    const normalized = this.normalizePerformance(gesture, existing);
+    this.gesturePerformance.set(gesture, normalized);
+    return normalized;
+  }
 
-    if (!Number.isFinite(existing.totalAttempts) || existing.totalAttempts < 0) {
-      const normalizedAttempts = Number.isFinite(existing.totalAttempts)
-        ? existing.totalAttempts
-        : 0;
-      existing.totalAttempts = Math.max(0, Math.round(normalizedAttempts));
-    }
+  private createBasePerformance(gesture: string): GesturePerformance {
+    const base: GesturePerformance = {
+      gesture,
+      totalAttempts: 0,
+      successfulAttempts: 0,
+      averageConfidence: 0,
+      confidenceSum: 0,
+      lastAttemptTime: Date.now(),
+      successRate: 0,
+      personalizedThreshold: this.BASE_THRESHOLD // Default MLP threshold tuned for onboarding
+    };
+    base.personalizedThreshold = this.calculatePersonalizedThreshold(base);
+    return base;
+  }
 
-    if (!Number.isFinite(existing.successfulAttempts) || existing.successfulAttempts < 0) {
-      const normalizedSuccesses = Number.isFinite(existing.successfulAttempts)
-        ? existing.successfulAttempts
-        : 0;
-      existing.successfulAttempts = Math.max(0, Math.round(normalizedSuccesses));
-    }
+  private normalizePerformance(
+    gesture: string,
+    data: Partial<GesturePerformance>
+  ): GesturePerformance {
+    const totalAttemptsRaw = Number.isFinite(data.totalAttempts)
+      ? (data.totalAttempts as number)
+      : 0;
+    const totalAttempts = Math.max(0, Math.round(totalAttemptsRaw));
 
-    if (existing.successfulAttempts > existing.totalAttempts) {
-      existing.successfulAttempts = existing.totalAttempts;
-    }
+    const successfulAttemptsRaw = Number.isFinite(data.successfulAttempts)
+      ? (data.successfulAttempts as number)
+      : 0;
+    const successfulAttempts = Math.min(
+      Math.max(0, Math.round(successfulAttemptsRaw)),
+      totalAttempts
+    );
 
-    return existing;
+    const confidenceSumRaw = Number.isFinite(data.confidenceSum)
+      ? (data.confidenceSum as number)
+      : (Number.isFinite(data.averageConfidence) ? (data.averageConfidence as number) : 0) * totalAttempts;
+    const confidenceSum = Number.isFinite(confidenceSumRaw)
+      ? Math.max(0, confidenceSumRaw)
+      : 0;
+
+    const averageConfidence = totalAttempts > 0
+      ? confidenceSum / totalAttempts
+      : 0;
+
+    const successRate = totalAttempts > 0
+      ? successfulAttempts / totalAttempts
+      : 0;
+
+    const lastAttemptTime = Number.isFinite(data.lastAttemptTime)
+      ? Math.max(0, data.lastAttemptTime as number)
+      : Date.now();
+
+    const normalized: GesturePerformance = {
+      gesture,
+      totalAttempts,
+      successfulAttempts,
+      averageConfidence,
+      confidenceSum,
+      lastAttemptTime,
+      successRate,
+      personalizedThreshold: Number.isFinite(data.personalizedThreshold)
+        ? (data.personalizedThreshold as number)
+        : this.BASE_THRESHOLD
+    };
+
+    normalized.personalizedThreshold = this.calculatePersonalizedThreshold(normalized);
+
+    return normalized;
   }
 
   /**
@@ -212,47 +245,7 @@ export class PersonalizedThresholdManager {
   importPerformanceData(data: Record<string, GesturePerformance>): void {
     this.gesturePerformance.clear();
     for (const [gesture, performance] of Object.entries(data)) {
-      const normalizedAverageRaw = Number.isFinite(performance.averageConfidence)
-        ? performance.averageConfidence
-        : 0;
-      const normalizedAttemptsRaw = Number.isFinite(performance.totalAttempts)
-        ? performance.totalAttempts
-        : 0;
-      const normalizedAttempts = Math.max(0, Math.round(normalizedAttemptsRaw));
-      const normalizedConfidenceSumRaw = Number.isFinite(performance.confidenceSum)
-        ? performance.confidenceSum
-        : normalizedAverageRaw * normalizedAttempts;
-      const safeConfidenceSumRaw = Number.isFinite(normalizedConfidenceSumRaw)
-        ? normalizedConfidenceSumRaw
-        : 0;
-      const safeConfidenceSum = Math.max(0, safeConfidenceSumRaw);
-      const normalizedSuccessfulAttemptsRaw = Number.isFinite(performance.successfulAttempts)
-        ? performance.successfulAttempts
-        : 0;
-      const normalizedSuccessfulAttempts = Math.min(
-        Math.max(0, Math.round(normalizedSuccessfulAttemptsRaw)),
-        normalizedAttempts
-      );
-      const normalizedAverageConfidence = normalizedAttempts > 0
-        ? safeConfidenceSum / normalizedAttempts
-        : 0;
-      const normalizedSuccessRate = normalizedAttempts > 0
-        ? normalizedSuccessfulAttempts / normalizedAttempts
-        : 0;
-
-      const normalized: GesturePerformance = {
-        ...performance,
-        gesture,
-        totalAttempts: normalizedAttempts,
-        successfulAttempts: normalizedSuccessfulAttempts,
-        confidenceSum: safeConfidenceSum,
-        averageConfidence: normalizedAverageConfidence,
-        successRate: normalizedSuccessRate,
-        personalizedThreshold: performance.personalizedThreshold
-      };
-
-      normalized.personalizedThreshold = this.calculatePersonalizedThreshold(normalized);
-
+      const normalized = this.normalizePerformance(gesture, performance);
       this.gesturePerformance.set(gesture, normalized);
     }
   }
