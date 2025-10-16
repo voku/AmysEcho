@@ -28,6 +28,7 @@ export class PersonalizedThresholdManager {
   private readonly MIN_ATTEMPTS_FOR_PERSONALIZATION = 10;
   private readonly MAX_THRESHOLD_ADJUSTMENT = 0.3; // Max 30% adjustment
   private readonly LEARNING_RATE = 0.1; // How quickly thresholds adapt
+  private readonly BASE_THRESHOLD = 0.2; // Tuned for gentle onboarding of new gestures
 
   /**
    * Record a gesture attempt for personalization
@@ -74,7 +75,7 @@ export class PersonalizedThresholdManager {
         confidenceSum: 0,
         lastAttemptTime: Date.now(),
         successRate: 0,
-        personalizedThreshold: 0.2 // Default MLP threshold
+        personalizedThreshold: this.BASE_THRESHOLD // Default MLP threshold tuned for onboarding
       };
       this.gesturePerformance.set(gesture, created);
       return created;
@@ -259,8 +260,8 @@ export class PersonalizedThresholdManager {
   private calculatePersonalizedThreshold(performance: GesturePerformance): number {
     const { successRate, averageConfidence, totalAttempts } = performance;
 
-    // Base threshold starts at 0.2 (default MLP threshold)
-    let threshold = 0.2;
+    // Base threshold starts at the onboarding-friendly default (matching MLP baseline)
+    let threshold = this.BASE_THRESHOLD;
 
     // Adjust based on success rate
     if (successRate > 0.8) {
@@ -284,7 +285,7 @@ export class PersonalizedThresholdManager {
     }
 
     // Ensure threshold stays within reasonable bounds
-    return Math.max(0.2, Math.min(0.6, threshold));
+    return Math.max(this.BASE_THRESHOLD, Math.min(0.6, threshold));
   }
 
   private getAdjustmentReason(performance: GesturePerformance): ThresholdAdjustment['reason'] {
