@@ -99,11 +99,10 @@ export class OptimizedGestureCombinationManager {
     if (!this.enabled || this.gestureHistory!.getSize() < 2) return null;
 
     const history = this.gestureHistory!.toArray();
-    const now = Date.now();
 
     // Check each custom sequence
     for (const [sequenceKey, sequence] of this.customSequences) {
-      const result = this.checkSequence(history, sequence, now);
+      const result = this.checkSequence(history, sequence);
       if (result) {
         return {
           combination: sequenceKey,
@@ -124,8 +123,7 @@ export class OptimizedGestureCombinationManager {
    */
   private checkSequence(
     history: Array<{gesture: string; confidence: number; timestamp: number}>,
-    sequence: GestureSequence,
-    currentTime: number
+    sequence: GestureSequence
   ): { confidence: number; matchedGestures: string[]; timeSpan: number } | null {
     const { gestures, timeWindow } = sequence;
 
@@ -142,12 +140,6 @@ export class OptimizedGestureCombinationManager {
         const earliestGesture = chronologicalSequence[0];
         const latestGesture = chronologicalSequence[chronologicalSequence.length - 1];
         const timeSpan = latestGesture.timestamp - earliestGesture.timestamp;
-
-        const sequenceStartTime = earliestGesture.timestamp;
-
-        if (sequenceStartTime < currentTime - timeWindow) {
-          continue;
-        }
 
         if (timeSpan <= timeWindow) {
           const avgConfidence = chronologicalSequence.reduce((sum, g) => sum + g.confidence, 0) /
