@@ -79,6 +79,8 @@ const audioServiceMock = {
 const checkForModelUpdateMock = jest.fn().mockResolvedValue(true);
 const shouldAllowModelRefreshMock = jest.fn().mockResolvedValue(true);
 
+const MODEL_REFRESH_COMPLETED_MESSAGE = 'Modellaktualisierung abgeschlossen';
+
 const mockServices = {
   ...actualServices,
   audioService: audioServiceMock,
@@ -152,7 +154,7 @@ const expectNoErrorMessage = (component: renderer.ReactTestRenderer) => {
 };
 
 const getModelRefreshLogCount = () =>
-  (logger.info as jest.Mock).mock.calls.filter(([message]) => message === 'Model refresh finished').length;
+  (logger.info as jest.Mock).mock.calls.filter(([message]) => message === MODEL_REFRESH_COMPLETED_MESSAGE).length;
 
 describe('AppServicesProvider', () => {
   beforeEach(() => {
@@ -306,7 +308,7 @@ describe('AppServicesProvider', () => {
       expect(shouldAllowModelRefreshMock).toHaveBeenCalled();
     });
     await expectEventually(() => {
-      expect(logger.info).toHaveBeenCalledWith('Model refresh finished');
+      expect(logger.info).toHaveBeenCalledWith(MODEL_REFRESH_COMPLETED_MESSAGE);
     });
     const initialRefreshLogCount = getModelRefreshLogCount();
     checkForModelUpdateMock.mockClear();
@@ -385,7 +387,7 @@ describe('AppServicesProvider', () => {
       expect(shouldAllowModelRefreshMock).toHaveBeenCalled();
     });
     expect(checkForModelUpdateMock).not.toHaveBeenCalled();
-    expect(logger.info).not.toHaveBeenCalledWith('Model refresh finished');
+    expect(logger.info).not.toHaveBeenCalledWith(MODEL_REFRESH_COMPLETED_MESSAGE);
 
     await act(async () => {
       component.unmount();

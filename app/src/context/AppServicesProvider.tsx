@@ -64,7 +64,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       try {
         const allowed = await shouldAllowModelRefresh();
         if (!allowed) {
-          logger.info('Skipping model refresh due to connectivity restrictions');
+          logger.info('Modellaktualisierung aufgrund von Verbindungseinschränkungen übersprungen');
           return;
         }
 
@@ -83,13 +83,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         });
 
         if (updated) {
-          logger.info('Model refresh finished');
+          logger.info('Modellaktualisierung abgeschlossen');
         }
       } catch (e) {
-        logger.warn('Failed to run model refresh', e as Error);
+        logger.warn('Modellaktualisierung fehlgeschlagen', e as Error);
       } finally {
-        refreshState.running = false;
-
         if (!cancelled && refreshState.queued > 0) {
           refreshState.queued -= 1;
           refreshState.promise = startRefresh();
@@ -98,6 +96,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           if (cancelled) {
             refreshState.queued = 0;
           }
+          refreshState.running = false;
           refreshState.promise = Promise.resolve();
         }
       }
