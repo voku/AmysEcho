@@ -112,7 +112,7 @@ export class EmergencyGestureSystem {
     landmarks?: number[][][] | null
   ): void {
     const timestamp = Date.now();
-    const normalizedLandmarks: number[][][] = (landmarks ?? []) as number[][][];
+    const normalizedLandmarks: number[][][] = landmarks ?? [];
     const handCount = normalizedLandmarks.length;
     const pointsPerHand =
       handCount > 0 && Array.isArray(normalizedLandmarks[0]) ? normalizedLandmarks[0].length : 0;
