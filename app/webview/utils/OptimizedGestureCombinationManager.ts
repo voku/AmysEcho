@@ -141,6 +141,12 @@ export class OptimizedGestureCombinationManager {
         const timeSpan = candidateSequence[candidateSequence.length - 1].timestamp - candidateSequence[0].timestamp;
 
         // Check if within time window
+        const sequenceEndTime = candidateSequence[candidateSequence.length - 1].timestamp;
+
+        if (sequenceEndTime < currentTime - timeWindow) {
+          continue;
+        }
+
         if (timeSpan <= timeWindow) {
           const avgConfidence = candidateSequence.reduce((sum, g) => sum + g.confidence, 0) / candidateSequence.length;
           const matchedGestures = candidateSequence.map(g => g.gesture);

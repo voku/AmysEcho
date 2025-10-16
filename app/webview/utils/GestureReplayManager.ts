@@ -198,7 +198,7 @@ export class GestureReplayManager {
       return null;
     }
 
-    const { recording, currentFrame, options } = this.activeReplay;
+    const { recording, currentFrame } = this.activeReplay;
     const progress = currentFrame / recording.landmarkSequence.length;
 
     return {

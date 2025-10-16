@@ -211,7 +211,23 @@ export class PersonalizedThresholdManager {
   }
 
   private trimHistory(gesture: string): void {
-    // For now, we keep all history but could implement sliding window
-    // This is a placeholder for future optimization
+    const performance = this.gesturePerformance.get(gesture);
+    if (!performance) {
+      return;
+    }
+
+    if (performance.totalAttempts <= this.PERFORMANCE_WINDOW) {
+      return;
+    }
+
+    // Scale attempts down while keeping success rate representative
+    performance.totalAttempts = this.PERFORMANCE_WINDOW;
+    performance.successfulAttempts = Math.round(performance.successRate * performance.totalAttempts);
+    performance.successRate = performance.totalAttempts > 0
+      ? performance.successfulAttempts / performance.totalAttempts
+      : 0;
+    performance.personalizedThreshold = this.calculatePersonalizedThreshold(performance);
+
+    this.gesturePerformance.set(gesture, performance);
   }
 }

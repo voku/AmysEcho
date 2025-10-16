@@ -7,7 +7,7 @@ This report summarizes the current linting status of the `app` directory after s
 *   **Configuration File:** `app/eslint.config.js` (using new flat config format)
 *   **Parser:** `@typescript-eslint/parser`
 *   **Plugins:** `@typescript-eslint`, `react`, `react-hooks`, `jest`
-*   **Ignored Paths:** `android/`, `ios/`, `node_modules/`, `build/`, `dist/`, `.expo/`, and specific generated files like `EXDevMenuApp.android.js`, `gestureDetector.js`, `index.js`.
+*   **Ignored Paths:** `android/`, `ios/`, `node_modules/`, `build/`, `dist/`, `.expo/`, `coverage/`, `__mocks__/`, and generated WebView bundles such as `assets/**/*.js`, `assets/**/*.ts`, plus individual artifacts like the pinned `vision_bundle.js` and Expo's generated `index.js`.
 
 **Summary:**
 
@@ -55,19 +55,8 @@ The linter now runs successfully without parsing errors. All critical `react-hoo
 ### `app/test/symbolButton.test.tsx`
 *   `17:7` warning: `childHaptic` is assigned a value but never used
 
-### `app/webview/gestureDetector.ts`
-*   `9:3` warning: `MediaPipeGestureResult` is defined but never used
-*   `10:3` warning: `MLPPrediction` is defined but never used
-*   `11:3` warning: `GestureResult` is defined but never used
-*   `12:3` warning: `WebViewMessagePayload` is defined but never used
-*   `14:3` warning: `FilesetResolver` is defined but never used
-*   `15:3` warning: `VisionTasks` is defined but never used
-*   `17:3` warning: `HandLandmark` is defined but never used
-*   `18:3` warning: `GestureCategory` is defined but never used
-*   `19:3` warning: `HandednessCategory` is defined but never used
-*   `779:17` warning: `error` is defined but never used
-*   `1313:12` warning: `e` is defined but never used
-*   `1637:11` warning: `shouldRetry` is assigned a value but never used
+### WebView bundle sources
+*   ✅ All lint warnings in `app/webview/*` have been resolved. Treat new warnings in the generated bundle sources as regressions to keep the gesture detector pipeline healthy.
 
 **Recommendation:**
 
