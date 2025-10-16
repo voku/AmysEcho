@@ -309,4 +309,97 @@ describe('syncTrainingData', () => {
     );
     expect(pollCalls).toHaveLength(2);
   });
+
+  it('does not refresh the model when the monitored training job fails', async () => {
+    const bundle = {
+      key: 'bundle1',
+      sampleId: 'sample1',
+      profileId: 'profile1',
+      clipUri: 'uri1',
+      frames: [],
+      label: 'test',
+      capturedAt: 'date',
+    };
+
+    mockedListQueuedTrainingBundles.mockResolvedValueOnce([bundle]).mockResolvedValueOnce([]);
+    mockedUploadTrainingBundle.mockResolvedValue({
+      id: 'upload1',
+      status: 'queued',
+      trainingJob: {
+        jobId: 'job-321',
+        status: 'running',
+      },
+    });
+
+    (global.fetch as jest.Mock).mockImplementation((url: RequestInfo) => {
+      const href = typeof url === 'string' ? url : '';
+      if (href === `${API_URL}/api/training-status/job-321`) {
+        return Promise.resolve(createFetchResponse({ status: 'failed', jobId: 'job-321' }));
+      }
+      return Promise.resolve(createFetchResponse({ status: 'queued', jobId: 'job-321' }));
+    });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(1);
+    expect(mockedRefreshDgsModel).not.toHaveBeenCalled();
+    expect(mockedLogger.warn).toHaveBeenCalledWith(
+      'Skipped model refresh because training job did not complete',
+      expect.objectContaining({ jobId: 'job-321' }),
+    );
+  });
+
+  it('logs timeout and skips refresh when training job never resolves', async () => {
+    const bundle = {
+      key: 'bundle1',
+      sampleId: 'sample1',
+      profileId: 'profile1',
+      clipUri: 'uri1',
+      frames: [],
+      label: 'test',
+      capturedAt: 'date',
+    };
+
+    mockedListQueuedTrainingBundles.mockResolvedValueOnce([bundle]).mockResolvedValueOnce([]);
+    mockedUploadTrainingBundle.mockResolvedValue({
+      id: 'upload-timeout',
+      status: 'queued',
+      trainingJob: {
+        jobId: 'job-timeout',
+        status: 'running',
+      },
+    });
+
+    const nowSpy = jest.spyOn(Date, 'now');
+    const nowValues = [0, 0, 30_000, 60_000, 90_000, 120_001];
+    let callIndex = 0;
+    nowSpy.mockImplementation(() => nowValues[Math.min(callIndex++, nowValues.length - 1)]);
+
+    __setTrainingJobPollWaitOverride(async () => {});
+
+    (global.fetch as jest.Mock).mockImplementation((url: RequestInfo) => {
+      const href = typeof url === 'string' ? url : '';
+      if (href === `${API_URL}/api/training-status/job-timeout`) {
+        return Promise.resolve(createFetchResponse({ status: 'running', jobId: 'job-timeout' }));
+      }
+      return Promise.resolve(createFetchResponse({ status: 'queued', jobId: 'job-timeout' }));
+    });
+
+    try {
+      const result = await syncTrainingData();
+
+      expect(result.uploaded).toBe(1);
+      expect(mockedRefreshDgsModel).not.toHaveBeenCalled();
+      expect(mockedLogger.warn).toHaveBeenCalledWith(
+        'Training job poll timed out',
+        expect.objectContaining({ jobId: 'job-timeout', attempts: expect.any(Number) }),
+      );
+      expect(mockedLogger.warn).toHaveBeenCalledWith(
+        'Skipped model refresh because training job did not complete',
+        expect.objectContaining({ jobId: 'job-timeout' }),
+      );
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
 });
