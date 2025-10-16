@@ -122,6 +122,18 @@ class PersonalizedConfidenceService {
     const profile = this.profiles.get(gestureId) || this.createDefaultProfile(gestureId);
     const timeOfDay = this.getTimeOfDay();
 
+    const normalizedAdjustments: ConfidenceProfile['timeOfDayAdjustments'] = {
+      morning: profile.timeOfDayAdjustments?.morning ?? 0,
+      afternoon: profile.timeOfDayAdjustments?.afternoon ?? 0,
+      evening: profile.timeOfDayAdjustments?.evening ?? 0,
+      night: profile.timeOfDayAdjustments?.night ?? 0,
+    };
+    profile.timeOfDayAdjustments = normalizedAdjustments;
+
+    if (!Number.isFinite(profile.attemptCount)) {
+      profile.attemptCount = this.MIN_SAMPLES_FOR_ADAPTATION;
+    }
+
     // Update success rate (rolling average)
     const currentSuccessRate = profile.successRate;
     profile.successRate = (currentSuccessRate * 9 + (wasSuccessful ? 1 : 0)) / 10;
@@ -146,17 +158,17 @@ class PersonalizedConfidenceService {
         // Low success rate - decrease threshold to be more accepting
         profile.baseThreshold = Math.max(0.3, profile.baseThreshold - this.ADAPTATION_RATE * 0.2);
       }
+    }
 
-      // Update time-of-day preferences
-      if (wasSuccessful) {
-        // Slightly lower threshold for this time of day if successful
-        profile.timeOfDayAdjustments[timeOfDay] -= this.ADAPTATION_RATE * 0.05;
-        profile.timeOfDayAdjustments[timeOfDay] = Math.max(-0.2, profile.timeOfDayAdjustments[timeOfDay]);
-      } else if (confidence > profile.baseThreshold - 0.1) {
-        // Close but unsuccessful - slightly increase threshold for this time
-        profile.timeOfDayAdjustments[timeOfDay] += this.ADAPTATION_RATE * 0.03;
-        profile.timeOfDayAdjustments[timeOfDay] = Math.min(0.2, profile.timeOfDayAdjustments[timeOfDay]);
-      }
+    // Update time-of-day preferences every attempt so Amy feels the immediate adjustment
+    if (wasSuccessful) {
+      // Slightly lower threshold for this time of day if successful
+      profile.timeOfDayAdjustments[timeOfDay] -= this.ADAPTATION_RATE * 0.05;
+      profile.timeOfDayAdjustments[timeOfDay] = Math.max(-0.2, profile.timeOfDayAdjustments[timeOfDay]);
+    } else if (confidence > profile.baseThreshold - 0.1) {
+      // Close but unsuccessful - slightly increase threshold for this time
+      profile.timeOfDayAdjustments[timeOfDay] += this.ADAPTATION_RATE * 0.03;
+      profile.timeOfDayAdjustments[timeOfDay] = Math.min(0.2, profile.timeOfDayAdjustments[timeOfDay]);
     }
 
     profile.lastUpdated = Date.now();
