@@ -15,13 +15,195 @@ import type { TrainingJobInfo } from './trainingBundleService';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from './trainingBundleQueue';
 
 const TRAINING_JOB_TRIGGER_TIMEOUT_MS = 30_000;
+const TRAINING_JOB_POLL_TIMEOUT_MS = 2 * 60_000;
+const TRAINING_JOB_POLL_INITIAL_DELAY_MS = 1_000;
+const TRAINING_JOB_POLL_MAX_DELAY_MS = 10_000;
+
+const TRAINING_JOB_STATUS_ALIASES: Record<string, TrainingJobInfo['status']> = {
+  queued: 'queued',
+  pending: 'queued',
+  running: 'running',
+  completed: 'completed',
+  complete: 'completed',
+  done: 'completed',
+  success: 'completed',
+  succeeded: 'completed',
+  ok: 'completed',
+  failed: 'failed',
+  failure: 'failed',
+  error: 'failed',
+};
+
+const TRAINING_JOB_CANDIDATE_PATHS: Array<string[]> = [
+  [],
+  ['trainingJob'],
+  ['job'],
+  ['data'],
+  ['data', 'job'],
+  ['result'],
+  ['result', 'job'],
+];
 
 let fetchNetOverride: (() => Promise<NetInfoState | undefined>) | undefined;
+let trainingJobPollWait: (ms: number) => Promise<void> = (ms) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 export function __setNetInfoFetchOverride(
   override?: () => Promise<NetInfoState | undefined>,
 ): void {
   fetchNetOverride = override;
+}
+
+export function __setTrainingJobPollWaitOverride(
+  override?: (ms: number) => Promise<void>,
+): void {
+  trainingJobPollWait =
+    typeof override === 'function'
+      ? override
+      : (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeTrainingJobStatus(value: unknown): TrainingJobInfo['status'] | undefined {
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return TRAINING_JOB_STATUS_ALIASES[normalized];
+  }
+  return undefined;
+}
+
+function resolvePollUrl(job: TrainingJobInfo): string {
+  if (job.pollUrl) {
+    const trimmed = job.pollUrl.trim();
+    if (/^https?:/i.test(trimmed)) {
+      return trimmed;
+    }
+    const base = API_URL.replace(/\/+$/, '');
+    const path = trimmed.replace(/^\/+/, '');
+    return `${base}/${path}`;
+  }
+  const base = API_URL.replace(/\/+$/, '');
+  return `${base}/api/training-status/${encodeURIComponent(job.jobId)}`;
+}
+
+function getNestedCandidate(payload: unknown, path: string[]): unknown {
+  let current = payload;
+  for (const segment of path) {
+    if (!current || typeof current !== 'object') {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current;
+}
+
+function extractTrainingJobStatus(payload: unknown): TrainingJobInfo['status'] | undefined {
+  for (const path of TRAINING_JOB_CANDIDATE_PATHS) {
+    const candidate = getNestedCandidate(payload, path);
+    if (!candidate || typeof candidate !== 'object') {
+      continue;
+    }
+    const normalized = normalizeTrainingJobStatus((candidate as { status?: unknown }).status);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return undefined;
+}
+
+function extractTrainingJobInfo(payload: unknown): TrainingJobInfo | undefined {
+  for (const path of TRAINING_JOB_CANDIDATE_PATHS) {
+    const candidate = getNestedCandidate(payload, path);
+    if (!candidate || typeof candidate !== 'object') {
+      continue;
+    }
+    const jobIdRaw = (candidate as { jobId?: unknown }).jobId ?? (candidate as { id?: unknown }).id;
+    if (typeof jobIdRaw === 'string' && jobIdRaw.trim().length > 0) {
+      const jobId = jobIdRaw.trim();
+      const extracted = extractTrainingJobStatus(candidate);
+      const status =
+        extracted ??
+        (path.length > 0 ? extractTrainingJobStatus(payload) : undefined) ??
+        'queued';
+      const pollUrlRaw = (candidate as { pollUrl?: unknown }).pollUrl;
+      const pollUrl = typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? pollUrlRaw.trim() : undefined;
+      return {
+        jobId,
+        status,
+        ...(pollUrl ? { pollUrl } : {}),
+      };
+    }
+  }
+  return undefined;
+}
+
+async function waitForTrainingJobCompletion(
+  job: TrainingJobInfo,
+  token?: string,
+): Promise<boolean> {
+  if (job.status === 'completed') {
+    logger.info('Training job already completed', { jobId: job.jobId });
+    return true;
+  }
+
+  const deadline = Date.now() + TRAINING_JOB_POLL_TIMEOUT_MS;
+  const pollEndpoint = resolvePollUrl(job);
+  let attempt = 0;
+  let delay = TRAINING_JOB_POLL_INITIAL_DELAY_MS;
+  let lastStatus: TrainingJobInfo['status'] = job.status;
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(pollEndpoint, {
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      let payload: unknown;
+      try {
+        payload = await response.json();
+      } catch (parseError) {
+        logger.warn('Failed to parse training job status response', {
+          error: parseError,
+          jobId: job.jobId,
+          attempt,
+        });
+        payload = undefined;
+      }
+
+      const extractedStatus = extractTrainingJobStatus(payload);
+      const nextStatus: TrainingJobInfo['status'] = extractedStatus ?? lastStatus;
+      lastStatus = nextStatus;
+
+      if (nextStatus === 'completed') {
+        logger.info('Training job completed', { jobId: job.jobId, attempts: attempt + 1 });
+        return true;
+      }
+
+      if (nextStatus === 'failed') {
+        logger.warn('Training job failed', { jobId: job.jobId });
+        return false;
+      }
+    } catch (error) {
+      logger.warn('Training job poll failed', {
+        error,
+        jobId: job.jobId,
+        attempt,
+      });
+    }
+
+    attempt += 1;
+    await trainingJobPollWait(delay);
+    delay = Math.min(Math.round(delay * 1.5), TRAINING_JOB_POLL_MAX_DELAY_MS);
+  }
+
+  logger.warn('Training job poll timed out', { jobId: job.jobId, attempts: attempt });
+  return false;
 }
 
 export interface SyncProgressOptions {
@@ -35,7 +217,11 @@ export interface SyncResult {
 
 export async function syncTrainingData(opts?: SyncProgressOptions): Promise<SyncResult> {
   const profile = await loadProfile();
-  if (!profile?.consentHelpMeGetSmarter) {
+  if (!profile) {
+    return { uploaded: 0, remaining: 0 };
+  }
+
+  if (!profile.consentHelpMeGetSmarter) {
     return { uploaded: 0, remaining: 0 };
   }
 
@@ -70,9 +256,10 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     return { uploaded: 0, remaining: bundles.length };
 
   try {
-    const token = await loadBackendApiToken();
+    const tokenRaw = await loadBackendApiToken();
+    const token = tokenRaw ?? undefined;
     let processed = 0;
-    let trainingJobScheduledByServer: TrainingJobInfo | null = null;
+    let trainingJobToMonitor: TrainingJobInfo | null = null;
     for (const bundle of bundles) {
       try {
         const uploadOptions = token ? { tokenOverride: token } : {};
@@ -90,8 +277,8 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
 
         const serverScheduledJob = uploadResult?.trainingJob;
 
-        if (!trainingJobScheduledByServer && serverScheduledJob?.jobId) {
-          trainingJobScheduledByServer = serverScheduledJob;
+        if (!trainingJobToMonitor && serverScheduledJob?.jobId) {
+          trainingJobToMonitor = serverScheduledJob;
           logger.info('Server scheduled training job after upload', {
             jobId: serverScheduledJob.jobId,
             status: serverScheduledJob.status,
@@ -122,7 +309,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     }
 
     if (processed > 0) {
-      if (token && !trainingJobScheduledByServer) {
+      if (token && !trainingJobToMonitor) {
         try {
           const controller =
             typeof AbortController !== 'undefined' ? new AbortController() : undefined;
@@ -144,8 +331,14 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
             }
             try {
               const payload = await response.json();
-              if (payload?.jobId) {
-                logger.info('Training job triggered for uploaded bundles', { jobId: payload.jobId });
+              const triggeredJob = extractTrainingJobInfo(payload);
+              if (triggeredJob) {
+                trainingJobToMonitor = triggeredJob;
+                logger.info('Training job triggered for uploaded bundles', {
+                  jobId: triggeredJob.jobId,
+                  status: triggeredJob.status,
+                  pollUrl: triggeredJob.pollUrl ?? null,
+                });
               }
             } catch (parseError) {
               logger.warn('Failed to parse training job response', { error: parseError });
@@ -160,15 +353,39 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
         }
       } else if (!token) {
         logger.warn('Skipping training job trigger: missing API token');
-      } else if (trainingJobScheduledByServer) {
+      } else if (trainingJobToMonitor) {
         logger.info('Skipping additional training job trigger (already scheduled by server)', {
-          jobId: trainingJobScheduledByServer.jobId,
-          status: trainingJobScheduledByServer.status,
-          pollUrl: trainingJobScheduledByServer.pollUrl ?? null,
+          jobId: trainingJobToMonitor.jobId,
+          status: trainingJobToMonitor.status,
+          pollUrl: trainingJobToMonitor.pollUrl ?? null,
         });
       }
 
-      await refreshDgsModel(profile.id);
+      if (trainingJobToMonitor) {
+        try {
+          const completed = await waitForTrainingJobCompletion(trainingJobToMonitor, token);
+          if (completed) {
+            await refreshDgsModel(profile.id);
+            logger.info('DGS model refreshed after training job completion', {
+              jobId: trainingJobToMonitor.jobId,
+            });
+          } else {
+            logger.warn('Skipped model refresh because training job did not complete', {
+              jobId: trainingJobToMonitor.jobId,
+            });
+          }
+        } catch (pollError) {
+          logger.warn('Training job monitoring failed', {
+            error: pollError,
+            jobId: trainingJobToMonitor.jobId,
+          });
+        }
+      } else {
+        await refreshDgsModel(profile.id);
+        logger.info('DGS model refreshed after training data sync (no training job to monitor)', {
+          profileId: profile.id,
+        });
+      }
     }
     const remaining = await listQueuedTrainingBundles(profile.id);
     return { uploaded: processed, remaining: remaining.length };

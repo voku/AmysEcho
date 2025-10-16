@@ -8,8 +8,6 @@ import { logger } from '../utils/logger';
 import { loadProfile } from '../storage';
 import type { GestureImageCapture } from '../services/openaiGestureValidationService';
 import type { FrameCapturePayload } from '../types/frames';
-import { flattenHandsWithHandedness } from '../services/handUtils';
-import type { RecognitionPath } from '../utils/recognitionState';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
 import { usePreloadComponents } from '../components/LazyComponent';
@@ -164,7 +162,6 @@ export default function RecognitionScreen({
     gestureConfidence,
     lastRecognizedGesture,
     facingMode,
-    setFacingMode,
     showCelebration,
     celebrationKey,
     gestureSizeTolerance,

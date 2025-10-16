@@ -281,7 +281,7 @@ export class ActiveLearningService {
   /**
    * Check if current activity level is compatible with gesture practice
    */
-  private checkActivityCompatibility(gesture: string, currentActivity: 'high' | 'low' | 'normal'): boolean {
+  private checkActivityCompatibility(_gesture: string, currentActivity: 'high' | 'low' | 'normal'): boolean {
     // High activity might not be ideal for focused practice
     if (currentActivity === 'high') {
       return false;

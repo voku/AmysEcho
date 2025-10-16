@@ -118,7 +118,7 @@ function TrendIndicator({ trend }: { trend: 'increasing' | 'decreasing' | 'stabl
   );
 }
 
-export default function CommunicationInsights({ onClose }: CommunicationInsightsProps) {
+export default function CommunicationInsights({ onClose: _onClose }: CommunicationInsightsProps) {
   const { largeText, highContrast } = useAccessibility();
   const [insightData, setInsightData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

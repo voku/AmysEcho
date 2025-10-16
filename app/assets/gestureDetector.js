@@ -662,7 +662,7 @@
       const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
       if (view.getUint8(0) !== 147) throw new Error("bad npy");
       const major = view.getUint8(6);
-      const _minor = view.getUint8(7);
+      view.getUint8(7);
       const headerLen = major === 1 ? view.getUint16(8, true) : view.getUint32(8, true);
       const headerStart = major === 1 ? 10 : 12;
       const headerBytes = buf.subarray(headerStart, headerStart + headerLen);

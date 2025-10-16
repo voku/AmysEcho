@@ -12,7 +12,6 @@ function simpleHash(input: string): string {
 
 class SecureConfigManager {
   private static instance: SecureConfigManager;
-  private apiKeyHash = '';
 
   static getInstance(): SecureConfigManager {
     if (!SecureConfigManager.instance) {
@@ -27,7 +26,6 @@ class SecureConfigManager {
 
   async setAPIKey(key: string): Promise<void> {
     const hash = this.hashKey(key);
-    this.apiKeyHash = hash;
     await SecureStore.setItemAsync('amys-echo-api-key', key);
     await SecureStore.setItemAsync('amys-echo-api-key-hash', hash);
     setTimeout(() => {

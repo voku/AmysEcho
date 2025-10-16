@@ -72,7 +72,7 @@ export const getGestureIcon = (gestureId: string) => {
   }
 };
 
-function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions, gestureModel, showPictures }: CorrectionPanelProps) {
+function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions }: CorrectionPanelProps) {
   const { largeText, highContrast } = useAccessibility();
 
   const styles = StyleSheet.create({

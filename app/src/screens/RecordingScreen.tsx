@@ -103,6 +103,10 @@ export default function RecordingScreen({ navigation, route }: any) {
   const clipRequestIdRef = useRef<string | null>(null);
   const clipFileRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    setGestureId(initialGesture);
+  }, [initialGesture]);
+
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
     const directory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
     if (!directory) {

@@ -16,6 +16,7 @@ export interface ConfidenceProfile {
   learningProgress: number; // 0-1, how well Amy has learned this gesture
   successRate: number; // Rolling success rate for this gesture
   lastUpdated: number;
+  attemptCount: number;
 }
 
 export interface PersonalizedThreshold {
@@ -121,9 +122,26 @@ class PersonalizedConfidenceService {
     const profile = this.profiles.get(gestureId) || this.createDefaultProfile(gestureId);
     const timeOfDay = this.getTimeOfDay();
 
+    const normalizedAdjustments: ConfidenceProfile['timeOfDayAdjustments'] = {
+      morning: profile.timeOfDayAdjustments?.morning ?? 0,
+      afternoon: profile.timeOfDayAdjustments?.afternoon ?? 0,
+      evening: profile.timeOfDayAdjustments?.evening ?? 0,
+      night: profile.timeOfDayAdjustments?.night ?? 0,
+    };
+    profile.timeOfDayAdjustments = normalizedAdjustments;
+
+    if (!Number.isFinite(profile.attemptCount)) {
+      console.warn(`Resetting corrupt attemptCount for gesture ${gestureId}. Current value:`, profile.attemptCount);
+      profile.attemptCount = this.MIN_SAMPLES_FOR_ADAPTATION;
+    }
+
     // Update success rate (rolling average)
     const currentSuccessRate = profile.successRate;
     profile.successRate = (currentSuccessRate * 9 + (wasSuccessful ? 1 : 0)) / 10;
+
+    profile.attemptCount += 1;
+
+    const readyForAdaptation = profile.attemptCount >= this.MIN_SAMPLES_FOR_ADAPTATION;
 
     // Update learning progress based on recent performance
     if (wasSuccessful && confidence > profile.baseThreshold + 0.2) {
@@ -132,16 +150,18 @@ class PersonalizedConfidenceService {
       profile.learningProgress = Math.max(0.0, profile.learningProgress - 0.02);
     }
 
-    // Adapt base threshold based on success patterns
-    if (profile.successRate > 0.8 && profile.learningProgress > 0.6) {
-      // High success rate with good learning - can increase threshold slightly
-      profile.baseThreshold = Math.min(0.7, profile.baseThreshold + this.ADAPTATION_RATE * 0.1);
-    } else if (profile.successRate < 0.4) {
-      // Low success rate - decrease threshold to be more accepting
-      profile.baseThreshold = Math.max(0.3, profile.baseThreshold - this.ADAPTATION_RATE * 0.2);
+    if (readyForAdaptation) {
+      // Adapt base threshold based on success patterns
+      if (profile.successRate > 0.8 && profile.learningProgress > 0.6) {
+        // High success rate with good learning - can increase threshold slightly
+        profile.baseThreshold = Math.min(0.7, profile.baseThreshold + this.ADAPTATION_RATE * 0.1);
+      } else if (profile.successRate < 0.4) {
+        // Low success rate - decrease threshold to be more accepting
+        profile.baseThreshold = Math.max(0.3, profile.baseThreshold - this.ADAPTATION_RATE * 0.2);
+      }
     }
 
-    // Update time-of-day preferences
+    // Update time-of-day preferences every attempt so Amy feels the immediate adjustment
     if (wasSuccessful) {
       // Slightly lower threshold for this time of day if successful
       profile.timeOfDayAdjustments[timeOfDay] -= this.ADAPTATION_RATE * 0.05;
@@ -240,7 +260,8 @@ class PersonalizedConfidenceService {
       },
       learningProgress: 0.5,
       successRate: 0.5,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
+      attemptCount: 0
     };
   }
 
@@ -262,8 +283,26 @@ class PersonalizedConfidenceService {
     try {
       const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        this.profiles = new Map(Object.entries(parsed));
+        const parsed = JSON.parse(stored) as Record<string, Partial<ConfidenceProfile>>;
+        this.profiles = new Map(
+          Object.entries(parsed).map(([gestureId, value]) => [
+            gestureId,
+            {
+              gestureId,
+              baseThreshold: value.baseThreshold ?? 0.5,
+              timeOfDayAdjustments: {
+                morning: value.timeOfDayAdjustments?.morning ?? 0,
+                afternoon: value.timeOfDayAdjustments?.afternoon ?? 0,
+                evening: value.timeOfDayAdjustments?.evening ?? 0,
+                night: value.timeOfDayAdjustments?.night ?? 0,
+              },
+              learningProgress: value.learningProgress ?? 0.5,
+              successRate: value.successRate ?? 0.5,
+              lastUpdated: value.lastUpdated ?? Date.now(),
+              attemptCount: value.attemptCount ?? 0,
+            },
+          ]),
+        );
       }
     } catch (error) {
       console.warn('Failed to load confidence profiles:', error);

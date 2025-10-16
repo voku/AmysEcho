@@ -92,7 +92,7 @@ function makeCacheKey(req: ValidationRequest): string {
  * This would typically be called from the MediaPipeGestureDetector
  */
 export async function captureGestureImage(
-  videoElement?: any,
+  _videoElement?: any,
   canvasElement?: any
 ): Promise<GestureImageCapture | null> {
   const result = await withErrorHandling(

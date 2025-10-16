@@ -586,11 +586,10 @@ describe('FeedbackService', () => {
         const pattern = {
           style: 'medium' as const,
           intensity: 'medium' as const,
-          repeat: 2,
-          _allowRepeat: true
+          repeat: 2
         };
 
-        await (hapticService as any).executeHapticPattern(pattern);
+        await (hapticService as any).executeHapticPattern(pattern, true);
 
         expect(Haptics.impactAsync).toHaveBeenCalledTimes(2);
         expect(Haptics.impactAsync).toHaveBeenCalledWith('medium');
@@ -600,11 +599,10 @@ describe('FeedbackService', () => {
         const pattern = {
           style: 'medium' as const,
           intensity: 'medium' as const,
-          repeat: 5,
-          _allowRepeat: true
+          repeat: 5
         };
 
-        await (hapticService as any).executeHapticPattern(pattern);
+        await (hapticService as any).executeHapticPattern(pattern, true);
 
         expect(Haptics.impactAsync).toHaveBeenCalledTimes(2); // Limited to 2 for medium
       });
@@ -615,11 +613,10 @@ describe('FeedbackService', () => {
         const pattern = {
           style: 'heavy' as const,
           intensity: 'heavy' as const,
-          repeat: 2,
-          _allowRepeat: true
+          repeat: 2
         };
 
-        const executePromise = (hapticService as any).executeHapticPattern(pattern);
+        const executePromise = (hapticService as any).executeHapticPattern(pattern, true);
 
         // First call should happen immediately
         expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);

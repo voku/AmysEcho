@@ -3,7 +3,7 @@
  * Provides immediate feedback for every hand movement detection
  */
 
-export interface HapticPattern {
+export interface WebviewHapticPattern {
   type: 'light' | 'medium' | 'heavy' | 'success' | 'error' | 'custom';
   intensity: number; // 0-1
   duration?: number; // milliseconds
@@ -13,7 +13,7 @@ export interface HapticPattern {
 
 export interface HapticEvent {
   event: string;
-  pattern: HapticPattern;
+  pattern: WebviewHapticPattern;
   priority: 'low' | 'medium' | 'high' | 'critical';
   context?: any;
 }
@@ -37,7 +37,7 @@ export class HapticFeedbackManager {
   };
 
   // Predefined haptic patterns for different events
-  private readonly patterns: Record<string, HapticPattern> = {
+  private readonly patterns: Record<string, WebviewHapticPattern> = {
     // Hand detection and movement
     hand_detected: {
       type: 'light',
@@ -309,7 +309,7 @@ export class HapticFeedbackManager {
   /**
    * Get adapted haptic pattern based on preferences and context
    */
-  private getAdaptedPattern(event: string, context?: any): HapticPattern | null {
+  private getAdaptedPattern(event: string, context?: any): WebviewHapticPattern | null {
     let basePattern = this.patterns[event as keyof typeof this.patterns];
 
     if (!basePattern) {
@@ -321,7 +321,7 @@ export class HapticFeedbackManager {
       return null;
     }
 
-    const adaptedPattern: HapticPattern = { ...basePattern };
+    const adaptedPattern: WebviewHapticPattern = { ...basePattern };
 
     // Adjust intensity based on preferences
     if (this.preferences.intensity === 'gentle') {

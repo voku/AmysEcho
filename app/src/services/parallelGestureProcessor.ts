@@ -27,9 +27,9 @@ type CapturedFrame =
   | { base64?: string; uri?: string; width?: number; height?: number }
   | null;
 import { logger } from '../utils/logger';
-import { withErrorHandling, createErrorMessage } from '../utils/errorUtils';
+import { withErrorHandling } from '../utils/errorUtils';
 import { performanceMonitor } from './performanceMonitor';
-import { validateWithRules, commonValidationRules, ValidationRule } from '../utils/validationUtils';
+import { validateWithRules, ValidationRule } from '../utils/validationUtils';
 
 export interface GestureResult {
   gesture: string | null;
@@ -67,7 +67,6 @@ export interface ProcessingStats {
 
 class ParallelGestureProcessor {
   private options: Required<ParallelProcessingOptions>;
-  private frameQueue: Array<{ frame: any; timestamp: number }> = [];
   private processingQueue: Map<string, Promise<GestureResult>> = new Map();
   private resultCache: Map<string, GestureResult> = new Map();
   private stats: ProcessingStats = {
@@ -80,7 +79,6 @@ class ParallelGestureProcessor {
   };
 
   private frameCounter = 0;
-  private isProcessing = false;
 
   constructor(options: ParallelProcessingOptions = {}) {
      this.options = {
@@ -813,11 +811,9 @@ class ParallelGestureProcessor {
      // event loop active in tests
      await Promise.allSettled(this.processingQueue.values());
 
-     this.frameQueue = [];
      this.processingQueue.clear();
      this.resultCache.clear();
      this.frameCounter = 0;
-     this.isProcessing = false;
 
      // Clear logging context
      logger.clearContext();

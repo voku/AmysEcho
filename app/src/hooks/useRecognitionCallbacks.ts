@@ -126,8 +126,6 @@ export const useRecognitionCallbacks = ({
     dialogContext,
     lastRecognizedGesture,
     profile,
-    sequenceMeaning,
-    sequenceMatch,
   } = state;
 
   const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);

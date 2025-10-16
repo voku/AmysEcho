@@ -8,6 +8,7 @@
     "module": "ESNext",
     "rootDir": ".",
     "moduleResolution": "Bundler",
+    "customConditions": ["react-native"],
     "baseUrl": ".",
     "paths": {
       "expo-file-system": ["node_modules/expo-file-system/build/index.d.ts"],
@@ -21,6 +22,8 @@
     "outDir": "dist",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "allowArbitraryExtensions": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitReturns": true,
@@ -29,6 +32,10 @@
     "noPropertyAccessFromIndexSignature": true,
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleSuffixes": [".native", ""],
     "skipLibCheck": true,
     "isolatedModules": true
   },
