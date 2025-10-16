@@ -223,9 +223,7 @@ export class PersonalizedThresholdManager {
     // Scale attempts down while keeping success rate representative
     performance.totalAttempts = this.PERFORMANCE_WINDOW;
     performance.successfulAttempts = Math.round(performance.successRate * performance.totalAttempts);
-    performance.successRate = performance.totalAttempts > 0
-      ? performance.successfulAttempts / performance.totalAttempts
-      : 0;
+    performance.successRate = performance.successfulAttempts / performance.totalAttempts;
     performance.personalizedThreshold = this.calculatePersonalizedThreshold(performance);
 
     this.gesturePerformance.set(gesture, performance);
