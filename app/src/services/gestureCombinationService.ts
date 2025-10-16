@@ -14,7 +14,7 @@ export interface GestureSequence {
   description: string;
   gestures: string[]; // Array of gesture IDs in sequence
   combinedMeaning: string; // What the combination means
-  timeWindow: number; // Max time between gestures in sequence (ms)
+  timeWindow?: number; // Max time between gestures in sequence (ms)
   minConfidence: number; // Minimum confidence for each gesture
   enabled: boolean;
   usageCount: number;

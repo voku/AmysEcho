@@ -65,6 +65,12 @@ function createFetchResponse(body: unknown) {
   };
 }
 
+function getTrainModelCallCount(): number {
+  return (global.fetch as jest.Mock).mock.calls.filter(
+    ([url]) => url === `${API_URL}/train-model`,
+  ).length;
+}
+
 describe('syncTrainingData', () => {
   const defaultProfile = { id: 'profile1', consentHelpMeGetSmarter: true };
   const wifiConnection = { isConnected: true, isInternetReachable: true, type: 'wifi' as const };
@@ -151,10 +157,7 @@ describe('syncTrainingData', () => {
     expect(onProgress).toHaveBeenNthCalledWith(1, 50);
     expect(onProgress).toHaveBeenNthCalledWith(2, 100);
     expect(mockedRefreshDgsModel).toHaveBeenCalledWith('profile1');
-    const trainModelCalls = (global.fetch as jest.Mock).mock.calls.filter(
-      ([url]) => url === `${API_URL}/train-model`,
-    );
-    expect(trainModelCalls).toHaveLength(0);
+    expect(getTrainModelCallCount()).toBe(0);
   });
 
   it('falls back to manual training trigger when server does not schedule a job', async () => {
@@ -191,6 +194,30 @@ describe('syncTrainingData', () => {
     );
   });
 
+  it('uploads bundles but skips training trigger when API token is missing', async () => {
+    mockedLoadBackendApiToken.mockResolvedValueOnce(null);
+
+    const bundle = {
+      key: 'bundle1',
+      sampleId: 'sample1',
+      profileId: 'profile1',
+      clipUri: 'uri1',
+      frames: [],
+      label: 'test',
+      capturedAt: 'date',
+    };
+
+    mockedListQueuedTrainingBundles.mockResolvedValueOnce([bundle]).mockResolvedValueOnce([]);
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued' });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(1);
+    expect(getTrainModelCallCount()).toBe(0);
+    expect(mockedRefreshDgsModel).toHaveBeenCalledWith('profile1');
+    expect(mockedLogger.warn).toHaveBeenCalledWith('Skipping training job trigger: missing API token');
+  });
+
   it('skips manual trigger if a later upload schedules the job', async () => {
     const bundles = [
       { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
@@ -212,10 +239,7 @@ describe('syncTrainingData', () => {
 
     expect(result.uploaded).toBe(2);
     expect(result.remaining).toBe(0);
-    const trainModelCalls = (global.fetch as jest.Mock).mock.calls.filter(
-      ([url]) => url === `${API_URL}/train-model`,
-    );
-    expect(trainModelCalls).toHaveLength(0);
+    expect(getTrainModelCallCount()).toBe(0);
   });
 
   it('skips manual trigger when server provides a job ID', async () => {
@@ -236,10 +260,7 @@ describe('syncTrainingData', () => {
 
     expect(result.uploaded).toBe(1);
     expect(result.remaining).toBe(0);
-    const trainModelCalls = (global.fetch as jest.Mock).mock.calls.filter(
-      ([url]) => url === `${API_URL}/train-model`,
-    );
-    expect(trainModelCalls).toHaveLength(0);
+    expect(getTrainModelCallCount()).toBe(0);
   });
 
   it('polls training job until completion before refreshing model', async () => {
@@ -373,9 +394,13 @@ describe('syncTrainingData', () => {
     const nowSpy = jest.spyOn(Date, 'now');
     const nowValues = [0, 0, 30_000, 60_000, 90_000, 120_001];
     let callIndex = 0;
-    nowSpy.mockImplementation(() => nowValues[Math.min(callIndex++, nowValues.length - 1)]);
-
-    __setTrainingJobPollWaitOverride(async () => {});
+    nowSpy.mockImplementation(() => {
+      const value = nowValues[callIndex];
+      if (callIndex < nowValues.length - 1) {
+        callIndex += 1;
+      }
+      return value;
+    });
 
     (global.fetch as jest.Mock).mockImplementation((url: RequestInfo) => {
       const href = typeof url === 'string' ? url : '';

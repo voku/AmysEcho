@@ -117,8 +117,11 @@ function extractTrainingJobInfo(payload: unknown): TrainingJobInfo | undefined {
     const jobIdRaw = (candidate as { jobId?: unknown }).jobId ?? (candidate as { id?: unknown }).id;
     if (typeof jobIdRaw === 'string' && jobIdRaw.trim().length > 0) {
       const jobId = jobIdRaw.trim();
+      const extracted = extractTrainingJobStatus(candidate);
       const status =
-        extractTrainingJobStatus(candidate) ?? normalizeTrainingJobStatus((payload as { status?: unknown }).status) ?? 'queued';
+        extracted ??
+        (candidate !== payload ? extractTrainingJobStatus(payload) : undefined) ??
+        'queued';
       const pollUrlRaw = (candidate as { pollUrl?: unknown }).pollUrl;
       const pollUrl = typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? pollUrlRaw.trim() : undefined;
       return {
@@ -337,8 +340,12 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
               } else if (payload && typeof payload === 'object' && 'jobId' in payload) {
                 const jobIdRaw = (payload as { jobId?: unknown }).jobId;
                 if (typeof jobIdRaw === 'string' && jobIdRaw.trim().length > 0) {
-                  logger.info('Training job triggered for uploaded bundles', {
-                    jobId: jobIdRaw.trim(),
+                  const jobId = jobIdRaw.trim();
+                  trainingJobToMonitor = { jobId, status: 'queued' };
+                  logger.info('Training job triggered for uploaded bundles (legacy format)', {
+                    jobId,
+                    status: 'queued',
+                    pollUrl: null,
                   });
                 }
               }

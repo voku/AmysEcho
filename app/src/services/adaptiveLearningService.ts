@@ -297,7 +297,11 @@ class EnhancedAdaptiveLearningService {
         avgConfidence >= threshold.minConfidence &&
         avgConfidence < threshold.maxConfidence + Number.EPSILON &&
         metrics.totalAttempts >= threshold.minAttempts &&
-        (level === 'master' ? successRate >= 0.9 : true)
+        (level === 'master'
+          ? successRate >= 0.9
+          : level === 'advanced'
+            ? successRate >= 0.7
+            : true)
       ) {
         return level;
       }

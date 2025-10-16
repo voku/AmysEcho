@@ -133,14 +133,14 @@ class AmyFirstHapticService {
         intensity = pattern.intensity;
         repeat = pattern.repeat ?? repeat;
       }
-      (pattern as any)._allowRepeat = context?.isEmergency || ['hilfe', 'help'].includes(gestureId) || positive.includes(gestureId);
+      const allowRepeat =
+        context?.isEmergency || ['hilfe', 'help'].includes(gestureId) || positive.includes(gestureId);
       const adjusted = this.adjustForPreferences(pattern);
-      const allowRepeat = (pattern as any)._allowRepeat === true;
       if (!allowRepeat) {
         await Haptics.impactAsync(adjusted.style);
         return;
       }
-      await this.executeHapticPattern(adjusted);
+      await this.executeHapticPattern(adjusted, allowRepeat);
     } catch (error) {
       logger.debug('Context-aware haptic feedback failed:', error);
       // Fallback to basic feedback
@@ -222,10 +222,9 @@ class AmyFirstHapticService {
     return adjusted;
   }
 
-  private async executeHapticPattern(pattern: HapticPattern): Promise<void> {
+  private async executeHapticPattern(pattern: HapticPattern, allowRepeat: boolean): Promise<void> {
     // Only repeat for emergency (heavy) or celebratory (medium x2) patterns.
     const intended = pattern.repeat || 1;
-    const allowRepeat = (pattern as any)._allowRepeat === true;
     const reps = allowRepeat
       ? pattern.intensity === 'heavy'
         ? intended
