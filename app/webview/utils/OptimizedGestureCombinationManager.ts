@@ -150,6 +150,12 @@ export class OptimizedGestureCombinationManager {
           continue;
         }
 
+        const sequenceStartTime = earliestGesture.timestamp;
+
+        if (sequenceStartTime < currentTime - timeWindow) {
+          continue;
+        }
+
         if (timeSpan <= timeWindow) {
           const avgConfidence = chronologicalSequence.reduce((sum, g) => sum + g.confidence, 0) /
             chronologicalSequence.length;

@@ -4042,7 +4042,7 @@
      */
     sendEmergencyTelemetry(gesture, confidence, landmarks) {
       const timestamp = Date.now();
-      const normalizedLandmarks = Array.isArray(landmarks) ? landmarks : [];
+      const normalizedLandmarks = landmarks ?? [];
       const handCount = normalizedLandmarks.length;
       const pointsPerHand = handCount > 0 && Array.isArray(normalizedLandmarks[0]) ? normalizedLandmarks[0].length : 0;
       const basePayload = {
