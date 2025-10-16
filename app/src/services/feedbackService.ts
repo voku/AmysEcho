@@ -120,7 +120,7 @@ class AmyFirstHapticService {
       const toStyle = (i: 'light' | 'medium' | 'heavy') =>
         i === 'light' ? Haptics.ImpactFeedbackStyle.Light : i === 'medium' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Heavy;
 
-      let pattern: HapticPattern = { style: toStyle(intensity), intensity, repeat } as HapticPattern;
+      let pattern: HapticPattern = { style: toStyle(intensity), intensity, repeat };
 
       if (this.preferences.contextAwareness && context) {
         pattern = this.applyContextAdjustments(pattern, context);

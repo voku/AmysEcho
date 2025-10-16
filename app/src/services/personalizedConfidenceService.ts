@@ -298,7 +298,7 @@ class PersonalizedConfidenceService {
               learningProgress: value.learningProgress ?? 0.5,
               successRate: value.successRate ?? 0.5,
               lastUpdated: value.lastUpdated ?? Date.now(),
-              attemptCount: value.attemptCount ?? 0,
+              attemptCount: value.attemptCount ?? this.MIN_SAMPLES_FOR_ADAPTATION,
             },
           ]),
         );

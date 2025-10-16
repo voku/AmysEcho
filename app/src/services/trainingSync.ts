@@ -19,7 +19,20 @@ const TRAINING_JOB_POLL_TIMEOUT_MS = 2 * 60_000;
 const TRAINING_JOB_POLL_INITIAL_DELAY_MS = 1_000;
 const TRAINING_JOB_POLL_MAX_DELAY_MS = 10_000;
 
-const TRAINING_JOB_STATUS_SET = new Set(['queued', 'running', 'completed', 'failed']);
+const TRAINING_JOB_STATUS_ALIASES: Record<string, TrainingJobInfo['status']> = {
+  queued: 'queued',
+  pending: 'queued',
+  running: 'running',
+  completed: 'completed',
+  complete: 'completed',
+  done: 'completed',
+  success: 'completed',
+  succeeded: 'completed',
+  ok: 'completed',
+  failed: 'failed',
+  failure: 'failed',
+  error: 'failed',
+};
 
 let fetchNetOverride: (() => Promise<NetInfoState | undefined>) | undefined;
 let trainingJobPollWait: (ms: number) => Promise<void> = (ms) =>
@@ -43,9 +56,7 @@ export function __setTrainingJobPollWaitOverride(
 function normalizeTrainingJobStatus(value: unknown): TrainingJobInfo['status'] | undefined {
   if (typeof value === 'string') {
     const normalized = value.trim().toLowerCase();
-    if (TRAINING_JOB_STATUS_SET.has(normalized)) {
-      return normalized as TrainingJobInfo['status'];
-    }
+    return TRAINING_JOB_STATUS_ALIASES[normalized];
   }
   return undefined;
 }
@@ -56,12 +67,12 @@ function resolvePollUrl(job: TrainingJobInfo): string {
     if (/^https?:/i.test(trimmed)) {
       return trimmed;
     }
-    if (trimmed.startsWith('/')) {
-      return `${API_URL}${trimmed}`;
-    }
-    return `${API_URL}/${trimmed}`;
+    const base = API_URL.replace(/\/+$/, '');
+    const path = trimmed.replace(/^\/+/, '');
+    return `${base}/${path}`;
   }
-  return `${API_URL}/api/training-status/${encodeURIComponent(job.jobId)}`;
+  const base = API_URL.replace(/\/+$/, '');
+  return `${base}/api/training-status/${encodeURIComponent(job.jobId)}`;
 }
 
 function extractTrainingJobStatus(payload: unknown): TrainingJobInfo['status'] | undefined {
@@ -84,6 +95,18 @@ function extractTrainingJobStatus(payload: unknown): TrainingJobInfo['status'] |
   const data = (payload as { data?: unknown }).data;
   if (data && typeof data === 'object') {
     nestedCandidates.push((data as { status?: unknown }).status);
+    const dataJob = (data as { job?: unknown }).job;
+    if (dataJob && typeof dataJob === 'object') {
+      nestedCandidates.push((dataJob as { status?: unknown }).status);
+    }
+  }
+  const result = (payload as { result?: unknown }).result;
+  if (result && typeof result === 'object') {
+    nestedCandidates.push((result as { status?: unknown }).status);
+    const resultJob = (result as { job?: unknown }).job;
+    if (resultJob && typeof resultJob === 'object') {
+      nestedCandidates.push((resultJob as { status?: unknown }).status);
+    }
   }
   for (const candidate of nestedCandidates) {
     const normalized = normalizeTrainingJobStatus(candidate);
@@ -108,6 +131,22 @@ function extractTrainingJobInfo(payload: unknown): TrainingJobInfo | undefined {
   const job = (payload as { job?: unknown }).job;
   if (job && typeof job === 'object') {
     candidates.push(job);
+  }
+  const data = (payload as { data?: unknown }).data;
+  if (data && typeof data === 'object') {
+    candidates.push(data);
+    const dataJob = (data as { job?: unknown }).job;
+    if (dataJob && typeof dataJob === 'object') {
+      candidates.push(dataJob);
+    }
+  }
+  const result = (payload as { result?: unknown }).result;
+  if (result && typeof result === 'object') {
+    candidates.push(result);
+    const resultJob = (result as { job?: unknown }).job;
+    if (resultJob && typeof resultJob === 'object') {
+      candidates.push(resultJob);
+    }
   }
 
   for (const candidate of candidates) {
@@ -337,17 +376,6 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
                   status: triggeredJob.status,
                   pollUrl: triggeredJob.pollUrl ?? null,
                 });
-              } else if (payload && typeof payload === 'object' && 'jobId' in payload) {
-                const jobIdRaw = (payload as { jobId?: unknown }).jobId;
-                if (typeof jobIdRaw === 'string' && jobIdRaw.trim().length > 0) {
-                  const jobId = jobIdRaw.trim();
-                  trainingJobToMonitor = { jobId, status: 'queued' };
-                  logger.info('Training job triggered for uploaded bundles (legacy format)', {
-                    jobId,
-                    status: 'queued',
-                    pollUrl: null,
-                  });
-                }
               }
             } catch (parseError) {
               logger.warn('Failed to parse training job response', { error: parseError });
@@ -370,7 +398,6 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
         });
       }
 
-      let refreshed = false;
       if (trainingJobToMonitor) {
         try {
           const completed = await waitForTrainingJobCompletion(trainingJobToMonitor, token);
@@ -379,7 +406,6 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
             logger.info('DGS model refreshed after training job completion', {
               jobId: trainingJobToMonitor.jobId,
             });
-            refreshed = true;
           } else {
             logger.warn('Skipped model refresh because training job did not complete', {
               jobId: trainingJobToMonitor.jobId,
@@ -393,10 +419,6 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
         }
       } else {
         await refreshDgsModel(profile.id);
-        refreshed = true;
-      }
-
-      if (refreshed && !trainingJobToMonitor) {
         logger.info('DGS model refreshed after training data sync (no training job to monitor)', {
           profileId: profile.id,
         });

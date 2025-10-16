@@ -66,9 +66,11 @@ function createFetchResponse(body: unknown) {
 }
 
 function getTrainModelCallCount(): number {
-  return (global.fetch as jest.Mock).mock.calls.filter(
-    ([url]) => url === `${API_URL}/train-model`,
-  ).length;
+  const endpoint = `${API_URL}/train-model`;
+  return (global.fetch as jest.Mock).mock.calls.filter(([url]) => {
+    const href = typeof url === 'string' ? url : (url as any)?.url ?? '';
+    return href === endpoint;
+  }).length;
 }
 
 describe('syncTrainingData', () => {

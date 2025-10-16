@@ -88,6 +88,8 @@ class EnhancedAdaptiveLearningService {
     basic_communication: {
       name: 'Basic Communication',
       description: 'Essential gestures for daily communication',
+      nameDe: 'Grundlegende Kommunikation',
+      descriptionDe: 'Wichtige Gesten für den Alltag',
       targetGestures: ['hello', 'thank_you', 'please', 'yes', 'no'],
       difficulty: 'easy' as const,
       estimatedDuration: 15,
@@ -96,6 +98,8 @@ class EnhancedAdaptiveLearningService {
     emotional_expression: {
       name: 'Emotional Expression',
       description: 'Express feelings and emotions',
+      nameDe: 'Gefühlsausdruck',
+      descriptionDe: 'Gefühle und Emotionen ausdrücken',
       targetGestures: ['happy', 'sad', 'angry', 'surprised', 'excited'],
       difficulty: 'medium' as const,
       estimatedDuration: 20,
@@ -104,6 +108,8 @@ class EnhancedAdaptiveLearningService {
     daily_activities: {
       name: 'Daily Activities',
       description: 'Gestures for daily routines and activities',
+      nameDe: 'Tägliche Aktivitäten',
+      descriptionDe: 'Gesten für Routinen und Tagesabläufe',
       targetGestures: ['eat', 'drink', 'sleep', 'play', 'bathroom'],
       difficulty: 'medium' as const,
       estimatedDuration: 25,
@@ -112,6 +118,8 @@ class EnhancedAdaptiveLearningService {
     advanced_communication: {
       name: 'Advanced Communication',
       description: 'Complex communication and social gestures',
+      nameDe: 'Fortgeschrittene Kommunikation',
+      descriptionDe: 'Komplexe Gesten für soziale Situationen',
       targetGestures: ['sorry', 'excuse_me', 'wait', 'finished', 'more'],
       difficulty: 'hard' as const,
       estimatedDuration: 30,
@@ -295,7 +303,6 @@ class EnhancedAdaptiveLearningService {
     for (const { level, threshold } of orderedThresholds) {
       if (
         avgConfidence >= threshold.minConfidence &&
-        avgConfidence < threshold.maxConfidence + Number.EPSILON &&
         metrics.totalAttempts >= threshold.minAttempts &&
         (level === 'master'
           ? successRate >= 0.9
@@ -410,7 +417,7 @@ class EnhancedAdaptiveLearningService {
         recommendations.push({
           type: 'practice',
           gesture: nextGesture,
-          reason: `${template.name}: ${template.description}`,
+          reason: `${template.nameDe}: ${template.descriptionDe}`,
           priority: 'medium',
           estimatedTime: template.estimatedDuration,
           expectedDifficulty: toExpectedDifficulty(level),
