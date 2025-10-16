@@ -10,6 +10,7 @@ import { API_URL } from '../../src/constants';
 import * as NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
 import { refreshDgsModel } from '../../src/services/modelUpdate';
+import { logger } from '../../src/utils/logger';
 
 jest.mock('../../src/services/trainingBundleQueue');
 jest.mock('../../src/services/trainingBundleService');
@@ -31,6 +32,20 @@ jest.mock('expo-file-system', () => ({
 jest.mock('../../src/services/modelUpdate', () => ({
   refreshDgsModel: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('../../src/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+    gestureEvent: jest.fn(),
+    apiCall: jest.fn(),
+    performanceMetric: jest.fn(),
+    setContext: jest.fn(),
+    clearContext: jest.fn(),
+    setLevel: jest.fn(),
+  },
+}));
 
 const mockedListQueuedTrainingBundles = listQueuedTrainingBundles as jest.Mock;
 const mockedRemoveQueuedTrainingBundle = removeQueuedTrainingBundle as jest.Mock;
@@ -41,6 +56,7 @@ const mockedUpdateTrainingSample = updateTrainingSample as jest.Mock;
 const mockedNetInfo = NetInfo as { fetch: jest.Mock };
 const mockedFileSystem = FileSystem as { deleteAsync: jest.Mock };
 const mockedRefreshDgsModel = refreshDgsModel as jest.Mock;
+const mockedLogger = logger as jest.Mocked<typeof logger>;
 
 function createFetchResponse(body: unknown) {
   return {
@@ -71,6 +87,10 @@ describe('syncTrainingData', () => {
     mockedNetInfo.fetch.mockResolvedValue(wifiConnection);
     __setNetInfoFetchOverride(mockedNetInfo.fetch);
     mockedLoadBackendApiToken.mockResolvedValue('token');
+    mockedLogger.info.mockReset();
+    mockedLogger.warn.mockReset();
+    mockedLogger.error.mockReset();
+    mockedLogger.debug.mockReset();
   });
 
   afterEach(() => {
@@ -81,10 +101,12 @@ describe('syncTrainingData', () => {
 
   it('should not upload if user has not consented', async () => {
     mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: false });
-    const result = await syncTrainingData();
+    const onProgress = jest.fn();
+    const result = await syncTrainingData({ onProgress });
     expect(result.uploaded).toBe(0);
     expect(mockedListQueuedTrainingBundles).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
+    expect(onProgress).not.toHaveBeenCalled();
   });
 
   it('should not upload if there are no bundles', async () => {
@@ -117,7 +139,8 @@ describe('syncTrainingData', () => {
     });
     mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
 
-    const result = await syncTrainingData();
+    const onProgress = jest.fn();
+    const result = await syncTrainingData({ onProgress });
 
     expect(result.uploaded).toBe(2);
     expect(result.remaining).toBe(0);
@@ -125,6 +148,9 @@ describe('syncTrainingData', () => {
     expect(mockedRemoveQueuedTrainingBundle).toHaveBeenCalledTimes(2);
     expect(mockedUpdateTrainingSample).toHaveBeenCalledTimes(2);
     expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(2);
+    expect(onProgress).toHaveBeenNthCalledWith(1, 50);
+    expect(onProgress).toHaveBeenNthCalledWith(2, 100);
+    expect(mockedRefreshDgsModel).toHaveBeenCalledWith('profile1');
     const trainModelCalls = (global.fetch as jest.Mock).mock.calls.filter(
       ([url]) => url === `${API_URL}/train-model`,
     );
@@ -159,6 +185,10 @@ describe('syncTrainingData', () => {
     expect(endpoint).toBe(`${API_URL}/train-model`);
     expect(options).toMatchObject({ method: 'POST' });
     expect(JSON.parse(options.body)).toEqual({ trigger: 'bundles' });
+    expect(mockedLogger.info).toHaveBeenCalledWith(
+      'Training job triggered for uploaded bundles',
+      expect.objectContaining({ jobId: 'job-1' }),
+    );
   });
 
   it('skips manual trigger if a later upload schedules the job', async () => {
