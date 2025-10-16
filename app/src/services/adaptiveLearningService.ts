@@ -127,6 +127,25 @@ class EnhancedAdaptiveLearningService {
     }
   };
 
+  private readonly LEARNING_PATH_TEMPLATE_LOCALIZATION: Record<string, { name: string; description: string }> = {
+    basic_communication: {
+      name: 'Grundlegende Kommunikation',
+      description: 'Wichtige Gesten für den Alltag',
+    },
+    emotional_expression: {
+      name: 'Gefühlsausdruck',
+      description: 'Gefühle und Emotionen ausdrücken',
+    },
+    daily_activities: {
+      name: 'Tägliche Aktivitäten',
+      description: 'Gesten für Routinen und Tagesabläufe',
+    },
+    advanced_communication: {
+      name: 'Fortgeschrittene Kommunikation',
+      description: 'Komplexe Gesten für soziale Situationen',
+    },
+  };
+
   /**
    * Record a practice attempt for adaptive learning
    */
@@ -403,8 +422,8 @@ class EnhancedAdaptiveLearningService {
     }
 
     if (recommendations.length < 3) {
-      const pathTemplates = Object.values(this.LEARNING_PATH_TEMPLATES);
-      for (const template of pathTemplates) {
+      const pathTemplates = Object.entries(this.LEARNING_PATH_TEMPLATES);
+      for (const [templateId, template] of pathTemplates) {
         if (template.estimatedDuration > availableTime) {
           continue;
         }
@@ -414,10 +433,11 @@ class EnhancedAdaptiveLearningService {
         }
         const metrics = this.performanceMetrics.get(nextGesture);
         const level = metrics ? this.calculateDifficultyLevel(metrics) : 'beginner';
+        const localized = this.getTemplateLocalization(templateId, template);
         recommendations.push({
           type: 'practice',
           gesture: nextGesture,
-          reason: `${template.nameDe}: ${template.descriptionDe}`,
+          reason: `${localized.name}: ${localized.description}`,
           priority: 'medium',
           estimatedTime: template.estimatedDuration,
           expectedDifficulty: toExpectedDifficulty(level),
@@ -433,6 +453,24 @@ class EnhancedAdaptiveLearningService {
       .sort((a: AdaptiveRecommendation, b: AdaptiveRecommendation) => this.getPriorityWeight(b) - this.getPriorityWeight(a))
       .filter(rec => rec.estimatedTime <= availableTime)
       .slice(0, 3);
+  }
+
+  private getTemplateLocalization(
+    templateId: string,
+    template: {
+      name: string;
+      description: string;
+      nameDe?: string;
+      descriptionDe?: string;
+    },
+  ): { name: string; description: string } {
+    const override = this.LEARNING_PATH_TEMPLATE_LOCALIZATION[templateId];
+    if (override) {
+      return override;
+    }
+    const name = template.nameDe ?? template.name;
+    const description = template.descriptionDe ?? template.description;
+    return { name, description };
   }
 
   /**

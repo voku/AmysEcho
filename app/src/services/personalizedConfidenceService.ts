@@ -131,6 +131,7 @@ class PersonalizedConfidenceService {
     profile.timeOfDayAdjustments = normalizedAdjustments;
 
     if (!Number.isFinite(profile.attemptCount)) {
+      console.warn(`Resetting corrupt attemptCount for gesture ${gestureId}. Current value:`, profile.attemptCount);
       profile.attemptCount = this.MIN_SAMPLES_FOR_ADAPTATION;
     }
 
@@ -298,7 +299,7 @@ class PersonalizedConfidenceService {
               learningProgress: value.learningProgress ?? 0.5,
               successRate: value.successRate ?? 0.5,
               lastUpdated: value.lastUpdated ?? Date.now(),
-              attemptCount: value.attemptCount ?? this.MIN_SAMPLES_FOR_ADAPTATION,
+              attemptCount: value.attemptCount ?? 0,
             },
           ]),
         );

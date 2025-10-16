@@ -34,6 +34,16 @@ const TRAINING_JOB_STATUS_ALIASES: Record<string, TrainingJobInfo['status']> = {
   error: 'failed',
 };
 
+const TRAINING_JOB_CANDIDATE_PATHS: Array<string[]> = [
+  [],
+  ['trainingJob'],
+  ['job'],
+  ['data'],
+  ['data', 'job'],
+  ['result'],
+  ['result', 'job'],
+];
+
 let fetchNetOverride: (() => Promise<NetInfoState | undefined>) | undefined;
 let trainingJobPollWait: (ms: number) => Promise<void> = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -75,41 +85,24 @@ function resolvePollUrl(job: TrainingJobInfo): string {
   return `${base}/api/training-status/${encodeURIComponent(job.jobId)}`;
 }
 
+function getNestedCandidate(payload: unknown, path: string[]): unknown {
+  let current = payload;
+  for (const segment of path) {
+    if (!current || typeof current !== 'object') {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current;
+}
+
 function extractTrainingJobStatus(payload: unknown): TrainingJobInfo['status'] | undefined {
-  if (!payload || typeof payload !== 'object') {
-    return undefined;
-  }
-  const direct = normalizeTrainingJobStatus((payload as { status?: unknown }).status);
-  if (direct) {
-    return direct;
-  }
-  const nestedCandidates: unknown[] = [];
-  const trainingJob = (payload as { trainingJob?: unknown }).trainingJob;
-  if (trainingJob && typeof trainingJob === 'object') {
-    nestedCandidates.push((trainingJob as { status?: unknown }).status);
-  }
-  const job = (payload as { job?: unknown }).job;
-  if (job && typeof job === 'object') {
-    nestedCandidates.push((job as { status?: unknown }).status);
-  }
-  const data = (payload as { data?: unknown }).data;
-  if (data && typeof data === 'object') {
-    nestedCandidates.push((data as { status?: unknown }).status);
-    const dataJob = (data as { job?: unknown }).job;
-    if (dataJob && typeof dataJob === 'object') {
-      nestedCandidates.push((dataJob as { status?: unknown }).status);
+  for (const path of TRAINING_JOB_CANDIDATE_PATHS) {
+    const candidate = getNestedCandidate(payload, path);
+    if (!candidate || typeof candidate !== 'object') {
+      continue;
     }
-  }
-  const result = (payload as { result?: unknown }).result;
-  if (result && typeof result === 'object') {
-    nestedCandidates.push((result as { status?: unknown }).status);
-    const resultJob = (result as { job?: unknown }).job;
-    if (resultJob && typeof resultJob === 'object') {
-      nestedCandidates.push((resultJob as { status?: unknown }).status);
-    }
-  }
-  for (const candidate of nestedCandidates) {
-    const normalized = normalizeTrainingJobStatus(candidate);
+    const normalized = normalizeTrainingJobStatus((candidate as { status?: unknown }).status);
     if (normalized) {
       return normalized;
     }
@@ -118,38 +111,8 @@ function extractTrainingJobStatus(payload: unknown): TrainingJobInfo['status'] |
 }
 
 function extractTrainingJobInfo(payload: unknown): TrainingJobInfo | undefined {
-  if (!payload || typeof payload !== 'object') {
-    return undefined;
-  }
-
-  const candidates: unknown[] = [];
-  candidates.push(payload);
-  const trainingJob = (payload as { trainingJob?: unknown }).trainingJob;
-  if (trainingJob && typeof trainingJob === 'object') {
-    candidates.push(trainingJob);
-  }
-  const job = (payload as { job?: unknown }).job;
-  if (job && typeof job === 'object') {
-    candidates.push(job);
-  }
-  const data = (payload as { data?: unknown }).data;
-  if (data && typeof data === 'object') {
-    candidates.push(data);
-    const dataJob = (data as { job?: unknown }).job;
-    if (dataJob && typeof dataJob === 'object') {
-      candidates.push(dataJob);
-    }
-  }
-  const result = (payload as { result?: unknown }).result;
-  if (result && typeof result === 'object') {
-    candidates.push(result);
-    const resultJob = (result as { job?: unknown }).job;
-    if (resultJob && typeof resultJob === 'object') {
-      candidates.push(resultJob);
-    }
-  }
-
-  for (const candidate of candidates) {
+  for (const path of TRAINING_JOB_CANDIDATE_PATHS) {
+    const candidate = getNestedCandidate(payload, path);
     if (!candidate || typeof candidate !== 'object') {
       continue;
     }
@@ -159,7 +122,7 @@ function extractTrainingJobInfo(payload: unknown): TrainingJobInfo | undefined {
       const extracted = extractTrainingJobStatus(candidate);
       const status =
         extracted ??
-        (candidate !== payload ? extractTrainingJobStatus(payload) : undefined) ??
+        (path.length > 0 ? extractTrainingJobStatus(payload) : undefined) ??
         'queued';
       const pollUrlRaw = (candidate as { pollUrl?: unknown }).pollUrl;
       const pollUrl = typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? pollUrlRaw.trim() : undefined;

@@ -120,18 +120,14 @@ class AmyFirstHapticService {
       const toStyle = (i: 'light' | 'medium' | 'heavy') =>
         i === 'light' ? Haptics.ImpactFeedbackStyle.Light : i === 'medium' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Heavy;
 
-      let pattern: HapticPattern = { style: toStyle(intensity), intensity, repeat };
+      let pattern: NativeHapticPattern = { style: toStyle(intensity), intensity, repeat };
 
       if (this.preferences.contextAwareness && context) {
         pattern = this.applyContextAdjustments(pattern, context);
-        intensity = pattern.intensity;
-        repeat = pattern.repeat ?? repeat;
       }
 
       if (this.preferences.timeBasedAdjustments && context?.timeOfDay) {
         pattern = this.applyTimeAdjustments(pattern, context.timeOfDay);
-        intensity = pattern.intensity;
-        repeat = pattern.repeat ?? repeat;
       }
       const allowRepeat =
         context?.isEmergency || ['hilfe', 'help'].includes(gestureId) || positive.includes(gestureId);
@@ -148,7 +144,7 @@ class AmyFirstHapticService {
     }
   }
 
-  private adjustForPreferences(pattern: HapticPattern): HapticPattern {
+  private adjustForPreferences(pattern: NativeHapticPattern): NativeHapticPattern {
     const adjusted = { ...pattern };
 
     // Adjust intensity based on Amy's preference
@@ -187,7 +183,7 @@ class AmyFirstHapticService {
     return intensity === 'heavy' ? 'medium' : 'light';
   }
 
-  private applyContextAdjustments(pattern: HapticPattern, context: any): HapticPattern {
+  private applyContextAdjustments(pattern: NativeHapticPattern, context: any): NativeHapticPattern {
     const adjusted = { ...pattern };
 
     // Pattern match bonus (from context-aware recognition)
@@ -205,7 +201,7 @@ class AmyFirstHapticService {
     return adjusted;
   }
 
-  private applyTimeAdjustments(pattern: HapticPattern, timeOfDay: string): HapticPattern {
+  private applyTimeAdjustments(pattern: NativeHapticPattern, timeOfDay: string): NativeHapticPattern {
     const adjusted = { ...pattern };
 
     // Morning: More gentle to not startle
@@ -222,7 +218,7 @@ class AmyFirstHapticService {
     return adjusted;
   }
 
-  private async executeHapticPattern(pattern: HapticPattern, allowRepeat: boolean): Promise<void> {
+  private async executeHapticPattern(pattern: NativeHapticPattern, allowRepeat: boolean): Promise<void> {
     // Only repeat for emergency (heavy) or celebratory (medium x2) patterns.
     const intended = pattern.repeat || 1;
     const reps = allowRepeat
@@ -282,7 +278,7 @@ class AmyFirstHapticService {
 
 export const amyFirstHapticService = AmyFirstHapticService.getInstance();
 
-export interface HapticPattern {
+export interface NativeHapticPattern {
   style: Haptics.ImpactFeedbackStyle;
   intensity: 'light' | 'medium' | 'heavy';
   duration?: number; // for custom patterns
@@ -292,10 +288,10 @@ export interface HapticPattern {
 export interface AmyHapticPreferences {
   intensity: 'gentle' | 'normal' | 'strong';
   patterns: {
-    emergency: HapticPattern;
-    success: HapticPattern;
-    encouragement: HapticPattern;
-    learning: HapticPattern;
+    emergency: NativeHapticPattern;
+    success: NativeHapticPattern;
+    encouragement: NativeHapticPattern;
+    learning: NativeHapticPattern;
   };
   timeBasedAdjustments: boolean;
   contextAwareness: boolean;
@@ -304,7 +300,7 @@ export interface AmyHapticPreferences {
 /**
  * Get haptic pattern based on gesture confidence
  */
-export function getHapticPatternForConfidence(confidence: number): HapticPattern {
+export function getHapticPatternForConfidence(confidence: number): NativeHapticPattern {
   if (confidence >= 0.8) {
     // High confidence - celebratory feedback
     return {
@@ -336,7 +332,7 @@ export function getHapticPatternForConfidence(confidence: number): HapticPattern
 /**
  * Get haptic pattern for gesture type
  */
-export function getHapticPatternForGesture(gestureId: string): HapticPattern {
+export function getHapticPatternForGesture(gestureId: string): NativeHapticPattern {
   // Emergency gestures get strongest feedback
   if (gestureId === 'hilfe' || gestureId === 'help') {
     return {

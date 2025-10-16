@@ -104,7 +104,7 @@ export default function RecordingScreen({ navigation, route }: any) {
   const clipFileRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setGestureId(prev => (prev === initialGesture ? prev : initialGesture));
+    setGestureId(initialGesture);
   }, [initialGesture]);
 
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
