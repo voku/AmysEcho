@@ -51,15 +51,10 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     let telemetryTimeout: ReturnType<typeof setTimeout> | undefined;
     const refreshState = refreshStateRef.current;
 
-    const startRefresh = async (): Promise<void> => {
+    const performRefresh = async (): Promise<void> => {
       if (cancelled) {
-        refreshState.queued = 0;
-        refreshState.promise = Promise.resolve();
-        refreshState.running = false;
         return;
       }
-
-      refreshState.running = true;
 
       try {
         const allowed = await shouldAllowModelRefresh();
@@ -87,18 +82,33 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         }
       } catch (e) {
         logger.warn('Modellaktualisierung fehlgeschlagen', e as Error);
-      } finally {
-        if (!cancelled && refreshState.queued > 0) {
+      }
+    };
+
+    const startRefresh = async (): Promise<void> => {
+      if (cancelled) {
+        refreshState.queued = 0;
+        refreshState.promise = Promise.resolve();
+        refreshState.running = false;
+        return;
+      }
+
+      refreshState.running = true;
+
+      try {
+        await performRefresh();
+
+        while (!cancelled && refreshState.queued > 0) {
           refreshState.queued -= 1;
-          refreshState.promise = startRefresh();
-          await refreshState.promise;
-        } else {
-          if (cancelled) {
-            refreshState.queued = 0;
-          }
-          refreshState.running = false;
-          refreshState.promise = Promise.resolve();
+          await performRefresh();
         }
+      } finally {
+        if (cancelled) {
+          refreshState.queued = 0;
+        }
+
+        refreshState.running = false;
+        refreshState.promise = Promise.resolve();
       }
     };
 
