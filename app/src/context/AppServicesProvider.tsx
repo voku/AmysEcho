@@ -156,7 +156,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          if (!refreshState.running && refreshState.queued === 0) {
+          if (!refreshState.running) {
             runModelRefresh().catch(() => {});
           }
 
