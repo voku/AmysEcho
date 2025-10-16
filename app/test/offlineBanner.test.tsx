@@ -12,8 +12,11 @@ describe('OfflineBanner', () => {
   const providerValue = { highContrast: false, largeText: false, update: () => {} };
 
   it('renders nothing when not visible', () => {
-    const tree = renderer.create(<OfflineBanner visible={false} />).toJSON();
-    expect(tree).toBeNull();
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(<OfflineBanner visible={false} />);
+    });
+    expect((component as renderer.ReactTestRenderer).toJSON()).toBeNull();
   });
 
   it('renders banner when visible', () => {
