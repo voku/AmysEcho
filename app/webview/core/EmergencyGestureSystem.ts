@@ -109,11 +109,15 @@ export class EmergencyGestureSystem {
   private sendEmergencyTelemetry(
     gesture: string,
     confidence: number,
-    landmarks: number[][][]
+    landmarks?: number[][][] | null
   ): void {
     const timestamp = Date.now();
-    const handCount = landmarks.length;
-    const pointsPerHand = handCount > 0 ? landmarks[0].length : 0;
+    const normalizedLandmarks: number[][][] = Array.isArray(landmarks)
+      ? (landmarks as number[][][])
+      : ([] as number[][][]);
+    const handCount = normalizedLandmarks.length;
+    const pointsPerHand =
+      handCount > 0 && Array.isArray(normalizedLandmarks[0]) ? normalizedLandmarks[0].length : 0;
 
     const basePayload = {
       gesture,

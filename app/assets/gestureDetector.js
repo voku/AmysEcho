@@ -4042,8 +4042,9 @@
      */
     sendEmergencyTelemetry(gesture, confidence, landmarks) {
       const timestamp = Date.now();
-      const handCount = landmarks.length;
-      const pointsPerHand = handCount > 0 ? landmarks[0].length : 0;
+      const normalizedLandmarks = Array.isArray(landmarks) ? landmarks : [];
+      const handCount = normalizedLandmarks.length;
+      const pointsPerHand = handCount > 0 && Array.isArray(normalizedLandmarks[0]) ? normalizedLandmarks[0].length : 0;
       const basePayload = {
         gesture,
         confidence,

@@ -135,21 +135,25 @@ export class OptimizedGestureCombinationManager {
     // Look for sequence match within time window
     for (let startIdx = 0; startIdx <= history.length - gestures.length; startIdx++) {
       const candidateSequence = history.slice(startIdx, startIdx + gestures.length);
+      const chronologicalSequence = [...candidateSequence].reverse();
 
       // Check if sequence matches
-      if (this.sequenceMatches(candidateSequence, gestures)) {
-        const timeSpan = candidateSequence[candidateSequence.length - 1].timestamp - candidateSequence[0].timestamp;
+      if (this.sequenceMatches(chronologicalSequence, gestures)) {
+        const earliestGesture = chronologicalSequence[0];
+        const latestGesture = chronologicalSequence[chronologicalSequence.length - 1];
+        const timeSpan = latestGesture.timestamp - earliestGesture.timestamp;
 
         // Check if within time window
-        const sequenceEndTime = candidateSequence[candidateSequence.length - 1].timestamp;
+        const sequenceEndTime = latestGesture.timestamp;
 
         if (sequenceEndTime < currentTime - timeWindow) {
           continue;
         }
 
         if (timeSpan <= timeWindow) {
-          const avgConfidence = candidateSequence.reduce((sum, g) => sum + g.confidence, 0) / candidateSequence.length;
-          const matchedGestures = candidateSequence.map(g => g.gesture);
+          const avgConfidence = chronologicalSequence.reduce((sum, g) => sum + g.confidence, 0) /
+            chronologicalSequence.length;
+          const matchedGestures = chronologicalSequence.map(g => g.gesture);
 
           return {
             confidence: avgConfidence,
