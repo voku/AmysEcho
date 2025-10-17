@@ -252,6 +252,8 @@ def train_mlp(X, y, output_size):
             )
             if keep_prob > 0.0:
                 dropout_mask /= keep_prob
+            else:
+                dropout_mask = np.zeros_like(dropout_mask)
             a1 *= dropout_mask
         z2 = np.dot(a1, w2) + b2
         probs = softmax(z2)
