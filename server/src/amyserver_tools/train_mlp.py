@@ -22,6 +22,14 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
+LOGGER = logging.getLogger("amyserver.train_mlp")
+if not LOGGER.handlers:
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.INFO)
+LOGGER.propagate = False
+
 try:  # Optional heavy dependencies – we degrade gracefully when absent
     import cv2  # type: ignore
     import mediapipe as mp  # type: ignore
@@ -60,39 +68,29 @@ if _ENV_PATIENCE:
         if parsed > 0:
             EARLY_STOPPING_PATIENCE = parsed
         else:
-            print(
-                f"warning: MLP_EARLY_STOPPING_PATIENCE must be > 0, got '{_ENV_PATIENCE}'. Disabling.",
-                file=sys.stderr,
+            LOGGER.warning(
+                "MLP_EARLY_STOPPING_PATIENCE must be > 0, got '%s'. Disabling.",
+                _ENV_PATIENCE,
             )
     except ValueError:
-        print(
-            f"warning: MLP_EARLY_STOPPING_PATIENCE is not a valid integer: '{_ENV_PATIENCE}'. Disabling.",
-            file=sys.stderr,
+        LOGGER.warning(
+            "MLP_EARLY_STOPPING_PATIENCE is not a valid integer: '%s'. Disabling.",
+            _ENV_PATIENCE,
         )
 
 try:
     _parsed_min_delta = float(os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0"))
 except ValueError:
     _env_min_delta = os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA")
-    print(
-        f"warning: MLP_EARLY_STOPPING_MIN_DELTA is not a valid float: '{_env_min_delta}'. Using 0.0.",
-        file=sys.stderr,
+    LOGGER.warning(
+        "MLP_EARLY_STOPPING_MIN_DELTA is not a valid float: '%s'. Using 0.0.",
+        _env_min_delta,
     )
     _parsed_min_delta = 0.0
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 
 
 WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-
-
-LOGGER = logging.getLogger("amyserver.train_mlp")
-if not LOGGER.handlers:
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    LOGGER.addHandler(handler)
-LOGGER.setLevel(logging.INFO)
-LOGGER.propagate = False
-
 
 def _emit_event(payload: Dict[str, object]) -> None:
     """Log a structured progress event."""

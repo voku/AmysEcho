@@ -15,7 +15,8 @@ def _loss(module, X: np.ndarray, y: np.ndarray, weights):
     a1 = module.relu(z1)
     z2 = np.dot(a1, w2) + b2
     probs = module.softmax(z2)
-    p = np.clip(probs[np.arange(len(y)), y], 1e-15, 1.0 - 1e-15)
+    epsilon = np.spacing(1.0)
+    p = np.clip(probs[np.arange(len(y)), y], epsilon, 1.0 - epsilon)
     log_probs = -np.log(p)
     return float(np.sum(log_probs) / len(y))
 
