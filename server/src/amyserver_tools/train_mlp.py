@@ -50,7 +50,7 @@ LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))
 EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
 MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
-DROPOUT_RATE = float(os.environ.get("MLP_DROPOUT_RATE", "0.0"))
+DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.0"))))
 
 # --- Data structures --------------------------------------------------------
 
@@ -239,20 +239,24 @@ def train_mlp(X, y, output_size):
     b2 = np.zeros(output_size)
 
     num_samples = X.shape[0]
-    dropout_rate = max(0.0, min(1.0, DROPOUT_RATE))
-    keep_prob = 1.0 - dropout_rate
-    use_dropout = 0.0 < keep_prob < 1.0
+    keep_prob = 1.0 - DROPOUT_RATE
+    use_dropout = keep_prob < 1.0
 
     for epoch in range(EPOCHS):
         z1 = np.dot(X, w1) + b1
         a1 = relu(z1)
         dropout_mask = None
         if use_dropout:
-            dropout_mask = (np.random.rand(num_samples, HIDDEN_SIZE) < keep_prob).astype(
-                a1.dtype,
-                copy=False,
-            )
-            dropout_mask /= keep_prob
+            if keep_prob > 0.0:
+                dropout_mask = (
+                    np.random.rand(num_samples, HIDDEN_SIZE) < keep_prob
+                ).astype(
+                    a1.dtype,
+                    copy=False,
+                )
+                dropout_mask /= keep_prob
+            else:
+                dropout_mask = np.zeros((num_samples, HIDDEN_SIZE), dtype=a1.dtype)
             a1 *= dropout_mask
         z2 = np.dot(a1, w2) + b2
         probs = softmax(z2)

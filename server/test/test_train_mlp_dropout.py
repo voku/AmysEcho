@@ -47,7 +47,7 @@ def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
     mask_seed = sampled_values[0]
     assert mask_seed.shape == (num_samples, module.HIDDEN_SIZE)
 
-    keep_prob = 1.0 - max(0.0, min(1.0, module.DROPOUT_RATE))
+    keep_prob = 1.0 - module.DROPOUT_RATE
     boolean_mask = mask_seed < keep_prob
     unique_rows = np.unique(boolean_mask, axis=0)
     assert unique_rows.shape[0] > 1, "each sample should receive an independent dropout pattern"
