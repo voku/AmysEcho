@@ -274,6 +274,7 @@ def train_mlp(
     early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE,
     early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA,
     rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
+    return_best_and_final: bool = False,
 ):
     input_size = X.shape[1]
 
@@ -346,7 +347,8 @@ def train_mlp(
             best_epoch = epoch + 1
             epochs_without_improvement = 0
         else:
-            epochs_without_improvement += patience_enabled
+            if patience_enabled:
+                epochs_without_improvement += 1
             if patience_enabled and epochs_without_improvement >= early_stopping_patience:
                 _emit_event(
                     {
@@ -381,6 +383,11 @@ def train_mlp(
         b1 -= learning_rate * db1
         w2 -= learning_rate * dw2
         b2 -= learning_rate * db2
+
+    final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+
+    if return_best_and_final:
+        return best_weights, final_weights
 
     return best_weights
 

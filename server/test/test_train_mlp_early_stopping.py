@@ -19,44 +19,6 @@ def _loss(module, X: np.ndarray, y: np.ndarray, weights):
     return float(np.sum(log_probs) / len(y))
 
 
-def _train_without_snapshot(module, X, y, hidden_size, output_size, epochs, learning_rate, rng):
-    """Run the vanilla training loop to capture the final-epoch weights."""
-
-    input_size = X.shape[1]
-    num_samples = X.shape[0]
-
-    w1 = rng.randn(input_size, hidden_size) * 0.01
-    b1 = np.zeros(hidden_size)
-    w2 = rng.randn(hidden_size, output_size) * 0.01
-    b2 = np.zeros(output_size)
-
-    for _ in range(epochs):
-        z1 = np.dot(X, w1) + b1
-        a1 = module.relu(z1)
-        z2 = np.dot(a1, w2) + b2
-        probs = module.softmax(z2)
-
-        dz2 = probs
-        dz2[np.arange(num_samples), y] -= 1
-        dz2 /= num_samples
-
-        dw2 = np.dot(a1.T, dz2)
-        db2 = np.sum(dz2, axis=0)
-
-        da1 = np.dot(dz2, w2.T)
-        dz1 = da1 * module.relu_derivative(z1)
-
-        dw1 = np.dot(X.T, dz1)
-        db1 = np.sum(dz1, axis=0)
-
-        w1 -= learning_rate * dw1
-        b1 -= learning_rate * db1
-        w2 -= learning_rate * dw2
-        b2 -= learning_rate * db2
-
-    return w1, b1, w2, b2
-
-
 def test_early_stopping_persists_best_weights(tmp_path):
     """Ensure the saved model contains the lowest-loss parameters."""
 
@@ -73,7 +35,7 @@ def test_early_stopping_persists_best_weights(tmp_path):
     learning_rate = 10.0  # Large value to intentionally destabilize training after the first epoch.
 
     rng_best = np.random.RandomState(0)
-    best_weights = module.train_mlp(
+    best_weights, _ = module.train_mlp(
         X,
         y,
         3,
@@ -84,18 +46,22 @@ def test_early_stopping_persists_best_weights(tmp_path):
         early_stopping_patience=patience,
         early_stopping_min_delta=0.0,
         rng=rng_best,
+        return_best_and_final=True,
     )
 
     rng_last = np.random.RandomState(0)
-    final_epoch_weights = _train_without_snapshot(
-        module,
+    _, final_epoch_weights = module.train_mlp(
         X,
         y,
+        3,
         hidden_size=4,
-        output_size=3,
         epochs=epochs,
         learning_rate=learning_rate,
+        dropout_rate=0.0,
+        early_stopping_patience=None,
+        early_stopping_min_delta=0.0,
         rng=rng_last,
+        return_best_and_final=True,
     )
 
     best_loss = _loss(module, X, y, best_weights)
