@@ -68,7 +68,9 @@ def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
 
     w1_stub = np.ones((input_size, hidden_size), dtype=np.float32) * 0.01
     pre_dropout = np.maximum(0, X.dot(w1_stub))
-    scaled_mask = boolean_mask.astype(np.float32) / keep_prob
+    scaled_mask = boolean_mask.astype(np.float32)
+    if keep_prob > 0.0:
+        scaled_mask /= keep_prob
     expected_activations = pre_dropout * scaled_mask
 
     np.testing.assert_allclose(captured_a1[0], expected_activations)
