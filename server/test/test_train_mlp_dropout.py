@@ -1,44 +1,15 @@
-import importlib.util
-import sys
-from pathlib import Path
+import importlib
 
 import numpy as np
 
-
-def _find_project_root(start: Path) -> Path:
-    fallback = None
-    for candidate in [start] + list(start.parents):
-        if (candidate / ".git").exists():
-            return candidate
-        if fallback is None and (candidate / "pyproject.toml").exists():
-            fallback = candidate
-    if fallback is not None:
-        return fallback
-    raise FileNotFoundError(
-        "Unable to locate project root from starting path: {start}".format(start=start)
-    )
-
-
-def _load_train_mlp_module(module_name: str):
-    project_root = _find_project_root(Path(__file__).resolve().parent)
-    module_path = (
-        project_root / "server" / "src" / "amyserver_tools" / "train_mlp.py"
-    )
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None  # narrow type for mypy/static analyzers
-    spec.loader.exec_module(module)  # type: ignore[misc]
-    return module
-
-
 def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
-    module_name = "train_mlp_dropout_test_module"
     monkeypatch.setenv("MLP_DROPOUT_RATE", "0.5")
     monkeypatch.setenv("MLP_EPOCHS", "1")
     monkeypatch.setenv("MLP_HIDDEN_SIZE", "6")
 
-    module = _load_train_mlp_module(module_name)
-    sys.modules[module_name] = module
+    module_name = "amyserver_tools.train_mlp"
+    module = importlib.import_module(module_name)
+    module = importlib.reload(module)
 
     rng = np.random.RandomState(123)
     sampled_values = []
@@ -55,10 +26,7 @@ def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
     X = np.ones((num_samples, input_size), dtype=np.float32)
     y = np.arange(num_samples) % 3
 
-    try:
-        module.train_mlp(X, y, output_size=3)
-    finally:
-        sys.modules.pop(module_name, None)
+    module.train_mlp(X, y, output_size=3)
 
     assert sampled_values, "dropout should sample a mask each epoch"
     mask_seed = sampled_values[0]
