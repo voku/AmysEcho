@@ -5,8 +5,25 @@ from pathlib import Path
 import numpy as np
 
 
+def _find_project_root(start: Path) -> Path:
+    fallback = None
+    for candidate in [start] + list(start.parents):
+        if (candidate / ".git").exists():
+            return candidate
+        if fallback is None and (candidate / "pyproject.toml").exists():
+            fallback = candidate
+    if fallback is not None:
+        return fallback
+    raise FileNotFoundError(
+        "Unable to locate project root from starting path: {start}".format(start=start)
+    )
+
+
 def _load_train_mlp_module(module_name: str):
-    module_path = Path(__file__).resolve().parents[1] / "src" / "amyserver_tools" / "train_mlp.py"
+    project_root = _find_project_root(Path(__file__).resolve().parent)
+    module_path = (
+        project_root / "server" / "src" / "amyserver_tools" / "train_mlp.py"
+    )
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None  # narrow type for mypy/static analyzers
