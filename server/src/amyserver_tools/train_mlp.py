@@ -247,16 +247,11 @@ def train_mlp(X, y, output_size):
         a1 = relu(z1)
         dropout_mask = None
         if use_dropout:
+            dropout_mask = (np.random.rand(num_samples, HIDDEN_SIZE) < keep_prob).astype(
+                a1.dtype
+            )
             if keep_prob > 0.0:
-                dropout_mask = (
-                    np.random.rand(num_samples, HIDDEN_SIZE) < keep_prob
-                ).astype(
-                    a1.dtype,
-                    copy=False,
-                )
                 dropout_mask /= keep_prob
-            else:
-                dropout_mask = np.zeros((num_samples, HIDDEN_SIZE), dtype=a1.dtype)
             a1 *= dropout_mask
         z2 = np.dot(a1, w2) + b2
         probs = softmax(z2)
