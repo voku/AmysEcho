@@ -11,6 +11,7 @@ status back to the app.
 
 import argparse
 import json
+import logging
 import math
 import os
 import sys
@@ -67,6 +68,21 @@ try:
 except ValueError:
     _parsed_min_delta = 0.0
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
+
+
+LOGGER = logging.getLogger("amyserver.train_mlp")
+if not LOGGER.handlers:
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.INFO)
+LOGGER.propagate = False
+
+
+def _emit_event(payload: Dict[str, object]) -> None:
+    """Log a structured progress event."""
+
+    LOGGER.info(json.dumps(payload))
 
 # --- Data structures --------------------------------------------------------
 
@@ -264,14 +280,18 @@ def train_mlp(
     random_source = np.random if rng is None else rng
 
     def _randn(rs, shape):
-        if hasattr(rs, "standard_normal"):
+        if isinstance(rs, np.random.Generator):
             return rs.standard_normal(size=shape)
-        return rs.randn(*shape)
+        if isinstance(rs, np.random.RandomState):
+            return rs.standard_normal(size=shape)
+        return np.random.standard_normal(size=shape)
 
     def _rand(rs, shape):
-        if hasattr(rs, "random"):
+        if isinstance(rs, np.random.Generator):
             return rs.random(size=shape)
-        return rs.rand(*shape)
+        if isinstance(rs, np.random.RandomState):
+            return rs.rand(*shape)
+        return np.random.random(size=shape)
 
     w1 = _randn(random_source, (input_size, hidden_size)) * 0.01
     b1 = np.zeros(hidden_size)
@@ -311,17 +331,13 @@ def train_mlp(
         log_probs = -np.log(probs[np.arange(num_samples), y])
         loss = np.sum(log_probs) / num_samples
         if epoch % max(1, epochs // 10) == 0:
-            print(
-                json.dumps(
-                    {
-                        "type": "progress",
-                        "epoch": epoch + 1,
-                        "total": epochs,
-                        "loss": f"{loss:.4f}",
-                    }
-                ),
-                file=sys.stderr,
-                flush=True,
+            _emit_event(
+                {
+                    "type": "progress",
+                    "epoch": epoch + 1,
+                    "total": epochs,
+                    "loss": f"{loss:.4f}",
+                }
             )
 
         if loss < best_loss - min_delta:
@@ -330,23 +346,19 @@ def train_mlp(
             best_epoch = epoch + 1
             epochs_without_improvement = 0
         else:
-            epochs_without_improvement += 1 if patience_enabled else 0
+            epochs_without_improvement += patience_enabled
             if patience_enabled and epochs_without_improvement >= early_stopping_patience:
-                print(
-                    json.dumps(
-                        {
-                            "type": "early_stop",
-                            "epoch": epoch + 1,
-                            "bestLoss": f"{best_loss:.4f}",
-                            "bestEpoch": best_epoch,
-                            "config": {
-                                "patience": early_stopping_patience,
-                                "minDelta": f"{min_delta:.6f}",
-                            },
-                        }
-                    ),
-                    file=sys.stderr,
-                    flush=True,
+                _emit_event(
+                    {
+                        "type": "early_stop",
+                        "epoch": epoch + 1,
+                        "bestLoss": f"{best_loss:.4f}",
+                        "bestEpoch": best_epoch,
+                        "config": {
+                            "patience": early_stopping_patience,
+                            "minDelta": f"{min_delta:.6f}",
+                        },
+                    }
                 )
                 break
 
