@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import importlib
+from importlib import import_module
 from pathlib import Path
 
 import numpy as np
@@ -15,7 +15,7 @@ def _loss(module, X: np.ndarray, y: np.ndarray, weights):
     a1 = module.relu(z1)
     z2 = np.dot(a1, w2) + b2
     probs = module.softmax(z2)
-    p = np.clip(probs[np.arange(len(y)), y], 1e-12, 1.0)
+    p = np.clip(probs[np.arange(len(y)), y], 1e-15, 1.0 - 1e-15)
     log_probs = -np.log(p)
     return float(np.sum(log_probs) / len(y))
 
@@ -30,9 +30,8 @@ def _loss(module, X: np.ndarray, y: np.ndarray, weights):
 def test_early_stopping_persists_best_weights(tmp_path, rng_factory):
     """Ensure the saved model contains the lowest-loss parameters."""
 
-    # Reload the module so potential environment tweaks in other tests do not leak.
-    module = importlib.import_module("amyserver_tools.train_mlp")
-    module = importlib.reload(module)
+    # Import the trainer module locally so environment tweaks from other tests do not leak.
+    module = import_module("amyserver_tools.train_mlp")
 
     rng_data = np.random.RandomState(0)
     X = rng_data.randn(4, 10)
@@ -43,7 +42,7 @@ def test_early_stopping_persists_best_weights(tmp_path, rng_factory):
     learning_rate = 50.0  # Large value to intentionally destabilize training after the first epoch.
 
     rng_best = rng_factory(0)
-    best_weights, _ = module.train_mlp(
+    result_with_early_stop = module.train_mlp(
         X,
         y,
         3,
@@ -57,8 +56,10 @@ def test_early_stopping_persists_best_weights(tmp_path, rng_factory):
         return_best_and_final=True,
     )
 
+    best_weights = result_with_early_stop.best_weights
+
     rng_last = rng_factory(0)
-    _, final_epoch_weights = module.train_mlp(
+    result_without_early_stop = module.train_mlp(
         X,
         y,
         3,
@@ -71,6 +72,8 @@ def test_early_stopping_persists_best_weights(tmp_path, rng_factory):
         rng=rng_last,
         return_best_and_final=True,
     )
+
+    final_epoch_weights = result_without_early_stop.final_weights
 
     best_loss = _loss(module, X, y, best_weights)
     final_loss = _loss(module, X, y, final_epoch_weights)

@@ -69,6 +69,9 @@ except ValueError:
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 
 
+WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+
+
 LOGGER = logging.getLogger("amyserver.train_mlp")
 if not LOGGER.handlers:
     handler = logging.StreamHandler(sys.stderr)
@@ -92,6 +95,16 @@ class Sample:
     label: str
     profile_id: Optional[str]
     landmarks: List[List[float]]  # 42 landmarks, each [x, y, z]
+
+
+@dataclass
+class TrainingSnapshots:
+    """Container for the best and terminal weights observed during training."""
+
+    best_weights: WeightTuple
+    final_weights: WeightTuple
+    best_epoch: int
+    final_epoch: int
 
 
 # --- Helpers ----------------------------------------------------------------
@@ -274,26 +287,28 @@ def train_mlp(
     early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA,
     rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
     return_best_and_final: bool = False,
-):
+) -> Union[WeightTuple, TrainingSnapshots]:
     input_size = X.shape[1]
 
     random_source = np.random if rng is None else rng
 
-    def _randn(rs, shape):
-        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
-            return rs.standard_normal(size=shape)
-        return np.random.standard_normal(size=shape)
+    def _sample_from_rng(rs, shape, *, distribution: str) -> np.ndarray:
+        """Generate samples from ``rs`` while handling Generator/RandomState APIs."""
 
-    def _rand(rs, shape):
-        if isinstance(rs, np.random.Generator):
+        if distribution not in {"normal", "uniform"}:
+            raise ValueError(f"Unsupported distribution '{distribution}'")
+
+        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
+            if distribution == "normal":
+                return rs.standard_normal(size=shape)
             return rs.random(size=shape)
-        if isinstance(rs, np.random.RandomState):
-            return rs.rand(*shape)
+        if distribution == "normal":
+            return np.random.standard_normal(size=shape)
         return np.random.random(size=shape)
 
-    w1 = _randn(random_source, (input_size, hidden_size)) * 0.01
+    w1 = _sample_from_rng(random_source, (input_size, hidden_size), distribution="normal") * 0.01
     b1 = np.zeros(hidden_size)
-    w2 = _randn(random_source, (hidden_size, output_size)) * 0.01
+    w2 = _sample_from_rng(random_source, (hidden_size, output_size), distribution="normal") * 0.01
     b2 = np.zeros(output_size)
 
     num_samples = X.shape[0]
@@ -310,13 +325,19 @@ def train_mlp(
     min_delta = max(0.0, early_stopping_min_delta)
     best_epoch = 0
 
+    final_epoch = 0
+
     for epoch in range(epochs):
+        current_epoch = epoch + 1
         z1 = np.dot(X, w1) + b1
         a1 = relu(z1)
         dropout_mask = None
         if use_dropout:
             dropout_mask = (
-                _rand(random_source, (num_samples, hidden_size)) < keep_prob
+                _sample_from_rng(
+                    random_source, (num_samples, hidden_size), distribution="uniform"
+                )
+                < keep_prob
             ).astype(
                 a1.dtype
             )
@@ -326,7 +347,8 @@ def train_mlp(
         z2 = np.dot(a1, w2) + b2
         probs = softmax(z2)
 
-        p = np.clip(probs[np.arange(num_samples), y], 1e-12, 1.0)
+        # Guard against log(0) due to floating-point underflow at extreme learning rates.
+        p = np.clip(probs[np.arange(num_samples), y], 1e-15, 1.0 - 1e-15)
         log_probs = -np.log(p)
         loss = np.sum(log_probs) / num_samples
         if epoch % max(1, epochs // 10) == 0:
@@ -339,10 +361,12 @@ def train_mlp(
                 }
             )
 
+        stop_after_epoch = False
+
         if loss < best_loss - min_delta:
             best_loss = loss
             best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
-            best_epoch = epoch + 1
+            best_epoch = current_epoch
             epochs_without_improvement = 0
         else:
             if patience_enabled:
@@ -351,7 +375,7 @@ def train_mlp(
                     _emit_event(
                         {
                             "type": "early_stop",
-                            "epoch": epoch + 1,
+                            "epoch": current_epoch,
                             "bestLoss": f"{best_loss:.4f}",
                             "bestEpoch": best_epoch,
                             "config": {
@@ -360,7 +384,7 @@ def train_mlp(
                             },
                         }
                     )
-                    break
+                    stop_after_epoch = True
 
         dz2 = probs
         dz2[np.arange(num_samples), y] -= 1
@@ -382,12 +406,22 @@ def train_mlp(
         w2 -= learning_rate * dw2
         b2 -= learning_rate * db2
 
+        final_epoch = current_epoch
+
+        if stop_after_epoch:
+            break
+
     final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
 
     if return_best_and_final:
-        return best_weights, final_weights
+        return TrainingSnapshots(
+            best_weights=tuple(weight.copy() for weight in best_weights),
+            final_weights=tuple(weight.copy() for weight in final_weights),
+            best_epoch=best_epoch,
+            final_epoch=final_epoch,
+        )
 
-    return best_weights
+    return tuple(weight.copy() for weight in best_weights)
 
 
 # --- Dataset loading --------------------------------------------------------
@@ -604,3 +638,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
