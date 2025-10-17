@@ -57,11 +57,10 @@ EARLY_STOPPING_PATIENCE: Optional[int] = None
 if _ENV_PATIENCE:
     try:
         parsed = int(_ENV_PATIENCE)
-    except ValueError:
-        pass
-    else:
         if parsed > 0:
             EARLY_STOPPING_PATIENCE = parsed
+    except ValueError:
+        pass
 
 try:
     _parsed_min_delta = float(os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0"))
@@ -348,20 +347,20 @@ def train_mlp(
         else:
             if patience_enabled:
                 epochs_without_improvement += 1
-            if patience_enabled and epochs_without_improvement >= early_stopping_patience:
-                _emit_event(
-                    {
-                        "type": "early_stop",
-                        "epoch": epoch + 1,
-                        "bestLoss": f"{best_loss:.4f}",
-                        "bestEpoch": best_epoch,
-                        "config": {
-                            "patience": early_stopping_patience,
-                            "minDelta": f"{min_delta:.6f}",
-                        },
-                    }
-                )
-                break
+                if epochs_without_improvement >= early_stopping_patience:
+                    _emit_event(
+                        {
+                            "type": "early_stop",
+                            "epoch": epoch + 1,
+                            "bestLoss": f"{best_loss:.4f}",
+                            "bestEpoch": best_epoch,
+                            "config": {
+                                "patience": early_stopping_patience,
+                                "minDelta": f"{min_delta:.6f}",
+                            },
+                        }
+                    )
+                    break
 
         dz2 = probs
         dz2[np.arange(num_samples), y] -= 1
