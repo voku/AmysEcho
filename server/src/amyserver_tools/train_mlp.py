@@ -59,12 +59,25 @@ if _ENV_PATIENCE:
         parsed = int(_ENV_PATIENCE)
         if parsed > 0:
             EARLY_STOPPING_PATIENCE = parsed
+        else:
+            print(
+                f"warning: MLP_EARLY_STOPPING_PATIENCE must be > 0, got '{_ENV_PATIENCE}'. Disabling.",
+                file=sys.stderr,
+            )
     except ValueError:
-        pass
+        print(
+            f"warning: MLP_EARLY_STOPPING_PATIENCE is not a valid integer: '{_ENV_PATIENCE}'. Disabling.",
+            file=sys.stderr,
+        )
 
 try:
     _parsed_min_delta = float(os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0"))
 except ValueError:
+    _env_min_delta = os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA")
+    print(
+        f"warning: MLP_EARLY_STOPPING_MIN_DELTA is not a valid float: '{_env_min_delta}'. Using 0.0.",
+        file=sys.stderr,
+    )
     _parsed_min_delta = 0.0
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 
@@ -308,17 +321,20 @@ def train_mlp(
     resolved = config or TrainingConfig()
 
     overrides = {
-        "hidden_size": hidden_size,
-        "epochs": epochs,
-        "learning_rate": learning_rate,
-        "dropout_rate": dropout_rate,
-        "early_stopping_patience": early_stopping_patience,
-        "early_stopping_min_delta": early_stopping_min_delta,
-        "return_best_and_final": return_best_and_final,
+        field: value
+        for field, value in {
+            "hidden_size": hidden_size,
+            "epochs": epochs,
+            "learning_rate": learning_rate,
+            "dropout_rate": dropout_rate,
+            "early_stopping_patience": early_stopping_patience,
+            "early_stopping_min_delta": early_stopping_min_delta,
+            "return_best_and_final": return_best_and_final,
+        }.items()
+        if value is not _UNSET
     }
-    for field, value in overrides.items():
-        if value is not _UNSET:
-            resolved = replace(resolved, **{field: value})
+    if overrides:
+        resolved = replace(resolved, **overrides)
 
     hidden_size = resolved.hidden_size
     epochs = resolved.epochs
@@ -414,10 +430,7 @@ def train_mlp(
         else:
             if patience_enabled:
                 epochs_without_improvement += 1
-                if (
-                    early_stopping_patience is not None
-                    and epochs_without_improvement >= early_stopping_patience
-                ):
+                if epochs_without_improvement >= early_stopping_patience:
                     _emit_event(
                         {
                             "type": "early_stop",
