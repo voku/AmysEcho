@@ -281,9 +281,7 @@ def train_mlp(
     random_source = np.random if rng is None else rng
 
     def _randn(rs, shape):
-        if isinstance(rs, np.random.Generator):
-            return rs.standard_normal(size=shape)
-        if isinstance(rs, np.random.RandomState):
+        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
             return rs.standard_normal(size=shape)
         return np.random.standard_normal(size=shape)
 
@@ -329,7 +327,8 @@ def train_mlp(
         z2 = np.dot(a1, w2) + b2
         probs = softmax(z2)
 
-        log_probs = -np.log(probs[np.arange(num_samples), y])
+        p = np.clip(probs[np.arange(num_samples), y], 1e-12, 1.0)
+        log_probs = -np.log(p)
         loss = np.sum(log_probs) / num_samples
         if epoch % max(1, epochs // 10) == 0:
             _emit_event(

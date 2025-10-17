@@ -6,6 +6,7 @@ import importlib
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 
 def _loss(module, X: np.ndarray, y: np.ndarray, weights):
@@ -19,7 +20,14 @@ def _loss(module, X: np.ndarray, y: np.ndarray, weights):
     return float(np.sum(log_probs) / len(y))
 
 
-def test_early_stopping_persists_best_weights(tmp_path):
+@pytest.mark.parametrize(
+    "rng_factory",
+    [
+        lambda seed: np.random.RandomState(seed),
+        lambda seed: np.random.default_rng(seed),
+    ],
+)
+def test_early_stopping_persists_best_weights(tmp_path, rng_factory):
     """Ensure the saved model contains the lowest-loss parameters."""
 
     # Reload the module so potential environment tweaks in other tests do not leak.
@@ -32,9 +40,9 @@ def test_early_stopping_persists_best_weights(tmp_path):
 
     patience = 1
     epochs = 5
-    learning_rate = 10.0  # Large value to intentionally destabilize training after the first epoch.
+    learning_rate = 50.0  # Large value to intentionally destabilize training after the first epoch.
 
-    rng_best = np.random.RandomState(0)
+    rng_best = rng_factory(0)
     best_weights, _ = module.train_mlp(
         X,
         y,
@@ -49,7 +57,7 @@ def test_early_stopping_persists_best_weights(tmp_path):
         return_best_and_final=True,
     )
 
-    rng_last = np.random.RandomState(0)
+    rng_last = rng_factory(0)
     _, final_epoch_weights = module.train_mlp(
         X,
         y,
