@@ -50,6 +50,7 @@ LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))
 EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
 MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
+DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.0"))))
 
 # --- Data structures --------------------------------------------------------
 
@@ -229,31 +230,56 @@ def softmax(x):
     return e_x / np.sum(e_x, axis=1, keepdims=True)
 
 
-def train_mlp(X, y, output_size):
+def train_mlp(
+    X,
+    y,
+    output_size,
+    *,
+    hidden_size: int = HIDDEN_SIZE,
+    epochs: int = EPOCHS,
+    learning_rate: float = LEARNING_RATE,
+    dropout_rate: float = DROPOUT_RATE,
+    rng=None,
+):
     input_size = X.shape[1]
 
-    w1 = np.random.randn(input_size, HIDDEN_SIZE) * 0.01
-    b1 = np.zeros(HIDDEN_SIZE)
-    w2 = np.random.randn(HIDDEN_SIZE, output_size) * 0.01
+    random_source = np.random if rng is None else rng
+
+    w1 = random_source.randn(input_size, hidden_size) * 0.01
+    b1 = np.zeros(hidden_size)
+    w2 = random_source.randn(hidden_size, output_size) * 0.01
     b2 = np.zeros(output_size)
 
     num_samples = X.shape[0]
+    sanitized_dropout = max(0.0, min(1.0, dropout_rate))
+    keep_prob = 1.0 - sanitized_dropout
+    use_dropout = keep_prob < 1.0
 
-    for epoch in range(EPOCHS):
+    for epoch in range(epochs):
         z1 = np.dot(X, w1) + b1
         a1 = relu(z1)
+        dropout_mask = None
+        if use_dropout:
+            dropout_mask = (
+                random_source.rand(num_samples, hidden_size) < keep_prob
+            ).astype(
+                a1.dtype
+            )
+            if keep_prob > 0.0:
+                dropout_mask /= keep_prob
+            a1 *= dropout_mask
         z2 = np.dot(a1, w2) + b2
         probs = softmax(z2)
 
         log_probs = -np.log(probs[np.arange(num_samples), y])
         loss = np.sum(log_probs) / num_samples
-        if epoch % max(1, EPOCHS // 10) == 0:
+        if epoch % max(1, epochs // 10) == 0:
             print(
                 json.dumps(
                     {
                         "type": "progress",
                         "epoch": epoch + 1,
-                        "total": EPOCHS,
+                        "total": epochs,
                         "loss": f"{loss:.4f}",
                     }
                 ),
@@ -269,15 +295,17 @@ def train_mlp(X, y, output_size):
         db2 = np.sum(dz2, axis=0)
 
         da1 = np.dot(dz2, w2.T)
+        if dropout_mask is not None:
+            da1 *= dropout_mask
         dz1 = da1 * relu_derivative(z1)
 
         dw1 = np.dot(X.T, dz1)
         db1 = np.sum(dz1, axis=0)
 
-        w1 -= LEARNING_RATE * dw1
-        b1 -= LEARNING_RATE * db1
-        w2 -= LEARNING_RATE * dw2
-        b2 -= LEARNING_RATE * db2
+        w1 -= learning_rate * dw1
+        b1 -= learning_rate * db1
+        w2 -= learning_rate * dw2
+        b2 -= learning_rate * db2
 
     return w1, b1, w2, b2
 
