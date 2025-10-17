@@ -14,7 +14,8 @@ def _loss(module, X: np.ndarray, y: np.ndarray, weights):
     a1 = module.relu(z1)
     z2 = np.dot(a1, w2) + b2
     probs = module.softmax(z2)
-    log_probs = -np.log(probs[np.arange(len(y)), y])
+    p = np.clip(probs[np.arange(len(y)), y], 1e-12, 1.0)
+    log_probs = -np.log(p)
     return float(np.sum(log_probs) / len(y))
 
 
@@ -114,11 +115,11 @@ def test_early_stopping_persists_best_weights(tmp_path):
             data["b2"],
         )
 
-    for saved, expected in zip(saved_weights, best_weights):
+    for saved, expected in zip(saved_weights, best_weights, strict=True):
         np.testing.assert_allclose(saved, expected)
 
     # Verify that at least one tensor differs from the degraded final epoch snapshot.
     assert any(
         not np.allclose(saved, final)
-        for saved, final in zip(saved_weights, final_epoch_weights)
+        for saved, final in zip(saved_weights, final_epoch_weights, strict=True)
     )

@@ -17,7 +17,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -52,18 +52,21 @@ MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
 DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.0"))))
 _ENV_PATIENCE = os.environ.get("MLP_EARLY_STOPPING_PATIENCE")
-EARLY_STOPPING_PATIENCE: Optional[int]
-if _ENV_PATIENCE is None:
-    EARLY_STOPPING_PATIENCE = None
-else:
+EARLY_STOPPING_PATIENCE: Optional[int] = None
+if _ENV_PATIENCE:
     try:
         parsed = int(_ENV_PATIENCE)
-        EARLY_STOPPING_PATIENCE = parsed if parsed > 0 else None
     except ValueError:
-        EARLY_STOPPING_PATIENCE = None
-EARLY_STOPPING_MIN_DELTA = max(
-    0.0, float(os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0"))
-)
+        pass
+    else:
+        if parsed > 0:
+            EARLY_STOPPING_PATIENCE = parsed
+
+try:
+    _parsed_min_delta = float(os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0"))
+except ValueError:
+    _parsed_min_delta = 0.0
+EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 
 # --- Data structures --------------------------------------------------------
 
@@ -254,15 +257,25 @@ def train_mlp(
     dropout_rate: float = DROPOUT_RATE,
     early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE,
     early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA,
-    rng=None,
+    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
 ):
     input_size = X.shape[1]
 
     random_source = np.random if rng is None else rng
 
-    w1 = random_source.randn(input_size, hidden_size) * 0.01
+    def _randn(rs, shape):
+        if hasattr(rs, "standard_normal"):
+            return rs.standard_normal(size=shape)
+        return rs.randn(*shape)
+
+    def _rand(rs, shape):
+        if hasattr(rs, "random"):
+            return rs.random(size=shape)
+        return rs.rand(*shape)
+
+    w1 = _randn(random_source, (input_size, hidden_size)) * 0.01
     b1 = np.zeros(hidden_size)
-    w2 = random_source.randn(hidden_size, output_size) * 0.01
+    w2 = _randn(random_source, (hidden_size, output_size)) * 0.01
     b2 = np.zeros(output_size)
 
     num_samples = X.shape[0]
@@ -276,7 +289,8 @@ def train_mlp(
     patience_enabled = (
         early_stopping_patience is not None and early_stopping_patience > 0
     )
-    min_delta = max(0.0, float(early_stopping_min_delta))
+    min_delta = max(0.0, early_stopping_min_delta)
+    best_epoch = 0
 
     for epoch in range(epochs):
         z1 = np.dot(X, w1) + b1
@@ -284,7 +298,7 @@ def train_mlp(
         dropout_mask = None
         if use_dropout:
             dropout_mask = (
-                random_source.rand(num_samples, hidden_size) < keep_prob
+                _rand(random_source, (num_samples, hidden_size)) < keep_prob
             ).astype(
                 a1.dtype
             )
@@ -313,6 +327,7 @@ def train_mlp(
         if loss < best_loss - min_delta:
             best_loss = loss
             best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+            best_epoch = epoch + 1
             epochs_without_improvement = 0
         else:
             epochs_without_improvement += 1 if patience_enabled else 0
@@ -323,6 +338,11 @@ def train_mlp(
                             "type": "early_stop",
                             "epoch": epoch + 1,
                             "bestLoss": f"{best_loss:.4f}",
+                            "bestEpoch": best_epoch,
+                            "config": {
+                                "patience": early_stopping_patience,
+                                "minDelta": f"{min_delta:.6f}",
+                            },
                         }
                     ),
                     file=sys.stderr,
@@ -350,7 +370,7 @@ def train_mlp(
         w2 -= learning_rate * dw2
         b2 -= learning_rate * db2
 
-    return tuple(weight.copy() for weight in best_weights)
+    return best_weights
 
 
 # --- Dataset loading --------------------------------------------------------
