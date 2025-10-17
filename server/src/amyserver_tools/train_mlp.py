@@ -15,7 +15,7 @@ import logging
 import math
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
@@ -95,6 +95,22 @@ class Sample:
     label: str
     profile_id: Optional[str]
     landmarks: List[List[float]]  # 42 landmarks, each [x, y, z]
+
+
+_UNSET = object()
+
+
+@dataclass(frozen=True)
+class TrainingConfig:
+    """Configuration values that control the trainer's behaviour."""
+
+    hidden_size: int = HIDDEN_SIZE
+    epochs: int = EPOCHS
+    learning_rate: float = LEARNING_RATE
+    dropout_rate: float = DROPOUT_RATE
+    early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE
+    early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
+    return_best_and_final: bool = False
 
 
 @dataclass
@@ -279,15 +295,39 @@ def train_mlp(
     y,
     output_size,
     *,
-    hidden_size: int = HIDDEN_SIZE,
-    epochs: int = EPOCHS,
-    learning_rate: float = LEARNING_RATE,
-    dropout_rate: float = DROPOUT_RATE,
-    early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE,
-    early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA,
+    config: Optional[TrainingConfig] = None,
+    hidden_size: Optional[int] = _UNSET,
+    epochs: Optional[int] = _UNSET,
+    learning_rate: Optional[float] = _UNSET,
+    dropout_rate: Optional[float] = _UNSET,
+    early_stopping_patience: Optional[int] = _UNSET,
+    early_stopping_min_delta: Optional[float] = _UNSET,
     rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-    return_best_and_final: bool = False,
+    return_best_and_final: Optional[bool] = _UNSET,
 ) -> Union[WeightTuple, TrainingSnapshots]:
+    resolved = config or TrainingConfig()
+
+    overrides = {
+        "hidden_size": hidden_size,
+        "epochs": epochs,
+        "learning_rate": learning_rate,
+        "dropout_rate": dropout_rate,
+        "early_stopping_patience": early_stopping_patience,
+        "early_stopping_min_delta": early_stopping_min_delta,
+        "return_best_and_final": return_best_and_final,
+    }
+    for field, value in overrides.items():
+        if value is not _UNSET:
+            resolved = replace(resolved, **{field: value})
+
+    hidden_size = resolved.hidden_size
+    epochs = resolved.epochs
+    learning_rate = resolved.learning_rate
+    dropout_rate = resolved.dropout_rate
+    early_stopping_patience = resolved.early_stopping_patience
+    early_stopping_min_delta = resolved.early_stopping_min_delta
+    return_best_and_final_flag = resolved.return_best_and_final
+
     input_size = X.shape[1]
 
     random_source = np.random if rng is None else rng
@@ -371,7 +411,10 @@ def train_mlp(
         else:
             if patience_enabled:
                 epochs_without_improvement += 1
-                if epochs_without_improvement >= early_stopping_patience:
+                if (
+                    early_stopping_patience is not None
+                    and epochs_without_improvement >= early_stopping_patience
+                ):
                     _emit_event(
                         {
                             "type": "early_stop",
@@ -413,7 +456,9 @@ def train_mlp(
 
     final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
 
-    if return_best_and_final:
+    if return_best_and_final_flag:
+        # ``best_weights`` and ``final_weights`` may match when the best loss occurs in the last epoch,
+        # but returning both snapshots makes that behaviour explicit to callers.
         return TrainingSnapshots(
             best_weights=tuple(weight.copy() for weight in best_weights),
             final_weights=tuple(weight.copy() for weight in final_weights),
