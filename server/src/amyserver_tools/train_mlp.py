@@ -460,13 +460,13 @@ def train_mlp(
         # ``best_weights`` and ``final_weights`` may match when the best loss occurs in the last epoch,
         # but returning both snapshots makes that behaviour explicit to callers.
         return TrainingSnapshots(
-            best_weights=tuple(weight.copy() for weight in best_weights),
-            final_weights=tuple(weight.copy() for weight in final_weights),
+            best_weights=best_weights,
+            final_weights=final_weights,
             best_epoch=best_epoch,
             final_epoch=final_epoch,
         )
 
-    return tuple(weight.copy() for weight in best_weights)
+    return best_weights
 
 
 # --- Dataset loading --------------------------------------------------------
