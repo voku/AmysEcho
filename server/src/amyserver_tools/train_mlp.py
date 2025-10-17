@@ -51,6 +51,19 @@ EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
 MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
 DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.0"))))
+_ENV_PATIENCE = os.environ.get("MLP_EARLY_STOPPING_PATIENCE")
+EARLY_STOPPING_PATIENCE: Optional[int]
+if _ENV_PATIENCE is None:
+    EARLY_STOPPING_PATIENCE = None
+else:
+    try:
+        parsed = int(_ENV_PATIENCE)
+        EARLY_STOPPING_PATIENCE = parsed if parsed > 0 else None
+    except ValueError:
+        EARLY_STOPPING_PATIENCE = None
+EARLY_STOPPING_MIN_DELTA = max(
+    0.0, float(os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0"))
+)
 
 # --- Data structures --------------------------------------------------------
 
@@ -239,6 +252,8 @@ def train_mlp(
     epochs: int = EPOCHS,
     learning_rate: float = LEARNING_RATE,
     dropout_rate: float = DROPOUT_RATE,
+    early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE,
+    early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA,
     rng=None,
 ):
     input_size = X.shape[1]
@@ -254,6 +269,14 @@ def train_mlp(
     sanitized_dropout = max(0.0, min(1.0, dropout_rate))
     keep_prob = 1.0 - sanitized_dropout
     use_dropout = keep_prob < 1.0
+
+    best_loss = math.inf
+    best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+    epochs_without_improvement = 0
+    patience_enabled = (
+        early_stopping_patience is not None and early_stopping_patience > 0
+    )
+    min_delta = max(0.0, float(early_stopping_min_delta))
 
     for epoch in range(epochs):
         z1 = np.dot(X, w1) + b1
@@ -287,6 +310,26 @@ def train_mlp(
                 flush=True,
             )
 
+        if loss < best_loss - min_delta:
+            best_loss = loss
+            best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1 if patience_enabled else 0
+            if patience_enabled and epochs_without_improvement >= early_stopping_patience:
+                print(
+                    json.dumps(
+                        {
+                            "type": "early_stop",
+                            "epoch": epoch + 1,
+                            "bestLoss": f"{best_loss:.4f}",
+                        }
+                    ),
+                    file=sys.stderr,
+                    flush=True,
+                )
+                break
+
         dz2 = probs
         dz2[np.arange(num_samples), y] -= 1
         dz2 /= num_samples
@@ -307,7 +350,7 @@ def train_mlp(
         w2 -= learning_rate * dw2
         b2 -= learning_rate * db2
 
-    return w1, b1, w2, b2
+    return tuple(weight.copy() for weight in best_weights)
 
 
 # --- Dataset loading --------------------------------------------------------
