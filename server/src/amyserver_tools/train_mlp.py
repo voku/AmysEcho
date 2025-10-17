@@ -336,7 +336,9 @@ def train_mlp(
         """Generate samples from ``rs`` while handling Generator/RandomState APIs."""
 
         if distribution not in {"normal", "uniform"}:
-            raise ValueError(f"Unsupported distribution '{distribution}'")
+            raise ValueError(
+                f"Unsupported distribution '{distribution}'. Supported distributions are 'normal' and 'uniform'."
+            )
 
         if isinstance(rs, (np.random.Generator, np.random.RandomState)):
             if distribution == "normal":
@@ -387,8 +389,9 @@ def train_mlp(
         z2 = np.dot(a1, w2) + b2
         probs = softmax(z2)
 
-        # Guard against log(0) due to floating-point underflow at extreme learning rates.
-        p = np.clip(probs[np.arange(num_samples), y], 1e-15, 1.0 - 1e-15)
+        # Guard against log(0) or log(1) from floating-point underflow/overflow at extreme learning rates.
+        epsilon = np.spacing(1.0)
+        p = np.clip(probs[np.arange(num_samples), y], epsilon, 1.0 - epsilon)
         log_probs = -np.log(p)
         loss = np.sum(log_probs) / num_samples
         if epoch % max(1, epochs // 10) == 0:
@@ -457,8 +460,8 @@ def train_mlp(
     final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
 
     if return_best_and_final_flag:
-        # ``best_weights`` and ``final_weights`` may match when the best loss occurs in the last epoch,
-        # but returning both snapshots makes that behaviour explicit to callers.
+        # Return both snapshots so callers can observe whether early stopping diverged from
+        # the terminal epoch; they will be identical when the best loss occurs in the final pass.
         return TrainingSnapshots(
             best_weights=best_weights,
             final_weights=final_weights,
