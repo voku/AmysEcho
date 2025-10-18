@@ -89,6 +89,8 @@ except ValueError:
     _parsed_min_delta = 0.0
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 
+LOSS_EPSILON = np.spacing(1.0)
+
 
 WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
@@ -404,8 +406,7 @@ def train_mlp(
         probs = softmax(z2)
 
         # Guard against log(0) or log(1) from floating-point underflow/overflow at extreme learning rates.
-        epsilon = np.spacing(1.0)
-        p = np.clip(probs[np.arange(num_samples), y], epsilon, 1.0 - epsilon)
+        p = np.clip(probs[np.arange(num_samples), y], LOSS_EPSILON, 1.0 - LOSS_EPSILON)
         log_probs = -np.log(p)
         loss = np.sum(log_probs) / num_samples
         if epoch % max(1, epochs // 10) == 0:
