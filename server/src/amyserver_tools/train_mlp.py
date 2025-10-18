@@ -78,13 +78,13 @@ if _ENV_PATIENCE:
             _ENV_PATIENCE,
         )
 
+_env_min_delta_str = os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0")
 try:
-    _parsed_min_delta = float(os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0"))
+    _parsed_min_delta = float(_env_min_delta_str)
 except ValueError:
-    _env_min_delta = os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA")
     LOGGER.warning(
         "MLP_EARLY_STOPPING_MIN_DELTA is not a valid float: '%s'. Using 0.0.",
-        _env_min_delta,
+        _env_min_delta_str,
     )
     _parsed_min_delta = 0.0
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
