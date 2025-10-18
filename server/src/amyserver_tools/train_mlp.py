@@ -90,6 +90,7 @@ except ValueError:
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 
 LOSS_EPSILON = np.spacing(1.0)
+AUGMENTATION_EPSILON = 1e-8
 
 
 WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -97,7 +98,9 @@ WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 def _emit_event(payload: Dict[str, object]) -> None:
     """Log a structured progress event."""
 
-    LOGGER.info(json.dumps(payload))
+    message = json.dumps(payload)
+    print(message)
+    LOGGER.info(message)
 
 # --- Data structures --------------------------------------------------------
 
@@ -137,6 +140,14 @@ class TrainingSnapshots:
 
 
 # --- Helpers ----------------------------------------------------------------
+
+
+def _max_l1(points: np.ndarray) -> float:
+    """Return the maximum L1 norm across a set of 3D landmark points."""
+
+    if points.size == 0:
+        return 0.0
+    return float(np.max(np.sum(np.abs(points), axis=1)))
 
 
 def ensure_inside(base: Path, candidate: Path) -> Path:
@@ -275,7 +286,7 @@ def _normalize(lm):
     def _norm_hand(hand: np.ndarray) -> np.ndarray:
         wrist = hand[0]
         hand = hand - wrist
-        max_dist = np.max(np.sum(np.abs(hand), axis=1))
+        max_dist = _max_l1(hand)
         if max_dist == 0:
             return hand
         hand /= max_dist
@@ -285,6 +296,95 @@ def _normalize(lm):
     right = _norm_hand(pts[21:]) if pts.shape[0] >= 42 else np.zeros_like(pts[:21])
 
     return np.concatenate([left, right]).flatten()
+
+
+def augment_landmarks(
+    normalized: Union[List[float], np.ndarray],
+    *,
+    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
+    jitter_std: float = 0.01,
+    max_rotation_degrees: float = 10.0,
+) -> np.ndarray:
+    """Perturb normalized landmarks while keeping wrists centered and unit scale.
+
+    Parameters
+    ----------
+    normalized:
+        Flattened 42x3 landmark tensor produced by :func:`_normalize`.
+    rng:
+        Optional random number generator for deterministic tests.
+    jitter_std:
+        Standard deviation of per-point jitter applied to each coordinate (except
+        the wrist anchor point for each hand).
+    max_rotation_degrees:
+        Maximum absolute in-plane rotation applied to both hands. Rotation keeps
+        the wrists stationary and does not introduce additional translation or
+        global scaling.
+
+    Returns
+    -------
+    numpy.ndarray
+        Augmented landmark tensor with the same shape as the input.
+    """
+
+    if jitter_std < 0:
+        raise ValueError(f"jitter_std must be non-negative, got {jitter_std}")
+    if max_rotation_degrees < 0:
+        raise ValueError(
+            f"max_rotation_degrees must be non-negative, got {max_rotation_degrees}"
+        )
+
+    base = np.asarray(normalized, dtype=np.float32).reshape(42, 3)
+    augmented = base.copy()
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _rotate_xy(points: np.ndarray, radians: float) -> None:
+        if abs(radians) < AUGMENTATION_EPSILON:
+            return
+        cos_a = math.cos(radians)
+        sin_a = math.sin(radians)
+        rotation = np.array([[cos_a, -sin_a], [sin_a, cos_a]], dtype=np.float32)
+        points[:, :2] = points[:, :2] @ rotation.T
+
+    # Sample a shared rotation for both hands to maintain their relative layout.
+    rotation_radians = math.radians(
+        rng.uniform(-max_rotation_degrees, max_rotation_degrees)
+    )
+
+    for offset in (0, 21):
+        hand = augmented[offset : offset + 21]
+        base_hand = base[offset : offset + 21]
+        if not np.any(base_hand):
+            continue
+
+        if jitter_std > 0.0:
+            noise = rng.normal(0.0, jitter_std, size=hand.shape).astype(np.float32)
+            noise[0] = 0.0  # Keep wrist anchor fixed
+            hand += noise
+
+        _rotate_xy(hand, rotation_radians)
+
+        # Keep wrists exactly anchored and respect missing joints.
+        present = np.any(base_hand, axis=1)
+        present[0] = True  # Always keep the wrist entry
+        hand[~present] = 0.0
+
+        # Re-normalize the entire hand to restore the unit-scale invariant without
+        # distorting relative joint geometry.
+        max_l1 = _max_l1(hand)
+        if max_l1 <= AUGMENTATION_EPSILON:
+            # Revert to the original geometry while preserving the shared rotation.
+            hand[:] = base_hand
+            _rotate_xy(hand, rotation_radians)
+            max_l1_reverted = _max_l1(hand)
+            if max_l1_reverted > AUGMENTATION_EPSILON:
+                hand /= max_l1_reverted
+        else:
+            hand /= max_l1
+
+    return augmented.astype(np.float32).flatten()
 
 
 # --- MLP implementation (unchanged core) ------------------------------------
@@ -349,19 +449,36 @@ def train_mlp(
     random_source = np.random if rng is None else rng
 
     def _sample_from_rng(rs, shape, *, distribution: str) -> np.ndarray:
-        """Generate samples from ``rs`` while handling Generator/RandomState APIs."""
+        """Generate samples from ``rs`` while handling common RNG APIs."""
 
         if distribution not in {"normal", "uniform"}:
             raise ValueError(
                 f"Unsupported distribution '{distribution}'. Supported distributions are 'normal' and 'uniform'."
             )
 
+        # numpy Generator/RandomState cover the primary cases.
         if isinstance(rs, (np.random.Generator, np.random.RandomState)):
             if distribution == "normal":
                 return rs.standard_normal(size=shape)
             return rs.random(size=shape)
+
+        # Allow custom RNG stubs that expose ``randn``/``rand`` or ``normal``/``uniform``.
         if distribution == "normal":
+            if hasattr(rs, "standard_normal"):
+                return rs.standard_normal(size=shape)
+            if hasattr(rs, "normal"):
+                return rs.normal(size=shape)
+            if hasattr(rs, "randn"):
+                return rs.randn(*shape)
             return np.random.standard_normal(size=shape)
+
+        # distribution == "uniform"
+        if hasattr(rs, "random"):
+            return rs.random(size=shape)
+        if hasattr(rs, "uniform"):
+            return rs.uniform(size=shape)
+        if hasattr(rs, "rand"):
+            return rs.rand(*shape)
         return np.random.random(size=shape)
 
     w1 = _sample_from_rng(random_source, (input_size, hidden_size), distribution="normal") * 0.01
