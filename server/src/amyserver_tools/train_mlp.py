@@ -90,6 +90,7 @@ except ValueError:
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 
 LOSS_EPSILON = np.spacing(1.0)
+AUGMENTATION_EPSILON = 1e-8
 
 
 WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -330,7 +331,7 @@ def augment_landmarks(
         rng = np.random.default_rng()
 
     def _rotate_xy(points: np.ndarray, radians: float) -> None:
-        if abs(radians) < 1e-8:
+        if abs(radians) < AUGMENTATION_EPSILON:
             return
         cos_a = math.cos(radians)
         sin_a = math.sin(radians)
@@ -357,7 +358,6 @@ def augment_landmarks(
         _rotate_xy(hand, rotation_radians)
 
         # Keep wrists exactly anchored and respect missing joints.
-        hand[0] = 0.0
         present = np.any(base_hand, axis=1)
         present[0] = True  # Always keep the wrist entry
         hand[~present] = 0.0
@@ -365,14 +365,10 @@ def augment_landmarks(
         # Re-normalize the entire hand to restore the unit-scale invariant without
         # distorting relative joint geometry.
         max_l1 = float(np.max(np.sum(np.abs(hand), axis=1)))
-        if max_l1 <= 1e-8:
+        if max_l1 <= AUGMENTATION_EPSILON:
             hand[:] = base_hand
         else:
             hand /= max_l1
-
-        # Ensure wrist anchoring and missing joints remain zero after re-scaling.
-        hand[0] = 0.0
-        hand[~present] = 0.0
 
     return augmented.astype(np.float32).flatten()
 
