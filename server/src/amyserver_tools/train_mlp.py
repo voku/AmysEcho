@@ -299,7 +299,7 @@ def augment_landmarks(
     Parameters
     ----------
     normalized:
-        Flattened 42×3 landmark tensor produced by :func:`_normalize`.
+        Flattened 42x3 landmark tensor produced by :func:`_normalize`.
     rng:
         Optional random number generator for deterministic tests.
     jitter_std:
@@ -333,25 +333,46 @@ def augment_landmarks(
 
     # Sample a shared rotation for both hands to maintain their relative layout.
     rotation_radians = math.radians(
-        float(getattr(rng, "uniform")(-max_rotation_degrees, max_rotation_degrees))
+        rng.uniform(-max_rotation_degrees, max_rotation_degrees)
     )
 
     for offset in (0, 21):
         hand = augmented[offset : offset + 21]
-        if not np.any(hand):
+        base_hand = base[offset : offset + 21]
+        if not np.any(base_hand):
             continue
 
         if jitter_std > 0.0:
-            noise = getattr(rng, "normal")(0.0, jitter_std, size=hand.shape).astype(np.float32)
+            noise = rng.normal(0.0, jitter_std, size=hand.shape).astype(np.float32)
             noise[0] = 0.0  # Keep wrist anchor fixed
             hand += noise
 
         _rotate_xy(hand, rotation_radians)
 
-    renormalized = _normalize(augmented.tolist())
-    if renormalized is None:
-        return augmented.flatten()
-    return renormalized.astype(np.float32)
+        # Keep wrists exactly anchored and respect missing joints.
+        hand[0] = np.zeros(3, dtype=np.float32)
+
+        for idx in range(1, hand.shape[0]):
+            orig = base_hand[idx]
+            if not np.any(orig):
+                hand[idx] = np.zeros(3, dtype=np.float32)
+                continue
+
+            target_norm = float(np.sum(np.abs(orig)))
+            if target_norm == 0.0:
+                hand[idx] = np.zeros(3, dtype=np.float32)
+                continue
+
+            current = hand[idx]
+            current_norm = float(np.sum(np.abs(current)))
+            if current_norm == 0.0:
+                hand[idx] = orig.astype(np.float32)
+                continue
+
+            scale = target_norm / current_norm
+            hand[idx] = (current * scale).astype(np.float32)
+
+    return augmented.astype(np.float32).flatten()
 
 
 # --- MLP implementation (unchanged core) ------------------------------------
