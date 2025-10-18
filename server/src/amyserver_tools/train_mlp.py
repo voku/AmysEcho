@@ -140,6 +140,14 @@ class TrainingSnapshots:
 # --- Helpers ----------------------------------------------------------------
 
 
+def _max_l1(points: np.ndarray) -> float:
+    """Return the maximum L1 norm across a set of 3D landmark points."""
+
+    if points.size == 0:
+        return 0.0
+    return float(np.max(np.sum(np.abs(points), axis=1)))
+
+
 def ensure_inside(base: Path, candidate: Path) -> Path:
     """Ensure candidate resolves within base directory."""
 
@@ -276,7 +284,7 @@ def _normalize(lm):
     def _norm_hand(hand: np.ndarray) -> np.ndarray:
         wrist = hand[0]
         hand = hand - wrist
-        max_dist = np.max(np.sum(np.abs(hand), axis=1))
+        max_dist = _max_l1(hand)
         if max_dist == 0:
             return hand
         hand /= max_dist
@@ -364,11 +372,18 @@ def augment_landmarks(
 
         # Re-normalize the entire hand to restore the unit-scale invariant without
         # distorting relative joint geometry.
-        max_l1 = float(np.max(np.sum(np.abs(hand), axis=1)))
+        max_l1 = _max_l1(hand)
         if max_l1 <= AUGMENTATION_EPSILON:
+            # Revert to the original geometry while preserving the shared rotation.
             hand[:] = base_hand
+            _rotate_xy(hand, rotation_radians)
+            max_l1_reverted = _max_l1(hand)
+            if max_l1_reverted > AUGMENTATION_EPSILON:
+                hand /= max_l1_reverted
         else:
             hand /= max_l1
+
+        hand[~present] = 0.0
 
     return augmented.astype(np.float32).flatten()
 

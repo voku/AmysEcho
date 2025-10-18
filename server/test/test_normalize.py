@@ -1,5 +1,5 @@
 import numpy as np
-from src.amyserver_tools.train_mlp import _normalize, augment_landmarks
+from src.amyserver_tools.train_mlp import _max_l1, _normalize, augment_landmarks
 
 
 def test_normalize_one_hand() -> None:
@@ -19,12 +19,6 @@ def test_normalize_two_hands() -> None:
     res = _normalize(left + right)
     assert res is not None
     assert not np.allclose(res[63:], 0)
-
-
-def _max_l1(hand: np.ndarray) -> float:
-    return float(np.max(np.sum(np.abs(hand), axis=1)))
-
-
 def test_augment_preserves_center_and_scale_two_hands() -> None:
     rng = np.random.default_rng(42)
     # Construct synthetic two-hand sample with varying coordinates.
