@@ -351,26 +351,20 @@ def augment_landmarks(
 
         # Keep wrists exactly anchored and respect missing joints.
         hand[0] = np.zeros(3, dtype=np.float32)
+        present = np.array([np.any(pt) for pt in base_hand], dtype=bool)
+        present[0] = True  # Always keep the wrist entry
+        hand[~present] = 0.0
 
-        for idx in range(1, hand.shape[0]):
-            orig = base_hand[idx]
-            if not np.any(orig):
-                hand[idx] = np.zeros(3, dtype=np.float32)
-                continue
+        # Re-normalize the entire hand to restore the unit-scale invariant without
+        # distorting relative joint geometry.
+        max_l1 = float(np.max(np.sum(np.abs(hand), axis=1)))
+        if max_l1 <= 1e-8:
+            hand[:] = base_hand.astype(np.float32)
+        else:
+            hand /= max_l1
 
-            target_norm = float(np.sum(np.abs(orig)))
-            if target_norm == 0.0:
-                hand[idx] = np.zeros(3, dtype=np.float32)
-                continue
-
-            current = hand[idx]
-            current_norm = float(np.sum(np.abs(current)))
-            if current_norm == 0.0:
-                hand[idx] = orig.astype(np.float32)
-                continue
-
-            scale = target_norm / current_norm
-            hand[idx] = (current * scale).astype(np.float32)
+        hand[~present] = 0.0
+        hand[0] = 0.0
 
     return augmented.astype(np.float32).flatten()
 
