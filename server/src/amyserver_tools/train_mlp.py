@@ -385,8 +385,6 @@ def augment_landmarks(
         else:
             hand /= max_l1
 
-        hand[~present] = 0.0
-
     return augmented.astype(np.float32).flatten()
 
 
@@ -473,8 +471,6 @@ def train_mlp(
                 return rs.normal(size=shape)
             if hasattr(rs, "randn"):
                 return rs.randn(*shape)
-            if hasattr(rs, "rand"):
-                return rs.rand(*shape)
             return np.random.standard_normal(size=shape)
 
         # distribution == "uniform"
@@ -484,10 +480,6 @@ def train_mlp(
             return rs.uniform(size=shape)
         if hasattr(rs, "rand"):
             return rs.rand(*shape)
-        if hasattr(rs, "randn"):
-            # ``randn`` is normal, but fall back to it if it's the only available
-            # API to keep deterministic stubs working in tests.
-            return rs.randn(*shape)
         return np.random.random(size=shape)
 
     w1 = _sample_from_rng(random_source, (input_size, hidden_size), distribution="normal") * 0.01
