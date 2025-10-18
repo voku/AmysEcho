@@ -736,13 +736,9 @@ def plan_train_validation_split(
 
     indices = np.arange(num_samples, dtype=np.int64)
 
-    if rng is None:
-        np.random.shuffle(indices)
-    elif isinstance(rng, (np.random.RandomState, np.random.Generator)):
+    if rng and hasattr(rng, "permutation"):
         indices = np.array(rng.permutation(num_samples), dtype=np.int64)
-    elif hasattr(rng, "permutation"):
-        indices = np.array(rng.permutation(num_samples), dtype=np.int64)
-    elif hasattr(rng, "shuffle"):
+    elif rng and hasattr(rng, "shuffle"):
         rng.shuffle(indices)
     else:
         np.random.shuffle(indices)
@@ -756,13 +752,10 @@ def plan_train_validation_split(
         validation_count = num_samples - 1
 
     train_count = num_samples - validation_count
-    if train_count < 1:
-        train_count = 1
-        validation_count = num_samples - train_count
 
     train_indices = indices[:train_count]
     validation_indices = indices[train_count : train_count + validation_count]
-    return train_indices.astype(np.int64), validation_indices.astype(np.int64)
+    return train_indices, validation_indices
 
 
 def save_model(path: Path, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], labels: List[str]):
