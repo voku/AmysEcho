@@ -11,15 +11,24 @@ status back to the app.
 
 import argparse
 import json
+import logging
 import math
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
+
+LOGGER = logging.getLogger("amyserver.train_mlp")
+if not LOGGER.handlers:
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.INFO)
+LOGGER.propagate = False
 
 try:  # Optional heavy dependencies – we degrade gracefully when absent
     import cv2  # type: ignore
@@ -51,6 +60,44 @@ EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
 MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
 DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.0"))))
+_ENV_PATIENCE = os.environ.get("MLP_EARLY_STOPPING_PATIENCE")
+EARLY_STOPPING_PATIENCE: Optional[int] = None
+if _ENV_PATIENCE:
+    try:
+        parsed = int(_ENV_PATIENCE)
+        if parsed > 0:
+            EARLY_STOPPING_PATIENCE = parsed
+        else:
+            LOGGER.warning(
+                "MLP_EARLY_STOPPING_PATIENCE must be > 0, got '%s'. Disabling.",
+                _ENV_PATIENCE,
+            )
+    except ValueError:
+        LOGGER.warning(
+            "MLP_EARLY_STOPPING_PATIENCE is not a valid integer: '%s'. Disabling.",
+            _ENV_PATIENCE,
+        )
+
+_env_min_delta_str = os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0")
+try:
+    _parsed_min_delta = float(_env_min_delta_str)
+except ValueError:
+    LOGGER.warning(
+        "MLP_EARLY_STOPPING_MIN_DELTA is not a valid float: '%s'. Using 0.0.",
+        _env_min_delta_str,
+    )
+    _parsed_min_delta = 0.0
+EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
+
+LOSS_EPSILON = np.spacing(1.0)
+
+
+WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+
+def _emit_event(payload: Dict[str, object]) -> None:
+    """Log a structured progress event."""
+
+    LOGGER.info(json.dumps(payload))
 
 # --- Data structures --------------------------------------------------------
 
@@ -61,6 +108,32 @@ class Sample:
     label: str
     profile_id: Optional[str]
     landmarks: List[List[float]]  # 42 landmarks, each [x, y, z]
+
+
+_UNSET = object()
+
+
+@dataclass(frozen=True)
+class TrainingConfig:
+    """Configuration values that control the trainer's behaviour."""
+
+    hidden_size: int = HIDDEN_SIZE
+    epochs: int = EPOCHS
+    learning_rate: float = LEARNING_RATE
+    dropout_rate: float = DROPOUT_RATE
+    early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE
+    early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
+    return_best_and_final: bool = False
+
+
+@dataclass
+class TrainingSnapshots:
+    """Container for the best and terminal weights observed during training."""
+
+    best_weights: WeightTuple
+    final_weights: WeightTuple
+    best_epoch: int
+    final_epoch: int
 
 
 # --- Helpers ----------------------------------------------------------------
@@ -235,19 +308,65 @@ def train_mlp(
     y,
     output_size,
     *,
-    hidden_size: int = HIDDEN_SIZE,
-    epochs: int = EPOCHS,
-    learning_rate: float = LEARNING_RATE,
-    dropout_rate: float = DROPOUT_RATE,
-    rng=None,
-):
+    config: Optional[TrainingConfig] = None,
+    hidden_size: Optional[int] = _UNSET,
+    epochs: Optional[int] = _UNSET,
+    learning_rate: Optional[float] = _UNSET,
+    dropout_rate: Optional[float] = _UNSET,
+    early_stopping_patience: Optional[int] = _UNSET,
+    early_stopping_min_delta: Optional[float] = _UNSET,
+    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
+    return_best_and_final: Optional[bool] = _UNSET,
+) -> Union[WeightTuple, TrainingSnapshots]:
+    resolved = config or TrainingConfig()
+
+    overrides = {
+        field: value
+        for field, value in {
+            "hidden_size": hidden_size,
+            "epochs": epochs,
+            "learning_rate": learning_rate,
+            "dropout_rate": dropout_rate,
+            "early_stopping_patience": early_stopping_patience,
+            "early_stopping_min_delta": early_stopping_min_delta,
+            "return_best_and_final": return_best_and_final,
+        }.items()
+        if value is not _UNSET
+    }
+    if overrides:
+        resolved = replace(resolved, **overrides)
+
+    hidden_size = resolved.hidden_size
+    epochs = resolved.epochs
+    learning_rate = resolved.learning_rate
+    dropout_rate = resolved.dropout_rate
+    early_stopping_patience = resolved.early_stopping_patience
+    early_stopping_min_delta = resolved.early_stopping_min_delta
+    return_best_and_final_flag = resolved.return_best_and_final
+
     input_size = X.shape[1]
 
     random_source = np.random if rng is None else rng
 
-    w1 = random_source.randn(input_size, hidden_size) * 0.01
+    def _sample_from_rng(rs, shape, *, distribution: str) -> np.ndarray:
+        """Generate samples from ``rs`` while handling Generator/RandomState APIs."""
+
+        if distribution not in {"normal", "uniform"}:
+            raise ValueError(
+                f"Unsupported distribution '{distribution}'. Supported distributions are 'normal' and 'uniform'."
+            )
+
+        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
+            if distribution == "normal":
+                return rs.standard_normal(size=shape)
+            return rs.random(size=shape)
+        if distribution == "normal":
+            return np.random.standard_normal(size=shape)
+        return np.random.random(size=shape)
+
+    w1 = _sample_from_rng(random_source, (input_size, hidden_size), distribution="normal") * 0.01
     b1 = np.zeros(hidden_size)
-    w2 = random_source.randn(hidden_size, output_size) * 0.01
+    w2 = _sample_from_rng(random_source, (hidden_size, output_size), distribution="normal") * 0.01
     b2 = np.zeros(output_size)
 
     num_samples = X.shape[0]
@@ -255,13 +374,28 @@ def train_mlp(
     keep_prob = 1.0 - sanitized_dropout
     use_dropout = keep_prob < 1.0
 
+    best_loss = math.inf
+    best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+    epochs_without_improvement = 0
+    patience_enabled = (
+        early_stopping_patience is not None and early_stopping_patience > 0
+    )
+    min_delta = max(0.0, early_stopping_min_delta)
+    best_epoch = 0
+
+    final_epoch = 0
+
     for epoch in range(epochs):
+        current_epoch = epoch + 1
         z1 = np.dot(X, w1) + b1
         a1 = relu(z1)
         dropout_mask = None
         if use_dropout:
             dropout_mask = (
-                random_source.rand(num_samples, hidden_size) < keep_prob
+                _sample_from_rng(
+                    random_source, (num_samples, hidden_size), distribution="uniform"
+                )
+                < keep_prob
             ).astype(
                 a1.dtype
             )
@@ -271,21 +405,44 @@ def train_mlp(
         z2 = np.dot(a1, w2) + b2
         probs = softmax(z2)
 
-        log_probs = -np.log(probs[np.arange(num_samples), y])
+        # Guard against log(0) or log(1) from floating-point underflow/overflow at extreme learning rates.
+        p = np.clip(probs[np.arange(num_samples), y], LOSS_EPSILON, 1.0 - LOSS_EPSILON)
+        log_probs = -np.log(p)
         loss = np.sum(log_probs) / num_samples
         if epoch % max(1, epochs // 10) == 0:
-            print(
-                json.dumps(
-                    {
-                        "type": "progress",
-                        "epoch": epoch + 1,
-                        "total": epochs,
-                        "loss": f"{loss:.4f}",
-                    }
-                ),
-                file=sys.stderr,
-                flush=True,
+            _emit_event(
+                {
+                    "type": "progress",
+                    "epoch": epoch + 1,
+                    "total": epochs,
+                    "loss": f"{loss:.4f}",
+                }
             )
+
+        stop_after_epoch = False
+
+        if loss < best_loss - min_delta:
+            best_loss = loss
+            best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+            best_epoch = current_epoch
+            epochs_without_improvement = 0
+        else:
+            if patience_enabled:
+                epochs_without_improvement += 1
+                if epochs_without_improvement >= early_stopping_patience:
+                    _emit_event(
+                        {
+                            "type": "early_stop",
+                            "epoch": current_epoch,
+                            "bestLoss": f"{best_loss:.4f}",
+                            "bestEpoch": best_epoch,
+                            "config": {
+                                "patience": early_stopping_patience,
+                                "minDelta": f"{min_delta:.6f}",
+                            },
+                        }
+                    )
+                    stop_after_epoch = True
 
         dz2 = probs
         dz2[np.arange(num_samples), y] -= 1
@@ -307,7 +464,24 @@ def train_mlp(
         w2 -= learning_rate * dw2
         b2 -= learning_rate * db2
 
-    return w1, b1, w2, b2
+        final_epoch = current_epoch
+
+        if stop_after_epoch:
+            break
+
+    final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+
+    if return_best_and_final_flag:
+        # Return both snapshots so callers can observe whether early stopping diverged from
+        # the terminal epoch; they will be identical when the best loss occurs in the final pass.
+        return TrainingSnapshots(
+            best_weights=best_weights,
+            final_weights=final_weights,
+            best_epoch=best_epoch,
+            final_epoch=final_epoch,
+        )
+
+    return best_weights
 
 
 # --- Dataset loading --------------------------------------------------------
@@ -524,3 +698,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
