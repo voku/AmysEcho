@@ -316,6 +316,13 @@ def augment_landmarks(
         Augmented landmark tensor with the same shape as the input.
     """
 
+    if jitter_std < 0:
+        raise ValueError(f"jitter_std must be non-negative, got {jitter_std}")
+    if max_rotation_degrees < 0:
+        raise ValueError(
+            f"max_rotation_degrees must be non-negative, got {max_rotation_degrees}"
+        )
+
     base = np.asarray(normalized, dtype=np.float32).reshape(42, 3)
     augmented = base.copy()
 
@@ -350,8 +357,8 @@ def augment_landmarks(
         _rotate_xy(hand, rotation_radians)
 
         # Keep wrists exactly anchored and respect missing joints.
-        hand[0] = np.zeros(3, dtype=np.float32)
-        present = np.array([np.any(pt) for pt in base_hand], dtype=bool)
+        hand[0] = 0.0
+        present = np.any(base_hand, axis=1)
         present[0] = True  # Always keep the wrist entry
         hand[~present] = 0.0
 
@@ -359,12 +366,13 @@ def augment_landmarks(
         # distorting relative joint geometry.
         max_l1 = float(np.max(np.sum(np.abs(hand), axis=1)))
         if max_l1 <= 1e-8:
-            hand[:] = base_hand.astype(np.float32)
+            hand[:] = base_hand
         else:
             hand /= max_l1
 
-        hand[~present] = 0.0
+        # Ensure wrist anchoring and missing joints remain zero after re-scaling.
         hand[0] = 0.0
+        hand[~present] = 0.0
 
     return augmented.astype(np.float32).flatten()
 
