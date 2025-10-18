@@ -346,8 +346,7 @@ def augment_landmarks(
         cos_a = math.cos(radians)
         sin_a = math.sin(radians)
         rotation = np.array([[cos_a, -sin_a], [sin_a, cos_a]], dtype=np.float32)
-        xy = points[:, :2].copy()
-        points[:, :2] = xy @ rotation.T
+        points[:, :2] = points[:, :2] @ rotation.T
 
     # Sample a shared rotation for both hands to maintain their relative layout.
     rotation_radians = math.radians(
