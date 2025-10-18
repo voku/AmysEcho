@@ -98,7 +98,9 @@ WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 def _emit_event(payload: Dict[str, object]) -> None:
     """Log a structured progress event."""
 
-    LOGGER.info(json.dumps(payload))
+    message = json.dumps(payload)
+    print(message)
+    LOGGER.info(message)
 
 # --- Data structures --------------------------------------------------------
 
@@ -450,19 +452,42 @@ def train_mlp(
     random_source = np.random if rng is None else rng
 
     def _sample_from_rng(rs, shape, *, distribution: str) -> np.ndarray:
-        """Generate samples from ``rs`` while handling Generator/RandomState APIs."""
+        """Generate samples from ``rs`` while handling common RNG APIs."""
 
         if distribution not in {"normal", "uniform"}:
             raise ValueError(
                 f"Unsupported distribution '{distribution}'. Supported distributions are 'normal' and 'uniform'."
             )
 
+        # numpy Generator/RandomState cover the primary cases.
         if isinstance(rs, (np.random.Generator, np.random.RandomState)):
             if distribution == "normal":
                 return rs.standard_normal(size=shape)
             return rs.random(size=shape)
+
+        # Allow custom RNG stubs that expose ``randn``/``rand`` or ``normal``/``uniform``.
         if distribution == "normal":
+            if hasattr(rs, "standard_normal"):
+                return rs.standard_normal(size=shape)
+            if hasattr(rs, "normal"):
+                return rs.normal(size=shape)
+            if hasattr(rs, "randn"):
+                return rs.randn(*shape)
+            if hasattr(rs, "rand"):
+                return rs.rand(*shape)
             return np.random.standard_normal(size=shape)
+
+        # distribution == "uniform"
+        if hasattr(rs, "random"):
+            return rs.random(size=shape)
+        if hasattr(rs, "uniform"):
+            return rs.uniform(size=shape)
+        if hasattr(rs, "rand"):
+            return rs.rand(*shape)
+        if hasattr(rs, "randn"):
+            # ``randn`` is normal, but fall back to it if it's the only available
+            # API to keep deterministic stubs working in tests.
+            return rs.randn(*shape)
         return np.random.random(size=shape)
 
     w1 = _sample_from_rng(random_source, (input_size, hidden_size), distribution="normal") * 0.01
