@@ -127,3 +127,45 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
     assert len(printed) == epochs
     totals = [json.loads(args[0]) for args, _ in printed]
     assert all(entry["total"] == epochs for entry in totals)
+
+
+def test_plan_train_validation_split_keeps_single_training_sample():
+    module = importlib.import_module("amyserver_tools.train_mlp")
+
+    class DeterministicRNG:
+        def permutation(self, n):
+            return np.arange(n)
+
+    X = np.array([[0.5, -0.2, 0.1]], dtype=np.float32)
+    y = np.array([0], dtype=np.int64)
+
+    train_idx, val_idx = module.plan_train_validation_split(
+        X,
+        validation_fraction=0.9,
+        rng=DeterministicRNG(),
+    )
+
+    assert train_idx.shape == (1,)
+    assert train_idx.tolist() == [0]
+    assert val_idx.size == 0
+
+    weights = module.train_mlp(
+        X[train_idx],
+        y[train_idx],
+        output_size=1,
+        hidden_size=2,
+        epochs=1,
+        learning_rate=0.0,
+        dropout_rate=0.0,
+    )
+
+    w1, b1, w2, b2 = weights
+
+    assert w1.shape == (X.shape[1], 2)
+    assert b1.shape == (2,)
+    assert w2.shape == (2, 1)
+    assert b2.shape == (1,)
+
+    logits = module.relu(np.dot(X[train_idx], w1) + b1).dot(w2) + b2
+    probs = module.softmax(logits)
+    np.testing.assert_allclose(probs, np.ones_like(probs))
