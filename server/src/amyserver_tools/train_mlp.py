@@ -287,6 +287,73 @@ def _normalize(lm):
     return np.concatenate([left, right]).flatten()
 
 
+def augment_landmarks(
+    normalized: Union[List[float], np.ndarray],
+    *,
+    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
+    jitter_std: float = 0.01,
+    max_rotation_degrees: float = 10.0,
+) -> np.ndarray:
+    """Perturb normalized landmarks while keeping wrists centered and unit scale.
+
+    Parameters
+    ----------
+    normalized:
+        Flattened 42×3 landmark tensor produced by :func:`_normalize`.
+    rng:
+        Optional random number generator for deterministic tests.
+    jitter_std:
+        Standard deviation of per-point jitter applied to each coordinate (except
+        the wrist anchor point for each hand).
+    max_rotation_degrees:
+        Maximum absolute in-plane rotation applied to both hands. Rotation keeps
+        the wrists stationary and does not introduce additional translation or
+        global scaling.
+
+    Returns
+    -------
+    numpy.ndarray
+        Augmented landmark tensor with the same shape as the input.
+    """
+
+    base = np.asarray(normalized, dtype=np.float32).reshape(42, 3)
+    augmented = base.copy()
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    def _rotate_xy(points: np.ndarray, radians: float) -> None:
+        if abs(radians) < 1e-8:
+            return
+        cos_a = math.cos(radians)
+        sin_a = math.sin(radians)
+        rotation = np.array([[cos_a, -sin_a], [sin_a, cos_a]], dtype=np.float32)
+        xy = points[:, :2].copy()
+        points[:, :2] = xy @ rotation.T
+
+    # Sample a shared rotation for both hands to maintain their relative layout.
+    rotation_radians = math.radians(
+        float(getattr(rng, "uniform")(-max_rotation_degrees, max_rotation_degrees))
+    )
+
+    for offset in (0, 21):
+        hand = augmented[offset : offset + 21]
+        if not np.any(hand):
+            continue
+
+        if jitter_std > 0.0:
+            noise = getattr(rng, "normal")(0.0, jitter_std, size=hand.shape).astype(np.float32)
+            noise[0] = 0.0  # Keep wrist anchor fixed
+            hand += noise
+
+        _rotate_xy(hand, rotation_radians)
+
+    renormalized = _normalize(augmented.tolist())
+    if renormalized is None:
+        return augmented.flatten()
+    return renormalized.astype(np.float32)
+
+
 # --- MLP implementation (unchanged core) ------------------------------------
 
 
