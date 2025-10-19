@@ -736,9 +736,11 @@ def plan_train_validation_split(
 
     indices = np.arange(num_samples, dtype=np.int64)
 
-    if rng and hasattr(rng, "permutation"):
-        indices = np.array(rng.permutation(num_samples), dtype=np.int64)
-    elif rng and hasattr(rng, "shuffle"):
+    if rng is None:
+        np.random.shuffle(indices)
+    elif hasattr(rng, "permutation"):
+        indices = np.asarray(rng.permutation(num_samples), dtype=np.int64)
+    elif hasattr(rng, "shuffle"):
         rng.shuffle(indices)
     else:
         np.random.shuffle(indices)

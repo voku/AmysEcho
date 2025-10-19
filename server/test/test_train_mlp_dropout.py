@@ -5,6 +5,11 @@ import numpy as np
 import pytest
 
 
+class DeterministicRNG:
+    def permutation(self, n):
+        return np.arange(n)
+
+
 def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
     module = importlib.import_module("amyserver_tools.train_mlp")
 
@@ -133,10 +138,6 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
 def test_plan_train_validation_split_keeps_single_training_sample():
     module = importlib.import_module("amyserver_tools.train_mlp")
 
-    class DeterministicRNG:
-        def permutation(self, n):
-            return np.arange(n)
-
     X = np.array([[0.5, -0.2, 0.1]], dtype=np.float32)
     y = np.array([0], dtype=np.int64)
 
@@ -188,10 +189,6 @@ def test_plan_train_validation_split_parameterized(
     num_samples, validation_fraction, expected_train, expected_val
 ):
     module = importlib.import_module("amyserver_tools.train_mlp")
-
-    class DeterministicRNG:
-        def permutation(self, n):
-            return np.arange(n)
 
     X = np.zeros((num_samples, 1), dtype=np.float32)
 
