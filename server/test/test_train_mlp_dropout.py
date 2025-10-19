@@ -1,5 +1,6 @@
 import importlib
 import json
+import sys
 
 import numpy as np
 import pytest
@@ -8,6 +9,24 @@ import pytest
 class DeterministicRNG:
     def permutation(self, n):
         return np.arange(n)
+
+
+def test_emit_event_routes_progress_to_stderr(capsys):
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    payload = {"type": "progress", "epoch": 1, "total": 5, "loss": "0.1234"}
+
+    module._emit_event(payload)
+
+    captured = capsys.readouterr()
+
+    assert captured.out == ""
+
+    err_lines = [line for line in captured.err.splitlines() if line.strip()]
+    assert err_lines, "progress events should appear on stderr"
+
+    for line in err_lines:
+        assert json.loads(line) == payload
 
 
 def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
@@ -133,6 +152,11 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
     assert len(printed) == epochs
     totals = [json.loads(args[0]) for args, _ in printed]
     assert all(entry["total"] == epochs for entry in totals)
+
+    for _, kwargs in printed:
+        assert kwargs.get("file") is sys.stderr
+        assert kwargs.get("flush") is True
+        assert set(kwargs.keys()) <= {"file", "flush"}
 
 
 def test_plan_train_validation_split_keeps_single_training_sample():

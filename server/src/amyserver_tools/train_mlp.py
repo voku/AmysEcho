@@ -99,7 +99,7 @@ def _emit_event(payload: Dict[str, object]) -> None:
     """Log a structured progress event."""
 
     message = json.dumps(payload)
-    print(message)
+    print(message, file=sys.stderr, flush=True)
     LOGGER.info(message)
 
 # --- Data structures --------------------------------------------------------
