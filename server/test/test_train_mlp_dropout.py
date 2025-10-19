@@ -2,6 +2,12 @@ import importlib
 import json
 
 import numpy as np
+import pytest
+
+
+class DeterministicRNG:
+    def permutation(self, n):
+        return np.arange(n)
 
 
 def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
@@ -127,3 +133,74 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
     assert len(printed) == epochs
     totals = [json.loads(args[0]) for args, _ in printed]
     assert all(entry["total"] == epochs for entry in totals)
+
+
+def test_plan_train_validation_split_keeps_single_training_sample():
+    module = importlib.import_module("amyserver_tools.train_mlp")
+
+    X = np.array([[0.5, -0.2, 0.1]], dtype=np.float32)
+    y = np.array([0], dtype=np.int64)
+
+    train_idx, val_idx = module.plan_train_validation_split(
+        X,
+        validation_fraction=0.9,
+        rng=DeterministicRNG(),
+    )
+
+    assert train_idx.shape == (1,)
+    assert train_idx.tolist() == [0]
+    assert val_idx.size == 0
+
+    weights = module.train_mlp(
+        X[train_idx],
+        y[train_idx],
+        output_size=1,
+        hidden_size=2,
+        epochs=1,
+        learning_rate=0.0,
+        dropout_rate=0.0,
+    )
+
+    w1, b1, w2, b2 = weights
+
+    assert w1.shape == (X.shape[1], 2)
+    assert b1.shape == (2,)
+    assert w2.shape == (2, 1)
+    assert b2.shape == (1,)
+
+    logits = module.relu(np.dot(X[train_idx], w1) + b1).dot(w2) + b2
+    probs = module.softmax(logits)
+    np.testing.assert_allclose(probs, np.ones_like(probs))
+
+
+@pytest.mark.parametrize(
+    "num_samples, validation_fraction, expected_train, expected_val",
+    [
+        (0, 0.5, 0, 0),
+        (1, 0.5, 1, 0),
+        (10, 0.0, 10, 0),
+        (10, 1.0, 1, 9),
+        (10, 0.2, 8, 2),
+        (10, 0.99, 1, 9),
+        (4, 0.5, 2, 2),
+    ],
+)
+def test_plan_train_validation_split_parameterized(
+    num_samples, validation_fraction, expected_train, expected_val
+):
+    module = importlib.import_module("amyserver_tools.train_mlp")
+
+    X = np.zeros((num_samples, 1), dtype=np.float32)
+
+    train_idx, val_idx = module.plan_train_validation_split(
+        X,
+        validation_fraction=validation_fraction,
+        rng=DeterministicRNG(),
+    )
+
+    assert len(train_idx) == expected_train
+    assert len(val_idx) == expected_val
+
+    if num_samples:
+        assert len(np.intersect1d(train_idx, val_idx)) == 0
+        assert len(train_idx) + len(val_idx) == num_samples

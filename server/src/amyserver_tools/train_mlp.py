@@ -707,6 +707,59 @@ def dataset_to_arrays(samples: List[Sample]) -> Tuple[np.ndarray, np.ndarray, Li
     return X, y, label_set
 
 
+def plan_train_validation_split(
+    X: np.ndarray,
+    *,
+    validation_fraction: float,
+    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Return shuffled train/validation indices ensuring training retains samples.
+
+    Parameters
+    ----------
+    X:
+        Feature matrix for which the split should be planned. Only the first
+        dimension (number of samples) is inspected.
+    validation_fraction:
+        Desired fraction of samples to reserve for validation. The training
+        portion is guaranteed to contain at least one sample when ``X`` is not
+        empty. Fractions outside ``[0, 1]`` are clamped to that range.
+    rng:
+        Optional random number generator used to shuffle indices deterministically
+        in tests.
+    """
+
+    num_samples = int(X.shape[0])
+    if num_samples == 0:
+        empty = np.zeros((0,), dtype=np.int64)
+        return empty, empty
+
+    indices = np.arange(num_samples, dtype=np.int64)
+
+    if rng is None:
+        np.random.shuffle(indices)
+    elif hasattr(rng, "permutation"):
+        indices = np.asarray(rng.permutation(num_samples), dtype=np.int64)
+    elif hasattr(rng, "shuffle"):
+        rng.shuffle(indices)
+    else:
+        raise TypeError("The provided 'rng' object must have a 'permutation' or 'shuffle' method.")
+
+    if num_samples < 2:
+        return indices, np.zeros((0,), dtype=np.int64)
+
+    sanitized_fraction = float(np.clip(validation_fraction, 0.0, 1.0))
+    validation_count = int(num_samples * sanitized_fraction)
+    if validation_count >= num_samples:
+        validation_count = num_samples - 1
+
+    train_count = num_samples - validation_count
+
+    train_indices = indices[:train_count]
+    validation_indices = indices[train_count:]
+    return train_indices, validation_indices
+
+
 def save_model(path: Path, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], labels: List[str]):
     w1, b1, w2, b2 = weights
     path.parent.mkdir(parents=True, exist_ok=True)
