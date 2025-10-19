@@ -743,7 +743,7 @@ def plan_train_validation_split(
     elif hasattr(rng, "shuffle"):
         rng.shuffle(indices)
     else:
-        np.random.shuffle(indices)
+        raise TypeError("The provided 'rng' object must have a 'permutation' or 'shuffle' method.")
 
     if num_samples < 2:
         return indices, np.zeros((0,), dtype=np.int64)
