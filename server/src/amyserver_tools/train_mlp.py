@@ -732,7 +732,7 @@ def plan_train_validation_split(
     num_samples = int(X.shape[0])
     if num_samples == 0:
         empty = np.zeros((0,), dtype=np.int64)
-        return empty, empty.copy()
+        return empty, empty
 
     indices = np.arange(num_samples, dtype=np.int64)
 
@@ -746,7 +746,7 @@ def plan_train_validation_split(
     if num_samples < 2:
         return indices, np.zeros((0,), dtype=np.int64)
 
-    sanitized_fraction = min(max(validation_fraction, 0.0), 1.0)
+    sanitized_fraction = float(np.clip(validation_fraction, 0.0, 1.0))
     validation_count = int(num_samples * sanitized_fraction)
     if validation_count >= num_samples:
         validation_count = num_samples - 1
@@ -754,7 +754,7 @@ def plan_train_validation_split(
     train_count = num_samples - validation_count
 
     train_indices = indices[:train_count]
-    validation_indices = indices[train_count : train_count + validation_count]
+    validation_indices = indices[train_count:]
     return train_indices, validation_indices
 
 
