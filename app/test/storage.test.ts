@@ -337,10 +337,12 @@ describe('Storage', () => {
   describe('Backend token functions', () => {
     it('saves backend API token', async () => {
       mockSecureStore.setItemAsync.mockResolvedValue();
+      mockAsyncStorage.removeItem.mockResolvedValue();
 
       await saveBackendApiToken('token-123');
 
       expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith('backendApiToken', 'token-123');
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith('backendApiToken:fallback');
     });
 
     it('loads backend API token', async () => {
@@ -349,6 +351,34 @@ describe('Storage', () => {
       const result = await loadBackendApiToken();
 
       expect(result).toBe('token-123');
+      expect(mockAsyncStorage.getItem).not.toHaveBeenCalled();
+    });
+
+    it('stores backend token in AsyncStorage when SecureStore is unavailable', async () => {
+      mockSecureStore.setItemAsync.mockRejectedValue(new Error('unavailable'));
+      mockAsyncStorage.setItem.mockResolvedValue();
+
+      await saveBackendApiToken('token-abc');
+
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('backendApiToken:fallback', 'token-abc');
+    });
+
+    it('loads backend API token from fallback when SecureStore throws', async () => {
+      mockSecureStore.getItemAsync.mockRejectedValue(new Error('unavailable'));
+      mockAsyncStorage.getItem.mockResolvedValue('token-fallback');
+
+      const result = await loadBackendApiToken();
+
+      expect(result).toBe('token-fallback');
+    });
+
+    it('loads fallback token when SecureStore returns null', async () => {
+      mockSecureStore.getItemAsync.mockResolvedValue(null as unknown as string);
+      mockAsyncStorage.getItem.mockResolvedValue('token-alt');
+
+      const result = await loadBackendApiToken();
+
+      expect(result).toBe('token-alt');
     });
   });
 

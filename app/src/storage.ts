@@ -329,12 +329,28 @@ export async function loadOpenAIApiKey(): Promise<string | null> {
 }
 
 const BACKEND_TOKEN_KEY = 'backendApiToken';
+const BACKEND_TOKEN_FALLBACK_KEY = `${BACKEND_TOKEN_KEY}:fallback`;
+
 export async function saveBackendApiToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(BACKEND_TOKEN_KEY, token);
+  try {
+    await SecureStore.setItemAsync(BACKEND_TOKEN_KEY, token);
+    await AsyncStorage.removeItem(BACKEND_TOKEN_FALLBACK_KEY);
+  } catch (error) {
+    await AsyncStorage.setItem(BACKEND_TOKEN_FALLBACK_KEY, token);
+  }
 }
 
 export async function loadBackendApiToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(BACKEND_TOKEN_KEY);
+  try {
+    const token = await SecureStore.getItemAsync(BACKEND_TOKEN_KEY);
+    if (token) {
+      return token;
+    }
+  } catch (error) {
+    // SecureStore unavailable; fall through to fallback storage.
+  }
+
+  return AsyncStorage.getItem(BACKEND_TOKEN_FALLBACK_KEY);
 }
 
 const CUSTOM_MODEL_KEY = 'customModelUri';

@@ -7,6 +7,7 @@ module.exports = {
   ],
   moduleNameMapper: {
     "\\.task$": "<rootDir>/test/__mocks__/fileMock.js",
+    "\\.npz$": "<rootDir>/test/__mocks__/fileMock.js",
     "^react-native-webview$": "<rootDir>/test/__mocks__/react-native-webview.js",
     "gestureDetector\\.js$": "<rootDir>/test/__mocks__/fileMock.js",
     "^\.\./services$": "<rootDir>/src/services/index.ts",
