@@ -34,6 +34,7 @@ export type BaselineSeedMessages = {
 };
 
 const SERVER_MODULE_DIR = SRC_DIR;
+const ZERO_MODEL_SCRIPT_PATH = path.join(SERVER_MODULE_DIR, 'amyserver_tools', 'generate_zero_model.py');
 const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
 
 export async function seedBaselineModel(
@@ -70,33 +71,8 @@ async function writeZeroInitializedModel(
     hiddenSize: DEFAULT_MLP_HIDDEN_SIZE,
   });
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  const script = `import json, numpy as np, os, sys\n` +
-    `path = sys.argv[1]\n` +
-    `payload = json.load(sys.stdin)\n` +
-    `labels = payload.get('labels', [])\n` +
-    `if not isinstance(labels, list):\n` +
-    `    labels = []\n` +
-    `counts = payload.get('counts', [])\n` +
-    `if not isinstance(counts, list) or len(counts) != len(labels):\n` +
-    `    counts = [0.0 for _ in labels]\n` +
-    `labels_arr = np.array(labels, dtype='<U64')\n` +
-    `counts_arr = np.array(counts, dtype=np.float32)\n` +
-    `input_size = int(payload.get('inputSize', ${DEFAULT_MLP_INPUT_SIZE}))\n` +
-    `hidden_size = int(payload.get('hiddenSize', ${DEFAULT_MLP_HIDDEN_SIZE}))\n` +
-    `output_size = max(len(labels_arr), 1)\n` +
-    `dtype = np.float32\n` +
-    `w1 = np.zeros((hidden_size, input_size), dtype=dtype)\n` +
-    `b1 = np.zeros((hidden_size,), dtype=dtype)\n` +
-    `w2 = np.zeros((output_size, hidden_size), dtype=dtype)\n` +
-    `b2 = np.zeros((output_size,), dtype=dtype)\n` +
-    `tmp = path + '.tmp'\n` +
-    `os.makedirs(os.path.dirname(path) or '.', exist_ok=True)\n` +
-    `with open(tmp, 'wb') as f:\n` +
-    `    np.savez(f, labels=labels_arr, counts=counts_arr, w1=w1, b1=b1, w2=w2, b2=b2)\n` +
-    `os.replace(tmp, path)\n`;
-
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn('python3', ['-c', script, filePath], {
+    const proc = spawn('python3', [ZERO_MODEL_SCRIPT_PATH, filePath], {
       cwd: path.join(SERVER_MODULE_DIR, '..'),
       stdio: ['pipe', 'ignore', 'pipe'],
     });
@@ -134,8 +110,7 @@ export async function writeMinimalMlpModel(
   gestureCounts: Record<string, number>,
   logTraining: (message: string) => Promise<void>,
 ): Promise<void> {
-  const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
-  const hasCounts = entries.some(([, count]) => count > 0);
+  const hasCounts = Object.values(gestureCounts).some((count) => (Number(count) || 0) > 0);
 
   if (!hasCounts) {
     const baselineExists = await fs
@@ -168,6 +143,7 @@ export async function writeMinimalMlpModel(
     return;
   }
 
+  const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
   const entryLabels = entries.map(([label]) => label);
   const entryCounts = entries.map(([, count]) => count);
   const labelCount = await writeZeroInitializedModel(filePath, entryLabels, entryCounts);
