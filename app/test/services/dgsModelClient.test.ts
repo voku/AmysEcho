@@ -1,3 +1,5 @@
+const mockFallbackB64 = Buffer.from('fallback-npz-data').toString('base64');
+
 let storageMap = new Map<string, string>();
 
 type MockAsyncStorage = {
@@ -25,6 +27,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   get default() {
     return mockAsyncStorage;
   },
+}));
+
+jest.mock('../../src/constants/bundledMlpModel', () => ({
+  BUNDLED_MLP_MODEL_BASE64: mockFallbackB64,
+  BUNDLED_MLP_MODEL_BYTES: 5530,
+  BUNDLED_MLP_MODEL_SHA256: 'sha256-test',
+  BUNDLED_MLP_MODEL_VERSION: 'test-version',
 }));
 
 const mockGetInfoAsync = jest.fn();
@@ -113,6 +122,23 @@ describe('dgsModelClient local persistence', () => {
     expect(result).toBe(persistedModel);
   });
 
+  it('loads the bundled fallback model when no persisted model exists', async () => {
+    mockGetInfoAsync.mockResolvedValue({ exists: false, isDirectory: false });
+
+    const fetchMock = jest.fn().mockRejectedValue(new Error('network down'));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await fetchMlpModel();
+
+    expect(fetchMock).toHaveBeenCalled();
+    expect(mockWriteAsStringAsync).toHaveBeenCalledWith(
+      'file:///documents/amy_model.npz',
+      mockFallbackB64,
+      { encoding: 'base64' },
+    );
+    expect(result).toBe(mockFallbackB64);
+  });
+
   it('persists downloaded models to the document directory', async () => {
     const buffer = Buffer.from('npz-data');
     mockWriteAsStringAsync.mockResolvedValue(undefined);
@@ -135,10 +161,12 @@ describe('dgsModelClient local persistence', () => {
     );
   });
 
-  it('returns null when no document directory is available', async () => {
+  it('uses the bundled fallback when no document directory is available', async () => {
     mockDocumentDirectoryValue = null;
+
     const result = await loadLocalMlpModel();
-    expect(result).toBeNull();
+    expect(result).toBe(mockFallbackB64);
+    expect(mockWriteAsStringAsync).not.toHaveBeenCalled();
   });
 });
 

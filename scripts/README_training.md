@@ -121,9 +121,24 @@ If landmark extraction fails:
 ## Model Files
 
 The script creates several files:
-- `data/amy_model.npz`: Trained model weights and labels
+- `data/amy_model.npz`: Trained model weights and labels **(not checked into git; place it locally after training)**
 - `server/data/models/global/amy_model.npz`: Baseline model served to clients until personalized weights exist
 - `app/assets/gestureDetector.js`: Updated WebView bundle
+- `app/src/constants/bundledMlpModel.ts`: Offline fallback payload generated from the latest `.npz`
+
+### Updating the bundled fallback model
+
+Codex contributors cannot commit binary artifacts directly. To refresh the offline
+model that ships with the app, run the generator after training:
+
+```bash
+python scripts/generate_bundled_mlp_model.py --source data/amy_model.npz --version vYYYYMMDD
+```
+
+This script base64-encodes the `.npz`, records its SHA-256 checksum, and rewrites
+`app/src/constants/bundledMlpModel.ts`. Without the `--source` flag it falls back to
+the zero-initialised baseline produced by `writeMinimalMlpModel`, ensuring local
+development still has a consistent payload shape.
 
 ## Testing the Model
 

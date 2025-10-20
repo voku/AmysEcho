@@ -1,6 +1,12 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { logger } from '../utils/logger';
 import { arrayBufferToBase64 } from '../utils/base64';
+import {
+  BUNDLED_MLP_MODEL_BASE64,
+  BUNDLED_MLP_MODEL_BYTES,
+  BUNDLED_MLP_MODEL_SHA256,
+  BUNDLED_MLP_MODEL_VERSION,
+} from '../constants/bundledMlpModel';
 
 const getApiUrl = () => process.env['EXPO_PUBLIC_API_URL'] || 'http://localhost:5000';
 const getApiToken = () => process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
@@ -36,6 +42,7 @@ type StorageLike = {
 
 let memoryStore: Map<string, string> | null = null;
 let testStorageOverride: StorageLike | null = null;
+let bundledModelPromise: Promise<string | null> | null = null;
 
 /**
  * Test-only hook for overriding the storage implementation.
@@ -68,6 +75,53 @@ async function getStorage(): Promise<StorageLike> {
       },
     };
   }
+}
+
+function loadBundledFallbackModel(): Promise<string | null> {
+  if (bundledModelPromise) {
+    return bundledModelPromise;
+  }
+
+  const loadPromise = (async () => {
+    const data = BUNDLED_MLP_MODEL_BASE64.trim();
+    if (!data) {
+      logger.warn('Bundled fallback MLP payload missing');
+      return null;
+    }
+
+    const expectedLength = Math.ceil(BUNDLED_MLP_MODEL_BYTES / 3) * 4;
+    if (expectedLength > 0 && Math.abs(data.length - expectedLength) > 64) {
+      logger.warn('Bundled fallback MLP payload length mismatch', {
+        expectedLength,
+        actualLength: data.length,
+      });
+    }
+
+    logger.info('Loaded bundled fallback MLP payload metadata', {
+      bytes: BUNDLED_MLP_MODEL_BYTES,
+      sha256: BUNDLED_MLP_MODEL_SHA256,
+      version: BUNDLED_MLP_MODEL_VERSION,
+    });
+
+    return data;
+  })();
+
+  bundledModelPromise = loadPromise
+    .then((result) => {
+      if (!result) {
+        bundledModelPromise = null;
+      }
+      return result;
+    })
+    .catch((error) => {
+      logger.error('Failed to load bundled fallback MLP model', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      bundledModelPromise = null;
+      return null;
+    });
+
+  return bundledModelPromise;
 }
 
 type MlpMeta = {
@@ -307,6 +361,15 @@ export async function loadLocalMlpModel(profileId?: string | null): Promise<stri
         });
         return globalModel;
       }
+    }
+
+    const bundled = await loadBundledFallbackModel();
+    if (bundled) {
+      logger.info('Loaded bundled fallback MLP model', {
+        profileId: profileId ?? 'global',
+      });
+      await persistDocumentDirectoryModel(bundled, null);
+      return bundled;
     }
 
     logger.warn('No persisted MLP model available locally', {
