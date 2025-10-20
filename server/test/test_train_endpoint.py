@@ -11,6 +11,7 @@ import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
+BASELINE_MODEL_PATH = SERVER_DIR.parent / "data" / "amy_model.npz"
 
 
 def start_server():
@@ -151,6 +152,69 @@ def test_train_endpoint(tmp_path):
         data_dir = SERVER_DIR / "data"
         if data_dir.exists():
             shutil.rmtree(data_dir)
+
+
+def test_train_endpoint_without_baseline_file(tmp_path):
+    backup_path = BASELINE_MODEL_PATH.with_suffix(".npz.bak")
+    baseline_was_present = BASELINE_MODEL_PATH.exists()
+    if baseline_was_present:
+        if backup_path.exists():
+            backup_path.unlink()
+        BASELINE_MODEL_PATH.rename(backup_path)
+    proc = None
+    try:
+        proc = start_server()
+    except Exception:
+        # Restore baseline on failure to start before re-raising
+        if baseline_was_present and backup_path.exists():
+            backup_path.rename(BASELINE_MODEL_PATH)
+        raise
+    try:
+        url = f"http://localhost:{PORT}/train-model"
+        payload = json.dumps({"samples": [], "trigger": "bundles"}).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer testtoken",
+        }
+        req = urllib.request.Request(url, data=payload, headers=headers)
+        with urllib.request.urlopen(req) as resp:
+            assert resp.getcode() == 202
+            resp_data = json.loads(resp.read().decode())
+            job_id = resp_data["jobId"]
+            assert resp_data["status"] in ("running", "queued")
+
+        final_info = wait_for_training_completion(job_id)
+        assert final_info.get("status") == "completed"
+        global_model = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
+        assert global_model.exists()
+        with np.load(global_model) as model:
+            labels = model["labels"].tolist()
+            counts = model["counts"].tolist()
+        assert labels == [
+            "alle",
+            "blau",
+            "essen",
+            "fertig",
+            "gelb",
+            "gruen",
+            "nochmal",
+            "rot",
+            "satt",
+            "schwester",
+            "spielen",
+            "trinken",
+        ]
+        assert all(float(value) == 0.0 for value in counts)
+    finally:
+        if proc is not None:
+            stop_server(proc)
+        data_dir = SERVER_DIR / "data"
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
+        if baseline_was_present and backup_path.exists():
+            backup_path.rename(BASELINE_MODEL_PATH)
+        elif not baseline_was_present and BASELINE_MODEL_PATH.exists():
+            BASELINE_MODEL_PATH.unlink()
 
 
 def test_train_requests_are_serialized(tmp_path):

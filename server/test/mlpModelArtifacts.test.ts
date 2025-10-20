@@ -27,6 +27,7 @@ describe('writeMinimalMlpModel', () => {
     } else {
       delete process.env.AMY_ECHO_DATA_DIR;
     }
+    await ensureBaselineModelFixture();
     jest.resetModules();
   });
 
@@ -84,5 +85,63 @@ describe('writeMinimalMlpModel', () => {
     } finally {
       copySpy.mockRestore();
     }
+  });
+
+  it('generates a neutral NPZ with default labels when the baseline bundle is missing', async () => {
+    const [{ writeMinimalMlpModel }, modelPaths] = await Promise.all([
+      import('../src/services/mlpModelArtifacts.js'),
+      import('../src/constants/modelPaths.js'),
+    ]);
+
+    const destination = path.join(tmpDir, 'models', 'global', 'amy_model.npz');
+    await fs.rm(modelPaths.BASELINE_MLP_MODEL_PATH, { force: true });
+
+    const logMessages: string[] = [];
+    await writeMinimalMlpModel(destination, {}, async (message) => {
+      logMessages.push(message);
+    });
+
+    const destStat = await fs.stat(destination);
+    expect(destStat.isFile()).toBe(true);
+
+    const script = [
+      'import json, numpy as np, sys',
+      "data = np.load(sys.argv[1])",
+      "labels = data['labels'].tolist()",
+      "counts = data['counts'].astype(float).tolist()",
+      "keys = sorted(data.files)",
+      "shapes = {k: [int(x) for x in data[k].shape] for k in keys}",
+      "print(json.dumps({'labels': labels, 'counts': counts, 'shapes': shapes}))",
+    ].join('\n');
+    const result = spawnSync('python3', ['-c', script, destination], { encoding: 'utf8' });
+    expect(result.status).toBe(0);
+    const parsed = JSON.parse(result.stdout) as {
+      labels: string[];
+      counts: number[];
+      shapes: Record<string, number[]>;
+    };
+    const expectedLabels = [
+      'alle',
+      'blau',
+      'essen',
+      'fertig',
+      'gelb',
+      'gruen',
+      'nochmal',
+      'rot',
+      'satt',
+      'schwester',
+      'spielen',
+      'trinken',
+    ];
+    expect(parsed.labels).toEqual(expectedLabels);
+    expect(parsed.counts).toEqual(expectedLabels.map(() => 0));
+    expect(parsed.shapes['w1'][0]).toBeGreaterThan(0);
+    expect(parsed.shapes['w1'][1]).toBeGreaterThan(0);
+    expect(parsed.shapes['w2'][0]).toBeGreaterThan(0);
+    expect(parsed.shapes['w2'][1]).toEqual(parsed.shapes['w1'][0]);
+
+    expect(logMessages.some((message) => message.includes('baseline MLP missing'))).toBe(true);
+    expect(logMessages.some((message) => message.includes('wrote minimal MLP model'))).toBe(true);
   });
 });

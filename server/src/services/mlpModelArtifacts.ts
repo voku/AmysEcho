@@ -53,34 +53,16 @@ export async function seedBaselineModel(
   }
 }
 
-export async function writeMinimalMlpModel(
+async function writeZeroInitializedModel(
   filePath: string,
-  gestureCounts: Record<string, number>,
-  logTraining: (message: string) => Promise<void>,
-): Promise<void> {
-  const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
-  const hasCounts = entries.some(([, count]) => count > 0);
-
-  if (!hasCounts) {
-    const seeded = await seedBaselineModel(filePath, {
-      success: (dest) => `seeded MLP from baseline into ${dest}`,
-      failure: (dest, error) => `failed to copy baseline MLP into ${dest}: ${String(error)}`,
-    }, logTraining);
-    if (!seeded) {
-      throw new Error(
-        `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} using a non-Codex assistant or reviewer.`,
-      );
-    }
-    return;
-  }
-
-  const entryLabels = entries.map(([label]) => label);
-  const entryCounts = entries.map(([, count]) => count);
-  const labels = entryLabels.length > 0 ? entryLabels : [...DEFAULT_BASELINE_LABELS];
-  const counts = entryLabels.length > 0 ? entryCounts : labels.map(() => 0);
+  labels: readonly string[],
+  counts: readonly number[],
+): Promise<number> {
+  const effectiveLabels = (labels.length > 0 ? labels : DEFAULT_BASELINE_LABELS).map((label) => String(label));
+  const effectiveCounts = effectiveLabels.map((_, index) => Number(counts[index]) || 0);
   const payload = JSON.stringify({
-    labels,
-    counts,
+    labels: effectiveLabels,
+    counts: effectiveCounts,
     inputSize: DEFAULT_MLP_INPUT_SIZE,
     hiddenSize: DEFAULT_MLP_HIDDEN_SIZE,
   });
@@ -129,7 +111,47 @@ export async function writeMinimalMlpModel(
     });
   });
 
-  await logTraining(`wrote minimal MLP model to ${filePath} (${labels.length} labels)`);
+  return effectiveLabels.length;
+}
+
+export async function writeMinimalMlpModel(
+  filePath: string,
+  gestureCounts: Record<string, number>,
+  logTraining: (message: string) => Promise<void>,
+): Promise<void> {
+  const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
+  const hasCounts = entries.some(([, count]) => count > 0);
+
+  if (!hasCounts) {
+    if (fsSync.existsSync(BASELINE_MLP_MODEL_PATH)) {
+      const seeded = await seedBaselineModel(filePath, {
+        success: (dest) => `seeded MLP from baseline into ${dest}`,
+        failure: (dest, error) => `failed to copy baseline MLP into ${dest}: ${String(error)}`,
+      }, logTraining);
+      if (!seeded) {
+        throw new Error(
+          `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} using a non-Codex assistant or reviewer.`,
+        );
+      }
+      return;
+    }
+
+    await logTraining(
+      `baseline MLP missing at ${BASELINE_MLP_MODEL_PATH}; generating neutral weights in ${filePath}`,
+    );
+    const labelCount = await writeZeroInitializedModel(filePath, DEFAULT_BASELINE_LABELS, DEFAULT_BASELINE_LABELS.map(() => 0));
+    await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
+    try {
+      await fs.chmod(filePath, 0o640);
+    } catch {}
+    return;
+  }
+
+  const entryLabels = entries.map(([label]) => label);
+  const entryCounts = entries.map(([, count]) => count);
+  const labelCount = await writeZeroInitializedModel(filePath, entryLabels, entryCounts);
+
+  await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
 
   try {
     await fs.chmod(filePath, 0o640);

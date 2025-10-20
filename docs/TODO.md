@@ -1,7 +1,7 @@
 # Amy's Echo Gesture Model — Next Training Sprint
 
 ## Open Follow-ups
-- [ ] Provide the production-ready baseline `data/amy_model.npz` bundle and copy it into `server/data/models/global/amy_model.npz` during deploys. This binary must be supplied by a reviewer or a non-Codex assistant that can handle binary artifacts. Coordinate with the MLP training pipeline owners to fetch the latest artifact and record its SHA256 checksum in this document once available so future contributors can verify integrity before placing it in the repository.
+- [ ] Provide the production-ready baseline `data/amy_model.npz` bundle and copy it into `server/data/models/global/amy_model.npz` during deploys. The server now auto-generates a neutral zero-weight model when this file is absent, so development builds no longer fail, but the real artifact is still required for production accuracy. Coordinate with the MLP training pipeline owners to fetch the latest artifact and record its SHA256 checksum in this document once available so future contributors can verify integrity before placing it in the repository.
 
 We have MediaPipe capture working in the app and a Python MLP trainer on the server. The next sprint turns that flow into a repeatable loop so new caregiver recordings refresh the model (globally and per profile) without manual JSON hacks.
 
