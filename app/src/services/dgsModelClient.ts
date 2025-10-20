@@ -82,13 +82,12 @@ function loadBundledFallbackModel(): Promise<string | null> {
     return bundledModelPromise;
   }
 
-  bundledModelPromise = (async () => {
+  const promise = (async () => {
     try {
       const data = BUNDLED_MLP_MODEL_BASE64.trim();
       if (!data) {
         logger.warn('Bundled fallback MLP payload missing');
-        bundledModelPromise = null;
-        return null;
+        throw new Error('Bundled fallback MLP payload missing');
       }
 
       const expectedLength = Math.ceil(BUNDLED_MLP_MODEL_BYTES / 3) * 4;
@@ -110,12 +109,15 @@ function loadBundledFallbackModel(): Promise<string | null> {
       logger.error('Failed to load bundled fallback MLP model', {
         error: error instanceof Error ? error.message : String(error),
       });
-      bundledModelPromise = null;
+      if (bundledModelPromise === promise) {
+        bundledModelPromise = null;
+      }
       return null;
     }
   })();
 
-  return bundledModelPromise;
+  bundledModelPromise = promise;
+  return promise;
 }
 
 type MlpMeta = {

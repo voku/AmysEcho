@@ -7,7 +7,15 @@ import {
 } from '../../src/constants/bundledMlpModel';
 
 function parseArrayData(bytes: Uint8Array): Uint8Array {
-  if (bytes.length < 10 || bytes[0] !== 0x93 || bytes[1] !== 0x4e || bytes[2] !== 0x55 || bytes[3] !== 0x4d) {
+  if (
+    bytes.length < 10 ||
+    bytes[0] !== 0x93 ||
+    bytes[1] !== 0x4e ||
+    bytes[2] !== 0x55 ||
+    bytes[3] !== 0x4d ||
+    bytes[4] !== 0x50 ||
+    bytes[5] !== 0x59
+  ) {
     throw new Error('Invalid NPY header');
   }
   const major = bytes[6];
