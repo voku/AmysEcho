@@ -77,12 +77,9 @@ async function getStorage(): Promise<StorageLike> {
   }
 }
 
-async function loadBundledFallbackModel(): Promise<string | null> {
+function loadBundledFallbackModel(): Promise<string | null> {
   if (bundledModelPromise) {
-    const cached = await bundledModelPromise;
-    if (cached) {
-      return cached;
-    }
+    return bundledModelPromise;
   }
 
   bundledModelPromise = (async () => {
@@ -90,6 +87,7 @@ async function loadBundledFallbackModel(): Promise<string | null> {
       const data = BUNDLED_MLP_MODEL_BASE64.trim();
       if (!data) {
         logger.warn('Bundled fallback MLP payload missing');
+        bundledModelPromise = null;
         return null;
       }
 
@@ -112,15 +110,12 @@ async function loadBundledFallbackModel(): Promise<string | null> {
       logger.error('Failed to load bundled fallback MLP model', {
         error: error instanceof Error ? error.message : String(error),
       });
+      bundledModelPromise = null;
       return null;
     }
   })();
 
-  const result = await bundledModelPromise;
-  if (!result) {
-    bundledModelPromise = null;
-  }
-  return result;
+  return bundledModelPromise;
 }
 
 type MlpMeta = {
