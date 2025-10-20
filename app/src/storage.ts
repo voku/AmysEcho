@@ -334,9 +334,15 @@ const BACKEND_TOKEN_FALLBACK_KEY = `${BACKEND_TOKEN_KEY}:fallback`;
 export async function saveBackendApiToken(token: string): Promise<void> {
   try {
     await SecureStore.setItemAsync(BACKEND_TOKEN_KEY, token);
-    await AsyncStorage.removeItem(BACKEND_TOKEN_FALLBACK_KEY);
   } catch (error) {
     await AsyncStorage.setItem(BACKEND_TOKEN_FALLBACK_KEY, token);
+    return;
+  }
+
+  try {
+    await AsyncStorage.removeItem(BACKEND_TOKEN_FALLBACK_KEY);
+  } catch (removeError) {
+    // Primary storage succeeded; stale fallback removal failures are non-fatal.
   }
 }
 
