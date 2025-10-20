@@ -13,7 +13,7 @@ import {
 
 export const DEFAULT_MLP_INPUT_SIZE = 126;
 export const DEFAULT_MLP_HIDDEN_SIZE = 256;
-const DEFAULT_BASELINE_LABELS = Object.freeze([
+export const DEFAULT_BASELINE_LABELS = Object.freeze([
   'alle',
   'blau',
   'essen',
@@ -143,7 +143,9 @@ export async function writeMinimalMlpModel(
     await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
     try {
       await fs.chmod(filePath, 0o640);
-    } catch {}
+    } catch (error) {
+      await logTraining(`(Warning) Failed to set permissions on ${filePath}: ${String(error)}`);
+    }
     return;
   }
 
@@ -155,7 +157,9 @@ export async function writeMinimalMlpModel(
 
   try {
     await fs.chmod(filePath, 0o640);
-  } catch {}
+  } catch (error) {
+    await logTraining(`(Warning) Failed to set permissions on ${filePath}: ${String(error)}`);
+  }
 }
 
 export type ModelResponseMetadata = {

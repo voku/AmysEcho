@@ -88,7 +88,7 @@ describe('writeMinimalMlpModel', () => {
   });
 
   it('generates a neutral NPZ with default labels when the baseline bundle is missing', async () => {
-    const [{ writeMinimalMlpModel }, modelPaths] = await Promise.all([
+    const [{ writeMinimalMlpModel, DEFAULT_BASELINE_LABELS }, modelPaths] = await Promise.all([
       import('../src/services/mlpModelArtifacts.js'),
       import('../src/constants/modelPaths.js'),
     ]);
@@ -120,22 +120,8 @@ describe('writeMinimalMlpModel', () => {
       counts: number[];
       shapes: Record<string, number[]>;
     };
-    const expectedLabels = [
-      'alle',
-      'blau',
-      'essen',
-      'fertig',
-      'gelb',
-      'gruen',
-      'nochmal',
-      'rot',
-      'satt',
-      'schwester',
-      'spielen',
-      'trinken',
-    ];
-    expect(parsed.labels).toEqual(expectedLabels);
-    expect(parsed.counts).toEqual(expectedLabels.map(() => 0));
+    expect(parsed.labels).toEqual(DEFAULT_BASELINE_LABELS);
+    expect(parsed.counts).toEqual(DEFAULT_BASELINE_LABELS.map(() => 0));
     expect(parsed.shapes['w1'][0]).toBeGreaterThan(0);
     expect(parsed.shapes['w1'][1]).toBeGreaterThan(0);
     expect(parsed.shapes['w2'][0]).toBeGreaterThan(0);
