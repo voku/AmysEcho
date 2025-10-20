@@ -82,42 +82,46 @@ function loadBundledFallbackModel(): Promise<string | null> {
     return bundledModelPromise;
   }
 
-  const promise = (async () => {
-    try {
-      const data = BUNDLED_MLP_MODEL_BASE64.trim();
-      if (!data) {
-        logger.warn('Bundled fallback MLP payload missing');
-        throw new Error('Bundled fallback MLP payload missing');
-      }
+  const loadPromise = (async () => {
+    const data = BUNDLED_MLP_MODEL_BASE64.trim();
+    if (!data) {
+      logger.warn('Bundled fallback MLP payload missing');
+      return null;
+    }
 
-      const expectedLength = Math.ceil(BUNDLED_MLP_MODEL_BYTES / 3) * 4;
-      if (expectedLength > 0 && Math.abs(data.length - expectedLength) > 64) {
-        logger.warn('Bundled fallback MLP payload length mismatch', {
-          expectedLength,
-          actualLength: data.length,
-        });
-      }
-
-      logger.info('Loaded bundled fallback MLP payload metadata', {
-        bytes: BUNDLED_MLP_MODEL_BYTES,
-        sha256: BUNDLED_MLP_MODEL_SHA256,
-        version: BUNDLED_MLP_MODEL_VERSION,
+    const expectedLength = Math.ceil(BUNDLED_MLP_MODEL_BYTES / 3) * 4;
+    if (expectedLength > 0 && Math.abs(data.length - expectedLength) > 64) {
+      logger.warn('Bundled fallback MLP payload length mismatch', {
+        expectedLength,
+        actualLength: data.length,
       });
+    }
 
-      return data;
-    } catch (error) {
+    logger.info('Loaded bundled fallback MLP payload metadata', {
+      bytes: BUNDLED_MLP_MODEL_BYTES,
+      sha256: BUNDLED_MLP_MODEL_SHA256,
+      version: BUNDLED_MLP_MODEL_VERSION,
+    });
+
+    return data;
+  })();
+
+  bundledModelPromise = loadPromise
+    .then((result) => {
+      if (!result) {
+        bundledModelPromise = null;
+      }
+      return result;
+    })
+    .catch((error) => {
       logger.error('Failed to load bundled fallback MLP model', {
         error: error instanceof Error ? error.message : String(error),
       });
-      if (bundledModelPromise === promise) {
-        bundledModelPromise = null;
-      }
+      bundledModelPromise = null;
       return null;
-    }
-  })();
+    });
 
-  bundledModelPromise = promise;
-  return promise;
+  return bundledModelPromise;
 }
 
 type MlpMeta = {
