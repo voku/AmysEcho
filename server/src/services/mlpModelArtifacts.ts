@@ -59,7 +59,10 @@ async function writeZeroInitializedModel(
   counts: readonly number[],
 ): Promise<number> {
   const effectiveLabels = (labels.length > 0 ? labels : DEFAULT_BASELINE_LABELS).map((label) => String(label));
-  const effectiveCounts = effectiveLabels.map((_, index) => Number(counts[index]) || 0);
+  const effectiveCounts = effectiveLabels.map((_, index) => {
+    const value = Number(counts[index]) || 0;
+    return value < 0 ? 0 : value;
+  });
   const payload = JSON.stringify({
     labels: effectiveLabels,
     counts: effectiveCounts,
@@ -69,7 +72,7 @@ async function writeZeroInitializedModel(
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   const script = `import json, numpy as np, os, sys\n` +
     `path = sys.argv[1]\n` +
-    `payload = json.loads(sys.argv[2])\n` +
+    `payload = json.load(sys.stdin)\n` +
     `labels = payload.get('labels', [])\n` +
     `if not isinstance(labels, list):\n` +
     `    labels = []\n` +
@@ -93,22 +96,34 @@ async function writeZeroInitializedModel(
     `os.replace(tmp, path)\n`;
 
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn('python3', ['-c', script, filePath, payload], {
+    const proc = spawn('python3', ['-c', script, filePath], {
       cwd: path.join(SERVER_MODULE_DIR, '..'),
-      stdio: ['ignore', 'ignore', 'pipe'],
+      stdio: ['pipe', 'ignore', 'pipe'],
     });
+    const killer = setTimeout(() => {
+      try {
+        proc.kill('SIGKILL');
+      } catch {
+        // ignored - best effort safeguard against hung python processes
+      }
+    }, 15000);
     let stderr = '';
     proc.stderr.on('data', (data) => {
       stderr += data.toString();
     });
-    proc.on('error', reject);
+    proc.on('error', (error) => {
+      clearTimeout(killer);
+      reject(error);
+    });
     proc.on('close', (code) => {
+      clearTimeout(killer);
       if (code === 0) {
         resolve();
       } else {
         reject(new Error(stderr || `python exited with ${code}`));
       }
     });
+    proc.stdin.end(payload);
   });
 
   return effectiveLabels.length;
@@ -123,24 +138,28 @@ export async function writeMinimalMlpModel(
   const hasCounts = entries.some(([, count]) => count > 0);
 
   if (!hasCounts) {
-    if (fsSync.existsSync(BASELINE_MLP_MODEL_PATH)) {
+    const baselineExists = await fs
+      .stat(BASELINE_MLP_MODEL_PATH)
+      .then(() => true)
+      .catch(() => false);
+    if (baselineExists) {
       const seeded = await seedBaselineModel(filePath, {
         success: (dest) => `seeded MLP from baseline into ${dest}`,
         failure: (dest, error) => `failed to copy baseline MLP into ${dest}: ${String(error)}`,
       }, logTraining);
       if (!seeded) {
         throw new Error(
-          `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} using a non-Codex assistant or reviewer.`,
+          `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} via your deployment process or artifact store.`,
         );
       }
       return;
     }
 
     await logTraining(
-      `baseline MLP missing at ${BASELINE_MLP_MODEL_PATH}; generating neutral weights in ${filePath}`,
+      `baseline MLP missing at ${BASELINE_MLP_MODEL_PATH}; generating neutral weights in ${filePath} (source=neutral-fallback, labels=${DEFAULT_BASELINE_LABELS.length})`,
     );
     const labelCount = await writeZeroInitializedModel(filePath, DEFAULT_BASELINE_LABELS, DEFAULT_BASELINE_LABELS.map(() => 0));
-    await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
+    await logTraining(`wrote minimal MLP model to ${filePath} (source=neutral-fallback, labels=${labelCount})`);
     try {
       await fs.chmod(filePath, 0o640);
     } catch (error) {

@@ -5,6 +5,8 @@ import { spawnSync } from 'child_process';
 
 import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel.js';
 
+// NOTE: This suite mutates the shared baseline artifact on disk and assumes Jest runs test files serially.
+// Do not convert these tests to use concurrent execution without isolating the filesystem effects.
 describe('writeMinimalMlpModel', () => {
   let tmpDir: string;
   let originalDataDir: string | undefined;
@@ -111,7 +113,7 @@ describe('writeMinimalMlpModel', () => {
       "counts = data['counts'].astype(float).tolist()",
       "keys = sorted(data.files)",
       "shapes = {k: [int(x) for x in data[k].shape] for k in keys}",
-      "print(json.dumps({'labels': labels, 'counts': counts, 'shapes': shapes}))",
+      "print(json.dumps({'labels': labels, 'counts': counts, 'shapes': shapes, 'countsDtype': str(data['counts'].dtype), 'w1Dtype': str(data['w1'].dtype)}))",
     ].join('\n');
     const result = spawnSync('python3', ['-c', script, destination], { encoding: 'utf8' });
     expect(result.status).toBe(0);
@@ -119,13 +121,20 @@ describe('writeMinimalMlpModel', () => {
       labels: string[];
       counts: number[];
       shapes: Record<string, number[]>;
+      countsDtype: string;
+      w1Dtype: string;
     };
     expect(parsed.labels).toEqual(DEFAULT_BASELINE_LABELS);
     expect(parsed.counts).toEqual(DEFAULT_BASELINE_LABELS.map(() => 0));
+    if (process.platform !== 'win32') {
+      expect((destStat.mode & 0o777)).toBe(0o640);
+    }
     expect(parsed.shapes['w1'][0]).toBeGreaterThan(0);
     expect(parsed.shapes['w1'][1]).toBeGreaterThan(0);
     expect(parsed.shapes['w2'][0]).toBeGreaterThan(0);
     expect(parsed.shapes['w2'][1]).toEqual(parsed.shapes['w1'][0]);
+    expect(parsed.countsDtype).toBe('float32');
+    expect(parsed.w1Dtype).toBe('float32');
 
     expect(logMessages.some((message) => message.includes('baseline MLP missing'))).toBe(true);
     expect(logMessages.some((message) => message.includes('wrote minimal MLP model'))).toBe(true);

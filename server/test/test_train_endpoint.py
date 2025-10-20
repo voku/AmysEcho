@@ -14,6 +14,11 @@ PORT = "5056"
 BASELINE_MODEL_PATH = SERVER_DIR.parent / "data" / "amy_model.npz"
 
 
+@pytest.fixture
+def _tmp_path(tmp_path):
+    return tmp_path
+
+
 def start_server():
     env = os.environ.copy()
     env.setdefault("API_TOKEN", "testtoken")
@@ -82,10 +87,11 @@ def wait_for_training_completion(job_id: str, *, timeout: float = 180.0):
         time.sleep(1)
 
 
-def test_train_endpoint(tmp_path):
+def test_train_endpoint(_tmp_path):
     proc = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
+        assert url.startswith(f"http://localhost:{PORT}/")
         # vary landmark coordinates slightly so normalization succeeds
         landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
         samples = [
@@ -154,7 +160,7 @@ def test_train_endpoint(tmp_path):
             shutil.rmtree(data_dir)
 
 
-def test_train_endpoint_without_baseline_file(tmp_path):
+def test_train_endpoint_without_baseline_file(_tmp_path):
     backup_path = BASELINE_MODEL_PATH.with_suffix(".npz.bak")
     baseline_was_present = BASELINE_MODEL_PATH.exists()
     if baseline_was_present:
@@ -164,13 +170,8 @@ def test_train_endpoint_without_baseline_file(tmp_path):
     proc = None
     try:
         proc = start_server()
-    except Exception:
-        # Restore baseline on failure to start before re-raising
-        if baseline_was_present and backup_path.exists():
-            backup_path.rename(BASELINE_MODEL_PATH)
-        raise
-    try:
         url = f"http://localhost:{PORT}/train-model"
+        assert url.startswith(f"http://localhost:{PORT}/")
         payload = json.dumps({"samples": [], "trigger": "bundles"}).encode("utf-8")
         headers = {
             "Content-Type": "application/json",
@@ -217,10 +218,11 @@ def test_train_endpoint_without_baseline_file(tmp_path):
             BASELINE_MODEL_PATH.unlink()
 
 
-def test_train_requests_are_serialized(tmp_path):
+def test_train_requests_are_serialized(_tmp_path):
     proc = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
+        assert url.startswith(f"http://localhost:{PORT}/")
         landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
         samples = [
             {
