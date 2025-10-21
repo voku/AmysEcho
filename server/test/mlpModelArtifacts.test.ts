@@ -137,7 +137,7 @@ describe('writeMinimalMlpModel', () => {
     expect(parsed.countsDtype).toBe('float32');
     expect(parsed.w1Dtype).toBe('float32');
 
-    expect(logMessages.some((message) => message.includes('baseline MLP missing'))).toBe(true);
-    expect(logMessages.some((message) => message.includes('wrote minimal MLP model'))).toBe(true);
+    expect(logMessages.some((message) => message.includes('Baseline-MLP fehlt'))).toBe(true);
+    expect(logMessages.some((message) => message.includes('Neutraler MLP-Fallback'))).toBe(true);
   });
 });

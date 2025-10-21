@@ -2,19 +2,48 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import * as fsSync from 'fs';
 import type { Stats } from 'fs';
-import { spawn, spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import { createHash } from 'crypto';
 import type { Response } from 'express';
 import {
   BASELINE_MLP_MODEL_PATH,
   SRC_DIR,
   MLP_MODELS_DIR,
+  SERVER_DIR,
 } from '../constants/modelPaths.js';
-import { DEFAULT_BASELINE_LABELS } from '../constants/defaultBaselineLabels.js';
 
 export const DEFAULT_MLP_INPUT_SIZE = 126;
 export const DEFAULT_MLP_HIDDEN_SIZE = 256;
-export { DEFAULT_BASELINE_LABELS };
+const FALLBACK_BASELINE_LABELS = [
+  'alle',
+  'blau',
+  'essen',
+  'fertig',
+  'gelb',
+  'gruen',
+  'nochmal',
+  'rot',
+  'satt',
+  'schwester',
+  'spielen',
+  'trinken',
+] as const;
+
+function loadDefaultBaselineLabels(): readonly string[] {
+  const defaultPath = path.join(SERVER_DIR, '..', 'app', 'assets', 'config', 'defaultBaselineLabels.json');
+  try {
+    const raw = fsSync.readFileSync(defaultPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return Object.freeze(parsed.map((label) => String(label)));
+    }
+  } catch {
+    // ignore and fall back to hard-coded defaults
+  }
+  return Object.freeze([...FALLBACK_BASELINE_LABELS]);
+}
+
+export const DEFAULT_BASELINE_LABELS = loadDefaultBaselineLabels();
 
 export type BaselineSeedMessages = {
   success: (dest: string) => string;
@@ -24,22 +53,6 @@ export type BaselineSeedMessages = {
 const SERVER_MODULE_DIR = SRC_DIR;
 // Ensure bundlers include the helper script by referencing it relative to the source tree.
 const ZERO_MODEL_SCRIPT_PATH = path.join(SERVER_MODULE_DIR, 'amyserver_tools', 'generate_zero_model.py');
-const PYTHON_CANDIDATES = [
-  ...(process.env.PYTHON_CMD ? [process.env.PYTHON_CMD] : []),
-  'python3',
-  'python',
-];
-const RESOLVED_PYTHON_CMD = (() => {
-  for (const candidate of PYTHON_CANDIDATES) {
-    const result = spawnSync(candidate, ['--version'], { stdio: 'ignore' });
-    if (!result.error) {
-      return candidate;
-    }
-  }
-  throw new Error(
-    'Unable to locate a Python interpreter. Set PYTHON_CMD or install python3 to enable minimal MLP generation.',
-  );
-})();
 const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
 
 export async function seedBaselineModel(
@@ -78,88 +91,36 @@ async function writeZeroInitializedModel(
   });
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn(RESOLVED_PYTHON_CMD, [ZERO_MODEL_SCRIPT_PATH, filePath], {
+    const proc = spawn('python3', [ZERO_MODEL_SCRIPT_PATH, filePath], {
       cwd: path.join(SERVER_MODULE_DIR, '..'),
       stdio: ['pipe', 'ignore', 'pipe'],
       env: { ...process.env },
     });
-    const killer = setTimeout(() => {
-      try {
-        proc.kill('SIGKILL');
-      } catch (killError) {
-        if (process.env.DEBUG_MLP_TRAINING) {
-          // eslint-disable-next-line no-console -- debug-only logging when enabled
-          console.debug('Failed to kill hung Python process:', killError);
-        }
-      }
-    }, 15000);
     let stderr = '';
     proc.stderr.on('data', (data) => {
       stderr += data.toString();
     });
     proc.stdin.on('error', (error) => {
-      clearTimeout(killer);
       reject(error);
     });
     proc.on('error', (error) => {
-      clearTimeout(killer);
       reject(error);
     });
     proc.on('close', (code) => {
-      clearTimeout(killer);
-      const trimmed = stderr.trim();
-      if (trimmed && logTraining) {
-        logTraining(`(Info) Zero-model helper emitted stderr: ${trimmed.replace(/\s+/g, ' ').slice(0, 500)}`)
-          .catch((error) => {
-            if (process.env.DEBUG_MLP_TRAINING) {
-              // eslint-disable-next-line no-console -- debug logging for troubleshooting only
-              console.debug('Failed to log zero-model helper stderr:', error);
-            }
-          });
-      }
       if (code === 0) {
         resolve();
       } else {
-        const message =
-          `Zero-model helper (${RESOLVED_PYTHON_CMD} ${ZERO_MODEL_SCRIPT_PATH}) exited with ` +
-          `code ${code}${trimmed ? `; stderr=${trimmed}` : ''}.`;
-        if (logTraining) {
-          logTraining(`(Error) ${message}`).catch((error) => {
-            if (process.env.DEBUG_MLP_TRAINING) {
-              // eslint-disable-next-line no-console -- debug logging for troubleshooting only
-              console.debug('Failed to log zero-model helper failure:', error);
-            }
-          });
+        const trimmed = stderr.trim();
+        if (trimmed && logTraining) {
+          logTraining(`(Warnung) Python-Helfer meldete: ${trimmed}`).catch(() => {});
         }
-        reject(new Error(message));
+        reject(new Error(trimmed || `python3 exited with ${code}`));
       }
     });
     proc.stdin.end(payload);
   });
 
   return effectiveLabels.length;
-}
-
-async function applyModelPermissions(
-  filePath: string,
-  logTraining: (message: string) => Promise<void>,
-): Promise<void> {
-  const attempts = 3;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      await fs.chmod(filePath, 0o640);
-      return;
-    } catch (error) {
-      const prefix = `(Warning) Failed to set permissions on ${filePath} (attempt ${attempt + 1}/${attempts}): ${String(
-        error,
-      )}`;
-      await logTraining(prefix);
-      if (attempt === attempts - 1) {
-        throw error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
-    }
-  }
 }
 
 export async function writeMinimalMlpModel(
@@ -181,15 +142,14 @@ export async function writeMinimalMlpModel(
       }, logTraining);
       if (!seeded) {
         throw new Error(
-          `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} via your deployment ` +
-            'process or artifact store. Review docs/TODO.md for baseline provisioning guidance.',
+          `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} via your deployment process.`,
         );
       }
       return;
     }
 
     await logTraining(
-      `baseline MLP missing at ${BASELINE_MLP_MODEL_PATH}; generating neutral weights in ${filePath} (source=neutral-fallback, labels=${DEFAULT_BASELINE_LABELS.length})`,
+      `Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}; erstelle neutrales Modell in ${filePath} (Labels=${DEFAULT_BASELINE_LABELS.length})`,
     );
     const labelCount = await writeZeroInitializedModel(
       filePath,
@@ -197,7 +157,7 @@ export async function writeMinimalMlpModel(
       DEFAULT_BASELINE_LABELS.map(() => 0),
       logTraining,
     );
-    await logTraining(`wrote minimal MLP model to ${filePath} (source=neutral-fallback, labels=${labelCount})`);
+    await logTraining(`Neutraler MLP-Fallback nach ${filePath} geschrieben (${labelCount} Labels)`);
   } else {
     const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
     const entryLabels = entries.map(([label]) => label);
@@ -207,7 +167,11 @@ export async function writeMinimalMlpModel(
     await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
   }
 
-  await applyModelPermissions(filePath, logTraining);
+  try {
+    await fs.chmod(filePath, 0o640);
+  } catch (error) {
+    await logTraining(`(Warnung) Konnte Rechte für ${filePath} nicht setzen: ${String(error)}`);
+  }
 }
 
 export type ModelResponseMetadata = {

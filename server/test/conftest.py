@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
-BASELINE_PATH = SERVER_DIR.parent / "data" / "amy_model.npz"
+BASELINE_PATH = SERVER_DIR / "data" / "amy_model.npz"
 DEFAULT_INPUT_SIZE = 126
 DEFAULT_HIDDEN_SIZE = 256
 
@@ -31,7 +31,8 @@ def ensure_baseline_model() -> None:
     b2 = np.zeros((labels.shape[0],), dtype=np.float32)
 
     tmp_path = BASELINE_PATH.with_suffix(".tmp")
-    np.savez(tmp_path, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2)
+    with tmp_path.open("wb") as handle:
+        np.savez(handle, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2)
     tmp_path.replace(BASELINE_PATH)
 
 

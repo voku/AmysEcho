@@ -68,17 +68,7 @@ export function getMlpModelPath(profileId?: string): string {
   }
   return path.join(MLP_MODELS_DIR, profileId, 'amy_model.npz');
 }
-const LEGACY_BASELINE_PATH = path.join(SERVER_DIR, '..', 'data', 'amy_model.npz');
-const DEFAULT_BASELINE_PATH = path.join(DATA_DIR, 'amy_model.npz');
-export const BASELINE_MLP_MODEL_PATH = (() => {
-  if (explicitDataDir) {
-    return DEFAULT_BASELINE_PATH;
-  }
-  if (existsSync(DEFAULT_BASELINE_PATH)) {
-    return DEFAULT_BASELINE_PATH;
-  }
-  return LEGACY_BASELINE_PATH;
-})();
+export const BASELINE_MLP_MODEL_PATH = path.join(DATA_DIR, 'amy_model.npz');
 export const GESTURE_LABELS_PATH = path.join(
   SERVER_DIR,
   '../app/assets/models/gesture_labels.json',

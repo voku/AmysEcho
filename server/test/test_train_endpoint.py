@@ -13,30 +13,22 @@ SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
 
 
-def _load_baseline_metadata() -> tuple[list[str], Path]:
-    result = subprocess.run(
-        [
-            "node",
-            "--loader",
-            "ts-node/esm",
-            "src/amyserver_tools/export_constants.ts",
-        ],
-        cwd=SERVER_DIR,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    payload = json.loads(result.stdout)
-    labels = list(payload.get("DEFAULT_BASELINE_LABELS", []))
-    baseline = payload.get("BASELINE_MLP_MODEL_PATH")
-    if not baseline:
+def _load_default_labels() -> list[str]:
+    labels_path = SERVER_DIR.parent / "app" / "assets" / "config" / "defaultBaselineLabels.json"
+    try:
+        with labels_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError as error:
         raise AssertionError(
-            "export_constants.ts did not include BASELINE_MLP_MODEL_PATH; ensure the bridge exposes the server baseline path"
-        )
-    return labels, Path(baseline).resolve()
+            "defaultBaselineLabels.json fehlt; stelle sicher, dass App-Assets installiert sind"
+        ) from error
+    if not isinstance(payload, list):
+        raise AssertionError("defaultBaselineLabels.json muss eine Liste von Strings enthalten")
+    return [str(label) for label in payload]
 
 
-DEFAULT_BASELINE_LABELS, BASELINE_MODEL_PATH = _load_baseline_metadata()
+DEFAULT_BASELINE_LABELS = _load_default_labels()
+BASELINE_MODEL_PATH = (SERVER_DIR / "data" / "amy_model.npz").resolve()
 
 
 def start_server():
