@@ -37,8 +37,13 @@ function loadDefaultBaselineLabels(): readonly string[] {
     if (Array.isArray(parsed)) {
       return Object.freeze(parsed.map((label) => String(label)));
     }
-  } catch {
+  } catch (error) {
     // ignore and fall back to hard-coded defaults
+    // eslint-disable-next-line no-console -- fallback logging for configuration loading issues
+    console.warn(
+      `Failed to load default baseline labels from ${defaultPath}; falling back to hard-coded values.`,
+      error,
+    );
   }
   return Object.freeze([...FALLBACK_BASELINE_LABELS]);
 }
