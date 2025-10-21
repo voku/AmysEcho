@@ -20,6 +20,7 @@ describe('writeMinimalMlpModel', () => {
     originalDataDir = process.env.AMY_ECHO_DATA_DIR;
     process.env.AMY_ECHO_DATA_DIR = tmpDir;
     jest.resetModules();
+    await ensureBaselineModelFixture();
   });
 
   afterEach(async () => {

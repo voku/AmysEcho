@@ -63,6 +63,7 @@ async function writeZeroInitializedModel(
   filePath: string,
   labels: readonly string[],
   counts: readonly number[],
+  logTraining?: (message: string) => Promise<void>,
 ): Promise<number> {
   const effectiveLabels = (labels.length > 0 ? labels : DEFAULT_BASELINE_LABELS).map((label) => String(label));
   const effectiveCounts = effectiveLabels.map((_, index) => {
@@ -106,16 +107,59 @@ async function writeZeroInitializedModel(
     });
     proc.on('close', (code) => {
       clearTimeout(killer);
+      const trimmed = stderr.trim();
+      if (trimmed && logTraining) {
+        logTraining(`(Info) Zero-model helper emitted stderr: ${trimmed.replace(/\s+/g, ' ').slice(0, 500)}`)
+          .catch((error) => {
+            if (process.env.DEBUG_MLP_TRAINING) {
+              // eslint-disable-next-line no-console -- debug logging for troubleshooting only
+              console.debug('Failed to log zero-model helper stderr:', error);
+            }
+          });
+      }
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(stderr || `python exited with ${code}`));
+        const message =
+          `Zero-model helper (${RESOLVED_PYTHON_CMD} ${ZERO_MODEL_SCRIPT_PATH}) exited with ` +
+          `code ${code}${trimmed ? `; stderr=${trimmed}` : ''}.`;
+        if (logTraining) {
+          logTraining(`(Error) ${message}`).catch((error) => {
+            if (process.env.DEBUG_MLP_TRAINING) {
+              // eslint-disable-next-line no-console -- debug logging for troubleshooting only
+              console.debug('Failed to log zero-model helper failure:', error);
+            }
+          });
+        }
+        reject(new Error(message));
       }
     });
     proc.stdin.end(payload);
   });
 
   return effectiveLabels.length;
+}
+
+async function applyModelPermissions(
+  filePath: string,
+  logTraining: (message: string) => Promise<void>,
+): Promise<void> {
+  const attempts = 3;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await fs.chmod(filePath, 0o640);
+      return;
+    } catch (error) {
+      const prefix = `(Warning) Failed to set permissions on ${filePath} (attempt ${attempt + 1}/${attempts}): ${String(
+        error,
+      )}`;
+      await logTraining(prefix);
+      if (attempt === attempts - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
 }
 
 export async function writeMinimalMlpModel(
@@ -137,7 +181,8 @@ export async function writeMinimalMlpModel(
       }, logTraining);
       if (!seeded) {
         throw new Error(
-          `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} via your deployment process or artifact store.`,
+          `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} via your deployment ` +
+            'process or artifact store. Review docs/TODO.md for baseline provisioning guidance.',
         );
       }
       return;
@@ -146,22 +191,23 @@ export async function writeMinimalMlpModel(
     await logTraining(
       `baseline MLP missing at ${BASELINE_MLP_MODEL_PATH}; generating neutral weights in ${filePath} (source=neutral-fallback, labels=${DEFAULT_BASELINE_LABELS.length})`,
     );
-    const labelCount = await writeZeroInitializedModel(filePath, DEFAULT_BASELINE_LABELS, DEFAULT_BASELINE_LABELS.map(() => 0));
+    const labelCount = await writeZeroInitializedModel(
+      filePath,
+      DEFAULT_BASELINE_LABELS,
+      DEFAULT_BASELINE_LABELS.map(() => 0),
+      logTraining,
+    );
     await logTraining(`wrote minimal MLP model to ${filePath} (source=neutral-fallback, labels=${labelCount})`);
   } else {
     const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
     const entryLabels = entries.map(([label]) => label);
     const entryCounts = entries.map(([, count]) => count);
-    const labelCount = await writeZeroInitializedModel(filePath, entryLabels, entryCounts);
+    const labelCount = await writeZeroInitializedModel(filePath, entryLabels, entryCounts, logTraining);
 
     await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
   }
 
-  try {
-    await fs.chmod(filePath, 0o640);
-  } catch (error) {
-    await logTraining(`(Warning) Failed to set permissions on ${filePath}: ${String(error)}`);
-  }
+  await applyModelPermissions(filePath, logTraining);
 }
 
 export type ModelResponseMetadata = {

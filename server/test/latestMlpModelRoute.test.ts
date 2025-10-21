@@ -107,6 +107,7 @@ describe('GET /latest-mlp-model', () => {
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     process.env.API_TOKEN = 'mlp-endpoint-token';
     jest.resetModules();
+    await ensureBaselineModelFixture();
 
     const [
       { createLatestMlpModelHandler },
@@ -149,6 +150,7 @@ describe('GET /latest-mlp-model', () => {
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
+    await ensureBaselineModelFixture();
   });
 
   afterAll(async () => {

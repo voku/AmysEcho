@@ -30,7 +30,9 @@ def _load_baseline_metadata() -> tuple[list[str], Path]:
     labels = list(payload.get("DEFAULT_BASELINE_LABELS", []))
     baseline = payload.get("BASELINE_MLP_MODEL_PATH")
     if not baseline:
-        raise AssertionError("BASELINE_MLP_MODEL_PATH missing from export")
+        raise AssertionError(
+            "export_constants.ts did not include BASELINE_MLP_MODEL_PATH; ensure the bridge exposes the server baseline path"
+        )
     return labels, Path(baseline).resolve()
 
 
@@ -180,6 +182,9 @@ def test_train_endpoint_without_baseline_file():
         if backup_path.exists():
             backup_path.unlink()
         BASELINE_MODEL_PATH.rename(backup_path)
+    # We manipulate the on-disk artifact because the server runs in a separate
+    # process and reads the actual filesystem path. Mocking would not affect the
+    # child process, so we isolate by backing up and restoring the file.
     proc = None
     try:
         proc = start_server()

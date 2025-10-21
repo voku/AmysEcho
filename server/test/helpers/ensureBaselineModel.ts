@@ -2,7 +2,6 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 
-import { BASELINE_MLP_MODEL_PATH } from '../../src/constants/modelPaths.js';
 import {
   DEFAULT_MLP_HIDDEN_SIZE,
   DEFAULT_MLP_INPUT_SIZE,
@@ -17,12 +16,18 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
+async function resolveBaselinePath(): Promise<string> {
+  const { BASELINE_MLP_MODEL_PATH } = await import('../../src/constants/modelPaths.js');
+  return BASELINE_MLP_MODEL_PATH;
+}
+
 export async function ensureBaselineModelFixture(): Promise<void> {
-  if (await fileExists(BASELINE_MLP_MODEL_PATH)) {
+  const baselinePath = await resolveBaselinePath();
+  if (await fileExists(baselinePath)) {
     return;
   }
 
-  await fs.mkdir(path.dirname(BASELINE_MLP_MODEL_PATH), { recursive: true });
+  await fs.mkdir(path.dirname(baselinePath), { recursive: true });
 
   const script = `import numpy as np, os, sys
 dest = sys.argv[1]
@@ -40,7 +45,7 @@ with open(tmp, 'wb') as fh:
     np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2)
 os.replace(tmp, dest)`;
 
-  const result = spawnSync('python3', ['-c', script, BASELINE_MLP_MODEL_PATH], {
+  const result = spawnSync('python3', ['-c', script, baselinePath], {
     encoding: 'utf8',
   });
 
