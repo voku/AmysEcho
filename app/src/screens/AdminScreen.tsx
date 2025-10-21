@@ -319,120 +319,188 @@ export default function AdminScreen({ navigation }: any) {
 
   const styles = StyleSheet.create({
     container: { flex: 1 },
-    title: { fontSize: 24, marginBottom: SPACING.lg, textAlign: 'center' },
-    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
+    header: { marginBottom: SPACING.md },
+    title: { fontSize: 24, textAlign: 'center' },
+    listContent: { paddingBottom: SPACING['2xl'] },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: SPACING.xs,
+    },
+    symbolName: { flex: 1, marginRight: SPACING.sm },
+    rowActions: { flexDirection: 'row', alignItems: 'center' },
+    rowButtonWrapper: { marginLeft: SPACING.xs },
+    footer: { paddingTop: SPACING.sm },
+    section: { marginBottom: SPACING.lg },
+    buttonWrapper: { marginBottom: SPACING.sm },
+    performanceLabel: { fontWeight: '600', color: COLORS.text, marginBottom: SPACING.xs },
+    emptyState: { textAlign: 'center', color: COLORS.textSecondary, marginVertical: SPACING.lg },
     modal: { flex: 1, justifyContent: 'center', padding: SPACING.lg },
     input: { borderWidth: 1, padding: SPACING.sm, marginBottom: SPACING.md, borderRadius: DEFAULT_RADIUS },
-    apiInput: { borderWidth: 1, padding: SPACING.sm, marginVertical: SPACING.md, borderRadius: DEFAULT_RADIUS },
+    apiInput: { borderWidth: 1, padding: SPACING.sm, marginBottom: SPACING.md, borderRadius: DEFAULT_RADIUS },
   });
+
+  const listHeader = (
+    <View style={styles.header}>
+      <Text style={styles.title}>Adminbereich</Text>
+    </View>
+  );
+
+  const managementButtons = [
+    {
+      title: 'Neuestes Modell herunterladen',
+      onPress: handleDownloadModel,
+      accessibilityLabel: 'Neueste Modellversion herunterladen',
+    },
+    {
+      title: 'Symbole exportieren',
+      onPress: handleExportSymbols,
+      accessibilityLabel: 'Symbole exportieren',
+    },
+    {
+      title: 'Symbole importieren',
+      onPress: handleImportSymbols,
+      accessibilityLabel: 'Symbole importieren',
+    },
+    {
+      title: 'Gesten exportieren',
+      onPress: handleExportGestures,
+      accessibilityLabel: 'Gesten exportieren',
+    },
+    {
+      title: 'Gesten sichern',
+      onPress: handleBackupGestures,
+      accessibilityLabel: 'Gesten sichern',
+    },
+    {
+      title: 'Gesten wiederherstellen',
+      onPress: handleRestoreGestures,
+      accessibilityLabel: 'Gesten wiederherstellen',
+    },
+    {
+      title: 'Profil exportieren',
+      onPress: handleExportProfile,
+      accessibilityLabel: 'Profil exportieren',
+    },
+    {
+      title: 'Profil löschen',
+      onPress: handleDeleteProfile,
+      accessibilityLabel: 'Profil löschen',
+    },
+    {
+      title: 'Symbol hinzufügen',
+      onPress: openAdd,
+      accessibilityLabel: 'Symbol hinzufügen',
+    },
+  ];
+
+  const navigationButtons = [
+    {
+      title: 'Training',
+      onPress: () => navigation.navigate('App', { screen: 'Lernen' }),
+      accessibilityLabel: 'Trainingsmodus öffnen',
+    },
+    {
+      title: 'Dashboard',
+      onPress: () => navigation.navigate('Dashboard'),
+      accessibilityLabel: 'Analytics-Dashboard öffnen',
+    },
+    {
+      title: 'Zurück',
+      onPress: () => navigation.goBack(),
+      accessibilityLabel: 'Zurück',
+    },
+  ];
+
+  const renderActionButton = (
+    title: string,
+    onPress: () => void,
+    accessibilityLabel: string,
+  ) => (
+    <View key={title} style={styles.buttonWrapper}>
+      <Button title={title} onPress={onPress} accessibilityLabel={accessibilityLabel} />
+    </View>
+  );
+
+  const listFooter = (
+    <View style={styles.footer}>
+      <View style={styles.section}>
+        <TextInput
+          style={styles.apiInput}
+          placeholder="OpenAI API-Schlüssel"
+          value={apiKey}
+          onChangeText={setApiKey}
+          accessibilityLabel="OpenAI API-Schlüssel"
+        />
+        {renderActionButton('API-Schlüssel speichern', handleSaveApiKey, 'OpenAI API-Schlüssel speichern')}
+        <TextInput
+          style={styles.apiInput}
+          placeholder="Backend-API-Token"
+          value={backendToken}
+          onChangeText={setBackendToken}
+          accessibilityLabel="Backend-API-Token"
+        />
+        {renderActionButton('Backend-Token speichern', handleSaveBackendToken, 'Backend-Token speichern')}
+      </View>
+
+      <View style={styles.section}>
+        {managementButtons.map(({ title, onPress, accessibilityLabel }) =>
+          renderActionButton(title, onPress, accessibilityLabel),
+        )}
+      </View>
+
+      <View style={styles.section}>
+        {navigationButtons.map(({ title, onPress, accessibilityLabel }) =>
+          renderActionButton(title, onPress, accessibilityLabel),
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.performanceLabel}>
+          Niedriger Leistungsmodus: {isLowPerformanceMode ? 'An' : 'Aus'}
+        </Text>
+        {renderActionButton(
+          'Niedrigen Leistungsmodus umschalten',
+          toggleLowPerformanceMode,
+          'Niedrigen Leistungsmodus umschalten',
+        )}
+      </View>
+    </View>
+  );
 
   return (
     <ScreenBackground style={styles.container}>
-      <Text style={styles.title}>Adminbereich</Text>
       <FlatList
+        testID="admin-symbol-list"
         data={symbols}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.row}>
-            <Text>{item.name}</Text>
-            <Button
-              title="Bearbeiten"
-              onPress={() => openEdit(item)}
-              accessibilityLabel={`Bearbeite ${item.name}`}
-            />
-            <Button
-              title="Löschen"
-              onPress={() => handleDelete(item)}
-              accessibilityLabel={`Lösche ${item.name}`}
-            />
+            <Text style={styles.symbolName}>{item.name}</Text>
+            <View style={styles.rowActions}>
+              <View style={styles.rowButtonWrapper}>
+                <Button
+                  title="Bearbeiten"
+                  onPress={() => openEdit(item)}
+                  accessibilityLabel={`Bearbeite ${item.name}`}
+                />
+              </View>
+              <View style={styles.rowButtonWrapper}>
+                <Button
+                  title="Löschen"
+                  onPress={() => handleDelete(item)}
+                  accessibilityLabel={`Lösche ${item.name}`}
+                />
+              </View>
+            </View>
           </View>
         )}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={<Text style={styles.emptyState}>Noch keine Symbole</Text>}
+        contentContainerStyle={styles.listContent}
       />
-      <TextInput
-        style={styles.apiInput}
-        placeholder="OpenAI API-Schlüssel"
-        value={apiKey}
-        onChangeText={setApiKey}
-        accessibilityLabel="OpenAI API-Schlüssel"
-      />
-      <Button
-        title="API-Schlüssel speichern"
-        onPress={handleSaveApiKey}
-        accessibilityLabel="OpenAI API-Schlüssel speichern"
-      />
-      <TextInput
-        style={styles.apiInput}
-        placeholder="Backend-API-Token"
-        value={backendToken}
-        onChangeText={setBackendToken}
-        accessibilityLabel="Backend-API-Token"
-      />
-      <Button
-        title="Backend-Token speichern"
-        onPress={handleSaveBackendToken}
-        accessibilityLabel="Backend-Token speichern"
-      />
-      <Button
-        title="Neuestes Modell herunterladen"
-        onPress={handleDownloadModel}
-        accessibilityLabel="Neueste Modellversion herunterladen"
-      />
-      <Button
-        title="Symbole exportieren"
-        onPress={handleExportSymbols}
-        accessibilityLabel="Symbole exportieren"
-      />
-      <Button
-        title="Symbole importieren"
-        onPress={handleImportSymbols}
-        accessibilityLabel="Symbole importieren"
-      />
-      <Button
-        title="Gesten exportieren"
-        onPress={handleExportGestures}
-        accessibilityLabel="Gesten exportieren"
-      />
-      <Button
-        title="Gesten sichern"
-        onPress={handleBackupGestures}
-        accessibilityLabel="Gesten sichern"
-      />
-      <Button
-        title="Gesten wiederherstellen"
-        onPress={handleRestoreGestures}
-        accessibilityLabel="Gesten wiederherstellen"
-      />
-      <Button
-        title="Profil exportieren"
-        onPress={handleExportProfile}
-        accessibilityLabel="Profil exportieren"
-      />
-      <Button
-        title="Profil löschen"
-        onPress={handleDeleteProfile}
-        accessibilityLabel="Profil löschen"
-      />
-      <Button title="Symbol hinzufügen" onPress={openAdd} accessibilityLabel="Symbol hinzufügen" />
-      <Button
-        title="Training"
-        onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
-        accessibilityLabel="Trainingsmodus öffnen"
-      />
-      <Button
-        title="Dashboard"
-        onPress={() => navigation.navigate('Dashboard')}
-        accessibilityLabel="Analytics-Dashboard öffnen"
-      />
-      <Button title="Zurück" onPress={() => navigation.goBack()} accessibilityLabel="Zurück" />
-
-      <View style={{ marginTop: SPACING.lg }}>
-        <Text>Niedriger Leistungsmodus: {isLowPerformanceMode ? 'An' : 'Aus'}</Text>
-        <Button
-          title="Niedrigen Leistungsmodus umschalten"
-          onPress={toggleLowPerformanceMode}
-          accessibilityLabel="Niedrigen Leistungsmodus umschalten"
-        />
-      </View>
 
       <Modal visible={modalVisible} animationType="slide">
         <View style={styles.modal}>

@@ -17,7 +17,7 @@ type HeroScreenProps = {
 
 const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
   return (
-    <ScreenBackground testID="hero-screen">
+    <ScreenBackground scrollable testID="hero-screen">
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.pill}>Amy hört zu</Text>
