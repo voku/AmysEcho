@@ -1,6 +1,3 @@
-// Dynamically import storage only when initializing to avoid bundling React Native
-// modules in non-native environments (e.g., integration tests).
-
 export interface GestureModelEntry {
   id: string;
   label: string;
@@ -10,6 +7,9 @@ export interface GestureModelEntry {
   category?: string;
   confidence?: number;
 }
+
+import { logger } from './utils/logger';
+import { DEFAULT_BASELINE_LABELS } from './constants/defaultBaselineLabels';
 
 export interface VocabularySet {
   id: string;
@@ -79,6 +79,19 @@ export const gestureModel = {
   ] as GestureModelEntry[]
 };
 
+function logMissingBaselineGestures(): void {
+  const missingBaselineGestures = DEFAULT_BASELINE_LABELS.filter(
+    (id) => !gestureModel.gestures.some((gesture) => gesture.id === id),
+  );
+
+  if (missingBaselineGestures.length > 0) {
+    logger.warn('Standard-MLP-Gesten fehlen im App-Modell', {
+      komponente: 'GestureModel',
+      ids: missingBaselineGestures,
+    });
+  }
+}
+
 let activeVocabularySetId = 'basic';
 
 export function setActiveVocabularySet(id: string): void {
@@ -122,5 +135,7 @@ export async function initGestureModel(): Promise<void> {
     custom.forEach((g) => addGesture(g));
   } catch (e) {
     console.warn('Custom gesture load failed:', e);
+  } finally {
+    logMissingBaselineGestures();
   }
 }

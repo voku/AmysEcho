@@ -5,12 +5,42 @@ import subprocess
 import os
 import json
 import shutil
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
+
 import numpy as np
 import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
+
+
+def _load_default_labels() -> list[str]:
+    labels_path = SERVER_DIR.parent / "app" / "assets" / "config" / "defaultBaselineLabels.json"
+    try:
+        with labels_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError as error:
+        raise FileNotFoundError(
+            "defaultBaselineLabels.json is missing; ensure app assets are installed."
+        ) from error
+    if not isinstance(payload, list):
+        raise TypeError("defaultBaselineLabels.json must contain a list of strings")
+    return [str(label) for label in payload]
+
+
+# The JSON asset is the single source of truth for baseline gestures.
+# Keep loaders in App and Server in sync if the structure changes.
+DEFAULT_BASELINE_LABELS = _load_default_labels()
+BASELINE_MODEL_PATH = (SERVER_DIR / "data" / "amy_model.npz").resolve()
+
+
+def _parse_timestamp(value: Any) -> datetime:
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
 
 
 def start_server():
@@ -47,7 +77,7 @@ def start_server():
         if proc.poll() is not None:
             raise RuntimeError("server failed to start")
         try:
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.getcode() == 200:
                     break
         except Exception as err:
@@ -71,7 +101,7 @@ def wait_for_training_completion(job_id: str, *, timeout: float = 180.0):
     start = time.time()
     while True:
         req = urllib.request.Request(status_url, headers=headers)
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:
             payload = json.loads(resp.read().decode())
         status = payload.get("status")
         if status in {"completed", "failed"}:
@@ -81,7 +111,7 @@ def wait_for_training_completion(job_id: str, *, timeout: float = 180.0):
         time.sleep(1)
 
 
-def test_train_endpoint(tmp_path):
+def test_train_endpoint():
     proc = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
@@ -100,7 +130,7 @@ def test_train_endpoint(tmp_path):
             "Authorization": "Bearer testtoken",
         }
         req = urllib.request.Request(url, data=data, headers=headers)
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:
             assert resp.getcode() == 202
             resp_data = json.loads(resp.read().decode())
             job_id = resp_data["jobId"]
@@ -120,7 +150,7 @@ def test_train_endpoint(tmp_path):
         prof_npz = SERVER_DIR / "data" / "models" / "p1" / "amy_model.npz"
         assert npz.exists()
         assert prof_npz.exists()
-        with np.load(npz) as model:
+        with np.load(npz, allow_pickle=False) as model:
             assert "labels" in model
             assert model["labels"][0] == "g1"
 
@@ -129,7 +159,7 @@ def test_train_endpoint(tmp_path):
             f"http://localhost:{PORT}/latest-mlp-model",
             headers={"Authorization": "Bearer testtoken"},
         )
-        with urllib.request.urlopen(mlp_req) as mlp_resp:
+        with urllib.request.urlopen(mlp_req, timeout=10) as mlp_resp:
             assert mlp_resp.getcode() == 200
             buf = mlp_resp.read()
             assert len(buf) > 0
@@ -141,19 +171,64 @@ def test_train_endpoint(tmp_path):
                 "x-profile-id": "p1",
             },
         )
-        with urllib.request.urlopen(mlp_prof_req) as mlp_presp:
+        with urllib.request.urlopen(mlp_prof_req, timeout=10) as mlp_presp:
             assert mlp_presp.getcode() == 200
             buf = mlp_presp.read()
             assert len(buf) > 0
     finally:
         stop_server(proc)
-        # cleanup produced model files
-        data_dir = SERVER_DIR / "data"
-        if data_dir.exists():
-            shutil.rmtree(data_dir)
 
 
-def test_train_requests_are_serialized(tmp_path):
+def test_train_endpoint_without_baseline_file():
+    # Stash the backup outside server/data so start_server() cleanup cannot remove it.
+    tmp_backup_root = Path(tempfile.mkdtemp(prefix="baseline_bak_"))
+    backup_path = tmp_backup_root / "amy_model.npz.bak"
+    baseline_was_present = BASELINE_MODEL_PATH.exists()
+    if baseline_was_present:
+        if backup_path.exists():
+            backup_path.unlink()
+        backup_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(BASELINE_MODEL_PATH), str(backup_path))
+    # We manipulate the on-disk artifact because the server runs in a separate
+    # process and reads the actual filesystem path. Mocking would not affect the
+    # child process, so we isolate by backing up and restoring the file.
+    proc = None
+    try:
+        proc = start_server()
+        url = f"http://localhost:{PORT}/train-model"
+        payload = json.dumps({"samples": [], "trigger": "bundles"}).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer testtoken",
+        }
+        req = urllib.request.Request(url, data=payload, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            assert resp.getcode() == 202
+            resp_data = json.loads(resp.read().decode())
+            job_id = resp_data["jobId"]
+            assert resp_data["status"] in ("running", "queued")
+
+        final_info = wait_for_training_completion(job_id)
+        assert final_info.get("status") == "completed"
+        global_model = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
+        assert global_model.exists()
+        with np.load(global_model, allow_pickle=False) as model:
+            labels = model["labels"].tolist()
+            counts = model["counts"].tolist()
+        assert labels == DEFAULT_BASELINE_LABELS
+        assert all(float(value) == 0.0 for value in counts)
+    finally:
+        if proc is not None:
+            stop_server(proc)
+        if baseline_was_present and backup_path.exists():
+            BASELINE_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(backup_path), str(BASELINE_MODEL_PATH))
+        elif not baseline_was_present and BASELINE_MODEL_PATH.exists():
+            BASELINE_MODEL_PATH.unlink()
+        shutil.rmtree(tmp_backup_root, ignore_errors=True)
+
+
+def test_train_requests_are_serialized():
     proc = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
@@ -172,11 +247,11 @@ def test_train_requests_are_serialized(tmp_path):
         }
 
         first_req = urllib.request.Request(url, data=payload, headers=headers)
-        with urllib.request.urlopen(first_req) as first_resp:
+        with urllib.request.urlopen(first_req, timeout=10) as first_resp:
             assert first_resp.getcode() == 202
             first_data = json.loads(first_resp.read().decode())
         second_req = urllib.request.Request(url, data=payload, headers=headers)
-        with urllib.request.urlopen(second_req) as second_resp:
+        with urllib.request.urlopen(second_req, timeout=10) as second_resp:
             assert second_resp.getcode() == 202
             second_data = json.loads(second_resp.read().decode())
 
@@ -192,15 +267,13 @@ def test_train_requests_are_serialized(tmp_path):
         assert final_second.get("status") == "completed"
         assert final_first.get("endedAt") is not None
         assert final_second.get("startedAt") is not None
-        assert final_second["startedAt"] >= final_first["endedAt"]
+
+        assert _parse_timestamp(final_second["startedAt"]) >= _parse_timestamp(final_first["endedAt"])
     finally:
         stop_server(proc)
-        data_dir = SERVER_DIR / "data"
-        if data_dir.exists():
-            shutil.rmtree(data_dir)
 
 
-def test_train_model_rejects_out_of_range_landmarks(tmp_path):
+def test_train_model_rejects_out_of_range_landmarks():
     proc = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
@@ -233,11 +306,8 @@ def test_train_model_rejects_out_of_range_landmarks(tmp_path):
             )
 
             with pytest.raises(urllib.error.HTTPError) as excinfo:
-                urllib.request.urlopen(invalid_req)
+                urllib.request.urlopen(invalid_req, timeout=10)
 
             assert excinfo.value.code == 400
     finally:
         stop_server(proc)
-        data_dir = SERVER_DIR / "data"
-        if data_dir.exists():
-            shutil.rmtree(data_dir)

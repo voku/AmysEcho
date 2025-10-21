@@ -9,11 +9,12 @@ import {
   BASELINE_MLP_MODEL_PATH,
   SRC_DIR,
   MLP_MODELS_DIR,
+  SERVER_DIR,
 } from '../constants/modelPaths.js';
 
 export const DEFAULT_MLP_INPUT_SIZE = 126;
 export const DEFAULT_MLP_HIDDEN_SIZE = 256;
-const DEFAULT_BASELINE_LABELS = Object.freeze([
+const FALLBACK_BASELINE_LABELS = [
   'alle',
   'blau',
   'essen',
@@ -26,7 +27,34 @@ const DEFAULT_BASELINE_LABELS = Object.freeze([
   'schwester',
   'spielen',
   'trinken',
-]);
+] as const;
+
+function loadDefaultBaselineLabels(): readonly string[] {
+  const defaultPath = path.join(SERVER_DIR, '..', 'app', 'assets', 'config', 'defaultBaselineLabels.json');
+  try {
+    const raw = fsSync.readFileSync(defaultPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      if (parsed.every((item) => typeof item === 'string')) {
+        return Object.freeze(parsed.map((label) => String(label)));
+      }
+      // eslint-disable-next-line no-console -- fallback logging for configuration loading issues
+      console.warn(
+        `Invalid structure in ${defaultPath}; expected array of strings. Falling back to hard-coded values.`,
+      );
+    }
+  } catch (error) {
+    // ignore and fall back to hard-coded defaults
+    // eslint-disable-next-line no-console -- fallback logging for configuration loading issues
+    console.warn(
+      `Failed to load default baseline labels from ${defaultPath}; falling back to hard-coded values.`,
+      error,
+    );
+  }
+  return Object.freeze([...FALLBACK_BASELINE_LABELS]);
+}
+
+export const DEFAULT_BASELINE_LABELS = loadDefaultBaselineLabels();
 
 export type BaselineSeedMessages = {
   success: (dest: string) => string;
@@ -34,6 +62,8 @@ export type BaselineSeedMessages = {
 };
 
 const SERVER_MODULE_DIR = SRC_DIR;
+// Ensure bundlers include the helper script by referencing it relative to the source tree.
+const ZERO_MODEL_SCRIPT_PATH = path.join(SERVER_MODULE_DIR, 'amyserver_tools', 'generate_zero_model.py');
 const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
 
 export async function seedBaselineModel(
@@ -53,87 +83,106 @@ export async function seedBaselineModel(
   }
 }
 
-export async function writeMinimalMlpModel(
+async function writeZeroInitializedModel(
   filePath: string,
-  gestureCounts: Record<string, number>,
-  logTraining: (message: string) => Promise<void>,
-): Promise<void> {
-  const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
-  const hasCounts = entries.some(([, count]) => count > 0);
-
-  if (!hasCounts) {
-    const seeded = await seedBaselineModel(filePath, {
-      success: (dest) => `seeded MLP from baseline into ${dest}`,
-      failure: (dest, error) => `failed to copy baseline MLP into ${dest}: ${String(error)}`,
-    }, logTraining);
-    if (!seeded) {
-      throw new Error(
-        `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} using a non-Codex assistant or reviewer.`,
-      );
-    }
-    return;
-  }
-
-  const entryLabels = entries.map(([label]) => label);
-  const entryCounts = entries.map(([, count]) => count);
-  const labels = entryLabels.length > 0 ? entryLabels : [...DEFAULT_BASELINE_LABELS];
-  const counts = entryLabels.length > 0 ? entryCounts : labels.map(() => 0);
+  labels: readonly string[],
+  counts: readonly number[],
+  logTraining?: (message: string) => Promise<void>,
+): Promise<number> {
+  const effectiveLabels = (labels.length > 0 ? labels : DEFAULT_BASELINE_LABELS).map((label) => String(label));
+  const effectiveCounts = effectiveLabels.map((_, index) => {
+    const value = Number(counts[index]) || 0;
+    return value < 0 ? 0 : value;
+  });
   const payload = JSON.stringify({
-    labels,
-    counts,
+    labels: effectiveLabels,
+    counts: effectiveCounts,
     inputSize: DEFAULT_MLP_INPUT_SIZE,
     hiddenSize: DEFAULT_MLP_HIDDEN_SIZE,
   });
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  const script = `import json, numpy as np, os, sys\n` +
-    `path = sys.argv[1]\n` +
-    `payload = json.loads(sys.argv[2])\n` +
-    `labels = payload.get('labels', [])\n` +
-    `if not isinstance(labels, list):\n` +
-    `    labels = []\n` +
-    `counts = payload.get('counts', [])\n` +
-    `if not isinstance(counts, list) or len(counts) != len(labels):\n` +
-    `    counts = [0.0 for _ in labels]\n` +
-    `labels_arr = np.array(labels, dtype='<U64')\n` +
-    `counts_arr = np.array(counts, dtype=np.float32)\n` +
-    `input_size = int(payload.get('inputSize', ${DEFAULT_MLP_INPUT_SIZE}))\n` +
-    `hidden_size = int(payload.get('hiddenSize', ${DEFAULT_MLP_HIDDEN_SIZE}))\n` +
-    `output_size = max(len(labels_arr), 1)\n` +
-    `dtype = np.float32\n` +
-    `w1 = np.zeros((hidden_size, input_size), dtype=dtype)\n` +
-    `b1 = np.zeros((hidden_size,), dtype=dtype)\n` +
-    `w2 = np.zeros((output_size, hidden_size), dtype=dtype)\n` +
-    `b2 = np.zeros((output_size,), dtype=dtype)\n` +
-    `tmp = path + '.tmp'\n` +
-    `os.makedirs(os.path.dirname(path) or '.', exist_ok=True)\n` +
-    `with open(tmp, 'wb') as f:\n` +
-    `    np.savez(f, labels=labels_arr, counts=counts_arr, w1=w1, b1=b1, w2=w2, b2=b2)\n` +
-    `os.replace(tmp, path)\n`;
-
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn('python3', ['-c', script, filePath, payload], {
+    const proc = spawn('python3', [ZERO_MODEL_SCRIPT_PATH, filePath], {
       cwd: path.join(SERVER_MODULE_DIR, '..'),
-      stdio: ['ignore', 'ignore', 'pipe'],
+      stdio: ['pipe', 'ignore', 'pipe'],
+      env: { ...process.env },
     });
     let stderr = '';
     proc.stderr.on('data', (data) => {
       stderr += data.toString();
     });
-    proc.on('error', reject);
+    proc.stdin.on('error', (error) => {
+      reject(error);
+    });
+    proc.on('error', (error) => {
+      reject(error);
+    });
     proc.on('close', (code) => {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(stderr || `python exited with ${code}`));
+        const trimmed = stderr.trim();
+        if (trimmed && logTraining) {
+          logTraining(`(Warnung) Python-Helfer meldete: ${trimmed}`).catch(() => {});
+        }
+        reject(new Error(trimmed || `python3 exited with ${code}`));
       }
     });
+    proc.stdin.end(payload);
   });
 
-  await logTraining(`wrote minimal MLP model to ${filePath} (${labels.length} labels)`);
+  return effectiveLabels.length;
+}
+
+export async function writeMinimalMlpModel(
+  filePath: string,
+  gestureCounts: Record<string, number>,
+  logTraining: (message: string) => Promise<void>,
+): Promise<void> {
+  const hasCounts = Object.values(gestureCounts).some((count) => (Number(count) || 0) > 0);
+
+  if (!hasCounts) {
+    const baselineExists = await fs
+      .stat(BASELINE_MLP_MODEL_PATH)
+      .then(() => true)
+      .catch(() => false);
+    if (baselineExists) {
+      const seeded = await seedBaselineModel(filePath, {
+        success: (dest) => `seeded MLP from baseline into ${dest}`,
+        failure: (dest, error) => `failed to copy baseline MLP into ${dest}: ${String(error)}`,
+      }, logTraining);
+      if (!seeded) {
+        throw new Error(
+          `Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} via your deployment process.`,
+        );
+      }
+      return;
+    }
+
+    await logTraining(
+      `Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}; erstelle neutrales Modell in ${filePath} (Labels=${DEFAULT_BASELINE_LABELS.length})`,
+    );
+    const labelCount = await writeZeroInitializedModel(
+      filePath,
+      DEFAULT_BASELINE_LABELS,
+      DEFAULT_BASELINE_LABELS.map(() => 0),
+      logTraining,
+    );
+    await logTraining(`Neutraler MLP-Fallback nach ${filePath} geschrieben (${labelCount} Labels)`);
+  } else {
+    const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
+    const entryLabels = entries.map(([label]) => label);
+    const entryCounts = entries.map(([, count]) => count);
+    const labelCount = await writeZeroInitializedModel(filePath, entryLabels, entryCounts, logTraining);
+
+    await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
+  }
 
   try {
     await fs.chmod(filePath, 0o640);
-  } catch {}
+  } catch (error) {
+    await logTraining(`(Warnung) Konnte Rechte für ${filePath} nicht setzen: ${String(error)}`);
+  }
 }
 
 export type ModelResponseMetadata = {
