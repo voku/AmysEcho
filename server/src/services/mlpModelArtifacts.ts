@@ -10,23 +10,11 @@ import {
   SRC_DIR,
   MLP_MODELS_DIR,
 } from '../constants/modelPaths.js';
+import { DEFAULT_BASELINE_LABELS } from '../constants/defaultBaselineLabels.js';
 
 export const DEFAULT_MLP_INPUT_SIZE = 126;
 export const DEFAULT_MLP_HIDDEN_SIZE = 256;
-export const DEFAULT_BASELINE_LABELS = Object.freeze([
-  'alle',
-  'blau',
-  'essen',
-  'fertig',
-  'gelb',
-  'gruen',
-  'nochmal',
-  'rot',
-  'satt',
-  'schwester',
-  'spielen',
-  'trinken',
-]);
+export { DEFAULT_BASELINE_LABELS };
 
 export type BaselineSeedMessages = {
   success: (dest: string) => string;
@@ -34,6 +22,7 @@ export type BaselineSeedMessages = {
 };
 
 const SERVER_MODULE_DIR = SRC_DIR;
+// Ensure bundlers include the helper script by referencing it relative to the source tree.
 const ZERO_MODEL_SCRIPT_PATH = path.join(SERVER_MODULE_DIR, 'amyserver_tools', 'generate_zero_model.py');
 const PYTHON_CANDIDATES = [
   ...(process.env.PYTHON_CMD ? [process.env.PYTHON_CMD] : []),
@@ -107,6 +96,10 @@ async function writeZeroInitializedModel(
     proc.stderr.on('data', (data) => {
       stderr += data.toString();
     });
+    proc.stdin.on('error', (error) => {
+      clearTimeout(killer);
+      reject(error);
+    });
     proc.on('error', (error) => {
       clearTimeout(killer);
       reject(error);
@@ -155,20 +148,14 @@ export async function writeMinimalMlpModel(
     );
     const labelCount = await writeZeroInitializedModel(filePath, DEFAULT_BASELINE_LABELS, DEFAULT_BASELINE_LABELS.map(() => 0));
     await logTraining(`wrote minimal MLP model to ${filePath} (source=neutral-fallback, labels=${labelCount})`);
-    try {
-      await fs.chmod(filePath, 0o640);
-    } catch (error) {
-      await logTraining(`(Warning) Failed to set permissions on ${filePath}: ${String(error)}`);
-    }
-    return;
+  } else {
+    const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
+    const entryLabels = entries.map(([label]) => label);
+    const entryCounts = entries.map(([, count]) => count);
+    const labelCount = await writeZeroInitializedModel(filePath, entryLabels, entryCounts);
+
+    await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
   }
-
-  const entries = Object.entries(gestureCounts).map(([label, count]) => [label, Number(count) || 0] as const);
-  const entryLabels = entries.map(([label]) => label);
-  const entryCounts = entries.map(([, count]) => count);
-  const labelCount = await writeZeroInitializedModel(filePath, entryLabels, entryCounts);
-
-  await logTraining(`wrote minimal MLP model to ${filePath} (${labelCount} labels)`);
 
   try {
     await fs.chmod(filePath, 0o640);

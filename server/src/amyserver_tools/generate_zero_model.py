@@ -75,6 +75,8 @@ def main() -> int:
     tmp_path = f"{destination}.tmp"
     with open(tmp_path, "wb") as handle:
         np.savez(handle, labels=labels_arr, counts=counts_arr, w1=w1, b1=b1, w2=w2, b2=b2)
+        handle.flush()
+        os.fsync(handle.fileno())
     os.replace(tmp_path, destination)
     return 0
 

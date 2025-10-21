@@ -11,10 +11,9 @@ import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
-BASELINE_MODEL_PATH = SERVER_DIR.parent / "data" / "amy_model.npz"
 
 
-def _load_default_baseline_labels() -> list[str]:
+def _load_baseline_metadata() -> tuple[list[str], Path]:
     result = subprocess.run(
         [
             "node",
@@ -28,10 +27,14 @@ def _load_default_baseline_labels() -> list[str]:
         check=True,
     )
     payload = json.loads(result.stdout)
-    return list(payload["DEFAULT_BASELINE_LABELS"])
+    labels = list(payload.get("DEFAULT_BASELINE_LABELS", []))
+    baseline = payload.get("BASELINE_MLP_MODEL_PATH")
+    if not baseline:
+        raise AssertionError("BASELINE_MLP_MODEL_PATH missing from export")
+    return labels, Path(baseline).resolve()
 
 
-DEFAULT_BASELINE_LABELS = _load_default_baseline_labels()
+DEFAULT_BASELINE_LABELS, BASELINE_MODEL_PATH = _load_baseline_metadata()
 
 
 def start_server():
@@ -168,10 +171,6 @@ def test_train_endpoint():
             assert len(buf) > 0
     finally:
         stop_server(proc)
-        # cleanup produced model files
-        data_dir = SERVER_DIR / "data"
-        if data_dir.exists():
-            shutil.rmtree(data_dir)
 
 
 def test_train_endpoint_without_baseline_file():
@@ -297,6 +296,3 @@ def test_train_model_rejects_out_of_range_landmarks(tmp_path):
             assert excinfo.value.code == 400
     finally:
         stop_server(proc)
-        data_dir = SERVER_DIR / "data"
-        if data_dir.exists():
-            shutil.rmtree(data_dir)
