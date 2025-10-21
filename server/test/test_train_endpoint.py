@@ -19,14 +19,16 @@ def _load_default_labels() -> list[str]:
         with labels_path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
     except FileNotFoundError as error:
-        raise AssertionError(
+        raise FileNotFoundError(
             "defaultBaselineLabels.json fehlt; stelle sicher, dass App-Assets installiert sind"
         ) from error
     if not isinstance(payload, list):
-        raise AssertionError("defaultBaselineLabels.json muss eine Liste von Strings enthalten")
+        raise TypeError("defaultBaselineLabels.json muss eine Liste von Strings enthalten")
     return [str(label) for label in payload]
 
 
+# Das JSON-Asset dient als Single Source of Truth für Basis-Gesten.
+# Halte Loader in App und Server synchron, falls sich die Struktur ändert.
 DEFAULT_BASELINE_LABELS = _load_default_labels()
 BASELINE_MODEL_PATH = (SERVER_DIR / "data" / "amy_model.npz").resolve()
 

@@ -79,15 +79,17 @@ export const gestureModel = {
   ] as GestureModelEntry[]
 };
 
-const missingBaselineGestures = DEFAULT_BASELINE_LABELS.filter(
-  (id) => !gestureModel.gestures.some((gesture) => gesture.id === id),
-);
+function logMissingBaselineGestures(): void {
+  const missingBaselineGestures = DEFAULT_BASELINE_LABELS.filter(
+    (id) => !gestureModel.gestures.some((gesture) => gesture.id === id),
+  );
 
-if (missingBaselineGestures.length > 0) {
-  logger.warn('Standard-MLP-Gesten fehlen im App-Modell', {
-    komponente: 'GestureModel',
-    ids: missingBaselineGestures,
-  });
+  if (missingBaselineGestures.length > 0) {
+    logger.warn('Standard-MLP-Gesten fehlen im App-Modell', {
+      komponente: 'GestureModel',
+      ids: missingBaselineGestures,
+    });
+  }
 }
 
 let activeVocabularySetId = 'basic';
@@ -133,5 +135,7 @@ export async function initGestureModel(): Promise<void> {
     custom.forEach((g) => addGesture(g));
   } catch (e) {
     console.warn('Custom gesture load failed:', e);
+  } finally {
+    logMissingBaselineGestures();
   }
 }
