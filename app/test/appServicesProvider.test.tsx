@@ -335,14 +335,7 @@ describe('AppServicesProvider', () => {
   it('queues model refresh requests when an event arrives during an active refresh', async () => {
     audioServiceMock.initialize.mockResolvedValueOnce();
 
-    const intervalSpy = jest
-      .spyOn(globalThis, 'setInterval')
-      .mockImplementation(((handler: (...args: any[]) => void) => {
-        return 0 as unknown as NodeJS.Timeout;
-      }) as any);
-    const clearIntervalSpy = jest
-      .spyOn(globalThis, 'clearInterval')
-      .mockImplementation((() => {}) as any);
+    jest.useFakeTimers();
 
     try {
       let resolveFirstRefresh: (() => void) | undefined;
@@ -385,8 +378,7 @@ describe('AppServicesProvider', () => {
         component.unmount();
       });
     } finally {
-      intervalSpy.mockRestore();
-      clearIntervalSpy.mockRestore();
+      jest.useRealTimers();
     }
   });
 
