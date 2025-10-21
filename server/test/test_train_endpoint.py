@@ -6,7 +6,10 @@ import os
 import json
 import shutil
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -32,6 +35,12 @@ def _load_default_labels() -> list[str]:
 # Keep loaders in App and Server in sync if the structure changes.
 DEFAULT_BASELINE_LABELS = _load_default_labels()
 BASELINE_MODEL_PATH = (SERVER_DIR / "data" / "amy_model.npz").resolve()
+
+
+def _parse_timestamp(value: Any) -> datetime:
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
 
 
 def start_server():
@@ -259,14 +268,7 @@ def test_train_requests_are_serialized():
         assert final_first.get("endedAt") is not None
         assert final_second.get("startedAt") is not None
 
-        from datetime import datetime, timezone
-
-        def _parse_ts(value):
-            if isinstance(value, (int, float)):
-                return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
-            return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-
-        assert _parse_ts(final_second["startedAt"]) >= _parse_ts(final_first["endedAt"])
+        assert _parse_timestamp(final_second["startedAt"]) >= _parse_timestamp(final_first["endedAt"])
     finally:
         stop_server(proc)
 

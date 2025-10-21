@@ -23,12 +23,7 @@ def _ensure_counts_list(value: Any, length: int) -> list[float]:
     return [0.0] * length
 
 
-def main() -> int:
-    if len(sys.argv) < 2:
-        print("usage: generate_zero_model.py <destination>", file=sys.stderr)
-        return 2
-
-    destination = sys.argv[1]
+def _is_destination_allowed(destination: str) -> bool:
     destination_abs = os.path.realpath(destination)
     server_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", ".."))
     allowed_roots = [os.path.join(server_dir, "data")]
@@ -36,10 +31,19 @@ def main() -> int:
         env_data_dir = os.environ.get(env_key)
         if env_data_dir:
             allowed_roots.append(os.path.realpath(env_data_dir))
-    if not any(
+    return any(
         destination_abs == root or destination_abs.startswith(os.path.join(root, ""))
         for root in allowed_roots
-    ):
+    )
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        print("usage: generate_zero_model.py <destination>", file=sys.stderr)
+        return 2
+
+    destination = sys.argv[1]
+    if not _is_destination_allowed(destination):
         print(f"destination must be within server data directory: {destination}", file=sys.stderr)
         return 2
 
