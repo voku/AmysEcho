@@ -335,45 +335,59 @@ describe('AppServicesProvider', () => {
   it('queues model refresh requests when an event arrives during an active refresh', async () => {
     audioServiceMock.initialize.mockResolvedValueOnce();
 
-    let resolveFirstRefresh: (() => void) | undefined;
-    checkForModelUpdateMock
-      .mockImplementationOnce(
-        () =>
-          new Promise<void>((resolve) => {
-            resolveFirstRefresh = resolve;
-          }),
-      )
-      .mockResolvedValue(true);
+    const intervalSpy = jest
+      .spyOn(globalThis, 'setInterval')
+      .mockImplementation(((handler: (...args: any[]) => void) => {
+        return 0 as unknown as NodeJS.Timeout;
+      }) as any);
+    const clearIntervalSpy = jest
+      .spyOn(globalThis, 'clearInterval')
+      .mockImplementation((() => {}) as any);
 
-    const component = await renderProvider();
-    await expectChildRendered(component);
+    try {
+      let resolveFirstRefresh: (() => void) | undefined;
+      checkForModelUpdateMock
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((resolve) => {
+              resolveFirstRefresh = resolve;
+            }),
+        )
+        .mockResolvedValue(true);
 
-    await expectEventually(() => {
-      expect(checkForModelUpdateMock).toHaveBeenCalled();
-    });
+      const component = await renderProvider();
+      await expectChildRendered(component);
 
-    const initialCalls = checkForModelUpdateMock.mock.calls.length;
+      await expectEventually(() => {
+        expect(checkForModelUpdateMock).toHaveBeenCalled();
+      });
 
-    const listener = mockOnMlpModelUpdated.mock.calls.at(-1)?.[0];
-    expect(listener).toBeDefined();
+      const initialCalls = checkForModelUpdateMock.mock.calls.length;
 
-    await act(async () => {
-      listener?.();
-    });
+      const listener = mockOnMlpModelUpdated.mock.calls.at(-1)?.[0];
+      expect(listener).toBeDefined();
 
-    expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls);
+      await act(async () => {
+        listener?.();
+      });
 
-    await act(async () => {
-      resolveFirstRefresh?.();
-    });
+      expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls);
 
-    await expectEventually(() => {
-      expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls + 1);
-    });
+      await act(async () => {
+        resolveFirstRefresh?.();
+      });
 
-    await act(async () => {
-      component.unmount();
-    });
+      await expectEventually(() => {
+        expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls + 1);
+      });
+
+      await act(async () => {
+        component.unmount();
+      });
+    } finally {
+      intervalSpy.mockRestore();
+      clearIntervalSpy.mockRestore();
+    }
   });
 
   it('skips model refresh when connectivity disallows downloads', async () => {
