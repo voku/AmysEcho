@@ -14,6 +14,26 @@ PORT = "5056"
 BASELINE_MODEL_PATH = SERVER_DIR.parent / "data" / "amy_model.npz"
 
 
+def _load_default_baseline_labels() -> list[str]:
+    result = subprocess.run(
+        [
+            "node",
+            "--loader",
+            "ts-node/esm",
+            "src/amyserver_tools/export_constants.ts",
+        ],
+        cwd=SERVER_DIR,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    payload = json.loads(result.stdout)
+    return list(payload["DEFAULT_BASELINE_LABELS"])
+
+
+DEFAULT_BASELINE_LABELS = _load_default_baseline_labels()
+
+
 def start_server():
     env = os.environ.copy()
     env.setdefault("API_TOKEN", "testtoken")
@@ -184,27 +204,11 @@ def test_train_endpoint_without_baseline_file():
         with np.load(global_model) as model:
             labels = model["labels"].tolist()
             counts = model["counts"].tolist()
-        assert labels == [
-            "alle",
-            "blau",
-            "essen",
-            "fertig",
-            "gelb",
-            "gruen",
-            "nochmal",
-            "rot",
-            "satt",
-            "schwester",
-            "spielen",
-            "trinken",
-        ]
+        assert labels == DEFAULT_BASELINE_LABELS
         assert all(float(value) == 0.0 for value in counts)
     finally:
         if proc is not None:
             stop_server(proc)
-        data_dir = SERVER_DIR / "data"
-        if data_dir.exists():
-            shutil.rmtree(data_dir)
         if baseline_was_present and backup_path.exists():
             backup_path.rename(BASELINE_MODEL_PATH)
         elif not baseline_was_present and BASELINE_MODEL_PATH.exists():
@@ -253,9 +257,6 @@ def test_train_requests_are_serialized():
         assert final_second["startedAt"] >= final_first["endedAt"]
     finally:
         stop_server(proc)
-        data_dir = SERVER_DIR / "data"
-        if data_dir.exists():
-            shutil.rmtree(data_dir)
 
 
 def test_train_model_rejects_out_of_range_landmarks(tmp_path):

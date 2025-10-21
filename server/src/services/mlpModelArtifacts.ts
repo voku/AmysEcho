@@ -2,7 +2,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import * as fsSync from 'fs';
 import type { Stats } from 'fs';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { createHash } from 'crypto';
 import type { Response } from 'express';
 import {
@@ -35,6 +35,22 @@ export type BaselineSeedMessages = {
 
 const SERVER_MODULE_DIR = SRC_DIR;
 const ZERO_MODEL_SCRIPT_PATH = path.join(SERVER_MODULE_DIR, 'amyserver_tools', 'generate_zero_model.py');
+const PYTHON_CANDIDATES = [
+  ...(process.env.PYTHON_CMD ? [process.env.PYTHON_CMD] : []),
+  'python3',
+  'python',
+];
+const RESOLVED_PYTHON_CMD = (() => {
+  for (const candidate of PYTHON_CANDIDATES) {
+    const result = spawnSync(candidate, ['--version'], { stdio: 'ignore' });
+    if (!result.error) {
+      return candidate;
+    }
+  }
+  throw new Error(
+    'Unable to locate a Python interpreter. Set PYTHON_CMD or install python3 to enable minimal MLP generation.',
+  );
+})();
 const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
 
 export async function seedBaselineModel(
@@ -72,15 +88,19 @@ async function writeZeroInitializedModel(
   });
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn('python3', [ZERO_MODEL_SCRIPT_PATH, filePath], {
+    const proc = spawn(RESOLVED_PYTHON_CMD, [ZERO_MODEL_SCRIPT_PATH, filePath], {
       cwd: path.join(SERVER_MODULE_DIR, '..'),
       stdio: ['pipe', 'ignore', 'pipe'],
+      env: { ...process.env },
     });
     const killer = setTimeout(() => {
       try {
         proc.kill('SIGKILL');
-      } catch {
-        // ignored - best effort safeguard against hung python processes
+      } catch (killError) {
+        if (process.env.DEBUG_MLP_TRAINING) {
+          // eslint-disable-next-line no-console -- debug-only logging when enabled
+          console.debug('Failed to kill hung Python process:', killError);
+        }
       }
     }, 15000);
     let stderr = '';
