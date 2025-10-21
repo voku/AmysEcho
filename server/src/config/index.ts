@@ -39,7 +39,7 @@ function getEnvVarAsNumber(name: string, defaultValue: number): number {
 
 export const config: ServerConfig = {
   port: getEnvVarAsNumber('PORT', 5000),
-  apiToken: getEnvVar('API_TOKEN', 'default-test-token'),
+  apiToken: getEnvVar('API_TOKEN', 'demo-token'),
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
   dialogLimit: getEnvVarAsNumber('DIALOG_LIMIT', 60),
   apiLimit: getEnvVarAsNumber('API_LIMIT', 120),
