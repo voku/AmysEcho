@@ -4,6 +4,7 @@ import { database } from '../db';
 import { Profile as DBProfile } from '../db/models';
 import { secureConfigManager } from './services/secureConfig';
 import { enqueueTrainingBundle } from './services/trainingBundleQueue';
+import { logger } from './utils/logger';
 
 export interface Profile {
   id: string;
@@ -286,7 +287,8 @@ export async function rehydratePendingTrainingSamples(profileId: string): Promis
   let mutated = false;
 
   for (const sample of samples) {
-    const needsBundle = sample.syncStatus === 'pending' || !sample.bundleKey;
+    const needsBundle =
+      sample.syncStatus !== 'synced' && (sample.syncStatus === 'pending' || !sample.bundleKey);
     if (!needsBundle) {
       continue;
     }
@@ -301,14 +303,14 @@ export async function rehydratePendingTrainingSamples(profileId: string): Promis
     }
 
     try {
-      const bundleKey = await enqueueTrainingBundle(sample);
+      const bundleKey = await enqueueTrainingBundle(sample, { scheduleSync: false });
       if (sample.syncStatus !== 'queued' || sample.bundleKey !== bundleKey) {
         mutated = true;
       }
       sample.syncStatus = 'queued';
       sample.bundleKey = bundleKey;
     } catch (error) {
-      console.warn('Failed to enqueue training bundle during rehydrate', error);
+      logger.warn('Failed to enqueue training bundle during rehydrate', error);
       if (sample.syncStatus !== 'pending' || sample.bundleKey) {
         mutated = true;
       }

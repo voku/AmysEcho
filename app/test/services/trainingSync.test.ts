@@ -172,6 +172,9 @@ describe('syncTrainingData', () => {
     const result = await syncTrainingData();
 
     expect(mockedRehydratePendingTrainingSamples).toHaveBeenCalledWith('profile1');
+    const rehydrateCall = mockedRehydratePendingTrainingSamples.mock.invocationCallOrder[0];
+    const listCall = mockedListQueuedTrainingBundles.mock.invocationCallOrder[0];
+    expect(rehydrateCall).toBeLessThan(listCall);
     expect(mockedUploadTrainingBundle).toHaveBeenCalledTimes(1);
     expect(mockedUploadTrainingBundle).toHaveBeenCalledWith(
       {
