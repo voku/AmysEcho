@@ -4,6 +4,7 @@ import { database } from '../db';
 import { Profile as DBProfile } from '../db/models';
 import { secureConfigManager } from './services/secureConfig';
 import { enqueueTrainingBundle } from './services/trainingBundleQueue';
+import { logger } from './utils/logger';
 
 export interface Profile {
   id: string;
@@ -274,6 +275,53 @@ export async function saveTrainingSample(sample: TrainingSample): Promise<Traini
   existing.push(stored);
   await AsyncStorage.setItem(trainingKey, JSON.stringify(existing));
   return stored;
+}
+
+export async function rehydratePendingTrainingSamples(profileId: string): Promise<void> {
+  const samples = await loadSamplesForProfile(profileId);
+  if (samples.length === 0) {
+    return;
+  }
+
+  const trainingKey = `gestureTrainingData_${profileId}`;
+  let mutated = false;
+
+  for (const sample of samples) {
+    const needsBundle =
+      sample.syncStatus !== 'synced' && (sample.syncStatus === 'pending' || !sample.bundleKey);
+    if (!needsBundle) {
+      continue;
+    }
+
+    if (!sample.clipUri) {
+      if (sample.syncStatus !== 'pending' || sample.bundleKey) {
+        sample.syncStatus = 'pending';
+        sample.bundleKey = null;
+        mutated = true;
+      }
+      continue;
+    }
+
+    try {
+      const bundleKey = await enqueueTrainingBundle(sample, { scheduleSync: false });
+      if (sample.syncStatus !== 'queued' || sample.bundleKey !== bundleKey) {
+        mutated = true;
+      }
+      sample.syncStatus = 'queued';
+      sample.bundleKey = bundleKey;
+    } catch (error) {
+      logger.warn('Failed to enqueue training bundle during rehydrate', error);
+      if (sample.syncStatus !== 'pending' || sample.bundleKey) {
+        mutated = true;
+      }
+      sample.syncStatus = 'pending';
+      sample.bundleKey = null;
+    }
+  }
+
+  if (mutated) {
+    await AsyncStorage.setItem(trainingKey, JSON.stringify(samples));
+  }
 }
 
 export async function loadTrainingSampleCount(

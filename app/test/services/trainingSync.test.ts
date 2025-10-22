@@ -5,7 +5,12 @@ import {
 } from '../../src/services/trainingSync';
 import { listQueuedTrainingBundles, removeQueuedTrainingBundle } from '../../src/services/trainingBundleQueue';
 import { uploadTrainingBundle } from '../../src/services/trainingBundleService';
-import { loadProfile, loadBackendApiToken, updateTrainingSample } from '../../src/storage';
+import {
+  loadProfile,
+  loadBackendApiToken,
+  updateTrainingSample,
+  rehydratePendingTrainingSamples,
+} from '../../src/storage';
 import { API_URL } from '../../src/constants';
 import * as NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
@@ -53,6 +58,7 @@ const mockedUploadTrainingBundle = uploadTrainingBundle as jest.Mock;
 const mockedLoadProfile = loadProfile as jest.Mock;
 const mockedLoadBackendApiToken = loadBackendApiToken as jest.Mock;
 const mockedUpdateTrainingSample = updateTrainingSample as jest.Mock;
+const mockedRehydratePendingTrainingSamples = rehydratePendingTrainingSamples as jest.Mock;
 const mockedNetInfo = NetInfo as { fetch: jest.Mock };
 const mockedFileSystem = FileSystem as { deleteAsync: jest.Mock };
 const mockedRefreshDgsModel = refreshDgsModel as jest.Mock;
@@ -95,6 +101,7 @@ describe('syncTrainingData', () => {
     mockedNetInfo.fetch.mockResolvedValue(wifiConnection);
     __setNetInfoFetchOverride(mockedNetInfo.fetch);
     mockedLoadBackendApiToken.mockResolvedValue('token');
+    mockedRehydratePendingTrainingSamples.mockResolvedValue(undefined);
     mockedLogger.info.mockReset();
     mockedLogger.warn.mockReset();
     mockedLogger.error.mockReset();
@@ -113,25 +120,79 @@ describe('syncTrainingData', () => {
     const result = await syncTrainingData({ onProgress });
     expect(result.uploaded).toBe(0);
     expect(mockedListQueuedTrainingBundles).not.toHaveBeenCalled();
+    expect(mockedRehydratePendingTrainingSamples).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
     expect(onProgress).not.toHaveBeenCalled();
   });
 
   it('should not upload if there are no bundles', async () => {
-    mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: true });
+    mockedLoadProfile.mockResolvedValue({ id: 'profile1', consentHelpMeGetSmarter: true });
     mockedListQueuedTrainingBundles.mockResolvedValue([]);
     const result = await syncTrainingData();
     expect(result.uploaded).toBe(0);
+    expect(mockedRehydratePendingTrainingSamples).toHaveBeenCalledWith('profile1');
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('should not upload if not on wifi', async () => {
-    mockedLoadProfile.mockResolvedValue({ consentHelpMeGetSmarter: true });
+    mockedLoadProfile.mockResolvedValue({ id: 'profile1', consentHelpMeGetSmarter: true });
     mockedListQueuedTrainingBundles.mockResolvedValue([{}]);
     mockedNetInfo.fetch.mockResolvedValue({ isConnected: true, isInternetReachable: true, type: 'cellular' });
     __setNetInfoFetchOverride(mockedNetInfo.fetch);
     const result = await syncTrainingData();
     expect(result.uploaded).toBe(0);
+  });
+
+  it('rehydrates pending samples before syncing queued bundles', async () => {
+    const bundles: any[] = [];
+    mockedListQueuedTrainingBundles.mockImplementation(async () => bundles.map((bundle) => ({ ...bundle })));
+    mockedRemoveQueuedTrainingBundle.mockImplementation(async (key: string) => {
+      const index = bundles.findIndex((bundle) => bundle.key === key);
+      if (index !== -1) {
+        bundles.splice(index, 1);
+      }
+    });
+    mockedRehydratePendingTrainingSamples.mockImplementation(async () => {
+      bundles.push({
+        key: 'rehydrated-bundle',
+        sampleId: 'sample-pending',
+        profileId: 'profile1',
+        clipUri: 'rehydrated://clip',
+        frames: [],
+        label: 'rehydrated-label',
+        capturedAt: 'rehydrated-date',
+      });
+    });
+    mockedUploadTrainingBundle.mockResolvedValue({
+      id: 'upload-rehydrated',
+      status: 'queued',
+      trainingJob: { jobId: 'rehydrated-job', status: 'queued' },
+    });
+
+    const result = await syncTrainingData();
+
+    expect(mockedRehydratePendingTrainingSamples).toHaveBeenCalledWith('profile1');
+    const rehydrateCall = mockedRehydratePendingTrainingSamples.mock.invocationCallOrder[0];
+    const listCall = mockedListQueuedTrainingBundles.mock.invocationCallOrder[0];
+    expect(rehydrateCall).toBeLessThan(listCall);
+    expect(mockedUploadTrainingBundle).toHaveBeenCalledTimes(1);
+    expect(mockedUploadTrainingBundle).toHaveBeenCalledWith(
+      {
+        label: 'rehydrated-label',
+        profileId: 'profile1',
+        frames: [],
+        clipUri: 'rehydrated://clip',
+        capturedAt: 'rehydrated-date',
+        source: 'app://mediapipe',
+      },
+      { tokenOverride: 'token' },
+    );
+    expect(mockedRemoveQueuedTrainingBundle).toHaveBeenCalledWith('rehydrated-bundle');
+    expect(mockedUpdateTrainingSample).toHaveBeenCalledWith('sample-pending', 'profile1', {
+      syncStatus: 'synced',
+      bundleKey: null,
+    });
+    expect(result).toEqual({ uploaded: 1, remaining: 0 });
   });
 
   it('should upload bundles and clean up', async () => {

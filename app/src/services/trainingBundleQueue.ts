@@ -22,7 +22,10 @@ function buildBundleKey(profileId: string, sampleId: string): string {
   return `${BUNDLE_KEY_PREFIX}${profileId}:${timestamp}:${sampleId}:${random}`;
 }
 
-export async function enqueueTrainingBundle(sample: TrainingSample): Promise<string> {
+export async function enqueueTrainingBundle(
+  sample: TrainingSample,
+  opts?: { scheduleSync?: boolean },
+): Promise<string> {
   const key = buildBundleKey(sample.profileId, sample.id);
   const payload = {
     sampleId: sample.id,
@@ -35,7 +38,9 @@ export async function enqueueTrainingBundle(sample: TrainingSample): Promise<str
     queuedAt: new Date().toISOString(),
   };
   await AsyncStorage.setItem(key, JSON.stringify(payload));
-  scheduleTrainingSync({ delayMs: 10_000 });
+  if (opts?.scheduleSync !== false) {
+    scheduleTrainingSync({ delayMs: 10_000 });
+  }
   return key;
 }
 
