@@ -21,8 +21,10 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.pill}>Amy hört zu</Text>
-          <Text style={styles.title}>Willkommen bei Amy&apos;s Echo</Text>
-          <Text style={styles.subtitle}>
+          <Text style={styles.title} testID="hero-title">
+            Willkommen bei Amy&apos;s Echo
+          </Text>
+          <Text style={styles.subtitle} testID="hero-subtitle">
             Die Gestenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
             So bleibt Amys Gespräch nie stehen.
           </Text>
@@ -83,13 +85,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes.titleLg,
     fontWeight: typography.weights.extrabold,
-    color: Colors.primary,
+    color: Colors.surface,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: typography.sizes.bodyLg,
-    color: Colors.textSecondary,
+    color: Colors.inverseText,
     textAlign: 'center',
     maxWidth: 560,
     lineHeight: typography.lineHeights.relaxed,
@@ -109,5 +111,7 @@ const styles = StyleSheet.create({
     marginTop: spacing['2xl'],
   },
 });
+
+export const heroStyles = styles;
 
 export default HeroScreen;
