@@ -2,6 +2,8 @@
 
 This document details the comprehensive machine learning and large language model integration in Amy's Echo for gesture recognition and intelligent feedback.
 
+> Hinweis: Die Dialogfunktionen wurden aus dem aktiven System entfernt. Die entsprechenden Abschnitte dienen nur noch als Referenz für mögliche zukünftige Erweiterungen.
+
 ## 🤖 Machine Learning for Gesture Recognition
 
 ### Primary ML Engine: MediaPipe
@@ -41,14 +43,10 @@ This document details the comprehensive machine learning and large language mode
 - **Personalization**: Learns user preferences and communication patterns
 - **Multilingual Support**: German localization for all AI-generated content
 
-### Dialog Engine
+### Dialog Engine (archiviert)
 - **Technology**: OpenAI GPT with conversation memory
 - **Purpose**: Generate contextual conversation suggestions
-- **Features**:
-  - Next-word prediction based on gesture sequences
-  - Caregiver phrase suggestions
-  - Confidence-aligned caregiver prompts
-- **Implementation**: `app/src/services/dialogEngine.ts`
+- **Status**: Aus dem aktuellen Produkt entfernt; würde eine neue Server-API und Client-Integration erfordern.
 
 ## 🔄 ML/LLM Pipeline Architecture
 

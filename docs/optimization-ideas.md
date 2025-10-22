@@ -1,5 +1,7 @@
 # 100 Optimization Ideas for Amy's Echo
 
+> Hinweis: Einige Ideen beziehen sich auf inzwischen entfernte Module (z. B. das Pflegeportal oder Analytics-Dashboards). Sie bleiben als Inspiration erhalten, erfordern jedoch neue Implementierungen.
+
 ## I. Performance & Efficiency
 
 1. **Optimize MediaPipe WebView Performance:** Explore OffscreenCanvas or WebGL optimizations to lower CPU usage and battery drain while maintaining full camera resolution and frame rate.

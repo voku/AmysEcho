@@ -74,9 +74,12 @@ def start_server():
         if proc.poll() is not None:
             raise RuntimeError("server failed to start")
         try:
-            with urllib.request.urlopen(f"{BASE_URL}/health", timeout=5) as resp:
+            with urllib.request.urlopen(f"{BASE_URL}/model-version", timeout=5) as resp:
                 if resp.getcode() == 200:
                     break
+        except urllib.error.HTTPError as err:
+            if err.code == 401:
+                break
         except (urllib.error.URLError, ConnectionRefusedError, socket.timeout):
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time")

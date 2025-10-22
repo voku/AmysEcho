@@ -1,6 +1,6 @@
 ## Server Test Coverage Report - September 5, 2025
 
-This report identifies potential gaps in the `server` directory's test coverage by comparing source files with existing test files.
+This report identifies potential gaps in the `server` directory's test coverage by comparing source files with existing test files. It predates the removal of the caregiver portal, analytics tooling, and dialog endpoints, so some entries now refer to deleted modules that no longer require coverage.
 
 **Summary:**
 

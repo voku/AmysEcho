@@ -1,6 +1,6 @@
 ## Test Coverage Report - September 5, 2025
 
-This report identifies potential gaps in the project's test coverage by comparing source files with existing test files.
+This report identifies potential gaps in the project's test coverage by comparing source files with existing test files. It was captured before the analytics, dialog, and caregiver portal features were retired; references to those modules remain for historical context only.
 
 **Summary:**
 

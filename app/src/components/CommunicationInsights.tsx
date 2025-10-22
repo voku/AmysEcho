@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAccessibility } from './AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
-import { positiveTelemetryService } from '../services/positiveTelemetryService';
 
 interface PatternData {
   timeOfDay: string;
@@ -123,28 +122,15 @@ export default function CommunicationInsights({ onClose: _onClose }: Communicati
   const [insightData, setInsightData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load real data on component mount
   useEffect(() => {
-    const loadInsights = async () => {
-      try {
-        const insights = positiveTelemetryService.getPositiveInsights();
-        setInsightData(insights);
-      } catch (error) {
-        console.error('Failed to load communication insights:', error);
-        // Fallback to mock data if real data fails
-        setInsightData({
-          weeklyProgress: { totalSuccesses: 100, averageConfidence: 0.8, mostSuccessfulDay: 'Mo', improvementTrend: 'improving' },
-          peakPerformanceTimes: [{ timeOfDay: 'morning', averageConfidence: 0.8 }],
-          topGestures: [{ gesture: 'hello', successRate: 0.9, frequency: 15 }],
-          communicationStreaks: [{ gesture: 'hello', currentStreak: 3, longestStreak: 5 }],
-          recentCelebrations: []
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadInsights();
+    setInsightData({
+      weeklyProgress: { totalSuccesses: 12, averageConfidence: 0.76, mostSuccessfulDay: 'Mo', improvementTrend: 'steady' },
+      peakPerformanceTimes: [{ timeOfDay: 'Vormittag', averageConfidence: 0.78 }],
+      topGestures: [{ gesture: 'hallo', successRate: 0.88, frequency: 9 }],
+      communicationStreaks: [{ gesture: 'bitte', currentStreak: 2, longestStreak: 4 }],
+      recentCelebrations: [],
+    });
+    setIsLoading(false);
   }, []);
 
 

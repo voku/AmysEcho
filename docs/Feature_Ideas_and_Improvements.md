@@ -51,4 +51,4 @@ The system could analyze Amy's performance (e.g., recognition accuracy, confiden
 
 **Feasibility Considerations:**
 *   **App-side:** Requires logic to interpret performance data and adjust UI/practice flow.
-*   **Server-side:** The `analyticsService` already computes `computeSummaryMetrics` and `computeAnalyticsInsights`. This could be extended to provide per-gesture performance metrics and recommendations. The `dialogEngine` could also be leveraged to generate adaptive feedback messages.
+*   **Server-side:** Die ursprünglichen Analytics- und Dialog-Services wurden entfernt. Eine Neuimplementierung müsste Performance-Metriken direkt aus den Trainings- und Korrekturdaten ableiten und optional einen neuen Feedback-Endpunkt bereitstellen.

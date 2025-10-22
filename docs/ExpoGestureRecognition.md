@@ -1,6 +1,8 @@
 # Amy's Echo – Expo-Compatible Hand Gesture Recognition Solutions
 
-`react-native-fast-tflite` proved unreliable inside Expo's custom development client. The project now uses an on-device pipeline where MediaPipe extracts landmarks in a WebView and classification occurs locally using downloaded MLP weights cached on the device. The server remains responsible for training uploads and dialog suggestions.
+`react-native-fast-tflite` proved unreliable inside Expo's custom development client. The project now uses an on-device pipeline where MediaPipe extracts landmarks in a WebView and classification occurs locally using downloaded MLP weights cached on the device. The server now focuses exclusively on ingesting new samples, training MLP weights, and serving the resulting bundles.
+
+> Hinweis: Einige Codeausschnitte in diesem Dokument zeigen noch die ursprüngliche Dialog-Anbindung. Diese Abschnitte sind archiviert und dienen nur der historischen Einordnung; das produktive System beinhaltet sie nicht mehr.
 
 Below are four proven approaches for Expo projects. Each option includes code samples so future iterations can reuse or swap parts without digging through commit history.
 

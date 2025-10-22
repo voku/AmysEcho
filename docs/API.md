@@ -1,246 +1,37 @@
 # API Documentation
 
-This document describes the backend server endpoints used by Amy's Echo. All endpoints require an `Authorization` header in the form `Bearer <API_TOKEN>`.
+Amy's Echo now ships with a minimal backend focused on the gesture training loop. The server accepts new samples, schedules training jobs, and serves the resulting personalized models. All remaining endpoints documented below are required by the mobile client and integration tests; analytics, caregiver portal, and dialog routes have been retired.
+
+## Authentication
+
+Every request must include an `Authorization` header:
+
+```
+Authorization: Bearer <API_TOKEN>
+```
+
+The token is defined by `config.apiToken`. For backwards compatibility the middleware will also accept JWTs produced by the legacy admin tooling, but no token minting endpoints are exposed by this service anymore.
 
 ## Rate Limiting
 
-Two rate limiters are applied:
-- **/dialog**: Limited by `DIALOG_LIMIT` (default `60` requests per minute).
-- **/api/** and other endpoints**: Limited by `API_LIMIT` (default `120` requests per minute).
+Two rate limiters protect the service:
+
+- `apiLimiter` covers `/api/**` and `/train-*` endpoints (default 120 requests/minute).
+- `modelMetadataLimiter` throttles repeated metadata requests such as `/latest-mlp-model` and `/model-metadata` (default 10 requests/minute).
 
 ## Endpoints
 
-### Authentication
-
-#### POST /auth/login
-Authenticate a user and return a JWT.
-
-**Body**
-```json
-{
-  "username": "admin",
-  "password": "password"
-}
-```
-
-**Response**
-```json
-{
-  "user": {
-    "id": "admin-user",
-    "username": "admin",
-    "role": "admin"
-  },
-  "accessToken": "...",
-  "refreshToken": "..."
-}
-```
-
-#### POST /auth/refresh
-Refresh an expired JWT.
-
-**Body**
-```json
-{
-  "refreshToken": "..."
-}
-```
-
-**Response**
-```json
-{
-  "accessToken": "...",
-  "refreshToken": "..."
-}
-```
-
-#### GET /auth/me
-Get the currently authenticated user.
-
-**Response**
-```json
-{
-  "user": {
-    "id": "admin-user",
-    "username": "admin",
-    "role": "admin"
-  }
-}
-```
-
-### Analytics
-
-#### GET /api/analytics/profiles
-Return the list of gesture profiles available.
-
-**Response**
-```json
-[
-  { "id": "profile1", "name": "Child" }
-]
-```
-
-#### GET /api/analytics/corrections
-Retrieve correction events. Optional query parameter `profileId` filters by profile.
-
-**Response**
-```json
-[
-  {
-    "predictedGesture": "wave",
-    "actualGesture": "clap",
-    "confidence": 0.42,
-    "timestamp": 1700000000000
-  }
-]
-```
-
-#### GET /api/analytics/usage-rates
-Retrieve symbol usage counts. Optional query parameter `profileId` filters by profile.
-
-**Response**
-```json
-[
-  { "symbolId": "hello", "usageCount": 42 }
-]
-```
-
-#### GET /api/analytics/training-trends
-Return learning analytics for gesture training progress.
-
-**Response**
-```json
-[
-  {
-    "gestureDefinitionId": "wave",
-    "successRate24h": 0.85,
-    "successRate7d": 0.92,
-    "avgConfidenceScore": 0.88,
-    "improvementTrend": 0.03,
-    "lastCalculated": 1700000000000
-  }
-]
-```
-
-#### GET /api/analytics/export
-Export analytics data as CSV. Query parameter `type` selects `corrections`, `usage`, or `training`. Optional `profileId` filters by profile.
-
-#### GET /api/analytics/summary
-Return aggregated metrics such as correction rate, uncertainty ratio, median latency, and top misclassifications. `medianLatencyMs` is `null` when no telemetry data is available, and `topMisclassifications` is an array of objects describing the most common errors.
-
-**Response**
-```json
-{
-  "correctionRate": 0.1,
-  "uncertaintyRatio": 0.05,
-  "medianLatencyMs": 120,
-  "topMisclassifications": [
-    { "predicted": "wave", "actual": "clap", "count": 3 }
-  ]
-}
-```
-
-#### POST /analytics
-Trigger a server-side refresh of learning analytics. The server recalculates success rates and trends directly from stored interaction logs, ignoring any client-provided metrics.
-
-**Body**
-
-No body required.
-
-**Response**
-```json
-{
-  "id": "default",
-  "gestureDefinitionId": "overall",
-  "successRate24h": 1,
-  "successRate7d": 0.92,
-  "avgConfidenceScore": 0.88,
-  "improvementTrend": 0.12,
-  "lastCalculated": 1700000000000
-}
-```
-
-#### POST /api/telemetry
-Submit telemetry events recording gesture processing metrics and fallback usage. Accepts a single event object or an array of events. Returns `202 Accepted`.
-
-Each event includes:
-- `latencyMs` (number)
-- `timestamp` (number)
-- `event` (string, optional) — e.g., `recognizer_init`, `frame_latency`
-- `source` (string, optional) — client module sending the event
-
-**Body**
-```json
-[
-  { "event": "frame_latency", "latencyMs": 33, "timestamp": 1700000000000, "source": "webview-gesture-detector" }
-]
-```
-
-**Response**
-```json
-{ "status": "ok" }
-```
-
-### Corrections & Samples
-
-#### POST /api/corrections
-Log a caregiver correction when the system misclassifies a gesture. Returns `202 Accepted`.
-
-**Body**
-```json
-{ "gesture": "wave" }
-```
-
-**Response**
-```json
-{ "status": "queued" }
-```
-
-#### POST /api/negative-samples
-Record a negative sample for future model training. Returns `202İ Accepted`.
-
-**Body**
-```json
-{ "gesture": "random" }
-```
-
-**Response**
-```json
-{ "status": "queued" }
-```
-
-### Dialog
-
-#### POST /dialog
-Ask the dialog engine for caregiver suggestions.
-
-**Body**
-```json
-{
-  "input": "hello",
-  "context": ["previous", "messages"]
-}
-```
-
-**Response**
-```json
-{
-  "nextWords": ["friend"],
-  "caregiverPhrases": ["Good job!"]
-}
-```
-
-### DGS Model
+### Sample Capture
 
 #### POST /api/v1/dgs/samples
-Add DGS samples.
+Upload a single labeled gesture sample. The body must contain 42 normalized landmark triplets.
 
 **Body**
 ```json
 {
-  "label": "wave",
-  "profileId": "profile1",
-  "landmarks": [ ... ]
+  "label": "wink",
+  "profileId": "amy",
+  "landmarks": [[0.1, 0.2, 0.0], [0.3, 0.4, 0.0], [0.5, 0.6, 0.1]]
 }
 ```
 
@@ -249,167 +40,84 @@ Add DGS samples.
 { "status": "ok" }
 ```
 
-### Model Training & Serving
+#### POST /api/v1/dgs/sample-bundles
+Upload a ZIP archive produced by the mobile client containing multiple samples plus `metadata.json`. The server persists the bundle and (if configured) schedules a follow-up training job.
+
+### Corrections & Negative Samples
+
+#### POST /api/corrections
+Append a correction event generated by the caregiver workflow.
+
+#### POST /api/negative-samples
+Record a negative example that should be excluded from future training jobs.
+
+Both endpoints accept JSON payloads following the types defined in `server/src/types.ts` and return `{"status":"ok"}` on success.
+
+### Crash Reporting
+
+#### POST /api/crash-reports
+Upload crash diagnostics from the mobile app. Payloads are stored under `data/crash-reports/` for manual inspection.
+
+### Training
 
 #### POST /train-model
-Upload labeled hand landmark samples and trigger model training.
+Schedule a training job with an explicit list of samples. When called without samples the server falls back to any staged bundles.
 
 **Body**
 ```json
 {
   "samples": [
-    { "gestureDefinitionId": "wave", "landmarkData": [[0.1,0.2,0], ...21] },
-    { "gestureDefinitionId": "wave", "landmarkData": [[0.3,0.4,0], ...21] }
-  ]
+    {
+      "gestureDefinitionId": "hello",
+      "profileId": "amy",
+      "landmarkData": [[0.1, 0.2, 0.0], [0.3, 0.4, 0.0], "…"]
+    }
+  ],
+  "trigger": "manual"
 }
 ```
-
-**Response**
-```json
-{ "status": "queued", "jobId": "abc123" }
-```
-
-Validation
-- Expects `samples` to be an array of objects with `gestureDefinitionId` (string) and `landmarkData` (array).
-- Responds with `400` if the payload is malformed.
-
-Example error response
-```json
-{ "error": "Invalid samples payload. Expecting an array of objects with gestureDefinitionId (string) and landmarkData (array)." }
-```
-
-Optional fields
-- `profileId` may be included per sample to support profile-aware training. Currently optional and ignored by validators.
-
-#### GET /train-status/:id
-Check the status of a model training job.
-
-**URL Params**
-- `id` (required): The job ID returned from `/train-model`
 
 **Response**
 ```json
 {
-  "jobId": "abc123",
-  "status": "running|completed|failed",
-  "progress": 0.75,
-  "message": "Training epoch 15/20",
-  "modelPath": "/path/to/model.npz",
-  "error": "Optional error message"
+  "status": "running",
+  "jobId": "train_123",
+  "pollUrl": "/train-status/train_123",
+  "message": "Trainingsauftrag gestartet"
 }
 ```
 
+#### GET /train-status/:id
+Retrieve the latest job metadata including status, progress, metrics, and timestamps. Returns `404` if the job id is unknown.
+
+#### GET /train-status
+Fallback endpoint used when no job id is supplied. Always returns `{ "status": "unknown" }`.
+
+### Model Serving
+
+#### GET /latest-mlp-model
+Download the latest trained model (NPZ). Accepts an optional `profileId` query parameter to fetch a personalized model.
+
+#### GET /api/v1/dgs/mlp-model
+Alias of `/latest-mlp-model` kept for backwards compatibility.
+
 #### GET /model-version
-Fetch the current model version and path information.
+Return the current model bundle version and the path used by the mobile client to request it.
 
 **Response**
 ```json
 { "version": "1.0.0", "modelPath": "latest-mlp-model" }
 ```
 
-#### GET /latest-mlp-model
-Download the latest trained MLP weights file (NPZ format) for German Sign Language gesture recognition.
-
-Query parameter `profileId` returns a profile-specific model if available.
-`profileId` may contain only letters, numbers, underscores, and dashes.
-
-**Supported Gestures**: alle, blau, rot, gelb, gruen, essen, trinken, satt, spielen, schwester, nochmal, fertig
-
-**Response Headers**:
-- `ETag`: Strong hash in the form `"sha256-<hex>"` for cache validation
-- `X-Model-Version`: Monotonic version derived from file mtime (ms since epoch)
-- `X-Checksum-SHA256`: Hex digest of the file for integrity verification
-- `Cache-Control`: `private, max-age=0, must-revalidate`
-- `Content-Disposition`: `attachment; filename="dgs_model[_<profileId>].npz"`
-- `Accept-Ranges`: `bytes` with support for HTTP range requests
-
-**Range Requests**: Clients may include `Range: bytes=start-end`. The server replies with `206 Partial Content` and `Content-Range`.
-
-**Per-profile Authorization**: When requesting a profile-specific model (`?profileId=...`), clients must include header `X-Profile-Id: <profileId>`. If the header is missing or does not match, the server returns `403 Forbidden` without revealing whether the profile exists.
-
 #### GET /model-metadata
-Return metadata about the current model file.
-
-Query parameter `profileId` mirrors `/latest-mlp-model` for profile-specific metadata.
-`profileId` may contain only letters, numbers, underscores, and dashes.
+Return metadata for the requested model including file size and SHA-256 checksum.
 
 **Response**
 ```json
-{
-  "version": "1.0.0",
-  "size": 1234,
-  "sha256": "<hash>"
-}
+{ "version": "1.0.0", "size": 123456, "sha256": "…" }
 ```
 
-### Crash Reports
-
-#### POST /api/crash-reports
-Submit crash reports. Accepts a single report object or an array of reports. Returns `202 Accepted`.
-
-Each report includes:
-- `id` (string)
-- `name` (string)
-- `message` (string)
-- `stack` (string, optional)
-- `timestamp` (number)
-- `extra` (object, optional)
-
-**Body**
-```json
-[
-  { "id": "...", "name": "Error", "message": "...", "timestamp": 1700000000000 }
-]
-```
-
-**Response**
-```json
-{ "status": "ok", "saved": 1 }
-```
-
-### Other
-
-#### GET /health
-Health check endpoint.
-
-**Response**
-```json
-{ "status": "ok", "uptime": 12345 }
-```
-
-#### GET /api/docs
-Get API documentation.
-
-**Response**
-```json
-{ ... }
-```
+### Validation
 
 #### POST /api/gesture/validate-vision
-Validate a gesture using OpenAI Vision.
-
-**Body**
-```json
-{
-  "imageBase64": "...",
-  "expectedGesture": "wave",
-  "context": { ... },
-  "options": { ... }
-}
-```
-
-**Response**
-```json
-{ ... }
-```
-
-### Portal
-
-#### GET /portal
-Serves the main portal HTML file.
-
-#### GET /caregiver-portal
-Serves the caregiver portal HTML file.
-
-#### GET /api/caregiver-portal/*
-API routes for the caregiver portal.
+Forward a captured frame to OpenAI Vision for secondary validation. The endpoint accepts optional context and tuning parameters. Responses contain the model's evaluation of the gesture and any suggested alternatives.

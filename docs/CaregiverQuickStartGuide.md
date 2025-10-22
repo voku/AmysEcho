@@ -9,7 +9,7 @@ This guide helps caregivers get Amy's Echo running and begin supporting a child'
    npm install --prefix app
    npm install --prefix server
    ```
-2. (Optional) Start the backend server for analytics/dialog features:
+2. Start the backend server so uploads and training are available:
    ```bash
    npm run build --prefix server
    API_TOKEN=<secret> npm start --prefix server
@@ -39,10 +39,10 @@ This guide helps caregivers get Amy's Echo running and begin supporting a child'
 2. Record the child performing the new sign several times.
 3. Upload the samples to the server. A personalized model is trained and downloaded automatically.
 
-## 5. Monitoring Progress
-1. From the recognition screen, tap **Analytics**.
-2. The dashboard shows the recent success rate and improvement trend.
-3. Use this data to decide when to practice or add new gestures.
+## 5. Refreshing the Model
+1. After recording new samples, open the **Training** tab and upload them.
+2. The app shows when the server has queued or completed the training job.
+3. Once the model download finishes, Amy immediately benefits from the updated gestures.
 
 ## 6. Updating Access Tokens
 1. In the **Admin Panel**, enter the OpenAI API key and backend token if required.

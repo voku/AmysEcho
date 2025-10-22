@@ -1,10 +1,8 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { atomicWriteJson, atomicWriteBuffer } from './utils/atomicFs.js';
 import { createHash } from 'crypto';
 import { spawn } from 'child_process';
-import readline from 'readline';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
@@ -17,58 +15,30 @@ import {
   getMlpModelPath,
   PROFILE_ID_PATTERN,
   SERVER_DIR,
-  SRC_DIR,
   TRAINING_MANIFEST_PATH,
 } from './constants/modelPaths.js';
 import { DB_FILE_PATH } from './constants/dbPaths.js';
 import {
   setupDatabase,
-  loadDatabase,
-  saveDatabase,
   Database,
-  logCorrection,
   addNegativeSample,
-  getProfileData,
-  deleteProfileData,
+  logCorrection,
+  saveDatabase,
 } from './db.js';
-import auth, { legacyAuth } from './middleware/auth.js';
+import { legacyAuth } from './middleware/auth.js';
 import {
   seedBaselineModel,
   writeMinimalMlpModel,
   sendBinaryModel,
   applyModelResponseHeaders,
 } from './services/mlpModelArtifacts.js';
-import { isProfileAuthorized } from './utils/profileAuthorization.js';
-import { Correction, UsageStat, LearningAnalytics, Profile, SymbolRecord, NegativeSample } from './types.js';
-import {
-  computeSummaryMetrics,
-  loadTelemetry,
-  saveTelemetry,
-  TelemetryEvent,
-  computeAnalyticsInsights,
-  computeLearningAnalytics,
-} from './services/analyticsService.js';
-import { getLLMSuggestions, LLMRequest } from './services/dialogEngine.js';
-import portalRouter from './portal/index.js';
-import caregiverPortalApiRouter from './caregiverPortalApi.js';
-
-import { appendCrashReports, CrashReport } from './services/crashService.js';
-import { AuthService } from './services/authService.js';
 import logger from './services/logger.js';
 import { ingestTrainingBundlesIntoDataset } from './services/trainingBundleIngestor.js';
+import { appendCrashReports, CrashReport } from './services/crashService.js';
+import { isProfileAuthorized } from './utils/profileAuthorization.js';
+import { Correction, NegativeSample } from './types.js';
 
 export const app = express();
-
-const serverModuleDir = SRC_DIR;
-
-const portalPath = path.join(serverModuleDir, 'portal');
-let portalAvailable = true;
-try {
-  await fs.access(portalPath);
-} catch (error) {
-  portalAvailable = false;
-  logger.warn('Portal directory missing', { portalPath, error: (error as Error).message });
-}
 
 async function readServerPackageJson(): Promise<any> {
   const candidates = [path.join(SERVER_DIR, 'package.json'), path.join(SERVER_DIR, '..', 'package.json')];
@@ -112,26 +82,10 @@ const errorHandler = (error: any, req: Request, res: Response, next: Function) =
   });
 };
 
-const dialogLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: config.dialogLimit,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipFailedRequests: true,
-});
-
-
 // Generic API rate limiter for server endpoints
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: config.apiLimit,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const analyticsPostLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -175,169 +129,6 @@ async function collectLabelCounts(): Promise<{
 
   return { globalCounts, profileCounts };
 }
-
-// Serve static files from the portal directory
-if (portalAvailable) {
-  app.use('/portal', express.static(portalPath));
-}
-
-// Serve the main portal HTML file
-app.get('/portal', (_req: Request, res: Response) => {
-  if (!portalAvailable) {
-    return res.status(404).send('Portal not available');
-  }
-  const indexPath = path.join(portalPath, 'index.html');
-  res.sendFile(indexPath, (error) => {
-    if (!error) return;
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      res.status(404).send('Portal not available');
-    } else {
-      logger.error('Failed to serve portal index', { error: (error as Error).message });
-      if (!res.headersSent) {
-        res.status(500).send('Failed to load portal');
-      }
-    }
-  });
-});
-
-// Basic health check endpoint for monitoring
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', uptime: process.uptime() });
-});
-
-// API documentation endpoint
-app.get('/api/docs', (_req: Request, res: Response) => {
-  res.json({
-    openapi: '3.0.0',
-    info: {
-      title: 'Amy\'s Echo API',
-      version: '1.0.0',
-      description: 'Multimodal communication platform API',
-    },
-    servers: [
-      {
-        url: `http://localhost:${config.port}`,
-        description: 'Development server',
-      },
-    ],
-    paths: {
-      '/auth/login': {
-        post: {
-          summary: 'Authenticate user',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    username: { type: 'string' },
-                    password: { type: 'string' },
-                  },
-                  required: ['username', 'password'],
-                },
-              },
-            },
-          },
-          responses: {
-            '200': {
-              description: 'Authentication successful',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      user: { $ref: '#/components/schemas/User' },
-                      accessToken: { type: 'string' },
-                      refreshToken: { type: 'string' },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    components: {
-      schemas: {
-        User: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            username: { type: 'string' },
-            role: { type: 'string', enum: ['admin', 'caregiver', 'user'] },
-          },
-        },
-      },
-    },
-  });
-});
-
-// Authentication endpoints
-app.post('/auth/login', async (req: Request, res: Response) => {
-  try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
-    }
-
-    // For now, use simple hardcoded credentials
-    // In production, this should validate against a database
-    if (username === 'admin' && password === 'password') {
-      const user = {
-        id: 'admin-user',
-        username: 'admin',
-        role: 'admin' as const,
-      };
-
-      const tokens = AuthService.generateTokens(user);
-      res.json({
-        user,
-        ...tokens,
-      });
-    } else {
-      res.status(401).json({ error: 'Invalid credentials' });
-    }
-    } catch (error) {
-      const msg = (error as Error)?.message ?? String(error);
-      logger.error('Login error', { error: msg });
-      res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-app.post('/auth/refresh', (req: Request, res: Response) => {
-  try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      return res.status(400).json({ error: 'Refresh token required' });
-    }
-
-    const newTokens = AuthService.refreshAccessToken(refreshToken);
-    if (!newTokens) {
-      return res.status(401).json({ error: 'Invalid refresh token' });
-    }
-
-    res.json(newTokens);
-  } catch (error) {
-    console.error('Token refresh error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/auth/me', auth, (req: Request, res: Response) => {
-  res.json({ user: req.user });
-});
-
-// API routes for caregiver portal
-app.use('/portal', portalRouter);
-
-// Serve static files from the caregiver portal directory
-app.use('/caregiver-portal', express.static(path.join(serverModuleDir, 'caregiver-portal')));
-
-app.use('/api/caregiver-portal', auth, caregiverPortalApiRouter);
 
 async function logTraining(message: string): Promise<void> {
   try {
@@ -460,209 +251,6 @@ try {
   console.error('Database setup failed:', err);
   process.exit(1); // Exit if database setup fails
 }
-
-// Middleware to attach dbInstance to req
-app.use((req: Request, res: Response, next: Function) => {
-  req.db = dbInstance;
-  next();
-});
-
-// API Endpoints for Portal
-app.get('/api/analytics/profiles', auth, async (_req: Request, res: Response) => {
-  try {
-    const profiles = dbInstance.profiles;
-    res.json(profiles.map((p: Profile) => ({ id: p.id, name: p.name })));
-  } catch (error) {
-    console.error('Error fetching profiles:', error);
-    res.status(500).json({ error: 'Failed to fetch profiles' });
-  }
-});
-
-app.get('/api/profiles/:id/export', legacyAuth, (req: Request, res: Response) => {
-  const { id } = req.params;
-  const data = getProfileData(dbInstance, id);
-  if (!data.profile) {
-    return res.status(404).json({ error: 'Profile not found' });
-  }
-  res.json(data);
-});
-
-app.delete('/api/profiles/:id', legacyAuth, async (req: Request, res: Response) => {
-  const { id } = req.params;
-  try {
-    await deleteProfileData(dbInstance, id, DB_FILE_PATH);
-    res.json({ status: 'deleted' });
-  } catch (error) {
-    console.error('Profile deletion failed:', error);
-    res.status(500).json({ error: 'Profile deletion failed' });
-  }
-});
-
-app.get('/api/analytics/corrections', auth, async (req: Request, res: Response) => {
-  try {
-    const { profileId } = req.query;
-    let corrections = dbInstance.corrections;
-    if (profileId) {
-      corrections = corrections.filter((c: Correction) => c.profileId === profileId);
-    }
-    res.json(corrections.map((c: Correction) => ({
-      predictedGesture: c.predictedGesture,
-      actualGesture: c.actualGesture,
-      confidence: c.confidence,
-      timestamp: c.timestamp,
-    })));
-  } catch (error) {
-    console.error('Error fetching corrections:', error);
-    res.status(500).json({ error: 'Failed to fetch corrections' });
-  }
-});
-
-app.get('/api/analytics/usage-rates', auth, async (req: Request, res: Response) => {
-  try {
-    const { profileId } = req.query;
-    let usageStats = dbInstance.usageStats;
-    if (profileId) {
-      usageStats = usageStats.filter((u: UsageStat) => u.profileId === profileId);
-    }
-    res.json(usageStats.map((u: UsageStat) => ({
-      symbolId: u.symbolId,
-      usageCount: u.count,
-    })));
-  } catch (error) {
-    console.error('Error fetching usage rates:', error);
-    res.status(500).json({ error: 'Failed to fetch usage rates' });
-  }
-});
-
-app.get('/api/analytics/training-trends', auth, async (req: Request, res: Response) => {
-  try {
-    const { profileId } = req.query;
-    let trainingTrends = dbInstance.learningAnalytics;
-    // For now, no direct profileId filtering on LearningAnalytic in current schema
-    res.json(trainingTrends.map((t: LearningAnalytics) => ({
-      gestureDefinitionId: t.gestureDefinitionId,
-      successRate24h: t.successRate24h,
-      successRate7d: t.successRate7d,
-      avgConfidenceScore: t.avgConfidenceScore,
-      improvementTrend: t.improvementTrend,
-      lastCalculated: t.lastCalculated,
-    })));
-  } catch (error) {
-    console.error('Error fetching training trends:', error);
-    res.status(500).json({ error: 'Failed to fetch training trends' });
-  }
-});
-
-app.get('/api/analytics/export', auth, async (req: Request, res: Response) => {
-  try {
-    const { type, profileId } = req.query;
-    let data: any[] = [];
-    let filename = 'export.csv';
-
-    switch (type) {
-      case 'corrections':
-        let corrections = dbInstance.corrections;
-        if (profileId) {
-          corrections = corrections.filter((c: Correction) => c.profileId === profileId);
-        }
-        data = corrections.map((c: Correction) => ({
-          predictedGesture: c.predictedGesture,
-          actualGesture: c.actualGesture,
-          confidence: c.confidence,
-          timestamp: new Date(c.timestamp).toISOString(),
-        }));
-        filename = 'corrections.csv';
-        break;
-      case 'usage':
-        let usageStats = dbInstance.usageStats;
-        if (profileId) {
-          usageStats = usageStats.filter((u: UsageStat) => u.profileId === profileId);
-        }
-        data = usageStats.map((u: UsageStat) => ({
-          symbolId: u.symbolId,
-          usageCount: u.count,
-        }));
-        filename = 'usage.csv';
-        break;
-      case 'training':
-        let trainingTrends = dbInstance.learningAnalytics;
-        // For now, no direct profileId filtering on LearningAnalytic in current schema
-        data = trainingTrends.map((t: LearningAnalytics) => ({
-          gestureDefinitionId: t.gestureDefinitionId,
-          successRate24h: t.successRate24h,
-          successRate7d: t.successRate7d,
-          avgConfidenceScore: t.avgConfidenceScore,
-          improvementTrend: t.improvementTrend,
-          lastCalculated: t.lastCalculated ? new Date(t.lastCalculated).toISOString() : '',
-        }));
-        filename = 'training.csv';
-        break;
-      default:
-        return res.status(400).json({ error: 'Invalid export type' });
-    }
-
-    if (data.length === 0) {
-      return res.status(404).json({ error: 'No data to export' });
-    }
-
-    const header = Object.keys(data[0]).join(',');
-    const rows = data.map(row => Object.values(row).join(',')).join('\n');
-    const csv = `${header}\n${rows}`;
-
-    res.header('Content-Type', 'text/csv');
-    res.attachment(filename);
-    res.send(csv);
-
-  } catch (error) {
-    console.error('Error exporting data:', error);
-    res.status(500).json({ error: 'Failed to export data' });
-  }
-});
-
-// Analytics summary: correction rate, uncertainty ratio, median latency, top misclassifications
-app.get('/api/analytics/summary', legacyAuth, async (_req: Request, res: Response) => {
-  try {
-    const telemetry = await loadTelemetry();
-    const summary = computeSummaryMetrics(dbInstance, telemetry);
-    res.json(summary);
-  } catch (error) {
-    console.error('Error computing analytics summary:', error);
-    res.status(500).json({ error: 'Failed to compute analytics summary' });
-  }
-});
-
-// Insights: correction frequency and improvement suggestions
-app.get('/api/analytics/insights', legacyAuth, async (_req: Request, res: Response) => {
-  try {
-    const insights = computeAnalyticsInsights(dbInstance);
-    res.json(insights);
-  } catch (error) {
-    console.error('Error computing analytics insights:', error);
-    res.status(500).json({ error: 'Failed to compute analytics insights' });
-  }
-});
-
-app.post('/api/telemetry', legacyAuth, async (req: Request, res: Response) => {
-    const events = Array.isArray(req.body) ? req.body : [req.body];
-    if (!events.every(e => typeof e.latencyMs === 'number' && typeof e.timestamp === 'number' &&
-      (e.event === undefined || typeof e.event === 'string') &&
-      (e.source === undefined || typeof e.source === 'string'))
-    ) {
-      return res.status(400).json({ error: 'Invalid telemetry event payload' });
-    }
-
-    try {
-      const existingEvents = await loadTelemetry();
-      const newEvents = existingEvents.concat(events);
-      // Keep the last 1000 events to prevent the file from growing too large
-      const prunedEvents = newEvents.slice(-1000);
-      await saveTelemetry(prunedEvents);
-      res.status(202).json({ status: 'ok' });
-    } catch (error) {
-      console.error('Error saving telemetry data:', error);
-      res.status(500).json({ error: 'Failed to save telemetry data' });
-    }
-  });
 
 function startTrainingJob(
   samples: TrainingSample[],
@@ -1067,21 +655,6 @@ app.post('/api/negative-samples', legacyAuth, async (req: Request, res: Response
   }
 });
 
-app.post('/dialog', legacyAuth, dialogLimiter, async (req: Request, res: Response) => {
-  const body: LLMRequest = req.body || {};
-  try {
-    console.log('Dialog request', {
-      input: body.input,
-      contextSize: body.context?.length ?? 0,
-    });
-    const suggestions = await getLLMSuggestions(body);
-    res.json(suggestions);
-  } catch (error) {
-    console.error('Dialog endpoint error:', error);
-    res.status(500).json({ nextWords: [], caregiverPhrases: [] });
-  }
-});
-
 app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
   const SampleSchema = z.object({
     gestureDefinitionId: z.string().min(1),
@@ -1145,7 +718,7 @@ app.get('/train-status', legacyAuth, (_req: Request, res: Response) => {
 });
 
 // Query video training job status
-app.get('/api/training-status/:id', auth, (req: Request, res: Response) => {
+app.get('/api/training-status/:id', legacyAuth, (req: Request, res: Response) => {
   const id = req.params.id;
   const result = buildTrainingStatusResponse(trainingJobs, id);
   res.status(result.status).json(result.body);
@@ -1215,130 +788,6 @@ app.get(
   }
   },
 );
-
-app.post(
-  '/analytics',
-  legacyAuth,
-  analyticsPostLimiter,
-  async (req: Request, res: Response) => {
-    try {
-      const computedAnalytics = computeLearningAnalytics(dbInstance);
-      const existingEntry = dbInstance.learningAnalytics.find(
-        (entry) => entry.id === computedAnalytics.id,
-      );
-      const analytics: LearningAnalytics = {
-        ...(existingEntry ?? {}),
-        ...computedAnalytics,
-      };
-
-      const overrides =
-        typeof req.body === 'object' && req.body !== null ? req.body : {};
-
-      const coerceDecimal = (value: unknown): number | undefined => {
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          return Number(value.toFixed(2));
-        }
-        if (typeof value === 'string') {
-          const trimmed = value.trim();
-          if (trimmed.length === 0) {
-            return undefined;
-          }
-          const parsed = Number.parseFloat(trimmed);
-          if (Number.isFinite(parsed)) {
-            return Number(parsed.toFixed(2));
-          }
-        }
-        return undefined;
-      };
-
-      const coerceNumber = (value: unknown): number | undefined => {
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          return value;
-        }
-        if (typeof value === 'string') {
-          const trimmed = value.trim();
-          if (trimmed.length === 0) {
-            return undefined;
-          }
-          const parsed = Number.parseFloat(trimmed);
-          return Number.isFinite(parsed) ? parsed : undefined;
-        }
-        return undefined;
-      };
-
-      const overrideSuccessRate24h = coerceDecimal(
-        (overrides as { successRate24h?: unknown }).successRate24h,
-      );
-      if (overrideSuccessRate24h !== undefined) {
-        analytics.successRate24h = overrideSuccessRate24h;
-      }
-
-      const overrideSuccessRate7d = coerceDecimal(
-        (overrides as { successRate7d?: unknown }).successRate7d,
-      );
-      if (overrideSuccessRate7d !== undefined) {
-        analytics.successRate7d = overrideSuccessRate7d;
-      }
-
-      const overrideAvgConfidenceScore = coerceDecimal(
-        (overrides as { avgConfidenceScore?: unknown }).avgConfidenceScore,
-      );
-      if (overrideAvgConfidenceScore !== undefined) {
-        analytics.avgConfidenceScore = overrideAvgConfidenceScore;
-      }
-
-      const overrideImprovementTrend = coerceDecimal(
-        (overrides as { improvementTrend?: unknown }).improvementTrend,
-      );
-      if (overrideImprovementTrend !== undefined) {
-        analytics.improvementTrend = overrideImprovementTrend;
-      }
-
-      const overrideLastCalculated = coerceNumber(
-        (overrides as { lastCalculated?: unknown }).lastCalculated,
-      );
-      if (overrideLastCalculated !== undefined) {
-        analytics.lastCalculated = overrideLastCalculated;
-      }
-
-      if (
-        typeof (overrides as { gestureDefinitionId?: unknown }).gestureDefinitionId ===
-        'string'
-      ) {
-        const gestureDefinitionId = (overrides as { gestureDefinitionId: string })
-          .gestureDefinitionId.trim();
-        if (gestureDefinitionId.length > 0) {
-          analytics.gestureDefinitionId = gestureDefinitionId;
-        }
-      }
-
-      const existingIndex = dbInstance.learningAnalytics.findIndex(
-        (entry) => entry.id === analytics.id,
-      );
-      if (existingIndex >= 0) {
-        dbInstance.learningAnalytics[existingIndex] = analytics;
-      } else {
-        dbInstance.learningAnalytics.push(analytics);
-      }
-      await withFileLock(DB_FILE_PATH, async () => {
-        await saveDatabase(dbInstance, DB_FILE_PATH);
-      });
-      res.json(analytics);
-    } catch (err) {
-      console.error('Save analytics failed:', err);
-      res.status(500).json({ error: 'Failed to save analytics' });
-    }
-  },
-);
-
-app.get('/analytics', legacyAuth, async (_req: Request, res: Response) => {
-  const analytics = dbInstance.learningAnalytics.find((entry) => entry.id === 'default');
-  if (!analytics) {
-    res.status(404).json({ error: 'Analytics not found' });
-    return;
-  }
-  res.json(analytics);
-});
 
 // Add error handling middleware
 app.use(errorHandler);

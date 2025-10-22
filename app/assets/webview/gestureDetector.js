@@ -42,7 +42,6 @@ import { EnhancedContextAwareRecognizer } from './utils/EnhancedContextAwareReco
 // Import adaptive practice manager
 import { AdaptivePracticeManager } from './utils/AdaptivePracticeManager';
 // Import positive telemetry manager
-import { PositiveTelemetryManager } from './utils/PositiveTelemetryManager';
 // Frame capture configuration
 let frameCaptureEnabled = false;
 let frameCaptureInterval = 5; // Capture every 5th frame
@@ -545,7 +544,6 @@ const enhancedContextRecognizer = new EnhancedContextAwareRecognizer();
 // Adaptive practice manager for optimal timing
 const adaptivePracticeManager = new AdaptivePracticeManager();
 // Positive telemetry manager for success-focused insights
-const positiveTelemetryManager = new PositiveTelemetryManager();
 // Battery monitoring will be initialized after class declaration
 // Amy First: Battery monitoring and emergency mode activation
 class BatteryMonitor {
@@ -693,7 +691,6 @@ window.celebrationSystem = celebrationSystem;
 window.feedbackSystem = feedbackSystem;
 window.enhancedContextRecognizer = enhancedContextRecognizer;
 window.adaptivePracticeManager = adaptivePracticeManager;
-window.positiveTelemetryManager = positiveTelemetryManager;
 // Add missing window properties for tests
 window.__mlpPredict = undefined;
 window.__modelUpdateInProgress = false;
@@ -1798,7 +1795,6 @@ function processGestureResults(results, timestamp) {
             }
             // Record successful communication moments for positive telemetry
             if (finalGesture && typeof finalGesture === 'string' && finalScore >= 0.7 && contextInsights) {
-                positiveTelemetryManager.recordCommunicationMoment(finalGesture, finalScore, {
                     timeOfDay: contextInsights.timeOfDay,
                     activityLevel: contextInsights.activityLevel,
                     dayOfWeek: new Date().getDay()
@@ -1873,7 +1869,7 @@ function processGestureResults(results, timestamp) {
                         ) : null
                     },
                     // Positive telemetry insights
-                    positiveInsights: finalGesture && finalScore >= 0.7 ? positiveTelemetryManager.getPositiveInsights() : null
+                    positiveInsights: null
                 });
             }
             catch (err) {

@@ -1,6 +1,5 @@
 import { playAudio, playSystemSound } from '../../server/src/services/audioService';
 import { playVideo } from '../../server/src/services/videoService';
-import { getLLMSuggestions } from '../../server/src/services/dialogEngine';
 import { tmpdir } from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -18,13 +17,7 @@ describe('Services integration smoke test', () => {
     await expect(playSystemSound('success')).resolves.toBeUndefined();
     await expect(playSystemSound('error')).resolves.toBeUndefined();
 
-    const result = await getLLMSuggestions({
-      input: 'Hallo',
-      context: [],
-      language: 'de',
-      age: 5,
-    });
-    expect(result.nextWords).toBeDefined();
-    expect(result.caregiverPhrases).toBeDefined();
+    // Dialog suggestions are now handled entirely on the client via OpenAI;
+    // server-side dialog helpers were removed with the caregiver portal.
   });
 });

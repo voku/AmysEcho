@@ -31,8 +31,6 @@ jest.mock('../../src/services/TrainingDataValidator', () => ({
 
 jest.mock('../../src/components/BottomNav', () => () => null);
 jest.mock('../../src/components/DgsVideoPlayer', () => () => null);
-jest.mock('../../src/components/PerformanceAnalytics', () => () => null);
-jest.mock('../../src/components/PracticeSessionManager', () => () => null);
 
 jest.mock('../../src/services', () => ({
   audioService: {
@@ -45,9 +43,6 @@ jest.mock('../../src/services/hipEvents', () => ({
   logHIPEvent: jest.fn(),
 }));
 
-jest.mock('../../src/services/positiveTelemetryService', () => ({
-  positiveTelemetryService: { recordSuccess: jest.fn() },
-}));
 
 jest.mock('expo-file-system', () => ({
   cacheDirectory: 'file://cache/',

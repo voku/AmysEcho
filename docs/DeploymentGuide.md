@@ -32,10 +32,13 @@ This guide explains how to deploy both the mobile app and the backend server.
    ```
 4. Reverse proxy or containerize the service as needed for your environment.
 
-## Updating Models and Analytics
-- Update caregiver analytics stored in the database:
+## Updating Models
+- Trigger a new training run when fresh samples are available:
   ```bash
-  node server/dist/tools/updateAnalytics.js <path/to/db.json>
+  curl -X POST -H "Authorization: Bearer $API_TOKEN" \
+    -H "Content-Type: application/json" \
+    http://<server-host>:5000/train-model -d '{"samples": [], "trigger": "manual"}'
   ```
+- Monitor progress via `GET /train-status/<jobId>` and redeploy the resulting NPZ files if you are distributing the server statically.
 
 With these steps the app and server are ready for production deployment.

@@ -22,15 +22,8 @@ jest.mock('../../src/services/gestureHistoryService', () => ({
   },
 }));
 
-jest.mock('../../src/services/positiveTelemetryService', () => ({
-  positiveTelemetryService: {
-    recordGestureRecognition: jest.fn(),
-  },
-}));
-
 const { audioService } = require('../../src/services/audioService');
 const { gestureHistoryService } = require('../../src/services/gestureHistoryService');
-const { positiveTelemetryService } = require('../../src/services/positiveTelemetryService');
 
 type GestureEvent = {
   label: string;
@@ -43,7 +36,6 @@ function processGestureEvent(event: GestureEvent) {
 
   if (label === 'help' && confidence >= 0.9) {
     audioService.playSound('emergency', { label, confidence, landmarks });
-    positiveTelemetryService.recordGestureRecognition({ label, confidence, source: 'emergency' });
     return 'Notfall erkannt';
   }
 
@@ -58,7 +50,6 @@ function processGestureEvent(event: GestureEvent) {
     audioService.playSound('success', { label, confidence, landmarks });
     audioService.triggerSpeakAndShow('Hallo', { gesture: label, confidence });
     gestureHistoryService.addGesture(historyEntry);
-    positiveTelemetryService.recordGestureRecognition({ label, confidence, source: 'mediapipe' });
     return 'Geste erkannt';
   }
 
@@ -84,9 +75,6 @@ describe('System Integration Tests (logic only)', () => {
       expect(gestureHistoryService.addGesture).toHaveBeenCalledWith(
         expect.objectContaining({ label: 'hello', confidence: 0.92 })
       );
-      expect(positiveTelemetryService.recordGestureRecognition).toHaveBeenCalledWith(
-        expect.objectContaining({ label: 'hello', source: 'mediapipe' })
-      );
       expect(status).toBe('Geste erkannt');
     });
 
@@ -99,7 +87,6 @@ describe('System Integration Tests (logic only)', () => {
       );
       expect(audioService.triggerSpeakAndShow).not.toHaveBeenCalled();
       expect(gestureHistoryService.addGesture).not.toHaveBeenCalled();
-      expect(positiveTelemetryService.recordGestureRecognition).not.toHaveBeenCalled();
       expect(status).toBe('Bitte wiederholen…');
     });
 
@@ -112,9 +99,6 @@ describe('System Integration Tests (logic only)', () => {
       );
       expect(audioService.triggerSpeakAndShow).not.toHaveBeenCalled();
       expect(gestureHistoryService.addGesture).not.toHaveBeenCalled();
-      expect(positiveTelemetryService.recordGestureRecognition).toHaveBeenCalledWith(
-        expect.objectContaining({ label: 'help', source: 'emergency' })
-      );
       expect(status).toBe('Notfall erkannt');
     });
   });
