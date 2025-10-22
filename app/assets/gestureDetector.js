@@ -5494,7 +5494,6 @@
             message: cameraError + (err2 instanceof Error ? err2.message : String(err2))
           })
         );
-        tap.classList.remove("hidden");
       }
     });
     tap.classList.add("gesture-detector-tap");
@@ -5505,7 +5504,6 @@
         sendTelemetry("tap_start_autostart");
       }).catch((err2) => {
         console.warn("Camera autostart failed:", err2);
-        tap.classList.remove("hidden");
       });
     }
     window.ReactNativeWebView?.postMessage?.(

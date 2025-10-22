@@ -312,7 +312,6 @@ function initDom() {
           message: cameraError + (err instanceof Error ? err.message : String(err)),
         }),
       );
-      tap.classList.remove('hidden');
     }
   });
 
@@ -331,7 +330,6 @@ function initDom() {
       })
       .catch((err: unknown) => {
         console.warn('Camera autostart failed:', err);
-        tap.classList.remove('hidden');
       });
   }
 
