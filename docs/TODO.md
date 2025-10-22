@@ -32,7 +32,7 @@ We have MediaPipe capture working in the app and a Python MLP trainer on the ser
 
 ## 3. Ingest Bundles on the Server (`server/`)
 - [x] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/` and register them in `data/datasets/training_manifest.json`.
-- [x] Update the caregiver moderation portal (`server/src/portal/index.ts`) to display bundle metadata and play the attached clip before approval. Point reviewers to the stored manifest entries instead of `db.gestureTrainingData`.
+- [x] (Archiviert) Das frühere Pflegeportal wurde entfernt; Bundles werden direkt über die Dateien unter `data/uploads/` geprüft.
 - [x] Write integration tests in `server/test/trainingBundles.test.ts` that POST a fixture zip and assert the manifest entry (include a fixture example in `server/test/fixtures/trainingBundle.zip`).
 
 ## 4. Retrain the Model with Bundle Data (`server/src/amyserver_tools`)
@@ -48,7 +48,7 @@ We have MediaPipe capture working in the app and a Python MLP trainer on the ser
 ## 6. Verify & Document the Loop
 - [x] Add end-to-end tests: one in `integration/` that records a fake gesture, uploads it, triggers `/train-model`, downloads the new weights, and asserts the model file checksum changes.
 - [x] Document the flow in `docs/` with a sequence diagram (capture → bundle → moderation → training → distribution). Link directly to the implementation files listed above so new contributors have concrete starting points.
-- [x] Create a manual QA checklist covering "record gesture", "bundle visible in portal", "training job succeeds", "personalized model downloaded".
+- [x] Create a manual QA checklist covering "record gesture", "Bundle-Dateien vorhanden", "training job succeeds", "personalized model downloaded".
 
 ---
 **Immediate Task for the Coding Agent:** ✅ Spike `uploadTrainingBundle` end-to-end by zipping an existing landmark sample, POSTing it to a stubbed `/api/v1/dgs/sample-bundles`, and asserting the manifest entry is created.

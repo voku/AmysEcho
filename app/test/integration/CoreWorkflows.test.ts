@@ -6,7 +6,6 @@
 
 import { audioService } from '../../src/services/audioService';
 import { gestureHistoryService } from '../../src/services/gestureHistoryService';
-import { positiveTelemetryService } from '../../src/services/positiveTelemetryService';
 import { adaptiveLearningService } from '../../src/services/adaptiveLearningService';
 import { gestureMeaningService } from '../../src/services/gestureMeaningService';
 
@@ -144,53 +143,6 @@ describe('Core Communication Workflows', () => {
       expect(mockGetRecommendations).toHaveBeenCalled();
       expect(recommendations).toHaveLength(1);
       expect(recommendations[0]).toHaveProperty('gesture', 'please');
-    });
-  });
-
-  describe('Positive Telemetry Tracking', () => {
-    it('should record successful communication moments', () => {
-      const mockRecordSuccess = jest.fn();
-      (positiveTelemetryService.recordSuccess as jest.Mock) = mockRecordSuccess;
-
-      const successData = {
-        gesture: 'thank_you',
-        confidence: 0.91,
-        context: 'after_help'
-      };
-
-      positiveTelemetryService.recordSuccess(successData);
-
-      expect(mockRecordSuccess).toHaveBeenCalledWith(successData);
-    });
-
-    it('should generate positive insights', () => {
-      const mockGetInsights = jest.fn().mockReturnValue({
-        topGestures: [
-          { gesture: 'hello', successRate: 0.95, frequency: 25 }
-        ],
-        peakPerformanceTimes: [
-          { timeOfDay: 'morning', averageConfidence: 0.88 }
-        ],
-        communicationStreaks: [
-          { gesture: 'please', currentStreak: 5, longestStreak: 8 }
-        ],
-        recentCelebrations: [],
-        weeklyProgress: {
-          totalSuccesses: 45,
-          averageConfidence: 0.87,
-          mostSuccessfulDay: 'Monday',
-          improvementTrend: 'improving'
-        }
-      });
-
-      (positiveTelemetryService.getPositiveInsights as jest.Mock) = mockGetInsights;
-
-      const insights = positiveTelemetryService.getPositiveInsights();
-
-      expect(mockGetInsights).toHaveBeenCalled();
-      expect(insights).toHaveProperty('topGestures');
-      expect(insights).toHaveProperty('weeklyProgress');
-      expect(insights.weeklyProgress.improvementTrend).toBe('improving');
     });
   });
 

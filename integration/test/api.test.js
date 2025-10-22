@@ -177,28 +177,6 @@ test('GET /model-version returns version and path', async () => {
   assert.strictEqual(data.modelPath, 'latest-mlp-model');
 });
 
-test('POST /analytics then GET returns same data', async () => {
-  const payload = { successRate7d: 0.5, improvementTrend: 0.1 };
-  const post = await fetch(`http://localhost:${PORT}/analytics`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer testtoken',
-    },
-    body: JSON.stringify(payload),
-  });
-  assert.strictEqual(post.status, 200);
-
-  await delay(100); // give server time to persist
-  const get = await fetch(`http://localhost:${PORT}/analytics`, {
-    headers: { Authorization: 'Bearer testtoken' },
-  });
-  assert.strictEqual(get.status, 200);
-  const data = await get.json();
-  assert.strictEqual(data.successRate7d, payload.successRate7d);
-  assert.strictEqual(data.improvementTrend, payload.improvementTrend);
-});
-
 test('GET /latest-mlp-model serves file and client caches it', async () => {
   const modelDir = join(serverDir, 'data', 'models', 'p1');
   await fs.mkdir(modelDir, { recursive: true });

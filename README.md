@@ -47,7 +47,7 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 | ML Engine     | MediaPipe + OpenAI Vision     | Real-time gesture recognition & AI validation |
 | LLM Engine    | OpenAI GPT-4 Vision           | Intelligent feedback & conversation    |
 | Camera        | `react-native-webview`        | In-app camera feed & landmark detection |
-| Backend API   | Node/Express server           | Training sync & dialog suggestions     |
+| Backend API   | Node/Express server           | Sample upload, training, model serving |
 | UI/UX         | RN Animated API + Skia (opt.) | Gentle, trust-based feedback           |
 | Audio         | `expo-audio`, `expo-speech`   | Speech output + sound effects          |
 | Video         | `expo-video`                  | Video output                           |
@@ -120,7 +120,7 @@ Run notes
 
 How to use it
 
-- Start server (optional for training and dialog):
+- Start server (required for training + model serving):
    - npm run build --prefix server && ./scripts/server-start.sh
 - Run app:
    - Android emulator: EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 scripts/dev-run.sh --android
@@ -174,7 +174,7 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 ## 🗃️ Core Goals
 
 - **Turn gestures into speech and visuals**
-- **Reliable by default (hybrid)**: Gestures are classified on-device using cached MLP weights, while the server handles training and dialog suggestions.
+- **Reliable by default (hybrid)**: Gestures are classified on-device using cached MLP weights, while the server handles sample uploads, training, and model distribution.
 - **Handle uncertainty with grace, not silence**
 - **Log every correction to learn and adapt**
 - **Personalize models per child profile** so caregivers can train and deploy custom gestures for each 22q11 child
@@ -186,11 +186,11 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 All major features for Phase 1, 2 and 3 have been implemented. The project is now in the optimization and production readiness phase. Development tasks are tracked in [`docs/TODO.md`](docs/TODO.md), which now serves as a living document for ongoing improvements and bug fixes.
 
-The repository includes a complete gesture recognition pipeline, training flow, adaptive learning service, multi-profile management, an expanded analytics dashboard, custom audio support, and a caregiver web portal under `server/src/portal/`. When the backend server is running, visit `http://localhost:5000/portal` to manage training data, view analytics, and download the latest personalized model.
+The repository now focuses on the core gesture recognition loop: recording high-quality samples, uploading them to the server, training personalized models, and serving those models back to the mobile client. Auxiliary caregiver portals, analytics dashboards, and dialog services have been removed so local development only requires the upload, training, and model-serving endpoints exposed by the Node server.
 
 ## ▶️ Running the mobile app
 
-The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. These scripts use **Expo**'s `run` commands under the hood. This skeleton includes onboarding, recognition, correction and training screens. Camera and ML integration now have an initial hybrid recognizer stub.
+The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. These scripts use **Expo**'s `run` commands under the hood. This skeleton includes onboarding, recognition, correction and streamlined training screens dedicated to recording samples. Camera and ML integration now have an initial hybrid recognizer stub.
 
 DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available. The `DgsVideoPlayer` component loops these videos automatically so Amy can watch each sign repeatedly.
 
