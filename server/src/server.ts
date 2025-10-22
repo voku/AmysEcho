@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
+import { registerGdprRoutes } from './routes/gdprRoutes.js';
 import { createLatestMlpModelHandler } from './routes/latestMlpModelRoute.js';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
@@ -24,6 +25,8 @@ import {
   addNegativeSample,
   logCorrection,
   saveDatabase,
+  getProfileData,
+  deleteProfileData,
 } from './db.js';
 import { legacyAuth } from './middleware/auth.js';
 import {
@@ -251,6 +254,15 @@ try {
   console.error('Database setup failed:', err);
   process.exit(1); // Exit if database setup fails
 }
+registerGdprRoutes(app, {
+  authMiddleware: legacyAuth,
+  db: dbInstance,
+  dbFilePath: DB_FILE_PATH,
+  getProfileData,
+  deleteProfileData,
+  withFileLock,
+  logError: (message, meta) => logger.error(message, meta),
+});
 
 function startTrainingJob(
   samples: TrainingSample[],
