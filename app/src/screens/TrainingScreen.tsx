@@ -404,13 +404,15 @@ export default function TrainingScreen({ navigation, route }: any) {
     },
     summaryContainer: {
       alignItems: 'center',
-      gap: SPACING.sm,
       marginTop: SPACING.md,
     },
     summaryText: {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
       fontSize: largeText ? 18 : 16,
       textAlign: 'center',
+    },
+    summaryTextSpacing: {
+      marginBottom: SPACING.sm,
     },
     ...buttonStyles,
     secondaryButton: {
@@ -677,7 +679,7 @@ export default function TrainingScreen({ navigation, route }: any) {
             </>
           ) : (
             <View style={styles.summaryContainer}>
-              <Text style={styles.summaryText}>
+              <Text style={[styles.summaryText, styles.summaryTextSpacing]}>
                 {`Alle ${TARGET_SAMPLES} Beispiele wurden aufgenommen. Du kannst die Sitzung jetzt abschließen.`}
               </Text>
               <Pressable

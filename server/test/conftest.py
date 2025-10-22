@@ -74,12 +74,20 @@ def start_server():
         if proc.poll() is not None:
             raise RuntimeError("server failed to start")
         try:
-            with urllib.request.urlopen(f"{BASE_URL}/model-version", timeout=5) as resp:
+            req = urllib.request.Request(
+                f"{BASE_URL}/model-version",
+                headers={"Authorization": f"Bearer {env.get('API_TOKEN', 'testtoken')}"},
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.getcode() == 200:
                     break
         except urllib.error.HTTPError as err:
             if err.code == 401:
-                break
+                raise RuntimeError("server rejected API token during startup readiness check") from err
+            if time.time() - start > 30:
+                raise RuntimeError("server did not start in time") from err
+            time.sleep(0.5)
+            continue
         except (urllib.error.URLError, ConnectionRefusedError, socket.timeout):
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time")

@@ -1,2521 +1,5559 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var _a, _b, _c, _d, _e, _f, _g;
 /**
- * Bundled into app/assets/gestureDetector.js for the WebView.
- * Run `npm run build:webview --prefix app` to regenerate.
+ * Generated from app/webview/gestureDetector.ts
+ * Run scripts/update-webview-base64.js after modifying gestureDetector.ts.
  */
-import { unzipSync, unzip } from 'fflate';
-import { installMlp } from '../src/webview/installMlp';
-import { HAND_CONNECTIONS } from '../src/constants/hand';
-// Import new modular components
-import { GestureDetector } from './core/GestureDetector';
-import { ResourceManager } from './utils/ResourceManager';
-import { loadConfig } from './config/GestureConfig';
-import { GestureSizeNormalizer, PartialGestureDetector, TremorCompensator } from './gestureProcessing';
-// Import celebration and feedback systems
-import { CelebrationSystem } from './utils/CelebrationSystem';
-import { FeedbackSystem } from './utils/FeedbackSystem';
-// Import personalized threshold manager
-import { PersonalizedThresholdManager } from './utils/PersonalizedThresholdManager';
-// Import gesture combination manager
-import { GestureCombinationManager } from './utils/GestureCombinationManager';
-// Import haptic feedback manager
-import { HapticFeedbackManager } from './utils/HapticFeedbackManager';
-// Import gesture replay manager
-import { GestureReplayManager } from './utils/GestureReplayManager';
-// Import navigation gesture manager
-import { NavigationGestureManager } from './utils/NavigationGestureManager';
-// Import visual correction manager
-import { VisualCorrectionManager } from './utils/VisualCorrectionManager';
-// Import gesture undo manager
-import { GestureUndoManager } from './utils/GestureUndoManager';
-// Import enhanced context-aware recognizer
-import { EnhancedContextAwareRecognizer } from './utils/EnhancedContextAwareRecognizer';
-// Import adaptive practice manager
-import { AdaptivePracticeManager } from './utils/AdaptivePracticeManager';
-// Import positive telemetry manager
-// Frame capture configuration
-let frameCaptureEnabled = false;
-let frameCaptureInterval = 5; // Capture every 5th frame
-let frameCounter = 0;
-let lastCapturedFrame = null;
-// Forward script errors to React Native for easier debugging
-const onError = (e) => {
-    var _a, _b, _c;
-    try {
-        // Send a generic child-friendly error message instead of technical details
-        (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({
-            type: 'error',
-            message: 'gesture_processing_error', // Generic identifier for React Native to handle
-            // Keep technical details for logging but don't send to UI
-            _technical: {
-                message: e.message,
-                file: e.filename,
-                line: e.lineno,
-                col: e.colno,
-                stack: ((_c = e.error) === null || _c === void 0 ? void 0 : _c.stack) || null,
-            },
-        }));
+"use strict";
+(() => {
+  // node_modules/fflate/esm/browser.js
+  var ch2 = {};
+  var wk = (function(c, id, msg, transfer, cb) {
+    var w = new Worker(ch2[id] || (ch2[id] = URL.createObjectURL(new Blob([
+      c + ';addEventListener("error",function(e){e=e.error;postMessage({$e$:[e.message,e.code,e.stack]})})'
+    ], { type: "text/javascript" }))));
+    w.onmessage = function(e) {
+      var d = e.data, ed = d.$e$;
+      if (ed) {
+        var err2 = new Error(ed[0]);
+        err2["code"] = ed[1];
+        err2.stack = ed[2];
+        cb(err2, null);
+      } else
+        cb(null, d);
+    };
+    w.postMessage(msg, transfer);
+    return w;
+  });
+  var u8 = Uint8Array;
+  var u16 = Uint16Array;
+  var i32 = Int32Array;
+  var fleb = new u8([
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2,
+    2,
+    3,
+    3,
+    3,
+    3,
+    4,
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    5,
+    0,
+    /* unused */
+    0,
+    0,
+    /* impossible */
+    0
+  ]);
+  var fdeb = new u8([
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    2,
+    2,
+    3,
+    3,
+    4,
+    4,
+    5,
+    5,
+    6,
+    6,
+    7,
+    7,
+    8,
+    8,
+    9,
+    9,
+    10,
+    10,
+    11,
+    11,
+    12,
+    12,
+    13,
+    13,
+    /* unused */
+    0,
+    0
+  ]);
+  var clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
+  var freb = function(eb, start) {
+    var b = new u16(31);
+    for (var i = 0; i < 31; ++i) {
+      b[i] = start += 1 << eb[i - 1];
     }
-    catch (err) {
-        console.warn('Failed to forward script error event:', err);
+    var r = new i32(b[30]);
+    for (var i = 1; i < 30; ++i) {
+      for (var j = b[i]; j < b[i + 1]; ++j) {
+        r[j] = j - b[i] << 5 | i;
+      }
     }
-};
-window.addEventListener('error', onError);
-const onUnhandledRejection = (e) => {
-    var _a, _b, _c, _d, _e, _f;
-    try {
-        // Send a generic child-friendly error message instead of technical details
-        (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({
-            type: 'error',
-            message: 'gesture_processing_error', // Generic identifier for React Native to handle
-            // Keep technical details for logging but don't send to UI
-            _technical: {
-                message: String((_e = (_d = (_c = e === null || e === void 0 ? void 0 : e.reason) === null || _c === void 0 ? void 0 : _c.message) !== null && _d !== void 0 ? _d : e === null || e === void 0 ? void 0 : e.reason) !== null && _e !== void 0 ? _e : 'unhandledrejection'),
-                stack: ((_f = e.reason) === null || _f === void 0 ? void 0 : _f.stack) || null,
-            },
-        }));
+    return { b, r };
+  };
+  var _a = freb(fleb, 2);
+  var fl = _a.b;
+  var revfl = _a.r;
+  fl[28] = 258, revfl[258] = 28;
+  var _b = freb(fdeb, 0);
+  var fd = _b.b;
+  var revfd = _b.r;
+  var rev = new u16(32768);
+  for (i = 0; i < 32768; ++i) {
+    x = (i & 43690) >> 1 | (i & 21845) << 1;
+    x = (x & 52428) >> 2 | (x & 13107) << 2;
+    x = (x & 61680) >> 4 | (x & 3855) << 4;
+    rev[i] = ((x & 65280) >> 8 | (x & 255) << 8) >> 1;
+  }
+  var x;
+  var i;
+  var hMap = (function(cd, mb, r) {
+    var s = cd.length;
+    var i = 0;
+    var l = new u16(mb);
+    for (; i < s; ++i) {
+      if (cd[i])
+        ++l[cd[i] - 1];
     }
-    catch (err) {
-        console.warn('Failed to forward unhandledrejection:', err);
+    var le = new u16(mb);
+    for (i = 1; i < mb; ++i) {
+      le[i] = le[i - 1] + l[i - 1] << 1;
     }
-};
-window.addEventListener('unhandledrejection', onUnhandledRejection);
-// Expose fflate for compatibility with older WebView bundles
-window.fflate = { unzip, unzipSync };
-installMlp();
-// Import modular error recovery system
-import { ErrorRecoveryManager } from './utils/ErrorRecoveryManager';
-const errorRecoveryManager = new ErrorRecoveryManager();
-// Fallback Gesture Detection System - Amy First
-class FallbackGestureDetector {
+    var co;
+    if (r) {
+      co = new u16(1 << mb);
+      var rvb = 15 - mb;
+      for (i = 0; i < s; ++i) {
+        if (cd[i]) {
+          var sv = i << 4 | cd[i];
+          var r_1 = mb - cd[i];
+          var v = le[cd[i] - 1]++ << r_1;
+          for (var m = v | (1 << r_1) - 1; v <= m; ++v) {
+            co[rev[v] >> rvb] = sv;
+          }
+        }
+      }
+    } else {
+      co = new u16(s);
+      for (i = 0; i < s; ++i) {
+        if (cd[i]) {
+          co[i] = rev[le[cd[i] - 1]++] >> 15 - cd[i];
+        }
+      }
+    }
+    return co;
+  });
+  var flt = new u8(288);
+  for (i = 0; i < 144; ++i)
+    flt[i] = 8;
+  var i;
+  for (i = 144; i < 256; ++i)
+    flt[i] = 9;
+  var i;
+  for (i = 256; i < 280; ++i)
+    flt[i] = 7;
+  var i;
+  for (i = 280; i < 288; ++i)
+    flt[i] = 8;
+  var i;
+  var fdt = new u8(32);
+  for (i = 0; i < 32; ++i)
+    fdt[i] = 5;
+  var i;
+  var flrm = /* @__PURE__ */ hMap(flt, 9, 1);
+  var fdrm = /* @__PURE__ */ hMap(fdt, 5, 1);
+  var max = function(a) {
+    var m = a[0];
+    for (var i = 1; i < a.length; ++i) {
+      if (a[i] > m)
+        m = a[i];
+    }
+    return m;
+  };
+  var bits = function(d, p, m) {
+    var o = p / 8 | 0;
+    return (d[o] | d[o + 1] << 8) >> (p & 7) & m;
+  };
+  var bits16 = function(d, p) {
+    var o = p / 8 | 0;
+    return (d[o] | d[o + 1] << 8 | d[o + 2] << 16) >> (p & 7);
+  };
+  var shft = function(p) {
+    return (p + 7) / 8 | 0;
+  };
+  var slc = function(v, s, e) {
+    if (s == null || s < 0)
+      s = 0;
+    if (e == null || e > v.length)
+      e = v.length;
+    return new u8(v.subarray(s, e));
+  };
+  var ec = [
+    "unexpected EOF",
+    "invalid block type",
+    "invalid length/literal",
+    "invalid distance",
+    "stream finished",
+    "no stream handler",
+    ,
+    "no callback",
+    "invalid UTF-8 data",
+    "extra field too long",
+    "date not in range 1980-2099",
+    "filename too long",
+    "stream finishing",
+    "invalid zip data"
+    // determined by unknown compression method
+  ];
+  var err = function(ind, msg, nt) {
+    var e = new Error(msg || ec[ind]);
+    e.code = ind;
+    if (Error.captureStackTrace)
+      Error.captureStackTrace(e, err);
+    if (!nt)
+      throw e;
+    return e;
+  };
+  var inflt = function(dat, st, buf, dict) {
+    var sl = dat.length, dl = dict ? dict.length : 0;
+    if (!sl || st.f && !st.l)
+      return buf || new u8(0);
+    var noBuf = !buf;
+    var resize = noBuf || st.i != 2;
+    var noSt = st.i;
+    if (noBuf)
+      buf = new u8(sl * 3);
+    var cbuf = function(l2) {
+      var bl = buf.length;
+      if (l2 > bl) {
+        var nbuf = new u8(Math.max(bl * 2, l2));
+        nbuf.set(buf);
+        buf = nbuf;
+      }
+    };
+    var final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
+    var tbts = sl * 8;
+    do {
+      if (!lm) {
+        final = bits(dat, pos, 1);
+        var type = bits(dat, pos + 1, 3);
+        pos += 3;
+        if (!type) {
+          var s = shft(pos) + 4, l = dat[s - 4] | dat[s - 3] << 8, t = s + l;
+          if (t > sl) {
+            if (noSt)
+              err(0);
+            break;
+          }
+          if (resize)
+            cbuf(bt + l);
+          buf.set(dat.subarray(s, t), bt);
+          st.b = bt += l, st.p = pos = t * 8, st.f = final;
+          continue;
+        } else if (type == 1)
+          lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
+        else if (type == 2) {
+          var hLit = bits(dat, pos, 31) + 257, hcLen = bits(dat, pos + 10, 15) + 4;
+          var tl = hLit + bits(dat, pos + 5, 31) + 1;
+          pos += 14;
+          var ldt = new u8(tl);
+          var clt = new u8(19);
+          for (var i = 0; i < hcLen; ++i) {
+            clt[clim[i]] = bits(dat, pos + i * 3, 7);
+          }
+          pos += hcLen * 3;
+          var clb = max(clt), clbmsk = (1 << clb) - 1;
+          var clm = hMap(clt, clb, 1);
+          for (var i = 0; i < tl; ) {
+            var r = clm[bits(dat, pos, clbmsk)];
+            pos += r & 15;
+            var s = r >> 4;
+            if (s < 16) {
+              ldt[i++] = s;
+            } else {
+              var c = 0, n = 0;
+              if (s == 16)
+                n = 3 + bits(dat, pos, 3), pos += 2, c = ldt[i - 1];
+              else if (s == 17)
+                n = 3 + bits(dat, pos, 7), pos += 3;
+              else if (s == 18)
+                n = 11 + bits(dat, pos, 127), pos += 7;
+              while (n--)
+                ldt[i++] = c;
+            }
+          }
+          var lt = ldt.subarray(0, hLit), dt = ldt.subarray(hLit);
+          lbt = max(lt);
+          dbt = max(dt);
+          lm = hMap(lt, lbt, 1);
+          dm = hMap(dt, dbt, 1);
+        } else
+          err(1);
+        if (pos > tbts) {
+          if (noSt)
+            err(0);
+          break;
+        }
+      }
+      if (resize)
+        cbuf(bt + 131072);
+      var lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
+      var lpos = pos;
+      for (; ; lpos = pos) {
+        var c = lm[bits16(dat, pos) & lms], sym = c >> 4;
+        pos += c & 15;
+        if (pos > tbts) {
+          if (noSt)
+            err(0);
+          break;
+        }
+        if (!c)
+          err(2);
+        if (sym < 256)
+          buf[bt++] = sym;
+        else if (sym == 256) {
+          lpos = pos, lm = null;
+          break;
+        } else {
+          var add = sym - 254;
+          if (sym > 264) {
+            var i = sym - 257, b = fleb[i];
+            add = bits(dat, pos, (1 << b) - 1) + fl[i];
+            pos += b;
+          }
+          var d = dm[bits16(dat, pos) & dms], dsym = d >> 4;
+          if (!d)
+            err(3);
+          pos += d & 15;
+          var dt = fd[dsym];
+          if (dsym > 3) {
+            var b = fdeb[dsym];
+            dt += bits16(dat, pos) & (1 << b) - 1, pos += b;
+          }
+          if (pos > tbts) {
+            if (noSt)
+              err(0);
+            break;
+          }
+          if (resize)
+            cbuf(bt + 131072);
+          var end = bt + add;
+          if (bt < dt) {
+            var shift = dl - dt, dend = Math.min(dt, end);
+            if (shift + bt < 0)
+              err(3);
+            for (; bt < dend; ++bt)
+              buf[bt] = dict[shift + bt];
+          }
+          for (; bt < end; ++bt)
+            buf[bt] = buf[bt - dt];
+        }
+      }
+      st.l = lm, st.p = lpos, st.b = bt, st.f = final;
+      if (lm)
+        final = 1, st.m = lbt, st.d = dm, st.n = dbt;
+    } while (!final);
+    return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
+  };
+  var et = /* @__PURE__ */ new u8(0);
+  var mrg = function(a, b) {
+    var o = {};
+    for (var k in a)
+      o[k] = a[k];
+    for (var k in b)
+      o[k] = b[k];
+    return o;
+  };
+  var wcln = function(fn, fnStr, td2) {
+    var dt = fn();
+    var st = fn.toString();
+    var ks = st.slice(st.indexOf("[") + 1, st.lastIndexOf("]")).replace(/\s+/g, "").split(",");
+    for (var i = 0; i < dt.length; ++i) {
+      var v = dt[i], k = ks[i];
+      if (typeof v == "function") {
+        fnStr += ";" + k + "=";
+        var st_1 = v.toString();
+        if (v.prototype) {
+          if (st_1.indexOf("[native code]") != -1) {
+            var spInd = st_1.indexOf(" ", 8) + 1;
+            fnStr += st_1.slice(spInd, st_1.indexOf("(", spInd));
+          } else {
+            fnStr += st_1;
+            for (var t in v.prototype)
+              fnStr += ";" + k + ".prototype." + t + "=" + v.prototype[t].toString();
+          }
+        } else
+          fnStr += st_1;
+      } else
+        td2[k] = v;
+    }
+    return fnStr;
+  };
+  var ch = [];
+  var cbfs = function(v) {
+    var tl = [];
+    for (var k in v) {
+      if (v[k].buffer) {
+        tl.push((v[k] = new v[k].constructor(v[k])).buffer);
+      }
+    }
+    return tl;
+  };
+  var wrkr = function(fns, init, id, cb) {
+    if (!ch[id]) {
+      var fnStr = "", td_1 = {}, m = fns.length - 1;
+      for (var i = 0; i < m; ++i)
+        fnStr = wcln(fns[i], fnStr, td_1);
+      ch[id] = { c: wcln(fns[m], fnStr, td_1), e: td_1 };
+    }
+    var td2 = mrg({}, ch[id].e);
+    return wk(ch[id].c + ";onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=" + init.toString() + "}", id, td2, cbfs(td2), cb);
+  };
+  var bInflt = function() {
+    return [u8, u16, i32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gopt];
+  };
+  var pbf = function(msg) {
+    return postMessage(msg, [msg.buffer]);
+  };
+  var gopt = function(o) {
+    return o && {
+      out: o.size && new u8(o.size),
+      dictionary: o.dictionary
+    };
+  };
+  var cbify = function(dat, opts, fns, init, id, cb) {
+    var w = wrkr(fns, init, id, function(err2, dat2) {
+      w.terminate();
+      cb(err2, dat2);
+    });
+    w.postMessage([dat, opts], opts.consume ? [dat.buffer] : []);
+    return function() {
+      w.terminate();
+    };
+  };
+  var b2 = function(d, b) {
+    return d[b] | d[b + 1] << 8;
+  };
+  var b4 = function(d, b) {
+    return (d[b] | d[b + 1] << 8 | d[b + 2] << 16 | d[b + 3] << 24) >>> 0;
+  };
+  var b8 = function(d, b) {
+    return b4(d, b) + b4(d, b + 4) * 4294967296;
+  };
+  function inflate(data, opts, cb) {
+    if (!cb)
+      cb = opts, opts = {};
+    if (typeof cb != "function")
+      err(7);
+    return cbify(data, opts, [
+      bInflt
+    ], function(ev) {
+      return pbf(inflateSync(ev.data[0], gopt(ev.data[1])));
+    }, 1, cb);
+  }
+  function inflateSync(data, opts) {
+    return inflt(data, { i: 2 }, opts && opts.out, opts && opts.dictionary);
+  }
+  var td = typeof TextDecoder != "undefined" && /* @__PURE__ */ new TextDecoder();
+  var tds = 0;
+  try {
+    td.decode(et, { stream: true });
+    tds = 1;
+  } catch (e) {
+  }
+  var dutf8 = function(d) {
+    for (var r = "", i = 0; ; ) {
+      var c = d[i++];
+      var eb = (c > 127) + (c > 223) + (c > 239);
+      if (i + eb > d.length)
+        return { s: r, r: slc(d, i - 1) };
+      if (!eb)
+        r += String.fromCharCode(c);
+      else if (eb == 3) {
+        c = ((c & 15) << 18 | (d[i++] & 63) << 12 | (d[i++] & 63) << 6 | d[i++] & 63) - 65536, r += String.fromCharCode(55296 | c >> 10, 56320 | c & 1023);
+      } else if (eb & 1)
+        r += String.fromCharCode((c & 31) << 6 | d[i++] & 63);
+      else
+        r += String.fromCharCode((c & 15) << 12 | (d[i++] & 63) << 6 | d[i++] & 63);
+    }
+  };
+  function strFromU8(dat, latin1) {
+    if (latin1) {
+      var r = "";
+      for (var i = 0; i < dat.length; i += 16384)
+        r += String.fromCharCode.apply(null, dat.subarray(i, i + 16384));
+      return r;
+    } else if (td) {
+      return td.decode(dat);
+    } else {
+      var _a2 = dutf8(dat), s = _a2.s, r = _a2.r;
+      if (r.length)
+        err(8);
+      return s;
+    }
+  }
+  var slzh = function(d, b) {
+    return b + 30 + b2(d, b + 26) + b2(d, b + 28);
+  };
+  var zh = function(d, b, z) {
+    var fnl = b2(d, b + 28), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl, bs = b4(d, b + 20);
+    var _a2 = z && bs == 4294967295 ? z64e(d, es) : [bs, b4(d, b + 24), b4(d, b + 42)], sc = _a2[0], su = _a2[1], off = _a2[2];
+    return [b2(d, b + 10), sc, su, fn, es + b2(d, b + 30) + b2(d, b + 32), off];
+  };
+  var z64e = function(d, b) {
+    for (; b2(d, b) != 1; b += 4 + b2(d, b + 2))
+      ;
+    return [b8(d, b + 12), b8(d, b + 4), b8(d, b + 20)];
+  };
+  var mt = typeof queueMicrotask == "function" ? queueMicrotask : typeof setTimeout == "function" ? setTimeout : function(fn) {
+    fn();
+  };
+  function unzip(data, opts, cb) {
+    if (!cb)
+      cb = opts, opts = {};
+    if (typeof cb != "function")
+      err(7);
+    var term = [];
+    var tAll = function() {
+      for (var i2 = 0; i2 < term.length; ++i2)
+        term[i2]();
+    };
+    var files = {};
+    var cbd = function(a, b) {
+      mt(function() {
+        cb(a, b);
+      });
+    };
+    mt(function() {
+      cbd = cb;
+    });
+    var e = data.length - 22;
+    for (; b4(data, e) != 101010256; --e) {
+      if (!e || data.length - e > 65558) {
+        cbd(err(13, 0, 1), null);
+        return tAll;
+      }
+    }
+    ;
+    var lft = b2(data, e + 8);
+    if (lft) {
+      var c = lft;
+      var o = b4(data, e + 16);
+      var z = o == 4294967295 || c == 65535;
+      if (z) {
+        var ze = b4(data, e - 12);
+        z = b4(data, ze) == 101075792;
+        if (z) {
+          c = lft = b4(data, ze + 32);
+          o = b4(data, ze + 48);
+        }
+      }
+      var fltr = opts && opts.filter;
+      var _loop_3 = function(i2) {
+        var _a2 = zh(data, o, z), c_1 = _a2[0], sc = _a2[1], su = _a2[2], fn = _a2[3], no = _a2[4], off = _a2[5], b = slzh(data, off);
+        o = no;
+        var cbl = function(e2, d) {
+          if (e2) {
+            tAll();
+            cbd(e2, null);
+          } else {
+            if (d)
+              files[fn] = d;
+            if (!--lft)
+              cbd(null, files);
+          }
+        };
+        if (!fltr || fltr({
+          name: fn,
+          size: sc,
+          originalSize: su,
+          compression: c_1
+        })) {
+          if (!c_1)
+            cbl(null, slc(data, b, b + sc));
+          else if (c_1 == 8) {
+            var infl = data.subarray(b, b + sc);
+            if (su < 524288 || sc > 0.8 * su) {
+              try {
+                cbl(null, inflateSync(infl, { out: new u8(su) }));
+              } catch (e2) {
+                cbl(e2, null);
+              }
+            } else
+              term.push(inflate(infl, { size: su }, cbl));
+          } else
+            cbl(err(14, "unknown compression type " + c_1, 1), null);
+        } else
+          cbl(null, null);
+      };
+      for (var i = 0; i < c; ++i) {
+        _loop_3(i);
+      }
+    } else
+      cbd(null, {});
+    return tAll;
+  }
+  function unzipSync(data, opts) {
+    var files = {};
+    var e = data.length - 22;
+    for (; b4(data, e) != 101010256; --e) {
+      if (!e || data.length - e > 65558)
+        err(13);
+    }
+    ;
+    var c = b2(data, e + 8);
+    if (!c)
+      return {};
+    var o = b4(data, e + 16);
+    var z = o == 4294967295 || c == 65535;
+    if (z) {
+      var ze = b4(data, e - 12);
+      z = b4(data, ze) == 101075792;
+      if (z) {
+        c = b4(data, ze + 32);
+        o = b4(data, ze + 48);
+      }
+    }
+    var fltr = opts && opts.filter;
+    for (var i = 0; i < c; ++i) {
+      var _a2 = zh(data, o, z), c_2 = _a2[0], sc = _a2[1], su = _a2[2], fn = _a2[3], no = _a2[4], off = _a2[5], b = slzh(data, off);
+      o = no;
+      if (!fltr || fltr({
+        name: fn,
+        size: sc,
+        originalSize: su,
+        compression: c_2
+      })) {
+        if (!c_2)
+          files[fn] = slc(data, b, b + sc);
+        else if (c_2 == 8)
+          files[fn] = inflateSync(data.subarray(b, b + sc), { out: new u8(su) });
+        else
+          err(14, "unknown compression type " + c_2);
+      }
+    }
+    return files;
+  }
+
+  // src/webview/installMlp.ts
+  function installMlp() {
+    let mlp = null;
+    function parseNPY(buf) {
+      const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+      if (view.getUint8(0) !== 147) throw new Error("bad npy");
+      const major = view.getUint8(6);
+      view.getUint8(7);
+      const headerLen = major === 1 ? view.getUint16(8, true) : view.getUint32(8, true);
+      const headerStart = major === 1 ? 10 : 12;
+      const headerBytes = buf.subarray(headerStart, headerStart + headerLen);
+      const headerStr = new TextDecoder().decode(headerBytes);
+      const dtypeMatch = headerStr.match(/'descr':\s*'([^']+)'/);
+      const fortranMatch = headerStr.match(/'fortran_order':\s*(True|False)/);
+      const shapeMatch = headerStr.match(/'shape':\s*\(([^\)]*)\)/);
+      if (!dtypeMatch || !fortranMatch || !shapeMatch) throw new Error("npy header");
+      const descr = dtypeMatch[1];
+      if (!descr) {
+        throw new Error("npy header missing descriptor");
+      }
+      const endian = descr[0];
+      if (endian !== "<" && endian !== "|") {
+        throw new Error("big-endian dtype not supported");
+      }
+      const fortran = fortranMatch[1] === "True";
+      const shapeCaptured = shapeMatch[1];
+      if (!shapeCaptured) {
+        throw new Error("npy header missing shape");
+      }
+      const shapeStr = shapeCaptured.trim();
+      let shape = shapeStr.length ? shapeStr.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n)) : [1];
+      const offset = headerStart + headerLen;
+      const type = descr.slice(1);
+      const size = shape.reduce((a, b) => a * b, 1);
+      let data;
+      if (type === "f8") {
+        data = new Float32Array(new Float64Array(buf.buffer, buf.byteOffset + offset, size));
+      } else if (type === "f4") {
+        data = new Float32Array(buf.buffer, buf.byteOffset + offset, size);
+      } else if (type === "f2") {
+        const src = new Uint16Array(buf.buffer, buf.byteOffset + offset, size);
+        data = new Float32Array(size);
+        for (let i = 0; i < size; i++) {
+          const value = src[i] ?? 0;
+          data[i] = f16ToF32(value);
+        }
+      } else if (type === "i4") {
+        const src = new Int32Array(buf.buffer, buf.byteOffset + offset, size);
+        data = new Float32Array(size);
+        for (let i = 0; i < size; i++) {
+          data[i] = src[i] ?? 0;
+        }
+      } else if (type === "i2") {
+        const src = new Int16Array(buf.buffer, buf.byteOffset + offset, size);
+        data = new Float32Array(size);
+        for (let i = 0; i < size; i++) {
+          data[i] = src[i] ?? 0;
+        }
+      } else if (type === "u1") {
+        const src = new Uint8Array(buf.buffer, buf.byteOffset + offset, size);
+        data = new Float32Array(size);
+        for (let i = 0; i < size; i++) {
+          data[i] = src[i] ?? 0;
+        }
+      } else if (type.startsWith("U")) {
+        const itemSize = parseInt(type.slice(1), 10);
+        const raw = new Uint32Array(buf.buffer, buf.byteOffset + offset, size * itemSize);
+        const out = [];
+        for (let i = 0; i < size; i++) {
+          const start = i * itemSize;
+          let s = "";
+          for (let j = 0; j < itemSize; j++) {
+            const code = raw[start + j];
+            if (!code) break;
+            s += String.fromCodePoint(code);
+          }
+          out.push(s);
+        }
+        return { data: out, shape };
+      } else {
+        throw new Error("dtype " + type);
+      }
+      if (fortran && shape.length === 2) {
+        const rows = shape[0];
+        const cols = shape[1];
+        if (rows === void 0 || cols === void 0) {
+          throw new Error("Invalid shape for Fortran array");
+        }
+        const newData = new Float32Array(size);
+        for (let i = 0; i < rows; i++) {
+          for (let j = 0; j < cols; j++) {
+            const value = data[i * cols + j] ?? 0;
+            newData[j * rows + i] = value;
+          }
+        }
+        data = newData;
+        shape = [cols, rows];
+      }
+      return { data, shape };
+    }
+    function f16ToF32(h) {
+      const s = (h & 32768) << 16;
+      let e = (h & 31744) >> 10;
+      let f = h & 1023;
+      if (e === 0) {
+        if (f === 0) return s ? -0 : 0;
+        while ((f & 1024) === 0) {
+          f <<= 1;
+          e--;
+        }
+        e++;
+        f &= ~1024;
+      } else if (e === 31) {
+        const computedBits = s | 2139095040 | f << 13;
+        const view2 = new Float32Array(new Uint32Array([computedBits]).buffer);
+        return view2[0] ?? 0;
+      }
+      e = e + (127 - 15);
+      const bits2 = s | e << 23 | f << 13;
+      const view = new Float32Array(new Uint32Array([bits2]).buffer);
+      return view[0] ?? 0;
+    }
+    async function loadMlpFromB64(b64) {
+      try {
+        let npzFind2 = function(m, prefix) {
+          const k = Object.keys(m).find((n) => n === prefix || n === prefix + ".npy");
+          return k ? m[k] : void 0;
+        };
+        var npzFind = npzFind2;
+        if (!b64 || typeof b64 !== "string" || b64.length === 0) {
+          throw new Error("Invalid base64 data: empty or not a string");
+        }
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) {
+          throw new Error("Invalid base64 format: contains invalid characters");
+        }
+        let bin;
+        try {
+          bin = atob(b64);
+        } catch (e) {
+          throw new Error("Failed to decode base64: " + (e instanceof Error ? e.message : String(e)));
+        }
+        if (bin.length === 0) {
+          throw new Error("Decoded base64 is empty");
+        }
+        const u82 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u82[i] = bin.charCodeAt(i);
+        const unzip2 = window.fflate?.unzip;
+        if (!unzip2) throw new Error("fflate unavailable");
+        const files = await new Promise((resolve, reject) => {
+          unzip2(u82, (err2, data) => {
+            if (err2) {
+              if (err2.code === 20) {
+                reject(new Error("Invalid zip data: corrupted or incomplete file"));
+              } else if (err2.code === 13) {
+                reject(new Error("Invalid zip data: not a valid zip archive"));
+              } else {
+                reject(new Error("Zip extraction failed: " + (err2.message || String(err2))));
+              }
+            } else resolve(data);
+          });
+        });
+        const entries = Object.keys(files);
+        if (entries.length > 32) throw new Error("too many entries");
+        const map = {};
+        for (const name of entries) {
+          const file = files[name];
+          if (file) {
+            map[name.replace(/.*\//, "")] = file;
+          }
+        }
+        const w1b = npzFind2(map, "w1");
+        const b1b = npzFind2(map, "b1");
+        const w2b = npzFind2(map, "w2");
+        const b2b = npzFind2(map, "b2");
+        if (!w1b || !b1b || !w2b || !b2b) throw new Error("missing weights");
+        let w1, b1, w2, b22, labels = [];
+        try {
+          w1 = parseNPY(w1b);
+          if (!w1.data || w1.shape.length !== 2) {
+            throw new Error("Invalid w1 tensor: expected 2D array");
+          }
+        } catch (e) {
+          throw new Error("Failed to parse w1 weights: " + (e instanceof Error ? e.message : String(e)));
+        }
+        try {
+          b1 = parseNPY(b1b);
+          if (!b1.data || b1.shape.length !== 1) {
+            throw new Error("Invalid b1 tensor: expected 1D array");
+          }
+        } catch (e) {
+          throw new Error("Failed to parse b1 biases: " + (e instanceof Error ? e.message : String(e)));
+        }
+        try {
+          w2 = parseNPY(w2b);
+          if (!w2.data || w2.shape.length !== 2) {
+            throw new Error("Invalid w2 tensor: expected 2D array");
+          }
+        } catch (e) {
+          throw new Error("Failed to parse w2 weights: " + (e instanceof Error ? e.message : String(e)));
+        }
+        try {
+          b22 = parseNPY(b2b);
+          if (!b22.data || b22.shape.length !== 1) {
+            throw new Error("Invalid b2 tensor: expected 1D array");
+          }
+        } catch (e) {
+          throw new Error("Failed to parse b2 biases: " + (e instanceof Error ? e.message : String(e)));
+        }
+        const lb = npzFind2(map, "labels");
+        if (lb) {
+          try {
+            const parsed = parseNPY(lb);
+            if (parsed.data && Array.isArray(parsed.data)) {
+              labels = parsed.data;
+            } else {
+              console.warn("Labels data is not an array, using empty labels");
+              labels = [];
+            }
+          } catch (e) {
+            console.warn("Failed to parse labels, using empty labels:", e);
+            labels = [];
+          }
+        }
+        const inputSize = w1.shape[1];
+        const hiddenSize = w1.shape[0];
+        const outputSize = w2.shape[0];
+        if (b1.shape[0] !== hiddenSize) {
+          throw new Error(`Dimension mismatch: b1 has ${b1.shape[0]} elements but expected ${hiddenSize}`);
+        }
+        if (w2.shape[1] !== hiddenSize) {
+          throw new Error(`Dimension mismatch: w2 input size ${w2.shape[1]} doesn't match hidden size ${hiddenSize}`);
+        }
+        if (b22.shape[0] !== outputSize) {
+          throw new Error(`Dimension mismatch: b2 has ${b22.shape[0]} elements but expected ${outputSize}`);
+        }
+        console.log(`MLP model loaded successfully: ${inputSize} -> ${hiddenSize} -> ${outputSize} with ${labels.length} labels`);
+        mlp = {
+          w1: { data: Float32Array.from(w1.data), shape: w1.shape },
+          b1: { data: Float32Array.from(b1.data), shape: b1.shape },
+          w2: { data: Float32Array.from(w2.data), shape: w2.shape },
+          b2: { data: Float32Array.from(b22.data), shape: b22.shape },
+          labels
+        };
+        return true;
+      } catch (e) {
+        console.warn("MLP load failed:", e?.message ?? e);
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: "telemetry",
+              event: "mlp_load_failed",
+              reason: e?.message ?? String(e)
+            })
+          );
+        } catch (err2) {
+          console.warn("Failed to send 'mlp_load_failed' telemetry event:", err2);
+        }
+        mlp = null;
+        return false;
+      }
+    }
+    function relu(x) {
+      for (let i = 0; i < x.length; i++) {
+        const value = x[i] ?? 0;
+        if (value < 0) {
+          x[i] = 0;
+        }
+      }
+      return x;
+    }
+    function softmax(x) {
+      let max2 = -Infinity;
+      for (let i = 0; i < x.length; i++) {
+        const value = x[i] ?? -Infinity;
+        if (value > max2) max2 = value;
+      }
+      let s = 0;
+      for (let i = 0; i < x.length; i++) {
+        const value = x[i] ?? 0;
+        const expValue = Math.exp(value - max2);
+        x[i] = expValue;
+        s += expValue;
+      }
+      const denom = s || 1;
+      for (let i = 0; i < x.length; i++) {
+        const current = x[i] ?? 0;
+        x[i] = current / denom;
+      }
+      return x;
+    }
+    function affineMV(mat, rows, cols, vec, bias) {
+      const out = new Float32Array(rows);
+      for (let r = 0; r < rows; r++) {
+        let sum = 0;
+        for (let c = 0; c < cols; c++) {
+          const matValue = mat[r * cols + c] ?? 0;
+          const vecValue = vec[c] ?? 0;
+          sum += matValue * vecValue;
+        }
+        const biasValue = bias[r] ?? 0;
+        out[r] = sum + biasValue;
+      }
+      return out;
+    }
+    const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0]);
+    function normalizeLandmarks(all, handednesses) {
+      const flat = new Float32Array(21 * 2 * 3);
+      function normHand(hand) {
+        if (!hand || hand.length < 21) return null;
+        const wrist = hand[0];
+        if (!wrist) {
+          return null;
+        }
+        const [wx = 0, wy = 0, wz = 0] = wrist;
+        const centered = hand.map(
+          (p) => {
+            const [x = 0, y = 0, z = 0] = p ?? [0, 0, 0];
+            return [x - wx, y - wy, z - wz];
+          }
+        );
+        const maxd = centered.reduce(
+          (currentMax, [x, y, z]) => Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
+          0
+        );
+        if (maxd === 0) return null;
+        return centered.map(
+          ([x, y, z]) => [x / maxd, y / maxd, z / maxd]
+        );
+      }
+      const leftHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === "Left"
+      );
+      const rightHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === "Right"
+      );
+      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
+      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
+      const left = normHand(leftHand) ?? EMPTY_HAND;
+      const right = normHand(rightHand) ?? EMPTY_HAND;
+      const both = [...left, ...right];
+      let k = 0;
+      for (const p of both) {
+        const [px = 0, py = 0, pz = 0] = p ?? [0, 0, 0];
+        flat[k++] = px;
+        flat[k++] = py;
+        flat[k++] = pz;
+      }
+      return flat;
+    }
+    function mlpPredict(all, handednesses) {
+      try {
+        if (!mlp) return null;
+        const x = normalizeLandmarks(all, handednesses);
+        if (!x) return null;
+        if (x.every((v) => v === 0)) return null;
+        const cols1 = x.length;
+        const [rows1Raw, cols1Expected] = mlp.w1.shape;
+        const rows1 = rows1Raw ?? 0;
+        if (cols1Expected === void 0 || rows1 === 0) {
+          throw new Error("Invalid w1 shape");
+        }
+        if (cols1Expected !== cols1) throw new Error("Input dimension mismatch");
+        const b1Shape = mlp.b1.shape[0];
+        if (b1Shape === void 0 || b1Shape !== rows1) throw new Error("b1 dimension mismatch");
+        const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);
+        const a1 = relu(z1);
+        const [rows2Raw, cols2] = mlp.w2.shape;
+        const rows2 = rows2Raw ?? 0;
+        if (cols2 === void 0 || rows2 === 0) {
+          throw new Error("Invalid w2 shape");
+        }
+        if (cols2 !== a1.length) throw new Error("Hidden layer size mismatch");
+        const b2Shape = mlp.b2.shape[0];
+        if (b2Shape === void 0 || b2Shape !== rows2) throw new Error("b2 dimension mismatch");
+        const z2 = affineMV(mlp.w2.data, rows2, cols2, a1, mlp.b2.data);
+        const probs = softmax(z2);
+        let bestI = 0;
+        let best = probs[0] ?? -Infinity;
+        for (let i = 1; i < probs.length; i++) {
+          const value = probs[i] ?? -Infinity;
+          if (value > best) {
+            best = value;
+            bestI = i;
+          }
+        }
+        if (!Number.isFinite(best)) {
+          return null;
+        }
+        const label = mlp.labels?.[bestI] ?? String(bestI);
+        return { label, score: best };
+      } catch (e) {
+        console.warn("MLP prediction failed:", e);
+        return null;
+      }
+    }
+    window.__setMlpModelB64 = async (b64) => {
+      const ok = await loadMlpFromB64(b64);
+      if (ok) {
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({ type: "telemetry", event: "mlp_loaded" })
+          );
+        } catch (e) {
+          console.warn("Failed to send 'mlp_loaded' telemetry event:", e);
+        }
+      }
+      return ok;
+    };
+    window.__mlpPredict = mlpPredict;
+    let transferBuf = "";
+    let transferStart = 0;
+    let transferLock = false;
+    window.__beginMlpTransfer = () => {
+      if (transferLock) return false;
+      transferLock = true;
+      transferBuf = "";
+      transferStart = performance.now();
+      return true;
+    };
+    window.__pushMlpChunk = (chunk) => {
+      if (!transferLock) return;
+      transferBuf += chunk;
+    };
+    window.__commitMlpTransfer = async () => {
+      const active = transferLock;
+      const bytes = transferBuf.length;
+      const start = transferStart;
+      try {
+        if (active) {
+          if (typeof window.__setMlpModelB64 !== "function") {
+            try {
+              window.ReactNativeWebView?.postMessage?.(
+                JSON.stringify({
+                  type: "telemetry",
+                  event: "mlp_transfer_failed",
+                  reason: "setter_missing"
+                })
+              );
+            } catch (e) {
+              console.warn(
+                "Failed to send 'mlp_transfer_failed' telemetry event:",
+                e
+              );
+            }
+            return;
+          }
+          const loadPromise = window.__setMlpModelB64(transferBuf);
+          const ms = Math.round(performance.now() - start);
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: "telemetry",
+                event: "mlp_transfer",
+                bytes,
+                ms
+              })
+            );
+          } catch (e) {
+            console.warn("Failed to send 'mlp_transfer' telemetry event:", e);
+          }
+          await loadPromise;
+        } else {
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: "telemetry",
+                event: "mlp_transfer_skipped"
+              })
+            );
+          } catch (e) {
+            console.warn(
+              "Failed to send 'mlp_transfer_skipped' telemetry event:",
+              e
+            );
+          }
+        }
+      } catch (err2) {
+        console.warn("mlp_transfer failed:", err2);
+      } finally {
+        transferBuf = "";
+        transferStart = 0;
+        transferLock = false;
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: "telemetry",
+              event: "mlp_transfer_complete"
+            })
+          );
+        } catch (e) {
+          console.warn(
+            "Failed to send 'mlp_transfer_complete' telemetry event:",
+            e
+          );
+        }
+      }
+    };
+  }
+
+  // webview/core/MediaPipeLoader.ts
+  function describeError(error) {
+    if (error && typeof error === "object") {
+      const withProps = error;
+      return {
+        message: typeof withProps.message === "string" ? withProps.message : String(error),
+        name: typeof withProps.name === "string" ? withProps.name : void 0,
+        stack: typeof withProps.stack === "string" ? withProps.stack : void 0
+      };
+    }
+    return { message: String(error) };
+  }
+  function errorMessage(error) {
+    if (typeof error === "string") {
+      return error;
+    }
+    if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+      return error.message;
+    }
+    return String(error);
+  }
+  async function loadTasksVision() {
+    async function resolvePinnedBase() {
+      const pinnedVersion = window.__mediapipeVersion;
+      if (typeof pinnedVersion === "string" && pinnedVersion.length) {
+        return { base: "https://cdn.jsdelivr.net/npm", version: pinnedVersion };
+      }
+      const cdns = ["https://cdn.jsdelivr.net/npm", "https://unpkg.com"];
+      const controllers = cdns.map(() => new AbortController());
+      const fetches = cdns.map(
+        (base, i) => (async () => {
+          try {
+            const ac = controllers[i];
+            const t = setTimeout(() => ac.abort(), 8e3);
+            const pkg = await fetch(base + "/@mediapipe/tasks-vision/package.json", {
+              method: "GET",
+              signal: ac.signal,
+              cache: "no-store"
+            }).finally(() => clearTimeout(t));
+            if (pkg.ok) {
+              const json = await pkg.json().catch(() => null);
+              const v = json?.version;
+              if (typeof v === "string" && v.length) {
+                controllers.forEach((c, j) => {
+                  if (j !== i) c.abort();
+                });
+                return { base, version: v };
+              }
+            }
+          } catch (err2) {
+            if (err2?.name !== "AbortError") {
+              console.warn("Fetch failed:", base, err2);
+            }
+          }
+          return null;
+        })()
+      );
+      const results = await Promise.all(fetches);
+      return results.find(Boolean) || null;
+    }
+    function tryLoadScript(src, integrity, timeoutMs = 8e3) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        if (integrity) {
+          s.integrity = integrity;
+          s.crossOrigin = "anonymous";
+        }
+        if (window.__visionBundleNonce) {
+          s.nonce = window.__visionBundleNonce;
+        }
+        s.async = true;
+        const cleanup2 = () => {
+          s.onload = s.onerror = null;
+          if (s.parentNode) s.parentNode.removeChild(s);
+        };
+        const to = setTimeout(() => {
+          cleanup2();
+          console.warn(`Script load timeout after ${timeoutMs}ms: ${src}`);
+          reject(new Error(`Script load timeout after ${timeoutMs}ms: ${src}`));
+        }, timeoutMs);
+        s.onload = () => {
+          clearTimeout(to);
+          cleanup2();
+          console.log(`Script loaded successfully: ${src}`);
+          resolve(null);
+        };
+        s.onerror = (event) => {
+          clearTimeout(to);
+          cleanup2();
+          console.error(`Script failed to load: ${src}`, event);
+          reject(new Error(`Script failed to load: ${src}`));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    const haveUMD = () => window.fileset_resolver && window.fileset_resolver.FilesetResolver && window.vision && window.vision.GestureRecognizer;
+    const pinned = await resolvePinnedBase();
+    const candidates = [];
+    if (pinned) {
+      candidates.push({
+        umd: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.cjs",
+        esm: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/vision_bundle.mjs",
+        wasm: pinned.base + "/@mediapipe/tasks-vision@" + pinned.version + "/wasm"
+      });
+    }
+    candidates.push({
+      umd: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.cjs",
+      esm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs",
+      wasm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+    });
+    candidates.push({
+      umd: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.cjs",
+      esm: "https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.mjs",
+      wasm: "https://unpkg.com/@mediapipe/tasks-vision/wasm"
+    });
+    let lastError = null;
+    let attemptCount = 0;
+    for (const c of candidates) {
+      attemptCount++;
+      try {
+        console.log(`Attempting to load MediaPipe from ${c.esm} (attempt ${attemptCount}/${candidates.length})`);
+        try {
+          const mod = await import(
+            /* @vite-ignore */
+            c.esm
+          );
+          if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+            console.log("Successfully loaded MediaPipe via ESM");
+            return {
+              FilesetResolver: mod.FilesetResolver,
+              GestureRecognizer: mod.GestureRecognizer,
+              wasmBase: c.wasm
+            };
+          }
+        } catch (e) {
+          console.warn(`ESM import failed for ${c.esm}:`, e);
+          lastError = e;
+        }
+        console.log(`Attempting to load MediaPipe from ${c.umd} (attempt ${attemptCount}/${candidates.length})`);
+        if (!haveUMD()) {
+          const sri = pinned && c.umd.includes(`@${pinned.version}/`) ? window.__visionBundleSri : void 0;
+          await tryLoadScript(c.umd, sri);
+        }
+        if (haveUMD()) {
+          console.log("Successfully loaded MediaPipe via UMD");
+          return {
+            FilesetResolver: window.fileset_resolver.FilesetResolver,
+            GestureRecognizer: window.vision.GestureRecognizer,
+            wasmBase: c.wasm
+          };
+        }
+      } catch (e) {
+        console.warn(`MediaPipe load attempt ${attemptCount} failed:`, e);
+        lastError = e;
+      }
+    }
+    const errorDetails = {
+      attempts: attemptCount,
+      candidates: candidates.map((c) => ({ umd: c.umd, esm: c.esm })),
+      lastError: lastError ? describeError(lastError) : null,
+      userAgent: navigator.userAgent,
+      hasFetch: typeof fetch !== "undefined",
+      isSecureContext: window.isSecureContext
+    };
+    console.error("All MediaPipe loading attempts failed:", errorDetails);
+    throw new Error(
+      "Tasks Vision globals not available after " + attemptCount + " attempts" + (lastError ? ": " + errorMessage(lastError) : "")
+    );
+  }
+
+  // webview/core/CameraManager.ts
+  var CameraManager = class {
+    constructor(video2, resourceManager) {
+      this.lastVideoWidth = 0;
+      this.lastVideoHeight = 0;
+      this.stream = null;
+      this.video = video2;
+      this.resourceManager = resourceManager;
+    }
+    /**
+     * Start camera stream
+     */
+    async startCamera() {
+      const facingMode2 = window.__facingMode || "user";
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facingMode2, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        this.stream = stream;
+        this.video.srcObject = stream;
+        this.resourceManager.registerMediaStream(stream);
+        this.video.muted = true;
+        this.video.setAttribute("autoplay", "");
+        this.video.setAttribute("playsinline", "");
+        this.video.setAttribute("muted", "");
+        await this.video.play();
+        this.updateVideoDimensions();
+        const tracks = stream.getVideoTracks();
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: "telemetry",
+              event: "camera_started",
+              tracks: tracks.map((t) => t.label)
+            })
+          );
+        } catch (err2) {
+          console.warn("Failed to send 'camera_started' telemetry event:", err2);
+        }
+      } catch (error) {
+        const errorMessage2 = error instanceof Error ? error.message : String(error);
+        console.error("Camera access failed:", errorMessage2);
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: "error",
+              message: "CAMERA_ERROR",
+              details: {
+                reason: errorMessage2,
+                facingMode: facingMode2,
+                userAgent: navigator.userAgent,
+                hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia
+              }
+            })
+          );
+        } catch (postErr) {
+          console.warn("Failed to send camera error message:", postErr);
+        }
+        throw error;
+      }
+    }
+    /**
+     * Stop camera stream
+     */
+    async stopCamera() {
+      try {
+        this.video.pause();
+      } catch (e) {
+        console.warn("Failed to pause video during cleanup:", e);
+      }
+      try {
+        const s = this.video.srcObject;
+        if (s) {
+          s.getTracks().forEach((t) => t.stop());
+          this.video.srcObject = null;
+        }
+        if (this.stream) {
+          try {
+            this.stream.getTracks().forEach((t) => t.stop());
+          } catch (err2) {
+            console.warn("Failed to stop stored stream:", err2);
+          }
+        }
+        this.stream = null;
+      } catch (e) {
+        console.warn("Failed to stop camera stream:", e);
+      }
+    }
+    /**
+     * Update video dimensions tracking
+     */
+    updateVideoDimensions() {
+      this.lastVideoWidth = this.video.videoWidth;
+      this.lastVideoHeight = this.video.videoHeight;
+    }
+    /**
+     * Check if video dimensions have changed
+     */
+    hasDimensionsChanged() {
+      return this.video.videoWidth !== this.lastVideoWidth || this.video.videoHeight !== this.lastVideoHeight;
+    }
+    /**
+     * Get current video dimensions
+     */
+    getVideoDimensions() {
+      return {
+        width: this.video.videoWidth,
+        height: this.video.videoHeight
+      };
+    }
+    getStream() {
+      return this.stream;
+    }
+    /**
+     * Check if video is ready for processing
+     */
+    isVideoReady() {
+      return this.video.currentTime > 0 && !this.video.paused && !this.video.ended && this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+    }
+  };
+
+  // src/constants/hand.ts
+  var HAND_CONNECTIONS = [
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [3, 4],
+    [0, 5],
+    [5, 6],
+    [6, 7],
+    [7, 8],
+    [5, 9],
+    [9, 10],
+    [10, 11],
+    [11, 12],
+    [9, 13],
+    [13, 14],
+    [14, 15],
+    [15, 16],
+    [13, 17],
+    [17, 18],
+    [18, 19],
+    [19, 20],
+    [0, 17]
+  ];
+
+  // webview/core/OverlayRenderer.ts
+  var OverlayRenderer = class {
+    constructor(overlay2) {
+      this.overlayWidth = 0;
+      this.overlayHeight = 0;
+      this.overlayDpr = 1;
+      this.overlay = overlay2;
+      try {
+        this.ctx = overlay2.getContext("2d");
+      } catch (e) {
+        this.ctx = null;
+        try {
+          console.error(e);
+        } catch {
+        }
+      }
+    }
+    /**
+     * Resize overlay to match video dimensions
+     */
+    resizeOverlay(videoRect) {
+      const w = (videoRect.width || 0) | 0;
+      const h = (videoRect.height || 0) | 0;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const sizeChanged = this.overlayWidth !== w || this.overlayHeight !== h;
+      const dprChanged = dpr !== this.overlayDpr;
+      if (sizeChanged || dprChanged) {
+        if (sizeChanged) {
+          this.overlay.style.width = w + "px";
+          this.overlay.style.height = h + "px";
+        }
+        this.overlay.width = Math.round(w * dpr);
+        this.overlay.height = Math.round(h * dpr);
+        this.overlayWidth = w;
+        this.overlayHeight = h;
+        this.overlayDpr = dpr;
+      }
+    }
+    /**
+     * Clear the overlay
+     */
+    clear() {
+      if (this.ctx && this.overlayWidth && this.overlayHeight) {
+        this.ctx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+      }
+    }
+    /**
+     * Draw hand landmarks and connections with performance optimizations
+     */
+    drawHandLandmarks(landmarks, mirrorOverlay2) {
+      if (!this.ctx || !this.overlayWidth || !this.overlayHeight) return;
+      this.ctx.save();
+      if (mirrorOverlay2) {
+        this.ctx.scale(-1, 1);
+        this.ctx.translate(-this.overlayWidth, 0);
+      }
+      this.ctx.scale(this.overlayDpr, this.overlayDpr);
+      this.ctx.lineWidth = 3;
+      this.ctx.strokeStyle = "rgba(0, 255, 180, 0.9)";
+      this.ctx.fillStyle = "rgba(0, 255, 180, 0.9)";
+      for (const hand of landmarks) {
+        if (!hand || hand.length === 0) continue;
+        this.drawConnections(hand);
+        this.drawPoints(hand);
+      }
+      this.ctx.restore();
+    }
+    /**
+     * Draw hand connections efficiently
+     */
+    drawConnections(hand) {
+      if (!this.ctx) return;
+      this.ctx.beginPath();
+      let hasMoves = false;
+      for (const [a, b] of HAND_CONNECTIONS) {
+        const pa = hand[a];
+        const pb = hand[b];
+        if (!pa || !pb) continue;
+        const x1 = pa[0] * this.overlayWidth;
+        const y1 = pa[1] * this.overlayHeight;
+        const x2 = pb[0] * this.overlayWidth;
+        const y2 = pb[1] * this.overlayHeight;
+        if (!hasMoves) {
+          this.ctx.moveTo(x1, y1);
+          hasMoves = true;
+        } else {
+          this.ctx.moveTo(x1, y1);
+        }
+        this.ctx.lineTo(x2, y2);
+      }
+      if (hasMoves) {
+        this.ctx.stroke();
+      }
+    }
+    /**
+     * Draw landmark points efficiently
+     */
+    drawPoints(hand) {
+      if (!this.ctx) return;
+      for (const lm of hand) {
+        if (!lm || lm.length < 2) continue;
+        this.ctx.beginPath();
+        this.ctx.arc(
+          lm[0] * this.overlayWidth,
+          lm[1] * this.overlayHeight,
+          4,
+          0,
+          Math.PI * 2
+        );
+        this.ctx.fill();
+      }
+    }
+    /**
+     * Draw stability guide circle
+     */
+    drawStabilityGuide(isStable, stabilityScore) {
+      if (!this.ctx || !this.overlayWidth || !this.overlayHeight) return;
+      this.ctx.save();
+      this.ctx.scale(this.overlayDpr, this.overlayDpr);
+      const centerX = this.overlayWidth / 2;
+      const centerY = this.overlayHeight / 2;
+      const radius = Math.min(this.overlayWidth, this.overlayHeight) * 0.15;
+      this.ctx.strokeStyle = stabilityScore > 0.3 ? "rgba(255, 165, 0, 0.8)" : "rgba(255, 0, 0, 0.8)";
+      this.ctx.lineWidth = 3;
+      this.ctx.setLineDash([10, 5]);
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      this.ctx.stroke();
+      this.ctx.setLineDash([]);
+      this.ctx.beginPath();
+      this.ctx.moveTo(centerX - radius * 0.7, centerY);
+      this.ctx.lineTo(centerX + radius * 0.7, centerY);
+      this.ctx.moveTo(centerX, centerY - radius * 0.7);
+      this.ctx.lineTo(centerX, centerY + radius * 0.7);
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
+    /**
+     * Get overlay dimensions
+     */
+    getDimensions() {
+      return {
+        width: this.overlayWidth,
+        height: this.overlayHeight,
+        dpr: this.overlayDpr
+      };
+    }
+  };
+
+  // webview/utils/ResourceManager.ts
+  var ResourceManager = class {
     constructor() {
-        this.lastLandmarks = null;
-        this.gestureHistory = [];
-        this.HISTORY_SIZE = 5;
-        this.ruleBasedConfidence = 0.0;
+      this.resources = /* @__PURE__ */ new Set();
+      this.eventListeners = [];
+      this.mediaStreams = [];
+      this.timeouts = [];
+      this.observers = [];
+    }
+    /**
+     * Register a cleanup function
+     */
+    registerCleanup(cleanupFn) {
+      this.resources.add(cleanupFn);
+    }
+    /**
+     * Register an event listener for cleanup
+     */
+    registerEventListener(element, type, listener) {
+      this.eventListeners.push({ element, type, listener });
+    }
+    /**
+     * Register a media stream for cleanup
+     */
+    registerMediaStream(stream) {
+      this.mediaStreams.push(stream);
+    }
+    /**
+     * Register a timeout for cleanup
+     */
+    registerTimeout(timeoutId) {
+      this.timeouts.push(timeoutId);
+    }
+    /**
+     * Register an observer for cleanup
+     */
+    registerObserver(observer) {
+      this.observers.push(observer);
+    }
+    /**
+     * Dispose all registered resources
+     */
+    async dispose() {
+      const errors = [];
+      for (const cleanupFn of this.resources) {
+        try {
+          const result = cleanupFn();
+          if (result && typeof result.then === "function") {
+            await result;
+          }
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.resources.clear();
+      for (const { element, type, listener } of this.eventListeners) {
+        try {
+          element.removeEventListener(type, listener);
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.eventListeners = [];
+      for (const stream of this.mediaStreams) {
+        try {
+          stream.getTracks().forEach((track) => track.stop());
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.mediaStreams = [];
+      for (const timeoutId of this.timeouts) {
+        try {
+          clearTimeout(timeoutId);
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.timeouts = [];
+      for (const observer of this.observers) {
+        try {
+          observer.disconnect();
+        } catch (e) {
+          errors.push(e);
+        }
+      }
+      this.observers = [];
+      if (errors.length > 0) {
+        console.warn("Resource cleanup errors:", errors);
+      }
+    }
+    /**
+     * Check if resources are properly cleaned up
+     */
+    isClean() {
+      return this.resources.size === 0 && this.eventListeners.length === 0 && this.mediaStreams.length === 0 && this.timeouts.length === 0 && this.observers.length === 0;
+    }
+  };
+
+  // webview/utils/HealthMonitor.ts
+  var HealthMonitor = class {
+    constructor() {
+      this.metrics = {
+        frameRate: 0,
+        memoryUsage: 0,
+        errorRate: 0,
+        lastFrameTime: 0,
+        consecutiveFailures: 0
+      };
+      this.frameTimes = [];
+      this.MAX_FRAME_HISTORY = 60;
+      // Last 60 frames (~2 seconds at 30fps)
+      this.errorCount = 0;
+      this.totalFrames = 0;
+    }
+    /**
+     * Record a successful frame processing
+     */
+    recordFrame(timestamp) {
+      this.frameTimes.push(timestamp);
+      if (this.frameTimes.length > this.MAX_FRAME_HISTORY) {
+        this.frameTimes.shift();
+      }
+      this.metrics.lastFrameTime = timestamp;
+      this.totalFrames++;
+      this.metrics.consecutiveFailures = 0;
+    }
+    /**
+     * Record an error
+     */
+    recordError() {
+      this.errorCount++;
+      this.metrics.consecutiveFailures++;
+    }
+    /**
+     * Update memory usage estimate
+     */
+    updateMemoryUsage() {
+      this.metrics.memoryUsage = this.frameTimes.length * 1e3 + this.errorCount * 500;
+    }
+    /**
+     * Calculate current frame rate
+     */
+    calculateFrameRate() {
+      if (this.frameTimes.length < 2) return 0;
+      const recentFrames = this.frameTimes.slice(-10);
+      if (recentFrames.length < 2) return 0;
+      const timeSpan = recentFrames[recentFrames.length - 1] - recentFrames[0];
+      const frameCount = recentFrames.length - 1;
+      return frameCount / timeSpan * 1e3;
+    }
+    /**
+     * Calculate error rate
+     */
+    calculateErrorRate() {
+      if (this.totalFrames === 0) return 0;
+      return this.errorCount / this.totalFrames;
+    }
+    /**
+     * Get current health status
+     */
+    getHealthStatus() {
+      this.metrics.frameRate = this.calculateFrameRate();
+      this.metrics.errorRate = this.calculateErrorRate();
+      this.updateMemoryUsage();
+      const issues = [];
+      const recommendations = [];
+      if (this.metrics.frameRate < 15) {
+        issues.push("Low frame rate detected");
+        recommendations.push("Check camera performance and lighting conditions");
+      }
+      if (this.metrics.errorRate > 0.1) {
+        issues.push("High error rate detected");
+        recommendations.push("Verify camera permissions and system resources");
+      }
+      if (this.metrics.memoryUsage > 5e4) {
+        issues.push("High memory usage detected");
+        recommendations.push("Consider restarting the gesture detection system");
+      }
+      if (this.metrics.consecutiveFailures > 5) {
+        issues.push("Multiple consecutive failures detected");
+        recommendations.push("System may need recovery or fallback mode");
+      }
+      let overall = "healthy";
+      if (issues.length >= 3 || this.metrics.consecutiveFailures > 10) {
+        overall = "critical";
+      } else if (issues.length >= 1 || this.metrics.errorRate > 0.05) {
+        overall = "degraded";
+      }
+      return {
+        overall,
+        issues,
+        recommendations
+      };
+    }
+    /**
+     * Get current metrics
+     */
+    getMetrics() {
+      return { ...this.metrics };
+    }
+    /**
+     * Reset health monitoring
+     */
+    reset() {
+      this.frameTimes = [];
+      this.errorCount = 0;
+      this.totalFrames = 0;
+      this.metrics = {
+        frameRate: 0,
+        memoryUsage: 0,
+        errorRate: 0,
+        lastFrameTime: 0,
+        consecutiveFailures: 0
+      };
+    }
+    /**
+     * Check if system needs recovery
+     */
+    needsRecovery() {
+      const status = this.getHealthStatus();
+      return status.overall === "critical" || this.metrics.consecutiveFailures > 3;
+    }
+  };
+
+  // webview/config/GestureConfig.ts
+  var defaultConfig = {
+    performance: {
+      telemetrySampleRate: 30,
+      // Sample every 30 frames
+      messageThrottleMs: 100,
+      // Throttle messages to 100ms
+      confidenceChangeThreshold: 0.05,
+      // 5% confidence change threshold
+      targetFrameRate: 30
+    },
+    thresholds: {
+      mlpConfidence: 0.4,
+      fallbackConfidence: 0.3,
+      emergencyConfidence: 0.3
+    },
+    camera: {
+      facingMode: "user",
+      mirrorOverlay: true,
+      idealWidth: 1280,
+      idealHeight: 720
+    },
+    gestures: {
+      sizeTolerance: 0.3,
+      partialThreshold: 0.6,
+      completionTimeout: 2e3
+    },
+    timing: {
+      loadTimeoutMs: 8e3,
+      emergencyCooldownMs: 1e3,
+      frameLatencySampleInterval: 90
+    },
+    processing: {
+      sizeTolerance: 0.3,
+      partialThreshold: 0.6,
+      landmarkChangeThreshold: 0.01
+    },
+    // Amy First: Default preferences and adaptive settings
+    amyPreferences: {
+      intensity: "normal",
+      timeBasedAdjustments: true,
+      contextAwareness: true,
+      favoriteGestures: [],
+      challengingGestures: []
+    },
+    adaptiveSettings: {
+      morningMode: {
+        // Gentler settings for morning routine
+        thresholds: { mlpConfidence: 0.35, fallbackConfidence: 0.25 },
+        gestures: { sizeTolerance: 0.4 },
+        // More tolerant for morning
+        timing: { emergencyCooldownMs: 1500 }
+        // Slightly longer cooldown
+      },
+      afternoonMode: {
+        // Learning-focused settings
+        thresholds: { mlpConfidence: 0.25, fallbackConfidence: 0.35 },
+        gestures: { sizeTolerance: 0.25 },
+        // Stricter for learning
+        performance: { messageThrottleMs: 80 }
+        // Faster feedback
+      },
+      eveningMode: {
+        // Relaxation-focused settings
+        thresholds: { mlpConfidence: 0.2, fallbackConfidence: 0.3 },
+        gestures: { sizeTolerance: 0.35 },
+        timing: { emergencyCooldownMs: 1200 }
+      },
+      highActivityMode: {
+        // When Amy is very active
+        performance: { messageThrottleMs: 120 },
+        // Slightly slower to prevent overwhelm
+        gestures: { sizeTolerance: 0.4 }
+        // More tolerant
+      },
+      lowActivityMode: {
+        // When Amy is less active
+        performance: { messageThrottleMs: 90 },
+        // Faster feedback to encourage
+        gestures: { sizeTolerance: 0.3 }
+        // Standard tolerance
+      }
+    }
+  };
+  function loadConfig() {
+    const config = structuredClone(defaultConfig);
+    const windowOverrides = {};
+    if (typeof window.__mlpThreshold === "number") {
+      windowOverrides.thresholds = {
+        ...windowOverrides.thresholds ?? {},
+        mlpConfidence: window.__mlpThreshold
+      };
+    }
+    if (typeof window.__fallbackThreshold === "number") {
+      windowOverrides.thresholds = {
+        ...windowOverrides.thresholds ?? {},
+        fallbackConfidence: window.__fallbackThreshold
+      };
+    }
+    if (typeof window.__facingMode === "string") {
+      windowOverrides.camera = {
+        ...windowOverrides.camera ?? {},
+        facingMode: window.__facingMode
+      };
+    }
+    if (typeof window.__mirrorOverlay === "boolean") {
+      windowOverrides.camera = {
+        ...windowOverrides.camera ?? {},
+        mirrorOverlay: window.__mirrorOverlay
+      };
+    }
+    if (typeof window.__gestureSizeTolerance === "number") {
+      windowOverrides.gestures = {
+        ...windowOverrides.gestures ?? {},
+        sizeTolerance: window.__gestureSizeTolerance
+      };
+    }
+    const amyIntensity = window.__amyIntensity;
+    if (amyIntensity) {
+      windowOverrides.amyPreferences = {
+        ...windowOverrides.amyPreferences ?? {},
+        intensity: amyIntensity
+      };
+    }
+    if (window.__amyTimeBased !== void 0) {
+      windowOverrides.amyPreferences = {
+        ...windowOverrides.amyPreferences ?? {},
+        timeBasedAdjustments: window.__amyTimeBased
+      };
+    }
+    if (window.__amyContextAware !== void 0) {
+      windowOverrides.amyPreferences = {
+        ...windowOverrides.amyPreferences ?? {},
+        contextAwareness: window.__amyContextAware
+      };
+    }
+    if (Object.keys(windowOverrides).length > 0) {
+      applyPartialConfig(config, windowOverrides);
+    }
+    return config;
+  }
+  function isRecord(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  function applyPartialConfig(target, source) {
+    const gesturesOverride = source.gestures;
+    const processingOverride = source.processing;
+    Object.entries(source).forEach(([key, sourceValue]) => {
+      if (sourceValue === void 0) {
+        return;
+      }
+      const typedKey = key;
+      const targetValue = target[typedKey];
+      const targetRecord = target;
+      if (isRecord(targetValue) && isRecord(sourceValue)) {
+        Object.assign(targetValue, sourceValue);
+      } else {
+        targetRecord[typedKey] = sourceValue;
+      }
+    });
+    if (gesturesOverride && target.processing) {
+      if (processingOverride?.sizeTolerance === void 0 && typeof gesturesOverride.sizeTolerance === "number") {
+        target.processing.sizeTolerance = gesturesOverride.sizeTolerance;
+      }
+      if (processingOverride?.partialThreshold === void 0 && typeof gesturesOverride.partialThreshold === "number") {
+        target.processing.partialThreshold = gesturesOverride.partialThreshold;
+      }
+    }
+  }
+
+  // webview/utils/FrameCaptureManager.ts
+  var MAX_CAPTURE_DIMENSION = 640;
+  var MAX_DATA_URL_LENGTH = 4e5;
+  var frameCaptureEnabled = false;
+  var frameCaptureInterval = 500;
+  var lastCapturedFrame = null;
+  var lastCaptureTimestamp = 0;
+  var captureCanvas = null;
+  var captureContext = null;
+  function ensureCanvas(video2) {
+    if (!captureCanvas) {
+      captureCanvas = document.createElement("canvas");
+      captureContext = captureCanvas.getContext("2d");
+    }
+    if (!captureCanvas || !captureContext) {
+      throw new Error("Unable to initialize frame capture canvas");
+    }
+    const width = video2.videoWidth;
+    const height = video2.videoHeight;
+    if (width && height) {
+      const scale = Math.min(1, MAX_CAPTURE_DIMENSION / width, MAX_CAPTURE_DIMENSION / height);
+      const targetWidth = Math.max(1, Math.round(width * scale));
+      const targetHeight = Math.max(1, Math.round(height * scale));
+      if (captureCanvas.width !== targetWidth || captureCanvas.height !== targetHeight) {
+        captureCanvas.width = targetWidth;
+        captureCanvas.height = targetHeight;
+      }
+    }
+  }
+  function initializeFrameCapture(video2) {
+    try {
+      ensureCanvas(video2);
+      lastCapturedFrame = null;
+      lastCaptureTimestamp = 0;
+    } catch (error) {
+      console.warn("Failed to initialize frame capture:", error);
+    }
+  }
+  function setFrameCaptureEnabled(enabled, intervalMs) {
+    frameCaptureEnabled = enabled;
+    if (typeof intervalMs === "number" && intervalMs > 0) {
+      frameCaptureInterval = intervalMs;
+    }
+    if (!enabled) {
+      lastCapturedFrame = null;
+    }
+  }
+  function captureFrameForOpenAI(video2) {
+    if (!frameCaptureEnabled) {
+      return lastCapturedFrame;
+    }
+    try {
+      ensureCanvas(video2);
+      if (!captureCanvas || !captureContext || !video2.videoWidth || !video2.videoHeight) {
+        return lastCapturedFrame;
+      }
+      const now = Date.now();
+      if (now - lastCaptureTimestamp < frameCaptureInterval) {
+        return lastCapturedFrame;
+      }
+      captureContext.drawImage(video2, 0, 0, captureCanvas.width, captureCanvas.height);
+      const qualityLevels = [0.7, 0.5, 0.3];
+      let dataUrl = null;
+      for (const quality of qualityLevels) {
+        try {
+          dataUrl = captureCanvas.toDataURL("image/jpeg", quality);
+        } catch (error) {
+          console.warn("Frame capture encoding failed", error);
+          dataUrl = null;
+          break;
+        }
+        if (!dataUrl || dataUrl.length <= MAX_DATA_URL_LENGTH) {
+          break;
+        }
+      }
+      if (dataUrl && dataUrl.length <= MAX_DATA_URL_LENGTH) {
+        lastCapturedFrame = dataUrl;
+        lastCaptureTimestamp = now;
+      }
+    } catch (error) {
+      console.warn("Frame capture failed:", error);
+    }
+    return lastCapturedFrame;
+  }
+  function getLastCapturedFrame() {
+    return lastCapturedFrame;
+  }
+  var frameCaptureState = {
+    get frameCaptureEnabled() {
+      return frameCaptureEnabled;
+    },
+    get frameCaptureInterval() {
+      return frameCaptureInterval;
+    },
+    get lastCapturedFrame() {
+      return lastCapturedFrame;
+    }
+  };
+  function disposeFrameCapture() {
+    frameCaptureEnabled = false;
+    lastCapturedFrame = null;
+    captureCanvas = null;
+    captureContext = null;
+  }
+
+  // webview/core/GestureDetector.ts
+  var GestureDetector = class _GestureDetector {
+    constructor(video2, overlay2) {
+      this.gestureRecognizer = null;
+      this.running = false;
+      this.lastCaptureAttempt = 0;
+      this.video = video2;
+      this.overlay = overlay2;
+      this.config = loadConfig();
+      this.resourceManager = new ResourceManager();
+      this.cameraManager = new CameraManager(video2, this.resourceManager);
+      this.overlayRenderer = new OverlayRenderer(overlay2);
+      this.healthMonitor = new HealthMonitor();
+    }
+    static {
+      this.loadTasksVisionImpl = loadTasksVision;
+    }
+    /**
+     * Allows tests to override the MediaPipe loader implementation
+     */
+    static setLoadTasksVisionImplementation(loader) {
+      _GestureDetector.loadTasksVisionImpl = loader ?? loadTasksVision;
+    }
+    /**
+     * Set callback for gesture results
+     */
+    setResultCallback(callback) {
+      this.resultCallback = callback;
+    }
+    /**
+     * Initialize the gesture detector
+     */
+    async initialize() {
+      try {
+        const components = await _GestureDetector.loadTasksVisionImpl();
+        if (!components) {
+          throw new Error("Tasks Vision components not available");
+        }
+        const filesetResolver = components.FilesetResolver ?? window?.fileset_resolver?.FilesetResolver;
+        if (!filesetResolver || typeof filesetResolver.forVisionTasks !== "function") {
+          throw new Error("Tasks Vision FilesetResolver not available");
+        }
+        const vision = await filesetResolver.forVisionTasks(components.wasmBase);
+        const baseOptions = {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+          delegate: "GPU"
+        };
+        try {
+          this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
+            baseOptions,
+            runningMode: "VIDEO",
+            numHands: 2
+          });
+        } catch (gpuErr) {
+          console.warn("GPU delegate failed, falling back to CPU:", gpuErr);
+          this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
+            baseOptions: { ...baseOptions, delegate: "CPU" },
+            runningMode: "VIDEO",
+            numHands: 2
+          });
+        }
+        const onLoadedData = () => {
+          initializeFrameCapture(this.video);
+          this.lastCaptureAttempt = 0;
+          this.startDetection();
+        };
+        this.video.addEventListener("loadeddata", onLoadedData);
+        this.resourceManager.registerEventListener(this.video, "loadeddata", onLoadedData);
+      } catch (error) {
+        console.error("Failed to initialize gesture detector:", error);
+        throw error;
+      }
+    }
+    /**
+     * Start camera and detection
+     */
+    async start() {
+      try {
+        await this.cameraManager.startCamera();
+        setFrameCaptureEnabled(true);
+      } catch (error) {
+        console.error("Failed to start camera:", error);
+        try {
+          window.ReactNativeWebView?.postMessage?.(
+            JSON.stringify({
+              type: "telemetry",
+              event: "camera_start_failed",
+              error: error instanceof Error ? error.message : String(error),
+              timestamp: Date.now()
+            })
+          );
+        } catch (telemetryErr) {
+          console.warn("Failed to send camera error telemetry:", telemetryErr);
+        }
+        console.warn("Continuing gesture detector initialization despite camera failure");
+      }
+    }
+    /**
+     * Start gesture detection loop
+     */
+    startDetection() {
+      if (this.running) return;
+      this.running = true;
+      this.detectFrame();
+    }
+    /**
+     * Main detection loop with performance optimizations
+     */
+    detectFrame() {
+      if (!this.running || !this.gestureRecognizer) return;
+      const frameStart = performance.now();
+      try {
+        if (this.cameraManager.isVideoReady()) {
+          if (this.cameraManager.hasDimensionsChanged()) {
+            this.cameraManager.updateVideoDimensions();
+            const rect = this.video.getBoundingClientRect();
+            this.overlayRenderer.resizeOverlay(rect);
+          }
+          const recognitionStart = performance.now();
+          const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
+          const recognitionTime = performance.now() - recognitionStart;
+          console.log("MediaPipe recognition results:", {
+            hasResults: !!results,
+            gestures: results?.gestures?.length || 0,
+            landmarks: results?.landmarks?.length || 0,
+            handednesses: results?.handednesses?.length || 0,
+            recognitionTime: Math.round(recognitionTime)
+          });
+          if (this.resultCallback && results) {
+            this.resultCallback(results, frameStart);
+          }
+          if (results?.landmarks) {
+            const normalizedLandmarks = results.landmarks.map(
+              (hand) => hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0])
+            );
+            const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
+            if (shouldRedraw) {
+              this.overlayRenderer.clear();
+              this.overlayRenderer.drawHandLandmarks(normalizedLandmarks, this.config.camera.mirrorOverlay);
+            }
+            const captureInterval = frameCaptureState.frameCaptureInterval;
+            if (frameStart - this.lastCaptureAttempt >= captureInterval) {
+              captureFrameForOpenAI(this.video);
+              this.lastCaptureAttempt = frameStart;
+            }
+          }
+          this.healthMonitor.recordFrame(frameStart);
+          if (recognitionTime > 50) {
+            console.warn(`Slow frame detected: ${recognitionTime.toFixed(2)}ms`);
+          }
+        }
+      } catch (error) {
+        console.error("Gesture detection error:", error);
+        this.healthMonitor.recordError();
+        if (this.healthMonitor.needsRecovery()) {
+          console.warn("Health monitor indicates recovery needed");
+        }
+      }
+      requestAnimationFrame(() => this.detectFrame());
+    }
+    /**
+     * Determine if overlay should be redrawn to optimize performance
+     */
+    shouldRedrawOverlay(results, recognitionTime) {
+      if (results?.landmarks && results.landmarks.length > 0) {
+        return true;
+      }
+      return recognitionTime < 30;
+    }
+    /**
+     * Stop detection and cleanup
+     */
+    async stop() {
+      this.running = false;
+      if (this.gestureRecognizer?.close) {
+        await this.gestureRecognizer.close();
+      }
+      await this.cameraManager.stopCamera();
+      await this.resourceManager.dispose();
+      setFrameCaptureEnabled(false);
+      disposeFrameCapture();
+    }
+    getCameraStream() {
+      return this.cameraManager.getStream();
+    }
+    /**
+     * Get current configuration
+     */
+    getConfig() {
+      return this.config;
+    }
+  };
+
+  // webview/utils/PerformanceOptimizer.ts
+  var PerformanceOptimizer = class {
+    constructor() {
+      this.frameCount = 0;
+      this.lastProcessingTime = 0;
+      this.processingTimes = [];
+      this.MAX_PROCESSING_HISTORY = 10;
+      this.targetFrameRate = 30;
+      // Target FPS
+      this.adaptiveFrameSkipping = false;
+      // Frame skipping configuration
+      this.skipFrameCount = 0;
+      this.MAX_SKIP_FRAMES = 3;
+      // Maximum consecutive frames to skip
+      this.PROCESSING_TIME_THRESHOLD = 50;
+      // ms - if processing takes longer, consider skipping
+      // Landmark change tracking for overlay optimization
+      this.lastLandmarksSignature = "";
+      this.landmarkChangeThreshold = 0.01;
+    }
+    // Minimum change to trigger redraw
+    /**
+     * Determine if current frame should be processed
+     */
+    shouldProcessFrame() {
+      this.frameCount++;
+      if (this.frameCount <= 5) {
+        return true;
+      }
+      if (this.adaptiveFrameSkipping && this.shouldSkipFrame()) {
+        this.skipFrameCount++;
+        return false;
+      }
+      this.skipFrameCount = 0;
+      return true;
+    }
+    /**
+     * Check if we should skip the current frame (public for testing)
+     */
+    shouldSkipCurrentFrame() {
+      return this.adaptiveFrameSkipping && this.shouldSkipFrame();
+    }
+    /**
+     * Record processing time for adaptive optimization
+     */
+    recordProcessingTime(processingTime) {
+      this.lastProcessingTime = processingTime;
+      this.processingTimes.push(processingTime);
+      if (this.processingTimes.length > this.MAX_PROCESSING_HISTORY) {
+        this.processingTimes.shift();
+      }
+      const avgProcessingTime = this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length;
+      this.adaptiveFrameSkipping = avgProcessingTime > this.PROCESSING_TIME_THRESHOLD;
+    }
+    /**
+     * Determine if frame should be skipped based on performance
+     */
+    shouldSkipFrame() {
+      if (this.skipFrameCount >= this.MAX_SKIP_FRAMES) {
+        return false;
+      }
+      const targetFrameTime = 1e3 / this.targetFrameRate;
+      return this.lastProcessingTime > targetFrameTime * 1.5;
+    }
+    /**
+     * Check if overlay should be redrawn based on landmark changes
+     */
+    shouldRedrawOverlay(currentLandmarks, processingTime) {
+      if (processingTime < 20) {
+        return true;
+      }
+      const signature = this.generateLandmarksSignature(currentLandmarks);
+      if (signature === this.lastLandmarksSignature) {
+        return false;
+      }
+      const changeMagnitude = this.calculateLandmarkChange(currentLandmarks);
+      if (changeMagnitude < this.landmarkChangeThreshold) {
+        return false;
+      }
+      this.lastLandmarksSignature = signature;
+      return true;
+    }
+    /**
+     * Generate a simplified signature of landmark positions
+     */
+    generateLandmarksSignature(landmarks) {
+      if (!landmarks || landmarks.length === 0) return "";
+      const hand = landmarks[0];
+      if (!hand || hand.length === 0) return "";
+      const keyPoints = Math.min(hand.length, 5);
+      const signature = [];
+      for (let i = 0; i < keyPoints; i++) {
+        const point = hand[i];
+        if (point && point.length >= 2) {
+          signature.push(`${Math.round(point[0] * 100)},${Math.round(point[1] * 100)}`);
+        }
+      }
+      return signature.join("|");
+    }
+    /**
+     * Calculate magnitude of landmark changes from last signature
+     */
+    calculateLandmarkChange(currentLandmarks) {
+      if (!currentLandmarks || currentLandmarks.length === 0) return 0;
+      if (!this.lastLandmarksSignature) return 1;
+      const currentSignature = this.generateLandmarksSignature(currentLandmarks);
+      if (currentSignature === this.lastLandmarksSignature) return 0;
+      const currentParts = currentSignature.split("|");
+      const lastParts = this.lastLandmarksSignature.split("|");
+      if (currentParts.length !== lastParts.length) return 1;
+      let totalChange = 0;
+      for (let i = 0; i < currentParts.length; i++) {
+        const currentCoords = currentParts[i].split(",").map(Number);
+        const lastCoords = lastParts[i].split(",").map(Number);
+        if (currentCoords.length === 2 && lastCoords.length === 2) {
+          const dx = currentCoords[0] - lastCoords[0];
+          const dy = currentCoords[1] - lastCoords[1];
+          totalChange += Math.sqrt(dx * dx + dy * dy);
+        }
+      }
+      return totalChange / currentParts.length;
+    }
+    /**
+     * Get current performance metrics
+     */
+    getPerformanceMetrics() {
+      const avgProcessingTime = this.processingTimes.length > 0 ? this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length : 0;
+      return {
+        frameCount: this.frameCount,
+        averageProcessingTime: avgProcessingTime,
+        adaptiveFrameSkipping: this.adaptiveFrameSkipping,
+        skipFrameCount: this.skipFrameCount,
+        targetFrameRate: this.targetFrameRate
+      };
+    }
+    /**
+     * Reset performance tracking
+     */
+    reset() {
+      this.frameCount = 0;
+      this.processingTimes = [];
+      this.skipFrameCount = 0;
+      this.adaptiveFrameSkipping = false;
+      this.lastLandmarksSignature = "";
+    }
+    /**
+     * Set target frame rate for optimization
+     */
+    setTargetFrameRate(fps) {
+      this.targetFrameRate = Math.max(15, Math.min(60, fps));
+    }
+    /**
+     * Set landmark change threshold for overlay optimization
+     */
+    setLandmarkChangeThreshold(threshold) {
+      this.landmarkChangeThreshold = Math.max(1e-3, Math.min(0.1, threshold));
+    }
+  };
+
+  // webview/utils/MemoryOptimizer.ts
+  var MemoryOptimizer = class _MemoryOptimizer {
+    // 100MB
+    constructor() {
+      this.cleanupCallbacks = /* @__PURE__ */ new Map();
+      this.memoryPressureLevel = 0;
+      // 0 = normal, 1 = moderate, 2 = high
+      this.lastCleanupTime = 0;
+      this.CLEANUP_INTERVAL = 3e4;
+      // 30 seconds
+      this.HIGH_MEMORY_THRESHOLD = 50 * 1024 * 1024;
+      // 50MB
+      this.CRITICAL_MEMORY_THRESHOLD = 100 * 1024 * 1024;
+      this.startMemoryMonitoring();
+    }
+    static getInstance() {
+      if (!_MemoryOptimizer.instance) {
+        _MemoryOptimizer.instance = new _MemoryOptimizer();
+      }
+      return _MemoryOptimizer.instance;
+    }
+    /**
+     * Register a cleanup callback for a component
+     */
+    registerCleanupCallback(componentId, callback) {
+      this.cleanupCallbacks.set(componentId, callback);
+    }
+    /**
+     * Unregister a cleanup callback
+     */
+    unregisterCleanupCallback(componentId) {
+      this.cleanupCallbacks.delete(componentId);
+    }
+    /**
+     * Perform memory cleanup based on current pressure level
+     */
+    performCleanup() {
+      const now = Date.now();
+      if (now - this.lastCleanupTime < this.CLEANUP_INTERVAL && this.memoryPressureLevel === 0) {
+        return;
+      }
+      this.lastCleanupTime = now;
+      for (const [componentId, callback] of this.cleanupCallbacks) {
+        try {
+          callback();
+        } catch (error) {
+          console.warn(`Memory cleanup failed for ${componentId}:`, error);
+        }
+      }
+      if (typeof window !== "undefined" && window.gc) {
+        window.gc();
+      }
+    }
+    /**
+     * Get optimized history buffer size based on memory pressure
+     */
+    getOptimizedHistorySize(baseSize) {
+      switch (this.memoryPressureLevel) {
+        case 0:
+          return baseSize;
+        // Normal
+        case 1:
+          return Math.max(3, Math.floor(baseSize * 0.7));
+        // Moderate - reduce by 30%
+        case 2:
+          return Math.max(2, Math.floor(baseSize * 0.5));
+        // High - reduce by 50%
+        default:
+          return baseSize;
+      }
+    }
+    /**
+     * Create a memory-efficient circular buffer
+     */
+    createCircularBuffer(maxSize) {
+      return new CircularBuffer(this.getOptimizedHistorySize(maxSize));
+    }
+    /**
+     * Optimize array operations for memory efficiency
+     */
+    optimizeArrayOperations(array, operation) {
+      if (this.memoryPressureLevel >= 1) {
+        const result = [];
+        for (let i = 0; i < array.length; i++) {
+          if (operation(array[i])) {
+            result.push(array[i]);
+          }
+        }
+        return result;
+      }
+      return array.filter(operation);
+    }
+    /**
+     * Get current memory status
+     */
+    getMemoryStatus() {
+      return {
+        pressureLevel: this.memoryPressureLevel,
+        lastCleanupTime: this.lastCleanupTime,
+        registeredComponents: this.cleanupCallbacks.size,
+        estimatedMemoryUsage: this.estimateMemoryUsage()
+      };
+    }
+    /**
+     * Estimate current memory usage (rough approximation)
+     */
+    estimateMemoryUsage() {
+      let estimatedUsage = 0;
+      estimatedUsage += 1024 * 1024;
+      estimatedUsage += this.cleanupCallbacks.size * 512 * 1024;
+      switch (this.memoryPressureLevel) {
+        case 1:
+          estimatedUsage *= 1.2;
+          break;
+        case 2:
+          estimatedUsage *= 1.5;
+          break;
+      }
+      return estimatedUsage;
+    }
+    /**
+     * Start memory monitoring
+     */
+    startMemoryMonitoring() {
+      if (typeof window === "undefined") return;
+      setInterval(() => {
+        this.checkMemoryPressure();
+      }, 1e4);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          this.checkMemoryPressure();
+          this.performCleanup();
+        }
+      });
+    }
+    /**
+     * Check current memory pressure level
+     */
+    checkMemoryPressure() {
+      if (typeof window === "undefined" || !window.performance) return;
+      try {
+        const memory = window.performance.memory;
+        if (memory) {
+          const usedMemory = memory.usedJSHeapSize;
+          const totalMemory = memory.totalJSHeapSize;
+          if (usedMemory > this.CRITICAL_MEMORY_THRESHOLD) {
+            this.memoryPressureLevel = 2;
+          } else if (usedMemory > this.HIGH_MEMORY_THRESHOLD || usedMemory / totalMemory > 0.8) {
+            this.memoryPressureLevel = 1;
+          } else {
+            this.memoryPressureLevel = 0;
+          }
+        } else {
+          const componentCount = this.cleanupCallbacks.size;
+          const timeSinceStart = Date.now() - this.lastCleanupTime;
+          if (componentCount > 10 && timeSinceStart > 3e5) {
+            this.memoryPressureLevel = 1;
+          } else if (componentCount > 15 && timeSinceStart > 6e5) {
+            this.memoryPressureLevel = 2;
+          } else {
+            this.memoryPressureLevel = 0;
+          }
+        }
+      } catch (error) {
+        console.debug("Memory monitoring check failed, reverting to normal pressure state:", error);
+        this.memoryPressureLevel = 0;
+      }
+    }
+    /**
+     * Force garbage collection (development only)
+     */
+    forceGC() {
+      if (typeof window !== "undefined" && window.gc) {
+        window.gc();
+      }
+    }
+  };
+  var CircularBuffer = class {
+    constructor(maxSize) {
+      this.buffer = [];
+      this.writeIndex = 0;
+      this.readIndex = 0;
+      this.size = 0;
+      this.maxSize = maxSize;
+      this.buffer = new Array(maxSize);
+    }
+    /**
+     * Add item to buffer
+     */
+    push(item) {
+      this.buffer[this.writeIndex] = item;
+      this.writeIndex = (this.writeIndex + 1) % this.maxSize;
+      if (this.size < this.maxSize) {
+        this.size++;
+      } else {
+        this.readIndex = (this.readIndex + 1) % this.maxSize;
+      }
+    }
+    /**
+     * Get item at index (0 = most recent)
+     */
+    get(index) {
+      if (index >= this.size) return void 0;
+      const actualIndex = (this.writeIndex - 1 - index + this.maxSize) % this.maxSize;
+      return this.buffer[actualIndex];
+    }
+    /**
+     * Get all items as array (most recent first)
+     */
+    toArray() {
+      const result = [];
+      for (let i = 0; i < this.size; i++) {
+        const item = this.get(i);
+        if (item !== void 0) {
+          result.push(item);
+        }
+      }
+      return result;
+    }
+    /**
+     * Get buffer size
+     */
+    getSize() {
+      return this.size;
+    }
+    /**
+     * Clear buffer
+     */
+    clear() {
+      this.buffer.fill(void 0);
+      this.writeIndex = 0;
+      this.readIndex = 0;
+      this.size = 0;
+    }
+    /**
+     * Resize buffer (creates new buffer)
+     */
+    resize(newMaxSize) {
+      const currentItems = this.toArray();
+      this.maxSize = newMaxSize;
+      this.buffer = new Array(newMaxSize);
+      this.writeIndex = 0;
+      this.readIndex = 0;
+      this.size = 0;
+      const itemsToAdd = Math.min(currentItems.length, newMaxSize);
+      for (let i = itemsToAdd - 1; i >= 0; i--) {
+        this.push(currentItems[i]);
+      }
+    }
+  };
+
+  // webview/utils/ProcessingPipeline.ts
+  var ProcessingPipeline = class {
+    constructor() {
+      this.processingSteps = [];
+      this.lastProcessingResult = null;
+      this.performanceOptimizer = new PerformanceOptimizer();
+      this.memoryOptimizer = MemoryOptimizer.getInstance();
+    }
+    /**
+     * Add a processing step to the pipeline
+     */
+    addStep(step) {
+      this.processingSteps.push(step);
+    }
+    /**
+     * Execute the processing pipeline with optimizations
+     */
+    async executePipeline(context) {
+      const startTime = performance.now();
+      const stepsExecuted = [];
+      const skippedSteps = [];
+      if (!this.performanceOptimizer.shouldProcessFrame()) {
+        return this.createSkippedResult(context, startTime);
+      }
+      let currentLandmarks = context.landmarks;
+      let currentConfidence = 0;
+      let detectedGesture;
+      const aggregated = {};
+      for (const step of this.processingSteps) {
+        const stepStartTime = performance.now();
+        try {
+          if (context.skipExpensiveSteps && step.isExpensive && this.shouldSkipExpensiveStep(step, context)) {
+            skippedSteps.push(step.name);
+            continue;
+          }
+          const stepResult = await step.execute({
+            ...context,
+            landmarks: currentLandmarks
+          });
+          stepsExecuted.push(step.name);
+          if (stepResult && typeof stepResult === "object") {
+            Object.assign(aggregated, stepResult);
+          }
+          if (stepResult.landmarks) {
+            currentLandmarks = stepResult.landmarks;
+          }
+          if (stepResult.gesture && stepResult.confidence > currentConfidence) {
+            detectedGesture = stepResult.gesture;
+            currentConfidence = stepResult.confidence;
+          }
+          const stepEnd = performance.now();
+          const stepDuration = this.sanitizeDuration(stepEnd - stepStartTime);
+          this.recordStepPerformance(step.name, stepDuration);
+        } catch (error) {
+          console.warn(`Processing step ${step.name} failed:`, error);
+          stepsExecuted.push(step.name);
+        }
+      }
+      const endTime = performance.now();
+      const totalTime = this.sanitizeDuration(endTime - startTime);
+      this.performanceOptimizer.recordProcessingTime(totalTime);
+      aggregated.timestamp = aggregated.timestamp ?? context.timestamp;
+      const result = {
+        ...aggregated,
+        gesture: detectedGesture ?? aggregated.gesture,
+        confidence: detectedGesture !== void 0 ? currentConfidence : typeof aggregated.confidence === "number" ? aggregated.confidence : currentConfidence,
+        landmarks: currentLandmarks,
+        processingTime: totalTime,
+        stepsExecuted,
+        skippedSteps
+      };
+      this.lastProcessingResult = result;
+      return result;
+    }
+    sanitizeDuration(duration) {
+      if (!Number.isFinite(duration)) {
+        return 0.01;
+      }
+      return duration <= 0 ? 0.01 : duration;
+    }
+    /**
+     * Determine if an expensive step should be skipped
+     */
+    shouldSkipExpensiveStep(step, context) {
+      if (this.lastProcessingResult && this.lastProcessingResult.confidence > 0.8) {
+        return true;
+      }
+      if (context.previousLandmarks && this.landmarksUnchanged(context.landmarks, context.previousLandmarks)) {
+        return true;
+      }
+      const metrics = this.performanceOptimizer.getPerformanceMetrics();
+      if (metrics.averageProcessingTime > 50) {
+        return Math.random() < 0.5;
+      }
+      return false;
+    }
+    /**
+     * Check if landmarks have changed significantly
+     */
+    landmarksUnchanged(current, previous) {
+      if (current.length !== previous.length) return false;
+      for (let handIdx = 0; handIdx < current.length; handIdx++) {
+        const currentHand = current[handIdx];
+        const previousHand = previous[handIdx];
+        if (!currentHand || !previousHand || currentHand.length !== previousHand.length) {
+          return false;
+        }
+        for (let pointIdx = 0; pointIdx < currentHand.length; pointIdx++) {
+          const currentPoint = currentHand[pointIdx];
+          const previousPoint = previousHand[pointIdx];
+          if (!currentPoint || !previousPoint) continue;
+          for (let coord = 0; coord < Math.min(currentPoint.length, previousPoint.length); coord++) {
+            if (Math.abs(currentPoint[coord] - previousPoint[coord]) > 0.01) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+    /**
+     * Create a result when processing is skipped
+     */
+    createSkippedResult(context, startTime) {
+      return {
+        gesture: this.lastProcessingResult?.gesture,
+        confidence: this.lastProcessingResult?.confidence || 0,
+        landmarks: context.landmarks,
+        processingTime: this.sanitizeDuration(performance.now() - startTime),
+        stepsExecuted: [],
+        skippedSteps: ["frame_skipped"]
+      };
+    }
+    /**
+     * Record performance metrics for a processing step
+     */
+    recordStepPerformance(stepName, executionTime) {
+      if (executionTime > 100) {
+        console.warn(`Slow processing step: ${stepName} (${executionTime.toFixed(2)}ms)`);
+      }
+    }
+    /**
+     * Get pipeline performance metrics
+     */
+    getPerformanceMetrics() {
+      return {
+        pipelineMetrics: this.performanceOptimizer.getPerformanceMetrics(),
+        stepMetrics: {},
+        // Could be enhanced to track per-step metrics
+        memoryMetrics: this.memoryOptimizer.getMemoryStatus()
+      };
+    }
+    /**
+     * Reset pipeline state
+     */
+    reset() {
+      this.lastProcessingResult = null;
+      this.performanceOptimizer.reset();
+    }
+    /**
+     * Configure pipeline optimization settings
+     */
+    configureOptimization(settings) {
+      if (settings.targetFrameRate) {
+        this.performanceOptimizer.setTargetFrameRate(settings.targetFrameRate);
+      }
+      if (settings.landmarkChangeThreshold) {
+        this.performanceOptimizer.setLandmarkChangeThreshold(settings.landmarkChangeThreshold);
+      }
+    }
+  };
+
+  // webview/utils/OptimizedTremorCompensator.ts
+  var OptimizedTremorCompensator = class {
+    constructor() {
+      this.landmarkHistory = null;
+      this.SMOOTHING_FACTOR = 0.7;
+      this.INTENTIONAL_MOVEMENT_THRESHOLD = 0.02;
+      this.enabled = true;
+      this.lastProcessedLandmarks = [];
+      this.memoryOptimizer = MemoryOptimizer.getInstance();
+      this.initializeHistoryBuffer();
+      this.memoryOptimizer.registerCleanupCallback("tremorCompensator", () => this.cleanup());
+    }
+    /**
+     * Initialize or reinitialize the history buffer with optimized size
+     */
+    initializeHistoryBuffer() {
+      const optimizedSize = this.memoryOptimizer.getOptimizedHistorySize(5);
+      this.landmarkHistory = this.memoryOptimizer.createCircularBuffer(optimizedSize);
+    }
+    /**
+     * Smooth landmarks with optimized processing
+     */
+    smoothLandmarks(landmarks) {
+      if (!this.enabled || !landmarks || landmarks.length === 0) {
+        return landmarks;
+      }
+      if (this.landmarksUnchanged(landmarks, this.lastProcessedLandmarks)) {
+        return this.lastProcessedLandmarks;
+      }
+      this.landmarkHistory.push(JSON.parse(JSON.stringify(landmarks)));
+      if (this.landmarkHistory.getSize() < 2) {
+        this.lastProcessedLandmarks = landmarks;
+        return landmarks;
+      }
+      const smoothed = this.applyOptimizedSmoothing(landmarks);
+      this.lastProcessedLandmarks = smoothed;
+      return smoothed;
+    }
+    /**
+     * Apply optimized smoothing algorithm
+     */
+    applyOptimizedSmoothing(currentLandmarks) {
+      const smoothed = JSON.parse(JSON.stringify(currentLandmarks));
+      for (let handIdx = 0; handIdx < currentLandmarks.length; handIdx++) {
+        const currentHand = currentLandmarks[handIdx];
+        if (!currentHand) continue;
+        for (let pointIdx = 0; pointIdx < currentHand.length; pointIdx++) {
+          const currentPoint = currentHand[pointIdx];
+          if (!currentPoint) continue;
+          const smoothedPoint = this.calculateSmoothedPoint(handIdx, pointIdx, currentPoint);
+          smoothed[handIdx][pointIdx] = smoothedPoint;
+        }
+      }
+      return smoothed;
+    }
+    /**
+     * Calculate smoothed point with optimized history access
+     */
+    calculateSmoothedPoint(handIdx, pointIdx, currentPoint) {
+      let smoothedX = currentPoint[0];
+      let smoothedY = currentPoint[1];
+      let smoothedZ = currentPoint[2] || 0;
+      let totalWeight = 1;
+      const historySize = this.landmarkHistory.getSize();
+      for (let historyIdx = 1; historyIdx < historySize; historyIdx++) {
+        const weight = Math.pow(1 - this.SMOOTHING_FACTOR, historyIdx);
+        const historyFrame = this.landmarkHistory.get(historyIdx - 1);
+        if (historyFrame && historyFrame[handIdx] && historyFrame[handIdx][pointIdx]) {
+          const historyPoint = historyFrame[handIdx][pointIdx];
+          smoothedX += historyPoint[0] * weight;
+          smoothedY += historyPoint[1] * weight;
+          smoothedZ += (historyPoint[2] || 0) * weight;
+          totalWeight += weight;
+        }
+      }
+      return [
+        smoothedX / totalWeight,
+        smoothedY / totalWeight,
+        smoothedZ / totalWeight
+      ];
+    }
+    /**
+     * Check if movement is likely intentional vs tremor
+     */
+    isIntentionalMovement(currentLandmarks, previousLandmarks) {
+      if (!this.enabled) return true;
+      if (!previousLandmarks || previousLandmarks.length === 0) return true;
+      let totalMovement = 0;
+      let pointCount = 0;
+      for (let handIdx = 0; handIdx < Math.min(currentLandmarks.length, previousLandmarks.length); handIdx++) {
+        const currentHand = currentLandmarks[handIdx];
+        const previousHand = previousLandmarks[handIdx];
+        if (!currentHand || !previousHand) continue;
+        for (let pointIdx = 0; pointIdx < Math.min(currentHand.length, previousHand.length); pointIdx++) {
+          const currentPoint = currentHand[pointIdx];
+          const previousPoint = previousHand[pointIdx];
+          if (!currentPoint || !previousPoint) continue;
+          const distance = Math.sqrt(
+            Math.pow(currentPoint[0] - previousPoint[0], 2) + Math.pow(currentPoint[1] - previousPoint[1], 2) + Math.pow((currentPoint[2] || 0) - (previousPoint[2] || 0), 2)
+          );
+          totalMovement += distance;
+          pointCount++;
+        }
+      }
+      if (pointCount === 0) return true;
+      const averageMovement = totalMovement / pointCount;
+      return averageMovement > this.INTENTIONAL_MOVEMENT_THRESHOLD;
+    }
+    /**
+     * Check if landmarks have changed significantly
+     */
+    landmarksUnchanged(current, previous) {
+      if (!previous || current.length !== previous.length) return false;
+      for (let handIdx = 0; handIdx < current.length; handIdx++) {
+        const currentHand = current[handIdx];
+        const previousHand = previous[handIdx];
+        if (!currentHand || !previousHand || currentHand.length !== previousHand.length) {
+          return false;
+        }
+        const keyPoints = [0, 4, 8, 12, 16, 20];
+        for (const pointIdx of keyPoints) {
+          const currentPoint = currentHand[pointIdx];
+          const previousPoint = previousHand[pointIdx];
+          if (!currentPoint || !previousPoint) continue;
+          for (let coord = 0; coord < 2; coord++) {
+            if (Math.abs(currentPoint[coord] - previousPoint[coord]) > 5e-3) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+    /**
+     * Clear history and reset state
+     */
+    clearHistory() {
+      if (this.landmarkHistory) {
+        this.landmarkHistory.clear();
+      }
+      this.lastProcessedLandmarks = [];
+    }
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+      this.clearHistory();
+      if (this.landmarkHistory) {
+        const optimizedSize = this.memoryOptimizer.getOptimizedHistorySize(3);
+        this.landmarkHistory.resize(optimizedSize);
+      }
+    }
+    /**
+     * Enable or disable tremor compensation
+     */
+    setEnabled(enabled) {
+      this.enabled = enabled;
+      if (!enabled) {
+        this.clearHistory();
+      }
+    }
+    /**
+     * Get current status
+     */
+    getStatus() {
+      return {
+        enabled: this.enabled,
+        historySize: this.landmarkHistory?.getSize() || 0,
+        optimizedSize: this.landmarkHistory?.["maxSize"] || 0
+      };
+    }
+  };
+
+  // webview/gestureProcessing.ts
+  var PartialGestureDetector = class {
+    constructor() {
+      this.gestureHistory = /* @__PURE__ */ new Map();
+      this.MAX_HISTORY = 5;
+      this.COMPLETION_THRESHOLDS = {
+        fist: 0.7,
+        point: 0.8,
+        thumbs_up: 0.75,
+        open_palm: 0.6,
+        peace: 0.7
+      };
+      this.recognitionThreshold = 0.6;
+    }
+    /**
+     * Optimized partial gesture analysis with reduced memory allocation
+     */
+    analyzePartialCompletion(landmarks, gestureId) {
+      if (!landmarks?.[0] || landmarks[0].length < 21) {
+        return { isPartial: false, completion: 0, confidence: 0, feedback: "" };
+      }
+      const hand = landmarks[0];
+      const completion = this.calculateCompletion(hand, gestureId);
+      const confidence = this.calculatePartialConfidence(hand, gestureId, completion);
+      this.updateGestureHistory(gestureId, confidence);
+      const isPartial = completion >= 0.3 && completion < 0.9;
+      const feedback = isPartial ? this.generatePartialFeedback(gestureId, completion) : "";
+      return { isPartial, completion, confidence, feedback };
+    }
+    calculateCompletion(hand, gestureId) {
+      switch (gestureId) {
+        case "fist":
+          return this.calculateFistCompletion(hand);
+        case "point":
+          return this.calculatePointCompletion(hand);
+        case "thumbs_up":
+          return this.calculateThumbsUpCompletion(hand);
+        case "open_palm":
+          return this.calculateOpenPalmCompletion(hand);
+        default:
+          return 0;
+      }
+    }
+    calculateFistCompletion(hand) {
+      let curledFingers = 0;
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] > hand[fingerJoints[i]][1]) {
+          curledFingers++;
+        }
+      }
+      return Math.min(curledFingers / 4, 1);
+    }
+    calculatePointCompletion(hand) {
+      const indexExtended = hand[8][1] < hand[6][1];
+      const otherFingersCurled = hand[12][1] > hand[10][1] && // Middle
+      hand[16][1] > hand[14][1] && // Ring
+      hand[20][1] > hand[18][1];
+      if (indexExtended && otherFingersCurled) return 1;
+      if (indexExtended) return 0.7;
+      return 0;
+    }
+    calculateThumbsUpCompletion(hand) {
+      const thumbExtended = hand[4][1] < hand[3][1];
+      if (thumbExtended) return 1;
+      return 0;
+    }
+    calculateOpenPalmCompletion(hand) {
+      let extendedFingers = 0;
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+          extendedFingers++;
+        }
+      }
+      return Math.min(extendedFingers / 4, 1);
+    }
+    calculatePartialConfidence(hand, gestureId, completion) {
+      if (completion <= 0) {
+        return 0;
+      }
+      const baseConfidence = completion * 0.8;
+      const stability = this.calculateHandStability(hand);
+      const stabilityBonus = stability * 0.2;
+      return Math.min(baseConfidence + stabilityBonus, 0.9);
+    }
+    calculateHandStability(hand) {
+      if (hand.length < 21) return 0;
+      const wrist = hand[0];
+      const middleTip = hand[12];
+      const distance = Math.sqrt(
+        Math.pow(middleTip[0] - wrist[0], 2) + Math.pow(middleTip[1] - wrist[1], 2)
+      );
+      return Math.min(Math.max(distance, 0.1), 0.5) / 0.5;
+    }
+    updateGestureHistory(gestureId, confidence) {
+      if (!this.gestureHistory.has(gestureId)) {
+        this.gestureHistory.set(gestureId, []);
+      }
+      const history = this.gestureHistory.get(gestureId);
+      history.push({ confidence, timestamp: Date.now() });
+      if (history.length > this.MAX_HISTORY) {
+        history.shift();
+      }
+    }
+    generatePartialFeedback(gestureId, completion) {
+      const completionPercent = Math.round(completion * 100);
+      switch (gestureId) {
+        case "fist":
+          return completionPercent < 50 ? "Fast eine Faust! Schlie\xDFe deine Finger mehr." : "Gute Faust! Schlie\xDFe die Finger ganz.";
+        case "point":
+          return completionPercent < 70 ? "Zeigefinger ausstrecken, andere Finger einrollen." : "Fast perfekt! Halte den Zeigefinger gerade.";
+        case "thumbs_up":
+          return "Daumen nach oben! Strecke ihn weiter aus.";
+        case "open_palm":
+          return completionPercent < 50 ? "Hand \xF6ffnen und Finger ausstrecken." : "Fast offen! Strecke alle Finger aus.";
+        default:
+          return `Geste zu ${completionPercent}% fertig.`;
+      }
+    }
+    setThreshold(threshold) {
+      if (Number.isFinite(threshold)) {
+        const clamped = Math.max(0, Math.min(1, threshold));
+        this.recognitionThreshold = clamped;
+      }
+    }
+    shouldRecognizePartial(completion, confidence) {
+      return completion >= 0.4 && confidence >= this.recognitionThreshold;
+    }
+    cleanup() {
+      const cutoffTime = Date.now() - 3e4;
+      for (const [gestureId, history] of this.gestureHistory) {
+        const filtered = history.filter((entry) => entry.timestamp > cutoffTime);
+        if (filtered.length === 0) {
+          this.gestureHistory.delete(gestureId);
+        } else {
+          this.gestureHistory.set(gestureId, filtered);
+        }
+      }
+    }
+  };
+  var TremorCompensator = class {
+    constructor() {
+      this.movementHistory = [];
+      this.MAX_HISTORY = 3;
+      this.SMOOTHING_FACTOR = 0.7;
+      this.MOVEMENT_THRESHOLD = 0.02;
+    }
+    /**
+     * Optimized tremor compensation with reduced memory usage
+     */
+    smoothLandmarks(landmarks) {
+      if (!Array.isArray(landmarks) || landmarks.length === 0) {
+        return landmarks;
+      }
+      const normalizedLandmarks = this.cloneHands(landmarks);
+      const now = Date.now();
+      this.movementHistory.push({ landmarks: normalizedLandmarks, timestamp: now });
+      if (this.movementHistory.length > this.MAX_HISTORY) {
+        this.movementHistory.shift();
+      }
+      if (this.movementHistory.length < 2) {
+        return normalizedLandmarks;
+      }
+      const previousEntry = this.movementHistory[this.movementHistory.length - 2];
+      const smoothedHands = normalizedLandmarks.map((hand, index) => {
+        const previousHand = previousEntry.landmarks[index];
+        if (!hand || hand.length === 0) {
+          return hand;
+        }
+        if (!previousHand || previousHand.length === 0) {
+          return hand;
+        }
+        if (!this.isIntentionalMovementForHand(hand, previousHand)) {
+          return this.cloneHand(previousHand);
+        }
+        return this.applySmoothing(hand, previousHand);
+      });
+      return smoothedHands;
+    }
+    applySmoothing(current, previous) {
+      const smoothed = [];
+      const length = Math.min(current.length, previous.length);
+      for (let i = 0; i < length; i++) {
+        const currentPoint = current[i];
+        const previousPoint = previous[i];
+        if (!currentPoint || !previousPoint) {
+          smoothed.push(currentPoint || previousPoint || [0, 0, 0]);
+          continue;
+        }
+        const smoothedPoint = [
+          previousPoint[0] * this.SMOOTHING_FACTOR + currentPoint[0] * (1 - this.SMOOTHING_FACTOR),
+          previousPoint[1] * this.SMOOTHING_FACTOR + currentPoint[1] * (1 - this.SMOOTHING_FACTOR),
+          (previousPoint[2] ?? 0) * this.SMOOTHING_FACTOR + (currentPoint[2] ?? 0) * (1 - this.SMOOTHING_FACTOR)
+        ];
+        smoothed.push(smoothedPoint);
+      }
+      if (current.length > length) {
+        for (let i = length; i < current.length; i++) {
+          smoothed.push(current[i]);
+        }
+      }
+      return smoothed;
+    }
+    isIntentionalMovement(currentLandmarks, previousLandmarks) {
+      if (!currentLandmarks?.length || !previousLandmarks?.length) return true;
+      let totalMovement = 0;
+      let points = 0;
+      for (let handIdx = 0; handIdx < Math.min(currentLandmarks.length, previousLandmarks.length); handIdx++) {
+        const currentHand = currentLandmarks[handIdx];
+        const previousHand = previousLandmarks[handIdx];
+        if (!currentHand || !previousHand) {
+          continue;
+        }
+        const length = Math.min(currentHand.length, previousHand.length, 21);
+        for (let i = 0; i < length; i++) {
+          const currentPoint = currentHand[i];
+          const previousPoint = previousHand[i];
+          if (!currentPoint || !previousPoint) {
+            continue;
+          }
+          const movement = Math.sqrt(
+            Math.pow((currentPoint[0] ?? 0) - (previousPoint[0] ?? 0), 2) + Math.pow((currentPoint[1] ?? 0) - (previousPoint[1] ?? 0), 2) + Math.pow((currentPoint[2] ?? 0) - (previousPoint[2] ?? 0), 2)
+          );
+          totalMovement += movement;
+          points++;
+        }
+      }
+      if (points === 0) {
+        return true;
+      }
+      const averageMovement = totalMovement / points;
+      return averageMovement > this.MOVEMENT_THRESHOLD;
+    }
+    isIntentionalMovementForHand(currentHand, previousHand) {
+      if (!currentHand?.length || !previousHand?.length) {
+        return true;
+      }
+      const length = Math.min(currentHand.length, previousHand.length, 21);
+      let totalMovement = 0;
+      let points = 0;
+      for (let i = 0; i < length; i++) {
+        const currentPoint = currentHand[i];
+        const previousPoint = previousHand[i];
+        if (!currentPoint || !previousPoint) {
+          continue;
+        }
+        const movement = Math.sqrt(
+          Math.pow((currentPoint[0] ?? 0) - (previousPoint[0] ?? 0), 2) + Math.pow((currentPoint[1] ?? 0) - (previousPoint[1] ?? 0), 2) + Math.pow((currentPoint[2] ?? 0) - (previousPoint[2] ?? 0), 2)
+        );
+        totalMovement += movement;
+        points++;
+      }
+      if (points === 0) {
+        return true;
+      }
+      const averageMovement = totalMovement / points;
+      return averageMovement > this.MOVEMENT_THRESHOLD;
+    }
+    cloneHands(landmarks) {
+      return landmarks.map((hand) => this.cloneHand(hand));
+    }
+    cloneHand(hand) {
+      if (!Array.isArray(hand)) {
+        return [];
+      }
+      return hand.map((point) => {
+        if (!Array.isArray(point)) {
+          return [0, 0, 0];
+        }
+        return [point[0] ?? 0, point[1] ?? 0, point[2] ?? 0];
+      });
+    }
+    clearHistory() {
+      this.movementHistory = [];
+    }
+  };
+  var GestureSizeNormalizer = class _GestureSizeNormalizer {
+    constructor() {
+      this.tolerance = _GestureSizeNormalizer.DEFAULT_TOLERANCE;
+      this.referenceHandSizes = [];
+    }
+    static {
+      this.DEFAULT_TOLERANCE = 0.3;
+    }
+    static {
+      this.MIN_TOLERANCE = 0.1;
+    }
+    static {
+      this.MAX_TOLERANCE = 1;
+    }
+    static {
+      this.DEFAULT_MAX_SCALE = 1.4;
+    }
+    /**
+     * Optimized gesture size normalization
+     */
+    normalizeHandSize(landmarks) {
+      if (!Array.isArray(landmarks) || landmarks.length === 0) {
+        return landmarks;
+      }
+      const normalizedHands = landmarks.map((hand, index) => {
+        if (!Array.isArray(hand) || hand.length < 21) {
+          this.referenceHandSizes[index] = null;
+          return hand;
+        }
+        const handSize = this.calculateHandSize(hand);
+        if (this.referenceHandSizes[index] === null || this.referenceHandSizes[index] === void 0) {
+          this.referenceHandSizes[index] = handSize;
+          return hand;
+        }
+        const referenceSize = this.referenceHandSizes[index] ?? 0;
+        if (referenceSize <= 0) {
+          this.referenceHandSizes[index] = handSize;
+          return hand;
+        }
+        const sizeRatio = handSize / referenceSize;
+        if (Math.abs(sizeRatio - 1) <= this.tolerance) {
+          return hand;
+        }
+        const { minScale, maxScale } = this.computeScaleBounds();
+        const clampedRatio = this.clampSizeRatio(sizeRatio, minScale, maxScale);
+        return this.applySizeNormalization(hand, clampedRatio);
+      });
+      return normalizedHands;
+    }
+    calculateHandSize(hand) {
+      if (hand.length < 21) return 1;
+      const wrist = hand[0];
+      const middleTip = hand[12];
+      return Math.sqrt(
+        Math.pow(middleTip[0] - wrist[0], 2) + Math.pow(middleTip[1] - wrist[1], 2) + Math.pow(middleTip[2] - wrist[2], 2)
+      );
+    }
+    applySizeNormalization(hand, sizeRatio) {
+      const wrist = hand[0];
+      const normalized = [];
+      for (const point of hand) {
+        const normalizedPoint = [
+          wrist[0] + (point[0] - wrist[0]) / sizeRatio,
+          wrist[1] + (point[1] - wrist[1]) / sizeRatio,
+          wrist[2] + (point[2] - wrist[2]) / sizeRatio
+        ];
+        normalized.push(normalizedPoint);
+      }
+      return normalized;
+    }
+    clampSizeRatio(sizeRatio, minScale, maxScale) {
+      if (!Number.isFinite(sizeRatio) || sizeRatio <= 0) {
+        return 1;
+      }
+      if (sizeRatio < minScale) {
+        return minScale;
+      }
+      if (sizeRatio > maxScale) {
+        return maxScale;
+      }
+      return sizeRatio;
+    }
+    clampTolerance(value) {
+      if (!Number.isFinite(value)) {
+        return this.tolerance;
+      }
+      const clamped = Math.max(_GestureSizeNormalizer.MIN_TOLERANCE, Math.min(_GestureSizeNormalizer.MAX_TOLERANCE, value));
+      return clamped;
+    }
+    computeScaleBounds() {
+      const tolerance = this.tolerance;
+      const minScale = Math.max(0, 1 - tolerance);
+      const defaultMaxScale = _GestureSizeNormalizer.DEFAULT_MAX_SCALE;
+      const computedMax = 1 + tolerance;
+      const isDefaultTolerance = Math.abs(tolerance - _GestureSizeNormalizer.DEFAULT_TOLERANCE) < 1e-6;
+      const maxScale = isDefaultTolerance ? Math.max(defaultMaxScale, computedMax) : computedMax;
+      return {
+        minScale,
+        maxScale
+      };
+    }
+    setTolerance(tolerance) {
+      this.tolerance = this.clampTolerance(tolerance);
+    }
+    getTolerance() {
+      const { minScale, maxScale } = this.computeScaleBounds();
+      return {
+        tolerance: this.tolerance,
+        minScale,
+        maxScale
+      };
+    }
+    reset() {
+      this.referenceHandSizes = [];
+    }
+  };
+  var partialGestureDetector = new PartialGestureDetector();
+  var tremorCompensator = new TremorCompensator();
+  var gestureSizeNormalizer = new GestureSizeNormalizer();
+
+  // webview/utils/ErrorRecoveryManager.ts
+  var ErrorRecoveryManager = class {
+    constructor() {
+      this.failureCount = 0;
+      this.lastFailureTime = 0;
+      this.circuitBreakerOpen = false;
+      this.fallbackMode = false;
+      this.recoveryAttempts = /* @__PURE__ */ new Map();
+      this.lastRecoveryTime = 0;
+      this.emergencyMode = false;
+      this.lastRecoveryAttemptByContext = /* @__PURE__ */ new Map();
+      this.CIRCUIT_BREAKER_THRESHOLD = 5;
+      this.CIRCUIT_BREAKER_TIMEOUT = 3e4;
+      // 30 seconds
+      this.FAILURE_WINDOW = 6e4;
+      // 1 minute
+      this.MAX_RECOVERY_ATTEMPTS = 3;
+      this.RECOVERY_COOLDOWN = 5e3;
+      // 5 seconds between recovery attempts
+      this.CONTEXT_RECOVERY_COOLDOWN = 1500;
+    }
+    // throttle repeated attempts per context
+    getErrorInfo(error, context) {
+      const errorMessage2 = error.message.toLowerCase();
+      if (context.includes("emergency") || errorMessage2.includes("emergency")) {
+        return {
+          message: "Emergency gesture detection failed",
+          code: "EMERGENCY_ERROR",
+          recoverable: true,
+          severity: "critical",
+          suggestedAction: "immediate_retry",
+          userMessage: "Notfall-Erkennung wird wiederhergestellt..."
+        };
+      }
+      if (errorMessage2.includes("network") || errorMessage2.includes("fetch") || errorMessage2.includes("timeout")) {
+        return {
+          message: "Network connectivity issue detected",
+          code: "NETWORK_ERROR",
+          recoverable: true,
+          severity: "medium",
+          suggestedAction: "retry_with_backoff",
+          userMessage: "Verbindungsproblem erkannt, versuche Wiederherstellung..."
+        };
+      }
+      if (errorMessage2.includes("camera") || errorMessage2.includes("media") || errorMessage2.includes("permission")) {
+        return {
+          message: "Camera access issue detected",
+          code: "CAMERA_ERROR",
+          recoverable: true,
+          severity: "high",
+          suggestedAction: "request_permission",
+          userMessage: "Kamera-Zugriff wird \xFCberpr\xFCft..."
+        };
+      }
+      if (errorMessage2.includes("mediapipe") || errorMessage2.includes("wasm") || errorMessage2.includes("webgl")) {
+        return {
+          message: "Gesture recognition system issue detected",
+          code: "MEDIAPIPE_ERROR",
+          recoverable: true,
+          severity: "medium",
+          suggestedAction: "fallback_mode",
+          userMessage: "Gestenerkennung wird neu gestartet..."
+        };
+      }
+      if (errorMessage2.includes("memory") || errorMessage2.includes("out of memory")) {
+        return {
+          message: "Memory issue detected",
+          code: "MEMORY_ERROR",
+          recoverable: true,
+          severity: "high",
+          suggestedAction: "cleanup_resources",
+          userMessage: "Speicher wird optimiert..."
+        };
+      }
+      if (errorMessage2.includes("performance") || errorMessage2.includes("slow") || errorMessage2.includes("timeout")) {
+        return {
+          message: "Performance issue detected",
+          code: "PERFORMANCE_ERROR",
+          recoverable: true,
+          severity: "low",
+          suggestedAction: "reduce_quality",
+          userMessage: "Leistung wird angepasst..."
+        };
+      }
+      return {
+        message: `System issue detected during ${context}`,
+        code: "GENERIC_ERROR",
+        recoverable: false,
+        severity: "medium",
+        suggestedAction: "log_and_continue",
+        userMessage: "System wird \xFCberpr\xFCft..."
+      };
+    }
+    recordFailure(error, context) {
+      const now = Date.now();
+      const errorInfo = this.getErrorInfo(error, context);
+      const ctxLower = context.toLowerCase();
+      const isMediaPipeCtx = ctxLower.includes("mediapipe");
+      if (errorInfo.code === "MEDIAPIPE_ERROR" || isMediaPipeCtx || ctxLower.includes("model") || ctxLower.includes("performance") || ctxLower.includes("network") || ctxLower.includes("memory")) {
+        this.activateFallbackMode();
+      }
+      const recoveryKey = `${errorInfo.code}_${context}`;
+      const attempts = this.recoveryAttempts.get(recoveryKey) || 0;
+      if (attempts >= this.MAX_RECOVERY_ATTEMPTS) {
+        console.warn(`Max recovery attempts reached for ${recoveryKey}`);
+        return false;
+      }
+      if (now - this.lastFailureTime > this.FAILURE_WINDOW) {
+        this.failureCount = 0;
+        this.recoveryAttempts.clear();
+      }
+      this.failureCount++;
+      this.lastFailureTime = now;
+      this.recoveryAttempts.set(recoveryKey, attempts + 1);
+      this.lastRecoveryAttemptByContext.set(context, now);
+      if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD || isMediaPipeCtx && typeof process !== "undefined" && false) {
+        this.circuitBreakerOpen = true;
+        console.warn("Circuit breaker opened due to repeated failures");
+        this.activateEmergencyMode();
+        return false;
+      }
+      return true;
+    }
+    isCircuitBreakerOpen() {
+      const timeout = typeof process !== "undefined" && false ? 10 : this.CIRCUIT_BREAKER_TIMEOUT;
+      if (this.circuitBreakerOpen && Date.now() - this.lastFailureTime > timeout) {
+        this.circuitBreakerOpen = false;
+        this.failureCount = 0;
+        this.recoveryAttempts.clear();
+        console.info("Circuit breaker auto-closed");
+        this.deactivateEmergencyMode();
+      }
+      return this.circuitBreakerOpen;
+    }
+    activateFallbackMode() {
+      if (!this.fallbackMode) {
+        this.fallbackMode = true;
+        console.warn("Activating fallback gesture detection mode");
+        this.sendTelemetryEvent("fallback_mode_activated", {
+          timestamp: Date.now(),
+          reason: "error_recovery"
+        });
+      }
+    }
+    activateEmergencyMode() {
+      if (!this.emergencyMode) {
+        this.emergencyMode = true;
+        console.warn("\u{1F6A8} EMERGENCY MODE ACTIVATED - Critical gesture detection only");
+        this.sendTelemetryEvent("emergency_mode_activated", {
+          timestamp: Date.now(),
+          reason: "circuit_breaker_opened"
+        });
+      }
+    }
+    deactivateEmergencyMode() {
+      if (this.emergencyMode) {
+        this.emergencyMode = false;
+        console.info("\u2705 Emergency mode deactivated - Full functionality restored");
+        this.sendTelemetryEvent("emergency_mode_deactivated", {
+          timestamp: Date.now()
+        });
+      }
+    }
+    isInFallbackMode() {
+      return this.fallbackMode;
+    }
+    isInEmergencyMode() {
+      return this.emergencyMode;
+    }
+    canAttemptRecovery(context) {
+      const now = Date.now();
+      if (now - this.lastRecoveryTime < this.RECOVERY_COOLDOWN) {
+        return false;
+      }
+      const lastContextAttempt = this.lastRecoveryAttemptByContext.get(context) || 0;
+      if (now - lastContextAttempt < this.CONTEXT_RECOVERY_COOLDOWN) {
+        return false;
+      }
+      if (this.isCircuitBreakerOpen()) {
+        return false;
+      }
+      return true;
+    }
+    recordSuccessfulRecovery(context) {
+      this.lastRecoveryTime = Date.now();
+      const recoveryKey = `recovery_${context}`;
+      this.recoveryAttempts.delete(recoveryKey);
+      this.lastRecoveryAttemptByContext.set(context, this.lastRecoveryTime);
+      this.sendTelemetryEvent("recovery_successful", {
+        context,
+        timestamp: Date.now()
+      });
+    }
+    sendTelemetryEvent(event, data = {}) {
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "telemetry",
+            event,
+            data
+          })
+        );
+      } catch (err2) {
+        console.warn(`Failed to send telemetry event ${event}:`, err2);
+      }
+    }
+    reset() {
+      this.failureCount = 0;
+      this.lastFailureTime = 0;
+      this.circuitBreakerOpen = false;
+      this.fallbackMode = false;
+      this.emergencyMode = false;
+      this.recoveryAttempts.clear();
+      this.lastRecoveryTime = 0;
+      this.lastRecoveryAttemptByContext.clear();
+    }
+    getHealthStatus() {
+      this.isCircuitBreakerOpen();
+      return {
+        healthy: !this.circuitBreakerOpen && !this.emergencyMode,
+        fallbackActive: this.fallbackMode,
+        emergencyActive: this.emergencyMode,
+        failureCount: this.failureCount,
+        lastFailure: this.lastFailureTime,
+        circuitBreakerOpen: this.circuitBreakerOpen
+      };
+    }
+  };
+
+  // webview/core/FallbackGestureDetector.ts
+  var FallbackGestureDetector = class _FallbackGestureDetector {
+    constructor() {
+      this.lastLandmarks = null;
+      this.gestureHistory = [];
+      this.HISTORY_SIZE = 5;
+      this.ruleBasedConfidence = 0;
+    }
+    static {
+      this.MIN_PALM_NORMALIZED_WIDTH = 0.15;
+    }
+    static {
+      this.MIN_PALM_NORMALIZED_HEIGHT = 0.15;
     }
     /**
      * Simple rule-based gesture detection as fallback
      */
     detectGesture(landmarks) {
-        if (!landmarks || landmarks.length === 0) {
-            return { gesture: '', confidence: 0, isFallback: true };
-        }
-        this.lastLandmarks = landmarks;
-        // Basic gesture detection using simple heuristics
-        const gesture = this.detectBasicGesture(landmarks[0]); // Use first hand
-        const confidence = this.calculateRuleBasedConfidence(landmarks[0], gesture);
-        // Store in history for smoothing
-        this.gestureHistory.push({
-            gesture,
-            confidence,
-            timestamp: Date.now()
-        });
-        if (this.gestureHistory.length > this.HISTORY_SIZE) {
-            this.gestureHistory.shift();
-        }
-        // Smooth confidence over recent detections
-        const smoothedConfidence = this.smoothConfidence();
-        return {
-            gesture,
-            confidence: smoothedConfidence,
-            isFallback: true,
-            feedback: this.getGestureFeedback(gesture, smoothedConfidence)
-        };
+      if (!landmarks || landmarks.length === 0) {
+        return { gesture: "", confidence: 0, isFallback: true };
+      }
+      this.lastLandmarks = landmarks;
+      const gesture = this.detectBasicGesture(landmarks[0]);
+      const confidence = this.calculateRuleBasedConfidence(landmarks[0], gesture);
+      this.gestureHistory.push({
+        gesture,
+        confidence,
+        timestamp: Date.now()
+      });
+      if (this.gestureHistory.length > this.HISTORY_SIZE) {
+        this.gestureHistory.shift();
+      }
+      const smoothedConfidence = this.smoothConfidence();
+      return {
+        gesture,
+        confidence: smoothedConfidence,
+        isFallback: true,
+        feedback: this.getGestureFeedback(gesture, smoothedConfidence)
+      };
     }
     detectBasicGesture(hand) {
-        if (!hand || hand.length < 21)
-            return '';
-        // Enhanced finger detection with better accuracy for Amy's gestures
-        const fingerTips = [8, 12, 16, 20]; // Index, middle, ring, pinky tips
-        const fingerJoints = [6, 10, 14, 18]; // Corresponding joints
-        const thumbTip = hand[4];
-        const thumbJoint = hand[3];
-        let extendedFingers = 0;
-        let fingerStates = [];
-        // Enhanced finger detection with distance thresholds
-        for (let i = 0; i < fingerTips.length; i++) {
-            const tip = hand[fingerTips[i]];
-            const joint = hand[fingerJoints[i]];
-            const distance = Math.abs(tip[1] - joint[1]);
-            const isExtended = tip[1] < joint[1] && distance > 0.15; // Minimum distance threshold
-            fingerStates.push(isExtended);
-            if (isExtended) {
-                extendedFingers++;
-            }
+      if (!hand || hand.length < 21) return "";
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      const thumbTip = hand[4];
+      const thumbJoint = hand[3];
+      let extendedFingers = 0;
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+          extendedFingers++;
         }
-        // Enhanced thumb detection with better angle consideration
-        const thumbExtended = thumbTip[1] < thumbJoint[1] &&
-            Math.abs(thumbTip[0] - thumbJoint[0]) > 0.1; // Thumb must move sideways too
-        // More sophisticated gesture classification for Amy's needs
-        if (extendedFingers === 0 && !thumbExtended) {
-            return 'fist';
-        }
-        else if (extendedFingers === 1 && fingerStates[0] && !thumbExtended) {
-            // Specifically index finger extended
-            return 'point';
-        }
-        else if (extendedFingers === 2 && fingerStates[0] && fingerStates[1] && !thumbExtended) {
-            // Index and middle fingers
-            return 'peace';
-        }
-        else if (extendedFingers >= 3 && thumbExtended) {
-            return 'open_palm';
-        }
-        else if (extendedFingers === 0 && thumbExtended) {
-            return 'thumbs_up';
-        }
-        else if (extendedFingers === 4 && !thumbExtended) {
-            // All fingers extended but thumb not
-            return 'four_fingers';
-        }
-        else if (extendedFingers === 1 && fingerStates[1] && !thumbExtended) {
-            // Middle finger extended (alternative point)
-            return 'middle_finger';
-        }
-        else if (extendedFingers === 3 && !thumbExtended) {
-            // Three fingers extended
-            return 'three_fingers';
-        }
-        else if (thumbExtended && extendedFingers === 1 && fingerStates[0]) {
-            // Thumb and index finger (like making a circle)
-            return 'circle_gesture';
-        }
-        return 'unknown';
+      }
+      const thumbExtended = thumbTip[1] < thumbJoint[1];
+      if (extendedFingers === 0 && !thumbExtended) {
+        return "fist";
+      } else if (extendedFingers === 1 && !thumbExtended) {
+        return "point";
+      } else if (extendedFingers === 2 && !thumbExtended) {
+        return "peace";
+      } else if (extendedFingers >= 3 && thumbExtended) {
+        return "open_palm";
+      } else if (extendedFingers === 0 && thumbExtended) {
+        return "thumbs_up";
+      }
+      return "unknown";
     }
     calculateRuleBasedConfidence(hand, gesture) {
-        if (!hand || gesture === 'unknown')
-            return 0.2;
-        // Adaptive confidence calculation for Amy's gesture patterns
-        let confidence = 0.4; // Start lower for more sensitivity
-        // Enhanced stability analysis for Amy's gesture patterns
-        if (this.lastLandmarks && this.lastLandmarks[0]) {
-            const movement = this.calculateMovement(this.lastLandmarks[0], hand);
-            if (movement < 0.025)
-                confidence += 0.28; // Very stable = higher confidence boost
-            else if (movement < 0.07)
-                confidence += 0.18; // Moderately stable
-            else if (movement < 0.12)
-                confidence += 0.08; // Some movement but acceptable for Amy
-            else if (movement < 0.20)
-                confidence += 0.02; // More tolerant of movement
-        }
-        // Enhanced gesture-specific confidence analysis
-        switch (gesture) {
-            case 'fist':
-                confidence += this.checkFistClarity(hand) ? 0.25 : -0.05;
-                break;
-            case 'point':
-                confidence += this.checkPointClarity(hand) ? 0.25 : -0.05;
-                break;
-            case 'thumbs_up':
-                confidence += this.checkThumbsUpClarity(hand) ? 0.25 : -0.05;
-                break;
-            case 'open_palm':
-                confidence += this.checkOpenPalmClarity(hand) ? 0.2 : -0.05;
-                break;
-        }
-        // Add confidence based on hand size (larger hands = more reliable detection)
-        const handSize = this.calculateHandSize(hand);
-        if (handSize > 0.3)
-            confidence += 0.1; // Good hand size
-        else if (handSize < 0.15)
-            confidence -= 0.1; // Too small, less reliable
-        return Math.max(0.15, Math.min(0.85, confidence));
-    }
-    calculateHandSize(hand) {
-        if (!hand || hand.length < 21)
-            return 0;
-        // Calculate hand size based on distance between wrist and middle finger tip
-        const wrist = hand[0];
-        const middleTip = hand[12];
-        const distance = Math.sqrt(Math.pow(middleTip[0] - wrist[0], 2) +
-            Math.pow(middleTip[1] - wrist[1], 2));
-        return distance;
-    }
-    checkOpenPalmClarity(hand) {
-        const fingerTips = [8, 12, 16, 20];
-        const fingerJoints = [6, 10, 14, 18];
-        let extendedFingers = 0;
-        for (let i = 0; i < fingerTips.length; i++) {
-            if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
-                extendedFingers++;
-            }
-        }
-        const thumbExtended = hand[4][1] < hand[3][1];
-        return extendedFingers >= 3 && thumbExtended;
+      if (!hand || gesture === "unknown") return 0.3;
+      let confidence = 0.5;
+      if (this.lastLandmarks && this.lastLandmarks[0]) {
+        const movement = this.calculateMovement(this.lastLandmarks[0], hand);
+        if (movement < 0.05) confidence += 0.2;
+      }
+      switch (gesture) {
+        case "fist":
+          confidence += this.checkFistClarity(hand) ? 0.2 : -0.1;
+          break;
+        case "point":
+          confidence += this.checkPointClarity(hand) ? 0.2 : -0.1;
+          break;
+        case "thumbs_up":
+          confidence += this.checkThumbsUpClarity(hand) ? 0.2 : -0.1;
+          break;
+        case "open_palm":
+          confidence += this.checkOpenPalmClarity(hand) ? 0.2 : -0.05;
+          break;
+      }
+      return Math.max(0.1, Math.min(0.8, confidence));
     }
     checkFistClarity(hand) {
-        const fingerTips = [8, 12, 16, 20];
-        const fingerJoints = [6, 10, 14, 18];
-        let curledFingers = 0;
-        for (let i = 0; i < fingerTips.length; i++) {
-            if (hand[fingerTips[i]][1] > hand[fingerJoints[i]][1]) {
-                curledFingers++;
-            }
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      let curledFingers = 0;
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] > hand[fingerJoints[i]][1]) {
+          curledFingers++;
         }
-        return curledFingers >= 3; // At least 3 fingers curled
+      }
+      return curledFingers >= 3;
     }
     checkPointClarity(hand) {
-        const indexExtended = hand[8][1] < hand[6][1];
-        const otherFingersCurled = hand[12][1] > hand[10][1] && // Middle
-            hand[16][1] > hand[14][1] && // Ring
-            hand[20][1] > hand[18][1]; // Pinky
-        return indexExtended && otherFingersCurled;
+      const indexExtended = hand[8][1] < hand[6][1];
+      const otherFingersCurled = hand[12][1] > hand[10][1] && // Middle
+      hand[16][1] > hand[14][1] && // Ring
+      hand[20][1] > hand[18][1];
+      return indexExtended && otherFingersCurled;
     }
     checkThumbsUpClarity(hand) {
-        const thumbExtended = hand[4][1] < hand[3][1];
-        const otherFingersCurled = hand[8][1] > hand[6][1] && // Index
-            hand[12][1] > hand[10][1] && // Middle
-            hand[16][1] > hand[14][1] && // Ring
-            hand[20][1] > hand[18][1]; // Pinky
-        return thumbExtended && otherFingersCurled;
+      const thumbExtended = hand[4][1] < hand[3][1];
+      const otherFingersCurled = hand[8][1] > hand[6][1] && // Index
+      hand[12][1] > hand[10][1] && // Middle
+      hand[16][1] > hand[14][1] && // Ring
+      hand[20][1] > hand[18][1];
+      return thumbExtended && otherFingersCurled;
+    }
+    checkOpenPalmClarity(hand) {
+      const fingerTips = [8, 12, 16, 20];
+      const fingerJoints = [6, 10, 14, 18];
+      let extendedFingers = 0;
+      for (let i = 0; i < fingerTips.length; i++) {
+        if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+          extendedFingers += 1;
+        }
+      }
+      const thumbExtended = hand[4][1] < hand[2][1];
+      const palmWidth = Math.abs((hand[5]?.[0] ?? 0) - (hand[17]?.[0] ?? 0));
+      const palmHeight = Math.abs((hand[0]?.[1] ?? 0) - (hand[9]?.[1] ?? 0));
+      return extendedFingers >= 3 && thumbExtended && palmWidth > _FallbackGestureDetector.MIN_PALM_NORMALIZED_WIDTH && palmHeight > _FallbackGestureDetector.MIN_PALM_NORMALIZED_HEIGHT;
     }
     calculateMovement(prevHand, currHand) {
-        let totalMovement = 0;
-        let points = 0;
-        for (let i = 0; i < Math.min(prevHand.length, currHand.length); i++) {
-            if (prevHand[i] && currHand[i]) {
-                const dx = prevHand[i][0] - currHand[i][0];
-                const dy = prevHand[i][1] - currHand[i][1];
-                totalMovement += Math.sqrt(dx * dx + dy * dy);
-                points++;
-            }
+      let totalMovement = 0;
+      let points = 0;
+      for (let i = 0; i < Math.min(prevHand.length, currHand.length); i++) {
+        if (prevHand[i] && currHand[i]) {
+          const dx = prevHand[i][0] - currHand[i][0];
+          const dy = prevHand[i][1] - currHand[i][1];
+          totalMovement += Math.sqrt(dx * dx + dy * dy);
+          points++;
         }
-        return points > 0 ? totalMovement / points : 0;
+      }
+      return points > 0 ? totalMovement / points : 0;
     }
     smoothConfidence() {
-        var _a;
-        if (this.gestureHistory.length === 0)
-            return 0;
-        const recent = this.gestureHistory.slice(-3); // Last 3 detections
-        const avgConfidence = recent.reduce((sum, h) => sum + h.confidence, 0) / recent.length;
-        // Weight recent detections more heavily
-        return avgConfidence * 0.8 + (((_a = recent[recent.length - 1]) === null || _a === void 0 ? void 0 : _a.confidence) || 0) * 0.2;
+      if (this.gestureHistory.length === 0) return 0;
+      const recent = this.gestureHistory.slice(-3);
+      const avgConfidence = recent.reduce((sum, h) => sum + h.confidence, 0) / recent.length;
+      return avgConfidence * 0.8 + (recent[recent.length - 1]?.confidence || 0) * 0.2;
     }
     getGestureFeedback(gesture, confidence) {
-        // More adaptive feedback based on confidence levels for Amy's learning
-        if (confidence < 0.35) {
-            return 'Versuch es nochmal, halte deine Hand etwas ruhiger in der Mitte';
-        }
-        else if (confidence < 0.5) {
-            return 'Fast geschafft! Halte deine Hand noch etwas stabiler';
-        }
-        else if (confidence < 0.65) {
-            return 'Gut! Jetzt versuche es mit etwas mehr Selbstvertrauen';
-        }
-        // Positive reinforcement for successful gestures
-        switch (gesture) {
-            case 'fist':
-                return 'Super! Faust perfekt erkannt! 👊';
-            case 'point':
-                return 'Toll! Zeigefinger genau richtig! 👆';
-            case 'thumbs_up':
-                return 'Fantastisch! Daumen hoch geschafft! 👍';
-            case 'open_palm':
-                return 'Wunderbar! Offene Hand erkannt! 🖐️';
-            case 'peace':
-                return 'Prima! Peace-Zeichen gemacht! ✌️';
-            case 'four_fingers':
-                return 'Ausgezeichnet! Vier Finger gezeigt! ✋';
-            case 'middle_finger':
-                return 'Super! Mittelfinger erkannt! 🖕';
-            case 'three_fingers':
-                return 'Toll! Drei Finger gezeigt! 👌';
-            case 'circle_gesture':
-                return 'Prima! Kreis-Geste gemacht! ⭕';
-            default:
-                return 'Großartig! Geste erkannt! 🎉';
-        }
+      if (confidence < 0.4) {
+        return "Versuch es nochmal, wir schaffen das gemeinsam!";
+      }
+      const celebrationMessages = [
+        "Super! Deine Hand bewegt sich richtig.",
+        "Toll! Ich sehe deine Geste ganz deutlich.",
+        "Fantastisch! Das war eine klasse Geste."
+      ];
+      const gestureLabels = {
+        fist: "Faust",
+        point: "Zeigefinger",
+        peace: "Peace-Geste",
+        thumbs_up: "Daumen hoch",
+        open_palm: "offene Hand"
+      };
+      const clampedConfidence = Math.max(0, Math.min(1, confidence));
+      const messageIndex = Math.min(
+        celebrationMessages.length - 1,
+        Math.floor((clampedConfidence - 0.4) / 0.2)
+      );
+      const celebration = celebrationMessages[Math.max(0, messageIndex)];
+      const friendlyLabel = gestureLabels[gesture] ?? "deine Geste";
+      return `${celebration} (${friendlyLabel}).`;
     }
     reset() {
-        this.lastLandmarks = null;
-        this.gestureHistory = [];
+      this.lastLandmarks = null;
+      this.gestureHistory = [];
     }
-}
-const fallbackGestureDetector = new FallbackGestureDetector();
-// Configure gesture size tolerance (will be set after instantiation)
-try {
-    (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({ type: 'telemetry', event: 'mlp_ready' }));
-}
-catch (err) {
-    console.warn("Failed to send 'mlp_ready' telemetry event:", err);
-}
-const tapToStartText = window.__tapToStart || '';
-const recognizerInitFailed = window.__recognizerInitFailed || 'Erkennung konnte nicht gestartet werden: ';
-const predictionError = window.__predictionError || 'Vorhersagefehler: ';
-const cameraError = window.__cameraError || 'Kamerafehler: ';
-const facingMode = window.__facingMode || 'user';
-const mirrorOverlay = window.__mirrorOverlay === true;
-// Amy First: Adaptive thresholds for imperfect gestures (22q11 syndrome)
-// Lower base thresholds but allow dynamic adjustment based on context
-const MLP_CONFIDENCE_THRESHOLD = (_c = window.__mlpThreshold) !== null && _c !== void 0 ? _c : 0.32; // Slightly lower for better responsiveness
-// Minimum confidence below which custom gesture fallbacks activate
-const FALLBACK_CONFIDENCE_THRESHOLD = (_d = window.__fallbackThreshold) !== null && _d !== void 0 ? _d : 0.22; // Slightly lower for earlier fallback
-// Emergency gesture threshold - much lower for critical communications
-const EMERGENCY_CONFIDENCE_THRESHOLD = 0.12; // Slightly lower for faster emergency detection
-// Timeout for CDN fetches and script loads to avoid hangs
-const LOAD_TIMEOUT_MS = 8000;
-// Gesture size tolerance (0.1 to 1.0, default 0.3 = 30% tolerance)
-const GESTURE_SIZE_TOLERANCE = (_e = window.__gestureSizeTolerance) !== null && _e !== void 0 ? _e : 0.3;
-// Enhanced Emergency Gesture System - Amy First Priority
-class EmergencyGestureSystem {
+  };
+
+  // webview/utils/MessageBatcher.ts
+  var BATCH_INTERVAL_MS = 50;
+  var MAX_BATCH_SIZE = 5;
+  var FRAME_LATENCY_SAMPLE_INTERVAL = 10;
+  var MessageBatcher = class {
     constructor() {
-        this.EMERGENCY_GESTURES = new Set([
-            'hilfe', 'help', 'emergency', 'stop', 'danger',
-            'notfall', 'gefahr', 'au', 'schmerz', 'angst',
-            'hilf', 'rettung', 'gefahr', 'auwehr', 'schmerzen'
-        ]);
-        this.EMERGENCY_CONFIDENCE_THRESHOLD = 0.15; // Even lower threshold for emergencies
-        this.lastEmergencyGestureTime = 0;
-        this.EMERGENCY_COOLDOWN_MS = 300; // Faster response for repeated emergencies
-        this.emergencyHistory = [];
-        this.MAX_HISTORY = 15; // Keep more history for pattern analysis
-        this.emergencyModeActive = false;
+      this.queue = [];
+      this.timer = null;
+      this.frameCount = 0;
+      this.lastSentAt = 0;
+    }
+    queueMessage(payload, options = {}) {
+      this.queue.push(payload);
+      this.frameCount += 1;
+      if (options.flushImmediately) {
+        this.forceFlush();
+        return;
+      }
+      if (this.queue.length >= MAX_BATCH_SIZE || this.frameCount > 0 && this.frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
+        this.flushBatch();
+        return;
+      }
+      if (!this.timer) {
+        this.timer = setTimeout(() => this.flushBatch(), BATCH_INTERVAL_MS);
+      }
+    }
+    flushBatch() {
+      if (!this.queue.length) {
+        this.clearTimer();
+        return;
+      }
+      const messages = this.queue.slice();
+      this.queue = [];
+      this.clearTimer();
+      const batchPayload = {
+        type: "gesture_batch",
+        messageCount: messages.length,
+        frameCount: this.frameCount,
+        lastSentAt: Date.now(),
+        messages
+      };
+      try {
+        if (window.ReactNativeWebView?.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(batchPayload));
+        } else {
+          console.warn("MessageBatcher: ReactNativeWebView not available, logging batch", batchPayload);
+        }
+        this.lastSentAt = batchPayload.lastSentAt;
+      } catch (error) {
+        console.error("MessageBatcher failed to flush batch:", error);
+      } finally {
+        this.frameCount = 0;
+      }
+    }
+    forceFlush() {
+      this.flushBatch();
+    }
+    getQueueStatus() {
+      return {
+        pending: this.queue.length,
+        frameCount: this.frameCount,
+        lastSentAt: this.lastSentAt
+      };
+    }
+    clearTimer() {
+      if (this.timer) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+    }
+  };
+  var messageBatcher = new MessageBatcher();
+
+  // webview/core/EmergencyGestureSystem.ts
+  var EmergencyGestureSystem = class {
+    constructor() {
+      this.EMERGENCY_GESTURES = /* @__PURE__ */ new Set([
+        "hilfe",
+        "help",
+        "emergency",
+        "stop",
+        "danger",
+        "notfall",
+        "gefahr",
+        "au",
+        "schmerz",
+        "angst"
+      ]);
+      this.EMERGENCY_CONFIDENCE_THRESHOLD = 0.25;
+      // Very low threshold for emergencies
+      this.lastEmergencyGestureTime = 0;
+      this.EMERGENCY_COOLDOWN_MS = 500;
+      // Quick response for repeated emergencies
+      this.emergencyHistory = [];
+      this.MAX_HISTORY = 10;
     }
     /**
      * Check if gesture is an emergency and should be prioritized
      */
     isEmergencyGesture(gesture, confidence) {
-        if (!this.EMERGENCY_GESTURES.has(gesture.toLowerCase())) {
-            return false;
-        }
-        // Emergency gestures bypass normal confidence thresholds
-        return confidence >= this.EMERGENCY_CONFIDENCE_THRESHOLD;
+      if (!gesture) return false;
+      if (!this.EMERGENCY_GESTURES.has(gesture.toLowerCase())) return false;
+      return confidence >= this.EMERGENCY_CONFIDENCE_THRESHOLD;
     }
     /**
      * Process emergency gesture with priority handling
      */
     processEmergencyGesture(gesture, confidence, landmarks) {
-        const now = Date.now();
-        const timeSinceLastEmergency = now - this.lastEmergencyGestureTime;
-        // Track emergency history
-        this.emergencyHistory.push({
-            gesture,
-            timestamp: now,
-            confidence
-        });
-        if (this.emergencyHistory.length > this.MAX_HISTORY) {
-            this.emergencyHistory.shift();
-        }
-        if (!this.isEmergencyGesture(gesture, confidence)) {
-            return {
-                shouldProcess: false,
-                priority: 'normal',
-                cooldownRemaining: 0,
-                feedback: ''
-            };
-        }
-        // Check cooldown to prevent spam
-        if (timeSinceLastEmergency < this.EMERGENCY_COOLDOWN_MS) {
-            return {
-                shouldProcess: false,
-                priority: 'critical',
-                cooldownRemaining: this.EMERGENCY_COOLDOWN_MS - timeSinceLastEmergency,
-                feedback: 'Notfall-Geste erkannt, wird verarbeitet...'
-            };
-        }
-        // Process emergency gesture
-        this.lastEmergencyGestureTime = now;
-        // Send emergency telemetry
-        this.sendEmergencyTelemetry(gesture, confidence);
+      const now = Date.now();
+      const timeSinceLastEmergency = now - this.lastEmergencyGestureTime;
+      this.emergencyHistory.push({
+        gesture,
+        timestamp: now,
+        confidence
+      });
+      if (this.emergencyHistory.length > this.MAX_HISTORY) {
+        this.emergencyHistory.shift();
+      }
+      if (!this.isEmergencyGesture(gesture, confidence)) {
         return {
-            shouldProcess: true,
-            priority: 'critical',
-            cooldownRemaining: 0,
-            feedback: this.getEmergencyFeedback(gesture)
+          shouldProcess: false,
+          priority: "normal",
+          cooldownRemaining: 0,
+          feedback: ""
         };
+      }
+      if (timeSinceLastEmergency < this.EMERGENCY_COOLDOWN_MS) {
+        return {
+          shouldProcess: false,
+          priority: "critical",
+          cooldownRemaining: this.EMERGENCY_COOLDOWN_MS - timeSinceLastEmergency,
+          feedback: "Notfall-Geste erkannt, wird verarbeitet..."
+        };
+      }
+      this.lastEmergencyGestureTime = now;
+      this.sendEmergencyTelemetry(gesture, confidence, landmarks);
+      return {
+        shouldProcess: true,
+        priority: "critical",
+        cooldownRemaining: 0,
+        feedback: this.getEmergencyFeedback(gesture)
+      };
     }
     /**
      * Get appropriate feedback for emergency gesture
      */
     getEmergencyFeedback(gesture) {
-        const feedbackMap = {
-            'hilfe': '🆘 Hilfe wird gerufen!',
-            'help': '🆘 Help is being called!',
-            'emergency': '🚨 Notfall erkannt!',
-            'stop': '⏹️ Stop-Signal erkannt!',
-            'danger': '⚠️ Gefahr erkannt!',
-            'notfall': '🚨 Notfall-Situation!',
-            'gefahr': '⚠️ Gefahr-Signal!',
-            'au': '😣 Schmerzsignal erkannt!',
-            'schmerz': '😣 Pain signal detected!',
-            'angst': '😨 Angstsignal erkannt!'
-        };
-        return feedbackMap[gesture.toLowerCase()] || '🚨 Notfall-Geste erkannt!';
+      const feedbackMap = {
+        "hilfe": "\u{1F198} Hilfe wird gerufen!",
+        "help": "\u{1F198} Help is being called!",
+        "emergency": "\u{1F6A8} Notfall erkannt!",
+        "stop": "\u23F9\uFE0F Stop-Signal erkannt!",
+        "danger": "\u26A0\uFE0F Gefahr erkannt!",
+        "notfall": "\u{1F6A8} Notfall-Situation!",
+        "gefahr": "\u26A0\uFE0F Gefahr-Signal!",
+        "au": "\u{1F623} Schmerzsignal erkannt!",
+        "schmerz": "\u{1F623} Pain signal detected!",
+        "angst": "\u{1F628} Angstsignal erkannt!"
+      };
+      return feedbackMap[gesture.toLowerCase()] || "\u{1F6A8} Notfall-Geste erkannt!";
     }
     /**
      * Send emergency telemetry to React Native
      */
-    sendEmergencyTelemetry(gesture, confidence) {
-        var _a, _b;
-        try {
-            (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({
-                type: 'emergency_gesture',
-                gesture,
-                confidence,
-                timestamp: Date.now(),
-                systemHealth: errorRecoveryManager.getHealthStatus()
-            }));
-        }
-        catch (err) {
-            console.error('Failed to send emergency telemetry:', err);
-        }
+    sendEmergencyTelemetry(gesture, confidence, landmarks) {
+      const timestamp = Date.now();
+      const normalizedLandmarks = landmarks ?? [];
+      const handCount = normalizedLandmarks.length;
+      const pointsPerHand = handCount > 0 && Array.isArray(normalizedLandmarks[0]) ? normalizedLandmarks[0].length : 0;
+      const basePayload = {
+        gesture,
+        confidence,
+        timestamp,
+        systemHealth: "active",
+        handCount,
+        pointsPerHand
+      };
+      try {
+        messageBatcher.queueMessage(
+          {
+            type: "telemetry",
+            event: "emergency_gesture_detected",
+            ...basePayload
+          },
+          { flushImmediately: false }
+        );
+        messageBatcher.queueMessage(
+          {
+            type: "emergency_gesture",
+            ...basePayload
+          },
+          { flushImmediately: true }
+        );
+      } catch (err2) {
+        console.error("Failed to enqueue emergency telemetry:", err2);
+      }
     }
     /**
      * Check if system should enter emergency-only mode
      */
     shouldEnterEmergencyMode() {
-        const recentEmergencies = this.emergencyHistory.filter(h => Date.now() - h.timestamp < 30000 // Last 30 seconds
-        );
-        // Enter emergency mode if 3+ emergencies in 30 seconds
-        return recentEmergencies.length >= 3;
+      const recentEmergencies = this.emergencyHistory.filter(
+        (h) => Date.now() - h.timestamp < 3e4
+        // Last 30 seconds
+      );
+      return recentEmergencies.length >= 3;
     }
     /**
      * Get emergency system status
      */
     getStatus() {
-        const recentEmergencies = this.emergencyHistory.filter(h => Date.now() - h.timestamp < 60000 // Last minute
-        );
-        return {
-            activeEmergencies: recentEmergencies.length,
-            lastEmergencyTime: this.lastEmergencyGestureTime,
-            emergencyModeRecommended: this.shouldEnterEmergencyMode(),
-            emergencyModeActive: this.emergencyModeActive
-        };
-    }
-    /**
-     * Activate emergency mode for priority processing
-     */
-    activateEmergencyMode() {
-        this.emergencyModeActive = true;
-        console.warn('🚨 EMERGENCY MODE ACTIVATED: All gestures treated as potential emergencies');
-    }
-    /**
-     * Deactivate emergency mode
-     */
-    deactivateEmergencyMode() {
-        this.emergencyModeActive = false;
-        console.log('✅ Emergency mode deactivated');
-    }
-    /**
-     * Check if emergency mode is currently active
-     */
-    isEmergencyModeActive() {
-        return this.emergencyModeActive;
+      const recentEmergencies = this.emergencyHistory.filter(
+        (h) => Date.now() - h.timestamp < 6e4
+        // Last minute
+      );
+      return {
+        activeEmergencies: recentEmergencies.length,
+        lastEmergencyTime: this.lastEmergencyGestureTime,
+        emergencyModeRecommended: this.shouldEnterEmergencyMode()
+      };
     }
     /**
      * Reset emergency system (for testing or recovery)
      */
     reset() {
-        this.emergencyHistory = [];
-        this.lastEmergencyGestureTime = 0;
+      this.emergencyHistory = [];
+      this.lastEmergencyGestureTime = 0;
     }
-}
-const emergencyGestureSystem = new EmergencyGestureSystem();
-// Enhanced celebration and feedback systems for 22q11 accessibility
-const celebrationSystem = new CelebrationSystem();
-const feedbackSystem = new FeedbackSystem();
-// Personalized threshold manager for Amy's individual gesture patterns
-const personalizedThresholdManager = new PersonalizedThresholdManager();
-// Gesture combination manager for complex communication sequences
-const gestureCombinationManager = new GestureCombinationManager();
-// Enhanced haptic feedback manager for immediate response
-const hapticFeedbackManager = new HapticFeedbackManager();
-// Gesture replay manager for slow-motion learning
-const gestureReplayManager = new GestureReplayManager();
-// Navigation gesture manager for simple navigation commands
-const navigationGestureManager = new NavigationGestureManager();
-// Visual correction manager for picture-based corrections
-const visualCorrectionManager = new VisualCorrectionManager();
-// Gesture undo manager for simple undo functionality
-const gestureUndoManager = new GestureUndoManager();
-// Enhanced context-aware recognizer for comprehensive pattern analysis
-const enhancedContextRecognizer = new EnhancedContextAwareRecognizer();
-// Adaptive practice manager for optimal timing
-const adaptivePracticeManager = new AdaptivePracticeManager();
-// Positive telemetry manager for success-focused insights
-// Battery monitoring will be initialized after class declaration
-// Amy First: Battery monitoring and emergency mode activation
-class BatteryMonitor {
+  };
+
+  // webview/core/HandStabilityAssistant.ts
+  var HandStabilityAssistant = class {
     constructor() {
-        this.batteryLevel = 1.0;
-        this.isMonitoring = false;
-        this.emergencyMode = false;
-        this.lastBatteryCheck = 0;
-        this.BATTERY_CHECK_INTERVAL = 30000; // Check every 30 seconds
-        this.EMERGENCY_BATTERY_THRESHOLD = 0.05; // 5% battery triggers emergency mode
-    }
-    /**
-     * Start battery monitoring for emergency mode activation
-     */
-    startMonitoring() {
-        if (this.isMonitoring)
-            return;
-        this.isMonitoring = true;
-        this.checkBatteryLevel();
-        // Set up periodic battery checks
-        setInterval(() => {
-            this.checkBatteryLevel();
-        }, this.BATTERY_CHECK_INTERVAL);
-    }
-    /**
-     * Check current battery level and activate emergency mode if critical
-     */
-    checkBatteryLevel() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                // Use navigator.getBattery() if available (older API)
-                if ('getBattery' in navigator) {
-                    const battery = yield navigator.getBattery();
-                    this.batteryLevel = battery.level;
-                    this.handleBatteryLevel(this.batteryLevel);
-                }
-                else if ('battery' in navigator) {
-                    // Fallback for some mobile browsers
-                    this.batteryLevel = navigator.battery.level;
-                    this.handleBatteryLevel(this.batteryLevel);
-                }
-                else {
-                    // Fallback: assume adequate battery if we can't detect
-                    this.batteryLevel = 0.5;
-                }
-            }
-            catch (error) {
-                console.warn('Battery monitoring failed:', error);
-                // Assume adequate battery on monitoring failure
-                this.batteryLevel = 0.5;
-            }
-            this.lastBatteryCheck = Date.now();
-        });
-    }
-    /**
-     * Handle battery level changes and emergency mode activation
-     */
-    handleBatteryLevel(level) {
-        const wasEmergency = this.emergencyMode;
-        this.emergencyMode = level <= this.EMERGENCY_BATTERY_THRESHOLD;
-        if (this.emergencyMode && !wasEmergency) {
-            console.warn(`🔋 CRITICAL BATTERY: ${Math.round(level * 100)}% - Activating emergency mode`);
-            this.activateEmergencyMode();
-        }
-        else if (!this.emergencyMode && wasEmergency) {
-            console.log(`🔋 Battery recovered: ${Math.round(level * 100)}% - Deactivating emergency mode`);
-            this.deactivateEmergencyMode();
-        }
-    }
-    /**
-     * Activate emergency mode for critical battery situations
-     */
-    activateEmergencyMode() {
-        var _a, _b;
-        try {
-            (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({
-                type: 'emergency_mode_activated',
-                reason: 'critical_battery',
-                batteryLevel: this.batteryLevel,
-                timestamp: Date.now()
-            }));
-        }
-        catch (error) {
-            console.error('Failed to send emergency mode activation:', error);
-        }
-    }
-    /**
-     * Deactivate emergency mode when battery recovers
-     */
-    deactivateEmergencyMode() {
-        var _a, _b;
-        try {
-            (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({
-                type: 'emergency_mode_deactivated',
-                reason: 'battery_recovered',
-                batteryLevel: this.batteryLevel,
-                timestamp: Date.now()
-            }));
-        }
-        catch (error) {
-            console.error('Failed to send emergency mode deactivation:', error);
-        }
-    }
-    /**
-     * Get current battery status
-     */
-    getStatus() {
-        return {
-            level: this.batteryLevel,
-            emergencyMode: this.emergencyMode,
-            lastCheck: this.lastBatteryCheck
-        };
-    }
-    /**
-     * Force emergency mode for testing
-     */
-    forceEmergencyMode() {
-        this.emergencyMode = true;
-        this.activateEmergencyMode();
-    }
-    /**
-     * Reset emergency mode for testing
-     */
-    resetEmergencyMode() {
-        this.emergencyMode = false;
-        this.deactivateEmergencyMode();
-    }
-}
-const batteryMonitor = new BatteryMonitor();
-const partialGestureDetector = new PartialGestureDetector();
-// Create a local instance for size normalization used in this module
-const gestureSizeNormalizer = new GestureSizeNormalizer();
-// Initialize systems after all declarations
-batteryMonitor.startMonitoring();
-gestureSizeNormalizer.setTolerance(GESTURE_SIZE_TOLERANCE);
-// Add missing global references for tests
-window.emergencyGestureSystem = emergencyGestureSystem;
-window.errorRecoveryManager = errorRecoveryManager;
-window.batteryMonitor = batteryMonitor;
-window.handStabilityAssistant = handStabilityAssistant;
-window.partialGestureDetector = partialGestureDetector;
-window.tremorCompensator = tremorCompensator;
-window.gestureSizeNormalizer = gestureSizeNormalizer;
-window.celebrationSystem = celebrationSystem;
-window.feedbackSystem = feedbackSystem;
-window.enhancedContextRecognizer = enhancedContextRecognizer;
-window.adaptivePracticeManager = adaptivePracticeManager;
-// Add missing window properties for tests
-window.__mlpPredict = undefined;
-window.__modelUpdateInProgress = false;
-window.__activeRecognitionSession = false;
-// Expose frame capture functions for testing and debugging
-// (moved below after function declarations to avoid temporal dead zone)
-// Test-mode shims to keep critical paths working in jsdom
-try {
-    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
-        // Ensure emergency gestures always process in tests for safety scenarios
-        const eg = window.emergencyGestureSystem;
-        if (eg && typeof eg.processEmergencyGesture === 'function') {
-            const orig = eg.processEmergencyGesture.bind(eg);
-            eg.processEmergencyGesture = (gesture, confidence, landmarks) => {
-                var _a, _b;
-                const res = orig(gesture, confidence, landmarks) || {};
-                const g = (gesture || '').toLowerCase();
-                const emergencyWords = ['help', 'emergency', 'stop', 'hilfe', 'notfall', 'gefahr', 'au', 'schmerz', 'angst'];
-                if (emergencyWords.some(w => g.includes(w))) {
-                    try {
-                        (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify('emergency_gesture'));
-                    }
-                    catch (_c) { }
-                    return Object.assign(Object.assign({}, res), { shouldProcess: true, priority: 'critical' });
-                }
-                return res;
-            };
-        }
-    }
-}
-catch (_h) { }
-// GestureSizeNormalizer is imported from gestureProcessing.ts
-// PartialGestureDetector and TremorCompensator are imported from gestureProcessing.ts
-// CelebrationSystem and FeedbackSystem are imported from utils
-// Hand stability assistance system
-class HandStabilityAssistant {
-    constructor() {
-        this.stabilityHistory = [];
-        this.MAX_HISTORY = 10;
-        this.stabilityThreshold = 0.02; // Movement threshold for stability
-        this.stabilityScore = 0;
-        this.lastStablePosition = null;
+      this.stabilityHistory = [];
+      this.MAX_HISTORY = 10;
+      this.stabilityThreshold = 0.02;
+      // Movement threshold for stability
+      this.stabilityScore = 0;
+      this.lastStablePosition = null;
     }
     /**
      * Analyze hand stability based on landmark movement
      */
     analyzeStability(landmarks) {
-        if (landmarks.length === 0 || !landmarks[0]) {
-            return { isStable: false, stabilityScore: 0, feedback: 'Positioniere deine Hand in der Kamera' };
+      if (landmarks.length === 0 || !landmarks[0]) {
+        return { isStable: false, stabilityScore: 0, feedback: "Positioniere deine Hand in der Kamera" };
+      }
+      const hand = landmarks[0];
+      if (hand.length < 21) {
+        return { isStable: false, stabilityScore: 0, feedback: "Halte deine Hand ruhig" };
+      }
+      const palmCenter = this.calculatePalmCenter(hand);
+      const movement = this.lastStablePosition ? this.calculateMovement(this.lastStablePosition, palmCenter) : 0;
+      this.stabilityHistory.push(movement);
+      if (this.stabilityHistory.length > this.MAX_HISTORY) {
+        this.stabilityHistory.shift();
+      }
+      const avgMovement = this.stabilityHistory.reduce((sum, m) => sum + m, 0) / this.stabilityHistory.length;
+      this.stabilityScore = Math.max(0, 1 - avgMovement / this.stabilityThreshold);
+      const isStable = this.stabilityScore > 0.7;
+      if (isStable) {
+        this.lastStablePosition = palmCenter;
+      }
+      let feedback = "";
+      let guidePosition;
+      if (!isStable) {
+        if (this.stabilityScore < 0.3) {
+          feedback = "Halte deine Hand ruhiger";
+          guidePosition = { x: 0.5, y: 0.5 };
+        } else if (this.stabilityScore < 0.7) {
+          feedback = "Fast geschafft! Halte still";
         }
-        const hand = landmarks[0];
-        if (hand.length < 21) {
-            return { isStable: false, stabilityScore: 0, feedback: 'Halte deine Hand ruhig' };
-        }
-        // Calculate center of palm as reference point
-        const palmCenter = this.calculatePalmCenter(hand);
-        const movement = this.lastStablePosition
-            ? this.calculateMovement(this.lastStablePosition, palmCenter)
-            : 0;
-        // Update stability history
-        this.stabilityHistory.push(movement);
-        if (this.stabilityHistory.length > this.MAX_HISTORY) {
-            this.stabilityHistory.shift();
-        }
-        // Calculate stability score (lower movement = higher stability)
-        const avgMovement = this.stabilityHistory.reduce((sum, m) => sum + m, 0) / this.stabilityHistory.length;
-        this.stabilityScore = Math.max(0, 1 - (avgMovement / this.stabilityThreshold));
-        const isStable = this.stabilityScore > 0.7;
-        if (isStable) {
-            this.lastStablePosition = palmCenter;
-        }
-        let feedback = '';
-        let guidePosition;
-        if (!isStable) {
-            if (this.stabilityScore < 0.3) {
-                feedback = 'Halte deine Hand ruhiger';
-                guidePosition = { x: 0.5, y: 0.5 }; // Center of screen
-            }
-            else if (this.stabilityScore < 0.7) {
-                feedback = 'Fast geschafft! Halte still';
-            }
-        }
-        else {
-            feedback = 'Perfekt! Hand ist stabil';
-        }
-        return {
-            isStable,
-            stabilityScore: this.stabilityScore,
-            feedback,
-            guidePosition
-        };
+      } else {
+        feedback = "Perfekt! Hand ist stabil";
+      }
+      return {
+        isStable,
+        stabilityScore: this.stabilityScore,
+        feedback,
+        guidePosition
+      };
     }
     /**
      * Calculate center of palm using key landmarks
      */
     calculatePalmCenter(hand) {
-        // Use wrist and base of fingers as reference
-        const wrist = hand[0];
-        const indexBase = hand[5];
-        const pinkyBase = hand[17];
-        const centerX = (wrist[0] + indexBase[0] + pinkyBase[0]) / 3;
-        const centerY = (wrist[1] + indexBase[1] + pinkyBase[1]) / 3;
-        const centerZ = (wrist[2] + indexBase[2] + pinkyBase[2]) / 3;
-        return [[centerX, centerY, centerZ]];
+      const wrist = hand[0];
+      const indexBase = hand[5];
+      const pinkyBase = hand[17];
+      const centerX = (wrist[0] + indexBase[0] + pinkyBase[0]) / 3;
+      const centerY = (wrist[1] + indexBase[1] + pinkyBase[1]) / 3;
+      const centerZ = (wrist[2] + indexBase[2] + pinkyBase[2]) / 3;
+      return [[centerX, centerY, centerZ]];
     }
     /**
      * Calculate movement between two positions
      */
     calculateMovement(pos1, pos2) {
-        if (!pos1[0] || !pos2[0])
-            return 0;
-        const dx = pos1[0][0] - pos2[0][0];
-        const dy = pos1[0][1] - pos2[0][1];
-        const dz = pos1[0][2] - pos2[0][2];
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (!pos1[0] || !pos2[0]) return 0;
+      const dx = pos1[0][0] - pos2[0][0];
+      const dy = pos1[0][1] - pos2[0][1];
+      const dz = pos1[0][2] - pos2[0][2];
+      return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
     /**
      * Reset stability tracking
      */
     reset() {
-        this.stabilityHistory = [];
-        this.stabilityScore = 0;
-        this.lastStablePosition = null;
+      this.stabilityHistory = [];
+      this.stabilityScore = 0;
+      this.lastStablePosition = null;
     }
     /**
      * Get current stability status
      */
     getStabilityStatus() {
-        return {
-            score: this.stabilityScore,
-            isStable: this.stabilityScore > 0.7
-        };
+      return {
+        score: this.stabilityScore,
+        isStable: this.stabilityScore > 0.7
+      };
     }
-}
-const handStabilityAssistant = new HandStabilityAssistant();
-const tremorCompensator = new TremorCompensator();
-let lastProcessedLandmarks = [];
-let feedbackHistory = [];
-const resourceManager = new ResourceManager();
-// Error Recovery Manager already defined above
-// Dynamically load MediaPipe Tasks Vision from CDN and wait until it's ready
-function loadTasksVision() {
-    return __awaiter(this, void 0, void 0, function* () {
-        // Resolve a pinned version from host config if provided
-        function resolvePinnedBase() {
-            return __awaiter(this, void 0, void 0, function* () {
-                const pinnedVersion = window.__mediapipeVersion;
-                if (typeof pinnedVersion === 'string' && pinnedVersion.length) {
-                    return { base: 'https://cdn.jsdelivr.net/npm', version: pinnedVersion };
-                }
-                const cdns = ['https://cdn.jsdelivr.net/npm', 'https://unpkg.com'];
-                const controllers = cdns.map(() => new AbortController());
-                const fetches = cdns.map((base, i) => (() => __awaiter(this, void 0, void 0, function* () {
-                    try {
-                        const ac = controllers[i];
-                        const t = setTimeout(() => ac.abort(), LOAD_TIMEOUT_MS);
-                        const pkg = yield fetch(base + '/@mediapipe/tasks-vision/package.json', {
-                            method: 'GET',
-                            signal: ac.signal,
-                            cache: 'no-store',
-                        }).finally(() => clearTimeout(t));
-                        if (pkg.ok) {
-                            const json = yield pkg.json().catch(() => null);
-                            const v = json === null || json === void 0 ? void 0 : json.version;
-                            if (typeof v === 'string' && v.length) {
-                                controllers.forEach((c, j) => {
-                                    if (j !== i)
-                                        c.abort();
-                                });
-                                return { base, version: v };
-                            }
-                        }
-                    }
-                    catch (err) {
-                        if ((err === null || err === void 0 ? void 0 : err.name) !== 'AbortError') {
-                            console.warn('Fetch failed:', base, err);
-                        }
-                    }
-                    return null;
-                }))());
-                const results = yield Promise.all(fetches);
-                return results.find(Boolean) || null;
-            });
-        }
-        function tryLoadScript(src, integrity, timeoutMs = LOAD_TIMEOUT_MS) {
-            return new Promise((resolve, reject) => {
-                const s = document.createElement('script');
-                s.src = src;
-                if (integrity) {
-                    s.integrity = integrity;
-                    s.crossOrigin = 'anonymous';
-                }
-                if (window.__visionBundleNonce) {
-                    s.nonce = window.__visionBundleNonce;
-                }
-                s.async = true;
-                const cleanup = () => {
-                    s.onload = s.onerror = null;
-                    if (s.parentNode)
-                        s.parentNode.removeChild(s);
-                };
-                const to = setTimeout(() => {
-                    cleanup();
-                    reject(new Error('Script load timeout: ' + src));
-                }, timeoutMs);
-                s.onload = () => {
-                    clearTimeout(to);
-                    cleanup();
-                    resolve(null);
-                };
-                s.onerror = () => {
-                    clearTimeout(to);
-                    cleanup();
-                    reject(new Error('Script failed to load: ' + src));
-                };
-                document.head.appendChild(s);
-            });
-        }
-        const haveUMD = () => window.fileset_resolver &&
-            window.fileset_resolver.FilesetResolver &&
-            window.vision &&
-            window.vision.GestureRecognizer;
-        // Compute preferred URLs
-        const pinned = yield resolvePinnedBase();
-        const candidates = [];
-        if (pinned) {
-            candidates.push({
-                umd: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/vision_bundle.js',
-                esm: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/vision_bundle.mjs',
-                wasm: pinned.base + '/@mediapipe/tasks-vision@' + pinned.version + '/wasm',
-            });
-        }
-        // Generic latest as fallback
-        candidates.push({
-            umd: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js',
-            esm: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs',
-            wasm: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm',
-        });
-        candidates.push({
-            umd: 'https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.js',
-            esm: 'https://unpkg.com/@mediapipe/tasks-vision/vision_bundle.mjs',
-            wasm: 'https://unpkg.com/@mediapipe/tasks-vision/wasm',
-        });
-        let lastError = null;
-        for (const c of candidates) {
-            try {
-                // Try UMD first
-                if (!haveUMD()) {
-                    const sri = pinned && c.umd.includes(`@${pinned.version}/`) ? window.__visionBundleSri : undefined;
-                    yield tryLoadScript(c.umd, sri);
-                }
-                if (haveUMD()) {
-                    return {
-                        FilesetResolver: window.fileset_resolver.FilesetResolver,
-                        GestureRecognizer: window.vision.GestureRecognizer,
-                        wasmBase: c.wasm,
-                    };
-                }
-                // Try ESM next (optional: gate via host config)
-                if (window.__allowCdnEsm === true) {
-                    try {
-                        const mod = yield import(/* @vite-ignore */ c.esm);
-                        if ((mod === null || mod === void 0 ? void 0 : mod.FilesetResolver) && (mod === null || mod === void 0 ? void 0 : mod.GestureRecognizer)) {
-                            return {
-                                FilesetResolver: mod.FilesetResolver,
-                                GestureRecognizer: mod.GestureRecognizer,
-                                wasmBase: c.wasm,
-                            };
-                        }
-                    }
-                    catch (e) {
-                        lastError = e;
-                    }
-                }
-            }
-            catch (e) {
-                lastError = e;
-            }
-        }
-        throw new Error('Tasks Vision globals not available' +
-            (lastError ? ': ' + (lastError.message || lastError) : ''));
-    });
-}
-// Initialize new modular gesture detector
-const video = document.createElement('video');
-const overlay = document.createElement('canvas');
-// Local overlay sizing state for legacy drawing paths
-let overlayWidth = 0;
-let overlayHeight = 0;
-let overlayDpr = 1;
-overlay.id = 'overlay';
-video.setAttribute('autoplay', '');
-video.setAttribute('playsinline', '');
-video.setAttribute('muted', '');
-// Create main gesture detector instance
-let mainGestureDetector = null;
-function initDom() {
-    var _a, _b, _c, _d;
-    document.body.appendChild(video);
-    document.body.appendChild(overlay);
-    try {
-        resizeOverlay();
+    /**
+     * Set stability threshold
+     */
+    setStabilityThreshold(threshold) {
+      this.stabilityThreshold = Math.max(0.01, Math.min(0.1, threshold));
     }
-    catch (e) {
-        console.warn('Initial resize failed:', e);
+    /**
+     * Get stability statistics
+     */
+    getStabilityStats() {
+      const avgMovement = this.stabilityHistory.length > 0 ? this.stabilityHistory.reduce((sum, m) => sum + m, 0) / this.stabilityHistory.length : 0;
+      return {
+        currentScore: this.stabilityScore,
+        averageMovement: avgMovement,
+        historySize: this.stabilityHistory.length,
+        threshold: this.stabilityThreshold
+      };
     }
-    if (typeof ResizeObserver === 'function') {
-        videoResizeObserver = new ResizeObserver(() => resizeOverlay());
-        videoResizeObserver.observe(video);
-        // Register observer with resource manager
-        resourceManager.registerObserver(videoResizeObserver);
-    }
-    else {
-        const onWinResize = () => resizeOverlay();
-        window.addEventListener('resize', onWinResize);
-        removeWindowResize = () => window.removeEventListener('resize', onWinResize);
-        // Register event listener with resource manager
-        resourceManager.registerEventListener(window, 'resize', onWinResize);
-    }
-    const tap = document.createElement('div');
-    tap.id = 'tapToStart';
-    tap.innerText = tapToStartText;
-    if (window.__autostartCamera === true && ((_b = (_a = navigator.userActivation) === null || _a === void 0 ? void 0 : _a.hasBeenActive) !== null && _b !== void 0 ? _b : false)) {
-        tap.classList.add('hidden');
-    }
-    // Register tap button event listener with resource manager
-    const tapClickHandler = () => __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d;
-        try {
-            (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({ type: 'telemetry', event: 'tap_start' }));
-        }
-        catch (postErr) {
-            console.warn("Failed to send 'tap_start' telemetry event:", postErr);
-        }
-        try {
-            yield startCamera();
-            tap.classList.add('hidden');
-        }
-        catch (err) {
-            try {
-                (_d = (_c = window.ReactNativeWebView) === null || _c === void 0 ? void 0 : _c.postMessage) === null || _d === void 0 ? void 0 : _d.call(_c, JSON.stringify({
-                    type: 'error',
-                    message: cameraError + (err instanceof Error ? err.message : String(err)),
-                }));
-            }
-            catch (postErr) {
-                console.warn('Failed to send camera error:', postErr);
-            }
-            return;
-        }
-    });
-    tap.addEventListener('click', tapClickHandler);
-    resourceManager.registerEventListener(tap, 'click', tapClickHandler);
-    document.body.appendChild(tap);
-    try {
-        (_d = (_c = window.ReactNativeWebView) === null || _c === void 0 ? void 0 : _c.postMessage) === null || _d === void 0 ? void 0 : _d.call(_c, JSON.stringify({ type: 'telemetry', event: 'dom_ready' }));
-    }
-    catch (err) {
-        console.warn("Failed to send 'dom_ready' telemetry event:", err);
-    }
-}
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initDom);
-}
-else {
-    initDom();
-}
-function createGestureRecognizer() {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d;
-        try {
-            // Create and initialize the new modular gesture detector
-            mainGestureDetector = new GestureDetector(video, overlay);
-            yield mainGestureDetector.initialize();
-            // Set up result callback for processing gesture results
-            mainGestureDetector.setResultCallback((results, timestamp) => {
-                processGestureResults(results, timestamp);
-            });
-            // Send telemetry
-            try {
-                (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({ type: 'telemetry', event: 'recognizer_init', ms: 0 }));
-            }
-            catch (err) {
-                console.warn('Failed to send "recognizer_init" telemetry event:', err);
-            }
-            // Initialize frame capture for parallel processing
-            initializeFrameCapture();
-            resetGestureChangeState();
-            /**
-             * Initialize frame capture system for parallel OpenAI processing
-             */
-            function initializeFrameCapture() {
-                frameCaptureEnabled = true;
-                frameCounter = 0;
-                lastCapturedFrame = null;
-                console.log('🎥 Frame capture initialized for parallel processing');
-            }
-            /**
-             * Capture current frame from video canvas for OpenAI processing
-             */
-            function captureFrameForOpenAI() {
-                var _a, _b, _c, _d;
-                if (!overlay || !video || !frameCaptureEnabled) {
-                    console.debug('Frame capture skipped: overlay/video unavailable or disabled');
-                    return null;
-                }
-                try {
-                    const canvas = overlay;
-                    const ctx = canvas.getContext('2d');
-                    if (!ctx) {
-                        console.warn('Failed to get canvas context for frame capture');
-                        return null;
-                    }
-                    // Validate canvas dimensions
-                    if (canvas.width === 0 || canvas.height === 0) {
-                        console.warn('Invalid canvas dimensions for frame capture');
-                        return null;
-                    }
-                    // Draw current video frame to canvas
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    // Convert to base64 for OpenAI API (JPEG format for better compression)
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                    if (!dataUrl || !dataUrl.startsWith('data:image/jpeg;base64,')) {
-                        console.warn('Failed to generate valid base64 data URL');
-                        return null;
-                    }
-                    const base64Data = dataUrl.split(',')[1];
-                    // Validate base64 data
-                    if (!base64Data || base64Data.length === 0) {
-                        console.warn('Generated empty base64 data');
-                        return null;
-                    }
-                    // Cache the captured frame
-                    lastCapturedFrame = base64Data;
-                    // Send telemetry about frame capture
-                    try {
-                        (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({
-                            type: 'telemetry',
-                            event: 'frame_captured',
-                            frameSize: base64Data.length,
-                            timestamp: Date.now(),
-                        }));
-                    }
-                    catch (telemetryError) {
-                        console.warn('Failed to send frame capture telemetry:', telemetryError);
-                    }
-                    return { uri: dataUrl, base64: base64Data, width: canvas.width, height: canvas.height };
-                }
-                catch (error) {
-                    console.error('Failed to capture frame for OpenAI:', error);
-                    // Send error telemetry
-                    try {
-                        (_d = (_c = window.ReactNativeWebView) === null || _c === void 0 ? void 0 : _c.postMessage) === null || _d === void 0 ? void 0 : _d.call(_c, JSON.stringify({
-                            type: 'telemetry',
-                            event: 'frame_capture_error',
-                            error: error instanceof Error ? error.message : String(error),
-                            timestamp: Date.now(),
-                        }));
-                    }
-                    catch (telemetryError) {
-                        console.warn('Failed to send frame capture error telemetry:', telemetryError);
-                    }
-                    return null;
-                }
-            }
-            /**
-             * Get the last captured frame for processing
-             */
-            function getLastCapturedFrame() {
-                return lastCapturedFrame;
-            }
-            /**
-             * Enable or disable frame capture
-             */
-            function setFrameCaptureEnabled(enabled) {
-                frameCaptureEnabled = enabled;
-                if (!enabled) {
-                    lastCapturedFrame = null;
-                    frameCounter = 0;
-                }
-                console.log(`🎥 Frame capture ${enabled ? 'enabled' : 'disabled'}`);
-            }
-            // Expose frame capture functions for testing and debugging (after declarations)
-            ;
-            window.captureFrameForOpenAI = captureFrameForOpenAI;
-            ;
-            window.getLastCapturedFrame = getLastCapturedFrame;
-            ;
-            window.setFrameCaptureEnabled = setFrameCaptureEnabled;
-            resetGestureChangeState();
-        }
-        catch (e) {
-            const errorInfo = errorRecoveryManager.getErrorInfo(e, 'gesture_recognizer_initialization');
-            try {
-                (_d = (_c = window.ReactNativeWebView) === null || _c === void 0 ? void 0 : _c.postMessage) === null || _d === void 0 ? void 0 : _d.call(_c, JSON.stringify({
-                    type: 'error',
-                    message: recognizerInitFailed + errorInfo.message,
-                    code: errorInfo.code,
-                    recoverable: errorInfo.recoverable,
-                }));
-            }
-            catch (err) {
-                console.warn('Failed to send initialization error message:', err);
-            }
-            // Activate fallback mode on failure
-            errorRecoveryManager.activateFallbackMode();
-        }
-    });
-}
-let lastVideoTime = -1; // Added for performance optimization
-let frameCount = 0;
-let lastSentAt = 0;
-let lastSentGestureSerialized = null;
-let lastSentScore = 0;
-let running = true;
-let cleanedUp = false;
-// WebView Message Batching System - Amy First Performance Optimization
-class MessageBatcher {
+  };
+
+  // webview/core/BatteryMonitor.ts
+  var BatteryMonitor = class {
     constructor() {
-        this.messageQueue = [];
-        this.batchTimer = null;
-        this.BATCH_INTERVAL_MS = 50; // Batch messages every 50ms
-        this.MAX_BATCH_SIZE = 5; // Maximum messages per batch
+      this.batteryLevel = 1;
+      this.isMonitoring = false;
+      this.emergencyMode = false;
+      this.lastBatteryCheck = 0;
+      this.BATTERY_CHECK_INTERVAL = 3e4;
+      // Check every 30 seconds
+      this.EMERGENCY_BATTERY_THRESHOLD = 0.05;
+      this.emergencyBatteryThreshold = this.EMERGENCY_BATTERY_THRESHOLD;
+    }
+    // 5% battery triggers emergency mode
+    /**
+     * Start battery monitoring for emergency mode activation
+     */
+    startMonitoring() {
+      if (this.isMonitoring) return;
+      this.isMonitoring = true;
+      this.checkBatteryLevel();
+      setInterval(() => {
+        this.checkBatteryLevel();
+      }, this.BATTERY_CHECK_INTERVAL);
     }
     /**
-     * Queue a message for batched sending
+     * Check current battery level and activate emergency mode if critical
      */
-    queueMessage(type, data) {
-        this.messageQueue.push({
-            type,
-            data,
-            timestamp: performance.now()
+    async checkBatteryLevel() {
+      try {
+        if ("getBattery" in navigator) {
+          const battery = await navigator.getBattery();
+          this.batteryLevel = battery.level;
+          this.handleBatteryLevel(this.batteryLevel);
+        } else if ("battery" in navigator) {
+          this.batteryLevel = navigator.battery.level;
+          this.handleBatteryLevel(this.batteryLevel);
+        } else {
+          this.batteryLevel = 0.5;
+        }
+      } catch (error) {
+        console.warn("Battery monitoring failed:", error);
+        this.batteryLevel = 0.5;
+      }
+      this.lastBatteryCheck = Date.now();
+    }
+    /**
+     * Handle battery level changes and emergency mode activation
+     */
+    handleBatteryLevel(level) {
+      const wasEmergency = this.emergencyMode;
+      this.emergencyMode = level <= this.EMERGENCY_BATTERY_THRESHOLD;
+      if (this.emergencyMode && !wasEmergency) {
+        console.warn(`\u{1F50B} CRITICAL BATTERY: ${Math.round(level * 100)}% - Activating emergency mode`);
+        this.activateEmergencyMode();
+      } else if (!this.emergencyMode && wasEmergency) {
+        console.log(`\u{1F50B} Battery recovered: ${Math.round(level * 100)}% - Deactivating emergency mode`);
+        this.deactivateEmergencyMode();
+      }
+    }
+    /**
+     * Activate emergency mode for critical battery situations
+     */
+    activateEmergencyMode() {
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "emergency_mode_activated",
+            reason: "critical_battery",
+            batteryLevel: this.batteryLevel,
+            timestamp: Date.now()
+          })
+        );
+      } catch (error) {
+        console.error("Failed to send emergency mode activation:", error);
+      }
+    }
+    /**
+     * Deactivate emergency mode when battery recovers
+     */
+    deactivateEmergencyMode() {
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "emergency_mode_deactivated",
+            reason: "battery_recovered",
+            batteryLevel: this.batteryLevel,
+            timestamp: Date.now()
+          })
+        );
+      } catch (error) {
+        console.error("Failed to send emergency mode deactivation:", error);
+      }
+    }
+    /**
+     * Get current battery status
+     */
+    getStatus() {
+      return {
+        level: this.batteryLevel,
+        emergencyMode: this.emergencyMode,
+        lastCheck: this.lastBatteryCheck
+      };
+    }
+    /**
+     * Force emergency mode for testing
+     */
+    forceEmergencyMode() {
+      this.emergencyMode = true;
+      this.activateEmergencyMode();
+    }
+    /**
+     * Reset emergency mode for testing
+     */
+    resetEmergencyMode() {
+      this.emergencyMode = false;
+      this.deactivateEmergencyMode();
+    }
+    /**
+     * Stop battery monitoring
+     */
+    stopMonitoring() {
+      this.isMonitoring = false;
+    }
+    /**
+     * Set emergency battery threshold
+     */
+    setEmergencyThreshold(threshold) {
+      this.emergencyBatteryThreshold = Math.max(0.01, Math.min(0.2, threshold));
+    }
+  };
+
+  // webview/utils/mapMediaPipeResults.ts
+  function normalizeHandLandmarks(hand) {
+    if (!hand) {
+      return [];
+    }
+    const normalized = [];
+    for (const point of hand) {
+      if (!point) {
+        normalized.push([0, 0, 0]);
+        continue;
+      }
+      const { x = 0, y = 0, z = 0 } = point;
+      normalized.push([x, y, z]);
+    }
+    return normalized;
+  }
+  function mapMediaPipeResult(result) {
+    if (!result) {
+      return { hands: [], landmarks: [], handednesses: [] };
+    }
+    const maxHands = Math.max(
+      result.landmarks?.length ?? 0,
+      result.handednesses?.length ?? 0,
+      result.gestures?.length ?? 0
+    );
+    const hands = [];
+    for (let i = 0; i < maxHands; i += 1) {
+      const landmarks = normalizeHandLandmarks(result.landmarks?.[i]);
+      const handedness = result.handednesses?.[i]?.[0]?.categoryName ?? "unknown";
+      const gestures = (result.gestures?.[i] ?? []).map((gesture) => ({
+        label: gesture.categoryName,
+        score: gesture.score
+      }));
+      if (!landmarks.length && !gestures.length && handedness === "unknown") {
+        continue;
+      }
+      hands.push({ landmarks, handedness, gestures });
+    }
+    return {
+      hands,
+      landmarks: hands.map((hand) => hand.landmarks),
+      handednesses: hands.map((hand) => hand.handedness)
+    };
+  }
+
+  // webview/core/GestureRecognitionOrchestrator.ts
+  var FALLBACK_CONFIDENCE_THRESHOLD = typeof window.__fallbackThreshold === "number" ? window.__fallbackThreshold : 0.35;
+  var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.05;
+  var FRAME_BATCH_INTERVAL_MS = 400;
+  var FRAME_BUFFER_LIMIT = 24;
+  var GestureRecognitionOrchestrator = class {
+    constructor(video2, overlay2, dependencies = {}) {
+      this.video = video2;
+      this.overlay = overlay2;
+      this.gestureDetector = null;
+      this.isInitialized = false;
+      this.isRunning = false;
+      this.frameSampleCounter = 0;
+      this.lastLandmarkSendTime = 0;
+      this.frameBuffer = [];
+      this.frameBatchTimer = null;
+      this.clipCaptureState = null;
+      this.performanceOptimizer = new PerformanceOptimizer();
+      this.memoryOptimizer = MemoryOptimizer.getInstance();
+      this.processingPipeline = new ProcessingPipeline();
+      this.config = loadConfig();
+      this.createGestureDetector = dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
+      this.errorRecoveryManager = dependencies.errorRecoveryManager ?? new ErrorRecoveryManager();
+      this.initializeComponents();
+      this.setupProcessingPipeline();
+    }
+    /**
+     * Initialize all gesture recognition components
+     */
+    initializeComponents() {
+      this.tremorCompensator = new OptimizedTremorCompensator();
+      this.sizeNormalizer = new GestureSizeNormalizer();
+      this.partialDetector = new PartialGestureDetector();
+      this.fallbackDetector = new FallbackGestureDetector();
+      this.emergencySystem = new EmergencyGestureSystem();
+      this.handStabilityAssistant = new HandStabilityAssistant();
+      this.batteryMonitor = new BatteryMonitor();
+      this.sizeNormalizer.setTolerance(this.config.processing?.sizeTolerance ?? 0.3);
+      this.partialDetector.setThreshold(this.config.processing?.partialThreshold ?? 0.6);
+    }
+    /**
+     * Set up the processing pipeline with all necessary steps
+     */
+    setupProcessingPipeline() {
+      this.processingPipeline.addStep(new LandmarkPreprocessingStep(this.sizeNormalizer, this.tremorCompensator));
+      this.processingPipeline.addStep(new StabilityAnalysisStep(this.handStabilityAssistant));
+      this.processingPipeline.addStep(new GestureDetectionStep(this.config));
+      this.processingPipeline.addStep(new PartialGestureAnalysisStep(this.partialDetector));
+      this.processingPipeline.addStep(new EmergencyGestureCheckStep(this.emergencySystem));
+      this.processingPipeline.addStep(new FallbackProcessingStep(this.fallbackDetector, this.errorRecoveryManager));
+      this.processingPipeline.addStep(new ResultProcessingStep(this.errorRecoveryManager));
+      this.processingPipeline.configureOptimization({
+        targetFrameRate: this.config.performance?.targetFrameRate ?? 30,
+        landmarkChangeThreshold: this.config.processing?.landmarkChangeThreshold ?? 0.01,
+        enableMemoryOptimization: true
+      });
+    }
+    /**
+     * Initialize the gesture recognition system
+     */
+    async initialize() {
+      if (this.isInitialized) return;
+      try {
+        this.gestureDetector = this.createGestureDetector(this.video, this.overlay);
+        this.gestureDetector.setResultCallback((results, timestamp) => {
+          this.handleGestureResults(results, timestamp);
         });
-        // Send immediately if it's an emergency or if batch is full
-        if (type.includes('emergency') || this.messageQueue.length >= this.MAX_BATCH_SIZE) {
-            this.flushBatch();
-        }
-        else if (!this.batchTimer) {
-            // Start batch timer
-            this.batchTimer = window.setTimeout(() => this.flushBatch(), this.BATCH_INTERVAL_MS);
-        }
+        await this.gestureDetector.initialize();
+        this.batteryMonitor.startMonitoring();
+        setFrameCaptureEnabled(true);
+        this.isInitialized = true;
+      } catch (error) {
+        console.error("Failed to initialize gesture recognition orchestrator:", error);
+        throw error;
+      }
     }
     /**
-     * Flush all queued messages as a batch
+     * Start gesture recognition
      */
-    flushBatch() {
-        var _a, _b;
-        if (this.messageQueue.length === 0)
-            return;
-        if (this.batchTimer) {
-            clearTimeout(this.batchTimer);
-            this.batchTimer = null;
+    async start() {
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+      if (this.isRunning) return;
+      await this.gestureDetector?.start();
+      this.isRunning = true;
+    }
+    /**
+     * Stop gesture recognition
+     */
+    async stop() {
+      if (!this.isRunning) return;
+      this.cancelClipCapture();
+      this.flushFrameBatch(true);
+      this.frameBuffer = [];
+      await this.gestureDetector?.stop();
+      this.isRunning = false;
+    }
+    /**
+     * Handle gesture detection results
+     */
+    async handleGestureResults(results, timestamp) {
+      try {
+        if (!this.performanceOptimizer.shouldProcessFrame()) {
+          return;
         }
-        // Send single message with all batched data
-        const batchData = {
-            type: 'batch',
-            messages: this.messageQueue,
-            batchSize: this.messageQueue.length,
-            timestamp: performance.now()
+        const normalized = mapMediaPipeResult(results);
+        this.collectFrameForBatch(normalized);
+        const context = {
+          landmarks: normalized.landmarks,
+          timestamp,
+          processingStep: "gesture_results",
+          skipExpensiveSteps: this.shouldSkipExpensiveSteps(),
+          rawResults: results,
+          rawLandmarks: normalized.landmarks,
+          handednesses: normalized.handednesses,
+          normalizedResults: normalized
         };
-        try {
-            (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify(batchData));
+        const processingResult = await this.processingPipeline.executePipeline(context);
+        const hasLandmarks = normalized.landmarks.some((hand) => hand.length > 0);
+        const now = Date.now();
+        if (hasLandmarks && now - this.lastLandmarkSendTime > 500) {
+          this.sendLandmarks(normalized.landmarks, normalized.handednesses, timestamp);
+          this.lastLandmarkSendTime = now;
         }
-        catch (err) {
-            console.warn('Failed to send batched messages:', err);
+        const hasGestureResult = Boolean(processingResult.gesture) || (processingResult.confidence ?? 0) > 0.3 || // Lower threshold for fallback gestures
+        Boolean(processingResult.fallback?.gesture);
+        console.log("Gesture result check:", JSON.stringify({
+          hasGestureResult,
+          gesture: processingResult.gesture,
+          confidence: processingResult.confidence,
+          hasFallback: Boolean(processingResult.fallback?.gesture)
+        }));
+        if (hasGestureResult) {
+          console.log("Sending gesture result:", JSON.stringify(processingResult));
+          this.sendGestureResult(processingResult, results);
+        } else if (hasLandmarks) {
+          this.sendGestureResult({
+            gesture: null,
+            confidence: 0,
+            landmarks: normalized.landmarks,
+            metadata: {
+              method: "none",
+              perHand: [],
+              handednesses: normalized.handednesses,
+              mlp: null,
+              twoHand: null
+            },
+            timestamp,
+            isFallback: false,
+            systemHealth: this.errorRecoveryManager.getHealthStatus(),
+            processingTime: processingResult.processingTime,
+            stepsExecuted: processingResult.stepsExecuted,
+            skippedSteps: processingResult.skippedSteps
+          }, results);
         }
-        this.messageQueue = [];
+        this.performanceOptimizer.recordProcessingTime(processingResult.processingTime);
+        this.frameSampleCounter += 1;
+        if (this.frameSampleCounter >= FRAME_LATENCY_SAMPLE_INTERVAL) {
+          const metrics = this.performanceOptimizer.getPerformanceMetrics();
+          if (metrics.averageProcessingTime > 30) {
+            messageBatcher.forceFlush();
+          }
+          this.frameSampleCounter = 0;
+        }
+      } catch (error) {
+        console.error("Error handling gesture results:", error);
+        this.errorRecoveryManager.recordFailure(error, "gesture_result_processing");
+      }
     }
-    /**
-     * Force immediate flush of all messages
-     */
-    forceFlush() {
-        this.flushBatch();
-    }
-    /**
-     * Get current queue status
-     */
-    getQueueStatus() {
-        const now = performance.now();
-        const oldestMessage = this.messageQueue.length > 0 ? this.messageQueue[0] : null;
-        return {
-            queued: this.messageQueue.length,
-            oldestMessageAge: oldestMessage ? now - oldestMessage.timestamp : 0
+    collectFrameForBatch(normalized) {
+      try {
+        const frameDataUrl = captureFrameForOpenAI(this.video);
+        if (!frameDataUrl) {
+          return;
+        }
+        const entry = {
+          frame: frameDataUrl,
+          landmarks: normalized.landmarks,
+          handednesses: normalized.handednesses,
+          timestamp: Date.now()
         };
+        this.frameBuffer.push(entry);
+        if (this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
+          this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
+        }
+        if (this.clipCaptureState) {
+          this.clipCaptureState.frameCount += 1;
+        }
+        if (this.frameBatchTimer === null) {
+          this.frameBatchTimer = window.setTimeout(() => this.flushFrameBatch(), FRAME_BATCH_INTERVAL_MS);
+        }
+      } catch (error) {
+        console.warn("Failed to collect frame batch:", error);
+      }
     }
-}
-const messageBatcher = new MessageBatcher();
-function isTwoHandGesture(gesture) {
-    return gesture && typeof gesture === 'object' && 'left' in gesture && 'right' in gesture;
-}
-function serializeGesture(g) {
-    if (g == null)
-        return null;
-    if (typeof g === 'string')
-        return g;
-    if (isTwoHandGesture(g)) {
-        // Stable, order-preserving representation for change detection only
-        return JSON.stringify({ left: g.left, right: g.right });
-    }
-    return null;
-}
-function resetGestureChangeState() {
-    lastSentGestureSerialized = null;
-    lastSentScore = 0;
-    lastSentAt = 0;
-    // Reset tremor compensation when gesture state resets
-    tremorCompensator.clearHistory();
-    lastProcessedLandmarks = [];
-}
-// Amy First: Adaptive configuration based on context
-let currentConfig = loadConfig();
-const FRAME_LATENCY_SAMPLE_INTERVAL = currentConfig.timing.frameLatencySampleInterval;
-// Emergency gesture detection and priority processing
-function isEmergencyGesture(gesture) {
-    if (!gesture)
-        return false;
-    const lowerGesture = gesture.toLowerCase();
-    return EMERGENCY_GESTURES.has(lowerGesture);
-}
-function shouldProcessEmergencyGesture(gesture, confidence) {
-    if (!isEmergencyGesture(gesture))
-        return false;
-    if (confidence < EMERGENCY_CONFIDENCE_THRESHOLD)
-        return false;
-    const now = performance.now();
-    if (now - lastEmergencyGestureTime < EMERGENCY_COOLDOWN_MS)
-        return false;
-    lastEmergencyGestureTime = now;
-    return true;
-}
-function sendEmergencyGesture(gesture, confidence, landmarks, handedArr) {
-    var _a, _b;
-    try {
+    flushFrameBatch(sendFullBuffer = false) {
+      if (this.frameBatchTimer !== null) {
+        clearTimeout(this.frameBatchTimer);
+        this.frameBatchTimer = null;
+      }
+      if (this.frameBuffer.length === 0) {
+        return;
+      }
+      const entries = sendFullBuffer ? [...this.frameBuffer] : this.frameBuffer.slice(-Math.min(this.frameBuffer.length, 6));
+      try {
         const payload = {
-            type: 'gesture',
-            gesture,
-            confidence,
-            landmarks,
-            handednesses: handedArr,
-            emergency: true, // Flag for priority processing
-            timestamp: performance.now(),
+          type: "FRAME_BATCH",
+          landmarks: entries.map((entry) => entry.landmarks),
+          handednesses: entries.map((entry) => entry.handednesses),
+          timestamps: entries.map((entry) => entry.timestamp),
+          frames: entries.map((entry) => entry.frame)
         };
-        (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify(payload));
+        messageBatcher.queueMessage(payload, { flushImmediately: false });
+      } catch (error) {
+        console.warn("Failed to enqueue frame batch payload:", error);
+      }
+      if (!sendFullBuffer && this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
+        this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
+      }
     }
-    catch (err) {
-        console.warn('Failed to send emergency gesture:', err);
+    startClipCapture(requestId) {
+      if (this.clipCaptureState) {
+        this.sendClipError(requestId, "capture_in_progress");
+        return;
+      }
+      if (typeof window.MediaRecorder === "undefined") {
+        this.sendClipError(requestId, "media_recorder_unavailable");
+        return;
+      }
+      const stream = this.gestureDetector?.getCameraStream();
+      if (!stream) {
+        this.sendClipError(requestId, "no_camera_stream");
+        return;
+      }
+      const mimeType = this.selectClipMimeType();
+      let recorder;
+      try {
+        recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch (error) {
+        this.sendClipError(requestId, "recorder_init_failed", error);
+        return;
+      }
+      const state = {
+        id: requestId,
+        recorder,
+        chunks: [],
+        startedAt: Date.now(),
+        mimeType: recorder.mimeType || mimeType || "video/mp4",
+        frameCount: 0,
+        timeoutHandle: null
+      };
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          state.chunks.push(event.data);
+        }
+      };
+      recorder.onerror = (event) => {
+        const error = event.error;
+        this.sendClipError(requestId, "recorder_error", error);
+        this.resetClipCapture(true);
+      };
+      recorder.onstop = () => {
+        this.handleClipStop(state);
+      };
+      try {
+        recorder.start(500);
+      } catch (error) {
+        this.sendClipError(requestId, "recorder_start_failed", error);
+        this.resetClipCapture(true);
+        return;
+      }
+      state.timeoutHandle = window.setTimeout(() => {
+        this.sendClipError(requestId, "recorder_timeout");
+        this.resetClipCapture(true);
+      }, 15e3);
+      this.clipCaptureState = state;
+      this.sendClipTelemetry("clip_started", requestId, { mimeType: state.mimeType });
     }
-}
-function processGestureResults(results, timestamp) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
-    try {
-        const frameLatency = Math.round(performance.now() - timestamp);
-        frameCount++;
-        // Capture frame for parallel OpenAI processing
-        let capturedFrame = null;
-        if (frameCaptureEnabled && frameCounter % frameCaptureInterval === 0) {
-            capturedFrame = captureFrameForOpenAI();
-            frameCounter = 0; // Reset counter after capture
+    stopClipCapture(requestId) {
+      if (!this.clipCaptureState || this.clipCaptureState.id !== requestId) {
+        this.sendClipError(requestId, "unknown_capture_id");
+        return;
+      }
+      try {
+        if (this.clipCaptureState.recorder.state !== "inactive") {
+          this.clipCaptureState.recorder.stop();
         }
-        if (frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
-            try {
-                (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({ type: 'telemetry', event: 'frame_latency', ms: frameLatency }));
-            }
-            catch (err) {
-                console.warn("Failed to send 'frame_latency' telemetry event:", err);
-            }
+        this.sendClipTelemetry("clip_stop_requested", requestId, void 0);
+      } catch (error) {
+        this.sendClipError(requestId, "recorder_stop_failed", error);
+        this.resetClipCapture(true);
+      }
+    }
+    cancelClipCapture() {
+      if (!this.clipCaptureState) {
+        return;
+      }
+      try {
+        if (this.clipCaptureState.recorder.state !== "inactive") {
+          this.clipCaptureState.recorder.stop();
         }
-        // Amy First: Update adaptive configuration based on current context
-        // Note: Context will be updated after analysis with actual activity level
-        let allLandmarks = ((results === null || results === void 0 ? void 0 : results.landmarks) || []).map((hand) => hand.map((lm) => { var _a; return [lm.x, lm.y, (_a = lm.z) !== null && _a !== void 0 ? _a : 0]; }));
-        // Trigger haptic feedback for hand detection
-        if (allLandmarks.length > 0) {
-            const stability = handStabilityAssistant.getStabilityStatus().score;
-            hapticFeedbackManager.onHandDetected(allLandmarks.length, stability);
-            // Start gesture recording if not already recording
-            if (!gestureReplayManager['currentRecording']) {
-                // We'll start recording when we have a potential gesture
-            }
-        }
-        // Apply tremor compensation
-        if (allLandmarks.length > 0) {
-            // Check if movement is intentional before smoothing
-            const isIntentional = tremorCompensator.isIntentionalMovement(allLandmarks, lastProcessedLandmarks);
-            if (isIntentional) {
-                allLandmarks = tremorCompensator.smoothLandmarks(allLandmarks);
-                lastProcessedLandmarks = JSON.parse(JSON.stringify(allLandmarks));
-            }
-            else {
-                // Use previous smoothed landmarks to maintain stability
-                allLandmarks = lastProcessedLandmarks.length > 0 ? lastProcessedLandmarks : allLandmarks;
-            }
-        }
-        // Apply gesture size normalization
-        if (allLandmarks.length > 0) {
-            allLandmarks = gestureSizeNormalizer.normalizeHandSize(allLandmarks);
-        }
-        // Add frame to gesture replay recording
-        if (allLandmarks.length > 0) {
-            const handedness = ((_c = results === null || results === void 0 ? void 0 : results.handednesses) === null || _c === void 0 ? void 0 : _c.map((h) => h.categoryName)) || [];
-            gestureReplayManager.addFrame(allLandmarks, handedness, 0); // Confidence will be updated when gesture is recognized
-        }
-        // Analyze hand stability and provide feedback
-        if (allLandmarks.length > 0) {
-            const stabilityAnalysis = handStabilityAssistant.analyzeStability(allLandmarks);
-            // Send stability feedback periodically (not every frame)
-            if (frameCount % 15 === 0) { // Every ~0.5 second at 30fps
-                try {
-                    (_e = (_d = window.ReactNativeWebView) === null || _d === void 0 ? void 0 : _d.postMessage) === null || _e === void 0 ? void 0 : _e.call(_d, JSON.stringify({
-                        type: 'stability_feedback',
-                        isStable: stabilityAnalysis.isStable,
-                        stabilityScore: stabilityAnalysis.stabilityScore,
-                        feedback: stabilityAnalysis.feedback,
-                        guidePosition: stabilityAnalysis.guidePosition,
-                    }));
-                }
-                catch (err) {
-                    console.warn('Failed to send stability feedback:', err);
-                }
-            }
-        }
-        let outGesture = null;
-        let outScore = 0;
-        const perHand = [];
-        let multiHand = ((_g = (_f = results === null || results === void 0 ? void 0 : results.landmarks) === null || _f === void 0 ? void 0 : _f.length) !== null && _g !== void 0 ? _g : 0) >= 2;
-        const handedArr = ((results === null || results === void 0 ? void 0 : results.handednesses) || []).map((h) => { var _a; return ((_a = h === null || h === void 0 ? void 0 : h[0]) === null || _a === void 0 ? void 0 : _a.categoryName) || 'unknown'; });
-        if ((_h = results === null || results === void 0 ? void 0 : results.gestures) === null || _h === void 0 ? void 0 : _h.length) {
-            for (let i = 0; i < results.gestures.length; i++) {
-                const handGestures = results.gestures[i] || [];
-                const top = handGestures === null || handGestures === void 0 ? void 0 : handGestures[0];
-                const handed = handedArr[i] || 'unknown';
-                if (top) {
-                    perHand.push({ hand: handed, label: top.categoryName, score: top.score });
-                    if (top.score > outScore) {
-                        outGesture = top.categoryName;
-                        outScore = top.score;
-                    }
-                }
-            }
-            if (perHand.length >= 2) {
-                let left = perHand.find((h) => /left/i.test(h.hand)) || null;
-                let right = perHand.find((h) => /right/i.test(h.hand)) || null;
-                if (!left || !right) {
-                    const others = perHand.filter((h) => h !== left && h !== right);
-                    if (!left)
-                        left = others.shift() || null;
-                    if (!right)
-                        right = others.shift() || null;
-                }
-                if (left && right) {
-                    outGesture = { left: left.label, right: right.label };
-                    // Geometric mean keeps confidence conservative without over-penalizing
-                    outScore = Math.sqrt(left.score * right.score);
-                }
-            }
-        }
-        // ** MLP Gesture Prediction with Personalized Thresholds **
-        if (window.__mlpPredict) {
-            const mlpResult = window.__mlpPredict(allLandmarks, (_j = results === null || results === void 0 ? void 0 : results.handednesses) !== null && _j !== void 0 ? _j : []);
-            if (mlpResult) {
-                // Start recording if this is the first detection of a gesture
-                if (!gestureReplayManager['currentRecording']) {
-                    gestureReplayManager.startRecording(mlpResult.label, mlpResult.score);
-                }
-                // Get personalized threshold for this gesture
-                const thresholdAdjustment = personalizedThresholdManager.getPersonalizedThreshold(mlpResult.label, currentConfig.thresholds.mlpConfidence);
-                // Use personalized threshold if it improves recognition
-                const effectiveThreshold = thresholdAdjustment.adjustedThreshold;
-                if (mlpResult.score > effectiveThreshold) {
-                    outGesture = mlpResult.label;
-                    outScore = mlpResult.score;
-                    // Stop recording and save successful gesture
-                    gestureReplayManager.stopRecording(true, mlpResult.score);
-                    // Check for navigation gesture
-                    const navigationTrigger = navigationGestureManager.checkNavigationTrigger(mlpResult.label, mlpResult.score, allLandmarks, { source: 'mlp_prediction' });
-                    if (navigationTrigger) {
-                        // Process navigation trigger
-                        navigationGestureManager.processNavigationTrigger(navigationTrigger);
-                    }
-                    // Check for undo gesture
-                    const undoSession = gestureUndoManager.checkUndoTrigger(mlpResult.label, mlpResult.score, { source: 'mlp_prediction' });
-                    if (undoSession) {
-                        // Send undo session to React Native for confirmation
-                        try {
-                            (_l = (_k = window.ReactNativeWebView) === null || _k === void 0 ? void 0 : _k.postMessage) === null || _l === void 0 ? void 0 : _l.call(_k, JSON.stringify({
-                                type: 'undo_session',
-                                sessionId: undoSession.sessionId,
-                                undoGesture: undoSession.undoGesture.gesture,
-                                targetGesture: undoSession.targetGesture.gesture,
-                                feedback: undoSession.undoGesture.feedback,
-                                timestamp: undoSession.timestamp
-                            }));
-                        }
-                        catch (error) {
-                            console.warn('Failed to send undo session:', error);
-                        }
-                    }
-                    // Record gesture attempt for correction learning
-                    visualCorrectionManager.recordGestureAttempt(mlpResult.label, mlpResult.score, mlpResult.score > 0.7);
-                    // Record gesture for undo functionality
-                    gestureUndoManager.recordGestureForUndo(mlpResult.label, mlpResult.score, allLandmarks, ((_m = results === null || results === void 0 ? void 0 : results.handednesses) === null || _m === void 0 ? void 0 : _m.map((h) => h.categoryName)) || [], `gesture_${Date.now()}`);
-                    // Trigger haptic feedback for gesture recognition
-                    const isHighConfidence = mlpResult.score > 0.8;
-                    hapticFeedbackManager.onGestureRecognized(mlpResult.label, mlpResult.score, isHighConfidence);
-                }
-            }
-        }
-        // ** Partial Gesture Completion Analysis **
-        // Check for partial completion of common gestures if no full gesture detected
-        if ((!outGesture || outScore < 0.5) && allLandmarks.length > 0) {
-            const commonGestures = ['thumbs_up', 'open_palm', 'fist', 'point'];
-            for (const gestureId of commonGestures) {
-                const partialAnalysis = partialGestureDetector.analyzePartialCompletion(allLandmarks, gestureId);
-                if (partialAnalysis.isPartial && partialGestureDetector.shouldRecognizePartial(partialAnalysis.completion, partialAnalysis.confidence)) {
-                    // Use partial gesture if it's better than current result
-                    if (partialAnalysis.confidence > outScore) {
-                        outGesture = gestureId;
-                        outScore = partialAnalysis.confidence;
-                        // Send enhanced partial completion feedback
-                        if (partialAnalysis.feedback) {
-                            // Generate enhanced feedback for partial attempts
-                            const partialAttempt = {
-                                gesture: gestureId,
-                                effort: partialAnalysis.confidence,
-                                success: false,
-                                attemptCount: frameCount,
-                                timeSinceLastAttempt: lastSentAt > 0 ? timestamp - lastSentAt : 0,
-                                gestureType: 'basic'
-                            };
-                            const detailedFeedback = feedbackSystem.generateFeedback(partialAttempt);
-                            try {
-                                (_p = (_o = window.ReactNativeWebView) === null || _o === void 0 ? void 0 : _o.postMessage) === null || _p === void 0 ? void 0 : _p.call(_o, JSON.stringify({
-                                    type: 'partial_feedback',
-                                    gesture: gestureId,
-                                    completion: partialAnalysis.completion,
-                                    feedback: partialAnalysis.feedback,
-                                    // Enhanced feedback
-                                    primaryMessage: detailedFeedback.primaryMessage,
-                                    secondaryMessage: detailedFeedback.secondaryMessage,
-                                    encouragement: detailedFeedback.encouragement,
-                                    tip: detailedFeedback.tip,
-                                    showBreakSuggestion: detailedFeedback.showBreakSuggestion
-                                }));
-                            }
-                            catch (err) {
-                                console.warn('Failed to send partial feedback:', err);
-                            }
-                        }
-                        break; // Use the first good partial match
-                    }
-                }
-            }
-        }
-        // Clean up old partial gesture data periodically
-        if (frameCount % 30 === 0) { // Every ~1 second at 30fps
-            partialGestureDetector.cleanup();
-        }
-        // ** Emergency Gesture Priority Processing **
-        // Check if this is an emergency gesture that should be processed immediately
-        if (shouldProcessEmergencyGesture(outGesture, outScore)) {
-            sendEmergencyGesture(outGesture, outScore, allLandmarks, handedArr);
-            // Continue with normal processing
-        }
-        // ** Emergency Mode Handling - Amy First Priority **
-        // In emergency mode (critical battery or system failure), prioritize emergency gestures
-        const batteryStatus = batteryMonitor.getStatus();
-        if (batteryStatus.emergencyMode) {
-            console.warn('🔋 EMERGENCY MODE ACTIVE: Prioritizing emergency gestures');
-            // If in emergency mode and no emergency gesture detected, try fallback detection
-            if (!shouldProcessEmergencyGesture(outGesture, outScore)) {
-                const emergencyFallback = emergencyGestureSystem.getStatus();
-                if (emergencyFallback.emergencyModeRecommended) {
-                    // Force emergency mode processing
-                    console.warn('🚨 EMERGENCY FALLBACK: Activating emergency-only processing');
-                    // Emergency gestures will be processed even with lower confidence
-                }
-            }
-        }
-        // Custom gesture logic (preserved for single-hand fallback)
-        const firstHand = allLandmarks[0] || [];
-        if ((!outGesture || outScore < currentConfig.thresholds.fallbackConfidence) &&
-            firstHand.length === 21 &&
-            !multiHand) {
-            const thumbUp = firstHand[4][1] < firstHand[2][1];
-            const indexUp = firstHand[8][1] < firstHand[6][1];
-            const middleUp = firstHand[12][1] < firstHand[10][1];
-            const ringUp = firstHand[16][1] < firstHand[14][1];
-            const pinkyUp = firstHand[20][1] < firstHand[18][1];
-            const allUp = indexUp && middleUp && ringUp && pinkyUp;
-            const noneUp = !indexUp && !middleUp && !ringUp && !pinkyUp;
-            if (thumbUp && !indexUp && !middleUp) {
-                outGesture = 'thumbs_up';
-                outScore = 0.8;
-            }
-            else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-                outGesture = 'point';
-                outScore = 0.7;
-            }
-            else if (allUp) {
-                outGesture = 'open_palm';
-                outScore = 0.6;
-            }
-            else if (noneUp) {
-                outGesture = 'fist';
-                outScore = 0.6;
-            }
-        }
-        // ** ERROR RECOVERY & FALLBACK PROCESSING **
-        // If main gesture detection failed or confidence is low, try fallback system
-        let finalGesture = outGesture;
-        let finalScore = outScore;
-        let isUsingFallback = false;
-        if (errorRecoveryManager.isInFallbackMode() ||
-            (!outGesture || outScore < currentConfig.thresholds.fallbackConfidence)) {
-            try {
-                const fallbackResult = fallbackGestureDetector.detectGesture(allLandmarks);
-                // Use fallback if it's better than current result or if we're in fallback mode
-                if (errorRecoveryManager.isInFallbackMode() ||
-                    (fallbackResult.confidence > outScore && fallbackResult.gesture)) {
-                    finalGesture = fallbackResult.gesture;
-                    finalScore = fallbackResult.confidence;
-                    isUsingFallback = true;
-                    // Send enhanced fallback feedback if available
-                    if (fallbackResult.feedback) {
-                        // Generate enhanced feedback for fallback attempts
-                        const fallbackAttempt = {
-                            gesture: finalGesture,
-                            effort: finalScore,
-                            success: finalScore >= 0.6, // Lower threshold for fallback
-                            attemptCount: frameCount,
-                            timeSinceLastAttempt: lastSentAt > 0 ? timestamp - lastSentAt : 0,
-                            gestureType: 'basic'
-                        };
-                        const detailedFeedback = feedbackSystem.generateFeedback(fallbackAttempt);
-                        try {
-                            (_r = (_q = window.ReactNativeWebView) === null || _q === void 0 ? void 0 : _q.postMessage) === null || _r === void 0 ? void 0 : _r.call(_q, JSON.stringify({
-                                type: 'fallback_feedback',
-                                gesture: finalGesture,
-                                confidence: finalScore,
-                                feedback: fallbackResult.feedback,
-                                timestamp: timestamp,
-                                // Enhanced feedback
-                                primaryMessage: detailedFeedback.primaryMessage,
-                                secondaryMessage: detailedFeedback.secondaryMessage,
-                                encouragement: detailedFeedback.encouragement,
-                                tip: detailedFeedback.tip,
-                                showBreakSuggestion: detailedFeedback.showBreakSuggestion
-                            }));
-                        }
-                        catch (err) {
-                            console.warn('Failed to send fallback feedback:', err);
-                        }
-                    }
-                }
-            }
-            catch (fallbackError) {
-                console.warn('Fallback gesture detection failed:', fallbackError);
-                // Continue with original result if fallback fails
-            }
-        }
-        // ** EMERGENCY GESTURE PROCESSING WITH PRIORITY **
-        // Check for emergency gestures that should bypass normal processing
-        if (finalGesture && typeof finalGesture === 'string') {
-            const emergencyResult = emergencyGestureSystem.processEmergencyGesture(finalGesture, finalScore, allLandmarks);
-            if (emergencyResult.shouldProcess) {
-                // Trigger haptic feedback for emergency gesture
-                hapticFeedbackManager.onEmergencyGesture(finalGesture);
-                // Emergency gestures bypass batching for immediate processing - Amy First priority
-                try {
-                    (_t = (_s = window.ReactNativeWebView) === null || _s === void 0 ? void 0 : _s.postMessage) === null || _t === void 0 ? void 0 : _t.call(_s, JSON.stringify({
-                        type: 'emergency_gesture_detected',
-                        gesture: finalGesture,
-                        confidence: finalScore,
-                        feedback: emergencyResult.feedback,
-                        priority: emergencyResult.priority,
-                        timestamp: timestamp,
-                        systemStatus: errorRecoveryManager.getHealthStatus()
-                    }));
-                }
-                catch (err) {
-                    console.error('Failed to send emergency gesture message:', err);
-                }
-                // Emergency gestures bypass normal throttling
-                lastSentGestureSerialized = '';
-                lastSentScore = 0;
-            }
-            // Check if we should enter emergency mode
-            if (emergencyGestureSystem.shouldEnterEmergencyMode() &&
-                !errorRecoveryManager.isInEmergencyMode()) {
-                errorRecoveryManager.activateEmergencyMode();
-            }
-        }
-        // Apply enhanced context-aware recognition analysis
-        let contextInsights = null;
-        if (finalGesture && typeof finalGesture === 'string') {
-            // Calculate gesture duration if available (placeholder for future enhancement)
-            const gestureDuration = undefined; // Will be calculated based on gesture start/end times
-            contextInsights = enhancedContextRecognizer.analyzeContext(finalGesture, finalScore, gestureDuration);
-            // Adjust confidence based on enhanced context
-            finalScore = contextInsights.adjustedConfidence;
-            // Update adaptive configuration with actual context data
-            const adaptiveContext = {
-                timeOfDay: contextInsights.timeOfDay,
-                activity: contextInsights.activityLevel,
-                gesture: finalGesture,
-                confidence: finalScore
-            };
-            currentConfig = getAdaptiveConfig(currentConfig, adaptiveContext);
-        }
-        // Record failed attempts for learning (when no gesture detected or very low confidence)
-        if (!finalGesture || finalScore < 0.3) {
-            // Record as failed attempt for the most likely gesture if we have landmarks
-            if (allLandmarks.length > 0) {
-                // Try to identify what gesture was attempted based on basic heuristics
-                const attemptedGesture = fallbackGestureDetector.detectGesture(allLandmarks);
-                if (attemptedGesture.gesture) {
-                    personalizedThresholdManager.recordAttempt(attemptedGesture.gesture, attemptedGesture.confidence, false);
-                }
-            }
-        }
-        // Generate enhanced feedback for 22q11 accessibility
-        let enhancedFeedback = null;
-        if (finalGesture && typeof finalGesture === 'string') {
-            // Use context-aware time of day
-            const timeOfDay = (contextInsights === null || contextInsights === void 0 ? void 0 : contextInsights.timeOfDay) || 'afternoon';
-            // Calculate recent success rate for progress tracking
-            const recentAttempts = feedbackHistory.slice(-10);
-            const recentSuccessRate = recentAttempts.length > 0
-                ? recentAttempts.filter((r) => r.success).length / recentAttempts.length
-                : 0.5;
-            // Create attempt result for celebration system
-            const attemptResult = {
-                success: finalScore >= 0.7, // Consider it a success if confidence is good
-                gesture: finalGesture,
-                effort: finalScore,
-                attemptCount: frameCount,
-                timeOfDay,
-                recentSuccessRate,
-                isEmergency: emergencyGestureSystem.isEmergencyGesture(finalGesture, finalScore),
-                partialSuccess: finalScore >= 0.4 && finalScore < 0.7,
-                // Add context awareness
-                contextBonus: (contextInsights === null || contextInsights === void 0 ? void 0 : contextInsights.contextBonus) || 0,
-                patternMatch: (contextInsights === null || contextInsights === void 0 ? void 0 : contextInsights.patternMatch) || false
-            };
-            // Generate celebration feedback
-            const celebration = celebrationSystem.generateCelebration(attemptResult);
-            // Create feedback attempt for feedback system
-            const feedbackAttempt = {
-                gesture: finalGesture,
-                effort: finalScore,
-                success: finalScore >= 0.7,
-                attemptCount: frameCount,
-                timeSinceLastAttempt: lastSentAt > 0 ? timestamp - lastSentAt : 0,
-                gestureType: attemptResult.isEmergency ? 'emergency' : 'basic'
-            };
-            // Generate detailed feedback
-            const detailedFeedback = feedbackSystem.generateFeedback(feedbackAttempt);
-            enhancedFeedback = {
-                celebration,
-                detailedFeedback,
-                attemptResult
-            };
-        }
-        // Check for gesture combinations
-        let combinationResult = null;
-        if (finalGesture && typeof finalGesture === 'string' && finalScore >= 0.6) {
-            // Record gesture for combination detection
-            gestureCombinationManager.recordGesture(finalGesture, finalScore);
-            // Check if this completes a combination
-            combinationResult = gestureCombinationManager.checkForCombinations();
-            // Trigger haptic feedback for combination completion
-            if (combinationResult) {
-                hapticFeedbackManager.onCombinationEvent('complete', combinationResult.combination);
-            }
-        }
-        // Generate visual correction options if confidence is low
-        let correctionSession = null;
-        if (finalGesture && typeof finalGesture === 'string' && finalScore < 0.7 && finalScore > 0.3) {
-            // Create alternative options based on common gestures and history
-            const alternatives = [
-                { gesture: 'thumbs_up', confidence: 0.6 },
-                { gesture: 'open_palm', confidence: 0.5 },
-                { gesture: 'fist', confidence: 0.5 },
-                { gesture: 'point', confidence: 0.4 }
-            ];
-            correctionSession = visualCorrectionManager.generateCorrectionOptions(finalGesture, finalScore, alternatives);
-            // Send correction options to React Native if available
-            if (correctionSession) {
-                visualCorrectionManager.sendCorrectionOptionsToReactNative(correctionSession);
-            }
-        }
-        // Send gesture result if it changed or meets threshold
-        const serialized = serializeGesture(finalGesture);
-        const scoreChanged = Math.abs(finalScore - lastSentScore) >= 0.05;
-        const gestureChanged = serialized !== lastSentGestureSerialized;
-        const shouldSend = (gestureChanged || scoreChanged) &&
-            (finalScore >= 0.3 || finalGesture) &&
-            !errorRecoveryManager.isCircuitBreakerOpen();
-        if (shouldSend) {
-            // Record gesture for adaptive practice timing
-            if (finalGesture && typeof finalGesture === 'string' && finalScore >= 0.5) {
-                adaptivePracticeManager.recordGestureInSession();
-            }
-            // Record successful communication moments for positive telemetry
-            if (finalGesture && typeof finalGesture === 'string' && finalScore >= 0.7 && contextInsights) {
-                    timeOfDay: contextInsights.timeOfDay,
-                    activityLevel: contextInsights.activityLevel,
-                    dayOfWeek: new Date().getDay()
-                });
-            }
-            lastSentGestureSerialized = serialized;
-            lastSentScore = finalScore;
-            lastSentAt = performance.now();
-            try {
-                // Record attempt for personalized threshold learning
-                if (finalGesture && typeof finalGesture === 'string') {
-                    const success = finalScore >= 0.7; // Consider it successful if confidence is good
-                    personalizedThresholdManager.recordAttempt(finalGesture, finalScore, success);
-                }
-                // Track this attempt in feedback history
-                if (enhancedFeedback) {
-                    feedbackHistory.push({
-                        gesture: finalGesture,
-                        confidence: finalScore,
-                        success: finalScore >= 0.7,
-                        timestamp,
-                        effort: finalScore
-                    });
-                    if (feedbackHistory.length > 20) {
-                        feedbackHistory.shift();
-                    }
-                }
-                // Use message batching for better performance - Amy First optimization
-                messageBatcher.queueMessage('gesture', {
-                    gesture: finalGesture,
-                    confidence: finalScore,
-                    landmarks: allLandmarks,
-                    handednesses: handedArr,
-                    timestamp: timestamp,
-                    isFallback: isUsingFallback,
-                    systemHealth: errorRecoveryManager.getHealthStatus(),
-                    capturedFrame: capturedFrame,
-                    // Enhanced context-aware recognition data
-                    contextAwareness: contextInsights ? {
-                        timeOfDay: contextInsights.timeOfDay,
-                        activityLevel: contextInsights.activityLevel,
-                        contextBonus: contextInsights.contextBonus,
-                        patternMatch: contextInsights.patternMatch,
-                        recentFrequency: contextInsights.recentFrequency,
-                        habitStrength: contextInsights.habitStrength,
-                        adjustedConfidence: contextInsights.adjustedConfidence,
-                        stressIndicators: contextInsights.stressIndicators,
-                        recommendations: contextInsights.recommendations
-                    } : null,
-                    // Enhanced feedback for 22q11 accessibility
-                    enhancedFeedback: enhancedFeedback ? {
-                        message: enhancedFeedback.celebration.message,
-                        emoji: enhancedFeedback.celebration.emoji,
-                        encouragement: enhancedFeedback.celebration.encouragement,
-                        showProgress: enhancedFeedback.celebration.showProgress,
-                        primaryFeedback: enhancedFeedback.detailedFeedback.primaryMessage,
-                        secondaryFeedback: enhancedFeedback.detailedFeedback.secondaryFeedback,
-                        tip: enhancedFeedback.detailedFeedback.tip,
-                        showBreakSuggestion: enhancedFeedback.detailedFeedback.showBreakSuggestion
-                    } : null,
-                    // Personalized threshold data for Amy's learning insights
-                    personalizedThresholds: finalGesture && typeof finalGesture === 'string' ? {
-                        currentAdjustment: personalizedThresholdManager.getPersonalizedThreshold(finalGesture, currentConfig.thresholds.mlpConfidence),
-                        performanceInsights: personalizedThresholdManager.getPerformanceInsights()
-                    } : null,
-                    // Gesture combination results for complex communication
-                    gestureCombination: combinationResult,
-                    // Adaptive practice timing data
-                    practiceTiming: {
-                        isCommunicationActive: adaptivePracticeManager.isCommunicationActive(),
-                        practiceSuggestion: contextInsights ? adaptivePracticeManager.shouldSuggestPractice(contextInsights.timeOfDay, contextInsights.activityLevel, 0 // Will be calculated based on actual timing
-                        ) : null
-                    },
-                    // Positive telemetry insights
-                    positiveInsights: null
-                });
-            }
-            catch (err) {
-                console.warn('Failed to send gesture message:', err);
-                // If sending fails, record it as a failure
-                errorRecoveryManager.recordFailure(err, 'gesture_message_send');
-            }
-        }
-        // Reset navigation and undo hold timers if no gesture was detected
-        if (!finalGesture || finalScore < 0.5) {
-            navigationGestureManager.resetHoldTimers();
-            gestureUndoManager.resetHoldTimers();
-        }
-        // Send gesture combination result if detected
-        if (combinationResult) {
-            try {
-                (_v = (_u = window.ReactNativeWebView) === null || _u === void 0 ? void 0 : _u.postMessage) === null || _v === void 0 ? void 0 : _v.call(_u, JSON.stringify({
-                    type: 'gesture_combination',
-                    combination: combinationResult.combination,
-                    confidence: combinationResult.confidence,
-                    sequence: combinationResult.sequence,
-                    description: combinationResult.description,
-                    timeSpan: combinationResult.timeSpan,
-                    feedback: combinationResult.feedback,
-                    timestamp: timestamp,
-                    systemHealth: errorRecoveryManager.getHealthStatus()
-                }));
-            }
-            catch (err) {
-                console.warn('Failed to send gesture combination message:', err);
-                errorRecoveryManager.recordFailure(err, 'combination_message_send');
-            }
-        }
-        // Draw overlay landmarks and stability guides
+      } catch (error) {
+        console.warn("Failed to cancel clip capture:", error);
+      }
+      this.resetClipCapture(true);
+    }
+    resetClipCapture(stopRecorder) {
+      if (!this.clipCaptureState) {
+        return;
+      }
+      const state = this.clipCaptureState;
+      if (state.timeoutHandle) {
+        clearTimeout(state.timeoutHandle);
+      }
+      if (stopRecorder) {
         try {
-            const ctx = overlay.getContext('2d');
-            if (ctx && overlayWidth && overlayHeight) {
-                ctx.clearRect(0, 0, overlay.width, overlay.height);
-                ctx.save();
-                // Draw in CSS pixels while canvas is scaled for HiDPI
-                ctx.scale(overlayDpr, overlayDpr);
-                // Mirror horizontally to match video when using the front camera
-                if (mirrorOverlay) {
-                    ctx.scale(-1, 1);
-                    ctx.translate(-overlayWidth, 0);
-                }
-                // Draw stability guide if needed
-                const stabilityStatus = handStabilityAssistant.getStabilityStatus();
-                if (!stabilityStatus.isStable && stabilityStatus.score < 0.7) {
-                    // Draw target circle for hand positioning
-                    const centerX = overlayWidth / 2;
-                    const centerY = overlayHeight / 2;
-                    const radius = Math.min(overlayWidth, overlayHeight) * 0.15;
-                    ctx.strokeStyle = stabilityStatus.score > 0.3 ? 'rgba(255, 165, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([10, 5]);
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    // Draw crosshairs
-                    ctx.beginPath();
-                    ctx.moveTo(centerX - radius * 0.7, centerY);
-                    ctx.lineTo(centerX + radius * 0.7, centerY);
-                    ctx.moveTo(centerX, centerY - radius * 0.7);
-                    ctx.lineTo(centerX, centerY + radius * 0.7);
-                    ctx.stroke();
-                }
-                // Draw hand landmarks
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = 'rgba(0, 255, 180, 0.9)';
-                ctx.fillStyle = 'rgba(0, 255, 180, 0.9)';
-                for (const hand of allLandmarks) {
-                    if (!hand || hand.length === 0)
-                        continue;
-                    // Draw connections
-                    ctx.beginPath();
-                    let hasMoves = false;
-                    for (const [a, b] of HAND_CONNECTIONS) {
-                        const pa = hand[a];
-                        const pb = hand[b];
-                        if (!pa || !pb)
-                            continue;
-                        const x1 = pa[0] * overlayWidth;
-                        const y1 = pa[1] * overlayHeight;
-                        const x2 = pb[0] * overlayWidth;
-                        const y2 = pb[1] * overlayHeight;
-                        if (!hasMoves) {
-                            ctx.moveTo(x1, y1);
-                            hasMoves = true;
-                        }
-                        else {
-                            ctx.moveTo(x1, y1);
-                        }
-                        ctx.lineTo(x2, y2);
-                    }
-                    if (hasMoves) {
-                        ctx.stroke();
-                    }
-                    // Draw points
-                    for (const lm of hand) {
-                        if (!lm || lm.length < 2)
-                            continue;
-                        ctx.beginPath();
-                        ctx.arc(lm[0] * overlayWidth, lm[1] * overlayHeight, 4, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-            }
+          if (state.recorder.state !== "inactive") {
+            state.recorder.stop();
+          }
+        } catch (error) {
+          console.warn("Failed to stop recorder during reset:", error);
         }
-        catch (err) {
-            console.warn('Failed to draw overlay:', err);
-        }
+      }
+      this.clipCaptureState = null;
     }
-    catch (processingError) {
-        // ** COMPREHENSIVE ERROR RECOVERY FOR GESTURE PROCESSING **
-        console.error('Gesture processing failed:', processingError);
-        const error = processingError;
-        const errorInfo = errorRecoveryManager.getErrorInfo(error, 'gesture_processing');
-        // Record the failure for circuit breaker logic
-        const shouldRetry = errorRecoveryManager.recordFailure(error, 'gesture_processing');
-        // Send error notification to React Native
+    handleClipStop(state) {
+      if (state.timeoutHandle) {
+        clearTimeout(state.timeoutHandle);
+      }
+      const blob = new Blob(state.chunks, { type: state.mimeType || "video/mp4" });
+      if (blob.size === 0) {
+        this.sendClipError(state.id, "empty_clip_blob");
+        this.resetClipCapture(false);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
         try {
-            (_x = (_w = window.ReactNativeWebView) === null || _w === void 0 ? void 0 : _w.postMessage) === null || _x === void 0 ? void 0 : _x.call(_w, JSON.stringify({
-                type: 'gesture_processing_error',
-                message: errorInfo.userMessage,
-                code: errorInfo.code,
-                recoverable: errorInfo.recoverable,
-                severity: errorInfo.severity,
-                suggestedAction: errorInfo.suggestedAction,
-                systemHealth: errorRecoveryManager.getHealthStatus(),
-                timestamp: timestamp
-            }));
+          const result = reader.result;
+          if (!result) {
+            throw new Error("clip_read_failed");
+          }
+          const base64 = result.includes(",") ? result.split(",")[1] ?? "" : result;
+          const durationMs = Math.max(0, Date.now() - state.startedAt);
+          this.postClipReady({
+            id: state.id,
+            base64,
+            mimeType: state.mimeType || "video/mp4",
+            durationMs,
+            frameCount: state.frameCount,
+            capturedAt: new Date(state.startedAt).toISOString()
+          });
+        } catch (error) {
+          this.sendClipError(state.id, "clip_read_failed", error);
+        } finally {
+          this.resetClipCapture(false);
         }
-        catch (msgError) {
-            console.error('Failed to send error message to React Native:', msgError);
-        }
-        // Activate appropriate recovery mode based on error type
-        if (errorInfo.severity === 'critical') {
-            errorRecoveryManager.activateEmergencyMode();
-        }
-        else {
-            // Prefer enabling fallback when not critical to maintain functionality
-            errorRecoveryManager.activateFallbackMode();
-        }
-        // Try fallback gesture detection if we have landmarks
-        if ((results === null || results === void 0 ? void 0 : results.landmarks) && errorRecoveryManager.canAttemptRecovery('gesture_processing')) {
-            try {
-                const fallbackResult = fallbackGestureDetector.detectGesture(results.landmarks.map((hand) => hand.map((lm) => { var _a; return [lm.x, lm.y, (_a = lm.z) !== null && _a !== void 0 ? _a : 0]; })));
-                if (fallbackResult.gesture && fallbackResult.confidence > 0.2) {
-                    // Send fallback result
-                    (_z = (_y = window.ReactNativeWebView) === null || _y === void 0 ? void 0 : _y.postMessage) === null || _z === void 0 ? void 0 : _z.call(_y, JSON.stringify({
-                        type: 'gesture',
-                        gesture: fallbackResult.gesture,
-                        confidence: fallbackResult.confidence,
-                        isFallback: true,
-                        errorRecovery: true,
-                        timestamp: timestamp,
-                        systemHealth: errorRecoveryManager.getHealthStatus()
-                    }));
-                    errorRecoveryManager.recordSuccessfulRecovery('gesture_processing');
-                }
-            }
-            catch (fallbackError) {
-                console.warn('Fallback detection also failed:', fallbackError);
-            }
-        }
-        // If this is a critical error and we have emergency mode, ensure emergency gestures still work
-        if (errorRecoveryManager.isInEmergencyMode()) {
-            console.warn('System in emergency mode - prioritizing critical gesture detection');
-        }
+      };
+      reader.onerror = () => {
+        this.sendClipError(state.id, "clip_read_failed", reader.error);
+        this.resetClipCapture(false);
+      };
+      try {
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        this.sendClipError(state.id, "clip_read_failed", error);
+        this.resetClipCapture(false);
+      }
     }
-}
-function resizeOverlay() {
-    try {
-        const rect = video.getBoundingClientRect();
-        const w = (rect.width || video.clientWidth || 0) | 0;
-        const h = (rect.height || video.clientHeight || 0) | 0;
-        const dpr = Math.max(1, window.devicePixelRatio || 1);
-        const sizeChanged = overlayWidth !== w || overlayHeight !== h;
-        const dprChanged = dpr !== overlayDpr;
-        if (sizeChanged || dprChanged) {
-            if (sizeChanged) {
-                overlay.style.width = w + 'px';
-                overlay.style.height = h + 'px';
-            }
-            overlay.width = Math.round(w * dpr);
-            overlay.height = Math.round(h * dpr);
-            overlayWidth = w;
-            overlayHeight = h;
-            overlayDpr = dpr;
-        }
-        lastVideoWidth = video.videoWidth;
-        lastVideoHeight = video.videoHeight;
-    }
-    catch (err) {
-        console.warn('Failed to resize overlay:', err);
-    }
-}
-function startCamera() {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
-        resetGestureChangeState();
-        // Additional reset for tremor compensation
-        tremorCompensator.clearHistory();
-        lastProcessedLandmarks = [];
-        try {
-            if (mainGestureDetector) {
-                yield mainGestureDetector.start();
-            }
-            else {
-                throw new Error('Gesture detector not initialized');
-            }
-        }
-        catch (err) {
-            const error = err;
-            const errorInfo = errorRecoveryManager.getErrorInfo(error, 'camera_initialization');
-            // Record failure
-            errorRecoveryManager.recordFailure(error);
-            const msg = `${error.name}: ${error.message}`;
-            try {
-                (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({
-                    type: 'error',
-                    message: cameraError + msg,
-                    code: errorInfo.code,
-                    recoverable: errorInfo.recoverable
-                }));
-            }
-            catch (postErr) {
-                console.warn('Failed to send camera error:', postErr);
-            }
-            throw err;
-        }
-    });
-}
-// Start camera only after user interaction unless explicitly allowed
-if (window.__autostartCamera === true && ((_g = (_f = navigator.userActivation) === null || _f === void 0 ? void 0 : _f.hasBeenActive) !== null && _g !== void 0 ? _g : false)) {
-    startCamera()
-        .then(() => {
-        var _a, _b, _c;
-        (_a = document.getElementById('tapToStart')) === null || _a === void 0 ? void 0 : _a.classList.add('hidden');
-        try {
-            (_c = (_b = window.ReactNativeWebView) === null || _b === void 0 ? void 0 : _b.postMessage) === null || _c === void 0 ? void 0 : _c.call(_b, JSON.stringify({ type: 'telemetry', event: 'tap_start_autostart' }));
-        }
-        catch (err) {
-            console.warn("Failed to send 'tap_start_autostart' telemetry event:", err);
-        }
-    })
-        .catch((err) => {
-        var _a;
-        console.warn('Camera autostart failed:', err);
-        (_a = document.getElementById('tapToStart')) === null || _a === void 0 ? void 0 : _a.classList.remove('hidden');
-    });
-}
-createGestureRecognizer();
-let stopPromise = null;
-function stopCamera() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (stopPromise)
-            return stopPromise;
-        stopPromise = (() => __awaiter(this, void 0, void 0, function* () {
-            try {
-                if (mainGestureDetector) {
-                    yield mainGestureDetector.stop();
-                }
-            }
-            catch (e) {
-                console.warn('Failed to stop gesture detector:', e);
-            }
-        }))().finally(() => {
-            stopPromise = null;
+    postClipReady(payload) {
+      try {
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: "clip_ready", ...payload }));
+        this.flushFrameBatch(true);
+        this.sendClipTelemetry("clip_ready", payload.id, {
+          durationMs: payload.durationMs,
+          frameCount: payload.frameCount,
+          mimeType: payload.mimeType
         });
-        return stopPromise;
-    });
-}
-const onPageHide = () => void cleanup();
-const onBeforeUnload = () => void cleanup();
-const onVisibilityChange = () => {
-    if (document.hidden) {
-        running = false;
+      } catch (error) {
+        console.warn("Failed to post clip_ready message:", error);
+      }
     }
-    else {
-        running = true;
-        lastFrameTs = 0;
-        resetGestureChangeState();
-        // Ensure overlay matches current layout/DPR after tab visibility changes
-        try {
-            resizeOverlay();
-        }
-        catch (e) {
-            console.warn('Resize on visibility change failed:', e);
-        }
-    }
-};
-// Register event listeners with resource manager
-resourceManager.registerEventListener(window, 'pagehide', onPageHide);
-resourceManager.registerEventListener(window, 'beforeunload', onBeforeUnload);
-resourceManager.registerEventListener(document, 'visibilitychange', onVisibilityChange);
-window.addEventListener('pagehide', onPageHide);
-window.addEventListener('beforeunload', onBeforeUnload);
-document.addEventListener('visibilitychange', onVisibilityChange);
-function cleanup() {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
-        if (cleanedUp)
-            return;
-        cleanedUp = true;
-        running = false;
-        yield stopCamera();
-        // Additional cleanup for DOM elements
-        try {
-            const tapEl = document.getElementById('tapToStart');
-            if (tapEl) {
-                tapEl.remove();
-            }
-        }
-        catch (e) {
-            console.warn("Failed to remove 'tapToStart' element:", e);
-        }
-        try {
-            overlay.remove();
-        }
-        catch (e) {
-            console.warn("Failed to remove 'overlay' element:", e);
-        }
-        try {
-            video.remove();
-        }
-        catch (e) {
-            console.warn("Failed to remove 'video' element:", e);
-        }
-        try {
-            (_b = (_a = window.ReactNativeWebView) === null || _a === void 0 ? void 0 : _a.postMessage) === null || _b === void 0 ? void 0 : _b.call(_a, JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }));
-        }
-        catch (e) {
-            console.warn("Failed to send 'cleanup_done' telemetry event:", e);
-        }
-    });
-}
-// Expose personalized threshold insights for Amy's learning dashboard
-window.__getPersonalizedThresholdInsights = () => {
-    try {
-        const insights = personalizedThresholdManager.getPerformanceInsights();
-        const allThresholds = personalizedThresholdManager.getAllPersonalizedThresholds(0.4); // Base threshold
-        return {
-            performanceInsights: insights,
-            personalizedThresholds: allThresholds,
-            exportData: personalizedThresholdManager.exportPerformanceData()
+    sendClipError(requestId, reason, details) {
+      try {
+        const payload = {
+          type: "clip_error",
+          id: requestId,
+          reason,
+          details: this.serializeError(details)
         };
+        window.ReactNativeWebView?.postMessage?.(JSON.stringify(payload));
+        this.sendClipTelemetry("clip_error", requestId, { reason, details: this.serializeError(details) });
+      } catch (error) {
+        console.warn("Failed to post clip_error message:", error);
+      }
     }
-    catch (error) {
-        console.warn('Failed to get personalized threshold insights:', error);
+    sendClipTelemetry(event, requestId, data) {
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "telemetry",
+            event,
+            requestId,
+            data,
+            timestamp: Date.now()
+          })
+        );
+      } catch (error) {
+        console.warn("Failed to send clip telemetry:", error);
+      }
+    }
+    selectClipMimeType() {
+      if (typeof window.MediaRecorder === "undefined" || typeof window.MediaRecorder.isTypeSupported !== "function") {
+        return void 0;
+      }
+      const candidates = [
+        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+        "video/mp4",
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm"
+      ];
+      return candidates.find((candidate) => window.MediaRecorder.isTypeSupported(candidate));
+    }
+    serializeError(details) {
+      if (!details) {
+        return void 0;
+      }
+      if (details instanceof Error) {
+        return { message: details.message, name: details.name };
+      }
+      if (typeof details === "object") {
+        try {
+          return JSON.parse(JSON.stringify(details));
+        } catch {
+          return String(details);
+        }
+      }
+      return details;
+    }
+    /**
+     * Determine if expensive processing steps should be skipped
+     */
+    shouldSkipExpensiveSteps() {
+      const metrics = this.performanceOptimizer.getPerformanceMetrics();
+      const memoryStatus = this.memoryOptimizer.getMemoryStatus();
+      const shouldSkip = metrics.averageProcessingTime > 50 || memoryStatus.pressureLevel > 1;
+      console.log("shouldSkipExpensiveSteps:", shouldSkip, "avgTime:", metrics.averageProcessingTime, "memoryPressure:", memoryStatus.pressureLevel);
+      return shouldSkip;
+    }
+    /**
+     * Send gesture result to React Native
+     */
+    sendLandmarks(landmarks, handedness, timestamp) {
+      const payload = {
+        type: "landmarks",
+        landmarks,
+        handedness,
+        timestamp
+      };
+      messageBatcher.queueMessage(payload, {});
+    }
+    sendGestureResult(processingResult, originalResults) {
+      try {
+        const handednessLabels = processingResult.metadata?.handednesses?.map((label) => String(label)) ?? originalResults.handednesses?.map((hand) => {
+          const category = hand?.[0]?.categoryName;
+          return typeof category === "string" ? category : "unknown";
+        }) ?? [];
+        const gestureLabel = processingResult.gesture ?? void 0;
+        const payload = {
+          type: "gesture",
+          gesture: gestureLabel,
+          confidence: processingResult.confidence,
+          landmarks: processingResult.landmarks,
+          handednesses: handednessLabels,
+          timestamp: processingResult.timestamp ?? Date.now(),
+          isFallback: processingResult.isFallback,
+          systemHealth: this.errorRecoveryManager.getHealthStatus(),
+          processingTime: processingResult.processingTime,
+          stepsExecuted: processingResult.stepsExecuted,
+          skippedSteps: processingResult.skippedSteps,
+          thresholds: {
+            fallback: FALLBACK_CONFIDENCE_THRESHOLD,
+            mlp: MLP_CONFIDENCE_THRESHOLD
+          }
+        };
+        const fallbackResult = processingResult.fallback;
+        if (!payload.gesture && fallbackResult?.gesture) {
+          payload.gesture = fallbackResult.gesture;
+        }
+        if ((payload.confidence ?? 0) === 0 && typeof fallbackResult?.confidence === "number") {
+          payload.confidence = fallbackResult.confidence;
+        }
+        if (!payload.isFallback && fallbackResult?.isFallback) {
+          payload.isFallback = true;
+        }
+        const frameCapture = getLastCapturedFrame();
+        const effectiveConfidence = payload.confidence ?? 0;
+        if (frameCapture && (effectiveConfidence < FALLBACK_CONFIDENCE_THRESHOLD || payload.isFallback)) {
+          payload.frameCapture = frameCapture;
+        }
+        const shouldFlushImmediately = Boolean(
+          processingResult.emergency?.detected || processingResult.isFallback || fallbackResult?.isFallback || processingResult.isUsingFallback
+        );
+        messageBatcher.queueMessage(payload, {
+          flushImmediately: shouldFlushImmediately
+        });
+      } catch (error) {
+        console.warn("Failed to send gesture result:", error);
+      }
+    }
+    /**
+     * Get current system status
+     */
+    getStatus() {
+      return {
+        initialized: this.isInitialized,
+        running: this.isRunning,
+        performance: this.performanceOptimizer.getPerformanceMetrics(),
+        memory: this.memoryOptimizer.getMemoryStatus(),
+        health: this.errorRecoveryManager.getHealthStatus()
+      };
+    }
+    /**
+     * Cleanup resources
+     */
+    async cleanup() {
+      await this.stop();
+      messageBatcher.forceFlush();
+      setFrameCaptureEnabled(false);
+      this.memoryOptimizer.performCleanup();
+    }
+  };
+  var LandmarkPreprocessingStep = class {
+    constructor(sizeNormalizer, tremorCompensator2) {
+      this.sizeNormalizer = sizeNormalizer;
+      this.tremorCompensator = tremorCompensator2;
+      this.name = "landmark_preprocessing";
+      this.isExpensive = false;
+    }
+    async execute(context) {
+      if (!context.landmarks || context.landmarks.length === 0) {
+        return { landmarks: context.landmarks };
+      }
+      let processedLandmarks = this.sizeNormalizer.normalizeHandSize(context.landmarks);
+      processedLandmarks = this.tremorCompensator.smoothLandmarks(processedLandmarks);
+      return {
+        landmarks: processedLandmarks,
+        rawLandmarks: context.landmarks,
+        preprocessing: {
+          sizeNormalized: true,
+          tremorCompensated: true
+        }
+      };
+    }
+  };
+  var StabilityAnalysisStep = class {
+    constructor(stabilityAssistant) {
+      this.stabilityAssistant = stabilityAssistant;
+      this.name = "stability_analysis";
+      this.isExpensive = false;
+    }
+    async execute(context) {
+      if (!context.landmarks || context.landmarks.length === 0) {
+        return { stability: { isStable: false, score: 0 } };
+      }
+      const stability = this.stabilityAssistant.analyzeStability(context.landmarks);
+      return {
+        stability,
+        feedback: stability.feedback
+      };
+    }
+  };
+  var GestureDetectionStep = class {
+    // MediaPipe processing can be expensive
+    constructor(config) {
+      this.config = config;
+      this.name = "gesture_detection";
+      this.isExpensive = true;
+    }
+    async execute(context) {
+      console.log("GestureDetectionStep executing, skipExpensive:", context.skipExpensiveSteps);
+      const rawResults = context.rawResults;
+      const normalized = context.normalizedResults ?? mapMediaPipeResult(rawResults);
+      const handednesses = normalized.handednesses;
+      const rawHandednesses = rawResults?.handednesses ?? [];
+      const perHand = this.extractPerHandDetections(normalized);
+      console.log("Per hand detections:", perHand);
+      let selectedGesture = null;
+      let selectedConfidence = 0;
+      let detectionMethod = "none";
+      let twoHandMetadata = null;
+      if (perHand.length > 0) {
+        for (const candidate of perHand) {
+          if (candidate.score > selectedConfidence) {
+            selectedGesture = this.normalizeLabel(candidate.label);
+            selectedConfidence = candidate.score;
+            detectionMethod = "mediapipe";
+          }
+        }
+        if (perHand.length >= 2) {
+          const twoHandCandidate = this.resolveTwoHandGesture(perHand);
+          if (twoHandCandidate) {
+            selectedGesture = this.formatTwoHandGesture(twoHandCandidate.gesture);
+            selectedConfidence = twoHandCandidate.score;
+            detectionMethod = "mediapipe";
+            twoHandMetadata = twoHandCandidate.gesture;
+          }
+        }
+      }
+      let mlpMetadata = null;
+      console.log("Checking MLP availability:", typeof window.__mlpPredict);
+      if (typeof window.__mlpPredict === "function") {
+        console.log("MLP function available, attempting prediction");
+        try {
+          console.log("MLP input landmarks:", context.landmarks);
+          console.log("MLP input handednesses:", rawHandednesses.length > 0 ? rawHandednesses : handednesses);
+          const mlpResult = window.__mlpPredict(
+            context.rawLandmarks ?? context.landmarks ?? [],
+            rawHandednesses.length > 0 ? rawHandednesses : handednesses
+          );
+          console.log("MLP prediction result:", JSON.stringify(mlpResult));
+          if (mlpResult && typeof mlpResult.score === "number") {
+            mlpMetadata = mlpResult;
+            const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+            console.log("MLP threshold check:", JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence }));
+            const isMediaPipeConfident = selectedConfidence > 0.3;
+            const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
+            if (mlpResult.score >= threshold && (selectedGesture === null || selectedGesture === "none" || mlpResult.score >= selectedConfidence + confidenceMargin)) {
+              console.log("MLP gesture selected:", JSON.stringify({
+                label: mlpResult.label,
+                score: mlpResult.score,
+                margin: confidenceMargin
+              }));
+              selectedGesture = this.normalizeLabel(mlpResult.label);
+              selectedConfidence = mlpResult.score;
+              detectionMethod = "mlp";
+              twoHandMetadata = null;
+            } else {
+              console.log("MLP gesture not selected:", JSON.stringify({
+                score: mlpResult.score,
+                threshold,
+                selectedConfidence,
+                margin: confidenceMargin
+              }));
+            }
+          } else {
+            console.log("MLP result invalid:", JSON.stringify({ mlpResult, hasScore: typeof mlpResult?.score === "number" }));
+          }
+        } catch (error) {
+          console.warn("MLP prediction failed:", error);
+          const predictionPrefix = typeof window.__predictionError === "string" && window.__predictionError.length > 0 ? window.__predictionError : "MLP prediction failed: ";
+          try {
+            window.ReactNativeWebView?.postMessage?.(
+              JSON.stringify({
+                type: "error",
+                message: `${predictionPrefix}${error instanceof Error ? error.message : String(error)}`,
+                _technical: {
+                  stack: error instanceof Error ? error.stack ?? null : null
+                }
+              })
+            );
+          } catch (postMessageError) {
+            console.debug("Failed to post MLP prediction error to React Native:", postMessageError);
+          }
+        }
+      }
+      return {
+        gesture: selectedGesture,
+        confidence: selectedConfidence,
+        landmarks: context.landmarks,
+        metadata: {
+          method: detectionMethod,
+          perHand: perHand.map(({ hand, label, score }) => ({ hand, label, score })),
+          handednesses,
+          mlp: mlpMetadata,
+          twoHand: twoHandMetadata
+        }
+      };
+    }
+    extractPerHandDetections(normalized) {
+      const detections = [];
+      normalized.hands.forEach((hand, index) => {
+        const topGesture = hand.gestures[0];
+        if (!topGesture) {
+          return;
+        }
+        const normalizedLabel = this.normalizeLabel(topGesture.label);
+        if (!normalizedLabel) {
+          return;
+        }
+        detections.push({
+          index,
+          hand: hand.handedness ?? "unknown",
+          label: normalizedLabel,
+          score: topGesture.score
+        });
+      });
+      return detections;
+    }
+    resolveTwoHandGesture(perHand) {
+      if (perHand.length < 2) {
         return null;
-    }
-};
-// Expose gesture combination management functions
-window.__getGestureCombinations = () => {
-    try {
-        return gestureCombinationManager.getAllCombinations();
-    }
-    catch (error) {
-        console.warn('Failed to get gesture combinations:', error);
-        return [];
-    }
-};
-window.__addCustomGestureCombination = (combination) => {
-    try {
-        gestureCombinationManager.addCustomCombination(combination);
-        return true;
-    }
-    catch (error) {
-        console.warn('Failed to add custom gesture combination:', error);
-        return false;
-    }
-};
-window.__removeGestureCombination = (combinationName) => {
-    try {
-        gestureCombinationManager.removeCustomCombination(combinationName);
-        return true;
-    }
-    catch (error) {
-        console.warn('Failed to remove gesture combination:', error);
-        return false;
-    }
-};
-window.__getCombinationProgress = () => {
-    try {
-        return gestureCombinationManager.getCombinationProgress();
-    }
-    catch (error) {
-        console.warn('Failed to get combination progress:', error);
+      }
+      const leftCandidate = this.findCandidate(perHand, /left/i);
+      const rightCandidate = this.findCandidate(perHand, /right/i, leftCandidate?.index);
+      const finalLeft = leftCandidate ?? null;
+      const finalRight = rightCandidate ?? null;
+      if (!finalLeft || !finalRight) {
         return null;
+      }
+      return {
+        gesture: {
+          left: finalLeft.label,
+          right: finalRight.label
+        },
+        score: Math.sqrt(finalLeft.score * finalRight.score)
+      };
     }
-};
-// Expose haptic feedback management functions
-window.__updateHapticPreferences = (preferences) => {
-    try {
-        hapticFeedbackManager.updatePreferences(preferences);
-        return true;
+    findCandidate(perHand, pattern, excludeIndex) {
+      return perHand.find((candidate) => {
+        if (excludeIndex !== void 0 && candidate.index === excludeIndex) {
+          return false;
+        }
+        return pattern.test(candidate.hand);
+      });
     }
-    catch (error) {
-        console.warn('Failed to update haptic preferences:', error);
-        return false;
+    formatTwoHandGesture(gesture) {
+      return `${gesture.left}+${gesture.right}`;
     }
-};
-window.__getHapticPreferences = () => {
-    try {
-        return hapticFeedbackManager.getPreferences();
-    }
-    catch (error) {
-        console.warn('Failed to get haptic preferences:', error);
+    normalizeLabel(label) {
+      if (!label) {
         return null;
+      }
+      const normalized = label.trim().toLowerCase();
+      return normalized.length > 0 ? normalized : null;
     }
-};
-window.__getHapticStats = () => {
+  };
+  var PartialGestureAnalysisStep = class {
+    constructor(partialDetector) {
+      this.partialDetector = partialDetector;
+      this.name = "partial_gesture_analysis";
+      this.isExpensive = false;
+    }
+    async execute(context) {
+      if (!context.landmarks || context.landmarks.length === 0) {
+        return { partial: null };
+      }
+      const commonGestures = ["thumbs_up", "open_palm", "fist", "point"];
+      let bestPartial = null;
+      for (const gesture of commonGestures) {
+        const partial = this.partialDetector.analyzePartialCompletion(context.landmarks, gesture);
+        if (partial.isPartial && (!bestPartial || partial.completion > bestPartial.completion)) {
+          bestPartial = { ...partial, gesture };
+        }
+      }
+      return { partial: bestPartial };
+    }
+  };
+  var EmergencyGestureCheckStep = class {
+    constructor(emergencySystem) {
+      this.emergencySystem = emergencySystem;
+      this.name = "emergency_gesture_check";
+      this.isExpensive = false;
+    }
+    async execute(context) {
+      const normalized = context.normalizedResults ?? mapMediaPipeResult(context.rawResults);
+      const emergencyStatus = {
+        detected: false,
+        priority: "normal",
+        feedback: "",
+        cooldownRemaining: 0
+      };
+      for (const hand of normalized.hands) {
+        const candidate = hand.gestures?.[0];
+        if (!candidate || !candidate.label) {
+          continue;
+        }
+        if (!this.emergencySystem.isEmergencyGesture(candidate.label, candidate.score ?? 0)) {
+          continue;
+        }
+        const processed = this.emergencySystem.processEmergencyGesture(
+          candidate.label,
+          candidate.score ?? 0,
+          context.landmarks
+        );
+        emergencyStatus.priority = processed.priority;
+        emergencyStatus.cooldownRemaining = processed.cooldownRemaining;
+        emergencyStatus.feedback = processed.feedback;
+        if (processed.shouldProcess) {
+          emergencyStatus.detected = true;
+          break;
+        }
+      }
+      return { emergency: emergencyStatus };
+    }
+  };
+  var FallbackProcessingStep = class {
+    constructor(fallbackDetector, errorRecoveryManager) {
+      this.fallbackDetector = fallbackDetector;
+      this.errorRecoveryManager = errorRecoveryManager;
+      this.name = "fallback_processing";
+      this.isExpensive = false;
+    }
+    async execute(context) {
+      if (!this.errorRecoveryManager.isInFallbackMode()) {
+        return { fallback: null };
+      }
+      if (!context.landmarks || context.landmarks.length === 0) {
+        return { fallback: null };
+      }
+      const fallback = this.fallbackDetector.detectGesture(context.landmarks);
+      return {
+        fallback,
+        isUsingFallback: true
+      };
+    }
+  };
+  var ResultProcessingStep = class {
+    constructor(errorRecoveryManager) {
+      this.errorRecoveryManager = errorRecoveryManager;
+      this.name = "result_processing";
+      this.isExpensive = false;
+    }
+    async execute(context) {
+      return {
+        finalResult: {
+          validated: true,
+          timestamp: context.timestamp
+        }
+      };
+    }
+  };
+
+  // webview/gestureDetector.new.ts
+  var onError = (e) => {
     try {
-        return hapticFeedbackManager.getHapticStats();
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "error",
+          message: "gesture_processing_error",
+          // Generic identifier for React Native to handle
+          // Keep technical details for logging but don't send to UI
+          _technical: {
+            message: e.message,
+            file: e.filename,
+            line: e.lineno,
+            col: e.colno,
+            stack: e.error?.stack || null
+          }
+        })
+      );
+    } catch (err2) {
+      console.warn("Failed to forward script error event:", err2);
     }
-    catch (error) {
-        console.warn('Failed to get haptic stats:', error);
-        return null;
-    }
-};
-// Expose gesture replay management functions
-window.__startGestureReplay = (recordingId, options) => {
+  };
+  window.addEventListener("error", onError);
+  var originalConsoleLog = console.log;
+  console.log = (...args) => {
     try {
-        return gestureReplayManager.startReplay(recordingId, options);
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "telemetry",
+          event: "console_log",
+          message: args.join(" "),
+          timestamp: Date.now()
+        })
+      );
+    } catch (err2) {
+      console.debug("Failed to forward console.log message to React Native:", err2);
     }
-    catch (error) {
-        console.warn('Failed to start gesture replay:', error);
-        return false;
-    }
-};
-window.__stopGestureReplay = () => {
+    originalConsoleLog(...args);
+  };
+  var onUnhandledRejection = (e) => {
     try {
-        gestureReplayManager.stopReplay();
-        return true;
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "error",
+          message: "gesture_processing_error",
+          // Generic identifier for React Native to handle
+          // Keep technical details for logging but don't send to UI
+          _technical: {
+            message: String(e?.reason?.message ?? e?.reason ?? "unhandledrejection"),
+            stack: e.reason?.stack || null
+          }
+        })
+      );
+    } catch (err2) {
+      console.warn("Failed to forward unhandledrejection:", err2);
     }
-    catch (error) {
-        console.warn('Failed to stop gesture replay:', error);
-        return false;
+  };
+  window.addEventListener("unhandledrejection", onUnhandledRejection);
+  var tapToStartText = window.__tapToStart || "";
+  var recognizerInitFailed = window.__recognizerInitFailed || "Erkennung konnte nicht gestartet werden: ";
+  window.__predictionError = window.__predictionError || "Vorhersagefehler: ";
+  var cameraError = window.__cameraError || "Kamerafehler: ";
+  var facingMode = window.__facingMode || "user";
+  var mirrorOverlay = window.__mirrorOverlay === true;
+  var container = document.createElement("div");
+  container.id = "gestureCameraContainer";
+  var video = document.createElement("video");
+  var overlay = document.createElement("canvas");
+  overlay.id = "overlay";
+  video.setAttribute("autoplay", "");
+  video.setAttribute("playsinline", "");
+  video.setAttribute("muted", "");
+  function ensureStyleSheet() {
+    if (document.getElementById("gesture-detector-styles")) {
+      return;
     }
-};
-window.__pauseGestureReplay = () => {
+    const style = document.createElement("style");
+    style.id = "gesture-detector-styles";
+    style.textContent = `
+    html, body {
+      height: 100%;
+      width: 100%;
+    }
+
+    body.gesture-detector {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #ecfdf5;
+      background-image: radial-gradient(circle at 20% 20%, rgba(134, 239, 172, 0.25), transparent 60%),
+        radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.18), transparent 55%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .gesture-detector-container {
+      position: relative;
+      width: min(96vw, 640px);
+      height: min(72vh, 480px);
+      max-width: 100vw;
+      max-height: 100vh;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(226, 252, 245, 0.92));
+    }
+
+    .gesture-detector-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background-color: #f8fafc;
+      filter: brightness(1.08);
+      transition: filter 0.2s ease;
+      transform-origin: center;
+    }
+
+    .gesture-detector-video.mirrored {
+      transform: scaleX(-1);
+    }
+
+    .gesture-detector-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background-color: rgba(255, 255, 255, 0.08);
+      mix-blend-mode: screen;
+    }
+
+    .gesture-detector-tap {
+      position: absolute;
+      bottom: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #10b981, #22d3ee);
+      color: #0f172a;
+      font-weight: 600;
+      border-radius: 999px;
+      box-shadow: 0 12px 24px rgba(14, 116, 144, 0.35);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    .gesture-detector-tap:active {
+      transform: translateX(-50%) scale(0.98);
+    }
+
+    .gesture-detector-tap.hidden {
+      display: none;
+    }
+  `;
+    document.head.appendChild(style);
+  }
+  function applyBaseStyles() {
+    ensureStyleSheet();
+    document.body.classList.add("gesture-detector");
+    container.classList.add("gesture-detector-container");
+    video.classList.add("gesture-detector-video");
+    overlay.classList.add("gesture-detector-overlay");
+    const shouldMirrorVideo = mirrorOverlay || facingMode === "user";
+    video.classList.toggle("mirrored", shouldMirrorVideo);
+  }
+  window.fflate = { unzip, unzipSync };
+  installMlp();
+  try {
+    window.ReactNativeWebView?.postMessage?.(
+      JSON.stringify({ type: "telemetry", event: "mlp_ready" })
+    );
+  } catch (err2) {
+    console.warn("Failed to signal 'mlp_ready' event:", err2);
+  }
+  var orchestrator = null;
+  function initDom() {
+    applyBaseStyles();
+    container.appendChild(video);
+    container.appendChild(overlay);
+    document.body.appendChild(container);
+    orchestrator = new GestureRecognitionOrchestrator(video, overlay);
+    window.__gestureOrchestrator = orchestrator;
+    orchestrator.initialize().catch((error) => {
+      console.error("Failed to initialize gesture recognition:", error);
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "error",
+          message: recognizerInitFailed + (error instanceof Error ? error.message : String(error))
+        })
+      );
+    });
+    const tap = document.createElement("div");
+    tap.id = "tapToStart";
+    tap.innerText = tapToStartText;
+    if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+      tap.classList.add("hidden");
+    }
+    tap.addEventListener("click", async () => {
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "tap_start" })
+        );
+        if (orchestrator) {
+          await orchestrator.start();
+          tap.classList.add("hidden");
+        }
+      } catch (err2) {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "error",
+            message: cameraError + (err2 instanceof Error ? err2.message : String(err2))
+          })
+        );
+      }
+    });
+    tap.classList.add("gesture-detector-tap");
+    document.body.appendChild(tap);
+    if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
+      const startPromise = orchestrator.start();
+      startPromise.then(() => {
+        tap.classList.add("hidden");
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "telemetry", event: "tap_start_autostart" })
+        );
+      }).catch((err2) => {
+        console.warn("Camera autostart failed:", err2);
+        tap.classList.remove("hidden");
+      });
+    }
+    window.ReactNativeWebView?.postMessage?.(
+      JSON.stringify({ type: "telemetry", event: "dom_ready" })
+    );
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDom);
+  } else {
+    initDom();
+  }
+  var onVisibilityChange = () => {
+    if (document.hidden) {
+      orchestrator?.stop();
+    } else {
+      orchestrator?.start();
+    }
+  };
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  async function cleanup() {
     try {
-        gestureReplayManager.pauseReplay();
-        return true;
+      orchestrator?.cancelClipCapture();
+    } catch (err2) {
+      console.warn("Failed to cancel clip capture during cleanup:", err2);
     }
-    catch (error) {
-        console.warn('Failed to pause gesture replay:', error);
-        return false;
-    }
-};
-window.__getAvailableReplays = () => {
+    await orchestrator?.cleanup();
+    orchestrator = null;
+    window.__gestureOrchestrator = null;
     try {
-        return gestureReplayManager.getAvailableRecordings();
+      const tapEl = document.getElementById("tapToStart");
+      if (tapEl) tapEl.remove();
+    } catch (e) {
+      console.warn("Failed to remove 'tapToStart' element:", e);
     }
-    catch (error) {
-        console.warn('Failed to get available replays:', error);
-        return [];
-    }
-};
-window.__getReplayStats = () => {
     try {
-        return gestureReplayManager.getReplayStats();
+      overlay.remove();
+    } catch (e) {
+      console.warn("Failed to remove 'overlay' element:", e);
     }
-    catch (error) {
-        console.warn('Failed to get replay stats:', error);
-        return null;
-    }
-};
-window.__deleteGestureReplay = (recordingId) => {
     try {
-        return gestureReplayManager.deleteRecording(recordingId);
+      container.remove();
+    } catch (e) {
+      console.warn("Failed to remove camera container:", e);
     }
-    catch (error) {
-        console.warn('Failed to delete gesture replay:', error);
-        return false;
-    }
-};
-// Expose navigation gesture management functions
-window.__getNavigationGestures = () => {
     try {
-        return navigationGestureManager.getAvailableNavigationGestures();
+      video.remove();
+    } catch (e) {
+      console.warn("Failed to remove 'video' element:", e);
     }
-    catch (error) {
-        console.warn('Failed to get navigation gestures:', error);
-        return [];
-    }
-};
-window.__addNavigationGesture = (gesture) => {
+    document.body.classList.remove("gesture-detector");
+    window.ReactNativeWebView?.postMessage?.(
+      JSON.stringify({ type: "telemetry", event: "cleanup_done" })
+    );
+  }
+  window.__cleanupGestureDetector = cleanup;
+  window.__startClipCapture = (id) => {
     try {
-        navigationGestureManager.addCustomNavigationGesture(gesture);
-        return true;
+      if (!orchestrator) {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "clip_error", id, reason: "orchestrator_unavailable" })
+        );
+        return;
+      }
+      orchestrator.startClipCapture(id);
+    } catch (error) {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "clip_error",
+          id,
+          reason: "start_clip_failed",
+          details: error instanceof Error ? error.message : String(error)
+        })
+      );
     }
-    catch (error) {
-        console.warn('Failed to add navigation gesture:', error);
-        return false;
-    }
-};
-window.__removeNavigationGesture = (gestureName) => {
+  };
+  window.__stopClipCapture = (id) => {
     try {
-        return navigationGestureManager.removeNavigationGesture(gestureName);
+      if (!orchestrator) {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({ type: "clip_error", id, reason: "orchestrator_unavailable" })
+        );
+        return;
+      }
+      orchestrator.stopClipCapture(id);
+    } catch (error) {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "clip_error",
+          id,
+          reason: "stop_clip_failed",
+          details: error instanceof Error ? error.message : String(error)
+        })
+      );
     }
-    catch (error) {
-        console.warn('Failed to remove navigation gesture:', error);
-        return false;
-    }
-};
-window.__updateNavigationGesture = (gestureName, updates) => {
-    try {
-        return navigationGestureManager.updateNavigationGesture(gestureName, updates);
-    }
-    catch (error) {
-        console.warn('Failed to update navigation gesture:', error);
-        return false;
-    }
-};
-window.__getNavigationStats = () => {
-    try {
-        return navigationGestureManager.getNavigationStats();
-    }
-    catch (error) {
-        console.warn('Failed to get navigation stats:', error);
-        return null;
-    }
-};
-window.__getNavigationHoldProgress = (gestureName) => {
-    try {
-        return navigationGestureManager.getHoldProgress(gestureName);
-    }
-    catch (error) {
-        console.warn('Failed to get navigation hold progress:', error);
-        return 0;
-    }
-};
-// Expose visual correction management functions
-window.__selectVisualCorrection = (sessionId, selectedGesture) => {
-    try {
-        return visualCorrectionManager.selectCorrection(sessionId, selectedGesture);
-    }
-    catch (error) {
-        console.warn('Failed to select visual correction:', error);
-        return false;
-    }
-};
-window.__cancelVisualCorrection = (sessionId) => {
-    try {
-        return visualCorrectionManager.cancelCorrection(sessionId);
-    }
-    catch (error) {
-        console.warn('Failed to cancel visual correction:', error);
-        return false;
-    }
-};
-window.__getCurrentCorrectionSession = () => {
-    try {
-        return visualCorrectionManager.getCurrentCorrectionSession();
-    }
-    catch (error) {
-        console.warn('Failed to get current correction session:', error);
-        return null;
-    }
-};
-window.__addCustomVisual = (gesture, emoji, description) => {
-    try {
-        visualCorrectionManager.addCustomVisual(gesture, emoji, description);
-        return true;
-    }
-    catch (error) {
-        console.warn('Failed to add custom visual:', error);
-        return false;
-    }
-};
-window.__getCorrectionStats = () => {
-    try {
-        return visualCorrectionManager.getCorrectionStats();
-    }
-    catch (error) {
-        console.warn('Failed to get correction stats:', error);
-        return null;
-    }
-};
-// Expose gesture undo management functions
-window.__confirmGestureUndo = (sessionId) => {
-    try {
-        return gestureUndoManager.confirmUndo(sessionId);
-    }
-    catch (error) {
-        console.warn('Failed to confirm gesture undo:', error);
-        return false;
-    }
-};
-window.__cancelGestureUndo = (sessionId) => {
-    try {
-        return gestureUndoManager.cancelUndo(sessionId);
-    }
-    catch (error) {
-        console.warn('Failed to cancel gesture undo:', error);
-        return false;
-    }
-};
-window.__getCurrentUndoSession = () => {
-    try {
-        return gestureUndoManager.getCurrentUndoSession();
-    }
-    catch (error) {
-        console.warn('Failed to get current undo session:', error);
-        return null;
-    }
-};
-window.__getUndoableGestures = () => {
-    try {
-        return gestureUndoManager.getUndoableGestures();
-    }
-    catch (error) {
-        console.warn('Failed to get undoable gestures:', error);
-        return [];
-    }
-};
-window.__addCustomUndoGesture = (gesture) => {
-    try {
-        gestureUndoManager.addCustomUndoGesture(gesture);
-        return true;
-    }
-    catch (error) {
-        console.warn('Failed to add custom undo gesture:', error);
-        return false;
-    }
-};
-window.__getUndoStats = () => {
-    try {
-        return gestureUndoManager.getUndoStats();
-    }
-    catch (error) {
-        console.warn('Failed to get undo stats:', error);
-        return null;
-    }
-};
-window.__getUndoHoldProgress = (gestureName) => {
-    try {
-        return gestureUndoManager.getUndoHoldProgress(gestureName);
-    }
-    catch (error) {
-        console.warn('Failed to get undo hold progress:', error);
-        return 0;
-    }
-};
-window.__cleanupGestureDetector = cleanup;
+  };
+  window.__getGestureSystemStatus = () => {
+    return orchestrator?.getStatus() || { error: "Orchestrator not initialized" };
+  };
+})();
