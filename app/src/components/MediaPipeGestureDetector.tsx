@@ -387,7 +387,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     window.__facingMode = '${escapeJs(facingMode)}';
     window.__mirrorOverlay = ${facingMode === 'user'};
     window.__gestureSizeTolerance = ${sanitizedGestureSizeTolerance};
-    window.__autostartCamera = false;
+    window.__autostartCamera = true;
   </script>
   <script>
     (function loadGestureBundle() {
@@ -430,6 +430,100 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
 <body></body>
 </html>`;
   }, [facingMode, inlineGestureDetectorSource, sanitizedGestureSizeTolerance]);
+
+  const cameraStartRetryRef = useRef<{
+    attempts: number;
+    timeout: ReturnType<typeof setTimeout> | null;
+  }>({
+    attempts: 0,
+    timeout: null,
+  });
+
+  const clearCameraStartRetryTimeout = useCallback(() => {
+    const state = cameraStartRetryRef.current;
+    if (state.timeout) {
+      clearTimeout(state.timeout);
+      state.timeout = null;
+    }
+  }, []);
+
+  const injectCameraStartRequest = useCallback(
+    (reason: string) => {
+      const webview = webviewRef.current;
+      if (!webview?.injectJavaScript) {
+        return false;
+      }
+
+      const script = `
+        (() => {
+          try {
+            const hook = window.__requestCameraStart;
+            if (typeof hook === 'function') {
+              const maybePromise = hook('${escapeJs(reason)}');
+              if (maybePromise && typeof maybePromise === 'object' && typeof maybePromise.catch === 'function') {
+                maybePromise.catch((error) => {
+                  console.warn('Camera start hook rejected', error);
+                });
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to invoke camera start hook', error);
+          }
+        })();
+        true;
+      `;
+
+      try {
+        webview.injectJavaScript(script);
+        return true;
+      } catch (error) {
+        logger.warn('Failed to inject camera start request', error);
+        return false;
+      }
+    },
+    [],
+  );
+
+  const scheduleCameraStartAttempt = useCallback(
+    (reason: string, resetAttempts = false) => {
+      const state = cameraStartRetryRef.current;
+      if (resetAttempts) {
+        state.attempts = 0;
+      }
+
+      const attemptNumber = state.attempts;
+      const delay =
+        attemptNumber === 0
+          ? 0
+          : Math.min(2000 * 2 ** Math.max(attemptNumber - 1, 0), 30000);
+
+      clearCameraStartRetryTimeout();
+
+      const runAttempt = () => {
+        state.timeout = null;
+        const injected = injectCameraStartRequest(reason);
+        state.attempts = attemptNumber + 1;
+
+        if (!injected) {
+          scheduleCameraStartAttempt(reason, false);
+        }
+      };
+
+      if (delay === 0) {
+        runAttempt();
+      } else {
+        state.timeout = setTimeout(runAttempt, delay);
+      }
+    },
+    [clearCameraStartRetryTimeout, injectCameraStartRequest],
+  );
+
+  useEffect(() => {
+    return () => {
+      clearCameraStartRetryTimeout();
+      cameraStartRetryRef.current.attempts = 0;
+    };
+  }, [clearCameraStartRetryTimeout]);
 
   useEffect(() => {
     if (!webviewRef.current?.injectJavaScript) {
@@ -635,8 +729,16 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
             resetTransferState?.();
           } else if (eventName === 'gesture_processing_error') {
             setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
-          } else if (eventName === 'camera_started' || eventName === 'dom_ready') {
+          } else if (eventName === 'camera_started' || eventName === 'camera_start_hook_success') {
+            clearCameraStartRetryTimeout();
+            cameraStartRetryRef.current.attempts = 0;
             setWebviewError(null);
+          } else if (eventName === 'dom_ready') {
+            setWebviewError(null);
+            scheduleCameraStartAttempt('dom_ready', true);
+          } else if (eventName === 'camera_start_failed' || eventName === 'camera_start_hook_error') {
+            setWebviewError(CAMERA_ERROR_TEXT);
+            scheduleCameraStartAttempt('dom_ready_retry');
           }
         } else if (data.type === 'error') {
           const errorMessage = typeof data.message === 'string' ? data.message : 'gesture_processing_error';
@@ -666,6 +768,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       }
     },
     [
+      clearCameraStartRetryTimeout,
       deliverGestureMessage,
       injectModel,
       markTransferComplete,
@@ -677,6 +780,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       pendingModelContextRef,
       requeueLastModel,
       resetTransferState,
+      scheduleCameraStartAttempt,
     ],
   );
 

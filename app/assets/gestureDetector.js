@@ -5267,6 +5267,20 @@
     }
     originalConsoleLog(...args);
   };
+  var sendTelemetry = (event, payload = {}) => {
+    try {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: "telemetry",
+          event,
+          timestamp: Date.now(),
+          ...payload
+        })
+      );
+    } catch (err2) {
+      console.warn(`Failed to send '${event}' telemetry event:`, err2);
+    }
+  };
   var onUnhandledRejection = (e) => {
     try {
       window.ReactNativeWebView?.postMessage?.(
@@ -5406,6 +5420,46 @@
     console.warn("Failed to signal 'mlp_ready' event:", err2);
   }
   var orchestrator = null;
+  var tapElement = null;
+  var cameraStartInFlight = null;
+  var resolveTapElement = () => {
+    if (tapElement && tapElement.isConnected) {
+      return tapElement;
+    }
+    const found = document.getElementById("tapToStart");
+    if (found instanceof HTMLDivElement) {
+      tapElement = found;
+      return tapElement;
+    }
+    return null;
+  };
+  var requestCameraStart = async (source = "hook") => {
+    if (!orchestrator) {
+      sendTelemetry("camera_start_hook_error", {
+        source,
+        reason: "orchestrator_unavailable"
+      });
+      throw new Error("gesture_orchestrator_unavailable");
+    }
+    if (!cameraStartInFlight) {
+      cameraStartInFlight = orchestrator.start().then(() => {
+        resolveTapElement()?.classList.add("hidden");
+        sendTelemetry("camera_start_hook_success", { source });
+        return true;
+      }).catch((err2) => {
+        resolveTapElement()?.classList.remove("hidden");
+        sendTelemetry("camera_start_hook_error", {
+          source,
+          error: err2 instanceof Error ? err2.message : String(err2)
+        });
+        throw err2;
+      }).finally(() => {
+        cameraStartInFlight = null;
+      });
+    }
+    return cameraStartInFlight;
+  };
+  window.__requestCameraStart = requestCameraStart;
   function initDom() {
     applyBaseStyles();
     container.appendChild(video);
@@ -5425,18 +5479,14 @@
     const tap = document.createElement("div");
     tap.id = "tapToStart";
     tap.innerText = tapToStartText;
+    tapElement = tap;
     if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
       tap.classList.add("hidden");
     }
     tap.addEventListener("click", async () => {
       try {
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "telemetry", event: "tap_start" })
-        );
-        if (orchestrator) {
-          await orchestrator.start();
-          tap.classList.add("hidden");
-        }
+        sendTelemetry("tap_start");
+        await requestCameraStart("tap");
       } catch (err2) {
         window.ReactNativeWebView?.postMessage?.(
           JSON.stringify({
@@ -5449,15 +5499,11 @@
     tap.classList.add("gesture-detector-tap");
     document.body.appendChild(tap);
     if (window.__autostartCamera === true && (navigator.userActivation?.hasBeenActive ?? false)) {
-      const startPromise = orchestrator.start();
+      const startPromise = requestCameraStart("autostart");
       startPromise.then(() => {
-        tap.classList.add("hidden");
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: "telemetry", event: "tap_start_autostart" })
-        );
+        sendTelemetry("tap_start_autostart");
       }).catch((err2) => {
         console.warn("Camera autostart failed:", err2);
-        tap.classList.remove("hidden");
       });
     }
     window.ReactNativeWebView?.postMessage?.(
@@ -5492,6 +5538,8 @@
     } catch (e) {
       console.warn("Failed to remove 'tapToStart' element:", e);
     }
+    tapElement = null;
+    cameraStartInFlight = null;
     try {
       overlay.remove();
     } catch (e) {
