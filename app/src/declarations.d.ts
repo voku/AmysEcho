@@ -64,6 +64,7 @@ declare global {
     __amyTimeBased?: boolean;
     __amyContextAware?: boolean;
     __autostartCamera?: boolean;
+    __requestCameraStart?: (source?: string) => Promise<boolean> | boolean;
     __visionBundleSri?: string;
     __visionBundleNonce?: string;
     __mediapipeVersion?: string;
