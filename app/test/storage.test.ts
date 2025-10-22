@@ -22,6 +22,7 @@ import {
   loadCustomGestures,
   TrainingFrame,
   createTrainingSample,
+  rehydratePendingTrainingSamples,
 } from '../src/storage';
 import { enqueueTrainingBundle } from '../src/services/trainingBundleQueue';
 
@@ -296,6 +297,75 @@ describe('Storage', () => {
         expect.stringContaining('gesture-1'),
       );
       expect(mockEnqueue).toHaveBeenCalled();
+    });
+  });
+
+  describe('rehydratePendingTrainingSamples', () => {
+    it('requeues pending samples and updates stored status', async () => {
+      const profileId = 'profile-rehydrate';
+      const sample = {
+        id: 'sample-1',
+        profileId,
+        label: 'gesture-1',
+        frames: [],
+        clipUri: 'file://clip.mp4',
+        source: 'HIP_2' as const,
+        capturedAt: '2023-01-01T00:00:00.000Z',
+        createdAt: '2023-01-01T00:00:00.000Z',
+        syncStatus: 'pending' as const,
+        bundleKey: null,
+      };
+
+      mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify([sample]));
+      mockAsyncStorage.setItem.mockResolvedValue();
+      mockEnqueue.mockResolvedValueOnce('rehydrated-bundle-key');
+
+      await rehydratePendingTrainingSamples(profileId);
+
+      expect(mockEnqueue).toHaveBeenCalledWith(expect.objectContaining({ id: 'sample-1' }));
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledTimes(1);
+      const [storageKey, raw] = mockAsyncStorage.setItem.mock.calls[0];
+      expect(storageKey).toBe(`gestureTrainingData_${profileId}`);
+      const stored = JSON.parse(raw);
+      expect(stored).toHaveLength(1);
+      expect(stored[0]).toMatchObject({
+        id: 'sample-1',
+        syncStatus: 'queued',
+        bundleKey: 'rehydrated-bundle-key',
+      });
+    });
+
+    it('marks samples without clip URIs as pending without enqueuing', async () => {
+      const profileId = 'profile-no-clip';
+      const sample = {
+        id: 'sample-2',
+        profileId,
+        label: 'gesture-2',
+        frames: [],
+        clipUri: '',
+        source: 'HIP_2' as const,
+        capturedAt: '2023-01-02T00:00:00.000Z',
+        createdAt: '2023-01-02T00:00:00.000Z',
+        syncStatus: 'queued' as const,
+        bundleKey: undefined,
+      };
+
+      mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify([sample]));
+      mockAsyncStorage.setItem.mockResolvedValue();
+
+      await rehydratePendingTrainingSamples(profileId);
+
+      expect(mockEnqueue).not.toHaveBeenCalled();
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledTimes(1);
+      const [storageKey, raw] = mockAsyncStorage.setItem.mock.calls[0];
+      expect(storageKey).toBe(`gestureTrainingData_${profileId}`);
+      const stored = JSON.parse(raw);
+      expect(stored).toHaveLength(1);
+      expect(stored[0]).toMatchObject({
+        id: 'sample-2',
+        syncStatus: 'pending',
+        bundleKey: null,
+      });
     });
   });
 

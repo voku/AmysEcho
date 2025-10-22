@@ -276,6 +276,52 @@ export async function saveTrainingSample(sample: TrainingSample): Promise<Traini
   return stored;
 }
 
+export async function rehydratePendingTrainingSamples(profileId: string): Promise<void> {
+  const samples = await loadSamplesForProfile(profileId);
+  if (samples.length === 0) {
+    return;
+  }
+
+  const trainingKey = `gestureTrainingData_${profileId}`;
+  let mutated = false;
+
+  for (const sample of samples) {
+    const needsBundle = sample.syncStatus === 'pending' || !sample.bundleKey;
+    if (!needsBundle) {
+      continue;
+    }
+
+    if (!sample.clipUri) {
+      if (sample.syncStatus !== 'pending' || sample.bundleKey) {
+        sample.syncStatus = 'pending';
+        sample.bundleKey = null;
+        mutated = true;
+      }
+      continue;
+    }
+
+    try {
+      const bundleKey = await enqueueTrainingBundle(sample);
+      if (sample.syncStatus !== 'queued' || sample.bundleKey !== bundleKey) {
+        mutated = true;
+      }
+      sample.syncStatus = 'queued';
+      sample.bundleKey = bundleKey;
+    } catch (error) {
+      console.warn('Failed to enqueue training bundle during rehydrate', error);
+      if (sample.syncStatus !== 'pending' || sample.bundleKey) {
+        mutated = true;
+      }
+      sample.syncStatus = 'pending';
+      sample.bundleKey = null;
+    }
+  }
+
+  if (mutated) {
+    await AsyncStorage.setItem(trainingKey, JSON.stringify(samples));
+  }
+}
+
 export async function loadTrainingSampleCount(
   label: string,
   profileId?: string,

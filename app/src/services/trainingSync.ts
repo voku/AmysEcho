@@ -6,6 +6,7 @@ import {
   loadProfile,
   loadBackendApiToken,
   updateTrainingSample,
+  rehydratePendingTrainingSamples,
 } from '../storage';
 import { API_URL } from '../constants';
 import { logger } from '../utils/logger';
@@ -223,6 +224,15 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
 
   if (!profile.consentHelpMeGetSmarter) {
     return { uploaded: 0, remaining: 0 };
+  }
+
+  try {
+    await rehydratePendingTrainingSamples(profile.id);
+  } catch (rehydrateError) {
+    logger.warn('Failed to rehydrate pending training samples', {
+      error: rehydrateError,
+      profileId: profile.id,
+    });
   }
 
   const bundles = await listQueuedTrainingBundles(profile.id);
