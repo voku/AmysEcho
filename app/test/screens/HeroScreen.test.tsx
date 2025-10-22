@@ -12,15 +12,8 @@ jest.mock('../../src/components/ScreenBackground', () => {
 
 jest.mock('../../src/components/WorkflowSupportLinks', () => () => null);
 
-jest.mock('../../src/components/AccessibilityContext', () => ({
-  useAccessibility: () => ({
-    largeText: false,
-    highContrast: false,
-  }),
-}));
-
 import ScreenBackground from '../../src/components/ScreenBackground';
-import HeroScreen, { heroStyles } from '../../src/screens/HeroScreen';
+import HeroScreen from '../../src/screens/HeroScreen';
 
 describe('HeroScreen', () => {
   it('enables scrolling so primary actions remain reachable on small displays', () => {
@@ -39,11 +32,40 @@ describe('HeroScreen', () => {
     expect(props).toMatchObject({ scrollable: true, testID: 'hero-screen' });
   });
 
-  it('uses high-contrast colors for hero copy on the gradient background', () => {
-    const titleStyle = StyleSheet.flatten(heroStyles.title);
-    const subtitleStyle = StyleSheet.flatten(heroStyles.subtitle);
+  it('renders hero copy with light tokens for gradient legibility', () => {
+    const navigation = {
+      replace: jest.fn(),
+      navigate: jest.fn(),
+    } as any;
 
-    expect(titleStyle?.color).toBe(Colors.surface);
+    act(() => {
+      renderer.create(<HeroScreen navigation={navigation} />);
+    });
+
+    const ScreenBackgroundMock = ScreenBackground as jest.Mock;
+    const mockChildren = ScreenBackgroundMock.mock.calls[0]?.[0]?.children;
+    expect(mockChildren).toBeDefined();
+
+    const header = mockChildren?.props?.children?.[0];
+    const headerChildren = Array.isArray(header?.props?.children)
+      ? header?.props?.children
+      : header?.props?.children
+        ? [header?.props?.children]
+        : [];
+
+    const title = headerChildren?.find((child: any) => child?.props?.testID === 'hero-title');
+    const subtitle = headerChildren?.find((child: any) => child?.props?.testID === 'hero-subtitle');
+
+    expect(title).toBeDefined();
+    expect(subtitle).toBeDefined();
+
+    const titleStyle = StyleSheet.flatten(title!.props.style);
+    const subtitleStyle = StyleSheet.flatten(subtitle!.props.style);
+
+    // The hero copy sits directly on the gradient background, so enforce the
+    // light accessibility tokens that keep the text legible.
+    expect(titleStyle?.color).toBe(Colors.inverseText);
     expect(subtitleStyle?.color).toBe(Colors.inverseText);
+
   });
 });

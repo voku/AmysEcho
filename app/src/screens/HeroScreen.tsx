@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes.titleLg,
     fontWeight: typography.weights.extrabold,
-    color: Colors.surface,
+    color: Colors.inverseText,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
@@ -111,7 +111,5 @@ const styles = StyleSheet.create({
     marginTop: spacing['2xl'],
   },
 });
-
-export const heroStyles = styles;
 
 export default HeroScreen;
