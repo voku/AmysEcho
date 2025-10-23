@@ -385,6 +385,11 @@ try {
   } else if (!rn.StyleSheet.flatten) {
     rn.StyleSheet.flatten = (style: any) => style;
   }
+  if (!rn.TurboModuleRegistry || typeof rn.TurboModuleRegistry.get !== 'function') {
+    rn.TurboModuleRegistry = {
+      get: () => undefined,
+    };
+  }
 } catch {}
 
 const mockFileSystemPaths = {

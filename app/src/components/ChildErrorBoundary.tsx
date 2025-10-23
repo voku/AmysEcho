@@ -11,16 +11,52 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  errorMessage: string;
+}
+
+function toErrorMessage(error: unknown): string {
+  const sanitize = (message: string | null | undefined): string => {
+    const trimmed = message?.trim();
+    if (!trimmed) {
+      return 'Unbekannter Fehler';
+    }
+    if (trimmed.length > 400) {
+      return `${trimmed.slice(0, 397)}…`;
+    }
+    return trimmed;
+  };
+
+  if (!error) {
+    return 'Unbekannter Fehler';
+  }
+
+  if (typeof error === 'string') {
+    return sanitize(error);
+  }
+
+  if (error instanceof Error) {
+    return sanitize(error.message || error.name);
+  }
+
+  if (typeof error === 'object') {
+    try {
+      return sanitize(JSON.stringify(error));
+    } catch {
+      return sanitize('[Objektfehler ohne Nachricht]');
+    }
+  }
+
+  return sanitize(String(error));
 }
 
 export class ChildErrorBoundary extends Component<Props, State> {
   static override contextType = AccessibilityContext;
   override context!: React.ContextType<typeof AccessibilityContext>;
 
-  override state: State = { hasError: false };
+  override state: State = { hasError: false, errorMessage: 'Unbekannter Fehler' };
 
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: unknown): State {
+    return { hasError: true, errorMessage: toErrorMessage(error) };
   }
 
   override componentDidCatch(error: unknown) {
@@ -29,18 +65,26 @@ export class ChildErrorBoundary extends Component<Props, State> {
   }
 
   private handleRetry = () => {
-    this.setState({ hasError: false });
+    this.setState({ hasError: false, errorMessage: 'Unbekannter Fehler' });
   };
 
   override render() {
     if (this.state.hasError) {
       const { largeText, highContrast } = this.context;
       const fontSize = largeText ? 20 : 16;
+      const detailFontSize = largeText ? 18 : 14;
       const backgroundColor = highContrast ? COLORS.highContrastBackground : `${COLORS.warning}B3`;
       const textColor = highContrast ? COLORS.highContrastText : COLORS.text;
       return (
-        <View style={[styles.overlay, { backgroundColor }]}> 
+        <View style={[styles.overlay, { backgroundColor }]}>
           <Text testID="error-text" style={[styles.text, { color: textColor, fontSize }]}>Ups, lass es uns noch einmal versuchen!</Text>
+          <Text
+            testID="error-detail"
+            style={[styles.detailText, { color: textColor, fontSize: detailFontSize }]}
+            accessibilityLabel={`Fehlerdetails: ${this.state.errorMessage}`}
+          >
+            {`Fehlermeldung: ${this.state.errorMessage}`}
+          </Text>
           <Pressable testID="retry-button" accessibilityLabel="Nochmal versuchen" onPress={this.handleRetry} style={[styles.button, { backgroundColor: highContrast ? COLORS.highContrastPressed : COLORS.surface }]}>
             <Text style={[styles.buttonText, { color: highContrast ? COLORS.highContrastText : COLORS.text, fontSize }]}>Nochmal versuchen</Text>
           </Pressable>
@@ -59,6 +103,10 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   text: {
+    marginBottom: SPACING.md,
+    textAlign: 'center',
+  },
+  detailText: {
     marginBottom: SPACING.md,
     textAlign: 'center',
   },

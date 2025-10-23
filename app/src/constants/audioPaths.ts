@@ -1,7 +1,11 @@
-import { Paths } from 'expo-file-system';
+import { ensureDirectoryUri, getDocumentDirectoryUri, joinUriPath } from '../utils/pathUtils';
 
-export const CUSTOM_AUDIO_DIR = Paths.document.uri + 'custom_audio/';
+const documentBaseUri = ensureDirectoryUri(getDocumentDirectoryUri());
+
+export const CUSTOM_AUDIO_DIR = documentBaseUri
+  ? joinUriPath(documentBaseUri, 'custom_audio/')
+  : 'custom_audio/';
 
 export function getCustomAudioPath(symbolId: string): string {
-  return CUSTOM_AUDIO_DIR + `${symbolId}.mp3`;
+  return `${CUSTOM_AUDIO_DIR}${symbolId}.mp3`;
 }

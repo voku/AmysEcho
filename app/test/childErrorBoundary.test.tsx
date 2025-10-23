@@ -35,6 +35,8 @@ describe('ChildErrorBoundary', () => {
     });
     const text = (component as any).root.findByProps({ testID: 'error-text' });
     expect(String(text.props.children)).toContain('noch einmal versuchen');
+    const detail = (component as any).root.findByProps({ testID: 'error-detail' });
+    expect(String(detail.props.children)).toContain('boom');
     expect(enqueueCrashReport).toHaveBeenCalled();
     (component as renderer.ReactTestRenderer).unmount();
   });
@@ -62,6 +64,7 @@ describe('ChildErrorBoundary', () => {
     });
     const ok = (component as any).root.findByProps({ testID: 'ok' });
     expect(ok.props.children).toBe('hi');
+    expect(() => (component as any).root.findByProps({ testID: 'error-detail' })).toThrow();
     (component as renderer.ReactTestRenderer).unmount();
   });
 });
