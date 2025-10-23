@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import type { GestureModelEntry } from '../model';
 import type { LLMSuggestionResponse } from '../services/dialogEngine';
 import type { RecognitionPath } from '../utils/recognitionState';
@@ -105,7 +105,7 @@ export interface RecognitionState
 
 export const useRecognitionState = (): RecognitionState => {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [status, setStatus] = useState('Ich höre zu…');
+  const [status, setStatusState] = useState('Ich höre zu…');
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
@@ -142,6 +142,17 @@ export const useRecognitionState = (): RecognitionState => {
   const [sequenceMatch, setSequenceMatch] = useState<SequenceMatch | null>(null);
   const [currentLandmarks, setCurrentLandmarks] = useState<number[][][]>([]);
   const [currentHandedness, setCurrentHandedness] = useState<string[]>([]);
+
+  const setStatus = useCallback<Dispatch<SetStateAction<string>>>(
+    (value) => {
+      setStatusState((prev) => {
+        const nextValue =
+          typeof value === 'function' ? (value as (previous: string) => string)(prev) : value;
+        return typeof nextValue === 'string' ? nextValue : '';
+      });
+    },
+    [],
+  );
 
   return {
     profile,
