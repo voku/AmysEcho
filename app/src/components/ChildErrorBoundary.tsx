@@ -180,12 +180,14 @@ export class ChildErrorBoundary extends Component<Props, State> {
             testID="copy-error-button"
             accessibilityLabel="Fehlerdetails kopieren"
             onPress={this.handleCopy}
+            disabled={!this.state.copyPayload}
             style={[
               styles.button,
               styles.copyButton,
               {
                 backgroundColor: highContrast ? COLORS.highContrastPressed : COLORS.surface,
                 borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+                opacity: !this.state.copyPayload ? 0.5 : 1,
               },
             ]}
           >

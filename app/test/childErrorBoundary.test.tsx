@@ -91,6 +91,7 @@ describe('ChildErrorBoundary', () => {
     });
 
     const copyButton = (component as any).root.findByProps({ testID: 'copy-error-button' });
+    expect(copyButton.props.disabled).toBe(false);
     await act(async () => {
       await copyButton.props.onPress();
     });
