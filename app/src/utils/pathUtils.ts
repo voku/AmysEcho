@@ -39,6 +39,9 @@ export const getDocumentDirectoryUri = (): string | null => {
   const paths = getPathsObject();
   const fromPaths = toUriOrNull(paths?.document?.uri);
   const fromLegacy = toUriOrNull((FileSystem as Record<string, MaybeString>).documentDirectory);
+  // Some managed Expo runtimes omit documentDirectory entirely. Falling back to the cache directory keeps
+  // audio prompts functional, even though cached files are less durable. Custom audio uploads guard against
+  // this fallback and inform caregivers when persistence is not available.
   const fromCache = toUriOrNull(paths?.cache?.uri) ?? toUriOrNull((FileSystem as Record<string, MaybeString>).cacheDirectory);
   return fromPaths ?? fromLegacy ?? fromCache ?? null;
 };

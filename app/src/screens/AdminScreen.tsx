@@ -85,6 +85,14 @@ export default function AdminScreen({ navigation }: any) {
 
     if (audioUri && targetId) {
       const dest = getCustomAudioPath(targetId);
+      if (!dest || !CUSTOM_AUDIO_DIR) {
+        logger.warn('Benutzerdefinierte Audiodateien können ohne Dokumentverzeichnis nicht gespeichert werden.');
+        Alert.alert(
+          'Speichern fehlgeschlagen',
+          'Es steht kein Speicherort für benutzerdefinierte Audiodateien zur Verfügung.',
+        );
+        return;
+      }
       if (audioUri !== dest) {
         await makeDirectoryAsync(CUSTOM_AUDIO_DIR, { intermediates: true });
         try {

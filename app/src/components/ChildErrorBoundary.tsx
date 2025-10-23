@@ -14,20 +14,33 @@ interface State {
   errorMessage: string;
 }
 
+const UNKNOWN_ERROR_MESSAGE = 'Unbekannter Fehler';
+const MAX_ERROR_LENGTH = 400;
+
 function toErrorMessage(error: unknown): string {
+  const redact = (input: string): string =>
+    input
+      // Bearer/API keys / long tokens
+      .replace(/(bearer\s+)[a-z0-9._-]+/gi, '$1•••')
+      .replace(/\b(?:sk|pk)_[A-Za-z0-9]{16,}\b/g, '•••')
+      .replace(/\b[A-F0-9]{32,}\b/gi, '•••')
+      // Query params with secrets
+      .replace(/([?&](?:token|key|api[_-]?key|auth|code|password)=)[^&\s]+/gi, '$1•••');
+
   const sanitize = (message: string | null | undefined): string => {
     const trimmed = message?.trim();
     if (!trimmed) {
-      return 'Unbekannter Fehler';
+      return UNKNOWN_ERROR_MESSAGE;
     }
-    if (trimmed.length > 400) {
-      return `${trimmed.slice(0, 397)}…`;
+    const redacted = redact(trimmed).replace(/\s+/g, ' ');
+    if (redacted.length > MAX_ERROR_LENGTH) {
+      return `${redacted.slice(0, MAX_ERROR_LENGTH - 3)}…`;
     }
-    return trimmed;
+    return redacted;
   };
 
   if (!error) {
-    return 'Unbekannter Fehler';
+    return UNKNOWN_ERROR_MESSAGE;
   }
 
   if (typeof error === 'string') {
@@ -53,9 +66,9 @@ export class ChildErrorBoundary extends Component<Props, State> {
   static override contextType = AccessibilityContext;
   override context!: React.ContextType<typeof AccessibilityContext>;
 
-  override state: State = { hasError: false, errorMessage: 'Unbekannter Fehler' };
+  override state: State = { hasError: false, errorMessage: UNKNOWN_ERROR_MESSAGE };
 
-  static getDerivedStateFromError(error: unknown): State {
+  static getDerivedStateFromError(error: unknown): Partial<State> {
     return { hasError: true, errorMessage: toErrorMessage(error) };
   }
 
@@ -65,7 +78,7 @@ export class ChildErrorBoundary extends Component<Props, State> {
   }
 
   private handleRetry = () => {
-    this.setState({ hasError: false, errorMessage: 'Unbekannter Fehler' });
+    this.setState({ hasError: false, errorMessage: UNKNOWN_ERROR_MESSAGE });
   };
 
   override render() {
@@ -80,7 +93,7 @@ export class ChildErrorBoundary extends Component<Props, State> {
           <Text testID="error-text" style={[styles.text, { color: textColor, fontSize }]}>Ups, lass es uns noch einmal versuchen!</Text>
           <Text
             testID="error-detail"
-            style={[styles.detailText, { color: textColor, fontSize: detailFontSize }]}
+            style={[styles.text, { color: textColor, fontSize: detailFontSize }]}
             accessibilityLabel={`Fehlerdetails: ${this.state.errorMessage}`}
           >
             {`Fehlermeldung: ${this.state.errorMessage}`}
@@ -103,10 +116,6 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   text: {
-    marginBottom: SPACING.md,
-    textAlign: 'center',
-  },
-  detailText: {
     marginBottom: SPACING.md,
     textAlign: 'center',
   },
