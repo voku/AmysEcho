@@ -11,16 +11,66 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  errorMessage: string;
+}
+
+const UNKNOWN_ERROR_MESSAGE = 'Unbekannter Fehler';
+const MAX_ERROR_LENGTH = 400;
+
+const redact = (input: string): string =>
+  input
+    // Bearer/API keys / long tokens
+    .replace(/(bearer\s+)[a-z0-9._-]+/gi, '$1•••')
+    .replace(/\b(?:sk|pk)_[A-Za-z0-9]{16,}\b/g, '•••')
+    .replace(/\b[A-F0-9]{32,}\b/gi, '•••')
+    // Query params with secrets
+    .replace(/([?&](?:token|key|api[_-]?key|auth|code|password)=)[^&\s]+/gi, '$1•••');
+
+const sanitize = (message: string | null | undefined): string => {
+  const trimmed = message?.trim();
+  if (!trimmed) {
+    return UNKNOWN_ERROR_MESSAGE;
+  }
+  const redacted = redact(trimmed).replace(/\s+/g, ' ');
+  if (redacted.length > MAX_ERROR_LENGTH) {
+    return `${redacted.slice(0, MAX_ERROR_LENGTH - 3)}…`;
+  }
+  return redacted;
+};
+
+function toErrorMessage(error: unknown): string {
+
+  if (!error) {
+    return UNKNOWN_ERROR_MESSAGE;
+  }
+
+  if (typeof error === 'string') {
+    return sanitize(error);
+  }
+
+  if (error instanceof Error) {
+    return sanitize(error.message || error.name);
+  }
+
+  if (typeof error === 'object') {
+    try {
+      return sanitize(JSON.stringify(error));
+    } catch {
+      return sanitize('[Objektfehler ohne Nachricht]');
+    }
+  }
+
+  return sanitize(String(error));
 }
 
 export class ChildErrorBoundary extends Component<Props, State> {
   static override contextType = AccessibilityContext;
   override context!: React.ContextType<typeof AccessibilityContext>;
 
-  override state: State = { hasError: false };
+  override state: State = { hasError: false, errorMessage: UNKNOWN_ERROR_MESSAGE };
 
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: unknown): Partial<State> {
+    return { hasError: true, errorMessage: toErrorMessage(error) };
   }
 
   override componentDidCatch(error: unknown) {
@@ -29,18 +79,26 @@ export class ChildErrorBoundary extends Component<Props, State> {
   }
 
   private handleRetry = () => {
-    this.setState({ hasError: false });
+    this.setState({ hasError: false, errorMessage: UNKNOWN_ERROR_MESSAGE });
   };
 
   override render() {
     if (this.state.hasError) {
       const { largeText, highContrast } = this.context;
       const fontSize = largeText ? 20 : 16;
+      const detailFontSize = largeText ? 18 : 14;
       const backgroundColor = highContrast ? COLORS.highContrastBackground : `${COLORS.warning}B3`;
       const textColor = highContrast ? COLORS.highContrastText : COLORS.text;
       return (
-        <View style={[styles.overlay, { backgroundColor }]}> 
+        <View style={[styles.overlay, { backgroundColor }]}>
           <Text testID="error-text" style={[styles.text, { color: textColor, fontSize }]}>Ups, lass es uns noch einmal versuchen!</Text>
+          <Text
+            testID="error-detail"
+            style={[styles.text, { color: textColor, fontSize: detailFontSize }]}
+            accessibilityLabel={`Fehlerdetails: ${this.state.errorMessage}`}
+          >
+            {`Fehlermeldung: ${this.state.errorMessage}`}
+          </Text>
           <Pressable testID="retry-button" accessibilityLabel="Nochmal versuchen" onPress={this.handleRetry} style={[styles.button, { backgroundColor: highContrast ? COLORS.highContrastPressed : COLORS.surface }]}>
             <Text style={[styles.buttonText, { color: highContrast ? COLORS.highContrastText : COLORS.text, fontSize }]}>Nochmal versuchen</Text>
           </Pressable>

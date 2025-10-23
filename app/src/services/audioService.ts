@@ -8,11 +8,17 @@ import {
 } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
-import { Paths, getInfoAsync } from 'expo-file-system';
+import { getInfoAsync } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 
 // Local imports
 import { logger } from '../utils/logger';
+import {
+  ensureDirectoryUri,
+  getBundleDirectoryUri,
+  getDocumentDirectoryUri,
+  joinUriPath,
+} from '../utils/pathUtils';
 import { AudioConfig, SpeechOptions, SpeakRequestOptions } from '../types/audio';
 import { database } from '../../db';
 import { Symbol } from '../../db/models';
@@ -75,11 +81,24 @@ export class AudioService {
       'celebration',
     ];
 
-    for (const name of names) {
-      const bundlePath = Paths.bundle.uri + `assets/sounds/${name}.mp3`;
-      const docPath = Paths.document.uri + `sounds/${name}.mp3`;
+    const bundleBaseUri = ensureDirectoryUri(getBundleDirectoryUri());
+    const documentBaseUri = ensureDirectoryUri(getDocumentDirectoryUri());
 
-      const candidates = [bundlePath, docPath].filter(Boolean) as string[];
+    if (!bundleBaseUri && !documentBaseUri) {
+      logger.warn('No valid filesystem base URI found for loading audio assets');
+    }
+
+    for (const name of names) {
+      const candidates: string[] = [];
+
+      if (bundleBaseUri) {
+        candidates.push(joinUriPath(bundleBaseUri, `assets/sounds/${name}.mp3`));
+      }
+
+      if (documentBaseUri) {
+        candidates.push(joinUriPath(documentBaseUri, `sounds/${name}.mp3`));
+      }
+
       let loaded = false;
 
       for (const filePath of candidates) {
