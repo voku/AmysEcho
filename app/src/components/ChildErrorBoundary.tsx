@@ -156,13 +156,14 @@ export class ChildErrorBoundary extends Component<Props, State> {
   override render() {
     if (this.state.hasError) {
       const { largeText, highContrast } = this.context;
+      const { copyStatus } = this.state;
       const fontSize = largeText ? 20 : 16;
       const detailFontSize = largeText ? 18 : 14;
       const backgroundColor = highContrast ? COLORS.highContrastBackground : `${COLORS.warning}B3`;
       const textColor = highContrast ? COLORS.highContrastText : COLORS.text;
-      const copyStatusColor = this.state.copyStatus === 'success'
+      const copyStatusColor = copyStatus === 'success'
         ? COLORS.success
-        : this.state.copyStatus === 'error'
+        : copyStatus === 'error'
           ? COLORS.error
           : textColor;
       return (
@@ -190,16 +191,25 @@ export class ChildErrorBoundary extends Component<Props, State> {
           >
             <Text style={[styles.buttonText, { color: highContrast ? COLORS.highContrastText : COLORS.text, fontSize }]}>Fehlerdetails kopieren</Text>
           </Pressable>
-          {this.state.copyStatus !== 'idle' ? (
-            <Text
-              testID="copy-status"
-              style={[styles.copyStatusText, { color: copyStatusColor, fontSize: detailFontSize }]}
-            >
-              {this.state.copyStatus === 'success'
+          {(() => {
+            if (copyStatus === 'idle') {
+              return null;
+            }
+
+            const message =
+              copyStatus === 'success'
                 ? 'Fehlerdetails kopiert.'
-                : 'Kopieren fehlgeschlagen. Bitte erneut versuchen.'}
-            </Text>
-          ) : null}
+                : 'Kopieren fehlgeschlagen. Bitte erneut versuchen.';
+
+            return (
+              <Text
+                testID="copy-status"
+                style={[styles.copyStatusText, { color: copyStatusColor, fontSize: detailFontSize }]}
+              >
+                {message}
+              </Text>
+            );
+          })()}
           <Pressable
             testID="retry-button"
             accessibilityLabel="Nochmal versuchen"

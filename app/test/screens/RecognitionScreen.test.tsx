@@ -93,7 +93,7 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
   const actual = jest.requireActual('../../src/hooks/useRecognitionState');
 
   let setLastRecognizedGestureMock: ((gesture: any) => void) | null = null;
-  let mockStatus: string | undefined = 'Ich höre zu…';
+  let mockStatus = 'Ich höre zu…';
 
   const recognizedGestureTemplate = {
     id: 'hallo',
@@ -111,7 +111,7 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
     return {
       profile: null,
       setProfile: jest.fn(),
-      status: mockStatus as unknown as string,
+      status: mockStatus,
       setStatus: jest.fn(),
       gestureConfidence: 0.9,
       setGestureConfidence: jest.fn(),
@@ -176,7 +176,7 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
     __setMockLastRecognizedGesture: (gesture: any) => {
       setLastRecognizedGestureMock?.(gesture ?? recognizedGestureTemplate);
     },
-    __setMockStatus: (status: string | undefined) => {
+    __setMockStatus: (status: string) => {
       mockStatus = status;
     },
     __resetMockStatus: () => {
@@ -189,7 +189,7 @@ const RecognitionScreen = require('../../src/screens/RecognitionScreen')
   .default as typeof import('../../src/screens/RecognitionScreen').default;
 const recognitionStateModule = require('../../src/hooks/useRecognitionState') as {
   __setMockLastRecognizedGesture?: (gesture: any) => void;
-  __setMockStatus?: (status: string | undefined) => void;
+  __setMockStatus?: (status: string) => void;
   __resetMockStatus?: () => void;
 };
 const { AmyLoopTimeline } = require('../../src/components/AmyLoopTimeline');
@@ -232,7 +232,7 @@ describe('RecognitionScreen Amy-first overlay', () => {
   });
 
   it('rendert die Statuskarte auch ohne Statuswert', async () => {
-    recognitionStateModule.__setMockStatus?.(undefined);
+    recognitionStateModule.__setMockStatus?.('');
 
     const component = await renderRecognitionScreen();
 
