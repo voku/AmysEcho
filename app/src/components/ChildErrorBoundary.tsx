@@ -17,27 +17,28 @@ interface State {
 const UNKNOWN_ERROR_MESSAGE = 'Unbekannter Fehler';
 const MAX_ERROR_LENGTH = 400;
 
-function toErrorMessage(error: unknown): string {
-  const redact = (input: string): string =>
-    input
-      // Bearer/API keys / long tokens
-      .replace(/(bearer\s+)[a-z0-9._-]+/gi, '$1•••')
-      .replace(/\b(?:sk|pk)_[A-Za-z0-9]{16,}\b/g, '•••')
-      .replace(/\b[A-F0-9]{32,}\b/gi, '•••')
-      // Query params with secrets
-      .replace(/([?&](?:token|key|api[_-]?key|auth|code|password)=)[^&\s]+/gi, '$1•••');
+const redact = (input: string): string =>
+  input
+    // Bearer/API keys / long tokens
+    .replace(/(bearer\s+)[a-z0-9._-]+/gi, '$1•••')
+    .replace(/\b(?:sk|pk)_[A-Za-z0-9]{16,}\b/g, '•••')
+    .replace(/\b[A-F0-9]{32,}\b/gi, '•••')
+    // Query params with secrets
+    .replace(/([?&](?:token|key|api[_-]?key|auth|code|password)=)[^&\s]+/gi, '$1•••');
 
-  const sanitize = (message: string | null | undefined): string => {
-    const trimmed = message?.trim();
-    if (!trimmed) {
-      return UNKNOWN_ERROR_MESSAGE;
-    }
-    const redacted = redact(trimmed).replace(/\s+/g, ' ');
-    if (redacted.length > MAX_ERROR_LENGTH) {
-      return `${redacted.slice(0, MAX_ERROR_LENGTH - 3)}…`;
-    }
-    return redacted;
-  };
+const sanitize = (message: string | null | undefined): string => {
+  const trimmed = message?.trim();
+  if (!trimmed) {
+    return UNKNOWN_ERROR_MESSAGE;
+  }
+  const redacted = redact(trimmed).replace(/\s+/g, ' ');
+  if (redacted.length > MAX_ERROR_LENGTH) {
+    return `${redacted.slice(0, MAX_ERROR_LENGTH - 3)}…`;
+  }
+  return redacted;
+};
+
+function toErrorMessage(error: unknown): string {
 
   if (!error) {
     return UNKNOWN_ERROR_MESSAGE;
