@@ -146,8 +146,7 @@ export const useRecognitionState = (): RecognitionState => {
   const setStatus = useCallback<Dispatch<SetStateAction<string>>>(
     (value) => {
       setStatusState((prev) => {
-        const nextValue =
-          typeof value === 'function' ? (value as (previous: string) => string)(prev) : value;
+        const nextValue = typeof value === 'function' ? value(prev) : value;
         return typeof nextValue === 'string' ? nextValue : '';
       });
     },
