@@ -474,7 +474,8 @@ export default function RecognitionScreen({
     sequenceMeaning,
   ]);
 
-  const normalizedStatus = (status ?? '').toLowerCase();
+  const safeStatus = typeof status === 'string' ? status : '';
+  const normalizedStatus = safeStatus.toLowerCase();
   const hasActiveGesture = Boolean(gestureMeaningDisplayProps);
 
   useEffect(() => {
@@ -536,10 +537,10 @@ export default function RecognitionScreen({
     if (
       showCelebration ||
       gestureMeaningDisplayProps ||
-      status.startsWith('✅') ||
-      status.startsWith('✨') ||
-      status.toLowerCase().includes('danke') ||
-      status.toLowerCase().includes('modell einsatzbereit')
+      safeStatus.startsWith('✅') ||
+      safeStatus.startsWith('✨') ||
+      normalizedStatus.includes('danke') ||
+      normalizedStatus.includes('modell einsatzbereit')
     ) {
       return 'recognized';
     }
@@ -560,7 +561,7 @@ export default function RecognitionScreen({
     modelUpdateStatus,
     normalizedStatus,
     showCelebration,
-    status,
+    safeStatus,
   ]);
 
   const statusCopy = useMemo(() => STATUS_COPY[statusCategory], [statusCategory]);
@@ -571,13 +572,13 @@ export default function RecognitionScreen({
       return trimmedError;
     }
 
-    const trimmedStatus = status?.trim();
+    const trimmedStatus = safeStatus.trim();
     if (trimmedStatus && trimmedStatus.length > 0) {
       return trimmedStatus;
     }
 
     return statusCopy.description;
-  }, [error, status, statusCopy]);
+  }, [error, safeStatus, statusCopy]);
 
   const encouragement =
     statusCategory === 'recognized' ? statusCopy.encouragement ?? null : null;

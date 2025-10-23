@@ -93,6 +93,7 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
   const actual = jest.requireActual('../../src/hooks/useRecognitionState');
 
   let setLastRecognizedGestureMock: ((gesture: any) => void) | null = null;
+  let mockStatus = 'Ich höre zu…';
 
   const recognizedGestureTemplate = {
     id: 'hallo',
@@ -110,7 +111,7 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
     return {
       profile: null,
       setProfile: jest.fn(),
-      status: 'Ich höre zu…',
+      status: mockStatus,
       setStatus: jest.fn(),
       gestureConfidence: 0.9,
       setGestureConfidence: jest.fn(),
@@ -175,6 +176,12 @@ jest.mock('../../src/hooks/useRecognitionState', () => {
     __setMockLastRecognizedGesture: (gesture: any) => {
       setLastRecognizedGestureMock?.(gesture ?? recognizedGestureTemplate);
     },
+    __setMockStatus: (status: string) => {
+      mockStatus = status;
+    },
+    __resetMockStatus: () => {
+      mockStatus = 'Ich höre zu…';
+    },
   };
 });
 
@@ -182,6 +189,8 @@ const RecognitionScreen = require('../../src/screens/RecognitionScreen')
   .default as typeof import('../../src/screens/RecognitionScreen').default;
 const recognitionStateModule = require('../../src/hooks/useRecognitionState') as {
   __setMockLastRecognizedGesture?: (gesture: any) => void;
+  __setMockStatus?: (status: string) => void;
+  __resetMockStatus?: () => void;
 };
 const { AmyLoopTimeline } = require('../../src/components/AmyLoopTimeline');
 const ActionButtonComponent = require('../../src/components/ActionButton').default;
@@ -191,6 +200,7 @@ describe('RecognitionScreen Amy-first overlay', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     mockGestureMeaningDisplay.mockClear();
+    recognitionStateModule.__resetMockStatus?.();
   });
 
   const renderRecognitionScreen = async () => {
@@ -219,6 +229,27 @@ describe('RecognitionScreen Amy-first overlay', () => {
       (node) => node.type === Text && node.props.children === 'Ich höre zu…',
     );
     expect(subtitleNodes.length).toBeGreaterThan(0);
+  });
+
+  it('rendert die Statuskarte auch ohne Statuswert', async () => {
+    recognitionStateModule.__setMockStatus?.('');
+
+    const component = await renderRecognitionScreen();
+
+    expect(component).toBeTruthy();
+
+    const fallbackDetailNodes = component.root.findAll(
+      (node) =>
+        node.type === Text && node.props.children === 'Halte deine Hand ruhig im Rahmen.',
+    );
+
+    expect(fallbackDetailNodes.length).toBeGreaterThan(0);
+
+    const idleLabelNodes = component.root.findAll(
+      (node) => node.type === Text && node.props.children === 'Bereit',
+    );
+
+    expect(idleLabelNodes.length).toBeGreaterThan(0);
   });
 
   it('blendet Aktionsknöpfe erst nach erkannter Geste ein', async () => {
