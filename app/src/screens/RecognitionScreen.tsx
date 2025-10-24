@@ -108,6 +108,10 @@ const STATUS_COPY: Record<
   },
 };
 
+// Reserve space for the primary action row plus the secondary row, including the gap between them.
+const ACTION_BUTTON_MIN_HEIGHT = 56;
+const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
+
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
   timestamp: number,
@@ -182,7 +186,7 @@ export default function RecognitionScreen({
   const actionsFadeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   const hasActiveGestureRef = useRef(false);
-  const [renderActions, setRenderActions] = useState(false);
+  const [actionsPointerEvents, setActionsPointerEvents] = useState<'none' | 'auto'>('none');
   const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
   const labelHistoryRef = useRef<string[]>([]);
   const lastSuccessAtRef = useRef<number>(0);
@@ -489,7 +493,7 @@ export default function RecognitionScreen({
     }
 
     if (hasActiveGesture) {
-      setRenderActions(true);
+      setActionsPointerEvents('auto');
       const fadeInAnimation = Animated.timing(actionsFadeAnim, {
         toValue: 1,
         duration: 250,
@@ -504,6 +508,7 @@ export default function RecognitionScreen({
         fadeAnimationRef.current = null;
       });
     } else {
+      setActionsPointerEvents('none');
       const fadeOutAnimation = Animated.timing(actionsFadeAnim, {
         toValue: 0,
         duration: 250,
@@ -513,7 +518,7 @@ export default function RecognitionScreen({
       fadeAnimationRef.current = fadeOutAnimation;
       fadeOutAnimation.start(({ finished }) => {
         if (finished && !hasActiveGestureRef.current) {
-          setRenderActions(false);
+          setActionsPointerEvents('none');
         }
         fadeAnimationRef.current = null;
       });
@@ -685,8 +690,11 @@ export default function RecognitionScreen({
                 </View>
               )}
 
-              {renderActions ? (
-                <Animated.View style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}> 
+              <View style={styles.actionsSlot}>
+                <Animated.View
+                  pointerEvents={actionsPointerEvents}
+                  style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}
+                >
                   <View style={styles.primaryActionWrapper}>
                     <ActionButton
                       label="Stimmt"
@@ -719,7 +727,7 @@ export default function RecognitionScreen({
                     />
                   </View>
                 </Animated.View>
-              ) : null}
+              </View>
             </View>
           </View>
         </View>
@@ -805,6 +813,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['2xl'],
     width: '100%',
     gap: spacing.lg,
+  },
+  actionsSlot: {
+    minHeight: ACTIONS_SLOT_MIN_HEIGHT,
+    width: '100%',
+    justifyContent: 'flex-end',
   },
   predictionCard: {
     backgroundColor: CAMERA_THEME.predictionCardBackground,
