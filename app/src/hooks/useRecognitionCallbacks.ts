@@ -176,6 +176,7 @@ export const useRecognitionCallbacks = ({
       threshold: number,
       landmarks: number[][][],
     ) => {
+      setError(null);
       activeLearningService.recordUncertainSample(gesture, smoothedConfidence, landmarks, {
         timeOfDay: new Date().getHours(),
         activityLevel: 'normal',
@@ -222,6 +223,7 @@ export const useRecognitionCallbacks = ({
       setStatus,
       lastRecognizedGesture,
       setShowPracticeSuggestion,
+      setError,
     ],
   );
 
@@ -388,6 +390,7 @@ export const useRecognitionCallbacks = ({
     ) => {
       setPendingGesture(null);
       setShowVisualRipple(false);
+      setError(null);
 
       const gestureMeta = optimizedGestureService.getGestureById(gesture);
       const label = gestureMeta?.label || gesture;
@@ -466,6 +469,7 @@ export const useRecognitionCallbacks = ({
       dialogContext,
       showSuccessfulGestureUi,
       profile,
+      setError,
     ],
   );
 
@@ -499,6 +503,7 @@ export const useRecognitionCallbacks = ({
           setPendingGesture(null);
           setDetectedGestureMeaning(null);
           if (smoothedConfidence < WAITING_CONFIDENCE_THRESHOLD) {
+            setError(null);
             setStatus(WAITING_STATUS);
           }
           return;
