@@ -198,7 +198,7 @@ export default function ProfileSelectScreen({ navigation }: any) {
                 : 'Lege zuerst ein Profil an, damit wir wissen, wen wir begleiten.'
             }
             onPress={() =>
-              profile && navigation.navigate('App', { screen: 'Recognition', params: { profileId: profile.id } })
+              profile && navigation.popTo('App', { screen: 'Recognition', params: { profileId: profile.id } })
             }
             accessibilityLabel="Zum Erkennungsmodus"
             disabled={!profile}
@@ -206,7 +206,7 @@ export default function ProfileSelectScreen({ navigation }: any) {
           <ButtonComponent
             title="Lernen"
             description="Übe Gesten gemeinsam und sammle neue Trainingsbeispiele."
-            onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
+            onPress={() => navigation.popTo('App', { screen: 'Lernen' })}
             accessibilityLabel="Zum Lernmodus"
           />
         </View>

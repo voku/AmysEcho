@@ -46,7 +46,7 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
           />
           <PrimaryButton
             label="Lernen entdecken"
-            onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
+            onPress={() => navigation.popTo('App', { screen: 'Lernen' })}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"
             testID="hero-train"

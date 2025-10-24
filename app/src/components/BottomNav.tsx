@@ -35,12 +35,12 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateToRecognition = useCallback(() => {
     void childHaptic();
-    navigation.navigate('App', { screen: 'Recognition', params: { profileId } });
+    navigation.popTo('App', { screen: 'Recognition', params: { profileId } });
   }, [navigation, profileId]);
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigation.navigate('App', { screen: 'Lernen' });
+    navigation.popTo('App', { screen: 'Lernen' });
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {

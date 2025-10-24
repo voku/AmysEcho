@@ -199,7 +199,7 @@ export default function ParentScreen({ navigation }: any) {
       <ButtonComponent
         title="Geringe Sicherheit simulieren"
         onPress={() =>
-          navigation.navigate('App', {
+          navigation.popTo('App', {
             screen: 'Recognition',
             params: { simulateLowConfidence: true },
           })
@@ -213,7 +213,7 @@ export default function ParentScreen({ navigation }: any) {
       />
       <ButtonComponent
         title="Erkennen"
-        onPress={() => navigation.navigate('App', { screen: 'Recognition' })}
+        onPress={() => navigation.popTo('App', { screen: 'Recognition' })}
         accessibilityLabel="Zum Erkennungsmodus"
       />
       <ButtonComponent

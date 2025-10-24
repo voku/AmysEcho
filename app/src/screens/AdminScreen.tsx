@@ -406,7 +406,7 @@ export default function AdminScreen({ navigation }: any) {
   const navigationButtons = [
     {
       title: 'Training',
-      onPress: () => navigation.navigate('App', { screen: 'Lernen' }),
+      onPress: () => navigation.popTo('App', { screen: 'Lernen' }),
       accessibilityLabel: 'Trainingsmodus öffnen',
     },
     {

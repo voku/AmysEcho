@@ -196,7 +196,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       setLocalLargeText(!!profile.largeText);
       setLocalHighContrast(!!profile.highContrast);
     }
-    navigation.navigate('App', { screen: 'Recognition', params: { profileId: id } });
+    navigation.popTo('App', { screen: 'Recognition', params: { profileId: id } });
   };
 
   const toggleLargeText = async (enabled: boolean) => {
