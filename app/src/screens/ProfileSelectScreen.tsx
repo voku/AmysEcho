@@ -209,7 +209,6 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
                     screen: 'Recognition',
                     params: { profileId: profile.id },
                   },
-                  { pop: true },
                 );
               }
             }}
@@ -220,7 +219,7 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             title="Lernen"
             description="Übe Gesten gemeinsam und sammle neue Trainingsbeispiele."
             onPress={() => {
-              navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
+              navigation.navigate('App', { screen: 'Lernen' });
             }}
             accessibilityLabel="Zum Lernmodus"
           />
@@ -229,21 +228,21 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
           <ButtonComponent
             title="Elternbereich"
             description="Öffne den Elternbereich für Einstellungen und Unterstützung."
-            onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' }, { pop: true })}
+            onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
             accessibilityLabel="Elternbereich öffnen"
             variant="secondary"
           />
           <ButtonComponent
             title="Admin"
             description="Verwalte Modelle und technische Details."
-            onPress={() => navigation.navigate('ParentalGate', { target: 'Admin' }, { pop: true })}
+            onPress={() => navigation.navigate('ParentalGate', { target: 'Admin' })}
             accessibilityLabel="Adminbereich öffnen"
             variant="secondary"
           />
           <ButtonComponent
             title="Profile verwalten"
             description="Bearbeite oder lege Profile für Kinder an."
-            onPress={() => navigation.navigate('ProfileManager', undefined, { pop: true })}
+            onPress={() => navigation.navigate('ProfileManager')}
             accessibilityLabel="Profile verwalten"
             variant="secondary"
           />

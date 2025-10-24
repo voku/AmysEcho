@@ -171,37 +171,37 @@ export default function ParentScreen({
       </View>
       <ButtonComponent
         title="Profilverwaltung"
-        onPress={() => navigation.navigate('ProfileManager', undefined, { pop: true })}
+        onPress={() => navigation.navigate('ProfileManager')}
         accessibilityLabel="Profilverwaltung"
       />
       <ButtonComponent
         title="Zugangsprüfung"
-        onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' }, { pop: true })}
+        onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
         accessibilityLabel="Zugangsprüfung"
       />
       <ButtonComponent
         title="Verwaltung"
-        onPress={() => navigation.navigate('Admin', undefined, { pop: true })}
+        onPress={() => navigation.navigate('Admin')}
         accessibilityLabel="Verwaltung"
       />
       <ButtonComponent
         title="Analysen"
-        onPress={() => navigation.navigate('Dashboard', undefined, { pop: true })}
+        onPress={() => navigation.navigate('Dashboard')}
         accessibilityLabel="Analysen ansehen"
       />
       <ButtonComponent
         title="Lernfortschritt"
-        onPress={() => navigation.navigate('CaregiverReport', undefined, { pop: true })}
+        onPress={() => navigation.navigate('CaregiverReport')}
         accessibilityLabel="Lernfortschritt ansehen"
       />
       <ButtonComponent
         title="Fortschritt"
-        onPress={() => navigation.navigate('Progress', undefined, { pop: true })}
+        onPress={() => navigation.navigate('Progress')}
         accessibilityLabel="Fortschritt ansehen"
       />
       <ButtonComponent
         title="Hilfe"
-        onPress={() => navigation.navigate('Help', undefined, { pop: true })}
+        onPress={() => navigation.navigate('Help')}
         accessibilityLabel="Hilfe erhalten"
       />
       <ButtonComponent
@@ -213,7 +213,6 @@ export default function ParentScreen({
               screen: 'Recognition',
               params: { simulateLowConfidence: true },
             },
-            { pop: true },
           );
         }}
         accessibilityLabel="Geringe Sicherheit simulieren"
@@ -221,14 +220,14 @@ export default function ParentScreen({
       <ButtonComponent
         title="Menü"
         onPress={() => {
-          navigation.navigate('Parent', undefined, { pop: true });
+          navigation.navigate('Parent');
         }}
         accessibilityLabel="Menü öffnen"
       />
       <ButtonComponent
         title="Erkennen"
         onPress={() => {
-          navigation.navigate('App', { screen: 'Recognition' }, { pop: true });
+          navigation.navigate('App', { screen: 'Recognition' });
         }}
         accessibilityLabel="Zum Erkennungsmodus"
       />

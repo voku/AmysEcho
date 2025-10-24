@@ -407,13 +407,13 @@ export default function AdminScreen({ navigation }: any) {
     {
       title: 'Training',
       onPress: () => {
-        navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
+        navigation.navigate('App', { screen: 'Lernen' });
       },
       accessibilityLabel: 'Trainingsmodus öffnen',
     },
     {
       title: 'Dashboard',
-      onPress: () => navigation.navigate('Dashboard', undefined, { pop: true }),
+      onPress: () => navigation.navigate('Dashboard'),
       accessibilityLabel: 'Analytics-Dashboard öffnen',
     },
     {

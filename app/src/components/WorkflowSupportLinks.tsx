@@ -40,11 +40,11 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
     (destination: WorkflowSupportDestination) => {
       const { navigationTarget } = destination;
       if (navigationTarget.route === 'ParentalGate') {
-        navigation.navigate('ParentalGate', navigationTarget.params, { pop: true });
+        navigation.navigate('ParentalGate', navigationTarget.params);
         return;
       }
 
-      navigation.navigate('Help', undefined, { pop: true });
+      navigation.navigate('Help');
     },
     [navigation],
   );
