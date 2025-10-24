@@ -685,6 +685,7 @@ export default function RecognitionScreen({
 
               <View style={styles.actionsSlot}>
                 <Animated.View
+                  testID="recognition-actions"
                   pointerEvents={actionsPointerEvents}
                   accessibilityElementsHidden={actionsAccessibilityHidden}
                   importantForAccessibility={
