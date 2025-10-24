@@ -17,7 +17,7 @@ import { childHaptic } from '../services/feedbackService';
 
 // Type imports
 import type { StyleProp, ViewStyle } from 'react-native';
-import type { NavigationProp } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
 
 interface BottomNavProps {
@@ -26,7 +26,7 @@ interface BottomNavProps {
 }
 
 const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute();
   const { highContrast } = useAccessibility();
   const { theme } = useTheme();
