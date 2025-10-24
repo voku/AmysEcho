@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { logger } from '../utils/logger';
 import { arrayBufferToBase64 } from '../utils/base64';
+import { loadBackendApiToken } from '../storage';
 import {
   BUNDLED_MLP_MODEL_BASE64,
   BUNDLED_MLP_MODEL_BYTES,
@@ -196,7 +197,19 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 
   const url = new URL('/latest-mlp-model', getApiUrl());
   if (profileId) url.searchParams.set('profileId', profileId);
-  const headers: Record<string, string> = { Authorization: `Bearer ${getApiToken()}` };
+  let authToken = getApiToken();
+  try {
+    const storedToken = await loadBackendApiToken();
+    if (storedToken && storedToken.trim().length > 0) {
+      authToken = storedToken;
+    }
+  } catch (error) {
+    logger.warn('Failed to load backend API token from storage, using fallback token', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  const headers: Record<string, string> = { Authorization: `Bearer ${authToken}` };
   if (profileId) headers['X-Profile-Id'] = profileId;
   if (prevMeta?.etag) headers['If-None-Match'] = prevMeta.etag;
 

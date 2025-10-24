@@ -29,6 +29,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
+jest.mock('../../src/storage', () => ({
+  __esModule: true,
+  loadBackendApiToken: jest.fn(async () => null),
+}));
+
 jest.mock('../../src/constants/bundledMlpModel', () => ({
   BUNDLED_MLP_MODEL_BASE64: mockFallbackB64,
   BUNDLED_MLP_MODEL_BYTES: 5530,
@@ -73,8 +78,10 @@ let loadLocalMlpModel: DgsModelClientModule['loadLocalMlpModel'];
 let getCachedMlpMeta: DgsModelClientModule['getCachedMlpMeta'];
 let onMlpModelUpdated: DgsModelClientModule['onMlpModelUpdated'];
 let restoreMlpModelBackup: DgsModelClientModule['restoreMlpModelBackup'];
+let mockLoadBackendApiToken: jest.Mock;
 
 const originalFetch = global.fetch;
+const originalEnvToken = process.env['EXPO_PUBLIC_API_TOKEN'];
 beforeEach(async () => {
   jest.resetModules();
   storageMap = new Map<string, string>();
@@ -84,6 +91,9 @@ beforeEach(async () => {
   mockReadAsStringAsync.mockReset();
   mockWriteAsStringAsync.mockReset();
   global.fetch = originalFetch;
+  mockLoadBackendApiToken = jest.requireMock('../../src/storage').loadBackendApiToken as jest.Mock;
+  mockLoadBackendApiToken.mockReset();
+  mockLoadBackendApiToken.mockResolvedValue(null);
   const { logger } = jest.requireMock('../../src/utils/logger');
   Object.values(logger).forEach((fn) => {
     if (typeof fn === 'function' && 'mockReset' in fn) {
@@ -104,6 +114,11 @@ afterAll(() => {
   global.fetch = originalFetch;
   const module = require('../../src/services/dgsModelClient') as DgsModelClientModule;
   module.__setDgsModelClientStorageForTests(null);
+  if (originalEnvToken === undefined) {
+    delete process.env['EXPO_PUBLIC_API_TOKEN'];
+  } else {
+    process.env['EXPO_PUBLIC_API_TOKEN'] = originalEnvToken;
+  }
 });
 
 describe('dgsModelClient local persistence', () => {
@@ -167,6 +182,81 @@ describe('dgsModelClient local persistence', () => {
     const result = await loadLocalMlpModel();
     expect(result).toBe(mockFallbackB64);
     expect(mockWriteAsStringAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('dgsModelClient authorization', () => {
+  it('uses the stored backend token when available', async () => {
+    const buffer = Buffer.from('npz-data');
+    mockLoadBackendApiToken.mockResolvedValue('stored-token');
+
+    const fetchMock = jest.fn(async (_url: string, options?: RequestInit) => {
+      expect(options?.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer stored-token' }));
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        arrayBuffer: async () => buffer,
+      } as any;
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await fetchMlpModel();
+    expect(result).toBe(buffer.toString('base64'));
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer stored-token' }),
+    }));
+  });
+
+  it('falls back to the environment token when no stored token is found', async () => {
+    const buffer = Buffer.from('npz-data');
+    mockLoadBackendApiToken.mockResolvedValue(null);
+    const expectedToken = process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
+
+    const fetchMock = jest.fn(async (_url: string, options?: RequestInit) => {
+      expect(options?.headers).toEqual(expect.objectContaining({ Authorization: `Bearer ${expectedToken}` }));
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        arrayBuffer: async () => buffer,
+      } as any;
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await fetchMlpModel();
+    expect(result).toBe(buffer.toString('base64'));
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: `Bearer ${expectedToken}` }),
+    }));
+  });
+
+  it('logs a warning and falls back to the environment token when loading the stored token fails', async () => {
+    const buffer = Buffer.from('npz-data');
+    mockLoadBackendApiToken.mockRejectedValue(new Error('storage failure'));
+    const expectedToken = process.env['EXPO_PUBLIC_API_TOKEN'] || 'demo-token';
+    const { logger } = jest.requireMock('../../src/utils/logger');
+
+    const fetchMock = jest.fn(async (_url: string, options?: RequestInit) => {
+      expect(options?.headers).toEqual(expect.objectContaining({ Authorization: `Bearer ${expectedToken}` }));
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        arrayBuffer: async () => buffer,
+      } as any;
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await fetchMlpModel();
+    expect(result).toBe(buffer.toString('base64'));
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: `Bearer ${expectedToken}` }),
+    }));
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Failed to load backend API token from storage, using fallback token',
+      expect.objectContaining({ error: 'storage failure' }),
+    );
   });
 });
 
