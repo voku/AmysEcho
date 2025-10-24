@@ -145,23 +145,24 @@ export function createErrorMessage(
  * Checks if an error is retryable
  */
 export function isRetryableError(error: Error): boolean {
-  // Network errors are typically retryable
-  if (error.message.includes('network') || error.message.includes('timeout')) {
+  const message = typeof error.message === 'string' ? error.message : '';
+
+  if (message.length === 0) {
+    logger.warn('isRetryableError received error without message', {
+      name: error.name,
+      stack: error.stack,
+    });
+  }
+
+  const normalizedMessage = message.toLowerCase();
+
+  const retryableSubstrings = ['network', 'timeout', 'http 5'];
+  if (retryableSubstrings.some((substring) => normalizedMessage.includes(substring))) {
     return true;
   }
 
-  // HTTP 5xx errors are retryable
-  if (error.message.includes('HTTP 5')) {
-    return true;
-  }
-
-  // Don't retry authentication errors
-  if (error.message.includes('401') || error.message.includes('403')) {
-    return false;
-  }
-
-  // Don't retry validation errors
-  if (error.message.includes('validation') || error.message.includes('invalid')) {
+  const nonRetryableSubstrings = ['401', '403', 'validation', 'invalid'];
+  if (nonRetryableSubstrings.some((substring) => normalizedMessage.includes(substring))) {
     return false;
   }
 

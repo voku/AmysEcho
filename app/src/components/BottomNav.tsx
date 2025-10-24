@@ -17,7 +17,7 @@ import { childHaptic } from '../services/feedbackService';
 
 // Type imports
 import type { StyleProp, ViewStyle } from 'react-native';
-import type { NavigationProp } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
 
 interface BottomNavProps {
@@ -26,7 +26,7 @@ interface BottomNavProps {
 }
 
 const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute();
   const { highContrast } = useAccessibility();
   const { theme } = useTheme();
@@ -35,17 +35,24 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateToRecognition = useCallback(() => {
     void childHaptic();
-    navigation.navigate('App', { screen: 'Recognition', params: { profileId } });
+    navigation.navigate(
+      'App',
+      {
+        screen: 'Recognition',
+        params: { profileId },
+      },
+      { pop: true },
+    );
   }, [navigation, profileId]);
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigation.navigate('App', { screen: 'Lernen' });
+    navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {
     void childHaptic();
-    navigation.navigate('ProfileSelect');
+    navigation.navigate('ProfileSelect', undefined, { pop: true });
   }, [navigation]);
 
   // Enhanced breadcrumb system - show navigation path

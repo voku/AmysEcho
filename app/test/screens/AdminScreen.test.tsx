@@ -1,6 +1,9 @@
 import React from 'react';
-import renderer, { act } from 'react-test-renderer';
+import renderer, { act, type ReactTestInstance } from 'react-test-renderer';
 import { Button, FlatList } from 'react-native';
+import type { ComponentProps } from 'react';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../src/navigation/types';
 import ScreenBackground from '../../src/components/ScreenBackground';
 
 jest.mock('../../src/components/ScreenBackground', () => ({
@@ -99,7 +102,25 @@ describe('AdminScreen', () => {
   });
 
   it('renders management actions inside the list footer so they scroll with the content', async () => {
-    const navigation = { navigate: jest.fn(), goBack: jest.fn() } as any;
+    type NavigationSubset = StackNavigationProp<RootStackParamList, 'Admin'>;
+    const navigation = ({
+      navigate: jest.fn(),
+      goBack: jest.fn(),
+      dispatch: jest.fn(),
+      getState: jest.fn(() => ({
+        type: 'stack',
+        stale: false,
+        key: 'stack-admin',
+        index: 2,
+        routeNames: ['Hero', 'App', 'Admin'],
+        routes: [
+          { key: 'Hero-1', name: 'Hero' },
+          { key: 'App-1', name: 'App' },
+          { key: 'Admin-1', name: 'Admin' },
+        ],
+        history: [],
+      })),
+    } as unknown) as NavigationSubset;
 
     await act(async () => {
       renderer.create(<AdminScreen navigation={navigation} />);
@@ -108,22 +129,32 @@ describe('AdminScreen', () => {
 
     const ScreenBackgroundMock = ScreenBackground as jest.Mock;
     expect(ScreenBackgroundMock).toHaveBeenCalled();
-    const screenProps = ScreenBackgroundMock.mock.calls[0]?.[0];
+
+    const screenProps = ScreenBackgroundMock.mock.calls[0]?.[0] as {
+      children?: React.ReactNode;
+    };
     expect(screenProps).toBeTruthy();
-    const childArray = React.Children.toArray(screenProps.children) as React.ReactElement[];
-    const flatListElement = childArray.find((child) => child?.type === FlatList);
+
+    const childArray = React.Children.toArray(screenProps.children);
+    const flatListElement = childArray.find(
+      (child): child is React.ReactElement => React.isValidElement(child) && child.type === FlatList,
+    );
     expect(flatListElement).toBeTruthy();
-    const footerElement = flatListElement!.props.ListFooterComponent;
 
-    expect(footerElement).toBeTruthy();
+    const footerComponent = (flatListElement!.props as ComponentProps<typeof FlatList>).ListFooterComponent;
+    expect(footerComponent).toBeTruthy();
 
-    let footer: renderer.ReactTestRenderer;
+    const footerElement = React.isValidElement(footerComponent)
+      ? footerComponent
+      : (footerComponent as () => React.ReactElement)();
+
+    let footer!: renderer.ReactTestRenderer;
     act(() => {
-      footer = renderer.create(footerElement as React.ReactElement);
+      footer = renderer.create(footerElement);
     });
-    const footerButtons = footer!.root
+    const footerButtons = footer.root
       .findAllByType(Button)
-      .map((node) => node.props.title);
+      .map((node: ReactTestInstance) => (node.props as ComponentProps<typeof Button>).title as string);
 
     expect(footerButtons).toEqual(
       expect.arrayContaining(['Neuestes Modell herunterladen', 'Zurück']),

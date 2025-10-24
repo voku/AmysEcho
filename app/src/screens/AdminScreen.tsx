@@ -406,12 +406,14 @@ export default function AdminScreen({ navigation }: any) {
   const navigationButtons = [
     {
       title: 'Training',
-      onPress: () => navigation.navigate('App', { screen: 'Lernen' }),
+      onPress: () => {
+        navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
+      },
       accessibilityLabel: 'Trainingsmodus öffnen',
     },
     {
       title: 'Dashboard',
-      onPress: () => navigation.navigate('Dashboard'),
+      onPress: () => navigation.navigate('Dashboard', undefined, { pop: true }),
       accessibilityLabel: 'Analytics-Dashboard öffnen',
     },
     {

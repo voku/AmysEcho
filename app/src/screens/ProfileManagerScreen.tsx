@@ -196,7 +196,11 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       setLocalLargeText(!!profile.largeText);
       setLocalHighContrast(!!profile.highContrast);
     }
-    navigation.navigate('App', { screen: 'Recognition', params: { profileId: id } });
+    navigation.navigate(
+      'App',
+      { screen: 'Recognition', params: { profileId: id } },
+      { pop: true },
+    );
   };
 
   const toggleLargeText = async (enabled: boolean) => {
@@ -467,7 +471,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
             ]}
             onPress={() => {
               void childHaptic();
-              navigation.navigate('Onboarding');
+              navigation.navigate('Onboarding', undefined, { pop: true });
             }}
             accessibilityRole="button"
             accessibilityLabel="Neues Profil anlegen"

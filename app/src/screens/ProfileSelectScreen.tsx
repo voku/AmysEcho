@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View, Pressable, StyleSheet, Text, ScrollView } from 'react-native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import type { RootStackParamList } from '../navigation/types';
 
-export default function ProfileSelectScreen({ navigation }: any) {
+type ProfileSelectNavigationProp = StackNavigationProp<RootStackParamList, 'ProfileSelect'>;
+
+export default function ProfileSelectScreen({ navigation }: { navigation: ProfileSelectNavigationProp }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const { largeText, highContrast } = useAccessibility();
 
@@ -197,16 +201,27 @@ export default function ProfileSelectScreen({ navigation }: any) {
                 ? 'Starte den Erkennungsmodus und lass Amy sofort verstanden werden.'
                 : 'Lege zuerst ein Profil an, damit wir wissen, wen wir begleiten.'
             }
-            onPress={() =>
-              profile && navigation.navigate('App', { screen: 'Recognition', params: { profileId: profile.id } })
-            }
+            onPress={() => {
+              if (profile) {
+                navigation.navigate(
+                  'App',
+                  {
+                    screen: 'Recognition',
+                    params: { profileId: profile.id },
+                  },
+                  { pop: true },
+                );
+              }
+            }}
             accessibilityLabel="Zum Erkennungsmodus"
             disabled={!profile}
           />
           <ButtonComponent
             title="Lernen"
             description="Übe Gesten gemeinsam und sammle neue Trainingsbeispiele."
-            onPress={() => navigation.navigate('App', { screen: 'Lernen' })}
+            onPress={() => {
+              navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
+            }}
             accessibilityLabel="Zum Lernmodus"
           />
         </View>
@@ -214,21 +229,21 @@ export default function ProfileSelectScreen({ navigation }: any) {
           <ButtonComponent
             title="Elternbereich"
             description="Öffne den Elternbereich für Einstellungen und Unterstützung."
-            onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
+            onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' }, { pop: true })}
             accessibilityLabel="Elternbereich öffnen"
             variant="secondary"
           />
           <ButtonComponent
             title="Admin"
             description="Verwalte Modelle und technische Details."
-            onPress={() => navigation.navigate('ParentalGate', { target: 'Admin' })}
+            onPress={() => navigation.navigate('ParentalGate', { target: 'Admin' }, { pop: true })}
             accessibilityLabel="Adminbereich öffnen"
             variant="secondary"
           />
           <ButtonComponent
             title="Profile verwalten"
             description="Bearbeite oder lege Profile für Kinder an."
-            onPress={() => navigation.navigate('ProfileManager')}
+            onPress={() => navigation.navigate('ProfileManager', undefined, { pop: true })}
             accessibilityLabel="Profile verwalten"
             variant="secondary"
           />
