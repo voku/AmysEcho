@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { View, Pressable, StyleSheet, Text, ScrollView } from 'react-native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { loadProfile, Profile } from '../storage';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import type { RootStackParamList } from '../navigation/types';
 
-export default function ProfileSelectScreen({ navigation }: any) {
+type ProfileSelectNavigationProp = Pick<
+  StackNavigationProp<RootStackParamList, 'ProfileSelect'>,
+  'navigate' | 'popTo'
+>;
+
+export default function ProfileSelectScreen({ navigation }: { navigation: ProfileSelectNavigationProp }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const { largeText, highContrast } = useAccessibility();
 

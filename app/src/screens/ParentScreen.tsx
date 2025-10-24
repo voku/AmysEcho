@@ -84,7 +84,10 @@ const styles = StyleSheet.create({
   },
 });
 
-type ParentScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Parent'>;
+type ParentScreenNavigationProp = Pick<
+  StackNavigationProp<RootStackParamList, 'Parent'>,
+  'navigate' | 'goBack' | 'popTo'
+>;
 
 export default function ParentScreen({
   navigation,

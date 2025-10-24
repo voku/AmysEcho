@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "jest"],
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/**/*.ts",
+    "../src/**/*.tsx",
+    "screens/ParentScreen.test.tsx",
+    "screens/ProfileSelectScreen.test.tsx",
+    "../mock-types.d.ts"
+  ],
+  "exclude": []
+}
