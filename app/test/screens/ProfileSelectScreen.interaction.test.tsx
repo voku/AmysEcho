@@ -1,5 +1,20 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
+import { Pressable } from 'react-native';
+import type { ComponentProps } from 'react';
+import type { GestureResponderEvent } from 'react-native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../src/navigation/types';
+
+type NavigationSubset = Pick<
+  StackNavigationProp<RootStackParamList, 'ProfileSelect'>,
+  'navigate' | 'popTo'
+>;
+
+const createNavigationStub = (): NavigationSubset => ({
+  navigate: jest.fn(),
+  popTo: jest.fn(),
+});
 
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
@@ -18,34 +33,36 @@ import ProfileSelectScreen from '../../src/screens/ProfileSelectScreen';
 
 describe('ProfileSelectScreen interactions', () => {
   it('opens the parent flow through the parental gate', async () => {
-    const navigate = jest.fn();
+    const navigation = createNavigationStub();
     let component!: renderer.ReactTestRenderer;
 
     await act(async () => {
-      component = renderer.create(<ProfileSelectScreen navigation={{ navigate }} />);
+      component = renderer.create(<ProfileSelectScreen navigation={navigation} />);
       await Promise.resolve();
     });
 
     act(() => {
-      component.root.findByProps({ accessibilityLabel: 'Elternbereich öffnen' }).props.onPress();
+      const button = component.root.findByProps({ accessibilityLabel: 'Elternbereich öffnen' });
+      (button.props as ComponentProps<typeof Pressable>).onPress?.({} as GestureResponderEvent);
     });
 
-    expect(navigate).toHaveBeenCalledWith('ParentalGate', { target: 'Parent' });
+    expect(navigation.navigate).toHaveBeenCalledWith('ParentalGate', { target: 'Parent' });
   });
 
   it('opens the admin flow through the parental gate', async () => {
-    const navigate = jest.fn();
+    const navigation = createNavigationStub();
     let component!: renderer.ReactTestRenderer;
 
     await act(async () => {
-      component = renderer.create(<ProfileSelectScreen navigation={{ navigate }} />);
+      component = renderer.create(<ProfileSelectScreen navigation={navigation} />);
       await Promise.resolve();
     });
 
     act(() => {
-      component.root.findByProps({ accessibilityLabel: 'Adminbereich öffnen' }).props.onPress();
+      const button = component.root.findByProps({ accessibilityLabel: 'Adminbereich öffnen' });
+      (button.props as ComponentProps<typeof Pressable>).onPress?.({} as GestureResponderEvent);
     });
 
-    expect(navigate).toHaveBeenCalledWith('ParentalGate', { target: 'Admin' });
+    expect(navigation.navigate).toHaveBeenCalledWith('ParentalGate', { target: 'Admin' });
   });
 });
