@@ -110,7 +110,10 @@ const STATUS_COPY: Record<
 
 // Reserve space for the primary action row plus the secondary row, including the gap between them.
 const ACTION_BUTTON_MIN_HEIGHT = 56;
+const COMPACT_SECONDARY_ACTIONS_BREAKPOINT = 360; // px width threshold for stacking secondary actions
 const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
+const COMPACT_ACTIONS_SLOT_MIN_HEIGHT =
+  ACTION_BUTTON_MIN_HEIGHT * 3 + spacing.sm * 2;
 
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
@@ -155,7 +158,8 @@ export default function RecognitionScreen({
   navigation: TabNavigationProp<'Recognition'>;
 }) {
   const { width: windowWidth } = useWindowDimensions();
-  const isCompactSecondaryActions = windowWidth <= 360;
+  const isCompactSecondaryActions =
+    windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
@@ -685,7 +689,12 @@ export default function RecognitionScreen({
                 </View>
               )}
 
-              <View style={styles.actionsSlot}>
+              <View
+                style={[
+                  styles.actionsSlot,
+                  isCompactSecondaryActions && styles.actionsSlotCompact,
+                ]}
+              >
                 <Animated.View
                   testID="recognition-actions"
                   pointerEvents={actionsPointerEvents}
@@ -708,6 +717,7 @@ export default function RecognitionScreen({
                   </View>
                   <View
                     style={[
+                      styles.secondaryActionsBase,
                       styles.secondaryActionsRow,
                       isCompactSecondaryActions && styles.secondaryActionsColumn,
                     ]}
@@ -721,6 +731,8 @@ export default function RecognitionScreen({
                       textColor={CAMERA_THEME.actionButtons.learn.text}
                       style={[
                         styles.secondaryActionButton,
+                        !isCompactSecondaryActions && styles.secondaryActionButtonRow,
+                        isCompactSecondaryActions && styles.secondaryActionButtonColumn,
                         isCompactSecondaryActions && styles.secondaryActionCompact,
                       ]}
                     />
@@ -733,6 +745,8 @@ export default function RecognitionScreen({
                       textColor={CAMERA_THEME.actionButtons.alternatives.text}
                       style={[
                         styles.secondaryActionButton,
+                        !isCompactSecondaryActions && styles.secondaryActionButtonRow,
+                        isCompactSecondaryActions && styles.secondaryActionButtonColumn,
                         isCompactSecondaryActions && styles.secondaryActionCompact,
                       ]}
                     />
@@ -830,6 +844,9 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'flex-end',
   },
+  actionsSlotCompact: {
+    minHeight: COMPACT_ACTIONS_SLOT_MIN_HEIGHT,
+  },
   predictionCard: {
     backgroundColor: CAMERA_THEME.predictionCardBackground,
     borderRadius: 24,
@@ -874,19 +891,23 @@ const styles = StyleSheet.create({
   primaryActionButton: {
     width: '100%',
   },
+  secondaryActionsBase: {
+    width: '100%',
+    gap: spacing.sm,
+  },
   secondaryActionsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: spacing.sm,
-    width: '100%',
   },
   secondaryActionsColumn: {
     flexDirection: 'column',
-    width: '100%',
-    gap: spacing.sm,
   },
-  secondaryActionButton: {
+  secondaryActionButton: {},
+  secondaryActionButtonRow: {
     flex: 1,
+  },
+  secondaryActionButtonColumn: {
+    width: '100%',
   },
   secondaryActionCompact: {
     paddingHorizontal: spacing.xl,
