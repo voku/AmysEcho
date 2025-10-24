@@ -28,7 +28,6 @@ import { fetchMlpModel } from '../services/dgsModelClient';
 
 import { usePerformance } from '../context/PerformanceContext';
 import ScreenBackground from '../components/ScreenBackground';
-import { popToExistingRoute } from '../navigation/navigationHelpers';
 
 const SYMBOL_EXPORT_PATH = `${Paths.document.uri || ''}symbols-export.json`;
 
@@ -408,14 +407,13 @@ export default function AdminScreen({ navigation }: any) {
     {
       title: 'Training',
       onPress: () => {
-        popToExistingRoute(navigation, 'App');
-        navigation.navigate('App', { screen: 'Lernen' });
+        navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
       },
       accessibilityLabel: 'Trainingsmodus öffnen',
     },
     {
       title: 'Dashboard',
-      onPress: () => navigation.navigate('Dashboard'),
+      onPress: () => navigation.navigate('Dashboard', undefined, { pop: true }),
       accessibilityLabel: 'Analytics-Dashboard öffnen',
     },
     {

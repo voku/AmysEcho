@@ -26,7 +26,6 @@ import ParentScreen from '../../src/screens/ParentScreen';
 import { ServicesContext, type Services } from '../../src/context/ServicesContext';
 import type { RootStackParamList } from '../../src/navigation/types';
 import type { Profile } from '../../src/storage';
-import { StackActions } from '@react-navigation/native';
 
 type NavigationSubset = StackNavigationProp<RootStackParamList, 'Parent'>;
 
@@ -101,7 +100,7 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Verwaltung' }).props['onPress']?.();
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Admin');
+    expect(navigation.navigate).toHaveBeenCalledWith('Admin', undefined, { pop: true });
   });
 
   it('opens caregiver analytics', async () => {
@@ -117,7 +116,11 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Analysen ansehen' }).props['onPress']?.();
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Dashboard');
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      'Dashboard',
+      undefined,
+      { pop: true },
+    );
   });
 
   it('goes back when Zurück is pressed', async () => {
@@ -170,7 +173,7 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
-    expect(navigation.navigate).not.toHaveBeenCalledWith('Parent');
+    expect(navigation.navigate).toHaveBeenCalledWith('Parent', undefined, { pop: true });
   });
 
   it('pops back to the App recognition tab when Erkennen is pressed', async () => {
@@ -194,8 +197,12 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Zum Erkennungsmodus' }).props['onPress']?.();
     });
 
-    expect(navigation.dispatch).toHaveBeenCalledWith(StackActions.pop(1));
-    expect(navigation.navigate).toHaveBeenCalledWith('App', { screen: 'Recognition' });
+    expect(navigation.dispatch).not.toHaveBeenCalled();
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      'App',
+      { screen: 'Recognition' },
+      { pop: true },
+    );
   });
 
   it('pops back to App recognition with low-confidence simulation when requested', async () => {
@@ -221,10 +228,14 @@ describe('ParentScreen interactions', () => {
         .props['onPress']?.();
     });
 
-    expect(navigation.dispatch).toHaveBeenCalledWith(StackActions.pop(1));
-    expect(navigation.navigate).toHaveBeenCalledWith('App', {
-      screen: 'Recognition',
-      params: { simulateLowConfidence: true },
-    });
+    expect(navigation.dispatch).not.toHaveBeenCalled();
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      'App',
+      {
+        screen: 'Recognition',
+        params: { simulateLowConfidence: true },
+      },
+      { pop: true },
+    );
   });
 });

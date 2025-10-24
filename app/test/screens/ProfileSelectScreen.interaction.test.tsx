@@ -57,7 +57,11 @@ describe('ProfileSelectScreen interactions', () => {
       (button.props as ComponentProps<typeof Pressable>).onPress?.({} as GestureResponderEvent);
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith('ParentalGate', { target: 'Parent' });
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      'ParentalGate',
+      { target: 'Parent' },
+      { pop: true },
+    );
   });
 
   it('opens the admin flow through the parental gate', async () => {
@@ -74,6 +78,10 @@ describe('ProfileSelectScreen interactions', () => {
       (button.props as ComponentProps<typeof Pressable>).onPress?.({} as GestureResponderEvent);
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith('ParentalGate', { target: 'Admin' });
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      'ParentalGate',
+      { target: 'Admin' },
+      { pop: true },
+    );
   });
 });

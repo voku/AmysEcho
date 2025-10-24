@@ -10,7 +10,6 @@ import typography from '../constants/typography';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
-import { popToExistingRoute } from '../navigation/navigationHelpers';
 
 type HeroScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'Hero'>;
@@ -48,8 +47,7 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
           <PrimaryButton
             label="Lernen entdecken"
             onPress={() => {
-              popToExistingRoute(navigation, 'App');
-              navigation.navigate('App', { screen: 'Lernen' });
+              navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
             }}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"

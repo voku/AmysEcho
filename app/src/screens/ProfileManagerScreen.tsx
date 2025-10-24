@@ -18,7 +18,6 @@ import ProfileAnalytics from '../components/ProfileAnalytics';
 import CollapsibleSettingsSection from '../components/settings/CollapsibleSettingsSection';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
-import { popToExistingRoute } from '../navigation/navigationHelpers';
 
 export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -197,8 +196,11 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       setLocalLargeText(!!profile.largeText);
       setLocalHighContrast(!!profile.highContrast);
     }
-    popToExistingRoute(navigation, 'App');
-    navigation.navigate('App', { screen: 'Recognition', params: { profileId: id } });
+    navigation.navigate(
+      'App',
+      { screen: 'Recognition', params: { profileId: id } },
+      { pop: true },
+    );
   };
 
   const toggleLargeText = async (enabled: boolean) => {
@@ -469,7 +471,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
             ]}
             onPress={() => {
               void childHaptic();
-              navigation.navigate('Onboarding');
+              navigation.navigate('Onboarding', undefined, { pop: true });
             }}
             accessibilityRole="button"
             accessibilityLabel="Neues Profil anlegen"

@@ -14,7 +14,6 @@ import { useAccessibility } from './AccessibilityContext';
 import { useTheme } from '../context/ThemeContext';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { childHaptic } from '../services/feedbackService';
-import { popToExistingRoute } from '../navigation/navigationHelpers';
 
 // Type imports
 import type { StyleProp, ViewStyle } from 'react-native';
@@ -36,22 +35,24 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateToRecognition = useCallback(() => {
     void childHaptic();
-    popToExistingRoute(navigation, 'App');
-    navigation.navigate('App', {
-      screen: 'Recognition',
-      params: { profileId },
-    });
+    navigation.navigate(
+      'App',
+      {
+        screen: 'Recognition',
+        params: { profileId },
+      },
+      { pop: true },
+    );
   }, [navigation, profileId]);
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    popToExistingRoute(navigation, 'App');
-    navigation.navigate('App', { screen: 'Lernen' });
+    navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {
     void childHaptic();
-    navigation.navigate('ProfileSelect');
+    navigation.navigate('ProfileSelect', undefined, { pop: true });
   }, [navigation]);
 
   // Enhanced breadcrumb system - show navigation path

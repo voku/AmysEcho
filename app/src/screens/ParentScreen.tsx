@@ -9,7 +9,6 @@ import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
 import { logger } from '../utils/logger';
 import type { RootStackParamList } from '../navigation/types';
-import { popToExistingRoute } from '../navigation/navigationHelpers';
 
 const styles = StyleSheet.create({
   container: {
@@ -172,65 +171,64 @@ export default function ParentScreen({
       </View>
       <ButtonComponent
         title="Profilverwaltung"
-        onPress={() => navigation.navigate('ProfileManager')}
+        onPress={() => navigation.navigate('ProfileManager', undefined, { pop: true })}
         accessibilityLabel="Profilverwaltung"
       />
       <ButtonComponent
         title="Zugangsprüfung"
-        onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
+        onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' }, { pop: true })}
         accessibilityLabel="Zugangsprüfung"
       />
       <ButtonComponent
         title="Verwaltung"
-        onPress={() => navigation.navigate('Admin')}
+        onPress={() => navigation.navigate('Admin', undefined, { pop: true })}
         accessibilityLabel="Verwaltung"
       />
       <ButtonComponent
         title="Analysen"
-        onPress={() => navigation.navigate('Dashboard')}
+        onPress={() => navigation.navigate('Dashboard', undefined, { pop: true })}
         accessibilityLabel="Analysen ansehen"
       />
       <ButtonComponent
         title="Lernfortschritt"
-        onPress={() => navigation.navigate('CaregiverReport')}
+        onPress={() => navigation.navigate('CaregiverReport', undefined, { pop: true })}
         accessibilityLabel="Lernfortschritt ansehen"
       />
       <ButtonComponent
         title="Fortschritt"
-        onPress={() => navigation.navigate('Progress')}
+        onPress={() => navigation.navigate('Progress', undefined, { pop: true })}
         accessibilityLabel="Fortschritt ansehen"
       />
       <ButtonComponent
         title="Hilfe"
-        onPress={() => navigation.navigate('Help')}
+        onPress={() => navigation.navigate('Help', undefined, { pop: true })}
         accessibilityLabel="Hilfe erhalten"
       />
       <ButtonComponent
         title="Geringe Sicherheit simulieren"
         onPress={() => {
-          popToExistingRoute(navigation, 'App');
-          navigation.navigate('App', {
-            screen: 'Recognition',
-            params: { simulateLowConfidence: true },
-          });
+          navigation.navigate(
+            'App',
+            {
+              screen: 'Recognition',
+              params: { simulateLowConfidence: true },
+            },
+            { pop: true },
+          );
         }}
         accessibilityLabel="Geringe Sicherheit simulieren"
       />
       <ButtonComponent
         title="Menü"
         onPress={() => {
-          const popped = popToExistingRoute(navigation, 'Parent');
-          if (!popped) {
-            navigation.navigate('Parent');
-          }
+          navigation.navigate('Parent', undefined, { pop: true });
         }}
         accessibilityLabel="Menü öffnen"
       />
       <ButtonComponent
         title="Erkennen"
         onPress={() => {
-          popToExistingRoute(navigation, 'App');
-          navigation.navigate('App', { screen: 'Recognition' });
+          navigation.navigate('App', { screen: 'Recognition' }, { pop: true });
         }}
         accessibilityLabel="Zum Erkennungsmodus"
       />
