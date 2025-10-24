@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import ActionButton from '../components/ActionButton';
@@ -154,6 +154,8 @@ export default function RecognitionScreen({
 }: {
   navigation: TabNavigationProp<'Recognition'>;
 }) {
+  const { width: windowWidth } = useWindowDimensions();
+  const isCompactSecondaryActions = windowWidth <= 360;
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
@@ -704,7 +706,12 @@ export default function RecognitionScreen({
                       style={styles.primaryActionButton}
                     />
                   </View>
-                  <View style={styles.secondaryActionsRow}>
+                  <View
+                    style={[
+                      styles.secondaryActionsRow,
+                      isCompactSecondaryActions && styles.secondaryActionsColumn,
+                    ]}
+                  >
                     <ActionButton
                       label="Lernen"
                       accessibilityLabel="Lernmodus öffnen"
@@ -712,7 +719,10 @@ export default function RecognitionScreen({
                       backgroundColor={CAMERA_THEME.actionButtons.learn.background}
                       pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
                       textColor={CAMERA_THEME.actionButtons.learn.text}
-                      style={styles.secondaryActionButton}
+                      style={[
+                        styles.secondaryActionButton,
+                        isCompactSecondaryActions && styles.secondaryActionCompact,
+                      ]}
                     />
                     <ActionButton
                       label="Alternativen"
@@ -721,7 +731,10 @@ export default function RecognitionScreen({
                       backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
                       pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
                       textColor={CAMERA_THEME.actionButtons.alternatives.text}
-                      style={styles.secondaryActionButton}
+                      style={[
+                        styles.secondaryActionButton,
+                        isCompactSecondaryActions && styles.secondaryActionCompact,
+                      ]}
                     />
                   </View>
                 </Animated.View>
@@ -867,7 +880,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     width: '100%',
   },
+  secondaryActionsColumn: {
+    flexDirection: 'column',
+    width: '100%',
+    gap: spacing.sm,
+  },
   secondaryActionButton: {
     flex: 1,
+  },
+  secondaryActionCompact: {
+    paddingHorizontal: spacing.xl,
   },
 });
