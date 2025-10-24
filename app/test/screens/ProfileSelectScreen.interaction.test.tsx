@@ -6,15 +6,26 @@ import type { GestureResponderEvent } from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../src/navigation/types';
 
-type NavigationSubset = Pick<
-  StackNavigationProp<RootStackParamList, 'ProfileSelect'>,
-  'navigate' | 'popTo'
->;
+type NavigationSubset = StackNavigationProp<RootStackParamList, 'ProfileSelect'>;
 
-const createNavigationStub = (): NavigationSubset => ({
-  navigate: jest.fn(),
-  popTo: jest.fn(),
-});
+const createNavigationStub = (): NavigationSubset =>
+  ({
+    navigate: jest.fn(),
+    dispatch: jest.fn(),
+    getState: jest.fn(() => ({
+      type: 'stack',
+      stale: false,
+      key: 'stack-profile-select',
+      index: 2,
+      routeNames: ['Hero', 'App', 'ProfileSelect'],
+      routes: [
+        { key: 'Hero-1', name: 'Hero' },
+        { key: 'App-1', name: 'App' },
+        { key: 'ProfileSelect-1', name: 'ProfileSelect' },
+      ],
+      history: [],
+    })),
+  } as unknown as NavigationSubset);
 
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),

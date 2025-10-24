@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { StackActions } from '@react-navigation/native';
 
 jest.mock('../../src/components/ScreenBackground', () => {
   const React = require('react');
@@ -26,13 +27,29 @@ import { childHaptic } from '../../src/services/feedbackService';
 import type { RootStackParamList } from '../../src/navigation/types';
 import type { Profile } from '../../src/storage';
 
-type NavigationSubset = Pick<StackNavigationProp<RootStackParamList, 'ProfileSelect'>, 'navigate' | 'popTo'>;
+type NavigationSubset = StackNavigationProp<RootStackParamList, 'ProfileSelect'>;
 
-const createNavigation = (): jest.Mocked<NavigationSubset> =>
-  ({
+const createNavigation = (index: number = 2): jest.Mocked<NavigationSubset> => {
+  const state = {
+    type: 'stack' as const,
+    stale: false as const,
+    key: 'stack-root',
+    index,
+    routeNames: ['Hero', 'App', 'ProfileSelect'] as const,
+    routes: [
+      { key: 'Hero-1', name: 'Hero' as const },
+      { key: 'App-1', name: 'App' as const },
+      { key: 'ProfileSelect-1', name: 'ProfileSelect' as const },
+    ],
+    history: [],
+  };
+
+  return {
     navigate: jest.fn(),
-    popTo: jest.fn(),
-  }) as jest.Mocked<NavigationSubset>;
+    dispatch: jest.fn(),
+    getState: jest.fn(() => state),
+  } as unknown as jest.Mocked<NavigationSubset>;
+};
 
 describe('ProfileSelectScreen', () => {
   let navigation: jest.Mocked<NavigationSubset>;
@@ -52,7 +69,7 @@ describe('ProfileSelectScreen', () => {
     navigation = createNavigation();
   });
 
-  it('navigates to recognition with popTo when a profile is available', async () => {
+  it('pops to the existing App route before navigating to recognition when a profile is available', async () => {
     loadProfileMock.mockResolvedValue(createProfile({ id: 'amy', name: 'Amy' }));
 
     const { getByLabelText } = render(<ProfileSelectScreen navigation={navigation} />);
@@ -65,14 +82,15 @@ describe('ProfileSelectScreen', () => {
 
     await waitFor(() => {
       expect(childHapticMock).toHaveBeenCalled();
-      expect(navigation.popTo).toHaveBeenCalledWith('App', {
+      expect(navigation.dispatch).toHaveBeenCalledWith(StackActions.pop(1));
+      expect(navigation.navigate).toHaveBeenCalledWith('App', {
         screen: 'Recognition',
         params: { profileId: 'amy' },
       });
     });
   });
 
-  it('routes learning button through popTo to keep using the existing App stack', async () => {
+  it('keeps using the existing App stack when routing to the learning tab', async () => {
     loadProfileMock.mockResolvedValue(null);
 
     const { getByLabelText } = render(<ProfileSelectScreen navigation={navigation} />);
@@ -81,7 +99,8 @@ describe('ProfileSelectScreen', () => {
 
     await waitFor(() => {
       expect(childHapticMock).toHaveBeenCalled();
-      expect(navigation.popTo).toHaveBeenCalledWith('App', { screen: 'Lernen' });
+      expect(navigation.dispatch).toHaveBeenCalledWith(StackActions.pop(1));
+      expect(navigation.navigate).toHaveBeenCalledWith('App', { screen: 'Lernen' });
     });
   });
 });

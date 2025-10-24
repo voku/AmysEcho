@@ -9,6 +9,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
 import { logger } from '../utils/logger';
 import type { RootStackParamList } from '../navigation/types';
+import { popToExistingRoute } from '../navigation/navigationHelpers';
 
 const styles = StyleSheet.create({
   container: {
@@ -84,10 +85,7 @@ const styles = StyleSheet.create({
   },
 });
 
-type ParentScreenNavigationProp = Pick<
-  StackNavigationProp<RootStackParamList, 'Parent'>,
-  'navigate' | 'goBack' | 'popTo'
->;
+type ParentScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Parent'>;
 
 export default function ParentScreen({
   navigation,
@@ -209,22 +207,31 @@ export default function ParentScreen({
       />
       <ButtonComponent
         title="Geringe Sicherheit simulieren"
-        onPress={() =>
-          navigation.popTo('App', {
+        onPress={() => {
+          popToExistingRoute(navigation, 'App');
+          navigation.navigate('App', {
             screen: 'Recognition',
             params: { simulateLowConfidence: true },
-          })
-        }
+          });
+        }}
         accessibilityLabel="Geringe Sicherheit simulieren"
       />
       <ButtonComponent
         title="Menü"
-        onPress={() => navigation.popTo('Parent')}
+        onPress={() => {
+          const popped = popToExistingRoute(navigation, 'Parent');
+          if (!popped) {
+            navigation.navigate('Parent');
+          }
+        }}
         accessibilityLabel="Menü öffnen"
       />
       <ButtonComponent
         title="Erkennen"
-        onPress={() => navigation.popTo('App', { screen: 'Recognition' })}
+        onPress={() => {
+          popToExistingRoute(navigation, 'App');
+          navigation.navigate('App', { screen: 'Recognition' });
+        }}
         accessibilityLabel="Zum Erkennungsmodus"
       />
       <ButtonComponent

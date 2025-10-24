@@ -26,21 +26,33 @@ import ParentScreen from '../../src/screens/ParentScreen';
 import { ServicesContext, type Services } from '../../src/context/ServicesContext';
 import type { RootStackParamList } from '../../src/navigation/types';
 import type { Profile } from '../../src/storage';
+import { StackActions } from '@react-navigation/native';
 
-type NavigationSubset = Pick<
-  StackNavigationProp<RootStackParamList, 'Parent'>,
-  'navigate' | 'goBack' | 'popTo'
->;
+type NavigationSubset = StackNavigationProp<RootStackParamList, 'Parent'>;
+
+const baseState = {
+  type: 'stack' as const,
+  stale: false as const,
+  key: 'stack-parent',
+  routeNames: ['Hero', 'App', 'Parent'] as const,
+};
 
 const createNavigation = (
   overrides: Partial<jest.Mocked<NavigationSubset>> = {},
+  index: number = 2,
+  routes: Array<{ key: string; name: keyof RootStackParamList }> = [
+    { key: 'Hero-1', name: 'Hero' },
+    { key: 'App-1', name: 'App' },
+    { key: 'Parent-1', name: 'Parent' },
+  ],
 ): jest.Mocked<NavigationSubset> =>
   ({
     navigate: jest.fn(),
     goBack: jest.fn(),
-    popTo: jest.fn(),
+    dispatch: jest.fn(),
+    getState: jest.fn(() => ({ ...baseState, index, routes })),
     ...overrides,
-  }) as jest.Mocked<NavigationSubset>;
+  }) as unknown as jest.Mocked<NavigationSubset>;
 
 const createProfile = (overrides: Partial<Profile> = {}): Profile => ({
   id: 'profile-1',
@@ -144,7 +156,7 @@ describe('ParentScreen interactions', () => {
     expect(guidanceCopyNodes).not.toHaveLength(0);
   });
 
-  it('returns to the existing parent menu using popTo', async () => {
+  it('keeps the parent screen focused without pushing a duplicate when Menü is pressed', async () => {
     const navigation = createNavigation();
     let component!: renderer.ReactTestRenderer;
 
@@ -157,6 +169,62 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Menü öffnen' }).props['onPress']?.();
     });
 
-    expect(navigation.popTo).toHaveBeenCalledWith('Parent');
+    expect(navigation.dispatch).not.toHaveBeenCalled();
+    expect(navigation.navigate).not.toHaveBeenCalledWith('Parent');
+  });
+
+  it('pops back to the App recognition tab when Erkennen is pressed', async () => {
+    const navigation = createNavigation(
+      {},
+      2,
+      [
+        { key: 'Hero-1', name: 'Hero' },
+        { key: 'App-1', name: 'App' },
+        { key: 'Parent-1', name: 'Parent' },
+      ],
+    );
+    let component!: renderer.ReactTestRenderer;
+
+    await act(async () => {
+      component = renderWithServices(navigation);
+      await Promise.resolve();
+    });
+
+    act(() => {
+      component.root.findByProps({ accessibilityLabel: 'Zum Erkennungsmodus' }).props['onPress']?.();
+    });
+
+    expect(navigation.dispatch).toHaveBeenCalledWith(StackActions.pop(1));
+    expect(navigation.navigate).toHaveBeenCalledWith('App', { screen: 'Recognition' });
+  });
+
+  it('pops back to App recognition with low-confidence simulation when requested', async () => {
+    const navigation = createNavigation(
+      {},
+      2,
+      [
+        { key: 'Hero-1', name: 'Hero' },
+        { key: 'App-1', name: 'App' },
+        { key: 'Parent-1', name: 'Parent' },
+      ],
+    );
+    let component!: renderer.ReactTestRenderer;
+
+    await act(async () => {
+      component = renderWithServices(navigation);
+      await Promise.resolve();
+    });
+
+    act(() => {
+      component.root
+        .findByProps({ accessibilityLabel: 'Geringe Sicherheit simulieren' })
+        .props['onPress']?.();
+    });
+
+    expect(navigation.dispatch).toHaveBeenCalledWith(StackActions.pop(1));
+    expect(navigation.navigate).toHaveBeenCalledWith('App', {
+      screen: 'Recognition',
+      params: { simulateLowConfidence: true },
+    });
   });
 });

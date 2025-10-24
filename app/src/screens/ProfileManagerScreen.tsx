@@ -18,6 +18,7 @@ import ProfileAnalytics from '../components/ProfileAnalytics';
 import CollapsibleSettingsSection from '../components/settings/CollapsibleSettingsSection';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
+import { popToExistingRoute } from '../navigation/navigationHelpers';
 
 export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -196,7 +197,8 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       setLocalLargeText(!!profile.largeText);
       setLocalHighContrast(!!profile.highContrast);
     }
-    navigation.popTo('App', { screen: 'Recognition', params: { profileId: id } });
+    popToExistingRoute(navigation, 'App');
+    navigation.navigate('App', { screen: 'Recognition', params: { profileId: id } });
   };
 
   const toggleLargeText = async (enabled: boolean) => {

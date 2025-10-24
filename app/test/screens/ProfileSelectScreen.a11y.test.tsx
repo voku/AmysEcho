@@ -1,6 +1,6 @@
 import React, { isValidElement } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
-import renderer, { act } from 'react-test-renderer';
+import renderer, { act, type ReactTestInstance } from 'react-test-renderer';
 import { Pressable, Text } from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../src/navigation/types';
@@ -24,15 +24,26 @@ import { loadProfile } from '../../src/storage';
 
 const loadProfileMock = loadProfile as jest.MockedFunction<typeof loadProfile>;
 
-type NavigationSubset = Pick<
-  StackNavigationProp<RootStackParamList, 'ProfileSelect'>,
-  'navigate' | 'popTo'
->;
+type NavigationSubset = StackNavigationProp<RootStackParamList, 'ProfileSelect'>;
 
-const createNavigationStub = (): NavigationSubset => ({
-  navigate: jest.fn(),
-  popTo: jest.fn(),
-});
+const createNavigationStub = (): NavigationSubset =>
+  ({
+    navigate: jest.fn(),
+    dispatch: jest.fn(),
+    getState: jest.fn(() => ({
+      type: 'stack',
+      stale: false,
+      key: 'stack-profile-select',
+      index: 2,
+      routeNames: ['Hero', 'App', 'ProfileSelect'],
+      routes: [
+        { key: 'Hero-1', name: 'Hero' },
+        { key: 'App-1', name: 'App' },
+        { key: 'ProfileSelect-1', name: 'ProfileSelect' },
+      ],
+      history: [],
+    })),
+  } as unknown as NavigationSubset);
 
 const resolveComponent = async () => {
   const navigation = createNavigationStub();
@@ -106,7 +117,7 @@ describe('ProfileSelectScreen accessibility', () => {
     const pressables = comp.root.findAllByType(Pressable);
     const getPressableProps = (instance: renderer.ReactTestInstance) =>
       instance.props as ComponentProps<typeof Pressable>;
-    const a11yLabels = pressables.map((instance) => getPressableProps(instance).accessibilityLabel);
+    const a11yLabels = pressables.map((instance: ReactTestInstance) => getPressableProps(instance).accessibilityLabel);
     expect(a11yLabels).toEqual(
       expect.arrayContaining([
         'Zum Erkennungsmodus',
@@ -117,7 +128,7 @@ describe('ProfileSelectScreen accessibility', () => {
       ]),
     );
 
-    const recognitionButton = pressables.find((instance) => {
+    const recognitionButton = pressables.find((instance: ReactTestInstance) => {
       const props = getPressableProps(instance);
       return props.accessibilityLabel === 'Zum Erkennungsmodus';
     });
@@ -152,13 +163,13 @@ describe('ProfileSelectScreen accessibility', () => {
     const pressables = comp.root.findAllByType(Pressable);
     const getPressableProps = (instance: renderer.ReactTestInstance) =>
       instance.props as ComponentProps<typeof Pressable>;
-    const recognitionButton = pressables.find((instance) => {
+    const recognitionButton = pressables.find((instance: ReactTestInstance) => {
       const props = getPressableProps(instance);
       return props.accessibilityLabel === 'Zum Erkennungsmodus';
     });
     expect(getPressableProps(recognitionButton!).disabled).toBe(true);
 
-    const a11yLabels = pressables.map((instance) => getPressableProps(instance).accessibilityLabel);
+    const a11yLabels = pressables.map((instance: ReactTestInstance) => getPressableProps(instance).accessibilityLabel);
     expect(a11yLabels).toEqual(
       expect.arrayContaining([
         'Zum Erkennungsmodus',

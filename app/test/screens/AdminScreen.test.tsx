@@ -1,5 +1,5 @@
 import React from 'react';
-import renderer, { act } from 'react-test-renderer';
+import renderer, { act, type ReactTestInstance } from 'react-test-renderer';
 import { Button, FlatList } from 'react-native';
 import type { ComponentProps } from 'react';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -102,15 +102,25 @@ describe('AdminScreen', () => {
   });
 
   it('renders management actions inside the list footer so they scroll with the content', async () => {
-    type NavigationSubset = Pick<
-      StackNavigationProp<RootStackParamList, 'Admin'>,
-      'navigate' | 'goBack' | 'popTo'
-    >;
-    const navigation: NavigationSubset = {
+    type NavigationSubset = StackNavigationProp<RootStackParamList, 'Admin'>;
+    const navigation = ({
       navigate: jest.fn(),
       goBack: jest.fn(),
-      popTo: jest.fn(),
-    };
+      dispatch: jest.fn(),
+      getState: jest.fn(() => ({
+        type: 'stack',
+        stale: false,
+        key: 'stack-admin',
+        index: 2,
+        routeNames: ['Hero', 'App', 'Admin'],
+        routes: [
+          { key: 'Hero-1', name: 'Hero' },
+          { key: 'App-1', name: 'App' },
+          { key: 'Admin-1', name: 'Admin' },
+        ],
+        history: [],
+      })),
+    } as unknown) as NavigationSubset;
 
     await act(async () => {
       renderer.create(<AdminScreen navigation={navigation} />);
@@ -144,7 +154,7 @@ describe('AdminScreen', () => {
     });
     const footerButtons = footer.root
       .findAllByType(Button)
-      .map((node) => (node.props as ComponentProps<typeof Button>).title as string);
+      .map((node: ReactTestInstance) => (node.props as ComponentProps<typeof Button>).title as string);
 
     expect(footerButtons).toEqual(
       expect.arrayContaining(['Neuestes Modell herunterladen', 'Zurück']),
