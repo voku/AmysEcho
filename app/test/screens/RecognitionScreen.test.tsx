@@ -258,8 +258,17 @@ describe('RecognitionScreen Amy-first overlay', () => {
       component.root
         .findAllByType(ActionButtonComponent)
         .filter((button) => ['Stimmt', 'Lernen', 'Alternativen'].includes(button.props.label));
+    const getActionsContainer = () =>
+      component.root.find((node) => node.props?.testID === 'recognition-actions');
 
-    expect(findAmyActionButtons()).toHaveLength(0);
+    const initialActionsContainer = getActionsContainer();
+    expect(initialActionsContainer.props.pointerEvents).toBe('none');
+    expect(initialActionsContainer.props.accessibilityElementsHidden).toBe(true);
+    expect(initialActionsContainer.props.importantForAccessibility).toBe(
+      'no-hide-descendants',
+    );
+
+    expect(findAmyActionButtons()).toHaveLength(3);
 
     await act(async () => {
       recognitionStateModule.__setMockLastRecognizedGesture?.({
@@ -269,6 +278,11 @@ describe('RecognitionScreen Amy-first overlay', () => {
         category: 'greeting',
       });
     });
+
+    const activeActionsContainer = getActionsContainer();
+    expect(activeActionsContainer.props.pointerEvents).toBe('auto');
+    expect(activeActionsContainer.props.accessibilityElementsHidden).toBe(false);
+    expect(activeActionsContainer.props.importantForAccessibility).toBe('auto');
 
     const actionButtons = findAmyActionButtons();
 

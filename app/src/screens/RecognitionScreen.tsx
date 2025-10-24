@@ -108,6 +108,10 @@ const STATUS_COPY: Record<
   },
 };
 
+// Reserve space for the primary action row plus the secondary row, including the gap between them.
+const ACTION_BUTTON_MIN_HEIGHT = 56;
+const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
+
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
   timestamp: number,
@@ -181,8 +185,8 @@ export default function RecognitionScreen({
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const actionsFadeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const hasActiveGestureRef = useRef(false);
-  const [renderActions, setRenderActions] = useState(false);
+  const [actionsPointerEvents, setActionsPointerEvents] = useState<'none' | 'auto'>('none');
+  const actionsAccessibilityHidden = actionsPointerEvents === 'none';
   const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
   const labelHistoryRef = useRef<string[]>([]);
   const lastSuccessAtRef = useRef<number>(0);
@@ -479,17 +483,13 @@ export default function RecognitionScreen({
   const hasActiveGesture = Boolean(gestureMeaningDisplayProps);
 
   useEffect(() => {
-    hasActiveGestureRef.current = hasActiveGesture;
-  }, [hasActiveGesture]);
-
-  useEffect(() => {
     if (fadeAnimationRef.current) {
       fadeAnimationRef.current.stop();
       fadeAnimationRef.current = null;
     }
 
     if (hasActiveGesture) {
-      setRenderActions(true);
+      setActionsPointerEvents('auto');
       const fadeInAnimation = Animated.timing(actionsFadeAnim, {
         toValue: 1,
         duration: 250,
@@ -504,6 +504,7 @@ export default function RecognitionScreen({
         fadeAnimationRef.current = null;
       });
     } else {
+      setActionsPointerEvents('none');
       const fadeOutAnimation = Animated.timing(actionsFadeAnim, {
         toValue: 0,
         duration: 250,
@@ -511,10 +512,7 @@ export default function RecognitionScreen({
         useNativeDriver: true,
       });
       fadeAnimationRef.current = fadeOutAnimation;
-      fadeOutAnimation.start(({ finished }) => {
-        if (finished && !hasActiveGestureRef.current) {
-          setRenderActions(false);
-        }
+      fadeOutAnimation.start(() => {
         fadeAnimationRef.current = null;
       });
     }
@@ -685,8 +683,16 @@ export default function RecognitionScreen({
                 </View>
               )}
 
-              {renderActions ? (
-                <Animated.View style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}> 
+              <View style={styles.actionsSlot}>
+                <Animated.View
+                  testID="recognition-actions"
+                  pointerEvents={actionsPointerEvents}
+                  accessibilityElementsHidden={actionsAccessibilityHidden}
+                  importantForAccessibility={
+                    actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
+                  }
+                  style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}
+                >
                   <View style={styles.primaryActionWrapper}>
                     <ActionButton
                       label="Stimmt"
@@ -719,7 +725,7 @@ export default function RecognitionScreen({
                     />
                   </View>
                 </Animated.View>
-              ) : null}
+              </View>
             </View>
           </View>
         </View>
@@ -806,6 +812,11 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: spacing.lg,
   },
+  actionsSlot: {
+    minHeight: ACTIONS_SLOT_MIN_HEIGHT,
+    width: '100%',
+    justifyContent: 'flex-end',
+  },
   predictionCard: {
     backgroundColor: CAMERA_THEME.predictionCardBackground,
     borderRadius: 24,
@@ -842,7 +853,6 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     gap: spacing.sm,
-    marginTop: spacing.md,
     width: '100%',
   },
   primaryActionWrapper: {
