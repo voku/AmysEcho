@@ -7,11 +7,12 @@ import typography from '../constants/typography';
 import Colors from '../constants/colors';
 import ActionButton from '../components/ActionButton';
 import type { TabNavigationProp } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import WorkflowStageHeader from '../components/WorkflowStageHeader';
 
 type LernenScreenProps = {
-  navigation: TabNavigationProp<'Lernen'>;
+  navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Lernen>;
 };
 
 type GestureListItem = {
@@ -27,7 +28,7 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
 
   const handleTrain = useCallback(
     (gestureId: string, label: string) => {
-      navigation.navigate('Recording', { gestureId, gestureLabel: label || gestureId });
+      navigation.navigate(ROOT_STACK_ROUTES.Recording, { gestureId, gestureLabel: label || gestureId });
     },
     [navigation],
   );
@@ -53,7 +54,7 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
 
   return (
     <LinearGradient colors={[Colors.backgroundStart, Colors.backgroundEnd]} style={styles.container}>
-      <WorkflowStageHeader route="Lernen" tone="dark" style={styles.stageHeader} />
+      <WorkflowStageHeader route={APP_TAB_ROUTES.Lernen} tone="dark" style={styles.stageHeader} />
       <FlatList
         data={gestures}
         renderItem={renderItem}

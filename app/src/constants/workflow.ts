@@ -1,8 +1,13 @@
-import type { AppTabsParamList, RootStackParamList } from '../navigation/types';
+import {
+  APP_TAB_ROUTES,
+  ROOT_STACK_ROUTES,
+  type AppTabRouteName,
+} from '../navigation/types';
+import type { RootStackParamList } from '../navigation/types';
 
 declare const __DEV__: boolean | undefined;
 
-export type WorkflowRouteName = keyof AppTabsParamList;
+export type WorkflowRouteName = AppTabRouteName;
 
 export type WorkflowStage = 'Kamera' | 'Verlauf' | 'Lernen';
 
@@ -29,7 +34,9 @@ export interface WorkflowStepMeta {
   order: number;
 }
 
-export type WorkflowSupportRoute = 'ParentalGate' | 'Help';
+export type WorkflowSupportRoute =
+  | typeof ROOT_STACK_ROUTES.ParentalGate
+  | typeof ROOT_STACK_ROUTES.Help;
 
 interface BaseSupportDestination<RouteName extends WorkflowSupportRoute> {
   key: string;
@@ -42,14 +49,17 @@ interface BaseSupportDestination<RouteName extends WorkflowSupportRoute> {
 }
 
 export type WorkflowSupportDestination =
-  | (BaseSupportDestination<'ParentalGate'> & {
-      navigationTarget: { route: 'ParentalGate'; params: RootStackParamList['ParentalGate'] };
+  | (BaseSupportDestination<typeof ROOT_STACK_ROUTES.ParentalGate> & {
+      navigationTarget: {
+        route: typeof ROOT_STACK_ROUTES.ParentalGate;
+        params: RootStackParamList[typeof ROOT_STACK_ROUTES.ParentalGate];
+      };
     })
-  | BaseSupportDestination<'Help'>;
+  | BaseSupportDestination<typeof ROOT_STACK_ROUTES.Help>;
 
 const WORKFLOW_STEPS: WorkflowStepMeta[] = [
   {
-    route: 'Recognition',
+    route: APP_TAB_ROUTES.Recognition,
     stage: 'Kamera',
     label: 'Kamera',
     icon: '🖐️',
@@ -60,7 +70,7 @@ const WORKFLOW_STEPS: WorkflowStepMeta[] = [
     order: 1,
   },
   {
-    route: 'History',
+    route: APP_TAB_ROUTES.History,
     stage: 'Verlauf',
     label: 'Verlauf',
     icon: '🗂️',
@@ -71,7 +81,7 @@ const WORKFLOW_STEPS: WorkflowStepMeta[] = [
     order: 2,
   },
   {
-    route: 'Lernen',
+    route: APP_TAB_ROUTES.Lernen,
     stage: 'Lernen',
     label: 'Lernen',
     icon: '🧠',
@@ -89,7 +99,7 @@ export const WORKFLOW_SUPPORT_DESTINATIONS: WorkflowSupportDestination[] = [
     title: 'Familie & Berichte',
     description: 'Elternbereich mit Verlauf, Lernzielen und Moderation.',
     icon: '👨‍👩‍👧',
-    navigationTarget: { route: 'ParentalGate', params: { target: 'Parent' } },
+    navigationTarget: { route: ROOT_STACK_ROUTES.ParentalGate, params: { target: ROOT_STACK_ROUTES.Parent } },
     accessibilityLabel: 'Familienbereich öffnen',
     accessibilityHint: 'Elternzugang mit Sicherheitsfrage öffnen.',
   },
@@ -98,7 +108,10 @@ export const WORKFLOW_SUPPORT_DESTINATIONS: WorkflowSupportDestination[] = [
     title: 'Einstellungen & Profile',
     description: 'Profile, Geräte und Sprache an einem Ort verwalten.',
     icon: '⚙️',
-    navigationTarget: { route: 'ParentalGate', params: { target: 'ProfileManager' } },
+    navigationTarget: {
+      route: ROOT_STACK_ROUTES.ParentalGate,
+      params: { target: ROOT_STACK_ROUTES.ProfileManager },
+    },
     accessibilityLabel: 'Profile und Einstellungen öffnen',
     accessibilityHint: 'Sicherheitsfrage beantworten, um Profile und Einstellungen zu bearbeiten.',
   },
@@ -107,7 +120,7 @@ export const WORKFLOW_SUPPORT_DESTINATIONS: WorkflowSupportDestination[] = [
     title: 'Verwaltung & Modelle',
     description: 'Gesten-Daten prüfen und Modelle pflegen.',
     icon: '🛠️',
-    navigationTarget: { route: 'ParentalGate', params: { target: 'Admin' } },
+    navigationTarget: { route: ROOT_STACK_ROUTES.ParentalGate, params: { target: ROOT_STACK_ROUTES.Admin } },
     accessibilityLabel: 'Verwaltung und Modelle öffnen',
     accessibilityHint: 'Sicherheitsfrage beantworten, um den Adminbereich zu öffnen.',
   },
@@ -116,13 +129,17 @@ export const WORKFLOW_SUPPORT_DESTINATIONS: WorkflowSupportDestination[] = [
     title: 'Hilfe & Support',
     description: 'Kontakt und Antworten auf häufige Fragen.',
     icon: '🆘',
-    navigationTarget: { route: 'Help' },
+    navigationTarget: { route: ROOT_STACK_ROUTES.Help },
     accessibilityLabel: 'Hilfe und Support öffnen',
     accessibilityHint: 'Informationen und Unterstützung abrufen.',
   },
 ];
 
-const REQUIRED_WORKFLOW_ROUTES: WorkflowRouteName[] = ['Recognition', 'History', 'Lernen'];
+const REQUIRED_WORKFLOW_ROUTES: WorkflowRouteName[] = [
+  APP_TAB_ROUTES.Recognition,
+  APP_TAB_ROUTES.History,
+  APP_TAB_ROUTES.Lernen,
+];
 
 export const WORKFLOW_STEP_BY_ROUTE = WORKFLOW_STEPS.reduce(
   (acc, step) => {

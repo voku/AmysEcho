@@ -8,6 +8,7 @@ import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { TabNavigationProp } from '../navigation/types';
+import { APP_TAB_ROUTES } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import WorkflowStageHeader from '../components/WorkflowStageHeader';
 import ActionButton from '../components/ActionButton';
@@ -62,7 +63,7 @@ const getConfidenceMeta = (confidence: number) => {
 
 const HistoryScreen: React.FC = () => {
   const [history, setHistory] = useState<GestureHistoryEntry[]>([]);
-  const navigation = useNavigation<TabNavigationProp<'History'>>();
+  const navigation = useNavigation<TabNavigationProp<typeof APP_TAB_ROUTES.History>>();
 
   const loadHistory = useCallback(() => {
     setHistory(gestureHistoryService.getRecentHistory());
@@ -86,7 +87,7 @@ const HistoryScreen: React.FC = () => {
 
   const handleQuickLearn = useCallback(
     (entry: GestureHistoryEntry) => {
-      navigation.navigate('Lernen', {
+      navigation.navigate(APP_TAB_ROUTES.Lernen, {
         gestureId: entry.id,
         gestureLabel: entry.label,
       });
@@ -95,7 +96,7 @@ const HistoryScreen: React.FC = () => {
   );
 
   const navigateToCamera = useCallback(() => {
-    navigation.navigate('Recognition');
+    navigation.navigate(APP_TAB_ROUTES.Recognition);
   }, [navigation]);
 
   const renderItem = ({ item }: { item: GestureHistoryEntry }) => {
@@ -140,7 +141,7 @@ const HistoryScreen: React.FC = () => {
 
   return (
     <LinearGradient colors={[Colors.backgroundStart, Colors.backgroundEnd]} style={styles.container}>
-      <WorkflowStageHeader route="History" tone="dark" style={styles.stageHeader} />
+      <WorkflowStageHeader route={APP_TAB_ROUTES.History} tone="dark" style={styles.stageHeader} />
       {latestDiscovery ? (
         <View style={styles.highlightWrapper}>
           <View style={styles.highlightCard} accessibilityRole="summary">

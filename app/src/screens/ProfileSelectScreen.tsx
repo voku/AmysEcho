@@ -7,8 +7,12 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 
-type ProfileSelectNavigationProp = StackNavigationProp<RootStackParamList, 'ProfileSelect'>;
+type ProfileSelectNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  typeof ROOT_STACK_ROUTES.ProfileSelect
+>;
 
 export default function ProfileSelectScreen({ navigation }: { navigation: ProfileSelectNavigationProp }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -203,13 +207,10 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             }
             onPress={() => {
               if (profile) {
-                navigation.navigate(
-                  'App',
-                  {
-                    screen: 'Recognition',
-                    params: { profileId: profile.id },
-                  },
-                );
+                navigation.navigate(ROOT_STACK_ROUTES.App, {
+                  screen: APP_TAB_ROUTES.Recognition,
+                  params: { profileId: profile.id },
+                });
               }
             }}
             accessibilityLabel="Zum Erkennungsmodus"
@@ -219,7 +220,7 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             title="Lernen"
             description="Übe Gesten gemeinsam und sammle neue Trainingsbeispiele."
             onPress={() => {
-              navigation.navigate('App', { screen: 'Lernen' });
+              navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Lernen });
             }}
             accessibilityLabel="Zum Lernmodus"
           />
@@ -228,21 +229,25 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
           <ButtonComponent
             title="Elternbereich"
             description="Öffne den Elternbereich für Einstellungen und Unterstützung."
-            onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
+            onPress={() =>
+              navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, { target: ROOT_STACK_ROUTES.Parent })
+            }
             accessibilityLabel="Elternbereich öffnen"
             variant="secondary"
           />
           <ButtonComponent
             title="Admin"
             description="Verwalte Modelle und technische Details."
-            onPress={() => navigation.navigate('ParentalGate', { target: 'Admin' })}
+            onPress={() =>
+              navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, { target: ROOT_STACK_ROUTES.Admin })
+            }
             accessibilityLabel="Adminbereich öffnen"
             variant="secondary"
           />
           <ButtonComponent
             title="Profile verwalten"
             description="Bearbeite oder lege Profile für Kinder an."
-            onPress={() => navigation.navigate('ProfileManager')}
+            onPress={() => navigation.navigate(ROOT_STACK_ROUTES.ProfileManager)}
             accessibilityLabel="Profile verwalten"
             variant="secondary"
           />

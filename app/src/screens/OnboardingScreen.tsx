@@ -15,6 +15,7 @@ import { AmyFirstCommitments } from '../components/AmyFirstCommitments';
 import { AmyLoopTimeline } from '../components/AmyLoopTimeline';
 import { announceAccessibilityMessage } from '../services/accessibilityService';
 import { RootStackParamList } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 
 type StepKey = 'mission' | 'name' | 'accessibility' | 'consent' | 'vocabulary';
 
@@ -67,7 +68,7 @@ const FALLBACK_STEP = STEPS[0]!;
 
 type OnboardingScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
-  'Onboarding'
+  typeof ROOT_STACK_ROUTES.Onboarding
 >;
 
 type OnboardingScreenProps = {
@@ -203,7 +204,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     });
     setActiveVocabularySet(vocabSet);
     update({ largeText, highContrast });
-    navigation.replace('Tutorial');
+    navigation.replace(ROOT_STACK_ROUTES.Tutorial);
   };
 
   const goNext = () => {
@@ -342,7 +343,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           <PrimaryButton
             label="Später einrichten"
             accessibilityLabel="Onboarding überspringen"
-            onPress={() => navigation.replace('App', { screen: 'Recognition' })}
+            onPress={() => navigation.replace(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Recognition })}
             variant="secondary"
             testID="btn-skip"
             style={{ marginTop: SPACING.md }}

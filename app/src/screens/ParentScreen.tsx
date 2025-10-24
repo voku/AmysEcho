@@ -9,6 +9,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
 import { logger } from '../utils/logger';
 import type { RootStackParamList } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 
 const styles = StyleSheet.create({
   container: {
@@ -84,7 +85,10 @@ const styles = StyleSheet.create({
   },
 });
 
-type ParentScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Parent'>;
+type ParentScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  typeof ROOT_STACK_ROUTES.Parent
+>;
 
 export default function ParentScreen({
   navigation,
@@ -171,46 +175,48 @@ export default function ParentScreen({
       </View>
       <ButtonComponent
         title="Profilverwaltung"
-        onPress={() => navigation.navigate('ProfileManager')}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.ProfileManager)}
         accessibilityLabel="Profilverwaltung"
       />
       <ButtonComponent
         title="Zugangsprüfung"
-        onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' })}
+        onPress={() =>
+          navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, { target: ROOT_STACK_ROUTES.Parent })
+        }
         accessibilityLabel="Zugangsprüfung"
       />
       <ButtonComponent
         title="Verwaltung"
-        onPress={() => navigation.navigate('Admin')}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Admin)}
         accessibilityLabel="Verwaltung"
       />
       <ButtonComponent
         title="Analysen"
-        onPress={() => navigation.navigate('Dashboard')}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Dashboard)}
         accessibilityLabel="Analysen ansehen"
       />
       <ButtonComponent
         title="Lernfortschritt"
-        onPress={() => navigation.navigate('CaregiverReport')}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.CaregiverReport)}
         accessibilityLabel="Lernfortschritt ansehen"
       />
       <ButtonComponent
         title="Fortschritt"
-        onPress={() => navigation.navigate('Progress')}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Progress)}
         accessibilityLabel="Fortschritt ansehen"
       />
       <ButtonComponent
         title="Hilfe"
-        onPress={() => navigation.navigate('Help')}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Help)}
         accessibilityLabel="Hilfe erhalten"
       />
       <ButtonComponent
         title="Geringe Sicherheit simulieren"
         onPress={() => {
           navigation.navigate(
-            'App',
+            ROOT_STACK_ROUTES.App,
             {
-              screen: 'Recognition',
+              screen: APP_TAB_ROUTES.Recognition,
               params: { simulateLowConfidence: true },
             },
           );
@@ -220,14 +226,14 @@ export default function ParentScreen({
       <ButtonComponent
         title="Menü"
         onPress={() => {
-          navigation.navigate('Parent');
+          navigation.navigate(ROOT_STACK_ROUTES.Parent);
         }}
         accessibilityLabel="Menü öffnen"
       />
       <ButtonComponent
         title="Erkennen"
         onPress={() => {
-          navigation.navigate('App', { screen: 'Recognition' });
+          navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Recognition });
         }}
         accessibilityLabel="Zum Erkennungsmodus"
       />

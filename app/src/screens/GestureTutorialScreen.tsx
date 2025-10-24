@@ -4,6 +4,7 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import { ROOT_STACK_ROUTES } from '../navigation/types';
 
 export default function GestureTutorialScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -78,7 +79,7 @@ export default function GestureTutorialScreen({ navigation }: any) {
           ]}
           onPress={() => {
             void childHaptic();
-            navigation.replace('ProfileSelect');
+            navigation.replace(ROOT_STACK_ROUTES.ProfileSelect);
           }}
           accessibilityRole="button"
           accessibilityLabel="Tutorial beenden"

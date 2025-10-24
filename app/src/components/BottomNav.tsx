@@ -18,7 +18,12 @@ import { childHaptic } from '../services/feedbackService';
 // Type imports
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import type { RootStackParamList } from '../navigation/types';
+import type {
+  AppTabRouteName,
+  RootStackParamList,
+  RootStackRouteName,
+} from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 
 interface BottomNavProps {
   active: 'recognition' | 'training' | 'parent';
@@ -30,41 +35,43 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   const route = useRoute();
   const { highContrast } = useAccessibility();
   const { theme } = useTheme();
-  const [navHistory, setNavHistory] = useState<Array<{name: string; title: string; canGoBack: boolean}>>([]);
+  const [navHistory, setNavHistory] = useState<
+    Array<{ name: RootStackRouteName | AppTabRouteName; title: string; canGoBack: boolean }>
+  >([]);
 
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateToRecognition = useCallback(() => {
     void childHaptic();
-    navigation.navigate('App', {
-      screen: 'Recognition',
+    navigation.navigate(ROOT_STACK_ROUTES.App, {
+      screen: APP_TAB_ROUTES.Recognition,
       params: { profileId },
     });
   }, [navigation, profileId]);
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigation.navigate('App', { screen: 'Lernen' });
+    navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Lernen });
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {
     void childHaptic();
-    navigation.navigate('ProfileSelect');
+    navigation.navigate(ROOT_STACK_ROUTES.ProfileSelect);
   }, [navigation]);
 
   // Enhanced breadcrumb system - show navigation path
   const getCurrentScreenName = useCallback(() => {
-    const screenNames: Record<string, string> = {
-      App: '🏠 Zuhören',
-      Recognition: '🏠 Zuhören',
-      'Lernen': '🎯 Lernen',
-      'Help': '❓ Hilfe',
-      'Dashboard': '📊 Auswertung',
-      'Progress': '📈 Fortschritt',
-      'Parent': '👨‍👩‍👧 Eltern',
-      'ProfileSelect': '👤 Profile',
-      'ProfileManager': '⚙️ Einstellungen',
+    const screenNames: Partial<Record<RootStackRouteName | AppTabRouteName, string>> = {
+      [ROOT_STACK_ROUTES.App]: '🏠 Zuhören',
+      [APP_TAB_ROUTES.Recognition]: '🏠 Zuhören',
+      [APP_TAB_ROUTES.Lernen]: '🎯 Lernen',
+      [ROOT_STACK_ROUTES.Help]: '❓ Hilfe',
+      [ROOT_STACK_ROUTES.Dashboard]: '📊 Auswertung',
+      [ROOT_STACK_ROUTES.Progress]: '📈 Fortschritt',
+      [ROOT_STACK_ROUTES.Parent]: '👨‍👩‍👧 Eltern',
+      [ROOT_STACK_ROUTES.ProfileSelect]: '👤 Profile',
+      [ROOT_STACK_ROUTES.ProfileManager]: '⚙️ Einstellungen',
     };
-    return screenNames[route.name] || route.name;
+    return screenNames[route.name as RootStackRouteName | AppTabRouteName] || route.name;
   }, [route.name]);
 
   useEffect(() => {
@@ -77,7 +84,7 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
       const lastEntry = newHistory[newHistory.length - 1];
       if (!lastEntry || lastEntry.name !== route.name) {
         newHistory.push({
-          name: route.name,
+          name: route.name as RootStackRouteName | AppTabRouteName,
           title: currentScreen,
           canGoBack
         });

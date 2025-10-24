@@ -6,6 +6,7 @@ import { COLORS } from '../constants/ui';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { RootStackParamList } from '../navigation/types';
+import { ROOT_STACK_ROUTES } from '../navigation/types';
 import type { WorkflowSupportDestination } from '../constants/workflow';
 import { WORKFLOW_SUPPORT_DESTINATIONS } from '../constants/workflow';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -39,12 +40,12 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
   const handleNavigate = useCallback(
     (destination: WorkflowSupportDestination) => {
       const { navigationTarget } = destination;
-      if (navigationTarget.route === 'ParentalGate') {
-        navigation.navigate('ParentalGate', navigationTarget.params);
+      if (navigationTarget.route === ROOT_STACK_ROUTES.ParentalGate) {
+        navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, navigationTarget.params);
         return;
       }
 
-      navigation.navigate('Help');
+      navigation.navigate(ROOT_STACK_ROUTES.Help);
     },
     [navigation],
   );

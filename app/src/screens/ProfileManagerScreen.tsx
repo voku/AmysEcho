@@ -18,6 +18,7 @@ import ProfileAnalytics from '../components/ProfileAnalytics';
 import CollapsibleSettingsSection from '../components/settings/CollapsibleSettingsSection';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 
 export default function ProfileManagerScreen({ navigation, route }: any) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -196,7 +197,10 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       setLocalLargeText(!!profile.largeText);
       setLocalHighContrast(!!profile.highContrast);
     }
-    navigation.navigate('App', { screen: 'Recognition', params: { profileId: id } });
+    navigation.navigate(ROOT_STACK_ROUTES.App, {
+      screen: APP_TAB_ROUTES.Recognition,
+      params: { profileId: id },
+    });
   };
 
   const toggleLargeText = async (enabled: boolean) => {
@@ -467,7 +471,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
             ]}
             onPress={() => {
               void childHaptic();
-              navigation.navigate('Onboarding');
+              navigation.navigate(ROOT_STACK_ROUTES.Onboarding);
             }}
             accessibilityRole="button"
             accessibilityLabel="Neues Profil anlegen"
@@ -702,7 +706,10 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
               onGestureSelect={(gesture) => {
                 // Could navigate to practice this specific gesture
                 setShowGestureHistory(false);
-                navigation.navigate('Recording', { gestureId: gesture.id, gestureLabel: gesture.label });
+                navigation.navigate(ROOT_STACK_ROUTES.Recording, {
+                  gestureId: gesture.id,
+                  gestureLabel: gesture.label,
+                });
               }}
             />
           </View>

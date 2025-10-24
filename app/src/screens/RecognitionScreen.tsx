@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
 import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
 import type { TabNavigationProp } from '../navigation/types';
+import { APP_TAB_ROUTES } from '../navigation/types';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
@@ -155,7 +156,7 @@ const toGestureImageCapture = (
 export default function RecognitionScreen({
   navigation,
 }: {
-  navigation: TabNavigationProp<'Recognition'>;
+  navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 }) {
   const { width: windowWidth } = useWindowDimensions();
   const isCompactSecondaryActions =
@@ -608,12 +609,12 @@ export default function RecognitionScreen({
   const handleLearnPress = useCallback(() => {
     const gestureId = gestureMeaningDisplayProps?.gestureId;
     logger.info('Open learn flow', { gestureId });
-    navigation.navigate('Lernen', gestureId ? { gestureId } : undefined);
+    navigation.navigate(APP_TAB_ROUTES.Lernen, gestureId ? { gestureId } : undefined);
   }, [gestureMeaningDisplayProps, navigation]);
 
   const handleAlternativesPress = useCallback(() => {
     logger.info('Alternativen geöffnet');
-    navigation.navigate('Lernen', undefined);
+    navigation.navigate(APP_TAB_ROUTES.Lernen, undefined);
   }, [navigation]);
 
   return (

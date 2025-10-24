@@ -10,6 +10,7 @@ import BottomNav from '../components/BottomNav';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import { childFriendlyStyles } from '../styles/touchTargets';
+import { ROOT_STACK_ROUTES } from '../navigation/types';
 
 export default function ProgressScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -124,7 +125,7 @@ export default function ProgressScreen({ navigation }: any) {
                   ]}
                   onPress={() => {
                     void childHaptic();
-                    navigation.navigate('ProgressChart', { gestureId: item.id });
+                    navigation.navigate(ROOT_STACK_ROUTES.ProgressChart, { gestureId: item.id });
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={`Details für ${item.label} anzeigen`}

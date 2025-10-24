@@ -4,6 +4,7 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import { ROOT_STACK_ROUTES } from '../navigation/types';
 
 export default function TeachScreen({ navigation }: any) {
   const { largeText, highContrast } = useAccessibility();
@@ -55,7 +56,7 @@ export default function TeachScreen({ navigation }: any) {
           ]}
           onPress={() => {
             void childHaptic();
-            navigation.navigate('Teaching');
+            navigation.navigate(ROOT_STACK_ROUTES.Teaching);
           }}
           testID="btn-add-sign"
           accessibilityRole="button"

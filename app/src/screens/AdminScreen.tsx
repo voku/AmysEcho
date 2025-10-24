@@ -25,6 +25,7 @@ import { Symbol as DBSymbol } from '../../db/models';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { fetchMlpModel } from '../services/dgsModelClient';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 
 import { usePerformance } from '../context/PerformanceContext';
 import ScreenBackground from '../components/ScreenBackground';
@@ -407,13 +408,13 @@ export default function AdminScreen({ navigation }: any) {
     {
       title: 'Training',
       onPress: () => {
-        navigation.navigate('App', { screen: 'Lernen' });
+        navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Lernen });
       },
       accessibilityLabel: 'Trainingsmodus öffnen',
     },
     {
       title: 'Dashboard',
-      onPress: () => navigation.navigate('Dashboard'),
+      onPress: () => navigation.navigate(ROOT_STACK_ROUTES.Dashboard),
       accessibilityLabel: 'Analytics-Dashboard öffnen',
     },
     {

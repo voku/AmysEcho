@@ -9,10 +9,11 @@ import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 
 type HeroScreenProps = {
-  navigation: StackNavigationProp<RootStackParamList, 'Hero'>;
+  navigation: StackNavigationProp<RootStackParamList, typeof ROOT_STACK_ROUTES.Hero>;
 };
 
 const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
@@ -39,7 +40,7 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
         <View style={styles.ctaRow}>
           <PrimaryButton
             label="Zur Gestenkamera"
-            onPress={() => navigation.replace('App', { screen: 'Recognition' })}
+            onPress={() => navigation.replace(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Recognition })}
             accessibilityLabel="Zur Gestenkamera wechseln"
             testID="hero-start"
             style={styles.ctaButton}
@@ -47,7 +48,7 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
           <PrimaryButton
             label="Lernen entdecken"
             onPress={() => {
-              navigation.navigate('App', { screen: 'Lernen' });
+              navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Lernen });
             }}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"
