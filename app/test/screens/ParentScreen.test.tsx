@@ -49,10 +49,11 @@ describe('ParentScreen interactions', () => {
 
   it('navigates to admin management area', async () => {
     const navigate = jest.fn();
+    const popTo = jest.fn();
     let component!: renderer.ReactTestRenderer;
 
     await act(async () => {
-      component = renderWithServices({ navigate, goBack: jest.fn() });
+      component = renderWithServices({ navigate, goBack: jest.fn(), popTo });
       await Promise.resolve();
     });
 
@@ -65,10 +66,11 @@ describe('ParentScreen interactions', () => {
 
   it('opens caregiver analytics', async () => {
     const navigate = jest.fn();
+    const popTo = jest.fn();
     let component!: renderer.ReactTestRenderer;
 
     await act(async () => {
-      component = renderWithServices({ navigate, goBack: jest.fn() });
+      component = renderWithServices({ navigate, goBack: jest.fn(), popTo });
       await Promise.resolve();
     });
 
@@ -81,10 +83,11 @@ describe('ParentScreen interactions', () => {
 
   it('goes back when Zurück is pressed', async () => {
     const goBack = jest.fn();
+    const popTo = jest.fn();
     let component!: renderer.ReactTestRenderer;
 
     await act(async () => {
-      component = renderWithServices({ navigate: jest.fn(), goBack });
+      component = renderWithServices({ navigate: jest.fn(), goBack, popTo });
       await Promise.resolve();
     });
 
@@ -98,10 +101,11 @@ describe('ParentScreen interactions', () => {
   it('personalizes caregiver guidance with the active profile name', async () => {
     loadProfileMock.mockResolvedValueOnce({ id: 'p1', name: 'Mila' });
     const navigate = jest.fn();
+    const popTo = jest.fn();
     let component!: renderer.ReactTestRenderer;
 
     await act(async () => {
-      component = renderWithServices({ navigate, goBack: jest.fn() });
+      component = renderWithServices({ navigate, goBack: jest.fn(), popTo });
       await Promise.resolve();
     });
 
@@ -112,5 +116,21 @@ describe('ParentScreen interactions', () => {
     );
 
     expect(guidanceCopyNodes).not.toHaveLength(0);
+  });
+
+  it('returns to the existing parent menu using popTo', async () => {
+    const popTo = jest.fn();
+    let component!: renderer.ReactTestRenderer;
+
+    await act(async () => {
+      component = renderWithServices({ navigate: jest.fn(), goBack: jest.fn(), popTo });
+      await Promise.resolve();
+    });
+
+    act(() => {
+      component.root.findByProps({ accessibilityLabel: 'Menü öffnen' }).props.onPress();
+    });
+
+    expect(popTo).toHaveBeenCalledWith('Parent');
   });
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
@@ -7,6 +8,7 @@ import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
 import { logger } from '../utils/logger';
+import type { RootStackParamList } from '../navigation/types';
 
 const styles = StyleSheet.create({
   container: {
@@ -82,7 +84,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function ParentScreen({ navigation }: any) {
+type ParentScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Parent'>;
+
+export default function ParentScreen({
+  navigation,
+}: {
+  navigation: ParentScreenNavigationProp;
+}) {
   const { largeText, highContrast } = useAccessibility();
   const [profile, setProfile] = useState<Profile | null>(null);
   useServices();
@@ -208,7 +216,7 @@ export default function ParentScreen({ navigation }: any) {
       />
       <ButtonComponent
         title="Menü"
-        onPress={() => navigation.navigate('Parent')}
+        onPress={() => navigation.popTo('Parent')}
         accessibilityLabel="Menü öffnen"
       />
       <ButtonComponent
