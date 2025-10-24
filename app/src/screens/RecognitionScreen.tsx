@@ -185,8 +185,8 @@ export default function RecognitionScreen({
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const actionsFadeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const hasActiveGestureRef = useRef(false);
   const [actionsPointerEvents, setActionsPointerEvents] = useState<'none' | 'auto'>('none');
+  const actionsAccessibilityHidden = actionsPointerEvents === 'none';
   const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
   const labelHistoryRef = useRef<string[]>([]);
   const lastSuccessAtRef = useRef<number>(0);
@@ -483,10 +483,6 @@ export default function RecognitionScreen({
   const hasActiveGesture = Boolean(gestureMeaningDisplayProps);
 
   useEffect(() => {
-    hasActiveGestureRef.current = hasActiveGesture;
-  }, [hasActiveGesture]);
-
-  useEffect(() => {
     if (fadeAnimationRef.current) {
       fadeAnimationRef.current.stop();
       fadeAnimationRef.current = null;
@@ -516,10 +512,7 @@ export default function RecognitionScreen({
         useNativeDriver: true,
       });
       fadeAnimationRef.current = fadeOutAnimation;
-      fadeOutAnimation.start(({ finished }) => {
-        if (finished && !hasActiveGestureRef.current) {
-          setActionsPointerEvents('none');
-        }
+      fadeOutAnimation.start(() => {
         fadeAnimationRef.current = null;
       });
     }
@@ -693,6 +686,10 @@ export default function RecognitionScreen({
               <View style={styles.actionsSlot}>
                 <Animated.View
                   pointerEvents={actionsPointerEvents}
+                  accessibilityElementsHidden={actionsAccessibilityHidden}
+                  importantForAccessibility={
+                    actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
+                  }
                   style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}
                 >
                   <View style={styles.primaryActionWrapper}>
@@ -855,7 +852,6 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     gap: spacing.sm,
-    marginTop: spacing.md,
     width: '100%',
   },
   primaryActionWrapper: {
