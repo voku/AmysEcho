@@ -20,7 +20,7 @@ export type RootStackParamList = {
   Teach: undefined;
   Teaching: { gestureId?: string } | undefined;
   Parent: undefined;
-  ProfileManager: undefined;
+  ProfileManager: { profileId?: string } | undefined;
   ParentalGate: { target: keyof RootStackParamList };
   Admin: undefined;
   Dashboard: undefined;

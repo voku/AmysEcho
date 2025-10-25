@@ -39,18 +39,17 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
 
   const handleNavigate = useCallback(
     (destination: WorkflowSupportDestination) => {
-      switch (destination.navigationTarget.route) {
+      const { route, params } = destination.navigationTarget;
+
+      switch (route) {
         case ROOT_STACK_ROUTES.ParentalGate:
-          navigation.navigate(
-            ROOT_STACK_ROUTES.ParentalGate,
-            destination.navigationTarget.params,
-          );
+          navigation.navigate(route, params);
           break;
         case ROOT_STACK_ROUTES.Help:
-          navigation.navigate(ROOT_STACK_ROUTES.Help);
+          navigation.navigate(route);
           break;
         default: {
-          const _exhaustiveCheck: never = destination.navigationTarget;
+          const _exhaustiveCheck: never = route;
           if (__DEV__) {
             console.warn('Unhandled support route:', _exhaustiveCheck);
           }

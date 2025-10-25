@@ -1,6 +1,7 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../../src/navigation/types';
 
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
@@ -33,22 +34,27 @@ const baseState = {
   type: 'stack' as const,
   stale: false as const,
   key: 'stack-parent',
-  routeNames: ['Hero', 'App', 'Parent'] as const,
+  routeNames: [
+    ROOT_STACK_ROUTES.Hero,
+    ROOT_STACK_ROUTES.App,
+    ROOT_STACK_ROUTES.Parent,
+  ] as const,
 };
 
 const createNavigation = (
   overrides: Partial<jest.Mocked<NavigationSubset>> = {},
   index: number = 2,
-  routes: Array<{ key: string; name: keyof RootStackParamList }> = [
-    { key: 'Hero-1', name: 'Hero' },
-    { key: 'App-1', name: 'App' },
-    { key: 'Parent-1', name: 'Parent' },
+  routes: Array<{ key: string; name: keyof RootStackParamList; params?: any }> = [
+    { key: 'Hero-1', name: ROOT_STACK_ROUTES.Hero },
+    { key: 'App-1', name: ROOT_STACK_ROUTES.App },
+    { key: 'Parent-1', name: ROOT_STACK_ROUTES.Parent },
   ],
 ): jest.Mocked<NavigationSubset> =>
   ({
     navigate: jest.fn(),
     goBack: jest.fn(),
     dispatch: jest.fn(),
+    reset: jest.fn(),
     getState: jest.fn(() => ({ ...baseState, index, routes })),
     ...overrides,
   }) as unknown as jest.Mocked<NavigationSubset>;
@@ -100,7 +106,7 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Verwaltung' }).props['onPress']?.();
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Admin', undefined, { pop: true });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.Admin);
   });
 
   it('opens caregiver analytics', async () => {
@@ -116,11 +122,7 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Analysen ansehen' }).props['onPress']?.();
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith(
-      'Dashboard',
-      undefined,
-      { pop: true },
-    );
+    expect(navigation.navigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.Dashboard);
   });
 
   it('goes back when Zurück is pressed', async () => {
@@ -173,7 +175,7 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
-    expect(navigation.navigate).toHaveBeenCalledWith('Parent', undefined, { pop: true });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.Parent);
   });
 
   it('pops back to the App recognition tab when Erkennen is pressed', async () => {
@@ -198,11 +200,16 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
-    expect(navigation.navigate).toHaveBeenCalledWith(
-      'App',
-      { screen: 'Recognition' },
-      { pop: true },
-    );
+    expect(navigation.reset).toHaveBeenCalledWith({
+      index: 1,
+      routes: [
+        { name: ROOT_STACK_ROUTES.Hero, params: undefined },
+        {
+          name: ROOT_STACK_ROUTES.App,
+          params: { screen: APP_TAB_ROUTES.Recognition },
+        },
+      ],
+    });
   });
 
   it('pops back to App recognition with low-confidence simulation when requested', async () => {
@@ -229,13 +236,18 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
-    expect(navigation.navigate).toHaveBeenCalledWith(
-      'App',
-      {
-        screen: 'Recognition',
-        params: { simulateLowConfidence: true },
-      },
-      { pop: true },
-    );
+    expect(navigation.reset).toHaveBeenCalledWith({
+      index: 1,
+      routes: [
+        { name: ROOT_STACK_ROUTES.Hero, params: undefined },
+        {
+          name: ROOT_STACK_ROUTES.App,
+          params: {
+            screen: APP_TAB_ROUTES.Recognition,
+            params: { simulateLowConfidence: true },
+          },
+        },
+      ],
+    });
   });
 });

@@ -213,7 +213,12 @@ export default function ParentScreen({
       <ButtonComponent
         title="Geringe Sicherheit simulieren"
         onPress={() => {
-          navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition, { simulateLowConfidence: true });
+          navigateToAppTab(
+            navigation,
+            APP_TAB_ROUTES.Recognition,
+            { simulateLowConfidence: true },
+            { replaceCurrent: true },
+          );
         }}
         accessibilityLabel="Geringe Sicherheit simulieren"
       />
@@ -227,7 +232,12 @@ export default function ParentScreen({
       <ButtonComponent
         title="Erkennen"
         onPress={() => {
-          navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition);
+          navigateToAppTab(
+            navigation,
+            APP_TAB_ROUTES.Recognition,
+            undefined,
+            { replaceCurrent: true },
+          );
         }}
         accessibilityLabel="Zum Erkennungsmodus"
       />

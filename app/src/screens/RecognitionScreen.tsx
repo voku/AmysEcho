@@ -176,14 +176,13 @@ export default function RecognitionScreen({
     typeof Dimensions?.get === 'function'
       ? Dimensions.get('window') ?? DEFAULT_WINDOW_DIMENSIONS
       : DEFAULT_WINDOW_DIMENSIONS;
-  const windowDimensions =
+  const resolveWindowDimensions =
     typeof useWindowDimensions === 'function'
-      ? useWindowDimensions()
-      : fallbackDimensions;
-  const windowWidth =
-    typeof windowDimensions?.width === 'number'
-      ? windowDimensions.width
-      : fallbackDimensions.width;
+      ? useWindowDimensions
+      : () => fallbackDimensions;
+  const windowDimensions = resolveWindowDimensions();
+  const { width: windowWidth = fallbackDimensions.width } =
+    windowDimensions ?? fallbackDimensions;
   const isCompactSecondaryActions =
     windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const { showToast } = useMessage();
@@ -758,9 +757,10 @@ export default function RecognitionScreen({
                       textColor={CAMERA_THEME.actionButtons.learn.text}
                       style={[
                         styles.secondaryActionButton,
-                        ...(isCompactSecondaryActions
-                          ? [styles.secondaryActionButtonColumn, styles.secondaryActionCompact]
-                          : [styles.secondaryActionButtonRow]),
+                        isCompactSecondaryActions
+                          ? styles.secondaryActionButtonColumn
+                          : styles.secondaryActionButtonRow,
+                        isCompactSecondaryActions && styles.secondaryActionCompact,
                       ]}
                     />
                     <ActionButton
@@ -772,9 +772,10 @@ export default function RecognitionScreen({
                       textColor={CAMERA_THEME.actionButtons.alternatives.text}
                       style={[
                         styles.secondaryActionButton,
-                        ...(isCompactSecondaryActions
-                          ? [styles.secondaryActionButtonColumn, styles.secondaryActionCompact]
-                          : [styles.secondaryActionButtonRow]),
+                        isCompactSecondaryActions
+                          ? styles.secondaryActionButtonColumn
+                          : styles.secondaryActionButtonRow,
+                        isCompactSecondaryActions && styles.secondaryActionCompact,
                       ]}
                     />
                   </View>

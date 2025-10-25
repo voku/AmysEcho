@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, FlatList, StyleSheet, Alert, Switch } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, type RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../storage';
 import { Profile as DBProfile } from '../../db/models';
@@ -27,13 +27,17 @@ import {
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type Navigation = StackNavigationProp<RootStackParamList>;
+type ProfileManagerRoute = RouteProp<
+  RootStackParamList,
+  typeof ROOT_STACK_ROUTES.ProfileManager
+>;
 
 export default function ProfileManagerScreen({
   navigation,
   route,
 }: {
   navigation: Navigation;
-  route: any;
+  route: ProfileManagerRoute;
 }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isTrustedDevice, setIsTrustedDevice] = useState(false);
