@@ -8,6 +8,7 @@ import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
 import { logger } from '../utils/logger';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import type { RootStackParamList } from '../navigation/types';
 
 const styles = StyleSheet.create({
@@ -84,7 +85,10 @@ const styles = StyleSheet.create({
   },
 });
 
-type ParentScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Parent'>;
+type ParentScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  typeof ROOT_STACK_ROUTES.Parent
+>;
 
 export default function ParentScreen({
   navigation,
@@ -171,46 +175,56 @@ export default function ParentScreen({
       </View>
       <ButtonComponent
         title="Profilverwaltung"
-        onPress={() => navigation.navigate('ProfileManager', undefined, { pop: true })}
+        onPress={() =>
+          navigation.navigate(ROOT_STACK_ROUTES.ProfileManager, undefined, { pop: true })
+        }
         accessibilityLabel="Profilverwaltung"
       />
       <ButtonComponent
         title="Zugangsprüfung"
-        onPress={() => navigation.navigate('ParentalGate', { target: 'Parent' }, { pop: true })}
+        onPress={() =>
+          navigation.navigate(
+            ROOT_STACK_ROUTES.ParentalGate,
+            { target: ROOT_STACK_ROUTES.Parent },
+            { pop: true },
+          )
+        }
         accessibilityLabel="Zugangsprüfung"
       />
       <ButtonComponent
         title="Verwaltung"
-        onPress={() => navigation.navigate('Admin', undefined, { pop: true })}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Admin, undefined, { pop: true })}
         accessibilityLabel="Verwaltung"
       />
       <ButtonComponent
         title="Analysen"
-        onPress={() => navigation.navigate('Dashboard', undefined, { pop: true })}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Dashboard, undefined, { pop: true })}
         accessibilityLabel="Analysen ansehen"
       />
       <ButtonComponent
         title="Lernfortschritt"
-        onPress={() => navigation.navigate('CaregiverReport', undefined, { pop: true })}
+        onPress={() =>
+          navigation.navigate(ROOT_STACK_ROUTES.CaregiverReport, undefined, { pop: true })
+        }
         accessibilityLabel="Lernfortschritt ansehen"
       />
       <ButtonComponent
         title="Fortschritt"
-        onPress={() => navigation.navigate('Progress', undefined, { pop: true })}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Progress, undefined, { pop: true })}
         accessibilityLabel="Fortschritt ansehen"
       />
       <ButtonComponent
         title="Hilfe"
-        onPress={() => navigation.navigate('Help', undefined, { pop: true })}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Help, undefined, { pop: true })}
         accessibilityLabel="Hilfe erhalten"
       />
       <ButtonComponent
         title="Geringe Sicherheit simulieren"
         onPress={() => {
           navigation.navigate(
-            'App',
+            ROOT_STACK_ROUTES.App,
             {
-              screen: 'Recognition',
+              screen: APP_TAB_ROUTES.Recognition,
               params: { simulateLowConfidence: true },
             },
             { pop: true },
@@ -221,14 +235,18 @@ export default function ParentScreen({
       <ButtonComponent
         title="Menü"
         onPress={() => {
-          navigation.navigate('Parent', undefined, { pop: true });
+          navigation.navigate(ROOT_STACK_ROUTES.Parent, undefined, { pop: true });
         }}
         accessibilityLabel="Menü öffnen"
       />
       <ButtonComponent
         title="Erkennen"
         onPress={() => {
-          navigation.navigate('App', { screen: 'Recognition' }, { pop: true });
+          navigation.navigate(
+            ROOT_STACK_ROUTES.App,
+            { screen: APP_TAB_ROUTES.Recognition },
+            { pop: true },
+          );
         }}
         accessibilityLabel="Zum Erkennungsmodus"
       />

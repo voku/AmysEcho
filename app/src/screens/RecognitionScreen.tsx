@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import ActionButton from '../components/ActionButton';
@@ -18,6 +26,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
 import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
 import type { TabNavigationProp } from '../navigation/types';
+import { APP_TAB_ROUTES } from '../navigation/types';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
@@ -110,8 +119,10 @@ const STATUS_COPY: Record<
 
 // Reserve space for the primary action row plus the secondary row, including the gap between them.
 const ACTION_BUTTON_MIN_HEIGHT = 56;
+const COMPACT_SECONDARY_ACTIONS_BREAKPOINT = 360; // px width threshold for stacking secondary actions
 const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
-
+const COMPACT_ACTIONS_SLOT_MIN_HEIGHT =
+  ACTION_BUTTON_MIN_HEIGHT * 3 + spacing.sm * 2;
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
   timestamp: number,
@@ -152,8 +163,23 @@ const toGestureImageCapture = (
 export default function RecognitionScreen({
   navigation,
 }: {
-  navigation: TabNavigationProp<'Recognition'>;
+  navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 }) {
+  let windowWidth: number;
+  try {
+    // `useWindowDimensions` is preferred as it's a hook that updates on changes.
+    const dimensions = useWindowDimensions();
+    windowWidth = dimensions.width;
+  } catch (e) {
+    // Fallback for environments where hooks are not available (e.g., some tests).
+    const fallbackWindow = Dimensions.get('window');
+    windowWidth =
+      typeof fallbackWindow?.width === 'number'
+        ? fallbackWindow.width
+        : COMPACT_SECONDARY_ACTIONS_BREAKPOINT + 1;
+  }
+
+  const isCompactSecondaryActions = windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
@@ -602,12 +628,12 @@ export default function RecognitionScreen({
   const handleLearnPress = useCallback(() => {
     const gestureId = gestureMeaningDisplayProps?.gestureId;
     logger.info('Open learn flow', { gestureId });
-    navigation.navigate('Lernen', gestureId ? { gestureId } : undefined);
+    navigation.navigate(APP_TAB_ROUTES.Lernen, gestureId ? { gestureId } : undefined);
   }, [gestureMeaningDisplayProps, navigation]);
 
   const handleAlternativesPress = useCallback(() => {
     logger.info('Alternativen geöffnet');
-    navigation.navigate('Lernen', undefined);
+    navigation.navigate(APP_TAB_ROUTES.Lernen);
   }, [navigation]);
 
   return (
@@ -683,7 +709,12 @@ export default function RecognitionScreen({
                 </View>
               )}
 
-              <View style={styles.actionsSlot}>
+              <View
+                style={[
+                  styles.actionsSlot,
+                  isCompactSecondaryActions && styles.actionsSlotCompact,
+                ]}
+              >
                 <Animated.View
                   testID="recognition-actions"
                   pointerEvents={actionsPointerEvents}
@@ -704,7 +735,14 @@ export default function RecognitionScreen({
                       style={styles.primaryActionButton}
                     />
                   </View>
-                  <View style={styles.secondaryActionsRow}>
+                  <View
+                    style={[
+                      styles.secondaryActionsBase,
+                      isCompactSecondaryActions
+                        ? styles.secondaryActionsColumn
+                        : styles.secondaryActionsRow,
+                    ]}
+                  >
                     <ActionButton
                       label="Lernen"
                       accessibilityLabel="Lernmodus öffnen"
@@ -712,7 +750,13 @@ export default function RecognitionScreen({
                       backgroundColor={CAMERA_THEME.actionButtons.learn.background}
                       pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
                       textColor={CAMERA_THEME.actionButtons.learn.text}
-                      style={styles.secondaryActionButton}
+                      style={[
+                        styles.secondaryActionButton,
+                        isCompactSecondaryActions
+                          ? styles.secondaryActionButtonColumn
+                          : styles.secondaryActionButtonRow,
+                        isCompactSecondaryActions && styles.secondaryActionCompact,
+                      ]}
                     />
                     <ActionButton
                       label="Alternativen"
@@ -721,7 +765,13 @@ export default function RecognitionScreen({
                       backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
                       pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
                       textColor={CAMERA_THEME.actionButtons.alternatives.text}
-                      style={styles.secondaryActionButton}
+                      style={[
+                        styles.secondaryActionButton,
+                        isCompactSecondaryActions
+                          ? styles.secondaryActionButtonColumn
+                          : styles.secondaryActionButtonRow,
+                        isCompactSecondaryActions && styles.secondaryActionCompact,
+                      ]}
                     />
                   </View>
                 </Animated.View>
@@ -817,6 +867,9 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'flex-end',
   },
+  actionsSlotCompact: {
+    minHeight: COMPACT_ACTIONS_SLOT_MIN_HEIGHT,
+  },
   predictionCard: {
     backgroundColor: CAMERA_THEME.predictionCardBackground,
     borderRadius: 24,
@@ -861,13 +914,25 @@ const styles = StyleSheet.create({
   primaryActionButton: {
     width: '100%',
   },
+  secondaryActionsBase: {
+    width: '100%',
+    gap: spacing.sm,
+  },
   secondaryActionsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: spacing.sm,
+  },
+  secondaryActionsColumn: {
+    flexDirection: 'column',
+  },
+  secondaryActionButton: {},
+  secondaryActionButtonRow: {
+    flex: 1,
+  },
+  secondaryActionButtonColumn: {
     width: '100%',
   },
-  secondaryActionButton: {
-    flex: 1,
+  secondaryActionCompact: {
+    paddingHorizontal: spacing.xl,
   },
 });

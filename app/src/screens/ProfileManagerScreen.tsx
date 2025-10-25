@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, FlatList, StyleSheet, Alert, Switch } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, type RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../storage';
 import { Profile as DBProfile } from '../../db/models';
@@ -18,8 +18,22 @@ import ProfileAnalytics from '../components/ProfileAnalytics';
 import CollapsibleSettingsSection from '../components/settings/CollapsibleSettingsSection';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, type RootStackParamList } from '../navigation/types';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
-export default function ProfileManagerScreen({ navigation, route }: any) {
+type Navigation = StackNavigationProp<RootStackParamList>;
+type ProfileManagerRoute = RouteProp<
+  RootStackParamList,
+  typeof ROOT_STACK_ROUTES.ProfileManager
+>;
+
+export default function ProfileManagerScreen({
+  navigation,
+  route,
+}: {
+  navigation: Navigation;
+  route: ProfileManagerRoute;
+}) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isTrustedDevice, setIsTrustedDevice] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
@@ -197,8 +211,11 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       setLocalHighContrast(!!profile.highContrast);
     }
     navigation.navigate(
-      'App',
-      { screen: 'Recognition', params: { profileId: id } },
+      ROOT_STACK_ROUTES.App,
+      {
+        screen: APP_TAB_ROUTES.Recognition,
+        params: { profileId: id },
+      },
       { pop: true },
     );
   };
@@ -471,7 +488,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
             ]}
             onPress={() => {
               void childHaptic();
-              navigation.navigate('Onboarding', undefined, { pop: true });
+              navigation.navigate(ROOT_STACK_ROUTES.Onboarding, undefined, { pop: true });
             }}
             accessibilityRole="button"
             accessibilityLabel="Neues Profil anlegen"
@@ -706,7 +723,10 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
               onGestureSelect={(gesture) => {
                 // Could navigate to practice this specific gesture
                 setShowGestureHistory(false);
-                navigation.navigate('Recording', { gestureId: gesture.id, gestureLabel: gesture.label });
+                navigation.navigate(ROOT_STACK_ROUTES.Recording, {
+                  gestureId: gesture.id,
+                  gestureLabel: gesture.label,
+                });
               }}
             />
           </View>

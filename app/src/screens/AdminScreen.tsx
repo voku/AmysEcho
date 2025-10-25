@@ -25,13 +25,17 @@ import { Symbol as DBSymbol } from '../../db/models';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { logger } from '../utils/logger';
 import { fetchMlpModel } from '../services/dgsModelClient';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, type RootStackParamList } from '../navigation/types';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
 import { usePerformance } from '../context/PerformanceContext';
 import ScreenBackground from '../components/ScreenBackground';
 
 const SYMBOL_EXPORT_PATH = `${Paths.document.uri || ''}symbols-export.json`;
 
-export default function AdminScreen({ navigation }: any) {
+type Navigation = StackNavigationProp<RootStackParamList>;
+
+export default function AdminScreen({ navigation }: { navigation: Navigation }) {
   const { audioService, backupService, gdprService } = useServices();
   const { isLowPerformanceMode, toggleLowPerformanceMode } = usePerformance();
   const [symbols, setSymbols] = useState<DBSymbol[]>([]);
@@ -407,13 +411,18 @@ export default function AdminScreen({ navigation }: any) {
     {
       title: 'Training',
       onPress: () => {
-        navigation.navigate('App', { screen: 'Lernen' }, { pop: true });
+        navigation.navigate(
+          ROOT_STACK_ROUTES.App,
+          { screen: APP_TAB_ROUTES.Lernen },
+          { pop: true },
+        );
       },
       accessibilityLabel: 'Trainingsmodus öffnen',
     },
     {
       title: 'Dashboard',
-      onPress: () => navigation.navigate('Dashboard', undefined, { pop: true }),
+      onPress: () =>
+        navigation.navigate(ROOT_STACK_ROUTES.Dashboard, undefined, { pop: true }),
       accessibilityLabel: 'Analytics-Dashboard öffnen',
     },
     {

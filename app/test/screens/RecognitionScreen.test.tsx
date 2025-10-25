@@ -5,6 +5,12 @@ jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
   return {
     ...actual,
+    useWindowDimensions: () => ({
+      width: 1024,
+      height: 768,
+      scale: 2,
+      fontScale: 2,
+    }),
     AccessibilityInfo: {
       isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
       addEventListener: jest.fn(() => ({ remove: jest.fn() })),

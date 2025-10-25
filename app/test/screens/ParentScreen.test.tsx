@@ -1,6 +1,7 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../../src/navigation/types';
 
 jest.mock('../../src/components/AccessibilityContext', () => ({
   useAccessibility: () => ({ largeText: false, highContrast: false }),
@@ -33,22 +34,27 @@ const baseState = {
   type: 'stack' as const,
   stale: false as const,
   key: 'stack-parent',
-  routeNames: ['Hero', 'App', 'Parent'] as const,
+  routeNames: [
+    ROOT_STACK_ROUTES.Hero,
+    ROOT_STACK_ROUTES.App,
+    ROOT_STACK_ROUTES.Parent,
+  ] as const,
 };
 
 const createNavigation = (
   overrides: Partial<jest.Mocked<NavigationSubset>> = {},
   index: number = 2,
-  routes: Array<{ key: string; name: keyof RootStackParamList }> = [
-    { key: 'Hero-1', name: 'Hero' },
-    { key: 'App-1', name: 'App' },
-    { key: 'Parent-1', name: 'Parent' },
+  routes: Array<{ key: string; name: keyof RootStackParamList; params?: any }> = [
+    { key: 'Hero-1', name: ROOT_STACK_ROUTES.Hero },
+    { key: 'App-1', name: ROOT_STACK_ROUTES.App },
+    { key: 'Parent-1', name: ROOT_STACK_ROUTES.Parent },
   ],
 ): jest.Mocked<NavigationSubset> =>
   ({
     navigate: jest.fn(),
     goBack: jest.fn(),
     dispatch: jest.fn(),
+    reset: jest.fn(),
     getState: jest.fn(() => ({ ...baseState, index, routes })),
     ...overrides,
   }) as unknown as jest.Mocked<NavigationSubset>;
@@ -100,7 +106,11 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Verwaltung' }).props['onPress']?.();
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Admin', undefined, { pop: true });
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      ROOT_STACK_ROUTES.Admin,
+      undefined,
+      { pop: true },
+    );
   });
 
   it('opens caregiver analytics', async () => {
@@ -117,7 +127,7 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.navigate).toHaveBeenCalledWith(
-      'Dashboard',
+      ROOT_STACK_ROUTES.Dashboard,
       undefined,
       { pop: true },
     );
@@ -173,7 +183,11 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
-    expect(navigation.navigate).toHaveBeenCalledWith('Parent', undefined, { pop: true });
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      ROOT_STACK_ROUTES.Parent,
+      undefined,
+      { pop: true },
+    );
   });
 
   it('pops back to the App recognition tab when Erkennen is pressed', async () => {
@@ -199,8 +213,8 @@ describe('ParentScreen interactions', () => {
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
     expect(navigation.navigate).toHaveBeenCalledWith(
-      'App',
-      { screen: 'Recognition' },
+      ROOT_STACK_ROUTES.App,
+      { screen: APP_TAB_ROUTES.Recognition },
       { pop: true },
     );
   });
@@ -230,9 +244,9 @@ describe('ParentScreen interactions', () => {
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
     expect(navigation.navigate).toHaveBeenCalledWith(
-      'App',
+      ROOT_STACK_ROUTES.App,
       {
-        screen: 'Recognition',
+        screen: APP_TAB_ROUTES.Recognition,
         params: { simulateLowConfidence: true },
       },
       { pop: true },

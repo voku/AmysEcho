@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import { ROOT_STACK_ROUTES, type RootStackParamList } from '../navigation/types';
 
-export default function GestureTutorialScreen({ navigation }: any) {
+type Navigation = StackNavigationProp<RootStackParamList>;
+
+export default function GestureTutorialScreen({ navigation }: { navigation: Navigation }) {
   const { largeText, highContrast } = useAccessibility();
 
   const styles = StyleSheet.create({
@@ -78,7 +82,7 @@ export default function GestureTutorialScreen({ navigation }: any) {
           ]}
           onPress={() => {
             void childHaptic();
-            navigation.replace('ProfileSelect');
+            navigation.replace(ROOT_STACK_ROUTES.ProfileSelect);
           }}
           accessibilityRole="button"
           accessibilityLabel="Tutorial beenden"

@@ -8,8 +8,12 @@ import BottomNav from '../components/BottomNav';
 import { loadProfile, Profile } from '../storage';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import { ROOT_STACK_ROUTES, type RootStackParamList } from '../navigation/types';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
-export default function CaregiverReportScreen({ navigation }: any) {
+type Navigation = StackNavigationProp<RootStackParamList>;
+
+export default function CaregiverReportScreen({ navigation }: { navigation: Navigation }) {
   const { largeText, highContrast } = useAccessibility();
   const [profile, setProfile] = useState<Profile | null>(null);
 
@@ -93,7 +97,7 @@ export default function CaregiverReportScreen({ navigation }: any) {
         ]}
                 onPress={() => {
                   void childHaptic();
-                  navigation.navigate('ProgressChart', { gestureId: item.id });
+                  navigation.navigate(ROOT_STACK_ROUTES.ProgressChart, { gestureId: item.id });
                 }}
                 accessibilityRole="button"
                 accessibilityLabel={`Details für ${item.label} anzeigen`}

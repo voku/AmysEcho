@@ -23,7 +23,7 @@ jest.mock('../../src/storage', () => ({
 import ProfileSelectScreen from '../../src/screens/ProfileSelectScreen';
 import { loadProfile } from '../../src/storage';
 import { childHaptic } from '../../src/services/feedbackService';
-import type { RootStackParamList } from '../../src/navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, type RootStackParamList } from '../../src/navigation/types';
 import type { Profile } from '../../src/storage';
 
 type NavigationSubset = StackNavigationProp<RootStackParamList, 'ProfileSelect'>;
@@ -69,9 +69,9 @@ describe('ProfileSelectScreen', () => {
       expect(childHapticMock).toHaveBeenCalled();
       expect(navigation.dispatch).not.toHaveBeenCalled();
       expect(navigation.navigate).toHaveBeenCalledWith(
-        'App',
+        ROOT_STACK_ROUTES.App,
         {
-          screen: 'Recognition',
+          screen: APP_TAB_ROUTES.Recognition,
           params: { profileId: 'amy' },
         },
         { pop: true },
@@ -90,8 +90,10 @@ describe('ProfileSelectScreen', () => {
       expect(childHapticMock).toHaveBeenCalled();
       expect(navigation.dispatch).not.toHaveBeenCalled();
       expect(navigation.navigate).toHaveBeenCalledWith(
-        'App',
-        { screen: 'Lernen' },
+        ROOT_STACK_ROUTES.App,
+        {
+          screen: APP_TAB_ROUTES.Lernen,
+        },
         { pop: true },
       );
     });

@@ -35,6 +35,7 @@ jest.mock('../../src/services/accessibilityService', () => ({
 import { announceAccessibilityMessage } from '../../src/services/accessibilityService';
 
 import OnboardingScreen from '../../src/screens/OnboardingScreen';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../../src/navigation/types';
 
 describe('OnboardingScreen', () => {
   beforeEach(() => {
@@ -50,7 +51,9 @@ describe('OnboardingScreen', () => {
     act(() => {
       component.root.findByProps({ testID: 'btn-skip' }).props.onPress();
     });
-    expect(replace).toHaveBeenCalledWith('App', { screen: 'Recognition' });
+    expect(replace).toHaveBeenCalledWith(ROOT_STACK_ROUTES.App, {
+      screen: APP_TAB_ROUTES.Recognition,
+    });
   });
 
   it('completes the wizard and creates a profile with chosen settings', async () => {

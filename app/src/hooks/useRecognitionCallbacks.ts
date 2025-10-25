@@ -30,6 +30,7 @@ import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { TabNavigationProp } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import {
   isCoordinatedGestureString,
   parseCoordinatedGestureString,
@@ -42,7 +43,7 @@ import { logInteractionEvent } from '../services/analytics';
 const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
 const RECOVERING_CAMERA_TEXT = 'Ups! Ich starte die Kamera neu…';
 
-type Navigation = TabNavigationProp<'Recognition'>;
+type Navigation = TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 
 interface RecognitionRefs {
   confidenceFilterRef: MutableRefObject<OneEuroFilter>;
@@ -671,14 +672,14 @@ export const useRecognitionCallbacks = ({
       await correctionService.logCorrection(choiceId).catch((error) =>
         logger.warn('Failed to log correction', error),
       );
-      navigation.navigate('Teaching', { gestureId: choiceId });
+      navigation.navigate(ROOT_STACK_ROUTES.Teaching, { gestureId: choiceId });
     },
     [gestureConfidence, navigation, refs, setShowCorrection, setStatus],
   );
 
   const handleAcceptPractice = useCallback(() => {
     setShowPracticeSuggestion(false);
-    navigation.navigate('Teaching');
+    navigation.navigate(ROOT_STACK_ROUTES.Teaching);
   }, [navigation, setShowPracticeSuggestion]);
 
   const handleDeclinePractice = useCallback(() => {
@@ -693,7 +694,7 @@ export const useRecognitionCallbacks = ({
     (recommendation: { gesture?: string; type?: string }) => {
       setShowAdaptiveLearning(false);
       if (recommendation?.gesture) {
-        navigation.navigate('Teaching', { gestureId: recommendation.gesture });
+        navigation.navigate(ROOT_STACK_ROUTES.Teaching, { gestureId: recommendation.gesture });
       }
     },
     [navigation, setShowAdaptiveLearning],

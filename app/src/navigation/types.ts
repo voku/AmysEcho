@@ -20,8 +20,8 @@ export type RootStackParamList = {
   Teach: undefined;
   Teaching: { gestureId?: string } | undefined;
   Parent: undefined;
-  ProfileManager: undefined;
-  ParentalGate: { target: string };
+  ProfileManager: { profileId?: string } | undefined;
+  ParentalGate: { target: keyof RootStackParamList };
   Admin: undefined;
   Dashboard: undefined;
   Progress: undefined;
@@ -35,3 +35,35 @@ export type TabNavigationProp<RouteName extends keyof AppTabsParamList> = Compos
   BottomTabNavigationProp<AppTabsParamList, RouteName>,
   StackNavigationProp<RootStackParamList>
 >;
+
+export const APP_TAB_ROUTES = {
+  Recognition: 'Recognition',
+  History: 'History',
+  Lernen: 'Lernen',
+} as const satisfies Record<keyof AppTabsParamList, keyof AppTabsParamList>;
+
+export const ROOT_STACK_ROUTES = {
+  Hero: 'Hero',
+  App: 'App',
+  Onboarding: 'Onboarding',
+  Tutorial: 'Tutorial',
+  ProfileSelect: 'ProfileSelect',
+  Recording: 'Recording',
+  Training: 'Training',
+  Teach: 'Teach',
+  Teaching: 'Teaching',
+  Parent: 'Parent',
+  ProfileManager: 'ProfileManager',
+  ParentalGate: 'ParentalGate',
+  Admin: 'Admin',
+  Dashboard: 'Dashboard',
+  Progress: 'Progress',
+  ProgressChart: 'ProgressChart',
+  CaregiverReport: 'CaregiverReport',
+  CommunicationInsights: 'CommunicationInsights',
+  Help: 'Help',
+} as const satisfies Record<keyof RootStackParamList, keyof RootStackParamList>;
+
+export type AppTabRouteName = (typeof APP_TAB_ROUTES)[keyof typeof APP_TAB_ROUTES];
+export type RootStackRouteName = (typeof ROOT_STACK_ROUTES)[keyof typeof ROOT_STACK_ROUTES];
+

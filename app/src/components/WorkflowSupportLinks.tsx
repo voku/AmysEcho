@@ -6,6 +6,7 @@ import { COLORS } from '../constants/ui';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { RootStackParamList } from '../navigation/types';
+import { ROOT_STACK_ROUTES } from '../navigation/types';
 import type { WorkflowSupportDestination } from '../constants/workflow';
 import { WORKFLOW_SUPPORT_DESTINATIONS } from '../constants/workflow';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -38,13 +39,22 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
 
   const handleNavigate = useCallback(
     (destination: WorkflowSupportDestination) => {
-      const { navigationTarget } = destination;
-      if (navigationTarget.route === 'ParentalGate') {
-        navigation.navigate('ParentalGate', navigationTarget.params, { pop: true });
-        return;
-      }
+      const { route, params } = destination.navigationTarget;
 
-      navigation.navigate('Help', undefined, { pop: true });
+      switch (route) {
+        case ROOT_STACK_ROUTES.ParentalGate:
+          navigation.navigate(route, params, { pop: true });
+          break;
+        case ROOT_STACK_ROUTES.Help:
+          navigation.navigate(route, undefined, { pop: true });
+          break;
+        default: {
+          const _exhaustiveCheck: never = route;
+          if (__DEV__) {
+            console.warn('Unhandled support route:', _exhaustiveCheck);
+          }
+        }
+      }
     },
     [navigation],
   );

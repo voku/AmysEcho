@@ -4,8 +4,15 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
+import { ROOT_STACK_ROUTES, type RootStackParamList } from '../navigation/types';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
-export default function TeachScreen({ navigation }: any) {
+type Navigation = StackNavigationProp<
+  RootStackParamList,
+  typeof ROOT_STACK_ROUTES.Teach
+>;
+
+export default function TeachScreen({ navigation }: { navigation: Navigation }) {
   const { largeText, highContrast } = useAccessibility();
   const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -55,7 +62,7 @@ export default function TeachScreen({ navigation }: any) {
           ]}
           onPress={() => {
             void childHaptic();
-            navigation.navigate('Teaching');
+            navigation.navigate(ROOT_STACK_ROUTES.Teaching);
           }}
           testID="btn-add-sign"
           accessibilityRole="button"
