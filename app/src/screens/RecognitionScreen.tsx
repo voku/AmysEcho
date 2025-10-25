@@ -122,6 +122,7 @@ const STATUS_COPY: Record<
 // Reserve space for the primary action row plus the secondary row, including the gap between them.
 const ACTION_BUTTON_MIN_HEIGHT = 56;
 const COMPACT_SECONDARY_ACTIONS_BREAKPOINT = 360; // px width threshold for stacking secondary actions
+const COMPACT_HEIGHT_BREAKPOINT = 720; // px height threshold for switching to scrollable layout
 const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
 const COMPACT_ACTIONS_SLOT_MIN_HEIGHT =
   ACTION_BUTTON_MIN_HEIGHT * 3 + spacing.sm * 2;
@@ -233,10 +234,6 @@ export default function RecognitionScreen({
   } = state;
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const actionsFadeAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const [actionsPointerEvents, setActionsPointerEvents] = useState<'none' | 'auto'>('none');
-  const actionsAccessibilityHidden = actionsPointerEvents === 'none';
   const confidenceFilterRef = useRef(new OneEuroFilter(1.2, 0.007, 1.0));
   const labelHistoryRef = useRef<string[]>([]);
   const lastSuccessAtRef = useRef<number>(0);
@@ -531,6 +528,12 @@ export default function RecognitionScreen({
   const safeStatus = typeof status === 'string' ? status : '';
   const normalizedStatus = safeStatus.toLowerCase();
   const hasActiveGesture = Boolean(gestureMeaningDisplayProps);
+  const actionsFadeAnim = useRef(new Animated.Value(hasActiveGesture ? 1 : 0)).current;
+  const fadeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const [actionsPointerEvents, setActionsPointerEvents] = useState<'none' | 'auto'>(
+    hasActiveGesture ? 'auto' : 'none',
+  );
+  const actionsAccessibilityHidden = actionsPointerEvents === 'none';
 
   useEffect(() => {
     if (fadeAnimationRef.current) {
@@ -554,7 +557,6 @@ export default function RecognitionScreen({
         fadeAnimationRef.current = null;
       });
     } else {
-      setActionsPointerEvents('none');
       const fadeOutAnimation = Animated.timing(actionsFadeAnim, {
         toValue: 0,
         duration: 250,
@@ -562,7 +564,10 @@ export default function RecognitionScreen({
         useNativeDriver: true,
       });
       fadeAnimationRef.current = fadeOutAnimation;
-      fadeOutAnimation.start(() => {
+      fadeOutAnimation.start(({ finished }) => {
+        if (finished) {
+          setActionsPointerEvents('none');
+        }
         fadeAnimationRef.current = null;
       });
     }

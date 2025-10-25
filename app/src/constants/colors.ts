@@ -74,6 +74,9 @@ const colors = {
   cameraActionAlternativesBackground: '#1C4A4B',
   cameraActionAlternativesPressed: '#143637',
   cameraActionAlternativesText: '#E5E0CF',
+  panelBackground: 'rgba(255, 255, 255, 0.97)',
+  panelBorder: 'rgba(255, 255, 255, 0.45)',
+  detectionTextBackground: 'rgba(255, 255, 255, 0.82)',
 
   /**
    * Status styling for the listening loop
