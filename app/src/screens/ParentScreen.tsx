@@ -9,7 +9,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
 import { logger } from '../utils/logger';
 import type { RootStackParamList } from '../navigation/types';
-import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, navigateToAppTab } from '../navigation/types';
 
 const styles = StyleSheet.create({
   container: {
@@ -233,7 +233,7 @@ export default function ParentScreen({
       <ButtonComponent
         title="Erkennen"
         onPress={() => {
-          navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Recognition });
+          navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition);
         }}
         accessibilityLabel="Zum Erkennungsmodus"
       />

@@ -9,7 +9,7 @@ import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
-import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, navigateToAppTab } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 
 type HeroScreenProps = {
@@ -48,7 +48,7 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
           <PrimaryButton
             label="Lernen entdecken"
             onPress={() => {
-              navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Lernen });
+              navigateToAppTab(navigation, APP_TAB_ROUTES.Lernen);
             }}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"

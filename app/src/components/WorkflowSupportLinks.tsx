@@ -7,7 +7,7 @@ import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { RootStackParamList } from '../navigation/types';
 import { ROOT_STACK_ROUTES } from '../navigation/types';
-import type { WorkflowSupportDestination } from '../constants/workflow';
+import type { WorkflowSupportDestination, WorkflowSupportRoute } from '../constants/workflow';
 import { WORKFLOW_SUPPORT_DESTINATIONS } from '../constants/workflow';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
@@ -40,12 +40,26 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
   const handleNavigate = useCallback(
     (destination: WorkflowSupportDestination) => {
       const { navigationTarget } = destination;
-      if (navigationTarget.route === ROOT_STACK_ROUTES.ParentalGate) {
-        navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, navigationTarget.params);
-        return;
-      }
+      const route: WorkflowSupportRoute = navigationTarget.route;
 
-      navigation.navigate(ROOT_STACK_ROUTES.Help);
+      switch (route) {
+        case ROOT_STACK_ROUTES.ParentalGate:
+          if (navigationTarget.params) {
+            navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, navigationTarget.params);
+          } else if (__DEV__) {
+            console.warn('Missing ParentalGate params for support destination:', destination.key);
+          }
+          break;
+        case ROOT_STACK_ROUTES.Help:
+          navigation.navigate(ROOT_STACK_ROUTES.Help);
+          break;
+        default: {
+          const _exhaustiveCheck: never = route;
+          if (__DEV__) {
+            console.warn('Unhandled support route:', _exhaustiveCheck);
+          }
+        }
+      }
     },
     [navigation],
   );

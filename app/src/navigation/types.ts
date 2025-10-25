@@ -21,7 +21,7 @@ export type RootStackParamList = {
   Teaching: { gestureId?: string } | undefined;
   Parent: undefined;
   ProfileManager: undefined;
-  ParentalGate: { target: string };
+  ParentalGate: { target: keyof RootStackParamList };
   Admin: undefined;
   Dashboard: undefined;
   Progress: undefined;
@@ -66,3 +66,34 @@ export const ROOT_STACK_ROUTES = {
 
 export type AppTabRouteName = (typeof APP_TAB_ROUTES)[keyof typeof APP_TAB_ROUTES];
 export type RootStackRouteName = (typeof ROOT_STACK_ROUTES)[keyof typeof ROOT_STACK_ROUTES];
+
+export function navigateToAppTab<RouteName extends AppTabRouteName>(
+  navigation: StackNavigationProp<RootStackParamList>,
+  screen: RouteName,
+  params?: AppTabsParamList[RouteName],
+) {
+  const nestedParams = (params === undefined ? { screen } : { screen, params }) as NavigatorScreenParams<AppTabsParamList>;
+  const state = navigation.getState();
+
+  type ResetRoute = {
+    name: RootStackRouteName;
+    params?: RootStackParamList[RootStackRouteName];
+  };
+
+  const routesExcludingApp = state.routes.filter((route) => route.name !== ROOT_STACK_ROUTES.App);
+
+  const nextRoutes: ResetRoute[] = routesExcludingApp.map((route) => ({
+    name: route.name as RootStackRouteName,
+    params: route.params as RootStackParamList[RootStackRouteName],
+  }));
+
+  nextRoutes.push({
+    name: ROOT_STACK_ROUTES.App,
+    params: nestedParams,
+  });
+
+  navigation.reset({
+    index: nextRoutes.length - 1,
+    routes: nextRoutes,
+  });
+}

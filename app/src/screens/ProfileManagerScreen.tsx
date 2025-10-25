@@ -18,9 +18,23 @@ import ProfileAnalytics from '../components/ProfileAnalytics';
 import CollapsibleSettingsSection from '../components/settings/CollapsibleSettingsSection';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
-import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
+import {
+  APP_TAB_ROUTES,
+  ROOT_STACK_ROUTES,
+  navigateToAppTab,
+  type RootStackParamList,
+} from '../navigation/types';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
-export default function ProfileManagerScreen({ navigation, route }: any) {
+type Navigation = StackNavigationProp<RootStackParamList>;
+
+export default function ProfileManagerScreen({
+  navigation,
+  route,
+}: {
+  navigation: Navigation;
+  route: any;
+}) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isTrustedDevice, setIsTrustedDevice] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
@@ -197,10 +211,7 @@ export default function ProfileManagerScreen({ navigation, route }: any) {
       setLocalLargeText(!!profile.largeText);
       setLocalHighContrast(!!profile.highContrast);
     }
-    navigation.navigate(ROOT_STACK_ROUTES.App, {
-      screen: APP_TAB_ROUTES.Recognition,
-      params: { profileId: id },
-    });
+    navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition, { profileId: id });
   };
 
   const toggleLargeText = async (enabled: boolean) => {

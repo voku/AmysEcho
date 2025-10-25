@@ -23,7 +23,7 @@ import type {
   RootStackParamList,
   RootStackRouteName,
 } from '../navigation/types';
-import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, navigateToAppTab } from '../navigation/types';
 
 interface BottomNavProps {
   active: 'recognition' | 'training' | 'parent';
@@ -42,15 +42,12 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateToRecognition = useCallback(() => {
     void childHaptic();
-    navigation.navigate(ROOT_STACK_ROUTES.App, {
-      screen: APP_TAB_ROUTES.Recognition,
-      params: { profileId },
-    });
+    navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition, { profileId });
   }, [navigation, profileId]);
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Lernen });
+    navigateToAppTab(navigation, APP_TAB_ROUTES.Lernen);
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {

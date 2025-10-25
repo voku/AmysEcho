@@ -614,7 +614,7 @@ export default function RecognitionScreen({
 
   const handleAlternativesPress = useCallback(() => {
     logger.info('Alternativen geöffnet');
-    navigation.navigate(APP_TAB_ROUTES.Lernen, undefined);
+    navigation.navigate(APP_TAB_ROUTES.Lernen);
   }, [navigation]);
 
   return (
@@ -719,8 +719,9 @@ export default function RecognitionScreen({
                   <View
                     style={[
                       styles.secondaryActionsBase,
-                      styles.secondaryActionsRow,
-                      isCompactSecondaryActions && styles.secondaryActionsColumn,
+                      isCompactSecondaryActions
+                        ? styles.secondaryActionsColumn
+                        : styles.secondaryActionsRow,
                     ]}
                   >
                     <ActionButton
@@ -732,9 +733,9 @@ export default function RecognitionScreen({
                       textColor={CAMERA_THEME.actionButtons.learn.text}
                       style={[
                         styles.secondaryActionButton,
-                        !isCompactSecondaryActions && styles.secondaryActionButtonRow,
-                        isCompactSecondaryActions && styles.secondaryActionButtonColumn,
-                        isCompactSecondaryActions && styles.secondaryActionCompact,
+                        ...(isCompactSecondaryActions
+                          ? [styles.secondaryActionButtonColumn, styles.secondaryActionCompact]
+                          : [styles.secondaryActionButtonRow]),
                       ]}
                     />
                     <ActionButton
@@ -746,9 +747,9 @@ export default function RecognitionScreen({
                       textColor={CAMERA_THEME.actionButtons.alternatives.text}
                       style={[
                         styles.secondaryActionButton,
-                        !isCompactSecondaryActions && styles.secondaryActionButtonRow,
-                        isCompactSecondaryActions && styles.secondaryActionButtonColumn,
-                        isCompactSecondaryActions && styles.secondaryActionCompact,
+                        ...(isCompactSecondaryActions
+                          ? [styles.secondaryActionButtonColumn, styles.secondaryActionCompact]
+                          : [styles.secondaryActionButtonRow]),
                       ]}
                     />
                   </View>
