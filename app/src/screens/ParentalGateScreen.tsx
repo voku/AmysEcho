@@ -163,7 +163,7 @@ export default function ParentalGateScreen({ route, navigation }: any) {
                 highContrast && styles.buttonTextHC,
               ]}
             >
-              OK
+              Bestätigen
             </Text>
           </Pressable>
           <Pressable
