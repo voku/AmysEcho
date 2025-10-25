@@ -188,7 +188,7 @@ export default function RecognitionScreen({
   }
 
   const isCompactSecondaryActions = windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
-  const isCompactHeight = windowHeight <= 780;
+  const isCompactHeight = windowHeight <= COMPACT_HEIGHT_BREAKPOINT;
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
   const insets = useSafeAreaInsets();
