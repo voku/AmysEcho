@@ -43,6 +43,12 @@ import OpenAIGestureFeedback from '../components/OpenAIGestureFeedback';
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
+import {
+  CAMERA_TOGGLE_COPY,
+  getCameraFacingText,
+  getCameraStatusText,
+  getCameraToggleActionText,
+} from '../constants/cameraToggle';
 import { triggerSpeakAndShow } from '../services/feedbackService';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -656,7 +662,7 @@ export default function RecognitionScreen({
   const statusCardBorder =
     statusCategory === 'recognized' || statusCategory === 'updating'
       ? Colors.overlayBadgeBorder
-      : 'rgba(255, 255, 255, 0.24)';
+      : Colors.overlayPlaceholderBorder;
 
   const handleConfirmGesture = useCallback(() => {
     if (!gestureMeaningDisplayProps) {
@@ -708,13 +714,14 @@ export default function RecognitionScreen({
 
         <View style={styles.cameraToggleRow}>
           <Text style={styles.cameraToggleLabel}>
-            {`Aktive Kamera: ${facingMode === 'user' ? 'Vorderseite' : 'Rückseite'}`}
+            {getCameraStatusText(facingMode)}
           </Text>
           <Pressable
             onPress={toggleFacingMode}
             accessibilityRole="button"
-            accessibilityLabel="Kamera wechseln"
-            accessibilityHint="Zwischen Vorder- und Rückkamera umschalten"
+            accessibilityLabel={CAMERA_TOGGLE_COPY.accessibilityLabel}
+            accessibilityHint={CAMERA_TOGGLE_COPY.accessibilityHint}
+            accessibilityValue={{ text: getCameraFacingText(facingMode) }}
             style={({ pressed }) => [
               childFriendlyStyles.minTouchTarget,
               styles.cameraToggleButton,
@@ -722,7 +729,7 @@ export default function RecognitionScreen({
             ]}
           >
             <Text style={styles.cameraToggleText}>
-              {facingMode === 'user' ? 'Zur Rückkamera' : 'Zur Frontkamera'}
+              {getCameraToggleActionText(facingMode)}
             </Text>
           </Pressable>
         </View>

@@ -29,6 +29,12 @@ import { hapticFeedback } from '../utils/hapticUtils';
 import { childFriendlyStyles } from '../styles/touchTargets';
 import type { ClipReadyPayload, FrameBatchPayload } from '../types/frames';
 import ScreenBackground from '../components/ScreenBackground';
+import {
+  CAMERA_TOGGLE_COPY,
+  getCameraFacingText,
+  getCameraStatusText,
+  getCameraToggleActionText,
+} from '../constants/cameraToggle';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
@@ -490,13 +496,14 @@ export default function RecordingScreen({ navigation, route }: any) {
                 })()}
               <View style={styles.cameraHeader}>
                 <Text style={styles.cameraLabel}>
-                  {`Aktive Kamera: ${facingMode === 'user' ? 'Vorderseite' : 'Rückseite'}`}
+                  {getCameraStatusText(facingMode)}
                 </Text>
                 <Pressable
                   onPress={toggleFacingMode}
                   accessibilityRole="button"
-                  accessibilityLabel="Kamera wechseln"
-                  accessibilityHint="Zwischen Vorder- und Rückkamera umschalten"
+                  accessibilityLabel={CAMERA_TOGGLE_COPY.accessibilityLabel}
+                  accessibilityHint={CAMERA_TOGGLE_COPY.accessibilityHint}
+                  accessibilityValue={{ text: getCameraFacingText(facingMode) }}
                   style={({ pressed }) => [
                     childFriendlyStyles.minTouchTarget,
                     styles.cameraToggle,
@@ -504,7 +511,7 @@ export default function RecordingScreen({ navigation, route }: any) {
                   ]}
                 >
                   <Text style={styles.cameraToggleText}>
-                    {facingMode === 'user' ? 'Zur Rückkamera' : 'Zur Frontkamera'}
+                    {getCameraToggleActionText(facingMode)}
                   </Text>
                 </Pressable>
               </View>

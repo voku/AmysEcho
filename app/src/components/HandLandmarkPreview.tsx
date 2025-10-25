@@ -203,8 +203,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: 'rgba(17, 24, 39, 0.6)',
-    width: 148,
-    height: 148,
+    minWidth: 148,
+    minHeight: 148,
   },
   placeholder: {
     color: '#e5e7eb',
