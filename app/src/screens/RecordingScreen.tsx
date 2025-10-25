@@ -394,7 +394,7 @@ export default function RecordingScreen({ navigation, route }: any) {
     detectionText: {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
       fontSize: largeText ? 18 : 16,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.82)',
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.detectionTextBackground,
       paddingHorizontal: SPACING.sm,
       paddingVertical: SPACING.xs,
       borderRadius: DEFAULT_RADIUS,
