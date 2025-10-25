@@ -316,6 +316,14 @@ export default function TrainingScreen({ navigation, route }: any) {
     navigation.goBack();
   };
 
+  const subtitleText = gestureId
+    ? isPractice
+      ? 'Übe die Geste in deinem Tempo und beobachte die Fortschrittsanzeige.'
+      : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy zuverlässiger reagiert.`
+    : 'Wähle eine Geste, um das Training zu starten.';
+  const panelBackground = highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.92)';
+  const panelBorderColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.45)';
+
   const buttonStyles = createButtonStyles();
   const styles = StyleSheet.create({
     screen: { flex: 1 },
@@ -323,38 +331,69 @@ export default function TrainingScreen({ navigation, route }: any) {
       flex: 1,
       backgroundColor: 'transparent',
     },
+    scrollContent: {
+      flexGrow: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingBottom: SPACING.lg,
+    },
     loopWrapper: {
       width: '100%',
       marginBottom: SPACING.lg,
-    },
-    content: {
-      flex: 1,
-      justifyContent: 'center',
       alignItems: 'center',
     },
+    content: {
+      width: '100%',
+      maxWidth: 520,
+      alignItems: 'stretch',
+      gap: SPACING.lg,
+    },
+    panel: {
+      width: '100%',
+      padding: SPACING.lg,
+      borderRadius: DEFAULT_RADIUS * 2,
+      backgroundColor: panelBackground,
+      borderWidth: highContrast ? 2 : StyleSheet.hairlineWidth,
+      borderColor: panelBorderColor,
+      shadowColor: highContrast ? 'transparent' : COLORS.shadow,
+      shadowOpacity: highContrast ? 0 : 0.18,
+      shadowRadius: highContrast ? 0 : 18,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: highContrast ? 0 : 8,
+      alignItems: 'center',
+      gap: SPACING.md,
+    },
     title: {
-      fontSize: largeText ? 24 : 20,
-      marginBottom: SPACING.lg,
+      fontSize: largeText ? 28 : 24,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: largeText ? 18 : 16,
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+      textAlign: 'center',
     },
     cameraContainer: {
       width: PREVIEW_SIZE,
       height: PREVIEW_SIZE,
       marginBottom: SPACING.sm,
       position: 'relative',
+      alignSelf: 'center',
+      borderRadius: DEFAULT_RADIUS * 2,
+      overflow: 'hidden',
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
     },
     cameraHeader: {
-      width: PREVIEW_SIZE,
+      width: '100%',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: SPACING.xs,
+      gap: SPACING.sm,
     },
     cameraLabel: {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
       fontSize: largeText ? 16 : 14,
-      marginRight: SPACING.sm,
-      flexShrink: 1,
+      flex: 1,
     },
     cameraToggle: {
       backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
@@ -375,8 +414,8 @@ export default function TrainingScreen({ navigation, route }: any) {
     },
     detectionIndicator: {
       position: 'absolute',
-      top: SPACING.xs,
-      left: SPACING.xs,
+      top: SPACING.sm,
+      left: SPACING.sm,
       flexDirection: 'row',
       alignItems: 'center',
     },
@@ -389,22 +428,28 @@ export default function TrainingScreen({ navigation, route }: any) {
     detectionText: {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
       fontSize: largeText ? 18 : 16,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.82)',
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      borderRadius: DEFAULT_RADIUS,
     },
     progressBar: {
-      width: PREVIEW_SIZE,
+      width: '100%',
+      maxWidth: PREVIEW_SIZE,
       height: 10,
       backgroundColor: highContrast ? COLORS.borderDark : COLORS.border,
       borderRadius: DEFAULT_RADIUS,
       overflow: 'hidden',
-      marginBottom: SPACING.sm,
+      alignSelf: 'center',
     },
     progressFill: {
       height: '100%',
       backgroundColor: COLORS.success,
     },
     summaryContainer: {
+      width: '100%',
       alignItems: 'center',
-      marginTop: SPACING.md,
+      gap: SPACING.md,
     },
     summaryText: {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
@@ -415,13 +460,16 @@ export default function TrainingScreen({ navigation, route }: any) {
       marginBottom: SPACING.sm,
     },
     ...buttonStyles,
+    primaryButton: {
+      alignSelf: 'stretch',
+    },
     secondaryButton: {
       backgroundColor: COLORS.secondaryAccent,
       padding: SPACING.sm,
       borderRadius: DEFAULT_RADIUS,
       alignItems: 'center',
+      alignSelf: 'stretch',
       marginTop: SPACING.sm,
-      minWidth: 100,
     },
     secondaryButtonHC: {
       backgroundColor: COLORS.highContrastText,
@@ -443,18 +491,28 @@ export default function TrainingScreen({ navigation, route }: any) {
     secondaryButtonTextHC: {
       color: COLORS.highContrastBackground,
     },
+    helperText: {
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+      fontSize: largeText ? 16 : 14,
+      textAlign: 'center',
+    },
   });
 
   // Camera permission handled by WebView context.
 
   return (
     <View style={styles.screen}>
-      <ScreenBackground style={styles.container}>
+      <ScreenBackground
+        scrollable
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.loopWrapper}>
           <AmyLoopTimeline activeStage={trainingLoopStage} />
         </View>
         <View style={styles.content}>
-          <Text style={styles.title}>
+          <View style={styles.panel}>
+            <Text style={styles.title}>
             {isPractice
               ? gestureId
                 ? `Übung ${gestureId}`
@@ -462,14 +520,16 @@ export default function TrainingScreen({ navigation, route }: any) {
               : gestureId
                 ? `Training für ${gestureId}`
                 : 'Trainingsmodus'}
-          </Text>
-          {!gestureId ? (
+            </Text>
+            <Text style={styles.subtitle}>{subtitleText}</Text>
+            {!gestureId ? (
             gestureModel.gestures.map((g: { id: string; label: string }) => (
               <Pressable
                 key={g.id}
                 style={({ pressed }) => [
                   childFriendlyStyles.minTouchTarget,
                   styles.button,
+                  styles.primaryButton,
                   highContrast && styles.buttonHC,
                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                 ]}
@@ -611,6 +671,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                 style={({ pressed }) => [
                   childFriendlyStyles.minTouchTarget,
                   styles.button,
+                  styles.primaryButton,
                   highContrast && styles.buttonHC,
                   !gestureId && styles.buttonDisabled,
                   pressed &&
@@ -646,7 +707,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                 </Text>
               </Pressable>
               {!isRecording && framesCaptured > 0 && (
-                <Text style={styles.detectionText}>
+                <Text style={styles.helperText}>
                   Länge der letzten Aufnahme: {framesCaptured} Frames
                 </Text>
               )}
@@ -686,6 +747,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                 style={({ pressed }) => [
                   childFriendlyStyles.minTouchTarget,
                   styles.button,
+                  styles.primaryButton,
                   highContrast && styles.buttonHC,
                   pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                 ]}
@@ -708,6 +770,7 @@ export default function TrainingScreen({ navigation, route }: any) {
               </Pressable>
             </View>
           )}
+          </View>
         </View>
       </ScreenBackground>
       {profile && <BottomNav active="training" profileId={profile.id} />}
