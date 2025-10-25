@@ -79,6 +79,18 @@ export function navigateToAppTab<RouteName extends AppTabRouteName>(
 ) {
   const { replaceCurrent = false } = options ?? {};
   const nestedParams = (params === undefined ? { screen } : { screen, params }) as NavigatorScreenParams<AppTabsParamList>;
+
+  const canReset = typeof navigation.reset === 'function' && typeof navigation.getState === 'function';
+
+  if (!canReset) {
+    if (replaceCurrent && typeof navigation.replace === 'function') {
+      navigation.replace(ROOT_STACK_ROUTES.App, nestedParams);
+    } else {
+      navigation.navigate(ROOT_STACK_ROUTES.App, nestedParams);
+    }
+    return;
+  }
+
   const state = navigation.getState();
 
   type ResetRoute = {
@@ -86,18 +98,18 @@ export function navigateToAppTab<RouteName extends AppTabRouteName>(
     params?: RootStackParamList[RootStackRouteName];
   };
 
-  const routesExcludingApp = state.routes.filter((route, index) => {
-    if (replaceCurrent && index === state.index) {
-      return false;
-    }
+  const nextRoutes: ResetRoute[] = state.routes
+    .filter((route, index) => {
+      if (replaceCurrent && index === state.index) {
+        return false;
+      }
 
-    return route.name !== ROOT_STACK_ROUTES.App;
-  });
-
-  const nextRoutes: ResetRoute[] = routesExcludingApp.map((route) => ({
-    name: route.name as RootStackRouteName,
-    params: route.params as RootStackParamList[RootStackRouteName],
-  }));
+      return route.name !== ROOT_STACK_ROUTES.App;
+    })
+    .map((route) => ({
+      name: route.name as RootStackRouteName,
+      params: route.params as RootStackParamList[RootStackRouteName],
+    }));
 
   nextRoutes.push({
     name: ROOT_STACK_ROUTES.App,

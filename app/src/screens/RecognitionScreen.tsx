@@ -130,6 +130,11 @@ const DEFAULT_WINDOW_DIMENSIONS = {
   fontScale: 1,
 };
 
+const useSafeWindowDimensions =
+  typeof useWindowDimensions === 'function'
+    ? useWindowDimensions
+    : () => DEFAULT_WINDOW_DIMENSIONS;
+
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
   timestamp: number,
@@ -172,17 +177,15 @@ export default function RecognitionScreen({
 }: {
   navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 }) {
+  const windowDimensions = useSafeWindowDimensions();
   const fallbackDimensions =
     typeof Dimensions?.get === 'function'
       ? Dimensions.get('window') ?? DEFAULT_WINDOW_DIMENSIONS
       : DEFAULT_WINDOW_DIMENSIONS;
-  const resolveWindowDimensions =
-    typeof useWindowDimensions === 'function'
-      ? useWindowDimensions
-      : () => fallbackDimensions;
-  const windowDimensions = resolveWindowDimensions();
-  const { width: windowWidth = fallbackDimensions.width } =
-    windowDimensions ?? fallbackDimensions;
+  const windowWidth =
+    typeof windowDimensions?.width === 'number'
+      ? windowDimensions.width
+      : fallbackDimensions.width;
   const isCompactSecondaryActions =
     windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const { showToast } = useMessage();

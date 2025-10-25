@@ -10,9 +10,15 @@ import BottomNav from '../components/BottomNav';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import { childFriendlyStyles } from '../styles/touchTargets';
-import { ROOT_STACK_ROUTES } from '../navigation/types';
+import { ROOT_STACK_ROUTES, type RootStackParamList } from '../navigation/types';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
-export default function ProgressScreen({ navigation }: any) {
+type Navigation = StackNavigationProp<
+  RootStackParamList,
+  typeof ROOT_STACK_ROUTES.Progress
+>;
+
+export default function ProgressScreen({ navigation }: { navigation: Navigation }) {
   const { largeText, highContrast } = useAccessibility();
   const [stats, setStats] = useState<Record<string, number>>({});
   const [profile, setProfile] = useState<Profile | null>(null);
