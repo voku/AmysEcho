@@ -165,17 +165,18 @@ export default function RecognitionScreen({
 }: {
   navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 }) {
-  const fallbackWindow = Dimensions.get('window');
-  let windowWidth =
-    typeof fallbackWindow?.width === 'number' ? fallbackWindow.width : COMPACT_SECONDARY_ACTIONS_BREAKPOINT + 1;
-
+  let windowWidth: number;
   try {
+    // `useWindowDimensions` is preferred as it's a hook that updates on changes.
     const dimensions = useWindowDimensions();
-    if (typeof dimensions?.width === 'number') {
-      windowWidth = dimensions.width;
-    }
-  } catch {
-    // In non-RN environments (e.g., tests) fall back to the Dimensions API result.
+    windowWidth = dimensions.width;
+  } catch (e) {
+    // Fallback for environments where hooks are not available (e.g., some tests).
+    const fallbackWindow = Dimensions.get('window');
+    windowWidth =
+      typeof fallbackWindow?.width === 'number'
+        ? fallbackWindow.width
+        : COMPACT_SECONDARY_ACTIONS_BREAKPOINT + 1;
   }
 
   const isCompactSecondaryActions = windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
