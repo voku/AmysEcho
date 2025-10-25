@@ -212,16 +212,11 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
-    expect(navigation.reset).toHaveBeenCalledWith({
-      index: 1,
-      routes: [
-        { name: ROOT_STACK_ROUTES.Hero, params: undefined },
-        {
-          name: ROOT_STACK_ROUTES.App,
-          params: { screen: APP_TAB_ROUTES.Recognition },
-        },
-      ],
-    });
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      ROOT_STACK_ROUTES.App,
+      { screen: APP_TAB_ROUTES.Recognition },
+      { pop: true },
+    );
   });
 
   it('pops back to App recognition with low-confidence simulation when requested', async () => {
@@ -248,18 +243,13 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
-    expect(navigation.reset).toHaveBeenCalledWith({
-      index: 1,
-      routes: [
-        { name: ROOT_STACK_ROUTES.Hero, params: undefined },
-        {
-          name: ROOT_STACK_ROUTES.App,
-          params: {
-            screen: APP_TAB_ROUTES.Recognition,
-            params: { simulateLowConfidence: true },
-          },
-        },
-      ],
-    });
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      ROOT_STACK_ROUTES.App,
+      {
+        screen: APP_TAB_ROUTES.Recognition,
+        params: { simulateLowConfidence: true },
+      },
+      { pop: true },
+    );
   });
 });

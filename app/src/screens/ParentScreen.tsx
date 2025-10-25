@@ -8,9 +8,8 @@ import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
 import { logger } from '../utils/logger';
-import type { RootStackParamList, AppTabsParamList } from '../navigation/types';
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
-import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { RootStackParamList } from '../navigation/types';
 
 const styles = StyleSheet.create({
   container: {
@@ -117,55 +116,6 @@ export default function ParentScreen({
   const profileName = profile?.name?.trim();
   const optimizedFor = profileName && profileName.length > 0 ? profileName : 'dein Kind';
 
-  const transitionToRecognition = (
-    params?: { simulateLowConfidence?: boolean },
-  ) => {
-    const nestedParams = (
-      params === undefined
-        ? { screen: APP_TAB_ROUTES.Recognition }
-        : { screen: APP_TAB_ROUTES.Recognition, params }
-    ) as NavigatorScreenParams<AppTabsParamList>;
-
-    if (typeof navigation.reset === 'function' && typeof navigation.getState === 'function') {
-      const state = navigation.getState();
-      const appIndex = state.routes.findIndex((route) => route.name === ROOT_STACK_ROUTES.App);
-      const preserved: Array<{
-        name: keyof RootStackParamList;
-        params?: RootStackParamList[keyof RootStackParamList];
-      }> = [];
-
-      const appendRoute = (route: (typeof state.routes)[number], index: number) => {
-        if (index === state.index || route.name === ROOT_STACK_ROUTES.App) {
-          return;
-        }
-        preserved.push({
-          name: route.name as keyof RootStackParamList,
-          params: route.params as RootStackParamList[keyof RootStackParamList] | undefined,
-        });
-      };
-
-      if (appIndex >= 0) {
-        state.routes.slice(0, appIndex).forEach(appendRoute);
-      } else {
-        state.routes.forEach(appendRoute);
-      }
-
-      preserved.push({
-        name: ROOT_STACK_ROUTES.App,
-        params: nestedParams,
-      });
-
-      navigation.reset({ index: preserved.length - 1, routes: preserved });
-      return;
-    }
-
-    if (typeof navigation.replace === 'function') {
-      navigation.replace(ROOT_STACK_ROUTES.App, nestedParams);
-    } else {
-      navigation.navigate(ROOT_STACK_ROUTES.App, nestedParams, { pop: true });
-    }
-  };
-
   const ButtonComponent = ({
     title,
     onPress,
@@ -271,7 +221,14 @@ export default function ParentScreen({
       <ButtonComponent
         title="Geringe Sicherheit simulieren"
         onPress={() => {
-          transitionToRecognition({ simulateLowConfidence: true });
+          navigation.navigate(
+            ROOT_STACK_ROUTES.App,
+            {
+              screen: APP_TAB_ROUTES.Recognition,
+              params: { simulateLowConfidence: true },
+            },
+            { pop: true },
+          );
         }}
         accessibilityLabel="Geringe Sicherheit simulieren"
       />
@@ -285,7 +242,11 @@ export default function ParentScreen({
       <ButtonComponent
         title="Erkennen"
         onPress={() => {
-          transitionToRecognition();
+          navigation.navigate(
+            ROOT_STACK_ROUTES.App,
+            { screen: APP_TAB_ROUTES.Recognition },
+            { pop: true },
+          );
         }}
         accessibilityLabel="Zum Erkennungsmodus"
       />
