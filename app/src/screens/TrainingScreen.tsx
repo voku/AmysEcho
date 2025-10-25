@@ -39,6 +39,7 @@ import {
   getCameraFacingText,
   getCameraStatusText,
   getCameraToggleActionText,
+  getNextCameraFacingMode,
 } from '../constants/cameraToggle';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
@@ -205,7 +206,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const toggleFacingMode = useCallback(() => {
     void hapticFeedback.light();
-    setFacingMode((current) => (current === 'user' ? 'environment' : 'user'));
+    setFacingMode((current) => getNextCameraFacingMode(current));
     setLandmarks([]);
     setLastDetection(0);
   }, []);

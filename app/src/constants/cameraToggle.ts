@@ -20,3 +20,7 @@ export const getCameraToggleActionText = (facingMode: CameraFacingMode): string 
   facingMode === 'user'
     ? CAMERA_TOGGLE_COPY.switchToRear
     : CAMERA_TOGGLE_COPY.switchToFront;
+
+export const getNextCameraFacingMode = (
+  current: CameraFacingMode,
+): CameraFacingMode => (current === 'user' ? 'environment' : 'user');

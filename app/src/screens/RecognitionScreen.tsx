@@ -48,6 +48,7 @@ import {
   getCameraFacingText,
   getCameraStatusText,
   getCameraToggleActionText,
+  getNextCameraFacingMode,
 } from '../constants/cameraToggle';
 import { triggerSpeakAndShow } from '../services/feedbackService';
 import { OneEuroFilter } from '../services/OneEuroFilter';
@@ -447,7 +448,7 @@ export default function RecognitionScreen({
   );
 
   const toggleFacingMode = useCallback(() => {
-    setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
+    setFacingMode((prev) => getNextCameraFacingMode(prev));
   }, [setFacingMode]);
 
   const handleAcknowledgeOpenAISuggestion = useCallback(
