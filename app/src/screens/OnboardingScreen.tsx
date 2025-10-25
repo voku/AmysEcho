@@ -15,7 +15,7 @@ import { AmyFirstCommitments } from '../components/AmyFirstCommitments';
 import { AmyLoopTimeline } from '../components/AmyLoopTimeline';
 import { announceAccessibilityMessage } from '../services/accessibilityService';
 import { RootStackParamList } from '../navigation/types';
-import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, navigateToAppTab } from '../navigation/types';
 
 type StepKey = 'mission' | 'name' | 'accessibility' | 'consent' | 'vocabulary';
 
@@ -343,7 +343,9 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           <PrimaryButton
             label="Später einrichten"
             accessibilityLabel="Onboarding überspringen"
-            onPress={() => navigation.replace(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Recognition })}
+            onPress={() =>
+              navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition, undefined, { replaceCurrent: true })
+            }
             variant="secondary"
             testID="btn-skip"
             style={{ marginTop: SPACING.md }}

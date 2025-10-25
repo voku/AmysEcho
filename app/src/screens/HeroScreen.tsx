@@ -40,7 +40,9 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
         <View style={styles.ctaRow}>
           <PrimaryButton
             label="Zur Gestenkamera"
-            onPress={() => navigation.replace(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Recognition })}
+            onPress={() =>
+              navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition, undefined, { replaceCurrent: true })
+            }
             accessibilityLabel="Zur Gestenkamera wechseln"
             testID="hero-start"
             style={styles.ctaButton}

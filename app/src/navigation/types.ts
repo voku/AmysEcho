@@ -67,11 +67,17 @@ export const ROOT_STACK_ROUTES = {
 export type AppTabRouteName = (typeof APP_TAB_ROUTES)[keyof typeof APP_TAB_ROUTES];
 export type RootStackRouteName = (typeof ROOT_STACK_ROUTES)[keyof typeof ROOT_STACK_ROUTES];
 
+export type NavigateToAppTabOptions = {
+  replaceCurrent?: boolean;
+};
+
 export function navigateToAppTab<RouteName extends AppTabRouteName>(
   navigation: StackNavigationProp<RootStackParamList>,
   screen: RouteName,
   params?: AppTabsParamList[RouteName],
+  options?: NavigateToAppTabOptions,
 ) {
+  const { replaceCurrent = false } = options ?? {};
   const nestedParams = (params === undefined ? { screen } : { screen, params }) as NavigatorScreenParams<AppTabsParamList>;
   const state = navigation.getState();
 
@@ -80,7 +86,13 @@ export function navigateToAppTab<RouteName extends AppTabRouteName>(
     params?: RootStackParamList[RootStackRouteName];
   };
 
-  const routesExcludingApp = state.routes.filter((route) => route.name !== ROOT_STACK_ROUTES.App);
+  const routesExcludingApp = state.routes.filter((route, index) => {
+    if (replaceCurrent && index === state.index) {
+      return false;
+    }
+
+    return route.name !== ROOT_STACK_ROUTES.App;
+  });
 
   const nextRoutes: ResetRoute[] = routesExcludingApp.map((route) => ({
     name: route.name as RootStackRouteName,

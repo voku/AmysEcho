@@ -213,13 +213,7 @@ export default function ParentScreen({
       <ButtonComponent
         title="Geringe Sicherheit simulieren"
         onPress={() => {
-          navigation.navigate(
-            ROOT_STACK_ROUTES.App,
-            {
-              screen: APP_TAB_ROUTES.Recognition,
-              params: { simulateLowConfidence: true },
-            },
-          );
+          navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition, { simulateLowConfidence: true });
         }}
         accessibilityLabel="Geringe Sicherheit simulieren"
       />
