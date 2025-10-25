@@ -6,6 +6,7 @@ import { View, Pressable, Text, StyleSheet, FlatList } from 'react-native';
 
 // Third-party imports
 import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import Svg, { Path, Circle } from 'react-native-svg';
 
 // Local imports
@@ -22,8 +23,9 @@ import type {
   AppTabRouteName,
   RootStackParamList,
   RootStackRouteName,
+  AppTabsParamList,
 } from '../navigation/types';
-import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, navigateToAppTab } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 
 interface BottomNavProps {
   active: 'recognition' | 'training' | 'parent';
@@ -39,15 +41,65 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
     Array<{ name: RootStackRouteName | AppTabRouteName; title: string; canGoBack: boolean }>
   >([]);
 
+  const goToAppTab = (
+    screen: (typeof APP_TAB_ROUTES)[keyof typeof APP_TAB_ROUTES],
+    params?: AppTabsParamList[keyof AppTabsParamList],
+    dropCurrent: boolean = false,
+  ) => {
+    const nestedParams = (params === undefined ? { screen } : { screen, params }) as NavigatorScreenParams<AppTabsParamList>;
+
+    if (typeof navigation.reset === 'function' && typeof navigation.getState === 'function') {
+      const state = navigation.getState();
+      const appIndex = state.routes.findIndex((r) => r.name === ROOT_STACK_ROUTES.App);
+      const routes: Array<{
+        name: keyof RootStackParamList;
+        params?: RootStackParamList[keyof RootStackParamList];
+      }> = [];
+
+      const appendRoute = (r: (typeof state.routes)[number], index: number) => {
+        if (r.name === ROOT_STACK_ROUTES.App) {
+          return;
+        }
+        if (dropCurrent && index === state.index) {
+          return;
+        }
+        routes.push({
+          name: r.name as keyof RootStackParamList,
+          params: r.params as RootStackParamList[keyof RootStackParamList] | undefined,
+        });
+      };
+
+      if (appIndex >= 0) {
+        state.routes.slice(0, appIndex).forEach(appendRoute);
+      } else {
+        state.routes.forEach(appendRoute);
+      }
+
+      routes.push({
+        name: ROOT_STACK_ROUTES.App,
+        params: nestedParams,
+      });
+
+      navigation.reset({ index: routes.length - 1, routes });
+      return;
+    }
+
+    if (dropCurrent && typeof navigation.replace === 'function') {
+      navigation.replace(ROOT_STACK_ROUTES.App, nestedParams);
+    } else {
+      navigation.navigate(ROOT_STACK_ROUTES.App, nestedParams);
+    }
+  };
+
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateToRecognition = useCallback(() => {
     void childHaptic();
-    navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition, { profileId });
+    goToAppTab(APP_TAB_ROUTES.Recognition, { profileId }, true);
   }, [navigation, profileId]);
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigateToAppTab(navigation, APP_TAB_ROUTES.Lernen);
+    goToAppTab(APP_TAB_ROUTES.Lernen, undefined, true);
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {

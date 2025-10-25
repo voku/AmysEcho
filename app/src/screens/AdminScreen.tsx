@@ -16,6 +16,7 @@ import {
   saveBackendApiToken,
   loadActiveProfileId,
 } from '../storage';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { Paths } from 'expo-file-system';
 import { makeDirectoryAsync, moveAsync, writeAsStringAsync, readAsStringAsync } from 'expo-file-system/legacy';
 import { database } from '../../db';
@@ -28,7 +29,7 @@ import { fetchMlpModel } from '../services/dgsModelClient';
 import {
   APP_TAB_ROUTES,
   ROOT_STACK_ROUTES,
-  navigateToAppTab,
+  type AppTabsParamList,
   type RootStackParamList,
 } from '../navigation/types';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -53,6 +54,56 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
   const [audioUri, setAudioUri] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [category, setCategory] = useState('');
+
+  const goToAppTab = (
+    screen: (typeof APP_TAB_ROUTES)[keyof typeof APP_TAB_ROUTES],
+    params?: AppTabsParamList[keyof AppTabsParamList],
+    dropCurrent: boolean = false,
+  ) => {
+    const nestedParams = (params === undefined ? { screen } : { screen, params }) as NavigatorScreenParams<AppTabsParamList>;
+
+    if (typeof navigation.reset === 'function' && typeof navigation.getState === 'function') {
+      const state = navigation.getState();
+      const appIndex = state.routes.findIndex((route) => route.name === ROOT_STACK_ROUTES.App);
+      const routes: Array<{
+        name: keyof RootStackParamList;
+        params?: RootStackParamList[keyof RootStackParamList];
+      }> = [];
+
+      const appendRoute = (route: (typeof state.routes)[number], index: number) => {
+        if (route.name === ROOT_STACK_ROUTES.App) {
+          return;
+        }
+        if (dropCurrent && index === state.index) {
+          return;
+        }
+        routes.push({
+          name: route.name as keyof RootStackParamList,
+          params: route.params as RootStackParamList[keyof RootStackParamList] | undefined,
+        });
+      };
+
+      if (appIndex >= 0) {
+        state.routes.slice(0, appIndex).forEach(appendRoute);
+      } else {
+        state.routes.forEach(appendRoute);
+      }
+
+      routes.push({
+        name: ROOT_STACK_ROUTES.App,
+        params: nestedParams,
+      });
+
+      navigation.reset({ index: routes.length - 1, routes });
+      return;
+    }
+
+    if (dropCurrent && typeof navigation.replace === 'function') {
+      navigation.replace(ROOT_STACK_ROUTES.App, nestedParams);
+    } else {
+      navigation.navigate(ROOT_STACK_ROUTES.App, nestedParams);
+    }
+  };
 
 
   React.useEffect(() => {
@@ -416,7 +467,7 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
     {
       title: 'Training',
       onPress: () => {
-        navigateToAppTab(navigation, APP_TAB_ROUTES.Lernen);
+        goToAppTab(APP_TAB_ROUTES.Lernen, undefined, true);
       },
       accessibilityLabel: 'Trainingsmodus öffnen',
     },

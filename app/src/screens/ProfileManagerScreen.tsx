@@ -21,9 +21,10 @@ import ScreenBackground from '../components/ScreenBackground';
 import {
   APP_TAB_ROUTES,
   ROOT_STACK_ROUTES,
-  navigateToAppTab,
+  type AppTabsParamList,
   type RootStackParamList,
 } from '../navigation/types';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type Navigation = StackNavigationProp<RootStackParamList>;
@@ -51,6 +52,56 @@ export default function ProfileManagerScreen({
   const [gestureHistory, setGestureHistory] = useState<any[]>([]);
   const [profileStats, setProfileStats] = useState<any>(null);
   const profileId = route?.params?.profileId;
+
+  const goToAppTab = (
+    screen: (typeof APP_TAB_ROUTES)[keyof typeof APP_TAB_ROUTES],
+    params?: AppTabsParamList[keyof AppTabsParamList],
+    dropCurrent: boolean = false,
+  ) => {
+    const nestedParams = (params === undefined ? { screen } : { screen, params }) as NavigatorScreenParams<AppTabsParamList>;
+
+    if (typeof navigation.reset === 'function' && typeof navigation.getState === 'function') {
+      const state = navigation.getState();
+      const appIndex = state.routes.findIndex((route) => route.name === ROOT_STACK_ROUTES.App);
+      const routes: Array<{
+        name: keyof RootStackParamList;
+        params?: RootStackParamList[keyof RootStackParamList];
+      }> = [];
+
+      const appendRoute = (route: (typeof state.routes)[number], index: number) => {
+        if (route.name === ROOT_STACK_ROUTES.App) {
+          return;
+        }
+        if (dropCurrent && index === state.index) {
+          return;
+        }
+        routes.push({
+          name: route.name as keyof RootStackParamList,
+          params: route.params as RootStackParamList[keyof RootStackParamList] | undefined,
+        });
+      };
+
+      if (appIndex >= 0) {
+        state.routes.slice(0, appIndex).forEach(appendRoute);
+      } else {
+        state.routes.forEach(appendRoute);
+      }
+
+      routes.push({
+        name: ROOT_STACK_ROUTES.App,
+        params: nestedParams,
+      });
+
+      navigation.reset({ index: routes.length - 1, routes });
+      return;
+    }
+
+    if (dropCurrent && typeof navigation.replace === 'function') {
+      navigation.replace(ROOT_STACK_ROUTES.App, nestedParams);
+    } else {
+      navigation.navigate(ROOT_STACK_ROUTES.App, nestedParams);
+    }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -215,7 +266,7 @@ export default function ProfileManagerScreen({
       setLocalLargeText(!!profile.largeText);
       setLocalHighContrast(!!profile.highContrast);
     }
-    navigateToAppTab(navigation, APP_TAB_ROUTES.Recognition, { profileId: id });
+    goToAppTab(APP_TAB_ROUTES.Recognition, { profileId: id }, true);
   };
 
   const toggleLargeText = async (enabled: boolean) => {

@@ -123,18 +123,6 @@ const COMPACT_SECONDARY_ACTIONS_BREAKPOINT = 360; // px width threshold for stac
 const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
 const COMPACT_ACTIONS_SLOT_MIN_HEIGHT =
   ACTION_BUTTON_MIN_HEIGHT * 3 + spacing.sm * 2;
-const DEFAULT_WINDOW_DIMENSIONS = {
-  width: 1024,
-  height: 768,
-  scale: 1,
-  fontScale: 1,
-};
-
-const useSafeWindowDimensions =
-  typeof useWindowDimensions === 'function'
-    ? useWindowDimensions
-    : () => DEFAULT_WINDOW_DIMENSIONS;
-
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
   timestamp: number,
@@ -177,17 +165,20 @@ export default function RecognitionScreen({
 }: {
   navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 }) {
-  const windowDimensions = useSafeWindowDimensions();
-  const fallbackDimensions =
-    typeof Dimensions?.get === 'function'
-      ? Dimensions.get('window') ?? DEFAULT_WINDOW_DIMENSIONS
-      : DEFAULT_WINDOW_DIMENSIONS;
-  const windowWidth =
-    typeof windowDimensions?.width === 'number'
-      ? windowDimensions.width
-      : fallbackDimensions.width;
-  const isCompactSecondaryActions =
-    windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
+  const fallbackWindow = Dimensions.get('window');
+  let windowWidth =
+    typeof fallbackWindow?.width === 'number' ? fallbackWindow.width : COMPACT_SECONDARY_ACTIONS_BREAKPOINT + 1;
+
+  try {
+    const dimensions = useWindowDimensions();
+    if (typeof dimensions?.width === 'number') {
+      windowWidth = dimensions.width;
+    }
+  } catch {
+    // In non-RN environments (e.g., tests) fall back to the Dimensions API result.
+  }
+
+  const isCompactSecondaryActions = windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
 
