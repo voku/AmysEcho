@@ -411,13 +411,18 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
     {
       title: 'Training',
       onPress: () => {
-        navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Lernen });
+        navigation.navigate(
+          ROOT_STACK_ROUTES.App,
+          { screen: APP_TAB_ROUTES.Lernen },
+          { pop: true },
+        );
       },
       accessibilityLabel: 'Trainingsmodus öffnen',
     },
     {
       title: 'Dashboard',
-      onPress: () => navigation.navigate(ROOT_STACK_ROUTES.Dashboard),
+      onPress: () =>
+        navigation.navigate(ROOT_STACK_ROUTES.Dashboard, undefined, { pop: true }),
       accessibilityLabel: 'Analytics-Dashboard öffnen',
     },
     {

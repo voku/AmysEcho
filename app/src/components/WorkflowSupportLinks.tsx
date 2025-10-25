@@ -43,10 +43,10 @@ const WorkflowSupportLinks: React.FC<WorkflowSupportLinksProps> = ({ tone = 'lig
 
       switch (route) {
         case ROOT_STACK_ROUTES.ParentalGate:
-          navigation.navigate(route, params);
+          navigation.navigate(route, params, { pop: true });
           break;
         case ROOT_STACK_ROUTES.Help:
-          navigation.navigate(route);
+          navigation.navigate(route, undefined, { pop: true });
           break;
         default: {
           const _exhaustiveCheck: never = route;

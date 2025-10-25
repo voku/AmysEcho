@@ -52,9 +52,13 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
           <PrimaryButton
             label="Lernen entdecken"
             onPress={() => {
-              navigation.navigate(ROOT_STACK_ROUTES.App, {
-                screen: APP_TAB_ROUTES.Lernen,
-              });
+              navigation.navigate(
+                ROOT_STACK_ROUTES.App,
+                {
+                  screen: APP_TAB_ROUTES.Lernen,
+                },
+                { pop: true },
+              );
             }}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"

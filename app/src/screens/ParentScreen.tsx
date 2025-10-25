@@ -162,7 +162,7 @@ export default function ParentScreen({
     if (typeof navigation.replace === 'function') {
       navigation.replace(ROOT_STACK_ROUTES.App, nestedParams);
     } else {
-      navigation.navigate(ROOT_STACK_ROUTES.App, nestedParams);
+      navigation.navigate(ROOT_STACK_ROUTES.App, nestedParams, { pop: true });
     }
   };
 
@@ -225,39 +225,47 @@ export default function ParentScreen({
       </View>
       <ButtonComponent
         title="Profilverwaltung"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.ProfileManager)}
+        onPress={() =>
+          navigation.navigate(ROOT_STACK_ROUTES.ProfileManager, undefined, { pop: true })
+        }
         accessibilityLabel="Profilverwaltung"
       />
       <ButtonComponent
         title="Zugangsprüfung"
         onPress={() =>
-          navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, { target: ROOT_STACK_ROUTES.Parent })
+          navigation.navigate(
+            ROOT_STACK_ROUTES.ParentalGate,
+            { target: ROOT_STACK_ROUTES.Parent },
+            { pop: true },
+          )
         }
         accessibilityLabel="Zugangsprüfung"
       />
       <ButtonComponent
         title="Verwaltung"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Admin)}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Admin, undefined, { pop: true })}
         accessibilityLabel="Verwaltung"
       />
       <ButtonComponent
         title="Analysen"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Dashboard)}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Dashboard, undefined, { pop: true })}
         accessibilityLabel="Analysen ansehen"
       />
       <ButtonComponent
         title="Lernfortschritt"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.CaregiverReport)}
+        onPress={() =>
+          navigation.navigate(ROOT_STACK_ROUTES.CaregiverReport, undefined, { pop: true })
+        }
         accessibilityLabel="Lernfortschritt ansehen"
       />
       <ButtonComponent
         title="Fortschritt"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Progress)}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Progress, undefined, { pop: true })}
         accessibilityLabel="Fortschritt ansehen"
       />
       <ButtonComponent
         title="Hilfe"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Help)}
+        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Help, undefined, { pop: true })}
         accessibilityLabel="Hilfe erhalten"
       />
       <ButtonComponent
@@ -270,7 +278,7 @@ export default function ParentScreen({
       <ButtonComponent
         title="Menü"
         onPress={() => {
-          navigation.navigate(ROOT_STACK_ROUTES.Parent);
+          navigation.navigate(ROOT_STACK_ROUTES.Parent, undefined, { pop: true });
         }}
         accessibilityLabel="Menü öffnen"
       />

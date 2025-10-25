@@ -207,10 +207,14 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             }
             onPress={() => {
               if (profile) {
-                navigation.navigate(ROOT_STACK_ROUTES.App, {
-                  screen: APP_TAB_ROUTES.Recognition,
-                  params: { profileId: profile.id },
-                });
+                navigation.navigate(
+                  ROOT_STACK_ROUTES.App,
+                  {
+                    screen: APP_TAB_ROUTES.Recognition,
+                    params: { profileId: profile.id },
+                  },
+                  { pop: true },
+                );
               }
             }}
             accessibilityLabel="Zum Erkennungsmodus"
@@ -220,9 +224,13 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             title="Lernen"
             description="Übe Gesten gemeinsam und sammle neue Trainingsbeispiele."
             onPress={() => {
-              navigation.navigate(ROOT_STACK_ROUTES.App, {
-                screen: APP_TAB_ROUTES.Lernen,
-              });
+              navigation.navigate(
+                ROOT_STACK_ROUTES.App,
+                {
+                  screen: APP_TAB_ROUTES.Lernen,
+                },
+                { pop: true },
+              );
             }}
             accessibilityLabel="Zum Lernmodus"
           />
@@ -232,7 +240,11 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             title="Elternbereich"
             description="Öffne den Elternbereich für Einstellungen und Unterstützung."
             onPress={() =>
-              navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, { target: ROOT_STACK_ROUTES.Parent })
+              navigation.navigate(
+                ROOT_STACK_ROUTES.ParentalGate,
+                { target: ROOT_STACK_ROUTES.Parent },
+                { pop: true },
+              )
             }
             accessibilityLabel="Elternbereich öffnen"
             variant="secondary"
@@ -241,7 +253,11 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             title="Admin"
             description="Verwalte Modelle und technische Details."
             onPress={() =>
-              navigation.navigate(ROOT_STACK_ROUTES.ParentalGate, { target: ROOT_STACK_ROUTES.Admin })
+              navigation.navigate(
+                ROOT_STACK_ROUTES.ParentalGate,
+                { target: ROOT_STACK_ROUTES.Admin },
+                { pop: true },
+              )
             }
             accessibilityLabel="Adminbereich öffnen"
             variant="secondary"
@@ -249,7 +265,9 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
           <ButtonComponent
             title="Profile verwalten"
             description="Bearbeite oder lege Profile für Kinder an."
-            onPress={() => navigation.navigate(ROOT_STACK_ROUTES.ProfileManager)}
+            onPress={() =>
+              navigation.navigate(ROOT_STACK_ROUTES.ProfileManager, undefined, { pop: true })
+            }
             accessibilityLabel="Profile verwalten"
             variant="secondary"
           />

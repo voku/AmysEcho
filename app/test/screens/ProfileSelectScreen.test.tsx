@@ -68,10 +68,14 @@ describe('ProfileSelectScreen', () => {
     await waitFor(() => {
       expect(childHapticMock).toHaveBeenCalled();
       expect(navigation.dispatch).not.toHaveBeenCalled();
-      expect(navigation.navigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.App, {
-        screen: APP_TAB_ROUTES.Recognition,
-        params: { profileId: 'amy' },
-      });
+      expect(navigation.navigate).toHaveBeenCalledWith(
+        ROOT_STACK_ROUTES.App,
+        {
+          screen: APP_TAB_ROUTES.Recognition,
+          params: { profileId: 'amy' },
+        },
+        { pop: true },
+      );
     });
   });
 
@@ -85,9 +89,13 @@ describe('ProfileSelectScreen', () => {
     await waitFor(() => {
       expect(childHapticMock).toHaveBeenCalled();
       expect(navigation.dispatch).not.toHaveBeenCalled();
-      expect(navigation.navigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.App, {
-        screen: APP_TAB_ROUTES.Lernen,
-      });
+      expect(navigation.navigate).toHaveBeenCalledWith(
+        ROOT_STACK_ROUTES.App,
+        {
+          screen: APP_TAB_ROUTES.Lernen,
+        },
+        { pop: true },
+      );
     });
   });
 });

@@ -42,20 +42,28 @@ const BottomNavComponent = ({ active, profileId }: BottomNavProps) => {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateToRecognition = useCallback(() => {
     void childHaptic();
-    navigation.navigate(ROOT_STACK_ROUTES.App, {
-      screen: APP_TAB_ROUTES.Recognition,
-      params: { profileId },
-    });
+    navigation.navigate(
+      ROOT_STACK_ROUTES.App,
+      {
+        screen: APP_TAB_ROUTES.Recognition,
+        params: { profileId },
+      },
+      { pop: true },
+    );
   }, [navigation, profileId]);
 
   const navigateToTraining = useCallback(() => {
     void childHaptic();
-    navigation.navigate(ROOT_STACK_ROUTES.App, { screen: APP_TAB_ROUTES.Lernen });
+    navigation.navigate(
+      ROOT_STACK_ROUTES.App,
+      { screen: APP_TAB_ROUTES.Lernen },
+      { pop: true },
+    );
   }, [navigation]);
 
   const navigateToProfileSelect = useCallback(() => {
     void childHaptic();
-    navigation.navigate(ROOT_STACK_ROUTES.ProfileSelect);
+    navigation.navigate(ROOT_STACK_ROUTES.ProfileSelect, undefined, { pop: true });
   }, [navigation]);
 
   // Enhanced breadcrumb system - show navigation path

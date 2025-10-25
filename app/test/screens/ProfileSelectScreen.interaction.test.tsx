@@ -60,6 +60,7 @@ describe('ProfileSelectScreen interactions', () => {
     expect(navigation.navigate).toHaveBeenCalledWith(
       ROOT_STACK_ROUTES.ParentalGate,
       { target: ROOT_STACK_ROUTES.Parent },
+      { pop: true },
     );
   });
 
@@ -80,6 +81,7 @@ describe('ProfileSelectScreen interactions', () => {
     expect(navigation.navigate).toHaveBeenCalledWith(
       ROOT_STACK_ROUTES.ParentalGate,
       { target: ROOT_STACK_ROUTES.Admin },
+      { pop: true },
     );
   });
 });

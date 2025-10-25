@@ -210,10 +210,14 @@ export default function ProfileManagerScreen({
       setLocalLargeText(!!profile.largeText);
       setLocalHighContrast(!!profile.highContrast);
     }
-    navigation.navigate(ROOT_STACK_ROUTES.App, {
-      screen: APP_TAB_ROUTES.Recognition,
-      params: { profileId: id },
-    });
+    navigation.navigate(
+      ROOT_STACK_ROUTES.App,
+      {
+        screen: APP_TAB_ROUTES.Recognition,
+        params: { profileId: id },
+      },
+      { pop: true },
+    );
   };
 
   const toggleLargeText = async (enabled: boolean) => {
@@ -484,7 +488,7 @@ export default function ProfileManagerScreen({
             ]}
             onPress={() => {
               void childHaptic();
-              navigation.navigate(ROOT_STACK_ROUTES.Onboarding);
+              navigation.navigate(ROOT_STACK_ROUTES.Onboarding, undefined, { pop: true });
             }}
             accessibilityRole="button"
             accessibilityLabel="Neues Profil anlegen"

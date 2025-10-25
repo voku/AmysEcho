@@ -106,7 +106,11 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Verwaltung' }).props['onPress']?.();
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.Admin);
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      ROOT_STACK_ROUTES.Admin,
+      undefined,
+      { pop: true },
+    );
   });
 
   it('opens caregiver analytics', async () => {
@@ -122,7 +126,11 @@ describe('ParentScreen interactions', () => {
       component.root.findByProps({ accessibilityLabel: 'Analysen ansehen' }).props['onPress']?.();
     });
 
-    expect(navigation.navigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.Dashboard);
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      ROOT_STACK_ROUTES.Dashboard,
+      undefined,
+      { pop: true },
+    );
   });
 
   it('goes back when Zurück is pressed', async () => {
@@ -175,7 +183,11 @@ describe('ParentScreen interactions', () => {
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
-    expect(navigation.navigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.Parent);
+    expect(navigation.navigate).toHaveBeenCalledWith(
+      ROOT_STACK_ROUTES.Parent,
+      undefined,
+      { pop: true },
+    );
   });
 
   it('pops back to the App recognition tab when Erkennen is pressed', async () => {
