@@ -34,12 +34,16 @@ export default function ParentalGateScreen({ route, navigation }: any) {
 
   const cardBackground = highContrast ? COLORS.highContrastBackground : COLORS.surface;
   const styles = StyleSheet.create({
-    container: {
+    background: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: SPACING.lg,
       backgroundColor: 'transparent',
+    },
+    backgroundContent: {
+      flexGrow: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: SPACING.xxl,
+      paddingHorizontal: SPACING.lg,
     },
     card: {
       width: '100%',
@@ -118,7 +122,11 @@ export default function ParentalGateScreen({ route, navigation }: any) {
   });
 
   return (
-    <ScreenBackground style={styles.container}>
+    <ScreenBackground
+      scrollable
+      style={styles.background}
+      contentContainerStyle={styles.backgroundContent}
+    >
       <View style={styles.card}>
         <Text style={styles.title}>{problem}</Text>
         <Text style={styles.description}>

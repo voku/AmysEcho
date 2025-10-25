@@ -321,7 +321,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       ? 'Übe die Geste in deinem Tempo und beobachte die Fortschrittsanzeige.'
       : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy zuverlässiger reagiert.`
     : 'Wähle eine Geste, um das Training zu starten.';
-  const panelBackground = highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.92)';
+  const panelBackground = highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.97)';
   const panelBorderColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.45)';
 
   const buttonStyles = createButtonStyles();
@@ -334,19 +334,23 @@ export default function TrainingScreen({ navigation, route }: any) {
     scrollContent: {
       flexGrow: 1,
       alignItems: 'center',
-      justifyContent: 'center',
-      paddingBottom: SPACING.lg,
+      justifyContent: 'flex-start',
+      paddingTop: SPACING.lg,
+      paddingBottom: SPACING.xxl * 4,
     },
     loopWrapper: {
       width: '100%',
+      maxWidth: 520,
       marginBottom: SPACING.lg,
       alignItems: 'center',
+      alignSelf: 'center',
     },
     content: {
       width: '100%',
       maxWidth: 520,
       alignItems: 'stretch',
       gap: SPACING.lg,
+      alignSelf: 'center',
     },
     panel: {
       width: '100%',
@@ -372,6 +376,10 @@ export default function TrainingScreen({ navigation, route }: any) {
       fontSize: largeText ? 18 : 16,
       color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
       textAlign: 'center',
+    },
+    gestureList: {
+      width: '100%',
+      alignItems: 'stretch',
     },
     cameraContainer: {
       width: PREVIEW_SIZE,
@@ -523,35 +531,37 @@ export default function TrainingScreen({ navigation, route }: any) {
             </Text>
             <Text style={styles.subtitle}>{subtitleText}</Text>
             {!gestureId ? (
-            gestureModel.gestures.map((g: { id: string; label: string }) => (
-              <Pressable
-                key={g.id}
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  styles.primaryButton,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void hapticFeedback.light();
-                  setGestureId(g.id);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Trainiere Geste ${g.label}`}
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  {g.label}
-                </Text>
-              </Pressable>
-            ))
-          ) : count < TARGET_SAMPLES ? (
+              <View style={styles.gestureList}>
+                {gestureModel.gestures.map((g: { id: string; label: string }) => (
+                  <Pressable
+                    key={g.id}
+                    style={({ pressed }) => [
+                      childFriendlyStyles.minTouchTarget,
+                      styles.button,
+                      styles.primaryButton,
+                      highContrast && styles.buttonHC,
+                      pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                    ]}
+                    onPress={() => {
+                      void hapticFeedback.light();
+                      setGestureId(g.id);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Trainiere Geste ${g.label}`}
+                  >
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        largeText && styles.buttonTextLarge,
+                        highContrast && styles.buttonTextHC,
+                      ]}
+                    >
+                      {g.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : count < TARGET_SAMPLES ? (
             <>
               {/* Optional DGS demo video if available */}
               {gestureId &&

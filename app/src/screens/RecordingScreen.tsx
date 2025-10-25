@@ -122,7 +122,7 @@ export default function RecordingScreen({ navigation, route }: any) {
       ? 'Übe die Geste in deinem Tempo und achte auf ruhige Bewegungen.'
       : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy diese Geste sicher erkennt.`
     : 'Wähle eine Geste aus, um mit der Aufnahme zu beginnen.';
-  const panelBackground = highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.92)';
+  const panelBackground = highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.97)';
   const panelBorderColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.45)';
 
   useEffect(() => {
@@ -303,14 +303,16 @@ export default function RecordingScreen({ navigation, route }: any) {
     scrollContent: {
       flexGrow: 1,
       alignItems: 'center',
-      justifyContent: 'center',
-      paddingBottom: SPACING.lg,
+      justifyContent: 'flex-start',
+      paddingTop: SPACING.lg,
+      paddingBottom: SPACING.xxl * 4,
     },
     content: {
       width: '100%',
       maxWidth: 520,
       alignItems: 'stretch',
       gap: SPACING.lg,
+      alignSelf: 'center',
     },
     panel: {
       width: '100%',
