@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
 import ActionButton from '../components/ActionButton';
@@ -115,6 +123,12 @@ const COMPACT_SECONDARY_ACTIONS_BREAKPOINT = 360; // px width threshold for stac
 const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
 const COMPACT_ACTIONS_SLOT_MIN_HEIGHT =
   ACTION_BUTTON_MIN_HEIGHT * 3 + spacing.sm * 2;
+const DEFAULT_WINDOW_DIMENSIONS = {
+  width: 1024,
+  height: 768,
+  scale: 1,
+  fontScale: 1,
+};
 
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
@@ -158,7 +172,18 @@ export default function RecognitionScreen({
 }: {
   navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 }) {
-  const { width: windowWidth } = useWindowDimensions();
+  const fallbackDimensions =
+    typeof Dimensions?.get === 'function'
+      ? Dimensions.get('window') ?? DEFAULT_WINDOW_DIMENSIONS
+      : DEFAULT_WINDOW_DIMENSIONS;
+  const windowDimensions =
+    typeof useWindowDimensions === 'function'
+      ? useWindowDimensions()
+      : fallbackDimensions;
+  const windowWidth =
+    typeof windowDimensions?.width === 'number'
+      ? windowDimensions.width
+      : fallbackDimensions.width;
   const isCompactSecondaryActions =
     windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const { showToast } = useMessage();
