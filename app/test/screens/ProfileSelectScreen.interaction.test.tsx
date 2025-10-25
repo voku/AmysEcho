@@ -4,7 +4,7 @@ import { Pressable } from 'react-native';
 import type { ComponentProps } from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import type { RootStackParamList } from '../../src/navigation/types';
+import { ROOT_STACK_ROUTES, type RootStackParamList } from '../../src/navigation/types';
 
 type NavigationSubset = StackNavigationProp<RootStackParamList, 'ProfileSelect'>;
 
@@ -58,9 +58,8 @@ describe('ProfileSelectScreen interactions', () => {
     });
 
     expect(navigation.navigate).toHaveBeenCalledWith(
-      'ParentalGate',
-      { target: 'Parent' },
-      { pop: true },
+      ROOT_STACK_ROUTES.ParentalGate,
+      { target: ROOT_STACK_ROUTES.Parent },
     );
   });
 
@@ -79,9 +78,8 @@ describe('ProfileSelectScreen interactions', () => {
     });
 
     expect(navigation.navigate).toHaveBeenCalledWith(
-      'ParentalGate',
-      { target: 'Admin' },
-      { pop: true },
+      ROOT_STACK_ROUTES.ParentalGate,
+      { target: ROOT_STACK_ROUTES.Admin },
     );
   });
 });

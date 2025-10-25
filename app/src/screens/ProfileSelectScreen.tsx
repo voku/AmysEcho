@@ -7,8 +7,7 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import type { RootStackParamList } from '../navigation/types';
-import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, type AppTabsParamList } from '../navigation/types';
-import type { NavigatorScreenParams } from '@react-navigation/native';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 
 type ProfileSelectNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -22,56 +21,6 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
   useEffect(() => {
     loadProfile().then(setProfile);
   }, []);
-
-  const goToAppTab = (
-    screen: (typeof APP_TAB_ROUTES)[keyof typeof APP_TAB_ROUTES],
-    params?: AppTabsParamList[keyof AppTabsParamList],
-    dropCurrent: boolean = false,
-  ) => {
-    const nestedParams = (params === undefined ? { screen } : { screen, params }) as NavigatorScreenParams<AppTabsParamList>;
-
-    if (typeof navigation.reset === 'function' && typeof navigation.getState === 'function') {
-      const state = navigation.getState();
-      const appIndex = state.routes.findIndex((route) => route.name === ROOT_STACK_ROUTES.App);
-      const routes: Array<{
-        name: keyof RootStackParamList;
-        params?: RootStackParamList[keyof RootStackParamList];
-      }> = [];
-
-      const appendRoute = (route: (typeof state.routes)[number], index: number) => {
-        if (route.name === ROOT_STACK_ROUTES.App) {
-          return;
-        }
-        if (dropCurrent && index === state.index) {
-          return;
-        }
-        routes.push({
-          name: route.name as keyof RootStackParamList,
-          params: route.params as RootStackParamList[keyof RootStackParamList] | undefined,
-        });
-      };
-
-      if (appIndex >= 0) {
-        state.routes.slice(0, appIndex).forEach(appendRoute);
-      } else {
-        state.routes.forEach(appendRoute);
-      }
-
-      routes.push({
-        name: ROOT_STACK_ROUTES.App,
-        params: nestedParams,
-      });
-
-      navigation.reset({ index: routes.length - 1, routes });
-      return;
-    }
-
-    if (dropCurrent && typeof navigation.replace === 'function') {
-      navigation.replace(ROOT_STACK_ROUTES.App, nestedParams);
-    } else {
-      navigation.navigate(ROOT_STACK_ROUTES.App, nestedParams);
-    }
-  };
 
   const styles = StyleSheet.create({
     container: {
@@ -258,7 +207,10 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             }
             onPress={() => {
               if (profile) {
-                goToAppTab(APP_TAB_ROUTES.Recognition, { profileId: profile.id }, true);
+                navigation.navigate(ROOT_STACK_ROUTES.App, {
+                  screen: APP_TAB_ROUTES.Recognition,
+                  params: { profileId: profile.id },
+                });
               }
             }}
             accessibilityLabel="Zum Erkennungsmodus"
@@ -268,7 +220,9 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
             title="Lernen"
             description="Übe Gesten gemeinsam und sammle neue Trainingsbeispiele."
             onPress={() => {
-              goToAppTab(APP_TAB_ROUTES.Lernen, undefined, true);
+              navigation.navigate(ROOT_STACK_ROUTES.App, {
+                screen: APP_TAB_ROUTES.Lernen,
+              });
             }}
             accessibilityLabel="Zum Lernmodus"
           />
