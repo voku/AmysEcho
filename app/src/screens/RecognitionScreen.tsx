@@ -3,6 +3,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -45,6 +46,7 @@ import typography from '../constants/typography';
 import { triggerSpeakAndShow } from '../services/feedbackService';
 import { OneEuroFilter } from '../services/OneEuroFilter';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { childFriendlyStyles } from '../styles/touchTargets';
 
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
@@ -52,7 +54,7 @@ type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating
 
 const CAMERA_THEME = {
   gradient: [Colors.backgroundStart, Colors.backgroundEnd] as const,
-  overlayScrim: 'rgba(13, 58, 61, 0.58)',
+  overlayScrim: 'rgba(8, 40, 43, 0.78)',
   statusBackground: {
     idle: Colors.statusListeningBackground,
     listening: Colors.statusListeningBackground,
@@ -70,7 +72,7 @@ const CAMERA_THEME = {
   capturePulseOpacity: 0.55,
   cameraHint: Colors.cameraGuideText,
   cameraHintMuted: Colors.cameraGuideTextMuted,
-  predictionCardBackground: 'rgba(255, 255, 255, 0.92)',
+  predictionCardBackground: 'rgba(255, 255, 255, 0.96)',
   predictionCardBorder: Colors.overlayBadgeBorder,
   predictionCardText: Colors.neutral,
   actionButtons: {
@@ -203,6 +205,14 @@ export default function RecognitionScreen({
     [insets.bottom, insets.top, windowWidth],
   );
 
+  const handPreviewPositionStyle = useMemo(
+    () => ({
+      top: insets.top + spacing.xl,
+      right: spacing.xl,
+    }),
+    [insets.top],
+  );
+
   const constrainedContentStyle = useMemo(
     () => (windowWidth >= 720 ? styles.wideContent : undefined),
     [windowWidth],
@@ -217,6 +227,7 @@ export default function RecognitionScreen({
     gestureConfidence,
     lastRecognizedGesture,
     facingMode,
+    setFacingMode,
     showCelebration,
     celebrationKey,
     gestureSizeTolerance,
@@ -429,6 +440,10 @@ export default function RecognitionScreen({
     [handleParallelProcessing],
   );
 
+  const toggleFacingMode = useCallback(() => {
+    setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
+  }, [setFacingMode]);
+
   const handleAcknowledgeOpenAISuggestion = useCallback(
     (suggestion?: string) => {
       logger.info(suggestion ? 'OpenAI suggestion angewendet' : 'OpenAI-Vorschlag bestätigt', { suggestion });
@@ -638,6 +653,10 @@ export default function RecognitionScreen({
 
   const statusCardBackground = CAMERA_THEME.statusBackground[statusCategory];
   const statusCardText = CAMERA_THEME.statusText[statusCategory];
+  const statusCardBorder =
+    statusCategory === 'recognized' || statusCategory === 'updating'
+      ? Colors.overlayBadgeBorder
+      : 'rgba(255, 255, 255, 0.24)';
 
   const handleConfirmGesture = useCallback(() => {
     if (!gestureMeaningDisplayProps) {
@@ -673,7 +692,7 @@ export default function RecognitionScreen({
             styles.statusCard,
             {
               backgroundColor: statusCardBackground,
-              borderColor: statusCardBackground,
+              borderColor: statusCardBorder,
             },
           ]}
           accessibilityRole="text"
@@ -685,6 +704,27 @@ export default function RecognitionScreen({
           {encouragement ? (
             <Text style={[styles.statusEncouragement, { color: statusCardText }]}>{encouragement}</Text>
           ) : null}
+        </View>
+
+        <View style={styles.cameraToggleRow}>
+          <Text style={styles.cameraToggleLabel}>
+            {`Aktive Kamera: ${facingMode === 'user' ? 'Vorderseite' : 'Rückseite'}`}
+          </Text>
+          <Pressable
+            onPress={toggleFacingMode}
+            accessibilityRole="button"
+            accessibilityLabel="Kamera wechseln"
+            accessibilityHint="Zwischen Vorder- und Rückkamera umschalten"
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.cameraToggleButton,
+              pressed && styles.cameraToggleButtonPressed,
+            ]}
+          >
+            <Text style={styles.cameraToggleText}>
+              {facingMode === 'user' ? 'Zur Rückkamera' : 'Zur Frontkamera'}
+            </Text>
+          </Pressable>
         </View>
       </View>
 
@@ -806,12 +846,15 @@ export default function RecognitionScreen({
         />
 
         <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-          <HandLandmarkPreview
-            landmarks={currentLandmarks}
-            handedness={currentHandedness}
-            mirror={facingMode === 'user'}
-            confidence={gestureConfidence}
-          />
+          <View pointerEvents="none" style={[styles.handPreviewWrapper, handPreviewPositionStyle]}>
+            <HandLandmarkPreview
+              landmarks={currentLandmarks}
+              handedness={currentHandedness}
+              mirror={facingMode === 'user'}
+              confidence={gestureConfidence}
+              style={styles.handPreview}
+            />
+          </View>
 
           {isCompactHeight ? (
             <ScrollView
@@ -853,6 +896,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     backgroundColor: CAMERA_THEME.overlayScrim,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.overlayBadgeBorder,
+    borderRadius: 36,
   },
   overlayScrollContainer: {
     flex: 1,
@@ -864,6 +910,7 @@ const styles = StyleSheet.create({
   topSection: {
     width: '100%',
     alignItems: 'stretch',
+    gap: spacing.lg,
   },
   statusCard: {
     width: '100%',
@@ -898,6 +945,38 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.75,
   },
+  cameraToggleRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.overlaySurface,
+    borderRadius: 20,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.overlayBadgeBorder,
+  },
+  cameraToggleLabel: {
+    flex: 1,
+    marginRight: spacing.md,
+    fontSize: typography.sizes.body,
+    color: Colors.overlayText,
+  },
+  cameraToggleButton: {
+    borderRadius: 16,
+    backgroundColor: Colors.actionSecondaryBackgroundMuted,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+  },
+  cameraToggleButtonPressed: {
+    backgroundColor: Colors.actionSecondaryPressed,
+  },
+  cameraToggleText: {
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold as any,
+    color: Colors.overlayText,
+  },
   cameraZone: {
     flex: 1,
     alignItems: 'center',
@@ -915,6 +994,7 @@ const styles = StyleSheet.create({
   bottomSection: {
     width: '100%',
     gap: spacing.lg,
+    flexShrink: 0,
   },
   actionsSlot: {
     minHeight: ACTIONS_SLOT_MIN_HEIGHT,
@@ -994,5 +1074,18 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     maxWidth: 560,
+  },
+  handPreviewWrapper: {
+    position: 'absolute',
+    width: 168,
+    aspectRatio: 1,
+  },
+  handPreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.overlayBadgeBorder,
+    backgroundColor: 'rgba(7, 33, 36, 0.78)',
   },
 });

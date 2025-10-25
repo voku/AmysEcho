@@ -108,6 +108,11 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
     return uniqueHands.slice(0, 2);
   }, [landmarks]);
 
+  const safeConfidence =
+    typeof confidence === 'number' && Number.isFinite(confidence)
+      ? clamp(confidence)
+      : null;
+
   if (!hands.length) {
     return (
       <View style={[styles.container, style]}>
@@ -180,10 +185,10 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
           );
         })}
       </Svg>
-      {typeof confidence === 'number' && (
+      {safeConfidence !== null && (
         <View style={styles.confidenceBadge}>
           <Text style={styles.confidenceText}>
-            {`Sicherheit: ${(confidence * 100).toFixed(0)}%`}
+            {`Sicherheit: ${Math.round(safeConfidence * 100)}%`}
           </Text>
         </View>
       )}
@@ -198,6 +203,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: 'rgba(17, 24, 39, 0.6)',
+    width: 148,
+    height: 148,
   },
   placeholder: {
     color: '#e5e7eb',
