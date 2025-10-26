@@ -162,8 +162,14 @@ describe('NewBottomNav', () => {
     const activeTabStyle = StyleSheet.flatten(pressables[1].props.style({ pressed: false }));
     expect(activeTabStyle?.backgroundColor).toBe(COLORS.actionSecondaryBackground);
 
+    const activeIconStyle = StyleSheet.flatten(pressables[1].findAllByType(Text)[0].props.style);
+    expect(activeIconStyle?.color).toBe(COLORS.actionSecondaryText);
+
     const inactiveIconStyle = StyleSheet.flatten(pressables[0].findAllByType(Text)[0].props.style);
     expect(inactiveIconStyle?.color).toBe('rgba(255, 255, 255, 0.68)');
+
+    const activeLabelStyle = StyleSheet.flatten(pressables[1].findAllByType(Text)[1].props.style);
+    expect(activeLabelStyle?.color).toBe(COLORS.actionSecondaryText);
 
     const inactiveLabelStyle = StyleSheet.flatten(pressables[0].findAllByType(Text)[1].props.style);
     expect(inactiveLabelStyle?.color).toBe('rgba(255, 255, 255, 0.68)');

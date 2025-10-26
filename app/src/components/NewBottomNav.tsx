@@ -49,7 +49,7 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
     : themeColors.themeSecondary ?? COLORS.actionSecondaryBackground;
   const activeColor = highContrast
     ? COLORS.highContrastBackground
-    : themeColors.surface ?? COLORS.actionPrimaryBackground;
+    : themeColors.text ?? COLORS.actionSecondaryText;
   const indicatorColor = highContrast
     ? COLORS.highContrastBackground
     : themeColors.themeAccent ?? COLORS.actionPrimaryBackground;
