@@ -26,6 +26,7 @@ import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import gestureSuggester from '../services/gestureSuggester';
 import * as Haptics from 'expo-haptics';
 import { logger } from '../utils/logger';
+import { normalizeConfidence } from '../utils/confidence';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
 import type { RecognitionPath } from '../utils/recognitionState';
@@ -487,7 +488,14 @@ export const useRecognitionCallbacks = ({
         setCurrentLandmarks(landmarks);
         setCurrentHandedness(handedness);
 
-        const smoothedConfidence = refs.confidenceFilterRef.current.filter(confidence, Date.now() / 1000);
+        const nowSeconds = Date.now() / 1000;
+        const normalizedInputConfidence = normalizeConfidence(confidence) ?? 0;
+        const filteredConfidence = refs.confidenceFilterRef.current.filter(
+          normalizedInputConfidence,
+          nowSeconds,
+        );
+        const normalizedFilteredConfidence = normalizeConfidence(filteredConfidence);
+        const smoothedConfidence = normalizedFilteredConfidence ?? normalizedInputConfidence;
         setGestureConfidence(smoothedConfidence);
 
         if (landmarks.length) {

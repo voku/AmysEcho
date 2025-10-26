@@ -61,7 +61,7 @@ type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating
 
 const CAMERA_THEME = {
   gradient: [Colors.backgroundStart, Colors.backgroundEnd] as const,
-  overlayScrim: 'rgba(8, 40, 43, 0.78)',
+  overlayScrim: 'rgba(8, 40, 43, 0.86)',
   statusBackground: {
     idle: Colors.statusListeningBackground,
     listening: Colors.statusListeningBackground,
@@ -99,6 +99,12 @@ const CAMERA_THEME = {
       text: Colors.cameraActionAlternativesText,
     },
   },
+} as const;
+
+const OVERLAY_TEXT_SHADOW = {
+  textShadowColor: 'rgba(0, 0, 0, 0.45)',
+  textShadowOffset: { width: 0, height: 2 },
+  textShadowRadius: 6,
 } as const;
 
 const STATUS_COPY: Record<
@@ -939,19 +945,22 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold as any,
     letterSpacing: 0.5,
     textAlign: 'center',
+    ...OVERLAY_TEXT_SHADOW,
   },
   statusDetail: {
     fontSize: typography.sizes.body,
     lineHeight: typography.lineHeights.relaxed,
     textAlign: 'center',
-    opacity: 0.88,
+    opacity: 0.94,
+    ...OVERLAY_TEXT_SHADOW,
   },
   statusEncouragement: {
     fontSize: typography.sizes.caption,
     fontWeight: typography.weights.medium as any,
     letterSpacing: 0.4,
     textAlign: 'center',
-    opacity: 0.75,
+    opacity: 0.88,
+    ...OVERLAY_TEXT_SHADOW,
   },
   cameraToggleRow: {
     width: '100%',
@@ -1026,12 +1035,12 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   predictionPlaceholder: {
-    backgroundColor: Colors.overlayPlaceholderBackground,
+    backgroundColor: Colors.detectionTextBackground,
     borderRadius: 24,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing['2xl'],
     borderWidth: 1,
-    borderColor: Colors.overlayPlaceholderBorder,
+    borderColor: Colors.panelBorder,
     alignItems: 'center',
     gap: spacing.sm,
   },
@@ -1040,11 +1049,13 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold as any,
     color: CAMERA_THEME.cameraHint,
     textAlign: 'center',
+    ...OVERLAY_TEXT_SHADOW,
   },
   predictionPlaceholderSubtitle: {
     fontSize: typography.sizes.body,
     color: CAMERA_THEME.cameraHintMuted,
     textAlign: 'center',
+    ...OVERLAY_TEXT_SHADOW,
   },
   actionsContainer: {
     gap: spacing.sm,

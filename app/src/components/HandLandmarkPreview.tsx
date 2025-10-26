@@ -3,6 +3,11 @@ import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-na
 
 import Svg, { Circle, G, Line } from 'react-native-svg';
 
+import {
+  formatConfidencePercentage,
+  normalizeConfidence,
+} from '../utils/confidence';
+
 const HAND_CONNECTIONS: Array<[number, number]> = [
   [0, 1],
   [1, 2],
@@ -108,10 +113,10 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
     return uniqueHands.slice(0, 2);
   }, [landmarks]);
 
-  const safeConfidence =
-    typeof confidence === 'number' && Number.isFinite(confidence)
-      ? clamp(confidence)
-      : null;
+  const safeConfidence = useMemo(() => normalizeConfidence(confidence), [confidence]);
+  const confidenceDisplay = safeConfidence !== null
+    ? `Sicherheit: ${formatConfidencePercentage(safeConfidence)}`
+    : 'Sicherheit: wird ermittelt…';
 
   if (!hands.length) {
     return (
@@ -185,13 +190,13 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
           );
         })}
       </Svg>
-      {safeConfidence !== null && (
-        <View style={styles.confidenceBadge}>
-          <Text style={styles.confidenceText}>
-            {`Sicherheit: ${Math.round(safeConfidence * 100)}%`}
-          </Text>
-        </View>
-      )}
+      <View
+        style={styles.confidenceBadge}
+        accessibilityRole="text"
+        accessibilityLabel={confidenceDisplay}
+      >
+        <Text style={styles.confidenceText}>{confidenceDisplay}</Text>
+      </View>
     </View>
   );
 };
