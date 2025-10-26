@@ -51,9 +51,6 @@ jest.mock('../../src/services', () => ({
   dialogEngine: {
     getSuggestions: jest.fn().mockResolvedValue([]),
   },
-  LanguageManager: {
-    getLanguage: jest.fn().mockReturnValue('de'),
-  },
 }));
 
 jest.mock('../../src/services/gestureHistoryService', () => ({
