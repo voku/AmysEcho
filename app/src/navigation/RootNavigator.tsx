@@ -121,7 +121,7 @@ const RootNavigator = () => (
       <Stack.Screen name="Tutorial" component={TutorialScreen} />
       <Stack.Screen name="ProfileSelect" component={ProfileSelectScreen} />
       <Stack.Screen
-        name="Recording"
+        name={ROOT_STACK_ROUTES.Recording}
         component={noopScreen}
         listeners={({ navigation, route }) => ({
           focus: () => {
