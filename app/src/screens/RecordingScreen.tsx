@@ -135,17 +135,15 @@ export default function RecordingScreen({ navigation, route }: any) {
 
   const handleCameraStateChange = useCallback(
     (state: CameraStateEvent) => {
-      if (state === 'camera_started' || state === 'camera_start_hook_success') {
+      const readyStates: CameraStateEvent[] = ['camera_started', 'camera_start_hook_success'];
+      const notReadyStates: CameraStateEvent[] = ['dom_ready', 'cleanup_done'];
+      const errorStates: CameraStateEvent[] = ['camera_start_failed', 'camera_start_hook_error'];
+
+      if (readyStates.includes(state)) {
         setCameraReady(true);
-        return;
-      }
-
-      if (state === 'dom_ready' || state === 'cleanup_done') {
+      } else if (notReadyStates.includes(state)) {
         setCameraReady(false);
-        return;
-      }
-
-      if (state === 'camera_start_failed' || state === 'camera_start_hook_error') {
+      } else if (errorStates.includes(state)) {
         setCameraReady(false);
         showToast({
           message: 'Die Kamera ist noch nicht bereit. Bitte versuch es gleich noch einmal.',

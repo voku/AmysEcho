@@ -214,12 +214,7 @@ describe('TrainingScreen', () => {
 
   it('zeigt Trainingstipps und gut sichtbare Gestenkarten, wenn noch nichts ausgewählt ist', async () => {
     const storage = require('../../src/storage');
-    (storage.loadProfile as jest.Mock).mockImplementation(() => ({
-      then: (onFulfilled: (value: any) => void) => {
-        onFulfilled(null);
-        return { catch: () => {} } as any;
-      },
-    }));
+    (storage.loadProfile as jest.Mock).mockResolvedValue(null);
 
     await act(async () => {
       component = renderer.create(

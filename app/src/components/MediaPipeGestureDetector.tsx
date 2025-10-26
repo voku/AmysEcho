@@ -744,11 +744,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
             clearCameraStartRetryTimeout();
             cameraStartRetryRef.current.attempts = 0;
             setWebviewError(null);
-            if (eventName === 'camera_started') {
-              onCameraStateChange?.('camera_started');
-            } else {
-              onCameraStateChange?.('camera_start_hook_success');
-            }
+            onCameraStateChange?.(eventName);
           } else if (eventName === 'dom_ready') {
             setWebviewError(null);
             scheduleCameraStartAttempt('dom_ready', true);
@@ -756,11 +752,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           } else if (eventName === 'camera_start_failed' || eventName === 'camera_start_hook_error') {
             setWebviewError(CAMERA_ERROR_TEXT);
             scheduleCameraStartAttempt('dom_ready_retry');
-            if (eventName === 'camera_start_failed') {
-              onCameraStateChange?.('camera_start_failed');
-            } else {
-              onCameraStateChange?.('camera_start_hook_error');
-            }
+            onCameraStateChange?.(eventName);
           }
         } else if (data.type === 'error') {
           const errorMessage = typeof data.message === 'string' ? data.message : 'gesture_processing_error';
