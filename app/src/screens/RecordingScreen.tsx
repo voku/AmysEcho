@@ -282,6 +282,7 @@ export default function RecordingScreen({ navigation, route }: any) {
   const toggleFacingMode = useCallback(() => {
     void hapticFeedback.light();
     setFacingMode((current) => getNextCameraFacingMode(current));
+    setCameraReady(false);
     setLandmarks([]);
     setLastDetection(0);
   }, []);
