@@ -23,13 +23,13 @@ describe('ProfileAnalytics', () => {
     },
     recentActivity: {
       today: 2,
-      thisWeek: 5,
+      thisWeek: 6,
       thisMonth: 12,
     },
   } as const;
 
   it('renders concrete analytics values without undefined placeholders', () => {
-    const { getByText, getAllByText, queryByText } = render(
+    const { getByText, queryByText } = render(
       <ProfileAnalytics stats={baseStats} onClose={jest.fn()} onViewDetails={jest.fn()} />,
     );
 
@@ -45,7 +45,7 @@ describe('ProfileAnalytics', () => {
     expect(getByText('Heute')).toBeTruthy();
     expect(getByText('2')).toBeTruthy();
     expect(getByText('Diese Woche')).toBeTruthy();
-    expect(getAllByText('5').length).toBeGreaterThan(0);
+    expect(getByText('6')).toBeTruthy();
     expect(getByText('Dieser Monat')).toBeTruthy();
     expect(getByText('12')).toBeTruthy();
     expect(queryByText(/undefined/i)).toBeNull();
