@@ -22,6 +22,7 @@ import { logger } from '../utils/logger';
 import {
   MediaPipeGestureDetector,
   MediaPipeGestureDetectorHandle,
+  CameraStateEvent,
 } from '../components/MediaPipeGestureDetector';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
@@ -56,6 +57,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const PREVIEW_SIZE = 200;
   const { gestureLabel, isPractice, targetSamples } = route.params || {};
+  const gestures = Array.isArray(gestureModel.gestures) ? gestureModel.gestures : [];
   const TARGET_SAMPLES = isPractice ? (typeof targetSamples === 'number' ? targetSamples : 5) : 5;
   // No camera ref needed; WebView handles its own camera
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
@@ -73,6 +75,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
   const clipRequestIdRef = useRef<string | null>(null);
   const clipFileRef = useRef<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
 
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
     const directory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
@@ -118,7 +121,12 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   useEffect(() => {
-    loadProfile()
+    const maybeProfile = loadProfile();
+    if (!maybeProfile || typeof (maybeProfile as Promise<Profile | null>).then !== 'function') {
+      logger.warn('loadProfile returned no promise for training screen');
+      return;
+    }
+    maybeProfile
       .then(setProfile)
       .catch((e) => {
         logger.error('Failed to load profile', e);
@@ -209,10 +217,34 @@ export default function TrainingScreen({ navigation, route }: any) {
     setFacingMode((current) => getNextCameraFacingMode(current));
     setLandmarks([]);
     setLastDetection(0);
+    setCameraReady(false);
   }, []);
 
+  const handleCameraStateChange = useCallback(
+    (state: CameraStateEvent) => {
+      if (state === 'camera_started' || state === 'camera_start_hook_success') {
+        setCameraReady(true);
+        return;
+      }
+
+      if (state === 'dom_ready' || state === 'cleanup_done') {
+        setCameraReady(false);
+        return;
+      }
+
+      if (state === 'camera_start_failed' || state === 'camera_start_hook_error') {
+        setCameraReady(false);
+        showToast({
+          message: 'Die Kamera ist noch nicht bereit. Bitte versuch es gleich noch einmal.',
+          tone: 'info',
+        });
+      }
+    },
+    [showToast],
+  );
+
   const startRecording = useCallback(async () => {
-    if (!gestureId) return;
+    if (!gestureId || !cameraReady) return;
     setError(null);
     setRecordedFrames([]);
     setFramesCaptured(0);
@@ -231,15 +263,11 @@ export default function TrainingScreen({ navigation, route }: any) {
 
     // HIP 2 or 4: sample start
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
-  }, [
-    cleanupClipFile,
-    gestureId,
-    isPractice,
-  ]);
+  }, [cameraReady, cleanupClipFile, gestureId, isPractice]);
 
   const stopRecording = useCallback(async () => {
     setIsRecording(false);
-    if (!gestureId) return;
+    if (!gestureId || !cameraReady) return;
 
     let clipUri: string | null = null;
     if (clipRequestIdRef.current && detectorRef.current) {
@@ -309,6 +337,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       clipRequestIdRef.current = null;
     }
   }, [
+    cameraReady,
     detectorRef,
     framesCaptured,
     gestureId,
@@ -323,11 +352,63 @@ export default function TrainingScreen({ navigation, route }: any) {
     navigation.goBack();
   };
 
+  const formatGestureName = useCallback(
+    (
+      gesture?: {
+        label?: string;
+        emoji?: string;
+        id?: string;
+      } | null,
+    ) => {
+      if (!gesture) {
+        return '';
+      }
+      if (gesture.emoji && gesture.label?.startsWith(gesture.emoji)) {
+        const stripped = gesture.label.slice(gesture.emoji.length).trim();
+        return stripped.length > 0 ? stripped : gesture.label;
+      }
+      return gesture.label ?? gesture.id ?? '';
+    },
+    [],
+  );
+
+  const selectedGesture = useMemo(
+    () => gestures.find((gesture) => gesture.id === gestureId) ?? null,
+    [gestures, gestureId],
+  );
+
+  const selectedGestureEmoji = selectedGesture?.emoji ?? '🤲';
+  const selectedGestureName = formatGestureName(selectedGesture);
+
+  const displayGestureName = selectedGestureName || gestureId || 'diese Geste';
+
   const subtitleText = gestureId
     ? isPractice
-      ? 'Übe die Geste in deinem Tempo und beobachte die Fortschrittsanzeige.'
-      : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy zuverlässiger reagiert.`
+      ? `Übe ${displayGestureName} in deinem Tempo und beobachte die Fortschrittsanzeige.`
+      : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy ${displayGestureName} sicher erkennt.`
     : 'Wähle eine Geste, um das Training zu starten.';
+  const primaryCtaLabel = useMemo(() => {
+    if (isRecording) {
+      return 'Aufnahme stoppen';
+    }
+    if (!gestureId) {
+      return 'Geste auswählen';
+    }
+    if (!cameraReady) {
+      return 'Kamera starten';
+    }
+    return `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`;
+  }, [cameraReady, count, gestureId, isRecording, TARGET_SAMPLES]);
+  const trainingSteps = useMemo(
+    () => [
+      'Wähle eine bekannte Geste oder starte über „Neue Geste beibringen“ einen neuen Eintrag.',
+      'Stell dich mit gut beleuchteter Hand in die Kamera – alle Finger sollen sichtbar sein.',
+      'Drücke „Kamera starten“ und nimm mindestens 5 kurze, klare Beispiele auf.',
+      'Variiere Abstand und Tempo leicht, damit Amy die Bewegung sicher erkennt.',
+    ],
+    [],
+  );
+
   const panelBackground = highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.97)';
   const panelBorderColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.45)';
 
@@ -384,9 +465,98 @@ export default function TrainingScreen({ navigation, route }: any) {
       color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
       textAlign: 'center',
     },
-    gestureList: {
+    trainingInfoCard: {
       width: '100%',
-      alignItems: 'stretch',
+      borderRadius: DEFAULT_RADIUS * 1.5,
+      padding: SPACING.md,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(16, 36, 63, 0.08)',
+      borderWidth: highContrast ? 2 : StyleSheet.hairlineWidth,
+      borderColor: highContrast ? COLORS.highContrastText : 'rgba(16, 36, 63, 0.16)',
+      gap: SPACING.sm,
+    },
+    trainingInfoTitle: {
+      fontSize: largeText ? 18 : 16,
+      fontWeight: '600',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
+    trainingInfoRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: SPACING.xs,
+    },
+    trainingInfoNumber: {
+      fontSize: largeText ? 16 : 14,
+      fontWeight: '600',
+      color: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      marginTop: 1,
+    },
+    trainingInfoText: {
+      flex: 1,
+      fontSize: largeText ? 16 : 14,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
+    gestureGrid: {
+      width: '100%',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: SPACING.md,
+    },
+    gestureCard: {
+      width: '46%',
+      minWidth: 140,
+      borderRadius: DEFAULT_RADIUS * 1.5,
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.sm,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      borderWidth: highContrast ? 2 : StyleSheet.hairlineWidth,
+      borderColor: highContrast ? COLORS.highContrastText : 'rgba(16, 36, 63, 0.1)',
+      alignItems: 'center',
+      gap: SPACING.xs,
+    },
+    gestureCardPressed: {
+      transform: [{ scale: 0.98 }],
+    },
+    gestureEmoji: {
+      fontSize: largeText ? 40 : 36,
+    },
+    gestureName: {
+      fontSize: largeText ? 18 : 16,
+      fontWeight: '600',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      textAlign: 'center',
+    },
+    gestureHint: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+      textAlign: 'center',
+    },
+    selectedGestureCard: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      padding: SPACING.md,
+      borderRadius: DEFAULT_RADIUS * 1.5,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(16, 36, 63, 0.08)',
+      borderWidth: highContrast ? 2 : StyleSheet.hairlineWidth,
+      borderColor: highContrast ? COLORS.highContrastText : 'rgba(16, 36, 63, 0.16)',
+    },
+    selectedGestureEmoji: {
+      fontSize: largeText ? 44 : 40,
+    },
+    selectedGestureText: {
+      flex: 1,
+      gap: SPACING.xs,
+    },
+    selectedGestureName: {
+      fontSize: largeText ? 20 : 18,
+      fontWeight: '700',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
+    selectedGestureInfo: {
+      fontSize: largeText ? 16 : 14,
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
     },
     cameraContainer: {
       width: PREVIEW_SIZE,
@@ -538,38 +708,55 @@ export default function TrainingScreen({ navigation, route }: any) {
             </Text>
             <Text style={styles.subtitle}>{subtitleText}</Text>
             {!gestureId ? (
-              <View style={styles.gestureList}>
-                {gestureModel.gestures.map((g: { id: string; label: string }) => (
-                  <Pressable
-                    key={g.id}
-                    style={({ pressed }) => [
-                      childFriendlyStyles.minTouchTarget,
-                      styles.button,
-                      styles.primaryButton,
-                      highContrast && styles.buttonHC,
-                      pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                    ]}
-                    onPress={() => {
-                      void hapticFeedback.light();
-                      setGestureId(g.id);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Trainiere Geste ${g.label}`}
-                  >
-                    <Text
-                      style={[
-                        styles.buttonText,
-                        largeText && styles.buttonTextLarge,
-                        highContrast && styles.buttonTextHC,
-                      ]}
-                    >
-                      {g.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              <>
+                <View style={styles.trainingInfoCard}>
+                  <Text style={styles.trainingInfoTitle}>So trainierst du neue Gesten</Text>
+                  {trainingSteps.map((step, index) => (
+                    <View key={`${index}-${step}`} style={styles.trainingInfoRow}>
+                      <Text style={styles.trainingInfoNumber}>{index + 1}.</Text>
+                      <Text style={styles.trainingInfoText}>{step}</Text>
+                    </View>
+                  ))}
+                </View>
+                <View style={styles.gestureGrid}>
+                  {gestures.map((g) => {
+                    const emoji = g?.emoji ?? '🤲';
+                    const gestureName = formatGestureName(g) || g?.id || 'Geste';
+                    return (
+                      <Pressable
+                        key={g.id}
+                        style={({ pressed }) => [
+                          childFriendlyStyles.minTouchTarget,
+                          styles.gestureCard,
+                          pressed && styles.gestureCardPressed,
+                        ]}
+                        onPress={() => {
+                          void hapticFeedback.light();
+                          setGestureId(g.id);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Geste ${gestureName} auswählen`}
+                        accessibilityHint="Starte das Training für diese Bewegung"
+                      >
+                        <Text style={styles.gestureEmoji}>{emoji}</Text>
+                        <Text style={styles.gestureName}>{gestureName}</Text>
+                        <Text style={styles.gestureHint}>5 klare Beispiele helfen Amy beim Lernen.</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
             ) : count < TARGET_SAMPLES ? (
             <>
+              <View style={styles.selectedGestureCard}>
+                <Text style={styles.selectedGestureEmoji}>{selectedGestureEmoji}</Text>
+                <View style={styles.selectedGestureText}>
+                  <Text style={styles.selectedGestureName}>{displayGestureName}</Text>
+                  <Text style={styles.selectedGestureInfo}>
+                    Zeig Amy unterschiedliche Beispiele – ruhige Bewegungen unterstützen das Modell.
+                  </Text>
+                </View>
+              </View>
               {/* Optional DGS demo video if available */}
               {gestureId &&
                 (() => {
@@ -632,6 +819,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                     });
                   }}
                   facingMode={facingMode}
+                  onCameraStateChange={handleCameraStateChange}
                 />
                 {landmarks.length > 0 && (
                   <Svg
@@ -691,9 +879,10 @@ export default function TrainingScreen({ navigation, route }: any) {
                   styles.button,
                   styles.primaryButton,
                   highContrast && styles.buttonHC,
-                  !gestureId && styles.buttonDisabled,
+                  (!gestureId || (!cameraReady && !isRecording)) && styles.buttonDisabled,
                   pressed &&
                     gestureId &&
+                    (cameraReady || isRecording) &&
                     (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
                 ]}
                 onPress={() => {
@@ -705,12 +894,8 @@ export default function TrainingScreen({ navigation, route }: any) {
                   }
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={
-                  isRecording
-                    ? 'Gestenaufnahme stoppen'
-                    : `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`
-                }
-                disabled={!gestureId}
+                accessibilityLabel={primaryCtaLabel}
+                disabled={!gestureId || (!cameraReady && !isRecording)}
               >
                 <Text
                   style={[
@@ -719,9 +904,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                     highContrast && styles.buttonTextHC,
                   ]}
                 >
-                  {isRecording
-                    ? 'Aufnahme stoppen'
-                    : `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`}
+                  {primaryCtaLabel}
                 </Text>
               </Pressable>
               {!isRecording && framesCaptured > 0 && (

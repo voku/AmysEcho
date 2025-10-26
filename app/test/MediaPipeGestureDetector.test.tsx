@@ -215,6 +215,47 @@ describe('MediaPipeGestureDetector', () => {
     expect(requeueLastModelMock).toHaveBeenCalledTimes(1);
   });
 
+  it('notifies camera state changes from telemetry events', () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+    const onCameraStateChange = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onError={onError}
+          onCameraStateChange={onCameraStateChange}
+        />,
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const emitTelemetry = (event: string) => {
+      act(() => {
+        webview.props.onMessage({
+          nativeEvent: { data: JSON.stringify({ type: 'telemetry', event }) },
+        });
+      });
+    };
+
+    emitTelemetry('dom_ready');
+    emitTelemetry('camera_started');
+    emitTelemetry('camera_start_failed');
+    emitTelemetry('camera_start_hook_success');
+    emitTelemetry('camera_start_hook_error');
+    emitTelemetry('cleanup_done');
+
+    expect(onCameraStateChange.mock.calls.map((call) => call[0])).toEqual([
+      'dom_ready',
+      'camera_started',
+      'camera_start_failed',
+      'camera_start_hook_success',
+      'camera_start_hook_error',
+      'cleanup_done',
+    ]);
+  });
+
   it('applies gesture size tolerance to the WebView and updates when the prop changes', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();

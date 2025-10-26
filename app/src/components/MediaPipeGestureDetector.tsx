@@ -78,6 +78,14 @@ type ClipRequestState = {
   timeout?: ReturnType<typeof setTimeout> | null;
 };
 
+export type CameraStateEvent =
+  | 'camera_started'
+  | 'camera_start_failed'
+  | 'camera_start_hook_success'
+  | 'camera_start_hook_error'
+  | 'dom_ready'
+  | 'cleanup_done';
+
 interface Props {
   onGestureDetected: (
     gesture: string | null,
@@ -96,6 +104,7 @@ interface Props {
   facingMode?: 'user' | 'environment';
   onFrameBatch?: (payload: FrameBatchPayload) => void;
   gestureSizeTolerance?: number;
+  onCameraStateChange?: (event: CameraStateEvent) => void;
 }
 
 const WEBVIEW_UNAVAILABLE_TEXT = 'Ich brauche einen Moment. Lass uns gleich weitermachen!';
@@ -125,6 +134,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     onFrameBatch,
     facingMode = 'user',
     gestureSizeTolerance = DEFAULT_GESTURE_SIZE_TOLERANCE,
+    onCameraStateChange,
   },
   ref,
 ) => {
@@ -727,18 +737,30 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           } else if (eventName === 'cleanup_done') {
             mlpReadyRef.current = false;
             resetTransferState?.();
+            onCameraStateChange?.('cleanup_done');
           } else if (eventName === 'gesture_processing_error') {
             setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
           } else if (eventName === 'camera_started' || eventName === 'camera_start_hook_success') {
             clearCameraStartRetryTimeout();
             cameraStartRetryRef.current.attempts = 0;
             setWebviewError(null);
+            if (eventName === 'camera_started') {
+              onCameraStateChange?.('camera_started');
+            } else {
+              onCameraStateChange?.('camera_start_hook_success');
+            }
           } else if (eventName === 'dom_ready') {
             setWebviewError(null);
             scheduleCameraStartAttempt('dom_ready', true);
+            onCameraStateChange?.('dom_ready');
           } else if (eventName === 'camera_start_failed' || eventName === 'camera_start_hook_error') {
             setWebviewError(CAMERA_ERROR_TEXT);
             scheduleCameraStartAttempt('dom_ready_retry');
+            if (eventName === 'camera_start_failed') {
+              onCameraStateChange?.('camera_start_failed');
+            } else {
+              onCameraStateChange?.('camera_start_hook_error');
+            }
           }
         } else if (data.type === 'error') {
           const errorMessage = typeof data.message === 'string' ? data.message : 'gesture_processing_error';
@@ -781,6 +803,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       requeueLastModel,
       resetTransferState,
       scheduleCameraStartAttempt,
+      onCameraStateChange,
     ],
   );
 
