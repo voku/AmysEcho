@@ -73,12 +73,12 @@ try {
   const rn: any = jest.requireActual('react-native');
   if (!rn.Dimensions) {
     rn.Dimensions = {
-      get: jest.fn(() => ({ width: 375, height: 812, scale: 2 })),
+      get: jest.fn((_dimension?: string) => ({ width: 375, height: 812, scale: 2, fontScale: 2 })),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     };
   } else if (!rn.Dimensions.get || typeof rn.Dimensions.get !== 'function') {
-    rn.Dimensions.get = jest.fn(() => ({ width: 375, height: 812, scale: 2 }));
+    rn.Dimensions.get = jest.fn((_dimension?: string) => ({ width: 375, height: 812, scale: 2, fontScale: 2 }));
     rn.Dimensions.addEventListener = jest.fn();
     rn.Dimensions.removeEventListener = jest.fn();
   }
@@ -88,6 +88,18 @@ jest.mock('react-native', () => {
   const React = require('react');
   const actual = jest.requireActual('react-native');
   const { Platform, NativeModules, NativeEventEmitter, DeviceEventEmitter, PixelRatio, Appearance } = actual;
+
+  const defaultWindowMetrics = { width: 375, height: 812, scale: 2, fontScale: 2 };
+  const dimensions = {
+    get: jest.fn((_dimension?: string) => ({ ...defaultWindowMetrics })),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  };
+  const getWindowMetrics = () => {
+    const metrics = dimensions.get('window') ?? defaultWindowMetrics;
+    const fontScale = (metrics as any).fontScale ?? defaultWindowMetrics.fontScale;
+    return { ...defaultWindowMetrics, ...metrics, fontScale };
+  };
 
   const createHostComponent = (name: string) =>
     ({ children, ...props }: any) => React.createElement(name, props, children);
@@ -189,11 +201,8 @@ jest.mock('react-native', () => {
       removeEventListener: jest.fn(),
     },
     Touchable: { Mixin: {} },
-    Dimensions: {
-      get: jest.fn(() => ({ width: 375, height: 812, scale: 2 })),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    },
+    Dimensions: dimensions,
+    useWindowDimensions: () => getWindowMetrics(),
     StyleSheet: {
       ...actual.StyleSheet,
       create: (styles: any) => styles,
