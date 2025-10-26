@@ -11,19 +11,26 @@ import { logger } from '../utils/logger';
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import type { RootStackParamList } from '../navigation/types';
 
+type ParentScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  typeof ROOT_STACK_ROUTES.Parent
+>;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
+  },
+  content: {
+    width: '100%',
+  },
+  header: {
+    marginBottom: SPACING.xl,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.sm,
     color: COLORS.text,
-    textAlign: 'center',
   },
   titleLarge: {
     fontSize: 28,
@@ -32,19 +39,19 @@ const styles = StyleSheet.create({
     color: COLORS.highContrastText,
   },
   infoContainer: {
-    width: '90%',
-    marginBottom: SPACING.lg,
     backgroundColor: COLORS.surface,
     borderRadius: DEFAULT_RADIUS,
     padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.outlineMuted,
   },
   infoContainerHC: {
     backgroundColor: COLORS.highContrastBackground,
+    borderColor: COLORS.highContrastText,
   },
   infoText: {
     fontSize: 16,
     color: COLORS.text,
-    textAlign: 'center',
   },
   infoTextLarge: {
     fontSize: 18,
@@ -52,43 +59,67 @@ const styles = StyleSheet.create({
   infoTextHC: {
     color: COLORS.highContrastText,
   },
-  buttonContainer: {
-    width: '90%',
-    marginBottom: SPACING.sm,
+  section: {
+    marginBottom: SPACING.xl,
   },
-  button: {
-    backgroundColor: COLORS.primaryAccent,
-    padding: SPACING.md,
-    borderRadius: DEFAULT_RADIUS,
-    alignItems: 'center',
-    minHeight: 48,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: SPACING.md,
+    color: COLORS.text,
   },
-  buttonHC: {
-    backgroundColor: COLORS.highContrastText,
-  },
-  buttonPressed: {
-    backgroundColor: COLORS.pressed,
-  },
-  buttonPressedHC: {
-    backgroundColor: COLORS.highContrastPressed,
-  },
-  buttonText: {
-    color: COLORS.highContrastText,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  buttonTextLarge: {
+  sectionTitleLarge: {
     fontSize: 20,
   },
-  buttonTextHC: {
-    color: COLORS.highContrastBackground,
+  sectionTitleHC: {
+    color: COLORS.highContrastText,
+  },
+  optionWrapper: {
+    marginBottom: SPACING.md,
+  },
+  optionCard: {
+    borderRadius: DEFAULT_RADIUS,
+    padding: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.outline,
+  },
+  optionCardPressed: {
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  optionCardHC: {
+    backgroundColor: COLORS.highContrastBackground,
+    borderColor: COLORS.highContrastText,
+  },
+  optionCardPressedHC: {
+    backgroundColor: COLORS.highContrastPressed,
+  },
+  optionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  optionTitleLarge: {
+    fontSize: 20,
+  },
+  optionTitleHC: {
+    color: COLORS.highContrastText,
+  },
+  optionSubtitle: {
+    marginTop: SPACING.xs,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  optionSubtitleLarge: {
+    fontSize: 16,
+  },
+  optionSubtitleHC: {
+    color: COLORS.highContrastText,
+  },
+  footer: {
+    marginTop: SPACING.lg,
   },
 });
-
-type ParentScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  typeof ROOT_STACK_ROUTES.Parent
->;
 
 export default function ParentScreen({
   navigation,
@@ -116,145 +147,201 @@ export default function ParentScreen({
   const profileName = profile?.name?.trim();
   const optimizedFor = profileName && profileName.length > 0 ? profileName : 'dein Kind';
 
-  const ButtonComponent = ({
-    title,
-    onPress,
-    accessibilityLabel
-  }: {
-    title: string;
-    onPress: () => void;
-    accessibilityLabel: string;
-  }) => (
-    <View style={styles.buttonContainer}>
+  const renderOption = (
+    title: string,
+    subtitle: string,
+    onPress: () => void,
+    accessibilityLabel: string,
+  ) => (
+    <View key={title} style={styles.optionWrapper}>
       <Pressable
-        style={({ pressed }) => [
-          {
-            minWidth: 60,
-            minHeight: 60,
-            padding: SPACING.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          styles.button,
-          highContrast && styles.buttonHC,
-          pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-        ]}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={subtitle}
         onPress={() => {
           void childHaptic();
           onPress();
         }}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
+        style={({ pressed }) => [
+          styles.optionCard,
+          highContrast && styles.optionCardHC,
+          pressed && (highContrast ? styles.optionCardPressedHC : styles.optionCardPressed),
+        ]}
       >
-        <Text style={[
-          styles.buttonText,
-          largeText && styles.buttonTextLarge,
-          highContrast && styles.buttonTextHC,
-        ]}>
+        <Text
+          style={[
+            styles.optionTitle,
+            largeText && styles.optionTitleLarge,
+            highContrast && styles.optionTitleHC,
+          ]}
+        >
           {title}
+        </Text>
+        <Text
+          style={[
+            styles.optionSubtitle,
+            largeText && styles.optionSubtitleLarge,
+            highContrast && styles.optionSubtitleHC,
+          ]}
+        >
+          {subtitle}
         </Text>
       </Pressable>
     </View>
   );
 
+  const sections = [
+    {
+      title: 'Profile & Verwaltung',
+      items: [
+        {
+          title: 'Profilverwaltung',
+          subtitle: 'Profile anlegen, bearbeiten oder wechseln',
+          onPress: () =>
+            navigation.navigate(ROOT_STACK_ROUTES.ProfileManager, undefined, { pop: true }),
+          accessibilityLabel: 'Profilverwaltung öffnen',
+        },
+        {
+          title: 'Adminbereich',
+          subtitle: 'Technische Werkzeuge und Datensicherung',
+          onPress: () => navigation.navigate(ROOT_STACK_ROUTES.Admin, undefined, { pop: true }),
+          accessibilityLabel: 'Adminbereich öffnen',
+        },
+      ],
+    },
+    {
+      title: 'Berichte & Fortschritt',
+      items: [
+        {
+          title: 'Analysen',
+          subtitle: 'Trendberichte und Nutzungsdaten ansehen',
+          onPress: () =>
+            navigation.navigate(ROOT_STACK_ROUTES.Dashboard, undefined, { pop: true }),
+          accessibilityLabel: 'Analysen ansehen',
+        },
+        {
+          title: 'Lernfortschritt',
+          subtitle: 'Zusammenfassung der Trainingsfortschritte',
+          onPress: () =>
+            navigation.navigate(ROOT_STACK_ROUTES.CaregiverReport, undefined, { pop: true }),
+          accessibilityLabel: 'Lernfortschritt ansehen',
+        },
+        {
+          title: 'Fortschritt',
+          subtitle: 'Detailverlauf und Meilensteine verfolgen',
+          onPress: () =>
+            navigation.navigate(ROOT_STACK_ROUTES.Progress, undefined, { pop: true }),
+          accessibilityLabel: 'Fortschritt ansehen',
+        },
+      ],
+    },
+    {
+      title: 'Unterstützung & Training',
+      items: [
+        {
+          title: 'Hilfe',
+          subtitle: 'Antworten und Kontaktmöglichkeiten',
+          onPress: () => navigation.navigate(ROOT_STACK_ROUTES.Help, undefined, { pop: true }),
+          accessibilityLabel: 'Hilfe erhalten',
+        },
+        {
+          title: 'Training starten',
+          subtitle: 'Neue Beispiele aufnehmen oder üben',
+          onPress: () =>
+            navigation.navigate(
+              ROOT_STACK_ROUTES.App,
+              { screen: APP_TAB_ROUTES.Lernen },
+              { pop: true },
+            ),
+          accessibilityLabel: 'Training öffnen',
+        },
+        {
+          title: 'Erkennen',
+          subtitle: 'Zur Live-Gestenerkennung wechseln',
+          onPress: () =>
+            navigation.navigate(
+              ROOT_STACK_ROUTES.App,
+              { screen: APP_TAB_ROUTES.Recognition },
+              { pop: true },
+            ),
+          accessibilityLabel: 'Zur Erkennung wechseln',
+        },
+      ],
+    },
+    {
+      title: 'Diagnose & Tests',
+      items: [
+        {
+          title: 'Geringe Sicherheit simulieren',
+          subtitle: 'Testet die Erkennung mit niedriger Konfidenz',
+          onPress: () => {
+            navigation.navigate(
+              ROOT_STACK_ROUTES.App,
+              {
+                screen: APP_TAB_ROUTES.Recognition,
+                params: { simulateLowConfidence: true },
+              },
+              { pop: true },
+            );
+          },
+          accessibilityLabel: 'Geringe Sicherheit simulieren',
+        },
+      ],
+    },
+  ] as const;
+
   return (
-    <ScreenBackground scrollable style={styles.container}>
-      <Text style={[styles.title, largeText && styles.titleLarge, highContrast && styles.titleHC]}>
-        Elternbereich
-      </Text>
-      <View style={[styles.infoContainer, highContrast && styles.infoContainerHC]}>
+    <ScreenBackground
+      scrollable
+      style={styles.container}
+      contentContainerStyle={[styles.content]}
+    >
+      <View style={styles.header}>
         <Text
           style={[
-            styles.infoText,
-            largeText && styles.infoTextLarge,
-            highContrast && styles.infoTextHC,
+            styles.title,
+            largeText && styles.titleLarge,
+            highContrast && styles.titleHC,
           ]}
         >
-          {`Alle wichtigen Einstellungen werden automatisch für ${optimizedFor} optimiert. Nutze die Bereiche unten, um Unterstützung, Berichte und Verwaltung schnell zu erreichen.`}
+          Elternbereich
         </Text>
+        <View style={[styles.infoContainer, highContrast && styles.infoContainerHC]}>
+          <Text
+            style={[
+              styles.infoText,
+              largeText && styles.infoTextLarge,
+              highContrast && styles.infoTextHC,
+            ]}
+          >
+            {`Alle wichtigen Einstellungen werden automatisch für ${optimizedFor} optimiert. Wähle einen Bereich aus, um schnell zu den wichtigsten Werkzeugen für Betreuung, Berichte und Unterstützung zu gelangen.`}
+          </Text>
+        </View>
       </View>
-      <ButtonComponent
-        title="Profilverwaltung"
-        onPress={() =>
-          navigation.navigate(ROOT_STACK_ROUTES.ProfileManager, undefined, { pop: true })
-        }
-        accessibilityLabel="Profilverwaltung"
-      />
-      <ButtonComponent
-        title="Zugangsprüfung"
-        onPress={() =>
-          navigation.navigate(
-            ROOT_STACK_ROUTES.ParentalGate,
-            { target: ROOT_STACK_ROUTES.Parent },
-            { pop: true },
-          )
-        }
-        accessibilityLabel="Zugangsprüfung"
-      />
-      <ButtonComponent
-        title="Verwaltung"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Admin, undefined, { pop: true })}
-        accessibilityLabel="Verwaltung"
-      />
-      <ButtonComponent
-        title="Analysen"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Dashboard, undefined, { pop: true })}
-        accessibilityLabel="Analysen ansehen"
-      />
-      <ButtonComponent
-        title="Lernfortschritt"
-        onPress={() =>
-          navigation.navigate(ROOT_STACK_ROUTES.CaregiverReport, undefined, { pop: true })
-        }
-        accessibilityLabel="Lernfortschritt ansehen"
-      />
-      <ButtonComponent
-        title="Fortschritt"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Progress, undefined, { pop: true })}
-        accessibilityLabel="Fortschritt ansehen"
-      />
-      <ButtonComponent
-        title="Hilfe"
-        onPress={() => navigation.navigate(ROOT_STACK_ROUTES.Help, undefined, { pop: true })}
-        accessibilityLabel="Hilfe erhalten"
-      />
-      <ButtonComponent
-        title="Geringe Sicherheit simulieren"
-        onPress={() => {
-          navigation.navigate(
-            ROOT_STACK_ROUTES.App,
-            {
-              screen: APP_TAB_ROUTES.Recognition,
-              params: { simulateLowConfidence: true },
-            },
-            { pop: true },
-          );
-        }}
-        accessibilityLabel="Geringe Sicherheit simulieren"
-      />
-      <ButtonComponent
-        title="Menü"
-        onPress={() => {
-          navigation.navigate(ROOT_STACK_ROUTES.Parent, undefined, { pop: true });
-        }}
-        accessibilityLabel="Menü öffnen"
-      />
-      <ButtonComponent
-        title="Erkennen"
-        onPress={() => {
-          navigation.navigate(
-            ROOT_STACK_ROUTES.App,
-            { screen: APP_TAB_ROUTES.Recognition },
-            { pop: true },
-          );
-        }}
-        accessibilityLabel="Zum Erkennungsmodus"
-      />
-      <ButtonComponent
-        title="Zurück"
-        onPress={() => navigation.goBack()}
-        accessibilityLabel="Zurück"
-      />
+      {sections.map((section) => (
+        <View key={section.title} style={styles.section}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              largeText && styles.sectionTitleLarge,
+              highContrast && styles.sectionTitleHC,
+            ]}
+          >
+            {section.title}
+          </Text>
+          {section.items.map(({ title, subtitle, onPress, accessibilityLabel }) =>
+            renderOption(title, subtitle, onPress, accessibilityLabel),
+          )}
+        </View>
+      ))}
+      <View style={styles.footer}>
+        {renderOption(
+          'Zurück',
+          'Zur vorherigen Ansicht wechseln',
+          () => navigation.goBack(),
+          'Zurück',
+        )}
+      </View>
     </ScreenBackground>
   );
 }
