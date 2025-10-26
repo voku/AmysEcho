@@ -18,7 +18,7 @@ import sys
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -636,6 +636,19 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
     cache_misses = 0
     cache_writes = 0
 
+    def _find_clip_in_storage_files(
+        storage_files: List[str],
+        bundle_dir: Path,
+        predicate: Callable[[str, str], bool],
+    ) -> Optional[Path]:
+        for relative in storage_files:
+            base_name = relative.split("/")[-1]
+            if predicate(base_name, relative):
+                candidate_path = resolve_relative_path(bundle_dir, relative)
+                if candidate_path is not None:
+                    return candidate_path
+        return None
+
     for entry in entries:
         label = entry.get("label")
         if not label:
@@ -651,21 +664,21 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
 
         storage_raw = entry.get("storage")
         storage = storage_raw if isinstance(storage_raw, dict) else {}
-        storage_clip = storage.get("clip") if isinstance(storage, dict) else None
+        storage_clip = storage.get("clip")
         clip_path: Optional[Path] = None
         if isinstance(storage_clip, str):
             clip_path = resolve_relative_path(bundle_dir, storage_clip)
 
         metadata_raw = entry.get("metadata")
         metadata = metadata_raw if isinstance(metadata_raw, dict) else {}
-        clip_filename_raw = metadata.get("clipFilename") if isinstance(metadata, dict) else None
+        clip_filename_raw = metadata.get("clipFilename")
         clip_filename = None
         if isinstance(clip_filename_raw, str):
             candidate_name = clip_filename_raw.strip()
             if candidate_name:
                 clip_filename = candidate_name
 
-        storage_files_raw = storage.get("files") if isinstance(storage, dict) else None
+        storage_files_raw = storage.get("files")
         storage_files: List[str] = []
         if isinstance(storage_files_raw, list):
             for file_entry in storage_files_raw:
@@ -676,36 +689,31 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
 
         if clip_path is None and clip_filename:
             lower_clip = clip_filename.lower()
-            for relative in storage_files:
-                base_name = relative.split("/")[-1]
-                if base_name.lower() == lower_clip:
-                    candidate_path = resolve_relative_path(bundle_dir, relative)
-                    if candidate_path is not None:
-                        clip_path = candidate_path
-                        break
+            clip_path = _find_clip_in_storage_files(
+                storage_files,
+                bundle_dir,
+                lambda base_name, _relative: base_name.lower() == lower_clip,
+            )
 
         clip_extension = Path(clip_filename).suffix.lower() if clip_filename else ""
         if clip_path is None and clip_extension:
-            for relative in storage_files:
-                base_name = relative.split("/")[-1]
-                if base_name.lower().endswith(clip_extension):
-                    candidate_path = resolve_relative_path(bundle_dir, relative)
-                    if candidate_path is not None:
-                        clip_path = candidate_path
-                        break
+            clip_path = _find_clip_in_storage_files(
+                storage_files,
+                bundle_dir,
+                lambda base_name, _relative: base_name.lower().endswith(clip_extension),
+            )
 
         if clip_path is None:
-            for relative in storage_files:
-                if Path(relative).suffix.lower() in VIDEO_EXTENSIONS:
-                    candidate_path = resolve_relative_path(bundle_dir, relative)
-                    if candidate_path is not None:
-                        clip_path = candidate_path
-                        break
+            clip_path = _find_clip_in_storage_files(
+                storage_files,
+                bundle_dir,
+                lambda _base_name, relative: Path(relative).suffix.lower() in VIDEO_EXTENSIONS,
+            )
 
         if clip_path is None and clip_filename:
             clip_path = resolve_relative_path(bundle_dir, clip_filename)
         if clip_path is None:
-            clip_path = resolve_relative_path(bundle_dir, "clip.mp4") or (bundle_dir / "clip.mp4")
+            clip_path = resolve_relative_path(bundle_dir, "clip.mp4")
 
         frames: Optional[List[dict]] = None
 
