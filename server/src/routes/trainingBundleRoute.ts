@@ -42,6 +42,7 @@ interface TrainingBundleMetadata {
   profileId: string | null;
   capturedAt: string | null;
   source: string | null;
+  clipFilename: string | null;
 }
 
 interface TrainingBundleManifestEntry {
@@ -54,6 +55,7 @@ interface TrainingBundleManifestEntry {
     directory: string;
     bundle: string;
     files: string[];
+    clip?: string;
   };
   metadata: TrainingBundleMetadata;
   receivedAt: string;
@@ -74,11 +76,26 @@ const MetadataSchema = z
     profileId: z.string().optional(),
     capturedAt: z.string().optional(),
     source: z.string().optional(),
+    clipFilename: z.string().optional(),
   })
   .passthrough();
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
+}
+
+function normalizeClipFilename(value: unknown): string | null {
+  if (!isNonEmptyString(value)) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === '.' || trimmed === '..') {
+    return null;
+  }
+  if (/[\\/:]/.test(trimmed)) {
+    return null;
+  }
+  return trimmed;
 }
 
 function sanitizeEntryName(entryName: string): string {
@@ -104,6 +121,13 @@ function isPathInside(target: string, root: string): boolean {
   const normalizedRoot = root.endsWith(path.sep) ? root : `${root}${path.sep}`;
   const resolved = path.resolve(target);
   return resolved === root || resolved.startsWith(normalizedRoot);
+}
+
+const VIDEO_FILE_EXTENSIONS = ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'];
+
+function hasVideoExtension(fileName: string): boolean {
+  const lower = fileName.toLowerCase();
+  return VIDEO_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
 export function registerTrainingBundleRoute(
@@ -220,14 +244,45 @@ export function registerTrainingBundleRoute(
         return res.status(400).json({ error: 'Failed to extract training bundle' });
       }
 
+      const clipFilename = normalizeClipFilename(parsedMetadata.clipFilename);
+
       const sanitizedMetadata: TrainingBundleMetadata = {
         label,
         profileId: profileIdRaw ?? null,
         capturedAt: isNonEmptyString(parsedMetadata.capturedAt) ? parsedMetadata.capturedAt : null,
         source: isNonEmptyString(parsedMetadata.source) ? parsedMetadata.source : null,
+        clipFilename,
       };
 
       const files = Array.from(new Set(storedFiles));
+
+      let clipRelativePath: string | null = null;
+      const metadataExtension =
+        clipFilename && clipFilename.includes('.')
+          ? clipFilename.substring(clipFilename.lastIndexOf('.') + 1).toLowerCase()
+          : null;
+      for (const fileName of files) {
+        if (clipRelativePath) {
+          break;
+        }
+        const normalized = fileName.replace(/\\/g, '/');
+        const baseName = normalized.split('/').pop() ?? '';
+        if (!baseName) {
+          continue;
+        }
+        if (clipFilename && baseName === clipFilename) {
+          clipRelativePath = fileName;
+          break;
+        }
+        if (metadataExtension && baseName.toLowerCase().endsWith(`.${metadataExtension}`)) {
+          clipRelativePath = fileName;
+          break;
+        }
+        if (hasVideoExtension(baseName)) {
+          clipRelativePath = fileName;
+          break;
+        }
+      }
 
       const manifestEntry: TrainingBundleManifestEntry = {
         id: bundleId,
@@ -239,6 +294,7 @@ export function registerTrainingBundleRoute(
           directory: path.relative(DATA_DIR, bundleRoot),
           bundle: path.relative(DATA_DIR, bundleZipPath),
           files,
+          ...(clipRelativePath ? { clip: clipRelativePath } : {}),
         },
         metadata: sanitizedMetadata,
         receivedAt: new Date().toISOString(),

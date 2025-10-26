@@ -54,6 +54,15 @@ LEGACY_DATASET_PATH = Path(
     os.environ.get("MLP_DATASET_PATH", DATA_DIR / "dgs_samples.json")
 )
 
+VIDEO_EXTENSIONS = {
+    ".mp4",
+    ".mov",
+    ".m4v",
+    ".webm",
+    ".avi",
+    ".mkv",
+}
+
 HIDDEN_SIZE = int(os.environ.get("MLP_HIDDEN_SIZE", "128"))
 LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))
 EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
@@ -157,6 +166,18 @@ def ensure_inside(base: Path, candidate: Path) -> Path:
     if not str(resolved).startswith(str(base.resolve())):
         raise ValueError(f"Unsafe path outside data directory: {candidate}")
     return resolved
+
+
+def resolve_relative_path(base: Path, relative: str) -> Optional[Path]:
+    if not relative:
+        return None
+    normalized = relative.replace("\\", "/").lstrip("/")
+    if not normalized:
+        return None
+    try:
+        return ensure_inside(base, base / Path(normalized))
+    except ValueError:
+        return None
 
 
 def load_json(path: Path) -> Optional[dict]:
@@ -627,7 +648,64 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         bundle_dir = ensure_inside(DATA_DIR, DATA_DIR / rel_dir)
         landmarks_path = bundle_dir / "landmarks.json"
         cache_path = bundle_dir / CACHE_FILENAME
-        clip_path = bundle_dir / "clip.mp4"
+
+        storage_raw = entry.get("storage")
+        storage = storage_raw if isinstance(storage_raw, dict) else {}
+        storage_clip = storage.get("clip") if isinstance(storage, dict) else None
+        clip_path: Optional[Path] = None
+        if isinstance(storage_clip, str):
+            clip_path = resolve_relative_path(bundle_dir, storage_clip)
+
+        metadata_raw = entry.get("metadata")
+        metadata = metadata_raw if isinstance(metadata_raw, dict) else {}
+        clip_filename_raw = metadata.get("clipFilename") if isinstance(metadata, dict) else None
+        clip_filename = None
+        if isinstance(clip_filename_raw, str):
+            candidate_name = clip_filename_raw.strip()
+            if candidate_name:
+                clip_filename = candidate_name
+
+        storage_files_raw = storage.get("files") if isinstance(storage, dict) else None
+        storage_files: List[str] = []
+        if isinstance(storage_files_raw, list):
+            for file_entry in storage_files_raw:
+                if isinstance(file_entry, str) and file_entry.strip():
+                    normalized = file_entry.replace("\\", "/").lstrip("/")
+                    if normalized:
+                        storage_files.append(normalized)
+
+        if clip_path is None and clip_filename:
+            lower_clip = clip_filename.lower()
+            for relative in storage_files:
+                base_name = relative.split("/")[-1]
+                if base_name.lower() == lower_clip:
+                    candidate_path = resolve_relative_path(bundle_dir, relative)
+                    if candidate_path is not None:
+                        clip_path = candidate_path
+                        break
+
+        clip_extension = Path(clip_filename).suffix.lower() if clip_filename else ""
+        if clip_path is None and clip_extension:
+            for relative in storage_files:
+                base_name = relative.split("/")[-1]
+                if base_name.lower().endswith(clip_extension):
+                    candidate_path = resolve_relative_path(bundle_dir, relative)
+                    if candidate_path is not None:
+                        clip_path = candidate_path
+                        break
+
+        if clip_path is None:
+            for relative in storage_files:
+                if Path(relative).suffix.lower() in VIDEO_EXTENSIONS:
+                    candidate_path = resolve_relative_path(bundle_dir, relative)
+                    if candidate_path is not None:
+                        clip_path = candidate_path
+                        break
+
+        if clip_path is None and clip_filename:
+            clip_path = resolve_relative_path(bundle_dir, clip_filename)
+        if clip_path is None:
+            clip_path = resolve_relative_path(bundle_dir, "clip.mp4") or (bundle_dir / "clip.mp4")
 
         frames: Optional[List[dict]] = None
 
@@ -640,7 +718,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             if source and isinstance(source.get("frames"), list):
                 frames = source["frames"]
                 cache_misses += 1
-            elif clip_path.exists():
+            elif clip_path and clip_path.exists():
                 frames = extract_landmarks_from_clip(clip_path)
                 if frames:
                     cache_writes += 1

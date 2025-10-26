@@ -86,6 +86,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       label: 'HILFE',
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
+      clipFilename: 'clip.webm',
       extra: 'ignored',
     };
     const landmarks = await loadSampleLandmarks();
@@ -93,7 +94,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const zip = new AdmZip();
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
     zip.addFile('bundle/landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
-    zip.addFile('bundle/clip.mp4', Buffer.from('fake-video-data'));
+    zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
@@ -120,7 +121,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         id: string;
         profileId: string | null;
         label: string;
-        storage: { directory: string; bundle: string; files: string[] };
+        storage: { directory: string; bundle: string; files: string[]; clip?: string };
         metadata: any;
       }>;
     };
@@ -132,13 +133,15 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(entry.profileId).toBe(metadata.profileId);
     expect(entry.label).toBe(metadata.label);
     expect(entry.storage.files).toEqual(
-      expect.arrayContaining(['bundle/metadata.json', 'bundle/landmarks.json', 'bundle/clip.mp4']),
+      expect.arrayContaining(['bundle/metadata.json', 'bundle/landmarks.json', 'bundle/clip.webm']),
     );
+    expect(entry.storage.clip).toBe('bundle/clip.webm');
     expect(entry.metadata).toEqual({
       label: metadata.label,
       profileId: metadata.profileId,
       capturedAt: metadata.capturedAt,
       source: metadata.source,
+      clipFilename: metadata.clipFilename,
     });
 
     const storedDir = path.join(dataDir, entry.storage.directory);
@@ -157,12 +160,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
   it('omits training job payload when trigger returns null but keeps queued status', async () => {
     triggerOverride = () => null;
-    const metadata = { label: 'SPASS', profileId: 'p-legacy' };
+    const metadata = { label: 'SPASS', profileId: 'p-legacy', clipFilename: 'clip.webm' };
     const landmarks = await loadSampleLandmarks();
     const zip = new AdmZip();
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
     zip.addFile('bundle/landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
-    zip.addFile('bundle/clip.mp4', Buffer.from('fake-video-data'));
+    zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')

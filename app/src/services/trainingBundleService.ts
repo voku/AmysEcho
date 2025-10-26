@@ -42,12 +42,32 @@ function ensureDirPrefix(uri: string): string {
   return uri;
 }
 
-function buildMetadata(payload: TrainingBundlePayload) {
+function extractClipExtension(uri: string): string | null {
+  if (typeof uri !== 'string' || uri.length === 0) {
+    return null;
+  }
+  const sanitized = uri.split(/[?#]/, 1)[0] ?? '';
+  const lastSegmentMatch = sanitized.match(/([^/]+)$/);
+  const lastSegment = lastSegmentMatch ? lastSegmentMatch[1] : '';
+  const extensionMatch = lastSegment.match(/\.([a-z0-9]{1,8})$/i);
+  if (!extensionMatch) {
+    return null;
+  }
+  return extensionMatch[1].toLowerCase();
+}
+
+function buildClipFilename(clipUri: string): string {
+  const extension = extractClipExtension(clipUri) ?? 'mp4';
+  return `clip.${extension}`;
+}
+
+function buildMetadata(payload: TrainingBundlePayload, clipFilename: string) {
   return {
     profileId: payload.profileId,
     label: payload.label,
     capturedAt: payload.capturedAt ?? new Date().toISOString(),
     source: payload.source ?? 'app://mediapipe',
+    clipFilename,
   };
 }
 
@@ -248,7 +268,8 @@ export async function uploadTrainingBundle(
   //   "capturedAt": "2024-05-28T12:03:11Z",
   //   "source": "app://mediapipe"
   // }
-  const metadata = buildMetadata(payload);
+  const clipFilename = buildClipFilename(payload.clipUri);
+  const metadata = buildMetadata(payload, clipFilename);
   const frames = buildFrameTimeline(payload.frames);
 
   try {
@@ -262,8 +283,8 @@ export async function uploadTrainingBundle(
     const zipped = zipSync({
       'metadata.json': strToU8(metadataContent),
       'landmarks.json': strToU8(landmarksContent),
-      // Store MP4 without extra compression (level: 0) to reduce CPU and time
-      'clip.mp4': [
+      // Store video without extra compression (level: 0) to reduce CPU and time
+      [clipFilename]: [
         clipBinary,
         { level: 0 },
       ],
