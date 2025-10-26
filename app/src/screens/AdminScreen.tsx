@@ -31,6 +31,9 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { usePerformance } from '../context/PerformanceContext';
 import ScreenBackground from '../components/ScreenBackground';
 import { useAccessibility } from '../components/AccessibilityContext';
+import SettingsOptionCard, {
+  type SettingsOptionCardProps,
+} from '../components/settings/SettingsOptionCard';
 
 const SYMBOL_EXPORT_PATH = `${Paths.document.uri || ''}symbols-export.json`;
 
@@ -68,35 +71,9 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginBottom: SPACING.md },
   sectionTitleLarge: { fontSize: 20 },
   sectionTitleHC: { color: COLORS.highContrastText },
-  buttonWrapper: { marginBottom: SPACING.sm },
-  actionButton: {
-    borderRadius: DEFAULT_RADIUS,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.outline,
-    alignItems: 'flex-start',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
+  optionGroupSpacing: {
+    marginBottom: SPACING.md,
   },
-  actionButtonPressed: { backgroundColor: COLORS.surfaceMuted },
-  actionButtonHC: {
-    backgroundColor: COLORS.highContrastBackground,
-    borderColor: COLORS.highContrastText,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  actionButtonPressedHC: { backgroundColor: COLORS.highContrastPressed, shadowOpacity: 0, elevation: 0 },
-  actionTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-  actionTitleLarge: { fontSize: 18 },
-  actionTitleHC: { color: COLORS.highContrastText },
-  actionSubtitle: { marginTop: 4, fontSize: 13, color: COLORS.text },
-  actionSubtitleLarge: { fontSize: 15 },
-  actionSubtitleHC: { color: COLORS.highContrastText },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -482,47 +459,29 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
     ]);
   };
 
-  const renderActionButton = (
+  const renderSettingsOption = (
+    key: string,
     title: string,
     onPress: () => void,
     accessibilityLabel: string,
     subtitle?: string,
-  ) => (
-    <View key={title} style={styles.buttonWrapper}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={subtitle}
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.actionButton,
-          highContrast && styles.actionButtonHC,
-          pressed && (highContrast ? styles.actionButtonPressedHC : styles.actionButtonPressed),
-        ]}
-      >
-        <Text
-          style={[
-            styles.actionTitle,
-            largeText && styles.actionTitleLarge,
-            highContrast && styles.actionTitleHC,
-          ]}
-        >
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text
-            style={[
-              styles.actionSubtitle,
-              largeText && styles.actionSubtitleLarge,
-              highContrast && styles.actionSubtitleHC,
-            ]}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
-      </Pressable>
-    </View>
-  );
+    tone: 'default' | 'danger' = 'default',
+  ) => {
+    const subtitleProps: Partial<Pick<SettingsOptionCardProps, 'subtitle' | 'accessibilityHint'>> =
+      subtitle !== undefined ? { subtitle, accessibilityHint: subtitle } : {};
+
+    return (
+      <View key={key} style={styles.optionGroupSpacing}>
+        <SettingsOptionCard
+          title={title}
+          onPress={onPress}
+          accessibilityLabel={accessibilityLabel}
+          tone={tone}
+          {...subtitleProps}
+        />
+      </View>
+    );
+  };
 
   const renderRowActionButton = (
     title: string,
@@ -578,7 +537,15 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
     </View>
   );
 
-  const managementButtons = [
+  type SettingsAction = {
+    title: string;
+    subtitle?: string;
+    onPress: () => void;
+    accessibilityLabel: string;
+    tone?: 'default' | 'danger';
+  };
+
+  const managementButtons: SettingsAction[] = [
     {
       title: 'Neuestes Modell herunterladen',
       subtitle: 'Aktualisiert das Erkennungsmodell auf diesem Gerät',
@@ -626,6 +593,7 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
       subtitle: 'Entfernt das aktive Profil dauerhaft',
       onPress: handleDeleteProfile,
       accessibilityLabel: 'Profil löschen',
+      tone: 'danger' as const,
     },
     {
       title: 'Symbol hinzufügen',
@@ -635,7 +603,7 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
     },
   ];
 
-  const navigationButtons = [
+  const navigationButtons: SettingsAction[] = [
     {
       title: 'Training',
       subtitle: 'Wechsel zum Trainingsbereich, um neue Gesten aufzunehmen',
@@ -696,7 +664,13 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
             autoCorrect={false}
           />
         </View>
-        {renderActionButton('API-Schlüssel speichern', handleSaveApiKey, 'OpenAI API-Schlüssel speichern', 'Speichert den hinterlegten Schlüssel lokal')}
+        {renderSettingsOption(
+          'save-openai',
+          'API-Schlüssel speichern',
+          handleSaveApiKey,
+          'OpenAI API-Schlüssel speichern',
+          'Speichert den hinterlegten Schlüssel lokal',
+        )}
         <View style={styles.inputGroup}>
           <Text
             style={[
@@ -718,7 +692,13 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
             autoCorrect={false}
           />
         </View>
-        {renderActionButton('Backend-Token speichern', handleSaveBackendToken, 'Backend-Token speichern', 'Speichert das Token für serverseitige Aufgaben')}
+        {renderSettingsOption(
+          'save-backend-token',
+          'Backend-Token speichern',
+          handleSaveBackendToken,
+          'Backend-Token speichern',
+          'Speichert das Token für serverseitige Aufgaben',
+        )}
       </View>
 
       <View style={styles.section}>
@@ -731,8 +711,8 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
         >
           Verwaltung & Sicherung
         </Text>
-        {managementButtons.map(({ title, onPress, accessibilityLabel, subtitle }) =>
-          renderActionButton(title, onPress, accessibilityLabel, subtitle),
+        {managementButtons.map(({ title, onPress, accessibilityLabel, subtitle, tone }) =>
+          renderSettingsOption(title, title, onPress, accessibilityLabel, subtitle, tone ?? 'default'),
         )}
       </View>
 
@@ -746,8 +726,8 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
         >
           Navigation
         </Text>
-        {navigationButtons.map(({ title, onPress, accessibilityLabel, subtitle }) =>
-          renderActionButton(title, onPress, accessibilityLabel, subtitle),
+        {navigationButtons.map(({ title, onPress, accessibilityLabel, subtitle, tone }) =>
+          renderSettingsOption(title, title, onPress, accessibilityLabel, subtitle, tone ?? 'default'),
         )}
       </View>
 
@@ -761,7 +741,8 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
         >
           Niedriger Leistungsmodus: {isLowPerformanceMode ? 'An' : 'Aus'}
         </Text>
-        {renderActionButton(
+        {renderSettingsOption(
+          'toggle-performance',
           'Niedrigen Leistungsmodus umschalten',
           toggleLowPerformanceMode,
           'Niedrigen Leistungsmodus umschalten',

@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { useServices } from '../context/ServicesContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
-import { childHaptic } from '../services/feedbackService';
 import ScreenBackground from '../components/ScreenBackground';
 import { loadProfile, type Profile } from '../storage';
 import { logger } from '../utils/logger';
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import type { RootStackParamList } from '../navigation/types';
+import SettingsOptionCard from '../components/settings/SettingsOptionCard';
 
 type ParentScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -84,54 +84,6 @@ const styles = StyleSheet.create({
   optionWrapper: {
     marginBottom: SPACING.md,
   },
-  optionCard: {
-    borderRadius: DEFAULT_RADIUS,
-    padding: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.outline,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  optionCardPressed: {
-    backgroundColor: COLORS.surfaceMuted,
-  },
-  optionCardHC: {
-    backgroundColor: COLORS.highContrastBackground,
-    borderColor: COLORS.highContrastText,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  optionCardPressedHC: {
-    backgroundColor: COLORS.highContrastPressed,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  optionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  optionTitleLarge: {
-    fontSize: 20,
-  },
-  optionTitleHC: {
-    color: COLORS.highContrastText,
-  },
-  optionSubtitle: {
-    marginTop: SPACING.xs,
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  optionSubtitleLarge: {
-    fontSize: 16,
-  },
-  optionSubtitleHC: {
-    color: COLORS.highContrastText,
-  },
   footer: {
     marginTop: SPACING.lg,
   },
@@ -168,45 +120,30 @@ export default function ParentScreen({
     subtitle: string,
     onPress: () => void,
     accessibilityLabel: string,
+    tone: 'default' | 'danger' = 'default',
   ) => (
     <View key={title} style={styles.optionWrapper}>
-      <Pressable
-        accessibilityRole="button"
+      <SettingsOptionCard
+        title={title}
+        subtitle={subtitle}
+        onPress={onPress}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={subtitle}
-        onPress={() => {
-          void childHaptic();
-          onPress();
-        }}
-        style={({ pressed }) => [
-          styles.optionCard,
-          highContrast && styles.optionCardHC,
-          pressed && (highContrast ? styles.optionCardPressedHC : styles.optionCardPressed),
-        ]}
-      >
-        <Text
-          style={[
-            styles.optionTitle,
-            largeText && styles.optionTitleLarge,
-            highContrast && styles.optionTitleHC,
-          ]}
-        >
-          {title}
-        </Text>
-        <Text
-          style={[
-            styles.optionSubtitle,
-            largeText && styles.optionSubtitleLarge,
-            highContrast && styles.optionSubtitleHC,
-          ]}
-        >
-          {subtitle}
-        </Text>
-      </Pressable>
+        playHaptic
+        tone={tone}
+      />
     </View>
   );
 
-  const sections = [
+  type ParentOption = {
+    title: string;
+    subtitle: string;
+    onPress: () => void;
+    accessibilityLabel: string;
+    tone?: 'default' | 'danger';
+  };
+
+  const sections: Array<{ title: string; items: ParentOption[] }> = [
     {
       title: 'Profile & Verwaltung',
       items: [
@@ -290,10 +227,11 @@ export default function ParentScreen({
             );
           },
           accessibilityLabel: 'Geringe Sicherheit simulieren',
+          tone: 'danger' as const,
         },
       ],
     },
-  ] as const;
+  ];
 
   return (
     <ScreenBackground
@@ -323,22 +261,22 @@ export default function ParentScreen({
           </Text>
         </View>
       </View>
-      {sections.map((section) => (
-        <View key={section.title} style={styles.section}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              largeText && styles.sectionTitleLarge,
-              highContrast && styles.sectionTitleHC,
-            ]}
-          >
-            {section.title}
-          </Text>
-          {section.items.map(({ title, subtitle, onPress, accessibilityLabel }) =>
-            renderOption(title, subtitle, onPress, accessibilityLabel),
-          )}
-        </View>
-      ))}
+        {sections.map((section) => (
+          <View key={section.title} style={styles.section}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                largeText && styles.sectionTitleLarge,
+                highContrast && styles.sectionTitleHC,
+              ]}
+            >
+              {section.title}
+            </Text>
+            {section.items.map(({ title, subtitle, onPress, accessibilityLabel, tone }) =>
+              renderOption(title, subtitle, onPress, accessibilityLabel, tone ?? 'default'),
+            )}
+          </View>
+        ))}
       <View style={styles.footer}>
         {renderOption(
           'Zurück',
