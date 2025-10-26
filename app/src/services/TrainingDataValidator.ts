@@ -21,7 +21,7 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
   const frameCount = samples.length;
   if (frameCount < 10) {
     issues.push('too_few_frames');
-    suggestions.push('Record a bit longer (at least 1–2 seconds).');
+    suggestions.push('Nimm etwas länger auf (mindestens 1–2 Sekunden).');
   }
 
   let hasMissing = false;
@@ -85,17 +85,17 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
 
   if (hasMissing) {
     issues.push('landmarks_missing');
-    suggestions.push('Ensure your hand is fully visible and well-lit.');
+    suggestions.push('Achte darauf, dass deine Hand vollständig sichtbar und gut beleuchtet ist.');
   }
   if (outOfRange) {
     issues.push('values_out_of_range');
-    suggestions.push('Keep the hand centered in frame during recording.');
+    suggestions.push('Halte deine Hand während der Aufnahme mittig im Bild.');
   }
 
   const avgMotion = motionSamples > 0 ? totalMotion / motionSamples : 0;
   if (avgMotion < 0.0015) {
     issues.push('insufficient_motion');
-    suggestions.push('Move fingers and hand clearly to capture the gesture.');
+    suggestions.push('Bewege Finger und Hand deutlich, damit die Geste erfasst wird.');
   }
 
   // Calculate quality score based on various factors
