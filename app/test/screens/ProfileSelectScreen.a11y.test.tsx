@@ -100,17 +100,17 @@ describe('ProfileSelectScreen accessibility', () => {
     expect(labels).toEqual(
       expect.arrayContaining([
         'Wohin möchtest du als Nächstes?',
-        'Wähle den Bereich aus, der jetzt am besten hilft.',
+        'Wähle den Bereich aus, der jetzt am meisten unterstützt.',
         'Zuhören',
         'Starte den Erkennungsmodus und lass Amy sofort verstanden werden.',
         'Lernen',
         'Übe Gesten gemeinsam und sammle neue Trainingsbeispiele.',
         'Elternbereich',
-        'Öffne den Elternbereich für Einstellungen und Unterstützung.',
-        'Admin',
-        'Verwalte Modelle und technische Details.',
+        'Einstellungen, Betreuungstools und Unterstützung für Pflegepersonen.',
+        'Adminbereich',
+        'Modelle verwalten, Updates prüfen und technische Details anpassen.',
         'Profile verwalten',
-        'Bearbeite oder lege Profile für Kinder an.',
+        'Profile für Kinder anlegen, bearbeiten oder wechseln.',
       ]),
     );
 
@@ -145,17 +145,17 @@ describe('ProfileSelectScreen accessibility', () => {
     expect(labels).toEqual(
       expect.arrayContaining([
         'Wohin möchtest du als Nächstes?',
-        'Wähle den Bereich aus, der jetzt am besten hilft.',
+        'Wähle den Bereich aus, der jetzt am meisten unterstützt.',
         'Zuhören',
         'Lege zuerst ein Profil an, damit wir wissen, wen wir begleiten.',
         'Lernen',
         'Übe Gesten gemeinsam und sammle neue Trainingsbeispiele.',
         'Elternbereich',
-        'Öffne den Elternbereich für Einstellungen und Unterstützung.',
-        'Admin',
-        'Verwalte Modelle und technische Details.',
+        'Einstellungen, Betreuungstools und Unterstützung für Pflegepersonen.',
+        'Adminbereich',
+        'Modelle verwalten, Updates prüfen und technische Details anpassen.',
         'Profile verwalten',
-        'Bearbeite oder lege Profile für Kinder an.',
+        'Profile für Kinder anlegen, bearbeiten oder wechseln.',
         'Kein Profil gefunden. Lege zuerst ein Profil an, damit Amy begleitet wird.',
       ]),
     );

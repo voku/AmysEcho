@@ -103,7 +103,7 @@ describe('ParentScreen interactions', () => {
     });
 
     act(() => {
-      component.root.findByProps({ accessibilityLabel: 'Verwaltung' }).props['onPress']?.();
+      component.root.findByProps({ accessibilityLabel: 'Adminbereich öffnen' }).props['onPress']?.();
     });
 
     expect(navigation.navigate).toHaveBeenCalledWith(
@@ -169,7 +169,7 @@ describe('ParentScreen interactions', () => {
     expect(guidanceCopyNodes).not.toHaveLength(0);
   });
 
-  it('keeps the parent screen focused without pushing a duplicate when Menü is pressed', async () => {
+  it('opens the training tab when Training starten is pressed', async () => {
     const navigation = createNavigation();
     let component!: renderer.ReactTestRenderer;
 
@@ -179,27 +179,19 @@ describe('ParentScreen interactions', () => {
     });
 
     act(() => {
-      component.root.findByProps({ accessibilityLabel: 'Menü öffnen' }).props['onPress']?.();
+      component.root.findByProps({ accessibilityLabel: 'Training öffnen' }).props['onPress']?.();
     });
 
     expect(navigation.dispatch).not.toHaveBeenCalled();
     expect(navigation.navigate).toHaveBeenCalledWith(
-      ROOT_STACK_ROUTES.Parent,
-      undefined,
+      ROOT_STACK_ROUTES.App,
+      { screen: APP_TAB_ROUTES.Lernen },
       { pop: true },
     );
   });
 
-  it('pops back to the App recognition tab when Erkennen is pressed', async () => {
-    const navigation = createNavigation(
-      {},
-      2,
-      [
-        { key: 'Hero-1', name: 'Hero' },
-        { key: 'App-1', name: 'App' },
-        { key: 'Parent-1', name: 'Parent' },
-      ],
-    );
+  it('opens the profile manager when Profilverwaltung is pressed', async () => {
+    const navigation = createNavigation();
     let component!: renderer.ReactTestRenderer;
 
     await act(async () => {
@@ -208,13 +200,14 @@ describe('ParentScreen interactions', () => {
     });
 
     act(() => {
-      component.root.findByProps({ accessibilityLabel: 'Zum Erkennungsmodus' }).props['onPress']?.();
+      component.root
+        .findByProps({ accessibilityLabel: 'Profilverwaltung öffnen' })
+        .props['onPress']?.();
     });
 
-    expect(navigation.dispatch).not.toHaveBeenCalled();
     expect(navigation.navigate).toHaveBeenCalledWith(
-      ROOT_STACK_ROUTES.App,
-      { screen: APP_TAB_ROUTES.Recognition },
+      ROOT_STACK_ROUTES.ProfileManager,
+      undefined,
       { pop: true },
     );
   });
