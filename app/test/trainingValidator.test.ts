@@ -8,6 +8,10 @@ describe('TrainingDataValidator', () => {
     const result = validateLandmarkSequence(seq);
     expect(result.ok).toBe(false);
     expect(result.issues).toContain('too_few_frames');
+    expect(result.suggestions).toEqual([
+      'Nimm etwas länger auf (mindestens 1–2 Sekunden).',
+      'Bewege Finger und Hand deutlich, damit die Geste erfasst wird.',
+    ]);
   });
 
   it('flags insufficient motion', () => {
@@ -16,6 +20,9 @@ describe('TrainingDataValidator', () => {
     const result = validateLandmarkSequence(seq);
     expect(result.ok).toBe(false);
     expect(result.issues).toContain('insufficient_motion');
+    expect(result.suggestions).toEqual([
+      'Bewege Finger und Hand deutlich, damit die Geste erfasst wird.',
+    ]);
   });
 
   it('accepts reasonable sample', () => {
