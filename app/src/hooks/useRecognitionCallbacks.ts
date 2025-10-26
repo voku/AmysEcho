@@ -26,7 +26,6 @@ import { adaptiveLearningService } from '../services/adaptiveLearningService';
 import gestureSuggester from '../services/gestureSuggester';
 import * as Haptics from 'expo-haptics';
 import { logger } from '../utils/logger';
-import { normalizeConfidence } from '../utils/confidence';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
 import type { RecognitionPath } from '../utils/recognitionState';
@@ -85,6 +84,26 @@ const PRACTICE_PROMPT_OPTIONS = {
 const normalizeGestureId = (gesture: string | null): string | null => {
   if (!gesture) return null;
   return gesture.trim().toLowerCase();
+};
+
+const sanitizeConfidence = (value: number | null | undefined): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (!Number.isFinite(value) || Number.isNaN(value)) {
+    return null;
+  }
+
+  if (value < 0) {
+    return 0;
+  }
+
+  if (value > 1) {
+    return 1;
+  }
+
+  return value;
 };
 
 export const useRecognitionCallbacks = ({
@@ -489,12 +508,12 @@ export const useRecognitionCallbacks = ({
         setCurrentHandedness(handedness);
 
         const nowSeconds = Date.now() / 1000;
-        const normalizedInputConfidence = normalizeConfidence(confidence) ?? 0;
+        const normalizedInputConfidence = sanitizeConfidence(confidence) ?? 0;
         const filteredConfidence = refs.confidenceFilterRef.current.filter(
           normalizedInputConfidence,
           nowSeconds,
         );
-        const normalizedFilteredConfidence = normalizeConfidence(filteredConfidence);
+        const normalizedFilteredConfidence = sanitizeConfidence(filteredConfidence);
         const smoothedConfidence = normalizedFilteredConfidence ?? normalizedInputConfidence;
         setGestureConfidence(smoothedConfidence);
 
