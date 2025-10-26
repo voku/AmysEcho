@@ -1,5 +1,5 @@
 
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense, useLayoutEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -112,7 +112,7 @@ const RecordingRedirectScreen: React.FC<RecordingRedirectScreenProps> = ({
   navigation,
   route,
 }) => {
-  useEffect(() => {
+  useLayoutEffect(() => {
     navigation.replace(ROOT_STACK_ROUTES.App, {
       screen: APP_TAB_ROUTES.Lernen,
       params: {

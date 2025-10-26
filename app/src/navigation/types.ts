@@ -4,9 +4,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 export type LernenStackParamList = {
-  LernenHome:
-    | { gestureId?: string; gestureLabel?: string }
-    | undefined;
+  LernenHome: { gestureId?: string; gestureLabel?: string } | undefined;
   Recording: { gestureId?: string; gestureLabel?: string } | undefined;
 };
 
