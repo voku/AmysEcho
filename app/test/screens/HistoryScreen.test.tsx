@@ -79,6 +79,7 @@ const { gestureHistoryService } = require('../../src/services/gestureHistoryServ
 const mockGetRecentHistory = gestureHistoryService.getRecentHistory as jest.Mock;
 
 import HistoryScreen from '../../src/screens/HistoryScreen';
+import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../../src/navigation/types';
 
 const baseEntry = {
   id: 'hallo',
@@ -148,6 +149,30 @@ describe('HistoryScreen', () => {
     });
 
     expect(mockNavigate).toHaveBeenCalledWith('Recognition');
+  });
+
+  it('öffnet direkt die Aufnahme für schnelle Lernmomente', async () => {
+    mockGetRecentHistory.mockReturnValue([baseEntry]);
+
+    let component!: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<HistoryScreen />);
+    });
+    await act(async () => {});
+
+    const quickLearnCta = component.root.findByProps({ testID: 'history-highlight-learn' });
+
+    act(() => {
+      quickLearnCta.props.onPress();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith(APP_TAB_ROUTES.Lernen, {
+      screen: LERNEN_STACK_ROUTES.Recording,
+      params: {
+        gestureId: baseEntry.id,
+        gestureLabel: baseEntry.label,
+      },
+    });
   });
 
   it('renders the empty state with the self-discovery copy when no entries exist', async () => {

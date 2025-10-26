@@ -28,7 +28,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
 import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
 import type { TabNavigationProp } from '../navigation/types';
-import { APP_TAB_ROUTES } from '../navigation/types';
+import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../navigation/types';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
@@ -689,12 +689,19 @@ export default function RecognitionScreen({
   const handleLearnPress = useCallback(() => {
     const gestureId = gestureMeaningDisplayProps?.gestureId;
     logger.info('Open learn flow', { gestureId });
-    navigation.navigate(APP_TAB_ROUTES.Lernen, gestureId ? { gestureId } : undefined);
+    navigation.navigate(APP_TAB_ROUTES.Lernen, {
+      screen: gestureId
+        ? LERNEN_STACK_ROUTES.Recording
+        : LERNEN_STACK_ROUTES.LernenHome,
+      params: gestureId ? { gestureId } : undefined,
+    });
   }, [gestureMeaningDisplayProps, navigation]);
 
   const handleAlternativesPress = useCallback(() => {
     logger.info('Alternativen geöffnet');
-    navigation.navigate(APP_TAB_ROUTES.Lernen);
+    navigation.navigate(APP_TAB_ROUTES.Lernen, {
+      screen: LERNEN_STACK_ROUTES.LernenHome,
+    });
   }, [navigation]);
 
   const overlayBody = (

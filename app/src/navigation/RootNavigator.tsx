@@ -4,7 +4,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import type { RouteProp } from '@react-navigation/native';
-import { AppTabsParamList, RootStackParamList } from './types';
+import {
+  APP_TAB_ROUTES,
+  AppTabsParamList,
+  LernenStackParamList,
+  LERNEN_STACK_ROUTES,
+  ROOT_STACK_ROUTES,
+  RootStackParamList,
+} from './types';
 import LoadingIndicator from '../components/LoadingIndicator';
 import NewBottomNav from '../components/NewBottomNav';
 import { getWorkflowStepMeta } from '../constants/workflow';
@@ -42,6 +49,7 @@ const HelpScreen = lazyScreen(() => import('../screens/HelpScreen'));
 
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
+const LernenStack = createStackNavigator<LernenStackParamList>();
 
 const workflowOptions = <RouteName extends keyof AppTabsParamList>(routeName: RouteName) => {
   const meta = getWorkflowStepMeta(routeName);
@@ -51,12 +59,24 @@ const workflowOptions = <RouteName extends keyof AppTabsParamList>(routeName: Ro
   };
 };
 
+const LernenWorkflowStack = () => (
+  <LernenStack.Navigator
+    initialRouteName={LERNEN_STACK_ROUTES.LernenHome}
+    screenOptions={{
+      headerShown: false,
+    }}
+  >
+    <LernenStack.Screen name={LERNEN_STACK_ROUTES.LernenHome} component={LernenScreen} />
+    <LernenStack.Screen name={LERNEN_STACK_ROUTES.Recording} component={RecordingScreen} />
+  </LernenStack.Navigator>
+);
+
 const AppTabs = ({
   route,
 }: {
   route: RouteProp<RootStackParamList, 'App'>;
 }) => {
-  const initialRouteName = route?.params?.screen ?? 'Recognition';
+  const initialRouteName = route?.params?.screen ?? APP_TAB_ROUTES.Recognition;
 
   return (
     <Tab.Navigator
@@ -67,23 +87,25 @@ const AppTabs = ({
       tabBar={(props: BottomTabBarProps) => <NewBottomNav {...props} />}
     >
       <Tab.Screen
-        name="Recognition"
+        name={APP_TAB_ROUTES.Recognition}
         component={RecognitionScreen}
         options={workflowOptions('Recognition')}
       />
       <Tab.Screen
-        name="History"
+        name={APP_TAB_ROUTES.History}
         component={HistoryScreen}
         options={workflowOptions('History')}
       />
       <Tab.Screen
-        name="Lernen"
-        component={LernenScreen}
+        name={APP_TAB_ROUTES.Lernen}
+        component={LernenWorkflowStack}
         options={workflowOptions('Lernen')}
       />
     </Tab.Navigator>
   );
 };
+
+const noopScreen = () => null;
 
 const RootNavigator = () => (
   <Suspense fallback={<LoadingIndicator />}>
@@ -98,7 +120,21 @@ const RootNavigator = () => (
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Tutorial" component={TutorialScreen} />
       <Stack.Screen name="ProfileSelect" component={ProfileSelectScreen} />
-      <Stack.Screen name="Recording" component={RecordingScreen} />
+      <Stack.Screen
+        name={ROOT_STACK_ROUTES.Recording}
+        component={noopScreen}
+        listeners={({ navigation, route }) => ({
+          focus: () => {
+            navigation.replace(ROOT_STACK_ROUTES.App, {
+              screen: APP_TAB_ROUTES.Lernen,
+              params: {
+                screen: LERNEN_STACK_ROUTES.Recording,
+                params: route.params,
+              },
+            });
+          },
+        })}
+      />
       <Stack.Screen name="Training" component={TrainingScreen} />
       <Stack.Screen name="Teach" component={TeachScreen} />
       <Stack.Screen name="Teaching" component={TeachingScreen} />

@@ -1,19 +1,21 @@
 import React, { useCallback } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { StackScreenProps } from '@react-navigation/stack';
 import { gestureModel } from '../model';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import Colors from '../constants/colors';
 import ActionButton from '../components/ActionButton';
-import type { TabNavigationProp } from '../navigation/types';
-import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
+import type { LernenStackParamList } from '../navigation/types';
+import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import WorkflowStageHeader from '../components/WorkflowStageHeader';
 
-type LernenScreenProps = {
-  navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Lernen>;
-};
+type LernenScreenProps = StackScreenProps<
+  LernenStackParamList,
+  typeof LERNEN_STACK_ROUTES.LernenHome
+>;
 
 type GestureListItem = {
   id: string;
@@ -28,7 +30,10 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
 
   const handleTrain = useCallback(
     (gestureId: string, label: string) => {
-      navigation.navigate(ROOT_STACK_ROUTES.Recording, { gestureId, gestureLabel: label || gestureId });
+      navigation.navigate(LERNEN_STACK_ROUTES.Recording, {
+        gestureId,
+        gestureLabel: label || gestureId,
+      });
     },
     [navigation],
   );

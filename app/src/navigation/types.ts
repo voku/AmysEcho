@@ -3,10 +3,15 @@ import type { CompositeNavigationProp, NavigatorScreenParams } from '@react-navi
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
+export type LernenStackParamList = {
+  LernenHome: { gestureId?: string; gestureLabel?: string } | undefined;
+  Recording: { gestureId?: string; gestureLabel?: string } | undefined;
+};
+
 export type AppTabsParamList = {
   Recognition: { profileId?: string; simulateLowConfidence?: boolean } | undefined;
   History: undefined;
-  Lernen: { gestureId?: string; gestureLabel?: string } | undefined;
+  Lernen: NavigatorScreenParams<LernenStackParamList> | undefined;
 };
 
 export type RootStackParamList = {
@@ -41,6 +46,11 @@ export const APP_TAB_ROUTES = {
   History: 'History',
   Lernen: 'Lernen',
 } as const satisfies Record<keyof AppTabsParamList, keyof AppTabsParamList>;
+
+export const LERNEN_STACK_ROUTES = {
+  LernenHome: 'LernenHome',
+  Recording: 'Recording',
+} as const satisfies Record<keyof LernenStackParamList, keyof LernenStackParamList>;
 
 export const ROOT_STACK_ROUTES = {
   Hero: 'Hero',
