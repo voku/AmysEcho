@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import Svg, { Circle } from 'react-native-svg';
 import {
@@ -39,6 +39,9 @@ import {
 } from '../constants/cameraToggle';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
+const MIN_PREVIEW_SIZE = 200;
+const MAX_PREVIEW_SIZE = 420;
+const PANEL_HORIZONTAL_PADDING = SPACING.lg * 2;
 
 type ExpoFileSystemCompat = typeof FileSystem & {
   cacheDirectory?: string;
@@ -50,7 +53,18 @@ const expoFs = FileSystem as ExpoFileSystemCompat;
 
 export default function RecordingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
-  const PREVIEW_SIZE = 200;
+  const { width: windowWidth } = useWindowDimensions();
+  const previewSize = useMemo(() => {
+    if (windowWidth <= 0) {
+      return MIN_PREVIEW_SIZE;
+    }
+    const availableWidth = Math.max(windowWidth - PANEL_HORIZONTAL_PADDING, 0);
+    const clampedMax = Math.min(MAX_PREVIEW_SIZE, availableWidth);
+    const desired = windowWidth * 0.75;
+    const size = Math.min(desired, clampedMax);
+    const minConstraint = Math.min(clampedMax, MIN_PREVIEW_SIZE);
+    return Math.max(size, minConstraint);
+  }, [windowWidth]);
   const { gestureLabel, gestureId: passedGestureId, isPractice, targetSamples } = route.params || {};
   const gestures = Array.isArray(gestureModel.gestures) ? gestureModel.gestures : [];
   const initialGesture = (gestureLabel as string | undefined) ?? (passedGestureId as string | undefined) ?? null;
@@ -481,8 +495,8 @@ export default function RecordingScreen({ navigation, route }: any) {
       color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
     },
     cameraContainer: {
-      width: PREVIEW_SIZE,
-      height: PREVIEW_SIZE,
+      width: previewSize,
+      height: previewSize,
       marginBottom: SPACING.sm,
       position: 'relative',
       alignSelf: 'center',
@@ -542,11 +556,17 @@ export default function RecordingScreen({ navigation, route }: any) {
     },
     progressBar: {
       width: '100%',
-      maxWidth: PREVIEW_SIZE,
+      maxWidth: previewSize,
       height: 10,
       backgroundColor: highContrast ? COLORS.borderDark : COLORS.border,
       borderRadius: DEFAULT_RADIUS,
       overflow: 'hidden',
+      alignSelf: 'center',
+    },
+    trainingVideoWrapper: {
+      width: previewSize,
+      height: previewSize,
+      marginBottom: SPACING.sm,
       alignSelf: 'center',
     },
     progressFill: {
@@ -638,13 +658,7 @@ export default function RecordingScreen({ navigation, route }: any) {
                     const entry = gestureModel.gestures.find((g) => g.id === gestureId);
                     const videoSource = entry?.dgsVideoUri ? { uri: entry.dgsVideoUri } : undefined;
                     return videoSource ? (
-                      <View
-                        style={{
-                          width: PREVIEW_SIZE,
-                          height: PREVIEW_SIZE,
-                          marginBottom: SPACING.sm,
-                        }}
-                      >
+                      <View style={styles.trainingVideoWrapper}>
                         <DgsVideoPlayer videoSource={videoSource} shouldPlay={true} />
                       </View>
                     ) : null;
@@ -699,7 +713,7 @@ export default function RecordingScreen({ navigation, route }: any) {
                 {landmarks.length > 0 && (
                   <Svg
                     style={StyleSheet.absoluteFill}
-                    viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
+                    viewBox={`0 0 ${previewSize} ${previewSize}`}
                     pointerEvents="none"
                   >
                     {landmarks.map((hand, handIdx) =>
@@ -711,8 +725,8 @@ export default function RecordingScreen({ navigation, route }: any) {
                         return (
                           <Circle
                             key={`${handIdx}-${lmIdx}`}
-                            cx={x * PREVIEW_SIZE}
-                            cy={y * PREVIEW_SIZE}
+                            cx={x * previewSize}
+                            cy={y * previewSize}
                             r={3}
                             fill={COLORS.warning}
                           />
