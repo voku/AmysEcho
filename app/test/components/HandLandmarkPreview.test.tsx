@@ -60,4 +60,20 @@ describe('HandLandmarkPreview', () => {
     const originalX = SINGLE_HAND[0][0][0];
     expect(points[0].props.cx).toBeCloseTo(1 - originalX, 2);
   });
+
+  it('falls back to investigation copy when confidence is invalid', () => {
+    const { getByText } = render(
+      <HandLandmarkPreview landmarks={SINGLE_HAND} confidence={Number.NaN} />,
+    );
+
+    expect(getByText('Sicherheit: wird ermittelt…')).toBeTruthy();
+  });
+
+  it('rounds sanitized confidence to a percentage', () => {
+    const { getByText } = render(
+      <HandLandmarkPreview landmarks={SINGLE_HAND} confidence={0.424} />,
+    );
+
+    expect(getByText('Sicherheit: 42%')).toBeTruthy();
+  });
 });
