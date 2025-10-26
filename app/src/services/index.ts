@@ -19,5 +19,4 @@ export * from './gestureCombinationService';
 export * from './gestureMeaningService';
 export * from './adaptiveLearningService';
 export * from './activeLearningService';
-export * from './LanguageManager';
 export * from './trainingBundleService';

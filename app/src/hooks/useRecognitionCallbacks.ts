@@ -12,7 +12,6 @@ import {
   correctionService,
   gestureMeaningService,
   dialogEngine,
-  LanguageManager,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
@@ -42,6 +41,7 @@ import { logInteractionEvent } from '../services/analytics';
 
 const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
 const RECOVERING_CAMERA_TEXT = 'Ups! Ich starte die Kamera neu…';
+const SUGGESTION_LANGUAGE = 'de';
 
 type Navigation = TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 
@@ -447,7 +447,7 @@ export const useRecognitionCallbacks = ({
         recognitionSource,
       );
 
-      const suggestionLanguage = LanguageManager.getLanguage();
+      const suggestionLanguage = SUGGESTION_LANGUAGE;
       const suggestionAge = profile?.age ?? 4;
 
       try {

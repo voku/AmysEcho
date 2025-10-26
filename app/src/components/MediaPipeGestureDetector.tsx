@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import type { WebViewPermissionRequestEvent } from '../webviewTypes';
 
@@ -109,10 +109,13 @@ interface Props {
 
 const WEBVIEW_UNAVAILABLE_TEXT = 'Ich brauche einen Moment. Lass uns gleich weitermachen!';
 const TAP_TO_START_TEXT = 'Tippe, um die Kamera zu starten';
-const RECOGNIZER_INIT_FAILED_TEXT = 'Ich bin gleich bereit. Versuch\'s nochmal!';
-const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
+const TAP_TO_START_ACCESSIBILITY_LABEL = 'Kamera starten';
+const TAP_TO_START_ACCESSIBILITY_HINT =
+  'Doppeltippen, um die Kamera zu aktivieren und die Berechtigung erneut zu öffnen.';
+const RECOGNIZER_INIT_FAILED_TEXT = "Ich bin gleich bereit. Versuch's nochmal!";
+const PREDICTION_ERROR_TEXT = "Das hat nicht geklappt. Lass es uns nochmal versuchen!";
 const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
-const GESTURE_PROCESSING_ERROR_TEXT = 'Das hat nicht geklappt. Probier\'s einfach nochmal!';
+const GESTURE_PROCESSING_ERROR_TEXT = "Das hat nicht geklappt. Probier's einfach nochmal!";
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 const DEFAULT_GESTURE_SIZE_TOLERANCE = 0.3;
 
@@ -528,6 +531,10 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     [clearCameraStartRetryTimeout, injectCameraStartRequest],
   );
 
+  const handleTapToStartPress = useCallback(() => {
+    scheduleCameraStartAttempt('tap_overlay', true);
+  }, [scheduleCameraStartAttempt]);
+
   useEffect(() => {
     return () => {
       clearCameraStartRetryTimeout();
@@ -820,7 +827,20 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
         onPermissionRequest={handlePermissionRequest}
       />
 
-      {webviewError && (
+      {webviewError && webviewError === TAP_TO_START_TEXT && (
+        <Pressable
+          pointerEvents="auto"
+          accessibilityRole="button"
+          accessibilityLabel={TAP_TO_START_ACCESSIBILITY_LABEL}
+          accessibilityHint={TAP_TO_START_ACCESSIBILITY_HINT}
+          onPress={handleTapToStartPress}
+          style={styles.errorOverlay}
+        >
+          <Text style={styles.errorText}>{webviewError}</Text>
+        </Pressable>
+      )}
+
+      {webviewError && webviewError !== TAP_TO_START_TEXT && (
         <View pointerEvents="none" style={styles.errorOverlay}>
           <Text style={styles.errorText}>{webviewError}</Text>
         </View>
