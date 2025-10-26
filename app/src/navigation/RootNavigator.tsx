@@ -1,10 +1,9 @@
 
-import React, { Suspense, useLayoutEffect } from 'react';
+import React, { Suspense } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import type { RouteProp } from '@react-navigation/native';
-import type { StackScreenProps } from '@react-navigation/stack';
 import {
   APP_TAB_ROUTES,
   AppTabsParamList,
@@ -106,24 +105,7 @@ const AppTabs = ({
   );
 };
 
-type RecordingRedirectScreenProps = StackScreenProps<RootStackParamList, 'Recording'>;
-
-const RecordingRedirectScreen: React.FC<RecordingRedirectScreenProps> = ({
-  navigation,
-  route,
-}) => {
-  useLayoutEffect(() => {
-    navigation.replace(ROOT_STACK_ROUTES.App, {
-      screen: APP_TAB_ROUTES.Lernen,
-      params: {
-        screen: LERNEN_STACK_ROUTES.Recording,
-        params: route.params,
-      },
-    });
-  }, [navigation, route.params]);
-
-  return null;
-};
+const noopScreen = () => null;
 
 const RootNavigator = () => (
   <Suspense fallback={<LoadingIndicator />}>
@@ -138,7 +120,21 @@ const RootNavigator = () => (
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Tutorial" component={TutorialScreen} />
       <Stack.Screen name="ProfileSelect" component={ProfileSelectScreen} />
-      <Stack.Screen name="Recording" component={RecordingRedirectScreen} />
+      <Stack.Screen
+        name="Recording"
+        component={noopScreen}
+        listeners={({ navigation, route }) => ({
+          focus: () => {
+            navigation.replace(ROOT_STACK_ROUTES.App, {
+              screen: APP_TAB_ROUTES.Lernen,
+              params: {
+                screen: LERNEN_STACK_ROUTES.Recording,
+                params: route.params,
+              },
+            });
+          },
+        })}
+      />
       <Stack.Screen name="Training" component={TrainingScreen} />
       <Stack.Screen name="Teach" component={TeachScreen} />
       <Stack.Screen name="Teaching" component={TeachingScreen} />
