@@ -690,7 +690,9 @@ export default function RecognitionScreen({
     const gestureId = gestureMeaningDisplayProps?.gestureId;
     logger.info('Open learn flow', { gestureId });
     navigation.navigate(APP_TAB_ROUTES.Lernen, {
-      screen: LERNEN_STACK_ROUTES.LernenHome,
+      screen: gestureId
+        ? LERNEN_STACK_ROUTES.Recording
+        : LERNEN_STACK_ROUTES.LernenHome,
       params: gestureId ? { gestureId } : undefined,
     });
   }, [gestureMeaningDisplayProps, navigation]);

@@ -1,5 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
+import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../../src/navigation/types';
 
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
@@ -209,20 +210,19 @@ describe('RecognitionScreen Amy-first overlay', () => {
     recognitionStateModule.__resetMockStatus?.();
   });
 
-  const renderRecognitionScreen = async () => {
+  const renderRecognitionScreen = async (navigateMock: jest.Mock = jest.fn()) => {
     let component!: renderer.ReactTestRenderer;
+    const navigation = { navigate: navigateMock };
 
     await act(async () => {
-      component = renderer.create(
-        <RecognitionScreen navigation={{ navigate: jest.fn() }} />,
-      );
+      component = renderer.create(<RecognitionScreen navigation={navigation} />);
     });
 
-    return component;
+    return { component, navigation };
   };
 
   it('zeigt den reduzierten Kopfbereich ohne Timeline, aber mit Statuschip', async () => {
-    const component = await renderRecognitionScreen();
+    const { component } = await renderRecognitionScreen();
     const timelines = component.root.findAllByType(AmyLoopTimeline);
     expect(timelines).toHaveLength(0);
 
@@ -240,7 +240,7 @@ describe('RecognitionScreen Amy-first overlay', () => {
   it('rendert die Statuskarte auch ohne Statuswert', async () => {
     recognitionStateModule.__setMockStatus?.('');
 
-    const component = await renderRecognitionScreen();
+    const { component } = await renderRecognitionScreen();
 
     expect(component).toBeTruthy();
 
@@ -259,7 +259,7 @@ describe('RecognitionScreen Amy-first overlay', () => {
   });
 
   it('blendet Aktionsknöpfe erst nach erkannter Geste ein', async () => {
-    const component = await renderRecognitionScreen();
+    const { component } = await renderRecognitionScreen();
     const findAmyActionButtons = () =>
       component.root
         .findAllByType(ActionButtonComponent)
@@ -312,8 +312,37 @@ describe('RecognitionScreen Amy-first overlay', () => {
     expect(actionButtons[2].props.textColor).toBe('#E5E0CF');
   });
 
+  it('öffnet bei erkannter Geste direkt die Aufnahme im Lernmodus', async () => {
+    const navigateMock = jest.fn();
+    const { component } = await renderRecognitionScreen(navigateMock);
+
+    await act(async () => {
+      recognitionStateModule.__setMockLastRecognizedGesture?.({
+        id: 'hallo',
+        label: 'Hallo',
+        emoji: '👋',
+        category: 'greeting',
+      });
+    });
+
+    const learnButton = component.root
+      .findAllByType(ActionButtonComponent)
+      .find((button) => button.props.label === 'Lernen');
+
+    expect(learnButton).toBeDefined();
+
+    act(() => {
+      learnButton?.props.onPress();
+    });
+
+    expect(navigateMock).toHaveBeenCalledWith(APP_TAB_ROUTES.Lernen, {
+      screen: LERNEN_STACK_ROUTES.Recording,
+      params: { gestureId: 'hallo' },
+    });
+  });
+
   it('zeigt die neue Kamerakarten-Tonart für Bedeutungsanzeigen', async () => {
-    const component = await renderRecognitionScreen();
+    const { component } = await renderRecognitionScreen();
     expect(component).toBeTruthy();
 
     mockGestureMeaningDisplay.mockClear();

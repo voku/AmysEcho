@@ -88,7 +88,7 @@ const HistoryScreen: React.FC = () => {
   const handleQuickLearn = useCallback(
     (entry: GestureHistoryEntry) => {
       navigation.navigate(APP_TAB_ROUTES.Lernen, {
-        screen: LERNEN_STACK_ROUTES.LernenHome,
+        screen: LERNEN_STACK_ROUTES.Recording,
         params: {
           gestureId: entry.id,
           gestureLabel: entry.label,
