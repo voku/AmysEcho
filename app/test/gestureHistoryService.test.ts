@@ -277,8 +277,8 @@ describe('GestureHistoryService', () => {
 
       expect(stats.totalGestures).toBe(0);
       expect(stats.successRate).toBe(0);
-      expect(stats.mostUsedGesture).toBe('');
-      expect(stats.recentActivity).toBe(0);
+      expect(stats.mostUsedGesture).toBeNull();
+      expect(stats.recentActivity).toEqual({ today: 0, thisWeek: 0, thisMonth: 0 });
       expect(stats.communicationStreak).toBe(0);
     });
 
@@ -305,8 +305,8 @@ describe('GestureHistoryService', () => {
 
       expect(stats.totalGestures).toBe(4);
       expect(stats.successRate).toBe(1); // All gestures are considered successful
-      expect(stats.mostUsedGesture).toBe('Hello');
-      expect(stats.recentActivity).toBe(4); // All within last hour
+      expect(stats.mostUsedGesture).toEqual({ id: 'hello_2', label: 'Hello', count: 3 });
+      expect(stats.recentActivity).toEqual({ today: 4, thisWeek: 4, thisMonth: 4 });
     });
 
     it('should calculate communication streak correctly', () => {
@@ -338,29 +338,49 @@ describe('GestureHistoryService', () => {
       expect(stats.communicationStreak).toBe(3); // Only the recent 3 gestures
     });
 
-    it('should handle recent activity filtering', () => {
-      const now = Date.now();
+    it('should aggregate recent activity by day, week, and month', () => {
+      const baseTime = Date.UTC(2024, 4, 15, 12, 0, 0); // 15 May 2024 12:00 UTC (Wednesday)
+      const dateSpy = jest.spyOn(Date, 'now').mockImplementation(() => baseTime);
 
-      // Add recent gesture
       service.addGesture({
-        id: 'recent',
-        label: 'Recent',
-        emoji: '🕑',
-        confidence: 0.8
+        id: 'today',
+        label: 'Heute',
+        emoji: '📅',
+        confidence: 0.9
       });
 
-      // Add old gesture (more than 1 hour ago)
-      const oldGesture = {
-        id: 'old',
-        label: 'Old',
-        emoji: '🕐',
+      const history = (service as any).history as GestureHistoryEntry[];
+      history.push({
+        id: 'week',
+        label: 'Woche',
+        emoji: '🗓️',
         confidence: 0.8,
-        timestamp: now - (2 * 60 * 60 * 1000) // 2 hours ago
-      };
-      (service as any).history.push(oldGesture);
+        timestamp: baseTime - (2 * 24 * 60 * 60 * 1000) // two days ago, same week
+      });
+
+      history.push({
+        id: 'month',
+        label: 'Monat',
+        emoji: '🗓️',
+        confidence: 0.7,
+        timestamp: baseTime - (10 * 24 * 60 * 60 * 1000) // within same month
+      });
+
+      history.push({
+        id: 'old',
+        label: 'Alt',
+        emoji: '🕐',
+        confidence: 0.6,
+        timestamp: baseTime - (40 * 24 * 60 * 60 * 1000) // previous month
+      });
 
       const stats = service.getStats();
-      expect(stats.recentActivity).toBe(1); // Only the recent gesture
+
+      expect(stats.recentActivity.today).toBe(1);
+      expect(stats.recentActivity.thisWeek).toBe(2);
+      expect(stats.recentActivity.thisMonth).toBe(3);
+
+      dateSpy.mockRestore();
     });
   });
 

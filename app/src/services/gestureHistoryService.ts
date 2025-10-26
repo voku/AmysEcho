@@ -11,11 +11,21 @@ export interface GestureHistoryEntry {
   audioResponse?: string;
 }
 
+export interface GestureUsageSummary {
+  id: string;
+  label: string;
+  count: number;
+}
+
 export interface GestureHistoryStats {
   totalGestures: number;
   successRate: number;
-  mostUsedGesture: string;
-  recentActivity: number; // gestures in last hour
+  mostUsedGesture: GestureUsageSummary | null;
+  recentActivity: {
+    today: number;
+    thisWeek: number;
+    thisMonth: number;
+  };
   communicationStreak: number; // consecutive successful gestures
 }
 
@@ -93,25 +103,59 @@ class GestureHistoryService {
       return {
         totalGestures: 0,
         successRate: 0,
-        mostUsedGesture: '',
-        recentActivity: 0,
+        mostUsedGesture: null,
+        recentActivity: {
+          today: 0,
+          thisWeek: 0,
+          thisMonth: 0
+        },
         communicationStreak: 0
       };
     }
 
-    const recent = this.getRecentGestures(60); // Last hour
-    const gestureCounts: Record<string, number> = {};
+    const now = Date.now();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date(startOfDay);
+    const dayOfWeek = (startOfWeek.getDay() + 6) % 7; // Monday as start of week
+    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+
+    const startOfMonth = new Date(startOfDay.getFullYear(), startOfDay.getMonth(), 1);
+
+    const usageByGesture = new Map<string, GestureUsageSummary>();
+    let todayCount = 0;
+    let thisWeekCount = 0;
+    let thisMonthCount = 0;
 
     this.history.forEach(entry => {
-      gestureCounts[entry.label] = (gestureCounts[entry.label] || 0) + 1;
+      const usage = usageByGesture.get(entry.label);
+      if (usage) {
+        usage.count += 1;
+      } else {
+        usageByGesture.set(entry.label, {
+          id: entry.id,
+          label: entry.label,
+          count: 1
+        });
+      }
+
+      const entryDate = new Date(entry.timestamp);
+      if (entryDate.getTime() >= startOfDay.getTime()) {
+        todayCount += 1;
+      }
+      if (entryDate.getTime() >= startOfWeek.getTime()) {
+        thisWeekCount += 1;
+      }
+      if (entryDate.getTime() >= startOfMonth.getTime()) {
+        thisMonthCount += 1;
+      }
     });
 
-    const mostUsed = Object.entries(gestureCounts)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || '';
+    const mostUsed = Array.from(usageByGesture.values()).sort((a, b) => b.count - a.count)[0] ?? null;
 
     // Calculate communication streak (consecutive gestures within reasonable time gaps)
     let streak = 0;
-    const now = Date.now();
     for (let i = 0; i < this.history.length; i++) {
       const entry = this.history[i];
       if (!entry) {
@@ -130,7 +174,11 @@ class GestureHistoryService {
       totalGestures: this.history.length,
       successRate: this.history.length > 0 ? 1 : 0, // All stored gestures are successful
       mostUsedGesture: mostUsed,
-      recentActivity: recent.length,
+      recentActivity: {
+        today: todayCount,
+        thisWeek: thisWeekCount,
+        thisMonth: thisMonthCount
+      },
       communicationStreak: streak
     };
   }
