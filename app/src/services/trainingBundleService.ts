@@ -48,12 +48,16 @@ function extractClipExtension(uri: string): string | null {
   }
   const sanitized = uri.split(/[?#]/, 1)[0] ?? '';
   const lastSegmentMatch = sanitized.match(/([^/]+)$/);
-  const lastSegment = lastSegmentMatch ? lastSegmentMatch[1] : '';
-  const extensionMatch = lastSegment.match(/\.([a-z0-9]{1,8})$/i);
-  if (!extensionMatch) {
+  const lastSegment = (lastSegmentMatch?.[1] ?? '').trim();
+  if (!lastSegment) {
     return null;
   }
-  return extensionMatch[1].toLowerCase();
+  const extensionMatch = lastSegment.match(/\.([a-z0-9]{1,8})$/i);
+  const extension = extensionMatch?.[1];
+  if (!extension) {
+    return null;
+  }
+  return extension.toLowerCase();
 }
 
 function buildClipFilename(clipUri: string): string {
