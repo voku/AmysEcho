@@ -44,10 +44,17 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.outlineMuted,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 6,
   },
   infoContainerHC: {
     backgroundColor: COLORS.highContrastBackground,
     borderColor: COLORS.highContrastText,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   infoText: {
     fontSize: 16,
@@ -83,6 +90,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.outline,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
   },
   optionCardPressed: {
     backgroundColor: COLORS.surfaceMuted,
@@ -90,9 +102,13 @@ const styles = StyleSheet.create({
   optionCardHC: {
     backgroundColor: COLORS.highContrastBackground,
     borderColor: COLORS.highContrastText,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   optionCardPressedHC: {
     backgroundColor: COLORS.highContrastPressed,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   optionTitle: {
     fontSize: 18,
@@ -108,7 +124,7 @@ const styles = StyleSheet.create({
   optionSubtitle: {
     marginTop: SPACING.xs,
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: COLORS.text,
   },
   optionSubtitleLarge: {
     fontSize: 16,
@@ -203,7 +219,7 @@ export default function ParentScreen({
         },
         {
           title: 'Adminbereich',
-          subtitle: 'Technische Werkzeuge und Datensicherung',
+          subtitle: 'Technische Werkzeuge und Sicherungen verwalten',
           onPress: () => navigation.navigate(ROOT_STACK_ROUTES.Admin, undefined, { pop: true }),
           accessibilityLabel: 'Adminbereich öffnen',
         },
@@ -213,13 +229,6 @@ export default function ParentScreen({
       title: 'Berichte & Fortschritt',
       items: [
         {
-          title: 'Analysen',
-          subtitle: 'Trendberichte und Nutzungsdaten ansehen',
-          onPress: () =>
-            navigation.navigate(ROOT_STACK_ROUTES.Dashboard, undefined, { pop: true }),
-          accessibilityLabel: 'Analysen ansehen',
-        },
-        {
           title: 'Lernfortschritt',
           subtitle: 'Zusammenfassung der Trainingsfortschritte',
           onPress: () =>
@@ -227,26 +236,27 @@ export default function ParentScreen({
           accessibilityLabel: 'Lernfortschritt ansehen',
         },
         {
-          title: 'Fortschritt',
+          title: 'Analysen',
+          subtitle: 'Nutzungsübersicht und Trends einsehen',
+          onPress: () =>
+            navigation.navigate(ROOT_STACK_ROUTES.Dashboard, undefined, { pop: true }),
+          accessibilityLabel: 'Analysen ansehen',
+        },
+        {
+          title: 'Fortschrittstagebuch',
           subtitle: 'Detailverlauf und Meilensteine verfolgen',
           onPress: () =>
             navigation.navigate(ROOT_STACK_ROUTES.Progress, undefined, { pop: true }),
-          accessibilityLabel: 'Fortschritt ansehen',
+          accessibilityLabel: 'Fortschrittstagebuch ansehen',
         },
       ],
     },
     {
-      title: 'Unterstützung & Training',
+      title: 'Unterstützung im Alltag',
       items: [
         {
-          title: 'Hilfe',
-          subtitle: 'Antworten und Kontaktmöglichkeiten',
-          onPress: () => navigation.navigate(ROOT_STACK_ROUTES.Help, undefined, { pop: true }),
-          accessibilityLabel: 'Hilfe erhalten',
-        },
-        {
           title: 'Training starten',
-          subtitle: 'Neue Beispiele aufnehmen oder üben',
+          subtitle: 'Neue Beispiele aufnehmen oder gemeinsam üben',
           onPress: () =>
             navigation.navigate(
               ROOT_STACK_ROUTES.App,
@@ -256,15 +266,10 @@ export default function ParentScreen({
           accessibilityLabel: 'Training öffnen',
         },
         {
-          title: 'Erkennen',
-          subtitle: 'Zur Live-Gestenerkennung wechseln',
-          onPress: () =>
-            navigation.navigate(
-              ROOT_STACK_ROUTES.App,
-              { screen: APP_TAB_ROUTES.Recognition },
-              { pop: true },
-            ),
-          accessibilityLabel: 'Zur Erkennung wechseln',
+          title: 'Hilfe & Kontakt',
+          subtitle: 'Antworten, Tipps und Ansprechpartner finden',
+          onPress: () => navigation.navigate(ROOT_STACK_ROUTES.Help, undefined, { pop: true }),
+          accessibilityLabel: 'Hilfe & Kontakt öffnen',
         },
       ],
     },
@@ -314,7 +319,7 @@ export default function ParentScreen({
               highContrast && styles.infoTextHC,
             ]}
           >
-            {`Alle wichtigen Einstellungen werden automatisch für ${optimizedFor} optimiert. Wähle einen Bereich aus, um schnell zu den wichtigsten Werkzeugen für Betreuung, Berichte und Unterstützung zu gelangen.`}
+            {`${optimizedFor} steht im Mittelpunkt. Wähle die Karte, die zu deiner nächsten Aufgabe passt – von Berichten bis zur Unterstützung im Alltag.`}
           </Text>
         </View>
       </View>

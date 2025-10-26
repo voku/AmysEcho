@@ -49,12 +49,19 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.outlineMuted,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 6,
   },
   introCardHC: {
     backgroundColor: COLORS.highContrastBackground,
     borderColor: COLORS.highContrastText,
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  introText: { color: COLORS.textSecondary, fontSize: 14, textAlign: 'center' },
+  introText: { color: COLORS.text, fontSize: 14, textAlign: 'center' },
   introTextLarge: { fontSize: 16 },
   introTextHC: { color: COLORS.highContrastText },
   section: { marginBottom: SPACING.xl },
@@ -70,14 +77,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.outline,
     alignItems: 'flex-start',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
   },
   actionButtonPressed: { backgroundColor: COLORS.surfaceMuted },
-  actionButtonHC: { backgroundColor: COLORS.highContrastBackground, borderColor: COLORS.highContrastText },
-  actionButtonPressedHC: { backgroundColor: COLORS.highContrastPressed },
+  actionButtonHC: {
+    backgroundColor: COLORS.highContrastBackground,
+    borderColor: COLORS.highContrastText,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  actionButtonPressedHC: { backgroundColor: COLORS.highContrastPressed, shadowOpacity: 0, elevation: 0 },
   actionTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text },
   actionTitleLarge: { fontSize: 18 },
   actionTitleHC: { color: COLORS.highContrastText },
-  actionSubtitle: { marginTop: 4, fontSize: 13, color: COLORS.textSecondary },
+  actionSubtitle: { marginTop: 4, fontSize: 13, color: COLORS.text },
   actionSubtitleLarge: { fontSize: 15 },
   actionSubtitleHC: { color: COLORS.highContrastText },
   row: {
@@ -110,20 +127,49 @@ const styles = StyleSheet.create({
   emptyState: { textAlign: 'center', color: COLORS.textSecondary, marginVertical: SPACING.lg, fontSize: 16 },
   emptyStateLarge: { fontSize: 18 },
   emptyStateHC: { color: COLORS.highContrastText },
-  modal: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.64)',
     justifyContent: 'center',
-    padding: SPACING.lg,
-    backgroundColor: COLORS.surface,
+    padding: SPACING.xl,
   },
-  modalHC: {
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: DEFAULT_RADIUS,
+    padding: SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.outlineMuted,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  modalContentHC: {
     backgroundColor: COLORS.highContrastBackground,
+    borderColor: COLORS.highContrastText,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  inputGroup: {
+    marginBottom: SPACING.md,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  inputLabelLarge: {
+    fontSize: 16,
+  },
+  inputLabelHC: {
+    color: COLORS.highContrastText,
   },
   input: {
     borderWidth: 1,
     borderColor: COLORS.outline,
     padding: SPACING.sm,
-    marginBottom: SPACING.md,
     borderRadius: DEFAULT_RADIUS,
     backgroundColor: COLORS.surface,
     color: COLORS.text,
@@ -629,23 +675,49 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
         >
           API-Zugänge
         </Text>
-        <TextInput
-          style={[styles.input, highContrast && styles.inputHC]}
-          placeholder="OpenAI API-Schlüssel"
-          placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
-          value={apiKey}
-          onChangeText={setApiKey}
-          accessibilityLabel="OpenAI API-Schlüssel"
-        />
+        <View style={styles.inputGroup}>
+          <Text
+            style={[
+              styles.inputLabel,
+              largeText && styles.inputLabelLarge,
+              highContrast && styles.inputLabelHC,
+            ]}
+          >
+            OpenAI API-Schlüssel
+          </Text>
+          <TextInput
+            style={[styles.input, highContrast && styles.inputHC]}
+            placeholder="sk-live-…"
+            placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
+            value={apiKey}
+            onChangeText={setApiKey}
+            accessibilityLabel="OpenAI API-Schlüssel"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
         {renderActionButton('API-Schlüssel speichern', handleSaveApiKey, 'OpenAI API-Schlüssel speichern', 'Speichert den hinterlegten Schlüssel lokal')}
-        <TextInput
-          style={[styles.input, highContrast && styles.inputHC]}
-          placeholder="Backend-API-Token"
-          placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
-          value={backendToken}
-          onChangeText={setBackendToken}
-          accessibilityLabel="Backend-API-Token"
-        />
+        <View style={styles.inputGroup}>
+          <Text
+            style={[
+              styles.inputLabel,
+              largeText && styles.inputLabelLarge,
+              highContrast && styles.inputLabelHC,
+            ]}
+          >
+            Backend-API-Token
+          </Text>
+          <TextInput
+            style={[styles.input, highContrast && styles.inputHC]}
+            placeholder="token-1234"
+            placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
+            value={backendToken}
+            onChangeText={setBackendToken}
+            accessibilityLabel="Backend-API-Token"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
         {renderActionButton('Backend-Token speichern', handleSaveBackendToken, 'Backend-Token speichern', 'Speichert das Token für serverseitige Aufgaben')}
       </View>
 
@@ -746,77 +818,112 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
         contentContainerStyle={styles.listContent}
       />
 
-      <Modal visible={modalVisible} animationType="slide">
-        <View style={[styles.modal, highContrast && styles.modalHC]}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              largeText && styles.sectionTitleLarge,
-              highContrast && styles.sectionTitleHC,
-            ]}
-          >
-            {editing ? 'Symbol bearbeiten' : 'Neues Symbol'}
-          </Text>
-          <Text
-            style={[
-              styles.modalInfo,
-              largeText && styles.modalInfoLarge,
-              highContrast && styles.modalInfoHC,
-            ]}
-          >
-            ID, Bezeichnung und Kategorie helfen Amy, das Symbol richtig zuzuordnen. Optional kannst du eine Audioaufnahme hinzufügen.
-          </Text>
-          <TextInput
-            style={[styles.input, highContrast && styles.inputHC]}
-            placeholder="ID"
-            placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
-            value={id}
-            onChangeText={setId}
-            accessibilityLabel="Symbol-ID"
-          />
-          <TextInput
-            style={[styles.input, highContrast && styles.inputHC]}
-            placeholder="Bezeichnung"
-            placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
-            value={label}
-            onChangeText={setLabel}
-            accessibilityLabel="Symbolbezeichnung"
-          />
-          <TextInput
-            style={[styles.input, highContrast && styles.inputHC]}
-            placeholder="Kategorie"
-            placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
-            value={category}
-            onChangeText={setCategory}
-            accessibilityLabel="Symbolkategorie"
-          />
-          <View style={styles.modalButtonRow}>
-            {renderRowActionButton(
-              isRecording ? 'Aufnahme stoppen' : 'Audio aufnehmen',
-              handleRecordAudio,
-              'Audioaufnahme',
-            )}
-          </View>
-          {audioUri ? (
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, highContrast && styles.modalContentHC]}>
             <Text
               style={[
-                styles.modalStatus,
-                largeText && styles.modalStatusLarge,
-                highContrast && styles.modalStatusHC,
+                styles.sectionTitle,
+                largeText && styles.sectionTitleLarge,
+                highContrast && styles.sectionTitleHC,
               ]}
             >
-              Audio gespeichert
+              {editing ? 'Symbol bearbeiten' : 'Neues Symbol'}
             </Text>
-          ) : null}
-          <View style={styles.modalButtonRow}>
-            {renderRowActionButton('Speichern', handleSave, 'Symbol speichern')}
-          </View>
-          <View style={styles.modalButtonRow}>
-            {renderRowActionButton(
-              'Abbrechen',
-              () => setModalVisible(false),
-              'Abbrechen',
-            )}
+            <Text
+              style={[
+                styles.modalInfo,
+                largeText && styles.modalInfoLarge,
+                highContrast && styles.modalInfoHC,
+              ]}
+            >
+              ID, Bezeichnung und Kategorie helfen Amy, das Symbol richtig zuzuordnen. Optional kannst du eine Audioaufnahme hinzufügen.
+            </Text>
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.inputLabel,
+                  largeText && styles.inputLabelLarge,
+                  highContrast && styles.inputLabelHC,
+                ]}
+              >
+                Symbol-ID
+              </Text>
+              <TextInput
+                style={[styles.input, highContrast && styles.inputHC]}
+                placeholder="z. B. trinken-wasser"
+                placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
+                value={id}
+                onChangeText={setId}
+                accessibilityLabel="Symbol-ID"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.inputLabel,
+                  largeText && styles.inputLabelLarge,
+                  highContrast && styles.inputLabelHC,
+                ]}
+              >
+                Bezeichnung
+              </Text>
+              <TextInput
+                style={[styles.input, highContrast && styles.inputHC]}
+                placeholder="Titel für das Symbol"
+                placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
+                value={label}
+                onChangeText={setLabel}
+                accessibilityLabel="Symbolbezeichnung"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.inputLabel,
+                  largeText && styles.inputLabelLarge,
+                  highContrast && styles.inputLabelHC,
+                ]}
+              >
+                Kategorie
+              </Text>
+              <TextInput
+                style={[styles.input, highContrast && styles.inputHC]}
+                placeholder="Ordne das Symbol einer Kategorie zu"
+                placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
+                value={category}
+                onChangeText={setCategory}
+                accessibilityLabel="Symbolkategorie"
+              />
+            </View>
+            <View style={styles.modalButtonRow}>
+              {renderRowActionButton(
+                isRecording ? 'Aufnahme stoppen' : 'Audio aufnehmen',
+                handleRecordAudio,
+                'Audioaufnahme',
+              )}
+            </View>
+            {audioUri ? (
+              <Text
+                style={[
+                  styles.modalStatus,
+                  largeText && styles.modalStatusLarge,
+                  highContrast && styles.modalStatusHC,
+                ]}
+              >
+                Audio gespeichert
+              </Text>
+            ) : null}
+            <View style={styles.modalButtonRow}>
+              {renderRowActionButton('Speichern', handleSave, 'Symbol speichern')}
+            </View>
+            <View style={styles.modalButtonRow}>
+              {renderRowActionButton(
+                'Abbrechen',
+                () => setModalVisible(false),
+                'Abbrechen',
+              )}
+            </View>
           </View>
         </View>
       </Modal>
