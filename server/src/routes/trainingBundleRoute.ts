@@ -257,32 +257,37 @@ export function registerTrainingBundleRoute(
       const files = Array.from(new Set(storedFiles));
 
       let clipRelativePath: string | null = null;
+      let clipPathByName: string | null = null;
+      let clipPathByExt: string | null = null;
+      let clipPathByAny: string | null = null;
+
       const metadataExtension =
         clipFilename && clipFilename.includes('.')
           ? clipFilename.substring(clipFilename.lastIndexOf('.') + 1).toLowerCase()
           : null;
+
       for (const fileName of files) {
-        if (clipRelativePath) {
-          break;
-        }
         const normalized = fileName.replace(/\\/g, '/');
         const baseName = normalized.split('/').pop() ?? '';
         if (!baseName) {
           continue;
         }
+
         if (clipFilename && baseName === clipFilename) {
-          clipRelativePath = fileName;
+          clipPathByName = fileName;
           break;
         }
-        if (metadataExtension && baseName.toLowerCase().endsWith(`.${metadataExtension}`)) {
-          clipRelativePath = fileName;
-          break;
+
+        if (!clipPathByExt && metadataExtension && baseName.toLowerCase().endsWith(`.${metadataExtension}`)) {
+          clipPathByExt = fileName;
         }
-        if (hasVideoExtension(baseName)) {
-          clipRelativePath = fileName;
-          break;
+
+        if (!clipPathByAny && hasVideoExtension(baseName)) {
+          clipPathByAny = fileName;
         }
       }
+
+      clipRelativePath = clipPathByName ?? clipPathByExt ?? clipPathByAny;
 
       const manifestEntry: TrainingBundleManifestEntry = {
         id: bundleId,

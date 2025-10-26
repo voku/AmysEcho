@@ -18,7 +18,7 @@ import sys
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -636,19 +636,6 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
     cache_misses = 0
     cache_writes = 0
 
-    def _find_clip_in_storage_files(
-        storage_files: List[str],
-        bundle_dir: Path,
-        predicate: Callable[[str, str], bool],
-    ) -> Optional[Path]:
-        for relative in storage_files:
-            base_name = relative.split("/")[-1]
-            if predicate(base_name, relative):
-                candidate_path = resolve_relative_path(bundle_dir, relative)
-                if candidate_path is not None:
-                    return candidate_path
-        return None
-
     for entry in entries:
         label = entry.get("label")
         if not label:
@@ -687,28 +674,42 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
                     if normalized:
                         storage_files.append(normalized)
 
-        if clip_path is None and clip_filename:
-            lower_clip = clip_filename.lower()
-            clip_path = _find_clip_in_storage_files(
-                storage_files,
-                bundle_dir,
-                lambda base_name, _relative: base_name.lower() == lower_clip,
-            )
-
         clip_extension = Path(clip_filename).suffix.lower() if clip_filename else ""
-        if clip_path is None and clip_extension:
-            clip_path = _find_clip_in_storage_files(
-                storage_files,
-                bundle_dir,
-                lambda base_name, _relative: base_name.lower().endswith(clip_extension),
-            )
+        if clip_path is None and storage_files:
+            found_by_name: Optional[Path] = None
+            found_by_ext: Optional[Path] = None
+            found_by_any_video_ext: Optional[Path] = None
 
-        if clip_path is None:
-            clip_path = _find_clip_in_storage_files(
-                storage_files,
-                bundle_dir,
-                lambda _base_name, relative: Path(relative).suffix.lower() in VIDEO_EXTENSIONS,
-            )
+            lower_clip_filename = clip_filename.lower() if clip_filename else None
+
+            for relative in storage_files:
+                base_name = relative.split("/")[-1]
+                if not base_name:
+                    continue
+
+                candidate_path = resolve_relative_path(bundle_dir, relative)
+                if candidate_path is None:
+                    continue
+
+                lower_base_name = base_name.lower()
+                if lower_clip_filename and lower_base_name == lower_clip_filename:
+                    found_by_name = candidate_path
+                    break
+
+                if (
+                    found_by_ext is None
+                    and clip_extension
+                    and lower_base_name.endswith(clip_extension)
+                ):
+                    found_by_ext = candidate_path
+
+                if (
+                    found_by_any_video_ext is None
+                    and Path(relative).suffix.lower() in VIDEO_EXTENSIONS
+                ):
+                    found_by_any_video_ext = candidate_path
+
+            clip_path = found_by_name or found_by_ext or found_by_any_video_ext
 
         if clip_path is None and clip_filename:
             clip_path = resolve_relative_path(bundle_dir, clip_filename)
