@@ -11,18 +11,31 @@ export interface GestureHistoryEntry {
   audioResponse?: string;
 }
 
+export interface GestureUsageSummary {
+  id: string;
+  label: string;
+  count: number;
+}
+
 export interface GestureHistoryStats {
   totalGestures: number;
   successRate: number;
-  mostUsedGesture: string;
-  recentActivity: number; // gestures in last hour
+  mostUsedGesture: GestureUsageSummary | null;
+  recentActivity: {
+    today: number;
+    thisWeek: number;
+    thisMonth: number;
+  };
   communicationStreak: number; // consecutive successful gestures
 }
 
 class GestureHistoryService {
   private static instance: GestureHistoryService;
   private history: GestureHistoryEntry[] = [];
+  private analyticsHistory: GestureHistoryEntry[] = [];
   private readonly MAX_HISTORY = 10;
+  private readonly MAX_ANALYTICS_ENTRIES = 1000;
+  private readonly ANALYTICS_RETENTION_DAYS = 30;
   private readonly STORAGE_KEY = 'amys_echo_gesture_history';
 
   static getInstance(): GestureHistoryService {
@@ -51,6 +64,11 @@ class GestureHistoryService {
     if (this.history.length > this.MAX_HISTORY) {
       this.history = this.history.slice(0, this.MAX_HISTORY);
     }
+
+    this.enforceRecentHistoryRetention();
+
+    this.analyticsHistory.unshift(entry);
+    this.analyticsHistory = this.sanitizeAnalyticsHistory(this.analyticsHistory);
 
     this.saveHistory();
     logger.debug('Gesture added to history:', entry.label);
@@ -89,31 +107,67 @@ class GestureHistoryService {
    * Get communication statistics
    */
   getStats(): GestureHistoryStats {
-    if (this.history.length === 0) {
+    const historySource = this.analyticsHistory;
+
+    if (historySource.length === 0) {
       return {
         totalGestures: 0,
         successRate: 0,
-        mostUsedGesture: '',
-        recentActivity: 0,
+        mostUsedGesture: null,
+        recentActivity: {
+          today: 0,
+          thisWeek: 0,
+          thisMonth: 0
+        },
         communicationStreak: 0
       };
     }
 
-    const recent = this.getRecentGestures(60); // Last hour
-    const gestureCounts: Record<string, number> = {};
+    const now = Date.now();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
 
-    this.history.forEach(entry => {
-      gestureCounts[entry.label] = (gestureCounts[entry.label] || 0) + 1;
+    const startOfWeek = new Date(startOfDay);
+    const dayOfWeek = (startOfWeek.getDay() + 6) % 7; // Monday as start of week
+    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+
+    const startOfMonth = new Date(startOfDay.getFullYear(), startOfDay.getMonth(), 1);
+
+    const usageByGesture = new Map<string, GestureUsageSummary>();
+    let todayCount = 0;
+    let thisWeekCount = 0;
+    let thisMonthCount = 0;
+
+    historySource.forEach(entry => {
+      const usage = usageByGesture.get(entry.label);
+      if (usage) {
+        usage.count += 1;
+      } else {
+        usageByGesture.set(entry.label, {
+          id: entry.id,
+          label: entry.label,
+          count: 1
+        });
+      }
+
+      const entryDate = new Date(entry.timestamp);
+      if (entryDate.getTime() >= startOfDay.getTime()) {
+        todayCount += 1;
+      }
+      if (entryDate.getTime() >= startOfWeek.getTime()) {
+        thisWeekCount += 1;
+      }
+      if (entryDate.getTime() >= startOfMonth.getTime()) {
+        thisMonthCount += 1;
+      }
     });
 
-    const mostUsed = Object.entries(gestureCounts)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || '';
+    const mostUsed = Array.from(usageByGesture.values()).sort((a, b) => b.count - a.count)[0] ?? null;
 
     // Calculate communication streak (consecutive gestures within reasonable time gaps)
     let streak = 0;
-    const now = Date.now();
-    for (let i = 0; i < this.history.length; i++) {
-      const entry = this.history[i];
+    for (let i = 0; i < historySource.length; i++) {
+      const entry = historySource[i];
       if (!entry) {
         break;
       }
@@ -127,10 +181,14 @@ class GestureHistoryService {
     }
 
     return {
-      totalGestures: this.history.length,
-      successRate: this.history.length > 0 ? 1 : 0, // All stored gestures are successful
+      totalGestures: historySource.length,
+      successRate: historySource.length > 0 ? 1 : 0, // All stored gestures are successful
       mostUsedGesture: mostUsed,
-      recentActivity: recent.length,
+      recentActivity: {
+        today: todayCount,
+        thisWeek: thisWeekCount,
+        thisMonth: thisMonthCount
+      },
       communicationStreak: streak
     };
   }
@@ -141,6 +199,13 @@ class GestureHistoryService {
   removeLastGesture(): GestureHistoryEntry | null {
     const removed = this.history.shift();
     if (removed) {
+      const analyticsIndex = this.analyticsHistory.findIndex(entry =>
+        entry.id === removed.id && entry.timestamp === removed.timestamp
+      );
+      if (analyticsIndex !== -1) {
+        this.analyticsHistory.splice(analyticsIndex, 1);
+      }
+      this.enforceRecentHistoryRetention();
       this.saveHistory();
       logger.debug('Last gesture removed from history:', removed.label);
     }
@@ -152,6 +217,7 @@ class GestureHistoryService {
    */
   clearHistory(): void {
     this.history = [];
+    this.analyticsHistory = [];
     this.saveHistory();
     logger.info('Gesture history cleared');
   }
@@ -182,7 +248,13 @@ class GestureHistoryService {
    */
   private async saveHistory(): Promise<void> {
     try {
-      const data = JSON.stringify(this.history);
+      this.enforceRecentHistoryRetention();
+      this.analyticsHistory = this.sanitizeAnalyticsHistory(this.analyticsHistory);
+      const payload = {
+        recent: this.history.slice(0, this.MAX_HISTORY),
+        analytics: this.analyticsHistory.slice(0, this.MAX_ANALYTICS_ENTRIES)
+      };
+      const data = JSON.stringify(payload);
       // In a real app, this would use AsyncStorage or similar
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(this.STORAGE_KEY, data);
@@ -200,18 +272,50 @@ class GestureHistoryService {
       if (typeof window !== 'undefined' && window.localStorage) {
         const data = window.localStorage.getItem(this.STORAGE_KEY);
         if (data) {
-          this.history = JSON.parse(data);
-          // Sort newest first to match in-memory ordering
-          this.history.sort((a, b) => b.timestamp - a.timestamp);
-          // Validate and clean up old entries (older than 24 hours)
-          const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-          this.history = this.history.filter(entry => entry.timestamp > oneDayAgo);
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            this.analyticsHistory = this.sanitizeAnalyticsHistory(parsed);
+            this.history = this.analyticsHistory.slice(0, this.MAX_HISTORY);
+          } else {
+            const recent = Array.isArray(parsed?.recent) ? parsed.recent : [];
+            const analytics = Array.isArray(parsed?.analytics) ? parsed.analytics : recent;
+            this.analyticsHistory = this.sanitizeAnalyticsHistory(analytics);
+            this.history = recent.filter(entry => typeof entry.timestamp === 'number');
+            if (this.history.length === 0) {
+              this.history = this.analyticsHistory.slice(0, this.MAX_HISTORY);
+            }
+          }
+          this.enforceRecentHistoryRetention();
         }
       }
     } catch (error) {
       logger.warn('Failed to load gesture history:', error);
       this.history = [];
+      this.analyticsHistory = [];
     }
+  }
+
+  private sanitizeAnalyticsHistory(entries: GestureHistoryEntry[]): GestureHistoryEntry[] {
+    const normalized = entries
+      .filter(entry => typeof entry.timestamp === 'number')
+      .sort((a, b) => b.timestamp - a.timestamp);
+
+    const retentionCutoff = Date.now() - (this.ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const filtered = normalized.filter(entry => entry.timestamp >= retentionCutoff);
+
+    if (filtered.length > this.MAX_ANALYTICS_ENTRIES) {
+      return filtered.slice(0, this.MAX_ANALYTICS_ENTRIES);
+    }
+
+    return filtered;
+  }
+
+  private enforceRecentHistoryRetention(): void {
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    this.history = this.history
+      .filter(entry => typeof entry.timestamp === 'number' && entry.timestamp >= oneDayAgo)
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, this.MAX_HISTORY);
   }
 }
 

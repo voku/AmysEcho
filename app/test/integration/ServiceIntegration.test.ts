@@ -18,8 +18,8 @@ describe('Service Integration Tests', () => {
         getStats: jest.fn().mockReturnValue({
           totalGestures: 0,
           successRate: 0,
-          mostUsedGesture: '',
-          recentActivity: 0,
+          mostUsedGesture: null,
+          recentActivity: { today: 0, thisWeek: 0, thisMonth: 0 },
           communicationStreak: 0
         })
       };

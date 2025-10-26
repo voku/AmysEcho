@@ -33,6 +33,8 @@ type ProfileManagerRoute = RouteProp<
   typeof ROOT_STACK_ROUTES.ProfileManager
 >;
 
+type ProfileAnalyticsStats = React.ComponentProps<typeof ProfileAnalytics>['stats'];
+
 export default function ProfileManagerScreen({
   navigation,
   route,
@@ -51,7 +53,7 @@ export default function ProfileManagerScreen({
   const [showGestureHistory, setShowGestureHistory] = useState(false);
   const [showProfileAnalytics, setShowProfileAnalytics] = useState(false);
   const [gestureHistory, setGestureHistory] = useState<any[]>([]);
-  const [profileStats, setProfileStats] = useState<any>(null);
+  const [profileStats, setProfileStats] = useState<ProfileAnalyticsStats | null>(null);
   const profileId = route?.params?.profileId;
 
   useFocusEffect(
@@ -97,7 +99,7 @@ export default function ProfileManagerScreen({
       if (activeProfileId) {
         // Get overall statistics
         const historyStats = gestureHistoryService.getStats();
-        const stats = {
+        const stats: ProfileAnalyticsStats = {
           totalGestures: historyStats.totalGestures,
           uniqueGestures: new Set(gestureHistoryService.getRecentHistory().map((h) => h.label))
             .size,
