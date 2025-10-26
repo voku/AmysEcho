@@ -110,7 +110,9 @@ describe('ProfileManagerScreen accessibility', () => {
       );
     expect(texts).toEqual(expect.arrayContaining(['Vertrauenswürdiges Gerät']));
     expect(texts).toEqual(expect.arrayContaining(['Gestengrößen-Toleranz']));
-    expect(texts).toEqual(expect.arrayContaining(['Gestenverlauf & Analyse']));
+    expect(texts).toEqual(
+      expect.arrayContaining(['Fortgeschrittene Betreuungstools – Verlauf & Analysen']),
+    );
 
     expect(pressableInstances.length).toBeGreaterThan(0);
     const labels = pressableInstances

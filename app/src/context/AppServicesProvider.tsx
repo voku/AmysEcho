@@ -145,9 +145,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
 
           unsubscribeModelUpdates = onMlpModelUpdated(() => {
             logger.info('MLP model update event received');
-            runModelRefresh().catch((eventError) => {
-              logger.warn('Failed to refresh model after update event', eventError);
-            });
+            Promise.resolve()
+              .then(() => runModelRefresh())
+              .catch((eventError) => {
+                logger.warn('Failed to refresh model after update event', eventError);
+              });
           });
 
           interval = setInterval(() => {

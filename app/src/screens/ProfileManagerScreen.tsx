@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, FlatList, StyleSheet, Alert, Switch } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert, Switch } from 'react-native';
 import { useFocusEffect, type RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { loadProfiles, setActiveProfileId, loadProfile, Profile } from '../storage';
+import { loadProfiles, setActiveProfileId as persistActiveProfileId, loadProfile, Profile } from '../storage';
 import { Profile as DBProfile } from '../../db/models';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { database } from '../../db';
@@ -16,6 +16,7 @@ import { childHaptic } from '../services/feedbackService';
 import GestureHistoryViewer from '../components/GestureHistoryViewer';
 import ProfileAnalytics from '../components/ProfileAnalytics';
 import CollapsibleSettingsSection from '../components/settings/CollapsibleSettingsSection';
+import SettingsOptionCard from '../components/settings/SettingsOptionCard';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, type RootStackParamList } from '../navigation/types';
@@ -35,6 +36,7 @@ export default function ProfileManagerScreen({
   route: ProfileManagerRoute;
 }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [isTrustedDevice, setIsTrustedDevice] = useState(false);
   const [gestureSizeTolerance, setGestureSizeTolerance] = useState(0.3);
   const [selectedSuccessSound, setSelectedSuccessSound] = useState('success');
@@ -50,6 +52,9 @@ export default function ProfileManagerScreen({
   useFocusEffect(
     React.useCallback(() => {
       loadProfiles().then(setProfiles);
+      AsyncStorage.getItem('activeProfileId').then(setActiveProfileId).catch((error) => {
+        logger.warn('Failed to load active profile id:', error);
+      });
       checkTrustedDevice();
       loadSuccessSoundPreference();
       loadGestureHistory();
@@ -200,7 +205,8 @@ export default function ProfileManagerScreen({
   };
 
   const handleSelect = async (id: string) => {
-    await setActiveProfileId(id);
+    setActiveProfileId(id);
+    await persistActiveProfileId(id);
     const profile = await loadProfile(id);
     if (profile) {
       update({
@@ -263,7 +269,10 @@ export default function ProfileManagerScreen({
               const profileToDelete = await database.get<DBProfile>('profiles').find(id);
               await profileToDelete.destroyPermanently();
             });
-            setProfiles(profiles.filter((p) => p.id !== id));
+            setProfiles((prev) => prev.filter((p) => p.id !== id));
+            if (id === activeProfileId) {
+              setActiveProfileId(null);
+            }
           },
         },
       ],
@@ -272,132 +281,169 @@ export default function ProfileManagerScreen({
 
   const styles = StyleSheet.create({
     screen: { flex: 1 },
-    container: { flex: 1, padding: SPACING.lg, backgroundColor: 'transparent' },
-    content: { flexGrow: 1 },
+    container: {
+      flex: 1,
+      paddingHorizontal: SPACING.xl,
+      paddingVertical: SPACING.xl,
+    },
+    content: {
+      flexGrow: 1,
+      gap: SPACING.xl,
+    },
     title: {
-      fontSize: largeText ? 28 : 24,
-      marginBottom: SPACING.lg,
+      fontSize: largeText ? 30 : 26,
+      fontWeight: '700',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
       textAlign: 'center',
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
-    listSection: {
-      marginBottom: SPACING.lg,
+    section: {
+      gap: SPACING.md,
     },
-    profileListContent: {
-      paddingBottom: SPACING.sm,
-    },
-    row: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: SPACING.sm,
-    },
-    name: {
-      fontSize: largeText ? 22 : 18,
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
-    },
-    settingsCard: {
-      backgroundColor: highContrast ? COLORS.surface : COLORS.backgroundEnd,
-      padding: SPACING.md,
-      borderRadius: 8,
-      borderWidth: highContrast ? 2 : 1,
-      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
-      marginBottom: SPACING.md,
+    sectionHeader: {
+      gap: SPACING.xs,
     },
     sectionTitle: {
-      fontSize: largeText ? 20 : 18,
-      fontWeight: 'bold',
-      marginBottom: SPACING.sm,
+      fontSize: largeText ? 22 : 20,
+      fontWeight: '700',
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
-    trustedDeviceInfo: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    trustedDeviceSetup: {
-      alignItems: 'center',
-    },
-    trustedDeviceText: {
+    sectionSubtitle: {
       fontSize: largeText ? 16 : 14,
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
-      marginBottom: SPACING.sm,
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+      lineHeight: largeText ? 24 : 22,
+    },
+    cardStack: {
+      gap: SPACING.md,
+    },
+    emptyState: {
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.outlineMuted,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surfaceMuted,
+      paddingVertical: SPACING.lg,
+      paddingHorizontal: SPACING.lg,
+    },
+    emptyStateText: {
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+      fontSize: largeText ? 16 : 14,
       textAlign: 'center',
+      lineHeight: largeText ? 24 : 22,
     },
-    protectionInfo: {
-      alignItems: 'center',
-    },
-    protectionDescription: {
-      fontSize: largeText ? 14 : 12,
-      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
-      textAlign: 'center',
-      marginBottom: SPACING.md,
-    },
-    accessibilityRow: {
+    profileActions: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: SPACING.sm,
+      gap: SPACING.sm,
     },
-    accessibilityLabel: {
+    profileActiveBadge: {
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      borderRadius: DEFAULT_RADIUS,
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.actionSecondaryBackground,
+      borderWidth: 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.actionSecondaryBackground,
+    },
+    profileActiveBadgeText: {
+      color: highContrast ? COLORS.highContrastBackground : COLORS.actionSecondaryText,
+      fontSize: largeText ? 14 : 12,
+      fontWeight: '600',
+    },
+    profileActionButton: {
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.outline,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surfaceMuted,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: SPACING.xs,
+    },
+    profileActionButtonDanger: {
+      borderColor: COLORS.error,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(220, 91, 87, 0.12)',
+    },
+    profileActionButtonPressedDanger: {
+      backgroundColor: highContrast ? COLORS.highContrastPressed : 'rgba(220, 91, 87, 0.2)',
+    },
+    profileActionButtonText: {
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontSize: largeText ? 16 : 14,
+      fontWeight: '600',
+    },
+    profileActionButtonTextDanger: {
+      color: COLORS.error,
+    },
+    cardActionRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: SPACING.sm,
+    },
+    cardActionButton: {
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.outline,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surfaceMuted,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+    },
+    cardActionButtonPressed: {
+      backgroundColor: highContrast ? COLORS.highContrastPressed : COLORS.pressed,
+    },
+    cardActionButtonDanger: {
+      borderColor: COLORS.error,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(220, 91, 87, 0.12)',
+    },
+    cardActionButtonPressedDanger: {
+      backgroundColor: highContrast ? COLORS.highContrastPressed : 'rgba(220, 91, 87, 0.2)',
+    },
+    cardActionButtonActive: {
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
+    },
+    cardActionButtonText: {
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontSize: largeText ? 16 : 14,
+      fontWeight: '600',
+    },
+    cardActionButtonTextDanger: {
+      color: COLORS.error,
+    },
+    cardActionButtonTextActive: {
+      color: highContrast ? COLORS.highContrastBackground : COLORS.highContrastText,
+    },
+    surfaceCard: {
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.outline,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      padding: SPACING.lg,
+      gap: SPACING.md,
+    },
+    surfaceCardTitle: {
+      fontSize: largeText ? 20 : 18,
+      fontWeight: '600',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+    },
+    surfaceCardText: {
+      fontSize: largeText ? 16 : 14,
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+      lineHeight: largeText ? 24 : 22,
+    },
+    toleranceRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: SPACING.sm,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: SPACING.sm,
+    },
+    toggleLabel: {
+      flex: 1,
       fontSize: largeText ? 18 : 16,
       color: highContrast ? COLORS.highContrastText : COLORS.text,
     },
-    button: {
-      backgroundColor: COLORS.primaryAccent,
-      padding: SPACING.sm,
-      borderRadius: DEFAULT_RADIUS,
-      minWidth: 80,
-      alignItems: 'center',
-      marginHorizontal: SPACING.xs,
-    },
-    buttonHC: {
-      backgroundColor: COLORS.highContrastText,
-    },
-    buttonPressed: {
-      backgroundColor: COLORS.pressed,
-    },
-    buttonPressedHC: {
-      backgroundColor: COLORS.highContrastPressed,
-    },
-    buttonText: {
-      color: COLORS.highContrastText,
-      fontSize: 14,
-      fontWeight: 'bold',
-    },
-    buttonTextLarge: {
-      fontSize: 16,
-    },
-    buttonTextHC: {
-      color: COLORS.highContrastBackground,
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      marginTop: SPACING.sm,
-    },
-    toleranceButtons: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      marginTop: SPACING.sm,
-    },
-    sectionSpacing: {
-      marginBottom: SPACING.md,
-    },
-    lastItem: {
-      marginBottom: 0,
-    },
     statsSummary: {
-      marginTop: SPACING.sm,
-      padding: SPACING.sm,
-      backgroundColor: highContrast ? COLORS.surface : 'rgba(0, 0, 0, 0.05)',
-      borderRadius: DEFAULT_RADIUS,
-    },
-    statsText: {
-      fontSize: largeText ? 14 : 12,
-      color: highContrast ? COLORS.highContrastText : COLORS.textMuted,
-      marginBottom: SPACING.xs,
+      gap: SPACING.xs,
     },
     overlay: {
       position: 'absolute',
@@ -416,93 +462,81 @@ export default function ProfileManagerScreen({
   return (
     <View style={styles.screen}>
       <ScreenBackground scrollable style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>Elternbereich</Text>
 
-        <View style={styles.listSection}>
-          <FlatList
-            data={profiles}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            contentContainerStyle={styles.profileListContent}
-            renderItem={({ item }) => (
-              <View style={styles.row}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    childFriendlyStyles.minTouchTarget,
-                    styles.button,
-                    highContrast && styles.buttonHC,
-                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                  ]}
-                  onPress={() => {
-                    void childHaptic();
-                    handleSelect(item.id);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Profil ${item.name} auswählen`}
-                >
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      largeText && styles.buttonTextLarge,
-                      highContrast && styles.buttonTextHC,
-                    ]}
-                  >
-                    Auswählen
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [
-                    childFriendlyStyles.minTouchTarget,
-                    styles.button,
-                    highContrast && styles.buttonHC,
-                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                  ]}
-                  onPress={() => {
-                    void childHaptic();
-                    handleDelete(item.id);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Profil ${item.name} löschen`}
-                >
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      largeText && styles.buttonTextLarge,
-                      highContrast && styles.buttonTextHC,
-                    ]}
-                  >
-                    Löschen
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-          />
-
-          <Pressable
-            style={({ pressed }) => [
-              childFriendlyStyles.minTouchTarget,
-              styles.button,
-              highContrast && styles.buttonHC,
-              pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-            ]}
-            onPress={() => {
-              void childHaptic();
-              navigation.navigate(ROOT_STACK_ROUTES.Onboarding, undefined, { pop: true });
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Neues Profil anlegen"
-          >
-            <Text
-              style={[
-                styles.buttonText,
-                largeText && styles.buttonTextLarge,
-                highContrast && styles.buttonTextHC,
-              ]}
-            >
-              Neues Profil
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Profile verwalten</Text>
+            <Text style={styles.sectionSubtitle}>
+              Wähle das aktive Profil und passe Amys Erfahrung an eure Betreuungssituation an.
             </Text>
-          </Pressable>
+          </View>
+
+          <View style={styles.cardStack}>
+            {profiles.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>
+                  Noch kein Profil angelegt. Leg gleich los und erstelle das erste Profil.
+                </Text>
+              </View>
+            ) : (
+              profiles.map((item) => (
+                <SettingsOptionCard
+                  key={item.id}
+                  title={item.name}
+                  subtitle="Tippe, um dieses Profil zu aktivieren und sofort mit Amy zu starten."
+                  onPress={() => {
+                    void childHaptic();
+                    void handleSelect(item.id);
+                  }}
+                  accessibilityLabel={`Profil ${item.name} aktivieren`}
+                  accessibilityHint="Öffnet die Gestenerkennung mit diesem Profil"
+                  playHaptic
+                  trailing={(
+                    <View style={styles.profileActions}>
+                      {item.id === activeProfileId ? (
+                        <View style={styles.profileActiveBadge}>
+                          <Text style={styles.profileActiveBadgeText}>Aktiv</Text>
+                        </View>
+                      ) : null}
+                      <Pressable
+                        onPress={() => {
+                          void childHaptic();
+                          handleDelete(item.id);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Profil ${item.name} löschen`}
+                        style={({ pressed }) => [
+                          childFriendlyStyles.minTouchTarget,
+                          styles.profileActionButton,
+                          styles.profileActionButtonDanger,
+                          pressed && styles.profileActionButtonPressedDanger,
+                        ]}
+                      >
+                        <Text
+                          style={[styles.profileActionButtonText, styles.profileActionButtonTextDanger]}
+                        >
+                          Löschen
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+                />
+              ))
+            )}
+
+            <SettingsOptionCard
+              title="Neues Profil"
+              subtitle="Lege ein weiteres Kind oder eine neue Trainingsvariante an."
+              onPress={() => {
+                void childHaptic();
+                navigation.navigate(ROOT_STACK_ROUTES.Onboarding, undefined, { pop: true });
+              }}
+              accessibilityLabel="Neues Profil anlegen"
+              accessibilityHint="Starte die Einrichtung für ein neues Profil"
+              playHaptic
+            />
+          </View>
         </View>
 
         <CollapsibleSettingsSection
@@ -510,136 +544,122 @@ export default function ProfileManagerScreen({
           highContrast={highContrast}
           largeText={largeText}
         >
-          <View style={styles.settingsCard}>
-            <Text style={styles.sectionTitle}>Vertrauenswürdiges Gerät</Text>
-            {isTrustedDevice ? (
-              <View style={styles.trustedDeviceInfo}>
-                <Text style={styles.trustedDeviceText}>✅ Dieses Gerät ist vertrauenswürdig</Text>
+          <View style={styles.cardStack}>
+            <View style={styles.surfaceCard}>
+              <Text style={styles.surfaceCardTitle}>Vertrauenswürdiges Gerät</Text>
+              <Text style={styles.surfaceCardText}>
+                {isTrustedDevice
+                  ? 'Dieses Gerät ist freigegeben. Entferne die Freigabe, wenn du wechseln möchtest.'
+                  : 'Markiere dieses Gerät als vertrauenswürdig, damit Amy ohne zusätzliche Prüfung startet.'}
+              </Text>
+              <View style={styles.cardActionRow}>
                 <Pressable
-                  style={({ pressed }) => [
-                    childFriendlyStyles.minTouchTarget,
-                    styles.button,
-                    highContrast && styles.buttonHC,
-                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                  ]}
                   onPress={() => {
                     void childHaptic();
-                    removeTrustedDevice();
+                    isTrustedDevice ? removeTrustedDevice() : setupTrustedDevice();
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel="Vertrauenswürdiges Gerät entfernen"
+                  accessibilityLabel={
+                    isTrustedDevice
+                      ? 'Vertrauenswürdiges Gerät entfernen'
+                      : 'Gerät als vertrauenswürdig einrichten'
+                  }
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.cardActionButton,
+                    isTrustedDevice && styles.cardActionButtonDanger,
+                    pressed &&
+                      (isTrustedDevice
+                        ? styles.cardActionButtonPressedDanger
+                        : styles.cardActionButtonPressed),
+                  ]}
                 >
                   <Text
                     style={[
-                      styles.buttonText,
-                      largeText && styles.buttonTextLarge,
-                      highContrast && styles.buttonTextHC,
+                      styles.cardActionButtonText,
+                      isTrustedDevice && styles.cardActionButtonTextDanger,
                     ]}
                   >
-                    Entfernen
+                    {isTrustedDevice ? 'Freigabe entfernen' : 'Jetzt einrichten'}
                   </Text>
                 </Pressable>
               </View>
-            ) : (
-              <View style={styles.trustedDeviceSetup}>
-                <Text style={styles.trustedDeviceText}>
-                  Richte dieses Gerät als vertrauenswürdig ein für einfacheren Zugriff
-                </Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    childFriendlyStyles.minTouchTarget,
-                    styles.button,
-                    highContrast && styles.buttonHC,
-                    pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                  ]}
-                  onPress={() => {
-                    void childHaptic();
-                    setupTrustedDevice();
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Gerät als vertrauenswürdig einrichten"
-                >
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      largeText && styles.buttonTextLarge,
-                      highContrast && styles.buttonTextHC,
-                    ]}
-                  >
-                    Als vertrauenswürdig einrichten
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
+            </View>
 
-          <View style={styles.settingsCard}>
-            <Text style={styles.sectionTitle}>Gestengrößen-Toleranz</Text>
-            <View style={styles.protectionInfo}>
-              <Text style={styles.trustedDeviceText}>
-                Aktuell: {Math.round(gestureSizeTolerance * 100)}%
+            <View style={styles.surfaceCard}>
+              <Text style={styles.surfaceCardTitle}>Gestengrößen-Toleranz</Text>
+              <Text style={styles.surfaceCardText}>
+                Aktuell: {Math.round(gestureSizeTolerance * 100)}% – steuert, wie variabel Gesten sein dürfen.
               </Text>
-              <Text style={styles.protectionDescription}>
-                Wie viel Größenunterschied bei Gesten erlaubt ist
-              </Text>
-              <View style={styles.toleranceButtons}>
-                {[0.1, 0.2, 0.3, 0.4, 0.5].map((tolerance) => (
-                  <Pressable
-                    key={tolerance}
-                    style={({ pressed }) => [
-                      childFriendlyStyles.minTouchTarget,
-                      styles.button,
-                      highContrast && styles.buttonHC,
-                      pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                    ]}
-                    onPress={() => {
-                      void childHaptic();
-                      saveGestureSizeTolerance(tolerance);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Toleranz auf ${Math.round(tolerance * 100)}% setzen`}
-                  >
-                    <Text
-                      style={[
-                        styles.buttonText,
-                        largeText && styles.buttonTextLarge,
-                        highContrast && styles.buttonTextHC,
+              <View style={styles.toleranceRow}>
+                {[0.1, 0.2, 0.3, 0.4, 0.5].map((tolerance) => {
+                  const isActive = Math.abs(gestureSizeTolerance - tolerance) < 0.001;
+                  const label = `${Math.round(tolerance * 100)}%`;
+                  return (
+                    <Pressable
+                      key={label}
+                      onPress={() => {
+                        void childHaptic();
+                        saveGestureSizeTolerance(tolerance);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Toleranz auf ${label} setzen`}
+                      accessibilityState={{ selected: isActive }}
+                      style={({ pressed }) => [
+                        childFriendlyStyles.minTouchTarget,
+                        styles.cardActionButton,
+                        isActive && styles.cardActionButtonActive,
+                        pressed && styles.cardActionButtonPressed,
                       ]}
                     >
-                      {`${Math.round(tolerance * 100)}%`}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Text
+                        style={[
+                          styles.cardActionButtonText,
+                          isActive && styles.cardActionButtonTextActive,
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
-          </View>
 
-          <SoundSelector selectedSound={selectedSuccessSound} onSoundSelect={handleSoundSelect} />
-
-          <View style={styles.settingsCard}>
-            <Text style={styles.sectionTitle}>Barrierefreiheit</Text>
-            <View style={styles.accessibilityRow}>
-              <Text style={styles.accessibilityLabel}>Großer Text</Text>
-              <Switch
-                value={localLargeText}
-                onValueChange={toggleLargeText}
-                accessibilityLabel="Großen Text ein-/ausschalten"
-                accessibilityHint="Macht Text und Symbole größer für bessere Lesbarkeit"
-              />
+            <View style={styles.surfaceCard}>
+              <Text style={styles.surfaceCardTitle}>Erfolgston</Text>
+              <Text style={styles.surfaceCardText}>
+                Wähle den Klang, den Amy nach einer erkannten Geste abspielt.
+              </Text>
+              <SoundSelector selectedSound={selectedSuccessSound} onSoundSelect={handleSoundSelect} />
             </View>
-            <View style={styles.accessibilityRow}>
-              <Text style={styles.accessibilityLabel}>Hoher Kontrast</Text>
-              <Switch
-                value={localHighContrast}
-                onValueChange={toggleHighContrast}
-                accessibilityLabel="Hohen Kontrast ein-/ausschalten"
-                accessibilityHint="Erhöht den Kontrast für bessere Sichtbarkeit"
-              />
-            </View>
-          </View>
 
-          <View style={[styles.sectionSpacing, styles.lastItem]}>
-            <ThemeSelector />
+            <View style={styles.surfaceCard}>
+              <Text style={styles.surfaceCardTitle}>Barrierefreiheit</Text>
+              <View style={styles.toggleRow}>
+                <Text style={styles.toggleLabel}>Großer Text</Text>
+                <Switch
+                  value={localLargeText}
+                  onValueChange={toggleLargeText}
+                  accessibilityLabel="Großen Text ein-/ausschalten"
+                  accessibilityHint="Macht Text und Symbole größer für bessere Lesbarkeit"
+                />
+              </View>
+              <View style={styles.toggleRow}>
+                <Text style={styles.toggleLabel}>Hoher Kontrast</Text>
+                <Switch
+                  value={localHighContrast}
+                  onValueChange={toggleHighContrast}
+                  accessibilityLabel="Hohen Kontrast ein-/ausschalten"
+                  accessibilityHint="Erhöht den Kontrast für bessere Sichtbarkeit"
+                />
+              </View>
+            </View>
+
+            <View style={styles.surfaceCard}>
+              <Text style={styles.surfaceCardTitle}>Thema & Farben</Text>
+              <ThemeSelector />
+            </View>
           </View>
         </CollapsibleSettingsSection>
 
@@ -648,69 +668,45 @@ export default function ProfileManagerScreen({
           highContrast={highContrast}
           largeText={largeText}
         >
-          <View style={[styles.settingsCard, styles.lastItem]}>
-            <Text style={styles.sectionTitle}>Gestenverlauf & Analyse</Text>
-            <View style={styles.buttonRow}>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void childHaptic();
-                  setShowGestureHistory(true);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Gestenverlauf anzeigen"
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  📚 Verlauf anzeigen
-                </Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  highContrast && styles.buttonHC,
-                  pressed && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void childHaptic();
-                  setShowProfileAnalytics(true);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Leistungsanalyse anzeigen"
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  📊 Analyse
-                </Text>
-              </Pressable>
-            </View>
-            {profileStats && (
-              <View style={styles.statsSummary}>
-                <Text style={styles.statsText}>Gesamt: {profileStats.totalGestures} Gesten</Text>
-                <Text style={styles.statsText}>
-                  Einzigartig: {profileStats.uniqueGestures} Gesten
-                </Text>
-                <Text style={styles.statsText}>
-                  Ø Sicherheit: {Math.round(profileStats.averageConfidence * 100)}%
-                </Text>
+          <View style={styles.cardStack}>
+            <SettingsOptionCard
+              title="Gestenverlauf ansehen"
+              subtitle="Zeigt die letzten Gesten und ihre Sicherheit an."
+              onPress={() => {
+                void childHaptic();
+                setShowGestureHistory(true);
+              }}
+              accessibilityLabel="Gestenverlauf anzeigen"
+              accessibilityHint="Öffnet die Liste der letzten Gesten"
+              playHaptic
+            />
+            <SettingsOptionCard
+              title="Analyse öffnen"
+              subtitle="Erhalte Trends zu Erfolgen, Nutzung und Sicherheit."
+              onPress={() => {
+                void childHaptic();
+                setShowProfileAnalytics(true);
+              }}
+              accessibilityLabel="Leistungsanalyse anzeigen"
+              accessibilityHint="Öffnet die statistische Auswertung"
+              playHaptic
+            />
+            {profileStats ? (
+              <View style={styles.surfaceCard}>
+                <Text style={styles.surfaceCardTitle}>Aktueller Überblick</Text>
+                <View style={styles.statsSummary}>
+                  <Text style={styles.surfaceCardText}>
+                    Gesamt: {profileStats.totalGestures} Gesten
+                  </Text>
+                  <Text style={styles.surfaceCardText}>
+                    Einzigartig: {profileStats.uniqueGestures} Gesten
+                  </Text>
+                  <Text style={styles.surfaceCardText}>
+                    Ø Sicherheit: {Math.round(profileStats.averageConfidence * 100)}%
+                  </Text>
+                </View>
               </View>
-            )}
+            ) : null}
           </View>
         </CollapsibleSettingsSection>
 

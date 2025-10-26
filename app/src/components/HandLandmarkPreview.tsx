@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-na
 
 import Svg, { Circle, G, Line } from 'react-native-svg';
 
+
 const HAND_CONNECTIONS: Array<[number, number]> = [
   [0, 1],
   [1, 2],
@@ -38,6 +39,28 @@ export interface HandLandmarkPreviewProps {
   style?: StyleProp<ViewStyle>;
   confidence?: number;
 }
+
+const sanitizeConfidence = (value: number | null | undefined): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (!Number.isFinite(value) || Number.isNaN(value)) {
+    return null;
+  }
+
+  if (value < 0) {
+    return 0;
+  }
+
+  if (value > 1) {
+    return 1;
+  }
+
+  return value;
+};
+
+const formatConfidencePercentage = (value: number): string => `${Math.round(value * 100)}%`;
 
 const clamp = (value: number): number => {
   if (Number.isNaN(value)) {
@@ -107,6 +130,11 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
     // For preview, show up to 2 unique valid hands
     return uniqueHands.slice(0, 2);
   }, [landmarks]);
+
+  const safeConfidence = useMemo(() => sanitizeConfidence(confidence), [confidence]);
+  const confidenceDisplay = safeConfidence !== null
+    ? `Sicherheit: ${formatConfidencePercentage(safeConfidence)}`
+    : 'Sicherheit: wird ermittelt…';
 
   if (!hands.length) {
     return (
@@ -180,13 +208,13 @@ export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
           );
         })}
       </Svg>
-      {typeof confidence === 'number' && (
-        <View style={styles.confidenceBadge}>
-          <Text style={styles.confidenceText}>
-            {`Sicherheit: ${(confidence * 100).toFixed(0)}%`}
-          </Text>
-        </View>
-      )}
+      <View
+        style={styles.confidenceBadge}
+        accessibilityRole="text"
+        accessibilityLabel={confidenceDisplay}
+      >
+        <Text style={styles.confidenceText}>{confidenceDisplay}</Text>
+      </View>
     </View>
   );
 };
@@ -198,6 +226,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: 'rgba(17, 24, 39, 0.6)',
+    minWidth: 148,
+    minHeight: 148,
   },
   placeholder: {
     color: '#e5e7eb',

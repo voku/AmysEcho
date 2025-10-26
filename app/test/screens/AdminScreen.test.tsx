@@ -1,10 +1,11 @@
 import React from 'react';
 import renderer, { act, type ReactTestInstance } from 'react-test-renderer';
-import { Button, FlatList } from 'react-native';
+import { FlatList } from 'react-native';
 import type { ComponentProps } from 'react';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../src/navigation/types';
 import ScreenBackground from '../../src/components/ScreenBackground';
+import SettingsOptionCard from '../../src/components/settings/SettingsOptionCard';
 
 jest.mock('../../src/components/ScreenBackground', () => ({
   __esModule: true,
@@ -152,11 +153,12 @@ describe('AdminScreen', () => {
     act(() => {
       footer = renderer.create(footerElement);
     });
-    const footerButtons = footer.root
-      .findAllByType(Button)
-      .map((node: ReactTestInstance) => (node.props as ComponentProps<typeof Button>).title as string);
+    const footerCards = footer.root.findAllByType(SettingsOptionCard);
+    const footerTitles = footerCards.map(
+      (node: ReactTestInstance) => (node.props as ComponentProps<typeof SettingsOptionCard>).title as string,
+    );
 
-    expect(footerButtons).toEqual(
+    expect(footerTitles).toEqual(
       expect.arrayContaining(['Neuestes Modell herunterladen', 'Zurück']),
     );
   });

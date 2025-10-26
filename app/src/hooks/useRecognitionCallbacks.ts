@@ -86,6 +86,26 @@ const normalizeGestureId = (gesture: string | null): string | null => {
   return gesture.trim().toLowerCase();
 };
 
+const sanitizeConfidence = (value: number | null | undefined): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (!Number.isFinite(value) || Number.isNaN(value)) {
+    return null;
+  }
+
+  if (value < 0) {
+    return 0;
+  }
+
+  if (value > 1) {
+    return 1;
+  }
+
+  return value;
+};
+
 export const useRecognitionCallbacks = ({
   navigation,
   state,
@@ -487,7 +507,14 @@ export const useRecognitionCallbacks = ({
         setCurrentLandmarks(landmarks);
         setCurrentHandedness(handedness);
 
-        const smoothedConfidence = refs.confidenceFilterRef.current.filter(confidence, Date.now() / 1000);
+        const nowSeconds = Date.now() / 1000;
+        const normalizedInputConfidence = sanitizeConfidence(confidence) ?? 0;
+        const filteredConfidence = refs.confidenceFilterRef.current.filter(
+          normalizedInputConfidence,
+          nowSeconds,
+        );
+        const normalizedFilteredConfidence = sanitizeConfidence(filteredConfidence);
+        const smoothedConfidence = normalizedFilteredConfidence ?? normalizedInputConfidence;
         setGestureConfidence(smoothedConfidence);
 
         if (landmarks.length) {
