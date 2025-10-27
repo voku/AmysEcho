@@ -625,6 +625,80 @@ def train_mlp(
 # --- Dataset loading --------------------------------------------------------
 
 
+def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
+    storage_raw = entry.get("storage")
+    storage = storage_raw if isinstance(storage_raw, dict) else {}
+
+    storage_clip = storage.get("clip")
+    if isinstance(storage_clip, str):
+        resolved_clip = resolve_relative_path(bundle_dir, storage_clip)
+        if resolved_clip is not None:
+            return resolved_clip
+
+    metadata_raw = entry.get("metadata")
+    metadata = metadata_raw if isinstance(metadata_raw, dict) else {}
+    clip_filename_raw = metadata.get("clipFilename")
+    clip_filename = None
+    if isinstance(clip_filename_raw, str):
+        candidate_name = clip_filename_raw.strip()
+        if candidate_name:
+            clip_filename = candidate_name
+
+    storage_files_raw = storage.get("files")
+    storage_files: List[str] = []
+    if isinstance(storage_files_raw, list):
+        for file_entry in storage_files_raw:
+            if isinstance(file_entry, str) and file_entry.strip():
+                normalized = file_entry.replace("\\", "/").lstrip("/")
+                if normalized:
+                    storage_files.append(normalized)
+
+    clip_extension = Path(clip_filename).suffix.lower() if clip_filename else ""
+    if storage_files:
+        found_by_ext: Optional[Path] = None
+        found_by_any_video_ext: Optional[Path] = None
+        lower_clip_filename = clip_filename.lower() if clip_filename else None
+
+        for relative in storage_files:
+            base_name = relative.split("/")[-1]
+            if not base_name:
+                continue
+
+            candidate_path = resolve_relative_path(bundle_dir, relative)
+            if candidate_path is None:
+                continue
+
+            lower_base_name = base_name.lower()
+            if lower_clip_filename and lower_base_name == lower_clip_filename:
+                return candidate_path
+
+            if (
+                found_by_ext is None
+                and clip_extension
+                and lower_base_name.endswith(clip_extension)
+            ):
+                found_by_ext = candidate_path
+                continue
+
+            if (
+                found_by_any_video_ext is None
+                and Path(relative).suffix.lower() in VIDEO_EXTENSIONS
+            ):
+                found_by_any_video_ext = candidate_path
+
+        if found_by_ext is not None:
+            return found_by_ext
+        if found_by_any_video_ext is not None:
+            return found_by_any_video_ext
+
+    if clip_filename:
+        resolved_by_name = resolve_relative_path(bundle_dir, clip_filename)
+        if resolved_by_name is not None:
+            return resolved_by_name
+
+    return resolve_relative_path(bundle_dir, "clip.mp4")
+
+
 def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict[str, int]]:
     manifest = load_json(manifest_path)
     if not manifest:
@@ -649,72 +723,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         landmarks_path = bundle_dir / "landmarks.json"
         cache_path = bundle_dir / CACHE_FILENAME
 
-        storage_raw = entry.get("storage")
-        storage = storage_raw if isinstance(storage_raw, dict) else {}
-        storage_clip = storage.get("clip")
-        clip_path: Optional[Path] = None
-        if isinstance(storage_clip, str):
-            clip_path = resolve_relative_path(bundle_dir, storage_clip)
-
-        metadata_raw = entry.get("metadata")
-        metadata = metadata_raw if isinstance(metadata_raw, dict) else {}
-        clip_filename_raw = metadata.get("clipFilename")
-        clip_filename = None
-        if isinstance(clip_filename_raw, str):
-            candidate_name = clip_filename_raw.strip()
-            if candidate_name:
-                clip_filename = candidate_name
-
-        storage_files_raw = storage.get("files")
-        storage_files: List[str] = []
-        if isinstance(storage_files_raw, list):
-            for file_entry in storage_files_raw:
-                if isinstance(file_entry, str) and file_entry.strip():
-                    normalized = file_entry.replace("\\", "/").lstrip("/")
-                    if normalized:
-                        storage_files.append(normalized)
-
-        clip_extension = Path(clip_filename).suffix.lower() if clip_filename else ""
-        if clip_path is None and storage_files:
-            found_by_name: Optional[Path] = None
-            found_by_ext: Optional[Path] = None
-            found_by_any_video_ext: Optional[Path] = None
-
-            lower_clip_filename = clip_filename.lower() if clip_filename else None
-
-            for relative in storage_files:
-                base_name = relative.split("/")[-1]
-                if not base_name:
-                    continue
-
-                candidate_path = resolve_relative_path(bundle_dir, relative)
-                if candidate_path is None:
-                    continue
-
-                lower_base_name = base_name.lower()
-                if lower_clip_filename and lower_base_name == lower_clip_filename:
-                    found_by_name = candidate_path
-                    break
-
-                if (
-                    found_by_ext is None
-                    and clip_extension
-                    and lower_base_name.endswith(clip_extension)
-                ):
-                    found_by_ext = candidate_path
-
-                if (
-                    found_by_any_video_ext is None
-                    and Path(relative).suffix.lower() in VIDEO_EXTENSIONS
-                ):
-                    found_by_any_video_ext = candidate_path
-
-            clip_path = found_by_name or found_by_ext or found_by_any_video_ext
-
-        if clip_path is None and clip_filename:
-            clip_path = resolve_relative_path(bundle_dir, clip_filename)
-        if clip_path is None:
-            clip_path = resolve_relative_path(bundle_dir, "clip.mp4")
+        clip_path = _resolve_clip_path(entry, bundle_dir)
 
         frames: Optional[List[dict]] = None
 

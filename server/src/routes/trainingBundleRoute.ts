@@ -130,6 +130,39 @@ function hasVideoExtension(fileName: string): boolean {
   return VIDEO_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
+function findClipRelativePath(files: string[], clipFilename: string | null): string | null {
+  let clipPathByExt: string | null = null;
+  let clipPathByAny: string | null = null;
+
+  const metadataExtension =
+    clipFilename && clipFilename.includes('.')
+      ? clipFilename.substring(clipFilename.lastIndexOf('.') + 1).toLowerCase()
+      : null;
+
+  for (const fileName of files) {
+    const normalized = fileName.replace(/\\/g, '/');
+    const baseName = normalized.split('/').pop() ?? '';
+    if (!baseName) {
+      continue;
+    }
+
+    if (clipFilename && baseName === clipFilename) {
+      return fileName;
+    }
+
+    if (!clipPathByExt && metadataExtension && baseName.toLowerCase().endsWith(`.${metadataExtension}`)) {
+      clipPathByExt = fileName;
+      continue;
+    }
+
+    if (!clipPathByAny && hasVideoExtension(baseName)) {
+      clipPathByAny = fileName;
+    }
+  }
+
+  return clipPathByExt ?? clipPathByAny;
+}
+
 export function registerTrainingBundleRoute(
   app: Express,
   genId: () => string,
@@ -256,38 +289,7 @@ export function registerTrainingBundleRoute(
 
       const files = Array.from(new Set(storedFiles));
 
-      let clipRelativePath: string | null = null;
-      let clipPathByName: string | null = null;
-      let clipPathByExt: string | null = null;
-      let clipPathByAny: string | null = null;
-
-      const metadataExtension =
-        clipFilename && clipFilename.includes('.')
-          ? clipFilename.substring(clipFilename.lastIndexOf('.') + 1).toLowerCase()
-          : null;
-
-      for (const fileName of files) {
-        const normalized = fileName.replace(/\\/g, '/');
-        const baseName = normalized.split('/').pop() ?? '';
-        if (!baseName) {
-          continue;
-        }
-
-        if (clipFilename && baseName === clipFilename) {
-          clipPathByName = fileName;
-          break;
-        }
-
-        if (!clipPathByExt && metadataExtension && baseName.toLowerCase().endsWith(`.${metadataExtension}`)) {
-          clipPathByExt = fileName;
-        }
-
-        if (!clipPathByAny && hasVideoExtension(baseName)) {
-          clipPathByAny = fileName;
-        }
-      }
-
-      clipRelativePath = clipPathByName ?? clipPathByExt ?? clipPathByAny;
+      const clipRelativePath = findClipRelativePath(files, clipFilename);
 
       const manifestEntry: TrainingBundleManifestEntry = {
         id: bundleId,
