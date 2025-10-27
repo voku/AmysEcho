@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/ui';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
@@ -11,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { DEFAULT_THEME, THEMES } from '../constants/themes';
 import { getWorkflowStepMeta, isWorkflowRouteName } from '../constants/workflow';
 
-const TAB_BAR_HEIGHT = 76;
+const TAB_BAR_BASE_HEIGHT = 76;
 
 type TabRoute = BottomTabBarProps['state']['routes'][number];
 
@@ -27,6 +28,7 @@ interface TabItem {
 
 const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const { highContrast, largeText } = useAccessibility();
+  const insets = useSafeAreaInsets();
   const fallbackTheme = THEMES[DEFAULT_THEME] ?? Object.values(THEMES)[0];
   if (!fallbackTheme) {
     throw new Error('Kein Theme konfiguriert');
@@ -56,12 +58,16 @@ const NewBottomNav: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
   const inactiveColor = highContrast ? COLORS.highContrastText : COLORS.overlayTextSoft;
   const rippleColor = highContrast ? COLORS.highContrastText : COLORS.overlaySurface;
 
+  const bottomInset = Math.max(insets.bottom, spacing.sm);
+
   const containerStyle = [
     styles.container,
     {
       backgroundColor: containerBackground,
       borderColor: highContrast ? COLORS.highContrastText : 'transparent',
       shadowColor: highContrast ? COLORS.highContrastText : COLORS.shadow,
+      paddingBottom: bottomInset,
+      height: TAB_BAR_BASE_HEIGHT + bottomInset,
     },
   ];
 
@@ -159,7 +165,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -2 },
     elevation: 10,
-    height: TAB_BAR_HEIGHT,
+    minHeight: TAB_BAR_BASE_HEIGHT,
   },
   tab: {
     flex: 1,
