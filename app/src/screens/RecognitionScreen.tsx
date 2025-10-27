@@ -61,7 +61,9 @@ type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating
 
 const CAMERA_THEME = {
   gradient: [Colors.backgroundStart, Colors.backgroundEnd] as const,
-  overlayScrim: 'rgba(8, 40, 43, 0.86)',
+  panelBackground: 'rgba(7, 33, 36, 0.78)',
+  cameraHintBubbleBackground: 'rgba(6, 30, 33, 0.82)',
+  handPreviewBackground: 'rgba(7, 33, 36, 0.78)',
   statusBackground: {
     idle: Colors.statusListeningBackground,
     listening: Colors.statusListeningBackground,
@@ -165,8 +167,16 @@ const toGestureImageCapture = (
     return null;
   }
 
+  let mimeType = 'image/jpeg';
+  if (typeof uri === 'string' && uri.startsWith('data:image/')) {
+    const mimeEnd = uri.indexOf(';', 'data:'.length);
+    if (mimeEnd > 0) {
+      mimeType = uri.slice('data:'.length, mimeEnd);
+    }
+  }
+
   if (!uri || !uri.startsWith('data:image/')) {
-    uri = `data:image/jpeg;base64,${base64}`;
+    uri = `data:${mimeType};base64,${base64}`;
   }
 
   return {
@@ -183,25 +193,25 @@ export default function RecognitionScreen({
 }: {
   navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 }) {
-  let windowWidth: number;
-  let windowHeight: number;
-  try {
-    // `useWindowDimensions` is preferred as it's a hook that updates on changes.
-    const dimensions = useWindowDimensions();
-    windowWidth = dimensions.width;
-    windowHeight = dimensions.height;
-  } catch (e) {
-    // Fallback for environments where hooks are not available (e.g., some tests).
-    const fallbackWindow = Dimensions.get('window');
-    windowWidth =
-      typeof fallbackWindow?.width === 'number'
-        ? fallbackWindow.width
-        : COMPACT_SECONDARY_ACTIONS_BREAKPOINT + 1;
-    windowHeight =
-      typeof fallbackWindow?.height === 'number' && fallbackWindow.height > 0
-        ? fallbackWindow.height
-        : 800;
-  }
+  const dimensions = useWindowDimensions();
+  const fallbackWindow = Dimensions.get('window');
+  const fallbackWidth =
+    typeof fallbackWindow?.width === 'number'
+      ? fallbackWindow.width
+      : COMPACT_SECONDARY_ACTIONS_BREAKPOINT + 1;
+  const fallbackHeight =
+    typeof fallbackWindow?.height === 'number' && fallbackWindow.height > 0
+      ? fallbackWindow.height
+      : 800;
+
+  const windowWidth =
+    Number.isFinite(dimensions.width) && dimensions.width > 0
+      ? dimensions.width
+      : fallbackWidth;
+  const windowHeight =
+    Number.isFinite(dimensions.height) && dimensions.height > 0
+      ? dimensions.height
+      : fallbackHeight;
 
   const isCompactSecondaryActions = windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const isCompactHeight = windowHeight <= COMPACT_HEIGHT_BREAKPOINT;
@@ -706,148 +716,160 @@ export default function RecognitionScreen({
 
   const overlayBody = (
     <>
-      <View style={[styles.topSection, constrainedContentStyle]}>
-        <View
-          style={[
-            styles.statusCard,
-            {
-              backgroundColor: statusCardBackground,
-              borderColor: statusCardBorder,
-            },
-          ]}
-          accessibilityRole="text"
-        >
-          <Text style={[styles.statusLabel, { color: statusCardText }]}>{statusLabel}</Text>
-          {statusDetail ? (
-            <Text style={[styles.statusDetail, { color: statusCardText }]}>{statusDetail}</Text>
-          ) : null}
-          {encouragement ? (
-            <Text style={[styles.statusEncouragement, { color: statusCardText }]}>{encouragement}</Text>
-          ) : null}
-        </View>
-
-        <View style={styles.cameraToggleRow}>
-          <Text style={styles.cameraToggleLabel}>
-            {getCameraStatusText(facingMode)}
-          </Text>
-          <Pressable
-            onPress={toggleFacingMode}
-            accessibilityRole="button"
-            accessibilityLabel={CAMERA_TOGGLE_COPY.accessibilityLabel}
-            accessibilityHint={CAMERA_TOGGLE_COPY.accessibilityHint}
-            accessibilityValue={{ text: getCameraFacingText(facingMode) }}
-            style={({ pressed }) => [
-              childFriendlyStyles.minTouchTarget,
-              styles.cameraToggleButton,
-              pressed && styles.cameraToggleButtonPressed,
+      <View style={[styles.overlayPanel, constrainedContentStyle]}>
+        <View style={styles.topSection}>
+          <View
+            style={[
+              styles.statusCard,
+              {
+                backgroundColor: statusCardBackground,
+                borderColor: statusCardBorder,
+              },
             ]}
+            accessibilityRole="text"
           >
-            <Text style={styles.cameraToggleText}>
-              {getCameraToggleActionText(facingMode)}
+            <Text style={[styles.statusLabel, { color: statusCardText }]}>{statusLabel}</Text>
+            {statusDetail ? (
+              <Text style={[styles.statusDetail, { color: statusCardText }]}>{statusDetail}</Text>
+            ) : null}
+            {encouragement ? (
+              <Text style={[styles.statusEncouragement, { color: statusCardText }]}>{encouragement}</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.cameraToggleRow}>
+            <Text style={styles.cameraToggleLabel}>
+              {getCameraStatusText(facingMode)}
             </Text>
-          </Pressable>
+            <Pressable
+              onPress={toggleFacingMode}
+              accessibilityRole="button"
+              accessibilityLabel={CAMERA_TOGGLE_COPY.accessibilityLabel}
+              accessibilityHint={CAMERA_TOGGLE_COPY.accessibilityHint}
+              accessibilityValue={{ text: getCameraFacingText(facingMode) }}
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.cameraToggleButton,
+                pressed && styles.cameraToggleButtonPressed,
+              ]}
+            >
+              <Text style={styles.cameraToggleText}>
+                {getCameraToggleActionText(facingMode)}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
-      <View style={styles.cameraZone}>
+      <View style={[styles.cameraZone, constrainedContentStyle]}>
         <CameraFrame
           capturePulseAnim={capturePulseAnim}
           pulseOpacity={CAMERA_THEME.capturePulseOpacity}
         />
-        <Text style={styles.cameraHint}>Hand ruhig im Rahmen halten.</Text>
+        <View style={styles.cameraHintBubble}>
+          <Text style={styles.cameraHint}>Hand ruhig im Rahmen halten.</Text>
+        </View>
       </View>
 
-      <View style={[styles.bottomSection, constrainedContentStyle]}>
-        {gestureMeaningDisplayProps ? (
-          <Animated.View style={[styles.predictionCard, { opacity: fadeAnim }]}>
-            <GestureMeaningDisplay
-              gestureId={gestureMeaningDisplayProps.gestureId}
-              confidence={gestureMeaningDisplayProps.confidence}
-              showDetails
-              detailsStartCollapsed
-              size="large"
-              gestureDefinition={gestureMeaningDisplayProps.gestureDefinition}
-              gestureMeta={lastRecognizedGesture}
-              openaiValidationResult={openaiValidationResult}
-              sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
-              tone="camera"
-            />
-          </Animated.View>
-        ) : (
-          <View style={styles.predictionPlaceholder}>
-            <Text style={styles.predictionPlaceholderTitle}>Zeig Amy deine Geste</Text>
-            <Text style={styles.predictionPlaceholderSubtitle}>
-              Sobald Amy dich entdeckt, erscheint hier deine Stimme.
-            </Text>
-          </View>
-        )}
-
-        <View
-          style={[
-            styles.actionsSlot,
-            isCompactSecondaryActions && styles.actionsSlotCompact,
-          ]}
-        >
-          <Animated.View
-            testID="recognition-actions"
-            pointerEvents={actionsPointerEvents}
-            accessibilityElementsHidden={actionsAccessibilityHidden}
-            importantForAccessibility={
-              actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
-            }
-            style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}
-          >
-            <View style={styles.primaryActionWrapper}>
-              <ActionButton
-                label="Stimmt"
-                accessibilityLabel="Gestenerkennung bestätigen"
-                onPress={handleConfirmGesture}
-                backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
-                pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
-                textColor={CAMERA_THEME.actionButtons.confirm.text}
-                style={styles.primaryActionButton}
+      <View style={[styles.overlayPanel, styles.overlayPanelBottom, constrainedContentStyle]}>
+        <View style={styles.bottomSection}>
+          {gestureMeaningDisplayProps ? (
+            <Animated.View style={[styles.predictionCard, { opacity: fadeAnim }]}>
+              <GestureMeaningDisplay
+                gestureId={gestureMeaningDisplayProps.gestureId}
+                confidence={gestureMeaningDisplayProps.confidence}
+                showDetails
+                detailsStartCollapsed
+                size="large"
+                gestureDefinition={gestureMeaningDisplayProps.gestureDefinition}
+                gestureMeta={lastRecognizedGesture}
+                openaiValidationResult={openaiValidationResult}
+                sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
+                tone="camera"
               />
-            </View>
+            </Animated.View>
+          ) : (
             <View
-              style={[
-                styles.secondaryActionsBase,
-                isCompactSecondaryActions
-                  ? styles.secondaryActionsColumn
-                  : styles.secondaryActionsRow,
-              ]}
+              style={styles.predictionPlaceholder}
+              accessible
+              accessibilityRole="text"
             >
-              <ActionButton
-                label="Lernen"
-                accessibilityLabel="Lernmodus öffnen"
-                onPress={handleLearnPress}
-                backgroundColor={CAMERA_THEME.actionButtons.learn.background}
-                pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
-                textColor={CAMERA_THEME.actionButtons.learn.text}
-                style={[
-                  styles.secondaryActionButton,
-                  isCompactSecondaryActions
-                    ? styles.secondaryActionButtonColumn
-                    : styles.secondaryActionButtonRow,
-                  isCompactSecondaryActions && styles.secondaryActionCompact,
-                ]}
-              />
-              <ActionButton
-                label="Alternativen"
-                accessibilityLabel="Alternativen anzeigen"
-                onPress={handleAlternativesPress}
-                backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
-                pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
-                textColor={CAMERA_THEME.actionButtons.alternatives.text}
-                style={[
-                  styles.secondaryActionButton,
-                  isCompactSecondaryActions
-                    ? styles.secondaryActionButtonColumn
-                    : styles.secondaryActionButtonRow,
-                  isCompactSecondaryActions && styles.secondaryActionCompact,
-                ]}
-              />
+              <Text accessibilityRole="header" style={styles.predictionPlaceholderTitle}>
+                Zeig Amy deine Geste
+              </Text>
+              <Text style={styles.predictionPlaceholderSubtitle}>
+                Sobald Amy dich entdeckt, erscheint hier deine Stimme.
+              </Text>
             </View>
-          </Animated.View>
+          )}
+
+          <View
+            style={[
+              styles.actionsSlot,
+              isCompactSecondaryActions && styles.actionsSlotCompact,
+            ]}
+          >
+            <Animated.View
+              testID="recognition-actions"
+              pointerEvents={actionsPointerEvents}
+              accessibilityElementsHidden={actionsAccessibilityHidden}
+              importantForAccessibility={
+                actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
+              }
+              style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}
+            >
+              <View style={styles.primaryActionWrapper}>
+                <ActionButton
+                  label="Stimmt"
+                  accessibilityLabel="Gestenerkennung bestätigen"
+                  onPress={handleConfirmGesture}
+                  backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
+                  pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
+                  textColor={CAMERA_THEME.actionButtons.confirm.text}
+                  style={styles.primaryActionButton}
+                />
+              </View>
+              <View
+                style={[
+                  styles.secondaryActionsBase,
+                  isCompactSecondaryActions
+                    ? styles.secondaryActionsColumn
+                    : styles.secondaryActionsRow,
+                ]}
+              >
+                <ActionButton
+                  label="Lernen"
+                  accessibilityLabel="Lernmodus öffnen"
+                  onPress={handleLearnPress}
+                  backgroundColor={CAMERA_THEME.actionButtons.learn.background}
+                  pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
+                  textColor={CAMERA_THEME.actionButtons.learn.text}
+                  style={[
+                    styles.secondaryActionButton,
+                    isCompactSecondaryActions
+                      ? styles.secondaryActionButtonColumn
+                      : styles.secondaryActionButtonRow,
+                    isCompactSecondaryActions && styles.secondaryActionCompact,
+                  ]}
+                />
+                <ActionButton
+                  label="Alternativen"
+                  accessibilityLabel="Alternativen anzeigen"
+                  onPress={handleAlternativesPress}
+                  backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
+                  pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
+                  textColor={CAMERA_THEME.actionButtons.alternatives.text}
+                  style={[
+                    styles.secondaryActionButton,
+                    isCompactSecondaryActions
+                      ? styles.secondaryActionButtonColumn
+                      : styles.secondaryActionButtonRow,
+                    isCompactSecondaryActions && styles.secondaryActionCompact,
+                  ]}
+                />
+              </View>
+            </Animated.View>
+          </View>
         </View>
       </View>
     </>
@@ -860,7 +882,15 @@ export default function RecognitionScreen({
           onGestureDetected={processGesture}
           onLandmarks={(landmarks, handedness) => handleGestureDetected(null, 0, landmarks, handedness)}
           onError={handleGestureError}
-          onWebViewEvent={(telemetry) => logger.info('WebView telemetry:', telemetry)}
+          onWebViewEvent={(telemetry) => {
+            if (__DEV__) {
+              const safePayload = {
+                event: telemetry?.event,
+                timestamp: telemetry?.timestamp,
+              };
+              logger.debug('WebView telemetry', safePayload);
+            }
+          }}
           onModelUpdateStatus={handleModelUpdateStatus}
           facingMode={facingMode}
           gestureSizeTolerance={gestureSizeTolerance}
@@ -915,18 +945,34 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    justifyContent: 'space-between',
-    backgroundColor: CAMERA_THEME.overlayScrim,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.overlayBadgeBorder,
-    borderRadius: 36,
+    width: '100%',
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
   },
   overlayScrollContainer: {
     flex: 1,
-    backgroundColor: CAMERA_THEME.overlayScrim,
   },
   overlayScrollable: {
     flexGrow: 1,
+  },
+  overlayPanel: {
+    width: '100%',
+    alignSelf: 'center',
+    backgroundColor: CAMERA_THEME.panelBackground,
+    borderRadius: 32,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.overlayBadgeBorder,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 9,
+    marginBottom: spacing.xl,
+  },
+  overlayPanelBottom: {
+    marginBottom: 0,
   },
   topSection: {
     width: '100%',
@@ -1003,13 +1049,23 @@ const styles = StyleSheet.create({
   },
   cameraZone: {
     flex: 1,
+    width: '100%',
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
     paddingHorizontal: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  cameraHintBubble: {
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    backgroundColor: CAMERA_THEME.cameraHintBubbleBackground,
+    borderRadius: 28,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.overlayBadgeBorder,
   },
   cameraHint: {
-    marginTop: spacing.lg,
     fontSize: typography.sizes.bodyLg,
     fontWeight: typography.weights.semibold as any,
     color: CAMERA_THEME.cameraHint,
@@ -1112,6 +1168,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.overlayBadgeBorder,
-    backgroundColor: 'rgba(7, 33, 36, 0.78)',
+    backgroundColor: CAMERA_THEME.handPreviewBackground,
   },
 });
