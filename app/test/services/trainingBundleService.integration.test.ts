@@ -233,7 +233,7 @@ describe('uploadTrainingBundle spike', () => {
   });
 
   it('zips landmarks and clip into a bundle and registers manifest entry', async () => {
-    const clipPath = path.join(fsTempRoot, 'clip.mp4');
+    const clipPath = path.join(fsTempRoot, 'clip.webm');
     await fs.writeFile(clipPath, Buffer.from('clip-data'), 'utf8');
 
     const baseFrame = await loadSampleFrame();
@@ -277,11 +277,12 @@ describe('uploadTrainingBundle spike', () => {
       profileId: 'p-test-123',
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
+      clipFilename: 'clip.webm',
     });
     expect(entry.frames[0].handedness).toEqual(['Left', 'Right']);
     expect(entry.frames[1].handedness).toEqual(['Left', 'Right']);
     expect(entry.frames[0].landmarks[0]).toEqual(baseFrame.landmarks[0][0]);
     expect(entry.frames[1].landmarks[0]).toEqual(baseFrame.landmarks[0][0]);
-    expect(entry.files).toEqual(expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.mp4']));
+    expect(entry.files).toEqual(expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.webm']));
   });
 });

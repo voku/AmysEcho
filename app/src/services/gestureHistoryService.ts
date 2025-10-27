@@ -279,8 +279,19 @@ class GestureHistoryService {
           } else {
             const recent = Array.isArray(parsed?.recent) ? parsed.recent : [];
             const analytics = Array.isArray(parsed?.analytics) ? parsed.analytics : recent;
-            this.analyticsHistory = this.sanitizeAnalyticsHistory(analytics);
-            this.history = recent.filter(entry => typeof entry.timestamp === 'number');
+            const normalizeEntry = (entry: unknown): entry is GestureHistoryEntry =>
+              typeof entry === 'object'
+              && entry !== null
+              && typeof (entry as { timestamp?: unknown }).timestamp === 'number'
+              && typeof (entry as { id?: unknown }).id === 'string'
+              && typeof (entry as { label?: unknown }).label === 'string'
+              && typeof (entry as { emoji?: unknown }).emoji === 'string'
+              && typeof (entry as { confidence?: unknown }).confidence === 'number';
+
+            this.analyticsHistory = this.sanitizeAnalyticsHistory(
+              analytics.filter(normalizeEntry),
+            );
+            this.history = recent.filter(normalizeEntry);
             if (this.history.length === 0) {
               this.history = this.analyticsHistory.slice(0, this.MAX_HISTORY);
             }
