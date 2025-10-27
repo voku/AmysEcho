@@ -61,7 +61,9 @@ type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating
 
 const CAMERA_THEME = {
   gradient: [Colors.backgroundStart, Colors.backgroundEnd] as const,
-  overlayScrim: 'rgba(8, 40, 43, 0.55)',
+  panelBackground: 'rgba(7, 33, 36, 0.78)',
+  cameraHintBubbleBackground: 'rgba(6, 30, 33, 0.82)',
+  handPreviewBackground: 'rgba(7, 33, 36, 0.78)',
   statusBackground: {
     idle: Colors.statusListeningBackground,
     listening: Colors.statusListeningBackground,
@@ -165,8 +167,16 @@ const toGestureImageCapture = (
     return null;
   }
 
+  let mimeType = 'image/jpeg';
+  if (typeof uri === 'string' && uri.startsWith('data:image/')) {
+    const mimeEnd = uri.indexOf(';', 'data:'.length);
+    if (mimeEnd > 0) {
+      mimeType = uri.slice('data:'.length, mimeEnd);
+    }
+  }
+
   if (!uri || !uri.startsWith('data:image/')) {
-    uri = `data:image/jpeg;base64,${base64}`;
+    uri = `data:${mimeType};base64,${base64}`;
   }
 
   return {
@@ -183,25 +193,25 @@ export default function RecognitionScreen({
 }: {
   navigation: TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 }) {
-  let windowWidth: number;
-  let windowHeight: number;
-  try {
-    // `useWindowDimensions` is preferred as it's a hook that updates on changes.
-    const dimensions = useWindowDimensions();
-    windowWidth = dimensions.width;
-    windowHeight = dimensions.height;
-  } catch (e) {
-    // Fallback for environments where hooks are not available (e.g., some tests).
-    const fallbackWindow = Dimensions.get('window');
-    windowWidth =
-      typeof fallbackWindow?.width === 'number'
-        ? fallbackWindow.width
-        : COMPACT_SECONDARY_ACTIONS_BREAKPOINT + 1;
-    windowHeight =
-      typeof fallbackWindow?.height === 'number' && fallbackWindow.height > 0
-        ? fallbackWindow.height
-        : 800;
-  }
+  const dimensions = useWindowDimensions();
+  const fallbackWindow = Dimensions.get('window');
+  const fallbackWidth =
+    typeof fallbackWindow?.width === 'number'
+      ? fallbackWindow.width
+      : COMPACT_SECONDARY_ACTIONS_BREAKPOINT + 1;
+  const fallbackHeight =
+    typeof fallbackWindow?.height === 'number' && fallbackWindow.height > 0
+      ? fallbackWindow.height
+      : 800;
+
+  const windowWidth =
+    Number.isFinite(dimensions.width) && dimensions.width > 0
+      ? dimensions.width
+      : fallbackWidth;
+  const windowHeight =
+    Number.isFinite(dimensions.height) && dimensions.height > 0
+      ? dimensions.height
+      : fallbackHeight;
 
   const isCompactSecondaryActions = windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const isCompactHeight = windowHeight <= COMPACT_HEIGHT_BREAKPOINT;
@@ -779,8 +789,14 @@ export default function RecognitionScreen({
               />
             </Animated.View>
           ) : (
-            <View style={styles.predictionPlaceholder}>
-              <Text style={styles.predictionPlaceholderTitle}>Zeig Amy deine Geste</Text>
+            <View
+              style={styles.predictionPlaceholder}
+              accessible
+              accessibilityRole="text"
+            >
+              <Text accessibilityRole="header" style={styles.predictionPlaceholderTitle}>
+                Zeig Amy deine Geste
+              </Text>
               <Text style={styles.predictionPlaceholderSubtitle}>
                 Sobald Amy dich entdeckt, erscheint hier deine Stimme.
               </Text>
@@ -866,7 +882,15 @@ export default function RecognitionScreen({
           onGestureDetected={processGesture}
           onLandmarks={(landmarks, handedness) => handleGestureDetected(null, 0, landmarks, handedness)}
           onError={handleGestureError}
-          onWebViewEvent={(telemetry) => logger.info('WebView telemetry:', telemetry)}
+          onWebViewEvent={(telemetry) => {
+            if (__DEV__) {
+              const safePayload = {
+                event: telemetry?.event,
+                timestamp: telemetry?.timestamp,
+              };
+              logger.debug('WebView telemetry', safePayload);
+            }
+          }}
           onModelUpdateStatus={handleModelUpdateStatus}
           facingMode={facingMode}
           gestureSizeTolerance={gestureSizeTolerance}
@@ -934,7 +958,7 @@ const styles = StyleSheet.create({
   overlayPanel: {
     width: '100%',
     alignSelf: 'center',
-    backgroundColor: 'rgba(7, 33, 36, 0.78)',
+    backgroundColor: CAMERA_THEME.panelBackground,
     borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.overlayBadgeBorder,
@@ -1024,7 +1048,7 @@ const styles = StyleSheet.create({
     color: Colors.overlayText,
   },
   cameraZone: {
-    flexGrow: 1,
+    flex: 1,
     width: '100%',
     alignSelf: 'center',
     alignItems: 'center',
@@ -1036,7 +1060,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
-    backgroundColor: 'rgba(6, 30, 33, 0.82)',
+    backgroundColor: CAMERA_THEME.cameraHintBubbleBackground,
     borderRadius: 28,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.overlayBadgeBorder,
@@ -1144,6 +1168,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.overlayBadgeBorder,
-    backgroundColor: 'rgba(7, 33, 36, 0.78)',
+    backgroundColor: CAMERA_THEME.handPreviewBackground,
   },
 });
