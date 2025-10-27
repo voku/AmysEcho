@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
-import Svg, { Circle } from 'react-native-svg';
 import {
   saveTrainingSample,
   loadProfile,
@@ -26,7 +25,6 @@ import {
 } from '../components/MediaPipeGestureDetector';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
-import DgsVideoPlayer from '../components/DgsVideoPlayer';
 
 import { createButtonStyles } from '../styles/buttonStyles';
 import { hapticFeedback } from '../utils/hapticUtils';
@@ -39,9 +37,9 @@ import {
   CAMERA_TOGGLE_COPY,
   getCameraFacingText,
   getCameraStatusText,
-  getCameraToggleActionText,
   getNextCameraFacingMode,
 } from '../constants/cameraToggle';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
@@ -55,7 +53,6 @@ const expoFs = FileSystem as ExpoFileSystemCompat;
 
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
-  const PREVIEW_SIZE = 200;
   const { gestureLabel, isPractice, targetSamples } = route.params || {};
   const gestures = Array.isArray(gestureModel.gestures) ? gestureModel.gestures : [];
   const TARGET_SAMPLES = isPractice ? (typeof targetSamples === 'number' ? targetSamples : 5) : 5;
@@ -67,7 +64,6 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
-  const [landmarks, setLandmarks] = useState<number[][][]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useMessage();
@@ -76,6 +72,8 @@ export default function TrainingScreen({ navigation, route }: any) {
   const clipRequestIdRef = useRef<string | null>(null);
   const clipFileRef = useRef<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const insets = useSafeAreaInsets();
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
     const directory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
@@ -159,10 +157,6 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   // Detection is handled by the MediaPipe WebView detector, which also falls back to server.
 
-  useEffect(() => {
-    if (!detectionActive) setLandmarks([]);
-  }, [detectionActive]);
-
   const handleFrameBatch = useCallback(
     (payload: FrameBatchPayload) => {
       if (!isRecordingRef.current || !payload || payload.landmarks.length === 0) {
@@ -197,7 +191,6 @@ export default function TrainingScreen({ navigation, route }: any) {
       if (!lastFrame) {
         return;
       }
-      setLandmarks(cloneLandmarks(lastFrame.landmarks));
       setLastDetection(Date.now());
 
       setRecordedFrames((prev) => {
@@ -215,10 +208,26 @@ export default function TrainingScreen({ navigation, route }: any) {
   const toggleFacingMode = useCallback(() => {
     void hapticFeedback.light();
     setFacingMode((current) => getNextCameraFacingMode(current));
-    setLandmarks([]);
     setLastDetection(0);
     setCameraReady(false);
   }, []);
+
+  const handleResetGesture = useCallback(() => {
+    if (isRecordingRef.current) {
+      return;
+    }
+    setShowInstructions(false);
+    setIsRecording(false);
+    setGestureId(null);
+    setCount(0);
+    setRecordedFrames([]);
+    setFramesCaptured(0);
+    setLastDetection(0);
+    setCameraReady(false);
+    clipRequestIdRef.current = null;
+    detectorRef.current?.cancelClipCapture();
+    void cleanupClipFile();
+  }, [cleanupClipFile]);
 
   const handleCameraStateChange = useCallback(
     (state: CameraStateEvent) => {
@@ -347,6 +356,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   ]);
 
   const handleFinish = () => {
+    setShowInstructions(false);
     navigation.goBack();
   };
 
@@ -385,18 +395,6 @@ export default function TrainingScreen({ navigation, route }: any) {
       ? `Übe ${displayGestureName} in deinem Tempo und beobachte die Fortschrittsanzeige.`
       : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy ${displayGestureName} sicher erkennt.`
     : 'Wähle eine Geste, um das Training zu starten.';
-  const primaryCtaLabel = useMemo(() => {
-    if (isRecording) {
-      return 'Aufnahme stoppen';
-    }
-    if (!gestureId) {
-      return 'Geste auswählen';
-    }
-    if (!cameraReady) {
-      return 'Kamera starten';
-    }
-    return `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`;
-  }, [cameraReady, count, gestureId, isRecording, TARGET_SAMPLES]);
   const trainingSteps = useMemo(
     () => [
       'Wähle eine bekannte Geste oder starte über „Neue Geste beibringen“ einen neuen Eintrag.',
@@ -407,11 +405,323 @@ export default function TrainingScreen({ navigation, route }: any) {
     [],
   );
 
+  const progressDots = useMemo(
+    () => Array.from({ length: TARGET_SAMPLES }, (_, index) => index < count),
+    [TARGET_SAMPLES, count],
+  );
+
+  const progressLabel = `${Math.min(count, TARGET_SAMPLES)}/${TARGET_SAMPLES} Beispiele`;
+  const captureDisabled = !cameraReady && !isRecording;
+  const captureHint = isRecording
+    ? 'Aufnahme läuft …'
+    : `Tippe für Beispiel ${Math.min(count + 1, TARGET_SAMPLES)} von ${TARGET_SAMPLES}`;
+  const detectionStatusText = isRecording
+    ? detectionActive
+      ? 'Aufnahme läuft …'
+      : 'Keine Hand erkannt'
+    : detectionActive
+      ? 'Hand im Bild'
+      : 'Keine Hand';
+  const captureAccessibilityLabel = isRecording ? 'Aufnahme stoppen' : 'Beispiel aufnehmen';
+  const captureAccessibilityHint = isRecording
+    ? 'Tippe, um die aktuelle Aufnahme zu beenden.'
+    : 'Tippe, um ein neues Beispiel aufzuzeichnen.';
+
+  const progressTop = insets.top + SPACING.lg;
+  const statusTop = progressTop + SPACING.xl;
+  const captureBottom = insets.bottom + SPACING.xl;
+
+  const handleCapturePress = useCallback(() => {
+    void hapticFeedback.light();
+    if (isRecording) {
+      void stopRecording();
+      return;
+    }
+
+    if (!captureDisabled) {
+      void startRecording();
+    }
+  }, [captureDisabled, isRecording, startRecording, stopRecording]);
+
   const panelBackground = highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.97)';
   const panelBorderColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.45)';
 
   const buttonStyles = createButtonStyles();
+  const topButtonBackground = highContrast ? COLORS.highContrastText : 'rgba(0, 0, 0, 0.65)';
+  const topButtonDisabledBackground = highContrast ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.25)';
+  const topButtonPressedOverlay = highContrast ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)';
+  const topButtonTextColor = highContrast ? COLORS.highContrastBackground : '#ffffff';
+  const overlaySurface = highContrast ? COLORS.highContrastText : 'rgba(0, 0, 0, 0.65)';
+  const overlaySurfaceMuted = highContrast ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.45)';
+  const overlayTextColor = highContrast ? COLORS.highContrastBackground : '#ffffff';
+  const captureBorderColor = highContrast ? COLORS.highContrastText : 'rgba(255, 255, 255, 0.65)';
+  const capturePressedOverlay = highContrast ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.12)';
+  const captureInnerColor = highContrast ? COLORS.highContrastBackground : '#ffffff';
+  const captureInnerRecordingColor = highContrast ? COLORS.highContrastText : '#ef4444';
+  const instructionsBackground = highContrast ? COLORS.highContrastBackground : '#ffffff';
+  const instructionsTextColor = highContrast ? COLORS.highContrastText : COLORS.text;
+  const instructionsActionBackground = highContrast ? COLORS.highContrastText : COLORS.primaryAccent;
+  const instructionsActionPressedBackground = highContrast ? COLORS.highContrastPressed : COLORS.actionSecondaryPressed;
+  const instructionsActionTextColor = highContrast ? COLORS.highContrastBackground : COLORS.highContrastText;
+
   const styles = StyleSheet.create({
+    cameraScreen: {
+      flex: 1,
+      backgroundColor: '#000000',
+    },
+    cameraFeedWrapper: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: '#000000',
+    },
+    topControls: {
+      position: 'absolute',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    topButtonGroup: {
+      flexDirection: 'row',
+      gap: SPACING.sm,
+    },
+    topButton: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: topButtonBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    topButtonDisabled: {
+      backgroundColor: topButtonDisabledBackground,
+    },
+    topButtonPressed: {
+      backgroundColor: topButtonPressedOverlay,
+    },
+    topButtonText: {
+      color: topButtonTextColor,
+      fontSize: largeText ? 22 : 18,
+      fontWeight: '700',
+    },
+    progressIndicator: {
+      position: 'absolute',
+      alignSelf: 'center',
+      alignItems: 'center',
+      gap: SPACING.xs,
+    },
+    progressDots: {
+      flexDirection: 'row',
+      gap: SPACING.xs,
+    },
+    progressDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    },
+    progressDotFilled: {
+      backgroundColor: COLORS.success,
+    },
+    progressLabel: {
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+      borderRadius: 18,
+      backgroundColor: overlaySurface,
+      color: overlayTextColor,
+      fontSize: largeText ? 16 : 14,
+      fontWeight: '700',
+    },
+    progressGesture: {
+      color: overlayTextColor,
+      fontSize: largeText ? 20 : 18,
+      fontWeight: '700',
+      textShadowColor: 'rgba(0, 0, 0, 0.6)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 6,
+    },
+    cameraStatusText: {
+      color: overlayTextColor,
+      fontSize: largeText ? 14 : 12,
+      opacity: 0.85,
+    },
+    statusPill: {
+      position: 'absolute',
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xs,
+      backgroundColor: overlaySurface,
+      borderRadius: 24,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    statusText: {
+      color: overlayTextColor,
+      fontSize: largeText ? 16 : 14,
+      fontWeight: '600',
+    },
+    recordingIndicator: {
+      position: 'absolute',
+      top: '45%',
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      backgroundColor: overlaySurface,
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.sm,
+      borderRadius: 999,
+    },
+    recordingDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: '#ef4444',
+    },
+    recordingText: {
+      color: overlayTextColor,
+      fontSize: largeText ? 18 : 16,
+      fontWeight: '600',
+    },
+    captureArea: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    captureButton: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      borderWidth: 4,
+      borderColor: captureBorderColor,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    captureButtonActive: {
+      borderColor: '#ef4444',
+      backgroundColor: 'rgba(239, 68, 68, 0.28)',
+    },
+    captureButtonDisabled: {
+      opacity: 0.45,
+    },
+    captureButtonPressed: {
+      backgroundColor: capturePressedOverlay,
+    },
+    captureButtonInner: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: captureInnerColor,
+    },
+    captureButtonInnerRecording: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: captureInnerRecordingColor,
+    },
+    captureHint: {
+      color: overlayTextColor,
+      fontSize: largeText ? 16 : 14,
+      fontWeight: '700',
+      textAlign: 'center',
+      textShadowColor: 'rgba(0, 0, 0, 0.6)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 6,
+    },
+    captureSubHint: {
+      color: overlayTextColor,
+      opacity: 0.75,
+      fontSize: largeText ? 14 : 12,
+      textAlign: 'center',
+    },
+    exitButton: {
+      marginTop: SPACING.sm,
+      paddingHorizontal: SPACING.xl,
+      paddingVertical: SPACING.sm,
+      borderRadius: DEFAULT_RADIUS * 1.5,
+      backgroundColor: overlaySurface,
+    },
+    exitButtonPressed: {
+      backgroundColor: overlaySurfaceMuted,
+    },
+    exitButtonText: {
+      color: overlayTextColor,
+      fontWeight: '600',
+      fontSize: largeText ? 16 : 14,
+    },
+    instructionsOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0, 0, 0, 0.85)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.xl,
+    },
+    instructionsCard: {
+      width: '100%',
+      maxWidth: 420,
+      backgroundColor: instructionsBackground,
+      borderRadius: DEFAULT_RADIUS * 2,
+      padding: SPACING.xl,
+      gap: SPACING.md,
+    },
+    instructionsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    instructionsTitle: {
+      fontSize: largeText ? 24 : 20,
+      fontWeight: '700',
+      color: instructionsTextColor,
+    },
+    instructionsClose: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: highContrast ? 'rgba(0, 0, 0, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+    },
+    instructionsClosePressed: {
+      backgroundColor: highContrast ? 'rgba(0, 0, 0, 0.22)' : 'rgba(0, 0, 0, 0.16)',
+    },
+    instructionsCloseText: {
+      color: instructionsTextColor,
+      fontSize: 28,
+      fontWeight: '700',
+    },
+    instructionsGesture: {
+      fontSize: largeText ? 20 : 18,
+      fontWeight: '600',
+      color: instructionsTextColor,
+    },
+    instructionsStep: {
+      fontSize: largeText ? 18 : 16,
+      lineHeight: largeText ? 26 : 22,
+      color: instructionsTextColor,
+    },
+    instructionsAction: {
+      marginTop: SPACING.md,
+      paddingVertical: SPACING.sm,
+      borderRadius: DEFAULT_RADIUS * 1.5,
+      backgroundColor: instructionsActionBackground,
+      alignItems: 'center',
+    },
+    instructionsActionPressed: {
+      backgroundColor: instructionsActionPressedBackground,
+    },
+    instructionsActionText: {
+      color: instructionsActionTextColor,
+      fontWeight: '700',
+      fontSize: largeText ? 18 : 16,
+    },
     screen: { flex: 1 },
     container: {
       flex: 1,
@@ -529,106 +839,6 @@ export default function TrainingScreen({ navigation, route }: any) {
       color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
       textAlign: 'center',
     },
-    selectedGestureCard: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.md,
-      padding: SPACING.md,
-      borderRadius: DEFAULT_RADIUS * 1.5,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(16, 36, 63, 0.08)',
-      borderWidth: highContrast ? 2 : StyleSheet.hairlineWidth,
-      borderColor: highContrast ? COLORS.highContrastText : 'rgba(16, 36, 63, 0.16)',
-    },
-    selectedGestureEmoji: {
-      fontSize: largeText ? 44 : 40,
-    },
-    selectedGestureText: {
-      flex: 1,
-      gap: SPACING.xs,
-    },
-    selectedGestureName: {
-      fontSize: largeText ? 20 : 18,
-      fontWeight: '700',
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
-    },
-    selectedGestureInfo: {
-      fontSize: largeText ? 16 : 14,
-      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
-    },
-    cameraContainer: {
-      width: PREVIEW_SIZE,
-      height: PREVIEW_SIZE,
-      marginBottom: SPACING.sm,
-      position: 'relative',
-      alignSelf: 'center',
-      borderRadius: DEFAULT_RADIUS * 2,
-      overflow: 'hidden',
-      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
-    },
-    cameraHeader: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: SPACING.sm,
-    },
-    cameraLabel: {
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
-      fontSize: largeText ? 16 : 14,
-      flex: 1,
-    },
-    cameraToggle: {
-      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
-      borderRadius: DEFAULT_RADIUS,
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: SPACING.xs,
-    },
-    cameraTogglePressed: {
-      opacity: 0.85,
-    },
-    cameraToggleText: {
-      color: highContrast ? COLORS.highContrastBackground : COLORS.highContrastText,
-      fontSize: largeText ? 14 : 12,
-      fontWeight: '600',
-    },
-    camera: {
-      flex: 1,
-    },
-    detectionIndicator: {
-      position: 'absolute',
-      top: SPACING.sm,
-      left: SPACING.sm,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    dot: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-      marginRight: SPACING.xs,
-    },
-    detectionText: {
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
-      fontSize: largeText ? 18 : 16,
-      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(255, 255, 255, 0.82)',
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: SPACING.xs,
-      borderRadius: DEFAULT_RADIUS,
-    },
-    progressBar: {
-      width: '100%',
-      maxWidth: PREVIEW_SIZE,
-      height: 10,
-      backgroundColor: highContrast ? COLORS.borderDark : COLORS.border,
-      borderRadius: DEFAULT_RADIUS,
-      overflow: 'hidden',
-      alignSelf: 'center',
-    },
-    progressFill: {
-      height: '100%',
-      backgroundColor: COLORS.success,
-    },
     summaryContainer: {
       width: '100%',
       alignItems: 'center',
@@ -674,14 +884,223 @@ export default function TrainingScreen({ navigation, route }: any) {
     secondaryButtonTextHC: {
       color: COLORS.highContrastBackground,
     },
-    helperText: {
-      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
-      fontSize: largeText ? 16 : 14,
-      textAlign: 'center',
-    },
   });
 
   // Camera permission handled by WebView context.
+
+  if (gestureId && count < TARGET_SAMPLES) {
+    return (
+      <View style={styles.cameraScreen}>
+        <View style={styles.cameraFeedWrapper}>
+          <MediaPipeGestureDetector
+            ref={detectorRef}
+            onWebViewEvent={(telemetry) => {
+              logger.info('Training WebView telemetry:', telemetry);
+            }}
+            onFrameBatch={handleFrameBatch}
+            onLandmarks={() => {
+              setLastDetection(Date.now());
+            }}
+            onGestureDetected={() => {
+              if (isRecordingRef.current) {
+                setLastDetection(Date.now());
+              }
+            }}
+            onError={(m) => {
+              logger.warn('TrainingScreen detector error:', m);
+              showToast({
+                message: 'Die Erkennung wurde angehalten. Bitte versuch es erneut.',
+                tone: 'warning',
+              });
+            }}
+            facingMode={facingMode}
+            onCameraStateChange={handleCameraStateChange}
+          />
+        </View>
+
+        <View
+          style={[
+            styles.topControls,
+            {
+              top: Math.max(insets.top + SPACING.sm, SPACING.lg),
+              left: SPACING.md,
+              right: SPACING.md,
+            },
+          ]}
+        >
+          <View style={styles.topButtonGroup}>
+            <Pressable
+              onPress={handleResetGesture}
+              disabled={isRecording}
+              accessibilityRole="button"
+              accessibilityLabel="Zurück zur Gestenliste"
+              accessibilityHint="Nur verfügbar, wenn keine Aufnahme läuft."
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.topButton,
+                isRecording && styles.topButtonDisabled,
+                pressed && !isRecording && styles.topButtonPressed,
+              ]}
+            >
+              <Text style={styles.topButtonText}>←</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowInstructions(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Schnellanleitung anzeigen"
+              style={({ pressed }) => [
+                childFriendlyStyles.minTouchTarget,
+                styles.topButton,
+                pressed && styles.topButtonPressed,
+              ]}
+            >
+              <Text style={styles.topButtonText}>?</Text>
+            </Pressable>
+          </View>
+          <Pressable
+            onPress={toggleFacingMode}
+            accessibilityRole="button"
+            accessibilityLabel={CAMERA_TOGGLE_COPY.accessibilityLabel}
+            accessibilityHint={CAMERA_TOGGLE_COPY.accessibilityHint}
+            accessibilityValue={{ text: getCameraFacingText(facingMode) }}
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.topButton,
+              pressed && styles.topButtonPressed,
+            ]}
+          >
+            <Text style={styles.topButtonText}>⇆</Text>
+          </Pressable>
+        </View>
+
+        <View style={[styles.progressIndicator, { top: progressTop }]}>
+          <View style={styles.progressDots}>
+            {progressDots.map((filled, index) => (
+              <View
+                key={`progress-${index}`}
+                style={[styles.progressDot, filled && styles.progressDotFilled]}
+              />
+            ))}
+          </View>
+          <Text style={styles.progressLabel}>{progressLabel}</Text>
+          <Text style={styles.progressGesture}>{`${selectedGestureEmoji} ${displayGestureName}`}</Text>
+          <Text style={styles.cameraStatusText}>{getCameraStatusText(facingMode)}</Text>
+        </View>
+
+        <View
+          style={[
+            styles.statusPill,
+            {
+              top: statusTop,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: detectionActive ? COLORS.success : COLORS.warning },
+            ]}
+          />
+          <Text style={styles.statusText}>{detectionStatusText}</Text>
+        </View>
+
+        {isRecording && (
+          <View style={styles.recordingIndicator}>
+            <View style={styles.recordingDot} />
+            <Text style={styles.recordingText}>Aufnahme läuft …</Text>
+          </View>
+        )}
+
+        <View style={[styles.captureArea, { bottom: captureBottom }]}>
+          <Pressable
+            onPress={handleCapturePress}
+            accessibilityRole="button"
+            accessibilityLabel={captureAccessibilityLabel}
+            accessibilityHint={captureAccessibilityHint}
+            disabled={captureDisabled && !isRecording}
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.captureButton,
+              isRecording && styles.captureButtonActive,
+              captureDisabled && !isRecording && styles.captureButtonDisabled,
+              pressed && !captureDisabled && styles.captureButtonPressed,
+            ]}
+          >
+            <View
+              style={[
+                styles.captureButtonInner,
+                isRecording && styles.captureButtonInnerRecording,
+              ]}
+            />
+          </Pressable>
+          <Text style={styles.captureHint}>{captureHint}</Text>
+          {!isRecording && framesCaptured > 0 ? (
+            <Text style={styles.captureSubHint}>
+              Länge der letzten Aufnahme: {framesCaptured} Frames
+            </Text>
+          ) : null}
+          <Pressable
+            onPress={handleFinish}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isPractice ? 'Übung beenden und zurück zur Übersicht' : 'Training beenden und zurück'
+            }
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.exitButton,
+              pressed && styles.exitButtonPressed,
+            ]}
+          >
+            <Text style={styles.exitButtonText}>
+              {isPractice ? 'Übung beenden' : 'Training beenden'}
+            </Text>
+          </Pressable>
+        </View>
+
+        {showInstructions && (
+          <View style={styles.instructionsOverlay}>
+            <View style={styles.instructionsCard}>
+              <View style={styles.instructionsHeader}>
+                <Text style={styles.instructionsTitle}>Schnellanleitung</Text>
+                <Pressable
+                  onPress={() => setShowInstructions(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Anleitung schließen"
+                  style={({ pressed }) => [
+                    childFriendlyStyles.minTouchTarget,
+                    styles.instructionsClose,
+                    pressed && styles.instructionsClosePressed,
+                  ]}
+                >
+                  <Text style={styles.instructionsCloseText}>×</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.instructionsGesture}>{`${selectedGestureEmoji} ${displayGestureName}`}</Text>
+              {trainingSteps.map((step, index) => (
+                <Text key={`${index}-${step}`} style={styles.instructionsStep}>
+                  {`${index + 1}. ${step}`}
+                </Text>
+              ))}
+              <Pressable
+                onPress={handleFinish}
+                accessibilityRole="button"
+                accessibilityLabel="Training beenden"
+                style={({ pressed }) => [
+                  childFriendlyStyles.minTouchTarget,
+                  styles.instructionsAction,
+                  pressed && styles.instructionsActionPressed,
+                ]}
+              >
+                <Text style={styles.instructionsActionText}>
+                  {isPractice ? 'Übung beenden' : 'Training abschließen'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -730,7 +1149,13 @@ export default function TrainingScreen({ navigation, route }: any) {
                         ]}
                         onPress={() => {
                           void hapticFeedback.light();
+                          setShowInstructions(false);
                           setGestureId(g.id);
+                          setCount(0);
+                          setRecordedFrames([]);
+                          setFramesCaptured(0);
+                          setLastDetection(0);
+                          setError(null);
                         }}
                         accessibilityRole="button"
                         accessibilityLabel={`Geste ${gestureName} auswählen`}
@@ -744,201 +1169,8 @@ export default function TrainingScreen({ navigation, route }: any) {
                   })}
                 </View>
               </>
-            ) : count < TARGET_SAMPLES ? (
-            <>
-              <View style={styles.selectedGestureCard}>
-                <Text style={styles.selectedGestureEmoji}>{selectedGestureEmoji}</Text>
-                <View style={styles.selectedGestureText}>
-                  <Text style={styles.selectedGestureName}>{displayGestureName}</Text>
-                  <Text style={styles.selectedGestureInfo}>
-                    Zeig Amy unterschiedliche Beispiele – ruhige Bewegungen unterstützen das Modell.
-                  </Text>
-                </View>
-              </View>
-              {/* Optional DGS demo video if available */}
-              {gestureId &&
-                (() => {
-                  const entry = gestureModel.gestures.find((g) => g.id === gestureId);
-                  const videoSource = entry?.dgsVideoUri ? { uri: entry.dgsVideoUri } : undefined;
-                  return videoSource ? (
-                    <View
-                      style={{
-                        width: PREVIEW_SIZE,
-                        height: PREVIEW_SIZE,
-                        marginBottom: SPACING.sm,
-                      }}
-                    >
-                      <DgsVideoPlayer videoSource={videoSource} shouldPlay={true} />
-                    </View>
-                  ) : null;
-                })()}
-              <View style={styles.cameraHeader}>
-                <Text style={styles.cameraLabel}>
-                  {getCameraStatusText(facingMode)}
-                </Text>
-                <Pressable
-                  onPress={toggleFacingMode}
-                  accessibilityRole="button"
-                  accessibilityLabel={CAMERA_TOGGLE_COPY.accessibilityLabel}
-                  accessibilityHint={CAMERA_TOGGLE_COPY.accessibilityHint}
-                  accessibilityValue={{ text: getCameraFacingText(facingMode) }}
-                  style={({ pressed }) => [
-                    childFriendlyStyles.minTouchTarget,
-                    styles.cameraToggle,
-                    pressed && styles.cameraTogglePressed,
-                  ]}
-                >
-                  <Text style={styles.cameraToggleText}>
-                    {getCameraToggleActionText(facingMode)}
-                  </Text>
-                </Pressable>
-              </View>
-              <View style={styles.cameraContainer}>
-                <MediaPipeGestureDetector
-                  ref={detectorRef}
-                  onWebViewEvent={(telemetry) => {
-                    logger.info('Training WebView telemetry:', telemetry);
-                  }}
-                  onFrameBatch={handleFrameBatch}
-                  onLandmarks={(lm) => {
-                    setLandmarks(cloneLandmarks(lm));
-                    setLastDetection(Date.now());
-                  }}
-                  onGestureDetected={() => {
-                    if (isRecordingRef.current) {
-                      setLastDetection(Date.now());
-                    }
-                  }}
-                  onError={(m) => {
-                    logger.warn('TrainingScreen detector error:', m);
-                    showToast({
-                      message: 'Die Erkennung wurde angehalten. Bitte versuch es erneut.',
-                      tone: 'warning',
-                    });
-                  }}
-                  facingMode={facingMode}
-                  onCameraStateChange={handleCameraStateChange}
-                />
-                {landmarks.length > 0 && (
-                  <Svg
-                    style={StyleSheet.absoluteFill}
-                    viewBox={`0 0 ${PREVIEW_SIZE} ${PREVIEW_SIZE}`}
-                    pointerEvents="none"
-                  >
-                    {landmarks.map((hand, handIdx) =>
-                      hand.map((l, lmIdx) => {
-                        const [x, y] = l ?? [];
-                        if (typeof x !== 'number' || typeof y !== 'number') {
-                          return null;
-                        }
-                        return (
-                          <Circle
-                            key={`${handIdx}-${lmIdx}`}
-                            cx={x * PREVIEW_SIZE}
-                            cy={y * PREVIEW_SIZE}
-                            r={3}
-                            fill={COLORS.warning}
-                          />
-                        );
-                      }),
-                    )}
-                  </Svg>
-                )}
-                <View style={styles.detectionIndicator}>
-                  <View
-                    style={[
-                      styles.dot,
-                      { backgroundColor: detectionActive ? COLORS.success : COLORS.warning },
-                    ]}
-                  />
-                  <Text style={styles.detectionText}>
-                    {isRecording
-                      ? detectionActive
-                        ? `Aufnahme läuft … ${framesCaptured}`
-                        : 'Keine Hand erkannt'
-                      : detectionActive
-                        ? 'Hand erkannt'
-                        : 'Keine Hand'}
-                  </Text>
-                </View>
-              </View>
-              <View
-                style={styles.progressBar}
-                accessibilityRole="progressbar"
-                accessibilityValue={{ now: count, min: 0, max: TARGET_SAMPLES }}
-              >
-                <View
-                  style={[styles.progressFill, { width: `${(count / TARGET_SAMPLES) * 100}%` }]}
-                />
-              </View>
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.button,
-                  styles.primaryButton,
-                  highContrast && styles.buttonHC,
-                  (!gestureId || (!cameraReady && !isRecording)) && styles.buttonDisabled,
-                  pressed &&
-                    gestureId &&
-                    (cameraReady || isRecording) &&
-                    (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
-                ]}
-                onPress={() => {
-                  void hapticFeedback.light();
-                  if (isRecording) {
-                    void stopRecording();
-                  } else {
-                    void startRecording();
-                  }
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={primaryCtaLabel}
-                disabled={!gestureId || (!cameraReady && !isRecording)}
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    largeText && styles.buttonTextLarge,
-                    highContrast && styles.buttonTextHC,
-                  ]}
-                >
-                  {primaryCtaLabel}
-                </Text>
-              </Pressable>
-              {!isRecording && framesCaptured > 0 && (
-                <Text style={styles.helperText}>
-                  Länge der letzten Aufnahme: {framesCaptured} Frames
-                </Text>
-              )}
-              <Pressable
-                style={({ pressed }) => [
-                  childFriendlyStyles.minTouchTarget,
-                  styles.secondaryButton,
-                  highContrast && styles.secondaryButtonHC,
-                  pressed && (highContrast ? styles.secondaryButtonPressedHC : styles.secondaryButtonPressed),
-                ]}
-                onPress={() => {
-                  void hapticFeedback.light();
-                  handleFinish();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isPractice ? 'Übung beenden und zurück zur Übersicht' : 'Training beenden und zurück'
-                }
-              >
-                <Text
-                  style={[
-                    styles.secondaryButtonText,
-                    largeText && styles.secondaryButtonTextLarge,
-                    highContrast && styles.secondaryButtonTextHC,
-                  ]}
-                >
-                  {isPractice ? 'Übung beenden' : 'Training beenden'}
-                </Text>
-              </Pressable>
-            </>
-          ) : (
-            <View style={styles.summaryContainer}>
+            ) : (
+          <View style={styles.summaryContainer}>
               <Text style={[styles.summaryText, styles.summaryTextSpacing]}>
                 {`Alle ${TARGET_SAMPLES} Beispiele wurden aufgenommen. Du kannst die Sitzung jetzt abschließen.`}
               </Text>

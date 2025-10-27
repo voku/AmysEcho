@@ -61,9 +61,9 @@ type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating
 
 const CAMERA_THEME = {
   gradient: [Colors.backgroundStart, Colors.backgroundEnd] as const,
-  panelBackground: 'rgba(7, 33, 36, 0.78)',
-  cameraHintBubbleBackground: 'rgba(6, 30, 33, 0.82)',
-  handPreviewBackground: 'rgba(7, 33, 36, 0.78)',
+  panelBackground: 'rgba(7, 33, 36, 0.28)',
+  cameraHintBubbleBackground: 'rgba(6, 30, 33, 0.24)',
+  handPreviewBackground: 'rgba(7, 33, 36, 0.32)',
   statusBackground: {
     idle: Colors.statusListeningBackground,
     listening: Colors.statusListeningBackground,
@@ -78,11 +78,11 @@ const CAMERA_THEME = {
     updating: Colors.statusLearningText,
     error: Colors.statusErrorText,
   } satisfies Record<RecognitionStatusCategory, string>,
-  capturePulseOpacity: 0.55,
+  capturePulseOpacity: 0.4,
   cameraHint: Colors.cameraGuideText,
   cameraHintMuted: Colors.cameraGuideTextMuted,
-  predictionCardBackground: 'rgba(255, 255, 255, 0.96)',
-  predictionCardBorder: Colors.overlayBadgeBorder,
+  predictionCardBackground: 'rgba(255, 255, 255, 0.82)',
+  predictionCardBorder: 'rgba(255, 255, 255, 0.42)',
   predictionCardText: Colors.neutral,
   actionButtons: {
     confirm: {
@@ -140,6 +140,8 @@ const STATUS_COPY: Record<
 const ACTION_BUTTON_MIN_HEIGHT = 56;
 const COMPACT_SECONDARY_ACTIONS_BREAKPOINT = 360; // px width threshold for stacking secondary actions
 const COMPACT_HEIGHT_BREAKPOINT = 720; // px height threshold for switching to scrollable layout
+const WIDE_LAYOUT_BREAKPOINT = 900; // px width threshold for switching to split layout
+const HANDSET_LAYOUT_BREAKPOINT = 640; // px width threshold for compact handset layout tweaks
 const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
 const COMPACT_ACTIONS_SLOT_MIN_HEIGHT =
   ACTION_BUTTON_MIN_HEIGHT * 3 + spacing.sm * 2;
@@ -213,19 +215,25 @@ export default function RecognitionScreen({
       ? dimensions.height
       : fallbackHeight;
 
+  const isWideLayout = windowWidth >= WIDE_LAYOUT_BREAKPOINT;
   const isCompactSecondaryActions = windowWidth <= COMPACT_SECONDARY_ACTIONS_BREAKPOINT;
   const isCompactHeight = windowHeight <= COMPACT_HEIGHT_BREAKPOINT;
+  const isHandsetLayout = !isWideLayout && windowWidth < HANDSET_LAYOUT_BREAKPOINT;
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
   const insets = useSafeAreaInsets();
 
   const overlaySpacingStyle = useMemo(
     () => ({
-      paddingTop: insets.top + spacing['2xl'],
-      paddingBottom: insets.bottom + spacing['2xl'],
-      paddingHorizontal: windowWidth <= 420 ? spacing.xl : spacing['2xl'],
+      paddingTop: insets.top + (isHandsetLayout ? spacing.md : spacing['2xl']),
+      paddingBottom: insets.bottom + (isHandsetLayout ? spacing.md : spacing['2xl']),
+      paddingHorizontal: isWideLayout
+        ? spacing['2xl'] + spacing.lg
+        : windowWidth <= 420 || isHandsetLayout
+          ? spacing.md
+          : spacing['2xl'],
     }),
-    [insets.bottom, insets.top, windowWidth],
+    [insets.bottom, insets.top, isHandsetLayout, isWideLayout, windowWidth],
   );
 
   const handPreviewPositionStyle = useMemo(
@@ -237,8 +245,8 @@ export default function RecognitionScreen({
   );
 
   const constrainedContentStyle = useMemo(
-    () => (windowWidth >= 720 ? styles.wideContent : undefined),
-    [windowWidth],
+    () => (!isWideLayout && windowWidth >= 720 ? styles.wideContent : undefined),
+    [isWideLayout, windowWidth],
   );
 
   const state = useRecognitionState();
@@ -572,6 +580,11 @@ export default function RecognitionScreen({
     hasActiveGesture ? 'auto' : 'none',
   );
   const actionsAccessibilityHidden = actionsPointerEvents === 'none';
+  const [isHandsetPanelExpanded, setIsHandsetPanelExpanded] = useState(!isHandsetLayout);
+
+  useEffect(() => {
+    setIsHandsetPanelExpanded(!isHandsetLayout);
+  }, [isHandsetLayout]);
 
   useEffect(() => {
     if (fadeAnimationRef.current) {
@@ -714,164 +727,295 @@ export default function RecognitionScreen({
     });
   }, [navigation]);
 
-  const overlayBody = (
-    <>
-      <View style={[styles.overlayPanel, constrainedContentStyle]}>
-        <View style={styles.topSection}>
-          <View
+  const topPanel = (
+    <View
+      style={[
+        styles.overlayPanel,
+        constrainedContentStyle,
+        isWideLayout && styles.overlayPanelWide,
+        isHandsetLayout && styles.handsetPanel,
+      ]}
+    >
+      <View style={styles.topSection}>
+        <View
+          style={[
+            styles.statusCard,
+            {
+              backgroundColor: statusCardBackground,
+              borderColor: statusCardBorder,
+            },
+            isHandsetLayout && styles.handsetStatusCard,
+          ]}
+          accessibilityRole="text"
+        >
+          <Text
             style={[
-              styles.statusCard,
-              {
-                backgroundColor: statusCardBackground,
-                borderColor: statusCardBorder,
-              },
+              styles.statusLabel,
+              { color: statusCardText },
+              isHandsetLayout && styles.handsetStatusLabel,
             ]}
-            accessibilityRole="text"
           >
-            <Text style={[styles.statusLabel, { color: statusCardText }]}>{statusLabel}</Text>
-            {statusDetail ? (
-              <Text style={[styles.statusDetail, { color: statusCardText }]}>{statusDetail}</Text>
-            ) : null}
-            {encouragement ? (
-              <Text style={[styles.statusEncouragement, { color: statusCardText }]}>{encouragement}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.cameraToggleRow}>
-            <Text style={styles.cameraToggleLabel}>
-              {getCameraStatusText(facingMode)}
-            </Text>
-            <Pressable
-              onPress={toggleFacingMode}
-              accessibilityRole="button"
-              accessibilityLabel={CAMERA_TOGGLE_COPY.accessibilityLabel}
-              accessibilityHint={CAMERA_TOGGLE_COPY.accessibilityHint}
-              accessibilityValue={{ text: getCameraFacingText(facingMode) }}
-              style={({ pressed }) => [
-                childFriendlyStyles.minTouchTarget,
-                styles.cameraToggleButton,
-                pressed && styles.cameraToggleButtonPressed,
+            {statusLabel}
+          </Text>
+          {statusDetail ? (
+            <Text
+              style={[
+                styles.statusDetail,
+                { color: statusCardText },
+                isHandsetLayout && styles.handsetStatusDetail,
               ]}
             >
-              <Text style={styles.cameraToggleText}>
-                {getCameraToggleActionText(facingMode)}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.cameraZone, constrainedContentStyle]}>
-        <CameraFrame
-          capturePulseAnim={capturePulseAnim}
-          pulseOpacity={CAMERA_THEME.capturePulseOpacity}
-        />
-        <View style={styles.cameraHintBubble}>
-          <Text style={styles.cameraHint}>Hand ruhig im Rahmen halten.</Text>
-        </View>
-      </View>
-
-      <View style={[styles.overlayPanel, styles.overlayPanelBottom, constrainedContentStyle]}>
-        <View style={styles.bottomSection}>
-          {gestureMeaningDisplayProps ? (
-            <Animated.View style={[styles.predictionCard, { opacity: fadeAnim }]}>
-              <GestureMeaningDisplay
-                gestureId={gestureMeaningDisplayProps.gestureId}
-                confidence={gestureMeaningDisplayProps.confidence}
-                showDetails
-                detailsStartCollapsed
-                size="large"
-                gestureDefinition={gestureMeaningDisplayProps.gestureDefinition}
-                gestureMeta={lastRecognizedGesture}
-                openaiValidationResult={openaiValidationResult}
-                sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
-                tone="camera"
-              />
-            </Animated.View>
-          ) : (
-            <View
-              style={styles.predictionPlaceholder}
-              accessible
-              accessibilityRole="text"
+              {statusDetail}
+            </Text>
+          ) : null}
+          {encouragement ? (
+            <Text
+              style={[
+                styles.statusEncouragement,
+                { color: statusCardText },
+                isHandsetLayout && styles.handsetStatusEncouragement,
+              ]}
             >
-              <Text accessibilityRole="header" style={styles.predictionPlaceholderTitle}>
-                Zeig Amy deine Geste
-              </Text>
-              <Text style={styles.predictionPlaceholderSubtitle}>
-                Sobald Amy dich entdeckt, erscheint hier deine Stimme.
-              </Text>
-            </View>
-          )}
+              {encouragement}
+            </Text>
+          ) : null}
+        </View>
 
-          <View
-            style={[
-              styles.actionsSlot,
-              isCompactSecondaryActions && styles.actionsSlotCompact,
+        <View style={[styles.cameraToggleRow, isHandsetLayout && styles.handsetCameraToggleRow]}>
+          <Text style={[styles.cameraToggleLabel, isHandsetLayout && styles.handsetCameraToggleLabel]}>
+            {getCameraStatusText(facingMode)}
+          </Text>
+          <Pressable
+            onPress={toggleFacingMode}
+            accessibilityRole="button"
+            accessibilityLabel={CAMERA_TOGGLE_COPY.accessibilityLabel}
+            accessibilityHint={CAMERA_TOGGLE_COPY.accessibilityHint}
+            accessibilityValue={{ text: getCameraFacingText(facingMode) }}
+            style={({ pressed }) => [
+              childFriendlyStyles.minTouchTarget,
+              styles.cameraToggleButton,
+              pressed && styles.cameraToggleButtonPressed,
+              isHandsetLayout && styles.handsetCameraToggleButton,
             ]}
           >
-            <Animated.View
-              testID="recognition-actions"
-              pointerEvents={actionsPointerEvents}
-              accessibilityElementsHidden={actionsAccessibilityHidden}
-              importantForAccessibility={
-                actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
-              }
-              style={[styles.actionsContainer, { opacity: actionsFadeAnim }]}
-            >
-              <View style={styles.primaryActionWrapper}>
-                <ActionButton
-                  label="Stimmt"
-                  accessibilityLabel="Gestenerkennung bestätigen"
-                  onPress={handleConfirmGesture}
-                  backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
-                  pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
-                  textColor={CAMERA_THEME.actionButtons.confirm.text}
-                  style={styles.primaryActionButton}
-                />
-              </View>
-              <View
-                style={[
-                  styles.secondaryActionsBase,
-                  isCompactSecondaryActions
-                    ? styles.secondaryActionsColumn
-                    : styles.secondaryActionsRow,
-                ]}
-              >
-                <ActionButton
-                  label="Lernen"
-                  accessibilityLabel="Lernmodus öffnen"
-                  onPress={handleLearnPress}
-                  backgroundColor={CAMERA_THEME.actionButtons.learn.background}
-                  pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
-                  textColor={CAMERA_THEME.actionButtons.learn.text}
-                  style={[
-                    styles.secondaryActionButton,
-                    isCompactSecondaryActions
-                      ? styles.secondaryActionButtonColumn
-                      : styles.secondaryActionButtonRow,
-                    isCompactSecondaryActions && styles.secondaryActionCompact,
-                  ]}
-                />
-                <ActionButton
-                  label="Alternativen"
-                  accessibilityLabel="Alternativen anzeigen"
-                  onPress={handleAlternativesPress}
-                  backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
-                  pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
-                  textColor={CAMERA_THEME.actionButtons.alternatives.text}
-                  style={[
-                    styles.secondaryActionButton,
-                    isCompactSecondaryActions
-                      ? styles.secondaryActionButtonColumn
-                      : styles.secondaryActionButtonRow,
-                    isCompactSecondaryActions && styles.secondaryActionCompact,
-                  ]}
-                />
-              </View>
-            </Animated.View>
-          </View>
+            <Text style={[styles.cameraToggleText, isHandsetLayout && styles.handsetCameraToggleText]}>
+              {getCameraToggleActionText(facingMode)}
+            </Text>
+          </Pressable>
         </View>
       </View>
+    </View>
+  );
+
+  const cameraSection = (
+    <View
+      style={[
+        styles.cameraZone,
+        constrainedContentStyle,
+        isWideLayout && styles.cameraZoneWide,
+        isHandsetLayout && styles.handsetCameraZone,
+      ]}
+    >
+      <CameraFrame
+        capturePulseAnim={capturePulseAnim}
+        pulseOpacity={CAMERA_THEME.capturePulseOpacity}
+      />
+      <View
+        style={[
+          styles.cameraHintBubble,
+          isWideLayout && styles.cameraHintBubbleWide,
+          isHandsetLayout && styles.handsetCameraHintBubble,
+        ]}
+      >
+        <Text style={[styles.cameraHint, isHandsetLayout && styles.handsetCameraHint]}>
+          Hand ruhig im Rahmen halten.
+        </Text>
+      </View>
+    </View>
+  );
+
+  const bottomPanelContent = (
+    <View style={[styles.bottomSection, isHandsetLayout && styles.handsetBottomSection]}>
+      {gestureMeaningDisplayProps ? (
+        <Animated.View
+          style={[
+            styles.predictionCard,
+            { opacity: fadeAnim },
+            isHandsetLayout && styles.handsetPredictionCard,
+          ]}
+        >
+          <GestureMeaningDisplay
+            gestureId={gestureMeaningDisplayProps.gestureId}
+            confidence={gestureMeaningDisplayProps.confidence}
+            showDetails
+            detailsStartCollapsed
+            size="large"
+            gestureDefinition={gestureMeaningDisplayProps.gestureDefinition}
+            gestureMeta={lastRecognizedGesture}
+            openaiValidationResult={openaiValidationResult}
+            sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
+            tone="camera"
+          />
+        </Animated.View>
+      ) : (
+        <View
+          style={[
+            styles.predictionPlaceholder,
+            isHandsetLayout && styles.handsetPredictionPlaceholder,
+          ]}
+          accessible
+          accessibilityRole="text"
+        >
+          <Text
+            accessibilityRole="header"
+            style={[
+              styles.predictionPlaceholderTitle,
+              isHandsetLayout && styles.handsetPredictionTitle,
+            ]}
+          >
+            Zeig Amy deine Geste
+          </Text>
+          <Text
+            style={[
+              styles.predictionPlaceholderSubtitle,
+              isHandsetLayout && styles.handsetPredictionSubtitle,
+            ]}
+          >
+            Sobald Amy dich entdeckt, erscheint hier deine Stimme.
+          </Text>
+        </View>
+      )}
+
+      <View
+        style={[
+          styles.actionsSlot,
+          isCompactSecondaryActions && styles.actionsSlotCompact,
+          isHandsetLayout && styles.handsetActionsSlot,
+        ]}
+      >
+        <Animated.View
+          testID="recognition-actions"
+          pointerEvents={actionsPointerEvents}
+          accessibilityElementsHidden={actionsAccessibilityHidden}
+          importantForAccessibility={
+            actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
+          }
+          style={[
+            styles.actionsContainer,
+            { opacity: actionsFadeAnim },
+            isHandsetLayout && styles.handsetActionsContainer,
+          ]}
+        >
+          <View style={styles.primaryActionWrapper}>
+            <ActionButton
+              label="Stimmt"
+              accessibilityLabel="Gestenerkennung bestätigen"
+              onPress={handleConfirmGesture}
+              backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
+              pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
+              textColor={CAMERA_THEME.actionButtons.confirm.text}
+              style={styles.primaryActionButton}
+            />
+          </View>
+          <View
+            style={[
+              styles.secondaryActionsBase,
+              isCompactSecondaryActions
+                ? styles.secondaryActionsColumn
+                : styles.secondaryActionsRow,
+              isHandsetLayout && styles.handsetSecondaryActions,
+            ]}
+          >
+            <ActionButton
+              label="Lernen"
+              accessibilityLabel="Lernmodus öffnen"
+              onPress={handleLearnPress}
+              backgroundColor={CAMERA_THEME.actionButtons.learn.background}
+              pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
+              textColor={CAMERA_THEME.actionButtons.learn.text}
+              style={[
+                styles.secondaryActionButton,
+                isCompactSecondaryActions
+                  ? styles.secondaryActionButtonColumn
+                  : styles.secondaryActionButtonRow,
+                isCompactSecondaryActions && styles.secondaryActionCompact,
+              ]}
+            />
+            <ActionButton
+              label="Alternativen"
+              accessibilityLabel="Alternativen anzeigen"
+              onPress={handleAlternativesPress}
+              backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
+              pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
+              textColor={CAMERA_THEME.actionButtons.alternatives.text}
+              style={[
+                styles.secondaryActionButton,
+                isCompactSecondaryActions
+                  ? styles.secondaryActionButtonColumn
+                  : styles.secondaryActionButtonRow,
+                isCompactSecondaryActions && styles.secondaryActionCompact,
+              ]}
+            />
+          </View>
+        </Animated.View>
+      </View>
+    </View>
+  );
+
+  const bottomPanel = (
+    <View
+      style={[
+        styles.overlayPanel,
+        styles.overlayPanelBottom,
+        constrainedContentStyle,
+        isWideLayout && styles.overlayPanelWide,
+        isHandsetLayout && styles.handsetPanel,
+      ]}
+    >
+      {isHandsetLayout ? (
+        <>
+          <Pressable
+            onPress={() => setIsHandsetPanelExpanded((prev) => !prev)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isHandsetPanelExpanded }}
+            style={({ pressed }) => [
+              styles.handsetBottomToggle,
+              pressed && styles.handsetBottomTogglePressed,
+            ]}
+          >
+            <View style={styles.handsetBottomToggleRow}>
+              <Text style={styles.handsetBottomTitle}>Aktionen &amp; Stimme</Text>
+              <Text style={styles.handsetBottomChevron}>
+                {isHandsetPanelExpanded ? '▾' : '▸'}
+              </Text>
+            </View>
+            <Text style={styles.handsetBottomSubtitle}>
+              {isHandsetPanelExpanded ? 'Tippe, um zu schließen' : 'Tippe, um zu öffnen'}
+            </Text>
+          </Pressable>
+          {isHandsetPanelExpanded ? (
+            <View style={styles.handsetBottomContent}>{bottomPanelContent}</View>
+          ) : null}
+        </>
+      ) : (
+        bottomPanelContent
+      )}
+    </View>
+  );
+
+  const overlayBody = isWideLayout ? (
+    <View style={styles.wideLayout}>
+      <View style={styles.wideCameraColumn}>{cameraSection}</View>
+      <View style={styles.wideSidebar}>
+        {topPanel}
+        {bottomPanel}
+      </View>
+    </View>
+  ) : (
+    <>
+      {cameraSection}
+      {topPanel}
+      {bottomPanel}
     </>
   );
 
@@ -949,6 +1093,24 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'stretch',
   },
+  wideLayout: {
+    flex: 1,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing['2xl'],
+  },
+  wideCameraColumn: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
+  wideSidebar: {
+    flexShrink: 0,
+    width: 360,
+    maxWidth: 400,
+    gap: spacing['2xl'],
+  },
   overlayScrollContainer: {
     flex: 1,
   },
@@ -970,6 +1132,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 9,
     marginBottom: spacing.xl,
+  },
+  handsetPanel: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: 20,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    backgroundColor: 'rgba(7, 33, 36, 0.18)',
+  },
+  overlayPanelWide: {
+    marginBottom: 0,
   },
   overlayPanelBottom: {
     marginBottom: 0,
@@ -993,12 +1166,22 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 1,
   },
+  handsetStatusCard: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    gap: spacing.xs,
+    borderRadius: 20,
+  },
   statusLabel: {
     fontSize: typography.sizes.titleSm,
     fontWeight: typography.weights.semibold as any,
     letterSpacing: 0.5,
     textAlign: 'center',
     ...OVERLAY_TEXT_SHADOW,
+  },
+  handsetStatusLabel: {
+    fontSize: typography.sizes.body,
+    letterSpacing: 0.2,
   },
   statusDetail: {
     fontSize: typography.sizes.body,
@@ -1007,6 +1190,10 @@ const styles = StyleSheet.create({
     opacity: 0.94,
     ...OVERLAY_TEXT_SHADOW,
   },
+  handsetStatusDetail: {
+    fontSize: typography.sizes.body,
+    lineHeight: typography.lineHeights.default,
+  },
   statusEncouragement: {
     fontSize: typography.sizes.caption,
     fontWeight: typography.weights.medium as any,
@@ -1014,6 +1201,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.88,
     ...OVERLAY_TEXT_SHADOW,
+  },
+  handsetStatusEncouragement: {
+    letterSpacing: 0.2,
+    fontSize: typography.sizes.caption,
   },
   cameraToggleRow: {
     width: '100%',
@@ -1027,17 +1218,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.overlayBadgeBorder,
   },
+  handsetCameraToggleRow: {
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
   cameraToggleLabel: {
     flex: 1,
     marginRight: spacing.md,
     fontSize: typography.sizes.body,
     color: Colors.overlayText,
   },
+  handsetCameraToggleLabel: {
+    flexBasis: '100%',
+    marginRight: 0,
+  },
   cameraToggleButton: {
     borderRadius: 16,
     backgroundColor: Colors.actionSecondaryBackgroundMuted,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
+  },
+  handsetCameraToggleButton: {
+    paddingHorizontal: spacing.md,
   },
   cameraToggleButtonPressed: {
     backgroundColor: Colors.actionSecondaryPressed,
@@ -1047,6 +1251,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold as any,
     color: Colors.overlayText,
   },
+  handsetCameraToggleText: {
+    fontSize: typography.sizes.body,
+    letterSpacing: 0.2,
+  },
   cameraZone: {
     flex: 1,
     width: '100%',
@@ -1055,6 +1263,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xl,
+    minHeight: 300,
+  },
+  cameraZoneWide: {
+    marginBottom: 0,
+    paddingHorizontal: spacing['2xl'],
+  },
+  handsetCameraZone: {
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    flex: 2,
+    minHeight: 320,
   },
   cameraHintBubble: {
     marginTop: spacing.xl,
@@ -1065,16 +1285,34 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.overlayBadgeBorder,
   },
+  cameraHintBubbleWide: {
+    marginTop: spacing['2xl'],
+  },
+  handsetCameraHintBubble: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 20,
+    backgroundColor: 'rgba(6, 30, 33, 0.15)',
+  },
   cameraHint: {
     fontSize: typography.sizes.bodyLg,
     fontWeight: typography.weights.semibold as any,
     color: CAMERA_THEME.cameraHint,
     textAlign: 'center',
   },
+  handsetCameraHint: {
+    fontSize: typography.sizes.body,
+  },
   bottomSection: {
     width: '100%',
     gap: spacing.lg,
     flexShrink: 0,
+  },
+  handsetBottomSection: {
+    gap: spacing.xs,
+    flexShrink: 1,
+    maxHeight: '30%',
   },
   actionsSlot: {
     minHeight: ACTIONS_SLOT_MIN_HEIGHT,
@@ -1083,6 +1321,10 @@ const styles = StyleSheet.create({
   },
   actionsSlotCompact: {
     minHeight: COMPACT_ACTIONS_SLOT_MIN_HEIGHT,
+  },
+  handsetActionsSlot: {
+    minHeight: 0,
+    paddingBottom: spacing.xs,
   },
   predictionCard: {
     backgroundColor: CAMERA_THEME.predictionCardBackground,
@@ -1097,15 +1339,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
+  handsetPredictionCard: {
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.xl,
+  },
   predictionPlaceholder: {
-    backgroundColor: Colors.detectionTextBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
     borderRadius: 24,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing['2xl'],
     borderWidth: 1,
-    borderColor: Colors.panelBorder,
+    borderColor: 'rgba(255, 255, 255, 0.42)',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  handsetPredictionPlaceholder: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.xs,
   },
   predictionPlaceholderTitle: {
     fontSize: typography.sizes.titleSm,
@@ -1114,16 +1365,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     ...OVERLAY_TEXT_SHADOW,
   },
+  handsetPredictionTitle: {
+    fontSize: typography.sizes.label,
+  },
   predictionPlaceholderSubtitle: {
     fontSize: typography.sizes.body,
     color: CAMERA_THEME.cameraHintMuted,
     textAlign: 'center',
     ...OVERLAY_TEXT_SHADOW,
   },
+  handsetPredictionSubtitle: {
+    fontSize: typography.sizes.body,
+    lineHeight: typography.lineHeights.default,
+  },
   actionsContainer: {
     gap: spacing.sm,
     width: '100%',
     alignItems: 'stretch',
+  },
+  handsetActionsContainer: {
+    gap: spacing.md,
   },
   primaryActionWrapper: {
     width: '100%',
@@ -1142,6 +1403,9 @@ const styles = StyleSheet.create({
   secondaryActionsColumn: {
     flexDirection: 'column',
   },
+  handsetSecondaryActions: {
+    gap: spacing.sm,
+  },
   secondaryActionButton: {},
   secondaryActionButtonRow: {
     flex: 1,
@@ -1151,6 +1415,41 @@ const styles = StyleSheet.create({
   },
   secondaryActionCompact: {
     paddingHorizontal: spacing.xl,
+  },
+  handsetBottomToggle: {
+    borderRadius: 20,
+    backgroundColor: Colors.overlaySurface,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.overlayBadgeBorder,
+    gap: spacing.xs,
+  },
+  handsetBottomTogglePressed: {
+    backgroundColor: Colors.overlaySurfaceMuted,
+  },
+  handsetBottomToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  handsetBottomTitle: {
+    fontSize: typography.sizes.bodyLg,
+    fontWeight: typography.weights.semibold as any,
+    color: Colors.overlayText,
+  },
+  handsetBottomChevron: {
+    fontSize: typography.sizes.subtitle,
+    color: Colors.overlayText,
+  },
+  handsetBottomSubtitle: {
+    fontSize: typography.sizes.caption,
+    color: Colors.overlayText,
+    opacity: 0.8,
+  },
+  handsetBottomContent: {
+    paddingTop: spacing.md,
+    gap: spacing.md,
   },
   wideContent: {
     alignSelf: 'center',
