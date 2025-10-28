@@ -19,8 +19,10 @@ jest.mock('../../src/context/ThemeContext', () => {
   };
 });
 
+const mockShowToast = jest.fn();
 jest.mock('../../src/context/MessageContext', () => ({
-  useMessage: () => ({ showToast: jest.fn() }),
+  useMessage: () => ({ showToast: mockShowToast }),
+  showToastMock: mockShowToast,
 }));
 
 jest.mock('@react-navigation/native', () => ({ useIsFocused: () => true }));
@@ -90,29 +92,58 @@ jest.mock('react-native-svg', () => {
 
 jest.mock('../../src/components/MediaPipeGestureDetector', () => {
   const React = require('react');
+  const startClipCaptureMock = jest.fn(async () => 'clip-id');
+  const stopClipCaptureMock = jest.fn(async () => ({
+    id: 'clip-id',
+    base64: 'dGVzdA==',
+    mimeType: 'video/mp4',
+    durationMs: 500,
+    frameCount: 10,
+    capturedAt: new Date().toISOString(),
+  }));
+  const cancelClipCaptureMock = jest.fn();
+
+  const MediaPipeGestureDetector = React.forwardRef((props: any, ref: any) => {
+    React.useImperativeHandle(ref, () => ({
+      startClipCapture: startClipCaptureMock,
+      stopClipCapture: stopClipCaptureMock,
+      cancelClipCapture: cancelClipCaptureMock,
+    }));
+    return React.createElement('MediaPipeGestureDetector', props, props.children);
+  });
+
+  (MediaPipeGestureDetector as any).startClipCaptureMock = startClipCaptureMock;
+  (MediaPipeGestureDetector as any).stopClipCaptureMock = stopClipCaptureMock;
+  (MediaPipeGestureDetector as any).cancelClipCaptureMock = cancelClipCaptureMock;
+
   return {
-    MediaPipeGestureDetector: React.forwardRef((props: any, ref: any) => {
-      React.useImperativeHandle(ref, () => ({
-        startClipCapture: jest.fn(async () => 'clip-id'),
-        stopClipCapture: jest.fn(async () => ({
-          id: 'clip-id',
-          base64: 'dGVzdA==',
-          mimeType: 'video/mp4',
-          durationMs: 500,
-          frameCount: 10,
-          capturedAt: new Date().toISOString(),
-        })),
-        cancelClipCapture: jest.fn(),
-      }));
-      return React.createElement('MediaPipeGestureDetector', props, props.children);
-    }),
+    MediaPipeGestureDetector,
   };
 });
 
 import TrainingScreen from '../../src/screens/TrainingScreen';
 
+const { MediaPipeGestureDetector } = require('../../src/components/MediaPipeGestureDetector');
+const startClipCaptureMock = (MediaPipeGestureDetector as any).startClipCaptureMock as jest.Mock;
+const stopClipCaptureMock = (MediaPipeGestureDetector as any).stopClipCaptureMock as jest.Mock;
+const cancelClipCaptureMock = (MediaPipeGestureDetector as any).cancelClipCaptureMock as jest.Mock;
+
 describe('TrainingScreen', () => {
   let component: renderer.ReactTestRenderer | null = null;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    startClipCaptureMock.mockResolvedValue('clip-id');
+    stopClipCaptureMock.mockResolvedValue({
+      id: 'clip-id',
+      base64: 'dGVzdA==',
+      mimeType: 'video/mp4',
+      durationMs: 500,
+      frameCount: 10,
+      capturedAt: new Date().toISOString(),
+    });
+    cancelClipCaptureMock.mockImplementation(() => {});
+  });
 
   afterEach(() => {
     if (component) {
@@ -210,6 +241,160 @@ describe('TrainingScreen', () => {
 
     const fs = require('expo-file-system');
     expect(fs.writeAsStringAsync).toHaveBeenCalled();
+  });
+
+  it('deaktiviert die Aufnahme, wenn MediaRecorder nicht verfügbar ist', async () => {
+    const { loadProfile } = require('../../src/storage');
+    (loadProfile as jest.Mock).mockResolvedValue(null);
+
+    await act(async () => {
+      component = renderer.create(
+        (
+          <TrainingScreen
+            navigation={{ goBack: jest.fn() }}
+            route={{ params: { gestureLabel: 'hello' } }}
+          />
+        ) as any,
+      );
+      await Promise.resolve();
+    });
+
+    const findRecordPressable = () =>
+      component!.root.findAll(
+        (node) =>
+          node.type === 'Pressable' &&
+          typeof node.props.accessibilityLabel === 'string' &&
+          (node.props.accessibilityLabel.includes('Beispiel') ||
+            node.props.accessibilityLabel === 'Geste auswählen' ||
+            node.props.accessibilityLabel === 'Kamera starten' ||
+            node.props.accessibilityLabel === 'Aufnahme stoppen' ||
+            node.props.accessibilityLabel === 'Videoaufnahmen nicht möglich'),
+      )[0];
+
+    const detector = component!.root.findByType('MediaPipeGestureDetector');
+    act(() => {
+      detector.props.onCameraStateChange?.('camera_started');
+    });
+
+    let recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(false);
+
+    act(() => {
+      detector.props.onError?.('clip_error', { reason: 'media_recorder_unavailable' });
+    });
+
+    recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(true);
+    expect(recordPressable.props.accessibilityLabel).toBe('Videoaufnahmen nicht möglich');
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('Dieses Gerät unterstützt keine Videoaufnahmen'),
+        tone: 'warning',
+      }),
+    );
+  });
+
+  it('deaktiviert die Aufnahme, wenn MediaRecorder keine passenden Codecs unterstützt', async () => {
+    const { loadProfile } = require('../../src/storage');
+    (loadProfile as jest.Mock).mockResolvedValue(null);
+
+    await act(async () => {
+      component = renderer.create(
+        (
+          <TrainingScreen
+            navigation={{ goBack: jest.fn() }}
+            route={{ params: { gestureLabel: 'hello' } }}
+          />
+        ) as any,
+      );
+      await Promise.resolve();
+    });
+
+    const findRecordPressable = () =>
+      component!.root.findAll(
+        (node) =>
+          node.type === 'Pressable' &&
+          typeof node.props.accessibilityLabel === 'string' &&
+          (node.props.accessibilityLabel.includes('Beispiel') ||
+            node.props.accessibilityLabel === 'Geste auswählen' ||
+            node.props.accessibilityLabel === 'Kamera starten' ||
+            node.props.accessibilityLabel === 'Aufnahme stoppen' ||
+            node.props.accessibilityLabel === 'Videoaufnahmen nicht möglich'),
+      )[0];
+
+    const detector = component!.root.findByType('MediaPipeGestureDetector');
+    act(() => {
+      detector.props.onCameraStateChange?.('camera_started');
+    });
+
+    let recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(false);
+
+    act(() => {
+      detector.props.onError?.('clip_error', { reason: 'media_recorder_not_supported' });
+    });
+
+    recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(true);
+    expect(recordPressable.props.accessibilityLabel).toBe('Videoaufnahmen nicht möglich');
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('Dieses Gerät unterstützt keine Videoaufnahmen'),
+        tone: 'warning',
+      }),
+    );
+  });
+
+  it('bleibt im Idle-Zustand, wenn Clip-Aufnahme nicht startet', async () => {
+    startClipCaptureMock.mockRejectedValueOnce(new Error('media_recorder_failed'));
+    const { loadProfile } = require('../../src/storage');
+    (loadProfile as jest.Mock).mockResolvedValue(null);
+
+    await act(async () => {
+      component = renderer.create(
+        (
+          <TrainingScreen
+            navigation={{ goBack: jest.fn() }}
+            route={{ params: { gestureLabel: 'hello' } }}
+          />
+        ) as any,
+      );
+      await Promise.resolve();
+    });
+
+    const findRecordPressable = () =>
+      component!.root.findAll(
+        (node) =>
+          node.type === 'Pressable' &&
+          typeof node.props.accessibilityLabel === 'string' &&
+          (node.props.accessibilityLabel.includes('Beispiel') ||
+            node.props.accessibilityLabel === 'Geste auswählen' ||
+            node.props.accessibilityLabel === 'Kamera starten' ||
+            node.props.accessibilityLabel === 'Aufnahme stoppen' ||
+            node.props.accessibilityLabel === 'Videoaufnahmen nicht möglich'),
+      )[0];
+
+    const detector = component!.root.findByType('MediaPipeGestureDetector');
+    act(() => {
+      detector.props.onCameraStateChange?.('camera_started');
+    });
+
+    let recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(false);
+
+    await act(async () => {
+      recordPressable.props.onPress();
+      await Promise.resolve();
+    });
+
+    recordPressable = findRecordPressable();
+    expect(recordPressable.props.accessibilityLabel).toBe('Beispiel 1 / 5 aufnehmen');
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('Videoclip konnte nicht gespeichert werden'),
+        tone: 'error',
+      }),
+    );
   });
 
   it('zeigt Trainingstipps und gut sichtbare Gestenkarten, wenn noch nichts ausgewählt ist', async () => {

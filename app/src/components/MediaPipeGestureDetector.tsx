@@ -86,6 +86,10 @@ export type CameraStateEvent =
   | 'dom_ready'
   | 'cleanup_done';
 
+export interface MediaPipeErrorDetails {
+  reason?: string | null;
+}
+
 interface Props {
   onGestureDetected: (
     gesture: string | null,
@@ -98,7 +102,7 @@ interface Props {
     landmarks: number[][][],
     handedness: string[],
   ) => void;
-  onError: (error: string) => void;
+  onError: (error: string, details?: MediaPipeErrorDetails) => void;
   onWebViewEvent?: (telemetry: any) => void;
   onModelUpdateStatus?: (status: 'idle' | 'updating' | 'complete' | 'error') => void;
   facingMode?: 'user' | 'environment';
@@ -258,7 +262,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       state.timeout = setTimeout(() => {
         const timeoutError = new Error('clip_capture_timeout');
         state.reject?.(timeoutError);
-        onError(CLIP_RECORDING_ERROR_TEXT);
+        onError(CLIP_RECORDING_ERROR_TEXT, { reason: 'clip_capture_timeout' });
         resetClipState();
       }, 20000);
 
@@ -700,14 +704,19 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           resetClipState();
         } else if (data.type === 'clip_error') {
           const errorId = typeof data.id === 'string' ? data.id : null;
+          const reason = typeof data.reason === 'string' ? data.reason : 'clip_error';
           if (errorId && errorId === clipStateRef.current.id) {
             clearClipTimeout();
-            const reason = typeof data.reason === 'string' ? data.reason : 'clip_error';
             clipStateRef.current.reject?.(new Error(reason));
             resetClipState();
           }
-          setWebviewError(CLIP_RECORDING_ERROR_TEXT);
-          onError('clip_error');
+          if (reason === 'media_recorder_unavailable' || reason === 'media_recorder_not_supported') {
+            setWebviewError('Dieses Gerät unterstützt keine Videoaufnahmen.');
+          } else {
+            setWebviewError(CLIP_RECORDING_ERROR_TEXT);
+          }
+          const details: MediaPipeErrorDetails = { reason };
+          onError('clip_error', details);
         } else if (data.type === 'telemetry') {
           onWebViewEvent?.(data);
           const eventName = data.event;
