@@ -264,7 +264,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
         state.reject?.(timeoutError);
         onError(CLIP_RECORDING_ERROR_TEXT, { reason: 'clip_capture_timeout' });
         resetClipState();
-      }, 20000);
+      }, 15000);
 
       try {
         webviewRef.current!.injectJavaScript(
