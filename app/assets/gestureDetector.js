@@ -4874,13 +4874,13 @@
         return false;
       }
       const name = error.name;
-      if (name === "NotSupportedError" || name === "TypeError") {
+      if (name === "NotSupportedError") {
         return true;
       }
       const message = error.message;
       if (typeof message === "string") {
         const normalized = message.toLowerCase();
-        if (normalized.includes("not supported") || normalized.includes("mime")) {
+        if (normalized.includes("not supported") || normalized.includes("mime") || normalized.includes("codec")) {
           return true;
         }
       }
