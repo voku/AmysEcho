@@ -449,6 +449,15 @@ window.__stopClipCapture = (id: string) => {
 window.__cancelClipCapture = (id?: string) => {
   try {
     if (!orchestrator) {
+      if (id) {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'clip_error',
+            id,
+            reason: 'orchestrator_unavailable',
+          })
+        );
+      }
       return;
     }
     orchestrator.cancelClipCapture();
