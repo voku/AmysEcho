@@ -121,6 +121,7 @@ const PREDICTION_ERROR_TEXT = "Das hat nicht geklappt. Lass es uns nochmal versu
 const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
 const GESTURE_PROCESSING_ERROR_TEXT = "Das hat nicht geklappt. Probier's einfach nochmal!";
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
+const CLIP_UNSUPPORTED_DEVICE_TEXT = 'Dieses Gerät unterstützt keine Videoaufnahmen.';
 const DEFAULT_GESTURE_SIZE_TOLERANCE = 0.3;
 
 const escapeJs = (value: string) =>
@@ -731,7 +732,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
             resetClipState();
           }
           if (reason === 'media_recorder_unavailable' || reason === 'media_recorder_not_supported') {
-            setWebviewError('Dieses Gerät unterstützt keine Videoaufnahmen.');
+            setWebviewError(CLIP_UNSUPPORTED_DEVICE_TEXT);
           } else {
             setWebviewError(CLIP_RECORDING_ERROR_TEXT);
           }

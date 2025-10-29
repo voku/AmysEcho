@@ -127,6 +127,7 @@ const { MediaPipeGestureDetector } = require('../../src/components/MediaPipeGest
 const startClipCaptureMock = (MediaPipeGestureDetector as any).startClipCaptureMock as jest.Mock;
 const stopClipCaptureMock = (MediaPipeGestureDetector as any).stopClipCaptureMock as jest.Mock;
 const cancelClipCaptureMock = (MediaPipeGestureDetector as any).cancelClipCaptureMock as jest.Mock;
+const { logHIPEvent } = require('../../src/services/hipEvents');
 
 describe('TrainingScreen', () => {
   let component: renderer.ReactTestRenderer | null = null;
@@ -329,6 +330,51 @@ describe('TrainingScreen', () => {
     recordPressable = findRecordPressable();
     expect(recordPressable.props.disabled).toBe(true);
     expect(recordPressable.props.accessibilityLabel).toBe('Videoaufnahmen nicht möglich');
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('Dieses Gerät unterstützt keine Videoaufnahmen'),
+        tone: 'warning',
+      }),
+    );
+  });
+
+  it('meldet fehlende Orchestrator-Unterstützung als nicht aufnahmefähig', async () => {
+    const { loadProfile } = require('../../src/storage');
+    (loadProfile as jest.Mock).mockResolvedValue(null);
+
+    await act(async () => {
+      component = renderer.create(
+        (
+          <TrainingScreen
+            navigation={{ goBack: jest.fn() }}
+            route={{ params: { gestureLabel: 'hello' } }}
+          />
+        ) as any,
+      );
+      await Promise.resolve();
+    });
+
+    const detector = component!.root.findByType('MediaPipeGestureDetector');
+    act(() => {
+      detector.props.onCameraStateChange?.('camera_started');
+    });
+
+    let recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(false);
+
+    act(() => {
+      detector.props.onError?.('clip_error', { reason: 'orchestrator_unavailable' });
+    });
+
+    recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(true);
+    expect(recordPressable.props.accessibilityLabel).toBe('Videoaufnahmen nicht möglich');
+    expect(cancelClipCaptureMock).toHaveBeenCalled();
+    expect(logHIPEvent).toHaveBeenCalledWith(
+      expect.any(String),
+      'clip_capture_unsupported',
+      expect.objectContaining({ reason: 'orchestrator_unavailable' }),
+    );
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
         message: expect.stringContaining('Dieses Gerät unterstützt keine Videoaufnahmen'),

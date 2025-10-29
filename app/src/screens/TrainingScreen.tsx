@@ -45,6 +45,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 const CLIP_UNSUPPORTED_TEXT =
   'Dieses Gerät unterstützt keine Videoaufnahmen für das Training. Bitte versuch es später erneut oder nutze ein anderes Gerät.';
+const UNSUPPORTED_CLIP_REASONS = new Set([
+  'media_recorder_unavailable',
+  'media_recorder_not_supported',
+  'orchestrator_unavailable',
+]);
 
 type ExpoFileSystemCompat = typeof FileSystem & {
   cacheDirectory?: string;
@@ -956,7 +961,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                       setIsRecording(false);
                       clipRequestIdRef.current = null;
 
-                      if (['media_recorder_unavailable', 'media_recorder_not_supported'].includes(reason)) {
+                      if (UNSUPPORTED_CLIP_REASONS.has(reason)) {
                         logger.warn('Clip capture unsupported on this device', { reason });
                         setClipSupported(false);
                         clipSupportReasonRef.current = reason;
