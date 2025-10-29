@@ -15,6 +15,8 @@ declare global {
     __startClipCapture?: (id: string) => void;
     __stopClipCapture?: (id: string) => void;
     __cancelClipCapture?: (id?: string) => void;
+    __requestCameraStart?: (metadata?: Record<string, unknown>) => void;
+    __cleanupGestureDetector?: () => void;
     __gestureOrchestrator?: GestureRecognitionOrchestrator | null;
     __getGestureSystemStatus?: () =>
       | {

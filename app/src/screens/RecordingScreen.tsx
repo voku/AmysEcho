@@ -701,8 +701,10 @@ export default function RecordingScreen({ navigation, route }: any) {
                       setLastDetection(Date.now());
                     }
                   }}
-                  onError={(m) => {
-                    logger.warn('TrainingScreen detector error:', m);
+                  onError={(m, details) => {
+                    logger.warn('TrainingScreen detector error:', m, {
+                      reason: details?.reason ?? null,
+                    });
                     showToast({
                       message: 'Die Erkennung wurde angehalten. Bitte versuch es erneut.',
                       tone: 'warning',
