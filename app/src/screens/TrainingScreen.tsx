@@ -457,44 +457,59 @@ export default function TrainingScreen({ navigation, route }: any) {
   const progressLabel = `${Math.min(count, TARGET_SAMPLES)}/${TARGET_SAMPLES} Beispiele`;
   const nextSampleNumber = Math.min(count + 1, TARGET_SAMPLES);
   const captureDisabled = (!cameraReady && recordingState === 'idle') || !clipSupported || isProcessingRecording;
-  const captureHint = !clipSupported
-    ? 'Videoaufnahmen werden von diesem Gerät nicht unterstützt.'
-    : isProcessingRecording
-      ? 'Clip wird gespeichert …'
-      : !cameraReady && !isRecording
-        ? 'Tippe, um die Kamera zu starten.'
-        : isRecording
-          ? 'Aufnahme läuft …'
-          : `Tippe für Beispiel ${nextSampleNumber} von ${TARGET_SAMPLES}`;
-  const detectionStatusText = !clipSupported
-    ? 'Videoaufnahme nicht verfügbar'
-    : isProcessingRecording
-      ? 'Clip wird gespeichert …'
-      : isRecording
-        ? detectionActive
-          ? 'Aufnahme läuft …'
-          : 'Keine Hand erkannt'
-        : detectionActive
-          ? 'Hand im Bild'
-          : 'Keine Hand';
-  const captureAccessibilityLabel = !clipSupported
-    ? 'Videoaufnahmen nicht möglich'
-    : isProcessingRecording
-      ? 'Aufnahme wird verarbeitet'
-      : isRecording
-        ? 'Aufnahme stoppen'
-        : cameraReady
-          ? `Beispiel ${nextSampleNumber} / ${TARGET_SAMPLES} aufnehmen`
-          : 'Kamera starten';
-  const captureAccessibilityHint = !clipSupported
-    ? 'Dieses Gerät unterstützt keine Videoaufnahmen für das Training.'
-    : isProcessingRecording
-      ? 'Bitte warte, bis die aktuelle Aufnahme gespeichert wurde.'
-      : isRecording
-        ? 'Tippe, um die aktuelle Aufnahme zu beenden.'
-        : cameraReady
-          ? 'Tippe, um ein neues Beispiel aufzuzeichnen.'
-          : 'Tippe, um die Kamera zu starten.';
+
+  const captureMessaging = useMemo(
+    () => {
+      if (!clipSupported) {
+        return {
+          hint: 'Videoaufnahmen werden von diesem Gerät nicht unterstützt.',
+          detectionStatus: 'Videoaufnahme nicht verfügbar',
+          accessibilityLabel: 'Videoaufnahmen nicht möglich',
+          accessibilityHint: 'Dieses Gerät unterstützt keine Videoaufnahmen für das Training.',
+        } as const;
+      }
+
+      if (isProcessingRecording) {
+        return {
+          hint: 'Clip wird gespeichert …',
+          detectionStatus: 'Clip wird gespeichert …',
+          accessibilityLabel: 'Aufnahme wird verarbeitet',
+          accessibilityHint: 'Bitte warte, bis die aktuelle Aufnahme gespeichert wurde.',
+        } as const;
+      }
+
+      if (isRecording) {
+        return {
+          hint: 'Aufnahme läuft …',
+          detectionStatus: detectionActive ? 'Aufnahme läuft …' : 'Keine Hand erkannt',
+          accessibilityLabel: 'Aufnahme stoppen',
+          accessibilityHint: 'Tippe, um die aktuelle Aufnahme zu beenden.',
+        } as const;
+      }
+
+      if (!cameraReady) {
+        return {
+          hint: 'Tippe, um die Kamera zu starten.',
+          detectionStatus: detectionActive ? 'Hand im Bild' : 'Keine Hand',
+          accessibilityLabel: 'Kamera starten',
+          accessibilityHint: 'Tippe, um die Kamera zu starten.',
+        } as const;
+      }
+
+      return {
+        hint: `Tippe für Beispiel ${nextSampleNumber} von ${TARGET_SAMPLES}`,
+        detectionStatus: detectionActive ? 'Hand im Bild' : 'Keine Hand',
+        accessibilityLabel: `Beispiel ${nextSampleNumber} / ${TARGET_SAMPLES} aufnehmen`,
+        accessibilityHint: 'Tippe, um ein neues Beispiel aufzuzeichnen.',
+      } as const;
+    },
+    [cameraReady, clipSupported, detectionActive, isProcessingRecording, isRecording, nextSampleNumber],
+  );
+
+  const captureHint = captureMessaging.hint;
+  const detectionStatusText = captureMessaging.detectionStatus;
+  const captureAccessibilityLabel = captureMessaging.accessibilityLabel;
+  const captureAccessibilityHint = captureMessaging.accessibilityHint;
 
   const progressTop = insets.top + SPACING.lg;
   const statusTop = progressTop + SPACING.xl;
@@ -976,7 +991,7 @@ export default function TrainingScreen({ navigation, route }: any) {
               }
             }}
                   onError={(message, details?: MediaPipeErrorDetails) => {
-                    if (message === 'clip_error' || message === CLIP_RECORDING_ERROR_TEXT) {
+                    if (message === 'clip_error') {
                       const reason = details?.reason ?? 'unknown';
                       setRecordingState('idle');
                       clipRequestIdRef.current = null;

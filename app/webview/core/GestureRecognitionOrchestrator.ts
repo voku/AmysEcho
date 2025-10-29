@@ -723,6 +723,7 @@ export class GestureRecognitionOrchestrator {
     const ua = typeof navigator !== 'undefined' && navigator?.userAgent ? navigator.userAgent : '';
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
     const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua);
+    // TODO: consider navigator.userAgentData once widely supported to avoid user-agent sniffing.
     return isIOS || isSafari ? 'video/mp4' : 'video/webm';
   }
 
