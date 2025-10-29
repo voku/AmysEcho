@@ -67,7 +67,9 @@ export default function TrainingScreen({ navigation, route }: any) {
   // No camera ref needed; WebView handles its own camera
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [count, setCount] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
+  const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'processing'>('idle');
+  const isRecording = recordingState === 'recording';
+  const isProcessingRecording = recordingState === 'processing';
   const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [lastDetection, setLastDetection] = useState(0);
@@ -227,7 +229,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       return;
     }
     setShowInstructions(false);
-    setIsRecording(false);
+    setRecordingState('idle');
     setGestureId(null);
     setCount(0);
     setRecordedFrames([]);
@@ -261,6 +263,9 @@ export default function TrainingScreen({ navigation, route }: any) {
   );
 
   const startRecording = useCallback(async () => {
+    if (recordingState !== 'idle') {
+      return;
+    }
     if (!gestureId || !cameraReady || !clipSupported) {
       if (!clipSupported) {
         showToast({ message: CLIP_UNSUPPORTED_TEXT, tone: 'warning' });
@@ -281,61 +286,63 @@ export default function TrainingScreen({ navigation, route }: any) {
         throw new Error('clip_capture_unavailable');
       }
       clipRequestIdRef.current = clipId;
-      setIsRecording(true);
+      setRecordingState('recording');
     } catch (error) {
       clipRequestIdRef.current = null;
       logger.warn('Failed to start clip capture', error);
-      setIsRecording(false);
+      setRecordingState('idle');
       showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
       return;
     }
 
     // HIP 2 or 4: sample start
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
-  }, [cameraReady, cleanupClipFile, clipSupported, gestureId, isPractice, showToast]);
+  }, [cameraReady, cleanupClipFile, clipSupported, gestureId, isPractice, recordingState, showToast]);
 
   const stopRecording = useCallback(async () => {
-    setIsRecording(false);
-    if (!gestureId || !cameraReady) return;
+    setRecordingState('processing');
+    try {
+      if (!gestureId || !cameraReady) {
+        return;
+      }
 
-    if (!clipSupported) {
-      detectorRef.current?.cancelClipCapture();
-      clipRequestIdRef.current = null;
-      await cleanupClipFile();
-      showToast({ message: CLIP_UNSUPPORTED_TEXT, tone: 'warning' });
-      return;
-    }
+      if (!clipSupported) {
+        detectorRef.current?.cancelClipCapture();
+        clipRequestIdRef.current = null;
+        await cleanupClipFile();
+        showToast({ message: CLIP_UNSUPPORTED_TEXT, tone: 'warning' });
+        return;
+      }
 
-    let clipUri: string | null = null;
-    if (clipRequestIdRef.current && detectorRef.current) {
-      try {
-        const clipResult = await detectorRef.current.stopClipCapture();
-        clipUri = await persistClip(clipResult);
-      } catch (error) {
-        logger.warn('Failed to stop clip capture', error);
-        detectorRef.current.cancelClipCapture();
-        showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
-      } finally {
+      let clipUri: string | null = null;
+      if (clipRequestIdRef.current && detectorRef.current) {
+        try {
+          const clipResult = await detectorRef.current.stopClipCapture();
+          clipUri = await persistClip(clipResult);
+        } catch (error) {
+          logger.warn('Failed to stop clip capture', error);
+          detectorRef.current.cancelClipCapture();
+          showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
+        } finally {
+          clipRequestIdRef.current = null;
+        }
+      } else {
+        detectorRef.current?.cancelClipCapture();
         clipRequestIdRef.current = null;
       }
-    } else {
-      detectorRef.current?.cancelClipCapture();
-      clipRequestIdRef.current = null;
-    }
 
-    if (!clipUri) {
-      showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
-      return;
-    }
+      if (!clipUri) {
+        showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
+        return;
+      }
 
-    const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
-    if (!validation.ok) {
-      const msg = `Aufnahme muss verbessert werden: ${validation.suggestions.join(' ')}`;
-      setError(msg);
-      return;
-    }
+      const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
+      if (!validation.ok) {
+        const msg = `Aufnahme muss verbessert werden: ${validation.suggestions.join(' ')}`;
+        setError(msg);
+        return;
+      }
 
-    try {
       const capturedAt = new Date().toISOString();
       const sample = createTrainingSample({
         profileId: profile?.id ?? 'default',
@@ -346,32 +353,36 @@ export default function TrainingScreen({ navigation, route }: any) {
         capturedAt,
       });
 
-      await saveTrainingSample(sample);
-      setRecordedFrames([]);
-      setCount((c) => c + 1);
-      setError(null);
+      try {
+        await saveTrainingSample(sample);
+        setRecordedFrames([]);
+        setCount((c) => c + 1);
+        setError(null);
 
-      // HIP 2 or 4: sample saved
-      void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', {
-        gestureId,
-        frames: framesCaptured,
-      });
+        // HIP 2 or 4: sample saved
+        void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', {
+          gestureId,
+          frames: framesCaptured,
+        });
 
-      if (isPractice) {
-        await audioService.playEncouragement(gestureId);
+        if (isPractice) {
+          await audioService.playEncouragement(gestureId);
+        }
+      } catch (e) {
+        logger.error('Failed to save training sample', e);
+        // Amy First: Show encouraging message instead of technical error
+        setError(null); // Don't show technical errors
+        showToast({ message: 'Das hat nicht geklappt. Lass es uns nochmal versuchen!', tone: 'warning' });
+        // Log for caregiver analytics
+        void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'training_save_failed', {
+          error: String(e).substring(0, 100),
+          gestureId,
+          framesCaptured,
+        });
+        clipRequestIdRef.current = null;
       }
-    } catch (e) {
-      logger.error('Failed to save training sample', e);
-      // Amy First: Show encouraging message instead of technical error
-      setError(null); // Don't show technical errors
-      showToast({ message: 'Das hat nicht geklappt. Lass es uns nochmal versuchen!', tone: 'warning' });
-      // Log for caregiver analytics
-      void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'training_save_failed', {
-        error: String(e).substring(0, 100),
-        gestureId,
-        framesCaptured,
-      });
-      clipRequestIdRef.current = null;
+    } finally {
+      setRecordingState('idle');
     }
   }, [
     cameraReady,
@@ -381,6 +392,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     framesCaptured,
     gestureId,
     isPractice,
+    audioService,
     persistClip,
     profile?.id,
     recordedFrames,
@@ -444,37 +456,45 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const progressLabel = `${Math.min(count, TARGET_SAMPLES)}/${TARGET_SAMPLES} Beispiele`;
   const nextSampleNumber = Math.min(count + 1, TARGET_SAMPLES);
-  const captureDisabled = (!cameraReady && !isRecording) || !clipSupported;
+  const captureDisabled = (!cameraReady && recordingState === 'idle') || !clipSupported || isProcessingRecording;
   const captureHint = !clipSupported
     ? 'Videoaufnahmen werden von diesem Gerät nicht unterstützt.'
-    : !cameraReady && !isRecording
-      ? 'Tippe, um die Kamera zu starten.'
-      : isRecording
-        ? 'Aufnahme läuft …'
-        : `Tippe für Beispiel ${nextSampleNumber} von ${TARGET_SAMPLES}`;
+    : isProcessingRecording
+      ? 'Clip wird gespeichert …'
+      : !cameraReady && !isRecording
+        ? 'Tippe, um die Kamera zu starten.'
+        : isRecording
+          ? 'Aufnahme läuft …'
+          : `Tippe für Beispiel ${nextSampleNumber} von ${TARGET_SAMPLES}`;
   const detectionStatusText = !clipSupported
     ? 'Videoaufnahme nicht verfügbar'
-    : isRecording
-      ? detectionActive
-        ? 'Aufnahme läuft …'
-        : 'Keine Hand erkannt'
-      : detectionActive
-        ? 'Hand im Bild'
-        : 'Keine Hand';
+    : isProcessingRecording
+      ? 'Clip wird gespeichert …'
+      : isRecording
+        ? detectionActive
+          ? 'Aufnahme läuft …'
+          : 'Keine Hand erkannt'
+        : detectionActive
+          ? 'Hand im Bild'
+          : 'Keine Hand';
   const captureAccessibilityLabel = !clipSupported
     ? 'Videoaufnahmen nicht möglich'
-    : isRecording
-      ? 'Aufnahme stoppen'
-      : cameraReady
-        ? `Beispiel ${nextSampleNumber} / ${TARGET_SAMPLES} aufnehmen`
-        : 'Kamera starten';
+    : isProcessingRecording
+      ? 'Aufnahme wird verarbeitet'
+      : isRecording
+        ? 'Aufnahme stoppen'
+        : cameraReady
+          ? `Beispiel ${nextSampleNumber} / ${TARGET_SAMPLES} aufnehmen`
+          : 'Kamera starten';
   const captureAccessibilityHint = !clipSupported
     ? 'Dieses Gerät unterstützt keine Videoaufnahmen für das Training.'
-    : isRecording
-      ? 'Tippe, um die aktuelle Aufnahme zu beenden.'
-      : cameraReady
-        ? 'Tippe, um ein neues Beispiel aufzuzeichnen.'
-        : 'Tippe, um die Kamera zu starten.';
+    : isProcessingRecording
+      ? 'Bitte warte, bis die aktuelle Aufnahme gespeichert wurde.'
+      : isRecording
+        ? 'Tippe, um die aktuelle Aufnahme zu beenden.'
+        : cameraReady
+          ? 'Tippe, um ein neues Beispiel aufzuzeichnen.'
+          : 'Tippe, um die Kamera zu starten.';
 
   const progressTop = insets.top + SPACING.lg;
   const statusTop = progressTop + SPACING.xl;
@@ -958,7 +978,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                   onError={(message, details?: MediaPipeErrorDetails) => {
                     if (message === 'clip_error' || message === CLIP_RECORDING_ERROR_TEXT) {
                       const reason = details?.reason ?? 'unknown';
-                      setIsRecording(false);
+                      setRecordingState('idle');
                       clipRequestIdRef.current = null;
 
                       if (UNSUPPORTED_CLIP_REASONS.has(reason)) {

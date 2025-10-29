@@ -276,7 +276,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       state.timeout = setTimeout(() => {
         const timeoutError = new Error('clip_capture_timeout');
         state.reject?.(timeoutError);
-        onError(CLIP_RECORDING_ERROR_TEXT, { reason: 'clip_capture_timeout' });
+        onError('clip_error', { reason: 'clip_capture_timeout' });
         resetClipState();
       }, 15000);
 
@@ -719,14 +719,13 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
         } else if (data.type === 'clip_error') {
           const errorId = typeof data.id === 'string' ? data.id : null;
           const reason = typeof data.reason === 'string' ? data.reason : 'clip_error';
-          const isCurrentClipError = !errorId || errorId === clipStateRef.current.id;
 
-          if (!isCurrentClipError) {
+          if (errorId && errorId !== clipStateRef.current.id) {
             logger.debug('Ignoring stale clip_error event', { errorId, currentId: clipStateRef.current.id });
             return;
           }
 
-          if (errorId && errorId === clipStateRef.current.id) {
+          if (clipStateRef.current.id) {
             clearClipTimeout();
             clipStateRef.current.reject?.(new Error(reason));
             resetClipState();
