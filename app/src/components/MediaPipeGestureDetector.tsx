@@ -705,6 +705,13 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
         } else if (data.type === 'clip_error') {
           const errorId = typeof data.id === 'string' ? data.id : null;
           const reason = typeof data.reason === 'string' ? data.reason : 'clip_error';
+          const isCurrentClipError = !errorId || errorId === clipStateRef.current.id;
+
+          if (!isCurrentClipError) {
+            logger.debug('Ignoring stale clip_error event', { errorId, currentId: clipStateRef.current.id });
+            return;
+          }
+
           if (errorId && errorId === clipStateRef.current.id) {
             clearClipTimeout();
             clipStateRef.current.reject?.(new Error(reason));

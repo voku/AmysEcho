@@ -581,7 +581,7 @@ export default function TeachingScreen({ navigation }: any) {
            <View style={styles.camera}>
               <MediaPipeGestureDetector
                 onGestureDetected={handleGestureDetected}
-                onError={setError}
+                onError={(message) => setError(message)}
                 onWebViewEvent={(telemetry) => {
                   console.log('Teaching WebView telemetry:', telemetry);
                 }}

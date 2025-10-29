@@ -4639,7 +4639,7 @@
         recorder,
         chunks: [],
         startedAt: Date.now(),
-        mimeType: recorder.mimeType || mimeType || "video/webm",
+        mimeType: recorder.mimeType || mimeType || this.getPlatformDefaultMime(),
         frameCount: 0,
         timeoutHandle: null
       };
@@ -4724,7 +4724,9 @@
       if (state.timeoutHandle) {
         clearTimeout(state.timeoutHandle);
       }
-      const blob = new Blob(state.chunks, { type: state.mimeType || "video/webm" });
+      const effectiveMime = this.resolveClipMimeType(state);
+      state.mimeType = effectiveMime;
+      const blob = new Blob(state.chunks, { type: effectiveMime });
       if (blob.size === 0) {
         this.sendClipError(state.id, "empty_clip_blob");
         this.resetClipCapture(false);
@@ -4742,7 +4744,7 @@
           this.postClipReady({
             id: state.id,
             base64,
-            mimeType: state.mimeType || "video/webm",
+            mimeType: effectiveMime,
             durationMs,
             frameCount: state.frameCount,
             capturedAt: new Date(state.startedAt).toISOString()
@@ -4848,43 +4850,61 @@
     }
     getPreferredClipMimeTypes() {
       const baseCandidates = [
-        "video/webm;codecs=vp8",
-        "video/webm;codecs=vp8,opus",
-        "video/webm",
+        "video/webm;codecs=vp9,opus",
         "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8,opus",
+        "video/webm;codecs=vp8",
         "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-        "video/mp4"
+        "video/mp4",
+        "video/webm"
       ];
       if (typeof window.MediaRecorder === "undefined" || typeof window.MediaRecorder.isTypeSupported !== "function") {
         return baseCandidates;
       }
-      const supported = [];
-      const unsupported = [];
-      for (const candidate of baseCandidates) {
-        if (window.MediaRecorder.isTypeSupported(candidate)) {
-          supported.push(candidate);
-        } else {
-          unsupported.push(candidate);
+      const baseOrder = new Map(baseCandidates.map((candidate, index) => [candidate, index]));
+      const supportCache = /* @__PURE__ */ new Map();
+      const isSupported = (candidate) => {
+        if (!supportCache.has(candidate)) {
+          try {
+            supportCache.set(candidate, window.MediaRecorder.isTypeSupported(candidate));
+          } catch {
+            supportCache.set(candidate, false);
+          }
         }
-      }
-      return [...supported, ...unsupported];
+        return supportCache.get(candidate) ?? false;
+      };
+      return baseCandidates.slice().sort((a, b) => {
+        const aSupported = isSupported(a);
+        const bSupported = isSupported(b);
+        if (aSupported === bSupported) {
+          return (baseOrder.get(a) ?? 0) - (baseOrder.get(b) ?? 0);
+        }
+        return aSupported ? -1 : 1;
+      });
     }
     isCodecUnsupportedError(error) {
-      if (!error) {
+      if (!(error instanceof Error)) {
         return false;
       }
-      const name = error.name;
-      if (name === "NotSupportedError") {
+      if (error.name === "NotSupportedError") {
         return true;
       }
-      const message = error.message;
-      if (typeof message === "string") {
-        const normalized = message.toLowerCase();
-        if (normalized.includes("not supported") || normalized.includes("mime") || normalized.includes("codec")) {
-          return true;
+      const normalized = error.message.toLowerCase();
+      return normalized.includes("mime type") || normalized.includes("codec");
+    }
+    resolveClipMimeType(state) {
+      for (const chunk of state.chunks) {
+        if (chunk instanceof Blob && typeof chunk.type === "string" && chunk.type.length > 0) {
+          return chunk.type;
         }
       }
-      return false;
+      return state.mimeType || this.getPlatformDefaultMime();
+    }
+    getPlatformDefaultMime() {
+      const ua = typeof navigator !== "undefined" && navigator?.userAgent ? navigator.userAgent : "";
+      const isIOS = /iPhone|iPad|iPod/i.test(ua);
+      const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua);
+      return isIOS || isSafari ? "video/mp4" : "video/webm";
     }
     serializeError(details) {
       if (!details) {

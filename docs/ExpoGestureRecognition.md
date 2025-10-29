@@ -32,7 +32,7 @@ interface Props {
     confidence: number,
     landmarks: number[][][],
   ) => void;
-  onError: (error: string) => void;
+  onError: (error: string, details?: { reason?: string | null }) => void;
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError }) => {

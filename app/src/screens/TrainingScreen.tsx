@@ -282,7 +282,6 @@ export default function TrainingScreen({ navigation, route }: any) {
       logger.warn('Failed to start clip capture', error);
       setIsRecording(false);
       showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
-      detectorRef.current?.cancelClipCapture();
       return;
     }
 
@@ -954,12 +953,13 @@ export default function TrainingScreen({ navigation, route }: any) {
                   onError={(message, details?: MediaPipeErrorDetails) => {
                     if (message === 'clip_error' || message === CLIP_RECORDING_ERROR_TEXT) {
                       const reason = details?.reason ?? 'unknown';
+                      setIsRecording(false);
+                      clipRequestIdRef.current = null;
+
                       if (['media_recorder_unavailable', 'media_recorder_not_supported'].includes(reason)) {
                         logger.warn('Clip capture unsupported on this device', { reason });
                         setClipSupported(false);
                         clipSupportReasonRef.current = reason;
-                        clipRequestIdRef.current = null;
-                        setIsRecording(false);
                         detectorRef.current?.cancelClipCapture();
                         void cleanupClipFile();
                         void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_unsupported', {
@@ -968,8 +968,6 @@ export default function TrainingScreen({ navigation, route }: any) {
                         showToast({ message: CLIP_UNSUPPORTED_TEXT, tone: 'warning' });
                       } else {
                         logger.warn('TrainingScreen clip error received', { reason });
-                        setIsRecording(false);
-                        clipRequestIdRef.current = null;
                         void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_failed', {
                           reason,
                         });
