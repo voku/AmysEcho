@@ -707,7 +707,12 @@ export class GestureRecognitionOrchestrator {
     }
 
     const normalized = error.message.toLowerCase();
-    return normalized.includes('mime type') || normalized.includes('codec');
+    return (
+      normalized.includes('mime type') ||
+      normalized.includes('codec') ||
+      normalized.includes('not supported') ||
+      normalized.includes('unsupported')
+    );
   }
 
   private resolveClipMimeType(state: ClipCaptureState): string {

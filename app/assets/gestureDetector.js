@@ -4890,7 +4890,7 @@
         return true;
       }
       const normalized = error.message.toLowerCase();
-      return normalized.includes("mime type") || normalized.includes("codec");
+      return normalized.includes("mime type") || normalized.includes("codec") || normalized.includes("not supported") || normalized.includes("unsupported");
     }
     resolveClipMimeType(state) {
       for (const chunk of state.chunks) {
