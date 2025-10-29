@@ -5689,6 +5689,27 @@
       );
     }
   };
+  window.__cancelClipCapture = (id) => {
+    try {
+      if (!orchestrator) {
+        return;
+      }
+      orchestrator.cancelClipCapture();
+    } catch (error) {
+      if (id) {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: "clip_error",
+            id,
+            reason: "cancel_clip_failed",
+            details: error instanceof Error ? error.message : String(error)
+          })
+        );
+      } else {
+        console.warn("Failed to cancel clip capture:", error);
+      }
+    }
+  };
   window.__getGestureSystemStatus = () => {
     return orchestrator?.getStatus() || { error: "Orchestrator not initialized" };
   };

@@ -14,6 +14,7 @@ declare global {
     __commitMlpTransfer?: () => Promise<void>;
     __startClipCapture?: (id: string) => void;
     __stopClipCapture?: (id: string) => void;
+    __cancelClipCapture?: (id?: string) => void;
     __gestureOrchestrator?: GestureRecognitionOrchestrator | null;
     __getGestureSystemStatus?: () =>
       | {

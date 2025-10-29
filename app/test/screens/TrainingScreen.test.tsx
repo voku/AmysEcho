@@ -131,6 +131,33 @@ const cancelClipCaptureMock = (MediaPipeGestureDetector as any).cancelClipCaptur
 describe('TrainingScreen', () => {
   let component: renderer.ReactTestRenderer | null = null;
 
+  const recordPressableMatchers = [
+    'Geste auswählen',
+    'Kamera starten',
+    'Aufnahme stoppen',
+    'Videoaufnahmen nicht möglich',
+  ];
+
+  const findRecordPressable = () => {
+    if (!component) {
+      throw new Error('TrainingScreen not mounted');
+    }
+
+    const matches = component.root.findAll(
+      (node) =>
+        node.type === 'Pressable' &&
+        typeof node.props.accessibilityLabel === 'string' &&
+        (node.props.accessibilityLabel.includes('Beispiel') ||
+          recordPressableMatchers.includes(node.props.accessibilityLabel)),
+    );
+
+    if (matches.length === 0) {
+      throw new Error('Recording pressable not found');
+    }
+
+    return matches[0];
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     startClipCaptureMock.mockResolvedValue('clip-id');
@@ -169,17 +196,6 @@ describe('TrainingScreen', () => {
     });
 
     expect(component).not.toBeNull();
-
-    const findRecordPressable = () =>
-      component!.root.findAll(
-        (node) =>
-          node.type === 'Pressable' &&
-          typeof node.props.accessibilityLabel === 'string' &&
-          (node.props.accessibilityLabel.includes('Beispiel') ||
-            node.props.accessibilityLabel === 'Geste auswählen' ||
-            node.props.accessibilityLabel === 'Kamera starten' ||
-            node.props.accessibilityLabel === 'Aufnahme stoppen'),
-      )[0];
 
     let recordPressable = findRecordPressable();
     expect(recordPressable.props.disabled).toBe(true);
@@ -259,18 +275,6 @@ describe('TrainingScreen', () => {
       await Promise.resolve();
     });
 
-    const findRecordPressable = () =>
-      component!.root.findAll(
-        (node) =>
-          node.type === 'Pressable' &&
-          typeof node.props.accessibilityLabel === 'string' &&
-          (node.props.accessibilityLabel.includes('Beispiel') ||
-            node.props.accessibilityLabel === 'Geste auswählen' ||
-            node.props.accessibilityLabel === 'Kamera starten' ||
-            node.props.accessibilityLabel === 'Aufnahme stoppen' ||
-            node.props.accessibilityLabel === 'Videoaufnahmen nicht möglich'),
-      )[0];
-
     const detector = component!.root.findByType('MediaPipeGestureDetector');
     act(() => {
       detector.props.onCameraStateChange?.('camera_started');
@@ -309,18 +313,6 @@ describe('TrainingScreen', () => {
       );
       await Promise.resolve();
     });
-
-    const findRecordPressable = () =>
-      component!.root.findAll(
-        (node) =>
-          node.type === 'Pressable' &&
-          typeof node.props.accessibilityLabel === 'string' &&
-          (node.props.accessibilityLabel.includes('Beispiel') ||
-            node.props.accessibilityLabel === 'Geste auswählen' ||
-            node.props.accessibilityLabel === 'Kamera starten' ||
-            node.props.accessibilityLabel === 'Aufnahme stoppen' ||
-            node.props.accessibilityLabel === 'Videoaufnahmen nicht möglich'),
-      )[0];
 
     const detector = component!.root.findByType('MediaPipeGestureDetector');
     act(() => {
@@ -361,18 +353,6 @@ describe('TrainingScreen', () => {
       );
       await Promise.resolve();
     });
-
-    const findRecordPressable = () =>
-      component!.root.findAll(
-        (node) =>
-          node.type === 'Pressable' &&
-          typeof node.props.accessibilityLabel === 'string' &&
-          (node.props.accessibilityLabel.includes('Beispiel') ||
-            node.props.accessibilityLabel === 'Geste auswählen' ||
-            node.props.accessibilityLabel === 'Kamera starten' ||
-            node.props.accessibilityLabel === 'Aufnahme stoppen' ||
-            node.props.accessibilityLabel === 'Videoaufnahmen nicht möglich'),
-      )[0];
 
     const detector = component!.root.findByType('MediaPipeGestureDetector');
     act(() => {

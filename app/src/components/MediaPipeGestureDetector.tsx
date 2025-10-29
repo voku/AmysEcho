@@ -209,6 +209,19 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     if (!state.id) {
       return;
     }
+
+    const clipId = state.id;
+
+    if (webviewRef.current?.injectJavaScript) {
+      try {
+        webviewRef.current.injectJavaScript(
+          `window.__cancelClipCapture && window.__cancelClipCapture(${JSON.stringify(clipId)}); true;`,
+        );
+      } catch (error) {
+        logger.warn('Failed to forward cancelClipCapture to WebView', error);
+      }
+    }
+
     const error = new Error('clip_capture_cancelled');
     state.reject?.(error);
     resetClipState();
