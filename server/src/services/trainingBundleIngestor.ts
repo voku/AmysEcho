@@ -48,6 +48,19 @@ interface DatasetFile {
   samples: DatasetSample[];
 }
 
+function isDatasetSample(value: unknown): value is DatasetSample {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.label === 'string' &&
+    typeof candidate.ts === 'number' &&
+    Array.isArray(candidate.landmarks)
+  );
+}
+
 const BUNDLE_SAMPLE_PREFIX = 'bundle:';
 const MAX_LANDMARK_POINTS = 42;
 
@@ -66,7 +79,16 @@ function ensureInside(base: string, target: string): string {
 async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
   try {
     const raw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (parseError) {
+      logger.warn('Training bundle manifest is not valid JSON – ignoring file', {
+        error: parseError instanceof Error ? parseError.message : String(parseError),
+        path: TRAINING_MANIFEST_PATH,
+      });
+      return [];
+    }
     if (!parsed || typeof parsed !== 'object') {
       return [];
     }
@@ -191,11 +213,31 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: nu
 
   return withFileLock(dataPath, async () => {
     let dataset: DatasetFile = { samples: [] };
+    let datasetReset = false;
     try {
       const raw = await fs.readFile(dataPath, 'utf8');
-      const parsed = JSON.parse(raw) as DatasetFile;
-      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.samples)) {
-        dataset = { samples: parsed.samples.slice() };
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        const samples = (parsed as Record<string, unknown>)?.samples;
+        if (Array.isArray(samples)) {
+          const normalizedSamples = samples
+            .filter(isDatasetSample)
+            .map((sample) => ({ ...sample }));
+          if (normalizedSamples.length !== samples.length) {
+            datasetReset = true;
+            logger.warn('Training dataset file contained invalid samples – pruning entries', {
+              discarded: samples.length - normalizedSamples.length,
+              path: dataPath,
+            });
+          }
+          dataset = { samples: normalizedSamples };
+        }
+      } catch (parseError) {
+        datasetReset = true;
+        logger.warn('Training dataset file is corrupted – resetting to empty dataset', {
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+          path: dataPath,
+        });
       }
     } catch (error: any) {
       if (error?.code !== 'ENOENT') {
@@ -241,6 +283,9 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: nu
     }
 
     if (appended === 0) {
+      if (datasetReset) {
+        await atomicWriteJson(dataPath, dataset);
+      }
       return { appended: 0 };
     }
 
