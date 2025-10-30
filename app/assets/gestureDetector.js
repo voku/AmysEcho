@@ -4641,7 +4641,8 @@
         startedAt: Date.now(),
         mimeType: recorder.mimeType || mimeType || this.getPlatformDefaultMime(),
         frameCount: 0,
-        timeoutHandle: null
+        timeoutHandle: null,
+        aborted: false
       };
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -4650,6 +4651,7 @@
       };
       recorder.onerror = (event) => {
         const error = event.error;
+        state.aborted = true;
         this.sendClipError(requestId, "recorder_error", error);
         this.resetClipCapture(true);
       };
@@ -4659,11 +4661,13 @@
       try {
         recorder.start(500);
       } catch (error) {
+        state.aborted = true;
         this.sendClipError(requestId, "recorder_start_failed", error);
         this.resetClipCapture(true);
         return;
       }
       state.timeoutHandle = window.setTimeout(() => {
+        state.aborted = true;
         this.sendClipError(requestId, "recorder_timeout");
         this.resetClipCapture(true);
       }, 15e3);
@@ -4684,6 +4688,7 @@
         }
         this.sendClipTelemetry("clip_stop_requested", requestId, void 0);
       } catch (error) {
+        this.clipCaptureState.aborted = true;
         this.sendClipError(requestId, "recorder_stop_failed", error);
         this.resetClipCapture(true);
       }
@@ -4692,6 +4697,7 @@
       if (!this.clipCaptureState) {
         return;
       }
+      this.clipCaptureState.aborted = true;
       try {
         if (this.clipCaptureState.recorder.state !== "inactive") {
           this.clipCaptureState.recorder.stop();
@@ -4723,6 +4729,9 @@
     handleClipStop(state) {
       if (state.timeoutHandle) {
         clearTimeout(state.timeoutHandle);
+      }
+      if (state.aborted) {
+        return;
       }
       const effectiveMime = this.resolveClipMimeType(state);
       state.mimeType = effectiveMime;
@@ -4883,13 +4892,18 @@
       });
     }
     isCodecUnsupportedError(error) {
-      if (!(error instanceof Error)) {
+      if (!error) {
         return false;
       }
-      if (error.name === "NotSupportedError") {
+      const name = error?.name;
+      if (name === "NotSupportedError") {
         return true;
       }
-      const normalized = error.message.toLowerCase();
+      const rawMessage = error?.message ?? (typeof error === "string" ? error : void 0);
+      if (typeof rawMessage !== "string") {
+        return false;
+      }
+      const normalized = rawMessage.toLowerCase();
       return normalized.includes("mime type") || normalized.includes("codec") || normalized.includes("not supported") || normalized.includes("unsupported");
     }
     resolveClipMimeType(state) {

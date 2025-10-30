@@ -68,6 +68,7 @@ interface ClipCaptureState {
   mimeType: string;
   frameCount: number;
   timeoutHandle?: number | null;
+  aborted: boolean;
 }
 
 type OrchestratorDependencies = {
@@ -412,6 +413,7 @@ export class GestureRecognitionOrchestrator {
       mimeType: recorder.mimeType || mimeType || this.getPlatformDefaultMime(),
       frameCount: 0,
       timeoutHandle: null,
+      aborted: false,
     };
 
     recorder.ondataavailable = (event: BlobEvent) => {
@@ -422,6 +424,7 @@ export class GestureRecognitionOrchestrator {
 
     recorder.onerror = (event: Event) => {
       const error = (event as { error?: unknown }).error;
+      state.aborted = true;
       this.sendClipError(requestId, 'recorder_error', error);
       this.resetClipCapture(true);
     };
@@ -433,12 +436,14 @@ export class GestureRecognitionOrchestrator {
     try {
       recorder.start(500);
     } catch (error) {
+      state.aborted = true;
       this.sendClipError(requestId, 'recorder_start_failed', error);
       this.resetClipCapture(true);
       return;
     }
 
     state.timeoutHandle = window.setTimeout(() => {
+      state.aborted = true;
       this.sendClipError(requestId, 'recorder_timeout');
       this.resetClipCapture(true);
     }, 15000);
@@ -462,6 +467,7 @@ export class GestureRecognitionOrchestrator {
       }
       this.sendClipTelemetry('clip_stop_requested', requestId, undefined);
     } catch (error) {
+      this.clipCaptureState.aborted = true;
       this.sendClipError(requestId, 'recorder_stop_failed', error);
       this.resetClipCapture(true);
     }
@@ -471,6 +477,7 @@ export class GestureRecognitionOrchestrator {
     if (!this.clipCaptureState) {
       return;
     }
+    this.clipCaptureState.aborted = true;
     try {
       if (this.clipCaptureState.recorder.state !== 'inactive') {
         this.clipCaptureState.recorder.stop();
@@ -507,6 +514,10 @@ export class GestureRecognitionOrchestrator {
   private handleClipStop(state: ClipCaptureState): void {
     if (state.timeoutHandle) {
       clearTimeout(state.timeoutHandle);
+    }
+
+    if (state.aborted) {
+      return;
     }
 
     const effectiveMime = this.resolveClipMimeType(state);
@@ -698,15 +709,21 @@ export class GestureRecognitionOrchestrator {
   }
 
   private isCodecUnsupportedError(error: unknown): boolean {
-    if (!(error instanceof Error)) {
+    if (!error) {
       return false;
     }
 
-    if (error.name === 'NotSupportedError') {
+    const name = (error as { name?: unknown })?.name;
+    if (name === 'NotSupportedError') {
       return true;
     }
 
-    const normalized = error.message.toLowerCase();
+    const rawMessage = (error as { message?: unknown })?.message ?? (typeof error === 'string' ? error : undefined);
+    if (typeof rawMessage !== 'string') {
+      return false;
+    }
+
+    const normalized = rawMessage.toLowerCase();
     return (
       normalized.includes('mime type') ||
       normalized.includes('codec') ||
