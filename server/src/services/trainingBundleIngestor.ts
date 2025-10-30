@@ -48,6 +48,19 @@ interface DatasetFile {
   samples: DatasetSample[];
 }
 
+function isDatasetSample(value: unknown): value is DatasetSample {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.label === 'string' &&
+    typeof candidate.ts === 'number' &&
+    Array.isArray(candidate.landmarks)
+  );
+}
+
 const BUNDLE_SAMPLE_PREFIX = 'bundle:';
 const MAX_LANDMARK_POINTS = 42;
 
@@ -204,9 +217,20 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: nu
     try {
       const raw = await fs.readFile(dataPath, 'utf8');
       try {
-        const parsed = JSON.parse(raw) as DatasetFile;
-        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.samples)) {
-          dataset = { samples: parsed.samples.slice() };
+        const parsed: unknown = JSON.parse(raw);
+        const samples = (parsed as Record<string, unknown>)?.samples;
+        if (Array.isArray(samples)) {
+          const normalizedSamples = samples
+            .filter(isDatasetSample)
+            .map((sample) => ({ ...sample }));
+          if (normalizedSamples.length !== samples.length) {
+            datasetReset = true;
+            logger.warn('Training dataset file contained invalid samples – pruning entries', {
+              discarded: samples.length - normalizedSamples.length,
+              path: dataPath,
+            });
+          }
+          dataset = { samples: normalizedSamples };
         }
       } catch (parseError) {
         datasetReset = true;
