@@ -323,6 +323,7 @@ export default function TrainingScreen({ navigation, route }: any) {
           logger.warn('Failed to stop clip capture', error);
           detectorRef.current.cancelClipCapture();
           showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
+          return;
         } finally {
           clipRequestIdRef.current = null;
         }
