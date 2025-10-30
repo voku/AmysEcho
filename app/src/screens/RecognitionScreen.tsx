@@ -893,24 +893,26 @@ export default function RecognitionScreen({
           isHandsetLayout && styles.handsetActionsSlot,
         ]}
       >
-        <Animated.View
+        <View
           testID="recognition-actions"
           pointerEvents={actionsPointerEvents}
           accessibilityElementsHidden={actionsAccessibilityHidden}
           importantForAccessibility={
             actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
           }
-          style={[
-            styles.actionsContainer,
-            { opacity: actionsFadeAnim },
-            isHandsetLayout && styles.handsetActionsContainer,
-          ]}
         >
-          <View style={styles.primaryActionWrapper}>
-            <ActionButton
-              label="Stimmt"
-              accessibilityLabel="Gestenerkennung bestätigen"
-              onPress={handleConfirmGesture}
+          <Animated.View
+            style={[
+              styles.actionsContainer,
+              { opacity: actionsFadeAnim },
+              isHandsetLayout && styles.handsetActionsContainer,
+            ]}
+          >
+            <View style={styles.primaryActionWrapper}>
+              <ActionButton
+                label="Stimmt"
+                accessibilityLabel="Gestenerkennung bestätigen"
+                onPress={handleConfirmGesture}
               backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
               pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
               textColor={CAMERA_THEME.actionButtons.confirm.text}
@@ -957,7 +959,8 @@ export default function RecognitionScreen({
               ]}
             />
           </View>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </View>
     </View>
   );
@@ -993,9 +996,20 @@ export default function RecognitionScreen({
               {isHandsetPanelExpanded ? 'Tippe, um zu schließen' : 'Tippe, um zu öffnen'}
             </Text>
           </Pressable>
-          {isHandsetPanelExpanded ? (
-            <View style={styles.handsetBottomContent}>{bottomPanelContent}</View>
-          ) : null}
+          <View
+            style={[
+              styles.handsetBottomContent,
+              !isHandsetPanelExpanded && styles.handsetBottomContentCollapsed,
+            ]}
+            pointerEvents={isHandsetPanelExpanded ? 'auto' : 'none'}
+            accessibilityElementsHidden={!isHandsetPanelExpanded}
+            importantForAccessibility={
+              isHandsetPanelExpanded ? 'auto' : 'no-hide-descendants'
+            }
+            collapsable={false}
+          >
+            {bottomPanelContent}
+          </View>
         </>
       ) : (
         bottomPanelContent
@@ -1450,6 +1464,14 @@ const styles = StyleSheet.create({
   handsetBottomContent: {
     paddingTop: spacing.md,
     gap: spacing.md,
+  },
+  handsetBottomContentCollapsed: {
+    height: 0,
+    maxHeight: 0,
+    opacity: 0,
+    overflow: 'hidden',
+    paddingTop: 0,
+    gap: 0,
   },
   wideContent: {
     alignSelf: 'center',

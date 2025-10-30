@@ -131,6 +131,8 @@ const hipEvents = jest.requireMock('../../src/services/hipEvents');
 const adaptiveService = jest.requireMock('../../src/services/adaptiveLearningService');
 const gestureSuggesterModule = jest.requireMock('../../src/services/gestureSuggester');
 const healthScore = jest.requireMock('../../src/services/healthScore');
+const { logger } = jest.requireMock('../../src/utils/logger');
+const recovery = jest.requireMock('../../src/services/automaticRecoveryService');
 
 describe('useRecognitionCallbacks', () => {
   let state: RecognitionState;
@@ -308,5 +310,30 @@ describe('useRecognitionCallbacks', () => {
 
     const lastCall = setError.mock.calls[setError.mock.calls.length - 1];
     expect(lastCall[0]).toBeNull();
+  });
+
+  it('logs detailed gesture errors and attempts automatic recovery', async () => {
+    const callbacks = await renderHookHarness();
+
+    await act(async () => {
+      await callbacks.handleGestureError('MediaPipe failure', {
+        reason: 'media_recorder_not_supported',
+      });
+    });
+
+    expect(logger.warn).toHaveBeenCalledWith('Recognition WebView error', {
+      errorMessage: 'MediaPipe failure',
+      reason: 'media_recorder_not_supported',
+    });
+
+    const lastErrorCall = setError.mock.calls[setError.mock.calls.length - 1];
+    expect(lastErrorCall[0]).toBe('Das hat nicht geklappt. Lass es uns nochmal versuchen!');
+
+    const lastStatusCall = setStatus.mock.calls[setStatus.mock.calls.length - 1];
+    expect(lastStatusCall[0]).toBe('Ups! Ich starte die Kamera neu…');
+
+    expect(
+      recovery.automaticRecoveryService.attemptRecovery,
+    ).toHaveBeenCalledWith('MediaPipe failure', 'recognition_webview');
   });
 });

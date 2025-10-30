@@ -32,7 +32,7 @@ interface Props {
     confidence: number,
     landmarks: number[][][],
   ) => void;
-  onError: (error: string) => void;
+  onError: (error: string, details?: { reason?: string | null }) => void;
 }
 
 export const MediaPipeGestureDetector: React.FC<Props> = ({ onGestureDetected, onError }) => {
@@ -213,10 +213,17 @@ export default function RecognitionScreen({ navigation }: any) {
     }
   }, [dialogContext, startFeedbackAnimation]);
 
-  const handleGestureError = useCallback((errorMessage: string) => {
-    logger.error('Gesture detection error:', errorMessage);
-    setError(errorMessage);
-  }, []);
+  // MediaPipeErrorDetails stammt aus MediaPipeGestureDetector.
+  const handleGestureError = useCallback(
+    (errorMessage: string, details?: MediaPipeErrorDetails) => {
+      logger.error('Gesture detection error:', {
+        errorMessage,
+        reason: details?.reason ?? 'unknown',
+      });
+      setError(errorMessage);
+    },
+    [],
+  );
 
   const handleSelectCorrection = async (choiceId: string) => {
     if (pendingGesture) {

@@ -68,6 +68,7 @@ interface ClipCaptureState {
   mimeType: string;
   frameCount: number;
   timeoutHandle?: number | null;
+  aborted: boolean;
 }
 
 type OrchestratorDependencies = {
@@ -396,23 +397,23 @@ export class GestureRecognitionOrchestrator {
       return;
     }
 
-    const mimeType = this.selectClipMimeType();
-    let recorder: MediaRecorder;
-    try {
-      recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-    } catch (error) {
-      this.sendClipError(requestId, 'recorder_init_failed', error);
+    const recorderResult = this.createMediaRecorder(stream);
+    if ('errorReason' in recorderResult) {
+      this.sendClipError(requestId, recorderResult.errorReason, recorderResult.errorDetails);
       return;
     }
+
+    const { recorder, mimeType } = recorderResult;
 
     const state: ClipCaptureState = {
       id: requestId,
       recorder,
       chunks: [],
       startedAt: Date.now(),
-      mimeType: recorder.mimeType || mimeType || 'video/mp4',
+      mimeType: recorder.mimeType || mimeType || this.getPlatformDefaultMime(),
       frameCount: 0,
       timeoutHandle: null,
+      aborted: false,
     };
 
     recorder.ondataavailable = (event: BlobEvent) => {
@@ -423,6 +424,7 @@ export class GestureRecognitionOrchestrator {
 
     recorder.onerror = (event: Event) => {
       const error = (event as { error?: unknown }).error;
+      state.aborted = true;
       this.sendClipError(requestId, 'recorder_error', error);
       this.resetClipCapture(true);
     };
@@ -434,18 +436,23 @@ export class GestureRecognitionOrchestrator {
     try {
       recorder.start(500);
     } catch (error) {
+      state.aborted = true;
       this.sendClipError(requestId, 'recorder_start_failed', error);
       this.resetClipCapture(true);
       return;
     }
 
     state.timeoutHandle = window.setTimeout(() => {
+      state.aborted = true;
       this.sendClipError(requestId, 'recorder_timeout');
       this.resetClipCapture(true);
     }, 15000);
 
     this.clipCaptureState = state;
-    this.sendClipTelemetry('clip_started', requestId, { mimeType: state.mimeType });
+    this.sendClipTelemetry('clip_started', requestId, {
+      mimeType: state.mimeType,
+      recorderMimeType: recorder.mimeType,
+    });
   }
 
   stopClipCapture(requestId: string): void {
@@ -460,6 +467,7 @@ export class GestureRecognitionOrchestrator {
       }
       this.sendClipTelemetry('clip_stop_requested', requestId, undefined);
     } catch (error) {
+      this.clipCaptureState.aborted = true;
       this.sendClipError(requestId, 'recorder_stop_failed', error);
       this.resetClipCapture(true);
     }
@@ -469,6 +477,7 @@ export class GestureRecognitionOrchestrator {
     if (!this.clipCaptureState) {
       return;
     }
+    this.clipCaptureState.aborted = true;
     try {
       if (this.clipCaptureState.recorder.state !== 'inactive') {
         this.clipCaptureState.recorder.stop();
@@ -507,7 +516,13 @@ export class GestureRecognitionOrchestrator {
       clearTimeout(state.timeoutHandle);
     }
 
-    const blob = new Blob(state.chunks, { type: state.mimeType || 'video/mp4' });
+    if (state.aborted) {
+      return;
+    }
+
+    const effectiveMime = this.resolveClipMimeType(state);
+    state.mimeType = effectiveMime;
+    const blob = new Blob(state.chunks, { type: effectiveMime });
     if (blob.size === 0) {
       this.sendClipError(state.id, 'empty_clip_blob');
       this.resetClipCapture(false);
@@ -526,7 +541,7 @@ export class GestureRecognitionOrchestrator {
         this.postClipReady({
           id: state.id,
           base64,
-          mimeType: state.mimeType || 'video/mp4',
+          mimeType: effectiveMime,
           durationMs,
           frameCount: state.frameCount,
           capturedAt: new Date(state.startedAt).toISOString(),
@@ -603,18 +618,135 @@ export class GestureRecognitionOrchestrator {
     }
   }
 
-  private selectClipMimeType(): string | undefined {
-    if (typeof window.MediaRecorder === 'undefined' || typeof window.MediaRecorder.isTypeSupported !== 'function') {
-      return undefined;
+  private createMediaRecorder(
+    stream: MediaStream,
+  ): { recorder: MediaRecorder; mimeType?: string } | { errorReason: 'media_recorder_not_supported' | 'recorder_init_failed'; errorDetails?: unknown } {
+    const candidates = this.getPreferredClipMimeTypes();
+    const attemptSummaries: Array<{ candidate: string; error?: unknown }> = [];
+
+    for (const candidate of candidates) {
+      const attempt = this.tryCreateMediaRecorder(stream, candidate);
+      if (attempt.ok) {
+        return { recorder: attempt.recorder, mimeType: candidate };
+      }
+
+      attemptSummaries.push({ candidate, error: this.serializeError(attempt.error) });
+      if (!attempt.recoverable) {
+        return {
+          errorReason: 'recorder_init_failed',
+          errorDetails: { candidate, error: this.serializeError(attempt.error) },
+        };
+      }
     }
-    const candidates = [
+
+    const defaultAttempt = this.tryCreateMediaRecorder(stream, undefined);
+    if (defaultAttempt.ok) {
+      return { recorder: defaultAttempt.recorder, mimeType: defaultAttempt.recorder.mimeType || undefined };
+    }
+
+    attemptSummaries.push({ candidate: 'default', error: this.serializeError(defaultAttempt.error) });
+    if (!defaultAttempt.recoverable) {
+      return {
+        errorReason: 'recorder_init_failed',
+        errorDetails: { candidate: 'default', error: this.serializeError(defaultAttempt.error) },
+      };
+    }
+
+    return {
+      errorReason: 'media_recorder_not_supported',
+      errorDetails: { attempts: attemptSummaries },
+    };
+  }
+
+  private tryCreateMediaRecorder(
+    stream: MediaStream,
+    mimeType: string | undefined,
+  ): { ok: true; recorder: MediaRecorder } | { ok: false; error: unknown; recoverable: boolean } {
+    try {
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      return { ok: true, recorder };
+    } catch (error) {
+      return { ok: false, error, recoverable: this.isCodecUnsupportedError(error) };
+    }
+  }
+
+  private getPreferredClipMimeTypes(): string[] {
+    const baseCandidates = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=vp8',
       'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
       'video/mp4',
-      'video/webm;codecs=vp9,opus',
-      'video/webm;codecs=vp8,opus',
       'video/webm',
     ];
-    return candidates.find((candidate) => window.MediaRecorder!.isTypeSupported(candidate));
+
+    if (typeof window.MediaRecorder === 'undefined' || typeof window.MediaRecorder.isTypeSupported !== 'function') {
+      return baseCandidates;
+    }
+
+    const baseOrder = new Map(baseCandidates.map((candidate, index) => [candidate, index]));
+    const supportCache = new Map<string, boolean>();
+    const isSupported = (candidate: string) => {
+      if (!supportCache.has(candidate)) {
+        try {
+          supportCache.set(candidate, window.MediaRecorder!.isTypeSupported(candidate));
+        } catch {
+          supportCache.set(candidate, false);
+        }
+      }
+      return supportCache.get(candidate) ?? false;
+    };
+
+    return baseCandidates.slice().sort((a, b) => {
+      const aSupported = isSupported(a);
+      const bSupported = isSupported(b);
+      if (aSupported === bSupported) {
+        return (baseOrder.get(a) ?? 0) - (baseOrder.get(b) ?? 0);
+      }
+      return aSupported ? -1 : 1;
+    });
+  }
+
+  private isCodecUnsupportedError(error: unknown): boolean {
+    if (!error) {
+      return false;
+    }
+
+    const name = (error as { name?: unknown })?.name;
+    if (name === 'NotSupportedError') {
+      return true;
+    }
+
+    const rawMessage = (error as { message?: unknown })?.message ?? (typeof error === 'string' ? error : undefined);
+    if (typeof rawMessage !== 'string') {
+      return false;
+    }
+
+    const normalized = rawMessage.toLowerCase();
+    return (
+      normalized.includes('mime type') ||
+      normalized.includes('codec') ||
+      normalized.includes('not supported') ||
+      normalized.includes('unsupported')
+    );
+  }
+
+  private resolveClipMimeType(state: ClipCaptureState): string {
+    for (const chunk of state.chunks) {
+      if (chunk instanceof Blob && typeof chunk.type === 'string' && chunk.type.length > 0) {
+        return chunk.type;
+      }
+    }
+    return state.mimeType || this.getPlatformDefaultMime();
+  }
+
+  private getPlatformDefaultMime(): string {
+    const ua = typeof navigator !== 'undefined' && navigator?.userAgent ? navigator.userAgent : '';
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua);
+    // TODO: consider navigator.userAgentData once widely supported to avoid user-agent sniffing.
+    return isIOS || isSafari ? 'video/mp4' : 'video/webm';
   }
 
   private serializeError(details: unknown): unknown {

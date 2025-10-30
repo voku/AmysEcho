@@ -27,6 +27,7 @@ import * as Haptics from 'expo-haptics';
 import { logger } from '../utils/logger';
 import type { OneEuroFilter } from '../services/OneEuroFilter';
 import { ScreenFlashPattern, type RecognitionState } from './useRecognitionState';
+import type { MediaPipeErrorDetails } from '../components/MediaPipeGestureDetector';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { TabNavigationProp } from '../navigation/types';
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
@@ -662,8 +663,11 @@ export const useRecognitionCallbacks = ({
   );
 
   const handleGestureError = useCallback(
-    async (errorMessage: string) => {
-      logger.warn('Recognition WebView error', { errorMessage });
+    async (errorMessage: string, details?: MediaPipeErrorDetails) => {
+      logger.warn('Recognition WebView error', {
+        errorMessage,
+        reason: details?.reason ?? null,
+      });
       setError(PREDICTION_ERROR_TEXT);
       setStatus(RECOVERING_CAMERA_TEXT);
       const recovered = await automaticRecoveryService.attemptRecovery(errorMessage, 'recognition_webview');
