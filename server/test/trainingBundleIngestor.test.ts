@@ -38,44 +38,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
   });
 
   it('copies unique bundle frames into the dataset and avoids duplicates', async () => {
-    const bundleRoot = resolveDataPath('training_uploads/unassigned/bundle-1');
-    await fs.mkdir(path.join(bundleRoot, 'bundle'), { recursive: true });
-
-    const frames = {
-      frames: [
-        { landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.01, idx * 0.02, idx * 0.03]) },
-        { landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.05, idx * 0.06, idx * 0.07]) },
-      ],
-    };
-    await fs.writeFile(path.join(bundleRoot, 'bundle', 'landmarks.json'), JSON.stringify(frames, null, 2));
-
-    const manifest = {
-      entries: [
-        {
-          id: 'bundle-1',
-          profileId: 'p-123',
-          label: 'HALLO',
-          capturedAt: '2024-05-28T12:03:11Z',
-          source: 'app://mediapipe',
-          storage: {
-            directory: 'training_uploads/unassigned/bundle-1',
-            bundle: 'training_uploads/unassigned/bundle-1/bundle.zip',
-            files: ['bundle/landmarks.json', 'bundle/metadata.json', 'bundle/clip.webm'],
-            clip: 'bundle/clip.webm',
-          },
-          metadata: {
-            label: 'HALLO',
-            profileId: 'p-123',
-            capturedAt: '2024-05-28T12:03:11Z',
-            source: 'app://mediapipe',
-            clipFilename: 'clip.webm',
-          },
-          receivedAt: '2024-05-28T12:03:12Z',
-        },
-      ],
-    };
-    await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
-    await fs.writeFile(TRAINING_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+    await writeBundleFixture('bundle-1');
 
     const firstRun = await ingestTrainingBundlesIntoDataset();
     expect(firstRun.appended).toBe(2);
@@ -107,4 +70,68 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const datasetAfter = JSON.parse(await fs.readFile(datasetPath, 'utf8')) as { samples: any[] };
     expect(datasetAfter.samples).toHaveLength(2);
   });
+
+  it('ignores corrupted manifest files instead of throwing', async () => {
+    await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
+    await fs.writeFile(TRAINING_MANIFEST_PATH, '{"entries": [');
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+  });
+
+  it('recovers when the existing dataset JSON is invalid', async () => {
+    await writeBundleFixture('bundle-2');
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    await fs.mkdir(path.dirname(datasetPath), { recursive: true });
+    await fs.writeFile(datasetPath, '{invalid json');
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(2);
+
+    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
+    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    expect(dataset.samples).toHaveLength(2);
+  });
+
+  async function writeBundleFixture(bundleId: string): Promise<void> {
+    const bundleRoot = resolveDataPath(`training_uploads/unassigned/${bundleId}`);
+    await fs.mkdir(path.join(bundleRoot, 'bundle'), { recursive: true });
+
+    const frames = {
+      frames: [
+        { landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.01, idx * 0.02, idx * 0.03]) },
+        { landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.05, idx * 0.06, idx * 0.07]) },
+      ],
+    };
+    await fs.writeFile(path.join(bundleRoot, 'bundle', 'landmarks.json'), JSON.stringify(frames, null, 2));
+
+    const manifest = {
+      entries: [
+        {
+          id: bundleId,
+          profileId: 'p-123',
+          label: 'HALLO',
+          capturedAt: '2024-05-28T12:03:11Z',
+          source: 'app://mediapipe',
+          storage: {
+            directory: `training_uploads/unassigned/${bundleId}`,
+            bundle: `training_uploads/unassigned/${bundleId}/bundle.zip`,
+            files: ['bundle/landmarks.json', 'bundle/metadata.json', 'bundle/clip.webm'],
+            clip: 'bundle/clip.webm',
+          },
+          metadata: {
+            label: 'HALLO',
+            profileId: 'p-123',
+            capturedAt: '2024-05-28T12:03:11Z',
+            source: 'app://mediapipe',
+            clipFilename: 'clip.webm',
+          },
+          receivedAt: '2024-05-28T12:03:12Z',
+        },
+      ],
+    };
+    await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
+    await fs.writeFile(TRAINING_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+  }
 });
