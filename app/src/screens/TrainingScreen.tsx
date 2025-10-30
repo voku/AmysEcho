@@ -339,6 +339,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
       if (!validation.ok) {
+        await cleanupClipFile();
         const msg = `Aufnahme muss verbessert werden: ${validation.suggestions.join(' ')}`;
         setError(msg);
         return;
