@@ -85,8 +85,11 @@ export default function ProfileManagerScreen({
       // Load recent gesture history for the active profile
       const activeProfileId = await AsyncStorage.getItem('activeProfileId');
       if (activeProfileId) {
+        await gestureHistoryService.ready();
         const history = gestureHistoryService.getRecentGestures(20); // Last 20 gestures
         setGestureHistory(history);
+      } else {
+        setGestureHistory([]);
       }
     } catch (error) {
       logger.warn('Failed to load gesture history:', error);
@@ -98,6 +101,7 @@ export default function ProfileManagerScreen({
       const activeProfileId = await AsyncStorage.getItem('activeProfileId');
       if (activeProfileId) {
         // Get overall statistics
+        await gestureHistoryService.ready();
         const historyStats = gestureHistoryService.getStats();
         const stats: ProfileAnalyticsStats = {
           totalGestures: historyStats.totalGestures,
@@ -108,6 +112,8 @@ export default function ProfileManagerScreen({
           recentActivity: historyStats.recentActivity,
         };
         setProfileStats(stats);
+      } else {
+        setProfileStats(null);
       }
     } catch (error) {
       logger.warn('Failed to load profile analytics:', error);

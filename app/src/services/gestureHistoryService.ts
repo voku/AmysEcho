@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 
 export interface GestureHistoryEntry {
@@ -37,6 +38,7 @@ class GestureHistoryService {
   private readonly MAX_ANALYTICS_ENTRIES = 1000;
   private readonly ANALYTICS_RETENTION_DAYS = 30;
   private readonly STORAGE_KEY = 'amys_echo_gesture_history';
+  private hydrationPromise: Promise<void>;
 
   static getInstance(): GestureHistoryService {
     if (!GestureHistoryService.instance) {
@@ -46,7 +48,11 @@ class GestureHistoryService {
   }
 
   private constructor() {
-    this.loadHistory();
+    this.hydrationPromise = this.loadHistory();
+  }
+
+  ready(): Promise<void> {
+    return this.hydrationPromise;
   }
 
   /**
@@ -70,7 +76,7 @@ class GestureHistoryService {
     this.analyticsHistory.unshift(entry);
     this.analyticsHistory = this.sanitizeAnalyticsHistory(this.analyticsHistory);
 
-    this.saveHistory();
+    void this.saveHistory();
     logger.debug('Gesture added to history:', entry.label);
   }
 
@@ -206,7 +212,7 @@ class GestureHistoryService {
         this.analyticsHistory.splice(analyticsIndex, 1);
       }
       this.enforceRecentHistoryRetention();
-      this.saveHistory();
+      void this.saveHistory();
       logger.debug('Last gesture removed from history:', removed.label);
     }
     return removed || null;
@@ -218,7 +224,7 @@ class GestureHistoryService {
   clearHistory(): void {
     this.history = [];
     this.analyticsHistory = [];
-    this.saveHistory();
+    void this.saveHistory();
     logger.info('Gesture history cleared');
   }
 
@@ -255,8 +261,16 @@ class GestureHistoryService {
         analytics: this.analyticsHistory.slice(0, this.MAX_ANALYTICS_ENTRIES)
       };
       const data = JSON.stringify(payload);
-      // In a real app, this would use AsyncStorage or similar
-      if (typeof window !== 'undefined' && window.localStorage) {
+      let persisted = false;
+
+      try {
+        await AsyncStorage.setItem(this.STORAGE_KEY, data);
+        persisted = true;
+      } catch (asyncError) {
+        logger.warn('Failed to save gesture history with AsyncStorage:', asyncError);
+      }
+
+      if (!persisted && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(this.STORAGE_KEY, data);
       }
     } catch (error) {
@@ -269,41 +283,60 @@ class GestureHistoryService {
    */
   private async loadHistory(): Promise<void> {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const data = window.localStorage.getItem(this.STORAGE_KEY);
-        if (data) {
-          const parsed = JSON.parse(data);
-          if (Array.isArray(parsed)) {
-            this.analyticsHistory = this.sanitizeAnalyticsHistory(parsed);
-            this.history = this.analyticsHistory.slice(0, this.MAX_HISTORY);
-          } else {
-            const recent = Array.isArray(parsed?.recent) ? parsed.recent : [];
-            const analytics = Array.isArray(parsed?.analytics) ? parsed.analytics : recent;
-            const normalizeEntry = (entry: unknown): entry is GestureHistoryEntry =>
-              typeof entry === 'object'
-              && entry !== null
-              && typeof (entry as { timestamp?: unknown }).timestamp === 'number'
-              && typeof (entry as { id?: unknown }).id === 'string'
-              && typeof (entry as { label?: unknown }).label === 'string'
-              && typeof (entry as { emoji?: unknown }).emoji === 'string'
-              && typeof (entry as { confidence?: unknown }).confidence === 'number';
+      const data = await this.loadPersistedData();
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          this.analyticsHistory = this.sanitizeAnalyticsHistory(parsed);
+          this.history = this.analyticsHistory.slice(0, this.MAX_HISTORY);
+        } else {
+          const recent = Array.isArray(parsed?.recent) ? parsed.recent : [];
+          const analytics = Array.isArray(parsed?.analytics) ? parsed.analytics : recent;
+          const normalizeEntry = (entry: unknown): entry is GestureHistoryEntry =>
+            typeof entry === 'object'
+            && entry !== null
+            && typeof (entry as { timestamp?: unknown }).timestamp === 'number'
+            && typeof (entry as { id?: unknown }).id === 'string'
+            && typeof (entry as { label?: unknown }).label === 'string'
+            && typeof (entry as { emoji?: unknown }).emoji === 'string'
+            && typeof (entry as { confidence?: unknown }).confidence === 'number';
 
-            this.analyticsHistory = this.sanitizeAnalyticsHistory(
-              analytics.filter(normalizeEntry),
-            );
-            this.history = recent.filter(normalizeEntry);
-            if (this.history.length === 0) {
-              this.history = this.analyticsHistory.slice(0, this.MAX_HISTORY);
-            }
+          this.analyticsHistory = this.sanitizeAnalyticsHistory(
+            analytics.filter(normalizeEntry),
+          );
+          this.history = recent.filter(normalizeEntry);
+          if (this.history.length === 0) {
+            this.history = this.analyticsHistory.slice(0, this.MAX_HISTORY);
           }
-          this.enforceRecentHistoryRetention();
         }
+        this.enforceRecentHistoryRetention();
       }
     } catch (error) {
       logger.warn('Failed to load gesture history:', error);
       this.history = [];
       this.analyticsHistory = [];
     }
+  }
+
+  private async loadPersistedData(): Promise<string | null> {
+    try {
+      const data = await AsyncStorage.getItem(this.STORAGE_KEY);
+      if (data) {
+        return data;
+      }
+    } catch (asyncError) {
+      logger.warn('Failed to load gesture history from AsyncStorage:', asyncError);
+    }
+
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        return window.localStorage.getItem(this.STORAGE_KEY);
+      } catch (webError) {
+        logger.warn('Failed to load gesture history from localStorage:', webError);
+      }
+    }
+
+    return null;
   }
 
   private sanitizeAnalyticsHistory(entries: GestureHistoryEntry[]): GestureHistoryEntry[] {

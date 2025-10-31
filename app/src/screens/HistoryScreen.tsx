@@ -65,17 +65,42 @@ const HistoryScreen: React.FC = () => {
   const [history, setHistory] = useState<GestureHistoryEntry[]>([]);
   const navigation = useNavigation<TabNavigationProp<typeof APP_TAB_ROUTES.History>>();
 
-  const loadHistory = useCallback(() => {
-    setHistory(gestureHistoryService.getRecentHistory());
+  const loadHistory = useCallback(async () => {
+    await gestureHistoryService.ready();
+    return gestureHistoryService.getRecentHistory();
   }, []);
 
   useEffect(() => {
-    loadHistory();
+    let isMounted = true;
+    const hydrate = async () => {
+      const entries = await loadHistory();
+      if (isMounted) {
+        setHistory(entries);
+      }
+    };
+    void hydrate();
+
+    return () => {
+      isMounted = false;
+    };
   }, [loadHistory]);
 
   useFocusEffect(
     useCallback(() => {
-      loadHistory();
+      let isActive = true;
+
+      const refresh = async () => {
+        const entries = await loadHistory();
+        if (isActive) {
+          setHistory(entries);
+        }
+      };
+
+      void refresh();
+
+      return () => {
+        isActive = false;
+      };
     }, [loadHistory]),
   );
 
