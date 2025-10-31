@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { gestureModel } from '../model';
@@ -23,10 +23,25 @@ type GestureListItem = {
   emoji?: string;
 };
 
+const COMPACT_CARD_BREAKPOINT = 640;
+
 const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
   const gestures: GestureListItem[] = Array.isArray(gestureModel.gestures)
     ? gestureModel.gestures
     : [];
+
+  const dimensions = useWindowDimensions();
+  const fallbackWindow = Dimensions.get('window');
+  const fallbackWidth =
+    typeof fallbackWindow?.width === 'number' && fallbackWindow.width > 0
+      ? fallbackWindow.width
+      : COMPACT_CARD_BREAKPOINT + 1;
+  const windowWidth =
+    Number.isFinite(dimensions.width) && dimensions.width > 0
+      ? dimensions.width
+      : fallbackWidth;
+
+  const isCompactLayout = windowWidth < COMPACT_CARD_BREAKPOINT;
 
   const handleTrain = useCallback(
     (gestureId: string, label: string) => {
@@ -39,20 +54,20 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
   );
 
   const renderItem = ({ item }: { item: GestureListItem }) => (
-    <View style={styles.card}>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardEmoji}>{item.emoji ?? '🤲'}</Text>
+    <View style={[styles.card, isCompactLayout && styles.cardCompact]}>
+      <View style={[styles.cardInfo, isCompactLayout && styles.cardInfoCompact]}>
+        <Text style={[styles.cardEmoji, isCompactLayout && styles.cardEmojiCompact]}>{item.emoji ?? '🤲'}</Text>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>{item.label}</Text>
           <Text style={styles.cardSubtitle}>Empfohlen: 5 Beispiele · ca. 1 Minute</Text>
         </View>
       </View>
       <ActionButton
-        label="Jetzt aufnehmen"
+        label={`„${item.label}“ aufnehmen`}
         accessibilityLabel={`Gestentraining für ${item.label} starten`}
         onPress={() => handleTrain(item.id, item.label)}
         variant="secondary"
-        style={styles.cardAction}
+        style={[styles.cardAction, isCompactLayout && styles.cardActionCompact]}
       />
     </View>
   );
@@ -82,21 +97,22 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing['2xl'],
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
   },
   stageHeader: {
     marginBottom: spacing['2xl'],
   },
   listContent: {
-    paddingBottom: spacing['2xl'],
+    paddingBottom: spacing.xl,
     gap: spacing.lg,
   },
   supportLinks: {
-    marginTop: spacing['2xl'],
+    marginTop: spacing.xl,
   },
   card: {
-    padding: spacing.xl,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
     borderRadius: 24,
     backgroundColor: Colors.overlayBadgeBackground,
     flexDirection: 'row',
@@ -110,14 +126,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.overlaySurface,
   },
+  cardCompact: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    rowGap: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
   cardInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
+  cardInfoCompact: {
+    width: '100%',
+    gap: spacing.md,
+  },
   cardEmoji: {
     fontSize: 40,
     marginRight: spacing.lg,
+  },
+  cardEmojiCompact: {
+    marginRight: spacing.md,
   },
   cardText: {
     flex: 1,
@@ -135,6 +164,12 @@ const styles = StyleSheet.create({
   cardAction: {
     minWidth: 140,
     marginLeft: spacing.lg,
+  },
+  cardActionCompact: {
+    alignSelf: 'stretch',
+    width: '100%',
+    marginLeft: 0,
+    paddingHorizontal: spacing.md,
   },
   emptyState: {
     marginTop: spacing['2xl'],
