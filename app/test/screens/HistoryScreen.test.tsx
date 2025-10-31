@@ -62,6 +62,7 @@ jest.mock('../../src/components/WorkflowSupportLinks', () => () => null);
 jest.mock('../../src/services/gestureHistoryService', () => {
   const service = {
     getRecentHistory: jest.fn(),
+    ready: jest.fn().mockResolvedValue(undefined),
   };
   return {
     gestureHistoryService: service,
@@ -74,9 +75,10 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 const { gestureHistoryService } = require('../../src/services/gestureHistoryService') as {
-  gestureHistoryService: { getRecentHistory: jest.Mock };
+  gestureHistoryService: { getRecentHistory: jest.Mock; ready: jest.Mock };
 };
 const mockGetRecentHistory = gestureHistoryService.getRecentHistory as jest.Mock;
+const mockReady = gestureHistoryService.ready as jest.Mock;
 
 import HistoryScreen from '../../src/screens/HistoryScreen';
 import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../../src/navigation/types';
@@ -94,6 +96,7 @@ describe('HistoryScreen', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     mockGetRecentHistory.mockReset();
+    mockReady.mockResolvedValue(undefined);
   });
 
   it('shows the self-discovery highlight when a confident entry exists', async () => {

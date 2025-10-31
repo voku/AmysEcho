@@ -7,6 +7,16 @@ jest.mock('../src/utils/logger', () => ({
   },
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+  },
+}));
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { gestureHistoryService, GestureHistoryEntry } from '../src/services/gestureHistoryService';
 
 // Mock localStorage
@@ -23,28 +33,25 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 });
 
-// Mock logger
-jest.mock('../src/utils/logger', () => ({
-  logger: {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-  },
-}));
+const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe('GestureHistoryService', () => {
   let service: typeof gestureHistoryService;
 
-  beforeEach(() => {
-    // Reset the singleton instance for each test
-    (gestureHistoryService as any).history = [];
-    (gestureHistoryService as any).analyticsHistory = [];
+  beforeEach(async () => {
     service = gestureHistoryService;
+    await service.ready();
+    (service as any).history = [];
+    (service as any).analyticsHistory = [];
 
     // Reset all mocks
     jest.clearAllMocks();
     mockLocalStorage.getItem.mockReturnValue(null);
     mockLocalStorage.setItem.mockImplementation(() => undefined);
+    mockAsyncStorage.getItem.mockResolvedValue(null);
+    mockAsyncStorage.setItem.mockResolvedValue(undefined);
+    mockAsyncStorage.removeItem.mockResolvedValue(undefined as unknown as void);
   });
 
   describe('Singleton Pattern', () => {
@@ -122,13 +129,37 @@ describe('GestureHistoryService', () => {
       expect(history[9].label).toBe('Gesture 3'); // 10th most recent
     });
 
-    it('should save history after adding gesture', () => {
+    it('should save history after adding gesture', async () => {
       service.addGesture({
         id: 'save_test',
         label: 'Save Test',
         emoji: '💾',
         confidence: 0.8
       });
+
+      await flushPromises();
+
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+        'amys_echo_gesture_history',
+        expect.any(String)
+      );
+      const payload = mockAsyncStorage.setItem.mock.calls.pop()?.[1];
+      const parsed = JSON.parse(payload as string);
+      expect(parsed.recent).toHaveLength(1);
+      expect(parsed.analytics).toHaveLength(1);
+    });
+
+    it('should fall back to localStorage when AsyncStorage fails', async () => {
+      mockAsyncStorage.setItem.mockRejectedValueOnce(new Error('Async failure'));
+
+      service.addGesture({
+        id: 'fallback',
+        label: 'Fallback',
+        emoji: '📦',
+        confidence: 0.8
+      });
+
+      await flushPromises();
 
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'amys_echo_gesture_history',
@@ -395,7 +426,7 @@ describe('GestureHistoryService', () => {
   });
 
   describe('removeLastGesture', () => {
-    it('should remove and return the last gesture', () => {
+    it('should remove and return the last gesture', async () => {
       service.addGesture({
         id: 'first',
         label: 'First',
@@ -415,7 +446,8 @@ describe('GestureHistoryService', () => {
       expect(removed?.label).toBe('Second');
       expect(service.getRecentHistory()).toHaveLength(1);
       expect(service.getRecentHistory()[0].label).toBe('First');
-      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+      await flushPromises();
+      expect(mockAsyncStorage.setItem).toHaveBeenCalled();
     });
 
     it('should return null when history is empty', () => {
@@ -425,7 +457,7 @@ describe('GestureHistoryService', () => {
   });
 
   describe('clearHistory', () => {
-    it('should clear all gestures from history', () => {
+    it('should clear all gestures from history', async () => {
       service.addGesture({
         id: 'test',
         label: 'Test',
@@ -438,8 +470,9 @@ describe('GestureHistoryService', () => {
       service.clearHistory();
 
       expect(service.getRecentHistory()).toHaveLength(0);
-      const [, payload] = mockLocalStorage.setItem.mock.calls.pop();
-      expect(JSON.parse(payload)).toEqual({ recent: [], analytics: [] });
+      await flushPromises();
+      const payload = mockAsyncStorage.setItem.mock.calls.pop()?.[1];
+      expect(JSON.parse(payload as string)).toEqual({ recent: [], analytics: [] });
     });
   });
 
@@ -499,7 +532,7 @@ describe('GestureHistoryService', () => {
 
   describe('Persistence', () => {
     describe('saveHistory', () => {
-      it('should save history to localStorage', () => {
+      it('should save history to AsyncStorage', async () => {
         service.addGesture({
           id: 'persist_test',
           label: 'Persist Test',
@@ -507,18 +540,17 @@ describe('GestureHistoryService', () => {
           confidence: 0.8
         });
 
-        expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        await flushPromises();
+
+        expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
           'amys_echo_gesture_history',
           expect.stringContaining('Persist Test')
         );
       });
 
-      it('should handle localStorage errors gracefully', () => {
-        mockLocalStorage.setItem.mockImplementation(() => {
-          throw new Error('Storage quota exceeded');
-        });
-
-        const { logger } = require('../src/utils/logger');
+      it('should handle AsyncStorage errors gracefully', async () => {
+        const error = new Error('Storage quota exceeded');
+        mockAsyncStorage.setItem.mockRejectedValueOnce(error);
 
         service.addGesture({
           id: 'error_test',
@@ -527,12 +559,12 @@ describe('GestureHistoryService', () => {
           confidence: 0.8
         });
 
-        expect((service as any).history).toHaveLength(1);
+        await flushPromises();
       });
     });
 
     describe('loadHistory', () => {
-      it('should load history from localStorage', () => {
+      it('should load history from AsyncStorage', async () => {
         const now = Date.now();
         const storedHistory = [
           {
@@ -551,11 +583,10 @@ describe('GestureHistoryService', () => {
           },
         ];
 
-        mockLocalStorage.getItem.mockReturnValue(JSON.stringify(storedHistory));
+        mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(storedHistory));
 
-        // Create new instance to trigger load
         const newService = new (service.constructor as any)();
-        (newService as any).loadHistory();
+        await newService.ready();
 
         const history = newService.getRecentHistory();
         expect(history).toHaveLength(2);
@@ -563,7 +594,7 @@ describe('GestureHistoryService', () => {
         expect(history[1].label).toBe('Stored Gesture 1');
       });
 
-      it('should filter out old entries (older than 24 hours)', () => {
+      it('should filter out old entries (older than 24 hours)', async () => {
         const now = Date.now();
         const storedHistory = [
           {
@@ -571,47 +602,63 @@ describe('GestureHistoryService', () => {
             label: 'Recent Gesture',
             emoji: '🕑',
             confidence: 0.8,
-            timestamp: now - (2 * 60 * 60 * 1000) // 2 hours ago
+            timestamp: now - (2 * 60 * 60 * 1000)
           },
           {
             id: 'old',
             label: 'Old Gesture',
             emoji: '🕐',
             confidence: 0.8,
-            timestamp: now - (25 * 60 * 60 * 1000) // 25 hours ago
+            timestamp: now - (25 * 60 * 60 * 1000)
           }
         ];
 
-        mockLocalStorage.getItem.mockReturnValue(JSON.stringify(storedHistory));
+        mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(storedHistory));
 
         const newService = new (service.constructor as any)();
-        (newService as any).loadHistory();
+        await newService.ready();
 
         const history = newService.getRecentHistory();
         expect(history).toHaveLength(1);
         expect(history[0].label).toBe('Recent Gesture');
       });
 
-      it('should handle localStorage errors gracefully', () => {
-        mockLocalStorage.getItem.mockImplementation(() => {
-          throw new Error('Storage access denied');
-        });
-
-        const { logger } = require('../src/utils/logger');
+      it('should handle AsyncStorage errors gracefully', async () => {
+        mockAsyncStorage.getItem.mockRejectedValueOnce(new Error('Storage access denied'));
 
         const newService = new (service.constructor as any)();
-        (newService as any).loadHistory();
+        await newService.ready();
 
         expect((newService as any).history).toEqual([]);
       });
 
-      it('should handle invalid JSON gracefully', () => {
-        mockLocalStorage.getItem.mockReturnValue('invalid json');
-
-        const { logger } = require('../src/utils/logger');
+      it('should load from localStorage when AsyncStorage returns null', async () => {
+        mockAsyncStorage.getItem.mockResolvedValueOnce(null);
+        mockLocalStorage.getItem.mockReturnValueOnce(JSON.stringify({
+          recent: [
+            {
+              id: 'stored_local',
+              label: 'Stored Local',
+              emoji: '🗄️',
+              confidence: 0.9,
+              timestamp: Date.now()
+            }
+          ],
+          analytics: []
+        }));
 
         const newService = new (service.constructor as any)();
-        (newService as any).loadHistory();
+        await newService.ready();
+
+        expect(newService.getRecentHistory()).toHaveLength(1);
+        expect(newService.getRecentHistory()[0].label).toBe('Stored Local');
+      });
+
+      it('should handle invalid JSON gracefully', async () => {
+        mockAsyncStorage.getItem.mockResolvedValueOnce('invalid json');
+
+        const newService = new (service.constructor as any)();
+        await newService.ready();
 
         expect((newService as any).history).toEqual([]);
       });
