@@ -116,7 +116,10 @@ const HistoryScreen: React.FC = () => {
   const listData = useMemo<HistoryListItem[]>(() => {
     const items = history.map<HistoryListItem>((entry) => ({ kind: 'history', entry }));
     if (latestDiscovery) {
-      return [{ kind: 'highlight', entry: latestDiscovery }, ...items];
+      return [
+        { kind: 'highlight', entry: latestDiscovery },
+        ...items.filter((item) => item.entry.id !== latestDiscovery.id),
+      ];
     }
     return items;
   }, [history, latestDiscovery]);

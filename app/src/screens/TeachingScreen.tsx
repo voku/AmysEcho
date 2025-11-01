@@ -51,6 +51,13 @@ const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Ve
 
 const PREVIEW_SIZE = 240;
 
+class ClipCaptureError extends Error {
+  constructor(message = 'clip_capture_failed') {
+    super(message);
+    this.name = 'ClipCaptureError';
+  }
+}
+
 const normalizeGestureLabel = (label: string): string =>
   label.trim().toLowerCase().replace(/\s+/g, '_');
 
@@ -137,7 +144,7 @@ export default function TeachingScreen({ navigation }: any) {
     const extension = clip.mimeType.includes('webm') ? 'webm' : 'mp4';
     const targetUri = `${directory}amy-teaching-${clip.id}.${extension}`;
     await expoFs.writeAsStringAsync(targetUri, clip.base64, {
-      encoding: (expoFs.EncodingType?.Base64 ?? 'base64') as any,
+      encoding: expoFs.EncodingType?.Base64 ?? 'base64',
     });
     return targetUri;
   }, []);
@@ -381,7 +388,7 @@ export default function TeachingScreen({ navigation }: any) {
         clipStarted = true;
       } catch (error) {
         logger.warn('Failed to start teaching clip capture', error);
-        throw new Error('clip_capture_failed');
+        throw new ClipCaptureError();
       }
 
       const frames = await captureSamples(() => ({
@@ -395,11 +402,11 @@ export default function TeachingScreen({ navigation }: any) {
         clipUri = await persistClip(clipResult);
       } catch (error) {
         logger.warn('Failed to finalize teaching clip capture', error);
-        throw new Error('clip_capture_failed');
+        throw new ClipCaptureError();
       }
 
       if (!clipUri) {
-        throw new Error('clip_capture_failed');
+        throw new ClipCaptureError();
       }
 
       const sample = createTrainingSample({
@@ -425,7 +432,7 @@ export default function TeachingScreen({ navigation }: any) {
         clipUri = null;
       }
 
-      if (e instanceof Error && e.message === 'clip_capture_failed') {
+      if (e instanceof ClipCaptureError) {
         setError(CLIP_RECORDING_ERROR_TEXT);
       } else if (e instanceof Error && e.message) {
         setError(e.message);
