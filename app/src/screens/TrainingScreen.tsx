@@ -525,6 +525,31 @@ export default function TrainingScreen({ navigation, route }: any) {
     }),
     [insets.bottom, insets.left, insets.right, insets.top],
   );
+  const topControlsSafeAreaStyle = useMemo(
+    () => ({
+      top: Math.max(insets.top + SPACING.sm, SPACING.lg),
+      left: insets.left + SPACING.md,
+      right: insets.right + SPACING.md,
+    }),
+    [insets.left, insets.right, insets.top],
+  );
+  const captureAreaSafeAreaStyle = useMemo(
+    () => ({
+      bottom: captureBottom,
+      left: insets.left,
+      right: insets.right,
+    }),
+    [captureBottom, insets.left, insets.right],
+  );
+  const instructionsOverlayPaddingStyle = useMemo(
+    () => ({
+      paddingTop: insets.top + SPACING.xl,
+      paddingBottom: insets.bottom + SPACING.xl,
+      paddingLeft: insets.left + SPACING.xl,
+      paddingRight: insets.right + SPACING.xl,
+    }),
+    [insets.bottom, insets.left, insets.right, insets.top],
+  );
 
   const handleCapturePress = useCallback(() => {
     void hapticFeedback.light();
@@ -1041,11 +1066,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         <View
           style={[
             styles.topControls,
-            {
-              top: Math.max(insets.top + SPACING.sm, SPACING.lg),
-              left: insets.left + SPACING.md,
-              right: insets.right + SPACING.md,
-            },
+            topControlsSafeAreaStyle,
           ]}
         >
           <View style={styles.topButtonGroup}>
@@ -1134,11 +1155,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         <View
           style={[
             styles.captureArea,
-            {
-              bottom: captureBottom,
-              left: insets.left,
-              right: insets.right,
-            },
+            captureAreaSafeAreaStyle,
           ]}
         >
           <Pressable
@@ -1190,12 +1207,7 @@ export default function TrainingScreen({ navigation, route }: any) {
           <View
             style={[
               styles.instructionsOverlay,
-              {
-                paddingTop: insets.top + SPACING.xl,
-                paddingBottom: insets.bottom + SPACING.xl,
-                paddingLeft: insets.left + SPACING.xl,
-                paddingRight: insets.right + SPACING.xl,
-              },
+              instructionsOverlayPaddingStyle,
             ]}
           >
             <View style={styles.instructionsCard}>
