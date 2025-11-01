@@ -136,13 +136,28 @@ export default function TeachingScreen({ navigation }: any) {
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
 
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
-    const directory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
-    if (!directory) {
+    const baseDirectory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
+    if (!baseDirectory) {
+      throw new ClipCaptureError('clip_directory_unavailable');
+    }
+
+    const clipDirectory = `${baseDirectory}amy-teaching-clips/`;
+
+    try {
+      const directoryInfo = await expoFs.getInfoAsync(clipDirectory);
+      if (!directoryInfo.exists) {
+        await expoFs.makeDirectoryAsync(clipDirectory, { intermediates: true });
+      } else if (!directoryInfo.isDirectory) {
+        await expoFs.deleteAsync(clipDirectory, { idempotent: true });
+        await expoFs.makeDirectoryAsync(clipDirectory, { intermediates: true });
+      }
+    } catch (directoryError) {
+      logger.warn('Failed to prepare teaching clip directory', directoryError);
       throw new ClipCaptureError('clip_directory_unavailable');
     }
 
     const extension = clip.mimeType.includes('webm') ? 'webm' : 'mp4';
-    const targetUri = `${directory}amy-teaching-${clip.id}.${extension}`;
+    const targetUri = `${clipDirectory}amy-teaching-${clip.id}.${extension}`;
     const base64Encoding =
       (expoFs.EncodingType?.Base64 as typeof FileSystem.EncodingType.Base64 | undefined) ??
       FileSystem.EncodingType.Base64;

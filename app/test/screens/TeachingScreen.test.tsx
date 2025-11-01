@@ -47,6 +47,8 @@ jest.mock('../../src/components/MediaPipeGestureDetector', () => {
 jest.mock('expo-file-system', () => ({
   writeAsStringAsync: jest.fn(async () => {}),
   deleteAsync: jest.fn(async () => {}),
+  makeDirectoryAsync: jest.fn(async () => {}),
+  getInfoAsync: jest.fn(async () => ({ exists: true, isDirectory: true })),
   cacheDirectory: 'file:///cache/',
   documentDirectory: 'file:///docs/',
   EncodingType: { Base64: 'base64' },
