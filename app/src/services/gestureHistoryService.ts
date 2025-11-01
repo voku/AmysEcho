@@ -34,11 +34,13 @@ class GestureHistoryService {
   private static instance: GestureHistoryService;
   private history: GestureHistoryEntry[] = [];
   private analyticsHistory: GestureHistoryEntry[] = [];
+  private pendingGestures: GestureHistoryEntry[] = [];
   private readonly MAX_HISTORY = 10;
   private readonly MAX_ANALYTICS_ENTRIES = 1000;
   private readonly ANALYTICS_RETENTION_DAYS = 30;
   private readonly STORAGE_KEY = 'amys_echo_gesture_history';
   private hydrationPromise: Promise<void>;
+  private isHydrated = false;
 
   static getInstance(): GestureHistoryService {
     if (!GestureHistoryService.instance) {
@@ -48,7 +50,11 @@ class GestureHistoryService {
   }
 
   private constructor() {
-    this.hydrationPromise = this.loadHistory();
+    this.hydrationPromise = this.loadHistory()
+      .finally(() => {
+        this.mergePendingGestures();
+        this.isHydrated = true;
+      });
   }
 
   ready(): Promise<void> {
@@ -75,6 +81,10 @@ class GestureHistoryService {
 
     this.analyticsHistory.unshift(entry);
     this.analyticsHistory = this.sanitizeAnalyticsHistory(this.analyticsHistory);
+
+    if (!this.isHydrated) {
+      this.pendingGestures.unshift(entry);
+    }
 
     void this.saveHistory();
     logger.debug('Gesture added to history:', entry.label);
@@ -316,6 +326,42 @@ class GestureHistoryService {
       this.history = [];
       this.analyticsHistory = [];
     }
+  }
+
+  private mergePendingGestures(): void {
+    if (this.pendingGestures.length === 0) {
+      return;
+    }
+
+    const dedupe = (entries: GestureHistoryEntry[]): GestureHistoryEntry[] => {
+      const seen = new Set<string>();
+      return entries.filter(entry => {
+        const key = `${entry.id}-${entry.timestamp}`;
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+    };
+
+    const mergedAnalytics = dedupe([
+      ...this.pendingGestures,
+      ...this.analyticsHistory,
+    ]);
+    this.analyticsHistory = this.sanitizeAnalyticsHistory(mergedAnalytics);
+
+    const mergedRecent = dedupe([
+      ...this.pendingGestures,
+      ...this.history,
+    ]);
+    this.history = mergedRecent
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, this.MAX_HISTORY);
+
+    this.enforceRecentHistoryRetention();
+    this.pendingGestures = [];
+    void this.saveHistory();
   }
 
   private async loadPersistedData(): Promise<string | null> {

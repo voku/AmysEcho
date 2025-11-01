@@ -184,6 +184,45 @@ describe('GestureHistoryService', () => {
       expect(history[0].category).toBeUndefined();
       expect(history[0].audioResponse).toBeUndefined();
     });
+
+    it('should merge gestures added before hydration completes', async () => {
+      const persistedEntry: GestureHistoryEntry = {
+        id: 'persisted_gesture',
+        label: 'Gespeichert',
+        emoji: '💾',
+        confidence: 0.6,
+        timestamp: Date.now() - 1000,
+      };
+
+      mockAsyncStorage.getItem.mockImplementationOnce(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+        return JSON.stringify({
+          recent: [persistedEntry],
+          analytics: [persistedEntry],
+        });
+      });
+
+      const newService = new (service.constructor as any)();
+      const hydration = newService.ready();
+
+      newService.addGesture({
+        id: 'live_gesture',
+        label: 'Live',
+        emoji: '✨',
+        confidence: 0.9,
+      });
+
+      await hydration;
+
+      const history = newService.getRecentHistory();
+      expect(history.map(entry => entry.id)).toEqual(
+        expect.arrayContaining(['persisted_gesture', 'live_gesture']),
+      );
+      expect(history[0].id).toBe('live_gesture');
+
+      const stats = newService.getStats();
+      expect(stats.totalGestures).toBe(2);
+    });
   });
 
   describe('getRecentHistory', () => {
