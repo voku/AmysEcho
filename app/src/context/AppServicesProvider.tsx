@@ -202,7 +202,6 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
     const cleanupPromise = initializeServices();
     return () => {
       cancelled = true;
-      initializedRef.current = false;
       if (interval) clearInterval(interval);
       if (telemetryTimeout) clearTimeout(telemetryTimeout);
       try {
