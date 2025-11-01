@@ -39,14 +39,6 @@ import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtil
 import ScreenBackground from '../components/ScreenBackground';
 import type { ClipReadyPayload } from '../types/frames';
 
-type ExpoFileSystemCompat = typeof FileSystem & {
-  cacheDirectory?: string;
-  documentDirectory?: string;
-  EncodingType?: { Base64: typeof FileSystem.EncodingType.Base64 };
-};
-
-const expoFs = FileSystem as ExpoFileSystemCompat;
-
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
 const PREVIEW_SIZE = 240;
@@ -135,8 +127,30 @@ export default function TeachingScreen({ navigation }: any) {
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
 
+  const getExtensionFromMime = (mimeType: string): string => {
+    const normalized = mimeType?.toLowerCase() ?? '';
+    const known: Record<string, string> = {
+      'video/webm': 'webm',
+      'video/mp4': 'mp4',
+      'video/quicktime': 'mov',
+    };
+    if (normalized in known) {
+      return known[normalized];
+    }
+
+    const [, extracted] = normalized.match(/^[-\w+.]+\/([-\w+.]+)/) ?? [];
+    if (extracted) {
+      const clean = extracted.split(';')[0]?.replace(/[^a-z0-9]/g, '');
+      if (clean) {
+        return clean;
+      }
+    }
+
+    return 'mp4';
+  };
+
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
-    const baseDirectory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
+    const baseDirectory = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
     if (!baseDirectory) {
       throw new ClipCaptureError('clip_directory_unavailable');
     }
@@ -144,25 +158,22 @@ export default function TeachingScreen({ navigation }: any) {
     const clipDirectory = `${baseDirectory}amy-teaching-clips/`;
 
     try {
-      const directoryInfo = await expoFs.getInfoAsync(clipDirectory);
+      const directoryInfo = await FileSystem.getInfoAsync(clipDirectory);
       if (!directoryInfo.exists) {
-        await expoFs.makeDirectoryAsync(clipDirectory, { intermediates: true });
+        await FileSystem.makeDirectoryAsync(clipDirectory, { intermediates: true });
       } else if (!directoryInfo.isDirectory) {
-        await expoFs.deleteAsync(clipDirectory, { idempotent: true });
-        await expoFs.makeDirectoryAsync(clipDirectory, { intermediates: true });
+        await FileSystem.deleteAsync(clipDirectory, { idempotent: true });
+        await FileSystem.makeDirectoryAsync(clipDirectory, { intermediates: true });
       }
     } catch (directoryError) {
       logger.warn('Failed to prepare teaching clip directory', directoryError);
       throw new ClipCaptureError('clip_directory_unavailable');
     }
 
-    const extension = clip.mimeType.includes('webm') ? 'webm' : 'mp4';
+    const extension = getExtensionFromMime(clip.mimeType);
     const targetUri = `${clipDirectory}amy-teaching-${clip.id}.${extension}`;
-    const base64Encoding =
-      (expoFs.EncodingType?.Base64 as typeof FileSystem.EncodingType.Base64 | undefined) ??
-      FileSystem.EncodingType.Base64;
-    await expoFs.writeAsStringAsync(targetUri, clip.base64, {
-      encoding: base64Encoding,
+    await FileSystem.writeAsStringAsync(targetUri, clip.base64, {
+      encoding: 'base64',
     });
     return targetUri;
   }, []);
@@ -446,7 +457,7 @@ export default function TeachingScreen({ navigation }: any) {
     } catch (e) {
       logger.error('Recording failed', e);
       if (clipUri) {
-        await expoFs.deleteAsync(clipUri, { idempotent: true }).catch(() => undefined);
+        await FileSystem.deleteAsync(clipUri, { idempotent: true }).catch(() => undefined);
         clipUri = null;
       }
 
