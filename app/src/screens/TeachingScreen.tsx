@@ -42,7 +42,7 @@ import type { ClipReadyPayload } from '../types/frames';
 type ExpoFileSystemCompat = typeof FileSystem & {
   cacheDirectory?: string;
   documentDirectory?: string;
-  EncodingType?: { Base64: string };
+  EncodingType?: { Base64: typeof FileSystem.EncodingType.Base64 };
 };
 
 const expoFs = FileSystem as ExpoFileSystemCompat;
@@ -138,13 +138,16 @@ export default function TeachingScreen({ navigation }: any) {
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
     const directory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
     if (!directory) {
-      throw new Error('clip_directory_unavailable');
+      throw new ClipCaptureError('clip_directory_unavailable');
     }
 
     const extension = clip.mimeType.includes('webm') ? 'webm' : 'mp4';
     const targetUri = `${directory}amy-teaching-${clip.id}.${extension}`;
+    const base64Encoding =
+      (expoFs.EncodingType?.Base64 as typeof FileSystem.EncodingType.Base64 | undefined) ??
+      FileSystem.EncodingType.Base64;
     await expoFs.writeAsStringAsync(targetUri, clip.base64, {
-      encoding: expoFs.EncodingType?.Base64 ?? 'base64',
+      encoding: base64Encoding,
     });
     return targetUri;
   }, []);
