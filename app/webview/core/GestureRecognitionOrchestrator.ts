@@ -405,13 +405,7 @@ export class GestureRecognitionOrchestrator {
 
     const { recorder, mimeType } = recorderResult;
 
-    const resolvedRecorderMimeType =
-      typeof recorder.mimeType === 'string' && recorder.mimeType.length > 0
-        ? recorder.mimeType
-        : undefined;
-    const resolvedRequestedMimeType = typeof mimeType === 'string' && mimeType.length > 0 ? mimeType : undefined;
-    const initialMimeType =
-      resolvedRecorderMimeType ?? resolvedRequestedMimeType ?? this.getPlatformDefaultMime();
+    const initialMimeType = (recorder.mimeType || null) ?? (mimeType || null) ?? this.getPlatformDefaultMime();
 
     const state: ClipCaptureState = {
       id: requestId,
