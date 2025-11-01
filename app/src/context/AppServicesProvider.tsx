@@ -118,7 +118,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       }
 
       if (refreshState.running) {
-        refreshState.queued += 1;
+        refreshState.queued = Math.max(refreshState.queued, 1);
         return refreshState.promise;
       }
 
