@@ -120,7 +120,8 @@ function ensureStyleSheet() {
     body.gesture-detector {
       margin: 0;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: stretch;
       justify-content: center;
       background-color: #ecfdf5;
       background-image: radial-gradient(circle at 20% 20%, rgba(134, 239, 172, 0.25), transparent 60%),
@@ -130,10 +131,10 @@ function ensureStyleSheet() {
 
     .gesture-detector-container {
       position: relative;
-      width: min(96vw, 640px);
-      height: min(72vh, 480px);
-      max-width: 100vw;
-      max-height: 100vh;
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
       border-radius: 24px;
       overflow: hidden;
       box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
