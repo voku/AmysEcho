@@ -1269,7 +1269,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   cameraZone: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
     width: '100%',
     alignSelf: 'center',
     alignItems: 'center',
