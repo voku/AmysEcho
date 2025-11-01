@@ -17,6 +17,7 @@ import { validateLandmarkSequence } from '../services/TrainingDataValidator';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
+import { persistClipToDirectory, type ExpoFileSystemCompat } from '../utils/clipPersistence';
 import {
   MediaPipeGestureDetector,
   MediaPipeGestureDetectorHandle,
@@ -42,12 +43,6 @@ const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Ve
 const MIN_PREVIEW_SIZE = 200;
 const MAX_PREVIEW_SIZE = 420;
 const PANEL_HORIZONTAL_PADDING = SPACING.lg * 2;
-
-type ExpoFileSystemCompat = typeof FileSystem & {
-  cacheDirectory?: string;
-  documentDirectory?: string;
-  EncodingType?: { Base64: string };
-};
 
 const expoFs = FileSystem as ExpoFileSystemCompat;
 
@@ -91,14 +86,12 @@ export default function RecordingScreen({ navigation, route }: any) {
   }, [initialGesture]);
 
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
-    const directory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
-    if (!directory) {
-      throw new Error('clip_directory_unavailable');
-    }
-    const extension = clip.mimeType.includes('webm') ? 'webm' : 'mp4';
-    const targetUri = `${directory}amy-training-${clip.id}.${extension}`;
-    await expoFs.writeAsStringAsync(targetUri, clip.base64, {
-      encoding: (expoFs.EncodingType?.Base64 ?? 'base64') as any,
+    const targetUri = await persistClipToDirectory({
+      fs: expoFs,
+      clip,
+      directoryName: 'amy-training-clips',
+      filePrefix: 'amy-training',
+      logger,
     });
     clipFileRef.current = targetUri;
     return targetUri;
