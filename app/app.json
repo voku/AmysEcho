@@ -28,7 +28,8 @@
     "plugins": [
       "expo-audio",
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      "expo-video"
     ]
   }
 }

@@ -53,6 +53,7 @@ interface RecognitionRefs {
   lastSuccessAtRef: MutableRefObject<number>;
   lastFrameTimeRef: MutableRefObject<number>;
   lastModelUpdateTimeRef: MutableRefObject<number>;
+  activeGestureRef: MutableRefObject<string | null>;
 }
 
 interface RecognitionHelpers {
@@ -529,6 +530,7 @@ export const useRecognitionCallbacks = ({
 
         const gesture = normalizeGestureId(rawGesture);
         if (!gesture) {
+          refs.activeGestureRef.current = null;
           setPendingGesture(null);
           setDetectedGestureMeaning(null);
           if (smoothedConfidence < WAITING_CONFIDENCE_THRESHOLD) {
@@ -551,12 +553,17 @@ export const useRecognitionCallbacks = ({
         const meetsThreshold = smoothedConfidence >= thresholdInfo.threshold;
 
         if (!meetsThreshold) {
+          refs.activeGestureRef.current = null;
           setDetectedGestureMeaning(null);
           handleLowConfidenceGesture(gesture, smoothedConfidence, thresholdInfo.threshold, landmarks);
           return;
         }
 
         clearEncouragementTimeout();
+
+        if (refs.activeGestureRef.current === gesture) {
+          return;
+        }
 
         if (
           refs.lastGestureIdRef.current === gesture &&
@@ -565,6 +572,7 @@ export const useRecognitionCallbacks = ({
           return;
         }
 
+        refs.activeGestureRef.current = gesture;
         refs.lastGestureIdRef.current = gesture;
         refs.lastSuccessAtRef.current = Date.now();
 
@@ -577,6 +585,7 @@ export const useRecognitionCallbacks = ({
         );
       } catch (error) {
         logger.error('handleGestureDetected failed', error);
+        refs.activeGestureRef.current = null;
         setError(PREDICTION_ERROR_TEXT);
       }
     },

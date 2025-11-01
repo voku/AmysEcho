@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, TextInput, Animated, Easing, Button } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 // Camera handled inside WebView detector
 // mlService teaching sessions removed during WebView migration
 import { audioService } from '../services/audioService';
@@ -14,7 +15,10 @@ import {
 } from '../storage';
 import { captureSamples } from '../services/gestureRecorder';
 import { addGesture } from '../model';
-import { MediaPipeGestureDetector } from '../components/MediaPipeGestureDetector';
+import {
+  MediaPipeGestureDetector,
+  MediaPipeGestureDetectorHandle,
+} from '../components/MediaPipeGestureDetector';
 import BottomNav from '../components/BottomNav';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
@@ -33,8 +37,26 @@ import ProgressTracker from '../components/ProgressTracker';
 import GestureValidationFeedback from '../components/GestureValidationFeedback';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import ScreenBackground from '../components/ScreenBackground';
+import type { ClipReadyPayload } from '../types/frames';
+
+type ExpoFileSystemCompat = typeof FileSystem & {
+  cacheDirectory?: string;
+  documentDirectory?: string;
+  EncodingType?: { Base64: 'base64' };
+};
+
+const expoFs = FileSystem as ExpoFileSystemCompat;
+
+const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
 const PREVIEW_SIZE = 240;
+
+class ClipCaptureError extends Error {
+  constructor(message = 'clip_capture_failed') {
+    super(message);
+    this.name = 'ClipCaptureError';
+  }
+}
 
 const normalizeGestureLabel = (label: string): string =>
   label.trim().toLowerCase().replace(/\s+/g, '_');
@@ -74,6 +96,7 @@ export default function TeachingScreen({ navigation }: any) {
     clarity: number;
   } | null>(null);
   const sessionId = useRef<string | null>(null);
+  const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
   const SAMPLES_NEEDED = 5;
   const landmarksRef = useRef<number[][][]>([]);
   const handednessRef = useRef<string[]>([]);
@@ -111,6 +134,59 @@ export default function TeachingScreen({ navigation }: any) {
   // WebView will indicate camera issues via onError
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
+
+  const getExtensionFromMime = (mimeType: string): string => {
+    const normalized = mimeType?.toLowerCase() ?? '';
+    const known: Record<string, string> = {
+      'video/webm': 'webm',
+      'video/mp4': 'mp4',
+      'video/quicktime': 'mov',
+    };
+    const mapped = known[normalized];
+    if (mapped) {
+      return mapped;
+    }
+
+    const [, extracted] = normalized.match(/^[-\w+.]+\/([-\w+.]+)/) ?? [];
+    if (extracted) {
+      const clean = extracted.split(';')[0]?.replace(/[^a-z0-9]/g, '');
+      if (clean) {
+        return clean;
+      }
+    }
+
+    return 'mp4';
+  };
+
+  const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
+    const baseDirectory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
+    if (!baseDirectory) {
+      throw new ClipCaptureError('clip_directory_unavailable');
+    }
+
+    const clipDirectory = `${baseDirectory}amy-teaching-clips/`;
+
+    try {
+      const directoryInfo = await expoFs.getInfoAsync(clipDirectory);
+      if (!directoryInfo.exists) {
+        await expoFs.makeDirectoryAsync(clipDirectory, { intermediates: true });
+      } else if (!directoryInfo.isDirectory) {
+        await expoFs.deleteAsync(clipDirectory, { idempotent: true });
+        await expoFs.makeDirectoryAsync(clipDirectory, { intermediates: true });
+      }
+    } catch (directoryError) {
+      logger.warn('Failed to prepare teaching clip directory', directoryError);
+      throw new ClipCaptureError('clip_directory_unavailable');
+    }
+
+    const extension = getExtensionFromMime(clip.mimeType);
+    const targetUri = `${clipDirectory}amy-teaching-${clip.id}.${extension}`;
+    const base64Encoding: 'base64' = expoFs.EncodingType?.Base64 ?? 'base64';
+    await expoFs.writeAsStringAsync(targetUri, clip.base64, {
+      encoding: base64Encoding,
+    });
+    return targetUri;
+  }, []);
 
   useEffect(() => {
     loadProfile()
@@ -328,28 +404,88 @@ export default function TeachingScreen({ navigation }: any) {
   };
 
   const recordSample = async () => {
-    if (!sessionId.current || isRecording) return;
+    if (!sessionId.current || isRecording) {
+      return;
+    }
+
+    const detector = detectorRef.current;
+    if (!detector) {
+      setError(CLIP_RECORDING_ERROR_TEXT);
+      return;
+    }
+
     setIsRecording(true);
     setError(null);
+
+    let clipStarted = false;
+    let clipStopped = false;
+    let clipUri: string | null = null;
+
     try {
-      const frames = await captureSamples(() => ({ landmarks: landmarksRef.current, handedness: handednessRef.current }));
+      try {
+        await detector.startClipCapture();
+        clipStarted = true;
+      } catch (error) {
+        logger.warn('Failed to start teaching clip capture', error);
+        throw new ClipCaptureError();
+      }
+
+      const frames = await captureSamples(() => ({
+        landmarks: landmarksRef.current,
+        handedness: handednessRef.current,
+      }));
+
+      try {
+        const clipResult = await detector.stopClipCapture();
+        clipStopped = true;
+        clipUri = await persistClip(clipResult);
+      } catch (error) {
+        logger.warn('Failed to finalize teaching clip capture', error);
+        throw new ClipCaptureError();
+      }
+
+      if (!clipUri) {
+        throw new ClipCaptureError();
+      }
+
       const sample = createTrainingSample({
         profileId: profile?.id ?? 'default',
         label: gestureLabel,
         frames,
-        clipUri: '',
+        clipUri,
       });
       await saveTrainingSample(sample);
-      setSampleCount((c) => c + 1);
+
+      const nextCount = sampleCount + 1;
+      setSampleCount(nextCount);
       startSampleCaptureAnimation();
       audioService.playSound('confirmation');
-      if (sampleCount + 1 >= SAMPLES_NEEDED) {
+
+      if (nextCount >= SAMPLES_NEEDED) {
         endSession();
       }
     } catch (e) {
       logger.error('Recording failed', e);
-      setError('Aufnahme fehlgeschlagen');
+      if (clipUri) {
+        await expoFs.deleteAsync(clipUri, { idempotent: true }).catch(() => undefined);
+        clipUri = null;
+      }
+
+      if (e instanceof ClipCaptureError) {
+        setError(CLIP_RECORDING_ERROR_TEXT);
+      } else if (e instanceof Error && e.message) {
+        setError(e.message);
+      } else {
+        setError('Aufnahme fehlgeschlagen');
+      }
     } finally {
+      if (clipStarted && !clipStopped) {
+        try {
+          detector.cancelClipCapture();
+        } catch (cancelError) {
+          logger.warn('Failed to cancel teaching clip capture', cancelError);
+        }
+      }
       setIsRecording(false);
     }
   };
@@ -580,6 +716,7 @@ export default function TeachingScreen({ navigation }: any) {
          <View style={styles.recordingContainer}>
            <View style={styles.camera}>
               <MediaPipeGestureDetector
+                ref={detectorRef}
                 onGestureDetected={handleGestureDetected}
                 onError={(message, _details) => {
                   setError(message);
