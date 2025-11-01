@@ -128,7 +128,7 @@ const STATUS_COPY: Record<
   },
   updating: {
     label: 'Lernt gerade',
-    description: 'Dein Beitrag stärkt Amys Wörterbuch.',
+    description: 'Dein Beitrag verbessert das Wörterbuch der App.',
   },
   error: {
     label: 'Bitte nochmal',

@@ -281,7 +281,7 @@ class DialogEngine {
             {
               role: 'system',
               content:
-                'Du bist Amys Kommunikations-Coach. Liefere nur JSON, das dem bereitgestellten Schema entspricht, ohne zusätzlichen Text.',
+                'Du bist der Kommunikations-Coach. Liefere nur JSON, das dem bereitgestellten Schema entspricht, ohne zusätzlichen Text.',
             },
             ...this.history,
             { role: 'user', content: prompt },
