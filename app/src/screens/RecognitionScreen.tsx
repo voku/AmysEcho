@@ -236,14 +236,6 @@ export default function RecognitionScreen({
     [insets.bottom, insets.top, isHandsetLayout, isWideLayout, windowWidth],
   );
 
-  const handPreviewPositionStyle = useMemo(
-    () => ({
-      top: insets.top + spacing.xl,
-      right: spacing.xl,
-    }),
-    [insets.top],
-  );
-
   const constrainedContentStyle = useMemo(
     () => (!isWideLayout && windowWidth >= 720 ? styles.wideContent : undefined),
     [isWideLayout, windowWidth],
@@ -816,20 +808,58 @@ export default function RecognitionScreen({
         isHandsetLayout && styles.handsetCameraZone,
       ]}
     >
-      <CameraFrame
-        capturePulseAnim={capturePulseAnim}
-        pulseOpacity={CAMERA_THEME.capturePulseOpacity}
-      />
-      <View
-        style={[
-          styles.cameraHintBubble,
-          isWideLayout && styles.cameraHintBubbleWide,
-          isHandsetLayout && styles.handsetCameraHintBubble,
-        ]}
-      >
-        <Text style={[styles.cameraHint, isHandsetLayout && styles.handsetCameraHint]}>
-          Hand ruhig im Rahmen halten.
-        </Text>
+      <View style={styles.cameraPreviewContainer}>
+        <MediaPipeGestureDetector
+          onGestureDetected={processGesture}
+          onLandmarks={(landmarks, handedness) =>
+            handleGestureDetected(null, 0, landmarks, handedness)
+          }
+          onError={handleGestureError}
+          onWebViewEvent={(telemetry) => {
+            if (__DEV__) {
+              const safePayload = {
+                event: telemetry?.event,
+                timestamp: telemetry?.timestamp,
+              };
+              logger.debug('WebView telemetry', safePayload);
+            }
+          }}
+          onModelUpdateStatus={handleModelUpdateStatus}
+          facingMode={facingMode}
+          gestureSizeTolerance={gestureSizeTolerance}
+        />
+        <View pointerEvents="none" style={styles.cameraOverlay}>
+          <CameraFrame
+            capturePulseAnim={capturePulseAnim}
+            pulseOpacity={CAMERA_THEME.capturePulseOpacity}
+            style={styles.cameraFrame}
+          />
+          <View
+            style={[
+              styles.handPreviewOverlay,
+              isHandsetLayout && styles.handsetHandPreviewOverlay,
+            ]}
+          >
+            <HandLandmarkPreview
+              landmarks={currentLandmarks}
+              handedness={currentHandedness}
+              mirror={facingMode === 'user'}
+              confidence={gestureConfidence}
+              style={styles.handPreview}
+            />
+          </View>
+          <View
+            style={[
+              styles.cameraHintBubble,
+              isWideLayout && styles.cameraHintBubbleWide,
+              isHandsetLayout && styles.handsetCameraHintBubble,
+            ]}
+          >
+            <Text style={[styles.cameraHint, isHandsetLayout && styles.handsetCameraHint]}>
+              Hand ruhig im Rahmen halten.
+            </Text>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -1036,52 +1066,21 @@ export default function RecognitionScreen({
   return (
     <>
       <LinearGradient colors={CAMERA_THEME.gradient} style={styles.container}>
-        <MediaPipeGestureDetector
-          onGestureDetected={processGesture}
-          onLandmarks={(landmarks, handedness) => handleGestureDetected(null, 0, landmarks, handedness)}
-          onError={handleGestureError}
-          onWebViewEvent={(telemetry) => {
-            if (__DEV__) {
-              const safePayload = {
-                event: telemetry?.event,
-                timestamp: telemetry?.timestamp,
-              };
-              logger.debug('WebView telemetry', safePayload);
-            }
-          }}
-          onModelUpdateStatus={handleModelUpdateStatus}
-          facingMode={facingMode}
-          gestureSizeTolerance={gestureSizeTolerance}
-        />
-
-        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-          <View pointerEvents="none" style={[styles.handPreviewWrapper, handPreviewPositionStyle]}>
-            <HandLandmarkPreview
-              landmarks={currentLandmarks}
-              handedness={currentHandedness}
-              mirror={facingMode === 'user'}
-              confidence={gestureConfidence}
-              style={styles.handPreview}
-            />
-          </View>
-
-          {isCompactHeight ? (
-            <ScrollView
-              style={styles.overlayScrollContainer}
-              contentContainerStyle={[
-                styles.overlay,
-                styles.overlayScrollable,
-                overlaySpacingStyle,
-              ]}
-              showsVerticalScrollIndicator={false}
-            >
-              {overlayBody}
-            </ScrollView>
-          ) : (
-            <View style={[styles.overlay, overlaySpacingStyle]}>{overlayBody}</View>
-          )}
-        </View>
-
+        {isCompactHeight ? (
+          <ScrollView
+            style={styles.overlayScrollContainer}
+            contentContainerStyle={[
+              styles.overlay,
+              styles.overlayScrollable,
+              overlaySpacingStyle,
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            {overlayBody}
+          </ScrollView>
+        ) : (
+          <View style={[styles.overlay, overlaySpacingStyle]}>{overlayBody}</View>
+        )}
         {showCelebration && <Celebration key={celebrationKey} />}
       </LinearGradient>
 
@@ -1290,8 +1289,26 @@ const styles = StyleSheet.create({
     flex: 2,
     minHeight: 320,
   },
+  cameraPreviewContainer: {
+    width: '100%',
+    maxWidth: 720,
+    aspectRatio: 3 / 4,
+    borderRadius: 32,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: 'rgba(6, 30, 33, 0.24)',
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraFrame: {
+    height: '100%',
+  },
   cameraHintBubble: {
-    marginTop: spacing.xl,
+    position: 'absolute',
+    bottom: spacing['2xl'],
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     backgroundColor: CAMERA_THEME.cameraHintBubbleBackground,
@@ -1300,10 +1317,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.overlayBadgeBorder,
   },
   cameraHintBubbleWide: {
-    marginTop: spacing['2xl'],
+    bottom: spacing['2xl'] + spacing.md,
   },
   handsetCameraHintBubble: {
-    marginTop: spacing.sm,
+    bottom: spacing.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 20,
@@ -1478,10 +1495,17 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 560,
   },
-  handPreviewWrapper: {
+  handPreviewOverlay: {
     position: 'absolute',
     width: 168,
     aspectRatio: 1,
+    top: spacing.xl,
+    right: spacing.xl,
+  },
+  handsetHandPreviewOverlay: {
+    width: 140,
+    top: spacing.lg,
+    right: spacing.lg,
   },
   handPreview: {
     width: '100%',

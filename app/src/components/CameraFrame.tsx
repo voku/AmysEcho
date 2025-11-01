@@ -1,11 +1,12 @@
 import React from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 
 type CameraFrameProps = {
   capturePulseAnim: Animated.Value;
   pulseOpacity?: number;
+  style?: StyleProp<ViewStyle>;
 };
 
 const CAPTURE_PULSE_SIZE = spacing['2xl'] * 5;
@@ -13,8 +14,9 @@ const CAPTURE_PULSE_SIZE = spacing['2xl'] * 5;
 const CameraFrameComponent: React.FC<CameraFrameProps> = ({
   capturePulseAnim,
   pulseOpacity = 0.55,
+  style,
 }) => (
-  <View style={styles.frame}>
+  <View style={[styles.frame, style]}>
     <Animated.View
       pointerEvents="none"
       style={[
@@ -34,7 +36,7 @@ const CameraFrameComponent: React.FC<CameraFrameProps> = ({
 
 const styles = StyleSheet.create({
   frame: {
-    width: '88%',
+    width: '100%',
     aspectRatio: 3 / 4,
     borderRadius: 28,
     justifyContent: 'center',

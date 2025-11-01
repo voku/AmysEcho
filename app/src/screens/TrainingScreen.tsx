@@ -516,6 +516,15 @@ export default function TrainingScreen({ navigation, route }: any) {
   const progressTop = insets.top + SPACING.lg;
   const statusTop = progressTop + SPACING.xl;
   const captureBottom = insets.bottom + SPACING.xl;
+  const cameraSafeAreaStyle = useMemo(
+    () => ({
+      top: insets.top,
+      right: insets.right,
+      bottom: insets.bottom,
+      left: insets.left,
+    }),
+    [insets.bottom, insets.left, insets.right, insets.top],
+  );
 
   const handleCapturePress = useCallback(() => {
     void hapticFeedback.light();
@@ -977,7 +986,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   if (gestureId && count < TARGET_SAMPLES) {
     return (
       <View style={styles.cameraScreen}>
-        <View style={styles.cameraFeedWrapper}>
+        <View style={[styles.cameraFeedWrapper, cameraSafeAreaStyle]}>
           <MediaPipeGestureDetector
             ref={detectorRef}
             onWebViewEvent={(telemetry) => {
@@ -1034,8 +1043,8 @@ export default function TrainingScreen({ navigation, route }: any) {
             styles.topControls,
             {
               top: Math.max(insets.top + SPACING.sm, SPACING.lg),
-              left: SPACING.md,
-              right: SPACING.md,
+              left: insets.left + SPACING.md,
+              right: insets.right + SPACING.md,
             },
           ]}
         >
@@ -1122,7 +1131,16 @@ export default function TrainingScreen({ navigation, route }: any) {
           </View>
         )}
 
-        <View style={[styles.captureArea, { bottom: captureBottom }]}>
+        <View
+          style={[
+            styles.captureArea,
+            {
+              bottom: captureBottom,
+              left: insets.left,
+              right: insets.right,
+            },
+          ]}
+        >
           <Pressable
             onPress={handleCapturePress}
             accessibilityRole="button"
@@ -1169,7 +1187,17 @@ export default function TrainingScreen({ navigation, route }: any) {
         </View>
 
         {showInstructions && (
-          <View style={styles.instructionsOverlay}>
+          <View
+            style={[
+              styles.instructionsOverlay,
+              {
+                paddingTop: insets.top + SPACING.xl,
+                paddingBottom: insets.bottom + SPACING.xl,
+                paddingLeft: insets.left + SPACING.xl,
+                paddingRight: insets.right + SPACING.xl,
+              },
+            ]}
+          >
             <View style={styles.instructionsCard}>
               <View style={styles.instructionsHeader}>
                 <Text style={styles.instructionsTitle}>Schnellanleitung</Text>
