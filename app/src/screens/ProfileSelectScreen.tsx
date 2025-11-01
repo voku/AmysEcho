@@ -87,7 +87,7 @@ export default function ProfileSelectScreen({ navigation }: { navigation: Profil
               );
             }}
             accessibilityLabel="Zum Erkennungsmodus"
-            accessibilityHint="Öffnet Amys Gestenerkennung"
+            accessibilityHint="Öffnet die Gestenerkennung"
             disabled={!profile}
             playHaptic
           />

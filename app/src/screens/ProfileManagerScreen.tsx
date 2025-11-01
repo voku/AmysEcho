@@ -481,7 +481,7 @@ export default function ProfileManagerScreen({
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Profile verwalten</Text>
             <Text style={styles.sectionSubtitle}>
-              Wähle das aktive Profil und passe Amys Erfahrung an eure Betreuungssituation an.
+              Wähle das aktive Profil und passe die Erfahrung der App an eure Betreuungssituation an.
             </Text>
           </View>
 

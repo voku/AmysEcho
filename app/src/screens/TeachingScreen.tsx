@@ -453,7 +453,7 @@ export default function TeachingScreen({ navigation }: any) {
               accessibilityLabel={
                 teachingMode === 'library'
                   ? 'Zu eigenen Gesten wechseln'
-                  : 'Eine Bedeutung aus Amys Bibliothek auswählen'
+                  : 'Eine Bedeutung aus der Bibliothek auswählen'
               }
             >
               <Text style={styles.modeToggleText}>

@@ -21,13 +21,13 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
     <ScreenBackground scrollable testID="hero-screen">
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.pill}>Amy hört zu</Text>
+          <Text style={styles.pill}>Amy’s Echo hört zu</Text>
           <Text style={styles.title} testID="hero-title">
-            Willkommen bei Amy&apos;s Echo
+            Willkommen bei Amy’s Echo
           </Text>
           <Text style={styles.subtitle} testID="hero-subtitle">
             Die Gestenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
-            So bleibt Amys Gespräch nie stehen.
+            So bleibt das Gespräch mit Amy’s Echo nie stehen.
           </Text>
         </View>
 
