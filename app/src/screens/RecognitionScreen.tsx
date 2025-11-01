@@ -38,6 +38,7 @@ import {
   cloneLandmarks,
   adjustHandednessForMirror,
   createHandLandmarkStabilizer,
+  type StabilizedHands,
 } from '../utils/landmarkUtils';
 import OpenAIGestureFeedback from '../components/OpenAIGestureFeedback';
 import Colors from '../constants/colors';
@@ -57,6 +58,8 @@ import { childFriendlyStyles } from '../styles/touchTargets';
 
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
+const HAND_PREVIEW_STABILIZER_TTL_MS = 1800;
+const HAND_PREVIEW_CLEAR_DELAY_MS = 500;
 type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating' | 'error';
 
 const CAMERA_THEME = {
@@ -274,8 +277,19 @@ export default function RecognitionScreen({
   const lastGestureIdRef = useRef<string | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const lastModelUpdateTimeRef = useRef<number>(0);
-  const handStabilizerRef = useRef(createHandLandmarkStabilizer({ ttlMs: 300, maxHands: 2 }));
+  const handStabilizerRef = useRef(
+    createHandLandmarkStabilizer({ ttlMs: HAND_PREVIEW_STABILIZER_TTL_MS, maxHands: 2 }),
+  );
+  const handPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestFrameRef = useRef<GestureImageCapture | null>(null);
+  const activeGestureRef = useRef<string | null>(null);
+
+  const clearHandPreviewTimeout = useCallback(() => {
+    if (handPreviewTimeoutRef.current) {
+      clearTimeout(handPreviewTimeoutRef.current);
+      handPreviewTimeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -297,9 +311,10 @@ export default function RecognitionScreen({
 
   useEffect(() => {
     handStabilizerRef.current.reset();
+    clearHandPreviewTimeout();
     setCurrentLandmarks([]);
     setCurrentHandedness([]);
-  }, [facingMode]);
+  }, [clearHandPreviewTimeout, facingMode]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -338,6 +353,52 @@ export default function RecognitionScreen({
   }, [profile?.id, showToast]);
 
   const capturePulseAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    return () => {
+      clearHandPreviewTimeout();
+    };
+  }, [clearHandPreviewTimeout]);
+
+  const stabilizeHands = useCallback(
+    (landmarks: number[][][], handedness: string[]): StabilizedHands => {
+      const mirrored = facingMode === 'user';
+      const safeLandmarks = cloneLandmarks(landmarks);
+      const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
+      return handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
+    },
+    [facingMode],
+  );
+
+  const updateHandPreview = useCallback(
+    (landmarks: number[][][], handedness: string[]): StabilizedHands => {
+      const stabilized = stabilizeHands(landmarks, handedness);
+      if (stabilized.landmarks.length > 0) {
+        clearHandPreviewTimeout();
+        setCurrentLandmarks(stabilized.landmarks);
+        setCurrentHandedness(stabilized.handedness);
+      } else if (!handPreviewTimeoutRef.current) {
+        handPreviewTimeoutRef.current = setTimeout(() => {
+          setCurrentLandmarks([]);
+          setCurrentHandedness([]);
+          handPreviewTimeoutRef.current = null;
+        }, HAND_PREVIEW_CLEAR_DELAY_MS);
+      }
+      return stabilized;
+    },
+    [
+      clearHandPreviewTimeout,
+      setCurrentHandedness,
+      setCurrentLandmarks,
+      stabilizeHands,
+    ],
+  );
+
+  const handleLandmarksOnly = useCallback(
+    (landmarks: number[][][], handedness: string[]) => {
+      updateHandPreview(landmarks, handedness);
+    },
+    [updateHandPreview],
+  );
   const pulseLoopRef = useRef<ReturnType<typeof Animated.loop> | null>(null);
 
   const captureImage = useCallback(async () => {
@@ -363,6 +424,7 @@ export default function RecognitionScreen({
       lastSuccessAtRef,
       lastFrameTimeRef,
       lastModelUpdateTimeRef,
+      activeGestureRef,
     }),
     [],
   );
@@ -397,11 +459,7 @@ export default function RecognitionScreen({
       landmarks: number[][][],
       handedness: string[],
     ) => {
-      const mirrored = facingMode === 'user';
-      const safeLandmarks = cloneLandmarks(landmarks);
-      const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
-      const stabilized = handStabilizerRef.current.update(safeLandmarks, adjustedHandedness);
-
+      const stabilized = updateHandPreview(landmarks, handedness);
       let processedGesture = gesture;
       let processedConfidence = confidence;
       return baseHandleGestureDetected(
@@ -412,7 +470,7 @@ export default function RecognitionScreen({
         'local',
       );
     },
-    [baseHandleGestureDetected, facingMode],
+    [baseHandleGestureDetected, updateHandPreview],
   );
 
   const {
@@ -811,9 +869,7 @@ export default function RecognitionScreen({
       <View style={styles.cameraPreviewContainer}>
         <MediaPipeGestureDetector
           onGestureDetected={processGesture}
-          onLandmarks={(landmarks, handedness) =>
-            handleGestureDetected(null, 0, landmarks, handedness)
-          }
+          onLandmarks={handleLandmarksOnly}
           onError={handleGestureError}
           onWebViewEvent={(telemetry) => {
             if (__DEV__) {

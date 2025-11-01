@@ -256,6 +256,9 @@ describe('useRecognitionCallbacks', () => {
       lastModelUpdateTimeRef: {
         current: 0,
       },
+      activeGestureRef: {
+        current: null,
+      },
     } as RecognitionRefs;
 
     helpers = {
