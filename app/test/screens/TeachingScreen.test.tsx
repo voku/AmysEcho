@@ -38,8 +38,22 @@ jest.mock('../../src/services/gestureRecorder', () => ({
 jest.mock('../../src/services', () => ({
   syncTrainingData: jest.fn(async () => {}),
 }));
-jest.mock('../../src/components/MediaPipeGestureDetector', () => ({
-  MediaPipeGestureDetector: () => null,
+jest.mock('../../src/components/MediaPipeGestureDetector', () => {
+  const React = require('react');
+  return {
+    MediaPipeGestureDetector: React.forwardRef(() => null),
+  };
+});
+jest.mock('expo-file-system', () => ({
+  writeAsStringAsync: jest.fn(async () => {}),
+  deleteAsync: jest.fn(async () => {}),
+  cacheDirectory: 'file:///cache/',
+  documentDirectory: 'file:///docs/',
+  EncodingType: { Base64: 'base64' },
+  Paths: {
+    document: { uri: 'file:///docs/' },
+    cache: { uri: 'file:///cache/' },
+  },
 }));
 
 import TeachingScreen from '../../src/screens/TeachingScreen';

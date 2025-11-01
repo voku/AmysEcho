@@ -61,6 +61,10 @@ const getConfidenceMeta = (confidence: number) => {
   };
 };
 
+type HistoryListItem =
+  | { kind: 'highlight'; entry: GestureHistoryEntry }
+  | { kind: 'history'; entry: GestureHistoryEntry };
+
 const HistoryScreen: React.FC = () => {
   const [history, setHistory] = useState<GestureHistoryEntry[]>([]);
   const navigation = useNavigation<TabNavigationProp<typeof APP_TAB_ROUTES.History>>();
@@ -104,11 +108,18 @@ const HistoryScreen: React.FC = () => {
     }, [loadHistory]),
   );
 
-  const historyItems = useMemo(() => history, [history]);
   const latestDiscovery = useMemo(
     () => history.find((entry) => (entry.confidence ?? 0) >= CONFIDENCE_THRESHOLD_STRONG),
     [history],
   );
+
+  const listData = useMemo<HistoryListItem[]>(() => {
+    const items = history.map<HistoryListItem>((entry) => ({ kind: 'history', entry }));
+    if (latestDiscovery) {
+      return [{ kind: 'highlight', entry: latestDiscovery }, ...items];
+    }
+    return items;
+  }, [history, latestDiscovery]);
 
   const handleQuickLearn = useCallback(
     (entry: GestureHistoryEntry) => {
@@ -127,86 +138,103 @@ const HistoryScreen: React.FC = () => {
     navigation.navigate(APP_TAB_ROUTES.Recognition);
   }, [navigation]);
 
-  const renderItem = ({ item }: { item: GestureHistoryEntry }) => {
-    const meta = getConfidenceMeta(item.confidence ?? 0);
-    const timestamp = formatTimestamp(item.timestamp);
-    const category = item.category?.toUpperCase() ?? 'GESTE';
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.emojiBubble}>
-            <Text style={styles.emoji}>{item.emoji || '✋'}</Text>
+  const renderHistoryItem = useCallback(
+    (entry: GestureHistoryEntry) => {
+      const meta = getConfidenceMeta(entry.confidence ?? 0);
+      const timestamp = formatTimestamp(entry.timestamp);
+      const category = entry.category?.toUpperCase() ?? 'GESTE';
+      return (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.emojiBubble}>
+              <Text style={styles.emoji}>{entry.emoji || '✋'}</Text>
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={styles.cardTitle}>{entry.label}</Text>
+              <Text style={styles.cardTimestamp}>{timestamp}</Text>
+            </View>
+            <View
+              style={[styles.confidenceBadge, { backgroundColor: meta.color }]}
+              accessibilityLabel={`Vertrauen: ${meta.detail}`}
+            >
+              <Text style={styles.confidenceLabel}>{meta.label}</Text>
+              <Text style={styles.confidenceDetail}>{meta.detail}</Text>
+            </View>
           </View>
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>{item.label}</Text>
-            <Text style={styles.cardTimestamp}>{timestamp}</Text>
-          </View>
-          <View
-            style={[styles.confidenceBadge, { backgroundColor: meta.color }]}
-            accessibilityLabel={`Vertrauen: ${meta.detail}`}
-          >
-            <Text style={styles.confidenceLabel}>{meta.label}</Text>
-            <Text style={styles.confidenceDetail}>{meta.detail}</Text>
+          <View style={styles.cardFooter}>
+            <View style={styles.cardFooterText}>
+              <Text style={styles.cardCategory}>{category}</Text>
+              <Text style={styles.cardNarrative}>{meta.narrative}</Text>
+            </View>
+            <ActionButton
+              label="Jetzt üben"
+              accessibilityLabel={`Gestentraining für ${entry.label} öffnen`}
+              onPress={() => handleQuickLearn(entry)}
+              variant="secondary"
+              style={styles.quickLearnButton}
+              testID={`history-quick-learn-${entry.id}`}
+            />
           </View>
         </View>
-        <View style={styles.cardFooter}>
-          <View style={styles.cardFooterText}>
-            <Text style={styles.cardCategory}>{category}</Text>
-            <Text style={styles.cardNarrative}>{meta.narrative}</Text>
+      );
+    },
+    [handleQuickLearn],
+  );
+
+  const renderHighlight = useCallback(
+    (entry: GestureHistoryEntry) => (
+      <View style={styles.highlightWrapper}>
+        <View style={styles.highlightCard} accessibilityRole="summary">
+          <View style={styles.highlightBadge}>
+            <Text style={styles.highlightBadgeText}>Selbstentdeckung gesichert</Text>
           </View>
-          <ActionButton
-            label="Jetzt üben"
-            accessibilityLabel={`Gestentraining für ${item.label} öffnen`}
-            onPress={() => handleQuickLearn(item)}
-            variant="secondary"
-            style={styles.quickLearnButton}
-            testID={`history-quick-learn-${item.id}`}
-          />
+          <Text style={styles.highlightTitle}>{entry.label}</Text>
+          <Text style={styles.highlightSubtitle}>
+            Amy hat diese Geste gerade als Stimme gespiegelt. Möchtest du den Moment wiederholen oder direkt weiterlernen?
+          </Text>
+          <View style={styles.highlightActions}>
+            <ActionButton
+              label="Zur Kamera"
+              accessibilityLabel="Zur Kamera zurückkehren"
+              onPress={navigateToCamera}
+              backgroundColor={Colors.cameraActionConfirmBackground}
+              pressedBackgroundColor={Colors.cameraActionConfirmPressed}
+              textColor={Colors.cameraActionConfirmText}
+              style={styles.highlightPrimaryAction}
+              testID="history-highlight-camera"
+            />
+            <ActionButton
+              label="Im Lernmodus vertiefen"
+              accessibilityLabel={`Gestentraining für ${entry.label} öffnen`}
+              onPress={() => handleQuickLearn(entry)}
+              variant="secondary"
+              style={styles.highlightSecondaryAction}
+              testID="history-highlight-learn"
+            />
+          </View>
         </View>
       </View>
-    );
+    ),
+    [handleQuickLearn, navigateToCamera],
+  );
+
+  const renderItem = ({ item }: { item: HistoryListItem }) => {
+    if (item.kind === 'highlight') {
+      return renderHighlight(item.entry);
+    }
+
+    return renderHistoryItem(item.entry);
   };
 
   return (
     <LinearGradient colors={[Colors.backgroundStart, Colors.backgroundEnd]} style={styles.container}>
       <WorkflowStageHeader route={APP_TAB_ROUTES.History} tone="dark" style={styles.stageHeader} />
-      {latestDiscovery ? (
-        <View style={styles.highlightWrapper}>
-          <View style={styles.highlightCard} accessibilityRole="summary">
-            <View style={styles.highlightBadge}>
-              <Text style={styles.highlightBadgeText}>Selbstentdeckung gesichert</Text>
-            </View>
-            <Text style={styles.highlightTitle}>{latestDiscovery.label}</Text>
-            <Text style={styles.highlightSubtitle}>
-              Amy hat diese Geste gerade als Stimme gespiegelt. Möchtest du den Moment wiederholen oder direkt weiterlernen?
-            </Text>
-            <View style={styles.highlightActions}>
-              <ActionButton
-                label="Zur Kamera"
-                accessibilityLabel="Zur Kamera zurückkehren"
-                onPress={navigateToCamera}
-                backgroundColor={Colors.cameraActionConfirmBackground}
-                pressedBackgroundColor={Colors.cameraActionConfirmPressed}
-                textColor={Colors.cameraActionConfirmText}
-                style={styles.highlightPrimaryAction}
-                testID="history-highlight-camera"
-              />
-              <ActionButton
-                label="Im Lernmodus vertiefen"
-                accessibilityLabel={`Gestentraining für ${latestDiscovery.label} öffnen`}
-                onPress={() => handleQuickLearn(latestDiscovery)}
-                variant="secondary"
-                style={styles.highlightSecondaryAction}
-                testID="history-highlight-learn"
-              />
-            </View>
-          </View>
-        </View>
-      ) : null}
       <FlatList
-        data={historyItems}
+        data={listData}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) =>
+          item.kind === 'highlight' ? `highlight-${item.entry.id}` : item.entry.id
+        }
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyState}>
