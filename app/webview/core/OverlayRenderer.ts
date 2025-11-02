@@ -65,14 +65,17 @@ export class OverlayRenderer {
 
     this.ctx.save();
 
-    // Mirror horizontally if needed
-    if (mirrorOverlay) {
-      this.ctx.scale(-1, 1);
-      this.ctx.translate(-this.overlayWidth, 0);
-    }
-
     // Draw in CSS pixels while canvas is scaled for HiDPI
     this.ctx.scale(this.overlayDpr, this.overlayDpr);
+
+    // Mirror horizontally if needed. When a device pixel ratio is applied we need to
+    // compensate the translation so that we still move by the visual overlay width
+    // instead of the scaled (device pixel) width.
+    if (mirrorOverlay) {
+      const translateX = this.overlayDpr ? this.overlayWidth / this.overlayDpr : this.overlayWidth;
+      this.ctx.translate(translateX, 0);
+      this.ctx.scale(-1, 1);
+    }
 
     // Set common styles once
     this.ctx.lineWidth = 3;

@@ -119,6 +119,7 @@ const TAP_TO_START_ACCESSIBILITY_HINT =
 const RECOGNIZER_INIT_FAILED_TEXT = "Ich bin gleich bereit. Versuch's nochmal!";
 const PREDICTION_ERROR_TEXT = "Das hat nicht geklappt. Lass es uns nochmal versuchen!";
 const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
+const CAMERA_RETRY_PROMPT_TEXT = 'Die Kamera braucht einen Moment. Tippe, um sie neu zu starten.';
 const GESTURE_PROCESSING_ERROR_TEXT = "Das hat nicht geklappt. Probier's einfach nochmal!";
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 const CLIP_UNSUPPORTED_DEVICE_TEXT = 'Dieses Gerät unterstützt keine Videoaufnahmen.';
@@ -149,6 +150,8 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
   const webviewRef = useRef<any>(null);
   const clipStateRef = useRef<ClipRequestState>({ id: null, timeout: null });
   const [webviewError, setWebviewError] = useState<string | null>(null);
+  const [cameraPromptMessage, setCameraPromptMessage] = useState<string>(TAP_TO_START_TEXT);
+  const [isCameraPromptVisible, setIsCameraPromptVisible] = useState<boolean>(true);
 
   const {
     injectModel,
@@ -550,6 +553,8 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
   );
 
   const handleTapToStartPress = useCallback(() => {
+    setCameraPromptMessage(TAP_TO_START_TEXT);
+    setIsCameraPromptVisible(false);
     scheduleCameraStartAttempt('tap_overlay', true);
   }, [scheduleCameraStartAttempt]);
 
@@ -623,6 +628,75 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     }
   }, []);
 
+  const forwardLandmarks = useCallback(
+    (payload: unknown) => {
+      if (!onLandmarks) {
+        return;
+      }
+
+      if (!payload || typeof payload !== 'object') {
+        onLandmarks([], []);
+        return;
+      }
+
+      const { landmarks, handedness, handednesses } = payload as {
+        landmarks?: unknown;
+        handedness?: unknown;
+        handednesses?: unknown;
+      };
+
+      const normalizedLandmarks = Array.isArray(landmarks)
+        ? (landmarks as number[][][])
+        : [];
+      const handednessSource = Array.isArray(handedness)
+        ? handedness
+        : Array.isArray(handednesses)
+        ? handednesses
+        : [];
+      const normalizedHandedness = Array.isArray(handednessSource)
+        ? handednessSource.map((label) => (typeof label === 'string' ? label : String(label ?? '')))
+        : [];
+
+      onLandmarks(normalizedLandmarks, normalizedHandedness);
+    },
+    [onLandmarks],
+  );
+
+  const forwardFrameBatch = useCallback(
+    (payload: unknown) => {
+      if (!onFrameBatch || !payload || typeof payload !== 'object') {
+        return;
+      }
+
+      const data = payload as FrameBatchPayload & {
+        handednesses?: unknown;
+        timestamps?: unknown;
+      };
+      const frames = Array.isArray(data.frames)
+        ? data.frames.filter((frame: unknown): frame is string => typeof frame === 'string')
+        : [];
+      const landmarks = Array.isArray(data.landmarks)
+        ? (data.landmarks as number[][][][])
+        : [];
+      const timestamps = Array.isArray(data.timestamps)
+        ? data.timestamps.filter((ts: unknown): ts is number => typeof ts === 'number')
+        : [];
+      const handednesses = Array.isArray(data.handednesses)
+        ? data.handednesses.map((entry: unknown) => {
+            if (!Array.isArray(entry)) {
+              return [] as string[];
+            }
+            return entry
+              .filter((label: unknown): label is string => typeof label === 'string')
+              .map((label) => label);
+          })
+        : [];
+
+      onFrameBatch({ frames, landmarks, handednesses, timestamps });
+    },
+    [onFrameBatch],
+  );
+
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
       try {
@@ -633,13 +707,24 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
             setWebviewError(null);
           }
         } else if (data.type === 'landmarks') {
-          onLandmarks?.(data.landmarks || [], data.handedness || []);
+          forwardLandmarks(data);
         } else if (data.type === 'gesture_batch') {
           const messages = Array.isArray(data.messages) ? data.messages : [];
           let processedCount = 0;
 
           for (const message of messages) {
-            if (deliverGestureMessage(message)) {
+            const messageType =
+              message && typeof message === 'object'
+                ? (message as { type?: string }).type
+                : undefined;
+
+            if (messageType === 'FRAME_BATCH') {
+              forwardFrameBatch(message);
+            } else if (messageType === 'landmarks') {
+              forwardLandmarks(message);
+            } else if (messageType === 'telemetry') {
+              onWebViewEvent?.(message);
+            } else if (deliverGestureMessage(message)) {
               processedCount += 1;
             }
           }
@@ -666,39 +751,20 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
               processedCount,
             };
 
-            if (typeof data.messageCount === 'number') {
-              telemetry.messageCount = data.messageCount;
-            }
-            if (typeof data.frameCount === 'number') {
-              telemetry.frameCount = data.frameCount;
-            }
-            if (typeof data.lastSentAt === 'number') {
-              telemetry.lastSentAt = data.lastSentAt;
-            }
+          if (typeof data.messageCount === 'number') {
+            telemetry.messageCount = data.messageCount;
+          }
+          if (typeof data.frameCount === 'number') {
+            telemetry.frameCount = data.frameCount;
+          }
+          if (typeof data.lastSentAt === 'number') {
+            telemetry.lastSentAt = data.lastSentAt;
+          }
 
-            onWebViewEvent(telemetry);
-          }
-        } else if (data.type === 'FRAME_BATCH') {
-          if (onFrameBatch) {
-            const frames = Array.isArray(data.frames)
-              ? data.frames.filter((frame: unknown) => typeof frame === 'string')
-              : [];
-            const landmarks = Array.isArray(data.landmarks) ? (data.landmarks as number[][][][]) : [];
-            const timestamps = Array.isArray(data.timestamps)
-              ? data.timestamps.filter((ts: unknown) => typeof ts === 'number')
-              : [];
-            const handednesses = Array.isArray(data.handednesses)
-              ? data.handednesses.map((entry: unknown) => {
-                  if (!Array.isArray(entry)) {
-                    return [] as string[];
-                  }
-                  return entry
-                    .filter((label: unknown): label is string => typeof label === 'string')
-                    .map((label) => label);
-                })
-              : [];
-            onFrameBatch({ frames, landmarks, handednesses, timestamps });
-          }
+          onWebViewEvent(telemetry);
+        }
+      } else if (data.type === 'FRAME_BATCH') {
+          forwardFrameBatch(data);
         } else if (data.type === 'clip_ready') {
           const clipId = typeof data.id === 'string' ? data.id : null;
           if (!clipId || clipId !== clipStateRef.current.id) {
@@ -770,23 +836,32 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
             markTransferComplete();
             onModelUpdateStatus?.('error');
             setWebviewError(PREDICTION_ERROR_TEXT);
+            setIsCameraPromptVisible(false);
           } else if (eventName === 'cleanup_done') {
             mlpReadyRef.current = false;
             resetTransferState?.();
             onCameraStateChange?.('cleanup_done');
+            setCameraPromptMessage(TAP_TO_START_TEXT);
+            setIsCameraPromptVisible(true);
           } else if (eventName === 'gesture_processing_error') {
             setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
+            setIsCameraPromptVisible(false);
           } else if (eventName === 'camera_started' || eventName === 'camera_start_hook_success') {
             clearCameraStartRetryTimeout();
             cameraStartRetryRef.current.attempts = 0;
             setWebviewError(null);
+            setIsCameraPromptVisible(false);
             onCameraStateChange?.(eventName);
           } else if (eventName === 'dom_ready') {
             setWebviewError(null);
+            setCameraPromptMessage(TAP_TO_START_TEXT);
+            setIsCameraPromptVisible(true);
             scheduleCameraStartAttempt('dom_ready', true);
             onCameraStateChange?.('dom_ready');
           } else if (eventName === 'camera_start_failed' || eventName === 'camera_start_hook_error') {
-            setWebviewError(CAMERA_ERROR_TEXT);
+            setWebviewError(null);
+            setCameraPromptMessage(CAMERA_RETRY_PROMPT_TEXT);
+            setIsCameraPromptVisible(true);
             scheduleCameraStartAttempt('dom_ready_retry');
             onCameraStateChange?.(eventName);
           }
@@ -797,6 +872,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
             code: (data as { code?: string }).code,
           });
           setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
+          setIsCameraPromptVisible(false);
           onError(errorMessage);
         }
       } catch (err) {
@@ -811,6 +887,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           payloadSnippet: snippet || undefined,
         });
         setWebviewError(GESTURE_PROCESSING_ERROR_TEXT);
+        setIsCameraPromptVisible(false);
         const baseMessage =
           err instanceof Error && err.message ? err.message : 'gesture_processing_error';
         const errorMessage = snippet ? `${baseMessage}: ${snippet}` : baseMessage;
@@ -820,6 +897,8 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     [
       clearCameraStartRetryTimeout,
       deliverGestureMessage,
+      forwardFrameBatch,
+      forwardLandmarks,
       injectModel,
       markTransferComplete,
       mlpReadyRef,
@@ -839,6 +918,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     (nativeEvent: unknown, type: 'runtime' | 'http') => {
       logger.warn(type === 'runtime' ? 'WebView runtime error' : 'WebView HTTP error', nativeEvent);
       setWebviewError(WEBVIEW_UNAVAILABLE_TEXT);
+      setIsCameraPromptVisible(false);
       onError(type === 'runtime' ? 'webview_load_error' : 'webview_http_error');
     },
     [onError],
@@ -856,7 +936,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
         onPermissionRequest={handlePermissionRequest}
       />
 
-      {webviewError && webviewError === TAP_TO_START_TEXT && (
+      {isCameraPromptVisible && (
         <Pressable
           pointerEvents="auto"
           accessibilityRole="button"
@@ -865,11 +945,11 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           onPress={handleTapToStartPress}
           style={styles.errorOverlay}
         >
-          <Text style={styles.errorText}>{webviewError}</Text>
+          <Text style={styles.errorText}>{cameraPromptMessage}</Text>
         </Pressable>
       )}
 
-      {webviewError && webviewError !== TAP_TO_START_TEXT && (
+      {webviewError && (
         <View pointerEvents="none" style={styles.errorOverlay}>
           <Text style={styles.errorText}>{webviewError}</Text>
         </View>

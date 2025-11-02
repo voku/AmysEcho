@@ -33,7 +33,6 @@ import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
 import { useParallelProcessing } from '../hooks/useParallelProcessing';
-import HandLandmarkPreview from '../components/HandLandmarkPreview';
 import {
   cloneLandmarks,
   adjustHandednessForMirror,
@@ -59,14 +58,12 @@ import { childFriendlyStyles } from '../styles/touchTargets';
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
 const HAND_PREVIEW_STABILIZER_TTL_MS = 1800;
-const HAND_PREVIEW_CLEAR_DELAY_MS = 500;
 type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating' | 'error';
 
 const CAMERA_THEME = {
   gradient: [Colors.backgroundStart, Colors.backgroundEnd] as const,
   panelBackground: 'rgba(7, 33, 36, 0.28)',
   cameraHintBubbleBackground: 'rgba(6, 30, 33, 0.24)',
-  handPreviewBackground: 'rgba(7, 33, 36, 0.32)',
   statusBackground: {
     idle: Colors.statusListeningBackground,
     listening: Colors.statusListeningBackground,
@@ -262,10 +259,6 @@ export default function RecognitionScreen({
     detectedGestureMeaning,
     sequenceMeaning,
     sequenceMatch,
-    currentLandmarks,
-    setCurrentLandmarks,
-    currentHandedness,
-    setCurrentHandedness,
     modelUpdateStatus,
     recognitionPath,
   } = state;
@@ -280,16 +273,8 @@ export default function RecognitionScreen({
   const handStabilizerRef = useRef(
     createHandLandmarkStabilizer({ ttlMs: HAND_PREVIEW_STABILIZER_TTL_MS, maxHands: 2 }),
   );
-  const handPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestFrameRef = useRef<GestureImageCapture | null>(null);
   const activeGestureRef = useRef<string | null>(null);
-
-  const clearHandPreviewTimeout = useCallback(() => {
-    if (handPreviewTimeoutRef.current) {
-      clearTimeout(handPreviewTimeoutRef.current);
-      handPreviewTimeoutRef.current = null;
-    }
-  }, []);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -311,10 +296,7 @@ export default function RecognitionScreen({
 
   useEffect(() => {
     handStabilizerRef.current.reset();
-    clearHandPreviewTimeout();
-    setCurrentLandmarks([]);
-    setCurrentHandedness([]);
-  }, [clearHandPreviewTimeout, facingMode]);
+  }, [facingMode]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -353,11 +335,6 @@ export default function RecognitionScreen({
   }, [profile?.id, showToast]);
 
   const capturePulseAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    return () => {
-      clearHandPreviewTimeout();
-    };
-  }, [clearHandPreviewTimeout]);
 
   const stabilizeHands = useCallback(
     (landmarks: number[][][], handedness: string[]): StabilizedHands => {
@@ -370,35 +347,11 @@ export default function RecognitionScreen({
   );
 
   const updateHandPreview = useCallback(
-    (landmarks: number[][][], handedness: string[]): StabilizedHands => {
-      const stabilized = stabilizeHands(landmarks, handedness);
-      if (stabilized.landmarks.length > 0) {
-        clearHandPreviewTimeout();
-        setCurrentLandmarks(stabilized.landmarks);
-        setCurrentHandedness(stabilized.handedness);
-      } else if (!handPreviewTimeoutRef.current) {
-        handPreviewTimeoutRef.current = setTimeout(() => {
-          setCurrentLandmarks([]);
-          setCurrentHandedness([]);
-          handPreviewTimeoutRef.current = null;
-        }, HAND_PREVIEW_CLEAR_DELAY_MS);
-      }
-      return stabilized;
-    },
-    [
-      clearHandPreviewTimeout,
-      setCurrentHandedness,
-      setCurrentLandmarks,
-      stabilizeHands,
-    ],
+    (landmarks: number[][][], handedness: string[]): StabilizedHands =>
+      stabilizeHands(landmarks, handedness),
+    [stabilizeHands],
   );
 
-  const handleLandmarksOnly = useCallback(
-    (landmarks: number[][][], handedness: string[]) => {
-      updateHandPreview(landmarks, handedness);
-    },
-    [updateHandPreview],
-  );
   const pulseLoopRef = useRef<ReturnType<typeof Animated.loop> | null>(null);
 
   const captureImage = useCallback(async () => {
@@ -624,12 +577,15 @@ export default function RecognitionScreen({
   const safeStatus = typeof status === 'string' ? status : '';
   const normalizedStatus = safeStatus.toLowerCase();
   const hasActiveGesture = Boolean(gestureMeaningDisplayProps);
+  const showGestureActions = hasActiveGesture;
   const actionsFadeAnim = useRef(new Animated.Value(hasActiveGesture ? 1 : 0)).current;
   const fadeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   const [actionsPointerEvents, setActionsPointerEvents] = useState<'none' | 'auto'>(
     hasActiveGesture ? 'auto' : 'none',
   );
-  const actionsAccessibilityHidden = actionsPointerEvents === 'none';
+  const actionsAccessibilityHidden = showGestureActions
+    ? actionsPointerEvents === 'none'
+    : false;
   const [isHandsetPanelExpanded, setIsHandsetPanelExpanded] = useState(!isHandsetLayout);
 
   useEffect(() => {
@@ -869,7 +825,6 @@ export default function RecognitionScreen({
       <View style={styles.cameraPreviewContainer}>
         <MediaPipeGestureDetector
           onGestureDetected={processGesture}
-          onLandmarks={handleLandmarksOnly}
           onError={handleGestureError}
           onWebViewEvent={(telemetry) => {
             if (__DEV__) {
@@ -890,20 +845,6 @@ export default function RecognitionScreen({
             pulseOpacity={CAMERA_THEME.capturePulseOpacity}
             style={styles.cameraFrame}
           />
-          <View
-            style={[
-              styles.handPreviewOverlay,
-              isHandsetLayout && styles.handsetHandPreviewOverlay,
-            ]}
-          >
-            <HandLandmarkPreview
-              landmarks={currentLandmarks}
-              handedness={currentHandedness}
-              mirror={facingMode === 'user'}
-              confidence={gestureConfidence}
-              style={styles.handPreview}
-            />
-          </View>
           <View
             style={[
               styles.cameraHintBubble,
@@ -977,76 +918,93 @@ export default function RecognitionScreen({
           styles.actionsSlot,
           isCompactSecondaryActions && styles.actionsSlotCompact,
           isHandsetLayout && styles.handsetActionsSlot,
+          !showGestureActions && styles.actionsSlotCollapsed,
         ]}
       >
-        <View
-          testID="recognition-actions"
-          pointerEvents={actionsPointerEvents}
-          accessibilityElementsHidden={actionsAccessibilityHidden}
-          importantForAccessibility={
-            actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
-          }
-        >
-          <Animated.View
-            style={[
-              styles.actionsContainer,
-              { opacity: actionsFadeAnim },
-              isHandsetLayout && styles.handsetActionsContainer,
-            ]}
-          >
-            <View style={styles.primaryActionWrapper}>
-              <ActionButton
-                label="Stimmt"
-                accessibilityLabel="Gestenerkennung bestätigen"
-                onPress={handleConfirmGesture}
-              backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
-              pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
-              textColor={CAMERA_THEME.actionButtons.confirm.text}
-              style={styles.primaryActionButton}
-            />
-          </View>
+        {showGestureActions ? (
           <View
-            style={[
-              styles.secondaryActionsBase,
-              isCompactSecondaryActions
-                ? styles.secondaryActionsColumn
-                : styles.secondaryActionsRow,
-              isHandsetLayout && styles.handsetSecondaryActions,
-            ]}
+            testID="recognition-actions"
+            pointerEvents={actionsPointerEvents}
+            accessibilityElementsHidden={actionsAccessibilityHidden}
+            importantForAccessibility={
+              actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
+            }
           >
-            <ActionButton
-              label="Lernen"
-              accessibilityLabel="Lernmodus öffnen"
-              onPress={handleLearnPress}
-              backgroundColor={CAMERA_THEME.actionButtons.learn.background}
-              pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
-              textColor={CAMERA_THEME.actionButtons.learn.text}
+            <Animated.View
               style={[
-                styles.secondaryActionButton,
-                isCompactSecondaryActions
-                  ? styles.secondaryActionButtonColumn
-                  : styles.secondaryActionButtonRow,
-                isCompactSecondaryActions && styles.secondaryActionCompact,
+                styles.actionsContainer,
+                { opacity: actionsFadeAnim },
+                isHandsetLayout && styles.handsetActionsContainer,
               ]}
-            />
-            <ActionButton
-              label="Alternativen"
-              accessibilityLabel="Alternativen anzeigen"
-              onPress={handleAlternativesPress}
-              backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
-              pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
-              textColor={CAMERA_THEME.actionButtons.alternatives.text}
-              style={[
-                styles.secondaryActionButton,
-                isCompactSecondaryActions
-                  ? styles.secondaryActionButtonColumn
-                  : styles.secondaryActionButtonRow,
-                isCompactSecondaryActions && styles.secondaryActionCompact,
-              ]}
-            />
+            >
+              <View style={styles.primaryActionWrapper}>
+                <ActionButton
+                  label="Stimmt"
+                  accessibilityLabel="Gestenerkennung bestätigen"
+                  onPress={handleConfirmGesture}
+                  backgroundColor={CAMERA_THEME.actionButtons.confirm.background}
+                  pressedBackgroundColor={CAMERA_THEME.actionButtons.confirm.pressed}
+                  textColor={CAMERA_THEME.actionButtons.confirm.text}
+                  style={styles.primaryActionButton}
+                />
+              </View>
+              <View
+                style={[
+                  styles.secondaryActionsBase,
+                  isCompactSecondaryActions
+                    ? styles.secondaryActionsColumn
+                    : styles.secondaryActionsRow,
+                  isHandsetLayout && styles.handsetSecondaryActions,
+                ]}
+              >
+                <ActionButton
+                  label="Lernen"
+                  accessibilityLabel="Lernmodus öffnen"
+                  onPress={handleLearnPress}
+                  backgroundColor={CAMERA_THEME.actionButtons.learn.background}
+                  pressedBackgroundColor={CAMERA_THEME.actionButtons.learn.pressed}
+                  textColor={CAMERA_THEME.actionButtons.learn.text}
+                  style={[
+                    styles.secondaryActionButton,
+                    isCompactSecondaryActions
+                      ? styles.secondaryActionButtonColumn
+                      : styles.secondaryActionButtonRow,
+                    isCompactSecondaryActions && styles.secondaryActionCompact,
+                  ]}
+                />
+                <ActionButton
+                  label="Alternativen"
+                  accessibilityLabel="Alternativen anzeigen"
+                  onPress={handleAlternativesPress}
+                  backgroundColor={CAMERA_THEME.actionButtons.alternatives.background}
+                  pressedBackgroundColor={CAMERA_THEME.actionButtons.alternatives.pressed}
+                  textColor={CAMERA_THEME.actionButtons.alternatives.text}
+                  style={[
+                    styles.secondaryActionButton,
+                    isCompactSecondaryActions
+                      ? styles.secondaryActionButtonColumn
+                      : styles.secondaryActionButtonRow,
+                    isCompactSecondaryActions && styles.secondaryActionCompact,
+                  ]}
+                />
+              </View>
+            </Animated.View>
           </View>
-          </Animated.View>
-        </View>
+        ) : (
+          <View
+            accessibilityRole="text"
+            style={[
+              styles.actionsPlaceholder,
+              isHandsetLayout && styles.handsetActionsPlaceholder,
+            ]}
+            pointerEvents="none"
+          >
+            <Text style={styles.actionsPlaceholderTitle}>Aktionen erscheinen hier.</Text>
+            <Text style={styles.actionsPlaceholderSubtitle}>
+              Sobald Amy deine Geste erkennt, kannst du hier bestätigen oder lernen.
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -1415,6 +1373,30 @@ const styles = StyleSheet.create({
     minHeight: 0,
     paddingBottom: spacing.xs,
   },
+  actionsSlotCollapsed: {
+    minHeight: 0,
+    justifyContent: 'flex-start',
+    paddingTop: spacing.sm,
+  },
+  actionsPlaceholder: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  handsetActionsPlaceholder: {
+    gap: spacing.xs,
+  },
+  actionsPlaceholderTitle: {
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium as any,
+    color: CAMERA_THEME.cameraHint,
+    textAlign: 'center',
+  },
+  actionsPlaceholderSubtitle: {
+    fontSize: typography.sizes.caption,
+    color: CAMERA_THEME.cameraHintMuted,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+  },
   predictionCard: {
     backgroundColor: CAMERA_THEME.predictionCardBackground,
     borderRadius: 24,
@@ -1552,25 +1534,5 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     maxWidth: 560,
-  },
-  handPreviewOverlay: {
-    position: 'absolute',
-    width: 168,
-    aspectRatio: 1,
-    top: spacing.xl,
-    right: spacing.xl,
-  },
-  handsetHandPreviewOverlay: {
-    width: 140,
-    top: spacing.lg,
-    right: spacing.lg,
-  },
-  handPreview: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.overlayBadgeBorder,
-    backgroundColor: CAMERA_THEME.handPreviewBackground,
   },
 });
