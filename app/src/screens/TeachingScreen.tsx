@@ -24,6 +24,11 @@ import { useAccessibility } from '../components/AccessibilityContext';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
+import {
+  ClipCaptureError,
+  persistClipToDirectory,
+  type ExpoFileSystemCompat,
+} from '../utils/clipPersistence';
 import { syncTrainingData } from '../services';
 
 import { childFriendlyStyles } from '../styles/touchTargets';
@@ -39,24 +44,11 @@ import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtil
 import ScreenBackground from '../components/ScreenBackground';
 import type { ClipReadyPayload } from '../types/frames';
 
-type ExpoFileSystemCompat = typeof FileSystem & {
-  cacheDirectory?: string;
-  documentDirectory?: string;
-  EncodingType?: { Base64: 'base64' };
-};
-
 const expoFs = FileSystem as ExpoFileSystemCompat;
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 
 const PREVIEW_SIZE = 240;
-
-class ClipCaptureError extends Error {
-  constructor(message = 'clip_capture_failed') {
-    super(message);
-    this.name = 'ClipCaptureError';
-  }
-}
 
 const normalizeGestureLabel = (label: string): string =>
   label.trim().toLowerCase().replace(/\s+/g, '_');
@@ -135,57 +127,14 @@ export default function TeachingScreen({ navigation }: any) {
 
   const sampleCaptureAnim = useRef(new Animated.Value(0)).current;
 
-  const getExtensionFromMime = (mimeType: string): string => {
-    const normalized = mimeType?.toLowerCase() ?? '';
-    const known: Record<string, string> = {
-      'video/webm': 'webm',
-      'video/mp4': 'mp4',
-      'video/quicktime': 'mov',
-    };
-    const mapped = known[normalized];
-    if (mapped) {
-      return mapped;
-    }
-
-    const [, extracted] = normalized.match(/^[-\w+.]+\/([-\w+.]+)/) ?? [];
-    if (extracted) {
-      const clean = extracted.split(';')[0]?.replace(/[^a-z0-9]/g, '');
-      if (clean) {
-        return clean;
-      }
-    }
-
-    return 'mp4';
-  };
-
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
-    const baseDirectory = expoFs.cacheDirectory ?? expoFs.documentDirectory;
-    if (!baseDirectory) {
-      throw new ClipCaptureError('clip_directory_unavailable');
-    }
-
-    const clipDirectory = `${baseDirectory}amy-teaching-clips/`;
-
-    try {
-      const directoryInfo = await expoFs.getInfoAsync(clipDirectory);
-      if (!directoryInfo.exists) {
-        await expoFs.makeDirectoryAsync(clipDirectory, { intermediates: true });
-      } else if (!directoryInfo.isDirectory) {
-        await expoFs.deleteAsync(clipDirectory, { idempotent: true });
-        await expoFs.makeDirectoryAsync(clipDirectory, { intermediates: true });
-      }
-    } catch (directoryError) {
-      logger.warn('Failed to prepare teaching clip directory', directoryError);
-      throw new ClipCaptureError('clip_directory_unavailable');
-    }
-
-    const extension = getExtensionFromMime(clip.mimeType);
-    const targetUri = `${clipDirectory}amy-teaching-${clip.id}.${extension}`;
-    const base64Encoding: 'base64' = expoFs.EncodingType?.Base64 ?? 'base64';
-    await expoFs.writeAsStringAsync(targetUri, clip.base64, {
-      encoding: base64Encoding,
+    return persistClipToDirectory({
+      fs: expoFs,
+      clip,
+      directoryName: 'amy-teaching-clips',
+      filePrefix: 'amy-teaching',
+      logger,
     });
-    return targetUri;
   }, []);
 
   useEffect(() => {

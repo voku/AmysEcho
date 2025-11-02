@@ -46,11 +46,22 @@ jest.mock('../../src/services/hipEvents', () => ({
 }));
 
 
+jest.mock('../../src/utils/clipPersistence', () => {
+  const actual = jest.requireActual('../../src/utils/clipPersistence');
+  return {
+    ...actual,
+    persistClipToDirectory: jest.fn(actual.persistClipToDirectory),
+  };
+});
+
+
 jest.mock('expo-file-system', () => ({
   cacheDirectory: 'file://cache/',
   documentDirectory: 'file://documents/',
   writeAsStringAsync: jest.fn(async () => {}),
   deleteAsync: jest.fn(async () => {}),
+  getInfoAsync: jest.fn(async () => ({ exists: true, isDirectory: true })),
+  makeDirectoryAsync: jest.fn(async () => {}),
   EncodingType: { Base64: 'base64' },
 }));
 
@@ -171,6 +182,15 @@ describe('TrainingScreen', () => {
       capturedAt: new Date().toISOString(),
     });
     cancelClipCaptureMock.mockImplementation(() => {});
+    const fs = require('expo-file-system');
+    (fs.getInfoAsync as jest.Mock).mockResolvedValue({ exists: true, isDirectory: true });
+    (fs.makeDirectoryAsync as jest.Mock).mockResolvedValue(undefined);
+    (fs.writeAsStringAsync as jest.Mock).mockResolvedValue(undefined);
+    const clipPersistence = require('../../src/utils/clipPersistence');
+    const actualClipPersistence = jest.requireActual('../../src/utils/clipPersistence');
+    (clipPersistence.persistClipToDirectory as jest.Mock).mockImplementation(
+      actualClipPersistence.persistClipToDirectory,
+    );
   });
 
   afterEach(() => {
@@ -204,6 +224,7 @@ describe('TrainingScreen', () => {
 
     await act(async () => {
       recordPressable.props.onPress();
+      await Promise.resolve();
       await Promise.resolve();
     });
 
@@ -258,6 +279,82 @@ describe('TrainingScreen', () => {
 
     const fs = require('expo-file-system');
     expect(fs.writeAsStringAsync).toHaveBeenCalled();
+  });
+
+  it('persistiert QuickTime-Clips mit mov-Endung', async () => {
+    const fs = require('expo-file-system');
+    const { persistClipToDirectory } = require('../../src/utils/clipPersistence');
+    (fs.writeAsStringAsync as jest.Mock).mockClear();
+
+    await persistClipToDirectory({
+      fs,
+      clip: {
+        id: 'clip-id',
+        base64: 'dGVzdA==',
+        mimeType: 'video/quicktime',
+        durationMs: 500,
+        frameCount: 10,
+        capturedAt: new Date().toISOString(),
+      } as any,
+      directoryName: 'amy-training-clips',
+      filePrefix: 'amy-training',
+    });
+
+    expect(fs.writeAsStringAsync).toHaveBeenCalledWith(
+      'file://cache/amy-training-clips/amy-training-clip-id.mov',
+      expect.any(String),
+      expect.any(Object),
+    );
+  });
+
+  it('zeigt eine Fehlermeldung, wenn das Clip-Verzeichnis nicht angelegt werden kann', async () => {
+    const { saveTrainingSample, loadProfile } = require('../../src/storage');
+    (loadProfile as jest.Mock).mockResolvedValue(null);
+    (saveTrainingSample as jest.Mock).mockResolvedValue(undefined);
+    const fs = require('expo-file-system');
+    (fs.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: false, isDirectory: false });
+    (fs.makeDirectoryAsync as jest.Mock).mockRejectedValueOnce(new Error('boom'));
+
+    await act(async () => {
+      component = renderer.create(
+        (
+          <TrainingScreen
+            navigation={{ goBack: jest.fn() }}
+            route={{ params: { gestureLabel: 'hello' } }}
+          />
+        ) as any,
+      );
+      await Promise.resolve();
+    });
+
+    const detector = component!.root.findByType('MediaPipeGestureDetector');
+    act(() => {
+      detector.props.onCameraStateChange?.('camera_started');
+    });
+
+    let recordPressable = findRecordPressable();
+    await act(async () => {
+      recordPressable.props.onPress();
+      await Promise.resolve();
+    });
+
+    recordPressable = findRecordPressable();
+    act(() => {
+      detector.props.onLandmarks?.([[[1, 2, 3]]], ['Left']);
+    });
+
+    await act(async () => {
+      recordPressable.props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!',
+        tone: 'error',
+      }),
+    );
+    expect(fs.writeAsStringAsync).not.toHaveBeenCalled();
   });
 
   it('deaktiviert die Aufnahme, wenn MediaRecorder nicht verfügbar ist', async () => {
