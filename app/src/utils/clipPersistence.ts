@@ -2,10 +2,12 @@ import type { ClipReadyPayload } from '../types/frames';
 
 type FileSystemModule = typeof import('expo-file-system');
 
+type FileEncoding = 'utf8' | 'base64';
+
 export type ExpoFileSystemCompat = FileSystemModule & {
   cacheDirectory?: string | null;
   documentDirectory?: string | null;
-  EncodingType?: { Base64?: string } | null;
+  EncodingType?: { Base64?: FileEncoding } | null;
 };
 
 export interface ClipPersistenceLogger {
@@ -59,7 +61,7 @@ const ensureDirectory = async (
       await fs.makeDirectoryAsync(directoryUri, { intermediates: true });
     }
   } catch (directoryError) {
-    logger?.warn('Failed to prepare clip directory', directoryError);
+    logger?.warn('Clip-Verzeichnis konnte nicht vorbereitet werden', directoryError);
     throw new ClipCaptureError('clip_directory_unavailable');
   }
 };
@@ -79,6 +81,14 @@ export const persistClipToDirectory = async ({
   filePrefix,
   logger,
 }: PersistClipOptions): Promise<string> => {
+  if (/[\\/]|\.\./.test(directoryName) || /[\\/]|\.\./.test(filePrefix)) {
+    logger?.warn('Ungültige Pfadbestandteile für Clip-Speicherung', {
+      directoryName,
+      filePrefix,
+    });
+    throw new ClipCaptureError('clip_path_components_invalid');
+  }
+
   const baseDirectory = fs.cacheDirectory ?? fs.documentDirectory;
   if (!baseDirectory) {
     throw new ClipCaptureError('clip_directory_unavailable');
@@ -90,7 +100,7 @@ export const persistClipToDirectory = async ({
 
   const extension = getExtensionFromMime(clip.mimeType);
   const targetUri = `${clipDirectory}${filePrefix}-${clip.id}.${extension}`;
-  const encoding = (fs.EncodingType?.Base64 ?? 'base64') as string;
+  const encoding: FileEncoding = fs.EncodingType?.Base64 ?? 'base64';
   await fs.writeAsStringAsync(targetUri, clip.base64, { encoding });
   return targetUri;
 };
