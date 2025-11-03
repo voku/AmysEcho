@@ -201,7 +201,8 @@ const recognitionStateModule = require('../../src/hooks/useRecognitionState') as
 };
 const { AmyLoopTimeline } = require('../../src/components/AmyLoopTimeline');
 const ActionButtonComponent = require('../../src/components/ActionButton').default;
-const { Text } = require('react-native');
+const reactNative = require('react-native');
+const { Text } = reactNative;
 
 describe('RecognitionScreen Amy-first overlay', () => {
   afterEach(() => {
@@ -258,6 +259,32 @@ describe('RecognitionScreen Amy-first overlay', () => {
     expect(idleLabelNodes.length).toBeGreaterThan(0);
   });
 
+  it('öffnet das Handset-Aktionspanel automatisch bei aktiver Geste', async () => {
+    jest
+      .spyOn(reactNative, 'useWindowDimensions')
+      .mockReturnValue({ width: 420, height: 720, scale: 2, fontScale: 2 });
+
+    const { component } = await renderRecognitionScreen();
+
+    const toggleButton = component.root.find((node) => node.props?.testID === 'handset-bottom-toggle');
+    expect(toggleButton.props.accessibilityState?.expanded).toBe(false);
+
+    await act(async () => {
+      recognitionStateModule.__setMockLastRecognizedGesture?.({
+        id: 'hallo',
+        label: 'Hallo',
+        emoji: '👋',
+        category: 'greeting',
+      });
+    });
+
+    const activeToggle = component.root.find((node) => node.props?.testID === 'handset-bottom-toggle');
+    expect(activeToggle.props.accessibilityState?.expanded).toBe(true);
+
+    const actionsContainer = component.root.find((node) => node.props?.testID === 'recognition-actions');
+    expect(actionsContainer.props.pointerEvents).toBe('auto');
+  });
+
   it('blendet Aktionsknöpfe erst nach erkannter Geste ein', async () => {
     const { component } = await renderRecognitionScreen();
     const findAmyActionButtons = () =>
@@ -269,12 +296,15 @@ describe('RecognitionScreen Amy-first overlay', () => {
 
     const initialActionsContainer = getActionsContainer();
     expect(initialActionsContainer.props.pointerEvents).toBe('none');
-    expect(initialActionsContainer.props.accessibilityElementsHidden).toBe(true);
-    expect(initialActionsContainer.props.importantForAccessibility).toBe(
-      'no-hide-descendants',
-    );
+    expect(initialActionsContainer.props.accessibilityElementsHidden).toBe(false);
+    expect(initialActionsContainer.props.importantForAccessibility).toBe('auto');
 
-    expect(findAmyActionButtons()).toHaveLength(3);
+    const placeholderTexts = component.root.findAll(
+      (node) => node.type === Text && node.props.children === 'Aktionen erscheinen hier.',
+    );
+    expect(placeholderTexts.length).toBeGreaterThan(0);
+
+    expect(findAmyActionButtons()).toHaveLength(0);
 
     await act(async () => {
       recognitionStateModule.__setMockLastRecognizedGesture?.({
@@ -289,6 +319,11 @@ describe('RecognitionScreen Amy-first overlay', () => {
     expect(activeActionsContainer.props.pointerEvents).toBe('auto');
     expect(activeActionsContainer.props.accessibilityElementsHidden).toBe(false);
     expect(activeActionsContainer.props.importantForAccessibility).toBe('auto');
+
+    const remainingPlaceholders = component.root.findAll(
+      (node) => node.type === Text && node.props.children === 'Aktionen erscheinen hier.',
+    );
+    expect(remainingPlaceholders).toHaveLength(0);
 
     const actionButtons = findAmyActionButtons();
 

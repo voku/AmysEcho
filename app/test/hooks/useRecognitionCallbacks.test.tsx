@@ -133,6 +133,7 @@ const gestureSuggesterModule = jest.requireMock('../../src/services/gestureSugge
 const healthScore = jest.requireMock('../../src/services/healthScore');
 const { logger } = jest.requireMock('../../src/utils/logger');
 const recovery = jest.requireMock('../../src/services/automaticRecoveryService');
+const { gestureHistoryService } = jest.requireMock('../../src/services/gestureHistoryService');
 
 describe('useRecognitionCallbacks', () => {
   let state: RecognitionState;
@@ -182,6 +183,7 @@ describe('useRecognitionCallbacks', () => {
   const setDetectedGestureMeaning = jest.fn();
   const setSequenceMeaning = jest.fn();
   const setSequenceMatch = jest.fn();
+  const setLastSuccessfulConfidence = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -200,6 +202,8 @@ describe('useRecognitionCallbacks', () => {
     (adaptiveService.adaptiveLearningService.getAdaptiveRecommendations as jest.Mock).mockReturnValue([]);
     (gestureSuggesterModule.default.getSuggestions as jest.Mock).mockReturnValue([]);
     (healthScore.shouldPromptPractice as jest.Mock).mockResolvedValue(false);
+
+    jest.useFakeTimers();
 
     state = {
       setStatus,
@@ -227,9 +231,11 @@ describe('useRecognitionCallbacks', () => {
       setDetectedGestureMeaning,
       setSequenceMeaning,
       setSequenceMatch,
+      setLastSuccessfulConfidence,
       successSound: null,
       contextInsights: {},
       gestureConfidence: 0,
+      lastSuccessfulConfidence: 0,
       dialogContext: dialogContextState,
       lastRecognizedGesture: null,
       profile: { age: 5 },
@@ -265,6 +271,10 @@ describe('useRecognitionCallbacks', () => {
       startFeedbackAnimation: jest.fn(),
       getSuccessMessage: jest.fn().mockReturnValue('Super gemacht!'),
     };
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   const renderHookHarness = async () => {
@@ -313,6 +323,7 @@ describe('useRecognitionCallbacks', () => {
 
     const lastCall = setError.mock.calls[setError.mock.calls.length - 1];
     expect(lastCall[0]).toBeNull();
+    expect(setLastSuccessfulConfidence).toHaveBeenCalledWith(0.9);
   });
 
   it('logs detailed gesture errors and attempts automatic recovery', async () => {
@@ -338,5 +349,37 @@ describe('useRecognitionCallbacks', () => {
     expect(
       recovery.automaticRecoveryService.attemptRecovery,
     ).toHaveBeenCalledWith('MediaPipe failure', 'recognition_webview');
+  });
+
+  it('holds the active gesture briefly to avoid duplicate feedback when detection drops', async () => {
+    const callbacks = await renderHookHarness();
+
+    await act(async () => {
+      await callbacks.handleGestureDetected('winken', 0.95, [[[0]]], ['left']);
+    });
+
+    expect(gestureHistoryService.addGesture).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await callbacks.handleGestureDetected(null, 0.05, [], []);
+    });
+
+    expect(gestureHistoryService.addGesture).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await callbacks.handleGestureDetected('winken', 0.96, [[[0]]], ['left']);
+    });
+
+    expect(gestureHistoryService.addGesture).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    await act(async () => {
+      await callbacks.handleGestureDetected('winken', 0.97, [[[0]]], ['left']);
+    });
+
+    expect(gestureHistoryService.addGesture).toHaveBeenCalledTimes(2);
   });
 });

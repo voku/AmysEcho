@@ -82,6 +82,7 @@ const PRACTICE_PROMPT_OPTIONS = {
   lastN: 10,
   threshold: 0.6,
 };
+const ACTIVE_GESTURE_HOLD_MS = 600;
 
 const normalizeGestureId = (gesture: string | null): string | null => {
   if (!gesture) return null;
@@ -149,11 +150,13 @@ export const useRecognitionCallbacks = ({
     dialogContext,
     lastRecognizedGesture,
     profile,
+    setLastSuccessfulConfidence,
   } = state;
 
   const encouragementTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const screenFlashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const visualRippleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeGestureClearTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimeoutRef = useCallback((ref: MutableRefObject<ReturnType<typeof setTimeout> | null>) => {
     if (ref.current) {
@@ -174,6 +177,28 @@ export const useRecognitionCallbacks = ({
     clearTimeoutRef(visualRippleTimeout);
   }, [clearTimeoutRef]);
 
+  const cancelActiveGestureClear = useCallback(() => {
+    clearTimeoutRef(activeGestureClearTimeout);
+  }, [clearTimeoutRef]);
+
+  const finalizeActiveGestureClear = useCallback(() => {
+    refs.activeGestureRef.current = null;
+    setPendingGesture(null);
+    setDetectedGestureMeaning(null);
+    setStatus(WAITING_STATUS);
+  }, [refs, setDetectedGestureMeaning, setPendingGesture, setStatus]);
+
+  const scheduleActiveGestureClear = useCallback(() => {
+    if (activeGestureClearTimeout.current) {
+      return;
+    }
+
+    activeGestureClearTimeout.current = setTimeout(() => {
+      activeGestureClearTimeout.current = null;
+      finalizeActiveGestureClear();
+    }, ACTIVE_GESTURE_HOLD_MS);
+  }, [finalizeActiveGestureClear]);
+
   const schedulePracticeSuggestion = useCallback(() => {
     if (!encouragementTimeout.current) {
       encouragementTimeout.current = setTimeout(() => {
@@ -188,8 +213,14 @@ export const useRecognitionCallbacks = ({
       clearEncouragementTimeout();
       clearScreenFlashTimeout();
       clearVisualRippleTimeout();
+      cancelActiveGestureClear();
     },
-    [clearEncouragementTimeout, clearScreenFlashTimeout, clearVisualRippleTimeout],
+    [
+      cancelActiveGestureClear,
+      clearEncouragementTimeout,
+      clearScreenFlashTimeout,
+      clearVisualRippleTimeout,
+    ],
   );
 
   const handleLowConfidenceGesture = useCallback(
@@ -530,12 +561,11 @@ export const useRecognitionCallbacks = ({
 
         const gesture = normalizeGestureId(rawGesture);
         if (!gesture) {
-          refs.activeGestureRef.current = null;
+          scheduleActiveGestureClear();
           setPendingGesture(null);
           setDetectedGestureMeaning(null);
           if (smoothedConfidence < WAITING_CONFIDENCE_THRESHOLD) {
             setError(null);
-            setStatus(WAITING_STATUS);
           }
           return;
         }
@@ -553,7 +583,7 @@ export const useRecognitionCallbacks = ({
         const meetsThreshold = smoothedConfidence >= thresholdInfo.threshold;
 
         if (!meetsThreshold) {
-          refs.activeGestureRef.current = null;
+          scheduleActiveGestureClear();
           setDetectedGestureMeaning(null);
           handleLowConfidenceGesture(gesture, smoothedConfidence, thresholdInfo.threshold, landmarks);
           return;
@@ -572,6 +602,7 @@ export const useRecognitionCallbacks = ({
           return;
         }
 
+        cancelActiveGestureClear();
         refs.activeGestureRef.current = gesture;
         refs.lastGestureIdRef.current = gesture;
         refs.lastSuccessAtRef.current = Date.now();
@@ -583,6 +614,7 @@ export const useRecognitionCallbacks = ({
           handedness,
           recognitionSource,
         );
+        setLastSuccessfulConfidence(smoothedConfidence);
       } catch (error) {
         logger.error('handleGestureDetected failed', error);
         refs.activeGestureRef.current = null;
@@ -590,6 +622,7 @@ export const useRecognitionCallbacks = ({
       }
     },
     [
+      cancelActiveGestureClear,
       clearEncouragementTimeout,
       clearVisualRippleTimeout,
       handleLowConfidenceGesture,
@@ -612,6 +645,8 @@ export const useRecognitionCallbacks = ({
       setShowScreenFlash,
       setScreenFlashPattern,
       setError,
+      scheduleActiveGestureClear,
+      setLastSuccessfulConfidence,
     ],
   );
 

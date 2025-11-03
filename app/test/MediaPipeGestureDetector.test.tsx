@@ -373,6 +373,87 @@ describe('MediaPipeGestureDetector', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it('forwards landmark payloads that arrive within gesture batches', () => {
+    const onGestureDetected = jest.fn();
+    const onLandmarks = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector
+          onGestureDetected={onGestureDetected}
+          onLandmarks={onLandmarks}
+          onError={onError}
+        />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const batchPayload = {
+      type: 'gesture_batch',
+      messageCount: 1,
+      frameCount: 4,
+      lastSentAt: 987654,
+      messages: [
+        {
+          type: 'landmarks',
+          landmarks: [[[0.1, 0.2, 0.3]]],
+          handedness: ['Right'],
+        },
+      ],
+    };
+
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify(batchPayload) } });
+    });
+
+    expect(onLandmarks).toHaveBeenCalledTimes(1);
+    expect(onLandmarks).toHaveBeenCalledWith([[[0.1, 0.2, 0.3]]], ['Right']);
+    expect(onGestureDetected).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('forwards frame batches that are included in gesture batches', () => {
+    const onFrameBatch = jest.fn();
+    const onError = jest.fn();
+
+    act(() => {
+      component = renderer.create(
+        <MediaPipeGestureDetector onFrameBatch={onFrameBatch} onGestureDetected={jest.fn()} onError={onError} />
+      );
+    });
+
+    const webview = component!.root.findByType('mock-webview');
+    const frameBatchPayload = {
+      type: 'gesture_batch',
+      messageCount: 1,
+      frameCount: 6,
+      lastSentAt: 24680,
+      messages: [
+        {
+          type: 'FRAME_BATCH',
+          frames: ['data:image/jpeg;base64,frameA'],
+          landmarks: [[[[0.1, 0.2, 0.3]]]],
+          handednesses: [['Left']],
+          timestamps: [111],
+        },
+      ],
+    };
+
+    act(() => {
+      webview.props.onMessage({ nativeEvent: { data: JSON.stringify(frameBatchPayload) } });
+    });
+
+    expect(onFrameBatch).toHaveBeenCalledTimes(1);
+    expect(onFrameBatch).toHaveBeenCalledWith({
+      frames: ['data:image/jpeg;base64,frameA'],
+      landmarks: [[[[0.1, 0.2, 0.3]]]],
+      handednesses: [['Left']],
+      timestamps: [111],
+    });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it('passes handedness information from gesture messages', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();

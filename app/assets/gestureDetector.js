@@ -1524,11 +1524,11 @@
     drawHandLandmarks(landmarks, mirrorOverlay2) {
       if (!this.ctx || !this.overlayWidth || !this.overlayHeight) return;
       this.ctx.save();
-      if (mirrorOverlay2) {
-        this.ctx.scale(-1, 1);
-        this.ctx.translate(-this.overlayWidth, 0);
-      }
       this.ctx.scale(this.overlayDpr, this.overlayDpr);
+      if (mirrorOverlay2) {
+        this.ctx.translate(this.overlayWidth, 0);
+        this.ctx.scale(-1, 1);
+      }
       this.ctx.lineWidth = 3;
       this.ctx.strokeStyle = "rgba(0, 255, 180, 0.9)";
       this.ctx.fillStyle = "rgba(0, 255, 180, 0.9)";

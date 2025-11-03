@@ -65,14 +65,15 @@ export class OverlayRenderer {
 
     this.ctx.save();
 
-    // Mirror horizontally if needed
-    if (mirrorOverlay) {
-      this.ctx.scale(-1, 1);
-      this.ctx.translate(-this.overlayWidth, 0);
-    }
-
     // Draw in CSS pixels while canvas is scaled for HiDPI
     this.ctx.scale(this.overlayDpr, this.overlayDpr);
+
+    // Mirror horizontally if needed. The translation must remain in CSS pixels,
+    // so apply it using the visual overlay width before flipping the context.
+    if (mirrorOverlay) {
+      this.ctx.translate(this.overlayWidth, 0);
+      this.ctx.scale(-1, 1);
+    }
 
     // Set common styles once
     this.ctx.lineWidth = 3;

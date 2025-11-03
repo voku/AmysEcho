@@ -1141,7 +1141,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         {isRecording && (
           <View style={styles.recordingIndicator}>
             <View style={styles.recordingDot} />
-            <Text style={styles.recordingText}>Aufnahme läuft …</Text>
+            <Text style={styles.recordingText}>{`Aufnahme läuft … ${framesCaptured}`}</Text>
           </View>
         )}
 
