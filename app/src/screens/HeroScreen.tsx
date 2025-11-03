@@ -10,6 +10,7 @@ import typography from '../constants/typography';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
+import type { WorkflowRouteName } from '../constants/workflow';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 
 type HeroScreenProps = {
@@ -17,6 +18,19 @@ type HeroScreenProps = {
 };
 
 const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
+  const handleTimelinePress = React.useCallback(
+    (route: WorkflowRouteName) => {
+      navigation.navigate(
+        ROOT_STACK_ROUTES.App,
+        {
+          screen: route,
+        },
+        { pop: true },
+      );
+    },
+    [navigation],
+  );
+
   return (
     <ScreenBackground scrollable testID="hero-screen">
       <View style={styles.container}>
@@ -29,6 +43,16 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
             Die Gestenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
             So bleibt das Gespräch mit Amy’s Echo nie stehen.
           </Text>
+        </View>
+
+        <View style={styles.timelineWrapper}>
+          <AmyLoopTimeline
+            activeStage={APP_TAB_ROUTES.Recognition}
+            layout="inline"
+            compact
+            hideDescriptions
+            onStagePress={handleTimelinePress}
+          />
         </View>
 
         <View style={styles.ctaRow}>
@@ -59,10 +83,6 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
             testID="hero-train"
             style={styles.ctaButton}
           />
-        </View>
-
-        <View style={styles.timelineWrapper}>
-          <AmyLoopTimeline activeStage="Recognition" compact hideDescriptions />
         </View>
 
         <AmyFirstCommitments />

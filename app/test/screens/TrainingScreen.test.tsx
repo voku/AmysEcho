@@ -357,7 +357,7 @@ describe('TrainingScreen', () => {
     expect(fs.writeAsStringAsync).not.toHaveBeenCalled();
   });
 
-  it('deaktiviert die Aufnahme, wenn MediaRecorder nicht verfügbar ist', async () => {
+  it('schaltet auf Landmark-Aufnahme um, wenn MediaRecorder nicht verfügbar ist', async () => {
     const { loadProfile } = require('../../src/storage');
     (loadProfile as jest.Mock).mockResolvedValue(null);
 
@@ -386,17 +386,17 @@ describe('TrainingScreen', () => {
     });
 
     recordPressable = findRecordPressable();
-    expect(recordPressable.props.disabled).toBe(true);
-    expect(recordPressable.props.accessibilityLabel).toBe('Videoaufnahmen nicht möglich');
+    expect(recordPressable.props.disabled).toBe(false);
+    expect(recordPressable.props.accessibilityLabel).toBe('Beispiel ohne Video aufnehmen');
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining('Dieses Gerät unterstützt keine Videoaufnahmen'),
-        tone: 'warning',
+        message: expect.stringContaining('Amy speichert trotzdem deine Handbewegungen'),
+        tone: 'info',
       }),
     );
   });
 
-  it('deaktiviert die Aufnahme, wenn MediaRecorder keine passenden Codecs unterstützt', async () => {
+  it('schaltet auf Landmark-Aufnahme um, wenn MediaRecorder keine passenden Codecs unterstützt', async () => {
     const { loadProfile } = require('../../src/storage');
     (loadProfile as jest.Mock).mockResolvedValue(null);
 
@@ -425,17 +425,17 @@ describe('TrainingScreen', () => {
     });
 
     recordPressable = findRecordPressable();
-    expect(recordPressable.props.disabled).toBe(true);
-    expect(recordPressable.props.accessibilityLabel).toBe('Videoaufnahmen nicht möglich');
+    expect(recordPressable.props.disabled).toBe(false);
+    expect(recordPressable.props.accessibilityLabel).toBe('Beispiel ohne Video aufnehmen');
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining('Dieses Gerät unterstützt keine Videoaufnahmen'),
-        tone: 'warning',
+        message: expect.stringContaining('Amy speichert trotzdem deine Handbewegungen'),
+        tone: 'info',
       }),
     );
   });
 
-  it('meldet fehlende Orchestrator-Unterstützung als nicht aufnahmefähig', async () => {
+  it('meldet fehlende Orchestrator-Unterstützung und nutzt Landmark-Fallback', async () => {
     const { loadProfile } = require('../../src/storage');
     (loadProfile as jest.Mock).mockResolvedValue(null);
 
@@ -464,8 +464,8 @@ describe('TrainingScreen', () => {
     });
 
     recordPressable = findRecordPressable();
-    expect(recordPressable.props.disabled).toBe(true);
-    expect(recordPressable.props.accessibilityLabel).toBe('Videoaufnahmen nicht möglich');
+    expect(recordPressable.props.disabled).toBe(false);
+    expect(recordPressable.props.accessibilityLabel).toBe('Beispiel ohne Video aufnehmen');
     expect(cancelClipCaptureMock).toHaveBeenCalled();
     expect(logHIPEvent).toHaveBeenCalledWith(
       expect.any(String),
@@ -474,13 +474,13 @@ describe('TrainingScreen', () => {
     );
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining('Dieses Gerät unterstützt keine Videoaufnahmen'),
-        tone: 'warning',
+        message: expect.stringContaining('Amy speichert trotzdem deine Handbewegungen'),
+        tone: 'info',
       }),
     );
   });
 
-  it('bleibt im Idle-Zustand, wenn Clip-Aufnahme nicht startet', async () => {
+  it('startet Landmark-Aufnahme, wenn Clip-Aufnahme nicht startet', async () => {
     startClipCaptureMock.mockRejectedValueOnce(new Error('media_recorder_failed'));
     const { loadProfile } = require('../../src/storage');
     (loadProfile as jest.Mock).mockResolvedValue(null);
@@ -511,11 +511,11 @@ describe('TrainingScreen', () => {
     });
 
     recordPressable = findRecordPressable();
-    expect(recordPressable.props.accessibilityLabel).toBe('Beispiel 1 / 5 aufnehmen');
+    expect(recordPressable.props.accessibilityLabel).toBe('Aufnahme stoppen');
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining('Videoclip konnte nicht gespeichert werden'),
-        tone: 'error',
+        message: expect.stringContaining('Amy speichert trotzdem deine Handbewegungen'),
+        tone: 'info',
       }),
     );
   });
