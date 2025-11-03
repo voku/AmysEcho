@@ -31,12 +31,6 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
           </Text>
         </View>
 
-        <View style={styles.timelineWrapper}>
-          <AmyLoopTimeline activeStage="Recognition" />
-        </View>
-
-        <AmyFirstCommitments />
-
         <View style={styles.ctaRow}>
           <PrimaryButton
             label="Zur Gestenkamera"
@@ -67,6 +61,12 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
           />
         </View>
 
+        <View style={styles.timelineWrapper}>
+          <AmyLoopTimeline activeStage="Recognition" compact hideDescriptions />
+        </View>
+
+        <AmyFirstCommitments />
+
         <WorkflowSupportLinks style={styles.supportLinks} />
       </View>
     </ScreenBackground>
@@ -78,8 +78,8 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     gap: spacing['2xl'],
-    justifyContent: 'center',
     alignItems: 'stretch',
+    paddingVertical: spacing.xl,
   },
   header: {
     alignItems: 'center',
@@ -111,17 +111,19 @@ const styles = StyleSheet.create({
   },
   timelineWrapper: {
     width: '100%',
+    marginTop: spacing.lg,
   },
   ctaRow: {
     width: '100%',
     flexDirection: 'row',
     gap: spacing.lg,
+    marginTop: spacing.lg,
   },
   ctaButton: {
     flex: 1,
   },
   supportLinks: {
-    marginTop: spacing['2xl'],
+    marginTop: spacing.xl,
   },
 });
 

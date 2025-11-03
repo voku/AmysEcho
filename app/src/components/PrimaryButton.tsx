@@ -63,6 +63,7 @@ export default function PrimaryButton({
         variant === 'secondary' && variantStyles.secondary,
         variant === 'secondary' && highContrast && variantStyles.secondaryHC,
         disabled && baseStyles.buttonDisabled,
+        disabled && highContrast && baseStyles.buttonDisabledHC,
         pressed && !disabled && (highContrast ? baseStyles.buttonPressedHC : baseStyles.buttonPressed),
         style,
       ],
@@ -86,6 +87,7 @@ export default function PrimaryButton({
           highContrast && baseStyles.buttonTextHC,
           variant === 'secondary' && variantStyles.secondaryText,
           variant === 'secondary' && highContrast && variantStyles.secondaryTextHC,
+          disabled && !highContrast && baseStyles.buttonTextDisabled,
         ]}
       >
         {label}

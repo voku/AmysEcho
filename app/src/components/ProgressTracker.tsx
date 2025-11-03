@@ -64,7 +64,7 @@ export default function ProgressTracker({
     },
     completionIndicator: {
       fontSize: largeText ? 18 : 16,
-      color: COLORS.success,
+      color: highContrast ? COLORS.highContrastText : COLORS.primaryAccent,
       fontWeight: 'bold',
       marginTop: SPACING.xs,
     },

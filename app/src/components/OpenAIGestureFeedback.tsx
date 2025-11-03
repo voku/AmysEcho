@@ -145,7 +145,13 @@ export default function OpenAIGestureFeedback({
             style={[styles.dismissButton, highContrast && styles.highContrastDismissButton]}
             onPress={onDismiss}
           >
-            <Text style={[styles.dismissButtonText, largeText && styles.largeDismissButtonText, highContrast && styles.highContrastText]}>
+            <Text
+              style={[
+                styles.dismissButtonText,
+                largeText && styles.largeDismissButtonText,
+                highContrast && styles.highContrastDismissButtonText,
+              ]}
+            >
               Verstanden
             </Text>
           </TouchableOpacity>
@@ -350,6 +356,9 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  highContrastDismissButtonText: {
+    color: COLORS.primary,
   },
   largeDismissButtonText: {
     fontSize: FONT_SIZES.lg,

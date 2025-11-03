@@ -89,11 +89,13 @@ export function AmyLoopTimeline({
           : isComplete
             ? COLORS.success
             : modeColors.inactiveBadgeBackground;
-        const badgeTextColor = isActive
-          ? modeColors.badgeText
-          : isComplete
-            ? COLORS.inverseText
-            : modeColors.inactiveBadgeText;
+        const badgeTextColor = highContrast
+          ? COLORS.highContrastText
+          : isActive
+            ? modeColors.badgeText
+            : isComplete
+              ? COLORS.neutral
+              : modeColors.inactiveBadgeText;
 
         const connectorColor = highContrast ? COLORS.highContrastText : modeColors.connector;
 

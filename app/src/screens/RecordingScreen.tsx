@@ -589,7 +589,7 @@ export default function RecordingScreen({ navigation, route }: any) {
       backgroundColor: COLORS.highContrastPressed,
     },
     secondaryButtonText: {
-      color: COLORS.highContrastText,
+      color: COLORS.text,
       fontSize: 14,
       fontWeight: 'bold',
     },

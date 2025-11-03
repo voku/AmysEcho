@@ -76,19 +76,19 @@ export default function VisualFeedback({
       case 'success':
         return {
           backgroundColor: highContrast ? COLORS.highContrastText : COLORS.success,
-          textColor: highContrast ? COLORS.highContrastBackground : COLORS.highContrastText,
+          textColor: highContrast ? COLORS.highContrastBackground : COLORS.neutral,
           icon: '✅'
         };
       case 'warning':
         return {
           backgroundColor: highContrast ? COLORS.highContrastText : COLORS.warning,
-          textColor: highContrast ? COLORS.highContrastBackground : COLORS.highContrastText,
+          textColor: highContrast ? COLORS.highContrastBackground : COLORS.neutral,
           icon: '⚠️'
         };
       case 'error':
         return {
           backgroundColor: highContrast ? COLORS.highContrastText : COLORS.error,
-          textColor: highContrast ? COLORS.highContrastBackground : COLORS.highContrastText,
+          textColor: highContrast ? COLORS.highContrastBackground : COLORS.highContrastBackground,
           icon: '❌'
         };
       case 'info':
