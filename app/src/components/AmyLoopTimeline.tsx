@@ -78,6 +78,8 @@ export function AmyLoopTimeline({
   const modeColors = MODE_STYLES[mode]?.container ?? MODE_STYLES.surface.container;
   const isInline = layout === 'inline';
   const isInteractive = typeof onStagePress === 'function';
+  const activeStageIndex = STAGES.findIndex((item) => item.key === activeStage);
+  const resolvedStageIndex = activeStageIndex === -1 ? 0 : activeStageIndex;
 
   const containerStyle = [
     isInline ? styles.inlineContainer : styles.container,
@@ -96,8 +98,6 @@ export function AmyLoopTimeline({
       style={containerStyle}
     >
       {STAGES.map((stage, index) => {
-        const stageIndex = STAGES.findIndex((item) => item.key === activeStage);
-        const resolvedStageIndex = stageIndex === -1 ? 0 : stageIndex;
         const isActive = stage.key === activeStage;
         const isComplete = index < resolvedStageIndex;
         const badgeBackground = isActive
@@ -193,12 +193,6 @@ export function AmyLoopTimeline({
           </>
         );
 
-        const handleStagePress = () => {
-          if (onStagePress) {
-            onStagePress(stage.key);
-          }
-        };
-
         return (
           <React.Fragment key={stage.key}>
             <WrapperComponent
@@ -209,7 +203,13 @@ export function AmyLoopTimeline({
                   : `${stage.title}: ${stage.description}`
               }
               accessibilityHint={isInteractive ? stage.accessibilityHint : undefined}
-              onPress={isInteractive ? handleStagePress : undefined}
+              onPress={
+                isInteractive
+                  ? () => {
+                      onStagePress?.(stage.key);
+                    }
+                  : undefined
+              }
               style={
                 isInteractive
                   ? ({ pressed }) => [

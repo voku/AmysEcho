@@ -88,7 +88,7 @@ export default function VisualFeedback({
       case 'error':
         return {
           backgroundColor: highContrast ? COLORS.highContrastText : COLORS.error,
-          textColor: COLORS.highContrastBackground,
+          textColor: highContrast ? COLORS.highContrastBackground : COLORS.neutral,
           icon: '❌'
         };
       case 'info':
