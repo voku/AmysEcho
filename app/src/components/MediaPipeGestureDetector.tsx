@@ -648,13 +648,19 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       const normalizedLandmarks = Array.isArray(landmarks)
         ? (landmarks as number[][][])
         : [];
-      const handednessSource = Array.isArray(handedness)
-        ? handedness
+      const handednessCandidates = Array.isArray(handedness)
+        ? [handedness]
         : Array.isArray(handednesses)
         ? handednesses
         : [];
-      const normalizedHandedness = Array.isArray(handednessSource)
-        ? handednessSource.map((label) => (typeof label === 'string' ? label : String(label ?? '')))
+      const primaryHandedness = handednessCandidates.find(
+        (entry): entry is string[] =>
+          Array.isArray(entry) && entry.some((label) => typeof label === 'string'),
+      );
+      const normalizedHandedness = Array.isArray(primaryHandedness)
+        ? primaryHandedness
+            .filter((label): label is string => typeof label === 'string')
+            .map((label) => label)
         : [];
 
       onLandmarks(normalizedLandmarks, normalizedHandedness);

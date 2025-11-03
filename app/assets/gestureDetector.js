@@ -1526,8 +1526,7 @@
       this.ctx.save();
       this.ctx.scale(this.overlayDpr, this.overlayDpr);
       if (mirrorOverlay2) {
-        const translateX = this.overlayDpr ? this.overlayWidth / this.overlayDpr : this.overlayWidth;
-        this.ctx.translate(translateX, 0);
+        this.ctx.translate(this.overlayWidth, 0);
         this.ctx.scale(-1, 1);
       }
       this.ctx.lineWidth = 3;
