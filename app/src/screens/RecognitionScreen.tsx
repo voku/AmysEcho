@@ -145,6 +145,36 @@ const HANDSET_LAYOUT_BREAKPOINT = 640; // px width threshold for compact handset
 const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
 const COMPACT_ACTIONS_SLOT_MIN_HEIGHT =
   ACTION_BUTTON_MIN_HEIGHT * 3 + spacing.sm * 2;
+const selectConfidence = (
+  sequenceMeaning: ReturnType<typeof useRecognitionState>['sequenceMeaning'],
+  sequenceMatch: ReturnType<typeof useRecognitionState>['sequenceMatch'],
+  detectedGestureMeaning: ReturnType<typeof useRecognitionState>['detectedGestureMeaning'],
+  lastSuccessfulConfidence: number,
+  gestureConfidence: number,
+): number => {
+  const sequenceConfidence =
+    sequenceMeaning && typeof sequenceMatch?.matchConfidence === 'number'
+      ? sequenceMatch.matchConfidence
+      : null;
+  if (typeof sequenceConfidence === 'number') {
+    return sequenceConfidence;
+  }
+
+  const directConfidence =
+    typeof detectedGestureMeaning?.confidence === 'number'
+      ? detectedGestureMeaning.confidence
+      : null;
+  if (typeof directConfidence === 'number') {
+    return directConfidence;
+  }
+
+  if (Number.isFinite(lastSuccessfulConfidence) && lastSuccessfulConfidence >= 0) {
+    return lastSuccessfulConfidence;
+  }
+
+  return gestureConfidence;
+};
+
 const toGestureImageCapture = (
   frameCapture: FrameCapturePayload,
   timestamp: number,
@@ -553,19 +583,13 @@ export default function RecognitionScreen({
       return null;
     }
 
-    const sequenceConfidence = sequenceMeaning
-      ? sequenceMatch?.matchConfidence
-      : null;
-    const directConfidence = detectedGestureMeaning?.confidence;
-    const stableConfidence =
-      typeof sequenceConfidence === 'number'
-        ? sequenceConfidence
-        : typeof directConfidence === 'number'
-        ? directConfidence
-        : lastSuccessfulConfidence;
-    const confidence = Number.isFinite(stableConfidence) && stableConfidence >= 0
-      ? stableConfidence
-      : gestureConfidence;
+    const confidence = selectConfidence(
+      sequenceMeaning,
+      sequenceMatch,
+      detectedGestureMeaning,
+      lastSuccessfulConfidence,
+      gestureConfidence,
+    );
 
     const sequenceGestures =
       sequenceMatch?.sequence?.gestures ??
@@ -599,11 +623,36 @@ export default function RecognitionScreen({
   const actionsAccessibilityHidden = showGestureActions
     ? actionsPointerEvents === 'none'
     : false;
+  const shouldExpandHandsetBottom = Boolean(gestureMeaningDisplayProps) || showGestureActions;
   const [isHandsetPanelExpanded, setIsHandsetPanelExpanded] = useState(!isHandsetLayout);
+  const handsetPanelOverrideRef = useRef<'expanded' | 'collapsed' | null>(null);
 
   useEffect(() => {
-    setIsHandsetPanelExpanded(!isHandsetLayout);
-  }, [isHandsetLayout]);
+    if (!isHandsetLayout) {
+      handsetPanelOverrideRef.current = null;
+      if (!isHandsetPanelExpanded) {
+        setIsHandsetPanelExpanded(true);
+      }
+      return;
+    }
+
+    if (shouldExpandHandsetBottom) {
+      handsetPanelOverrideRef.current = null;
+      if (!isHandsetPanelExpanded) {
+        setIsHandsetPanelExpanded(true);
+      }
+      return;
+    }
+
+    if (handsetPanelOverrideRef.current !== 'expanded' && isHandsetPanelExpanded) {
+      setIsHandsetPanelExpanded(false);
+    }
+  }, [isHandsetLayout, shouldExpandHandsetBottom, isHandsetPanelExpanded]);
+
+  const handleToggleHandsetPanel = useCallback(() => {
+    handsetPanelOverrideRef.current = isHandsetPanelExpanded ? 'collapsed' : 'expanded';
+    setIsHandsetPanelExpanded((prev) => !prev);
+  }, [isHandsetPanelExpanded]);
 
   useEffect(() => {
     if (hasActiveGesture) {
@@ -889,8 +938,6 @@ export default function RecognitionScreen({
     </View>
   );
 
-  const shouldExpandHandsetBottom = Boolean(gestureMeaningDisplayProps) || showGestureActions;
-
   const bottomPanelContent = (
     <View
       style={[
@@ -1062,7 +1109,8 @@ export default function RecognitionScreen({
       {isHandsetLayout ? (
         <>
           <Pressable
-            onPress={() => setIsHandsetPanelExpanded((prev) => !prev)}
+            testID="handset-bottom-toggle"
+            onPress={handleToggleHandsetPanel}
             accessibilityRole="button"
             accessibilityState={{ expanded: isHandsetPanelExpanded }}
             style={({ pressed }) => [
