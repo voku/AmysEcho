@@ -248,6 +248,7 @@ export default function RecognitionScreen({
     status,
     error,
     gestureConfidence,
+    lastSuccessfulConfidence,
     lastRecognizedGesture,
     facingMode,
     setFacingMode,
@@ -552,9 +553,19 @@ export default function RecognitionScreen({
       return null;
     }
 
-    const confidence = sequenceMeaning
-      ? sequenceMatch?.matchConfidence ?? gestureConfidence
-      : detectedGestureMeaning?.confidence ?? gestureConfidence;
+    const sequenceConfidence = sequenceMeaning
+      ? sequenceMatch?.matchConfidence
+      : null;
+    const directConfidence = detectedGestureMeaning?.confidence;
+    const stableConfidence =
+      typeof sequenceConfidence === 'number'
+        ? sequenceConfidence
+        : typeof directConfidence === 'number'
+        ? directConfidence
+        : lastSuccessfulConfidence;
+    const confidence = Number.isFinite(stableConfidence) && stableConfidence >= 0
+      ? stableConfidence
+      : gestureConfidence;
 
     const sequenceGestures =
       sequenceMatch?.sequence?.gestures ??
@@ -569,6 +580,7 @@ export default function RecognitionScreen({
   }, [
     detectedGestureMeaning,
     gestureConfidence,
+    lastSuccessfulConfidence,
     lastRecognizedGesture,
     sequenceMatch,
     sequenceMeaning,

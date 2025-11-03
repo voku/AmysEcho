@@ -36,6 +36,8 @@ export interface RecognitionProfileState {
 export interface RecognitionGestureState {
   gestureConfidence: number;
   setGestureConfidence: Dispatch<SetStateAction<number>>;
+  lastSuccessfulConfidence: number;
+  setLastSuccessfulConfidence: Dispatch<SetStateAction<number>>;
   pendingGesture: string | null;
   setPendingGesture: Dispatch<SetStateAction<string | null>>;
   lastRecognizedGesture: GestureModelEntry | null;
@@ -107,6 +109,7 @@ export const useRecognitionState = (): RecognitionState => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatusState] = useState('Ich höre zu…');
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
+  const [lastSuccessfulConfidence, setLastSuccessfulConfidence] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
   const [, setSuggestions] = useState<LLMSuggestionResponse>({
@@ -160,6 +163,8 @@ export const useRecognitionState = (): RecognitionState => {
     setStatus,
     gestureConfidence,
     setGestureConfidence,
+    lastSuccessfulConfidence,
+    setLastSuccessfulConfidence,
     error,
     setError,
     showCorrection,
