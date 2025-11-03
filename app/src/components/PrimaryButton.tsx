@@ -41,6 +41,9 @@ const variantStyles = StyleSheet.create({
   secondaryTextHC: {
     color: COLORS.highContrastText,
   },
+  secondaryTextDisabledHC: {
+    color: COLORS.highContrastBackground,
+  },
 });
 
 export default function PrimaryButton({
@@ -85,8 +88,9 @@ export default function PrimaryButton({
           baseStyles.buttonText,
           largeText && baseStyles.buttonTextLarge,
           highContrast && baseStyles.buttonTextHC,
-          variant === 'secondary' && variantStyles.secondaryText,
-          variant === 'secondary' && highContrast && variantStyles.secondaryTextHC,
+          variant === 'secondary' && !highContrast && variantStyles.secondaryText,
+          variant === 'secondary' && highContrast && !disabled && variantStyles.secondaryTextHC,
+          variant === 'secondary' && highContrast && disabled && variantStyles.secondaryTextDisabledHC,
           disabled && !highContrast && baseStyles.buttonTextDisabled,
         ]}
       >

@@ -844,14 +844,14 @@ export default function TrainingScreen({ navigation, route }: any) {
       flexGrow: 1,
       alignItems: 'center',
       justifyContent: 'flex-start',
-      paddingTop: SPACING.lg,
-      paddingBottom: SPACING.xxl * 4,
+      paddingTop: SPACING.md,
+      paddingBottom: SPACING.xxl * 3,
     },
     loopWrapper: {
       width: '100%',
       maxWidth: 520,
-      marginBottom: SPACING.lg,
-      alignItems: 'center',
+      marginBottom: SPACING.md,
+      alignItems: 'flex-start',
       alignSelf: 'center',
     },
     content: {
@@ -1254,7 +1254,12 @@ export default function TrainingScreen({ navigation, route }: any) {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.loopWrapper}>
-          <AmyLoopTimeline activeStage={trainingLoopStage} />
+          <AmyLoopTimeline
+            activeStage={trainingLoopStage}
+            layout="inline"
+            compact
+            hideDescriptions
+          />
         </View>
         <View style={styles.content}>
           <View style={styles.panel}>
