@@ -269,12 +269,15 @@ describe('RecognitionScreen Amy-first overlay', () => {
 
     const initialActionsContainer = getActionsContainer();
     expect(initialActionsContainer.props.pointerEvents).toBe('none');
-    expect(initialActionsContainer.props.accessibilityElementsHidden).toBe(true);
-    expect(initialActionsContainer.props.importantForAccessibility).toBe(
-      'no-hide-descendants',
-    );
+    expect(initialActionsContainer.props.accessibilityElementsHidden).toBe(false);
+    expect(initialActionsContainer.props.importantForAccessibility).toBe('auto');
 
-    expect(findAmyActionButtons()).toHaveLength(3);
+    const placeholderTexts = component.root.findAll(
+      (node) => node.type === Text && node.props.children === 'Aktionen erscheinen hier.',
+    );
+    expect(placeholderTexts.length).toBeGreaterThan(0);
+
+    expect(findAmyActionButtons()).toHaveLength(0);
 
     await act(async () => {
       recognitionStateModule.__setMockLastRecognizedGesture?.({
@@ -289,6 +292,11 @@ describe('RecognitionScreen Amy-first overlay', () => {
     expect(activeActionsContainer.props.pointerEvents).toBe('auto');
     expect(activeActionsContainer.props.accessibilityElementsHidden).toBe(false);
     expect(activeActionsContainer.props.importantForAccessibility).toBe('auto');
+
+    const remainingPlaceholders = component.root.findAll(
+      (node) => node.type === Text && node.props.children === 'Aktionen erscheinen hier.',
+    );
+    expect(remainingPlaceholders).toHaveLength(0);
 
     const actionButtons = findAmyActionButtons();
 

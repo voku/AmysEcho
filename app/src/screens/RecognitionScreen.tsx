@@ -589,7 +589,8 @@ export default function RecognitionScreen({
   const safeStatus = typeof status === 'string' ? status : '';
   const normalizedStatus = safeStatus.toLowerCase();
   const hasActiveGesture = Boolean(gestureMeaningDisplayProps);
-  const showGestureActions = hasActiveGesture;
+  const [renderActions, setRenderActions] = useState(hasActiveGesture);
+  const showGestureActions = renderActions;
   const actionsFadeAnim = useRef(new Animated.Value(hasActiveGesture ? 1 : 0)).current;
   const fadeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   const [actionsPointerEvents, setActionsPointerEvents] = useState<'none' | 'auto'>(
@@ -603,6 +604,12 @@ export default function RecognitionScreen({
   useEffect(() => {
     setIsHandsetPanelExpanded(!isHandsetLayout);
   }, [isHandsetLayout]);
+
+  useEffect(() => {
+    if (hasActiveGesture) {
+      setRenderActions(true);
+    }
+  }, [hasActiveGesture]);
 
   useEffect(() => {
     if (fadeAnimationRef.current) {
@@ -625,29 +632,38 @@ export default function RecognitionScreen({
         }
         fadeAnimationRef.current = null;
       });
-    } else {
-      const fadeOutAnimation = Animated.timing(actionsFadeAnim, {
-        toValue: 0,
-        duration: 250,
-        easing: Easing.ease,
-        useNativeDriver: true,
-      });
-      fadeAnimationRef.current = fadeOutAnimation;
-      fadeOutAnimation.start(({ finished }) => {
-        if (finished) {
-          setActionsPointerEvents('none');
-        }
+      return () => {
+        fadeInAnimation.stop();
         fadeAnimationRef.current = null;
-      });
+      };
     }
 
-    return () => {
-      if (fadeAnimationRef.current) {
-        fadeAnimationRef.current.stop();
-        fadeAnimationRef.current = null;
+    if (!renderActions) {
+      setActionsPointerEvents('none');
+      actionsFadeAnim.setValue(0);
+      return undefined;
+    }
+
+    const fadeOutAnimation = Animated.timing(actionsFadeAnim, {
+      toValue: 0,
+      duration: 250,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    });
+    fadeAnimationRef.current = fadeOutAnimation;
+    fadeOutAnimation.start(({ finished }) => {
+      if (finished) {
+        setActionsPointerEvents('none');
+        setRenderActions(false);
       }
+      fadeAnimationRef.current = null;
+    });
+
+    return () => {
+      fadeOutAnimation.stop();
+      fadeAnimationRef.current = null;
     };
-  }, [actionsFadeAnim, hasActiveGesture]);
+  }, [actionsFadeAnim, hasActiveGesture, renderActions]);
 
   const statusCategory = useMemo<RecognitionStatusCategory>(() => {
     if (error) {
@@ -873,8 +889,16 @@ export default function RecognitionScreen({
     </View>
   );
 
+  const shouldExpandHandsetBottom = Boolean(gestureMeaningDisplayProps) || showGestureActions;
+
   const bottomPanelContent = (
-    <View style={[styles.bottomSection, isHandsetLayout && styles.handsetBottomSection]}>
+    <View
+      style={[
+        styles.bottomSection,
+        isHandsetLayout && styles.handsetBottomSection,
+        isHandsetLayout && shouldExpandHandsetBottom && styles.handsetBottomSectionExpanded,
+      ]}
+    >
       {gestureMeaningDisplayProps ? (
         <Animated.View
           style={[
@@ -933,15 +957,19 @@ export default function RecognitionScreen({
           !showGestureActions && styles.actionsSlotCollapsed,
         ]}
       >
-        {showGestureActions ? (
-          <View
-            testID="recognition-actions"
-            pointerEvents={actionsPointerEvents}
-            accessibilityElementsHidden={actionsAccessibilityHidden}
-            importantForAccessibility={
-              actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
-            }
-          >
+        <View
+          testID="recognition-actions"
+          pointerEvents={showGestureActions ? actionsPointerEvents : 'none'}
+          accessibilityElementsHidden={
+            showGestureActions ? actionsAccessibilityHidden : false
+          }
+          importantForAccessibility={
+            showGestureActions && actionsAccessibilityHidden ? 'no-hide-descendants' : 'auto'
+          }
+          collapsable={false}
+          style={[styles.actionsHost, isHandsetLayout && styles.handsetActionsHost]}
+        >
+          {showGestureActions ? (
             <Animated.View
               style={[
                 styles.actionsContainer,
@@ -1001,22 +1029,22 @@ export default function RecognitionScreen({
                 />
               </View>
             </Animated.View>
-          </View>
-        ) : (
-          <View
-            accessibilityRole="text"
-            style={[
-              styles.actionsPlaceholder,
-              isHandsetLayout && styles.handsetActionsPlaceholder,
-            ]}
-            pointerEvents="none"
-          >
-            <Text style={styles.actionsPlaceholderTitle}>Aktionen erscheinen hier.</Text>
-            <Text style={styles.actionsPlaceholderSubtitle}>
-              Sobald Amy deine Geste erkennt, kannst du hier bestätigen oder lernen.
-            </Text>
-          </View>
-        )}
+          ) : (
+            <View
+              accessibilityRole="text"
+              style={[
+                styles.actionsPlaceholder,
+                isHandsetLayout && styles.handsetActionsPlaceholder,
+              ]}
+              pointerEvents="none"
+            >
+              <Text style={styles.actionsPlaceholderTitle}>Aktionen erscheinen hier.</Text>
+              <Text style={styles.actionsPlaceholderSubtitle}>
+                Sobald Amy deine Geste erkennt, kannst du hier bestätigen oder lernen.
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -1373,6 +1401,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     maxHeight: '30%',
   },
+  handsetBottomSectionExpanded: {
+    maxHeight: '50%',
+  },
   actionsSlot: {
     minHeight: ACTIONS_SLOT_MIN_HEIGHT,
     width: '100%',
@@ -1389,6 +1420,12 @@ const styles = StyleSheet.create({
     minHeight: 0,
     justifyContent: 'flex-start',
     paddingTop: spacing.sm,
+  },
+  actionsHost: {
+    width: '100%',
+  },
+  handsetActionsHost: {
+    width: '100%',
   },
   actionsPlaceholder: {
     alignItems: 'center',
