@@ -145,10 +145,14 @@ const HANDSET_LAYOUT_BREAKPOINT = 640; // px width threshold for compact handset
 const ACTIONS_SLOT_MIN_HEIGHT = ACTION_BUTTON_MIN_HEIGHT * 2 + spacing.sm;
 const COMPACT_ACTIONS_SLOT_MIN_HEIGHT =
   ACTION_BUTTON_MIN_HEIGHT * 3 + spacing.sm * 2;
+type SequenceMeaning = ReturnType<typeof useRecognitionState>['sequenceMeaning'];
+type SequenceMatch = ReturnType<typeof useRecognitionState>['sequenceMatch'];
+type DetectedGestureMeaning = ReturnType<typeof useRecognitionState>['detectedGestureMeaning'];
+
 const selectConfidence = (
-  sequenceMeaning: ReturnType<typeof useRecognitionState>['sequenceMeaning'],
-  sequenceMatch: ReturnType<typeof useRecognitionState>['sequenceMatch'],
-  detectedGestureMeaning: ReturnType<typeof useRecognitionState>['detectedGestureMeaning'],
+  sequenceMeaning: SequenceMeaning,
+  sequenceMatch: SequenceMatch,
+  detectedGestureMeaning: DetectedGestureMeaning,
   lastSuccessfulConfidence: number,
   gestureConfidence: number,
 ): number => {
@@ -172,7 +176,11 @@ const selectConfidence = (
     return lastSuccessfulConfidence;
   }
 
-  return gestureConfidence;
+  if (Number.isFinite(gestureConfidence) && gestureConfidence >= 0) {
+    return gestureConfidence;
+  }
+
+  return 0;
 };
 
 const toGestureImageCapture = (
