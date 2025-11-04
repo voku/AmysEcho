@@ -112,6 +112,18 @@ export default function TrainingScreen({ navigation, route }: any) {
     [clipCaptureMode],
   );
 
+  const enterClipFallback = useCallback(
+    (reason: string) => {
+      clipSupportReasonRef.current = reason;
+      const persisted = persistFallbackIfUnsupported(reason);
+      if (!persisted && clipCaptureMode !== 'fallback') {
+        setClipCaptureMode('fallback');
+      }
+      announceClipFallback();
+    },
+    [announceClipFallback, clipCaptureMode, persistFallbackIfUnsupported],
+  );
+
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
     const targetUri = await persistClipToDirectory({
       fs: expoFs,
@@ -312,14 +324,9 @@ export default function TrainingScreen({ navigation, route }: any) {
         clipId = await detectorRef.current.startClipCapture();
       } catch (error) {
         const reason = error instanceof Error ? error.message ?? 'clip_start_failed' : String(error ?? 'clip_start_failed');
-        clipSupportReasonRef.current = reason;
         logger.warn('Failed to start clip capture, falling back to landmarks-only mode', error);
         clipMode = 'fallback';
-        const persisted = persistFallbackIfUnsupported(reason);
-        if (!persisted && clipCaptureMode !== 'fallback') {
-          setClipCaptureMode('fallback');
-        }
-        announceClipFallback();
+        enterClipFallback(reason);
       }
     }
 
@@ -329,10 +336,10 @@ export default function TrainingScreen({ navigation, route }: any) {
     // HIP 2 or 4: sample start
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
   }, [
-    announceClipFallback,
     cameraReady,
     cleanupClipFile,
     clipCaptureMode,
+    enterClipFallback,
     gestureId,
     isPractice,
     persistFallbackIfUnsupported,
@@ -363,14 +370,9 @@ export default function TrainingScreen({ navigation, route }: any) {
           clipUri = await persistClip(clipResult);
         } catch (error) {
           const reason = error instanceof Error ? error.message ?? 'clip_stop_failed' : 'clip_stop_failed';
-          clipSupportReasonRef.current = reason;
           logger.warn('Failed to stop clip capture, switching to fallback mode', error);
           clipMode = 'fallback';
-          const persisted = persistFallbackIfUnsupported(reason);
-          if (!persisted && clipCaptureMode !== 'fallback') {
-            setClipCaptureMode('fallback');
-          }
-          announceClipFallback();
+          enterClipFallback(reason);
           clipUri = '';
           try {
             detectorRef.current?.cancelClipCapture();
@@ -445,12 +447,11 @@ export default function TrainingScreen({ navigation, route }: any) {
       setRecordingState('idle');
     }
   }, [
-    announceClipFallback,
     audioService,
     cameraReady,
     cleanupClipFile,
     clipCaptureMode,
-    detectorRef,
+    enterClipFallback,
     framesCaptured,
     gestureId,
     isPractice,
