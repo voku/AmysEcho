@@ -1114,10 +1114,12 @@ export default function TrainingScreen({ navigation, route }: any) {
                 clipRequestIdRef.current = null;
                 clipSupportReasonRef.current = reason;
 
-                if (persistFallbackIfUnsupported(reason)) {
-                  detectorRef.current?.cancelClipCapture();
-                  void cleanupClipFile();
-                  announceClipFallback();
+                const unsupported = persistFallbackIfUnsupported(reason);
+                detectorRef.current?.cancelClipCapture();
+                void cleanupClipFile();
+                announceClipFallback();
+
+                if (unsupported) {
                   void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_unsupported', {
                     reason,
                   });
@@ -1126,7 +1128,6 @@ export default function TrainingScreen({ navigation, route }: any) {
                   if (clipCaptureMode !== 'fallback') {
                     setClipCaptureMode('fallback');
                   }
-                  announceClipFallback();
                   void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_failed', {
                     reason,
                   });

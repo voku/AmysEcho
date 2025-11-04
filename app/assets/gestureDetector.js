@@ -4643,7 +4643,8 @@
         frameCount: 0,
         timeoutHandle: null,
         aborted: false,
-        timesliceMs: null
+        timesliceMs: null,
+        requestDataInterval: null
       };
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -4667,6 +4668,22 @@
         return;
       }
       state.timesliceMs = startResult.timesliceMs;
+      if (state.timesliceMs === null && typeof recorder.requestData === "function") {
+        state.requestDataInterval = window.setInterval(() => {
+          if (state.aborted || state.recorder.state !== "recording") {
+            if (state.requestDataInterval) {
+              clearInterval(state.requestDataInterval);
+              state.requestDataInterval = null;
+            }
+            return;
+          }
+          try {
+            state.recorder.requestData();
+          } catch (intervalError) {
+            console.warn("Failed to request clip data during recording:", intervalError);
+          }
+        }, 1e3);
+      }
       state.timeoutHandle = window.setTimeout(() => {
         state.aborted = true;
         this.sendClipError(requestId, "recorder_timeout");
@@ -4724,6 +4741,10 @@
       if (state.timeoutHandle) {
         clearTimeout(state.timeoutHandle);
       }
+      if (state.requestDataInterval) {
+        clearInterval(state.requestDataInterval);
+        state.requestDataInterval = null;
+      }
       if (stopRecorder) {
         try {
           if (state.recorder.state !== "inactive") {
@@ -4746,6 +4767,10 @@
     handleClipStop(state) {
       if (state.timeoutHandle) {
         clearTimeout(state.timeoutHandle);
+      }
+      if (state.requestDataInterval) {
+        clearInterval(state.requestDataInterval);
+        state.requestDataInterval = null;
       }
       if (state.aborted) {
         return;

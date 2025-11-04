@@ -18,15 +18,11 @@ type HeroScreenProps = {
 };
 
 const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
-  const handleTimelinePress = React.useCallback(
+  const navigateToWorkflowRoute = React.useCallback(
     (route: WorkflowRouteName) => {
-      navigation.navigate(
-        ROOT_STACK_ROUTES.App,
-        {
-          screen: route,
-        },
-        { pop: true },
-      );
+      navigation.replace(ROOT_STACK_ROUTES.App, {
+        screen: route,
+      });
     },
     [navigation],
   );
@@ -51,33 +47,21 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
             layout="inline"
             compact
             hideDescriptions
-            onStagePress={handleTimelinePress}
+            onStagePress={navigateToWorkflowRoute}
           />
         </View>
 
         <View style={styles.ctaRow}>
           <PrimaryButton
             label="Zur Gestenkamera"
-            onPress={() =>
-              navigation.replace(ROOT_STACK_ROUTES.App, {
-                screen: APP_TAB_ROUTES.Recognition,
-              })
-            }
+            onPress={() => navigateToWorkflowRoute(APP_TAB_ROUTES.Recognition)}
             accessibilityLabel="Zur Gestenkamera wechseln"
             testID="hero-start"
             style={styles.ctaButton}
           />
           <PrimaryButton
             label="Lernen entdecken"
-            onPress={() => {
-              navigation.navigate(
-                ROOT_STACK_ROUTES.App,
-                {
-                  screen: APP_TAB_ROUTES.Lernen,
-                },
-                { pop: true },
-              );
-            }}
+            onPress={() => navigateToWorkflowRoute(APP_TAB_ROUTES.Lernen)}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"
             testID="hero-train"

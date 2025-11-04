@@ -70,6 +70,7 @@ interface ClipCaptureState {
   timeoutHandle?: number | null;
   aborted: boolean;
   timesliceMs: number | null;
+  requestDataInterval?: number | null;
 }
 
 type OrchestratorDependencies = {
@@ -416,6 +417,7 @@ export class GestureRecognitionOrchestrator {
       timeoutHandle: null,
       aborted: false,
       timesliceMs: null,
+      requestDataInterval: null,
     };
 
     recorder.ondataavailable = (event: BlobEvent) => {
@@ -444,6 +446,24 @@ export class GestureRecognitionOrchestrator {
     }
 
     state.timesliceMs = startResult.timesliceMs;
+
+    if (state.timesliceMs === null && typeof recorder.requestData === 'function') {
+      state.requestDataInterval = window.setInterval(() => {
+        if (state.aborted || state.recorder.state !== 'recording') {
+          if (state.requestDataInterval) {
+            clearInterval(state.requestDataInterval);
+            state.requestDataInterval = null;
+          }
+          return;
+        }
+
+        try {
+          state.recorder.requestData();
+        } catch (intervalError) {
+          console.warn('Failed to request clip data during recording:', intervalError);
+        }
+      }, 1000);
+    }
 
     state.timeoutHandle = window.setTimeout(() => {
       state.aborted = true;
@@ -514,6 +534,11 @@ export class GestureRecognitionOrchestrator {
       clearTimeout(state.timeoutHandle);
     }
 
+    if (state.requestDataInterval) {
+      clearInterval(state.requestDataInterval);
+      state.requestDataInterval = null;
+    }
+
     if (stopRecorder) {
       try {
         if (state.recorder.state !== 'inactive') {
@@ -539,6 +564,11 @@ export class GestureRecognitionOrchestrator {
   private handleClipStop(state: ClipCaptureState): void {
     if (state.timeoutHandle) {
       clearTimeout(state.timeoutHandle);
+    }
+
+    if (state.requestDataInterval) {
+      clearInterval(state.requestDataInterval);
+      state.requestDataInterval = null;
     }
 
     if (state.aborted) {
