@@ -22,6 +22,9 @@ export const createButtonStyles = () => ({
     backgroundColor: COLORS.secondaryAccent,
     opacity: 0.6,
   },
+  buttonDisabledHC: {
+    backgroundColor: COLORS.highContrastText,
+  },
   buttonText: {
     color: COLORS.highContrastText,
     fontSize: 16,
@@ -32,5 +35,8 @@ export const createButtonStyles = () => ({
   },
   buttonTextHC: {
     color: COLORS.highContrastBackground,
+  },
+  buttonTextDisabled: {
+    color: COLORS.text,
   },
 });

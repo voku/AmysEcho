@@ -69,6 +69,8 @@ interface ClipCaptureState {
   frameCount: number;
   timeoutHandle?: number | null;
   aborted: boolean;
+  timesliceMs: number | null;
+  requestDataInterval?: number | null;
 }
 
 type OrchestratorDependencies = {
@@ -414,6 +416,8 @@ export class GestureRecognitionOrchestrator {
       frameCount: 0,
       timeoutHandle: null,
       aborted: false,
+      timesliceMs: null,
+      requestDataInterval: null,
     };
 
     recorder.ondataavailable = (event: BlobEvent) => {
@@ -433,13 +437,32 @@ export class GestureRecognitionOrchestrator {
       this.handleClipStop(state);
     };
 
-    try {
-      recorder.start(500);
-    } catch (error) {
+    const startResult = this.startRecorder(recorder);
+    if (!startResult.ok) {
       state.aborted = true;
-      this.sendClipError(requestId, 'recorder_start_failed', error);
+      this.sendClipError(requestId, 'recorder_start_failed', startResult.error);
       this.resetClipCapture(true);
       return;
+    }
+
+    state.timesliceMs = startResult.timesliceMs;
+
+    if (state.timesliceMs === null && typeof recorder.requestData === 'function') {
+      state.requestDataInterval = window.setInterval(() => {
+        if (state.aborted || state.recorder.state !== 'recording') {
+          if (state.requestDataInterval) {
+            clearInterval(state.requestDataInterval);
+            state.requestDataInterval = null;
+          }
+          return;
+        }
+
+        try {
+          state.recorder.requestData();
+        } catch (intervalError) {
+          console.warn('Failed to request clip data during recording:', intervalError);
+        }
+      }, 1000);
     }
 
     state.timeoutHandle = window.setTimeout(() => {
@@ -452,6 +475,7 @@ export class GestureRecognitionOrchestrator {
     this.sendClipTelemetry('clip_started', requestId, {
       mimeType: state.mimeType,
       recorderMimeType: recorder.mimeType,
+      timesliceMs: state.timesliceMs,
     });
   }
 
@@ -462,6 +486,18 @@ export class GestureRecognitionOrchestrator {
     }
 
     try {
+      if (
+        this.clipCaptureState.timesliceMs === null &&
+        typeof this.clipCaptureState.recorder.requestData === 'function'
+      ) {
+        try {
+          // Safari rejects MediaRecorder.start(timeslice). When we fall back to manual flushing,
+          // explicitly request the last chunk before calling stop to avoid truncated clips.
+          this.clipCaptureState.recorder.requestData();
+        } catch (requestError) {
+          console.warn('Failed to request final clip data before stop:', requestError);
+        }
+      }
       if (this.clipCaptureState.recorder.state !== 'inactive') {
         this.clipCaptureState.recorder.stop();
       }
@@ -498,6 +534,11 @@ export class GestureRecognitionOrchestrator {
       clearTimeout(state.timeoutHandle);
     }
 
+    if (state.requestDataInterval) {
+      clearInterval(state.requestDataInterval);
+      state.requestDataInterval = null;
+    }
+
     if (stopRecorder) {
       try {
         if (state.recorder.state !== 'inactive') {
@@ -508,12 +549,26 @@ export class GestureRecognitionOrchestrator {
       }
     }
 
+    try {
+      state.recorder.ondataavailable = null as any;
+      state.recorder.onerror = null as any;
+      state.recorder.onstop = null as any;
+      state.recorder.onstart = null as any;
+    } catch (error) {
+      console.warn('Failed to detach recorder listeners during reset:', error);
+    }
+
     this.clipCaptureState = null;
   }
 
   private handleClipStop(state: ClipCaptureState): void {
     if (state.timeoutHandle) {
       clearTimeout(state.timeoutHandle);
+    }
+
+    if (state.requestDataInterval) {
+      clearInterval(state.requestDataInterval);
+      state.requestDataInterval = null;
     }
 
     if (state.aborted) {
@@ -730,6 +785,56 @@ export class GestureRecognitionOrchestrator {
       normalized.includes('not supported') ||
       normalized.includes('unsupported')
     );
+  }
+
+  private isTimesliceUnsupportedError(error: unknown): boolean {
+    if (!error) {
+      return false;
+    }
+
+    const name = (error as { name?: unknown })?.name;
+    if (name === 'NotSupportedError') {
+      return true;
+    }
+
+    const code = (error as { code?: unknown })?.code;
+    if (code === 11) {
+      // Safari <14 still exposes DOMException codes instead of names.
+      return true;
+    }
+
+    const message = (error as { message?: unknown })?.message;
+    if (typeof message === 'string') {
+      const normalized = message.toLowerCase();
+      if (normalized.includes('timeslice') || normalized.includes('duration') || normalized.includes('timeslice value')) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private startRecorder(
+    recorder: MediaRecorder,
+  ): { ok: true; timesliceMs: number | null } | { ok: false; error: unknown } {
+    const preferredTimeslice = 500;
+    try {
+      recorder.start(preferredTimeslice);
+      return { ok: true, timesliceMs: preferredTimeslice };
+    } catch (error) {
+      if (!this.isTimesliceUnsupportedError(error)) {
+        return { ok: false, error };
+      }
+
+      try {
+        // Safari 17 and some Android System WebView builds throw when a timeslice parameter is provided.
+        // Retry without it so recording still succeeds even if progress events are infrequent.
+        recorder.start();
+        return { ok: true, timesliceMs: null };
+      } catch (fallbackError) {
+        return { ok: false, error: fallbackError };
+      }
+    }
   }
 
   private resolveClipMimeType(state: ClipCaptureState): string {

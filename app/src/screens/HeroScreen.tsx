@@ -10,6 +10,7 @@ import typography from '../constants/typography';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
+import type { WorkflowRouteName } from '../constants/workflow';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 
 type HeroScreenProps = {
@@ -17,6 +18,15 @@ type HeroScreenProps = {
 };
 
 const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
+  const navigateToWorkflowRoute = React.useCallback(
+    (route: WorkflowRouteName) => {
+      navigation.replace(ROOT_STACK_ROUTES.App, {
+        screen: route,
+      });
+    },
+    [navigation],
+  );
+
   return (
     <ScreenBackground scrollable testID="hero-screen">
       <View style={styles.container}>
@@ -32,40 +42,34 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ navigation }) => {
         </View>
 
         <View style={styles.timelineWrapper}>
-          <AmyLoopTimeline activeStage="Recognition" />
+          <AmyLoopTimeline
+            activeStage={APP_TAB_ROUTES.Recognition}
+            layout="inline"
+            compact
+            hideDescriptions
+            onStagePress={navigateToWorkflowRoute}
+          />
         </View>
-
-        <AmyFirstCommitments />
 
         <View style={styles.ctaRow}>
           <PrimaryButton
             label="Zur Gestenkamera"
-            onPress={() =>
-              navigation.replace(ROOT_STACK_ROUTES.App, {
-                screen: APP_TAB_ROUTES.Recognition,
-              })
-            }
+            onPress={() => navigateToWorkflowRoute(APP_TAB_ROUTES.Recognition)}
             accessibilityLabel="Zur Gestenkamera wechseln"
             testID="hero-start"
             style={styles.ctaButton}
           />
           <PrimaryButton
             label="Lernen entdecken"
-            onPress={() => {
-              navigation.navigate(
-                ROOT_STACK_ROUTES.App,
-                {
-                  screen: APP_TAB_ROUTES.Lernen,
-                },
-                { pop: true },
-              );
-            }}
+            onPress={() => navigateToWorkflowRoute(APP_TAB_ROUTES.Lernen)}
             variant="secondary"
             accessibilityLabel="Zum Trainingsbereich wechseln"
             testID="hero-train"
             style={styles.ctaButton}
           />
         </View>
+
+        <AmyFirstCommitments />
 
         <WorkflowSupportLinks style={styles.supportLinks} />
       </View>
@@ -78,8 +82,8 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     gap: spacing['2xl'],
-    justifyContent: 'center',
     alignItems: 'stretch',
+    paddingVertical: spacing.xl,
   },
   header: {
     alignItems: 'center',
@@ -111,17 +115,19 @@ const styles = StyleSheet.create({
   },
   timelineWrapper: {
     width: '100%',
+    marginTop: spacing.lg,
   },
   ctaRow: {
     width: '100%',
     flexDirection: 'row',
     gap: spacing.lg,
+    marginTop: spacing.lg,
   },
   ctaButton: {
     flex: 1,
   },
   supportLinks: {
-    marginTop: spacing['2xl'],
+    marginTop: spacing.xl,
   },
 });
 

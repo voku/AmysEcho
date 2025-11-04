@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '../constants/ui';
 import { ORDERED_WORKFLOW_STEPS, type WorkflowRouteName } from '../constants/workflow';
 import { useAccessibility } from './AccessibilityContext';
@@ -16,6 +16,15 @@ type AmyLoopTimelineProps = {
   compact?: boolean;
   /** Hides the secondary description text for extra compact variants. */
   hideDescriptions?: boolean;
+  /**
+   * Controls the visual density. `grid` keeps the original card layout, while
+   * `inline` renders a slim breadcrumb row optimised for small screens.
+   */
+  layout?: 'grid' | 'inline';
+  /** Optional callback, um Stufen direkt anzusteuern. */
+  onStagePress?: (route: WorkflowRouteName) => void;
+  /** Blendet die Emojis/Bubbles aus und zeigt nur Text. */
+  showIcons?: boolean;
 };
 
 const STAGES = ORDERED_WORKFLOW_STEPS.map((step) => ({
@@ -23,6 +32,8 @@ const STAGES = ORDERED_WORKFLOW_STEPS.map((step) => ({
   emoji: step.icon,
   title: step.label,
   description: step.timelineSummary,
+  accessibilityLabel: step.accessibilityLabel,
+  accessibilityHint: step.accessibilityHint,
 }));
 
 const MODE_STYLES = {
@@ -54,22 +65,67 @@ const MODE_STYLES = {
   },
 } as const;
 
+type ModeColorTokens = (typeof MODE_STYLES)[keyof typeof MODE_STYLES]['container'];
+
+function getBadgeTextColor(
+  highContrast: boolean,
+  modeColors: ModeColorTokens,
+  isActive: boolean,
+  isComplete: boolean,
+) {
+  if (highContrast) {
+    return COLORS.highContrastText;
+  }
+  if (isActive) {
+    return modeColors.badgeText;
+  }
+  if (isComplete) {
+    return COLORS.neutral;
+  }
+  return modeColors.inactiveBadgeText;
+}
+
+function getInlineLabelColor(
+  highContrast: boolean,
+  modeColors: ModeColorTokens,
+  isActive: boolean,
+  isComplete: boolean,
+) {
+  if (highContrast) {
+    return COLORS.highContrastText;
+  }
+  if (isActive) {
+    return modeColors.title;
+  }
+  if (isComplete) {
+    return COLORS.success;
+  }
+  return modeColors.description;
+}
+
 export function AmyLoopTimeline({
   activeStage,
   mode = 'surface',
   compact = false,
   hideDescriptions = false,
+  layout = 'grid',
+  onStagePress,
+  showIcons = true,
 }: AmyLoopTimelineProps) {
   const { largeText, highContrast } = useAccessibility();
   const modeColors = MODE_STYLES[mode]?.container ?? MODE_STYLES.surface.container;
+  const isInline = layout === 'inline';
+  const isInteractive = typeof onStagePress === 'function';
+  const activeStageIndex = STAGES.findIndex((item) => item.key === activeStage);
+  const resolvedStageIndex = activeStageIndex === -1 ? 0 : activeStageIndex;
 
   const containerStyle = [
-    styles.container,
+    isInline ? styles.inlineContainer : styles.container,
     {
       backgroundColor: highContrast ? COLORS.highContrastBackground : modeColors.backgroundColor,
       borderColor: highContrast ? COLORS.highContrastText : modeColors.borderColor,
-      paddingVertical: compact ? SPACING.md : SPACING.lg,
-      paddingHorizontal: compact ? SPACING.lg : SPACING.xl,
+      paddingVertical: isInline ? (compact ? SPACING.sm : SPACING.md) : compact ? SPACING.md : SPACING.lg,
+      paddingHorizontal: isInline ? (compact ? SPACING.md : SPACING.lg) : compact ? SPACING.lg : SPACING.xl,
     },
   ];
 
@@ -80,8 +136,6 @@ export function AmyLoopTimeline({
       style={containerStyle}
     >
       {STAGES.map((stage, index) => {
-        const stageIndex = STAGES.findIndex((item) => item.key === activeStage);
-        const resolvedStageIndex = stageIndex === -1 ? 0 : stageIndex;
         const isActive = stage.key === activeStage;
         const isComplete = index < resolvedStageIndex;
         const badgeBackground = isActive
@@ -89,24 +143,26 @@ export function AmyLoopTimeline({
           : isComplete
             ? COLORS.success
             : modeColors.inactiveBadgeBackground;
-        const badgeTextColor = isActive
-          ? modeColors.badgeText
-          : isComplete
-            ? COLORS.inverseText
-            : modeColors.inactiveBadgeText;
+        const badgeTextColor = getBadgeTextColor(highContrast, modeColors, isActive, isComplete);
 
         const connectorColor = highContrast ? COLORS.highContrastText : modeColors.connector;
+        const inlineLabelColor = getInlineLabelColor(highContrast, modeColors, isActive, isComplete);
 
-        return (
-          <React.Fragment key={stage.key}>
-            <View
-              accessibilityRole="text"
-              accessibilityLabel={`${stage.title}: ${stage.description}`}
-              style={styles.stageItem}
-            >
+        const WrapperComponent = isInteractive ? Pressable : View;
+
+        const sharedStageStyles = [
+          isInline ? styles.inlineStageItem : styles.stageItem,
+          isInteractive && styles.interactiveStage,
+          !showIcons && styles.stageWithoutIcon,
+        ];
+
+        const stageContent = (
+          <>
+            {showIcons ? (
               <View
                 style={[
                   styles.stageBadge,
+                  isInline && styles.inlineStageBadge,
                   {
                     backgroundColor: highContrast ? COLORS.highContrastBackground : badgeBackground,
                     borderColor: highContrast
@@ -120,49 +176,107 @@ export function AmyLoopTimeline({
                 <Text
                   style={[
                     styles.stageEmoji,
-                    largeText && styles.stageEmojiLarge,
+                    isInline && styles.inlineStageEmoji,
+                    largeText && (isInline ? styles.inlineStageEmojiLarge : styles.stageEmojiLarge),
                     { color: highContrast ? COLORS.highContrastText : badgeTextColor },
                   ]}
                 >
                   {stage.emoji}
                 </Text>
               </View>
+            ) : null}
+            <Text
+              style={[
+                styles.stageTitle,
+                isInline && styles.inlineStageTitle,
+                isInline && isActive && styles.inlineStageTitleActive,
+                !showIcons && styles.stageTitleCompact,
+                largeText && (isInline ? styles.inlineStageTitleLarge : styles.stageTitleLarge),
+                {
+                  color: isInline
+                    ? inlineLabelColor
+                    : highContrast
+                      ? COLORS.highContrastText
+                      : modeColors.title,
+                },
+              ]}
+            >
+              {stage.title}
+            </Text>
+            {!hideDescriptions && !isInline ? (
               <Text
                 style={[
-                  styles.stageTitle,
-                  largeText && styles.stageTitleLarge,
-                  { color: highContrast ? COLORS.highContrastText : modeColors.title },
-                ]}
-              >
-                {stage.title}
-              </Text>
-              {!hideDescriptions ? (
-                <Text
-                  style={[
-                    styles.stageDescription,
-                    largeText && styles.stageDescriptionLarge,
-                    {
-                      color: highContrast ? COLORS.highContrastText : modeColors.description,
-                    },
-                  ]}
-                >
-                  {stage.description}
-                </Text>
-              ) : null}
-            </View>
-            {index < STAGES.length - 1 ? (
-              <View
-                pointerEvents="none"
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-                style={[
-                  styles.connector,
+                  styles.stageDescription,
+                  largeText && styles.stageDescriptionLarge,
                   {
-                    backgroundColor: connectorColor,
-                    marginHorizontal: compact ? SPACING.sm : SPACING.md,
+                    color: highContrast ? COLORS.highContrastText : modeColors.description,
                   },
                 ]}
-              />
+              >
+                {stage.description}
+              </Text>
+            ) : null}
+          </>
+        );
+
+        return (
+          <React.Fragment key={stage.key}>
+            <WrapperComponent
+              accessibilityRole={isInteractive ? 'button' : 'text'}
+              accessibilityLabel={
+                isInteractive && stage.accessibilityLabel
+                  ? stage.accessibilityLabel
+                  : `${stage.title}: ${stage.description}`
+              }
+              accessibilityHint={isInteractive ? stage.accessibilityHint : undefined}
+              onPress={
+                isInteractive
+                  ? () => {
+                      onStagePress?.(stage.key);
+                    }
+                  : undefined
+              }
+              style={
+                isInteractive
+                  ? ({ pressed }) => [
+                      ...sharedStageStyles,
+                      pressed && styles.stagePressed,
+                    ]
+                  : sharedStageStyles
+              }
+            >
+              {stageContent}
+            </WrapperComponent>
+            {index < STAGES.length - 1 ? (
+              isInline ? (
+                <View
+                  pointerEvents="none"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                  style={styles.inlineConnectorWrapper}
+                >
+                  <Text
+                    style={[styles.inlineConnector, { color: connectorColor }]}
+                    accessibilityRole="text"
+                    accessible={false}
+                  >
+                    →
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  pointerEvents="none"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                  style={[
+                    styles.connector,
+                    {
+                      backgroundColor: connectorColor,
+                      marginHorizontal: compact ? SPACING.sm : SPACING.md,
+                    },
+                  ]}
+                />
+              )
             ) : null}
           </React.Fragment>
         );
@@ -182,12 +296,33 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     rowGap: SPACING.md,
   },
+  inlineContainer: {
+    width: '100%',
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   stageItem: {
     flex: 1,
     minWidth: 120,
     maxWidth: 160,
     alignItems: 'center',
     paddingHorizontal: SPACING.xs,
+  },
+  inlineStageItem: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  interactiveStage: {
+    borderRadius: 16,
+  },
+  stagePressed: {
+    opacity: 0.75,
   },
   stageBadge: {
     width: 48,
@@ -198,11 +333,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: SPACING.sm,
   },
+  inlineStageBadge: {
+    width: 36,
+    height: 36,
+    marginBottom: 0,
+    marginRight: SPACING.xs,
+    borderRadius: 18,
+  },
   stageEmoji: {
     fontSize: TYPOGRAPHY.sizes.subtitle,
   },
   stageEmojiLarge: {
     fontSize: TYPOGRAPHY.sizes.titleSm,
+  },
+  inlineStageEmoji: {
+    fontSize: TYPOGRAPHY.sizes.body,
+  },
+  inlineStageEmojiLarge: {
+    fontSize: TYPOGRAPHY.sizes.subtitle,
   },
   stageTitle: {
     fontSize: TYPOGRAPHY.sizes.body,
@@ -211,6 +359,20 @@ const styles = StyleSheet.create({
   },
   stageTitleLarge: {
     fontSize: TYPOGRAPHY.sizes.subtitle,
+  },
+  inlineStageTitle: {
+    fontSize: TYPOGRAPHY.sizes.caption,
+    textAlign: 'left',
+    fontWeight: TYPOGRAPHY.weights.medium,
+  },
+  inlineStageTitleActive: {
+    fontWeight: TYPOGRAPHY.weights.semibold,
+  },
+  inlineStageTitleLarge: {
+    fontSize: TYPOGRAPHY.sizes.body,
+  },
+  stageTitleCompact: {
+    textAlign: 'left',
   },
   stageDescription: {
     fontSize: TYPOGRAPHY.sizes.caption,
@@ -224,5 +386,16 @@ const styles = StyleSheet.create({
     width: 2,
     borderRadius: 999,
     alignSelf: 'stretch',
+  },
+  inlineConnectorWrapper: {
+    flexShrink: 0,
+    paddingHorizontal: SPACING.xs,
+  },
+  inlineConnector: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    marginHorizontal: SPACING.xs,
+  },
+  stageWithoutIcon: {
+    paddingHorizontal: 0,
   },
 });

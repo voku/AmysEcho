@@ -31,6 +31,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { usePerformance } from '../context/PerformanceContext';
 import ScreenBackground from '../components/ScreenBackground';
 import { useAccessibility } from '../components/AccessibilityContext';
+import PrimaryButton from '../components/PrimaryButton';
 import SettingsOptionCard, {
   type SettingsOptionCardProps,
 } from '../components/settings/SettingsOptionCard';
@@ -67,6 +68,12 @@ const styles = StyleSheet.create({
   introText: { color: COLORS.text, fontSize: 14, textAlign: 'center' },
   introTextLarge: { fontSize: 16 },
   introTextHC: { color: COLORS.highContrastText },
+  addSymbolAction: {
+    marginTop: SPACING.lg,
+  },
+  addSymbolButton: {
+    alignSelf: 'stretch',
+  },
   section: { marginBottom: SPACING.xl },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginBottom: SPACING.md },
   sectionTitleLarge: { fontSize: 20 },
@@ -534,6 +541,15 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
           Koordiniere hier Exporte, Backups und technische Einstellungen für Amy. Die Aktionen sind in Abschnitte gegliedert, damit du schneller findest, was du brauchst.
         </Text>
       </View>
+
+      <View style={styles.addSymbolAction}>
+        <PrimaryButton
+          label="Symbol hinzufügen"
+          onPress={openAdd}
+          accessibilityLabel="Neues Symbol hinzufügen"
+          style={styles.addSymbolButton}
+        />
+      </View>
     </View>
   );
 
@@ -594,12 +610,6 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
       onPress: handleDeleteProfile,
       accessibilityLabel: 'Profil löschen',
       tone: 'danger' as const,
-    },
-    {
-      title: 'Symbol hinzufügen',
-      subtitle: 'Legt ein neues individuelles Symbol an',
-      onPress: openAdd,
-      accessibilityLabel: 'Symbol hinzufügen',
     },
   ];
 

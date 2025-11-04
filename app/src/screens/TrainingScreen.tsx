@@ -41,15 +41,17 @@ import {
   getCameraStatusText,
   getNextCameraFacingMode,
 } from '../constants/cameraToggle';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
-const CLIP_UNSUPPORTED_TEXT =
-  'Dieses Gerät unterstützt keine Videoaufnahmen für das Training. Bitte versuch es später erneut oder nutze ein anderes Gerät.';
 const UNSUPPORTED_CLIP_REASONS = new Set([
   'media_recorder_unavailable',
   'media_recorder_not_supported',
   'orchestrator_unavailable',
+  'no_camera_stream',
+  'recorder_init_failed',
+  'recorder_start_failed',
 ]);
 
 const expoFs = FileSystem as ExpoFileSystemCompat;
@@ -77,10 +79,50 @@ export default function TrainingScreen({ navigation, route }: any) {
   const clipRequestIdRef = useRef<string | null>(null);
   const clipFileRef = useRef<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
-  const [clipSupported, setClipSupported] = useState(true);
+  const [clipCaptureMode, setClipCaptureMode] = useState<'enabled' | 'fallback'>('enabled');
   const clipSupportReasonRef = useRef<string | null>(null);
+  const clipFallbackToastShownRef = useRef(false);
+  const announceClipFallback = useCallback(() => {
+    if (clipFallbackToastShownRef.current) {
+      return;
+    }
+    clipFallbackToastShownRef.current = true;
+    showToast({
+      message: 'Videoaufnahmen funktionieren auf diesem Gerät nicht. Amy speichert trotzdem deine Handbewegungen.',
+      tone: 'info',
+    });
+  }, [showToast]);
   const insets = useSafeAreaInsets();
   const [showInstructions, setShowInstructions] = useState(false);
+
+  const persistFallbackIfUnsupported = useCallback(
+    (reason: string | null | undefined) => {
+      if (!reason) {
+        return false;
+      }
+      if (UNSUPPORTED_CLIP_REASONS.has(reason)) {
+        clipSupportReasonRef.current = reason;
+        if (clipCaptureMode !== 'fallback') {
+          setClipCaptureMode('fallback');
+        }
+        return true;
+      }
+      return false;
+    },
+    [clipCaptureMode],
+  );
+
+  const enterClipFallback = useCallback(
+    (reason: string) => {
+      clipSupportReasonRef.current = reason;
+      const persisted = persistFallbackIfUnsupported(reason);
+      if (!persisted && clipCaptureMode !== 'fallback') {
+        setClipCaptureMode('fallback');
+      }
+      announceClipFallback();
+    },
+    [announceClipFallback, clipCaptureMode, persistFallbackIfUnsupported],
+  );
 
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
     const targetUri = await persistClipToDirectory({
@@ -141,21 +183,21 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const trainingLoopStage = useMemo<WorkflowRouteName>(() => {
     if (error) {
-      return 'Recognition';
+      return APP_TAB_ROUTES.Recognition;
     }
     if (!gestureId) {
-      return 'Lernen';
+      return APP_TAB_ROUTES.Lernen;
     }
     if (isRecording) {
-      return 'Recognition';
+      return APP_TAB_ROUTES.Recognition;
     }
     if (framesCaptured > 0 && !isRecording) {
-      return 'History';
+      return APP_TAB_ROUTES.History;
     }
     if (count > 0) {
-      return 'Lernen';
+      return APP_TAB_ROUTES.Lernen;
     }
-    return 'Recognition';
+    return APP_TAB_ROUTES.Recognition;
   }, [count, error, framesCaptured, gestureId, isRecording]);
 
   // Local frame processor removed; remote fallback below now drives landmark updates.
@@ -259,10 +301,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     if (recordingState !== 'idle') {
       return;
     }
-    if (!gestureId || !cameraReady || !clipSupported) {
-      if (!clipSupported) {
-        showToast({ message: CLIP_UNSUPPORTED_TEXT, tone: 'warning' });
-      }
+    if (!gestureId || !cameraReady) {
       return;
     }
     setError(null);
@@ -271,26 +310,41 @@ export default function TrainingScreen({ navigation, route }: any) {
     setLastDetection(0);
     await cleanupClipFile();
 
-    try {
-      const clipId = detectorRef.current
-        ? await detectorRef.current.startClipCapture()
-        : null;
-      if (!clipId) {
-        throw new Error('clip_capture_unavailable');
+    let clipId: string | null = null;
+    let clipMode: typeof clipCaptureMode = clipCaptureMode;
+
+    if (clipMode === 'enabled') {
+      if (persistFallbackIfUnsupported(clipSupportReasonRef.current)) {
+        clipMode = 'fallback';
       }
-      clipRequestIdRef.current = clipId;
-      setRecordingState('recording');
-    } catch (error) {
-      clipRequestIdRef.current = null;
-      logger.warn('Failed to start clip capture', error);
-      setRecordingState('idle');
-      showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
-      return;
     }
+
+    if (clipMode === 'enabled' && detectorRef.current) {
+      try {
+        clipId = await detectorRef.current.startClipCapture();
+      } catch (error) {
+        const reason = error instanceof Error ? error.message ?? 'clip_start_failed' : String(error ?? 'clip_start_failed');
+        logger.warn('Failed to start clip capture, falling back to landmarks-only mode', error);
+        clipMode = 'fallback';
+        enterClipFallback(reason);
+      }
+    }
+
+    clipRequestIdRef.current = clipId;
+    setRecordingState('recording');
 
     // HIP 2 or 4: sample start
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
-  }, [cameraReady, cleanupClipFile, clipSupported, gestureId, isPractice, recordingState, showToast]);
+  }, [
+    cameraReady,
+    cleanupClipFile,
+    clipCaptureMode,
+    enterClipFallback,
+    gestureId,
+    isPractice,
+    persistFallbackIfUnsupported,
+    recordingState,
+  ]);
 
   const stopRecording = useCallback(async () => {
     setRecordingState('processing');
@@ -299,33 +353,44 @@ export default function TrainingScreen({ navigation, route }: any) {
         return;
       }
 
-      if (!clipSupported) {
-        detectorRef.current?.cancelClipCapture();
-        clipRequestIdRef.current = null;
-        await cleanupClipFile();
-        showToast({ message: CLIP_UNSUPPORTED_TEXT, tone: 'warning' });
-        return;
+      let clipUri: string | null = null;
+      let clipMode: typeof clipCaptureMode = clipCaptureMode;
+      if (clipMode === 'enabled') {
+        if (persistFallbackIfUnsupported(clipSupportReasonRef.current)) {
+          clipMode = 'fallback';
+        }
       }
 
-      let clipUri: string | null = null;
-      if (clipRequestIdRef.current && detectorRef.current) {
+      if (clipMode === 'enabled' && clipRequestIdRef.current && detectorRef.current) {
         try {
           const clipResult = await detectorRef.current.stopClipCapture();
+          if (!clipResult?.base64) {
+            throw new Error('clip_payload_empty');
+          }
           clipUri = await persistClip(clipResult);
         } catch (error) {
-          logger.warn('Failed to stop clip capture', error);
-          detectorRef.current.cancelClipCapture();
-          showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
-          return;
+          const reason = error instanceof Error ? error.message ?? 'clip_stop_failed' : 'clip_stop_failed';
+          logger.warn('Failed to stop clip capture, switching to fallback mode', error);
+          clipMode = 'fallback';
+          enterClipFallback(reason);
+          clipUri = '';
+          try {
+            detectorRef.current?.cancelClipCapture();
+          } catch (cancelError) {
+            logger.warn('Failed to cancel clip capture after stop error', cancelError);
+          }
         } finally {
           clipRequestIdRef.current = null;
         }
       } else {
         detectorRef.current?.cancelClipCapture();
         clipRequestIdRef.current = null;
+        if (clipMode === 'fallback') {
+          clipUri = '';
+        }
       }
 
-      if (!clipUri) {
+      if (clipMode === 'enabled' && !clipUri) {
         showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
         return;
       }
@@ -343,7 +408,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         profileId: profile?.id ?? 'default',
         label: gestureId,
         frames: recordedFrames,
-        clipUri,
+        clipUri: clipUri ?? '',
         source: isPractice ? 'HIP_4' : 'HIP_2',
         capturedAt,
       });
@@ -352,7 +417,9 @@ export default function TrainingScreen({ navigation, route }: any) {
         await saveTrainingSample(sample);
         setRecordedFrames([]);
         setCount((c) => c + 1);
+        setFramesCaptured(0);
         setError(null);
+        setLastDetection(0);
 
         // HIP 2 or 4: sample saved
         void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_saved', {
@@ -380,15 +447,16 @@ export default function TrainingScreen({ navigation, route }: any) {
       setRecordingState('idle');
     }
   }, [
+    audioService,
     cameraReady,
     cleanupClipFile,
-    clipSupported,
-    detectorRef,
+    clipCaptureMode,
+    enterClipFallback,
     framesCaptured,
     gestureId,
     isPractice,
-    audioService,
     persistClip,
+    persistFallbackIfUnsupported,
     profile?.id,
     recordedFrames,
     showToast,
@@ -419,6 +487,13 @@ export default function TrainingScreen({ navigation, route }: any) {
     [],
   );
 
+  const handleTimelineStagePress = useCallback(
+    (route: WorkflowRouteName) => {
+      navigation.navigate(ROOT_STACK_ROUTES.App, { screen: route });
+    },
+    [navigation],
+  );
+
   const selectedGesture = useMemo(
     () => gestures.find((gesture) => gesture.id === gestureId) ?? null,
     [gestures, gestureId],
@@ -445,25 +520,25 @@ export default function TrainingScreen({ navigation, route }: any) {
   );
 
   const progressDots = useMemo(
-    () => Array.from({ length: TARGET_SAMPLES }, (_, index) => index < count),
-    [TARGET_SAMPLES, count],
+    () =>
+      Array.from({ length: TARGET_SAMPLES }, (_, index) => {
+        if (index < count) {
+          return 'done' as const;
+        }
+        if (index === count && (isRecording || isProcessingRecording)) {
+          return 'active' as const;
+        }
+        return 'pending' as const;
+      }),
+    [TARGET_SAMPLES, count, isProcessingRecording, isRecording],
   );
 
   const progressLabel = `${Math.min(count, TARGET_SAMPLES)}/${TARGET_SAMPLES} Beispiele`;
   const nextSampleNumber = Math.min(count + 1, TARGET_SAMPLES);
-  const captureDisabled = (!cameraReady && recordingState === 'idle') || !clipSupported || isProcessingRecording;
+  const captureDisabled = (!cameraReady && recordingState === 'idle') || isProcessingRecording;
 
   const captureMessaging = useMemo(
     () => {
-      if (!clipSupported) {
-        return {
-          hint: 'Videoaufnahmen werden von diesem Gerät nicht unterstützt.',
-          detectionStatus: 'Videoaufnahme nicht verfügbar',
-          accessibilityLabel: 'Videoaufnahmen nicht möglich',
-          accessibilityHint: 'Dieses Gerät unterstützt keine Videoaufnahmen für das Training.',
-        } as const;
-      }
-
       if (isProcessingRecording) {
         return {
           hint: 'Clip wird gespeichert …',
@@ -479,6 +554,15 @@ export default function TrainingScreen({ navigation, route }: any) {
           detectionStatus: detectionActive ? 'Aufnahme läuft …' : 'Keine Hand erkannt',
           accessibilityLabel: 'Aufnahme stoppen',
           accessibilityHint: 'Tippe, um die aktuelle Aufnahme zu beenden.',
+        } as const;
+      }
+
+      if (clipCaptureMode === 'fallback') {
+        return {
+          hint: 'Video wird nicht gespeichert – die Handbewegung zählt trotzdem als Beispiel.',
+          detectionStatus: detectionActive ? 'Hand im Bild' : 'Keine Hand',
+          accessibilityLabel: 'Beispiel ohne Video aufnehmen',
+          accessibilityHint: 'Tippe, um ein Beispiel aufzuzeichnen. Das Video wird nicht gespeichert.',
         } as const;
       }
 
@@ -498,7 +582,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         accessibilityHint: 'Tippe, um ein neues Beispiel aufzuzeichnen.',
       } as const;
     },
-    [cameraReady, clipSupported, detectionActive, isProcessingRecording, isRecording, nextSampleNumber],
+    [cameraReady, clipCaptureMode, detectionActive, isProcessingRecording, isRecording, nextSampleNumber],
   );
 
   const captureHint = captureMessaging.hint;
@@ -633,6 +717,10 @@ export default function TrainingScreen({ navigation, route }: any) {
     },
     progressDotFilled: {
       backgroundColor: COLORS.success,
+    },
+    progressDotActive: {
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.warning,
+      transform: [{ scale: 1.1 }],
     },
     progressLabel: {
       paddingHorizontal: SPACING.md,
@@ -844,14 +932,14 @@ export default function TrainingScreen({ navigation, route }: any) {
       flexGrow: 1,
       alignItems: 'center',
       justifyContent: 'flex-start',
-      paddingTop: SPACING.lg,
-      paddingBottom: SPACING.xxl * 4,
+      paddingTop: SPACING.md,
+      paddingBottom: SPACING.xxl * 3,
     },
     loopWrapper: {
       width: '100%',
       maxWidth: 520,
-      marginBottom: SPACING.lg,
-      alignItems: 'center',
+      marginBottom: SPACING.md,
+      alignItems: 'flex-start',
       alignSelf: 'center',
     },
     content: {
@@ -987,7 +1075,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       backgroundColor: COLORS.highContrastPressed,
     },
     secondaryButtonText: {
-      color: COLORS.highContrastText,
+      color: COLORS.text,
       fontSize: 14,
       fontWeight: 'bold',
     },
@@ -1019,38 +1107,41 @@ export default function TrainingScreen({ navigation, route }: any) {
                 setLastDetection(Date.now());
               }
             }}
-                  onError={(message, details?: MediaPipeErrorDetails) => {
-                    if (message === 'clip_error') {
-                      const reason = details?.reason ?? 'unknown';
-                      setRecordingState('idle');
-                      clipRequestIdRef.current = null;
+            onError={(message, details?: MediaPipeErrorDetails) => {
+              if (message === 'clip_error') {
+                const reason = details?.reason ?? 'unknown';
+                setRecordingState('idle');
+                clipRequestIdRef.current = null;
+                clipSupportReasonRef.current = reason;
 
-                      if (UNSUPPORTED_CLIP_REASONS.has(reason)) {
-                        logger.warn('Clip capture unsupported on this device', { reason });
-                        setClipSupported(false);
-                        clipSupportReasonRef.current = reason;
-                        detectorRef.current?.cancelClipCapture();
-                        void cleanupClipFile();
-                        void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_unsupported', {
-                          reason,
-                        });
-                        showToast({ message: CLIP_UNSUPPORTED_TEXT, tone: 'warning' });
-                      } else {
-                        logger.warn('TrainingScreen clip error received', { reason });
-                        void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_failed', {
-                          reason,
-                        });
-                        showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
-                      }
-                      return;
-                    }
+                const unsupported = persistFallbackIfUnsupported(reason);
+                detectorRef.current?.cancelClipCapture();
+                void cleanupClipFile();
+                announceClipFallback();
 
-                    logger.warn('TrainingScreen detector error:', message);
-                    showToast({
-                      message: 'Die Erkennung wurde angehalten. Bitte versuch es erneut.',
-                      tone: 'warning',
-                    });
-                  }}
+                if (unsupported) {
+                  void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_unsupported', {
+                    reason,
+                  });
+                } else {
+                  logger.warn('TrainingScreen clip error received', { reason });
+                  if (clipCaptureMode !== 'fallback') {
+                    setClipCaptureMode('fallback');
+                  }
+                  void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_failed', {
+                    reason,
+                  });
+                  showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
+                }
+                return;
+              }
+
+              logger.warn('TrainingScreen detector error:', message);
+              showToast({
+                message: 'Die Erkennung wurde angehalten. Bitte versuch es erneut.',
+                tone: 'warning',
+              });
+            }}
             facingMode={facingMode}
             onCameraStateChange={handleCameraStateChange}
           />
@@ -1109,10 +1200,14 @@ export default function TrainingScreen({ navigation, route }: any) {
 
         <View style={[styles.progressIndicator, { top: progressTop }]}>
           <View style={styles.progressDots}>
-            {progressDots.map((filled, index) => (
+            {progressDots.map((status, index) => (
               <View
                 key={`progress-${index}`}
-                style={[styles.progressDot, filled && styles.progressDotFilled]}
+                style={[
+                  styles.progressDot,
+                  status === 'done' && styles.progressDotFilled,
+                  status === 'active' && styles.progressDotActive,
+                ]}
               />
             ))}
           </View>
@@ -1254,7 +1349,14 @@ export default function TrainingScreen({ navigation, route }: any) {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.loopWrapper}>
-          <AmyLoopTimeline activeStage={trainingLoopStage} />
+          <AmyLoopTimeline
+            activeStage={trainingLoopStage}
+            layout="inline"
+            compact
+            hideDescriptions
+            showIcons={false}
+            onStagePress={handleTimelineStagePress}
+          />
         </View>
         <View style={styles.content}>
           <View style={styles.panel}>

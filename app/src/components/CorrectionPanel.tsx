@@ -148,13 +148,16 @@ function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions }: Correcti
       minWidth: 104,
     },
     actionButtonSecondary: {
-      backgroundColor: highContrast ? COLORS.textMuted : COLORS.secondaryAccent,
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.secondaryAccent,
     },
     actionButtonText: {
       color: COLORS.highContrastText,
       fontSize: largeText ? 18 : 16,
       fontWeight: 'bold',
       textAlign: 'center',
+    },
+    actionButtonSecondaryText: {
+      color: highContrast ? COLORS.highContrastBackground : COLORS.text,
     },
     suggestionsContainer: {
       marginBottom: SPACING.sm,
@@ -173,20 +176,22 @@ function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions }: Correcti
       position: 'absolute',
       top: -8,
       right: -8,
-      backgroundColor: COLORS.success,
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.success,
       borderRadius: 12,
       width: 24,
       height: 24,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: highContrast ? COLORS.highContrastBackground : COLORS.neutral,
     },
     confidenceText: {
       fontSize: 14,
-      color: COLORS.highContrastText,
+      color: highContrast ? COLORS.highContrastBackground : COLORS.neutral,
     },
     recommendedText: {
       fontSize: largeText ? 12 : 10,
-      color: COLORS.success,
+      color: COLORS.primaryAccent,
       fontWeight: 'bold',
       marginTop: SPACING.xs,
     },
@@ -256,14 +261,16 @@ function CorrectionPanel({ onSelect, onAddNew, onCancel, suggestions }: Correcti
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 onCancel();
               }}
-              accessibilityRole="button"
-              accessibilityLabel="Korrektur abbrechen"
-            >
-              <Text style={styles.actionButtonText}>Abbrechen</Text>
-            </Pressable>
+          accessibilityRole="button"
+          accessibilityLabel="Korrektur abbrechen"
+        >
+          <Text style={[styles.actionButtonText, styles.actionButtonSecondaryText]}>
+            Abbrechen
+          </Text>
+        </Pressable>
 
-            <Pressable
-              style={({ pressed }) => [styles.actionButton, pressed && styles.optionButtonPressed]}
+        <Pressable
+          style={({ pressed }) => [styles.actionButton, pressed && styles.optionButtonPressed]}
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 onAddNew();

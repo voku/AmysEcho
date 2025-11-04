@@ -1004,7 +1004,7 @@ const createStyles = (largeText: boolean, highContrast: boolean, buttonStyles: a
       opacity: 0.8,
     },
     secondaryButtonText: {
-      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      color: highContrast ? COLORS.highContrastText : COLORS.inverseText,
       fontWeight: 'bold',
     },
     overlay: {

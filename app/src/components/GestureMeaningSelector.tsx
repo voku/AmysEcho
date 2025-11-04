@@ -181,7 +181,14 @@ export function GestureMeaningSelector({
                 accessibilityRole="button"
                 accessibilityLabel={`${meaning.name} auswählen`}
               >
-                <Text style={styles.selectButtonText}>Auswählen</Text>
+                <Text
+                  style={[
+                    styles.selectButtonText,
+                    selectedMeaningId === meaning.id && styles.selectButtonTextActive,
+                  ]}
+                >
+                  Auswählen
+                </Text>
               </Pressable>
             </View>
           ))}
@@ -361,6 +368,9 @@ const BASE_STYLES = StyleSheet.create({
     color: COLORS.surface,
     fontWeight: 'bold',
   },
+  selectButtonTextActive: {
+    color: COLORS.text,
+  },
   cancelButton: {
     marginTop: SPACING.md,
     alignSelf: 'center',
@@ -483,6 +493,10 @@ function createStyles(largeText: boolean, highContrast: boolean) {
       ...BASE_STYLES.selectButtonText,
       fontSize: largeText ? 16 : 14,
       color: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+    },
+    selectButtonTextActive: {
+      ...BASE_STYLES.selectButtonTextActive,
+      color: highContrast ? COLORS.highContrastBackground : COLORS.text,
     },
     cancelButton: {
       ...BASE_STYLES.cancelButton,

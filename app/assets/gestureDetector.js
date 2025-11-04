@@ -4642,7 +4642,9 @@
         mimeType: recorder.mimeType || mimeType || this.getPlatformDefaultMime(),
         frameCount: 0,
         timeoutHandle: null,
-        aborted: false
+        aborted: false,
+        timesliceMs: null,
+        requestDataInterval: null
       };
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -4658,13 +4660,29 @@
       recorder.onstop = () => {
         this.handleClipStop(state);
       };
-      try {
-        recorder.start(500);
-      } catch (error) {
+      const startResult = this.startRecorder(recorder);
+      if (!startResult.ok) {
         state.aborted = true;
-        this.sendClipError(requestId, "recorder_start_failed", error);
+        this.sendClipError(requestId, "recorder_start_failed", startResult.error);
         this.resetClipCapture(true);
         return;
+      }
+      state.timesliceMs = startResult.timesliceMs;
+      if (state.timesliceMs === null && typeof recorder.requestData === "function") {
+        state.requestDataInterval = window.setInterval(() => {
+          if (state.aborted || state.recorder.state !== "recording") {
+            if (state.requestDataInterval) {
+              clearInterval(state.requestDataInterval);
+              state.requestDataInterval = null;
+            }
+            return;
+          }
+          try {
+            state.recorder.requestData();
+          } catch (intervalError) {
+            console.warn("Failed to request clip data during recording:", intervalError);
+          }
+        }, 1e3);
       }
       state.timeoutHandle = window.setTimeout(() => {
         state.aborted = true;
@@ -4674,7 +4692,8 @@
       this.clipCaptureState = state;
       this.sendClipTelemetry("clip_started", requestId, {
         mimeType: state.mimeType,
-        recorderMimeType: recorder.mimeType
+        recorderMimeType: recorder.mimeType,
+        timesliceMs: state.timesliceMs
       });
     }
     stopClipCapture(requestId) {
@@ -4683,6 +4702,13 @@
         return;
       }
       try {
+        if (this.clipCaptureState.timesliceMs === null && typeof this.clipCaptureState.recorder.requestData === "function") {
+          try {
+            this.clipCaptureState.recorder.requestData();
+          } catch (requestError) {
+            console.warn("Failed to request final clip data before stop:", requestError);
+          }
+        }
         if (this.clipCaptureState.recorder.state !== "inactive") {
           this.clipCaptureState.recorder.stop();
         }
@@ -4715,6 +4741,10 @@
       if (state.timeoutHandle) {
         clearTimeout(state.timeoutHandle);
       }
+      if (state.requestDataInterval) {
+        clearInterval(state.requestDataInterval);
+        state.requestDataInterval = null;
+      }
       if (stopRecorder) {
         try {
           if (state.recorder.state !== "inactive") {
@@ -4724,11 +4754,23 @@
           console.warn("Failed to stop recorder during reset:", error);
         }
       }
+      try {
+        state.recorder.ondataavailable = null;
+        state.recorder.onerror = null;
+        state.recorder.onstop = null;
+        state.recorder.onstart = null;
+      } catch (error) {
+        console.warn("Failed to detach recorder listeners during reset:", error);
+      }
       this.clipCaptureState = null;
     }
     handleClipStop(state) {
       if (state.timeoutHandle) {
         clearTimeout(state.timeoutHandle);
+      }
+      if (state.requestDataInterval) {
+        clearInterval(state.requestDataInterval);
+        state.requestDataInterval = null;
       }
       if (state.aborted) {
         return;
@@ -4905,6 +4947,44 @@
       }
       const normalized = rawMessage.toLowerCase();
       return normalized.includes("mime type") || normalized.includes("codec") || normalized.includes("not supported") || normalized.includes("unsupported");
+    }
+    isTimesliceUnsupportedError(error) {
+      if (!error) {
+        return false;
+      }
+      const name = error?.name;
+      if (name === "NotSupportedError") {
+        return true;
+      }
+      const code = error?.code;
+      if (code === 11) {
+        return true;
+      }
+      const message = error?.message;
+      if (typeof message === "string") {
+        const normalized = message.toLowerCase();
+        if (normalized.includes("timeslice") || normalized.includes("duration") || normalized.includes("timeslice value")) {
+          return true;
+        }
+      }
+      return false;
+    }
+    startRecorder(recorder) {
+      const preferredTimeslice = 500;
+      try {
+        recorder.start(preferredTimeslice);
+        return { ok: true, timesliceMs: preferredTimeslice };
+      } catch (error) {
+        if (!this.isTimesliceUnsupportedError(error)) {
+          return { ok: false, error };
+        }
+        try {
+          recorder.start();
+          return { ok: true, timesliceMs: null };
+        } catch (fallbackError) {
+          return { ok: false, error: fallbackError };
+        }
+      }
     }
     resolveClipMimeType(state) {
       for (const chunk of state.chunks) {
