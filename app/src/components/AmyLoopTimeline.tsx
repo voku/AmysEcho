@@ -65,6 +65,44 @@ const MODE_STYLES = {
   },
 } as const;
 
+type ModeColorTokens = (typeof MODE_STYLES)[keyof typeof MODE_STYLES]['container'];
+
+function getBadgeTextColor(
+  highContrast: boolean,
+  modeColors: ModeColorTokens,
+  isActive: boolean,
+  isComplete: boolean,
+) {
+  if (highContrast) {
+    return COLORS.highContrastText;
+  }
+  if (isActive) {
+    return modeColors.badgeText;
+  }
+  if (isComplete) {
+    return COLORS.neutral;
+  }
+  return modeColors.inactiveBadgeText;
+}
+
+function getInlineLabelColor(
+  highContrast: boolean,
+  modeColors: ModeColorTokens,
+  isActive: boolean,
+  isComplete: boolean,
+) {
+  if (highContrast) {
+    return COLORS.highContrastText;
+  }
+  if (isActive) {
+    return modeColors.title;
+  }
+  if (isComplete) {
+    return COLORS.success;
+  }
+  return modeColors.description;
+}
+
 export function AmyLoopTimeline({
   activeStage,
   mode = 'surface',
@@ -105,22 +143,10 @@ export function AmyLoopTimeline({
           : isComplete
             ? COLORS.success
             : modeColors.inactiveBadgeBackground;
-        const badgeTextColor = highContrast
-          ? COLORS.highContrastText
-          : isActive
-            ? modeColors.badgeText
-            : isComplete
-              ? COLORS.neutral
-              : modeColors.inactiveBadgeText;
+        const badgeTextColor = getBadgeTextColor(highContrast, modeColors, isActive, isComplete);
 
         const connectorColor = highContrast ? COLORS.highContrastText : modeColors.connector;
-        const inlineLabelColor = highContrast
-          ? COLORS.highContrastText
-          : isActive
-            ? modeColors.title
-            : isComplete
-              ? COLORS.success
-              : modeColors.description;
+        const inlineLabelColor = getInlineLabelColor(highContrast, modeColors, isActive, isComplete);
 
         const WrapperComponent = isInteractive ? Pressable : View;
 

@@ -406,7 +406,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         profileId: profile?.id ?? 'default',
         label: gestureId,
         frames: recordedFrames,
-        clipUri,
+        clipUri: clipUri ?? '',
         source: isPractice ? 'HIP_4' : 'HIP_2',
         capturedAt,
       });
