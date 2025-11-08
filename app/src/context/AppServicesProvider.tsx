@@ -126,6 +126,19 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       refreshState.promise = promise;
       return promise;
     };
+
+    const scheduleModelRefresh = (): Promise<void> => {
+      if (cancelled) {
+        return refreshState.promise;
+      }
+
+      if (refreshState.running) {
+        refreshState.queued = Math.max(refreshState.queued, 1);
+        return refreshState.promise;
+      }
+
+      return runModelRefresh();
+    };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;
       try {
@@ -146,7 +159,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           unsubscribeModelUpdates = onMlpModelUpdated(() => {
             logger.info('MLP model update event received');
             Promise.resolve()
-              .then(() => runModelRefresh())
+              .then(() => scheduleModelRefresh())
               .catch((eventError) => {
                 logger.warn('Failed to refresh model after update event', eventError);
               });
@@ -154,13 +167,11 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
 
           interval = setInterval(() => {
             syncTrainingData().catch(() => {});
-            runModelRefresh().catch(() => {});
+            scheduleModelRefresh().catch(() => {});
           }, 6 * 60 * 60 * 1000);
 
           syncTrainingData().catch(() => {});
-          if (!refreshState.running) {
-            runModelRefresh().catch(() => {});
-          }
+          scheduleModelRefresh().catch(() => {});
 
           // Lightweight periodic telemetry upload
           const runPeriodicTelemetryUpload = async () => {
