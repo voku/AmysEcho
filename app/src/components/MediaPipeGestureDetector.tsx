@@ -22,10 +22,7 @@ import { logger } from '../utils/logger';
 import { useModelInjection } from '../hooks/useModelInjection';
 import { fetchMlpModel, getCachedMlpModel, getCachedMlpMeta } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
-import {
-  DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE,
-  getClipCaptureErrorMessage,
-} from '../utils/clipPersistence';
+import { getClipCaptureErrorMessage } from '../utils/clipPersistence';
 import type { ClipReadyPayload, FrameBatchPayload, FrameCapturePayload } from '../types/frames';
 
 const MAX_ERROR_PAYLOAD_SNIPPET_LENGTH = 200;
@@ -125,7 +122,6 @@ const PREDICTION_ERROR_TEXT = "Das hat nicht geklappt. Lass es uns nochmal versu
 const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
 const CAMERA_RETRY_PROMPT_TEXT = 'Die Kamera braucht einen Moment. Tippe, um sie neu zu starten.';
 const GESTURE_PROCESSING_ERROR_TEXT = "Das hat nicht geklappt. Probier's einfach nochmal!";
-const CLIP_RECORDING_ERROR_TEXT = DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
 const CLIP_UNSUPPORTED_DEVICE_TEXT = 'Dieses Gerät unterstützt keine Videoaufnahmen.';
 const DEFAULT_GESTURE_SIZE_TOLERANCE = 0.3;
 

@@ -178,32 +178,32 @@ export class GestureMeaningService {
 
     // Validate gesture strings
     if (!leftGesture || !rightGesture) {
-      issues.push('Missing gesture data for one or both hands');
+      issues.push('Gestendaten für eine oder beide Hände fehlen');
       accessibilityScore *= 0.5;
     }
 
     // Validate confidence levels
     if (leftConfidence < this.MIN_INDIVIDUAL_CONFIDENCE) {
-      issues.push(`Left hand confidence too low: ${leftConfidence}`);
-      suggestions.push('Try clearer left hand gesture');
+      issues.push(`Sicherheit der linken Hand zu niedrig: ${leftConfidence}`);
+      suggestions.push('Zeig die linke Hand noch deutlicher');
       accessibilityScore *= 0.8;
     }
 
     if (rightConfidence < this.MIN_INDIVIDUAL_CONFIDENCE) {
-      issues.push(`Right hand confidence too low: ${rightConfidence}`);
-      suggestions.push('Try clearer right hand gesture');
+      issues.push(`Sicherheit der rechten Hand zu niedrig: ${rightConfidence}`);
+      suggestions.push('Zeig die rechte Hand noch deutlicher');
       accessibilityScore *= 0.8;
     }
 
     // Validate handedness
     if (!handedness || handedness.length < 2) {
-      issues.push('Insufficient handedness data');
+      issues.push('Unzureichende Händigkeit-Daten');
       accessibilityScore *= 0.7;
     }
 
     // Validate landmarks
     if (!landmarks || landmarks.length < 2) {
-      issues.push('Insufficient landmark data for coordinated gesture');
+      issues.push('Zu wenige Landmarken für die koordinierte Geste');
       accessibilityScore *= 0.6;
     }
 
@@ -215,8 +215,8 @@ export class GestureMeaningService {
       );
 
       if (matchingGestures.length === 0) {
-        issues.push('Identical gestures on both hands may not be intended for coordinated gesture recognition');
-        suggestions.push('Try different gestures on each hand or use single-hand recognition');
+        issues.push('Identische Gesten auf beiden Händen sind möglicherweise nicht für koordinierte Gesten vorgesehen');
+        suggestions.push('Nutze unterschiedliche Gesten pro Hand oder wechsle zur Einhand-Erkennung');
         accessibilityScore *= 0.9;
       }
     }
